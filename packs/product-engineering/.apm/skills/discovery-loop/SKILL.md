@@ -207,7 +207,7 @@ roster of its own:
   `quality-engineer`** (collision-hardened names) and **degrade only in *depth***
   — their own baseline checklists when `core`'s `security-checklists` /
   `operational-safety` depth is absent, **never to nothing**.
-- **Optional detect-and-degrade:** the `desk-research` / `experience` / `architect`
+- **Optional detect-and-degrade:** the `desk-research` / `experience-design` / `architect`
   lenses (and `experience-reviewer` / `design-reviewer` if those packs are
   installed) — product-only discovery at the floor.
 - **Lens conflicts:** factual → `discovery-lead` arbitrates via referents on the

@@ -114,7 +114,7 @@ nav:
     - "Release Engineering": packs/release-engineering.md
     - "Desk Research": packs/desk-research.md
     - Architect: packs/architect.md
-    - Experience: packs/experience.md
+    - Experience Design: packs/experience-design.md
     - Contracts: packs/contracts.md
     - Converters: packs/converters.md
     - Atlassian: packs/atlassian.md
@@ -197,14 +197,14 @@ nav:
         - Reference Architecture: guides/architect/reference/reference-architecture.md
       - Tutorials:
         - Create Reference Arch: guides/architect/tutorials/create-your-reference-architecture.md
-    - Experience:
-      - guides/experience/README.md
+    - Experience Design:
+      - guides/experience-design/README.md
       - Explanation:
-        - The Experience Thread: guides/experience/explanation/the-experience-thread.md
+        - The Experience Thread: guides/experience-design/explanation/the-experience-thread.md
       - How-to:
-        - Author Design Intent: guides/experience/how-to/author-design-intent.md
+        - Author Design Intent: guides/experience-design/how-to/author-design-intent.md
       - Reference:
-        - Experience Pack: guides/experience/reference/experience.md
+        - Experience Design Pack: guides/experience-design/reference/experience-design.md
     - Contracts:
       - guides/contracts/README.md
       - Explanation:

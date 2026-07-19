@@ -285,7 +285,7 @@ out-edges → mark `stale` → re-run only the affected lenses):
 
 ## Anti-drift — why the schema cannot drift
 
-The would-be writers are **not all in one pack** (lenses span `experience` /
+The would-be writers are **not all in one pack** (lenses span `experience-design` /
 `architect` / `contracts`), so same-pack co-location cannot be the guarantee.
 Drift is prevented structurally:
 
