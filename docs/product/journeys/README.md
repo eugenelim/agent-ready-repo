@@ -64,7 +64,7 @@ The adoption journey is the prerequisite for everything else. It covers two path
 
 | Journey | Persona | Status | Initiative links |
 |---|---|---|---|
-| [Engineering team evaluates and adopts](team-evaluates-and-adopts.md) | Any team evaluating the platform — self-serve (senior engineer installs and ships first spec) or sponsored (enterprise champion demos to CTO, platform team rolls out) | planned | INI-002 M1 (what the team adopts); M6 (tutorial, rollout playbook, live-demo guide) |
+| [Engineering team evaluates and adopts](team-evaluates-and-adopts.md) | Any team evaluating the platform — self-serve (senior engineer installs and ships first spec) or sponsored (enterprise champion demos to CTO, platform team rolls out) | planned | INI-002 M1 (delivered — what the team adopts); M6 (pending — tutorial, rollout playbook, live-demo guide) |
 
 ---
 
@@ -74,9 +74,9 @@ All four journeys converge on the work queue — different actors, same `work-lo
 
 | Journey | Persona | Status | Initiative links |
 |---|---|---|---|
-| [Engineer adopts AI-native coordination](engineer-adopts-coordination.md) | Engineer installing Platform Core and operating it end-to-end for the first time | planned | INI-002 M1–M6 (primary) |
-| [Engineer runs the work-loop](engineer-runs-work-loop.md) | Interactive implementer using `work-loop` day-to-day; human in the loop for plan review and gate navigation | planned | INI-002 M1 (primary); M2–M6 (ongoing improvements) |
-| [Agent executes spec autonomously](agent-executes-spec.md) | Headless agent cold-starting, orienting, executing, and shipping without human intervention | planned | INI-002 M1 (primary); INI-003 M1+ (extends) |
+| [Engineer adopts AI-native coordination](engineer-adopts-coordination.md) | Engineer installing Platform Core and operating it end-to-end for the first time | planned | INI-002 M1–M6 (primary); M1 delivered |
+| [Engineer runs the work-loop](engineer-runs-work-loop.md) | Interactive implementer using `work-loop` day-to-day; human in the loop for plan review and gate navigation. Two paths: initiative (workspace.toml) and ad-hoc. | shipped | INI-002 M1 (delivered) |
+| [Agent executes spec autonomously](agent-executes-spec.md) | Headless agent cold-starting, orienting, executing, and shipping without human intervention | shipped | INI-002 M1 (delivered); INI-003 M1+ (pending) |
 | [Engineer scales to coordinated agent swarm](engineer-scales-to-swarm.md) | Team with INI-002 M1 in place, scaling to headless CLI agent pipelines across multiple specs in parallel | shaping | INI-003 M1+ (primary); INI-002 M1 (prerequisite) |
 
 ---
@@ -85,11 +85,12 @@ All four journeys converge on the work queue — different actors, same `work-lo
 
 ## Specialist pack journeys
 
-These journeys cover the end-to-end experience of a specific optional pack, including its integration with the loop arc (work-loop + release-loop) and day-2 operations. They sit inside the build room — they are specialised variants of the `engineer-runs-work-loop` path for a specific domain.
+These journeys cover the end-to-end experience of a specific optional pack. They sit inside the build room — specialised variants of the `engineer-runs-work-loop` path for a specific domain.
 
 | Journey | Pack | Status | RFC |
 |---|---|---|---|
-| [Engineer provisions infrastructure](engineer-provisions-infrastructure.md) | `iac-terraform` — repo scope | planned | [RFC-0065](../../rfc/0065-iac-terraform-pack.md) |
+| [Engineer provisions infrastructure](engineer-provisions-infrastructure.md) | `iac-terraform` — repo scope | shipped | [RFC-0065](../../rfc/0065-iac-terraform-pack.md) |
+| [Designer designs a surface](designer-designs-surface.md) | `experience` — user scope; genre-aware design chain (0.5.0 current; 0.6.0 planned) | planned | [RFC-0066](../../rfc/0066-experience-pack-surface-genre-uplift.md) |
 
 ---
 
@@ -106,6 +107,7 @@ flowchart TB
     AG["Agent (autonomous)\nagent-executes-spec"]
     SW["Swarm\nengineer-scales-to-swarm"]
     ADO["Adopting engineer\nengineer-adopts-coordination"]
+    D["Designer\ndesigner-designs-surface"]
 
     S -->|"OKR gaps → shaping_queue"| PE
     PE -->|"bet + capability map"| BQ
@@ -114,6 +116,8 @@ flowchart TB
     WQ --> E
     WQ --> AG
     WQ --> SW
+    WQ -->|"spec with surface-genre brief"| D
+    D -->|"handoff to frontend-engineering"| E
     ADO -. "cross-cutting view" .-> BQ
     ADO -. "cross-cutting view" .-> WQ
 ```
