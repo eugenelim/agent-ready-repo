@@ -4,7 +4,7 @@ slug: designer-designs-surface
 persona: designer-or-design-eng-hybrid
 outcome: genre-grounded-surface-design-ready-for-build
 surface: cross-platform
-status: planned
+status: shipped
 initiative_links:
   - id: RFC-0066
     name: Experience pack surface-genre uplift
@@ -38,14 +38,13 @@ Two paths share this journey:
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| experience | user | current (0.5.0) | `map-customer-journey`, `service-blueprint`, `aesthetic-direction`, `layout-and-information-architecture`, `map-screen-flow`, `interaction-design`, `design-critique`, `design-system-foundations`, `content-design`, `copy-direction`, `map-internal-process` |
-| experience | user | planned (0.6.0) | 16 skills covering the genre-aware design chain: `journey-mapping`, `service-blueprint`, `design-principles`, `creative-direction`, `information-architecture`, `user-flow`, `interaction-design`, `design-review`, `design-system`, `content-design` + 6 genre-specific Direct skills (`conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, `workspace-design`) |
+| experience | user | current (0.6.0) | 18 skills: 9 renamed to canonical vocabulary, 7 new (design-principles + 6 genre-specific Direct skills), 7 extensions across 6 existing skills, surface-genre contract |
 
-**Setup (current — 0.5.0):**
+**Historical baseline (experience 0.5.0):**
 1. Install experience pack at user scope.
 2. Begin with `map-customer-journey` → `aesthetic-direction` → `layout-and-information-architecture` → `map-screen-flow` → `interaction-design` → `design-critique`.
 
-**Setup (to-be — 0.6.0):**
+**Shipped state (experience 0.6.0):**
 1. Install experience pack at user scope.
 2. Begin with `journey-mapping` → `design-principles` → genre-specific Direct skill → `user-flow` → `interaction-design` → `design-review`.
 3. Surface genre declared once at `user-flow` (or elicited inline); flows to all downstream skills automatically.
@@ -80,9 +79,7 @@ sequenceDiagram
     DC-->>D: Findings list (no principle anchoring, no genre rubric)
 ```
 
----
-
-## To-be state — experience 0.6.0 (RFC-0066)
+## Shipped state — experience 0.6.0
 
 ```mermaid
 sequenceDiagram
@@ -293,7 +290,9 @@ Design quality signals that indicate the skill chain is working. These are proce
 
 All genres now have dedicated Direct skills. The remaining friction for the first-time user is Stage 3 (Direct) cognitive load — six genre-specific skills mean more choices, more reading. The tradeoff is deliberate: depth over simplicity.
 
-**Peak moment:** Stage 2 (Define) — the first time a designer derives design principles and runs the arbitration test ("given two wireframes, which does this principle prefer?"), the value of the Define phase becomes immediate. Designers who have run it once do not skip it.
+**Peak moment (shipped):** Stage 2 (Define) — the first time a designer derives design principles and runs the arbitration test ("given two wireframes, which does this principle prefer?"), the value of the Define phase becomes immediate. Designers who have run it once do not skip it.
+
+**Highest-opportunity pain (current):** "Every design review turns into a debate about what we're optimising for. We all agree the design has problems but we can't agree on which direction to go. We had the conversation at the start of the project and then never wrote it down."
 
 **Primary design response:** `design-principles` closes this pain directly. One session of principle derivation replaces repeated direction debates.
 
@@ -313,6 +312,4 @@ All original open design questions are resolved in RFC-0066. No open design ques
 
 ## Handoff notes
 
-**For marketing site update:** The skill list in `web/` names skills by their slugs. Verify the 9 renames from 0.5.0 → 0.6.0 are reflected in the marketing site copy.
-
-**For docs site update:** `docs/guides/experience/` (4 files) should be verified against the post-rename skill slugs. New skills (`design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, `workspace-design`) may need guide stubs.
+**Shipped in RFC-0066 implementation PR:** 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template added to the screen-brief, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (9 skills to canonical vocabulary), D8 0.5.0 → 0.6.0 bump. Marketing site (`web/`) and docs guides (`docs/guides/experience/`) updated in the same PR.

@@ -1,0 +1,20 @@
+{
+  "skill_name": "user-flow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Map the screen flow for the customer journey the user provided.",
+      "expected_output": "A screen flow — the screens the journey implies, sequenced, with named transitions and explicit error/edge flows (a failed or denied action routes to a named screen/state), authored as a mermaid flowchart over the enumerated screen inventory; a per-screen state matrix that DEFERS to the shared quality floor (names which states apply, does not restate the set); the platform/surface axis; and one self-contained per-screen brief per screen, split into a referenced shared design contract and a per-screen spec, each action naming its backing service and each screen naming its journey step. It foregrounds the macro flow across screens (not the in-screen behavior, which is interaction-design's). The procedure ends in a cross-brief consistency pass AND a whole-journey verification that always runs — a low-fi prototype via MCP when a tool is present, else the text-only steel thread asserting every transition resolves and every action has a backing service — never ending at 'briefs emitted'. It surfaces the resolved layout path before writing and points to platform conventions without reprinting their values.",
+      "assertions": [
+        "Produces a sequenced flow with named transitions AND explicit error/edge flows (not a bare screen list)",
+        "Carries the platform/surface axis and points to platform conventions without reprinting values",
+        "The per-screen state matrix defers to the shared quality floor rather than restating the state set",
+        "Emits one per-screen brief per screen with the shared-contract / per-screen-spec split (contract referenced, not copied)",
+        "Each action names a backing service and each screen names its journey step (the traceability seams)",
+        "Ends in a cross-brief consistency pass and a non-droppable whole-journey walk (prototype → text-only steel thread, never skipped)",
+        "Foregrounds macro flow across screens and routes in-component behavior to interaction-design",
+        "Surfaces the resolved layout path before writing the flow and the briefs"
+      ]
+    }
+  ]
+}

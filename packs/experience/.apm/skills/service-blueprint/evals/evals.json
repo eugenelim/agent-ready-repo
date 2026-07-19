@@ -1,0 +1,20 @@
+{
+  "skill_name": "service-blueprint",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build a service blueprint for the user journey the user described or provided.",
+      "expected_output": "A four-row service blueprint artifact written to the resolved layout path (<parent>/blueprints/<slug>.md) with frontmatter `type: service-blueprint`. Before writing, the skill surfaces the resolved absolute path. The blueprint populates all four rows (frontstage / line-of-visibility / backstage / support) for every journey column. Every frontstage action has a backstage entry, or the gap is named explicitly. Each distinct backstage service is named as a candidate for component decomposition. When `architect`/`contracts` are present, services are named by stable noun-phrase by-reference; when absent, services are named textually with a role description. The artifact ends with a `## Hand-off` section naming each backstage service and its downstream consumer (`architect`, `contracts`, or spec LLD). No stack tokens, timing literals, or values tables appear anywhere in the output.",
+      "assertions": [
+        "Surfaces the resolved absolute output path before the first write",
+        "Artifact carries frontmatter `type: service-blueprint`",
+        "All four rows are present: frontstage, line-of-visibility marker, backstage, support",
+        "Every frontstage column has a backstage entry, or the gap is named explicitly — no silent blanks",
+        "Each backstage service is named as a component-decomposition candidate",
+        "Detect-and-degrade: services named by-reference when `architect`/`contracts` present; named textually with role description when absent",
+        "Artifact includes a `## Hand-off` section listing named services and their downstream consumer",
+        "No stack tokens, dimension/duration literals, color literals, or values tables in the output"
+      ]
+    }
+  ]
+}

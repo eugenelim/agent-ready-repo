@@ -1,7 +1,7 @@
 [pack]
 name = "experience"
-version = "0.5.1"
-description = "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (map-customer-journey → content-design → copy-direction → map-screen-flow → blueprint-service) and map the inside-out sibling (map-internal-process); craft skills design each screen (aesthetic-direction, design-system-foundations, layout-and-information-architecture, interaction-design) and critique it (design-critique), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them."
+version = "0.6.0"
+description = "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping → content-design → tone-of-voice → user-flow → service-blueprint) and map the inside-out sibling (process-mapping); craft skills design each screen (creative-direction, design-system, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them."
 readme = "README.md"
 display_name = "Experience"
 license = "Apache-2.0 OR MIT"
@@ -45,7 +45,7 @@ parent = "docs/design"
 # Skill-router-activated skill, so it is not listed here (its eval surface is
 # its review-list output contract + manual-QA dispatch; RFC-0050 § Errata).
 [pack.evals]
-skills = ["aesthetic-direction", "content-design", "copy-direction", "design-critique", "design-system-foundations", "layout-and-information-architecture", "map-customer-journey", "blueprint-service", "map-screen-flow", "map-internal-process", "interaction-design"]
+skills = ["creative-direction", "content-design", "tone-of-voice", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "design-principles", "conversion-design", "documentation-design", "analytical-design", "marketplace-design", "informational-design", "workspace-design"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
