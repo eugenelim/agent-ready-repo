@@ -40,46 +40,14 @@ Two paths share this journey:
 |---|---|---|---|
 | experience | user | current (0.6.0) | 18 skills: 9 renamed to canonical vocabulary, 7 new (design-principles + 6 genre-specific Direct skills), 7 extensions across 6 existing skills, surface-genre contract |
 
-**Historical baseline (experience 0.5.0):**
-1. Install experience pack at user scope.
-2. Begin with `map-customer-journey` → `aesthetic-direction` → `layout-and-information-architecture` → `map-screen-flow` → `interaction-design` → `design-critique`.
-
-**Shipped state (experience 0.6.0):**
+**Setup:**
 1. Install experience pack at user scope.
 2. Begin with `journey-mapping` → `design-principles` → genre-specific Direct skill → `user-flow` → `interaction-design` → `design-review`.
 3. Surface genre declared once at `user-flow` (or elicited inline); flows to all downstream skills automatically.
 
 ---
 
-## Current state — experience 0.5.0
-
-```mermaid
-sequenceDiagram
-    participant D as Designer
-    participant MCJ as map-customer-journey
-    participant AD as aesthetic-direction
-    participant LIA as layout-and-information-architecture
-    participant MSF as map-screen-flow
-    participant ID as interaction-design
-    participant DC as design-critique
-
-    Note over D,DC: 0.5.0 — no genre routing, no design-principles phase
-    D->>MCJ: Maps customer journey (stages, pains, opportunities)
-    MCJ-->>D: Journey artefact (no peak moment ID, no evidence-level)
-    D->>AD: Sets visual personality and brand goals
-    AD-->>D: Named aesthetic goals + arbitration rules
-    Note over D: No dedicated Define phase — principles in session context only
-    D->>LIA: Structures screen hierarchy and reading flow
-    LIA-->>D: IA + layout reasoning doc (no genre routing)
-    D->>MSF: Sequences screens and navigation routes
-    MSF-->>D: Screen-flow briefs (no surface-genre field)
-    D->>ID: Designs component behavior and interaction states
-    ID-->>D: Interaction patterns (no genre pattern families)
-    D->>DC: Evaluates surface against quality + aesthetic standards
-    DC-->>D: Findings list (no principle anchoring, no genre rubric)
-```
-
-## Shipped state — experience 0.6.0
+## Full design chain
 
 ```mermaid
 sequenceDiagram
@@ -112,13 +80,25 @@ sequenceDiagram
 
 ---
 
+## Lighter modes
+
+Most design work does not start at Stage 1. The full journey (all six stages) is for new products or new user journeys where discovery evidence is needed before design decisions can be made. For everything else, enter at the stage that matches the available context:
+
+| Mode | Entry | Skips | When to use |
+|---|---|---|---|
+| **Amend** | Stage 4 — `user-flow` | Stages 1–3 | Adding or revising a screen on an existing surface; genre and principles already established |
+| **Feature** | Stage 2–3 — `design-principles` / genre skill | Stage 1 | New feature on a known product; journey is understood, brief exists |
+| **Full journey** | Stage 1 — `journey-mapping` | — | New product or new user journey; discovery needed before design |
+
+**Amend (3 skills):** Invoke `user-flow` with `surface-genre` known → `interaction-design` → `design-review`. Load `docs/design/principles/<slug>.md` before review. If no principles artefact exists, run `design-principles` first using the product context from the brief.
+
+**Feature (4–5 skills):** Run the genre-specific Direct skill for the surface type (e.g. `conversion-design` for a landing page) → `user-flow` → `interaction-design` → `design-review`. Add `design-principles` at the start if no principles artefact exists. Add `information-architecture` before `interaction-design` when IA structure is open.
+
+**Full journey (6 stages):** Start at Stage 1 when the product is new, the user journey has not been mapped, or design decisions need grounding in discovery evidence. The stage breakdown below describes each step.
+
+---
+
 ## Stage 1: Discover
-
-### Now (0.5.0)
-
-Uses `map-customer-journey` — produces stages, actions, emotions, pains, and opportunities. No peak moment identification or evidence-level declaration. No genre-stage templates. `service-blueprint` is available but produces no evidence-of-service row or fail-point prioritisation. Designer leaves Stage 1 with a journey artefact but without a focused design mandate.
-
-### With 0.6.0
 
 `journey-mapping` produces a journey artefact with peak moment identification (the 1–3 stages with the steepest negative dip + the single most-positive peak, explicit in the artefact), evidence-level declaration (`observational` / `survey-backed` / `assumption-based` in frontmatter), and surface-genre stage templates (canonical stage scaffolds for each of the 7 genres). `service-blueprint` produces an evidence-of-service row (physical/digital artefacts customers encounter at each frontstage touchpoint — notifications, receipts, error screens) and fail-point marking with design priority (critical / high / medium). Designer leaves Stage 1 knowing **where to focus** and **how confident to be**.
 
@@ -126,23 +106,11 @@ Uses `map-customer-journey` — produces stages, actions, emotions, pains, and o
 
 ## Stage 2: Define
 
-### Now (0.5.0)
-
-No dedicated Define phase. Principles are set informally within `aesthetic-direction` or skipped entirely. There is no committed `docs/design/principles/` artefact — principles do not survive the session. Direction debates recur at every `design-critique` pass.
-
-### With 0.6.0
-
 The `design-principles` skill fills the Define phase between discovery and screen design. Consumes `journey-mapping`'s peak moments and highest-opportunity pains; derives 3–5 named, actionable principles using the NNGroup four-step model (identify core values → articulate user impact → surface tradeoffs → draft + converge). Output: `docs/design/principles/<slug>.md`. Every downstream skill references these principles when making trade-off decisions. `design-review` maps each finding to the principle it was judged against. **This is the highest-leverage stage in the chain** — principles produced here prevent relitigating direction at every review.
 
 ---
 
 ## Stage 3: Direct
-
-### Now (0.5.0)
-
-Uses `aesthetic-direction` (sets visual personality and brand goals) and `layout-and-information-architecture` (structures screen hierarchy and reading flow). No genre routing — all surface types follow the same generic patterns. `creative-direction` and genre-specific Direct skills are not available.
-
-### With 0.6.0
 
 Six genre-specific Direct skills route each surface to the right patterns:
 
@@ -159,12 +127,6 @@ Six genre-specific Direct skills route each surface to the right patterns:
 
 ## Stage 4: Design
 
-### Now (0.5.0)
-
-Uses `map-screen-flow` (screen sequencing and navigation routes) and `interaction-design` (component behavior, states). Screen briefs carry no `surface-genre:` field. Five interaction pattern families are available (wizard, data table, destructive action, save-state, analytical widgets) but no genre-to-pattern routing. Engineering receives generic briefs.
-
-### With 0.6.0
-
 `user-flow` adds `surface-genre:` to every per-screen brief frontmatter, a confirmation step (confirm genre before drafting briefs; elicit inline when absent), and a `## Genre-specific notes` conditional section at the end of each brief template. Downstream skills read the field automatically. `interaction-design` carries five pattern families in `references/pattern-families.md`:
 
 1. **Wizard and stepper**: linear stepper validation-on-exit, save-and-resume, conditional disclosure.
@@ -179,13 +141,7 @@ The genre-specific brief sections cover all 7 genres: marketing (scroll zone, co
 
 ## Stage 5: Validate
 
-### Now (0.5.0)
-
-Uses `design-critique` — quality-floor pass (states, a11y, motion), heuristic evaluation (Nielsen's 10), marketing clarity pass, aesthetic critique. Findings are severity-rated but not anchored to named principles. No genre-specific rubrics — reviewers apply ad-hoc external checklists.
-
-### With 0.6.0
-
-`design-review` (renamed from `design-critique`) makes design-principles integration a mandatory first procedure step: load the design-principles artefact; map each finding to the principle it was judged against. Findings that can't be mapped either (a) identify a quality-floor violation, or (b) surface a new directional call. Genre-specific rubrics:
+`design-review` makes design-principles integration a mandatory first procedure step: load the design-principles artefact; map each finding to the principle it was judged against. Findings that can't be mapped either (a) identify a quality-floor violation, or (b) surface a new directional call. Genre-specific rubrics:
 
 - **documentation:** density matches Diátaxis type, TTFV path navigable, sidebar ≤ 3 levels, unique page descriptions, semantic heading hierarchy.
 - **marketing:** all six above-fold elements present, CTA hierarchy unambiguous, first proof signal above fold, hero matches product type.
@@ -199,12 +155,6 @@ Stage 5 closes the full Define→Validate chain: principles produced at Stage 2 
 ---
 
 ## Stage 6: Deliver
-
-### Now (0.5.0)
-
-Uses `map-screen-flow` handover template. Delivers screen briefs without `surface-genre:` field — engineering infers the pattern family from context. No explicit reference to which interaction-design patterns were selected.
-
-### With 0.6.0
 
 `user-flow` handover produces a design-tool handover template for `frontend-engineering`. Briefs carry `surface-genre:` and reference the interaction-design patterns applied per genre. Engineering reads the brief and knows which pattern families were selected — fewer "how does this wizard work?" conversations.
 
