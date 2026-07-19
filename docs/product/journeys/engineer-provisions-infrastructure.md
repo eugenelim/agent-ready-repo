@@ -64,7 +64,7 @@ sequenceDiagram
     A-->>E: Terraform written — review?
     Note over E: No policy-as-code pass, no digest pin
     E-->>E: Manually applies via CI or locally
-    Note over E: No drift audit schedule; drift accumulates undetected
+    Note over E: No drift audit schedule — drift accumulates undetected
 ```
 
 ### With iac-terraform (to-be, RFC-0065)
@@ -80,11 +80,11 @@ sequenceDiagram
     Note over E,GI: Stage 0 — mandatory governance gate
     E->>SK: I need a hardened object store with private ingestion
     SK->>GI: Load governance index (read only bound ADRs)
-    GI-->>E: ADRs cited; decision domains: state-backend, IAM, tagging, encryption
+    GI-->>E: ADRs cited — decision domains: state-backend, IAM, tagging, encryption
     E->>SK: Confirm governance gate (+ bootstrap if no index)
 
     Note over E,GI: Stage 1 — vocabulary-firewalled spec
-    SK-->>E: Spec in generic terms; inputs collected (cloud, engine, isolation model)
+    SK-->>E: Spec in generic terms — inputs collected (cloud, engine, isolation model)
     E->>SK: Confirm spec and isolation model
 
     Note over E,GI: Stage 2 — tier-ordered plan + schema-grounded generation

@@ -63,7 +63,7 @@ sequenceDiagram
     A-->>PE: Here is the framing and risk register
     Note over A: Session closes — artifacts in context only
     PE->>F: Manually write brief from memory
-    PE-->>PE: No committed shaping chain; no graduation signal
+    PE-->>PE: No committed shaping chain — no graduation signal
 ```
 
 ### To-be state — M2 shipped
