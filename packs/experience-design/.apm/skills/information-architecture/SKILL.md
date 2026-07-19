@@ -32,6 +32,8 @@ judging an existing screen, `design-review`.
 
 ## Procedure
 
+0. **Surface inventory (multi-surface platforms only).** If the subject is a multi-surface platform: (a) enumerate every surface and label its genre; (b) confirm which surface this pass covers; (c) note which other surfaces exist — they need separate passes; (d) flag: cross-surface wayfinding check required (see step 6). If the subject is a single surface, skip to step 1.
+
 1. **Frame the surface(s) and route by genre.** For each, write its one job and
    its audience. This anchors every later call. Then **route by surface genre**:
    if the per-screen brief declares a `surface-genre:`, read the corresponding
@@ -68,6 +70,9 @@ judging an existing screen, `design-review`.
 6. **Design wayfinding.** Make every screen answer *where am I, where can I
    go, how do I get back*; place landmarks, signposts, grouping, and
    consistent positions as concepts. (`references/wayfinding-concepts.md`.)
+
+   **Cross-surface wayfinding** (when this surface is part of a multi-surface platform): does every surface have a visible, persistent path to each other surface a user could reasonably want to return to? The path must be present on every page — not just the landing page and not just the footer. A footer link is the minimum; a persistent header element is the standard. Flag the absence of a docs→marketing bridge as a blocker finding: users entering via search have no context and no exit path.
+
 7. **Walk the states.** Run the surface against the shared
    `quality-floor` checklist
    (`../design-review/references/quality-floor.md`). Empty, loading, and
