@@ -66,7 +66,7 @@ continue.
 Discovery is **fed in**, never performed here (see anti-patterns). Consume a
 discovery shape from one of four upstream sources:
 
-- the `research` skill's output (when the `research` pack is installed),
+- the `desk-research` skill's output (when the `desk-research` pack is installed),
 - an `intent` shaped by `frame-intent` (when the `product-engineering` pack is
   installed) — its `frame → de-risk → decompose` loop hands its leaf in here: at
   `app` scale a feature-level leaf intent *is* a `core` brief,
@@ -74,7 +74,7 @@ discovery shape from one of four upstream sources:
 - a brief produced by `receive-brief`.
 
 The `product-engineering` source is **optional upstream**, named the same way the
-`research` source is — "when the pack is installed". A `core`-only adopter has the
+`desk-research` source is — "when the pack is installed". A `core`-only adopter has the
 other three and reads this one as a clearly-optional source, not a dangling
 reference.
 
@@ -138,7 +138,7 @@ normal loop running — instead of a throwaway someone has to clean up later.
 ## Anti-patterns to refuse
 
 - **Performing discovery / research yourself.** Discovery is fed *in* (stage 2)
-  from the `research` pack, an `intent` from `frame-intent` (when
+  from the `desk-research` pack, an `intent` from `frame-intent` (when
   `product-engineering` is installed), a PRD, or a `receive-brief` brief. This
   skill consumes a discovery shape; it does not own the research phase and does
   not shape product intent itself.
@@ -156,7 +156,7 @@ normal loop running — instead of a throwaway someone has to clean up later.
   before the skeleton is authored, so the *why* survives.
 - **Adding a new top-level directory, or importing another pack's code.** This
   skill lives beside the other core skills and composes the rest **by reference,
-  not import** — it names `research`, `receive-brief`, the arc42 `reference.md`
+  not import** — it names `desk-research`, `receive-brief`, the arc42 `reference.md`
   template, `new-spec`, and `work-loop`, and hands off to them. The
   `product-engineering` seam is by reference too: `frame-intent` is named only as
   an *upstream discovery shape this skill receives* (when that pack is installed),
