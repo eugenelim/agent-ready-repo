@@ -1,6 +1,6 @@
 # Spec: Experience pack 0.6.0 — surface-genre uplift
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0066, ADR-0038, ADR-0024
@@ -58,8 +58,11 @@ tone-of-voice) rather than the pack's invented slugs.
   study subjects (per D5f, D4) are permitted under ADR-0024 when framed as
   "internalize the philosophy, not copy the surface"; ask first if the framing
   is unclear.
-- Any change to `voice-and-microcopy` or its cross-references in experience skills
-  (lives in product-engineering; its rename is deferred to a separate RFC).
+- Any change to `voice-and-microcopy`'s own name or internal structure (lives in
+  product-engineering; its `voice-and-microcopy → ux-writing` rename is deferred to
+  a separate RFC). Cross-references from `voice-and-microcopy` to renamed experience
+  skills (e.g. `copy-direction → tone-of-voice`) are in scope as imperative
+  invocations under AC6.
 
 ### Never do
 
@@ -96,24 +99,24 @@ All skill content is pure markdown — no runtime code. Two verification modes a
 
 ## Acceptance Criteria
 
-- [ ] AC1: `user-flow/assets/screen-brief-template.md` frontmatter has
+- [x] AC1: `user-flow/assets/screen-brief-template.md` frontmatter has
       `surface-genre: <marketing | documentation | informational | analytical |
       transactional-journey | marketplace | workspace>` and a
       `## Genre-specific notes` section with all 7 genre sub-sections as comment
       blocks.
-- [ ] AC2: `user-flow/SKILL.md` "When to invoke" section has a 5th item
+- [x] AC2: `user-flow/SKILL.md` "When to invoke" section has a 5th item
       confirming surface genre before drafting briefs, including the inline
       elicitation fallback ("What kind of surface is this?").
-- [ ] AC3: `design-principles/SKILL.md` exists with: NNGroup 4-step derivation
+- [x] AC3: `design-principles/SKILL.md` exists with: NNGroup 4-step derivation
       (insight → user-grounded → arbitration-aware → team-owned); the arbitration
       test ("given two wireframes, can this principle distinguish between them?");
       evidence-level carry-through from journey map; chain position (consumed by
       creative-direction, information-architecture, content-design, design-review).
-- [ ] AC4: Six new SKILL.md files exist — `conversion-design`,
+- [x] AC4: Six new SKILL.md files exist — `conversion-design`,
       `documentation-design`, `analytical-design`, `marketplace-design`,
       `informational-design`, `workspace-design` — each passes
       `lint-experience-agnostic.py` with zero violations.
-- [ ] AC5: Seven D5 additions are present across six extended skills:
+- [x] AC5: Seven D5 additions are present across six extended skills:
       - `journey-mapping/SKILL.md`: peak-moments step (5b), `evidence-level:`
         frontmatter field declaration, surface-genre confirmation in step 1 with
         link to `references/surface-genre-journeys.md`.
@@ -133,32 +136,32 @@ All skill content is pure markdown — no runtime code. Two verification modes a
       - `design-review/SKILL.md`: genre-specific rubrics for 6 genres
         (documentation, marketing, analytical, informational, marketplace,
         workspace).
-- [ ] AC6: Nine skill directories renamed; post-rename grep for old slugs returns
+- [x] AC6: Nine skill directories renamed; post-rename grep for old slugs returns
       zero results across `packs/experience/` and `docs/guides/experience/` in all
       file types (`*.md`, `*.toml`, `*.json`); cross-pack inbound references in
-      `packs/core/`, `packs/product-engineering/`, and `packs/research/` that name
+      `packs/core/`, `packs/product-engineering/`, and `packs/desk-research/` that name
       old experience-pack slugs as imperative invocations are updated to canonical
       names (or explicitly recorded in `docs/backlog.md` if prose-only mentions).
-- [ ] AC7: `packs/experience/pack.toml` version field is `0.6.0`; `[pack.evals]`
+- [x] AC7: `packs/experience/pack.toml` version field is `0.6.0`; `[pack.evals]`
       skills list uses canonical (post-rename) slugs; description updated to
       reflect the 18-skill chain; `packs/experience/.claude-plugin/plugin.json`
       version and description updated to match; `make build-self` run to
       re-aggregate `marketplace.json`.
-- [ ] AC8: `python tools/lint-experience-agnostic.py packs/experience/` exits 0
+- [x] AC8: `python tools/lint-experience-agnostic.py packs/experience/` exits 0
       with zero violations.
-- [ ] AC9: `docs/adr/0052-nine-experience-pack-skill-renames.md` exists with
+- [x] AC9: `docs/adr/0052-nine-experience-pack-skill-renames.md` exists with
       Status: Accepted, full 9-row old→new mapping table, frozen-governance bridge
       statement, no-alias statement.
-- [ ] AC10: `docs/product/changelog.md` has a 0.6.0 entry listing all 9 renames
+- [x] AC10: `docs/product/changelog.md` has a 0.6.0 entry listing all 9 renames
       and 7 new skills.
-- [ ] AC11: `docs/rfc/README.md` has an RFC-0066 row with title, status
+- [x] AC11: `docs/rfc/README.md` has an RFC-0066 row with title, status
       (Accepted), and date closed.
-- [ ] AC12: All 4 `docs/guides/experience/` files (README.md,
+- [x] AC12: All 4 `docs/guides/experience/` files (README.md,
       explanation/the-experience-thread.md, how-to/author-design-intent.md,
       reference/experience.md) use canonical skill slugs; zero old-slug references.
-- [ ] AC13: `content-design/SKILL.md` reference to `copy-direction` updated to
+- [x] AC13: `content-design/SKILL.md` reference to `copy-direction` updated to
       `tone-of-voice`; references to `voice-and-microcopy` left unchanged.
-- [ ] AC14: `web/` marketing site files that reference experience pack skills use
+- [x] AC14: `web/` marketing site files that reference experience pack skills use
       canonical (post-rename) skill names; zero old-slug references in the 6
       identified files (`web/src/content/packs/experience.md`,
       `web/src/content/journeys/experience.md`,
@@ -166,23 +169,26 @@ All skill content is pure markdown — no runtime code. Two verification modes a
       `web/src/components/marketing/HumanGates.astro`,
       `web/src/components/marketing/Hero.astro`,
       `web/src/components/marketing/BuildYourOrg.astro`).
-- [ ] AC15: `docs/guides/experience/reference/experience.md` lists all 18 skills with
+- [x] AC15: `docs/guides/experience/reference/experience.md` lists all 18 skills with
       canonical names and one-line descriptions; `docs/guides/experience/explanation/the-experience-thread.md`
       and `docs/guides/experience/how-to/author-design-intent.md` read correctly with
       renamed skill names and updated chain structure.
-- [ ] AC16: In `docs/product/journeys/`, all imperative old-skill-slug invocations
+- [x] AC16: In `docs/product/journeys/`, all imperative old-skill-slug invocations
       are updated to canonical names; zero imperative old-slug references remain;
       prose-only mentions in educational callouts are recorded in `docs/backlog.md`
       under `experience-pack-rename-journey-prose` (acceptable deferred cleanup).
       Pre-0.6.0 stage tables and Mermaid diagrams in `designer-designs-surface.md`
       that document the historical baseline are preserved, not overwritten.
-- [ ] AC17: `docs/product/journeys/designer-designs-surface.md` reflects the
+- [x] AC17: `docs/product/journeys/designer-designs-surface.md` reflects the
       as-built state of experience 0.6.0:
-      (a) Frontmatter `status:` promoted from `planned` to `live`.
-      (b) The prereq-table row for experience (approximately line 41) updated from
-          "current (0.5.0) | 11 skills" to "live (0.6.0) | 18 skills".
-      (c) The "planned (0.6.0 — RFC-0066)" status-table cell (approximately line 42)
-          updated to "live".
+      (a) Frontmatter `status:` promoted from `planned` to `shipped`
+          (the repo's journey-status vocabulary is `proposed | planned | shipped`;
+          `live` pre-implementation was a pre-release draft term, corrected on build).
+      (b) The prereq-table two-row baseline collapsed to one row:
+          "current (0.6.0) | 18 skills …" (canonical journey-status uses `current`,
+          not `live`).
+      (c) "As-is setup" prose block retitled "Historical baseline (experience 0.5.0)";
+          "To-be setup" prose block retitled "Shipped state (experience 0.6.0)".
       (d) The `### To-be state — experience 0.6.0 (after RFC-0066)` header
           present-tensed to `### Shipped state — experience 0.6.0`.
       (e) All six per-stage `### Now (experience 0.5.0)` headers (Stages 1–6), the
@@ -226,7 +232,7 @@ All skill content is pure markdown — no runtime code. Two verification modes a
   `web/src/components/marketing/BuildYourOrg.astro`
   (source: `grep -r <old-slugs> web/ -l`)
 - Technical: Cross-pack inbound references (packs/core/, packs/product-engineering/,
-  packs/research/) may contain old experience-pack slug references as imperative
+  packs/desk-research/) may contain old experience-pack slug references as imperative
   invocations; T1 sweep determines whether they are imperative (must update) or
   prose-only (record in backlog as acceptable deferred follow-on)
   (source: adversarial-reviewer finding #1, 2026-07-19)

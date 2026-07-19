@@ -56,6 +56,8 @@
 | 0048 | [Assimilation state lives in a user-scope ledger — per-run purged, per-source durable](0048-catalogue-curation-assimilation-ledger.md) | Accepted |
 | 0049 | [Catalogue runtime inventory — derive live, persist nothing, touch no Claude manifest](0049-catalogue-runtime-inventory-derive-live.md) | Accepted |
 | 0050 | [Astro for the marketing site, co-deployed with MkDocs in one GitHub Pages origin](0050-astro-marketing-site-toolchain-and-deploy.md) | Accepted |
+| 0051 | [workspace.toml — TOML format, main-branch coordination, and schema evolution](0051-workspace-toml-toml-format-and-main-branch-coordination.md) | Accepted |
+| 0052 | [Nine experience-pack skill renames — live surface renamed, frozen governance bridged, no install-time alias](0052-nine-experience-pack-skill-renames.md) | Accepted |
 
 ## Adding a new ADR
 

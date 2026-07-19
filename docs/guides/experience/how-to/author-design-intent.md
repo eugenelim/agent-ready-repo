@@ -17,7 +17,7 @@ Start from the customer, even roughly:
 > "Map the customer journey for onboarding a new user to our personal-finance
 > dashboard."
 
-`map-customer-journey` divides the journey into a few named stages and, for
+`journey-mapping` divides the journey into a few named stages and, for
 each, captures actions, emotions, pains, and opportunities — outside-in, in the
 customer's words. It carries a **surface** (responsive-web / iOS / Android /
 cross-platform) that changes what it asks. The pains-to-opportunities column is
@@ -28,7 +28,7 @@ the output the rest of the thread points back to.
 > "Turn that journey into a screen flow — sequence the screens, route the error
 > cases, and give me a brief per screen."
 
-`map-screen-flow` sequences the screens the journey implies, draws the
+`user-flow` sequences the screens the journey implies, draws the
 transitions and the **error/edge flows** (where a failed or denied action
 lands), records which quality-floor states each screen handles, and emits **one
 self-contained brief per screen** — split into a shared design contract
@@ -44,7 +44,7 @@ transition resolves and every action has a backing service. It never stops at
 
 > "Blueprint the services behind these screens."
 
-`blueprint-service` lays out frontstage / line-of-visibility / backstage /
+`service-blueprint` lays out frontstage / line-of-visibility / backstage /
 support. The backstage column is the slicing instrument you hand to `architect`
 and `contracts` by-name — or, when those aren't installed, it names the services
 textually so the thread still holds.
@@ -54,22 +54,22 @@ textually so the thread still holds.
 With a brief in hand, run the craft skills against it:
 
 > "Name the aesthetic direction for this dashboard, grounded in our persona and
-> platform." → `aesthetic-direction` (each goal grounded in a stable referent)
-> "Derive a token and scale taxonomy from those goals." → `design-system-foundations`
-> "Structure this screen's hierarchy and reading flow." → `layout-and-information-architecture`
+> platform." → `creative-direction` (each goal grounded in a stable referent)
+> "Derive a token and scale taxonomy from those goals." → `design-system`
+> "Structure this screen's hierarchy and reading flow." → `information-architecture`
 > "Design how this form behaves — feedback, validation, and its state machine." → `interaction-design`
 
 `interaction-design` enriches the brief's interaction section: feedback and
 timing, input/validation flow, a component **state machine** (a mermaid
 `stateDiagram-v2`), purposeful motion that honors reduced-motion, navigation
 behavior, gesture, and cognitive-law fit. It designs how the screen *behaves* —
-the macro flow across screens stays `map-screen-flow`'s.
+the macro flow across screens stays `user-flow`'s.
 
 ## 5. Critique as you author
 
 > "Run a critique of this screen — heuristics and taste — and rank the findings."
 
-`design-critique` applies the shared **`quality-floor`** (all states, the
+`design-review` applies the shared **`quality-floor`** (all states, the
 accessibility floor, reduced-motion), evaluates against usability heuristics,
 and runs a **taste mode** against the grounded aesthetic reference and platform
 fit. Each finding maps to the principle it violates, gets a 0–4 severity, and
@@ -91,7 +91,7 @@ loop.
 
 > "Emit a design-tool handover for these screens."
 
-`map-screen-flow` can emit a handover keyed to each brief — instructions a
+`user-flow` can emit a handover keyed to each brief — instructions a
 generative design tool consumes, never a comp. If a design-tool MCP is
 connected, it triggers the tool; otherwise it writes a `.handover.md` you paste
 into whichever tool you use.
@@ -105,5 +105,5 @@ values cheat-sheet tied to one stack, and the whole thread proved walkable by th
 steel thread.
 
 > Mapping an **internal** process instead of a customer-facing one? Use
-> `map-internal-process` — the inside-out sibling (APQC L3→L4, as-is/to-be,
+> `process-mapping` — the inside-out sibling (APQC L3→L4, as-is/to-be,
 > SIPOC, swimlane, pain/waste). It carries no surface axis.

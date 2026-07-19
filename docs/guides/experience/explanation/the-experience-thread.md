@@ -24,31 +24,47 @@ critique) live in the repo and steer the build.
 The pack's bar is not skill count — it is that the design flow is a **complete,
 walkable thread**:
 
-**journey → screen flow + per-screen briefs → backing services → per-screen
-design → copy → review → realization**, with internal-process mapping as the
-inside-out sibling.
+**journey → screen flow + per-screen briefs → backing services → genre-specific
+surface design → copy → review → realization**, with internal-process mapping as
+the inside-out sibling and design-principles as the Define-phase anchor.
 
 The skills compose along that thread, each connecting to the next by a named
 seam (every skill declares its inputs and what consumes it):
 
-- **`map-customer-journey`** — the outside-in journey: stages × actions,
-  emotions, pains, opportunities. The thread's head.
-- **`map-screen-flow`** — the journey's screens *sequenced*, with transitions
-  and error/edge flows, a per-screen state matrix, and **one self-contained
-  brief per screen**. It ends in a cross-brief consistency pass and a
-  whole-journey **steel thread** (below).
-- **`blueprint-service`** — the service blueprint behind the screens; its
-  backstage column is the slicing instrument handed to `architect`/`contracts`.
-- **`aesthetic-direction` · `design-system-foundations` ·
-  `layout-and-information-architecture` · `interaction-design`** — the craft
+- **`journey-mapping`** — the outside-in journey: stages × actions,
+  emotions, pains, peak moments (Kahneman peak-end). Carries `evidence-level`
+  (observational / survey-backed / assumption-based) and a `surface-genre`
+  confirmation. The thread's head.
+- **`design-principles`** — turns journey insights into 3–5 named, testable
+  design principles (NNGroup 4-step model). Consumed by `creative-direction`,
+  `information-architecture`, `content-design`, and `design-review`.
+- **`user-flow`** — the journey's screens *sequenced*, with transitions
+  and error/edge flows, a per-screen state matrix (with `surface-genre:`
+  declared in each brief), and **one self-contained brief per screen**. It ends
+  in a cross-brief consistency pass and a whole-journey **steel thread** (below).
+- **`service-blueprint`** — the service blueprint behind the screens: five rows
+  (evidence-of-service, frontstage, line-of-visibility, backstage, support), with
+  explicit fail-point marking (critical / high / medium). The backstage column is
+  the slicing instrument handed to `architect`/`contracts`.
+- **`creative-direction` · `design-system` ·
+  `information-architecture` · `interaction-design`** — the craft
   skills that design each screen from its brief: the felt direction (grounded in
-  a stable referent), the token/scale system, the structure and wayfinding, and
-  **how the screen behaves**.
-- **`design-critique`** — the authoring-time critique (heuristics + a taste
-  mode) you run as you go.
+  stable referents + genre canonical references), the token/scale system, the
+  structure and wayfinding (with genre routing), and **how the screen behaves**
+  (with 5 additional pattern families: wizard-and-stepper, data-table,
+  destructive-action escalation, save-state, analytical-dashboard-widgets).
+- **`conversion-design` · `documentation-design` · `analytical-design` ·
+  `marketplace-design` · `informational-design` · `workspace-design`** —
+  the six genre-specific skills, each specializing the IA and structure layer for
+  one surface genre. Declare the genre once; the right skill applies.
+- **`content-design` · `tone-of-voice`** — the copy layer: `tone-of-voice`
+  names the brand voice; `content-design` applies it per screen.
+- **`design-review`** — the authoring-time critique (design-principles
+  integration chain + genre-specific rubrics + heuristics + taste mode) you run
+  as you go.
 - **`experience-reviewer`** — the forked-context agent that reviews the whole
   set independently (see below).
-- **`map-internal-process`** — the inside-out sibling: an internal business
+- **`process-mapping`** — the inside-out sibling: an internal business
   process (APQC L3→L4, as-is/to-be, SIPOC, swimlane, pain/waste), for the
   operations a customer journey never touches.
 
@@ -58,7 +74,7 @@ elicits it inline when it's absent, so no skill blocks on it.
 
 ## The steel thread — the thread's guarantee
 
-`map-screen-flow` never ends at "briefs emitted." It always runs a whole-journey
+`user-flow` never ends at "briefs emitted." It always runs a whole-journey
 walk: a low-fidelity prototype when a design-tool MCP is connected, **else a
 text-only steel thread** — a scripted walk through the briefs in journey order
 asserting *every transition resolves* and *every action has a backing service*.
@@ -70,14 +86,14 @@ catalogue still guarantees no broken link from journey to realization.
 
 Two skills touch states and transitions, and must not be conflated:
 
-- **`map-screen-flow`** owns the **macro flow *across* screens** — which screens,
+- **`user-flow`** owns the **macro flow *across* screens** — which screens,
   in what sequence, and the cross-screen error/edge routing.
 - **`interaction-design`** owns the **micro behavior *within* a screen** — the
   in-component state machine, feedback and timing, input-validation flow, motion,
   gesture.
 - The **shared quality floor** owns the **enumeration** of states both defer to.
 
-Three state homes, one carve: the floor names the state *set*, `map-screen-flow`
+Three state homes, one carve: the floor names the state *set*, `user-flow`
 owns *cross-screen* routing, `interaction-design` owns the *in-component* state
 machine.
 
@@ -94,11 +110,11 @@ design is done without:
   carrying meaning, and always offers a reduced-motion path that keeps it.
 
 It is one file, referenced by every consuming skill (and by the reviewer);
-`design-critique` and `experience-reviewer` apply it as an explicit pass.
+`design-review` and `experience-reviewer` apply it as an explicit pass.
 
 ## The independent review
 
-`design-critique` is the *authoring-time* skill — you run it in the session, with
+`design-review` is the *authoring-time* skill — you run it in the session, with
 the author. But a same-session critique marks its own homework. So the pack also
 ships **`experience-reviewer`**: a forked-context, read-only agent that reviews
 the journey, the screen flow and briefs, and the aesthetic against the grounded

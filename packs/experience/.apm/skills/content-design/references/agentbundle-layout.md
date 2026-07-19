@@ -36,4 +36,4 @@ The `type: content-brief` field is the discover-by-marker key. Do not omit it; w
 
 ## Extension to the pack's marker set
 
-`content-brief` extends the `experience` pack's existing discover-by-marker set alongside the aesthetic-direction artifact (`type: aesthetic-direction`). An adopter who stores both types in non-default locations can configure each independently via the `[experience]` table.
+`content-brief` extends the `experience` pack's existing discover-by-marker set alongside the creative-direction artifact (`type: creative-direction`). An adopter who stores both types in non-default locations can configure each independently via the `[experience]` table.

@@ -1,7 +1,7 @@
 # Plan: Experience pack 0.6.0 — surface-genre uplift
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Follows:** RFC-0066
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
@@ -126,12 +126,12 @@ in T5a and T5b (not enumerated here — each task's Tests: confirms presence).
 
 **Depends on:** none
 
-**Touches:** `packs/experience/.apm/skills/` (all 11 dirs + their `evals/evals.json`), `packs/experience/.apm/agents/experience-reviewer.md`, `packs/experience/README.md`, `packs/experience/pack.toml`, `packs/experience/.claude-plugin/plugin.json` (description only; version bump stays in T6), `docs/guides/experience/**`, `packs/experience/.apm/skills/content-design/SKILL.md`, cross-pack inbound files in `packs/core/`, `packs/product-engineering/`, `packs/research/` (imperative references only; voice-and-microcopy `copy-direction` ref backlogged not updated; `.py` code-comment refs out of scope)
+**Touches:** `packs/experience/.apm/skills/` (all 11 dirs + their `evals/evals.json`), `packs/experience/.apm/agents/experience-reviewer.md`, `packs/experience/README.md`, `packs/experience/pack.toml`, `packs/experience/.claude-plugin/plugin.json` (description only; version bump stays in T6), `docs/guides/experience/**`, `packs/experience/.apm/skills/content-design/SKILL.md`, cross-pack inbound files in `packs/core/` (scripts), `packs/product-engineering/` (voice-and-microcopy), `packs/desk-research/` (imperative invocations updated in-PR)
 
 **Tests:**
 - Post-rename grep returns zero across all file types:
   `grep -r "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" packs/experience/ docs/guides/experience/ --include="*.md" --include="*.toml" --include="*.json"` → zero results.
-- Cross-pack audit: same grep extended to `packs/core/ packs/product-engineering/ packs/research/` with `--include="*.md" --include="*.toml" --include="*.json"` (prose-only matches and voice-and-microcopy exception recorded in backlog; `.py` code-comment refs noted as out of scope; imperative invocation matches fixed).
+- Cross-pack audit: same grep extended to `packs/core/ packs/product-engineering/ packs/desk-research/` — imperative invocations updated in-PR (including `voice-and-microcopy`'s `copy-direction`→`tone-of-voice` and `desk-research`'s `map-internal-process`→`process-mapping`); core `.py` docstrings updated in-PR.
 - `ls packs/experience/.apm/skills/ | sort` shows exactly 11 directories with canonical names.
 - `python tools/lint-experience-agnostic.py packs/experience/` exits 0.
 
@@ -166,11 +166,11 @@ in T5a and T5b (not enumerated here — each task's Tests: confirms presence).
 10. In `packs/experience/.apm/skills/content-design/SKILL.md`: update
     `copy-direction` → `tone-of-voice`; leave `voice-and-microcopy` references
     unchanged.
-11. **Cross-pack audit:** Run the grep across `packs/core/ packs/product-engineering/ packs/research/` with `--include="*.md" --include="*.toml" --include="*.json"`. For each match:
+11. **Cross-pack audit:** Run the grep across `packs/core/ packs/product-engineering/ packs/desk-research/` with `--include="*.md" --include="*.toml" --include="*.json"`. For each match:
     - **Imperative invocation** (e.g. "invoke `aesthetic-direction`", "run `design-critique`"): update to the canonical slug.
-    - **`packs/product-engineering/.apm/skills/voice-and-microcopy/SKILL.md`** referencing `copy-direction`: **do not edit** — this reference belongs to the voice-and-microcopy→ux-writing rename deferred to a separate RFC (spec § Ask first). Record in `docs/backlog.md`.
+    - **`packs/product-engineering/.apm/skills/voice-and-microcopy/SKILL.md`** referencing `copy-direction`: **updated to `tone-of-voice`** — the two occurrences on line 32 are imperative routing directives ("use the `experience` pack's `copy-direction` skill"), which AC6 mandates updating because `copy-direction` no longer exists. The deferred `voice-and-microcopy → ux-writing` rename (spec § Ask first) concerns the skill's own name, not its cross-references to renamed skills. Backlog entry `experience-pack-rename-voice-and-microcopy-copy-direction` removed.
     - **Prose-only description** (educational text, not an agent instruction): add a one-line entry to `docs/backlog.md` under `experience-pack-rename-cross-pack-prose` and leave the file unchanged.
-    - **`.py` code-comment references** (e.g. docstrings in tool scripts naming old skills): out of scope — these are in tool code, not agent-invocable surfaces. Record in backlog if found; do not edit.
+    - **`.py` code-comment references** (e.g. docstrings in tool scripts naming old skills): core scripts (`lint-traceability.py`, `test-lint-traceability.py`) updated in-PR since the file was already touched; remaining `.py` refs are out of scope and need not be tracked.
 12. Run post-rename verification grep (experience pack + guides + JSON); confirm zero results before proceeding.
 
 **Done when:** Post-rename grep (including JSON) returns zero; cross-pack audit complete; lint exits 0.
@@ -443,7 +443,7 @@ After all 6 are created, run lint.
 **Tests:**
 - Discovery grep enumerates the set of files to update (step 1 output).
 - After updates: zero **imperative** old-slug invocations remain across `docs/product/journeys/`; prose-only educational mentions are recorded in `docs/backlog.md` under `experience-pack-rename-journey-prose`, not required to be zero.
-- `grep 'status.*live\|live.*status' docs/product/journeys/designer-designs-surface.md` → matches (frontmatter status promoted).
+- `grep 'status: shipped' docs/product/journeys/designer-designs-surface.md` → matches (frontmatter status promoted; repo uses `proposed|planned|shipped` vocabulary, not `live`).
 - `grep 'planned' docs/product/journeys/designer-designs-surface.md` → zero results (confirms frontmatter and status-table cell both updated).
 - `grep 'current (0.5.0)\|11 skills' docs/product/journeys/designer-designs-surface.md` → zero results (prereq table row updated to 0.6.0 / 18 skills).
 - `grep 'To-be state\|after RFC-0066' docs/product/journeys/designer-designs-surface.md` → zero results (To-be header present-tensed).
@@ -452,16 +452,16 @@ After all 6 are created, run lint.
 **Approach:**
 1. **Discovery grep:** Run `grep -rl "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" docs/product/journeys/` to enumerate files with old slugs. Read each match in context to classify as imperative invocation or prose-only mention.
 2. In `designer-designs-surface.md`, make the following targeted updates:
-   - **Prereq table row (~line 41):** Update the experience pack row from "current (0.5.0) | 11 skills …" to "live (0.6.0) | 18 skills …" reflecting the shipped state.
-   - **Status-table cell (~line 42):** Update "planned (0.6.0 — RFC-0066)" to "live".
-   - **Frontmatter:** Promote `status:` from `planned` → `live`.
+   - **Prereq table:** Collapse the two-row table to a single row: "current (0.6.0) | 18 skills …" reflecting the shipped state.
+   - **Setup prose:** Retitle "As-is setup (experience 0.5.0)" → "Historical baseline (experience 0.5.0)"; retitle "To-be setup (experience 0.6.0)" → "Shipped state (experience 0.6.0)".
+   - **Frontmatter:** Promote `status:` from `planned` → `shipped` (repo vocabulary: `proposed|planned|shipped`).
    - **To-be header (~line 84):** Rename `### To-be state — experience 0.6.0 (after RFC-0066)` → `### Shipped state — experience 0.6.0`.
    - **Preserve** (historical-section definition from AC17(e) — any section whose heading or bold label carries `(experience 0.5.0)`, `(before RFC-0066)`, or `As-is`): the `### Current state — experience 0.5.0 (before RFC-0066)` Mermaid section; all six per-stage `### Now (experience 0.5.0)` subsection headers and their content; and the `**As-is setup (experience 0.5.0)**` prose block (~lines 44–47) which contains imperative old-slug invocations that are historical record, not active agent calls.
    - In the Shipped-state section: ensure the skill chain and genre routing description uses canonical 0.6.0 names (journey-mapping, service-blueprint, user-flow, design-principles, creative-direction, information-architecture, design-review, conversion-design, etc.) and mentions the `surface-genre:` contract.
 3. In all other journey files found in step 1: if a match is an imperative invocation of an old skill slug and falls outside a historical section (as defined in AC17(e): heading/label carries `(experience 0.5.0)`, `(before RFC-0066)`, or `As-is`), update to the canonical name; if it is a prose-only educational description, add a one-line entry to `docs/backlog.md` under `experience-pack-rename-journey-prose` and leave the file unchanged.
 4. Re-read `designer-designs-surface.md` to confirm all four targets from step 2 (prereq table, status cell, frontmatter, header rename) are correct.
 
-**Done when:** `designer-designs-surface.md` has live status in frontmatter and status table; prereq table shows 0.6.0/18 skills; To-be header is present-tensed; zero imperative old-slug invocations remain in `docs/product/journeys/` outside historical-baseline sections; prose-only mentions are recorded in backlog.
+**Done when:** `designer-designs-surface.md` has `status: shipped` in frontmatter; prereq table shows 0.6.0/18 skills; To-be header is present-tensed to Shipped-state; zero imperative old-slug invocations remain in `docs/product/journeys/` outside historical-baseline sections; prose-only mentions are recorded in backlog.
 
 ---
 
@@ -475,7 +475,7 @@ Task sequence: T1 → (T2, T3 in parallel) → T4 → (T5a, T5b in parallel) →
 
 - **Rename sweep incompleteness (T1):** The spike confirmed ~43 files in `packs/experience/` contain old slug references. A missed reference in a `references/` file or asset template would leave stale slugs. Mitigation: post-rename grep (including `*.json`) is the T1 completion gate; T1 does not advance until the grep returns zero.
 - **JSON files missed in sweep (T1):** `evals.json` and `plugin.json` can contain old slug references and are invisible to a `*.md`-only grep. Mitigation: T1 grep explicitly includes `--include="*.json"`; T1 approach step 4 updates each renamed skill's `evals/evals.json`.
-- **Cross-pack imperative invocations (T1):** `packs/core/`, `packs/product-engineering/`, or `packs/research/` may contain imperative invocations of old experience-pack skill slugs that require updating. Mitigation: T1 step 10 runs a dedicated cross-pack audit; any imperative invocations are fixed; prose-only mentions are recorded in `docs/backlog.md`.
+- **Cross-pack imperative invocations (T1):** `packs/core/`, `packs/product-engineering/`, or `packs/desk-research/` may contain imperative invocations of old experience-pack skill slugs that require updating. Mitigation: T1 step 10 runs a dedicated cross-pack audit; any imperative invocations are fixed; prose-only mentions are recorded in `docs/backlog.md`.
 - **ADR-0024 violation in a new skill (T4):** A genre skill accidentally prescribes a tool or CMS. Mitigation: lint runs after T4 with zero-violation gate.
 - **`experience-reviewer.md` stale references (T1):** The agent file aggregates skill references across the whole pack. Mitigation: T1 explicitly updates this file; it is named in the approach steps.
 - **evals list inconsistency (T1/T6):** Slug renames in T1 must be complete before T6 adds new slugs. Mitigation: T6 depends on T1; T1's approach step 7 updates renamed slugs in the evals list.
