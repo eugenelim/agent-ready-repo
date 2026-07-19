@@ -80,7 +80,7 @@ def test_solution_architect_installs_at_user_scope(tmp_path, monkeypatch):
 
     user_root = scope_mod.resolve_user_root()
     state = load_state(user_root / ".agentbundle" / "state.toml")
-    for name in ("architect", "research", "contracts"):
+    for name in ("architect", "desk-research", "contracts"):
         assert state.has_pack(name), f"{name} missing; summary:\n{out}\nstderr:\n{err}"
         ps = next(iter(state.rows_for_pack(name).values()))
         assert ps.install_route == "profile"

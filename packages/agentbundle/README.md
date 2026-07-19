@@ -23,7 +23,7 @@ No catalogue argument needed: it defaults to the agent-ready-repo catalogue. It 
 **Install for yourself, everywhere** — so a pack follows you across every project, with no per-repo setup:
 
 ```bash
-agentbundle install --pack research --scope user
+agentbundle install --pack desk-research --scope user
 ```
 
 User-scope packs land in your home directory, not the repo — they're yours, not the team's, and they're there in every project you open.

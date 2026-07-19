@@ -210,7 +210,7 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
      assumptions + drawbacks. If they say "no drawbacks", push back.
    - **Evidence & prior art.** Empty prior art is a finding (no one has done
      this) — surface it; never leave it blank or fabricated. Promoted research
-     from a sustained investigation (e.g. a `research`-pack project brief) can
+     from a sustained investigation (e.g. a `desk-research`-pack project brief) can
      live in the optional `NNNN-notes/` companion; summarize and link it here.
    - **Open questions.** Each carries a recommended default + owner +
      decide-by; aim for ≤3.

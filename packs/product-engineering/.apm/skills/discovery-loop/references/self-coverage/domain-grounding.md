@@ -15,7 +15,7 @@ architecture on a domain claim, ground it.
 - **Identify the load-bearing domain claims** — the facts about *how the activity
   is really done* that the spine depends on (cadence, the real-vs-planned gap, the
   naive-design failure modes).
-- **Ground each via `frame-domain`** (which wraps `research` applied mode +, for
+- **Ground each via `frame-domain`** (which wraps `desk-research` applied mode +, for
   brownfield, `decision-archaeology`). The output is the `domain-framing` +
   `scope-boundary` slots.
 - **Never assert an ungrounded domain claim as fact.** A finding the wrapped

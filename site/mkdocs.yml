@@ -112,7 +112,7 @@ nav:
     - "Core — Build Loop": packs/core.md
     - "Product Engineering": packs/product-engineering.md
     - "Release Engineering": packs/release-engineering.md
-    - Research: packs/research.md
+    - "Desk Research": packs/desk-research.md
     - Architect: packs/architect.md
     - Experience: packs/experience.md
     - Contracts: packs/contracts.md
@@ -173,19 +173,19 @@ nav:
         - Readiness Record: guides/release-engineering/reference/release-readiness-record.md
       - Tutorials:
         - Your First Release: guides/release-engineering/tutorials/your-first-release.md
-    - Research:
-      - guides/research/README.md
+    - "Desk Research":
+      - guides/desk-research/README.md
       - Explanation:
-        - Episodic vs Project: guides/research/explanation/episodic-vs-project-research.md
-        - Research Methodology: guides/research/explanation/research-methodology.md
+        - Episodic vs Project: guides/desk-research/explanation/episodic-vs-project-research.md
+        - Research Methodology: guides/desk-research/explanation/research-methodology.md
       - How-to:
-        - Research Pipelines: guides/research/how-to/research-pipelines.md
-        - Research into an RFC: guides/research/how-to/run-a-research-project-into-an-rfc.md
+        - Research Pipelines: guides/desk-research/how-to/research-pipelines.md
+        - Research into an RFC: guides/desk-research/how-to/run-a-research-project-into-an-rfc.md
       - Reference:
-        - Research Pack: guides/research/reference/research-pack.md
+        - "Desk Research Pack": guides/desk-research/reference/desk-research-pack.md
       - Tutorials:
-        - First Research Session: guides/research/tutorials/research-first-session.md
-        - First Research Project: guides/research/tutorials/your-first-research-project.md
+        - First Research Session: guides/desk-research/tutorials/desk-research-first-session.md
+        - First Research Project: guides/desk-research/tutorials/your-first-research-project.md
     - Architect:
       - guides/architect/README.md
       - How-to:

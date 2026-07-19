@@ -520,7 +520,7 @@ right now?"
   `findings/` (governance registers) and from personal-workspace scratch
   (gitignored ephemeral). Path configured via
   `agentbundle-layout.toml [research] output_dir` or elicited at
-  `research-project-start` time.
+  `desk-research-project-start` time.
 
 ### 5c. `docs/guides/` — for users
 
