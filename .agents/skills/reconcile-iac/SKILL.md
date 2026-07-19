@@ -73,6 +73,29 @@ full drift coverage — the audit covers managed resources only.
    Do not apply or destroy anything autonomously.
 ```
 
+## Disposition decision guidance
+
+The five dispositions map from cause-class and blast-radius. Use this table as a
+starting heuristic — the human confirms every disposition before any action.
+
+| Cause-class | Blast radius vs planned change | Recommended first disposition |
+| --- | --- | --- |
+| `out-of-band-change` | Overlaps | `block-follow-on` — confirm or codify before proceeding |
+| `out-of-band-change` | No overlap | `codify-back` if legitimate; `open-remediation-PR` if it violates a standard |
+| `provider-managed` | Overlaps | `block-follow-on` → investigate → `add ignore_changes` if intentional |
+| `provider-managed` | No overlap | `add ignore_changes` if the provider change is known-good |
+| `multi-tool` | Any | `add ignore_changes` — another tool owns this; coordinate out-of-band |
+| `pipeline-failure` | Any | `open-remediation-PR` — revert via a `generate-iac` PR to pre-failure state |
+| `unknown` | Any | `block-follow-on` — investigate cause before any disposition |
+
+**Do not merge `codify-back` and `add ignore_changes` on the same resource.**
+They are mutually exclusive: either Terraform owns the current state (codify-back)
+or the drift is intentional and Terraform should stop tracking it (ignore_changes).
+
+**`open-remediation-PR` always routes through `generate-iac`** — do not author
+remediation HCL directly in `reconcile-iac`. Remediation PRs get the full
+standards + reviewer set.
+
 ## Drift decomposition — who owns which moment
 
 | Drift moment | Owner |
