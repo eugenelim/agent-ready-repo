@@ -1,0 +1,6 @@
+bucket       = "<your-state-bucket>"
+key          = "<system>/<env>/terraform.tfstate"
+region       = "<region>"
+use_lockfile = true
+encrypt      = true
+kms_key_id   = "<your-kms-key-arn>"

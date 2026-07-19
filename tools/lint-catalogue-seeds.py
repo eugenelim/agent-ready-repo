@@ -107,6 +107,8 @@ REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/knowledge/patterns.jsonl": (),  # empty file required; see check
     "docs/rfc/README.md": ("<!-- no RFCs yet -->",),
     "docs/adr/README.md": ("<!-- no ADRs yet -->",),
+    # governance-extras governance-index template (RFC-0065 D16)
+    "governance/manifest.example.yaml": ("ADR-NNNN",),
     # Generic seeds — no specific placeholder required; the blocklist
     # plus the empty-content-allowed default catch leaks.
     "docs/architecture/README.md": (),
