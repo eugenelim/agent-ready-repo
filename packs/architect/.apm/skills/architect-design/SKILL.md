@@ -39,7 +39,7 @@ If any check fails, push back rather than proceeding.
    load `references/knowledge-surfaces.md`, consult the design-relevant areas,
    and treat a single unconfirmed source as lower-confidence. **If not**, ask
    the user for the missing context and lower the confidence of any proposal
-   that leaned on it — as you degrade when `research` is absent. **Either way,
+   that leaned on it — as you degrade when `desk-research` is absent. **Either way,
    never fabricate** landscape/standards/in-flight facts.
 
    **Ground the platform-service contract.** The never-fabricate rule extends to
@@ -48,7 +48,7 @@ If any check fails, push back rather than proceeding.
    non-configurable limits, scaling floors, cold-start behaviour, network /
    identity requirements — in an authoritative source: a curated platform skill
    for that vendor if one is installed; else the provider's official docs; else
-   `research`. Carry **source + confidence** on each load-bearing figure, and
+   `desk-research`. Carry **source + confidence** on each load-bearing figure, and
    **lower the confidence and flag** any claim you could not ground. **Never
    assert a service contract from model memory** — a binding limit recalled
    wrong is the design miss that surfaces two days into the build, not at review.
@@ -71,7 +71,7 @@ If any check fails, push back rather than proceeding.
    points (`references/tradeoffs-and-sensitivity.md`). **No provider** → still
    produce the concept, forcing no provider/pillar scaffolding. **No shipped
    reference fits the domain** → the leading-edge method
-   (`references/leading-edge-domains.md`): flag novelty, compose with `research`
+   (`references/leading-edge-domains.md`): flag novelty, compose with `desk-research`
    if present (degrade + lower confidence if absent), carry source + confidence.
    Routing has a second, **orthogonal axis — workload class**: when an LLM or
    agent is on the critical path — a **generative or agentic** workload (the

@@ -51,7 +51,7 @@ agentbundle list-installed
 agentbundle install --pack core
 
 # Install a pack at user scope — follows you across every project
-agentbundle install --pack research --scope user
+agentbundle install --pack desk-research --scope user
 
 # Install a whole curated profile in one command
 agentbundle install --profile solution-architect
@@ -116,7 +116,7 @@ Three packs form the operating model. The rest are curated kits — each distill
 | [`governance-extras`](docs/guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos. |
 | [`user-guide-diataxis`](docs/guides/user-guide-diataxis/) | repo | Stand up a Diátaxis docs site. |
 | [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | Scaffold packages in a monorepo. |
-| [`research`](docs/guides/research/) | user / repo | Go from a question to an evidence-grounded answer. |
+| [`desk-research`](docs/guides/desk-research/) | user / repo | Go from a question to an evidence-grounded answer. |
 | [`contracts`](docs/guides/contracts/) | user / repo | Author an API contract (OpenAPI 3.1). |
 | [`converters`](docs/guides/converters/) | user / repo | Move documents in and out of Markdown. |
 | [`atlassian`](docs/guides/atlassian/) | user / repo | Work Jira and Confluence from the agent. |
@@ -124,7 +124,7 @@ Three packs form the operating model. The rest are curated kits — each distill
 | [`architect`](docs/guides/architect/) | user / repo | Design a system and pressure-test it. |
 | [`experience`](docs/guides/experience/) | user / repo | Carry the whole design thread — journey to realization. |
 
-A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
+A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `desk-research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
 
 Adopt the catalogue as-is, or fork it as your own. Write your conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — identical across every machine and every agent. The same bundler works for any domain, not just software delivery. [How to build your org's catalogue →](docs/architecture/catalogue.md)
 
