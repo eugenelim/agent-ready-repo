@@ -8,6 +8,8 @@ New here? [Propose a change with an RFC](how-to/new-rfc.md) when something is st
 
 - [Propose a cross-cutting change (RFC)](how-to/new-rfc.md) — open a proposal for input before a decision is locked in.
 - [Record a decision (ADR)](how-to/new-adr.md) — capture what was decided, the context, and the alternatives weighed.
+- [Set up a governance index](how-to/governance-index.md) — build a domain → ADR manifest so an agent loads 2–3 files instead of the whole ADR tree.
+- [Define an extension contract](how-to/extension-contract.md) — document a plugin or customisation hook so adopters know what is stable.
 
 ---
 
