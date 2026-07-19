@@ -36,6 +36,10 @@ ordered by severity.
 - [ ] Names the trust boundaries the proposal crosses.
 - [ ] Where structure needs a picture, embeds a diagram and the
       prose references it.
+- [ ] If the proposal introduces an extension contract (a hook, plugin,
+      or convention for third-party customisation), it names the contract
+      explicitly, describes the extension point's shape, and states what
+      is stable vs what the adopter must not depend on.
 
 ## Alternatives Considered
 

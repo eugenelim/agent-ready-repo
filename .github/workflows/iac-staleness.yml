@@ -1,0 +1,78 @@
+name: iac-staleness
+
+# Re-runs terraform/tofu init + fmt -check + validate against each worked
+# example on a weekly schedule and on demand. A failure means the example's
+# provider version constraints are stale or the HCL has drifted from the
+# current provider schema.
+#
+# Does NOT apply infrastructure — backend=false keeps all examples local.
+# AWS example runs on both terraform and tofu (D5 dual-engine claim).
+
+on:
+  schedule:
+    # Weekly on Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate ${{ matrix.example }} (${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # AWS validated on both engines (D5)
+          - example: aws
+            engine: terraform
+          - example: aws
+            engine: tofu
+          # GCP validated on terraform
+          - example: gcp
+            engine: terraform
+          # Databricks validated on terraform
+          - example: databricks
+            engine: terraform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install terraform
+        if: matrix.engine == 'terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.11"
+
+      - name: Install tofu
+        if: matrix.engine == 'tofu'
+        run: |
+          curl -sL https://get.opentofu.org/install-opentofu.sh \
+            | bash -s -- --install-method standalone
+          tofu version
+
+      - name: Set ENGINE variable
+        run: |
+          if [ "${{ matrix.engine }}" = "tofu" ]; then
+            echo "ENGINE=tofu" >> "$GITHUB_ENV"
+          else
+            echo "ENGINE=terraform" >> "$GITHUB_ENV"
+          fi
+
+      - name: init (no backend)
+        working-directory: >-
+          packs/iac-terraform/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
+        run: $ENGINE init -backend=false
+
+      - name: fmt -check
+        working-directory: >-
+          packs/iac-terraform/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
+        run: $ENGINE fmt -check
+
+      - name: validate
+        working-directory: >-
+          packs/iac-terraform/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
+        run: $ENGINE validate

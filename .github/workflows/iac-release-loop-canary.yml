@@ -1,0 +1,71 @@
+name: iac-release-loop-canary
+
+# Conformance canary: checks that the operational-safety modules referenced by
+# release-loop-integration.md (core 0.12.0) still exist at their expected paths.
+# A failure means core's operational-safety reference structure has changed and
+# release-loop-integration.md needs updating.
+#
+# Runs on push to main and on PRs that touch either iac-terraform or core.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packs/iac-terraform/**'
+      - 'packs/core/.apm/skills/operational-safety/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packs/iac-terraform/**'
+      - 'packs/core/.apm/skills/operational-safety/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    name: operational-safety module references
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check operational-safety modules exist
+        run: |
+          set -e
+          MODULES=(
+            "packs/core/.apm/skills/operational-safety/references/state-and-idempotency.md"
+            "packs/core/.apm/skills/operational-safety/references/drift-and-rollback.md"
+            "packs/core/.apm/skills/operational-safety/references/environment-isolation.md"
+            "packs/core/.apm/skills/operational-safety/references/cost-and-teardown.md"
+            "packs/core/.apm/skills/operational-safety/references/observability-and-smoke.md"
+            "packs/core/.apm/skills/operational-safety/references/cloud-implementation-craft.md"
+          )
+          FAILED=0
+          for MODULE in "${MODULES[@]}"; do
+            if [ ! -f "$MODULE" ]; then
+              echo "MISSING: $MODULE"
+              FAILED=1
+            else
+              echo "OK: $MODULE"
+            fi
+          done
+          if [ "$FAILED" -eq 1 ]; then
+            echo ""
+            echo "One or more operational-safety modules referenced by"
+            echo "packs/iac-terraform/.apm/skills/generate-iac/references/release-loop-integration.md"
+            echo "are missing. Update release-loop-integration.md to match the"
+            echo "current core operational-safety module structure."
+            exit 1
+          fi
+
+      - name: Check release-loop-integration references core version
+        run: |
+          REFFILE="packs/iac-terraform/.apm/skills/generate-iac/references/release-loop-integration.md"
+          if ! grep -q "core 0\." "$REFFILE"; then
+            echo "release-loop-integration.md does not reference a core version."
+            echo "Add the targeted core version to the file."
+            exit 1
+          fi
+          echo "OK: core version reference present"

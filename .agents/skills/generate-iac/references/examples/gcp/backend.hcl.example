@@ -1,0 +1,2 @@
+bucket = "<your-state-bucket>"
+prefix = "<system>/<env>"

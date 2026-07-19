@@ -142,6 +142,20 @@ If any of these checks fail, push back rather than proceeding.
   the Context from memory and history, list the people who actually decided as
   `Decision-makers`, and note in References that it's a backfill.
 
+## Infra mode (`mode: infra`)
+
+When the user invokes `new-adr` with `mode: infra`, or asks for an ADR covering
+an infrastructure decision (state backend, IAM model, network topology, CI
+authentication, etc.), load
+`references/infra-decisions.md` before drafting. That reference lists the seven
+canonical IaC ADR topics and the content to capture for each. Each topic
+produces one ADR; the accepted ADR number is then referenced in the repo's
+governance-index manifest (`docs/governance-index.yaml`, domain row
+`adrs: [ADR-NNNN]`).
+
+Infra ADRs follow the same template and lifecycle as all other ADRs — the topic
+reference just gives you the right framing question and "Revisit if" trigger.
+
 ## Anti-patterns to refuse
 
 - "Make this ADR say we're definitely using X" before discussion has happened →
