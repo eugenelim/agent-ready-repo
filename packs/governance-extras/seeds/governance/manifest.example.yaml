@@ -1,0 +1,65 @@
+# governance-index manifest — load this FIRST in Stage 0
+#
+# Maps each infrastructure decision domain to the ADR(s) and standard(s)
+# that bind it. An assistant reads 2–3 files from this index rather than
+# the whole repo. Fill in your ADR numbers and local standard paths.
+#
+# The `generate-iac` skill (iac-terraform pack) reads this manifest at
+# Stage 0 and adds any missing domain rows. Referencing an ADR by number
+# is the adopter's act — this file is your index, not a generated scaffold.
+#
+# How to use:
+#   1. Copy this file to your repo as docs/governance-index.yaml (or .toml).
+#   2. Replace ADR-NNNN placeholders with your actual ADR numbers.
+#   3. Replace standard paths with paths relative to your repo root.
+#   4. Add or remove domains to match your architecture decisions.
+
+domains:
+  state:
+    question: "Where does state live and how is it locked?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  layout:
+    question: "How is Terraform / IaC structured into layers and modules?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  iam:
+    question: "What identity and access model applies?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  tagging:
+    question: "What tags or labels are mandatory on every resource?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  networking:
+    question: "Public or private? Who owns the network layer?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  pipeline_auth:
+    question: "How does CI authenticate to the cloud — OIDC, service account, or PAT?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  remediation:
+    question: "Can the system self-heal or auto-apply without human approval?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+  observability:
+    question: "How is workload telemetry (metrics, traces, logs) captured?"
+    adrs: [ADR-NNNN]
+    standards: []
+
+# Which cloud providers this repo targets
+clouds: []  # e.g. [aws, gcp, azure]
+
+# Which CI systems this repo uses
+ci_systems: []  # e.g. [github-actions, azure-devops, gitlab]
+
+# Where OPA/Conftest policies live (relative to repo root)
+policies_dir: ""  # e.g. infra/policy

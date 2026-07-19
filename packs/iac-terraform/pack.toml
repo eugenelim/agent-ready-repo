@@ -1,0 +1,41 @@
+[pack]
+name = "iac-terraform"
+version = "0.1.0"
+description = "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth."
+readme = "README.md"
+display_name = "IaC (Terraform)"
+license = "Apache-2.0 OR MIT"
+categories = ["infrastructure", "governance", "ci-cd"]
+keywords = ["terraform", "opentofu", "iac", "policy-as-code", "oidc"]
+
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]     # repo-scope: emits generated Terraform/pipeline outputs into
+                              # the repo, references the repo's ADRs, and reuses the repo-scope
+                              # `core` reviewers (same-scope resolution) — ships zero seeds itself
+
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "core"
+version = "^0.1"
+
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "governance-extras"
+# Same-PR dependency: this PR adds the governance-index template + `new-adr` infra
+# mode + the extension-contract convention to governance-extras, so pin the NEW
+# minor those land in (bump governance-extras in the same PR) — never a range that
+# can resolve to a version predating them.
+version = ">=0.6"
+
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/iac-terraform/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
