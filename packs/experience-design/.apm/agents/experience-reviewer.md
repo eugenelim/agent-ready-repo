@@ -102,6 +102,8 @@ load-bearing; do not silently drop one. The fifth fires only on marketing surfac
   hurts the reader's ability to determine fit and take the intended action. Label
   findings with the criterion they violate.
 
+- **Multi-surface rule.** When reviewing a platform with more than one surface, request separate invocations per surface. Do not attempt to review a marketing surface and a documentation surface in a single pass — the genre rubrics are incompatible. The cross-surface integration check (bidirectional navigation, design system bridge, copy voice continuity) is a third, separate review pass after both surface passes are complete.
+
 ## Severity glossary
 
 | Tag | Meaning |
