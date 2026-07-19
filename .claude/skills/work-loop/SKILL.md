@@ -713,8 +713,8 @@ note in the summary, not a blocker.
   reference and constraints** (persona, outcome, platform surface) — not the
   code diff; experience-reviewer reviews design artifacts, not code diffs, and
   its confirm-before-reviewing gate requires the grounded reference. Fallback if
-  no `experience-reviewer` is installed (experience pack absent): proceed and
-  note it — absence of the experience pack is a named skip, not a silent pass.
+  no `experience-reviewer` is installed (experience-design pack absent): proceed and
+  note it — absence of the experience-design pack is a named skip, not a silent pass.
 
 **Dispatch reviewers in parallel when you invoke more than one** per
 the [Parallel dispatch discipline](#parallel-dispatch-discipline)

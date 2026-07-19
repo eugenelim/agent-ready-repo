@@ -238,9 +238,9 @@ look like?" before any code.
    confirmed (step 4c). Before writing the spec body — especially the Acceptance
    Criteria — settle two design-readiness questions and weave the result into the spec.
 
-   If the experience pack is absent (`creative-direction` and `design-review`
+   If the experience-design pack is absent (`creative-direction` and `design-review`
    unavailable): **proceed and note it** in the spec's Assumptions —
-   `experience pack not installed; design intent for this surface is ungrounded` —
+   `experience-design pack not installed; design intent for this surface is ungrounded` —
    then skip the rest of this step. Absence is a named gap, not a silent pass.
 
    - **Check for a grounded aesthetic reference.** Search the repo for an aesthetic-

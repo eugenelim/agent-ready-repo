@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Framework-agnosticism lint for the `experience` pack (RFC-0033).
+"""Framework-agnosticism lint for the `experience-design` pack (RFC-0033).
 
-The `experience` pack ships portable design *method*, never a stack or a
+The `experience-design` pack ships portable design *method*, never a stack or a
 values cheat-sheet (RFC-0033 Guardrails A and B; the charter's "not a
 framework that picks your tech stack"). This lint is the mechanical floor
 under that promise — the RFC-0007 grep-enforcement pattern, scoped to one
-pack. It walks every Markdown file under `packs/experience/` and fails on
+pack. It walks every Markdown file under `packs/experience-design/` and fails on
 any **stack token** (UI-framework name, styling-language syntax, animation
 library, ARIA role) or **values-table shape** (color literal — hex, rgb(),
 hsl(); a dimension/duration literal — px/ms/rem/em/pt/vh/vw and decimal
@@ -147,7 +147,7 @@ def _scan_root() -> pathlib.Path:
     override = os.environ.get("EXPERIENCE_ROOT")
     if override:
         return pathlib.Path(override)
-    return _repo_root() / "packs" / "experience"
+    return _repo_root() / "packs" / "experience-design"
 
 
 def main() -> int:
