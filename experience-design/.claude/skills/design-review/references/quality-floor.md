@@ -1,6 +1,6 @@
 # The `quality-floor` checklist
 
-The **pack-shared floor** every `experience` artifact is held to — one file,
+The **pack-shared floor** every `experience-design` artifact is held to — one file,
 referenced by skills across the pack, never copied into a private sibling. The
 authoring and connective skills (`creative-direction`,
 `design-system`, `information-architecture`,

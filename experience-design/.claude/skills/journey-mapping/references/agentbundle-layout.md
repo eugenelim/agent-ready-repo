@@ -32,10 +32,8 @@ parent = "docs/design"   # a base directory; output files go *under* it
   - `process-mapping` → `<parent>/processes/<slug>.md`
     (frontmatter `type: process-flow`)
 
-  **This skill** writes the screen flow at `screens/<slug>-flow.md`
-  (`type: screen-flow`), one per-screen brief at
-  `screens/<slug>/<screen-name>.md`, and — optionally — a design-tool handover
-  alongside each brief at `screens/<slug>/<screen-name>.handover.md`.
+  **This skill** writes the `journeys/<slug>.md` shape with
+  `type: customer-journey`.
 
 ## Two locations, repo overrides user
 
@@ -64,8 +62,8 @@ When no `[experience]` section resolves, the pack defaults to `docs/design`
 (its `[pack.layout.repo]` default) — committed design docs, the natural home
 for journeys, blueprints, screen flows, and process maps in a product repo.
 
-The `experience` pack ships **no `[pack.layout.user]` default** — its output
-is per-repo (each journey or screen flow belongs to a specific product). For a
+The `experience-design` pack ships **no `[pack.layout.user]` default** — its output
+is per-repo (each journey or blueprint belongs to a specific product). For a
 personal cross-repo default, write an `[experience]` section into your
 user-profile file by hand:
 
@@ -90,8 +88,3 @@ The first match's parent directory is used as `<parent>` for subsequent
 writes — so a team that already chose a different layout is not forced to
 reorganize. When no marker is found either, surface the conflict and ask the
 adopter where design artifacts should live before writing.
-
-The four values above are the **only** discover anchors. The per-screen brief
-carries a brief-internal `type: screen-flow-brief` that is **deliberately not** a
-discover anchor — briefs are reached *through* the screen flow, never discovered
-independently, so a marker scan never resolves a `<parent>` from a brief.

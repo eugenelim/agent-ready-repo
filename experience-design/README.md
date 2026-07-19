@@ -65,7 +65,7 @@ names correctness goals has not cleared the gate.
 
 ## Install
 
-`experience` is **user-scope by default** — design method is portable, not
+`experience-design` is **user-scope by default** — design method is portable, not
 project-specific.
 
 ```
@@ -122,4 +122,4 @@ writes copy keyed to every screen × state cell. See the
 
 ---
 
-→ **Go deeper:** the [`experience` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience/).
+→ **Go deeper:** the [`experience-design` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience-design/).

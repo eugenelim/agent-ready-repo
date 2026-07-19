@@ -8,7 +8,7 @@ never-overwrite**). On the rare append of a *missing* section, the installer
 re-emits the file and does **not** preserve freeform comments or off-schema keys;
 an existing section is left byte-identical (the re-emit runs only when your
 section is absent). This page documents the `[experience]` section that the
-`experience` pack's artifact-writing skills read.
+`experience-design` pack's artifact-writing skills read.
 
 ## The `[experience]` table
 
@@ -63,7 +63,7 @@ When no `[experience]` section resolves, the pack defaults to `docs/design`
 the natural home for journey maps, blueprints, screen flows, and process maps
 in a product repo.
 
-`experience` ships **no `[pack.layout.user]` default** — its output is
+`experience-design` ships **no `[pack.layout.user]` default** — its output is
 per-repo and there is no sensible *absolute* user-scope base. For a personal
 cross-repo default, write an `[experience]` section into your user-profile
 file by hand:
