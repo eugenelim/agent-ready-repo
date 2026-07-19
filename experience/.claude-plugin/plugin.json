@@ -1,7 +1,7 @@
 {
   "name": "experience",
-  "version": "0.5.1",
-  "description": "The design/UX seat for product teams \u2014 the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (map-customer-journey \u2192 map-screen-flow \u2192 blueprint-service) and map the inside-out sibling (map-internal-process); craft skills design each screen (aesthetic-direction, design-system-foundations, layout-and-information-architecture, interaction-design) and critique it (design-critique), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps \u2014 points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
+  "version": "0.6.0",
+  "description": "The design/UX seat for product teams \u2014 the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping \u2192 user-flow \u2192 service-blueprint) and map the inside-out sibling (process-mapping); craft skills design each screen (creative-direction, design-system, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps \u2014 points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
   "hooks": {
     "SessionStart": [
       {
