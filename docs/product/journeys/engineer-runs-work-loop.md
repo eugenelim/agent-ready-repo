@@ -65,7 +65,7 @@ sequenceDiagram
     E->>A: What should I work on next?
     A->>R: Read RFC, roadmap, briefs/ (manual re-orient)
     A-->>E: [best guess at next item]
-    Note over E: No committed queue; next item is inferred
+    Note over E: No committed queue — next item is inferred
 ```
 
 ### To-be state — M1.7 shipped (initiative work)
