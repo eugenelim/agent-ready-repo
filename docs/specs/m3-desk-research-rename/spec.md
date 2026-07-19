@@ -1,6 +1,6 @@
 # Spec: m3-desk-research-rename
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064
@@ -102,44 +102,44 @@ No manual QA — no user-facing UI surface.
 
 ## Acceptance Criteria
 
-- [ ] `packs/desk-research/` directory exists; `packs/research/` does not exist.
-- [ ] `packs/desk-research/pack.toml` has `name = "desk-research"`, `version = "1.0.0"`,
+- [x] `packs/desk-research/` directory exists; `packs/research/` does not exist.
+- [x] `packs/desk-research/pack.toml` has `name = "desk-research"`, `version = "1.0.0"`,
   `display_name = "Desk Research"`, and `documentation` link updated to `.../docs/guides/desk-research/`.
-- [ ] `packs/desk-research/.claude-plugin/plugin.json` has `"name": "desk-research"` and
+- [x] `packs/desk-research/.claude-plugin/plugin.json` has `"name": "desk-research"` and
   `"version": "1.0.0"`.
-- [ ] `[pack.evals] skills` list in `pack.toml` contains `"desk-research"` and
+- [x] `[pack.evals] skills` list in `pack.toml` contains `"desk-research"` and
   `"desk-research-project-start"` and does not contain the old names `"research"` or
   `"research-project-start"` (only two of the five renamed skills are in the evals list).
-- [ ] Skill directory `packs/desk-research/.apm/skills/desk-research/` exists;
+- [x] Skill directory `packs/desk-research/.apm/skills/desk-research/` exists;
   `packs/desk-research/.apm/skills/research/` does not.
-- [ ] Skill directories `desk-research-project-start`, `desk-research-project-digest`,
+- [x] Skill directories `desk-research-project-start`, `desk-research-project-digest`,
   `desk-research-project-check`, `desk-research-project-synthesize` exist under
   `packs/desk-research/.apm/skills/`; the four old `research-project-*` directories
   do not.
-- [ ] `packs/core/.apm/skills/check-workspace/SKILL.md` references `desk-research-project-start`,
+- [x] `packs/core/.apm/skills/check-workspace/SKILL.md` references `desk-research-project-start`,
   not `research-project-start`.
-- [ ] `packs/product-engineering/.apm/skills/frame-domain/SKILL.md` references
+- [x] `packs/product-engineering/.apm/skills/frame-domain/SKILL.md` references
   `desk-research` (not `research`) for all operative skill-invocation lines.
-- [ ] `packs/core/.apm/skills/init-project/SKILL.md`, `contract-acquisition/SKILL.md`,
+- [x] `packs/core/.apm/skills/init-project/SKILL.md`, `contract-acquisition/SKILL.md`,
   `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md`, and
   `frame-domain/examples/` contain no stale operative `research` pack/skill slug
   references; same for all other files found by the repo-wide operative sweep.
-- [ ] `packs/desk-research/.apm/agents/evidence-retriever.md` description references
+- [x] `packs/desk-research/.apm/agents/evidence-retriever.md` description references
   `/desk-research`, not `/research`.
-- [ ] `packs/desk-research/AGENTS.md` exists and contains a migration table with: old pack
+- [x] `packs/desk-research/AGENTS.md` exists and contains a migration table with: old pack
   name → new pack name; all five old skill slugs → new skill slugs; a note on adopter
   install-state impact (state key `research` → `desk-research`; reinstall required).
-- [ ] RFC-0064 body (M3 ACs section) records the assessment outcome: pack-level alias
+- [x] RFC-0064 body (M3 ACs section) records the assessment outcome: pack-level alias
   unsupported in agentbundle (adapter-level only); migration is documentation-only;
   assessed 2026-07-18.
-- [ ] Guide files under `docs/guides/desk-research/` contain no `/research` or
+- [x] Guide files under `docs/guides/desk-research/` contain no `/research` or
   `research-project-*` invocation prose; pack-named slug files renamed
   (`reference/research-pack.md` → `reference/desk-research-pack.md`,
   `tutorials/research-first-session.md` → `tutorials/desk-research-first-session.md`).
-- [ ] `docs/guides/desk-research/` directory exists; `docs/guides/research/` does not.
-- [ ] `packages/agentbundle/tests/integration/test_install_research_user_scope.py` and
+- [x] `docs/guides/desk-research/` directory exists; `docs/guides/research/` does not.
+- [x] `packages/agentbundle/tests/integration/test_install_research_user_scope.py` and
   other integration tests that reference the actual pack by name pass with the new name.
-- [ ] `make lint-packs` exits 0; `make build-self` exits 0; `pytest packages/agentbundle/`
+- [x] `make lint-packs` exits 0; `make build-self` exits 0; `pytest packages/agentbundle/`
   green.
 
 ## Assumptions

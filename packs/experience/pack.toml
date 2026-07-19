@@ -1,6 +1,6 @@
 [pack]
 name = "experience"
-version = "0.5.0"
+version = "0.5.1"
 description = "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (map-customer-journey → content-design → copy-direction → map-screen-flow → blueprint-service) and map the inside-out sibling (map-internal-process); craft skills design each screen (aesthetic-direction, design-system-foundations, layout-and-information-architecture, interaction-design) and critique it (design-critique), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them."
 readme = "README.md"
 display_name = "Experience"
@@ -10,7 +10,7 @@ keywords = ["customer-journey", "service-blueprint", "interaction-design", "desi
 
 # Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
 # travels with every shipped adapter that projects the skill primitive.
-# Contract v0.12 matches `research` (RFC-0033 OQ#1 default): the level at
+# Contract v0.12 matches `desk-research` (RFC-0033 OQ#1 default): the level at
 # which Copilot's skill primitive projects as a first-class Agent Skill.
 [pack.adapter-contract]
 version = "0.12"
@@ -19,7 +19,7 @@ version = "0.12"
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # Experience method is portable, not project-specific — user-scope by
-# default, like `architect`/`research`. Pure-markdown skills + skill
+# default, like `architect`/`desk-research`. Pure-markdown skills + skill
 # assets/, no `seeds/` (RFC-0004 Rail A), so it projects to every shipped
 # adapter that supports the skill primitive. Declared order is load-bearing
 # (RFC-0011): append-only; `kiro-ide` precedes `kiro-cli`.

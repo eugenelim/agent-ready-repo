@@ -19,11 +19,11 @@ Documentation for the agent-ready-repo catalogue, organized to get you to the ri
 | I work as… | Start here | Also useful |
 | --- | --- | --- |
 | **Engineer** | [`core`](core/) — the build loop | [`architect`](architect/) for design; [`contracts`](contracts/) for API authoring; [`converters`](converters/) for document handling |
-| **Product manager / strategist** | [`product-engineering`](product-engineering/) — intent shaping and the discovery loop | [`research`](research/) for evidence; [`governance-extras`](governance-extras/) for decision trails |
+| **Product manager / strategist** | [`product-engineering`](product-engineering/) — intent shaping and the discovery loop | [`desk-research`](desk-research/) for evidence; [`governance-extras`](governance-extras/) for decision trails |
 | **Designer / UX** | [`experience`](experience/) — journey mapping, screen flows, service blueprints, design critique | [`figma`](figma/) for Figma reads; [`product-engineering`](product-engineering/) for voice and microcopy |
-| **Architect** | [`architect`](architect/) — system design and pressure-testing | [`contracts`](contracts/) for API contracts; [`research`](research/) for prior art |
+| **Architect** | [`architect`](architect/) — system design and pressure-testing | [`contracts`](contracts/) for API contracts; [`desk-research`](desk-research/) for prior art |
 | **SRE / DevOps** | [`release-engineering`](release-engineering/) — the release loop, ephemeral deploy, e2e convergence | [`core`](core/) (required dependency) |
-| **Researcher / analyst** | [`research`](research/) — evidence-grounded research with selectable depth | [`converters`](converters/) for document ingestion |
+| **Researcher / analyst** | [`desk-research`](desk-research/) — evidence-grounded research with selectable depth | [`converters`](converters/) for document ingestion |
 | **Everyone, once** | [`core`](core/) — **install this even if you install nothing else** | — |
 
 ---
@@ -52,7 +52,7 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | [`product-engineering`](product-engineering/) | [home](product-engineering/) | The discovery loop and intent shaping — `discovery-loop`, `frame-intent`, `de-risk-intent`, `decompose-intent`, `voice-and-microcopy`, `align-value-stream`. |
 | [`release-engineering`](release-engineering/) | [home](release-engineering/) | The release loop — `release-loop`, `release-lead`; autonomous e2e convergence on ephemeral envs; inner↔outer feedback seam; release-readiness record at G5. |
 | [`architect`](architect/) | [home](architect/) | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, and the read-only `design-reviewer` subagent. |
-| [`research`](research/) | [home](research/) | Evidence-grounded research — `research` with selectable depth, plus `source-map`, `compare-hypotheses`, `devils-advocate`, and retrieval subagents. |
+| [`desk-research`](desk-research/) | [home](desk-research/) | Evidence-grounded research — `desk-research` with selectable depth, plus `source-map`, `compare-hypotheses`, `devils-advocate`, and retrieval subagents. |
 | [`experience`](experience/) | [home](experience/) | The full design thread — journey mapping, screen flows, service blueprints, aesthetic direction, design systems, design critique, and the `experience-reviewer` subagent. |
 | [`credential-brokers`](credential-brokers/) | [home](credential-brokers/) | The broker behind credentialed skills — secrets resolve in-process, never reaching the model. |
 | [`atlassian`](atlassian/) | [home](atlassian/) | Jira, Confluence, and flow metrics — `jira`, `confluence-crawler`/`-publisher`, `flow-metrics`, `jira-defect-flow`, and more. |

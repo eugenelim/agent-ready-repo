@@ -42,7 +42,7 @@ referent or trigger, and the **tell** — the cue that should have fired.
   origination, the altitude bet) at G1.5. *Tell: an altitude choice is what we
   *want*, not what a referent decides.*
 - "How is this recurring-planning activity really done?" → **resolve** (referent:
-  `frame-domain` wrapping `research` applied). *Tell: a domain fact is grounded, not
+  `frame-domain` wrapping `desk-research` applied). *Tell: a domain fact is grounded, not
   guessed — and never asserted ungrounded.*
 - "Does approved-learning need an audit-view screen?" → **resolve** (referent: the
   security lens's threat model over the journey). Not a human call once a lens

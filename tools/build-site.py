@@ -30,7 +30,7 @@ PACKS: list[tuple[str, str, str, str]] = [
     ("core",               "Core",                "repo", "The build loop — `work-loop`, `new-spec`, `bug-fix`, four specialist reviewers, hooks. **Install this first.**"),
     ("product-engineering","Product Engineering",  "user", "The discovery loop — raw idea to ratified brief with human consent at G0, G1.5, G2."),
     ("release-engineering","Release Engineering",  "repo", "The release loop — autonomous e2e convergence on ephemeral environments; prod gate is always human."),
-    ("research",           "Research",             "user", "Evidence-grounded research with typed artifacts, seven skills, and two retrieval subagents."),
+    ("desk-research",      "Desk Research",         "user", "Evidence-grounded research with typed artifacts, seven skills, and two retrieval subagents."),
     ("architect",          "Architect",            "user", "System design, diagramming, and independent architecture review from a forked-context subagent."),
     ("experience",         "Experience",           "user", "The full design thread: journey mapping, screen flows, aesthetic direction, WCAG quality floor."),
     ("contracts",          "Contracts",            "user", "API-first design — OpenAPI 3.1 for HTTP, AsyncAPI for event streams."),

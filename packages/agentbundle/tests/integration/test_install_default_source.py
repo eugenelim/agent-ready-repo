@@ -121,7 +121,7 @@ def test_offer_upgrade_forwards_adapter(monkeypatch):
     # Pass a differing resolved_adapter to confirm CLI value wins over the fallback.
     install._offer_upgrade(
         args,
-        pack_name="research",
+        pack_name="desk-research",
         scope="user",
         catalogue_uri="git+https://resolved/x",
         resolved_adapter="codex",
@@ -143,7 +143,7 @@ def test_offer_upgrade_uses_resolved_adapter_when_no_cli_adapter(monkeypatch):
     )
     install._offer_upgrade(
         args,
-        pack_name="research",
+        pack_name="desk-research",
         scope="user",
         catalogue_uri="git+https://resolved/x",
         resolved_adapter="codex",

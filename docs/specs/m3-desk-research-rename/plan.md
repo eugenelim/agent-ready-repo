@@ -1,7 +1,7 @@
 # Plan: m3-desk-research-rename
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -171,20 +171,22 @@ git mv packs/desk-research/.apm/skills/research-project-synthesize packs/desk-re
 `packs/product-engineering/.apm/skills/frame-domain/examples/example-assistant.md`,
 `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md`,
 `packs/product-engineering/.apm/skills/frame-intent/references/knowledge-surfaces.md`,
+`packs/experience/.apm/skills/map-internal-process/SKILL.md`,
 `packs/desk-research/.apm/agents/evidence-retriever.md`,
 `packs/desk-research/.apm/skills/desk-research-project-start/references/agentbundle-layout.md`,
+`packs/desk-research/README.md`,
 intra-pack SKILL.md files that invoke peer skills by old slug
 
 **Tests:**
 - Repo-wide sweep (run after all edits in this task):
-  `grep -rn "\/research\b\|research-project" packs/ --include="*.md" | grep -v "docs/rfc\|docs/adr\|docs/specs\|# \|<!--"` — review every hit; zero unremediated operative references.
+  `grep -rn "\/research\b\|research-project\|\`research\`\|\"research\"\|'research'" packs/ --include="*.md" | grep -v "docs/rfc\|docs/adr\|docs/specs\|# \|<!--"` — review every hit; zero unremediated operative references.
 - `grep -n "research-project-start" packs/core/.apm/skills/check-workspace/SKILL.md` returns 0 lines.
 
 **Approach:**
 
-*Step 0 — run the repo-wide sweep first:*
+*Step 0 — run the repo-wide sweep first (backtick form is the most common operative shape — include it):*
 ```
-grep -rn "\/research\b\|research-project\|\"research\"\|'research'" packs/ --include="*.md"
+grep -rn "\/research\b\|research-project\|\`research\`\|\"research\"\|'research'" packs/ --include="*.md"
 ```
 Review every hit using the disambiguation table in Design (LLD). The list below covers
 all confirmed operative files; the sweep catches any others.
@@ -225,6 +227,22 @@ all confirmed operative files; the sweep catches any others.
 - Update prose that names the pack as "research" or "the \`research\` pack" to
   "desk-research" / "the \`desk-research\` pack". The section key `[research]` stays;
   update prose only.
+
+*map-internal-process/SKILL.md (packs/experience):*
+- Line 17: `use \`research\`'s \`methodology\` shape instead` — leave (discipline prose, not a
+  skill-invocation slug). This reference correctly names the skill the user should invoke;
+  update the slug to `` `desk-research` ``.
+
+*README.md (packs/desk-research/ — post-T1):*
+- Line 11: `` `research` `` in skills list → `` `desk-research` ``
+- Line 47: `guides/research/` link → `guides/desk-research/`
+
+*Frontmatter `name:` fields — all five renamed SKILL.md files:*
+- `packs/desk-research/.apm/skills/desk-research/SKILL.md`: `name: research` → `name: desk-research`
+- `packs/desk-research/.apm/skills/desk-research-project-start/SKILL.md`: `name: research-project-start` → `name: desk-research-project-start`
+- `packs/desk-research/.apm/skills/desk-research-project-digest/SKILL.md`: `name: research-project-digest` → `name: desk-research-project-digest`
+- `packs/desk-research/.apm/skills/desk-research-project-check/SKILL.md`: `name: research-project-check` → `name: desk-research-project-check`
+- `packs/desk-research/.apm/skills/desk-research-project-synthesize/SKILL.md`: `name: research-project-synthesize` → `name: desk-research-project-synthesize`
 
 *Intra-pack SKILL.md sweep:*
 - Review every hit from the Step 0 grep within `packs/desk-research/.apm/skills/`.
@@ -289,13 +307,16 @@ No alias is available — the installer does not support pack-level aliases.
 ```
 
 *RFC-0064 body edit — RFC-0064 is still Draft; formal post-acceptance errata (RFC-0055
-mechanism) do not apply. Edit the M3 pack-rename AC inline to record the assessment:*
+mechanism) do not apply. Edit the RFC body directly:*
 
-In the `research → desk-research` AC bullet, append a parenthetical:
-
-> (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level
-> alias; migration is documentation-only via `packs/desk-research/AGENTS.md`. Assessed
-> 2026-07-18, eugenelim.)
+1. In the Affected-surface line (contains "M3 pack renames: `research` → `desk-research`…
+   `agentbundle-layout.toml`, deprecation aliases, build-self"), remove
+   "`agentbundle-layout.toml`" and "deprecation aliases" from the list — neither
+   applies (layout key stays; no alias exists or will be added).
+2. In the `research → desk-research` AC bullet, append a parenthetical:
+   > (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level
+   > alias; migration is documentation-only via `packs/desk-research/AGENTS.md`. Assessed
+   > 2026-07-18, eugenelim.)
 
 **Done when:** AGENTS.md exists with the migration table; RFC-0064 M3 pack-rename AC
 contains the assessment note; grep checks above exit 0.
@@ -311,7 +332,7 @@ guide files within (prose + slug-named file renames)
 
 **Tests:**
 - `[ -d docs/guides/desk-research ] && [ ! -d docs/guides/research ]` exits 0
-- `grep -rn "\/research\b\|research-project" docs/guides/desk-research/ --include="*.md"` returns 0 lines
+- `grep -rn "\/research\b\|research-project\|\`research\`" docs/guides/desk-research/ --include="*.md"` returns 0 lines
 
 **Approach:**
 - `git mv docs/guides/research docs/guides/desk-research`
@@ -340,11 +361,14 @@ guide files within (prose + slug-named file renames)
 `packages/agentbundle/tests/integration/test_install_profile_live.py`,
 `packages/agentbundle/tests/integration/test_install_default_source.py`,
 `packages/agentbundle/tests/unit/test_enriched_pack_metadata.py`,
-possibly `tests/unit/test_render_table.py` and `tests/unit/test_cli_profile_surface.py`
+`packages/agentbundle/tests/unit/test_research_retrievers_conformance.py`,
+possibly `tests/unit/test_render_table.py`, `tests/unit/test_cli_profile_surface.py`,
+and `tests/unit/test_profile_reader.py`
 
 **Tests:**
 - `pytest packages/agentbundle/tests/integration/test_install_research_user_scope.py` green
 - `pytest packages/agentbundle/tests/unit/test_enriched_pack_metadata.py` green
+- `pytest packages/agentbundle/tests/unit/test_research_retrievers_conformance.py` green
 
 **Approach:**
 
@@ -362,6 +386,11 @@ use `"research"` as a generic test-fixture string unrelated to the live catalogu
 - `test_install_default_source.py:124,146`: `pack_name="research"` → `pack_name="desk-research"`
 - `test_enriched_pack_metadata.py:40`: `{"core", "research", ...}` → `{"core", "desk-research", ...}`
 
+*Definite rename (live-catalogue path):*
+- `test_research_retrievers_conformance.py`: update `REPO_ROOT / "packs" / "research" / ".apm" / "skills" / "research"` path
+  constant → `REPO_ROOT / "packs" / "desk-research" / ".apm" / "skills" / "desk-research"`.
+  Read line 15 context comment and any `pack="research"` assertion strings before editing.
+
 *Verify before touching (may be fixtures, not live-catalogue references):*
 - `test_render_table.py:21`: `["research", "0.3.0", ...]` — if this row is a snapshot of
   actual catalogue metadata, update to `["desk-research", "1.0.0", ...]`; if it is an
@@ -369,8 +398,10 @@ use `"research"` as a generic test-fixture string unrelated to the live catalogu
 - `test_cli_profile_surface.py:39`: the inline profile string with `pack = "research"` —
   if this test installs from the live catalogue, update; if it tests profile-parsing with
   an arbitrary pack name, leave intact.
+- `test_profile_reader.py:39,54`: `pack = "research"` / `("architect", "research", "contracts")` —
+  if these are arbitrary profile-parser fixtures, leave intact; confirm before touching.
 
-Read both files before editing; apply the rule from the Design section.
+Read all three files before editing; apply the rule from the Design section.
 
 **Done when:** both targeted pytest runs above are green; no `packs/research` path
 references remain in the updated test files.
@@ -427,3 +458,9 @@ but no pack to install. The AGENTS.md migration guide is the only mitigation.
 ## Changelog
 
 - 2026-07-18: initial plan
+- 2026-07-19: pre-execute adversarial review — added backtick-form grep patterns to T4/T6
+  sweep and Done-when checks; added map-internal-process/SKILL.md and README.md to T4
+  Touches; added frontmatter name: field edits for all five renamed SKILL.md files to T4;
+  added test_research_retrievers_conformance.py (live-catalogue path) to T7; added
+  test_profile_reader.py to T7 verify-before-touching; added RFC-0064 Affected-surface
+  line correction to T5 approach.

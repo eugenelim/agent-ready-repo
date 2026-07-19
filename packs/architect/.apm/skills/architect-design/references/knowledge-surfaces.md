@@ -66,7 +66,7 @@ Discover what's reachable from the session itself:
 - An in-repo knowledge set (`docs/`, an architecture index) is a surface too —
   you can already read it.
 
-This mirrors how the `research` skill enumerates "retrieval-shaped tools
+This mirrors how the `desk-research` skill enumerates "retrieval-shaped tools
 registered in the session." If a surface is found, consult the areas above that
 your design decision turns on. If a found surface returns nothing useful, treat
 that as *absent* for that area.
@@ -88,7 +88,7 @@ Three honesty rails on detection:
 
 ## Degrade gracefully when a surface is absent
 
-Behave exactly as the skill already does when `research` is absent — **compose
+Behave exactly as the skill already does when `desk-research` is absent — **compose
 if present, degrade if absent** — only more honestly:
 
 - **(a) Ask, and lower confidence.** Ask the user for the missing landscape /

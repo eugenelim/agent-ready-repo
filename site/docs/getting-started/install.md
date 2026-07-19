@@ -21,7 +21,7 @@ agentbundle list-packs
 agentbundle list-installed
 
 # Install at user scope (follows you across every project)
-agentbundle install --pack research --scope user
+agentbundle install --pack desk-research --scope user
 
 # Install a profile (curated pack bundle)
 agentbundle install --profile solution-architect
@@ -57,7 +57,7 @@ Install directly from Claude's plugin marketplace without touching the CLI.
 
 ```
 claude plugin install eugenelim/core
-claude plugin install eugenelim/research
+claude plugin install eugenelim/desk-research
 ```
 
 Available for all 14 packs. Plugin names match the pack name.
@@ -68,7 +68,7 @@ For teams using APM as their primary package manager:
 
 ```bash
 apm install eugenelim/core
-apm install eugenelim/research --scope user
+apm install eugenelim/desk-research --scope user
 ```
 
 ## Route 4: Local clone

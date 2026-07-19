@@ -17,7 +17,7 @@ This is user-global: set it once and it applies whether you install into a repo 
 agentbundle install --pack core --adapter codex
 
 # User scope
-agentbundle install --pack research --scope user --adapter codex
+agentbundle install --pack desk-research --scope user --adapter codex
 ```
 
 Per-install `--adapter` beats the pinned default, which beats auto-detect. Re-running an install keeps whatever adapter that install already uses — an upgrade won't reset it.

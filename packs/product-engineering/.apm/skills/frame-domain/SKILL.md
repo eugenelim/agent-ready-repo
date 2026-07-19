@@ -23,7 +23,7 @@ downstream lifecycles:
    **out-of-scope register**, the G1.5 **scope-creep guard** the brief
    inherits and refines at G3.
 
-The skill **wraps** existing skills (`research` applied mode,
+The skill **wraps** existing skills (`desk-research` applied mode,
 `decision-archaeology`) and **shapes** their output into the typed artifacts; it
 does not re-implement retrieval. It is **prompt-only** (Charter Principle 3):
 there is no engine, script, or filename generator — the agent following this body
@@ -48,28 +48,28 @@ coordinator / discovery-loop** (which is unbuilt). It produces on demand; the
 non-skippable "cannot proceed without it" gate property is the coordinator's to
 own, not this skill's.
 
-## Wrapping `research` applied mode — the real-world-activity half
+## Wrapping `desk-research` applied mode — the real-world-activity half
 
-Domain Framing's **real-world-activity half** is grounded by wrapping `research`
+Domain Framing's **real-world-activity half** is grounded by wrapping `desk-research`
 in **`applied` mode** — the practitioner / grey-literature discipline, with the
 prior-art / best-practice / case-study / anti-pattern frames and the
 survivorship-bias and stale-prior-art overlay. That applied-mode discipline is
 what grounds *how the activity is really done* and surfaces the naive-design
 failure modes; the agent's untested intuition is not a substitute.
 
-Invoke `research` in `applied` mode against the domain. It emits a
+Invoke `desk-research` in `applied` mode against the domain. It emits a
 `<topic-slug>-survey.md` — **that survey is an input, not the output**. This
 skill **consumes and shapes** the applied-mode findings into the *Real-world
 activity* section of Domain Framing; it does **not** re-implement retrieval and
 it does **not** treat the survey itself as the Domain Framing artifact.
 
-**This wrapped call stays an `applied` survey — the `research` methodology shape
-does not fire on it.** `research` carries a separate `methodology` output shape
+**This wrapped call stays an `applied` survey — the `desk-research` methodology shape
+does not fire on it.** `desk-research` carries a separate `methodology` output shape
 (a staged best-practice *method*) for direct process-shaped questions. That shape
-fires only on a *direct* user request; a `research` call issued **by**
+fires only on a *direct* user request; a `desk-research` call issued **by**
 `frame-domain` for grounding is never reshaped into a methodology artifact, so
 this grounding pass reliably returns the `applied` survey this section consumes.
-(Use `research`'s methodology shape when the ask is *"the best way to do X, end to
+(Use `desk-research`'s methodology shape when the ask is *"the best way to do X, end to
 end"* as a standalone question, not for product/MVP grounding — that is this
 skill.)
 
@@ -204,17 +204,17 @@ ambiguity rather than guess** — a marker search that returns **multiple** matc
 surfaced to the human, not resolved by a guess. When the discovery key is
 eventually bound, surface the resolved path before the first write and reject any
 `..` escape or out-of-tree symlink, per the `frame-intent` /
-`research-project-start` sibling skills.
+`desk-research-project-start` sibling skills.
 
 ## Detect-and-degrade on optional dependencies
 
-`research` and `decision-archaeology` are **optional, Tier-1 detect-and-degrade**
+`desk-research` and `decision-archaeology` are **optional, Tier-1 detect-and-degrade**
 dependencies (progressive enhancement). Because this is a
 prompt-only skill with no script, the **detect primitive is the agent checking
 its available-skills roster** — the same roster-check `new-spec` already relies on
 — **not** a body-level `shutil.which`.
 
-If `research` (or, in brownfield, `decision-archaeology`) is **not installed**:
+If `desk-research` (or, in brownfield, `decision-archaeology`) is **not installed**:
 
 - **Name the gap** in the artifact — **lead the *Residual assumptions* section
   with a one-line note** saying plainly which grounding dependency was absent
@@ -229,7 +229,7 @@ If `research` (or, in brownfield, `decision-archaeology`) is **not installed**:
 ## The producer pipeline
 
 1. Resolve the initiative + the greenfield/brownfield read (frontmatter inputs).
-2. **Real-world-activity half** — invoke `research` applied mode; consume and
+2. **Real-world-activity half** — invoke `desk-research` applied mode; consume and
    shape the survey findings into *Real-world activity*; carry the ungrounded
    residue to *Residual assumptions*.
 3. **Current-system half** — if brownfield, invoke `decision-archaeology` +
@@ -243,7 +243,7 @@ If `research` (or, in brownfield, `decision-archaeology`) is **not installed**:
 
 ## Anti-patterns to refuse
 
-- **Treating the `research` survey as the Domain Framing artifact.** The survey
+- **Treating the `desk-research` survey as the Domain Framing artifact.** The survey
   is an *input* to shape, not the output. Consume its findings; write the typed
   artifact.
 - **Asserting an ungrounded domain claim as fact.** If the wrapped research could

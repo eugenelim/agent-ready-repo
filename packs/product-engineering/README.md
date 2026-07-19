@@ -2,7 +2,7 @@
 
 Product-shaping skills — the upstream that turns an idea into the specs your
 delivery loop already builds. Installed to **user scope** so they travel across
-every workspace, like `architect` and `research`.
+every workspace, like `architect` and `desk-research`.
 
 The pack is built on one artifact and a set of habits. The artifact is an
 **`intent`**: a level-tagged statement of an outcome and the opportunity behind

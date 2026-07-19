@@ -58,7 +58,7 @@ For an overview of the supervised loops and the pack catalogue, see the [platfor
 
 | Pack | What it installs |
 |---|---|
-| [Research](packs/research.md) | `research`, `source-map`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` |
+| [Desk Research](packs/desk-research.md) | `desk-research`, `source-map`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` |
 | [Architect](packs/architect.md) | `architect-design`, `architect-diagram`, `architect-review`, `design-reviewer` subagent |
 | [Experience](packs/experience.md) | Journey mapping, screen flows, aesthetic direction, experience reviewers |
 | [Contracts](packs/contracts.md) | `api-contract` (OpenAPI 3.1), `event-contract` (AsyncAPI) |

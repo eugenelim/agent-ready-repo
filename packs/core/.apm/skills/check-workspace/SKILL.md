@@ -61,7 +61,7 @@ Format output in four sections (omit sections with no entries):
 **Ready to start:**
 - `[work]` `<path>` — run `work-loop` on `docs/specs/<path>/`
 - `[shaping_queue]` `<slug>` (`shape`) — run `frame-intent`
-- `[shaping_queue]` `<slug>` (`research`) — run `research-project-start`
+- `[shaping_queue]` `<slug>` (`research`) — run `desk-research-project-start`
 - `[shaping_queue]` `<slug>` (`strategy`) — run product-strategy pack skill (requires product-strategy pack)
 - `[brief_queue]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
 
@@ -86,7 +86,7 @@ When surfacing shaping_queue entries, append the right skill invocation based on
 | Entry type | Skill to suggest |
 |-----------|-----------------|
 | `shape` (default) | `frame-intent` (available now); `frame-situation` (M2, when available) |
-| `research` | `research-project-start` (requires desk-research pack) |
+| `research` | `desk-research-project-start` (requires desk-research pack) |
 | `strategy` | product-strategy pack skill (requires product-strategy pack — M4) |
 | `signal` | no action — surface in "active context" section only |
 

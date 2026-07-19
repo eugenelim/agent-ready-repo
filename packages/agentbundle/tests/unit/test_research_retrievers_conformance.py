@@ -4,7 +4,7 @@ The spec's AC8 names a "stub conformance check" that imports each
 example retriever and confirms `retrieve(query)` exists. This file
 implements that check, plus a small description-token regression
 test that catches the most common mode-dispatch misfire pattern
-(someone "cleans up" the /research SKILL.md description and drops
+(someone "cleans up" the /desk-research SKILL.md description and drops
 the load-bearing casual-cue tokens that bias mode selection).
 
 Retriever side: imports both modules, asserts retrieve() is callable,
@@ -12,7 +12,7 @@ monkeypatches the urllib boundary so the test never hits an external
 API, and asserts the returned dict conforms to the retriever-interface
 contract (three keys; shape in the enumerated set).
 
-Description side: reads packs/research/.apm/skills/research/SKILL.md,
+Description side: reads packs/desk-research/.apm/skills/desk-research/SKILL.md,
 asserts the description contains the casual cue tokens and the
 explicit-default wording. The runtime mode-misfire itself is only
 catchable in manual QA (per spec AC11); this catches the regression
@@ -31,7 +31,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-RESEARCH_SKILL = REPO_ROOT / "packs" / "research" / ".apm" / "skills" / "research"
+RESEARCH_SKILL = REPO_ROOT / "packs" / "desk-research" / ".apm" / "skills" / "desk-research"
 ARXIV_SCRIPT = RESEARCH_SKILL / "scripts" / "arxiv-retriever.py"
 PERPLEXITY_SCRIPT = RESEARCH_SKILL / "scripts" / "perplexity-retriever.py"
 SKILL_MD = RESEARCH_SKILL / "SKILL.md"
@@ -157,7 +157,7 @@ class PerplexityRetrieverConformance(unittest.TestCase):
 
 
 class ResearchSkillDescriptionRegression(unittest.TestCase):
-    """The /research SKILL.md description's wording is load-bearing —
+    """The /desk-research SKILL.md description's wording is load-bearing —
     it's the dispatcher signal that biases between quick / standard /
     deep modes. AC11 enforces the behavior via manual QA; this test
     catches the most common regression (description "cleanup" that

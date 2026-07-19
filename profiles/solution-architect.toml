@@ -8,13 +8,13 @@
 # allows user scope), dependency-complete, deps-first ordered.
 
 scope = "user"
-description = "Solution architect's portable user-scope toolkit: architecture design, research, and contract-driven specs."
+description = "Solution architect's portable user-scope toolkit: architecture design, desk research, and contract-driven specs."
 
 [[packs]]
 pack = "architect"
 
 [[packs]]
-pack = "research"
+pack = "desk-research"
 
 [[packs]]
 pack = "contracts"

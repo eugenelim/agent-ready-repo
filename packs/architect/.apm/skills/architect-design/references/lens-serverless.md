@@ -189,7 +189,7 @@ runtime's packaging / entrypoint model — are version-specific and rot, so they
 belong in a **curated platform skill** for that vendor, consulted when the design
 depends on the exact figure. When you are on an unfamiliar managed surface and no
 such skill is installed, that is the signal to recommend installing one (or to
-ground the figure in official docs / `research`) — not to guess, and not to bake
+ground the figure in official docs / `desk-research`) — not to guess, and not to bake
 the number into this lens.
 
 Whichever source you reach for, **ground the figure rather than recall it**:

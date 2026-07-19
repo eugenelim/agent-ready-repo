@@ -16,10 +16,10 @@
 # allows user scope), dependency-complete, deps-first ordered.
 
 scope = "user"
-description = "Portable user-scope toolkit for taking an idea from zero to a buildable repo: research the space, shape the product, design the system."
+description = "Portable user-scope toolkit for taking an idea from zero to a buildable repo: desk research the space, shape the product, design the system."
 
 [[packs]]
-pack = "research"
+pack = "desk-research"
 
 [[packs]]
 pack = "product-engineering"

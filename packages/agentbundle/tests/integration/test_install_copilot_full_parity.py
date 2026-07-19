@@ -149,7 +149,7 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
         rc, _out, err = _run_install(
             [
                 "--pack",
-                "research",
+                "desk-research",
                 "--adapter",
                 "copilot",
                 "--scope",

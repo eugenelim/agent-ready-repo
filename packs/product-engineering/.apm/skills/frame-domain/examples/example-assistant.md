@@ -16,7 +16,7 @@ and the artifact says so.
 
 ## The run
 
-1. **Real-world-activity half** — `frame-domain` invokes `research` in `applied`
+1. **Real-world-activity half** — `frame-domain` invokes `desk-research` in `applied`
    mode against *how owners actually plan, act, and restock*. It consumes and
    shapes the survey findings (it does **not** treat the survey as the artifact)
    into the *Real-world activity* section, and carries what research could not
