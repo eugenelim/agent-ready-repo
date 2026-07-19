@@ -4,17 +4,17 @@ slug: agent-executes-spec
 persona: ai-agent
 outcome: spec-executed-and-shipped-autonomously
 surface: cross-platform
-status: planned
+status: shipped
 initiative_links:
   - id: INI-002
     name: Platform Core
-    milestones: M1 (primary — check-workspace M1.5, work-loop M1.7)
+    milestones: M1 (delivered — check-workspace M1.5, work-loop M1.7)
     role: primary
   - id: INI-003
     name: Coding CLI Adapter Pack
-    milestones: M1+ (headless dispatch variant)
+    milestones: M1+ (headless dispatch variant — pending)
     role: extends
-updated: 2026-07-18
+updated: 2026-07-19
 ---
 
 # Journey: Agent executes a spec autonomously
@@ -35,7 +35,7 @@ updated: 2026-07-18
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `check-workspace` (M1.5), `work-loop` (M1.7), `new-spec` |
+| core | repo | current | `check-workspace`, `work-loop` (workspace integration), `new-spec` |
 | coding CLI adapter pack | user | planned (INI-003) | Harness-specific invocation, write-back contract implementation; one adapter per harness (Claude Code, Codex CLI, Kiro, etc.) |
 
 **One-time setup:**
@@ -49,33 +49,6 @@ updated: 2026-07-18
 ---
 
 ## Interaction model
-
-### Current state — before M1.5 / M1.7
-
-```mermaid
-sequenceDiagram
-    participant A as Agent
-    participant F as Repo files (RFC, roadmap, briefs/)
-    participant WL as work-loop skill
-    participant R as Repo (spec branch)
-
-    Note over A,R: Session start today — manual orientation
-    A->>F: Read docs/rfc/0064-ini-001-ai-native-ecosystem.md
-    A->>F: Read docs/product/roadmap.md
-    A->>F: Read docs/product/briefs/ (scan for in-progress)
-    A->>F: Read AGENTS.md
-    F-->>A: Context assembled — uncertain what is next
-    A-->>A: Infer active spec from context (may be wrong)
-
-    Note over A,R: Execution — no workspace write-back
-    A->>WL: work-loop [inferred spec]
-    Note over A: plan → build → verify → review
-    A->>R: Submit PR
-    A-->>A: Spec done — workspace not updated
-    Note over A: Next agent starts cold — same manual orientation
-```
-
-### To-be state — M1.5 + M1.7 shipped
 
 ```mermaid
 sequenceDiagram
@@ -111,31 +84,21 @@ sequenceDiagram
 
 ## Stage 1: Orient
 
-### Now
-
 | Row | Content |
 |-----|---------|
-| **Actions** | Reads RFC, roadmap, briefs directory, AGENTS.md. Assembles context from 4+ files. Infers what spec to work on. |
-| **Emotions** | N/A (agent has no emotions). **Failure modes:** context assembled incorrectly (wrong spec inferred); context outdated (stale RFC or roadmap); spec already in progress by another agent (no visibility). |
-| **Pains** | "Four files to read, and the answer is still uncertain." "If the RFC was updated since the last session, the agent may be working from stale context." "No way to know if another agent is already working on the same spec." "Reading 4+ files consumes significant context window before any work starts." |
-| **Opportunities** | `check-workspace` as a single orientation command that surfaces active initiative, queued specs, DAG state, blocked reasons, and parallel candidates. Orientation in one command; context window preserved for actual work. |
-
-> **With M1.5** — `check-workspace` ships: orientation is one command; DAG state surfaces parallel candidates and blocked items; context window saved for work.
+| **Actions** | Runs `check-workspace`. Reads `workspace.toml`, resolves DAG across all queues, surfaces the active initiative, ready specs, blocked items with reasons, and parallel candidates. |
+| **Failure modes** | Context assembled incorrectly (wrong spec inferred — rare with `check-workspace`); spec already claimed by another agent (no atomic claiming until INI-003 adapter ships); stale `workspace.toml` if a prior agent did not write back on ship. |
+| **Remaining pains** | "I can see the spec is ready but I can't confirm no other agent has claimed it — atomic claiming is an INI-003 adapter concern." |
 
 ---
 
 ## Stage 2: Validate Spec Context
 
-### Now
-
 | Row | Content |
 |-----|---------|
-| **Actions** | Reads the inferred spec file (if it exists). Reads the brief it decomposes. Tries to understand what is in scope and what has already been done. |
-| **Emotions** | N/A. **Failure modes:** spec file doesn't exist yet (no new-spec has been run); brief is ambiguous; prior session's work is not committed (agent starts from scratch on uncommitted state). |
-| **Pains** | "The spec file may not exist — I have to run new-spec first, but I don't know if that's been done." "The brief doesn't tell me what has already been implemented — I might redo work." "If a prior agent made decisions mid-session that weren't committed, I have no way to see them." |
-| **Opportunities** | `work-loop` at step 0 reads `workspace.toml` to confirm the spec is in `[work].active` (or moves it there). Gate-boundary handoff notes committed by the prior session (post-M1 backlog — feeds INI-005). |
-
-> **With M1.7** — `work-loop` reads `workspace.toml` at step 0 to confirm spec context; partial-progress capture (gate-boundary handoff) is a Known Unknown deferred to INI-005 design.
+| **Actions** | Reads the spec file. `work-loop` reads `workspace.toml` at step 0 to confirm the spec is in `[work].active` (or moves it there). Reads the brief it decomposes to understand scope. |
+| **Failure modes** | Spec file doesn't exist yet (no `new-spec` has been run — agent runs `new-spec` first); brief is ambiguous; prior session's decisions were not committed (agent starts from scratch on uncommitted state). |
+| **Remaining pains** | "If a prior agent made decisions mid-session that weren't committed, I have no way to see them." Partial-progress capture (gate-boundary handoff notes) is a post-M1 backlog item deferred to INI-005. |
 
 ---
 
@@ -167,16 +130,11 @@ sequenceDiagram
 
 ## Stage 5: Ship & Exit
 
-### Now
-
 | Row | Content |
 |-----|---------|
-| **Actions** | Submits PR. Does not update `workspace.toml`. Exits. Next agent starts cold. |
-| **Emotions** | N/A. **Failure modes:** PR submitted but workspace not updated; next agent re-picks the same spec (thinking it's not done); `roadmap.md` not updated (prompt never surfaced). |
-| **Pains** | "I submitted the PR but `workspace.toml` still shows the spec as active — the next agent might pick it up again." "I have no way to surface the `roadmap.md` update reminder." "The next agent starts with the same uncertain orientation I had — nothing I did makes their session easier." |
-| **Opportunities** | Post-ship automation: `workspace.toml` updated (active → shipped) on PR submission; next ready item surfaced; `roadmap.md` update prompted; exit state is a clean known-good `workspace.toml` that the next agent can orient from in one command. |
-
-> **With M1.7** — `work-loop` moves spec active → shipped on ship; surfaces next ready item; prompts `roadmap.md` update. Exit state is committed to `workspace.toml` — next agent orients in one `check-workspace` call.
+| **Actions** | Submits PR. `work-loop` moves spec `active → shipped` in `workspace.toml` on ship; surfaces next ready item; prompts `roadmap.md` update. Exit state is committed — next agent orients in one `check-workspace` call. |
+| **Failure modes** | PR submitted but write-back skipped (agent interrupted before `work-loop` completes write-back); `roadmap.md` update skipped. Next agent should run `check-workspace` to confirm state before starting. |
+| **Remaining pains** | Partial-progress capture if the agent was interrupted mid-build (not committed). Full session continuity feeds INI-005. |
 
 ---
 
@@ -196,11 +154,9 @@ sequenceDiagram
 
 ## Failure mode arc (replaces emotional arc for agent persona)
 
-Most critical failure: **Stage 1 (Orient)** — wrong spec inferred, or spec already claimed by another agent. Everything downstream is wasted work if the orientation is wrong.
+Most critical failure: **Stage 1 (Orient)** — spec already claimed by another agent, or `workspace.toml` stale because a prior agent didn't write back. `check-workspace` catches the second; atomic claiming (INI-003) closes the first.
 
-Second most critical: **Stage 5 (Ship & Exit)** — PR submitted but workspace not updated. The next agent re-picks the same spec, producing a duplicate PR or conflicting work.
-
-Primary design response: M1.5 `check-workspace` (orientation accuracy) + M1.7 `work-loop` write-back (exit state integrity). The combination means orientation is reliable and exit state is committed — the two highest-risk failure points are both closed by M1.
+Second most critical: **Stage 5 (Ship & Exit)** — PR submitted but `work-loop` write-back interrupted. Next agent re-picks the same spec. Mitigation: always run `check-workspace` at session start to confirm state before claiming.
 
 Remaining failure modes (partial-progress capture, budget tracking, gate diagnostics) are post-M1 backlog items — some feed INI-005 design.
 

@@ -4,13 +4,13 @@ slug: engineer-runs-work-loop
 persona: engineer-implementer
 outcome: spec-executed-and-shipped-with-human-in-the-loop
 surface: cross-platform
-status: planned
+status: shipped
 initiative_links:
   - id: INI-002
     name: Platform Core
-    milestones: M1 (primary — work-loop workspace integration M1.7); M2–M6 (ongoing improvements)
+    milestones: M1 (delivered); M2–M6 (ongoing improvements)
     role: primary
-updated: 2026-07-18
+updated: 2026-07-19
 ---
 
 # Journey: Engineer runs the work-loop
@@ -41,34 +41,20 @@ updated: 2026-07-18
 
 ---
 
-## Interaction model
+## Two approaches
 
-### Current state — before M1.5 / M1.7
+`work-loop` supports two usage patterns that differ in how the engineer orients and what state is updated on ship:
 
-```mermaid
-sequenceDiagram
-    participant E as Engineer
-    participant A as Agent
-    participant WL as work-loop skill
-    participant R as Repo (branch)
+| | Initiative path | Ad-hoc path |
+|---|---|---|
+| **Orient** | `check-workspace` — DAG-resolved queue, parallel candidates, blocked reasons | Memory, ticket, issue, or team message |
+| **Step 0** | `work-loop` reads `workspace.toml` for initiative context, milestone, DAG constraints | `work-loop` reads spec file in isolation |
+| **Ship** | Spec marked `active → shipped` in `workspace.toml`; next item surfaced; `roadmap.md` prompt | PR submitted; no queue state updated |
+| **When to use** | Coordinated initiative work; multiple engineers or agents on same queue | One-off tasks — bug fixes, quick features, housekeeping |
 
-    Note over E,R: Before M1 — work-loop with no initiative context
-    E->>A: I want to work on [spec-slug]
-    A->>WL: work-loop [spec-slug]
-    Note over WL: Reads spec file
-    Note over WL: Writes plan inline
-    E->>A: Review plan (back-and-forth)
-    A->>WL: Execute tasks
-    Note over WL: plan → build → verify → review
-    A->>R: Submit PR
-    E-->>E: PR submitted — now what?
-    E->>A: What should I work on next?
-    A->>R: Read RFC, roadmap, briefs/ (manual re-orient)
-    A-->>E: [best guess at next item]
-    Note over E: No committed queue — next item is inferred
-```
+Both paths share the same plan → build → verify → review loop (Stages 3–4). The paths diverge at Orient, Start, and Ship.
 
-### To-be state — M1.7 shipped (initiative work)
+## Interaction model — initiative path
 
 ```mermaid
 sequenceDiagram
@@ -109,37 +95,44 @@ sequenceDiagram
 
 ## Stage 1: Orient — What Should I Work On?
 
-### Now
+### Initiative path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Decides what to work on from memory, a Linear ticket, a GitHub issue, or a message from a teammate. May read the RFC or roadmap to orient. Knows roughly what's next but has no structured queue. |
-| **Emotions** | Confident but contextually thin (neutral). The engineer knows what they need to do but their orientation is brittle — it depends on memory of the last session and on no one else having claimed the same spec. |
-| **Pains** | "I have to remember where I left off." "I don't know if someone else has started the spec I want." "The roadmap and RFC aren't structured enough to answer 'what's next in priority order with no dependencies blocked'." "If I've been away for a few days, re-orientation takes 10 minutes of reading." |
-| **Opportunities** | `check-workspace` as a single command that surfaces the active initiative, ready specs in DAG order, blocked reasons, and parallel candidates — and that answers "is this spec already claimed?" |
+| **Actions** | Runs `check-workspace`. DAG-resolved queue surfaces the active initiative, ready specs in priority order, blocked items with reasons, and parallel candidates. Answers "is this spec already claimed?" |
+| **Emotions** | Oriented immediately (positive). One command, committed state. |
+| **Remaining pains** | "I see a parallel candidate but if another engineer also runs check-workspace at the same time, we might both pick it up." Atomic claiming is an INI-003 design concern. |
 
-> **With M1.5** — `check-workspace` ships: orientation in one command; DAG-resolved queue shows ready vs. blocked; parallel candidates visible for swarm dispatch.
+### Ad-hoc path
+
+| Row | Content |
+|-----|---------|
+| **Actions** | Decides what to work on from memory, a Linear ticket, a GitHub issue, or a message from a teammate. |
+| **Emotions** | Comfortable (neutral). For a well-defined one-off task, memory and tickets are sufficient. |
 
 ---
 
 ## Stage 2: Start the Work-Loop
 
-### Now
+### Initiative path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `work-loop [spec-slug]`. The skill reads the spec file and produces a plan. The engineer is already in the right context — they just typed it. |
-| **Emotions** | Immediately productive (positive). The work-loop is already the right tool. |
-| **Pains** | "work-loop doesn't know which initiative or milestone this spec belongs to." "The plan doesn't include workspace context — it just reads the spec file in isolation." "If the spec has dependencies I don't know about, work-loop doesn't surface them." |
-| **Opportunities** | `work-loop` at step 0 reads `workspace.toml` to load initiative context — the plan is now contextualised against the milestone, other active specs, and DAG constraints. |
+| **Actions** | Runs `work-loop [spec-slug]`. At step 0, `work-loop` reads `workspace.toml` — loads initiative context, milestone, and DAG constraints. Plan is contextualised; dependency violations surfaced before build begins. |
+| **Emotions** | Immediately productive (positive). The plan knows what this spec is part of. |
 
-> **With M1.7** — `work-loop` reads `workspace.toml` at step 0; plan is contextualised against initiative milestone and DAG state; dependency violations surfaced before build begins.
+### Ad-hoc path
+
+| Row | Content |
+|-----|---------|
+| **Actions** | Runs `work-loop [description]` or `work-loop [spec-slug]`. The skill reads the spec file in isolation. No initiative context loaded. |
+| **Emotions** | Immediately productive (positive). For a one-off task, isolation is fine. |
 
 ---
 
 ## Stage 3: Plan Review
 
-### Now (unchanged — work-loop already handles this as a human gate)
+### Both paths (human gate — unchanged)
 
 | Row | Content |
 |-----|---------|
@@ -152,7 +145,7 @@ sequenceDiagram
 
 ## Stage 4: Build and Gate Navigation
 
-### Now (unchanged — work-loop already handles build; human handles gate failures)
+### Both paths (human handles gate failures — unchanged)
 
 | Row | Content |
 |-----|---------|
@@ -165,29 +158,21 @@ sequenceDiagram
 
 ## Stage 5: Ship and Hand Off
 
-### Now
+### Initiative path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Reviews the final diff before PR submission. Approves PR creation. Realises workspace.toml has not been updated — does it manually, or skips it because it's not yet wired. |
-| **Emotions** | Relieved but incomplete (positive → neutral). The spec is shipped but the queue doesn't reflect it. The engineer has to remember to update things. |
-| **Pains** | "The PR is submitted but nothing tells the next person (or agent) this spec is done." "`workspace.toml` isn't updated — I have to do it manually if I remember." "No prompt to update `roadmap.md` — I always forget, and it drifts." "I don't know what to pick up next without re-reading the RFC." |
-| **Opportunities** | Post-ship automation: work-loop marks spec active → shipped in `workspace.toml`; surfaces next ready item; prompts `roadmap.md` update. The engineer ends the session knowing exactly what comes next. |
+| **Actions** | Reviews the final diff. Approves PR creation. `work-loop` moves spec `active → shipped` in `workspace.toml`; surfaces the next ready item; prompts `roadmap.md` update. |
+| **Emotions** | Complete (positive). The spec is shipped and the queue reflects it. The next person or agent can orient in one `check-workspace` call. |
 
-> **With M1.7** — work-loop moves spec to shipped on PR creation; next ready item surfaced; `roadmap.md` update prompted. Engineer exits with committed state visible to the next person or agent.
+### Ad-hoc path
+
+| Row | Content |
+|-----|---------|
+| **Actions** | Reviews the final diff. Approves PR creation. No queue state is updated. |
+| **Emotions** | Relieved (positive). The task is done; there is no queue to update. |
 
 ---
-
-## Stage 6: Non-Initiative Work (no workspace.toml)
-
-### Now and to-be (this path unchanged)
-
-| Row | Content |
-|-----|---------|
-| **Actions** | Engineer has a task that's not part of an initiative — a one-off bug fix, a quick feature, a housekeeping task. Runs `work-loop [description]` directly. No `workspace.toml` involved. |
-| **Emotions** | Comfortable (positive). This path is already clean — work-loop is designed to handle it. |
-| **Pains** | "Nothing changes here. work-loop works fine for non-initiative work. The only missing piece is knowing whether a task should be in the queue versus an ad-hoc invocation — and check-workspace can help surface that distinction." |
-| **Opportunities** | `check-workspace` surfacing whether the task overlaps with a queued spec (preventing duplicate work); non-initiative tasks as a first-class concept (ad-hoc vs. queued). Post-M1 design question. |
 
 ---
 
@@ -206,28 +191,19 @@ sequenceDiagram
 
 ## Emotional arc
 
-Highest point: **Stage 3 (Plan Review)** — engaged — the engineer is visibly in control and the agent is doing the structured work under their direction. This gate is already working well.
+Highest point: **Stage 3 (Plan Review)** — engaged — the engineer is visibly in control and the agent is doing the structured work under their direction.
 
-Lowest point: **Stage 5 (Ship and Hand Off)** — incomplete — the spec is done but the system doesn't reflect it. The engineer has to manually update state, and they often don't. This is the friction that breaks coordination across sessions and across engineers.
+**Initiative path:** Stage 5 (Ship and Hand Off) is now complete — spec ships, queue updates, next item surfaces. The engineer ends the session with committed state visible to whoever comes next.
 
-Highest-opportunity pain: "I shipped the spec. But the next person who opens the repo doesn't know that. The roadmap doesn't know. The queue doesn't know. I have to remember to tell everything, and I usually don't."
-
-Primary design response: M1.7 post-ship automation — work-loop marks shipped, surfaces next, prompts roadmap update. The engineer's last action becomes the system's source of truth automatically.
+**Ad-hoc path:** Stage 5 is lighter — PR submitted, done. No queue to update. The tradeoff is that the next session has no committed record of what shipped.
 
 ---
 
-## How this journey changes with M1
+## Choosing between paths
 
-The core `work-loop` experience — plan gate, build, gate navigation, PR — is **unchanged**. M1 adds two integration points that change the start and end of the session:
+Use the initiative path any time a spec lives in `[work].queue` — the coordination overhead is near-zero and the post-ship write-back makes the next session (by you, a colleague, or an agent) free. Use the ad-hoc path for tasks that are genuinely standalone — one-off fixes, experiments, housekeeping that would never appear in a brief.
 
-| Session point | Before M1 | After M1.7 |
-|---|---|---|
-| **Start — orient** | Read RFC, roadmap, briefs manually (10+ min) | `check-workspace` → oriented in one command |
-| **Start — work-loop step 0** | Reads spec file in isolation | Reads spec file + workspace.toml initiative context |
-| **End — mark shipped** | Manual (often skipped) | Automatic on PR creation |
-| **End — what's next** | Inferred from memory or re-reading | Surfaced by work-loop post-ship |
-
-Everything in between (Stage 3 plan review, Stage 4 build and gate navigation) is unaffected.
+If you're unsure, run `check-workspace` first. If the task overlaps a queued spec, use the initiative path. If it's not in the queue and wouldn't belong there, go ad-hoc.
 
 ---
 
