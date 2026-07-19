@@ -4,12 +4,12 @@ slug: engineer-provisions-infrastructure
 persona: engineer-implementer
 outcome: governed-terraform-shipped-and-drift-managed
 surface: cross-platform
-status: planned
+status: shipped
 rfc_links:
   - id: RFC-0065
     name: iac-terraform pack
     role: primary
-updated: 2026-07-18
+updated: 2026-07-19
 ---
 
 # Journey: Engineer provisions infrastructure with iac-terraform
@@ -45,29 +45,6 @@ updated: 2026-07-18
 ---
 
 ## Interaction model
-
-### Without iac-terraform (now)
-
-```mermaid
-sequenceDiagram
-    participant E as Engineer
-    participant A as Agent
-    participant TF as Terraform toolchain
-
-    Note over E,TF: Before iac-terraform — hand-derived scaffolding
-    E->>A: I need a hardened object store with private ingestion
-    A->>A: Re-derive layered Terraform structure from memory
-    Note over A: No ADR gate, no vocabulary firewall
-    A->>TF: Write HCL (guessed resource args)
-    TF-->>A: validate error — wrong attribute name
-    A->>TF: Fix and retry (multiple rounds)
-    A-->>E: Terraform written — review?
-    Note over E: No policy-as-code pass, no digest pin
-    E-->>E: Manually applies via CI or locally
-    Note over E: No drift audit schedule — drift accumulates undetected
-```
-
-### With iac-terraform (to-be, RFC-0065)
 
 ```mermaid
 sequenceDiagram
@@ -118,16 +95,7 @@ sequenceDiagram
 
 **RFC anchor:** [§2 Hard rules — Stage 0 is mandatory](../../rfc/0065-iac-terraform-pack.md#stage-0-is-mandatory)
 
-### Without iac-terraform (now)
-
-| Row | Content |
-|-----|---------|
-| **Actions** | Engineer invokes the agent and asks for Terraform. Agent proceeds directly to authoring. No ADR check. No governance index. No record of which decisions were made or why. |
-| **Emotions** | Efficient (short-term positive). Unconstrained authoring feels fast. |
-| **Pains** | "The Terraform was written correctly but there was no record of why we chose S3 over GCS, or why we used workspaces instead of separate accounts." "Three months later someone changes the state backend and doesn't know they're reversing a deliberate decision." "Security audit asks for decision records for infra choices; we have none." |
-| **Opportunities** | A mandatory pre-authoring gate that loads the governance index, identifies the bound decision records, and surfaces any uncovered decision domain before a line of Terraform is written. |
-
-> **With iac-terraform** — `generate-iac` makes Stage 0 mandatory and non-bypassable: before any authoring, the governance index is loaded and the intent is mapped to decision records. If a domain is uncovered, the skill stops and surfaces it. First-time use: if no governance-index.toml exists, the skill bootstraps one from existing ADRs and confirms with the human before proceeding.
+`generate-iac` makes Stage 0 mandatory and non-bypassable: before any authoring, the governance index is loaded and the intent is mapped to decision records. If a domain is uncovered, the skill stops and surfaces it. First-time use: if no `governance-index.toml` exists, the skill bootstraps one from existing ADRs and confirms with the human before proceeding.
 
 ---
 
@@ -135,16 +103,7 @@ sequenceDiagram
 
 **RFC anchor:** [§2 Hard rules — Vocabulary firewall at SPECIFY](../../rfc/0065-iac-terraform-pack.md#vocabulary-firewall)
 
-### Without iac-terraform (now)
-
-| Row | Content |
-|-----|---------|
-| **Actions** | Agent writes a spec (or skips it) in cloud-specific terms. "Use S3 for the object store." "Route via an ALB." Cloud service names leak into the spec and lock in the provider before any architecture decision is made. |
-| **Emotions** | Concrete (neutral). Cloud-specific names feel precise. |
-| **Pains** | "The spec says S3 — three months later someone asks why we didn't evaluate GCS and there's no record." "The spec and the implementation are in different services because the scope drifted between spec and plan." |
-| **Opportunities** | A vocabulary firewall that forces generic terms ('managed database', 'object storage') in the spec and reserves cloud-specific names for PLAN and later. Cloud-agnosticism by construction. |
-
-> **With iac-terraform** — `generate-iac` enforces the vocabulary firewall: spec uses generic terms; cloud-specific service names appear only from PLAN onward. The agent also collects the account/tenant isolation model as an input (shared workspaces vs. separate account per environment) and records the decision, since it drives OIDC trust-policy scoping and the state backend key structure.
+`generate-iac` enforces the vocabulary firewall: spec uses generic terms (`managed database`, `object storage`); cloud-specific service names appear only from PLAN onward. The agent also collects the account/tenant isolation model as an input (shared workspaces vs. separate account per environment) and records the decision, since it drives OIDC trust-policy scoping and the state backend key structure.
 
 ---
 
@@ -152,16 +111,7 @@ sequenceDiagram
 
 **RFC anchor:** [§2 — It is a loop, not a straight line](../../rfc/0065-iac-terraform-pack.md#inner-authoring-loop) · [§2 Hard rules — Ground every resource in the live provider schema](../../rfc/0065-iac-terraform-pack.md#ground-every-resource)
 
-### Without iac-terraform (now)
-
-| Row | Content |
-|-----|---------|
-| **Actions** | Agent writes Terraform from training data. Resource types and argument names are guessed. `terraform validate` errors surface multiple rounds of schema hallucination fixes. State backend, provider pin, and `.terraform.lock.hcl` discipline are inconsistently applied. |
-| **Emotions** | Intermittently frustrated (neutral-to-negative). The validate → fix cycle is tedious and unpredictable. |
-| **Pains** | "The agent guessed the wrong attribute name for the S3 server-side encryption block. Fixed it in round 3." "The provider was unpinned — `init` pulled a minor version with a breaking argument change." "The state backend was configured without a lock — concurrent applies clobber each other." |
-| **Opportunities** | Schema-grounded generation that acquires the live provider schema before emitting any resource block. Tier-ordered task decomposition that prevents dependency-ordering apply failures. Lockfile and provider version pinning by default. |
-
-> **With iac-terraform** — `generate-iac` acquires the live provider schema via `core`'s `contract-acquisition` oracle (`terraform providers schema -json`) before emitting any resource block. No resource type, argument, or attribute is guessed. Tasks are tier-ordered (Foundation → Network → Compute/Data → App → Polish) to prevent apply-time dependency failures. `.terraform.lock.hcl` is committed by default. Parallel tasks are marked `[P]` only where resources have no shared dependency.
+`generate-iac` acquires the live provider schema via `core`'s `contract-acquisition` oracle (`terraform providers schema -json`) before emitting any resource block. No resource type, argument, or attribute is guessed. Tasks are tier-ordered (Foundation → Network → Compute/Data → App → Polish) to prevent apply-time dependency failures. `.terraform.lock.hcl` is committed by default. Parallel tasks are marked `[P]` only where resources have no shared dependency.
 
 ---
 
@@ -169,18 +119,9 @@ sequenceDiagram
 
 **RFC anchor:** [§2 — Loop diagram (step 6, plan CLEAN = G4 hand-off)](../../rfc/0065-iac-terraform-pack.md#loop-diagram) · [§2a — Verification modes](../../rfc/0065-iac-terraform-pack.md#verification-modes) · [§7 — Policy companions](../../rfc/0065-iac-terraform-pack.md#policy-companions)
 
-### Without iac-terraform (now)
+The inner loop runs a full static preflight before G4: OPA/Conftest evaluates the plan JSON (checked resource types, tags, encryption, no hardcoded credentials), `security-reviewer` runs with `security-checklists/config-misconfig` inlined, `adversarial-reviewer` reads the diff cold. Optional: Infracost produces a cost delta. The G4 handoff artifact is explicit: deploy-ready Terraform + pinned plan digest + policy-pass evidence + security review summary + reversibility hints.
 
-| Row | Content |
-|-----|---------|
-| **Actions** | Engineer manually runs `terraform validate` and `plan`. No policy-as-code pass. No security review of the generated configs. PR is opened with an unverified diff. |
-| **Emotions** | Uncertain (neutral). "I think it's correct." No objective signal. |
-| **Pains** | "The plan was clean but the IAM policy was wildcard — no policy gate to catch it." "We didn't scan the generated configs for hardcoded credentials — one made it to prod." "No plan digest: the deploy step applied a newer, unreviewed plan." |
-| **Opportunities** | A pre-G4 static preflight sequence: OPA/Conftest on plan JSON (not HCL), security reviewer with config-misconfig modules, adversarial reviewer cold-read, cost delta (Infracost), then a pinned plan digest as the G4 handoff artifact. |
-
-> **With iac-terraform** — the inner loop runs a full static preflight before G4: OPA/Conftest evaluates the plan JSON (checked resource types, tags, encryption, no hardcoded credentials), `security-reviewer` runs with `security-checklists/config-misconfig` inlined, `adversarial-reviewer` reads the diff cold. Optional: Infracost produces a cost delta. The G4 handoff artifact is explicit: deploy-ready Terraform + pinned plan digest + policy-pass evidence + security review summary + reversibility hints.
->
-> **G4 handoff artifacts (explicit):** deploy-ready Terraform directory · pinned plan file (`terraform plan -out=tfplan` + digest) · OPA/Conftest exit-0 log · Trivy/Checkov exit-0 log · reversibility hints on stateful resources · (optional) Infracost cost delta JSON.
+**G4 handoff artifacts (explicit):** deploy-ready Terraform directory · pinned plan file (`terraform plan -out=tfplan` + digest) · OPA/Conftest exit-0 log · Trivy/Checkov exit-0 log · reversibility hints on stateful resources · (optional) Infracost cost delta JSON.
 
 ---
 
@@ -188,7 +129,7 @@ sequenceDiagram
 
 **RFC anchor:** [§1b — Loop integration (outer deploy loop)](../../rfc/0065-iac-terraform-pack.md#loop-integration) · [§2 — Two operating modes](../../rfc/0065-iac-terraform-pack.md#two-operating-modes)
 
-### Without release-loop (degraded mode — common today)
+### Degraded mode (no release-loop)
 
 | Row | Content |
 |-----|---------|
@@ -197,7 +138,7 @@ sequenceDiagram
 | **Pains** | "IAM propagation took 30 seconds — the pipeline timed out and left a partial state." "The dependency ordering was wrong — the subnet referenced the VPC before it was created." "Each apply failure needed a new PR and a new CI run." |
 | **Opportunities** | A release-loop outer cycle that iterates autonomously on apply-time failures against ephemeral envs, feeds them back to the inner loop, and converges before surfacing for G5. |
 
-### With release-loop (full mode)
+### Full mode (with release-loop)
 
 | Row | Content |
 |-----|---------|
@@ -214,8 +155,6 @@ sequenceDiagram
 
 **RFC anchor:** [§1b — G5 + minimum-regret consent gates](../../rfc/0065-iac-terraform-pack.md#minimum-regret-consent)
 
-### Now (any mode)
-
 | Row | Content |
 |-----|---------|
 | **Actions** | In degraded mode: Engineer reviews the CI apply log and approves the GitHub Environments protection. In full mode: `release-loop` produces the release readiness record; engineer reads it and ratifies. |
@@ -231,18 +170,9 @@ sequenceDiagram
 
 **RFC anchor:** [§2 — Two skills (generate-iac + reconcile-iac)](../../rfc/0065-iac-terraform-pack.md#two-skills) · [§2 Known blind spot: unmanaged resources](../../rfc/0065-iac-terraform-pack.md#unmanaged-resources)
 
-### Without iac-terraform (now)
+`reconcile-iac` runs on three triggers: (1) **before every follow-on change** (mandatory preflight), (2) **weekly minimum** on a scheduled basis, and (3) **immediately after a known out-of-band event** (break-glass, console action, provider-managed service update). Each run produces a drift audit with per-resource disposition proposals and an explicit scope boundary notice (resources with no state entry are outside the audit). The skill never applies autonomously — every disposition requires human approval.
 
-| Row | Content |
-|-----|---------|
-| **Actions** | Drift accumulates undetected. A follow-on change runs `terraform plan` and reveals unexpected diffs. Engineer investigates manually. No structured disposition. |
-| **Emotions** | Reactive and surprised (negative). "Why does this have a diff? I didn't change anything." |
-| **Pains** | "Drift is discovered only when something breaks or when a follow-on PR runs plan." "There's no structured way to record the decision: should we codify this drift back into IaC, or add ignore_changes?" "We can't tell if a ClickOps change was intentional or accidental." |
-| **Opportunities** | A scheduled `reconcile-iac` run that produces a per-resource drift audit with cause class, blast radius, and proposed disposition — and that explicitly surfaces its own scope boundary (unmanaged resources are invisible). |
-
-> **With iac-terraform** — `reconcile-iac` runs on three triggers: (1) **before every follow-on change** (mandatory preflight), (2) **weekly minimum** on a scheduled basis, and (3) **immediately after a known out-of-band event** (break-glass, console action, provider-managed service update). Each run produces a drift audit with per-resource disposition proposals and an explicit scope boundary notice (resources with no state entry are outside the audit). The skill never applies autonomously — every disposition requires human approval.
->
-> **reconcile-iac scope boundary (honesty):** `terraform plan` sees only state-tracked resources. Resources created entirely outside Terraform (ClickOps, console actions, auto-provisioned resources) are invisible. The skill documents this limit explicitly in its output rather than implying full drift coverage.
+**reconcile-iac scope boundary (honesty):** `terraform plan` sees only state-tracked resources. Resources created entirely outside Terraform (ClickOps, console actions, auto-provisioned resources) are invisible. The skill documents this limit explicitly in its output rather than implying full drift coverage.
 
 ---
 
@@ -271,17 +201,17 @@ Primary design response: `reconcile-iac` as a first-class skill on a scheduled +
 
 ---
 
-## How the journey changes with RFC-0065
+## What the iac-terraform pack provides
 
-| Stage | Before RFC-0065 | After RFC-0065 |
-|---|---|---|
-| **0 — Governance** | No gate; authoring starts immediately | Mandatory governance-index load; uncovered domains stop the skill |
-| **1 — Specify** | Cloud-specific names in spec | Vocabulary firewall; cloud names deferred to PLAN |
-| **2 — Generate** | Schema guessed from training data | Live schema acquired before every resource block |
-| **3 — Preflight** | Manual validate/plan only | OPA/Conftest + security reviewer + adversarial reviewer + digest pin |
-| **4 — Deploy** | Manual CI pipeline trigger; engineer debugs apply failures | `release-loop` outer cycle iterates autonomously on ephemeral envs (full mode) |
-| **5 — G5** | GitHub Environments approval of CI apply | Full release readiness record with IaC-specific fields |
-| **6 — Drift** | Drift discovered reactively | `reconcile-iac` on schedule + preflight + event-triggered |
+| Stage | Capability |
+|---|---|
+| **0 — Governance** | Mandatory governance-index load before any authoring; uncovered decision domains stop the skill |
+| **1 — Specify** | Vocabulary firewall; cloud-specific names deferred to PLAN; isolation model recorded |
+| **2 — Generate** | Live provider schema acquired before every resource block; tier-ordered tasks; lockfile committed |
+| **3 — Preflight** | OPA/Conftest + security reviewer + adversarial reviewer + digest pin |
+| **4 — Deploy** | Degraded: generated human-gated pipeline. Full: `release-loop` outer cycle on ephemeral envs |
+| **5 — G5** | IaC-specific release readiness record (plan digest, policy-pass evidence, apply log, cost delta) |
+| **6 — Drift** | `reconcile-iac` on schedule + preflight + event-triggered; per-resource disposition; explicit scope boundary |
 
 ---
 

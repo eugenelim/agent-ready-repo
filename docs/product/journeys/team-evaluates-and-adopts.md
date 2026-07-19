@@ -10,7 +10,7 @@ initiative_links:
     name: Platform Core
     milestones: M1 (what the team is adopting), M6 (onboarding guides — tutorial, rollout playbook, live-demo guide)
     role: primary
-updated: 2026-07-18
+updated: 2026-07-19
 ---
 
 # Journey: Engineering team evaluates and adopts
@@ -58,33 +58,31 @@ Two distinct paths share this journey:
 
 ## Interaction model
 
-### Current state — before M1 / M6
+### Current state — M1 shipped, M6 pending
 
 ```mermaid
 sequenceDiagram
     participant ENG as Engineer (self-serve)
     participant CH as Champion (enterprise)
     participant DM as Decision Maker
-    participant DOCS as README / docs
     participant CLI as Terminal
 
-    Note over ENG,CLI: Self-serve today — config friction
-    ENG->>DOCS: Reads README
-    Note over DOCS: Harness-specific setup unclear
-    ENG->>CLI: Installs (trial and error)
-    ENG->>CLI: Runs work-loop (uncertain outcome)
-    Note over ENG: Value unclear without guided first-use path
+    Note over ENG,CLI: Self-serve today — platform works, no guided path
+    ENG->>CLI: Installs agentbundle
+    ENG->>CLI: work-loop [spec] → ships successfully
+    ENG->>CLI: check-workspace → oriented
+    Note over ENG: Value is real but first-use path is self-discovered
 
-    Note over CH,DM: Enterprise today — live-demo gap
+    Note over CH,DM: Enterprise today — live-demo gap persists
     CH->>DM: "We should use this platform"
     DM-->>CH: Show me
-    Note over CH: No demo script · improvises 90+ min session
+    Note over CH: No demo script · improvises 60+ min session
     DM-->>CH: Maybe · check with the platform team
     Note over DM: Platform team has no rollout playbook
     Note over DM: Engineers onboarded ad-hoc · revert within weeks
 ```
 
-### To-be state — M1 + M6 shipped
+### To-be state — M6 shipped
 
 ```mermaid
 sequenceDiagram
@@ -126,9 +124,8 @@ sequenceDiagram
 | Row | Content |
 |-----|---------|
 | **Actions** | Engineer discovers via peer recommendation, blog, or GitHub. Champion is assigned by an AI adoption lead. Both read README and documentation. |
-| **Emotions** | Curious but cautious (neutral). The proposition (structured AI-native workflow) is compelling but abstract without a concrete entry point. |
-| **Pains** | "The README explains what it does but not how to get started on a real project." "I can't tell from the docs whether this fits our workflow or replaces it." "Every team member will ask me what this is before they try it — I need a one-sentence answer and a demo." |
-| **Opportunities** | A clear one-sentence positioning statement at the top of the README: what it is, who it's for, what problem it solves, and what the first step is. A `your-first-workspace` tutorial that gets a real spec shipped in under an hour. |
+| **Emotions** | Curious but cautious (neutral). The platform exists and works — but the entry point is not obvious from the README. |
+| **Pains** | "The README explains what it does but not how to get started on a real project." "Every team member will ask me what this is before they try it — I need a one-sentence answer." |
 
 > **With M6** — `your-first-workspace` tutorial ships: guided path from install to first shipped spec; one-sentence positioning in README; clear separation of "try it yourself" (self-serve) from "roll it out to your team" (rollout playbook).
 
@@ -140,12 +137,11 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Engineer installs manually, following README. Hits config friction (harness-specific setup, skill discovery path varies). Tries `work-loop` on a spec — outcome depends on prior context knowledge. |
-| **Emotions** | Determined but frustrated (neutral → negative). The tool is clearly capable once running but the path to "first success" is poorly marked. |
-| **Pains** | "I installed it but I'm not sure if skills are loading correctly." "I don't know if I should use an existing spec or create a new one." "I got through one spec but I'm not sure if I did it right — there was no confirmation." "The value was visible but I can't reproduce it reliably yet." |
-| **Opportunities** | `your-first-workspace` tutorial with a concrete task: seed `workspace.toml`, pick a real pending spec, run `work-loop`, see it ship. No toy examples — real work from the first minute. |
+| **Actions** | Engineer installs manually, following README. Seeds `workspace.toml` (or uses the existing one if the repo already has it). Runs `work-loop` on a real spec. Runs `check-workspace` to confirm state. |
+| **Emotions** | Determined (neutral → positive once the spec ships). The tool works and the confirmation is concrete — `check-workspace` shows "shipped" and what's next. |
+| **Pains** | "I installed it but I'm not sure if skills are loading correctly." "I don't know if I should use an existing spec or create a new one — there's no tutorial to guide me." "The value was visible but I can't reproduce it reliably yet because I'm self-discovering the path." |
 
-> **With M6** — Tutorial uses a real spec, not a toy. First session ends with a shipped spec and a `workspace.toml` that reflects it. Confirmation is explicit: `check-workspace` shows "shipped" and what's next.
+> **With M6** — `your-first-workspace` tutorial ships: guided path from install to first shipped spec; no self-discovery needed; first session is explicitly confirmed via `check-workspace`.
 
 ---
 
@@ -181,16 +177,15 @@ sequenceDiagram
 
 ## Stage 5: Embedding
 
-### Now (and to-be — human behaviour, not skill-scope)
+### Now
 
 | Row | Content |
 |-----|---------|
-| **Actions** | After initial success, engineers continue using `work-loop` — or revert to old workflow when they hit friction on a non-standard case. |
-| **Emotions** | Habitual (neutral). The platform works for the cases it was tried on. Reversion happens when a new case (no spec, ambiguous brief, unfamiliar harness) is encountered and there is no guidance. |
-| **Pains** | "It works well when I know what spec to run. When I don't, I go back to winging it." "I use `work-loop` for implementation but still manage briefs in Notion because I don't trust the queue yet." "New engineers joining the team don't know about `check-workspace` — they discover it weeks in." |
-| **Opportunities** | `check-workspace` as the session-start habit replaces "open Notion, check Slack, figure out what to work on." New-engineer onboarding includes a `your-first-workspace` session on their first day. The platform is embedded, not bolted on. |
+| **Actions** | After initial success, engineers continue using `work-loop` and `check-workspace` — or revert to old workflow when they hit friction on a non-standard case. |
+| **Emotions** | Building toward habitual (neutral). `check-workspace` is a real tool they can form a habit around. Reversion happens when a new case (no spec, ambiguous brief, unfamiliar harness) is encountered and there is no guidance. |
+| **Pains** | "It works well when I know what spec to run. When I don't, I go back to winging it." "New engineers joining the team don't know about `check-workspace` — they discover it weeks in." |
 
-> **Embedded state** — `check-workspace` is the first command every engineer runs. `workspace.toml` is the team's source of truth for what's in flight. New engineers are onboarded to it on day one. Reversion stops because the habit is established before friction arises.
+> **Embedded state (M6)** — `check-workspace` is the first command every engineer runs. `workspace.toml` is the team's source of truth for what's in flight. New engineers are onboarded to it on day one via the `your-first-workspace` tutorial. Reversion stops because the habit is established before friction arises.
 
 ---
 
