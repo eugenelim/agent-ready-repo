@@ -767,6 +767,7 @@ mode below, then evaluate the terminal-state bullet last.
   resolution is mechanically checked (catalogue lint) or reviewer-checked
   (adopters). Mirroring an item to an issue tracker is an option where one
   exists, never assumed.
+  **After recording in `backlog.md`**, prompt: *"Does this item look like an RFC candidate (a cross-cutting proposal or design question) or a roadmap intent (a future feature)? If so, also add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Both registers are optional — skip the prompt if neither file exists. The backlog anchor is the primary durable record; the findings register is an extra surface for governance visibility.
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true. (**In light
   mode**, two lines relax per the [Modes](#modes-light-and-full) section: the
