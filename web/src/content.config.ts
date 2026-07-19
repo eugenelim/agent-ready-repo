@@ -51,6 +51,7 @@ const journeys = defineCollection({
     docsUrl: z.string(),
     packUrl: z.string(),
     relatedJourneys: z.array(z.string()).default([]),
+    goodOutputDescription: z.string().optional(),
   }),
 });
 
