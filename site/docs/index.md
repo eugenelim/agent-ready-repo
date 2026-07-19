@@ -60,7 +60,7 @@ For an overview of the supervised loops and the pack catalogue, see the [platfor
 |---|---|
 | [Desk Research](packs/desk-research.md) | `desk-research`, `source-map`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` |
 | [Architect](packs/architect.md) | `architect-design`, `architect-diagram`, `architect-review`, `design-reviewer` subagent |
-| [Experience](packs/experience.md) | Journey mapping, screen flows, aesthetic direction, experience reviewers |
+| [Experience Design](packs/experience-design.md) | Journey mapping, screen flows, creative direction, experience reviewers |
 | [Contracts](packs/contracts.md) | `api-contract` (OpenAPI 3.1), `event-contract` (AsyncAPI) |
 | [Converters](packs/converters.md) | PDF/DOCX/PPTX → Markdown, Markdown → HTML/Word/PowerPoint/Excel |
 | [Atlassian](packs/atlassian.md) | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher`, `flow-metrics` |

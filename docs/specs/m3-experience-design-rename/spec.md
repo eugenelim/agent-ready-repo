@@ -1,6 +1,6 @@
 # Spec: m3-experience-design-rename
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064
@@ -103,21 +103,21 @@ invariants. No manual QA — no user-facing UI surface is introduced.
 
 ## Acceptance Criteria
 
-- [ ] `packs/experience-design/` directory exists; `packs/experience/` does not
+- [x] `packs/experience-design/` directory exists; `packs/experience/` does not
   exist.
-- [ ] `packs/experience-design/pack.toml` has `name = "experience-design"`,
+- [x] `packs/experience-design/pack.toml` has `name = "experience-design"`,
   `version = "1.0.0"`, `display_name = "Experience Design"`, and `documentation`
   link updated to `.../docs/guides/experience-design/`.
-- [ ] `packs/experience-design/.claude-plugin/plugin.json` has
+- [x] `packs/experience-design/.claude-plugin/plugin.json` has
   `"name": "experience-design"` and `"version": "1.0.0"`.
-- [ ] All 18 skill directories in `packs/experience-design/.apm/skills/` are
+- [x] All 18 skill directories in `packs/experience-design/.apm/skills/` are
   unchanged (function-named; none were renamed).
-- [ ] `tools/lint-experience-agnostic.py` updated: `_scan_root()` default path
+- [x] `tools/lint-experience-agnostic.py` updated: `_scan_root()` default path
   (`packs/experience` → `packs/experience-design`, line 150); docstring references
   updated (lines 2, 4, 8). The lint is invoked by CI (`build-check.yml`) with no
   `EXPERIENCE_ROOT` override; without this fix the path doesn't exist after T1 and CI
   build-check goes red.
-- [ ] Operative cross-pack references updated: `work-loop/SKILL.md:716,717`
+- [x] Operative cross-pack references updated: `work-loop/SKILL.md:716,717`
   "experience pack" prose → "experience-design pack"; `new-spec/SKILL.md:241,243`
   "experience pack" prose → "experience-design pack"; `discovery-loop/SKILL.md:210`
   `` `experience` `` pack-name reference → `` `experience-design` `` (line 211 contains
@@ -127,54 +127,54 @@ invariants. No manual QA — no user-facing UI surface is introduced.
   `` `experience` `` pack name; all updated to `` `experience-design` ``;
   `product-engineering/README.md:123,127,129,139,142` — section heading, pack-name
   prose, install command, and link all updated.
-- [ ] `packs/experience-design/AGENTS.md` exists and contains: old pack name →
+- [x] `packs/experience-design/AGENTS.md` exists and contains: old pack name →
   new pack name; confirmation that all 18 skill slugs are unchanged; adopter
   install-state impact (uninstall `experience`, reinstall `experience-design`; no
   alias available).
-- [ ] RFC-0064 body (M3 ACs section, `experience → experience-design` bullet)
+- [x] RFC-0064 body (M3 ACs section, `experience → experience-design` bullet)
   records the alias-assessment outcome: pack-level alias unsupported (adapter-
   level only); migration is documentation-only via `packs/experience-design/AGENTS.md`;
   assessed 2026-07-18.
-- [ ] `docs/guides/experience-design/` directory exists; `docs/guides/experience/`
+- [x] `docs/guides/experience-design/` directory exists; `docs/guides/experience/`
   does not exist.
-- [ ] `docs/guides/experience-design/reference/experience-design.md` exists;
+- [x] `docs/guides/experience-design/reference/experience-design.md` exists;
   `docs/guides/experience-design/reference/experience.md` does not.
-- [ ] Guide prose in `docs/guides/experience-design/` contains no operative
+- [x] Guide prose in `docs/guides/experience-design/` contains no operative
   `experience` pack-name references (install commands, skill invocation prose
   updated; `[experience]` layout table key references and `experience-reviewer`
   references are correct and stay).
-- [ ] `docs/guides/README.md:23` — Designer/UX row: pack link and path updated to
+- [x] `docs/guides/README.md:23` — Designer/UX row: pack link and path updated to
   `experience-design`; "design critique" updated to "design review" (renamed in RFC-0066).
   `docs/guides/README.md:56` — pack table row updated to `experience-design`; stale
   skill descriptions ("aesthetic direction", "design systems", "design critique" — all
   renamed in RFC-0066) updated to current names.
-- [ ] `README.md:125` — pack table row updated to `experience-design`.
-- [ ] `site/mkdocs.yml` — all 6 entries updated: top-level packs nav title
+- [x] `README.md:125` — pack table row updated to `experience-design`.
+- [x] `site/mkdocs.yml` — all 6 entries updated: top-level packs nav title
   `Experience: packs/experience.md` → `Experience Design: packs/experience-design.md`;
   guides section header `- Experience:` (line 200) → `- Experience Design:`; guide
   README path; two guide page paths; and leaf nav entry "Experience Pack:" →
   "Experience Design Pack:" with `reference/experience-design.md` path.
-- [ ] `tools/build-site.py:35` — PACKS list entry updated:
+- [x] `tools/build-site.py:35` — PACKS list entry updated:
   `("experience-design", "Experience Design", "user", ...)` with description
   referencing current skill names (no "aesthetic direction" or "design-critique"
   — both renamed in RFC-0066).
-- [ ] `web/src/content/packs/experience-design.md` exists; `web/src/content/packs/experience.md`
+- [x] `web/src/content/packs/experience-design.md` exists; `web/src/content/packs/experience.md`
   does not. Frontmatter has `name: Experience Design`, updated `installCommand`,
   `docsUrl`, and `journeyUrl`; skills list (already current) intact; body prose
   updated.
-- [ ] `web/src/content/journeys/experience-design.md` exists;
+- [x] `web/src/content/journeys/experience-design.md` exists;
   `web/src/content/journeys/experience.md` does not. Frontmatter `pack`,
   `docsUrl`, and `packUrl` updated; skill name references current.
-- [ ] `web/src/pages/journeys/index.astro` display-order entry updated to
+- [x] `web/src/pages/journeys/index.astro` display-order entry updated to
   `{ slug: 'experience-design', name: 'Experience Design' }`.
-- [ ] Repo-wide operative sweep exits with zero unremediated pack-name references
+- [x] Repo-wide operative sweep exits with zero unremediated pack-name references
   across both `packs/` and `tools/`:
   `` grep -rn '"experience"\|experience pack\|`experience`\|packs/experience[^-]' packs/ tools/ --include="*.md" --include="*.py" | grep -v "^packs/experience-design/" ``
   — `experience-reviewer` hits are expected (agent name unchanged) and are not
   unremediated. Note: backtick-wrapped `` `experience` `` is the dominant form in
   cross-pack SKILL.md files; `packs/experience[^-]` catches hardcoded paths in `.py`
   lint tools.
-- [ ] `make lint-packs` exits 0; `make build-self` exits 0;
+- [x] `make lint-packs` exits 0; `make build-self` exits 0;
   `pytest packages/agentbundle/` green.
 
 ## Assumptions
