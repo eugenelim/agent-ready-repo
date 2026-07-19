@@ -215,7 +215,32 @@
       "license": "Apache-2.0 OR MIT",
       "name": "governance-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.5.0"
+      "version": "0.6.0"
+    },
+    {
+      "author": "eugenelim <eugenelim@users.noreply.github.com>",
+      "category": "infrastructure",
+      "description": "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth.",
+      "displayName": "IaC (Terraform)",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "hooks": {
+        "SessionStart": [
+          {
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+          }
+        ]
+      },
+      "keywords": [
+        "terraform",
+        "opentofu",
+        "iac",
+        "policy-as-code",
+        "oidc"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "iac-terraform",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "version": "0.1.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
