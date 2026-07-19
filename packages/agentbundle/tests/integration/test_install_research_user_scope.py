@@ -5,7 +5,7 @@ state-file row, lands the seven projected skill directories under
 
 Mirrors test_install_converters_user_scope.py — the converters precedent
 is the agreed shape (in-process install.run, $HOME redirected via
-patch.dict, fixture catalogue populated from packs/research/).
+patch.dict, fixture catalogue populated from packs/desk-research/).
 """
 
 from __future__ import annotations
@@ -21,12 +21,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-RESEARCH_PACK_SRC = REPO_ROOT / "packs" / "research"
+RESEARCH_PACK_SRC = REPO_ROOT / "packs" / "desk-research"
 SKILL_NAMES = (
     "identify-perspectives",
     "build-outline",
     "source-map",
-    "research",
+    "desk-research",
     "devils-advocate",
     "compare-hypotheses",
     "decision-archaeology",
@@ -55,7 +55,7 @@ def _run_uninstall(args: argparse.Namespace) -> tuple[int, str, str]:
 
 
 class ResearchUserScopeInstallTests(unittest.TestCase):
-    """End-to-end install/uninstall round-trip for the research pack
+    """End-to-end install/uninstall round-trip for the desk-research pack
     at user scope. Mirrors the converters precedent: $HOME is
     redirected to a tmp path so the test never touches the developer's
     real home tree."""
@@ -79,15 +79,15 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
         )
         self._env.start()
         self.addCleanup(self._env.stop)
-        # Temporary catalogue layout: <cat>/packs/research/ — populated
+        # Temporary catalogue layout: <cat>/packs/desk-research/ — populated
         # from the repo-local pack via copytree.
         self.cat = self.tmp / "catalogue"
         (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(RESEARCH_PACK_SRC, self.cat / "packs" / "research")
+        shutil.copytree(RESEARCH_PACK_SRC, self.cat / "packs" / "desk-research")
 
     def test_install_then_uninstall_round_trip(self) -> None:
         install_args = argparse.Namespace(
-            pack="research",
+            pack="desk-research",
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
@@ -122,8 +122,8 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
         self.assertEqual(raw_state.get("schema-version"), STATE_SCHEMA_VERSION)
 
         state = load_state(state_path)
-        self.assertTrue(state.has_pack("research"))
-        pack_state = next(iter(state.rows_for_pack("research").values()))
+        self.assertTrue(state.has_pack("desk-research"))
+        pack_state = next(iter(state.rows_for_pack("desk-research").values()))
         self.assertEqual(pack_state.scope, "user")
         # Floor at len(SKILL_NAMES) — one file-tracking entry per
         # shipped skill at minimum, matching the converters precedent
@@ -133,7 +133,7 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
             len(pack_state.files),
             len(SKILL_NAMES),
             f"expected at least {len(SKILL_NAMES)} entries in "
-            f"state.packs['research'].files, got {len(pack_state.files)}",
+            f"state.packs['desk-research'].files, got {len(pack_state.files)}",
         )
 
         for name in SKILL_NAMES:
@@ -155,7 +155,7 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
             )
 
         uninstall_args = argparse.Namespace(
-            pack="research",
+            pack="desk-research",
             root=str(self.repo),
             scope="user",
             yes=True,
@@ -178,12 +178,12 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
             )
 
         # AC10's looser form: state file is gone OR state file remains
-        # with the research row removed.
+        # with the desk-research row removed.
         research_gone = (
             not state_path.exists()
-            or not load_state(state_path).has_pack("research")
+            or not load_state(state_path).has_pack("desk-research")
         )
         self.assertTrue(
             research_gone,
-            "research entry survived uninstall in state.toml",
+            "desk-research entry survived uninstall in state.toml",
         )

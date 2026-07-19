@@ -19,7 +19,7 @@ You need:
 - An idea, even a rough one.
 - The `core` pack, for `init-project`, `new-spec`, and `work-loop`.
 
-The three upstream packs — `research`, `product-engineering`, `architect` —
+The three upstream packs — `desk-research`, `product-engineering`, `architect` —
 are the user-scope `inception` profile, so one command carries the whole
 toolkit across every venture:
 
@@ -42,7 +42,7 @@ unsure about.
 
 | What you're unsure about | Bring in | It produces |
 | --- | --- | --- |
-| Is this true? What's been built before? What's best practice? | `research` | a cited `<topic-slug>-survey.md` |
+| Is this true? What's been built before? What's best practice? | `desk-research` | a cited `<topic-slug>-survey.md` |
 | Is this worth building? Does the bet hold? What exactly ships? | `product-engineering` | a `core` **brief** |
 | How should it be built? What's the system shape? | `architect` | a design doc and ADR-worthy decisions |
 | — always — | `core` (`init-project`) | an ADR, a `reference.md`, a skeleton spec |
@@ -52,15 +52,15 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 
 ## The packs and skills you reach for
 
-### `research` — when the space is unfamiliar or contested
+### `desk-research` — when the space is unfamiliar or contested
 
-- **Skills:** `research` (run it in `applied` mode for prior art, best
+- **Skills:** `desk-research` (run it in `applied` mode for prior art, best
   practice, and known anti-patterns), plus `source-map`, `compare-hypotheses`,
   and `devils-advocate` for contested choices.
 - **Install:** in the `inception` profile, or on its own with
-  `agentbundle install --pack research <catalogue>`.
-- **How:** [Run the research pipelines](../../research/how-to/research-pipelines.md),
-  or [your first research session](../../research/tutorials/research-first-session.md)
+  `agentbundle install --pack desk-research <catalogue>`.
+- **How:** [Run the research pipelines](../../desk-research/how-to/desk-research-pipelines.md),
+  or [your first research session](../../desk-research/tutorials/desk-research-first-session.md)
   if the pack is new to you.
 
 ### `product-engineering` — when the bet is uncertain
@@ -70,7 +70,7 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
   condition), `decompose-intent` (cut it into a `core` brief). At app scale the
   leaf intent *is* the brief. The `frame → de-risk → decompose` loop hands its
   leaf into `init-project`'s value gate — an `intent` from `frame-intent` is one
-  of `init-project`'s four recognized discovery sources (alongside `research`, a
+  of `init-project`'s four recognized discovery sources (alongside `desk-research`, a
   PRD, and a `receive-brief` brief), named as **optional upstream**: present when
   this pack is installed.
 - **Install:** in the `inception` profile, or on its own with
@@ -111,10 +111,10 @@ The upstream stages earn their place only against real uncertainty.
 
 - **Asking `init-project` to do the research.** It consumes discovery; it never
   performs it. If you reach the value gate and can't state the business value,
-  the gate stops you. That's the signal to go back to `research` or
+  the gate stops you. That's the signal to go back to `desk-research` or
   `product-engineering`, not to push through.
 - **No home for early notes.** There's no first-class inbox for thinking that
-  predates research. The durable options today are a `research` artifact (a
+  predates research. The durable options today are a `desk-research` artifact (a
   `<topic-slug>-survey.md` from `standard`/`applied` mode) or
   `docs/product/intents/<slug>.md` once you've framed an
   intent. `.context/` is session scratch: it's gitignored and doesn't survive a

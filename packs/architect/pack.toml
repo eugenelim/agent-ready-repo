@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.13.0"
+version = "0.13.1"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 readme = "README.md"
 display_name = "Architect"
@@ -11,7 +11,7 @@ keywords = ["design-docs", "diagrams", "mermaid", "critique"]
 # RFC-0024 contract level (v0.10) — pure-markdown skills, multi-adapter.
 # Bumped from v0.6 so listing `copilot` is honest: copilot's skill
 # primitive gained its user-scope target (`~/.copilot/instructions/`) at
-# v0.10, and architect is user-scope-default. Mirrors `research`/`core`.
+# v0.10, and architect is user-scope-default. Mirrors `desk-research`/`core`.
 [pack.adapter-contract]
 version = "0.10"
 

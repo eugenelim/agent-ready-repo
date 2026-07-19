@@ -18,7 +18,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "architect",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.13.0"
+      "version": "0.13.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -104,7 +104,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "core",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.12.0"
+      "version": "0.12.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -125,6 +125,23 @@
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
+      "category": "research",
+      "description": "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
+      "displayName": "Desk Research",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "osint",
+        "synthesis",
+        "citations",
+        "evidence"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "desk-research",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "version": "1.0.0"
+    },
+    {
+      "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "design",
       "description": "The design/UX seat for product teams \u2014 the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (map-customer-journey \u2192 map-screen-flow \u2192 blueprint-service) and map the inside-out sibling (map-internal-process); craft skills design each screen (aesthetic-direction, design-system-foundations, layout-and-information-architecture, interaction-design) and critique it (design-critique), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps \u2014 points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
       "displayName": "Experience",
@@ -139,7 +156,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "experience",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.5.0"
+      "version": "0.5.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -223,7 +240,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "product-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.11.0"
+      "version": "0.11.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -242,23 +259,6 @@
       "name": "release-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "version": "0.1.1"
-    },
-    {
-      "author": "eugenelim <eugenelim@users.noreply.github.com>",
-      "category": "research",
-      "description": "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
-      "displayName": "Research",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "osint",
-        "synthesis",
-        "citations",
-        "evidence"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "research",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.6.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
