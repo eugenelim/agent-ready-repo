@@ -172,6 +172,13 @@ const tabs = [
   .tabs {
     display: flex;
     flex-wrap: wrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
   }
 
   /* Radios stay in the tab order for keyboard use, but are visually hidden. */

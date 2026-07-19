@@ -1,6 +1,6 @@
 site_name: agent-ready-repo
 site_description: The complete AI operating model for software teams — from first idea to production.
-site_url: https://eugenelim.github.io/agent-ready-repo/
+site_url: https://eugenelim.github.io/agent-ready-repo/docs/
 repo_url: https://github.com/eugenelim/agent-ready-repo
 repo_name: eugenelim/agent-ready-repo
 edit_uri: ""
