@@ -337,8 +337,8 @@ For anything beyond trivial, *think before you write code*. Concretely:
 - **Pre-EXECUTE design-intent pass (user-facing surface trigger).** When the
   change produces a user-facing surface — a new page, a redesigned screen, a
   component, a pack card, a docs page — establish design intent **before writing
-  code**. Run `aesthetic-direction` (if no grounded aesthetic reference exists
-  yet) and/or `design-critique` (if there is an existing surface to evaluate)
+  code**. Run `creative-direction` (if no grounded aesthetic reference exists
+  yet) and/or `design-review` (if there is an existing surface to evaluate)
   and record the design intent in the spec. This is the design analogue of
   "write the test first": design intent before implementation prevents the
   common failure mode of technically correct surfaces with no design sense. Applies

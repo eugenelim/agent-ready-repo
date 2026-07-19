@@ -746,7 +746,7 @@ def case_container_and_file_recognition() -> None:
 
 def case_screen_nested_brief_recognized() -> None:
     """A per-screen brief nested under a flow folder
-    (`screens/<slug>/<screen>.md` — the shape `map-screen-flow` emits) is
+    (`screens/<slug>/<screen>.md` — the shape `user-flow` emits) is
     recognized: `recognize_screens` walks the screens base recursively (the
     `recognize_contracts` precedent), so the brief is found by marker even though
     it is not a flat `screens/*.md` file. A nested screen-flow *file*

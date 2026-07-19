@@ -1564,3 +1564,32 @@ offline artifact.
 
 **Unblocks when:** a mermaid minor is chosen to pin, the SRI hash is computed, and
 both skill scripts are updated. Revisit at the next Mermaid version bump.
+
+
+### experience-pack-rename-cross-pack-prose
+
+**Source:** T1 cross-pack audit, experience-pack-0.6.0 implementation.
+
+`packs/product-engineering/.apm/skills/discovery-loop/references/sidecar-schema.md:105` — the `produced_by` schema field documentation uses `map-customer-journey` as an example value in an illustrative table. This is prose-only educational documentation (not an agent instruction); it does not route agents to invoke the old slug. Update the example to `journey-mapping` in a follow-on cleanup PR.
+
+**Unblocks when:** a follow-on cleanup PR sweeps schema documentation examples.
+
+
+### experience-pack-rename-journey-prose
+
+**Source:** T9 journey-file sweep, experience-pack-0.6.0 implementation (AC16).
+
+Six journey files contain `**For \`map-screen-flow\`:**` and `**For \`blueprint-service\`:**` callout blocks that use old experience-pack skill slugs as prose-only educational references (not imperative agent routing directives). These describe what future screen-design work would inform; they are historical context in the journey document, not active skill invocations.
+
+Files and occurrences:
+- `docs/product/journeys/README.md:142` — `map-screen-flow`, `blueprint-service`
+- `docs/product/journeys/pm-intakes-from-tracker.md:205,207` — `map-screen-flow`, `blueprint-service`
+- `docs/product/journeys/engineer-adopts-coordination.md:211,213` — `map-screen-flow`, `blueprint-service`
+- `docs/product/journeys/agent-executes-spec.md:211` — `blueprint-service`
+- `docs/product/journeys/engineer-scales-to-swarm.md:223,225` — `map-screen-flow`, `blueprint-service`
+- `docs/product/journeys/product-strategist-sets-direction.md:192,194` — `map-screen-flow`, `blueprint-service`
+- `docs/product/journeys/product-engineer-shapes-initiative.md:245,247` — `map-screen-flow`, `blueprint-service`
+
+**Unblocks when:** a follow-on cleanup PR sweeps journey-doc prose callouts to use canonical slugs (`user-flow`, `service-blueprint`).
+
+

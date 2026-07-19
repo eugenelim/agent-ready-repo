@@ -238,20 +238,20 @@ look like?" before any code.
    confirmed (step 4c). Before writing the spec body — especially the Acceptance
    Criteria — settle two design-readiness questions and weave the result into the spec.
 
-   If the experience pack is absent (`aesthetic-direction` and `design-critique`
+   If the experience pack is absent (`creative-direction` and `design-review`
    unavailable): **proceed and note it** in the spec's Assumptions —
    `experience pack not installed; design intent for this surface is ungrounded` —
    then skip the rest of this step. Absence is a named gap, not a silent pass.
 
    - **Check for a grounded aesthetic reference.** Search the repo for an aesthetic-
      direction doc (any file whose first heading matches `# Aesthetic direction:`).
-     If none exists, offer to run `aesthetic-direction` before writing design-facing
+     If none exists, offer to run `creative-direction` before writing design-facing
      ACs. A UI spec's design-intent ACs are unverifiable without a grounded reference;
      the direction doc is what lets "this screen should feel <goal>" be checkable. If
      the user declines or has a direction outside the repo, ask them to name the ranked
      goals so you can reference them concretely in the spec.
    - **Check whether existing screens or flows are affected.** If the spec modifies
-     an existing surface, offer to run `design-critique` on it before writing ACs.
+     an existing surface, offer to run `design-review` on it before writing ACs.
      Findings from the existing surface establish the design debt the implementation
      must clear — surfacing them as explicit ACs is better than discovering them post-ship.
    - **Weave design intent into the spec.** Once design-readiness is settled:

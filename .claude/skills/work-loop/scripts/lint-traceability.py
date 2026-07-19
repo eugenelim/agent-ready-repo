@@ -435,7 +435,7 @@ def recognize_briefs(base: Path, root: Path, g: Graph) -> dict[str, Path]:
 
 def recognize_screens(base: Path, root: Path, g: Graph) -> None:
     """File-backed `screen` nodes carrying `**Type:** screen-brief`, found
-    **recursively** under `<screens-base>`. `map-screen-flow` nests a per-screen
+    **recursively** under `<screens-base>`. `user-flow` nests a per-screen
     brief at `screens/<slug>/<screen>.md`, so the walk mirrors
     `recognize_contracts` (symlink-safe `_iter_dirs`, the issue #190 rglob gap)
     rather than a flat `*.md` glob. Id `screen:<stem>`. A screen-flow *index*

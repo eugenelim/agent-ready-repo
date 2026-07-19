@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Write a content brief for an acquisition surface — a landing page for a developer tool targeting technical team leads who are evaluating the product.",
-      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It ends with the artifact path docs/design/content/<slug>.md and names copy-direction and map-screen-flow as downstream consumers.",
+      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It ends with the artifact path docs/design/content/<slug>.md and names tone-of-voice and user-flow as downstream consumers.",
       "assertions": [
         "Surface type declared as acquisition",
         "Audience awareness level named using the Schwartz five-stage ladder with a rationale",
@@ -15,7 +15,7 @@
         "Success metric named as a rate (sign-up rate, trial start rate, or equivalent)",
         "No finished copy strings — only direction, job descriptions, and structure contracts",
         "Artifact path docs/design/content/<slug>.md stated",
-        "copy-direction named as downstream for copy voice; map-screen-flow named for screen sequencing"
+        "tone-of-voice named as downstream for copy voice; user-flow named for screen sequencing"
       ]
     },
     {
@@ -30,7 +30,7 @@
         "Content items assigned to must-say / probably-say / might-say tiers",
         "Completion metric named (task completion rate or search resolution rate)",
         "No finished copy strings — direction and hierarchy only",
-        "copy-direction named as downstream for copy voice; map-screen-flow named for screen sequencing"
+        "tone-of-voice named as downstream for copy voice; user-flow named for screen sequencing"
       ]
     }
   ]

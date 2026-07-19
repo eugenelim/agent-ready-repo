@@ -3,40 +3,40 @@ pack: experience
 scope: user
 tagline: "The design/UX seat for product teams."
 prerequisitePacks: []
-whatChanges: "After installing experience, product-engineering work has a full design thread from outcome to realization. `map-customer-journey` and `map-screen-flow` derive the screen list from a named outcome. `aesthetic-direction` and `design-system-foundations` establish the visual constraints before any screen is designed. `interaction-design` and `design-critique` craft and critique each screen to a shared quality floor. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion."
+whatChanges: "After installing experience, product-engineering work has a full design thread from outcome to realization. `journey-mapping` and `user-flow` derive the screen list from a named outcome. `creative-direction` and `design-system` establish the visual constraints before any screen is designed. `interaction-design` and `design-review` craft and critique each screen to a shared quality floor. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion."
 skills:
-  - name: map-customer-journey
+  - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
     humanTouches: 1
-  - name: map-screen-flow
+  - name: user-flow
     description: "Derives the screen inventory and flow from the customer journey — what screens exist, what state each handles, what the transitions are."
     humanTouches: 1
-  - name: blueprint-service
+  - name: service-blueprint
     description: "Maps front-stage screen flows to the back-stage processes and human actors that support them — the service blueprint."
     humanTouches: 0
-  - name: map-internal-process
+  - name: process-mapping
     description: "Documents the internal processes that run behind user-facing screens — the APQC/BPMN model of what people do."
     humanTouches: 0
-  - name: aesthetic-direction
-    description: "Establishes the visual direction for a surface — palette, typography, spacing — as a named aesthetic reference that all subsequent screens must satisfy."
+  - name: creative-direction
+    description: "Establishes the visual direction for a surface — named emotional and brand goals grounded in stable referents — as the aesthetic reference all subsequent screens must satisfy."
     humanTouches: 1
-  - name: design-system-foundations
-    description: "Derives the design token set from the aesthetic direction — the primitive and semantic tokens that carry the design into code."
+  - name: design-system
+    description: "Derives the design token set from the creative direction — the primitive and semantic tokens that carry the design into code."
     humanTouches: 0
-  - name: layout-and-information-architecture
+  - name: information-architecture
     description: "Designs the layout zones and information hierarchy for a screen, given its per-screen brief."
     humanTouches: 0
   - name: interaction-design
     description: "Designs the interactive behaviors for a screen — states, transitions, feedback patterns — against WCAG 2.2 AA."
     humanTouches: 0
-  - name: design-critique
-    description: "Critiques an existing screen design against the quality floor — handle-all-states, accessibility, reduced-motion — before the independent review."
+  - name: design-review
+    description: "Reviews an existing screen design against the quality floor — handle-all-states, accessibility, reduced-motion — before the independent review."
     humanTouches: 0
 humanGates:
   - id: G-journey
     globalGate: null
     label: "Approve the customer journey and derived screen list"
-    trigger: "After map-customer-journey and map-screen-flow complete"
+    trigger: "After journey-mapping and user-flow complete"
     duration: "10–15 minutes"
     whatToCheck:
       - "Does the journey capture the outcome the user is trying to achieve — not just the tasks they perform in the current product?"
@@ -49,7 +49,7 @@ humanGates:
   - id: G-aesthetic
     globalGate: null
     label: "Approve the aesthetic direction and token set"
-    trigger: "After aesthetic-direction and optionally design-system-foundations complete"
+    trigger: "After creative-direction and optionally design-system complete"
     duration: "5–10 minutes"
     whatToCheck:
       - "Does the aesthetic direction name a specific visual character — not just 'clean and modern'?"
@@ -85,7 +85,7 @@ relatedJourneys:
 
 ## Stage 1 — Map the customer journey
 
-You describe the feature, user, and outcome. The agent runs `map-customer-journey` to produce the customer journey map — the current state (what happens today), the desired state (what should happen after this feature), and the key moments where the current journey breaks down.
+You describe the feature, user, and outcome. The agent runs `journey-mapping` to produce the customer journey map — the current state (what happens today), the desired state (what should happen after this feature), and the key moments where the current journey breaks down.
 
 **You:** Read the journey map and approve it at the G-journey gate. This is the most important gate in the experience thread — the screen list flows directly from it. If the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived. A one-sentence correction here saves a full design cycle.
 
@@ -93,7 +93,7 @@ You describe the feature, user, and outcome. The agent runs `map-customer-journe
 
 ## Stage 2 — Derive the screen flow
 
-With the journey approved, the agent runs `map-screen-flow` to derive the screen inventory: what screens exist, what state each one handles (empty, loading, populated, error), and what the transitions between them are. Each screen gets a per-screen brief: the user's goal, the information they need, the states to handle.
+With the journey approved, the agent runs `user-flow` to derive the screen inventory: what screens exist, what state each one handles (empty, loading, populated, error), and what the transitions between them are. Each screen gets a per-screen brief: the user's goal, the information they need, the states to handle.
 
 **You:** Check that the screen list feels right — that it doesn't add screens not implied by the journey, and doesn't miss screens the journey requires. If the agent adds a screen that looks useful but isn't derived from the journey, remove it here.
 
@@ -101,7 +101,7 @@ With the journey approved, the agent runs `map-screen-flow` to derive the screen
 
 ## Stage 3 — Establish design intent
 
-Before designing any screen, the agent runs `aesthetic-direction` to establish the visual character of the surface — palette, typography, spacing — as a named aesthetic reference. It then runs `design-system-foundations` to derive the design token set.
+Before designing any screen, the agent runs `creative-direction` to establish the visual character of the surface — named emotional and brand goals grounded in stable referents — as a named aesthetic reference. It then runs `design-system` to derive the design token set.
 
 **You:** Approve the aesthetic direction at the G-aesthetic gate. An aesthetic direction that says "clean and professional" is not an aesthetic direction — it needs to name a specific visual character with enough specificity to say whether a given design decision is consistent or not. If the tokens introduce hardcoded values outside the semantic token system, reject them.
 
@@ -109,7 +109,7 @@ Before designing any screen, the agent runs `aesthetic-direction` to establish t
 
 ## Stage 4 — Design each screen
 
-The agent runs `layout-and-information-architecture` and `interaction-design` on each screen in the flow, working from each screen's per-screen brief. It then runs `design-critique` on each screen before the independent review — a self-check against the quality floor.
+The agent runs `information-architecture` and `interaction-design` on each screen in the flow, working from each screen's per-screen brief. It then runs `design-review` on each screen before the independent review — a self-check against the quality floor.
 
 **You:** Watch each screen take shape. If a screen is missing a state — no empty state for a list that could be empty, no loading state for an async action — name it. The agent will miss states not explicitly mentioned in the brief; that's what the experience-reviewer catches, but catching it here is cheaper.
 

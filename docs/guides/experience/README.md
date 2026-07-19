@@ -3,10 +3,12 @@
 The design/UX seat that carries the **whole design thread** — from a customer
 journey, through the screens it implies and the services behind them, to how
 each screen looks and behaves, to an independent review and a hand-off to
-realization. The grown-up successor to `design-craft`: the four craft skills are
-still here, now joined by the connective skills that thread them to an outcome,
-a behavioral-pillar craft skill, an internal-process mapper, and a
-forked-context reviewer.
+realization. 18 skills covering: journey mapping and screen flow derivation
+(connective thread), design principles (Define phase), genre-specific surface
+design (marketing, documentation, analytical, marketplace, informational,
+workspace), craft design (creative direction, design system, information
+architecture, interaction design), content design and tone of voice, continuous
+review, and a forked-context reviewer.
 
 Every skill ships portable **method**, never your stack: no UI-framework code,
 no styling-language syntax, no values tables, no pixel comps. The skills point

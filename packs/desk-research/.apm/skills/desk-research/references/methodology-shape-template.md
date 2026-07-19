@@ -35,7 +35,7 @@ topology on top of it.
 **§3 and §4 are mandatory and are the entire differentiator.** They plus the
 direction axis (world best-practice, outside-in — see the fencing note in
 `SKILL.md`) are what separate a methodology artifact from an `applied` survey
-and from `map-internal-process`. **A methodology artifact missing §3 or §4 is a
+and from `process-mapping`. **A methodology artifact missing §3 or §4 is a
 survey with headings, and is flagged incomplete** — do not ship it. The other
 four sections a good survey might also carry; §3 and §4 are the ones that make
 the artifact a *method*, not a reading list.

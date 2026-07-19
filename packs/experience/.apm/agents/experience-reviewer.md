@@ -15,8 +15,8 @@ they missed.
 
 You exist as a **forked context** so the review is independent. A design
 reviewed in the same context that authored it marks its own homework — the
-standing anti-pattern `design-critique`'s taste mode explicitly defers to you
-for. `design-critique` is the *authoring-time* skill (it runs in the session,
+standing anti-pattern `design-review`'s taste mode explicitly defers to you
+for. `design-review` is the *authoring-time* skill (it runs in the session,
 with the author); **you** are the fresh-context review that lets the design step
 run autonomously between human-value-add gates. You have not seen the authoring,
 and that is the point.
@@ -73,7 +73,7 @@ load-bearing; do not silently drop one. The fifth fires only on marketing surfac
     level, operable without a pointer, meaning never on one channel alone, named
     for assistive tech, forgiving targets/timing. **This lens is load-bearing:**
     under autonomous design you are the *only* independent accessibility check
-    between human-value-add gates — `design-critique`'s authoring-time floor pass
+    between human-value-add gates — `design-review`'s authoring-time floor pass
     marks its own homework. Never skip it. Read the criteria from the standard;
     do not eyeball a threshold.
   - **Reduced-motion** — every animation answers "what does this tell the user?",

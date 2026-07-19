@@ -234,13 +234,13 @@ repo without the converters pack still gets a good markdown artifact.
 - **`frame-domain`** (in `product-engineering`) — grounding a *product* in its
   real-world activity and bounding its **MVP** before design. That is
   product/MVP grounding, not a world-best-practice method; use `frame-domain`.
-- **`map-internal-process`** (in `experience`) — documenting **your own
+- **`process-mapping`** (in `experience`) — documenting **your own
   organisation's** operations as an as-is/to-be swimlane. That is inside-out
-  operations, not outside-in best practice; use `map-internal-process`.
+  operations, not outside-in best practice; use `process-mapping`.
 
 **Where the boundary rests — source + direction.** The methodology shape
 describes **world best-practice, outside-in, for any domain** — how the activity
-is done *well, anywhere*. `map-internal-process` describes **your own operations,
+is done *well, anywhere*. `process-mapping` describes **your own operations,
 inside-out** — how *this org* does it today and wants to. The **honest overlap is
 real and named, not hidden**: both use a SIPOC scope frame (§1) and a
 process-discovery spine (§2). The boundary therefore does *not* rest on those
