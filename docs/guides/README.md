@@ -20,7 +20,7 @@ Documentation for the agent-ready-repo catalogue, organized to get you to the ri
 | --- | --- | --- |
 | **Engineer** | [`core`](core/) — the build loop | [`architect`](architect/) for design; [`contracts`](contracts/) for API authoring; [`converters`](converters/) for document handling |
 | **Product manager / strategist** | [`product-engineering`](product-engineering/) — intent shaping and the discovery loop | [`desk-research`](desk-research/) for evidence; [`governance-extras`](governance-extras/) for decision trails |
-| **Designer / UX** | [`experience`](experience/) — journey mapping, screen flows, service blueprints, design critique | [`figma`](figma/) for Figma reads; [`product-engineering`](product-engineering/) for voice and microcopy |
+| **Designer / UX** | [`experience-design`](experience-design/) — journey mapping, screen flows, service blueprints, design review | [`figma`](figma/) for Figma reads; [`product-engineering`](product-engineering/) for voice and microcopy |
 | **Architect** | [`architect`](architect/) — system design and pressure-testing | [`contracts`](contracts/) for API contracts; [`desk-research`](desk-research/) for prior art |
 | **SRE / DevOps** | [`release-engineering`](release-engineering/) — the release loop, ephemeral deploy, e2e convergence | [`core`](core/) (required dependency) |
 | **Researcher / analyst** | [`desk-research`](desk-research/) — evidence-grounded research with selectable depth | [`converters`](converters/) for document ingestion |
@@ -53,7 +53,7 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | [`release-engineering`](release-engineering/) | [home](release-engineering/) | The release loop — `release-loop`, `release-lead`; autonomous e2e convergence on ephemeral envs; inner↔outer feedback seam; release-readiness record at G5. |
 | [`architect`](architect/) | [home](architect/) | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, and the read-only `design-reviewer` subagent. |
 | [`desk-research`](desk-research/) | [home](desk-research/) | Evidence-grounded research — `desk-research` with selectable depth, plus `source-map`, `compare-hypotheses`, `devils-advocate`, and retrieval subagents. |
-| [`experience`](experience/) | [home](experience/) | The full design thread — journey mapping, screen flows, service blueprints, aesthetic direction, design systems, design critique, and the `experience-reviewer` subagent. |
+| [`experience-design`](experience-design/) | [home](experience-design/) | The full design thread — journey mapping, screen flows, service blueprints, creative direction, design system, design review, and the `experience-reviewer` subagent. |
 | [`credential-brokers`](credential-brokers/) | [home](credential-brokers/) | The broker behind credentialed skills — secrets resolve in-process, never reaching the model. |
 | [`atlassian`](atlassian/) | [home](atlassian/) | Jira, Confluence, and flow metrics — `jira`, `confluence-crawler`/`-publisher`, `flow-metrics`, `jira-defect-flow`, and more. |
 | [`contracts`](contracts/) | [home](contracts/) | Contract-first API design — `api-contract` (OpenAPI 3.1) with a pluggable house standard. |

@@ -43,7 +43,7 @@ typicalSession:
 docsUrl: /docs/guides/figma/
 packUrl: /packs/figma/
 relatedJourneys:
-  - experience
+  - experience-design
   - credential-brokers
 ---
 
@@ -67,4 +67,4 @@ With the credential confirmed, the agent invokes the `figma` skill. It fetches t
 
 The agent presents the extracted artifact — a rendered frame image, a CSS variable set, a Mermaid connector diagram, or a structured property dump. You review it at the G-output gate before passing it to the next step in your workflow.
 
-**You:** Check that the extracted artifact matches the design you intended to capture. For FigJam diagrams, verify that all connectors and labels are preserved. For variable values, confirm they match the published (not draft) design system state. Pass the reviewed artifact to the next step — typically a design implementation task using the `experience` or `core` pack.
+**You:** Check that the extracted artifact matches the design you intended to capture. For FigJam diagrams, verify that all connectors and labels are preserved. For variable values, confirm they match the published (not draft) design system state. Pass the reviewed artifact to the next step — typically a design implementation task using the `experience-design` or `core` pack.

@@ -120,13 +120,13 @@ Ask your agent, for example:
 
 ---
 
-## Cross-pack: `experience`
+## Cross-pack: `experience-design`
 
 `voice-and-microcopy` is the **content layer of the design seat** — the words
 live here, in `product-engineering`, while the design methods, screen flow, and
-per-screen briefs live in the `experience` pack. The two packs read as one seat:
+per-screen briefs live in the `experience-design` pack. The two packs read as one seat:
 
-- **`experience`'s `user-flow`** produces the per-screen state matrix
+- **`experience-design`'s `user-flow`** produces the per-screen state matrix
   (one row per screen × state: empty / loading / error / success / partial /
   disabled / permission-denied). Pass that matrix to `voice-and-microcopy` and
   it writes copy keyed to every cell.
@@ -136,7 +136,7 @@ per-screen briefs live in the `experience` pack. The two packs read as one seat:
 Install both packs to run the full design-to-copy thread:
 
 ```bash
-agentbundle install experience product-engineering
+agentbundle install experience-design product-engineering
 ```
 
-→ See the [`experience` pack README](../experience/README.md).
+→ See the [`experience-design` pack README](../experience-design/README.md).

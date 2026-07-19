@@ -15,7 +15,7 @@ updated: 2026-07-19
 
 # Journey: Designer designs a surface
 
-**Persona:** A designer or design-engineering hybrid authoring upstream design intent — a solo product designer at a startup, a design lead at an agency, or a design-eng hybrid who owns design through to build. They use the experience pack to move from raw brief through to a design-ready handoff artefact.
+**Persona:** A designer or design-engineering hybrid authoring upstream design intent — a solo product designer at a startup, a design lead at an agency, or a design-eng hybrid who owns design through to build. They use the experience-design pack to move from raw brief through to a design-ready handoff artefact.
 
 Two paths share this journey:
 
@@ -38,10 +38,10 @@ Two paths share this journey:
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| experience | user | current (0.6.0) | 18 skills: 9 renamed to canonical vocabulary, 7 new (design-principles + 6 genre-specific Direct skills), 7 extensions across 6 existing skills, surface-genre contract |
+| experience-design | user | current (1.0.0) | 18 skills: the full design thread (journey → realization), 6 genre-specific Direct skills, design-principles, and the surface-genre contract |
 
 **Setup:**
-1. Install experience pack at user scope.
+1. Install experience-design pack at user scope.
 2. Begin with `journey-mapping` → `design-principles` → genre-specific Direct skill → `user-flow` → `interaction-design` → `design-review`.
 3. Surface genre declared once at `user-flow` (or elicited inline); flows to all downstream skills automatically.
 

@@ -90,7 +90,7 @@ These journeys cover the end-to-end experience of a specific optional pack. They
 | Journey | Pack | Status | RFC |
 |---|---|---|---|
 | [Engineer provisions infrastructure](engineer-provisions-infrastructure.md) | `iac-terraform` — repo scope | shipped | [RFC-0065](../../rfc/0065-iac-terraform-pack.md) |
-| [Designer designs a surface](designer-designs-surface.md) | `experience` — user scope; genre-aware design chain (0.5.0 current; 0.6.0 planned) | planned | [RFC-0066](../../rfc/0066-experience-pack-surface-genre-uplift.md) |
+| [Designer designs a surface](designer-designs-surface.md) | `experience-design` — user scope; genre-aware design chain (1.0.0) | shipped | [RFC-0066](../../rfc/0066-experience-pack-surface-genre-and-skill-uplift.md) |
 
 ---
 

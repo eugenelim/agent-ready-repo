@@ -1,7 +1,7 @@
 # Plan: m3-experience-design-rename
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Draft
+- **Status:** Shipped
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially

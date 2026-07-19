@@ -122,7 +122,7 @@ Three packs form the operating model. The rest are curated kits — each distill
 | [`atlassian`](docs/guides/atlassian/) | user / repo | Work Jira and Confluence from the agent. |
 | [`figma`](docs/guides/figma/) | user / repo | Read and render Figma designs. |
 | [`architect`](docs/guides/architect/) | user / repo | Design a system and pressure-test it. |
-| [`experience`](docs/guides/experience/) | user / repo | Carry the whole design thread — journey to realization. |
+| [`experience-design`](docs/guides/experience-design/) | user / repo | Carry the whole design thread — journey to realization. |
 
 A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `desk-research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
 

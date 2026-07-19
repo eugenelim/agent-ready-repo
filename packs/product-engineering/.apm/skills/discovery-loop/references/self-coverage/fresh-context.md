@@ -21,7 +21,7 @@ loop + work type), **required at G2 reconcile**:
   compliance lens.
 - **`discovery-reliability-reviewer`** — the reliability / operability lens over
   the journey / blueprint / architecture.
-- **Optional, detect-and-degrade:** `experience-reviewer` (if `experience` is
+- **Optional, detect-and-degrade:** `experience-reviewer` (if `experience-design` is
   installed — UX/design artifacts) and `design-reviewer` (if `architect` is
   installed — architecture artifacts).
 

@@ -1592,4 +1592,3 @@ Files and occurrences:
 
 **Unblocks when:** a follow-on cleanup PR sweeps journey-doc prose callouts to use canonical slugs (`user-flow`, `service-blueprint`).
 
-

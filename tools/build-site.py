@@ -32,7 +32,7 @@ PACKS: list[tuple[str, str, str, str]] = [
     ("release-engineering","Release Engineering",  "repo", "The release loop — autonomous e2e convergence on ephemeral environments; prod gate is always human."),
     ("desk-research",      "Desk Research",         "user", "Evidence-grounded research with typed artifacts, seven skills, and two retrieval subagents."),
     ("architect",          "Architect",            "user", "System design, diagramming, and independent architecture review from a forked-context subagent."),
-    ("experience",         "Experience",           "user", "The full design thread: journey mapping, screen flows, aesthetic direction, WCAG quality floor."),
+    ("experience-design",  "Experience Design",    "user", "The full design thread: journey mapping, screen flows, creative direction, surface-genre design (6 types), and the shared quality floor."),
     ("contracts",          "Contracts",            "user", "API-first design — OpenAPI 3.1 for HTTP, AsyncAPI for event streams."),
     ("converters",         "Converters",           "user", "Document conversion: PDF/DOCX/PPTX/email → Markdown, Markdown → HTML/Word/PowerPoint/Excel."),
     ("atlassian",          "Atlassian",            "user", "Jira and Confluence from the agent — SSO-cookie authenticated, flow and DORA metrics built in."),
