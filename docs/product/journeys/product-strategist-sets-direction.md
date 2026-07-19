@@ -60,7 +60,7 @@ sequenceDiagram
     A-->>S: Ad-hoc analysis in session context
     Note over A: Session closes — analysis lost
     S-->>S: Copy insights manually into initiative briefs
-    Note over S: No committed artifact; no cascade into shaping queue
+    Note over S: No committed artifact — no cascade into shaping queue
 ```
 
 ### To-be state — M4 shipped
