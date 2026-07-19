@@ -33,6 +33,7 @@ from pathlib import Path
 RFC_AUTHORISED_DIRS = (
     "packs",  # RFC-0002 — self-hosting source-of-truth split
     ".agentbundle",  # RFC-0013 — adapter-root-bins/ self-hosted projection (sso-broker.py + helpers)
+    "governance",  # RFC-0065 D16 — governance-index template seed projection (governance-extras)
 )
 
 
