@@ -1,6 +1,6 @@
 ---
 name: voice-and-microcopy
-description: Use when shaping the actual words a user reads in a product's UI — characterizing the product's voice, writing the recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a screen flow and per-screen state matrix are present (from `experience`'s `user-flow`), writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `frame-intent`), to make visual or layout design decisions (this is words only), or to write documentation prose (that is `new-guide`'s clear-prose craft).
+description: Use when shaping the actual words a user reads in a product's UI — characterizing the product's voice, writing the recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a screen flow and per-screen state matrix are present (from `experience-design`'s `user-flow`), writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `frame-intent`), to make visual or layout design decisions (this is words only), or to write documentation prose (that is `new-guide`'s clear-prose craft).
 ---
 
 # Skill: voice-and-microcopy
@@ -14,10 +14,10 @@ bank — framework-agnostic, and it never mandates a schema. The voice axes are 
 `references/voice-axes.md`, the per-state formulas in
 `references/microcopy-formulas.md`, the checklist in `references/content-checklist.md`.
 
-When a **per-screen state matrix** from `experience`'s `user-flow` is
+When a **per-screen state matrix** from `experience-design`'s `user-flow` is
 present, this skill writes copy **per screen × state** — one copy entry per
 screen/state cell in the matrix — and keys every string to the matrix row. The
-state *set* those cells enumerate is the `experience` pack's shared
+state *set* those cells enumerate is the `experience-design` pack's shared
 **`quality-floor`** (empty / loading / error / success / partial / disabled, plus
 `permission/denied` when gated); defer to it by-name for which states a screen
 owes copy, rather than inventing a state list. When the matrix is absent the
@@ -25,11 +25,11 @@ skill is still fully useful: it writes copy for the states you name directly
 (detect-and-degrade; no screen flow required).
 
 > **Design-seat pairing.** This skill is the content layer of the design seat;
-> the design methods and screen-flow artifacts live in the `experience` pack. See
-> the `experience` pack's `user-flow` skill for the per-screen state matrix
+> the design methods and screen-flow artifacts live in the `experience-design` pack. See
+> the `experience-design` pack's `user-flow` skill for the per-screen state matrix
 > this skill can consume.
 
-> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience` pack's `tone-of-voice` skill; `voice-and-microcopy` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience pack); onboarding copy voice and register → `tone-of-voice` (experience pack); onboarding UI-state strings (loading, error, empty) → `voice-and-microcopy` (this skill).
+> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience-design` pack's `tone-of-voice` skill; `voice-and-microcopy` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience-design pack); onboarding copy voice and register → `tone-of-voice` (experience-design pack); onboarding UI-state strings (loading, error, empty) → `voice-and-microcopy` (this skill).
 
 ## When to invoke
 
@@ -65,7 +65,7 @@ Before writing, confirm:
    - **Label** — concise, scannable, front-loaded keyword; one term per concept.
 
    **When a per-screen state matrix is present** (produced by `user-flow`
-   in the `experience` pack): write copy **per screen × state**. For each screen
+   in the `experience-design` pack): write copy **per screen × state**. For each screen
    in the matrix, write one copy entry per applicable state (empty / loading /
    error / success / partial / disabled / permission-denied), applying the
    formula above. Key each entry to its matrix cell — screen name + state name —

@@ -49,7 +49,7 @@ docsUrl: /docs/guides/architect/
 packUrl: /packs/architect/
 relatedJourneys:
   - core
-  - experience
+  - experience-design
 ---
 
 ## Stage 1 — Establish the reference
