@@ -10,9 +10,9 @@ import { withBase } from '../../lib/paths';
   <div class="hero__inner">
     <h1 class="hero__headline">The supervised AI operating model for software teams.</h1>
     <p class="hero__subhead">
-      Your agent grades its own homework — and ships its own bugs unless the loop
-      stops it. Hard mechanical gates, cold-read specialist reviewers, and human
-      checkpoints at every handoff so nothing self-certifies.
+      Three supervised peer loops across the full SDLC — mechanical gates the agent
+      cannot bypass, cold-read specialist reviewers, and human checkpoints it cannot
+      self-certify past.
     </p>
     <div class="hero__actions">
       <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
@@ -22,6 +22,7 @@ import { withBase } from '../../lib/paths';
         Browse the catalogue <span aria-hidden="true">→</span>
       </a>
     </div>
+    <p class="hero__friction">Reversible. One command to try, one to remove.</p>
   </div>
 </section>
 
@@ -39,7 +40,7 @@ import { withBase } from '../../lib/paths';
   .hero__inner {
     max-width: var(--ds-content-max);
     margin-inline: auto;
-    padding: var(--ds-space-9) var(--ds-content-pad-x) var(--ds-space-8);
+    padding: clamp(3.5rem, 8vw, 6rem) var(--ds-content-pad-x) var(--ds-space-8);
   }
 
   .hero__headline {
@@ -111,5 +112,12 @@ import { withBase } from '../../lib/paths';
     to {
       opacity: 1;
     }
+  }
+
+  .hero__friction {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-hero-fg-muted);
+    margin-top: var(--ds-space-3);
+    margin-bottom: 0;
   }
 </style>
