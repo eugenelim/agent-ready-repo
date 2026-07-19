@@ -234,7 +234,7 @@ repo without the converters pack still gets a good markdown artifact.
 - **`frame-domain`** (in `product-engineering`) — grounding a *product* in its
   real-world activity and bounding its **MVP** before design. That is
   product/MVP grounding, not a world-best-practice method; use `frame-domain`.
-- **`process-mapping`** (in `experience`) — documenting **your own
+- **`process-mapping`** (in `experience-design`) — documenting **your own
   organisation's** operations as an as-is/to-be swimlane. That is inside-out
   operations, not outside-in best practice; use `process-mapping`.
 
