@@ -4,11 +4,11 @@
 <!-- Write this RFC for a COLD READER who has not read the related RFCs: coined
      terms are glossed inline on first use. -->
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-18
-- **Date closed:**
+- **Date closed:** 2026-07-19
 - **Decision weight:** standard <!-- Reversible: pure-markdown skills, user-scope default, no security boundary. Renames are breaking but follow established ADR-0038 precedent. -->
 - **Related:** RFC-0050 (the experience pack — the founding RFC that established the experience-pack skill chain and its agnosticism posture; the chain is now 11 skills after RFC-0062 added two more), RFC-0062 (content-design and copy-direction — most recent experience-pack addition; introduced the 2-type copy-layer surface routing that coexists with this RFC's design-layer routing), ADR-0024 (framework-agnosticism guardrails: no values tables, no platform primitives), ADR-0038 (alias-free pack-rename precedent — the shape this RFC's skill renames follow)
 
