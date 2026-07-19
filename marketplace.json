@@ -167,7 +167,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "desk-research",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -221,7 +221,7 @@
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "governance",
-      "description": "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs.",
+      "description": "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs.",
       "displayName": "Governance Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "hooks": {
@@ -239,7 +239,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "governance-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.6.0"
+      "version": "0.7.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
