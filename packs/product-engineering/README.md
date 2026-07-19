@@ -126,7 +126,7 @@ Ask your agent, for example:
 live here, in `product-engineering`, while the design methods, screen flow, and
 per-screen briefs live in the `experience` pack. The two packs read as one seat:
 
-- **`experience`'s `map-screen-flow`** produces the per-screen state matrix
+- **`experience`'s `user-flow`** produces the per-screen state matrix
   (one row per screen × state: empty / loading / error / success / partial /
   disabled / permission-denied). Pass that matrix to `voice-and-microcopy` and
   it writes copy keyed to every cell.
