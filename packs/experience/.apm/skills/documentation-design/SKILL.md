@@ -1,7 +1,6 @@
 ---
 name: documentation-design
-description: Use when designing a documentation surface — a docs site, a help centre, an API reference, or a technical guide set. Decides what type of content belongs where, how navigation scales with content volume, and what the first-value-moment is for each content type. Triggers on "design the docs site", "structure the help centre", "what goes on the docs landing page", "how should we navigate the API reference", "TTFV for this tutorial". Produces IA and navigation specifications for documentation surfaces. Do NOT use for marketing surfaces (use `conversion-design`) or informational editorial pages (use `informational-design`). Surface genre: documentation.
-surface-genre: documentation
+description: "Use when designing a documentation surface — a docs site, a help centre, an API reference, or a technical guide set. Decides what type of content belongs where, how navigation scales with content volume, and what the first-value-moment is for each content type. Triggers on 'design the docs site', 'structure the help centre', 'what goes on the docs landing page', 'how should we navigate the API reference', 'TTFV for this tutorial'. Produces IA and navigation specifications for documentation surfaces. Do NOT use for marketing surfaces (use conversion-design) or informational editorial pages (use informational-design). Surface genre: documentation."
 ---
 
 # Skill: documentation-design
