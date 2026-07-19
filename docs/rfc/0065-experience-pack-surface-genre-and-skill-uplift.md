@@ -14,22 +14,22 @@
 
 ## Reviewer brief
 
-- **Decision:** Whether to add a **surface-genre contract** to the experience pack's screen brief (the per-screen artifact `map-screen-flow` produces and all downstream design skills consume — "surface genre" = what kind of surface this is: marketing, docs, analytical, etc.), add **one Define-phase skill plus four genre-specific design skills**, extend four existing skills with agency-practice gaps, and **rename nine experience-pack skills** to canonical design-industry terminology — all in one PR at experience 0.6.0.
+- **Decision:** Whether to add a **surface-genre contract** to the experience pack's screen brief (the per-screen artifact `map-screen-flow` produces and all downstream design skills consume — "surface genre" = what kind of surface this is: marketing, docs, analytical, etc.), add **one Define-phase skill plus six genre-specific design skills**, extend six existing skills with seven agency-practice additions (`design-review` receives two), and **rename nine experience-pack skills** to canonical design-industry terminology — all in one PR at experience 0.6.0.
 - **Recommended outcome:** Accept D1–D8.
 - **Change if accepted:**
-  - One new field (`surface-genre:`) in the screen-brief template (the shared artifact all downstream design skills read)
-  - Five new SKILL.md files with reference trees: `design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`
-  - Extensions to four existing skills: `map-customer-journey` (peak moments, evidence level, genre axis), `interaction-design` (five new pattern families), `blueprint-service` (evidence-of-service row, fail points), `layout-and-information-architecture` (success metric binding, genre routing)
-  - Nine experience-pack skill renames following ADR-0038 precedent (rename live surface, bridge frozen governance, no install-time alias)
+  - One new field (`surface-genre:`) and one new conditional section (`## Genre-specific notes`) in the screen-brief template (the shared artifact all downstream design skills read)
+  - Seven new SKILL.md files with reference trees: `design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, `workspace-design`
+  - Extensions to six existing skills via D5: `map-customer-journey` (peak moments, evidence level, genre axis), `interaction-design` (five new pattern families), `blueprint-service` (evidence-of-service row, fail points), `layout-and-information-architecture` (success metric binding, genre routing), `design-critique` → `design-review` (renamed in D7; design-principles integration chain + genre-specific rubrics — two additions), `aesthetic-direction` → `creative-direction` (renamed in D7; genre canonical references)
+  - Nine experience-pack skill renames following ADR-0038 precedent (rename live surface, bridge frozen governance, no install-time alias); `content-design` cross-references to renamed skills updated in the same sweep
   - experience pack 0.5.0 → 0.6.0; new rename ADR as follow-on artifact
-- **Affected surface:** `packs/experience/` (all 11 existing skills touched; 5 new skills added); `packs/experience/pack.toml` (version + evals list); `docs/product/changelog.md` (user-visible changes)
+- **Affected surface:** `packs/experience/` (all 11 existing skills touched; 7 new skills added); `packs/experience/pack.toml` (version + evals list); `docs/product/changelog.md` (user-visible changes)
 - **Stakes:** Reversible for new skills (can be amended or removed). Renames are breaking but follow the established alias-free precedent (ADR-0038); pack is user-scope, pre-stable.
 - **Review focus:** (1) Whether the 7-genre taxonomy is MECE (mutually exclusive, collectively exhaustive) and the exhaustiveness argument holds. (2) Whether new skills clear ADR-0024's two guardrails (no values tables; no platform primitives). (3) Whether the rename sweep is complete (spike confirmed: ~43 files in `packs/experience/` + 4 files in `docs/guides/experience/` — roughly 6–7× larger by file count than frontmatter alone; verification grep is mandatory). (4) Whether the coexistence of `surface-genre` (design layer) and `content-design`'s `surface-type` (copy layer) is clear enough for adopters.
 - **Not in scope:** Pixel comps or stack-specific values; SEO/analytics tooling; a fourth `work-loop` reviewer agent; post-launch measurement methodology; any change to `content-design`'s existing 2-type copy-layer surface routing.
 
 ## The ask
 
-**Recommendation (BLUF — bottom line up front).** Add a `surface-genre` contract field to the experience pack's screen brief, add one Define-phase skill plus four genre-specific design skills, extend four existing skills with agency best practices, and rename nine experience-pack skills to canonical industry names — all in one PR at experience 0.6.0.
+**Recommendation (BLUF — bottom line up front).** Add a `surface-genre` contract field and a genre-specific notes section to the experience pack's screen brief, add one Define-phase skill plus six genre-specific design skills, extend six existing skills with seven agency-practice additions, and rename nine experience-pack skills to canonical industry names — all in one PR at experience 0.6.0.
 
 **Why now (SCQA — Situation / Complication / Question / Answer).** *Situation:* The experience pack ships 11 skills covering the design chain from journey mapping to screen flow to craft design and critique. RFC-0062 added content strategy and copy direction, including a 2-type copy-layer surface routing (acquisition vs. product/reference). *Complication:* A web audit of the repo's own marketing site (Astro) and docs site (MkDocs + Material) exposed a structural root cause: every design skill — IA, interaction, aesthetic direction, critique — treats all surfaces as the same design problem. Skills have no concept of what *kind* of surface is being designed, so marketing-specific patterns (hero-as-demo, social proof hierarchy), documentation patterns (density calibration, Diátaxis-shaped navigation), analytical patterns (dashboard IA, widget state hierarchy), and marketplace patterns (listing card IA, filter architecture) never enter the design chain. Anchoring against leading agency lifecycle practices (Work & Co, ustwo, Clearleft, R/GA, Huge, AKQA, Instrument) confirmed two additional gaps: the "Define" phase (research synthesis → named design principles) is entirely absent from the skill chain; and skill names don't align with canonical industry terminology. *Question:* Can the pack address all three gaps — surface-genre routing, Define-phase methodology, canonical naming — while preserving ADR-0024's framework-agnosticism posture?
 
@@ -40,11 +40,11 @@
 | D1 | Add `surface-genre:` to the screen-brief frontmatter (the contract `map-screen-flow` produces and all downstream design skills read), with inline elicitation fallback when no brief is available? | Yes | Concentrates genre declaration at the natural planning step; all downstream skills already read the brief; minimal additive change; standalone skills degrade to inline elicitation | This review | Confirm placement + standalone fallback |
 | D2 | Use a fixed 7-type taxonomy: `marketing \| documentation \| informational \| analytical \| transactional-journey \| marketplace \| workspace`? | Yes — fixed 7, canonical but not exhaustive | MECE along "dominant UX design challenge"; grounded in NNGroup surface research and Morville & Rosenfeld IA theory; each type produces genuinely different optimal IA and interaction patterns | This review | Confirm types or amend; confirm "canonical but not exhaustive" posture |
 | D3 | Add a new `design-principles` skill deriving 3–5 arbitration-ready design principles from journey insights? | Yes — new skill | Distinct outputs from journey mapping (insights → directives); NNGroup four-step derivation is a recognized standalone activity; fills the absent Define phase; passes CHARTER four-bar test (the four criteria every catalogue addition must clear — see `docs/CHARTER.md` § Principles: (1) universal across tech stacks, (2) substantive not duplicative, (3) a habit not a tool, (4) used often enough to stick) | This review | Confirm new skill + chain position |
-| D4 | Add four new genre-specific skills: `conversion-design` (marketing), `documentation-design` (documentation), `analytical-design` (analytical), `marketplace-design` (marketplace)? | Yes — all four | Each fills a genuinely absent genre; each clears ADR-0024's agnosticism guardrails; each passes the CHARTER four-bar test; implementation prompts exist | This review | Confirm all four or phase any out |
-| D5 | Extend four existing skills with agency-practice gaps: (a) `map-customer-journey` + peak moments + evidence level + genre axis; (b) `interaction-design` + 5 new pattern families; (c) `blueprint-service` + evidence-of-service row + fail-point marking; (d) `layout-and-IA` + success metric binding + genre routing? | Yes — all four extensions | Each is surgical and additive; none restructures existing skills; all grounded in agency best practice (NNGroup, Shostack, Kahneman, Pixelmatters) | This review | Confirm all four or scope any out |
+| D4 | Add six new genre-specific skills: `conversion-design` (marketing), `documentation-design` (documentation), `analytical-design` (analytical), `marketplace-design` (marketplace), `informational-design` (informational), `workspace-design` (workspace — including agentic UI patterns)? | Yes — all six | Each fills a genuinely absent genre; each clears ADR-0024's agnosticism guardrails; each passes the CHARTER four-bar test; implementation prompts exist; workspace-design is a first-class scenario for agent-augmented workspaces on this platform | This review | Confirm all six or phase any out |
+| D5 | Extend six existing skills with agency-practice gaps: (a) `map-customer-journey` + peak moments + evidence level + genre axis; (b) `interaction-design` + 5 new pattern families; (c) `blueprint-service` + evidence-of-service row + fail-point marking; (d) `layout-and-IA` + success metric binding + genre routing; (e) `design-review` + design-principles integration chain; (f) `creative-direction` + genre canonical references; (g) `design-review` + genre-specific rubrics (seven total additions across six skills — `design-review` receives two)? | Yes — all seven additions | Each is surgical and additive; none restructures existing skills; all grounded in agency best practice | This review | Confirm all or scope any out |
 | D6 | Coexistence: `surface-genre` (design-layer routing) coexists with `content-design`'s `surface-type` (copy-layer routing); no change to `content-design`? | Yes — parallel axes, no change | Different consumers (design skills vs. copy skill), different axes (design patterns vs. narrative structure); no routing conflict when documented | This review | Confirm coexistence or flag a conflict |
 | D7 | Rename nine experience-pack skills to canonical industry names following ADR-0038's alias-free precedent, in the same PR? (The tenth rename, `voice-and-microcopy → ux-writing`, is in `product-engineering` — deferred to a separate product-engineering RFC.) | Yes — all nine experience renames, same PR | Names diverge from canonical terms; rename sweep surface is bounded (grep-verified: ~43 files in `packs/experience/` + 4 files in `docs/guides/experience/`); ADR-0038 precedent is established; one PR per scope decision | This review | Confirm all nine or hold any for follow-on |
-| D8 | Bump experience pack 0.5.0 → 0.6.0? | Yes | Five new skills + extensions + renames; ADR-0038 precedent used minor bump for same-kind change; pre-stable, breaking acceptable | This review | Confirm |
+| D8 | Bump experience pack 0.5.0 → 0.6.0? | Yes | Seven new skills + extensions + renames; ADR-0038 precedent used minor bump for same-kind change; pre-stable, breaking acceptable | This review | Confirm |
 
 *Default if no objection: adopt D1–D8 and proceed to implementation.*
 
@@ -67,14 +67,13 @@ Anchoring against leading agency practice (ustwo's Discover/Shape/0-1/Boost mode
 - **Skill names diverge from canonical industry terms.** Teams reach for "journey mapping" and find `map-customer-journey`; "user flow" and find `map-screen-flow`; "design system" and find `design-system-foundations`. The mismatch is a legibility tax on every team familiar with agency vocabulary.
 
 **Goals.**
-- `surface-genre` contract field in the screen brief, available to all downstream design skills from a single declaration point.
-- Four new genre-specific skills covering the highest-gap genres (marketing, documentation, analytical, marketplace).
+- `surface-genre` contract field and genre-specific notes section in the screen brief, available to all downstream design skills from a single declaration point.
+- Six new genre-specific skills covering all seven taxonomy types (marketing, documentation, analytical, marketplace, informational, workspace — `transactional-journey` covered by the existing `interaction-design` wizard/stepper patterns).
 - `design-principles` skill filling the Define-phase gap.
-- Surgical extensions to four existing skills with agency best practices they currently lack.
+- Seven agency-practice additions across six existing skills (`design-review` receives two: design-principles integration chain and genre-specific rubrics).
 - Nine experience-pack skill names aligned with canonical industry terminology.
 
 **Non-goals** (could-have-been-goals, deliberately dropped):
-- **`workspace` genre dedicated skill** — recognized in the taxonomy but pattern set is more experimental; deferred to follow-on RFC (see Open questions).
 - **Post-launch measurement** — naming a success metric at brief time is the boundary; running analytics or iterating from data is the research pack's domain.
 - **Changes to `content-design`'s 2-type copy routing** — RFC-0062's acquisition/product-reference split is untouched (D6).
 - **A fourth `work-loop` reviewer agent** — the experience-reviewer agent already fills the design-time review slot (RFC-0050 D7).
@@ -101,6 +100,49 @@ And in the `## Place in the whole` section:
 
 ```
 - Surface genre: <genre> — determines design patterns and IA approach
+```
+
+Add a new `## Genre-specific notes` section at the end of the template, populated conditionally based on the declared `surface-genre:`. The section ships as a comment block — implementers uncomment and populate only the sub-section matching their surface genre:
+
+```markdown
+## Genre-specific notes
+
+<!-- Populate the sub-section that matches your surface-genre above. Remove the rest. -->
+
+### If marketing
+- Scroll zone assignment: <which zone in the 7-zone scroll story this screen occupies>
+- Conversion goal: <primary action this screen drives toward>
+- Above-fold elements (if this is the hero): headline | sub | primary CTA | secondary CTA | proof signal | friction microcopy
+
+### If documentation
+- Diátaxis type: <tutorial | how-to | reference | explanation>
+- Density target: <densest (lookup) | scannable-procedural | intermediate>
+- What's next: <the next page this page should link to>
+
+### If informational
+- Content type: <article | topic index | author page | search results>
+- What's next chain: <the continuation path from this page>
+- Entry point type: <search result | topic browse | recommendation | direct link>
+
+### If analytical
+- Primary business question this screen answers: <question>
+- Domain objects visible: <object names>
+- Widget-state contract: each primary widget declares loading / empty / error / stale
+
+### If marketplace
+- Entry path: <browse-first | search-first>
+- Filter state on this screen: <visible | hidden | collapsed>
+- Comparison affordance: <none | side-by-side | quick-compare overlay>
+
+### If workspace
+- Session arc position: <arrive | orient | work | persist | collaborate>
+- Collaboration state visible: <none | presence | live-editing | conflict>
+- Agentic UI elements on this screen: <task queue | agent status | confirmation surface | output review | none>
+
+### If transactional-journey
+- Gate position in flow: <step N of M>
+- Validation timing: <on-exit (validate before advancing) | on-submit>
+- Save-state: <autosave | explicit save | none>
 ```
 
 **Change to `map-screen-flow/SKILL.md`** — add confirmation item 5 to "When to invoke":
@@ -144,7 +186,7 @@ Examples of well-formed principles:
 
 **NNGroup grounding.** Four-step model (per NNGroup, "Design Principles to Support Better Decision Making"): (1) identify core product values → (2) articulate why each matters specifically to users → (3) surface known tradeoffs (where two values conflict, decide which wins) → (4) draft collaboratively then converge through critique. These four steps map to: insight → user-grounded → arbitration-aware → team-owned.
 
-### D4 — Four new genre-specific skills
+### D4 — Six new genre-specific skills
 
 **`conversion-design`** (marketing surfaces). Covers: hero approach selection (five approaches: animated product UI, static screenshot, switchable multi-UI, embedded live, code/terminal output; for developer tools: code/terminal is default), above-fold six-element spec (headline ≤10 words + subheadline + primary CTA (call to action) + secondary CTA + first proof signal + friction-removal microcopy), IC-first principle (the homepage speaks to the individual contributor who will use the tool; buyer concerns on secondary surfaces), scroll story 7-zone structure with one-job-per-zone rule, social proof 6-tier hierarchy calibrated to product maturity stage, numbered product tour spine. Grounded in: Evil Martians' study of 100 developer tool landing pages (IC-first finding, hero pattern analysis); NNGroup page-fold manifesto; PLG.news developer-tool website guide. Pure method; no values, breakpoints, or framework names.
 
@@ -154,7 +196,11 @@ Examples of well-formed principles:
 
 **`marketplace-design`** (marketplace surfaces — listings, catalogues, browse/discover/buy, two-sided markets). Covers: listing card IA (card hierarchy, information density, what belongs on a card vs. on the detail page), filter and facet architecture (filter taxonomy design, chip vs. sidebar presentation, instant vs. apply-button filter, empty-filter vs. zero-results UX distinction), comparison affordances (when to offer comparison panels vs. detail-page comparison), browse-first vs. search-first entry path routing, cart/transaction bridge (the checkout sequence bridges to `interaction-design`'s wizard-and-stepper patterns for gate-by-gate validation on the transactional-journey genre). Pure method; no e-commerce platform references.
 
-### D5 — Extensions to four existing skills
+**`informational-design`** (informational surfaces — editorial, news, blogs, long-form articles, thought leadership, knowledge bases, wikis). Distinct from documentation (task-oriented; density is a virtue for lookup) and from marketing (conversion-oriented; proof hierarchy dominates). Informational surfaces optimize for reading rhythm and continuation. Covers: **typography as primary design tool** — type scale establishes hierarchy without heavy visual chrome; line length (45–75 characters for sustained reading), line height (1.4–1.6× for body), scale contrast between heading levels; **F-pattern and Z-pattern reading flow calibration** — calibrate visual weight to scanning behavior: heavy headlines and strong entry points serve scanners; body density serves committed readers; **editorial grid** — column-based, often asymmetric (a wider content column with a narrower annotation or sidebar column; the grid creates the rhythm that signals "this is a reading experience"); **article page structure** — headline → subheading/deck → author/date/reading time → body → related content; each element has a declared weight and placement; **"what's next" chain design** — every page has a declared continuation path; categories: same-author, same-topic, trending, editorially curated; **content entry point diversity** — search (specific recall), browse-by-topic (discovery), browse-by-date (recency), popular/trending (social proof), subscription (commitment conversion). Grounded in: Bringhurst, "The Elements of Typographic Style," 4th ed.; NNGroup, "F-Shaped Pattern of Reading on the Web: Misunderstood, But Still Relevant (Even on Mobile)" (https://www.nngroup.com/articles/f-shaped-pattern-reading-web-content-discovered/). Pure method; no CMS or editorial platform references.
+
+**`workspace-design`** (workspace surfaces — collaborative persistent tools, developer workspaces, knowledge workspaces, agentic interfaces). Workspace surfaces serve both ambient awareness (what is happening across the workspace) and focal work (the task at hand), across sessions and collaborators. Agentic UIs — where an AI agent is a first-class participant in the workspace — are a workspace surface type; the patterns here apply directly to agent-augmented workspaces, which are a core scenario for adopters on this platform. Covers: **context-persistence patterns** — navigation remembers the user's last location; returning-session re-orientation ("where was I?"); breadcrumb + recents + activity feed together form the re-orientation package; spatial metaphors (rooms, pages, workspaces) vs. document metaphors (files, folders); **session arc design** — arrive → orient → work → persist → collaborate; each transition has a distinct design requirement (arrive: instant context restoration; orient: "what changed since I was last here?" — diff or feed surface; work: focal mode, minimal interruption; persist: autosave contract or explicit commit; collaborate: share path); **collaboration state IA** — presence indicators (who is here right now), live-editing indicators (cursor presence, selection highlights, edit-conflict signals), "following" mode (viewer tracks a presenter's scroll position); **interrupt and notification design** — low-interruption by default; notifications are ambient (a badge, a count) unless urgent; focus mode removes even ambient signals; **permission and sharing model IA** — the hierarchy (workspace → team → space → item) is a design surface; permission inheritance must be visible; sharing dialogs answer "who can do what?" before the user asks; **ambient vs. focal attention zones** — activity feeds and recents = ambient (peripheral view, lower density); current work surface = focal (primary viewport, reduced distraction); **agentic UI patterns** — task queue surface (what the agent is doing, has done, will do); agent status indicators (running / waiting for input / complete / failed); human-in-the-loop confirmation surfaces (the agent surfaces a decision, the human approves or redirects — confirmation must be impossible to accidentally bypass); output review and revision patterns (accept / reject / modify agent output inline with tracked changes); agent history and auditability (the user can see what the agent changed and why); multi-agent coordination visibility (when multiple agents are active, their tasks and interdependencies are visible as first-class workspace data). Grounded in: NNGroup, "Managing Complex Processes" (https://www.nngroup.com/articles/complex-process-management/); NNGroup, "Collaboration and Social UX" (https://www.nngroup.com/topic/collaboration-and-social-ux/). Pure method; no specific platform (Figma, Notion, Linear) named as prescriptive reference.
+
+### D5 — Seven additions across six existing skills
 
 **(a) `map-customer-journey` — three surgical additions.**
 
@@ -183,8 +229,38 @@ In step 1 (set the surface), add: **Confirm the surface genre** alongside the pl
   - `analytical` → read `analytical-design` output for three-tier widget hierarchy and spatial grammar
   - `transactional-journey` → progressive disclosure toward gate-by-gate completion; next required action must be unambiguous at every step
   - `marketplace` → comparison-enabling IA; filter accessibility at every view state
-  - `workspace` → context-persistent navigation; re-orientation for returning sessions
-  - `informational` → typography hierarchy and reading flow dominant; F/Z scan pattern
+  - `workspace` → context-persistent navigation; re-orientation for returning sessions; read `workspace-design` output for session arc position and collaboration state IA
+  - `informational` → typography hierarchy and reading flow dominant; F/Z scan pattern; read `informational-design` output for editorial grid and "what's next" chain
+
+**(e) `design-review` (renamed from `design-critique` in D7) — design-principles integration chain.**
+
+Add to the first step of the Procedure: "Before evaluating screens, load the `design-principles` artefact (`docs/design/principles/<slug>.md`). Every finding must be mapped to the principle it was judged against. A finding that cannot be mapped to any principle either (a) identifies a violation of the quality floor (handle-all-states, accessibility, reduced-motion — always valid regardless of principles), or (b) surfaces a new directional call that requires the team to decide whether to add a principle. Findings that are pure aesthetic preferences with no principle backing belong in a separate 'Director's notes' section, not the main findings list."
+
+This closes risk #5 (design-principles produced and forgotten) without depending on the reviewer to remember — it is a mandatory procedure step, not a recommendation.
+
+**(f) `creative-direction` (renamed from `aesthetic-direction` in D7) — genre canonical references.**
+
+Add a genre axis to the existing reference selection method. For each genre, name the canonical aesthetic reference tier:
+- `marketing` (developer tool): study Vercel, Linear, Stripe marketing sites for technical-audience aesthetic (code/terminal forward, IC-first density); study Apple or Airbnb for consumer-facing aesthetic
+- `documentation`: study Stripe Docs, Vercel Docs, Django Docs for developer documentation aesthetic (high-density, left-rail navigation, code-primary); study Intercom Help or Notion Help for end-user documentation aesthetic
+- `analytical`: study Google Analytics, Mixpanel, Linear metrics views, Datadog for analytical aesthetic (data-primary, minimal chrome, secondary color for signal)
+- `marketplace`: study Stripe Marketplace, GitHub Marketplace, Figma Plugin Store for developer-tool marketplace aesthetic; study Shopify App Store for broader marketplace aesthetic
+- `workspace`: study Notion, Linear, Figma for workspace aesthetic (function-first, content-forward, minimal chrome, information-dense)
+- `informational`: study The Verge, Substack, Lenny's Newsletter for informational aesthetic (strong typography, generous reading rhythm, editorial hierarchy)
+- `transactional-journey`: study Stripe Checkout, GitHub Actions workflow views, Heroku deploy wizards for technical transactional aesthetic
+
+These are "canonical aesthetic references" for studying what makes a genre's aesthetic work — the direction is to internalize the aesthetic philosophy, not to copy the surface. Each is a practitioner example; none is prescriptive.
+
+**(g) `design-review` (renamed from `design-critique` in D7) — genre-specific rubrics.**
+
+Add a genre routing section to the review procedure: after loading the design-principles artefact (D5e), route to the genre-specific checklist:
+
+- **`documentation` rubric:** ① Does the density match the Diátaxis type? (reference = densest; tutorial = intermediate; how-to = scannable-procedural.) ② Is the TTFV path navigable without external knowledge? ③ Does the sidebar depth stay ≤ 3 levels? ④ Does every page have a unique page description? ⑤ Is heading hierarchy semantic — no skipped levels for visual effect?
+- **`marketing` rubric:** ① Are all six above-fold elements present (headline + sub + primary CTA + secondary CTA + proof signal + friction microcopy)? ② Is the CTA hierarchy unambiguous (primary > secondary; never two equals)? ③ Is the first proof signal above the fold? ④ Does the hero approach match the product type (code/terminal for developer tools)?
+- **`analytical` rubric:** ① Does every primary widget have a declared drill-down destination? ② Does every primary widget handle loading / empty / error / stale states independently? ③ Are primary KPIs ≤9? ④ Is every alert paired with a text label, not color alone?
+- **`informational` rubric:** ① Is line length in the 45–75 character range for body copy? ② Is there a declared "what's next" path from this page? ③ Are pull quotes or breakout elements placed to serve scanners at regular scroll intervals?
+- **`marketplace` rubric:** ① Does every card in the listing reveal the same information tier (same items, same visual hierarchy)? ② Is the filter state visible on page load without requiring interaction? ③ Is the zero-results state a designed experience, not a dead end?
+- **`workspace` rubric:** ① Does the page restore the user's last session position (or show them what changed since their last session)? ② Are collaboration state signals present without dominating the content area? ③ If agentic elements are present: is every agent action recoverable or at minimum auditable?
 
 ### D7 — Nine skill renames
 
@@ -214,7 +290,8 @@ The actual sweep surface is larger than description frontmatter alone. Grep-veri
 6. In `packs/experience/pack.toml` `[pack.evals]` list: replace old slugs with new slugs; bump version 0.5.0 → 0.6.0
 7. In `docs/guides/experience/**` (4 files — Living-class, not frozen): update all old slug references; ADR-0038 explicitly swept this tier
 8. Post-rename verification: `grep -r "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" packs/experience/ docs/guides/experience/ --include="*.md" --include="*.toml"` must return zero results
-9. New ADR (following ADR-0038 shape) as follow-on artifact: records old→new mapping, bridges frozen governance, no alias
+9. In `content-design/SKILL.md`: update cross-references to renamed skills (`copy-direction` → `tone-of-voice`). Note: `voice-and-microcopy` is intentionally excluded from this rename (see D7 rationale); `content-design`'s references to it remain unchanged.
+10. New ADR (following ADR-0038 shape) as follow-on artifact: records old→new mapping, bridges frozen governance, no alias
 
 **No install-time alias** — same posture as ADR-0038. Adopters with the old names must reinstall or update their references.
 
@@ -222,7 +299,7 @@ The actual sweep surface is larger than description frontmatter alone. Grep-veri
 
 ### D8 — Version bump: 0.5.0 → 0.6.0
 
-Five new skills + four extended skills + nine renames (breaking) = minor version bump. ADR-0038 precedent: pack rename + 4 new skills → 0.1.1 → 0.2.0. Pre-1.0: breaking renames acceptable in minor bumps.
+Seven new skills + six existing skills extended (seven total additions — `design-review` receives two) + nine renames (breaking) = minor version bump. ADR-0038 precedent: pack rename + 4 new skills → 0.1.1 → 0.2.0. Pre-1.0: breaking renames acceptable in minor bumps.
 
 ## Options considered
 
@@ -233,8 +310,8 @@ Five new skills + four extended skills + nine renames (breaking) = minor version
 - **D — Do nothing** — audit findings remain unaddressed; no genre routing available. Cost of delay: every design project produces A1/A2/B1-style findings.
 
 **On taxonomy size** (axis: fixed closure vs. open — MECE: fixed-small / fixed-full / open-ended / do-nothing):
-- **A — Fixed 7 (proposed) ✓** — MECE along "dominant UX design challenge"; grounded in NNGroup surface research and Morville & Rosenfeld IA theory (see Evidence).
-- **B — Fixed 4** — excludes analytical, marketplace, workspace. These three have genuinely distinct requirements; omitting them leaves the most-absent genres uncovered.
+- **A — Fixed 7 (proposed) ✓** — MECE along "dominant UX design challenge"; grounded in NNGroup surface research and Morville & Rosenfeld IA theory (see Evidence). All 7 types have a dedicated skill: 6 new skills cover marketing/documentation/analytical/marketplace/informational/workspace; transactional-journey is covered by `interaction-design`'s wizard-and-stepper patterns (existing skill).
+- **B — Fixed 4** — excludes analytical, marketplace, workspace, informational. These four have genuinely distinct requirements; omitting them leaves the most-absent genres uncovered.
 - **C — Open-ended** — any string; loses mechanical routing guarantees; adds skill complexity.
 - **D — Extend content-design's 2-type taxonomy** — wrong layer; conflates copy decisions with IA/pattern decisions.
 
@@ -253,7 +330,7 @@ Five new skills + four extended skills + nine renames (breaking) = minor version
 
 **Pre-mortem: assume this shipped and failed.**
 
-1. **Agnosticism lint fails on new skills.** A new skill accidentally references a framework, library, or platform primitive. Mitigation: all five skills were audited against ADR-0024 guardrails before this RFC was drafted; lint-experience-agnostic.py runs in CI and is the mechanical floor.
+1. **Agnosticism lint fails on new skills.** A new skill accidentally references a framework, library, or platform primitive. Mitigation: all seven skills were audited against ADR-0024 guardrails before this RFC was drafted; lint-experience-agnostic.py runs in CI and is the mechanical floor.
 
 2. **Rename sweep is incomplete.** A cross-reference is missed; old slugs remain in a description field. Mitigation: the post-rename grep verification step (D7 § procedure step 8) is mandatory and returns zero expected results. Pack.toml evals list is the secondary surface.
 
@@ -261,7 +338,7 @@ Five new skills + four extended skills + nine renames (breaking) = minor version
 
 4. **7-type taxonomy doesn't cover an adopter's actual surface.** Mitigation: "canonical but not exhaustive" posture — unrecognized genres are elicited inline. No routing breaks; only routing optimizations are unavailable for custom types.
 
-5. **`design-principles` is produced and forgotten.** Teams generate it once and never reference it at reviews. Mitigation: Open question 2 — add one sentence to `design-review` procedure: "Load the design-principles document and evaluate each finding against the named principles."
+5. **`design-principles` is produced and forgotten.** Teams generate it once and never reference it at reviews. Mitigation: D5(e) makes it a mandatory first step of `design-review`: load the design-principles artefact; map each finding to the principle it was judged against. This is a procedure requirement, not a recommendation.
 
 **Key assumptions (falsifiable):**
 - A1: The 7 genres are distinct enough that a skill can recommend different patterns for two genres without overlap. *Falsifiable if: an adopter cannot distinguish between two genres' IA recommendations.*
@@ -269,9 +346,9 @@ Five new skills + four extended skills + nine renames (breaking) = minor version
 - A3: `surface-genre` (design layer) and `content-design`'s `surface-type` (copy layer) produce no routing confusion. *Falsifiable if: an adopter routes to the wrong skill because the two systems appear to conflict.*
 
 **Drawbacks (there are some):**
-- Pack grows from 11 to 16 skills. The README and pack description should document the skill chain clearly, segmented by design phase.
+- Pack grows from 11 to 18 skills. The README and pack description should document the skill chain clearly, segmented by design phase.
 - Renames impose migration cost on adopters who have documented current skill names in internal wikis or prompts. Unavoidable given alias-free precedent and pre-stable window.
-- One large PR (20+ file changes). Coherent (every change serves the surface-genre theme) but wide to review.
+- One large PR (25+ file changes). Coherent (every change serves the surface-genre theme) but wide to review.
 
 ## Evidence & prior art
 
@@ -298,16 +375,20 @@ Five new skills + four extended skills + nine renames (breaking) = minor version
 - Design Council, "The Double Diamond" — original four-phase model (Discover / Define / Develop / Deliver) that makes the Define phase explicit as a structured convergence step between research and development; the foundation for how leading agencies name and sequence the design Define phase: https://www.designcouncil.org.uk/resources/the-double-diamond/
 - Andy Budd, "Product Shearing Layers and the Double-Diamond Approach to Design" (Clearleft) — applies Stewart Brand's shearing layers to double-diamond iteration at product agencies, confirming agency adoption of the double-diamond model: https://andybudd.com/archives/2015/04/product_shearing_layers_and_the_double-d
 - Pixelmatters, "Designing Beyond the Happy Path" — error states, edge cases, alternative entry points as required flow components: https://www.pixelmatters.com/insights/designing-beyond-the-happy-path
+- Bringhurst, "The Elements of Typographic Style," 4th ed. (Hartley & Marks, 2012) — foundational typography methodology: type scale, line length, line height, hierarchy without visual chrome. Print source; grounding for `informational-design`'s typography-as-primary-design-tool methodology.
+- NNGroup, "F-Shaped Pattern of Reading on the Web: Misunderstood, But Still Relevant (Even on Mobile)" — F-pattern and Z-pattern eye-scan research, scanner vs. reader behavior calibration: https://www.nngroup.com/articles/f-shaped-pattern-reading-web-content-discovered/
+- NNGroup, "Collaboration and Social UX" — collaboration state, presence indicators, multi-user interaction patterns: https://www.nngroup.com/topic/collaboration-and-social-ux/
+- NNGroup, "Managing Complex Processes" — task queue surfaces, multi-step process transparency, human oversight of automated processes: https://www.nngroup.com/articles/complex-process-management/
 
 **Promoted research.** Full corpus — agency lifecycle findings, artifact-in-practice synthesis, gap analysis matrix, and self-contained implementation prompts for each change — is in `.context/agency-lifecycle-gap-analysis.md` in this repo. Working context; not projected to adopters.
 
 ## Open questions
 
-1. **`workspace` genre dedicated skill: this RFC or follow-on?** Workspace surfaces (Notion/Figma/Slack paradigm) have distinct design challenges; the pattern set is more experimental than the four genres addressed here. **Recommended default:** defer to follow-on RFC; the genre is named in the taxonomy (D2) so `user-flow` and `information-architecture` can route against it. Owner: eugenelim. Decide by: follow-on RFC after 0.6.0 ships.
+None — all three original open questions are resolved in this RFC:
 
-2. **Should `design-review` explicitly reference design-principles?** Without this, principles can be produced and forgotten (risk #5). **Recommended default:** yes, add one sentence to `design-review` procedure: "Load the design-principles document; map each finding to the principle it was judged against." Owner: eugenelim. Decide by: implementation PR.
-
-3. **Should `content-design`'s description cross-references to `copy-direction` and `voice-and-microcopy` be updated in the rename sweep?** `content-design` references both renamed skills. **Recommended default:** yes, these are in-scope for the rename sweep. Owner: eugenelim. Decide by: implementation PR.
+- **OQ1 (`workspace` skill):** Resolved as D4. `workspace-design` is the sixth new genre-specific skill, with full methodology including agentic UI patterns.
+- **OQ2 (`design-review` → `design-principles` chain):** Resolved as D5(e). Made a mandatory procedure step, not a recommendation.
+- **OQ3 (`content-design` cross-references in rename sweep):** Resolved in D7 step 9. `content-design/SKILL.md` cross-references to `copy-direction` are updated in the sweep; references to `voice-and-microcopy` are intentionally unchanged (that rename is deferred to a separate product-engineering RFC).
 
 ## Follow-on artifacts
 
@@ -317,5 +398,5 @@ On acceptance:
 - **`docs/rfc/README.md`** — add RFC-0065 row to the table.
 - **`docs/product/journeys/designer-designs-surface.md` — update to final to-be state after implementation.** The journey document at that path records the current as-is gaps (Stage 1–6 "Now" rows) alongside the to-be improvement per RFC-0065. After the implementation PR merges and experience 0.6.0 ships, update the journey to reflect the confirmed as-built state: replace "Now" column content with the shipped reality, mark any gaps that were partially resolved differently than the RFC specified, and promote the journey's `status:` from `planned` to `live`. This keeps the journey document as the single source of truth for the design-chain state, not the RFC (which is frozen after acceptance).
 - **Marketing site (`web/`) — update skill names and descriptions.** The implementation PR that ships the 9 renames must be accompanied by a corresponding update to the marketing site copy wherever experience pack skills are named. Old skill slugs in marketing copy will mismatch the installed pack and confuse adopters. Scope: any page in `web/` that lists experience pack skills by name or describes their triggers. Treat as blocking for the 0.6.0 release announcement.
-- **Technical documentation (`docs/guides/experience/`) — update skill names, descriptions, and guide content.** The D7 rename sweep explicitly includes the 4 files in `docs/guides/experience/` (these are Living-class docs, not frozen). Beyond slug updates, verify that any guide that walks through a skill by name reads correctly with the new name, and that any guide referencing a skill's trigger description reflects the updated description (particularly: `user-flow` which gains the surface-genre confirmation step, `information-architecture` which gains genre routing, and all four new skills which need guide coverage). New skills (`design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`) have no guide entries yet — guide stubs are in scope for a follow-on PR or can ride with the implementation PR if capacity allows.
+- **Technical documentation (`docs/guides/experience/`) — update skill names, descriptions, and guide content.** The D7 rename sweep explicitly includes the 4 files in `docs/guides/experience/` (these are Living-class docs, not frozen). Beyond slug updates, verify that any guide that walks through a skill by name reads correctly with the new name, and that any guide referencing a skill's trigger description reflects the updated description (particularly: `user-flow` which gains the surface-genre confirmation step, `information-architecture` which gains genre routing, and `design-review` which gains the design-principles chain and genre rubrics). New skills (`design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, `workspace-design`) have no guide entries yet — guide stubs are in scope for a follow-on PR or can ride with the implementation PR if capacity allows.
 - **Note: `voice-and-microcopy → ux-writing` deferred.** Multiple experience-pack skills reference `voice-and-microcopy` (in `product-engineering`) by its current name. A future product-engineering RFC that renames it must update these inbound experience-pack cross-references in lockstep. The inbound files are listed below using their **post-0.6.0 paths** (after this RFC's renames land): `tone-of-voice/SKILL.md` (was `copy-direction/`), `user-flow/SKILL.md`, `user-flow/assets/design-tool-handover-template.md`, `user-flow/assets/screen-brief-template.md`, `user-flow/references/screen-flow.md` (all were `map-screen-flow/`), `design-review/references/quality-floor.md` (was `design-critique/`), `content-design/SKILL.md`, and `README.md`.
