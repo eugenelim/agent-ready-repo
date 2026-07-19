@@ -115,7 +115,7 @@ Three honesty rails on detection:
 ## Degrade gracefully when a surface is absent
 
 Behave **compose-if-present, degrade-if-absent** — only more honestly. (Unlike
-the architect skill, `frame-intent` does not compose with a `research` step
+the architect skill, `frame-intent` does not compose with a `desk-research` step
 today; this is the generic compose/degrade discipline, not a reuse of that one.)
 
 - **(a) Ask, and lower confidence.** Ask the user for the missing domain /
