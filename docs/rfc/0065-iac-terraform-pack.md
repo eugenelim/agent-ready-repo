@@ -1369,4 +1369,15 @@ _All in one PR (Q2 — companions ship with the pack)._
   (WA Major 4), + a **`release-loop` conformance canary** (WA Major 3).
 - Author both **`generate-iac`** (D8/D17) and **`reconcile-iac`** (D17) skills
   sharing the references tree; `reconcile-iac` accepts both a before-change
-  preflight trigger and an on-demand/scheduled trigger (§2).
+  preflight trigger and an on-demand/scheduled trigger (§2). Post-ship revision:
+  a third **ADR compliance check trigger** was added (checks an incoming IaC diff
+  against governance-index ADRs for changes not authored by `generate-iac`).
+
+## Deferred items (post-ship)
+
+- **Azure provider validation (deferred to v2).** Azure shipped
+  `contract-complete` in v1 (D5) — the four-file provider contract and standard
+  references are authored, but no worked example passes
+  `init -backend=false && fmt -check && validate`. The source material had
+  validated Azure; this is a known v1 regression relative to the source.
+  Tracked in [`docs/backlog.md § iac-terraform`](../backlog.md#iac-terraform).
