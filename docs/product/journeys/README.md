@@ -52,7 +52,7 @@ These journeys all converge on the brief queue — each persona takes a differen
 
 | Journey | Persona | Status | Initiative links |
 |---|---|---|---|
-| [Product strategist sets direction](product-strategist-sets-direction.md) | Strategist / CPO anchoring initiative clusters in altitude-0 artifacts (PRFAQ, OKR cascade, market analysis) | proposed | INI-002 M4 (primary); M2 (prerequisite) |
+| [Product strategist sets direction](product-strategist-sets-direction.md) | Strategist / CPO anchoring initiative clusters in altitude-0 artifacts (stakeholder synthesis, PRFAQ, OKR cascade, market analysis, UX strategy, content strategy) | planned | INI-002 M4 (primary); M2 (prerequisite) |
 | [Product engineer shapes initiative](product-engineer-shapes-initiative.md) | PE or PM running the six-step shaping sequence (situation → opportunities → diverge → validate → bet → brief) | proposed | INI-002 M2 (primary); M1 (prerequisite) |
 | [PM intakes from tracker](pm-intakes-from-tracker.md) | PM bridging Linear / Jira / GitHub issues into the brief queue without manual reformatting | proposed | INI-002 M5 (primary); M1 (prerequisite) |
 
