@@ -1,6 +1,6 @@
 [pack]
 name = "desk-research"
-version = "1.0.0"
+version = "1.1.0"
 description = "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 readme = "README.md"
 display_name = "Desk Research"
@@ -68,14 +68,16 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 skills = ["desk-research", "source-map", "build-outline", "identify-perspectives", "compare-hypotheses", "devils-advocate", "decision-archaeology", "desk-research-project-start"]
 
 # RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
-# [research] section of an adopter-owned `agentbundle-layout.toml`. The repo
-# default is gitignored scratch — research commits the *decision* (the brief),
-# never the corpus, and never the committed repo tree. No `[pack.layout.user]`:
-# research's output is per-repo and there is no sensible *absolute* user base, so
-# the user-scope install append is a no-op (adopters write a user `[research]`
-# section by hand; see the skill's references/agentbundle-layout.md).
+# [research] section of an adopter-owned `agentbundle-layout.toml`. This is the
+# install-time append default — written to the adopter's layout file once at
+# install; thereafter the skill reads it as the repo-scope config. No silent
+# .context/ fallback in the skill: if no output_dir is configured, the skill
+# elicits (two-branch: repo vs personal workspace). No `[pack.layout.user]`:
+# research output is per-repo; for a personal cross-repo default, the adopter
+# writes a user `[research]` section by hand or via elicitation
+# (see the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
-parent = ".context/research"
+output_dir = ".context/desk-research"
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

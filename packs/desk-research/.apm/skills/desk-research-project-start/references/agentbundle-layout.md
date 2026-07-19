@@ -8,7 +8,7 @@ never-overwrite**). On the rare append of a *missing* section, the installer
 re-emits the file and does **not** preserve freeform comments or off-schema keys;
 an existing section is left byte-identical (the re-emit runs only when your
 section is absent). This page documents the `[research]`
-section that `research-project-start` reads.
+section that `desk-research-project-start` reads.
 
 ## The `[research]` table
 
@@ -16,49 +16,62 @@ One key:
 
 ```toml
 [research]
-parent = "~/research-projects"   # a base directory; project folders go *under* it
+output_dir = "~/research-projects"   # a base directory; project folders go *under* it
 ```
 
-- **`parent` is a base, not the leaf.** Each project gets its own topic-named
-  child folder under `parent`: `<parent>/<YYYY-MM-DD>-<topic-slug>/` (the start
-  date + the question's kebab-case slug). `parent` is never the folder a single
-  project lands in.
+- **`output_dir` is a base, not the leaf.** Each project gets its own topic-named
+  child folder under `output_dir`: `<output_dir>/<YYYY-MM-DD>-<topic-slug>/` (the
+  start date + the question's kebab-case slug). `output_dir` is never the folder
+  a single project lands in.
 
-## Two locations, repo overrides user
+## Resolution order — user-scope before repo-scope
 
-The skill reads the **repo-root `./agentbundle-layout.toml`** `[research]` table
-if present, else the **user-profile `~/.agentbundle/agentbundle-layout.toml`**
-table. When both define `[research]`, the repo file's table wins; a table present
-only in the user file still applies. This lets a team commit a repo-wide choice
-while an individual keeps a personal default across repos.
+The skill reads two locations and resolves them in this order (user wins):
 
-## `parent` is anchored by the file's own location
+1. **User-scope** — `~/.agentbundle/agentbundle-layout.toml` `[research] output_dir`
+   (personal workspace; wins over repo-scope so a configured vault always applies
+   regardless of which repo you're in)
+2. **Repo-scope** — `./agentbundle-layout.toml` `[research] output_dir`
+   (team convention; use when the team commits desk-research output to the repo,
+   e.g. `docs/product/research/`)
 
-- A **repo-root** file's `parent` is **repo-root-relative** (an absolute value is
+When both define `[research]`, the user file's `output_dir` wins; a value present
+only in the repo file still applies. This lets a personal vault override the team
+default without editing the shared file.
+
+## `output_dir` is anchored by the file's own location
+
+- A **repo-root** file's `output_dir` is **repo-root-relative** (an absolute value is
   allowed but flagged non-portable).
-- A **user-profile** file's `parent` **must be an explicit absolute path**
+- A **user-profile** file's `output_dir` **must be an explicit absolute path**
   (`~`-anchored is fine). A relative value there is an *Ask-first* deviation —
   never silently resolved against the ambient working directory.
 
-Regardless of anchor, the skill resolves `parent` to its full absolute path
+Regardless of anchor, the skill resolves `output_dir` to its full absolute path
 (realpath-resolved, `~`-expanded, `..` rejected) and **surfaces that path before
-the first write**. A repo-root-sourced `parent` that resolves outside the repo
+the first write**. A repo-root-sourced `output_dir` that resolves outside the repo
 tree is treated as untrusted-origin and confirmed before writing.
 
-## Default and posture
+## Elicitation when no config resolves
 
-When no `[research]` section resolves, the pack defaults to a gitignored
-`.context/desk-research/` (its `[pack.layout.repo]` default) — **scratch / out-of-repo
-by default**, because a code repo commits the *decision* (the brief), never the
-corpus. **Never the committed repo tree** (`docs/`, repo root); pointing at a
-durable vault is the deliberate, configured exception.
+When neither file defines `[research] output_dir`, the skill runs two-branch
+elicitation — it never defaults to `.context/` or any other silent path:
 
-`desk-research` ships **no `[pack.layout.user]` default** — its output is per-repo and
-there is no sensible *absolute* user-scope base. For a personal cross-repo
-default, write a `[research]` section into your user-profile file by hand:
+- **Repo branch** — offers `docs/product/research/` as the committed team default;
+  writes `output_dir` to `./agentbundle-layout.toml` on accept.
+- **Personal branch** — prompts for an absolute path (illustrative example:
+  `~/Documents/<VaultName>/efforts/research/`; no default — Obsidian has no
+  universal vault path); writes `output_dir` to
+  `~/.agentbundle/agentbundle-layout.toml` on accept.
+
+## `desk-research` ships no `[pack.layout.user]` default
+
+`desk-research`'s output is per-repo and there is no sensible *absolute* user-scope
+base. For a personal cross-repo default, write a `[research]` section into your
+user-profile file by hand (or accept it during elicitation):
 
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml
 [research]
-# parent = "/abs/path/to/research-projects"   # uncomment + set an absolute path
+output_dir = "/abs/path/to/research-projects"   # set an absolute path
 ```

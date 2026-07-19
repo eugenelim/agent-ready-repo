@@ -77,6 +77,14 @@ Format output in four sections (omit sections with no entries):
 
 **Closeout check:** if `[work].queue` is empty and `[work].active` is empty and `[work].shipped` is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 
+**Findings:** count non-header rows in `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if the files exist. Surface as a single count line:
+
+```
+N rfc candidates · M roadmap intents
+```
+
+Omit the line entirely when both counts are zero or the files are absent.
+
 ---
 
 ### 4. Skill prompts by type
