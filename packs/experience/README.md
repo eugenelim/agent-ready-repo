@@ -19,7 +19,7 @@ standards — WCAG, the W3C Design Tokens interchange shape, Apple HIG, Material
 **Correctness is the floor, not the ceiling.** Accessibility compliance,
 information hierarchy, and usability heuristics (WCAG, Nielsen, Laws of UX)
 are non-negotiable — but meeting them alone produces correct-but-tasteless
-work. The `aesthetic-direction` skill is the gate between the two: it grounds
+work. The `creative-direction` skill is the gate between the two: it grounds
 goals in persona, precedent, *and* visual voice — surface treatment, type scale
 ambition, color philosophy, and elevation philosophy. A direction doc that only
 names correctness goals has not cleared the gate.
@@ -28,29 +28,29 @@ names correctness goals has not cleared the gate.
 
 **The connective thread** — map the flow from outcome to realization:
 
-- `map-customer-journey` — a customer/end-user journey map (stages × actions /
+- `journey-mapping` — a customer/end-user journey map (stages × actions /
   emotions / pains / opportunities), carrying the platform/surface axis.
-- `map-screen-flow` — the journey's screens *sequenced*, with transitions,
+- `user-flow` — the journey's screens *sequenced*, with transitions,
   error/edge flows, the per-screen state matrix, and **one per-screen brief per
   screen**; ends in a cross-brief consistency pass and a whole-journey steel
   thread that never degrades to nothing. Optionally hands off to a generative
   design tool.
-- `blueprint-service` — a service blueprint (frontstage / line-of-visibility /
+- `service-blueprint` — a service blueprint (frontstage / line-of-visibility /
   backstage / support); its backstage column is the slicing instrument handed
   to `architect` / `contracts` by-name.
-- `map-internal-process` — the inside-out sibling: an internal business process
+- `process-mapping` — the inside-out sibling: an internal business process
   flow (APQC L3→L4, as-is + to-be, SIPOC, swimlane, pain/waste register).
 
 **The craft** — design each screen, held to one shared floor:
 
-- `aesthetic-direction` — turn a vague "vibe" into named goals **grounded** in
+- `creative-direction` — turn a vague "vibe" into named goals **grounded** in
   persona + precedent + standards + platform conventions; coherence arbitration.
-- `design-system-foundations` — derive a token/scale taxonomy from intent.
-- `layout-and-information-architecture` — hierarchy, reading flow, wayfinding.
+- `design-system` — derive a token/scale taxonomy from intent.
+- `information-architecture` — hierarchy, reading flow, wayfinding.
 - `interaction-design` — how a screen *behaves*: feedback & timing, input &
   forms, component state machines, purposeful motion, navigation-as-behavior,
   gesture, cognitive-law fit. Enriches the per-screen brief.
-- `design-critique` — interactive, authoring-time heuristic + taste critique;
+- `design-review` — interactive, authoring-time heuristic + taste critique;
   maps each issue to the principle it violates and rates severity.
 - A shared **`quality-floor` checklist** — handle all states, the
   accessibility floor (WCAG pointed-to), and "motion communicates state, honor
@@ -102,11 +102,11 @@ write. See any artifact-writing skill's `references/agentbundle-layout.md`.
   no pixel comps. The pack ships the method to derive your design; you choose
   your tools. The optional design-tool handover is *instructions*, never pixels,
   and names tool categories, never a winner.
-- **No `seeds/`.** Templates (the aesthetic-direction doc, the per-screen brief,
+- **No `seeds/`.** Templates (the creative-direction doc, the per-screen brief,
   the handover) ride as skill `assets/` and are copied into your repo at
   runtime, so the pack stays user-scope (RFC-0004 Rail A).
 - **No hook, engine, in-pack validator, daemon, or runtime.** This pack is
-  habits, not infrastructure. `design-critique` is an interactive
+  habits, not infrastructure. `design-review` is an interactive
   authoring-time **skill**, not a `work-loop` reviewer subagent; the independent
   fresh-context review is the `experience-reviewer` **agent**, which reviews
   design artifacts (journeys / screen flows / briefs / aesthetics), never code
@@ -116,7 +116,7 @@ write. See any artifact-writing skill's `references/agentbundle-layout.md`.
 
 The **words** a user reads in the UI are the `product-engineering` pack's
 `voice-and-microcopy` skill's domain — the design seat's content layer. Pass
-`map-screen-flow`'s per-screen state matrix to `voice-and-microcopy` and it
+`user-flow`'s per-screen state matrix to `voice-and-microcopy` and it
 writes copy keyed to every screen × state cell. See the
 [`product-engineering` pack README](../product-engineering/README.md).
 
