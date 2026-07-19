@@ -23,7 +23,7 @@ Input surfaces are sequences, not inventories. Design the flow — the order of 
 
 - **Field sequence and tab order** — expressed as design intent for focus management; the build maps it to the platform's own focus model.
 - **Inline-validation timing** — validate on-blur (when the user leaves a field) for correctness constraints, on-submit for cross-field constraints. Early on-change validation for password-strength or character-count feedback is appropriate when the rule is continuously improving (not binary pass/fail).
-- **Error recovery** — the error message names the problem in user terms and the corrective action; it appears adjacent to the field that caused it (see Nielsen heuristic 9 in `../design-critique/references/heuristics.md`). Recovery is always possible; never a dead end.
+- **Error recovery** — the error message names the problem in user terms and the corrective action; it appears adjacent to the field that caused it (see Nielsen heuristic 9 in `../design-review/references/heuristics.md`). Recovery is always possible; never a dead end.
 - **Progressive disclosure** — reveal fields only when a prior choice makes them relevant. Keep the first view minimal; expand contextually.
 
 ## 3. Component / screen state machines
@@ -75,7 +75,7 @@ Name every guard condition in prose beside the diagram when guards affect the tr
 
 ## 5. Navigation as behavior
 
-Navigation is a behavior, not only a structure. `layout-and-information-architecture` places the navigation elements and defines the wayfinding structure; this pillar designs how *moving through* that structure behaves.
+Navigation is a behavior, not only a structure. `information-architecture` places the navigation elements and defines the wayfinding structure; this pillar designs how *moving through* that structure behaves.
 
 - **Transition semantics** — what animates when the user navigates forward vs. backward? Does the UI preserve orientation (the user can tell where they came from)?
 - **Back / undo semantics** — what does "back" mean here? Does it undo the last action, restore the previous screen, or collapse a panel? Name it explicitly; inconsistency here is a major usability failure (Nielsen heuristic 3 — user control and freedom).
@@ -103,14 +103,14 @@ Interaction design is grounded in the cognitive science of how users perceive an
 - **Doherty Threshold** — systems that respond within the threshold the research names engage users; delays break the flow (see § 1, above — read the value from the source).
 - **Jakob's Law** — users spend most of their time on other sites; they expect your design to work like the ones they already know. Depart from convention only when the benefit is clear and demonstrable.
 
-**Nielsen's usability heuristics** are the complementary principle set for finding and framing usability problems. They live in `../design-critique/references/heuristics.md` — cross-reference them; do not duplicate them here.
+**Nielsen's usability heuristics** are the complementary principle set for finding and framing usability problems. They live in `../design-review/references/heuristics.md` — cross-reference them; do not duplicate them here.
 
 ## 8. Good defaults over options; cohesion
 
 Three principles cut across every pillar above — they decide how the behavior is *shaped*, not which behavior it is.
 
 - **Design the one excellent default; don't offload taste to configuration.** Most users never change a setting, so the default timing, feedback, and motion *are* the design for almost everyone. A pile of options is not a substitute for a good default — it is the absence of one. Spend the judgment on getting the default right; expose an option only when a real second use case needs to differ (the same discipline the build holds for flags).
-- **Cohesion over individual tweaks — the behavior's personality matches the product.** The feedback and motion across a product should feel like one hand made them, tuned to the grounded aesthetic direction: crisp and fast for a professional tool, softer and livelier for a playful one. A screen full of individually-reasonable animations that don't share a personality reads as incoherent. Decide the interaction personality once (with `aesthetic-direction`) and hold every screen to it.
+- **Cohesion over individual tweaks — the behavior's personality matches the product.** The feedback and motion across a product should feel like one hand made them, tuned to the grounded aesthetic direction: crisp and fast for a professional tool, softer and livelier for a playful one. A screen full of individually-reasonable animations that don't share a personality reads as incoherent. Decide the interaction personality once (with `creative-direction`) and hold every screen to it.
 - **Handle the edge cases invisibly.** The polish users *feel* but never consciously name lives in the states no one demos: pausing a timer when the tab is hidden, preserving focus and scroll across a transition, absorbing a double-tap, not re-animating shared chrome. Designing these is what separates an interface that feels considered from one that feels brittle.
 
 **A refinement practice.** Interaction quality hides at full speed. Review the behavior with fresh eyes on a later pass (imperfections invisible while authoring become obvious), and judge gesture and motion on a real device, not a description — the feel is the deliverable, and the feel only shows in the running thing.
