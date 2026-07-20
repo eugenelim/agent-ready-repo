@@ -71,6 +71,7 @@ shipped = [
   "spec/spec-D-pack-workflow-guide",  # Pack workflow design guide + CONTRIBUTING step 0
   "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
   "spec/rfc-0064-errata-workspace-integrity", # Amendment to RFC-0064 documenting session-fragmentation gap
+  "spec/workspace-status-next-actions", # Add ### 6. Next-actions closing step to workspace-status
 ]
 queue   = [
   # Independent track — no deps
@@ -121,14 +122,5 @@ queue   = [
   # workspace.toml gives a misleading "nothing to do" picture.
   {path = "spec/workspace-status-queue-reconciliation", needs = "work:spec/spec-A-workspace-status-rename"},
 
-  # Skill modified: workspace-status. Replace the open-ended "What would you
-  # like to pick up?" closing prose with 2-3 numbered choices derived from the
-  # resolved queue state: (1) active spec if present, (2) next unblocked work
-  # queue item, (3) first ready shaping item. Choices must be scannable — one
-  # line each with the activation command inline. No open question at the end.
-  # Canonical naming gate: verify "next-actions" reads naturally as the section
-  # label and that activation phrases ("what's next", "what should I do") route
-  # here and not to workspace-status itself.
-  {path = "spec/workspace-status-next-actions",         needs = "work:spec/spec-A-workspace-status-rename"},
   {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
 ]

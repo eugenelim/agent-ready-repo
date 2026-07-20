@@ -106,6 +106,53 @@ If the required pack is not installed, surface: "requires `<pack-name>` pack —
 
 `workspace.toml` evolves: older entries may lack a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
 
+### 6. Next-actions
+
+Using Step 2 DAG state only — do not re-read `workspace.toml`:
+
+**6a. Resolve choices**
+
+From the state already computed in Step 2:
+
+- `active_spec` = first entry in `[work].active` (if any)
+- `next_queue` = first entry in `[work].queue` whose `needs` are all satisfied (queue order); if an entry is an inline object, use its `path` field
+- `unblocked` = all entries in `[work].queue` whose `needs` are all satisfied
+- `next_shape` = first entry in `[shaping_queue].active` whose `type` is not `signal` (if any); else first entry in `[shaping_queue]` that is ready (unblocked, not in `active` or `shipped`) and whose `type` is not `signal`
+
+**Path resolution:** workspace.toml paths carry a `spec/` prefix (e.g. `"spec/m1-workspace-core"`). Strip it before building file-system paths — the slug is the part after `spec/`, and the command uses `docs/specs/<slug>/`.
+
+**6b. ASCII dependency graph (when ≥2 unblocked work items)**
+
+If `len(unblocked) ≥ 2`, render the following block _before_ the numbered choices:
+
+```
+Work queue — parallel opportunities:
+
+  <slug-A>  [ready]
+  <slug-B>  [ready]
+  <slug-C>  [blocked by <dep-slug>]
+```
+
+- Right-pad the slug column to the longest slug for alignment. Use the bare path (with `spec/` prefix preserved) for both `[ready]` and `[blocked by]` rows — e.g. `spec/alpha [ready]` and `spec/gamma [blocked by spec/alpha]`.
+- Unblocked entries: annotate `[ready]`.
+- Blocked entries: annotate `[blocked by <dep-slug>]`, where `<dep-slug>` is the path with the queue-prefix domain stripped (e.g. `needs = "work:spec/alpha"` → `spec/alpha`).
+
+**6c. Harness detection and parallel-session offer (when graph rendered)**
+
+When the graph was rendered, offer a parallel-session choice as the **first** numbered slot. Check whether `--bg` appears in `claude --help` output (via the Bash tool if available):
+
+- **`--bg` found:** emit a numbered choice listing `claude --bg "work-loop docs/specs/<slug>/"` for each parallel-ready root node.
+- **`--bg` absent or Bash tool unavailable:** emit a numbered choice with prose instructions for each parallel-ready root node (no automated spawn).
+
+**6d. Numbered choices**
+
+Emit the following choices in order. Omit any whose source is empty; renumber sequentially. The parallel-session offer from 6c (when present) occupies the first slot and the remaining choices follow.
+
+- **Active spec:** `work-loop docs/specs/<slug>/` — continue active spec. Present when `active_spec` is non-empty.
+- **Next queue item:** `work-loop docs/specs/<slug>/` — next unblocked queue item. Present when `next_queue` is non-empty.
+- **First shaping item:** skill command per Step 4 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
+- **Start new work (always — final choice):** `new-spec` · `new-rfc` · `new-adr` · `queue-add`
+
 ## See also
 
 - `references/agentbundle-layout.md` — the `[product]` table: configurable `projects/` and `shaping/` paths used by product-facing skills
