@@ -1,0 +1,14 @@
+[
+  {"query": "Run a SWOT analysis for our product", "should_trigger": true},
+  {"query": "I need a situation synthesis before setting strategy", "should_trigger": true},
+  {"query": "What are our strengths and weaknesses as a company?", "should_trigger": true},
+  {"query": "Map out the opportunities and threats in our market", "should_trigger": true},
+  {"query": "I need to understand our competitive position before the planning session", "should_trigger": true},
+  {"query": "Do a SWOT on our market entry into Europe", "should_trigger": true},
+
+  {"query": "Run Porter's Five Forces on the SaaS industry", "should_trigger": false},
+  {"query": "What is our macro environment — run PESTLE", "should_trigger": false},
+  {"query": "Map the customer journey for our onboarding flow", "should_trigger": false},
+  {"query": "I need to cascade our company OKRs to team level", "should_trigger": false},
+  {"query": "Write the press release before the product", "should_trigger": false}
+]

@@ -62,7 +62,7 @@ Format output in four sections (omit sections with no entries):
 - `[work]` `<path>` — run `work-loop` on `docs/specs/<path>/`
 - `[shaping_queue]` `<slug>` (`shape`) — run `frame-intent`
 - `[shaping_queue]` `<slug>` (`research`) — run `desk-research-project-start`
-- `[shaping_queue]` `<slug>` (`strategy`) — run product-strategy pack skill (requires product-strategy pack)
+- `[shaping_queue]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
 - `[brief_queue]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
 
 **Parallel candidates:** _(all of the above with no inter-dependencies can start concurrently)_
@@ -95,7 +95,7 @@ When surfacing shaping_queue entries, append the right skill invocation based on
 |-----------|-----------------|
 | `shape` (default) | `frame-intent` (available now); `frame-situation` (M2, when available) |
 | `research` | `desk-research-project-start` (requires desk-research pack) |
-| `strategy` | product-strategy pack skill (requires product-strategy pack — M4) |
+| `strategy` | route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim |
 | `signal` | no action — surface in "active context" section only |
 
 If the required pack is not installed, surface: "requires `<pack-name>` pack — install to work this item."

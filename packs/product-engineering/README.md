@@ -114,6 +114,10 @@ Ask your agent, for example:
 - "Stand up a value-stream meta-repo to coordinate these components." (`align-value-stream`)
 - "Characterize our product voice, then write the empty-state and error copy." (`voice-and-microcopy`)
 
+## Cross-pack: `product-strategy`
+
+The `product-strategy` pack is the **upstream provider** of the strategic context this pack consumes. Before `frame-situation` runs, a strategist using the `product-strategy` pack may have committed altitude-0 artifacts to `docs/product/shaping/`: OKR cascade (`okr-cascade.md`), market context (`macro-environment.md`, `competitive-landscape.md`), portfolio position (`portfolio-position.md`, `swot-analysis.md`), and stakeholder synthesis (`stakeholder-synthesis.md`). These are optional inputs — `frame-situation` routes strategy-typed shaping-queue entries (written by `run-okr-cascade`) into its six-step shaping sequence; `frame-intent` uses the market context as grounding when present. See the [`product-strategy` pack README](../product-strategy/README.md).
+
 ---
 
 → **Go deeper:** the [`product-engineering` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/).

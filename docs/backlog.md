@@ -1402,6 +1402,8 @@ growth scope resolves item 2.
 
 **In-progress (structural direction half):** RFC-0062 opened 2026-07-18. `content-design` skill implements the content-first / narrative-arc thread (acquisition sub-path with StoryBrand/CCD arc selection; product/reference sub-path with Nava PBC content hierarchy); SEO remains deferred per RFC-0062 D5.
 
+**Resolved (content-strategy thread):** RFC-0063 Accepted 2026-07-19. `define-content-strategy` skill ships in the new `product-strategy` pack (M4), covering the Halvorson quad (Purpose + Process + Structure + Governance) as organizational content governance upstream of per-surface content-design work. Item 2 ("Conversion + SEO") and item 5 ("SEO semantics") remain open — see `growth-strategy-pack` backlog entry.
+
 **Research findings (session 2026-07-01):** Agent skills for UX writing are well-established (segmented style-guide training + character-limit enforcement); marketing/conversion copy has no formal agent skill — best-available is a 5-step pipeline (VOC mining → competitive gap → value prop painkiller framing → brand voice training → creative-director output structure). No anthropic-cookbook examples exist for content/UX. Sources: UX Writing Hub (Sarah Kessler chained GPT pairs), aufaitux.com (Figma-resident UX writing agents), msitarzewski/agency-agents (Brand Guardian / Ad Strategist persona cards), Social Media Examiner (5-step conversion copy pipeline). Passable today: hero headline formulas, VOC extraction prompts, role-based persona subagent cards. Needs original work: formal SKILL.md for hero headline writing, copy critique with scoring rubrics, conversion architecture review as an agent workflow.
 
 ### experience-reviewer-content-brief-scope
@@ -1591,4 +1593,32 @@ Files and occurrences:
 - `docs/product/journeys/product-engineer-shapes-initiative.md:245,247` — `map-screen-flow`, `blueprint-service`
 
 **Unblocks when:** a follow-on cleanup PR sweeps journey-doc prose callouts to use canonical slugs (`user-flow`, `service-blueprint`).
+
+
+### growth-strategy-pack
+
+**Source:** RFC-0063 OQ1 — deferred from `product-strategy` pack scope (ADR-0053 D4).
+
+Growth strategy (AARRR metrics, product-led growth loops, PMF testing frameworks) has a distinct operational character — measurement, experimentation, activation loops — that warrants its own `growth` pack. It was explicitly scoped out of the `product-strategy` v1 pack (RFC-0063) because it would introduce a mixed responsibility (market strategy vs. growth experimentation) and likely requires a `metrics` or `data-platform` integration surface not yet defined in the catalogue.
+
+The `content-strategy-and-marketing-copy-lens` item 2 ("Conversion + SEO") feeds here: conversion architecture and SEO semantics are operational growth disciplines, not organizational content governance.
+
+**Scope (indicative, not committed):** AARRR funnel analysis; PMF survey design and signal reading; PLG loop design (activation, retention, expansion); conversion architecture; SEO keyword-intent audit.
+
+**Blocked on:** charter decision — is growth/marketing within the company OS scope? The `docs/CHARTER.md` currently implies yes (platform-level skills); confirm before opening RFC.
+
+**Unblocks when:** charter scoping decision is made and an RFC is opened.
+
+
+### experience-mapping-extension
+
+**Source:** RFC-0063 OQ2 — deferred from `product-strategy` pack scope (ADR-0053).
+
+Experience mapping (the organizational-level discipline of mapping current-state customer journeys across business units, identifying systemic gaps, and setting experience vision across touchpoints) is closer in character to journey-mapping (experience-design pack) than to the upstream strategy skills in `product-strategy`. However, it sits above the per-initiative `journey-mapping` skill in altitude — it is the organizational layer, not the per-surface layer.
+
+**Options (not committed):**
+1. Extend the `experience-design` pack with a new `experience-mapping` skill (same pack, higher altitude).
+2. Open a follow-on RFC extending RFC-0050 (experience-design) and RFC-0066 (if it exists) — keeps the altitude-0 and altitude-1 work clearly separated.
+
+**Unblocks when:** RFC-0050 follow-on is opened to define the altitude boundary between organizational experience mapping and per-initiative journey mapping.
 
