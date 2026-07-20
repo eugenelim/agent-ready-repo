@@ -1,6 +1,6 @@
 # Spec: render-proof
 
-- **Status:** Approved
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
