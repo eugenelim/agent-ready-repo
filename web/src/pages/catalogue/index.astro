@@ -326,9 +326,19 @@ const packs = allPacks
   }
 
   .install-block__cmd--truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 480px) {
+    .install-block__row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .copy-btn {
+      align-self: flex-start;
+    }
   }
 
   /* ── Copy button ────────────────────────────────────────────────────── */

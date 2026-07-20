@@ -200,9 +200,19 @@ const pluginInstallCmd = `claude plugin install https://github.com/${REPO}/tree/
   .install-block__code--light {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 480px) {
+    .install-block__plugin-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .install-copy-btn {
+      align-self: flex-start;
+    }
   }
 
   .install-copy-btn {
