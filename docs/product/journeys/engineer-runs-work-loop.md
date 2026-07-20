@@ -21,7 +21,7 @@ updated: 2026-07-19
 
 **Surface:** cross-platform — CLI/terminal. The engineer invokes skills; the agent handles the structured work under the engineer's direction.
 
-**Trigger:** Engineer wants to pick up a unit of work — from a GitHub issue, a Linear ticket, a brief, a team discussion, or from `check-workspace` surfacing the next ready spec.
+**Trigger:** Engineer wants to pick up a unit of work — from a GitHub issue, a Linear ticket, a brief, a team discussion, or from `workspace-status` surfacing the next ready spec.
 
 **End state:** Spec in `[work].shipped` (or equivalent for non-initiative work). PR submitted and passing. Next item surfaced. Engineer exits with a clear picture of what comes next.
 
@@ -31,13 +31,13 @@ updated: 2026-07-19
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `work-loop`, `new-spec`, `check-workspace` (M1.5+) |
+| core | repo | current | `work-loop`, `new-spec`, `workspace-status` (M1.5+) |
 
 **One-time setup:**
 1. Install core pack at repo scope.
-2. For initiative work (M1.5+): `workspace.toml` must be committed to `main` (M1 Batch 2); no branch configuration needed — `check-workspace` reads it from the local working directory.
+2. For initiative work (M1.5+): `workspace.toml` must be committed to `main` (M1 Batch 2); no branch configuration needed — `workspace-status` reads it from the local working directory.
 
-**Scale:** this journey is the same at all team sizes. At scale, `check-workspace` surfaces parallel candidates so multiple engineers can pick different specs without collision — no additional packs needed.
+**Scale:** this journey is the same at all team sizes. At scale, `workspace-status` surfaces parallel candidates so multiple engineers can pick different specs without collision — no additional packs needed.
 
 ---
 
@@ -47,7 +47,7 @@ updated: 2026-07-19
 
 | | Initiative path | Ad-hoc path |
 |---|---|---|
-| **Orient** | `check-workspace` — DAG-resolved queue, parallel candidates, blocked reasons | Memory, ticket, issue, or team message |
+| **Orient** | `workspace-status` — DAG-resolved queue, parallel candidates, blocked reasons | Memory, ticket, issue, or team message |
 | **Step 0** | `work-loop` reads `workspace.toml` for initiative context, milestone, DAG constraints | `work-loop` reads spec file in isolation |
 | **Ship** | Spec marked `active → shipped` in `workspace.toml`; next item surfaced; `roadmap.md` prompt | PR submitted; no queue state updated |
 | **When to use** | Coordinated initiative work; multiple engineers or agents on same queue | One-off tasks — bug fixes, quick features, housekeeping |
@@ -65,7 +65,7 @@ sequenceDiagram
     participant R as Repo (spec branch)
 
     Note over E,R: M1.5+ — orient first
-    E->>SK: check-workspace
+    E->>SK: workspace-status
     SK->>WS: Read queues, resolve DAG
     WS-->>E: Active: spec/m1-work-loop (ready) · spec/m1-receive-brief (blocked: brief-template)
     E->>WL: work-loop spec/m1-work-loop
@@ -99,9 +99,9 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `check-workspace`. DAG-resolved queue surfaces the active initiative, ready specs in priority order, blocked items with reasons, and parallel candidates. Answers "is this spec already claimed?" |
+| **Actions** | Runs `workspace-status`. DAG-resolved queue surfaces the active initiative, ready specs in priority order, blocked items with reasons, and parallel candidates. Answers "is this spec already claimed?" |
 | **Emotions** | Oriented immediately (positive). One command, committed state. |
-| **Remaining pains** | "I see a parallel candidate but if another engineer also runs check-workspace at the same time, we might both pick it up." Atomic claiming is an INI-003 design concern. |
+| **Remaining pains** | "I see a parallel candidate but if another engineer also runs workspace-status at the same time, we might both pick it up." Atomic claiming is an INI-003 design concern. |
 
 ### Ad-hoc path
 
@@ -163,7 +163,7 @@ sequenceDiagram
 | Row | Content |
 |-----|---------|
 | **Actions** | Reviews the final diff. Approves PR creation. `work-loop` moves spec `active → shipped` in `workspace.toml`; surfaces the next ready item; prompts `roadmap.md` update. |
-| **Emotions** | Complete (positive). The spec is shipped and the queue reflects it. The next person or agent can orient in one `check-workspace` call. |
+| **Emotions** | Complete (positive). The spec is shipped and the queue reflects it. The next person or agent can orient in one `workspace-status` call. |
 
 ### Ad-hoc path
 
@@ -178,14 +178,14 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Skill:** run-check-workspace
+- **Skill:** run-workspace-status
 - **Skill:** run-work-loop
 - **Skill:** review-plan
 - **Skill:** approve-plan
 - **Skill:** handle-gate-failure
 - **Skill:** review-final-diff
 - **Skill:** approve-pr-submission
-- **Skill:** check-workspace-exit-state
+- **Skill:** workspace-status-exit-state
 
 ---
 
@@ -203,7 +203,7 @@ Highest point: **Stage 3 (Plan Review)** — engaged — the engineer is visibly
 
 Use the initiative path any time a spec lives in `[work].queue` — the coordination overhead is near-zero and the post-ship write-back makes the next session (by you, a colleague, or an agent) free. Use the ad-hoc path for tasks that are genuinely standalone — one-off fixes, experiments, housekeeping that would never appear in a brief.
 
-If you're unsure, run `check-workspace` first. If the task overlaps a queued spec, use the initiative path. If it's not in the queue and wouldn't belong there, go ad-hoc.
+If you're unsure, run `workspace-status` first. If the task overlaps a queued spec, use the initiative path. If it's not in the queue and wouldn't belong there, go ad-hoc.
 
 ---
 

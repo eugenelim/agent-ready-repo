@@ -1,7 +1,7 @@
 # Plan: spec-A-workspace-status-rename
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -29,13 +29,14 @@ Order of operations: rename source → update frontmatter → sweep references �
 
 **Lint gate (cross-cutting, runs at T6):**
 ```bash
-git ls-files | xargs grep -rn "check-workspace" | \
+git ls-files | xargs grep -Hn "check-workspace" | \
   grep -v "docs/adr/0051-" | \
   grep -v "docs/adr/0053-" | \
+  grep -v "docs/adr/0054-" | \
   grep -v "docs/product/changelog.md" | \
   grep -v "docs/specs/" | \
   grep -v "docs/rfc/0067-"
-# Must return zero hits.
+# Must return zero hits. (-H forces filename:line even in single-file xargs batches)
 ```
 
 **Build gate (cross-cutting, runs at T7):**
@@ -64,7 +65,7 @@ make build-check
 - Update `packs/core/pack.toml` skills array entry.
 - Update `packs/core/.claude-plugin/plugin.json` skill entry name.
 
-**Done when:** AC1, AC3, AC4 hold; `git mv` recorded cleanly in `git status`.
+**Done when:** AC1, AC3, AC4 hold; `git mv` recorded cleanly in `git status`. (The SKILL.md H1 title and any body self-references to `check-workspace` are swept in T3, not T1.)
 
 ---
 
@@ -78,8 +79,8 @@ make build-check
 **Approach:**
 - Run `git ls-files | xargs grep -l "check-workspace"` to get the live file list.
 - For each file, apply the RFC-0067 §Change A classification:
-  - **Historical (leave as-is):** `docs/adr/0051-*.md`, `docs/adr/0053-*.md`, `docs/product/changelog.md`, `docs/specs/**`, `docs/rfc/0067-*.md`, this RFC's own body.
-  - **Operative (rewrite):** everything else — skill body, AGENTS.md files, seeds, pack manifests, plugin.json, marketplace.json, README files, cross-pack routing references, guides, product docs, site/, web/, docs/rfc/README.md, docs/rfc/0064-*.md (Draft).
+  - **Historical (leave as-is):** `docs/adr/0051-*.md`, `docs/adr/0053-*.md`, `docs/adr/0054-*.md` (ADR-0054 discusses the rename as narrative — ~8 references are historical record), `docs/product/changelog.md`, `docs/specs/**`, `docs/rfc/0067-*.md`, this RFC's own body.
+  - **Operative (rewrite):** everything else — skill body, AGENTS.md files, seeds, pack manifests, plugin.json, marketplace.json, README files, cross-pack routing references, guides, product docs, site/, web/, docs/rfc/README.md, docs/rfc/0064-*.md (Draft), `workspace.toml` (line 5 comment).
 - Produce a working list of operative files for T3.
 
 **Done when:** Every file in the grep output has an operative/historical classification. Working list is noted in .context/ for T3.
@@ -92,7 +93,7 @@ make build-check
 **Touches:** operative files derived in T2
 
 **Tests:**
-- Goal-based (AC9): after editing, `grep -rn "check-workspace"` on each operative file returns zero hits.
+- Goal-based (AC9): after editing, `grep -Hn "check-workspace"` on each operative file returns zero hits.
 
 **Approach:**
 - Edit each operative file from T2's list, replacing `check-workspace` with `workspace-status` where it appears as an operative reference.
@@ -119,9 +120,10 @@ make build-check
 - Insert `## Naming your skill` after that section with:
   - The verb taxonomy table from ADR-0054 §Decision (status/start/check/init/resume with Meaning and Activation phrasing columns).
   - The banned-label list sentence: "Banned as skill names: `arrive`, `orient`, `onboard`, `return`, `onboarding` — these are UX-stage labels, not user-facing commands."
-- Add the intro sentence to the guide's intro paragraph (or as a callout before the first section): "If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills." (Note: `author-a-skill.md` is at `docs/guides/_shared/how-to/`; `explanation/` is one level up and across, so the correct relative path is `../explanation/`, not `../../explanation/`.)
+- Add the intro sentence to the guide's intro paragraph (or as a callout before the first section): "If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills." (Note: `author-a-skill.md` is at `docs/guides/_shared/how-to/`; `explanation/` is one level up and across, so the correct relative path is `../explanation/`, not `../../explanation/`. The RFC-0067 body at §A2 incorrectly writes `../../explanation/` — the spec/plan are correct.)
+- Create a minimal stub at `docs/guides/_shared/explanation/pack-workflow-design.md` **only if the file does not already exist** (idempotent guard: if Spec D has already shipped the full guide, skip stub creation). The stub contains one introductory sentence noting full content is in Spec D; Spec D fills the guide body.
 
-**Done when:** AC7 + AC8 hold; the verb table matches ADR-0054 exactly.
+**Done when:** AC7 + AC8 hold; the verb table matches ADR-0054 exactly. The stub at `docs/guides/_shared/explanation/pack-workflow-design.md` resolves the link.
 
 ---
 
@@ -160,15 +162,16 @@ make build-check
 ### T7: Rebuild projected tree and verify build gate
 
 **Depends on:** T6
-**Touches:** .claude/skills/workspace-status/, all adapter-projected skill paths
+**Touches:** .claude/skills/workspace-status/, .agents/skills/workspace-status/, all adapter-projected skill paths
 
 **Tests:**
-- Goal-based (AC6): `.claude/skills/workspace-status/` exists; `.claude/skills/check-workspace/` does not.
+- Goal-based (AC6): `.claude/skills/workspace-status/` and `.agents/skills/workspace-status/` exist; `.claude/skills/check-workspace/` and `.agents/skills/check-workspace/` do not.
 - Goal-based (AC10): `make build-check` exits 0.
 
 **Approach:**
 - Run `make build-self` (with `FORCE=1` if the working tree is dirty from prior source edits).
-- Confirm `.claude/skills/workspace-status/` is created and `.claude/skills/check-workspace/` is absent.
+- Confirm `.claude/skills/workspace-status/` and `.agents/skills/workspace-status/` are created.
+- Confirm `.claude/skills/check-workspace/` and `.agents/skills/check-workspace/` are absent. If `make build-self` does not remove old projected dirs, run `git rm -r .claude/skills/check-workspace/ .agents/skills/check-workspace/` explicitly.
 - Stage the regenerated projected tree.
 - Run `make build-check` to confirm no drift.
 
@@ -202,3 +205,4 @@ Pure repo-internal change: skill directory rename + source edits + projected tre
 ## Changelog
 
 - 2026-07-20: initial plan, authored alongside the spec for RFC-0067 spec/plan/ADR follow-on work.
+- 2026-07-20: pre-EXECUTE adversarial review fixes — added ADR-0054 to historical exclusion set (lint gate + T2); extended AC6/T7 to cover `.agents/skills/`; added pack-workflow-design.md stub to T4 scope (idempotent guard); simplified AC9 to runtime-derived list; noted T1 H1 handled by T3; added -H to lint gate grep; added .claude/skills/README.md (hand-authored) to AC9 illustrative list.
