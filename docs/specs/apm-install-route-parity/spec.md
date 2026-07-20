@@ -1,6 +1,6 @@
 # Spec: apm-install-route-parity
 
-- **Status:** Approved → Shipped (T1–T12 implementation landed 2026-05-25; live APM install end-to-end deferred per AC17 manual-QA matrix)
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0010](../../rfc/0010-apm-install-route-parity.md)
@@ -917,7 +917,7 @@ taxonomy.
       (`claude-plugins-install-route` AC20) continues to bind;
       this AC extends its surface to the APM projection in the
       same `make build-check` invocation.
-- [ ] **AC17 (manual-QA, transcript pending — see matrix rows 32-34) (manual-QA matrix rows for RFC-0010 close triggers
+- [ ] **AC17** (deferred: apm-install-route-parity) (manual-QA, transcript pending — see matrix rows 32-34) (manual-QA matrix rows for RFC-0010 close triggers
       and the per-target characterisation matrix).**
       `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`
       gains three rows:
