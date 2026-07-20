@@ -124,6 +124,7 @@ nav:
     - "User Guide Diataxis": packs/user-guide-diataxis.md
     - "Monorepo Extras": packs/monorepo-extras.md
     - "Credential Brokers": packs/credential-brokers.md
+    - "Product Strategy": packs/product-strategy.md
   - Guides:
     - guides/README.md
     - "The Build Loop (core)":
