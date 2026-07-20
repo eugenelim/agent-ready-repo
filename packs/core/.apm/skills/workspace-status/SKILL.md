@@ -47,7 +47,94 @@ For each initiative's `[work]` and `[shaping_queue]`:
 
 An entry is satisfied when its referenced item is in the appropriate shipped/done list. When `needs` is a list, ALL entries must be satisfied.
 
+### 2a. Reconciliation — surface spec ↔ workspace.toml inconsistencies
+
+Run three passes across `docs/specs/*/spec.md` and all initiative lists before
+producing any output. Collect all findings first.
+
+**Path resolution (all three passes):**
+
+- Bare-string entry `"spec/foo"` → path = the string.
+- Inline-object entry `{path = "spec/foo", needs = "..."}` → path = the `path` field.
+- Shipped entries are always bare strings.
+- From any path: strip the `spec/` prefix → slug; resolve `docs/specs/<slug>/spec.md`.
+- Status extraction: read the first line in the file matching `- **Status:**` and
+  extract the Status vocabulary word. When the line contains `→` (transition form,
+  e.g. `Approved → Shipped`), split on `→` and take the first word of the last
+  segment (stop at whitespace or `<!--`) — the right-hand token is the current
+  status. Otherwise take the first word after `**Status:** ` (stop at whitespace
+  or `<!--`). If no such line exists, treat as unknown status and skip this path
+  in all passes.
+
+**Forward scan — untracked live specs:**
+
+Walk every directory under `docs/specs/` that contains a `spec.md`. For each:
+1. Extract Status. Skip if not `Approved` or `Implementing`.
+2. Derive the canonical path: `spec/<dirname>`.
+3. Check whether this path appears in any initiative's queue, active, or shipped
+   list across all initiatives. If absent from all three → **Type 1** finding.
+
+**Backward scan — stale queue/active entries:**
+
+For each initiative, for each path in `[work].queue` and `[work].active`:
+1. Resolve `docs/specs/<slug>/spec.md`. If absent, skip without warning.
+2. Extract Status. If `Shipped` or `Archived` → **Type 2** finding. Record the
+   path, the list name (queue or active), and the initiative slug.
+
+**Shipped scan — prematurely-shipped entries:**
+
+For each initiative, for each path in `[work].shipped`:
+1. Resolve `docs/specs/<slug>/spec.md`. If absent, skip without warning.
+2. Extract Status. If `Approved` or `Implementing` → **Type 3** finding. Record
+   the path and the initiative slug.
+
+**Reconciliation block:**
+
+Let N = total count across all three types. When N = 0, omit the block entirely.
+When N > 0, output the following block **before** Step 3; omit subsections with no
+entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
+
+```
+**Reconciliation** — N inconsistenc(y/ies) detected:
+
+  Untracked live specs (Approved or Implementing, not in any initiative list):
+  - `spec/<slug>` (Status: Approved) — add to [work].queue or run queue-add
+
+  Stale queue/active entries (spec shows Shipped or Archived):
+  - `spec/<slug>` in [ini-002 work].queue — Status: Shipped
+  - `spec/<slug>` in [ini-002 work].active — Status: Archived
+
+  Prematurely-shipped entries ([work].shipped, spec shows live status):
+  - `spec/<slug>` in [ini-002 work].shipped — Status: Implementing
+    Possible causes: (1) spec Status was not updated after shipping, or
+    (2) the workspace.toml entry was moved before the work was done.
+```
+
+When Type 2 findings exist, build the cleanup offer. For any Type 2 entry found in
+`[work].active`, ask first: "Is `<path>` actively being worked on in this session?"
+— include it in the offer only after the user confirms it is not active. Then append:
+
+```
+Stale entries found — clean up now?
+  Shipped entries move to [work].shipped (bare string, `needs` dropped).
+  Archived entries are removed from [work].queue or [work].active.
+  Reply Y to apply, or edit workspace.toml manually.
+```
+
+**Cleanup write — after Y confirmation (Type 2 only):**
+
+For each Type 2 finding in the confirmed offer:
+- **Shipped, in queue/active**: remove from queue/active; append `"spec/<slug>"` as
+  a bare string to the same initiative's `[work].shipped` (skip if already present).
+- **Archived, in queue/active**: remove from queue/active; add nothing to shipped.
+
+Use a comment-preserving write — targeted text insertion or `tomlkit`; never a
+`tomllib` + `tomli_w` round-trip (strips comments).
+
 ### 3. Surface results
+
+If the Reconciliation block from Step 2a is non-empty (N > 0), it has already been
+output first. Continue with the following sections.
 
 Format output in four sections (omit sections with no entries):
 
