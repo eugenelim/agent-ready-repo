@@ -166,6 +166,15 @@ Before PLAN begins, orient to the current initiative and work queue:
      - **Active spec:** the first path in `["<slug>".work].active`, if the
        array is non-empty (e.g. `"spec/m1-work-queue"`). If the array is
        empty, surface the initiative name and milestone only — no error.
+     - **Stale-queue check.** For each active initiative, for each entry in
+       `["<slug>".work].queue` and `["<slug>".work].active`: resolve the
+       path (bare string → as-is; inline object → `path` field; `slug` is
+       shaping-queue only), strip the `spec/` prefix, and read
+       `docs/specs/<slug>/spec.md`. If `**Status:**` is `Shipped` (ignoring
+       trailing `<!-- -->` comments), emit this warning and proceed — non-blocking:
+       > Warning: workspace.toml drift: `<path>` is in `<queue|active>` but
+       > spec.md shows Status: Shipped — move it to shipped in workspace.toml.
+       A path in both lists: warn once, name both. No spec.md or other Status: skip.
    - **If absent:** skip this step entirely. PLAN begins immediately with no
      error, no diagnostic, and no behavioral change.
 
@@ -174,7 +183,8 @@ Before PLAN begins, orient to the current initiative and work queue:
 
 After orienting (or immediately, if `workspace.toml` is absent), proceed
 to step 1 (PLAN). The active spec path tells you which spec you are
-expected to be working on — read `docs/specs/<path>/spec.md` and `plan.md`
+expected to be working on — strip the `spec/` prefix from the stored path
+to get the slug, then read `docs/specs/<slug>/spec.md` and `plan.md`
 as step 1 of PLAN.
 
 ### 1. PLAN — think before acting
@@ -811,14 +821,14 @@ mode below, then evaluate the terminal-state bullet last.
     Python, run `scripts/lint-spec-status.py` (this skill's sibling to
     `loop-cohort.py`) to check these mechanically — it's the agent-invoked
     companion to the judgment check; no-ops without Python.
-  - **If `workspace.toml` is present** in the working directory and
-    `["<slug>".work].active` contains the current spec's path, edit
-    `workspace.toml` in the working directory: move that path from
-    `["<slug>".work].active` to `["<slug>".work].shipped`, and stage the
-    file as part of the shipping PR diff. Use a comment-preserving edit
-    (targeted insertion or `tomlkit` if available; never a full `tomllib` +
-    `tomli_w` round-trip that strips comments). If `workspace.toml` is
-    absent, skip this step — no edit, no error.
+  - **If `workspace.toml` is present**, search each active initiative's
+    `["<slug>".work].active` then `["<slug>".work].queue` for the current
+    spec's path (stop at the first match; entries are bare strings or inline
+    objects with a `path` field — `slug` is shaping-queue only). If found,
+    move that path to `["<slug>".work].shipped` as a bare string (dropping
+    `needs` and other fields), stage the edit in this PR's diff, and use a
+    comment-preserving edit (targeted insertion or `tomlkit`; never a full
+    `tomllib` + `tomli_w` round-trip). Not found, or absent: skip — no error.
   - **Reminder:** update `docs/product/roadmap.md` to reflect the shipped
     spec (one line; the roadmap is the human-readable companion to the queue).
     If `workspace.toml` is absent, skip this reminder.

@@ -18,6 +18,8 @@ file as stale and ask before relying on it.
 
 **M1 · Workspace Foundation.** `workspace.toml` seed + `workspace-status` skill + brief template DoR fields (Status, Rabbit holes, Instrumentation, Design artifacts) + work-loop / receive-brief / new-rfc extensions + agentbundle-layout.toml `[product]` table + ADR for D2/D4 architectural decisions. [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md)
 
+**M1 fix — work-loop done-step lifecycle.** Extended done-step to find the current spec in `queue` (not just `active`), add Step 0 stale-queue warning, and fix the `spec/` prefix path-resolution bug. [spec/work-loop-queue-shipped-fix]
+
 ## Next
 
 **M2 · Strategic Shaping.** Five new PE pack skills grounding the six-step sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) at initiative altitude. `frame-situation` (bottom-up signal → typed finding → six-step route; embeds Wardley capability maturity for situational awareness). `identify-opportunities` (step-2 opportunity assessment; embeds JTBD framing — functional / emotional / social jobs). `diverge-solutions` (step-3 option generation; must resolve overlap with existing `explore-options` skill). `place-bet` (step-5 human commitment gate; betting table surface). `map-capabilities` (product vision → all capability areas in one structured pass). Initiative brief artifact + Lean Canvas template as altitude-0/1 framing. Three-altitude model grounded: Company (years; PRFAQ, OKR) → Initiative (quarters; vision, capability map, initiative brief) → Project (weeks; brief, spec, plan). [RFC-00XX · pe-pack-strategic-shaping, opens when M1 ships]
