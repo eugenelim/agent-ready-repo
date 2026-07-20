@@ -75,6 +75,7 @@ shipped = [
 ]
 queue   = [
   # Independent track — no deps
+  "spec/catalogue-curation",
 
   # Schema + governance: workspace.toml [backlog] + docs/backlog.md absorption.
   # Governed by RFC-0064 amendment 2026-07-20 ("Repo-level backlog & deferral
