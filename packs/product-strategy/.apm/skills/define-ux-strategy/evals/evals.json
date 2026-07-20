@@ -1,0 +1,19 @@
+{
+  "skill_name": "define-ux-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Define the UX strategy for a B2B project management tool. Business goal: increase team adoption by 40% in 12 months. Current pain: the tool is powerful but onboarding takes 3+ weeks and users feel overwhelmed. No prior UX strategy artifact exists.",
+      "expected_output": "A ux-strategy.md artifact committed to the resolved layout path with frontmatter type: ux-strategy. The artifact covers three layers: (1) Vision — a specific, falsifiable statement of what the end-to-end experience should achieve, aligned to the business goal of increased adoption; (2) Goals and Measures — 2–4 UX-level OKRs with measurable Key Results (e.g., task-completion rate, time-to-first-value); (3) Plan — initiatives that close the gap between current experience and the vision, sequenced and time-horizoned. The Levy four-tenets check is applied; any weak tenet is named as a gap. The document notes its upstream position relative to journey-mapping. The NN/g three-layer model, Jaime Levy four tenets, and Gothelf/Seiden OKR-linked UX framing are referenced by name; no verbatim framework text appears. The resolved path is surfaced before writing.",
+      "assertions": [
+        "Vision layer contains a specific, falsifiable aspiration aligned to the named business goal — not a generic 'great experience' statement",
+        "Goals and Measures contains 2–4 UX-level OKRs with measurable Key Results; at least one leading and one lagging indicator are named",
+        "Levy four-tenets check is applied; any weak tenet (business strategy coherence, value innovation, validated user research, killer UX vision) is named as a gap",
+        "Plan layer names at least two design initiatives, each mapped to at least one Goal + Measure KR, sequenced with a time horizon",
+        "The document explicitly notes its upstream position: 'this UX strategy is upstream of journey-mapping (experience-design pack)'",
+        "NN/g three-layer model, Jaime Levy four tenets, and Gothelf/Seiden OKR-linked UX framing are named; no verbatim framework text or values table appears",
+        "The artifact is committed to the resolved path with frontmatter type: ux-strategy; path is surfaced before writing"
+      ]
+    }
+  ]
+}

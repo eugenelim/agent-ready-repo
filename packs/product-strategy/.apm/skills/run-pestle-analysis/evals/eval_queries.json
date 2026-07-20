@@ -1,0 +1,14 @@
+[
+  {"query": "Run a PESTLE analysis for our market entry into Southeast Asia", "should_trigger": true},
+  {"query": "I need to understand the macro environment before setting strategy", "should_trigger": true},
+  {"query": "What political and economic forces affect our industry?", "should_trigger": true},
+  {"query": "Do a macro scan — Political Economic Social Technological Legal Environmental", "should_trigger": true},
+  {"query": "Scan the external environment for risks and opportunities", "should_trigger": true},
+  {"query": "PESTLE analysis for fintech regulation in the EU", "should_trigger": true},
+
+  {"query": "Run a SWOT analysis on our product portfolio", "should_trigger": false},
+  {"query": "Analyze the Five Forces in the payments industry", "should_trigger": false},
+  {"query": "Cascade OKRs from company to team level", "should_trigger": false},
+  {"query": "Write the press release for our new product", "should_trigger": false},
+  {"query": "Define our UX strategy", "should_trigger": false}
+]

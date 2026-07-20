@@ -1,7 +1,7 @@
 # Plan: product-strategy-pack (v1)
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. When it changes
 > substantially, note why in the changelog at the bottom.
@@ -73,9 +73,9 @@ Frontmatter: `name:`, `description:`, `triggers:` (elicitation phrases). Body: `
 
 ### Cross-pack routing (run-okr-cascade only)
 
-The `run-okr-cascade` skill's Procedure step 4 writes each identified gap as a `{type = "strategy", slug = "<gap-slug>"}` entry (no `needs` field — no-dependency entries omit it) to the appropriate initiative's `[shaping_queue].backlog` in `workspace.toml`. Step 5 surfaces the PE pack absent diagnostic if `frame-situation` is not found. Full contract detail in `references/cross-pack-routing.md`.
+The `run-okr-cascade` skill's Procedure step 4 writes each identified gap as a `{type = "strategy", slug = "<gap-slug>"}` entry (no `needs` field — no-dependency entries omit it) to the appropriate initiative's `["ini-NNN".shaping_queue].backlog` in `workspace.toml` (the per-initiative nested form; "active" means `status = "active"` in the section header). Step 5 surfaces the PE pack absent diagnostic if `frame-situation` is not found. Full contract detail in `references/cross-pack-routing.md`.
 
-`check-workspace` line 98 is updated as part of T6: the `strategy` row changes from "run product-strategy pack skill" to "route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim" — matching the progressive-disclosure pattern already used for the `shape` type.
+`check-workspace` lines 65 and 98 are updated as part of T6: both `strategy` entries change to "route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim" — matching the progressive-disclosure pattern already used for the `shape` type.
 
 ### Artifact commit convention (all artifact-writing skills)
 
@@ -86,21 +86,20 @@ Each skill's Procedure closes with: *"Commit artifact to `docs/product/shaping/<
 ### T1: Pack scaffold + marketplace and layout registration
 
 **Depends on:** none
-**Touches:** `packs/product-strategy/pack.toml`, `packs/product-strategy/.claude-plugin/plugin.json`, `packs/product-strategy/README.md`, `.claude-plugin/marketplace.json`
+**Touches:** `packs/product-strategy/pack.toml`, `packs/product-strategy/.claude-plugin/plugin.json`, `packs/product-strategy/README.md`
 
 **Tests:**
 - Goal-based: `make lint-packs` and `make validate` pass with the new pack present (AC1).
-- Goal-based: `make build` green; `marketplace.json` lists `product-strategy` with name + description + version (AC1).
+- Goal-based: `make build` green (AC1). `marketplace.json` registration verified in T13 after `make build-self` runs (marketplace aggregation runs in build-self, not build).
 - Goal-based: `packs/product-strategy/pack.toml` contains a `[pack.layout.repo]` table with `parent = "docs/product/shaping"` (AC3 — pack.toml, not a central agentbundle-layout.toml; that file is adopter-owned and never shipped).
 
 **Approach:**
-- Mirror `packs/experience-design/pack.toml`: `name = "product-strategy"`, `version = "0.1.0"`, `description` (3-pillar summary), `default-scope = "user"`, `allowed-scopes = ["user", "repo"]`, `adapter-contract.version = "0.12"`, adapters list matching experience-design, `[pack.layout.repo] parent = "docs/product/shaping"`.
-- `plugin.json`: `{"name": "product-strategy", "version": "0.1.0", "description": "..."}`.
+- Full mirror of `packs/experience-design/pack.toml` structure: `name = "product-strategy"`, `version = "0.1.0"`, `description` (3-pillar summary), `display_name`, `license`, `categories`, `keywords`, `default-scope = "user"`, `allowed-scopes = ["user", "repo"]`, `adapter-contract.version = "0.12"` (skills-only surface, no agents → experience-design precedent at 0.12 over product-engineering's 0.13 which includes agent primitives), adapters list matching experience-design, `[pack.layout.repo] parent = "docs/product/shaping"`, `[pack.links]`, `[[pack.maintainers]]`.
+- `plugin.json`: `{"name": "product-strategy", "version": "0.1.0", "description": "..."}`. Do NOT hand-edit `.claude-plugin/marketplace.json` — it is aggregated by `make build-self` from all packs' `plugin.json` files (CONVENTIONS.md §Pack source-of-truth split). `make build-self` is run in T13.
 - `README.md`: what the pack is, the three pillars, install snippet, what is NOT in this pack (growth strategy, primary research, per-surface content design), upstream/downstream pack chain diagram.
-- Add `product-strategy` entry to `.claude-plugin/marketplace.json` in alphabetical order (after `product-engineering`), category `product-management`. This file is hand-authored; verify with `make build` but do not run `build-self` (pack is user-scope, not in self-host projection scope).
-- `[pack.evals] skills = []` — populated by T2–T10 as skills land, or set all 9 slugs upfront if authoring in one PR.
+- `[pack.evals] skills` = all 9 slugs set upfront (authoring in one PR).
 
-**Done when:** `lint-packs`, `validate`, `build` green; `marketplace.json` updated; `pack.toml` contains `[pack.layout.repo] parent = "docs/product/shaping"`. (No `agentbundle-layout.toml` edit — that file is adopter-owned.)
+**Done when:** `lint-packs`, `validate`, `build` green; `pack.toml` and `plugin.json` present and valid. (marketplace.json generated in T13; no `agentbundle-layout.toml` edit — that file is adopter-owned.)
 
 ---
 
@@ -179,18 +178,18 @@ Each skill's Procedure closes with: *"Commit artifact to `docs/product/shaping/<
 ### T6: `run-okr-cascade` skill
 
 **Depends on:** T1
-**Touches:** `packs/product-strategy/.apm/skills/run-okr-cascade/**`, `packs/core/.apm/skills/check-workspace/SKILL.md` (line 98 routing fix — decided)
+**Touches:** `packs/product-strategy/.apm/skills/run-okr-cascade/**`, `packs/core/.apm/skills/check-workspace/SKILL.md` (lines 65 and 98 routing fix — decided)
 
 **Tests:**
 - Goal-based: `lint-skill-spec.py` exits 0; `SKILL.md` < 100 lines; eval files present (AC4, AC6).
 - Goal-based: `grep -r "shaping_queue" packs/product-strategy/.apm/skills/run-okr-cascade/` returns a hit (AC7 cross-pack routing).
 - Goal-based: `grep -r "frame-situation not found" packs/product-strategy/.apm/skills/run-okr-cascade/` returns the diagnostic string (AC7).
-- Goal-based: `grep "frame-situation" packs/core/.apm/skills/check-workspace/SKILL.md` returns a hit on the `strategy` row confirming the routing was updated (AC7 check-workspace fix).
-- Manual QA: cold-invoke with sample company OKRs; confirm output includes `okr-cascade.md` artifact, at least one `{type = "strategy"}` shaping-queue entry, and the absent-PE-pack diagnostic is described in the skill.
+- Goal-based: `grep -n "strategy.*frame-situation" packs/core/.apm/skills/check-workspace/SKILL.md` returns 2 hits (lines 65 and 98 both updated — AC8).
+- Manual QA: cold-invoke with sample company OKRs; confirm output includes `okr-cascade.md` artifact, at least one `{slug = "...", type = "strategy"}` entry targeting `["ini-NNN".shaping_queue].backlog`, and the absent-PE-pack diagnostic is described in the skill.
 
 **Approach:**
-- `SKILL.md`: When to invoke ("I need to cascade company OKRs and identify gaps"); Procedure — elicit company OKRs (or read from `docs/product/shaping/`) → derive team-level OKRs → identify gaps between current state and OKR targets → commit `okr-cascade.md` → resolve target initiative (single active `["ini-NNN"]` section auto-resolved; if multiple active, elicit from user) → append each gap as `{type = "strategy", slug = "<gap-slug>"}` to the initiative's `[shaping_queue].backlog` in `workspace.toml` → if `frame-situation` not found emit the diagnostic.
-- `packs/core/.apm/skills/check-workspace/SKILL.md` line 98: change `strategy` row from `"run product-strategy pack skill (requires product-strategy pack — M4)"` to `"route through frame-situation (PE pack — M2); if not yet available, run frame-intent as interim"`. One-line edit only.
+- `SKILL.md`: When to invoke ("I need to cascade company OKRs and identify gaps"); Procedure — elicit company OKRs (or read from `docs/product/shaping/`) → derive team-level OKRs → identify gaps between current state and OKR targets → commit `okr-cascade.md` → resolve target initiative (`status = "active"` in section header; single active `["ini-NNN"]` auto-resolved; if multiple active, elicit from user) → append each gap as `{type = "strategy", slug = "<gap-slug>"}` to the initiative's `["ini-NNN".shaping_queue].backlog` in `workspace.toml` → if `frame-situation` not found emit the diagnostic.
+- `packs/core/.apm/skills/check-workspace/SKILL.md` lines 65 and 98: update both to `route through \`frame-situation\` (PE pack — M2); if not yet available, run \`frame-intent\` as interim`. Exact on-disk text being replaced: line 65 `run product-strategy pack skill (requires product-strategy pack)`, line 98 `product-strategy pack skill (requires product-strategy pack — M4)`.
 - `references/cross-pack-routing.md`: full contract detail — the seven-step sequence, `{type = "strategy", slug = "..."}` entry format (no `needs` field), the initiative-resolution logic, the check-workspace routing fix rationale, the graceful-absent diagnostic, and the co-install note.
 - `references/agentbundle-layout.md`: artifact path resolution.
 - Anti-patterns: OKR cascade is org-wide alignment, not per-feature goal-setting (distinct from Pillar 2's Gothelf/Seiden OKR-linked UX framing); do not author feature-level OKRs here.
@@ -326,16 +325,17 @@ Each skill's Procedure closes with: *"Commit artifact to `docs/product/shaping/<
 - Goal-based: `grep "product-strategy-pack" docs/specs/README.md` returns a hit (spec registered in index) (AC — spec index registration).
 
 **Approach:**
-1. Finalize `[pack.evals] skills` list in `pack.toml` to include all 9 slugs.
-2. Add `[Unreleased]` entry to `docs/product/changelog.md`: "Add `product-strategy` pack (v0.1.0) — 9 skills across 3 pillars (market/competitive strategy, UX strategy, content strategy); implements RFC-0063 M4."
-3. Add `product-strategy-pack` to `docs/specs/README.md` active list.
-4. Run full local gate sweep; fix any lint findings.
+1. Verify `[pack.evals] skills` list in `pack.toml` includes all 9 slugs (set in T1).
+2. Run `make build-self` (with `FORCE=1` if the tree is dirty) to regenerate `.claude-plugin/marketplace.json` from all packs' `plugin.json` files; verify `marketplace.json` lists `product-strategy` (AC2).
+3. Add `[Unreleased]` entry to `docs/product/changelog.md`: "Add `product-strategy` pack (v0.1.0) — 9 skills across 3 pillars (market/competitive strategy, UX strategy, content strategy); implements RFC-0063 M4."
+4. Add `product-strategy-pack` to `docs/specs/README.md` active list.
+5. Run full local gate sweep; fix any lint findings.
 
 **Done when:** all gates green; changelog + spec index updated; structural Never greps empty.
 
 ## Rollout
 
-- **Delivery:** additive, opt-in, user-scope pack. No flag, no migration, fully reversible (delete the pack dir + marketplace.json entry). Nothing irreversible. (No `agentbundle-layout.toml` entry was added — that file is adopter-owned.)
+- **Delivery:** additive, opt-in, user-scope pack. No flag, no migration, fully reversible (delete the pack dir and rerun `make build-self` to drop it from `marketplace.json`). Nothing irreversible. (No `agentbundle-layout.toml` entry was added — that file is adopter-owned.)
 - **Infrastructure:** none.
 - **External-system integration:** none — the `workspace.toml` write in `run-okr-cascade` is agent-authored markdown; no live API.
 - **Deployment sequencing:** T1 first (pack scaffold must exist for linters to pass); T2–T10 parallelizable; T11–T12 parallelizable after T1; T13 after all.

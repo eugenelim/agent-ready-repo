@@ -1,0 +1,14 @@
+[
+  {"query": "Cascade our company OKRs to team level", "should_trigger": true},
+  {"query": "I need to identify gaps between our OKRs and our current capabilities", "should_trigger": true},
+  {"query": "Run an OKR cascade and add gaps to the shaping queue", "should_trigger": true},
+  {"query": "Align our team OKRs to the company objectives", "should_trigger": true},
+  {"query": "What are we missing to hit our Q3 objectives?", "should_trigger": true},
+  {"query": "Map company goals to team-level Key Results and find the gaps", "should_trigger": true},
+
+  {"query": "Run a SWOT analysis", "should_trigger": false},
+  {"query": "Set per-feature goals for the next sprint", "should_trigger": false},
+  {"query": "Map the customer journey for our onboarding", "should_trigger": false},
+  {"query": "Define the UX strategy before design begins", "should_trigger": false},
+  {"query": "Synthesize stakeholder research into strategic direction", "should_trigger": false}
+]

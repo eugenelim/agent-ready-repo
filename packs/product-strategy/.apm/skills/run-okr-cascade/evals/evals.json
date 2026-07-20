@@ -1,0 +1,20 @@
+{
+  "skill_name": "run-okr-cascade",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Cascade the following company OKRs to team level and identify gaps. Company OKR: Objective — 'Become the market leader in SMB payroll software'; KR1 — 'Reach 40% NPS by Q4'; KR2 — 'Reduce churn to <5% annually'; KR3 — 'Launch in 3 new geographies by Q3'. workspace.toml has one active initiative: ini-002 with status=active.",
+      "expected_output": "An okr-cascade.md artifact committed to the resolved layout path with frontmatter type: okr-cascade. The artifact contains the company Objective and three KRs verbatim. Derived team-level OKRs are provided for each company KR, each measurable at the team scope. At least two strategic gaps are identified — areas where no current team capability covers a KR target. Each gap has a kebab-case slug. Gap entries are appended to workspace.toml under [\"ini-002\".shaping_queue].backlog as {slug = \"<gap-slug>\", type = \"strategy\"} (no needs field). If frame-situation is absent, the diagnostic 'frame-situation not found — install PE pack to route OKR gaps into the shaping sequence' appears. The artifact path is surfaced before writing.",
+      "assertions": [
+        "Company OKRs are captured verbatim — not interpreted or rewritten without the strategist's confirmation",
+        "Team-level OKRs are derived for each company KR; each team KR is measurable at the team's scope",
+        "At least two gaps are identified with kebab-case slugs and brief descriptions",
+        "okr-cascade.md is committed with frontmatter type: okr-cascade at the resolved path",
+        "Gap entries are written as {slug = \"<gap-slug>\", type = \"strategy\"} with no needs field",
+        "Entries target [\"ini-002\".shaping_queue].backlog — the per-initiative nested form, not a top-level [shaping_queue] table",
+        "The absent frame-situation diagnostic appears (or frame-situation is found and named)",
+        "OKR cascade is used for org-wide alignment; no feature-level backlog items appear in the output"
+      ]
+    }
+  ]
+}

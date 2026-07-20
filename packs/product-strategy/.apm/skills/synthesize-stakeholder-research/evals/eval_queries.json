@@ -1,0 +1,14 @@
+[
+  {"query": "Synthesize our stakeholder research into strategic direction", "should_trigger": true},
+  {"query": "I need to turn the research we have into strategy", "should_trigger": true},
+  {"query": "Consolidate insights from executive, user, and regulator interviews", "should_trigger": true},
+  {"query": "What does our stakeholder research tell us strategically?", "should_trigger": true},
+  {"query": "We have desk-research outputs — synthesize them for the strategy session", "should_trigger": true},
+  {"query": "Organize cross-stakeholder themes from our research", "should_trigger": true},
+
+  {"query": "Run user interviews and summarize the findings", "should_trigger": false},
+  {"query": "Write a discussion guide for stakeholder interviews", "should_trigger": false},
+  {"query": "Run a SWOT analysis on our position", "should_trigger": false},
+  {"query": "Map the customer journey for the onboarding experience", "should_trigger": false},
+  {"query": "Run a PESTLE analysis for market entry", "should_trigger": false}
+]

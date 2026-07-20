@@ -1,0 +1,18 @@
+{
+  "skill_name": "synthesize-stakeholder-research",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Synthesize stakeholder research for a fintech product. Executive interviews: executives want faster compliance reporting; User research (provided): users find the current workflow takes 3–4 hours per month and creates audit anxiety; Regulator input (provided): regulators expect quarterly reporting by default. No desk-research outputs exist in docs/research/.",
+      "expected_output": "Because no desk-research outputs exist in docs/research/, the skill surfaces 'run desk-research project first — no research inputs found' and does not proceed to synthesis. OR — if the user supplies research inline and the skill accepts inline-supplied inputs — a stakeholder-synthesis.md artifact is committed. If synthesis proceeds: the artifact is organized by strategic theme (not by stakeholder group). Each section names the theme, which stakeholder groups hold this view and with what intensity, and the strategic implication. Cross-stakeholder convergent signals are explicitly named. The artifact does not contain interview transcripts, discussion guides, or raw research. The resolved path is surfaced before writing.",
+      "assertions": [
+        "If no research inputs are found in docs/research/ or adopter-supplied paths, the skill surfaces 'run desk-research project first — no research inputs found' and stops — this is the primary gate",
+        "If inputs are provided inline and accepted: the artifact is organized by strategic theme, not by stakeholder group — there are no stakeholder-by-stakeholder sections",
+        "Cross-stakeholder convergent signals are named explicitly with the groups that hold them",
+        "Each theme section includes: theme name, stakeholder groups (with intensity), and strategic implication",
+        "No interview transcripts, discussion guides, raw survey data, or primary research artifacts appear in the output",
+        "The artifact is committed to the resolved path with frontmatter type: stakeholder-synthesis; path is surfaced before writing"
+      ]
+    }
+  ]
+}

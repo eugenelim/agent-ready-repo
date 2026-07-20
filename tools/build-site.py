@@ -41,12 +41,13 @@ PACKS: list[tuple[str, str, str, str]] = [
     ("user-guide-diataxis","User Guide (Diataxis)", "repo", "Diátaxis docs scaffold — four content modes with the `new-guide` skill."),
     ("monorepo-extras",    "Monorepo Extras",       "repo", "Package scaffolding — `new-package` skill with an example package template."),
     ("credential-brokers", "Credential Brokers",    "user", "In-process credential resolution: environment → OS keyring → dotfile. Cleartext never reaches the model."),
+    ("product-strategy",   "Product Strategy",      "user", "The strategy seat upstream of product engineering — market analysis (SWOT, Porter, PESTLE, BCG), OKR cascade, PRD writing, stakeholder synthesis, UX strategy, and content strategy."),
 ]
 
 PACK_INDEX_HEADER = """\
 # Pack Catalogue
 
-Fourteen curated packs — each distilled from the best practices of its discipline
+Fifteen curated packs — each distilled from the best practices of its discipline
 through practitioner research and RFC-and-ADR governance.
 
 Install any pack in one command:

@@ -112,6 +112,15 @@ write. See any artifact-writing skill's `references/agentbundle-layout.md`.
   design artifacts (journeys / screen flows / briefs / aesthetics), never code
   diffs and never architecture design docs.
 
+## Cross-pack: `product-strategy`
+
+The `product-strategy` pack is the **upstream strategic input** this pack builds on. Before `journey-mapping` or `user-flow` run, a strategist using the `product-strategy` pack may have committed `ux-strategy.md` (vision → goals+measures → plan) and `content-strategy.md` (Halvorson quad: Purpose + Process + Structure + Governance) to `docs/product/shaping/`. When present:
+
+- `journey-mapping` reads `ux-strategy.md` as the strategic anchor for the journey's stated rationale.
+- `content-design` (downstream skill) reads `content-strategy.md` for organizational governance intent — content-design is execution-layer (per-surface); content strategy is governance-layer (organizational intent).
+
+These are optional inputs; the skills degrade gracefully when the upstream artifacts are absent. See the [`product-strategy` pack README](../product-strategy/README.md).
+
 ## Cross-pack: `product-engineering`
 
 The **words** a user reads in the UI are the `product-engineering` pack's

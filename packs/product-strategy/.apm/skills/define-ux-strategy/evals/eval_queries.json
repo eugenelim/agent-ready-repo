@@ -1,0 +1,14 @@
+[
+  {"query": "Define our UX strategy before design begins", "should_trigger": true},
+  {"query": "I need to set the experience strategy for our product", "should_trigger": true},
+  {"query": "What should our UX strategy be? Align it to our business goals", "should_trigger": true},
+  {"query": "Set the experience vision and measures before journey mapping", "should_trigger": true},
+  {"query": "We need an experience strategy document upstream of design", "should_trigger": true},
+  {"query": "Help me bridge our business strategy to the experience design work", "should_trigger": true},
+
+  {"query": "Map the customer journey for our onboarding flow", "should_trigger": false},
+  {"query": "Design the interaction behavior for this screen", "should_trigger": false},
+  {"query": "Run a SWOT on our UX competitive position", "should_trigger": false},
+  {"query": "Define the content strategy for our product", "should_trigger": false},
+  {"query": "Cascade our OKRs to team level", "should_trigger": false}
+]

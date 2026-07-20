@@ -1,0 +1,19 @@
+{
+  "skill_name": "run-bcg-matrix",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a BCG matrix for a company with three products: a market-leading payroll product in a mature market, a new time-tracking tool in a fast-growing market, and a legacy expense product in a declining segment. Market share data is not precisely known.",
+      "expected_output": "A portfolio-position.md artifact committed to the resolved layout path. The artifact lists all three products and their portfolio positions. Relative market share and growth rate estimates are provided with explicit caveats when data is unavailable ('estimated — treat as directional'). Each product is mapped to a BCG quadrant (Star / Cash Cow / Question Mark / Dog) with the classification rationale named. Investment implications are derived per quadrant. A top strategic decision (the one or two reallocation moves that would most improve portfolio health) is named. The BCG Growth-Share Matrix is referenced by name; quadrant names are named; no definition, framework text, or matrix diagram template appears. The resolved path is surfaced before writing.",
+      "assertions": [
+        "All three products appear in the analysis; the portfolio is compared, not assessed individually",
+        "Relative market share and growth rate estimates are provided; when data is unavailable, the caveat 'estimated — treat as directional' or equivalent appears",
+        "Each product is mapped to a quadrant (Star / Cash Cow / Question Mark / Dog) with the classification rationale named",
+        "Investment implications are derived per quadrant (invest / harvest / decide invest-or-divest / divest or manage for exit)",
+        "A top strategic decision (one or two reallocation moves) is named",
+        "BCG Growth-Share Matrix and quadrant names are referenced by name; no matrix template, diagram, or verbatim framework definition appears",
+        "The artifact is committed to the resolved path with frontmatter type: portfolio-position; path is surfaced before writing"
+      ]
+    }
+  ]
+}

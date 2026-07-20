@@ -1,0 +1,18 @@
+{
+  "skill_name": "run-pestle-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a PESTLE analysis for a fintech startup considering market entry into the European Union. Time horizon: 0–18 months (near-term) and 18 months–3 years (medium-term).",
+      "expected_output": "A macro-environment.md artifact committed to the resolved layout path. The artifact names the scope (fintech, EU, both time horizons). Each of the six PESTLE dimensions — Political, Economic, Social, Technological, Legal, Environmental — is assessed with at least one named, concrete signal (a specific law, a named economic indicator, a demographic trend, a named technology). A prioritization section identifies the top two or three forces by strategic materiality, each with a time horizon tag (near-term / medium-term) and a directional impact (tailwind / headwind / neutral). The framework (PESTLE) is named; no definition or verbatim framework text appears. The resolved path is surfaced before writing.",
+      "assertions": [
+        "Scope is established first: geography (EU), industry (fintech), and time horizons (0–18 months, 18–36 months) are named",
+        "Each of the six dimensions has at least one named concrete signal — a specific regulation, rate, demographic trend, technology, or climate risk",
+        "No dimension is assessed with purely generic language ('technology is changing fast')",
+        "Prioritization section identifies the top two or three forces by strategic materiality with time horizon tag and directional impact",
+        "PESTLE is named as the framework; no definition, acronym expansion, or verbatim framework explanation appears in the artifact",
+        "The artifact is committed to the resolved path with frontmatter type: macro-environment; path is surfaced before writing"
+      ]
+    }
+  ]
+}

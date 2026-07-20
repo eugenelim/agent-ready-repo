@@ -1,0 +1,20 @@
+{
+  "skill_name": "run-swot",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a SWOT analysis for a mid-market B2B SaaS company entering the HR analytics market. No prior strategy artifacts exist.",
+      "expected_output": "A swot-analysis.md artifact committed to the resolved layout path (docs/product/shaping/swot-analysis.md by default). The artifact names the scope (B2B SaaS, HR analytics, specific time horizon). Each of the four quadrants — Strengths, Weaknesses, Opportunities, Threats — contains at least three entries with specific, evidence-grounded claims (not generic assertions). The synthesis section derives at least one SO, ST, WO, and WT strategic implication pair. The framework (SWOT) is named; no definition or verbatim framework text appears. The resolved path is surfaced before writing.",
+      "assertions": [
+        "Scope is named before the quadrants are populated — entity, time horizon, and competitive reference point are explicit",
+        "Each quadrant has at least three entries; entries are specific (name a real capability, asset, gap, trend, or risk) not generic",
+        "Weaknesses are direct and honest — softened weaknesses or positive reframings are not accepted",
+        "Opportunities reference at least one observable external signal (trend, regulatory shift, competitor gap) with a named source or proxy",
+        "Threats include a rough time horizon (near-term / medium-term) for at least one entry",
+        "Strategic implications section derives at least one SO, ST, WO, and WT pair",
+        "SWOT is named as the framework; no definition, template structure, or verbatim explanation of SWOT appears in the output",
+        "The artifact is committed to the resolved path with frontmatter type: swot-analysis; path is surfaced before writing"
+      ]
+    }
+  ]
+}
