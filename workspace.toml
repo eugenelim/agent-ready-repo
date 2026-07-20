@@ -70,20 +70,10 @@ shipped = [
   "spec/work-loop-queue-shipped-fix", # Fix done-step + stale-queue warning + line-177 path bug
   "spec/spec-D-pack-workflow-guide",  # Pack workflow design guide + CONTRIBUTING step 0
   "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
+  "spec/rfc-0064-errata-workspace-integrity", # Amendment to RFC-0064 documenting session-fragmentation gap
 ]
 queue   = [
   # Independent track — no deps
-
-  # Errata entry in docs/rfc/0064-ini-001-ai-native-ecosystem.md. Doc only.
-  # Trust boundary: workspace-status is only as complete as queue population.
-  # workspace.toml has no automated guarantee of completeness without the two
-  # skill fixes (new-rfc-followon-queue-write + workspace-status-queue-
-  # reconciliation). Session-fragmentation — accepting an RFC in one session
-  # and generating specs in another — silently drops the queue-write prompt.
-  # Errata should state: (1) the condition under which workspace-status gives
-  # an incomplete picture, (2) the two skill fixes that close the gap, and
-  # (3) the manual workaround until those fixes ship (add entries directly).
-  "spec/rfc-0064-errata-workspace-integrity",
 
   # Schema + governance: workspace.toml [backlog] + docs/backlog.md absorption.
   # Governed by RFC-0064 amendment 2026-07-20 ("Repo-level backlog & deferral
