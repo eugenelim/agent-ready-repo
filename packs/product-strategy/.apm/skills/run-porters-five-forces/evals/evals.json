@@ -1,0 +1,19 @@
+{
+  "skill_name": "run-porters-five-forces",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a Porter's Five Forces analysis on the B2B project management software market in North America, 0–18 month time horizon. No prior strategy artifacts exist.",
+      "expected_output": "A competitive-landscape.md artifact committed to the resolved layout path. The artifact names the industry boundary (B2B project management, North America, 0–18 months). Each of the five forces — Supplier Power, Buyer Power, Threat of New Entrants, Threat of Substitutes, Competitive Rivalry — is assessed with at least one named, concrete observable fact (not generic). An overall industry attractiveness rating (high/medium/low) is derived from the force profile. The one or two forces most determinative of strategic position are named. Porter's Five Forces is referenced by name; no verbatim framework text or Michael Porter quotes appear. The resolved path is surfaced before writing.",
+      "assertions": [
+        "Industry boundary, geography, and time horizon are established before force assessment begins",
+        "Each of the five forces is assessed with at least one named observable fact — a named supplier, a switching cost signal, a named substitute, a regulatory threshold, or a measured growth rate",
+        "No force is assessed with purely generic language ('high rivalry because the market is competitive')",
+        "Overall industry attractiveness rating (high/medium/low) is derived and justified",
+        "The one or two forces most determinative of strategic position are named with a strategic implication",
+        "Porter's Five Forces is named; no definition, template, or verbatim framework explanation appears",
+        "The artifact is committed to the resolved path with frontmatter type: competitive-landscape; path is surfaced before writing"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {"query": "Run a BCG matrix on our product portfolio", "should_trigger": true},
+  {"query": "I need to assess portfolio position across our three product lines", "should_trigger": true},
+  {"query": "Which products should we invest in and which should we cut?", "should_trigger": true},
+  {"query": "Map our products into Stars, Cash Cows, Question Marks, and Dogs", "should_trigger": true},
+  {"query": "Do a growth-share matrix analysis", "should_trigger": true},
+  {"query": "Portfolio investment allocation across our business units", "should_trigger": true},
+
+  {"query": "Run a SWOT on our market position", "should_trigger": false},
+  {"query": "Analyze the five forces in this industry", "should_trigger": false},
+  {"query": "I need to cascade OKRs to team level", "should_trigger": false},
+  {"query": "Set the UX strategy for our redesign", "should_trigger": false},
+  {"query": "Synthesize our stakeholder research", "should_trigger": false}
+]
