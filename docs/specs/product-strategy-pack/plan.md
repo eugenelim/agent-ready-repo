@@ -73,7 +73,9 @@ Frontmatter: `name:`, `description:`, `triggers:` (elicitation phrases). Body: `
 
 ### Cross-pack routing (run-okr-cascade only)
 
-The `run-okr-cascade` skill's Procedure step 4 writes each identified gap as a `{type = "<decided-at-T6>", slug = "<gap-slug>"}` entry (no `needs` field for no-dependency entries — per `workspace.toml` format; `"nothing"` is not a valid value) to the appropriate initiative's `[shaping_queue].backlog` array in `workspace.toml`. The `type` value is decided at T6 start (either `"strategy"` with a check-workspace update, or `"shape"` using the default routing to `frame-situation`). Step 5 surfaces the PE pack absent diagnostic if `frame-situation` is not found. Full contract detail in `references/cross-pack-routing.md`.
+The `run-okr-cascade` skill's Procedure step 4 writes each identified gap as a `{type = "strategy", slug = "<gap-slug>"}` entry (no `needs` field — no-dependency entries omit it) to the appropriate initiative's `[shaping_queue].backlog` in `workspace.toml`. Step 5 surfaces the PE pack absent diagnostic if `frame-situation` is not found. Full contract detail in `references/cross-pack-routing.md`.
+
+`check-workspace` line 98 is updated as part of T6: the `strategy` row changes from "run product-strategy pack skill" to "route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim" — matching the progressive-disclosure pattern already used for the `shape` type.
 
 ### Artifact commit convention (all artifact-writing skills)
 
@@ -177,22 +179,23 @@ Each skill's Procedure closes with: *"Commit artifact to `docs/product/shaping/<
 ### T6: `run-okr-cascade` skill
 
 **Depends on:** T1
-**Touches:** `packs/product-strategy/.apm/skills/run-okr-cascade/**` — and additionally `packs/core/.apm/skills/check-workspace/SKILL.md` if the implementation-time decision selects option (a) (update check-workspace routing for processed strategy entries). Selecting option (b) confines the change to the product-strategy pack only.
+**Touches:** `packs/product-strategy/.apm/skills/run-okr-cascade/**`, `packs/core/.apm/skills/check-workspace/SKILL.md` (line 98 routing fix — decided)
 
 **Tests:**
 - Goal-based: `lint-skill-spec.py` exits 0; `SKILL.md` < 100 lines; eval files present (AC4, AC6).
 - Goal-based: `grep -r "shaping_queue" packs/product-strategy/.apm/skills/run-okr-cascade/` returns a hit (AC7 cross-pack routing).
 - Goal-based: `grep -r "frame-situation not found" packs/product-strategy/.apm/skills/run-okr-cascade/` returns the diagnostic string (AC7).
-- Manual QA: cold-invoke with sample company OKRs; confirm output includes `okr-cascade.md` artifact, at least one shaping-queue entry in the agreed format (type per the pre-step decision in the Approach below), and the absent-PE-pack diagnostic is described in the skill.
+- Goal-based: `grep "frame-situation" packs/core/.apm/skills/check-workspace/SKILL.md` returns a hit on the `strategy` row confirming the routing was updated (AC7 check-workspace fix).
+- Manual QA: cold-invoke with sample company OKRs; confirm output includes `okr-cascade.md` artifact, at least one `{type = "strategy"}` shaping-queue entry, and the absent-PE-pack diagnostic is described in the skill.
 
 **Approach:**
-- **Before writing step 4:** Surface the `check-workspace` type-conflict decision to the user (spec AC7 second bullet). Options: (a) use `{slug = "<gap-slug>", type = "strategy"}` and update `check-workspace` to add a sub-route for "strategy-gap-ready-for-frame-situation" state; or (b) use `{slug = "<gap-slug>", type = "shape"}` (default shaping type, routes to frame-situation without check-workspace modification). Wait for the user's direction before proceeding; record the decision in `references/cross-pack-routing.md`.
-- `SKILL.md`: When to invoke ("I need to cascade company OKRs and identify gaps"); Procedure — elicit company OKRs (or read from `docs/product/shaping/`) → derive team-level OKRs → identify gaps between current state and OKR targets → commit `okr-cascade.md` → resolve target initiative (single active `["ini-NNN"]` section auto-resolved; if multiple active, elicit from user) → append each gap to the initiative's `[shaping_queue].backlog` in `workspace.toml` using the type agreed in the pre-step decision → if `frame-situation` not found emit the diagnostic.
-- `references/cross-pack-routing.md`: full contract detail per RFC-0063 §Cross-pack routing contract — the seven-step sequence, the `workspace.toml` entry format (with `needs` field omitted for no-dependency entries — `{slug = "...", type = "..."}` not `{…, needs = "nothing"}`), the initiative-resolution logic, the graceful-absent diagnostic, and the co-install note.
+- `SKILL.md`: When to invoke ("I need to cascade company OKRs and identify gaps"); Procedure — elicit company OKRs (or read from `docs/product/shaping/`) → derive team-level OKRs → identify gaps between current state and OKR targets → commit `okr-cascade.md` → resolve target initiative (single active `["ini-NNN"]` section auto-resolved; if multiple active, elicit from user) → append each gap as `{type = "strategy", slug = "<gap-slug>"}` to the initiative's `[shaping_queue].backlog` in `workspace.toml` → if `frame-situation` not found emit the diagnostic.
+- `packs/core/.apm/skills/check-workspace/SKILL.md` line 98: change `strategy` row from `"run product-strategy pack skill (requires product-strategy pack — M4)"` to `"route through frame-situation (PE pack — M2); if not yet available, run frame-intent as interim"`. One-line edit only.
+- `references/cross-pack-routing.md`: full contract detail — the seven-step sequence, `{type = "strategy", slug = "..."}` entry format (no `needs` field), the initiative-resolution logic, the check-workspace routing fix rationale, the graceful-absent diagnostic, and the co-install note.
 - `references/agentbundle-layout.md`: artifact path resolution.
 - Anti-patterns: OKR cascade is org-wide alignment, not per-feature goal-setting (distinct from Pillar 2's Gothelf/Seiden OKR-linked UX framing); do not author feature-level OKRs here.
 
-**Done when:** `lint-skill-spec` green; `SKILL.md` < 100 lines; routing contract greps pass; eval files present; manual-QA walk recorded.
+**Done when:** `lint-skill-spec` green; `SKILL.md` < 100 lines; routing contract greps pass; check-workspace grep passes; eval files present; manual-QA walk recorded.
 
 ---
 
