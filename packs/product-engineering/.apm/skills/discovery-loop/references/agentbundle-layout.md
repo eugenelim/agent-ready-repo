@@ -22,11 +22,11 @@ One key:
 
 ```toml
 [discovery]
-parent = "docs/discovery"   # a base directory; one subdirectory per initiative goes *under* it
+output_dir = "docs/discovery"   # a base directory; one subdirectory per initiative goes *under* it
 ```
 
-- **`parent` is a base, not the leaf.** Each initiative is a subdirectory:
-  `<parent>/<initiative-slug>/`, holding the Tier-1 working sidecar in `_state/`
+- **`output_dir` is a base, not the leaf.** Each initiative is a subdirectory:
+  `<output_dir>/<initiative-slug>/`, holding the Tier-1 working sidecar in `_state/`
   (`blackboard.json`, `open-questions.json`, `traceability.json`,
   `decision-log.json`, `meta.json`, `plan-tree.json`) and the Tier-2 committed
   durable artifacts beside it (`domain-framing.md`, `scope-boundary.md`,
@@ -41,7 +41,7 @@ parent = "docs/discovery"   # a base directory; one subdirectory per initiative 
 `discovery-loop` resolves the discovery root in this order — **config → designed
 default → discover-by-marker** — and surfaces ambiguity rather than guessing:
 
-1. **Config** — the `[discovery] parent` key above, if the adopter has bound it.
+1. **Config** — the `[discovery] output_dir` key above, if the adopter has bound it.
 2. **Designed default** — `docs/discovery/` (repo mode) or `.context/discovery/`
    (non-repo / scratch). **This is the fallback in force until the key is bound** —
    the loop works with no config at all.
@@ -55,7 +55,7 @@ default → discover-by-marker** — and surfaces ambiguity rather than guessing
 The **traceability lint** reads its own optional `[traceability].sidecar` key
 (and defaults to `docs/discovery/**/_state/traceability.json`) — that is the
 *consumer's* discovery, documented in the lint, distinct from the `[discovery]
-parent` *writer* key here. Binding `[discovery] parent` does not require binding
+output_dir` *writer* key here. Binding `[discovery] output_dir` does not require binding
 `[traceability].sidecar`; the lint's default discovery already finds the
 `_state/traceability.json` under `docs/discovery/`.
 
@@ -63,5 +63,5 @@ parent` *writer* key here. Binding `[discovery] parent` does not require binding
 
 A repo-root `agentbundle-layout.toml` overrides a `~/.agentbundle/` one, the same
 precedence every adopter-file table uses. A user-scope discovery (an Obsidian
-vault, a non-repo store) sets `[discovery] parent` in the user-scope file; a
+vault, a non-repo store) sets `[discovery] output_dir` in the user-scope file; a
 repo-scoped one sets it at the repo root.

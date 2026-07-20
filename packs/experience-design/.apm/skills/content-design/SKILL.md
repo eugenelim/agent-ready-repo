@@ -48,7 +48,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
    - Content hierarchy using the Nava PBC must-say → probably-say → might-say model: what is non-negotiable (must-say), what helps most readers (probably-say), and what serves edge cases (might-say)?
    - Completion metric — task completion rate or search resolution rate.
 
-4. **Resolve and write the content brief.** Copy `assets/content-brief-template.md` to `docs/design/content/<slug>.md`. Fill the relevant sections for the surface type. Resolve any conflicts in the elicitation (competing section jobs, unclear audience priority) before writing — the brief should have no open decisions, only open questions. Record open questions at the end. The artifact path follows the three-tier layout contract (config → default → discover-by-marker) per RFC-0050 D6; the default is `docs/design/content/<slug>.md` with frontmatter `type: content-brief`. Load `references/agentbundle-layout.md` for the full path resolution.
+4. **Resolve and write the content brief.** Resolve the output path via `references/agentbundle-layout.md` (the `[design]` section). Write to `<output_dir>/content/<slug>.md` with frontmatter `type: content-brief`. Copy `assets/content-brief-template.md` to that path. Fill the relevant sections for the surface type. Resolve any conflicts in the elicitation (competing section jobs, unclear audience priority) before writing — the brief should have no open decisions, only open questions. Record open questions at the end.
 
 5. **Hand off.** Once the content brief is written:
    - Name `tone-of-voice` as the next step for copy voice and register grounding — the brief names what to say; tone-of-voice names how to say it.
