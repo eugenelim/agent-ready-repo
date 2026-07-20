@@ -38,14 +38,17 @@ output_dir = "docs/design"
 
 # pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
-# measured by tools/run-pack-evals.py; each also ships a Tier-4 LLM-judge
-# rubric (evals/evals.json, keyed by file presence, graded via --mode judge).
-# All are user-triggered judgment/authoring skills, so all are covered. The
-# `experience-reviewer` agent is a role-match-dispatched primitive, not a
-# Skill-router-activated skill, so it is not listed here (its eval surface is
-# its review-list output contract + manual-QA dispatch; RFC-0050 § Errata).
+# measured by tools/run-pack-evals.py. The judgment/authoring skills (all
+# except experience-status) also ship a Tier-4 LLM-judge rubric
+# (evals/evals.json, keyed by file presence, graded via --mode judge).
+# `experience-status` is a read-only orient skill that writes no files, so it
+# ships eval_queries.json only (activation coverage) — no evals.json judge
+# rubric (there is no file presence to key on). The `experience-reviewer`
+# agent is a role-match-dispatched primitive, not a Skill-router-activated
+# skill, so it is not listed here (its eval surface is its review-list output
+# contract + manual-QA dispatch; RFC-0050 § Errata).
 [pack.evals]
-skills = ["creative-direction", "content-design", "tone-of-voice", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design"]
+skills = ["creative-direction", "content-design", "tone-of-voice", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "experience-status"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
