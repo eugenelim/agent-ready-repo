@@ -59,29 +59,11 @@ shipped = [
   "spec/m1-governance-integration", # Batch 5
   "spec/spec-A-workspace-status-rename", # RFC-0067 Change A
   "spec/new-rfc-followon-queue-write",
+  "spec/queue-add",              # PR #566
+  "spec/work-loop-queue-shipped-fix", # Fix done-step + stale-queue warning + line-177 path bug
 ]
 queue   = [
-  # Independent track — no deps; ship in parallel with spec-A now
-
-  # New skill in core pack. Gap: no skill bridges items surfaced in a session
-  # (follow-ons, findings, recommendations) to workspace.toml without a manual
-  # prompt to another session. Activation phrase: "add these to the queue" or
-  # "capture these as queue items" + a bulleted/numbered list in context.
-  # Behaviour: derive spec/<slug> paths from list item text, infer needs deps
-  # from explicit sequencing language in the list ("after X", "depends on Y"),
-  # append to [work].queue of the active initiative (or ask if >1 active).
-  # Verb: queue-add follows core pack write-skill convention (author-brief,
-  # receive-brief). Does not create spec files — writes workspace.toml only.
-  # CRITICAL output constraint: comments written per entry must be rich enough
-  # for a cold-start session to write a full spec without revisiting the
-  # originating session — problem, fix, affected file/skill, key decisions.
-  # One-liner comments are not sufficient (observed: this session's initial
-  # entries needed expansion before a new session could act on them).
-  # Canonical naming gate: before shipping, verify skill name against ADR-0054
-  # verb taxonomy (session-arc skills) or core pack write-skill convention
-  # (utility skills); verify activation phrases trigger correctly end-to-end.
-  # User reviews all entries before committing.
-  "spec/queue-add",
+  # Independent track — no deps
 
   # Errata entry in docs/rfc/0064-ini-001-ai-native-ecosystem.md. Doc only.
   # Trust boundary: workspace-status is only as complete as queue population.
