@@ -474,7 +474,30 @@ article.md-content__inner:has(> .hero-section) {
 /* ── Announcement bar ────────────────────────────────────────────────────── */
 
 .md-banner {
+  background-color: #0b0e12;  /* dark zone — cohesion with header (Rubric 1) */
   font-size: 0.875rem;
+}
+
+/* ── Platform back-link — cross-surface nav to marketing site ────────────── */
+
+.platform-back-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  color: #e8952b;
+  text-decoration: none;
+  letter-spacing: 0.08em;
+}
+
+.platform-back-link:hover {
+  color: #f5bc6a;
+  text-decoration: none;
+}
+
+.platform-back-link:focus-visible {
+  color: #f5bc6a;
+  outline: 2px solid rgba(232, 149, 43, 0.7);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 /* ── Reduce-motion: honour system preference ────────────────────────────── */

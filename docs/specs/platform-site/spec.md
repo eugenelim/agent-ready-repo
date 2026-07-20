@@ -176,6 +176,14 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 - [x] Every Astro page has a complete `<head>`: `<meta name="description">`, `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:image">`; og:image is a static `social.png` in `web/public/`
 - [x] `<link rel="canonical">` on every Astro page resolving to the correct GitHub Pages URL
 
+### Docs ↔ Platform navigation (post-Phase 4 amendment)
+
+- [x] A "← Platform" link is present in the docs header on every MkDocs page, implemented via `site/overrides/main.html` (announce block override)
+- [x] The link targets the marketing site root (`https://eugenelim.github.io/agent-ready-repo/`)
+- [x] The link uses the `.platform-back-link` class styled with JetBrains Mono, `#e8952b` amber, and `#f5bc6a` hover
+- [x] `make site-build` exits 0 with the override in place
+- [x] `build/docs/index.html` contains `class=platform-back-link` (confirmed grep count=1)
+
 ### CI + deploy (Phase 1 prerequisite)
 
 - [x] GitHub Actions workflow: Astro builds first → MkDocs builds second → artifact uploaded from `build/` (verified locally end-to-end: `build/index.html` and `build/docs/index.html` coexist, proving Astro's outDir clean does not wipe MkDocs output)
