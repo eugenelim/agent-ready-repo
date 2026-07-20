@@ -826,9 +826,11 @@ mode below, then evaluate the terminal-state bullet last.
     spec's path (stop at the first match; entries are bare strings or inline
     objects with a `path` field — `slug` is shaping-queue only). If found,
     move that path to `["<slug>".work].shipped` as a bare string (dropping
-    `needs` and other fields), stage the edit in this PR's diff, and use a
-    comment-preserving edit (targeted insertion or `tomlkit`; never a full
-    `tomllib` + `tomli_w` round-trip). Not found, or absent: skip — no error.
+    `needs` and other fields), and use a comment-preserving edit (targeted
+    insertion or `tomlkit`; never a full `tomllib` + `tomli_w` round-trip).
+    **Commit this to the branch before `git push` or `gh pr create` — it
+    belongs in the PR diff, not as a follow-up after merge.** Not found, or
+    absent: skip — no error.
   - **Reminder:** update `docs/product/roadmap.md` to reflect the shipped
     spec (one line; the roadmap is the human-readable companion to the queue).
     If `workspace.toml` is absent, skip this reminder.
