@@ -160,6 +160,28 @@ const installHref = withBase('/#install');
     top: 7px;
   }
 
+  /* X state: move icon regardless of motion preference; transition is motion-only. */
+  .nav__mobile[open] .nav__burger {
+    background-color: transparent;
+  }
+
+  .nav__mobile[open] .nav__burger::before {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .nav__mobile[open] .nav__burger::after {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .nav__burger,
+    .nav__burger::before,
+    .nav__burger::after {
+      transition: transform var(--ds-dur-quick) var(--ds-ease-std),
+                  background-color var(--ds-dur-quick) var(--ds-ease-std);
+    }
+  }
+
   .nav__drawer {
     display: flex;
     flex-direction: column;
@@ -186,6 +208,12 @@ const installHref = withBase('/#install');
       border-top: 1px solid var(--ds-hero-border);
       padding: var(--ds-space-5) var(--ds-content-pad-x) var(--ds-space-6);
       z-index: var(--ds-z-overlay);
+    }
+
+    .nav__drawer .nav__cta {
+      display: block;
+      text-align: center;
+      margin-top: var(--ds-space-2);
     }
   }
 </style>

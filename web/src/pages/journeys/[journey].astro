@@ -119,15 +119,15 @@ const installCommand =
     </div>
   </Section>
 
-  <!-- Section 6: What good output looks like -->
-  <Section tone="surface">
-    <div class="content-body">
-      <h2 class="section-h2">What good output looks like</h2>
-      <p class="placeholder-note">
-        <em>Content authored progressively. A well-completed session produces: clean mechanical gates (lint, typecheck, tests), a reviewer report marked <code>Clean — ready to commit.</code>, a PR description that names what changed, what was deferred, and what was found mid-implementation, and a spec that matches the implementation.</em>
-      </p>
-    </div>
-  </Section>
+  <!-- Section 6: What good output looks like (only when data is present) -->
+  {data.goodOutputDescription && (
+    <Section tone="surface">
+      <div class="content-body">
+        <h2 class="section-h2">What good output looks like</h2>
+        <p class="good-output">{data.goodOutputDescription}</p>
+      </div>
+    </Section>
+  )}
 
   <!-- Section 7: Typical session shape -->
   <Section tone="surface-alt">
@@ -322,23 +322,10 @@ const installCommand =
   }
 
   /* Section 6 */
-  .placeholder-note {
-    font-size: var(--ds-type-body);
-    color: var(--ds-on-surface-muted);
+  .good-output {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
     line-height: var(--ds-lead-body);
-    padding: var(--ds-space-5) var(--ds-space-6);
-    background-color: var(--ds-surface-alt);
-    border-radius: var(--ds-radius-md);
-    border: 1px solid var(--ds-border);
-  }
-
-  .placeholder-note :global(code) {
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-mono-sm);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.3rem;
-    border-radius: var(--ds-radius-sm);
   }
 
   /* Section 7 */
