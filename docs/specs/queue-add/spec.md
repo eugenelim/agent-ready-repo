@@ -1,6 +1,6 @@
 # Spec: queue-add — bridge session-surfaced items into the work queue
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064 (workspace.toml schema, D2–D9), ADR-0054 (skill-naming taxonomy — utility write-skill branch)
@@ -245,59 +245,59 @@ against the observable file diff.
 
 ## Acceptance Criteria
 
-- [ ] **Activation.** The skill triggers on "add these to the queue" / "capture
+- [x] **Activation.** The skill triggers on "add these to the queue" / "capture
   these as queue items" (and close paraphrases) when a bulleted or numbered list
   is present in context.
-- [ ] **Slug derivation & collision.** Derives a kebab-case `spec/<slug>` from
+- [x] **Slug derivation & collision.** Derives a kebab-case `spec/<slug>` from
   each item's text and confirms with the user; on collision with an existing
   `docs/specs/<slug>/` or an existing `queue`/`active`/`[backlog].open` entry,
   prompts before proceeding — never overwrites.
-- [ ] **Dependency inference.** Infers `needs` **only** from explicit sequencing
+- [x] **Dependency inference.** Infers `needs` **only** from explicit sequencing
   language, mapping to queue-prefix notation (`work:spec/<slug>`,
   `backlog:<slug>`); independent items get no `needs`.
-- [ ] **Cold-start-sufficient comments.** Every appended entry carries a comment
+- [x] **Cold-start-sufficient comments.** Every appended entry carries a comment
   block covering problem, fix, affected file/skill, and key decisions —
   sufficient for a fresh session to write the full spec. One-liners are rejected.
-- [ ] **Target initiative.** Appends to the single active initiative's
+- [x] **Target initiative.** Appends to the single active initiative's
   `[work].queue`; when more than one initiative is `active`, prompts for
   selection; never guesses.
-- [ ] **Comment-preserving write.** Uses targeted text insertion / `tomlkit`;
+- [x] **Comment-preserving write.** Uses targeted text insertion / `tomlkit`;
   existing comments in `workspace.toml` survive the write.
-- [ ] **Graceful degradation.** A missing, unparseable, or queue-less
+- [x] **Graceful degradation.** A missing, unparseable, or queue-less
   `workspace.toml` yields a named diagnostic and continues (no throw): the user
   is told the derived entries and how to add them manually.
-- [ ] **Schema respect.** Writes only the keys the schema defines for each entry
+- [x] **Schema respect.** Writes only the keys the schema defines for each entry
   shape — `path` + optional `needs` for `[work].queue` entries; `slug` +
   optional `needs`/`source` for `[backlog].open` entries — and introduces no new
   key and no numeric priority field.
-- [ ] **Prioritization.** When two or more mutually independent items are added,
+- [x] **Prioritization.** When two or more mutually independent items are added,
   elicits priority (offering a rubric — RICE / value-vs-effort / Torres /
   custom — as a prompt, not a gate) and records it as queue order + a one-line
   rationale in the group comment; skips elicitation when deps determine order or
   only one item is added.
-- [ ] **Grouping.** Appends an independent batch under a single labeled comment
+- [x] **Grouping.** Appends an independent batch under a single labeled comment
   header; folds a must-ship-together set into one atomic-bundle entry; detects a
   shaped-unit batch (shared outcome + plausible appetite) and *suggests*
   `author-brief`. Introduces no grouping field.
-- [ ] **Confirmation before write.** Presents the complete proposed change and
+- [x] **Confirmation before write.** Presents the complete proposed change and
   obtains user sign-off before writing.
-- [ ] **No spec files.** The skill writes `workspace.toml` only.
-- [ ] **Naming gate.** The skill name follows sibling-of-`author-brief`/`receive-brief`
+- [x] **No spec files.** The skill writes `workspace.toml` only.
+- [x] **Naming gate.** The skill name follows sibling-of-`author-brief`/`receive-brief`
   write-skill naming (a utility write-skill, outside the ADR-0054 session-arc
   verb taxonomy), and its activation phrases route to it end-to-end without
   colliding with `author-brief`, `receive-brief`, or `workspace-status`.
-- [ ] **Destination routing.** The skill writes only to the two homes it owns —
+- [x] **Destination routing.** The skill writes only to the two homes it owns —
   an active initiative's `[work].queue` and the repo-level `[backlog].open` —
   choosing between them by initiative scope. For any item that fits neither, it
   runs the § Grouping escalation rubric and *suggests* the right destination
   (`author-brief`, `roadmap-intents.md`, `rfc-candidates.md`, a new RFC, or a
   new initiative), deferring that write to the owning skill — never force-fitting
   an ill-matching initiative or auto-creating one.
-- [ ] **Parallelism preserved.** The skill never writes a `needs` to express a
+- [x] **Parallelism preserved.** The skill never writes a `needs` to express a
   mere priority preference; independent items remain independent so
   `workspace-status` still surfaces them as parallel candidates. Parallel-safe
   sets may be annotated in the group comment as advisory guidance.
-- [ ] **Atomic bundling.** When two or more items must ship together to avoid a
+- [x] **Atomic bundling.** When two or more items must ship together to avoid a
   broken intermediate state (e.g. a shared HARD-gate / dangling-anchor hazard),
   the skill records them as a *single* queue entry whose comment enumerates the
   coupled parts and the coupling hazard — not as separate `needs`-linked
