@@ -1,4 +1,13 @@
 /* Global entry point — order matters: tokens define the custom properties that
    base.css consumes. Imported once, from SiteLayout.astro. */
+
+/* Self-hosted fonts (Fontsource) — replaces the former fonts.googleapis.com
+   stylesheet. Variable Inter covers wght 100–900; JetBrains Mono at 400/500/700.
+   The variable Inter family registers as 'Inter Variable' (see tokens.css). */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/700.css';
+
 @import './tokens.css';
 @import './base.css';

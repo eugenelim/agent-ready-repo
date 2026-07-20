@@ -15,6 +15,8 @@ dependencies are recorded here before they are added.
 | Node.js | `>=24.0.0` (see `package.json` `engines`) | Astro build/runtime toolchain |
 | [`astro`](https://astro.build) | pinned `7.1.0` (exact, not a range) | Static-site generator for the marketing pages; pinned for reproducible CI |
 | [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/) | pinned `3.7.3` (exact, not a range) | Generates `sitemap-index.xml` + `sitemap-0.xml` at build time for SEO (Phase 4) |
+| [`@fontsource-variable/inter`](https://fontsource.org/fonts/inter) | pinned `5.3.0` (exact, not a range) | Self-hosts the Inter variable font (wght 100–900), replacing the `fonts.googleapis.com` runtime call. Family registers as `'Inter Variable'` |
+| [`@fontsource/jetbrains-mono`](https://fontsource.org/fonts/jetbrains-mono) | pinned `5.3.0` (exact, not a range) | Self-hosts JetBrains Mono (weights 400/500/700) for code/mono type, replacing the `fonts.googleapis.com` runtime call |
 
 Build-time only. This is our own site infrastructure — not a primitive or
 framework prescribed to adopters (see RFC-0061's charter-neutrality analysis).
