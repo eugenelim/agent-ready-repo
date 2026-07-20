@@ -117,12 +117,14 @@ nav:
     - Architect: packs/architect.md
     - Experience Design: packs/experience-design.md
     - Contracts: packs/contracts.md
+    - "IaC (Terraform)": packs/iac-terraform.md
     - Converters: packs/converters.md
     - Atlassian: packs/atlassian.md
     - Figma: packs/figma.md
     - "Governance Extras": packs/governance-extras.md
     - "User Guide Diataxis": packs/user-guide-diataxis.md
     - "Monorepo Extras": packs/monorepo-extras.md
+    - "Catalogue Curation": packs/catalogue-curation.md
     - "Credential Brokers": packs/credential-brokers.md
     - "Product Strategy": packs/product-strategy.md
   - Guides:
