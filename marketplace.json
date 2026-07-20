@@ -315,6 +315,31 @@
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
+      "category": "product-management",
+      "description": "The strategy seat upstream of product engineering and experience design — SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder-research synthesis (Pillar 1); UX strategy with NN/g three-layer model, Jaime Levy four tenets, and Gothelf/Seiden OKR-linked UX framing (Pillar 2); content strategy via the Halvorson quad: Purpose + Process + Structure + Governance (Pillar 3). Pure method: no growth tooling, no primary research production, no stack tokens.",
+      "displayName": "Product Strategy",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "hooks": {
+        "SessionStart": [
+          {
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+          }
+        ]
+      },
+      "keywords": [
+        "swot",
+        "okr",
+        "competitive-strategy",
+        "ux-strategy",
+        "content-strategy"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "product-strategy",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "version": "0.1.0"
+    },
+    {
+      "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "devops",
       "description": "The SRE/ops outer loop — deployed end-to-end validation above work-loop's inner build loop. Ships the `release-lead` agent and the `release-loop` skill: deploy the integrated whole to an ephemeral environment, run e2e, observe telemetry, feed deployed findings back to the inner loop (no human relay), redeploy, and iterate until the deployed whole converges — then stop at the human consent gate for the prod ship (G5), surfaced as a release-readiness record to ratify rather than a bare go/no-go. Autonomy is carved by minimum-regret: the agent runs the inner and outer loops on reversible ephemeral envs unwatched; humans gate the irreversible exits (first real users or data, data migrations, spend over threshold, security/auth-boundary changes, anything irreversible, and the prod ship). Reuses core's operational-safety depth modules + quality-engineer + security-reviewer, consumes the discovery sidecar schema by convention, and ships no new runtime engine and no new reviewer. Completes the company OS: product (discovery) → engineering (build) → SRE/ops (release). Markdown skill + agent definition, repo-scope.",
       "displayName": "Release Engineering",

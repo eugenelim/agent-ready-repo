@@ -1,0 +1,14 @@
+[
+  {"query": "Define our content strategy before content design begins", "should_trigger": true},
+  {"query": "I need to set the content strategy for our product", "should_trigger": true},
+  {"query": "Apply the Halvorson content strategy framework to our org", "should_trigger": true},
+  {"query": "What is our content governance framework?", "should_trigger": true},
+  {"query": "Define Purpose, Process, Structure, and Governance for our content", "should_trigger": true},
+  {"query": "We need an organizational content strategy, not per-page copy", "should_trigger": true},
+
+  {"query": "Write the microcopy for the error state on this form", "should_trigger": false},
+  {"query": "Draft content briefs for the onboarding flow screens", "should_trigger": false},
+  {"query": "Define the UX strategy upstream of design", "should_trigger": false},
+  {"query": "Run a SWOT on our content position", "should_trigger": false},
+  {"query": "Synthesize stakeholder research into strategy", "should_trigger": false}
+]
