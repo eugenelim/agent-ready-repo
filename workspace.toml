@@ -61,6 +61,7 @@ shipped = [
   "spec/new-rfc-followon-queue-write",
   "spec/queue-add",              # PR #566
   "spec/work-loop-queue-shipped-fix", # Fix done-step + stale-queue warning + line-177 path bug
+  "spec/spec-D-pack-workflow-guide",  # Pack workflow design guide + CONTRIBUTING step 0
 ]
 queue   = [
   # Independent track — no deps
@@ -132,6 +133,6 @@ queue   = [
   # here and not to workspace-status itself.
   {path = "spec/workspace-status-next-actions",         needs = "work:spec/spec-A-workspace-status-rename"},
   {path = "spec/spec-B-pack-status-skills",             needs = "work:spec/spec-A-workspace-status-rename"},
-  {path = "spec/spec-D-pack-workflow-guide",            needs = "work:spec/spec-A-workspace-status-rename"},
+  # spec/spec-D-pack-workflow-guide shipped — moved below
   {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
 ]
