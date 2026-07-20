@@ -24,20 +24,20 @@ output_dir = "~/research-projects"   # a base directory; project folders go *und
   start date + the question's kebab-case slug). `output_dir` is never the folder
   a single project lands in.
 
-## Resolution order — user-scope before repo-scope
+## Resolution order — repo-scope before user-scope
 
-The skill reads two locations and resolves them in this order (user wins):
+The skill reads two locations and resolves them in this order (repo wins):
 
-1. **User-scope** — `~/.agentbundle/agentbundle-layout.toml` `[research] output_dir`
-   (personal workspace; wins over repo-scope so a configured vault always applies
-   regardless of which repo you're in)
-2. **Repo-scope** — `./agentbundle-layout.toml` `[research] output_dir`
-   (team convention; use when the team commits desk-research output to the repo,
-   e.g. `docs/product/research/`)
+1. **Repo-scope** — `./agentbundle-layout.toml` `[research] output_dir`
+   (team convention; wins over user-scope so a project convention applies when
+   you're working in this repo, e.g. `docs/product/research/`)
+2. **User-scope** — `~/.agentbundle/agentbundle-layout.toml` `[research] output_dir`
+   (personal workspace; used as the fallback when no repo convention is set,
+   e.g. a personal Obsidian vault path)
 
-When both define `[research]`, the user file's `output_dir` wins; a value present
-only in the repo file still applies. This lets a personal vault override the team
-default without editing the shared file.
+When both define `[research]`, the repo file's `output_dir` wins; a value present
+only in the user file still applies. This lets a project override a personal vault
+path without editing the user-profile file.
 
 ## `output_dir` is anchored by the file's own location
 

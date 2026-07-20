@@ -23,14 +23,15 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
 # RFC-0040 / ADR-0030: consolidated-pack-layout — each artifact-writing skill
-# resolves its durable output path config → default → discover-by-marker.
-# parent is the default base; skills write file-per-artifact directly under it
+# resolves its durable output path via the adopter-owned `[strategy]` section of
+# agentbundle-layout.toml (repo-root first, user-profile second). output_dir is
+# the base; skills write file-per-artifact directly under it
 # (e.g. docs/product/shaping/swot-analysis.md). No [pack.layout.user] default
 # — output is per-repo, with no sensible absolute user-scope base.
 # Each skill ships references/agentbundle-layout.md documenting the adopter-
-# owned [product-strategy] section of their agentbundle-layout.toml.
+# owned [strategy] section of their agentbundle-layout.toml.
 [pack.layout.repo]
-parent = "docs/product/shaping"
+output_dir = "docs/product/shaping"
 
 # RFC-0037 / ADR-0028: pack-activation-evals — all 9 skills are user-triggered
 # judgment/authoring skills, so all are listed. Each ships evals/eval_queries.json
