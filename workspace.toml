@@ -2,7 +2,7 @@
 #
 # Declared-intent coordination artifact for this repo.
 # Each initiative gets its own named section. Skills read this file at session
-# start to orient to the current queue state — run `check-workspace` to surface
+# start to orient to the current queue state — run `workspace-status` to surface
 # ready items, blocked items, and active signals.
 #
 # Queue entries are strings (no dependencies) or inline objects {path/slug, needs}
@@ -38,14 +38,13 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = [
-  "spec/spec-A-workspace-status-rename",
-]
+active  = []
 shipped = [
   "spec/m1-workspace-core",      # Batch 2
   "spec/m1-work-queue",          # Batch 3
   "spec/m1-brief-queue",         # Batch 4
   "spec/m1-governance-integration", # Batch 5
+  "spec/spec-A-workspace-status-rename", # RFC-0067 Change A
 ]
 queue   = [
   # Independent track — no deps; ship in parallel with spec-A now

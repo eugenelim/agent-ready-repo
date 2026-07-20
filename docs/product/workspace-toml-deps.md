@@ -79,7 +79,7 @@ The initiative slug matches the TOML section key (`["ini-002"]`) in
 
 ## Display surface
 
-**`check-workspace`** is the skill that reads `workspace.toml`, resolves the
+**`workspace-status`** is the skill that reads `workspace.toml`, resolves the
 declared dependency DAG, and surfaces:
 
 - Items whose `needs` are all in `shipped` → **ready to start**
@@ -87,8 +87,8 @@ declared dependency DAG, and surfaces:
 - Items with no `needs` or all satisfied — and that are in parallel with the
   current `active` item → **parallel candidates**
 
-Agents read the `check-workspace` output to decide what to work on next.
-They do not enforce the DAG themselves; `check-workspace` is the sole
+Agents read the `workspace-status` output to decide what to work on next.
+They do not enforce the DAG themselves; `workspace-status` is the sole
 resolution surface.
 
 ---
@@ -99,9 +99,9 @@ resolution surface.
 entry's `needs` are not yet shipped) is deferred to a **post-M1 milestone**
 per RFC-0064 D7. Until that milestone ships:
 
-- `check-workspace` surfaces ready/blocked/parallel status — agents read it.
+- `workspace-status` surfaces ready/blocked/parallel status — agents read it.
 - `work-loop` does **not** automatically block when a `needs` dep is unmet.
-- Teams rely on `check-workspace` output and human judgment to sequence work.
+- Teams rely on `workspace-status` output and human judgment to sequence work.
 
 This reference doc does not create a false expectation: the deferred
 enforcement means the `needs` field today is a *declared intent*, not a
