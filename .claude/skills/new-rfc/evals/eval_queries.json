@@ -9,8 +9,13 @@
   {"query": "Draft an RFC to introduce a new top-level architectural layer", "should_trigger": true},
   {"query": "Let's circulate a proposal to change our incident-response policy", "should_trigger": true},
   {"query": "Propose a change to our authentication approach and get sign-off before we build it", "should_trigger": true},
+  {"query": "RFC-0067 was accepted — create the follow-on implementation specs", "should_trigger": true},
+  {"query": "Generate the follow-on ADRs for that accepted RFC", "should_trigger": true},
+  {"query": "The RFC was just accepted; now draft the follow-on specs for it", "should_trigger": true},
 
   {"query": "Record the decision to use Postgres — we've already chosen it", "should_trigger": false},
+  {"query": "Create a spec for the dashboard feature", "should_trigger": false},
+  {"query": "Write the ADR for our database choice — we've already decided", "should_trigger": false},
   {"query": "ADR this: we're going with Kafka", "should_trigger": false},
   {"query": "Write a spec for the CSV export feature", "should_trigger": false},
   {"query": "Spec out the new onboarding flow before we build it", "should_trigger": false},
