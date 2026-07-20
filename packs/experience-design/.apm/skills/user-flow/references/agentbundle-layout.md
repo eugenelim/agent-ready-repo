@@ -1,4 +1,4 @@
-# `agentbundle-layout.toml` — the `[experience]` section
+# `agentbundle-layout.toml` — the `[design]` section
 
 `agentbundle-layout.toml` is a single, **adopter-owned** file that controls
 where output-producing packs write their durable work. It is never shipped
@@ -7,91 +7,64 @@ step appends a default section to one you already have — **append-if-exists
 / never-create / never-overwrite**). On the rare append of a *missing*
 section, the installer re-emits the file and does **not** preserve freeform
 comments or off-schema keys; an existing section is left byte-identical.
-This page documents the `[experience]` section that the artifact-writing
+This page documents the `[design]` section that the artifact-writing
 skills in this pack read.
 
-## The `[experience]` table
+## The `[design]` table
 
 One key:
 
 ```toml
-[experience]
-parent = "docs/design"   # a base directory; output files go *under* it
+[design]
+output_dir = "docs/design"   # a base directory; output files go *under* it
 ```
 
-- **`parent` is a base, not the leaf.** Each output file is written under a
-  subdirectory of `parent` — never to `parent` itself. The file-per-slug
-  shapes across the pack are:
-  - `journey-mapping` → `<parent>/journeys/<slug>.md`
-    (frontmatter `type: customer-journey`)
-  - `service-blueprint` → `<parent>/blueprints/<slug>.md`
-    (frontmatter `type: service-blueprint`)
-  - `user-flow` → `<parent>/screens/<slug>-flow.md`
-    (frontmatter `type: screen-flow`) + per-screen briefs at
-    `<parent>/screens/<slug>/<screen-name>.md`
-  - `process-mapping` → `<parent>/processes/<slug>.md`
-    (frontmatter `type: process-flow`)
+- **`output_dir` is a base, not the leaf.** Each output file is written under
+  a subdirectory of `output_dir` — never to `output_dir` itself. The
+  file-per-slug shapes across the pack are:
 
-  **This skill** writes the screen flow at `screens/<slug>-flow.md`
-  (`type: screen-flow`), one per-screen brief at
-  `screens/<slug>/<screen-name>.md`, and — optionally — a design-tool handover
-  alongside each brief at `screens/<slug>/<screen-name>.handover.md`.
+  | Skill | Output path |
+  | --- | --- |
+  | `journey-mapping` | `<output_dir>/journeys/<slug>.md` |
+  | `service-blueprint` | `<output_dir>/blueprints/<slug>.md` |
+  | `user-flow` | `<output_dir>/screens/<slug>-flow.md` + `<output_dir>/screens/<slug>/<screen>.md` |
+  | `process-mapping` | `<output_dir>/processes/<slug>.md` |
 
-## Two locations, repo overrides user
+  Each directory (`journeys/`, `blueprints/`, `screens/`, `processes/`) is
+  created lazily on first write by the writing skill — you do not need to
+  pre-create it.
 
-The skill reads the **repo-root `./agentbundle-layout.toml`**
-`[experience]` table if present, else the **user-profile
-`~/.agentbundle/agentbundle-layout.toml`** table. When both define
-`[experience]`, the repo file's table wins; a table present only in the
-user file still applies.
+## Repo-root first, then user-profile
 
-## `parent` is anchored by the file's own location
+The skill resolves `output_dir` in two steps before elicitation:
 
-- A **repo-root** file's `parent` is **repo-root-relative** (an absolute
+1. **Repo-root config** — read `./agentbundle-layout.toml` `[design] output_dir`
+   if the file exists and the key is present. Repo-scope takes priority so that
+   a project or team convention applies when you're working in this repo.
+
+2. **User-profile config** — read `~/.agentbundle/agentbundle-layout.toml`
+   `[design] output_dir` if the file exists and the key is present. User-scope is
+   the fallback — useful for a personal vault (e.g. Obsidian) or a default output
+   path you use across repos when no repo convention is set.
+
+When neither config resolves, the skill runs two-branch elicitation — see
+the SKILL.md body for the full procedure.
+
+## `output_dir` is anchored by the file's own location
+
+- A **repo-root** file's `output_dir` is **repo-root-relative** (an absolute
   value is allowed but flagged non-portable).
-- A **user-profile** file's `parent` **must be an explicit absolute path**
-  (`~`-anchored is fine). A relative value there is an *Ask-first*
-  deviation — never silently resolved against the ambient working directory.
+- A **user-profile** file's `output_dir` **must be an explicit absolute path**
+  (`~`-anchored is fine). A relative value there is an *Ask-first* deviation —
+  never silently resolved against the ambient working directory.
 
-Regardless of anchor, the skill resolves `parent` to its full absolute path
-(realpath-resolved, `~`-expanded, `..` rejected) and **surfaces that path
-before the first write**. A repo-root-sourced `parent` that resolves outside
-the repo tree is treated as untrusted-origin and confirmed before writing.
-
-## Default and posture
-
-When no `[experience]` section resolves, the pack defaults to `docs/design`
-(its `[pack.layout.repo]` default) — committed design docs, the natural home
-for journeys, blueprints, screen flows, and process maps in a product repo.
-
-The `experience-design` pack ships **no `[pack.layout.user]` default** — its output
-is per-repo (each journey or screen flow belongs to a specific product). For a
-personal cross-repo default, write an `[experience]` section into your
-user-profile file by hand:
+Regardless of anchor, the skill resolves `output_dir` to its full absolute path
+(realpath-resolved, `~`-expanded, `..` rejected) and **surfaces that path before
+the first write**. A repo-root-sourced `output_dir` that resolves outside the
+repo tree is treated as untrusted-origin and confirmed before writing.
 
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml
-[experience]
-# parent = "/abs/path/to/design-docs"   # uncomment + set an absolute path
+[design]
+output_dir = "~/Documents/MyVault/design"   # absolute path; ~ is expanded
 ```
-
-## Discover-by-marker fallback
-
-If neither a config table nor the default resolves to an existing directory,
-search the workspace for an existing artifact by its canonical frontmatter
-`type:` field:
-
-- `type: customer-journey` — locates an existing journey map
-- `type: service-blueprint` — locates an existing service blueprint
-- `type: screen-flow` — locates an existing screen flow
-- `type: process-flow` — locates an existing process map
-
-The first match's parent directory is used as `<parent>` for subsequent
-writes — so a team that already chose a different layout is not forced to
-reorganize. When no marker is found either, surface the conflict and ask the
-adopter where design artifacts should live before writing.
-
-The four values above are the **only** discover anchors. The per-screen brief
-carries a brief-internal `type: screen-flow-brief` that is **deliberately not** a
-discover anchor — briefs are reached *through* the screen flow, never discovered
-independently, so a marker scan never resolves a `<parent>` from a brief.
