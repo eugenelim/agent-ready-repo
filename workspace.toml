@@ -114,3 +114,58 @@ queue   = [
   # Independent track — no deps
   "spec/catalogue-curation",
 ]
+
+[backlog]
+# Repo-durable open items not scoped to an active initiative. Surfaced by
+# workspace-status alongside initiative queues. See spec/m3-backlog-absorption
+# for the full schema and docs/backlog.md migration plan.
+open = [
+  # Experience-design gap remediation — 2026-07-20 audit gap analysis
+  # Items 1–2 parallel-safe. Item 3 advisory-after 1+2 (lint fails on existing
+  # drift if run first). Item 4 advisory-after item 3 ships.
+
+  # Content fix: RFC-0066 added 9 genre-specific Direct skills to experience-design
+  # but web/src/content/journeys/experience-design.md skills frontmatter still lists
+  # 9 (journey-mapping through design-review). Pack now has 18. Also update
+  # whatChanges text to name genre-specific skills and the stage prose to reflect
+  # the full chain including genre-specific Direct skills.
+  # File: web/src/content/journeys/experience-design.md
+  {slug = "xd-web-journey-skill-count"},
+
+  # New web journey page for product-strategy pack. Pack is in catalogue (9 skills,
+  # 3 pillars: market strategy, UX strategy, content strategy), has internal journey
+  # at docs/product/journeys/product-strategist-sets-direction.md, but no
+  # web/src/content/journeys/product-strategy.md. Follow existing journey schema:
+  # pack/scope/tagline/prerequisitePacks/whatChanges/skills/humanGates/typicalSession
+  # frontmatter + stage prose. Reference: packs/product-strategy/pack.toml + README.md.
+  # File: web/src/content/journeys/product-strategy.md (new)
+  {slug = "product-strategy-web-journey"},
+
+  # Genre routing bridge for frontend-engineering skill: after aesthetic-reference
+  # step, check available-skills for conversion-design / documentation-design / etc.
+  # and load the matching Direct skill before writing code. Named by name, T2
+  # conditional (skip with note if experience-design absent). Projects to all adopters
+  # via core pack. Constraining ADRs: ADR-0023, ADR-0042, ADR-0047. Key decisions
+  # settled 2026-07-20: name by name not inference; T2 conditional; fallback = note
+  # in spec and proceed with design pre-flight below.
+  # File: packs/core/.apm/skills/frontend-engineering/SKILL.md (PLAN phase, after step 1)
+  {slug = "xd-genre-routing-frontend-engineering"},
+
+  # Clarify work-loop experience-reviewer trigger: for web surface diffs, "rendered
+  # output" means build the site and describe key pages from build output — not the
+  # code diff. Without the built artifact the reviewer cannot apply genre rubrics or
+  # check cross-page consistency. One-liner clarification in REVIEW section.
+  # Advisory: sharper once xd-genre-routing-frontend-engineering ships.
+  # File: packs/core/.apm/skills/work-loop/SKILL.md (REVIEW §, experience-reviewer block)
+  {slug = "work-loop-xd-rendered-output"},
+
+  # Catalogue-maintainer lint: tools/lint-web-journey-parity.py cross-checks
+  # web/src/content/journeys/<pack>.md skills frontmatter count against
+  # packs/<pack>/.apm/skills/ directory count. Follow lint-knowledge-surface-parity.py
+  # pattern (canonical source, fail-closed, env-override fixture mode for self-test).
+  # Wire as _run step in tools/pre-pr-catalogue.py. Not projected to adopters.
+  # Advisory: ship after xd-web-journey-skill-count + product-strategy-web-journey
+  # so the gate starts green on first CI run.
+  # Files: tools/lint-web-journey-parity.py (new), tools/pre-pr-catalogue.py
+  {slug = "lint-web-journey-parity"},
+]
