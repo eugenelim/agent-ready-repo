@@ -72,11 +72,9 @@ shipped = [
   "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
   "spec/rfc-0064-errata-workspace-integrity", # Amendment to RFC-0064 documenting session-fragmentation gap
   "spec/workspace-status-next-actions", # Add ### 6. Next-actions closing step to workspace-status
+  "spec/workspace-status-queue-reconciliation", # PR #573 — reconciliation step
 ]
 queue   = [
-  # Independent track — no deps
-  "spec/catalogue-curation",
-
   # Schema + governance: workspace.toml [backlog] + docs/backlog.md absorption.
   # Governed by RFC-0064 amendment 2026-07-20 ("Repo-level backlog & deferral
   # register") + M3 ACs. Problem: (1) no home for well-shaped ready-now work
@@ -111,17 +109,8 @@ queue   = [
   # [backlog]. Full-mode work-loop + adversarial-reviewer (HARD-gate + governance).
   "spec/m3-backlog-absorption",
 
-  # spec-A dependents — unlock when spec/spec-A-workspace-status-rename ships
-  # Reliability before UX: reconciliation first, then next-actions, then pack skills
-
-  # Skill modified: workspace-status. For each entry in [work].queue, check if
-  # docs/specs/<path>/spec.md exists with Status: Approved or Implementing and
-  # the path is absent from queue/active. Surface as a drift warning: "N spec(s)
-  # show live status but are not queued — run queue-add or add manually."
-  # Scope: only check Status: Approved|Implementing; ignore Shipped|Archived.
-  # This is load-bearing for workspace-status reliability — without it a stale
-  # workspace.toml gives a misleading "nothing to do" picture.
-  {path = "spec/workspace-status-queue-reconciliation", needs = "work:spec/spec-A-workspace-status-rename"},
-
   {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
+
+  # Independent track — no deps
+  "spec/catalogue-curation",
 ]
