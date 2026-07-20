@@ -7,12 +7,36 @@ import { withBase } from '../../lib/paths';
 const PLUGIN_BRANCH = 'claude-plugins-dist';
 const REPO = 'eugenelim/agent-ready-repo';
 
+// SDLC value-stream order (RFC-0064 three-altitude model + the three loops):
+// core anchors first, then strategy → research → shaping → design →
+// architecture → contracts → infra → release → governance → docs, with
+// supporting tooling and connectors last. Packs not listed fall back to
+// alphabetical by name.
+const SDLC_ORDER = [
+  'core',
+  'product-strategy',
+  'desk-research',
+  'product-engineering',
+  'experience-design',
+  'architect',
+  'contracts',
+  'iac-terraform',
+  'release-engineering',
+  'governance-extras',
+  'user-guide-diataxis',
+  'converters',
+  'monorepo-extras',
+  'catalogue-curation',
+  'credential-brokers',
+  'atlassian',
+  'figma',
+];
+
 const allPacks = await getCollection('packs');
 const packs = allPacks
   .sort((a, b) => {
-    const order = ['core', 'product-engineering', 'release-engineering'];
-    const ai = order.indexOf(a.id.replace(/\.md$/, ''));
-    const bi = order.indexOf(b.id.replace(/\.md$/, ''));
+    const ai = SDLC_ORDER.indexOf(a.id.replace(/\.md$/, ''));
+    const bi = SDLC_ORDER.indexOf(b.id.replace(/\.md$/, ''));
     if (ai !== -1 && bi !== -1) return ai - bi;
     if (ai !== -1) return -1;
     if (bi !== -1) return 1;

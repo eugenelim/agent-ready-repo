@@ -1,7 +1,10 @@
 ---
 // Section 8 — THE CATALOGUE. Light zone. Progressive disclosure: the 3 loops
-// are always visible (large cards); the remaining 11 packs live behind a
-// <details> expander — zero JS. 3-always + 11-on-reveal (homepage-screen-flow.md).
+// are always visible (large cards); the remaining 14 packs live behind a
+// <details> expander — zero JS. 3-always + 14-on-reveal (homepage-screen-flow.md).
+// Within each scope group, packs follow the SDLC value-stream order used on the
+// /catalogue/ page (RFC-0064): strategy → research → design → architecture →
+// contracts → infra → governance → docs, then supporting tooling and connectors.
 import Section from '../layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
@@ -30,20 +33,23 @@ const loops = [
 ];
 
 const userPacks = [
-  { name: 'Research', desc: 'Evidence-grounded research — surveys, source maps, competing-hypothesis analysis.' },
+  { name: 'Product Strategy', desc: 'The strategy seat — SWOT, Porter, PESTLE, OKR cascade, PRFAQ, plus UX and content strategy.' },
+  { name: 'Desk Research', desc: 'Evidence-grounded research — surveys, source maps, competing-hypothesis analysis.' },
+  { name: 'Experience Design', desc: 'The full design thread — journey to realization, WCAG-aware quality floor.' },
   { name: 'Architect', desc: 'System design — design docs, diagrams, architecture review.' },
-  { name: 'Experience', desc: 'The full design thread — journey to realization, WCAG-aware quality floor.' },
   { name: 'Contracts', desc: 'API-first design — OpenAPI 3.1 and AsyncAPI contracts.' },
   { name: 'Converters', desc: 'Document conversion — PDF/DOCX/PPTX ↔ Markdown, HTML, Office, Mermaid.' },
+  { name: 'Credential Brokers', desc: 'Credential resolution — env → OS keyring → dotfile. Cleartext never reaches the model.' },
   { name: 'Atlassian', desc: 'Jira and Confluence from the agent — flow and DORA metrics, SSO-cookie auth.' },
   { name: 'Figma', desc: 'Read and render Figma designs — files, nodes, variables, FigJam → Mermaid.' },
-  { name: 'Credential Brokers', desc: 'Credential resolution — env → OS keyring → dotfile. Cleartext never reaches the model.' },
 ];
 
 const repoPacks = [
+  { name: 'IaC (Terraform)', desc: 'Plain-language intent → governed, cloud-agnostic Terraform. Human-gated; stops at plan.' },
   { name: 'Governance Extras', desc: 'Decision trail — new-rfc, new-adr, update-conventions for long-lived repos.' },
-  { name: 'User Guide (Diataxis)', desc: 'Docs scaffold — Diátaxis skeleton with new-guide.' },
+  { name: 'User Guide (Diátaxis)', desc: 'Docs scaffold — Diátaxis skeleton with new-guide.' },
   { name: 'Monorepo Extras', desc: 'Package scaffolding — new-package, example package template.' },
+  { name: 'Catalogue Curation', desc: 'Grow the catalogue — assimilate primitives, survey repos, propose packs, export forks.' },
 ];
 ---
 
@@ -70,7 +76,7 @@ const repoPacks = [
 
   <details class="catalogue__more">
     <summary class="catalogue__summary">
-      <span>See all 14 packs</span>
+      <span>See all 17 packs</span>
       <span class="catalogue__summary-arrow" aria-hidden="true">→</span>
     </summary>
 
