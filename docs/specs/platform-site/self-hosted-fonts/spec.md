@@ -19,7 +19,8 @@ origin.
 - [x] `@fontsource-variable/inter` and `@fontsource/jetbrains-mono` are added
       to `web/package.json` dependencies.
 - [x] `web/src/styles/global.css` imports the variable Inter `wght` axis and
-      the 400/500/700 JetBrains Mono weights from Fontsource.
+      the JetBrains Mono weights the components actually use (400/500/600/700/800)
+      from Fontsource.
 - [x] The `<link rel="preconnect">` (×2) and the `<link rel="stylesheet">` to
       Google Fonts are removed from `web/src/components/layout/SiteLayout.astro`.
 - [x] `--ds-font-sans` in `tokens.css` resolves Inter from the local variable
