@@ -43,17 +43,21 @@ Confirm all three before proceeding; if any fails, resolve it first.
 
 ## Procedure
 
-1. **Resolve and surface the output path.** Resolve `<parent>` by the canonical
-   three-tier order — `agentbundle-layout.toml`'s `[experience]` table (repo-root
-   file first, user-profile file second) → the pack default `docs/design` →
-   discover-by-marker (scan for the artifacts' frontmatter `type:`). Derive the
-   blueprint path as
-   `<parent>/blueprints/<slug>.md`. Resolve to a full absolute path
+1. **Resolve and surface the output path.** Resolve `<output_dir>` following the
+   config-driven, two-branch elicitation procedure in `references/agentbundle-layout.md`.
+   Resolution order: (1) repo-root `./agentbundle-layout.toml`
+   `[design] output_dir` — repo-scope takes priority; (2) user-profile
+   `~/.agentbundle/agentbundle-layout.toml` `[design] output_dir`; when neither resolves,
+   two-branch elicitation runs — never a silent default: **(a) Repo branch** —
+   suggest `docs/design/` and offer to write `output_dir` to
+   `./agentbundle-layout.toml [design]`; **(b) Personal/vault branch** — ask for
+   an absolute path (e.g. `~/Documents/<VaultName>/design/`) and write to
+   `~/.agentbundle/agentbundle-layout.toml [design]`. Derive the blueprint path as
+   `<output_dir>/blueprints/<slug>.md`. Resolve to a full absolute path
    (`~`-expand, realpath-resolve, reject `..` escapes); a repo-root-sourced
-   `parent` that resolves outside the repo tree is untrusted-origin — confirm
+   `output_dir` that resolves outside the repo tree is untrusted-origin — confirm
    before writing. **Surface the resolved path to the user before the first
    write.** Create the `blueprints/` directory lazily on first write.
-   See `references/agentbundle-layout.md` for the full schema.
 
 2. **Elicit or confirm the journey and touchpoints.** If a `journey-mapping`
    artifact is present, read its stages and frontstage actions. If it is absent,

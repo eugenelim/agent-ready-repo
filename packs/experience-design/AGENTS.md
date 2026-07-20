@@ -24,8 +24,8 @@ All 18 skill slugs are unchanged (all are function-named):
 
 The `experience-reviewer` agent name is unchanged (functional, not pack-derived).
 
-The `[experience]` table key in `agentbundle-layout.toml` is an activity-type
-identifier, not a pack name — it stays.
+The `[design]` table key replaced `[experience]` in v1.0.0 — the section name
+was updated alongside the pack rename to align with practitioner taxonomy.
 
 ### Adopter install-state impact
 

@@ -58,4 +58,4 @@ Or via your adapter's plugin marketplace UI.
 
 ## Artifact output path
 
-All artifacts commit to `docs/product/shaping/` by default. Configure the base path via the `[product-strategy]` section in your repo's `agentbundle-layout.toml` (adopter-owned; never shipped with this pack — see each skill's `references/agentbundle-layout.md`).
+All artifacts commit to `docs/product/shaping/` by default. Configure the base path via the `[strategy]` section in your repo's (or user-profile) `agentbundle-layout.toml` (adopter-owned; never shipped with this pack — see each skill's `references/agentbundle-layout.md`).

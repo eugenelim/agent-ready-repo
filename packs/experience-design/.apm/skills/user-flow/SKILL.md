@@ -88,12 +88,21 @@ Confirm all four before drafting; if any fails, resolve it first.
    step it serves (the tie up to `journey-mapping`). Each brief carries the
    bold-body `- **Type:** screen-brief` traceability marker the template ships — the
    structural-orphan lint reads it to recognize the brief as a `screen` chain node.
-6. **Resolve the path and surface it.** Resolve `<parent>` following the
-   three-tier procedure in `references/agentbundle-layout.md`. Expand to a full
-   absolute path, reject any `..` escape, and **surface the resolved path before
-   writing**. Write the flow to `<parent>/screens/<slug>-flow.md` (frontmatter
-   `type: screen-flow`) and each brief to `<parent>/screens/<slug>/<screen>.md`;
-   create the dirs lazily.
+6. **Resolve the path and surface it.** Resolve `<output_dir>` following the
+   config-driven, two-branch elicitation procedure in `references/agentbundle-layout.md`.
+   Resolution order: (1) repo-root `./agentbundle-layout.toml`
+   `[design] output_dir` — repo-scope takes priority; (2) user-profile
+   `~/.agentbundle/agentbundle-layout.toml` `[design] output_dir`; when neither resolves,
+   two-branch elicitation runs — never a silent default: **(a) Repo branch** —
+   suggest `docs/design/` and offer to write `output_dir` to
+   `./agentbundle-layout.toml [design]`; **(b) Personal/vault branch** — ask for
+   an absolute path (e.g. `~/Documents/<VaultName>/design/`) and write to
+   `~/.agentbundle/agentbundle-layout.toml [design]`. Expand to a full absolute
+   path (`~`-expand, realpath-resolve, reject `..` escapes); a repo-root-sourced
+   `output_dir` that resolves outside the repo tree is untrusted-origin — confirm
+   before writing. **Surface the resolved path before writing.** Write the flow
+   to `<output_dir>/screens/<slug>-flow.md` (frontmatter `type: screen-flow`) and
+   each brief to `<output_dir>/screens/<slug>/<screen>.md`; create the dirs lazily.
 7. **Run the cross-brief consistency pass.** Before declaring the briefs done,
    check the set as a whole: shared components reused (never reinvented), states
    uniform across screens, copy voice aligned, navigation non-contradictory. A
@@ -112,7 +121,7 @@ Confirm all four before drafting; if any fails, resolve it first.
 9. **(Optional) Emit the design-tool handover.** If the adopter wants to realize
    the screens: detect-and-degrade. A generative design-tool MCP connected (Figma
    AI, Claude, v0, or another) → trigger it with the handover; none present →
-   emit `<parent>/screens/<slug>/<screen>.handover.md` (from
+   emit `<output_dir>/screens/<slug>/<screen>.handover.md` (from
    `assets/design-tool-handover-template.md`) for the adopter to paste into
    whichever tool they use. The handover is **instructions keyed to the brief**,
    never pixels or values; it names tool *categories*, endorses none.

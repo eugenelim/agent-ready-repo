@@ -26,15 +26,15 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
 # consolidated-pack-layout (RFC-0040 / ADR-0030): the artifact-writing skills
-# resolve their durable output path config → default → discover-by-marker,
-# mirroring `product-engineering`'s `frame-intent`. `parent` is a base; each
-# skill writes file-per-slug under a subdirectory of it (journeys/, blueprints/,
-# screens/, processes/). No `[pack.layout.user]` default — output is per-repo,
-# with no sensible absolute user-scope base (same posture as product-engineering).
+# resolve their durable output path via the adopter-owned `[design]` section of
+# agentbundle-layout.toml (repo-root first, user-profile second). `output_dir` is
+# a base; each skill writes file-per-slug under a subdirectory of it (journeys/,
+# blueprints/, screens/, processes/). No `[pack.layout.user]` default — output is
+# per-repo, with no sensible absolute user-scope base.
 # Each artifact-writing skill ships a references/agentbundle-layout.md documenting
-# the adopter-owned `[experience]` table.
+# the adopter-owned `[design]` table.
 [pack.layout.repo]
-parent = "docs/design"
+output_dir = "docs/design"
 
 # pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is

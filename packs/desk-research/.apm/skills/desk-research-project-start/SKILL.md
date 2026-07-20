@@ -1,6 +1,6 @@
 ---
 name: desk-research-project-start
-description: "Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — \"start a research project\", \"set up a research project on X\", \"begin a sustained investigation\", \"open a research dossier\" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves output_dir: user-scope agentbundle-layout.toml [research] output_dir first, then repo-scope, then two-branch elicitation (repo vs personal workspace) — never a silent .context/ default. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there."
+description: "Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — \"start a research project\", \"set up a research project on X\", \"begin a sustained investigation\", \"open a research dossier\" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves output_dir: repo-scope agentbundle-layout.toml [research] output_dir first, then user-scope, then two-branch elicitation (repo vs personal workspace) — never a silent .context/ default. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there."
 ---
 
 # /desk-research-project-start
@@ -89,14 +89,14 @@ and the only code that ever *writes* the layout file is the install-time append.
 See [`references/agentbundle-layout.md`](references/agentbundle-layout.md) for the
 `[research]` section's full schema.
 
-1. **User-scope config** — read `~/.agentbundle/agentbundle-layout.toml` `[research]
-   output_dir` if the file exists and the key is present. User-scope takes
-   priority over repo-scope so that a personal vault (e.g. Obsidian) is always
-   used regardless of which repo you're in.
+1. **Repo-scope config** — read `./agentbundle-layout.toml` `[research] output_dir`
+   if the file exists and the key is present. Repo-scope takes priority so that
+   a project or team convention applies when you're working in this repo.
 
-2. **Repo-scope config** — read `./agentbundle-layout.toml` `[research] output_dir`
-   if the file exists and the key is present. This is the team convention: a repo
-   that commits desk-research output to `docs/product/research/` sets this key.
+2. **User-scope config** — read `~/.agentbundle/agentbundle-layout.toml` `[research]
+   output_dir` if the file exists and the key is present. User-scope is the
+   fallback — useful for a personal vault (e.g. Obsidian) or a default output
+   path you use across repos when no repo convention is set.
 
    Both files are **adopter-owned**, never shipped into a projected path (that
    would trip the self-host drift gate). The `output_dir` key is a **base**

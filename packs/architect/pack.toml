@@ -30,14 +30,14 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
 # RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
-# [architect] section of an adopter-owned `agentbundle-layout.toml`. Each design
-# effort lands in its own per-effort folder <parent>/<topic-slug>/ under the base.
+# [architecture] section of an adopter-owned `agentbundle-layout.toml`. Each design
+# effort lands in its own per-effort folder <output_dir>/<topic-slug>/ under the base.
 # No `[pack.layout.user]`: architect's output is per-repo (design docs belong in
 # the repository they describe) and there is no sensible *absolute* user base, so
-# the user-scope install append is a no-op (adopters write an [architect] section
+# the user-scope install append is a no-op (adopters write an [architecture] section
 # by hand; see the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
-parent = "docs/design"
+output_dir = "docs/design"
 
 # pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships

@@ -25,14 +25,14 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
 # RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
-# [product-engineering] section of an adopter-owned `agentbundle-layout.toml`.
+# [product] section of an adopter-owned `agentbundle-layout.toml`.
 # The repo default is docs/product — the natural home for product intents and
 # rollups. No `[pack.layout.user]`: product-engineering's output is per-repo and
 # there is no sensible *absolute* user base, so the user-scope install append is
-# a no-op (adopters write a user `[product-engineering]` section by hand; see
+# a no-op (adopters write a user `[product]` section by hand; see
 # the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
-parent = "docs/product"
+output_dir = "docs/product"
 
 # pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
