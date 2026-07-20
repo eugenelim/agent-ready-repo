@@ -1,0 +1,21 @@
+[
+  {"query": "Where are we with the design?", "should_trigger": true},
+  {"query": "What experience artifacts do we have?", "should_trigger": true},
+  {"query": "Status of the design thread", "should_trigger": true},
+  {"query": "What's next in the design?", "should_trigger": true},
+  {"query": "Show me what design work exists", "should_trigger": true},
+  {"query": "Orient me to the current design artifacts", "should_trigger": true},
+  {"query": "What design files have we created so far?", "should_trigger": true},
+  {"query": "Do we have a journey map yet? What about screen briefs?", "should_trigger": true},
+  {"query": "Where is the experience-design thread right now?", "should_trigger": true},
+  {"query": "What's missing from our design artifacts?", "should_trigger": true},
+
+  {"query": "Map the customer journey for our onboarding flow", "should_trigger": false},
+  {"query": "What screens do we need for this journey?", "should_trigger": false},
+  {"query": "Review the design — does it meet quality standards?", "should_trigger": false},
+  {"query": "What should I work on next?", "should_trigger": false},
+  {"query": "Show the workspace queue", "should_trigger": false},
+  {"query": "Blueprint the service behind the onboarding flow", "should_trigger": false},
+  {"query": "Write a spec for the new checkout feature", "should_trigger": false},
+  {"query": "Where are we on the payments fraud research?", "should_trigger": false}
+]

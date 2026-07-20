@@ -55,6 +55,21 @@ express dependencies across shaping subtypes (RFC-0064 D9):
 
 ---
 
+## Valid `shaping_queue` entry types
+
+Each `{slug = "...", type = "..."}` entry in a `shaping_queue` must use one of
+these types (RFC-0067 §B3):
+
+| Type | Skill routed by `workspace-status` | Notes |
+| --- | --- | --- |
+| `shape` (default) | `frame-intent` | Default when `type` is absent |
+| `research` | `desk-research-project-start` | Requires desk-research pack |
+| `strategy` | `frame-situation` (PE pack — M2); interim: `frame-intent` | |
+| `signal` | no action — surfaces in "active context" only | Ongoing; does not graduate |
+| `design` | `experience-status` (requires experience-design pack); fallback: `journey-mapping` | RFC-0067 §B3 |
+
+---
+
 ## Cross-initiative prefix
 
 To express a dependency on a work entry owned by a *different* initiative,
