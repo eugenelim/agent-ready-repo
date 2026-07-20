@@ -37,18 +37,26 @@ const items = displayOrder.map((j) => ({
   title="Journeys — agent-ready-repo"
   description="Staged walkthroughs of what it's like to use each pack — plan approval, execution, review, and merge gates explained."
 >
-  <Section tone="surface" labelledby="journeys-heading">
-    <h1 id="journeys-heading" class="journeys__headline">Journeys.</h1>
-    <p class="journeys__subhead">
-      Each journey is a staged walkthrough of a real usage session — what the agent
-      does, what you do, and what each human gate asks of you.
-    </p>
+  <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+  <section class="journeys-hero" aria-labelledby="journeys-heading">
+    <div class="journeys-hero__inner">
+      <span class="journeys-hero__eyebrow">Journeys</span>
+      <h1 id="journeys-heading" class="journeys-hero__heading">Journeys.</h1>
+      <p class="journeys-hero__body">
+        Each journey is a staged walkthrough of a real usage session — what the agent
+        does, what you do, and what each human gate asks of you.
+      </p>
+    </div>
+  </section>
 
+  <!-- ── Grid ──────────────────────────────────────────────────────────── -->
+  <Section tone="surface" labelledby="journeys-grid-heading">
+    <h2 id="journeys-grid-heading" class="visually-hidden">All journeys</h2>
     <ul class="journeys-grid">
       {items.map((j) => (
         <li class="journey-card">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
-            <h2 class="journey-card__name">{j.name}</h2>
+            <h3 class="journey-card__name">{j.name}</h3>
             {j.tagline && (
               <p class="journey-card__tagline">{j.tagline}</p>
             )}
@@ -61,18 +69,58 @@ const items = displayOrder.map((j) => ({
 </SiteLayout>
 
 <style>
-  .journeys__headline {
-    margin-bottom: var(--ds-space-3);
+  /* ── Hero ──────────────────────────────────────────────────────────── */
+  .journeys-hero {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
   }
 
-  .journeys__subhead {
+  .journeys-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+  }
+
+  .journeys-hero__eyebrow {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .journeys-hero__heading {
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    letter-spacing: var(--ds-track-display);
+    line-height: var(--ds-lead-display);
+    margin-bottom: var(--ds-space-5);
+    color: var(--ds-hero-fg);
+  }
+
+  .journeys-hero__body {
     font-size: var(--ds-type-body-lg);
-    color: var(--ds-on-surface-2);
-    max-width: 60ch;
-    margin-bottom: var(--ds-space-8);
+    color: var(--ds-hero-fg-2);
+    max-width: 62ch;
     line-height: var(--ds-lead-body);
   }
 
+  /* ── Accessibility ──────────────────────────────────────────────────── */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* ── Grid ──────────────────────────────────────────────────────────── */
   .journeys-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
