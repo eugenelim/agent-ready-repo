@@ -48,8 +48,71 @@ shipped = [
   "spec/m1-governance-integration", # Batch 5
 ]
 queue   = [
-  # RFC-0067 follow-ons — session-arc naming + pack workflow guide
-  {path = "spec/spec-B-pack-status-skills",       needs = "work:spec/spec-A-workspace-status-rename"},
-  {path = "spec/spec-C-workloop-argless-resume",  needs = "work:spec/spec-B-pack-status-skills"},
-  {path = "spec/spec-D-pack-workflow-guide",      needs = "work:spec/spec-A-workspace-status-rename"},
+  # Independent track — no deps; ship in parallel with spec-A now
+
+  # Skill modified: packs/governance-extras/.apm/skills/new-rfc/SKILL.md
+  # Section: ## After acceptance. Gap: the queue-write prompt fires only at
+  # in-session RFC acceptance. A follow-on session that generates specs for an
+  # already-Accepted RFC never sees the prompt (session-fragmentation drop).
+  # Fix: at the start of spec/ADR generation, if the RFC's status is Accepted
+  # and the spec paths about to be created are absent from workspace.toml,
+  # re-surface "Add implementation specs to workspace.toml queue?" before
+  # generating. Degrades gracefully if workspace.toml absent.
+  "spec/new-rfc-followon-queue-write",
+
+  # New skill in core pack. Gap: no skill bridges items surfaced in a session
+  # (follow-ons, findings, recommendations) to workspace.toml without a manual
+  # prompt to another session. Activation phrase: "add these to the queue" or
+  # "capture these as queue items" + a bulleted/numbered list in context.
+  # Behaviour: derive spec/<slug> paths from list item text, infer needs deps
+  # from explicit sequencing language in the list ("after X", "depends on Y"),
+  # append to [work].queue of the active initiative (or ask if >1 active).
+  # Verb: queue-add follows core pack write-skill convention (author-brief,
+  # receive-brief). Does not create spec files — writes workspace.toml only.
+  # CRITICAL output constraint: comments written per entry must be rich enough
+  # for a cold-start session to write a full spec without revisiting the
+  # originating session — problem, fix, affected file/skill, key decisions.
+  # One-liner comments are not sufficient (observed: this session's initial
+  # entries needed expansion before a new session could act on them).
+  # Canonical naming gate: before shipping, verify skill name against ADR-0054
+  # verb taxonomy (session-arc skills) or core pack write-skill convention
+  # (utility skills); verify activation phrases trigger correctly end-to-end.
+  # User reviews all entries before committing.
+  "spec/queue-add",
+
+  # Errata entry in docs/rfc/0064-ini-001-ai-native-ecosystem.md. Doc only.
+  # Trust boundary: workspace-status is only as complete as queue population.
+  # workspace.toml has no automated guarantee of completeness without the two
+  # skill fixes (new-rfc-followon-queue-write + workspace-status-queue-
+  # reconciliation). Session-fragmentation — accepting an RFC in one session
+  # and generating specs in another — silently drops the queue-write prompt.
+  # Errata should state: (1) the condition under which workspace-status gives
+  # an incomplete picture, (2) the two skill fixes that close the gap, and
+  # (3) the manual workaround until those fixes ship (add entries directly).
+  "spec/rfc-0064-errata-workspace-integrity",
+
+  # spec-A dependents — unlock when spec/spec-A-workspace-status-rename ships
+  # Reliability before UX: reconciliation first, then next-actions, then pack skills
+
+  # Skill modified: workspace-status. For each entry in [work].queue, check if
+  # docs/specs/<path>/spec.md exists with Status: Approved or Implementing and
+  # the path is absent from queue/active. Surface as a drift warning: "N spec(s)
+  # show live status but are not queued — run queue-add or add manually."
+  # Scope: only check Status: Approved|Implementing; ignore Shipped|Archived.
+  # This is load-bearing for workspace-status reliability — without it a stale
+  # workspace.toml gives a misleading "nothing to do" picture.
+  {path = "spec/workspace-status-queue-reconciliation", needs = "work:spec/spec-A-workspace-status-rename"},
+
+  # Skill modified: workspace-status. Replace the open-ended "What would you
+  # like to pick up?" closing prose with 2-3 numbered choices derived from the
+  # resolved queue state: (1) active spec if present, (2) next unblocked work
+  # queue item, (3) first ready shaping item. Choices must be scannable — one
+  # line each with the activation command inline. No open question at the end.
+  # Canonical naming gate: verify "next-actions" reads naturally as the section
+  # label and that activation phrases ("what's next", "what should I do") route
+  # here and not to workspace-status itself.
+  {path = "spec/workspace-status-next-actions",         needs = "work:spec/spec-A-workspace-status-rename"},
+  {path = "spec/spec-B-pack-status-skills",             needs = "work:spec/spec-A-workspace-status-rename"},
+  {path = "spec/spec-D-pack-workflow-guide",            needs = "work:spec/spec-A-workspace-status-rename"},
+  {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
 ]
