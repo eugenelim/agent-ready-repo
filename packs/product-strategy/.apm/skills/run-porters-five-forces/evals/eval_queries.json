@@ -1,0 +1,14 @@
+[
+  {"query": "Run Porter's Five Forces on the HR software market", "should_trigger": true},
+  {"query": "I need to understand the competitive landscape before market entry", "should_trigger": true},
+  {"query": "Analyze industry attractiveness using Five Forces", "should_trigger": true},
+  {"query": "What is the supplier and buyer power in the cloud infrastructure market?", "should_trigger": true},
+  {"query": "How competitive is the B2B payments space?", "should_trigger": true},
+  {"query": "Map the competitive dynamics of the edtech industry", "should_trigger": true},
+
+  {"query": "Run a SWOT analysis on our company", "should_trigger": false},
+  {"query": "I need to understand the macro environment — run PESTLE", "should_trigger": false},
+  {"query": "Cascade our OKRs to team level", "should_trigger": false},
+  {"query": "Map the customer journey for checkout", "should_trigger": false},
+  {"query": "Synthesize the stakeholder research into strategy", "should_trigger": false}
+]
