@@ -1,6 +1,6 @@
 ---
 name: new-rfc
-description: Use this skill when the user asks to propose, draft, or open an RFC (request for comments). Triggers on "RFC", "propose a change to...", "let's get input on...", "draft a proposal". Do NOT use for already-decided things (use `new-adr`) or single-feature specs (use `new-spec`).
+description: Use this skill when the user asks to propose, draft, or open an RFC, OR when generating follow-on implementation artifacts (specs, ADRs) for an already-Accepted RFC. Triggers on "RFC", "propose a change to...", "let's get input on...", "draft a proposal", "create the follow-on specs for RFC-NNNN", "generate ADRs for the accepted RFC", "implement the follow-on work from an RFC". Do NOT use for recording a standalone architectural decision outside an RFC context (use `new-adr`), or for authoring a spec with no associated Accepted RFC (use `new-spec` for standalone spec authoring; for RFC follow-on work, invoke this skill first).
 ---
 
 # Skill: new-rfc
@@ -289,8 +289,34 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 
 ## After acceptance
 
-When the RFC moves to Accepted, first offer to queue the follow-on
-implementation work in `workspace.toml`:
+**Session-fragmentation guard.** Before generating any follow-on artifact,
+check `workspace.toml` for each `spec/<path>` you are about to create (the
+only artifact form the `[work]` queue accepts; ADRs and CONVENTIONS edits are
+not checkable and stay in the follow-on artifact list below):
+
+1. If `workspace.toml` is absent → skip this check silently and proceed to
+   the prompt.
+2. Scan all `status = "active"` initiative sections. For each spec path about
+   to be created, check `[work].queue`, `[work].active`, and `[work].shipped`.
+   Match both bare-string entries (`"spec/foo"`) and inline-object entries
+   (`{path = "spec/foo", ...}`). If more than one initiative is active, the
+   existing tie-break (ask which initiative) applies when appending in the
+   prompt below (step 5).
+3. Collect the absent spec paths — those not found in any of the three arrays.
+4. If **all** spec paths are already present → skip this check silently and
+   proceed to artifact generation.
+5. If **any** spec paths are absent → run the prompt below, offering to queue
+   the absent paths.
+
+This guard fires for both the in-session case (RFC just moved to Accepted in
+this session) and the follow-on session case (RFC was Accepted in a prior
+session and you are now generating follow-on artifacts). Both cases reach the
+single shared prompt below — there is no separate in-session trigger. If the
+user declines the prompt, paths remain absent; a subsequent same-session
+invocation will re-prompt over the still-absent paths.
+
+When the guard fires, offer to queue the missing follow-on implementation work
+in `workspace.toml`:
 
 **Prompt the user:** "Add implementation specs to `workspace.toml` queue?"
 
