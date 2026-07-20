@@ -1,25 +1,70 @@
-# Copy-direction artifact path resolution
+# `agentbundle-layout.toml` — the `[design]` section
 
-The `tone-of-voice` skill writes its output artifact — the tone-of-voice doc — to a file path resolved through the three-tier layout contract established in RFC-0050 D6. This file documents the resolution order and the adopter-owned configuration key.
+`agentbundle-layout.toml` is a single, **adopter-owned** file that controls
+where output-producing packs write their durable work. It is never shipped
+into a projected path; you create it by hand (or an `agentbundle install`
+step appends a default section to one you already have — **append-if-exists
+/ never-create / never-overwrite**). On the rare append of a *missing*
+section, the installer re-emits the file and does **not** preserve freeform
+comments or off-schema keys; an existing section is left byte-identical.
+This page documents the `[design]` section that the artifact-writing
+skills in this pack read.
 
-## Resolution order (config → default → discover-by-marker)
+## The `[design]` table
 
-**Tier 1 — Config.** If the adopter's `agentbundle.toml` (or equivalent configuration file) contains an `[experience]` table with a `tone_of_voice_dir` key, the skill writes the artifact to that directory:
+One key:
 
+```toml
+[design]
+output_dir = "docs/design"   # a base directory; output files go *under* it
 ```
-[experience]
-tone_of_voice_dir = "path/to/your/tone-of-voice-docs/"
+
+- **`output_dir` is a base, not the leaf.** The `tone-of-voice` skill writes
+  to `<output_dir>/copy/<slug>.md` with frontmatter `type: tone-of-voice`,
+  where `<slug>` is a short kebab-case name for the surface (e.g. `landing-page`,
+  `product-launch`, `onboarding`). The `copy/` directory is created lazily
+  on first write — you do not need to pre-create it.
+
+## Repo-root first, then user-profile
+
+The skill resolves `output_dir` in two steps before elicitation:
+
+1. **Repo-root config** — read `./agentbundle-layout.toml` `[design] output_dir`
+   if the file exists and the key is present. Repo-scope takes priority so that
+   a project or team convention applies when you're working in this repo.
+
+2. **User-profile config** — read `~/.agentbundle/agentbundle-layout.toml`
+   `[design] output_dir` if the file exists and the key is present. User-scope is
+   the fallback — useful for a personal vault (e.g. Obsidian) or a default output
+   path you use across repos when no repo convention is set.
+
+When neither config resolves, the skill runs two-branch elicitation — no silent
+default:
+
+- **(a) Repo branch** — suggest `docs/design/` and offer to write `output_dir`
+  to `./agentbundle-layout.toml [design]`.
+- **(b) Personal/vault branch** — ask for an absolute path (e.g.
+  `~/Documents/<VaultName>/design/`) and offer to write to
+  `~/.agentbundle/agentbundle-layout.toml [design]`.
+
+## `output_dir` is anchored by the file's own location
+
+- A **repo-root** file's `output_dir` is **repo-root-relative** (an absolute
+  value is allowed but flagged non-portable).
+- A **user-profile** file's `output_dir` **must be an explicit absolute path**
+  (`~`-anchored is fine). A relative value there is an *Ask-first* deviation —
+  never silently resolved against the ambient working directory.
+
+Regardless of anchor, the skill resolves `output_dir` to its full absolute path
+(realpath-resolved, `~`-expanded, `..` rejected) and **surfaces that path before
+the first write**. A repo-root-sourced `output_dir` that resolves outside the
+repo tree is treated as untrusted-origin and confirmed before writing.
+
+```toml
+# ~/.agentbundle/agentbundle-layout.toml
+[design]
+output_dir = "~/Documents/MyVault/design"   # absolute path; ~ is expanded
 ```
-
-**Tier 2 — Default.** If no config key is present, the skill writes to the default path:
-
-```
-docs/design/copy/<slug>.md
-```
-
-where `<slug>` is a short kebab-case name for the surface (e.g. `landing-page`, `product-launch`, `onboarding`).
-
-**Tier 3 — Discover-by-marker.** If neither config nor default path resolves (the `docs/design/` directory does not exist in the repository), the skill discovers existing tone-of-voice docs by the frontmatter marker `type: tone-of-voice`. Any file in the repository containing this frontmatter field is treated as a tone-of-voice doc and may be referenced as a prior artifact.
 
 ## Frontmatter contract
 
@@ -36,4 +81,4 @@ The `type: tone-of-voice` field is the discover-by-marker key. Do not omit it; w
 
 ## Extension to the pack's marker set
 
-`tone-of-voice` extends the `experience` pack's existing discover-by-marker set alongside `content-brief` (from `content-design`). An adopter who stores both types in non-default locations can configure each independently via the `[experience]` table.
+`tone-of-voice` extends the `design` pack's existing discover-by-marker set alongside `content-brief` (from `content-design`). An adopter who stores both types in non-default locations can configure each independently via the `[design]` table.
