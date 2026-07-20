@@ -38,15 +38,18 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = []
-shipped = ["spec/m1-workspace-core"]  # Batch 2 — workspace core ships with this file
+active  = [
+  "spec/spec-A-workspace-status-rename",
+]
+shipped = [
+  "spec/m1-workspace-core",      # Batch 2
+  "spec/m1-work-queue",          # Batch 3
+  "spec/m1-brief-queue",         # Batch 4
+  "spec/m1-governance-integration", # Batch 5
+]
 queue   = [
-  # Batch 3 — work queue end-to-end (after workspace-core)
-  {path = "spec/m1-work-queue",
-   needs = "work:spec/m1-workspace-core"},
-  # Batch 4 — brief queue end-to-end (after workspace-core, independent of Batch 3)
-  {path = "spec/m1-brief-queue",
-   needs = "work:spec/m1-workspace-core"},
-  # Batch 5 — governance integration (after Batch 1; independent of Batches 2–4)
-  "spec/m1-governance-integration",
+  # RFC-0067 follow-ons — session-arc naming + pack workflow guide
+  {path = "spec/spec-B-pack-status-skills",       needs = "work:spec/spec-A-workspace-status-rename"},
+  {path = "spec/spec-C-workloop-argless-resume",  needs = "work:spec/spec-B-pack-status-skills"},
+  {path = "spec/spec-D-pack-workflow-guide",      needs = "work:spec/spec-A-workspace-status-rename"},
 ]
