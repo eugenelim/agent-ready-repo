@@ -119,9 +119,19 @@ If two modes plausibly fit, ask once which the user wants.
    the parser fails silently on unrecognised keywords, producing a blank
    diagram with no error.
 
-8. **Offer to save.** Scan for an obvious home (`docs/architecture/`,
-   `diagrams/`, `docs/`). Suggest a kebab-case `.mmd` filename.
-   Saving is an offer, never automatic.
+8. **Offer to save — config-driven.** Resolve the output directory following
+   the config-driven, two-branch elicitation procedure in
+   `references/agentbundle-layout.md`. Resolution order: (1) repo-root `./agentbundle-layout.toml`
+   `[architecture] output_dir` — repo-scope takes priority; (2) user-profile
+   `~/.agentbundle/agentbundle-layout.toml` `[architecture] output_dir`; when neither resolves, two-branch elicitation
+   runs — never a silent default: **(a) Repo branch** — suggest `docs/design/`
+   and offer to write `output_dir` to `./agentbundle-layout.toml [architecture]`;
+   **(b) Personal/vault branch** — ask for an absolute path (e.g.
+   `~/Documents/<VaultName>/design/`) and write to
+   `~/.agentbundle/agentbundle-layout.toml [architecture]`. Resolve to a full
+   absolute path (`~`-expand, realpath-resolve, reject `..` escapes); surface
+   the resolved path before writing. Suggest a kebab-case `.mmd` filename
+   inside the resolved directory. Saving is an offer, never automatic.
 
 ## Anti-patterns to refuse
 
