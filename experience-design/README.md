@@ -89,10 +89,10 @@ Ask your agent, for example:
 ## Where output lives
 
 The artifact-writing skills resolve their durable output path through the
-`[experience]` table of the adopter-owned `agentbundle-layout.toml`
-(repo-root over user-profile), falling back to the pack default `docs/design`,
-then discover-by-marker. Each skill surfaces the resolved path before its first
-write. See any artifact-writing skill's `references/agentbundle-layout.md`.
+`[design]` table of the adopter-owned `agentbundle-layout.toml`
+(repo-root first, then user-profile; two-branch elicitation when neither
+resolves — never a silent default). Each skill surfaces the resolved path before
+its first write. See any artifact-writing skill's `references/agentbundle-layout.md`.
 
 ## What's NOT in this pack
 

@@ -21,7 +21,7 @@ Produces a **SWOT analysis** — an inside-out / outside-in situation map that o
 4. **Author Opportunities.** List external conditions, market trends, regulatory changes, or competitor missteps that the entity could exploit. Name the evidence or source for each (PESTLE output, competitor analysis, stakeholder research). Reference the PESTLE or Porter's Five Forces artifacts if available in `docs/product/shaping/`.
 5. **Author Threats.** List external risks — competitive moves, macro shifts, regulatory tightening, substitute emergence — that could erode position if unaddressed. Assign a rough time horizon (near-term / medium-term) to each.
 6. **Synthesize strategic implications.** Derive SO (Strength–Opportunity) pairs (how to use strengths to capture opportunities), ST (Strength–Threat) pairs (how to use strengths to defend against threats), WO (Weakness–Opportunity) pairs (how to close weaknesses to capture opportunities), and WT (Weakness–Threat) pairs (risks that compound if unaddressed). Name at least one pair per quadrant.
-7. **Resolve the artifact path** following the three-tier procedure in `references/agentbundle-layout.md`. Surface the resolved path, then commit `swot-analysis.md` with frontmatter `type: swot-analysis`.
+7. **Resolve the artifact path** following the config-driven, two-branch elicitation procedure in `references/agentbundle-layout.md` (repo-scope first, user-scope second; when neither resolves, two-branch elicitation runs — never a silent default). Surface the resolved path, then commit `swot-analysis.md` with frontmatter `type: swot-analysis`.
 
 ## Anti-patterns
 
