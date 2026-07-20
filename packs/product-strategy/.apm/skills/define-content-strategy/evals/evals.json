@@ -1,0 +1,20 @@
+{
+  "skill_name": "define-content-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Define the content strategy for a B2B SaaS company with a help center, in-app guidance, a blog, and API documentation. The company has no current content governance and content is inconsistent across surfaces. Business goal: reduce support ticket volume by 30% through better self-serve content.",
+      "expected_output": "A content-strategy.md artifact committed to the resolved layout path with frontmatter type: content-strategy. The artifact covers all four Halvorson quad dimensions: (1) Purpose — why content exists and what it should achieve for the business and the audience, connected to the support-reduction goal; (2) Process — creation, review, approval, publish, and maintenance lifecycle with named roles and identified current process gaps; (3) Structure — content types (help articles, in-app tooltips, API docs, blog posts) with metadata schema for each and a named taxonomy; (4) Governance — standards for consistency (style guide reference), accuracy (review cadence), and relevance (deprecation triggers, audit schedule) with a named content owner role. The hand-off to content-design is documented. The Halvorson content strategy quad is named; no verbatim framework text appears. The resolved path is surfaced before writing.",
+      "assertions": [
+        "All four Halvorson quad dimensions are present: Purpose, Process, Structure, Governance",
+        "Purpose is connected to the named business goal (reduce support tickets by 30%) — not a generic 'good content' statement",
+        "Process section names a content lifecycle with at least three stages and identifies at least one current process gap",
+        "Structure section names at least two content types with a metadata schema element (e.g., owner, last-reviewed date, audience)",
+        "Governance section names a content owner role and at least one deprecation trigger or audit trigger",
+        "The hand-off to content-design (experience-design pack) is documented",
+        "The Halvorson content strategy quad is referenced by name; no verbatim framework text appears",
+        "The artifact is committed to the resolved path with frontmatter type: content-strategy; path is surfaced before writing"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {"query": "Write a PRFAQ for our new product", "should_trigger": true},
+  {"query": "I need to write the press release before the product exists", "should_trigger": true},
+  {"query": "Help me do an Amazon-style PRFAQ for this idea", "should_trigger": true},
+  {"query": "Create an altitude-0 forcing function for our product direction", "should_trigger": true},
+  {"query": "Write the press release + FAQ for our upcoming launch", "should_trigger": true},
+  {"query": "I need a PRFAQ to align the team before engineering starts", "should_trigger": true},
+
+  {"query": "Write the marketing copy for our homepage", "should_trigger": false},
+  {"query": "Draft the product spec for the new feature", "should_trigger": false},
+  {"query": "Run a SWOT analysis on our product", "should_trigger": false},
+  {"query": "Define our content strategy", "should_trigger": false},
+  {"query": "Cascade OKRs to team level", "should_trigger": false}
+]

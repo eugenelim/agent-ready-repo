@@ -1,0 +1,58 @@
+[pack]
+name = "product-strategy"
+version = "0.1.0"
+description = "The strategy seat upstream of product engineering and experience design. Pillar 1 — Market & competitive strategy: SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, and stakeholder-research synthesis — seven frameworks that produce committed artifacts in docs/product/shaping/ and feed the PE pack's shaping queue. Pillar 2 — UX strategy: defines the experience vision, goals/measures, and plan (NN/g three-layer model · Jaime Levy four tenets · Gothelf/Seiden OKR-linked UX framing) upstream of journey-mapping. Pillar 3 — Content strategy: the Halvorson quad (Purpose + Process + Structure + Governance) — the organizational/governance layer above per-surface content-design. Pure method: no growth tooling, no primary research production, no stack tokens — references canonical frameworks by name, never reprints them."
+readme = "README.md"
+display_name = "Product Strategy"
+license = "Apache-2.0 OR MIT"
+categories = ["product-management"]
+keywords = ["swot", "okr", "competitive-strategy", "ux-strategy", "content-strategy"]
+
+# Pure-markdown SKILL.md surface — no agent definitions, so the skill
+# primitive at v0.12 is the correct ceiling (experience-design precedent;
+# product-engineering is at v0.13 because it ships agent definitions).
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# Strategy method is portable, not project-specific — user-scope by default,
+# like architect and experience-design. Pure-markdown skills + skill assets/,
+# no seeds/ (RFC-0004 Rail A). Declared order is load-bearing (RFC-0011).
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# RFC-0040 / ADR-0030: consolidated-pack-layout — each artifact-writing skill
+# resolves its durable output path config → default → discover-by-marker.
+# parent is the default base; skills write file-per-artifact directly under it
+# (e.g. docs/product/shaping/swot-analysis.md). No [pack.layout.user] default
+# — output is per-repo, with no sensible absolute user-scope base.
+# Each skill ships references/agentbundle-layout.md documenting the adopter-
+# owned [product-strategy] section of their agentbundle-layout.toml.
+[pack.layout.repo]
+parent = "docs/product/shaping"
+
+# RFC-0037 / ADR-0028: pack-activation-evals — all 9 skills are user-triggered
+# judgment/authoring skills, so all are listed. Each ships evals/eval_queries.json
+# and evals/evals.json (Tier-4 LLM-judge rubric).
+[pack.evals]
+skills = [
+  "run-swot",
+  "run-porters-five-forces",
+  "run-pestle-analysis",
+  "run-bcg-matrix",
+  "run-okr-cascade",
+  "write-prfaq",
+  "synthesize-stakeholder-research",
+  "define-ux-strategy",
+  "define-content-strategy",
+]
+
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-strategy/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
