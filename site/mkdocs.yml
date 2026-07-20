@@ -148,6 +148,18 @@ nav:
         - Spec Shape & LLD: guides/core/reference/spec-shape-and-lld.md
       - Tutorials:
         - Start a New Project: guides/core/tutorials/start-a-new-project.md
+    - "Product Strategy":
+      - guides/product-strategy/README.md
+      - Explanation:
+        - Why Strategy Is Its Own Seat: guides/product-strategy/explanation/why-strategy-is-its-own-seat.md
+      - How-to:
+        - Run a Market Analysis: guides/product-strategy/how-to/run-a-market-and-competitive-analysis.md
+        - Cascade OKRs: guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue.md
+        - Set UX & Content Strategy: guides/product-strategy/how-to/set-ux-and-content-strategy.md
+      - Reference:
+        - Frameworks & Artifacts: guides/product-strategy/reference/frameworks-and-artifacts.md
+      - Tutorials:
+        - Run Your First SWOT: guides/product-strategy/tutorials/run-your-first-swot.md
     - "Product Discovery":
       - guides/product-engineering/README.md
       - Explanation:
