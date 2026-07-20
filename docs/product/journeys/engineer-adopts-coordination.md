@@ -17,13 +17,13 @@ updated: 2026-07-19
 
 **Persona:** A platform-oriented engineering team — internal tooling, multi-component systems, or a developer platform group — that already runs one or two AI agents but has no coordination layer. Sessions expire and context is lost. A second agent knows nothing about the first. The team has no visibility into what is in flight.
 
-**Outcome:** Any agent can cold-start a session, run `check-workspace`, know exactly what to work on, and the team lead only reviews what diverged. Multiple specs execute in parallel without collision. Shaping artifacts survive sessions. The team operates at Step 2 maturity reliably.
+**Outcome:** Any agent can cold-start a session, run `workspace-status`, know exactly what to work on, and the team lead only reviews what diverged. Multiple specs execute in parallel without collision. Shaping artifacts survive sessions. The team operates at Step 2 maturity reliably.
 
 **Surface:** cross-platform — CLI/terminal, harness-agnostic.
 
 **Trigger:** The team hits the coordination gap — session context lost, duplicate work, or a colleague joins and has no idea what is in flight.
 
-**End state:** `check-workspace` is the standard session-start command. Briefs flow through the queue from any source. Specs are coordinated via `workspace.toml`. The team lead reviews exceptions, not every action.
+**End state:** `workspace-status` is the standard session-start command. Briefs flow through the queue from any source. Specs are coordinated via `workspace.toml`. The team lead reviews exceptions, not every action.
 
 ---
 
@@ -31,13 +31,13 @@ updated: 2026-07-19
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `work-loop`, `new-spec`, `receive-brief`, `check-workspace` (M1.5), `author-brief` (M1 Batch 4) |
+| core | repo | current | `work-loop`, `new-spec`, `receive-brief`, `workspace-status` (M1.5), `author-brief` (M1 Batch 4) |
 
 **One-time setup:**
 1. Install core pack at repo scope.
-2. After M1 Batch 2 ships: `workspace.toml` is committed to `main` pre-populated with the INI-002 queue — no branch setup needed. Run `check-workspace` to verify.
+2. After M1 Batch 2 ships: `workspace.toml` is committed to `main` pre-populated with the INI-002 queue — no branch setup needed. Run `workspace-status` to verify.
 
-**Scale:** the full journey (shaping + brief + build) requires all M1 ACs. If the team only needs build-room coordination (Stages 3–5), core pack + `work-loop` alone is sufficient; `workspace.toml` and `check-workspace` add queue visibility.
+**Scale:** the full journey (shaping + brief + build) requires all M1 ACs. If the team only needs build-room coordination (Stages 3–5), core pack + `work-loop` alone is sufficient; `workspace.toml` and `workspace-status` add queue visibility.
 
 ---
 
@@ -51,7 +51,7 @@ sequenceDiagram
     participant WS as workspace.toml
 
     Note over H,WS: Session start (M1.5+)
-    H->>SK: check-workspace
+    H->>SK: workspace-status
     SK->>WS: Read [shaping_queue]+[brief_queue]+[work], resolve DAG
     WS-->>SK: Active initiative · parallel candidates · blocked items
     SK-->>H: spec/m1-work-loop is ready · spec/m1-receive-brief blocked on brief-template
@@ -77,7 +77,7 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Discovers the platform. Installs agentbundle. Reads AGENTS.md. Runs `check-workspace` — orients from `workspace.toml` and surfaces the next item without reading any other file. |
+| **Actions** | Discovers the platform. Installs agentbundle. Reads AGENTS.md. Runs `workspace-status` — orients from `workspace.toml` and surfaces the next item without reading any other file. |
 | **Emotions** | Curious then oriented (neutral → positive). First action is clear. |
 | **Remaining pains** | "I don't understand the vocabulary — Brief vs Spec vs Project." The vocabulary page (M6) is not yet available; the glossary in `docs/CONVENTIONS.md` is the current reference. |
 
@@ -112,7 +112,7 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Picks up a spec from `check-workspace`. Runs `work-loop`. Completes the spec. Submits PR. `work-loop` moves spec `active → shipped` in `workspace.toml`; surfaces next ready item from the DAG; prompts `roadmap.md` update. |
+| **Actions** | Picks up a spec from `workspace-status`. Runs `work-loop`. Completes the spec. Submits PR. `work-loop` moves spec `active → shipped` in `workspace.toml`; surfaces next ready item from the DAG; prompts `roadmap.md` update. |
 | **Emotions** | Satisfied and oriented (positive). Spec shipped and the queue reflects it. |
 | **Remaining pains** | "`roadmap.md` update is prompted but still requires a manual PR — it is not auto-written (per CONVENTIONS)." |
 
@@ -122,7 +122,7 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Session ends. New session — next day, a colleague, or a new agent. Runs `check-workspace`. One command surfaces active initiative, queued specs, DAG state, blocked reasons. Reads `workspace.toml` from the local working directory (file lives on `main`; consistent on any branch). |
+| **Actions** | Session ends. New session — next day, a colleague, or a new agent. Runs `workspace-status`. One command surfaces active initiative, queued specs, DAG state, blocked reasons. Reads `workspace.toml` from the local working directory (file lives on `main`; consistent on any branch). |
 | **Emotions** | Confident (positive). Context is committed; orientation is immediate. |
 | **Remaining pains** | "An agent starting fresh still has no context about mid-session decisions that weren't committed." Partial-progress capture feeds INI-005. |
 
@@ -140,7 +140,7 @@ sequenceDiagram
 - **Skill:** pick-spec-from-queue
 - **Skill:** run-work-loop
 - **Skill:** submit-pr
-- **Skill:** run-check-workspace
+- **Skill:** run-workspace-status
 - **Skill:** resume-from-session-start
 
 ---
@@ -155,6 +155,6 @@ The M1 flow — Stage 1 through Stage 5 — is now positive end-to-end. The rema
 
 ## Handoff notes
 
-**For `map-screen-flow`:** Stage 3 (Brief & Queue) and Stage 5 (Session Continuity) carry the highest-opportunity pains. The `author-brief` flow (external input → DoR elicitation → queue write) and the `check-workspace` output view are the highest-priority screen-level inputs for any future web surface.
+**For `map-screen-flow`:** Stage 3 (Brief & Queue) and Stage 5 (Session Continuity) carry the highest-opportunity pains. The `author-brief` flow (external input → DoR elicitation → queue write) and the `workspace-status` output view are the highest-priority screen-level inputs for any future web surface.
 
 **For `blueprint-service`:** backstage dependencies include `workspace.toml` on `main` (skills edit locally and commit in the same spec PR per the resolved write protocol — RFC-0064 Known Unknowns), `docs/product/briefs/` (brief file store), `docs/product/shaping/` (shaping artifact store), agentbundle skill loader.

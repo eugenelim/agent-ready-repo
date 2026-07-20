@@ -6,14 +6,14 @@ description: "Surface the current RFC landscape at a glance — how many RFCs ar
 # /rfc-status
 
 Surface the current RFC landscape in one pass. Useful at session start (with
-`check-workspace`) or any time you need to know what governance work is in
+`workspace-status`) or any time you need to know what governance work is in
 flight before proposing or opening a new RFC.
 
 ## When to invoke
 
 Any request for an RFC overview: "what RFCs are active?", "rfc status", "show
 me open rfcs", "how many rfcs do we have?", "any rfc candidates?". Also runs
-as a sub-step of `check-workspace` to populate the findings count line.
+as a sub-step of `workspace-status` to populate the findings count line.
 
 ## Procedure
 
@@ -85,4 +85,4 @@ section without error.
 ## What this skill is not
 
 - Not `new-rfc` — it only reads; it never creates or modifies.
-- Not `check-workspace` — it gives the RFC/findings slice only; `check-workspace` gives the full queue picture.
+- Not `workspace-status` — it gives the RFC/findings slice only; `workspace-status` gives the full queue picture.
