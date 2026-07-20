@@ -34,20 +34,22 @@ PACKS: list[tuple[str, str, str, str]] = [
     ("architect",          "Architect",            "user", "System design, diagramming, and independent architecture review from a forked-context subagent."),
     ("experience-design",  "Experience Design",    "user", "The full design thread: journey mapping, screen flows, creative direction, surface-genre design (6 types), and the shared quality floor."),
     ("contracts",          "Contracts",            "user", "API-first design — OpenAPI 3.1 for HTTP, AsyncAPI for event streams."),
+    ("iac-terraform",      "IaC (Terraform)",       "repo", "Plain-language intent → governed, cloud-agnostic Terraform and a human-gated pipeline; decision-record-gated, stops at `terraform plan`."),
     ("converters",         "Converters",           "user", "Document conversion: PDF/DOCX/PPTX/email → Markdown, Markdown → HTML/Word/PowerPoint/Excel."),
     ("atlassian",          "Atlassian",            "user", "Jira and Confluence from the agent — SSO-cookie authenticated, flow and DORA metrics built in."),
     ("figma",              "Figma",                "user", "Read and render Figma designs — files, nodes, variables, frame renders, FigJam → Mermaid."),
     ("governance-extras",  "Governance Extras",    "repo", "RFC/ADR ceremony for long-lived repos: `new-rfc`, `new-adr`, `update-conventions`."),
     ("user-guide-diataxis","User Guide (Diataxis)", "repo", "Diátaxis docs scaffold — four content modes with the `new-guide` skill."),
     ("monorepo-extras",    "Monorepo Extras",       "repo", "Package scaffolding — `new-package` skill with an example package template."),
+    ("catalogue-curation", "Catalogue Curation",    "repo", "Catalogue-operator toolkit — assimilate external primitives, survey repos, propose packs, and export white-label or attributed forks."),
     ("credential-brokers", "Credential Brokers",    "user", "In-process credential resolution: environment → OS keyring → dotfile. Cleartext never reaches the model."),
     ("product-strategy",   "Product Strategy",      "user", "The strategy seat upstream of product engineering — market analysis (SWOT, Porter, PESTLE, BCG), OKR cascade, PRD writing, stakeholder synthesis, UX strategy, and content strategy."),
 ]
 
-PACK_INDEX_HEADER = """\
+PACK_INDEX_HEADER = f"""\
 # Pack Catalogue
 
-Fifteen curated packs — each distilled from the best practices of its discipline
+{len(PACKS)} curated packs — each distilled from the best practices of its discipline
 through practitioner research and RFC-and-ADR governance.
 
 Install any pack in one command:
