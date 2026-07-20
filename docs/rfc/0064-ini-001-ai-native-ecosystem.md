@@ -593,6 +593,15 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 
 <!-- Draft-RFC additions and corrections to this RFC's own decisions. Becomes `## Errata` on acceptance per RFC-0055. -->
 
+### Current state
+
+| # | Date | Topic | Effect |
+|---|------|-------|--------|
+| 1 | 2026-07-20 | Repo-level `[backlog]` + `docs/backlog.md` absorption | Extends `workspace.toml` schema with a top-level `[backlog]` section; adds M3 ACs for backlog migration, deferral relocation, and lint rewrite |
+| 2 | 2026-07-20 | workspace-status integrity trust boundary | Documents session-fragmentation gap + two skill fixes (`new-rfc-followon-queue-write` shipped; `workspace-status-queue-reconciliation` queued) + manual workaround |
+
+### History / audit trail
+
 - **2026-07-20 — Repo-level `[backlog]` + `docs/backlog.md` absorption.** Added a
   top-level `[backlog]` section to the `workspace.toml` schema as the single view
   of open work not scoped to an active initiative, absorbing the `docs/backlog.md`
@@ -607,3 +616,21 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   register" (design) and the M3 ACs. Implemented by `docs/specs/queue-add/`
   (intake skill) and the M3 backlog-migration + deferral-relocation specs.
   eugenelim.
+
+- **2026-07-20 — workspace-status integrity trust boundary.** `workspace-status`
+  is only as complete as `workspace.toml` queue population. The specific failure
+  mode is **session-fragmentation**: if an RFC is accepted in one session and spec
+  generation happens in a second session, the `new-rfc` "Add implementation specs
+  to `workspace.toml` queue?" prompt fires in the first session only and is lost
+  before the second session loads RFC context. `workspace.toml` then silently
+  lacks those entries; `workspace-status` surfaces an incomplete picture with no
+  warning. Two skill fixes close the gap: (1) `new-rfc-followon-queue-write`
+  (shipped — `docs/specs/new-rfc-followon-queue-write/`) adds a durable prompt to
+  the `new-rfc` Accepted path so the queue-write prompt persists in a follow-up
+  session; (2) `workspace-status-queue-reconciliation` (queued, unblocked — see
+  `workspace.toml`) adds a drift warning to `workspace-status` when a spec with
+  `Status: Approved|Implementing` exists but is absent from the queue.
+  **Manual workaround until (2) ships:** after any session gap, check
+  `docs/specs/*/spec.md` for specs with `Status: Approved|Implementing` that are
+  absent from `workspace.toml [work].queue`, and add them via `queue-add` or
+  hand-editing. eugenelim.
