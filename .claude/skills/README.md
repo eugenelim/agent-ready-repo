@@ -17,7 +17,7 @@ tool, used often enough to stick — live in
 
 | Skill | What it does |
 | ----- | ------------ |
-| [`check-workspace`](check-workspace/SKILL.md) | Orient at session start — reads `workspace.toml`, resolves the queue DAG, and surfaces ready/blocked/parallel items and active signals |
+| [`workspace-status`](workspace-status/SKILL.md) | Orient at session start — reads `workspace.toml`, resolves the queue DAG, and surfaces ready/blocked/parallel items and active signals |
 | [`work-loop`](work-loop/SKILL.md) | The standard plan → execute → verify → review loop for non-trivial work. Start here for any feature, fix, or refactor. |
 | [`new-spec`](new-spec/SKILL.md) | Scaffold a new spec directory, surface assumptions, then fill `spec.md` and `plan.md` |
 | [`bug-fix`](bug-fix/SKILL.md) | Fix a defect — reproduce → failing test → root cause → minimum fix → root-vs-symptom verify → commit body documents *why* |

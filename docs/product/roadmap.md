@@ -16,7 +16,7 @@ file as stale and ask before relying on it.
 
 ## Now
 
-**M1 · Workspace Foundation.** `workspace.toml` seed + `check-workspace` skill + brief template DoR fields (Status, Rabbit holes, Instrumentation, Design artifacts) + work-loop / receive-brief / new-rfc extensions + agentbundle-layout.toml `[product]` table + ADR for D2/D4 architectural decisions. [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md)
+**M1 · Workspace Foundation.** `workspace.toml` seed + `workspace-status` skill + brief template DoR fields (Status, Rabbit holes, Instrumentation, Design artifacts) + work-loop / receive-brief / new-rfc extensions + agentbundle-layout.toml `[product]` table + ADR for D2/D4 architectural decisions. [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md)
 
 ## Next
 
@@ -40,7 +40,7 @@ Topics surfaced in the INI-001 design session that need further investigation be
 
 **Harness adapter pattern.** Whether a single adapter contract is feasible across the four execution models, or whether each harness needs a purpose-built adapter. MCP vs. static skill-file installation per harness. How the adapter handles skill invocation, gate presentation, and completion write-back. Feeds INI-003 RFC.
 
-**Cross-harness skill compatibility.** Ensuring `work-loop`, `check-workspace`, and `receive-brief` produce equivalent outcomes regardless of harness. What the test surface looks like for a skill that must behave identically in a local Claude Code session and a remote Devin VM. Feeds INI-003 RFC.
+**Cross-harness skill compatibility.** Ensuring `work-loop`, `workspace-status`, and `receive-brief` produce equivalent outcomes regardless of harness. What the test surface looks like for a skill that must behave identically in a local Claude Code session and a remote Devin VM. Feeds INI-003 RFC.
 
 **State persistence schema.** What specific agent state must survive session boundaries: `workspace.toml` (declared intent), spec execution progress (plan step, current file, intermediate artifacts), gate outcomes, agent context (decisions made mid-task not yet committed). Format and storage choices for each harness's model. Feeds INI-005 RFC.
 

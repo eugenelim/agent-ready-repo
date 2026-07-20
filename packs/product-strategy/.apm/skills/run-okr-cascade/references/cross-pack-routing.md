@@ -20,9 +20,9 @@
 - **PE pack reads** from the shaping queue; neither calls the other directly.
 - The shaping queue survives session boundaries — it is the durable handoff, not a live API call.
 
-## `check-workspace` routing
+## `workspace-status` routing
 
-`check-workspace` (core pack) routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `frame-intent` as interim. This routing was updated as part of this pack's M4 implementation.
+`workspace-status` (core pack) routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `frame-intent` as interim. This routing was updated as part of this pack's M4 implementation.
 
 ## Co-install note
 

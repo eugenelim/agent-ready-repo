@@ -2,6 +2,8 @@
 
 This guide collects the standards every skill in this catalogue follows — the bundled packs and the skills you author in your own pack alike. Some standards are checked by lint (called out inline, with the linter as the authority); the rest are reviewer-enforced. It assumes you already know what a skill is and when to add one ([`docs/CONVENTIONS.md`](../../../CONVENTIONS.md) § Skills: you've done the same multi-step thing three times, and you're not adding one speculatively).
 
+If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills.
+
 For the credential dimension — a skill that calls an authenticated API or holds a token — read [How to add a credentialed skill](../../credential-brokers/how-to/add-a-credentialed-skill.md) alongside this; that contract is separate and more specific.
 
 ## Before you start
@@ -33,6 +35,20 @@ Use the section order the shipped skills share, so a reader always knows where t
 - `## Instructions` / `## Procedure` — numbered steps with copy-paste commands. The agent *invokes* the script; it is not the script.
 - `## Pitfalls` / `### Don't` — known failure modes and what not to do.
 - `## Verification` — how the agent confirms it worked.
+
+## Naming your skill
+
+Use the verb taxonomy from [ADR-0054](../../../adr/0054-session-arc-verb-taxonomy-and-pack-type-classification.md) to pick the right name:
+
+| Verb | Meaning | Activation phrasing |
+| --- | --- | --- |
+| `status` | Orient — "where am I / what's next?" | Cold-start phrases, "what's on today", "orient me" |
+| `start` | Create/begin a sustained project | "start a research project", "kick off an investigation" |
+| `check` | Quality/health read — "is it good / saturated / done?" | "is this ready", "should I keep gathering" |
+| `init` | Repo-scaffold only | `init-project`, `adapt-to-project`; cf. `git init` |
+| `resume` | Return to prior work | Activation phrase — not a skill name; see work-loop's argless trigger |
+
+Banned as skill names: `arrive`, `orient`, `onboard`, `return`, `onboarding` — these are UX-stage labels, not user-facing commands.
 
 ## Directory layout
 

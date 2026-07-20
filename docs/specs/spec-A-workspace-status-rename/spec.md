@@ -1,6 +1,6 @@
 # Spec: spec-A-workspace-status-rename
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -25,7 +25,7 @@ A user reading or invoking the workspace-level cold-start orient skill encounter
 - Classify each hit as operative or historical using the RFC-0067 §Change A classification rules before rewriting.
 - Update `packs/core/pack.toml` skills array, `packs/core/.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` in the same commit as the directory rename.
 - Rebuild projected paths via `make build-self` after all source edits, and commit the regenerated projected tree in the same PR.
-- Run the lint gate (`grep -rn "check-workspace"` scoped to the operative path set, excluding the explicit historical set) and confirm zero hits before opening the PR.
+- Run the lint gate (`grep -Hn "check-workspace"` scoped to the operative path set, excluding the explicit historical set) and confirm zero hits before opening the PR.
 
 ### Ask first
 
@@ -35,7 +35,7 @@ A user reading or invoking the workspace-level cold-start orient skill encounter
 
 ### Never do
 
-- Edit frozen ADR bodies (ADR-0051, ADR-0053): their `check-workspace` references are historical records per CONVENTIONS §2.
+- Edit frozen ADR bodies (ADR-0051, ADR-0053, ADR-0054): their `check-workspace` references are historical records per CONVENTIONS §2. Note: ADR-0054 discusses the rename and contains ~8 references to the old name as narrative — these are historical, not operative.
 - Edit `docs/product/changelog.md` shipping entries that named `check-workspace` — those are dated release history.
 - Edit files under `docs/specs/` for this purpose — spec prose is excluded from the lint as spec content, not as a projected surface. (The new Draft specs spec-A..D legitimately reference `check-workspace` in their prose and are correct to exclude.)
 - Edit this RFC's own body (`docs/rfc/0067-*.md`): it is the source of the classification rules, not a target of the rename.
@@ -49,17 +49,17 @@ One **manual QA** step: after `make build-self`, confirm the skill appears in th
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `packs/core/.apm/skills/workspace-status/SKILL.md` exists; `packs/core/.apm/skills/check-workspace/` does not.
-- [ ] **AC2.** `SKILL.md` frontmatter `name:` field reads `workspace-status`; `description:` includes all RFC-0067 §A1 trigger phrases: "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", and any cold-start orientation phrasing.
-- [ ] **AC3.** `packs/core/pack.toml` skills array entry updated from `check-workspace` to `workspace-status`.
-- [ ] **AC4.** `packs/core/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` updated.
-- [ ] **AC5.** Lint gate: `grep -rn "check-workspace"` over all `git ls-files` output, excluding the explicit historical set (frozen ADR-0051, ADR-0053, `docs/product/changelog.md`, `docs/specs/`, `docs/rfc/0067-*.md`), returns zero hits.
-- [ ] **AC6.** Projected path `.claude/skills/workspace-status/` exists; `.claude/skills/check-workspace/` does not.
-- [ ] **AC7.** `docs/guides/_shared/how-to/author-a-skill.md` gains a `## Naming your skill` section (after `## Body structure`) with the verb table from ADR-0054 §Decision and the banned-label list.
-- [ ] **AC8.** `author-a-skill.md` intro gains the sentence: "If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills."
-- [ ] **AC9.** All operative references in `AGENTS.md`, `packs/core/seeds/AGENTS.md`, `packs/core/README.md`, `.claude/skills/README.md`, `docs/CONVENTIONS.md`, `docs/product/journeys/`, `docs/product/roadmap.md`, `docs/product/workspace-toml-deps.md`, `docs/product/projects/_template.md`, `docs/product/findings/README.md`, cross-pack routing references, `site/docs/`, `web/`, `docs/rfc/README.md`, and `docs/rfc/0064-ini-001-ai-native-ecosystem.md` (Draft — body editable) are updated to `workspace-status`.
-- [ ] **AC10.** `make build-check` exits 0 (no projected-path drift detected).
-- [ ] **AC11.** `docs/product/changelog.md` gains an `[Unreleased]` entry noting the rename.
+- [x] **AC1.** `packs/core/.apm/skills/workspace-status/SKILL.md` exists; `packs/core/.apm/skills/check-workspace/` does not.
+- [x] **AC2.** `SKILL.md` frontmatter `name:` field reads `workspace-status`; `description:` includes all RFC-0067 §A1 trigger phrases: "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", and any cold-start orientation phrasing.
+- [x] **AC3.** `packs/core/pack.toml` skills array entry updated from `check-workspace` to `workspace-status`.
+- [x] **AC4.** `packs/core/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` updated.
+- [x] **AC5.** Lint gate: `grep -Hn "check-workspace"` over all `git ls-files` output, excluding the explicit historical set (frozen ADR-0051, ADR-0053, ADR-0054, `docs/product/changelog.md`, `docs/specs/`, `docs/rfc/0067-*.md`), returns zero hits.
+- [x] **AC6.** Projected paths `.claude/skills/workspace-status/` and `.agents/skills/workspace-status/` exist; `.claude/skills/check-workspace/` and `.agents/skills/check-workspace/` do not.
+- [x] **AC7.** `docs/guides/_shared/how-to/author-a-skill.md` gains a `## Naming your skill` section (after `## Body structure`) with the verb table from ADR-0054 §Decision and the banned-label list.
+- [x] **AC8.** `author-a-skill.md` intro gains the sentence: "If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills." A minimal stub at `docs/guides/_shared/explanation/pack-workflow-design.md` is created in this PR **only if the file does not already exist** (idempotent — if Spec D has already shipped the full guide, the stub creation is skipped); Spec D (`spec-D-pack-workflow-guide`) fills the full content.
+- [x] **AC9.** All operative references derived at runtime from `git ls-files | xargs grep -Hl "check-workspace"` (excluding the AC5 historical set) are updated to `workspace-status`. The runtime list is the source of truth; the illustrative set in RFC-0067 §A1 may be stale. Operative files that are known to require edits include: `workspace.toml` (line 5 comment), `docs/rfc/0064-ini-001-ai-native-ecosystem.md` (Draft), `docs/product/journeys/`, `docs/product/roadmap.md`, `docs/product/workspace-toml-deps.md`, `docs/product/projects/_template.md`, `docs/product/findings/README.md`, `docs/rfc/README.md`, `packs/core/README.md`, `packs/core/.apm/skills/author-brief/SKILL.md` (body skill reference), `packs/governance-extras/.apm/skills/rfc-status/SKILL.md`, `packs/product-strategy/.apm/skills/run-okr-cascade/references/cross-pack-routing.md`, `.claude/skills/README.md` (hand-authored, not projected by build-self — must be edited directly), and projected skill files swept by `make build-self`.
+- [x] **AC10.** `make build-check` exits 0 (no projected-path drift detected).
+- [x] **AC11.** `docs/product/changelog.md` gains an `[Unreleased]` entry noting the rename.
 
 ## Assumptions
 

@@ -32,7 +32,7 @@ updated: 2026-07-18
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
 | PE pack | user | current (M1 skills); M2 skills planned | `frame-intent`, `de-risk-intent` (current); `frame-situation`, `identify-opportunities`, `diverge-solutions`, `place-bet`, `map-capabilities` (M2) |
-| core | repo | M1 required for queue write-back | `check-workspace`, `author-brief`, `receive-brief`; `[shaping_queue]` and `[brief_queue]` schema |
+| core | repo | M1 required for queue write-back | `workspace-status`, `author-brief`, `receive-brief`; `[shaping_queue]` and `[brief_queue]` schema |
 
 **One-time setup:**
 1. Install PE pack at user scope — PEs shape across repos, so user scope is the right level.
@@ -72,7 +72,7 @@ sequenceDiagram
 sequenceDiagram
     participant SIG as Signal / queue item
     participant PE as Product Engineer
-    participant CW as check-workspace
+    participant CW as workspace-status
     participant FS as frame-situation
     participant IO as identify-opportunities
     participant DS as diverge-solutions
@@ -85,7 +85,7 @@ sequenceDiagram
 
     Note over SIG,PE: Trigger — signal arrives or queue item surfaces
     SIG->>PE: User pain / OKR gap / engineering finding / metric drop
-    PE->>CW: check-workspace
+    PE->>CW: workspace-status
     CW->>WS: Read [shaping_queue]
     WS-->>CW: opp-assessment-X ready · backlog: [...]
     CW-->>PE: Ready to start: opp-assessment-X · run frame-situation

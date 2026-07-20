@@ -21,7 +21,7 @@ updated: 2026-07-18
 
 **Persona:** An engineering team that has INI-002 M1 installed — `workspace.toml` is their session-start artifact, briefs flow through the queue, work-loop is their execution pattern. They want to scale from 1–2 manually dispatched agent sessions to N headless CLI agents running in CI/CD, each claiming specs from the queue and executing without collision.
 
-**Outcome:** A CI/CD job dispatches N headless CLI agents. Each reads `workspace.toml`, claims an unblocked spec, executes via work-loop, marks it shipped, and exits. The team lead monitors via `check-workspace` and only intervenes when a spec stalls or fails. Throughput scales with agents, not with engineers watching.
+**Outcome:** A CI/CD job dispatches N headless CLI agents. Each reads `workspace.toml`, claims an unblocked spec, executes via work-loop, marks it shipped, and exits. The team lead monitors via `workspace-status` and only intervenes when a spec stalls or fails. Throughput scales with agents, not with engineers watching.
 
 **Surface:** cross-platform — CI/CD pipelines and CLI invocation across multiple harnesses (Claude Code `-p`, Codex CLI, Kiro CLI, GitHub Copilot CLI, Gemini CLI).
 
@@ -35,7 +35,7 @@ updated: 2026-07-18
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `check-workspace`, `work-loop`, `new-spec` |
+| core | repo | current | `workspace-status`, `work-loop`, `new-spec` |
 | coding CLI adapter pack | user | planned (INI-003) | Harness-specific invocation, atomic claiming, write-back; one adapter per harness type (Claude Code, Codex CLI, Kiro, etc.) |
 
 **One-time setup:**
@@ -44,7 +44,7 @@ updated: 2026-07-18
 3. `workspace.toml` must be committed to `main` and pre-populated (M1 Batch 2); no branch configuration needed — headless agents read it from the local working directory.
 4. Atomic claiming protocol configured via adapter — prevents two agents picking the same spec; exact mechanism is adapter-specific and is an open design question for the INI-003 sub-RFC.
 
-**Scale:** adapters are the scaling surface. A Claude Code swarm uses one adapter shape; a Codex CLI swarm uses another; a mixed swarm needs both. Core skills (`work-loop`, `check-workspace`) are identical across adapter shapes.
+**Scale:** adapters are the scaling surface. A Claude Code swarm uses one adapter shape; a Codex CLI swarm uses another; a mixed swarm needs both. Core skills (`work-loop`, `workspace-status`) are identical across adapter shapes.
 
 ---
 
@@ -84,7 +84,7 @@ sequenceDiagram
 
     Note over H,WS: Swarm dispatch (INI-003 M1+)
     H->>AD: Dispatch N agents
-    AD->>WS: check-workspace — find ready specs and DAG state
+    AD->>WS: workspace-status — find ready specs and DAG state
     WS-->>AD: spec-A ready · spec-B ready · spec-C blocked (needs spec-A)
     AD->>WS: Atomic claim: active += {spec-A, agent: A1}
     AD->>WS: Atomic claim: active += {spec-B, agent: A2}
@@ -97,12 +97,12 @@ sequenceDiagram
     A1->>WS: spec-A: active → shipped
 
     Note over AD,WS: spec-C unblocks after spec-A ships
-    AD->>WS: check-workspace — spec-C now ready
+    AD->>WS: workspace-status — spec-C now ready
     AD->>A1: Dispatch spec-C to idle Agent 1
 
     Note over H,WS: Exception — Agent 2 stalls
     Note over A2: Session timeout · spec-B still in active
-    H->>WS: check-workspace — spec-B stale (active, no progress N min)
+    H->>WS: workspace-status — spec-B stale (active, no progress N min)
     H->>WS: Move spec-B: active → queue (manual reassign)
     AD->>A2: Re-dispatch fresh agent for spec-B
 ```
@@ -148,7 +148,7 @@ sequenceDiagram
 | **Actions** | Agents execute in parallel. Each does its work, submits PR. Updates to `workspace.toml` happen if the engineer remembers after the session. |
 | **Emotions** | Satisfied at throughput (positive) but uncertain about coordination (neutral). |
 | **Pains** | "The queue shrinks but I can't tell which agent shipped which spec." "DAG is display-only — an agent could pick a blocked spec." "If an agent times out mid-spec, the spec stays in `active` with no stale detection." "Gate outcomes are in each agent's logs, not in `workspace.toml`." |
-| **Opportunities** | Agent identity on `[work].active` entries. Enforced DAG: adapter reads check-workspace output before claiming, only claims ready items. Stale-active detection: spec in `active` with no commit activity for N minutes flagged. Gate outcome summary written to `workspace.toml` on ship. |
+| **Opportunities** | Agent identity on `[work].active` entries. Enforced DAG: adapter reads workspace-status output before claiming, only claims ready items. Stale-active detection: spec in `active` with no commit activity for N minutes flagged. Gate outcome summary written to `workspace.toml` on ship. |
 
 > **With INI-003 M1** — agent identity on active entries; adapter enforces DAG at claim time; stale-active threshold configurable; gate outcome summary on ship.
 
@@ -162,8 +162,8 @@ sequenceDiagram
 |-----|---------|
 | **Actions** | A spec ships. Its dependents are now unblocked. The team lead manually checks and re-dispatches. Cross-queue unblocking (work ships → shaping item unblocks) is invisible. |
 | **Emotions** | Uncertain (neutral). Coordination requires constant manual checking. |
-| **Pains** | "A newly unblocked spec doesn't get picked up automatically — agents have finished and someone has to trigger a new dispatch." "Cross-queue unblocking is invisible without explicitly running check-workspace." "No event signal when DAG state changes." "Mixed human + headless agent concurrency on the same workspace.toml is undefined — a human running work-loop and a headless agent could conflict." |
-| **Opportunities** | Dispatcher re-evaluates DAG on each ship event and triggers fresh agents for newly unblocked specs. Cross-queue DAG visibility in a single check-workspace call. Protocol for mixed human + agent concurrency. |
+| **Pains** | "A newly unblocked spec doesn't get picked up automatically — agents have finished and someone has to trigger a new dispatch." "Cross-queue unblocking is invisible without explicitly running workspace-status." "No event signal when DAG state changes." "Mixed human + headless agent concurrency on the same workspace.toml is undefined — a human running work-loop and a headless agent could conflict." |
+| **Opportunities** | Dispatcher re-evaluates DAG on each ship event and triggers fresh agents for newly unblocked specs. Cross-queue DAG visibility in a single workspace-status call. Protocol for mixed human + agent concurrency. |
 
 > **To-be state not yet fully shaped.** DAG-reactive dispatch feeds INI-005 (telemetry events) and INI-006 (dispatch UI). Mixed-concurrency protocol is a Known Unknown for the INI-003 sub-RFC.
 
@@ -177,7 +177,7 @@ sequenceDiagram
 |-----|---------|
 | **Actions** | An agent stalls. Team lead finds out by chance or periodic manual check. Manually edits `workspace.toml` to move spec back to queue. Re-dispatches. |
 | **Emotions** | Concerned then relieved (negative → neutral). Recovery works but is lossy and manual. |
-| **Pains** | "check-workspace shows active specs but not how long they have been active." "Recovery requires manually editing workspace.toml — there is no reassign skill." "The new agent starts the spec from scratch — no handoff from the stalled agent." "If the stalled agent committed bad decisions, the next agent builds on a corrupted state." |
+| **Pains** | "workspace-status shows active specs but not how long they have been active." "Recovery requires manually editing workspace.toml — there is no reassign skill." "The new agent starts the spec from scratch — no handoff from the stalled agent." "If the stalled agent committed bad decisions, the next agent builds on a corrupted state." |
 | **Opportunities** | Stale-active detection with configurable threshold. A `reassign-spec` skill: moves spec active → queue, optionally captures handoff note. Partial-progress capture committed by work-loop at each gate — readable by next agent. |
 
 > **To-be state not yet shaped.** Stale-active detection and partial-progress capture are direct INI-005 (state persistence) requirements surfaced here. Exception surfacing feeds INI-006 (control plane). Feeds the INI-003 sub-RFC as explicit open design questions.
@@ -193,7 +193,7 @@ sequenceDiagram
 - **Skill:** claim-spec-atomically
 - **Skill:** execute-work-loop-headless
 - **Skill:** write-completion-to-workspace
-- **Skill:** run-check-workspace-as-supervisor
+- **Skill:** run-workspace-status-as-supervisor
 - **Skill:** detect-stalled-spec
 - **Skill:** reassign-spec-to-new-agent
 
@@ -220,6 +220,6 @@ Primary design response: stale-active detection (INI-003 M1), `reassign-spec` sk
 
 ## Handoff notes
 
-**For `map-screen-flow`:** Stage 2 (First Dispatch) and Stage 5 (Exception & Recovery) carry the highest-opportunity pains. The supervisor's view of `check-workspace` output — showing agent identity on active items, stale-active flags, and DAG state — is the primary screen-level input for INI-006's control plane.
+**For `map-screen-flow`:** Stage 2 (First Dispatch) and Stage 5 (Exception & Recovery) carry the highest-opportunity pains. The supervisor's view of `workspace-status` output — showing agent identity on active items, stale-active flags, and DAG state — is the primary screen-level input for INI-006's control plane.
 
 **For `blueprint-service`:** backstage services include `workspace.toml` on `main` (atomic read/write for spec claiming per INI-003 sub-RFC), CI/CD dispatch trigger, per-harness adapter layer (skill loading, CLI invocation, output parsing), gate-outcome log capture. Atomic claiming and stale-active detection are unresolved backstage design decisions — both feed INI-005 (telemetry) and INI-006 (exception surfacing).

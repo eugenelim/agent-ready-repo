@@ -1,7 +1,7 @@
 [
   {"query": "What should I work on next?", "should_trigger": true},
   {"query": "Orient me to the current workspace state", "should_trigger": true},
-  {"query": "check-workspace", "should_trigger": true},
+  {"query": "workspace-status", "should_trigger": true},
   {"query": "Show me what's ready to start in the queue", "should_trigger": true},
   {"query": "What's blocking the work queue?", "should_trigger": true},
   {"query": "Initialise workspace.toml for our new initiative", "should_trigger": true},

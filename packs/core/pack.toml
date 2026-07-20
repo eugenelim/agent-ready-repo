@@ -43,7 +43,7 @@ allowed-scopes = ["repo"]
 #   - work-loop — loaded broadly by the plan→execute→review discipline, not by
 #     a narrow user-prompt surface; a clean negative set isn't writable for it.
 [pack.evals]
-skills = ["new-spec", "bug-fix", "receive-brief", "init-project", "adapt-to-project", "check-workspace"]
+skills = ["new-spec", "bug-fix", "receive-brief", "init-project", "adapt-to-project", "workspace-status"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

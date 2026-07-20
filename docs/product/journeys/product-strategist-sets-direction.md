@@ -89,7 +89,7 @@ sequenceDiagram
     SK->>SA: Write okr-cascade.md (company → team → initiative gaps)
     SK-->>WS: {type="strategy", slug="gap-A"} → [shaping_queue].backlog
     SK-->>S: Gaps identified: [gap-A, gap-B] → route to frame-situation?
-    Note over WS: Product engineer picks up gap-A via check-workspace
+    Note over WS: Product engineer picks up gap-A via workspace-status
     WS-->>PE: frame-situation consumes {type="strategy"} entry
     PE-->>SA: Routes gap into six-step shaping sequence → [brief_queue]
     S->>SK: define-ux-strategy [experience strategy brief]
@@ -172,7 +172,7 @@ sequenceDiagram
 | **Pains** | "Company OKRs are in Notion; team OKRs are in a spreadsheet; the shaping queue has no idea either exists." "Gaps between current state and OKR targets are identified in planning meetings and then lost." "No mechanism for OKR gaps to flow into `frame-situation` as shaping inputs." |
 | **Opportunities** | OKR cascade skill that (a) takes company OKRs, derives team-level OKRs, and identifies gaps; (b) routes each gap as a `{type = "strategy"}` entry into `[shaping_queue].backlog` for `frame-situation` to pick up; (c) writes the cascade as a committed artifact. The altitude-0 → altitude-1 handoff becomes a skill invocation, not a meeting. |
 
-> **With M4** — OKR cascade skill ships: company OKRs → gap analysis → `{type = "strategy"}` entries in `[shaping_queue].backlog`; product engineer picks them up via `check-workspace` and routes each through `frame-situation`. Cross-pack dependency: PE pack (`frame-situation`, M2) must be installed.
+> **With M4** — OKR cascade skill ships: company OKRs → gap analysis → `{type = "strategy"}` entries in `[shaping_queue].backlog`; product engineer picks them up via `workspace-status` and routes each through `frame-situation`. Cross-pack dependency: PE pack (`frame-situation`, M2) must be installed.
 
 ---
 

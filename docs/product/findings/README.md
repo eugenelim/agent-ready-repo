@@ -29,5 +29,5 @@ directory's purpose ahead of that work.
   `Deferred:` entry in the PR description points to `docs/backlog.md`.
   A `frame-situation` escalation or a pattern that warrants an RFC is
   promoted from `backlog.md` into `rfc-candidates.md` (M3).
-- **`check-workspace`** (after M3 ships): surfaces the candidate count
+- **`workspace-status`** (after M3 ships): surfaces the candidate count
   at session start — "N rfc candidates · M roadmap intents".
