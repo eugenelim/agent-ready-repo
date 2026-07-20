@@ -11,7 +11,12 @@
 #   "shape:<slug>"     — depends on a shaping queue entry
 #   "research:<slug>"  — depends on a research entry
 #   "brief:<path>"     — depends on a brief queue entry
+#   "backlog:<slug>"   — depends on a repo-level [backlog] item
 # Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
+#
+# Note: the top-level [backlog] section (repo-durable — open work not scoped to
+# an active initiative) is distinct from a shaping_queue's `backlog` array (its
+# non-active tier).
 
 ["ini-002"]
 name      = "Platform Core"
@@ -26,6 +31,14 @@ backlog = [
   {slug = "ai-native-regulatory-watch", type = "signal"},
   # Research items — any user with the desk-research pack can pick these up
   {slug = "adopter-persona",            type = "research"},
+  # Research (RFC-0064 M3 AC): should rfc-candidates.md graduate into the
+  # shaping_queue (as research/strategy entries) rather than remain a separate
+  # findings register? Assess the whole intake taxonomy — findings registers
+  # (rfc-candidates, roadmap-intents) vs the new repo-level [backlog] vs the
+  # shaping_queue. Owner intuition: rfc-candidates are "things we should work
+  # through" and belong in shaping. Deliverable: a recommendation (keep separate
+  # / fold / hybrid) feeding a possible RFC-0064 follow-on. Requires desk-research.
+  {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research"},
   # Shaping items — PE picks up when upstream research is done
   "ini-002-initiative-brief",
   {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
@@ -89,6 +102,40 @@ queue   = [
   # an incomplete picture, (2) the two skill fixes that close the gap, and
   # (3) the manual workaround until those fixes ship (add entries directly).
   "spec/rfc-0064-errata-workspace-integrity",
+
+  # Schema + governance: workspace.toml [backlog] + docs/backlog.md absorption.
+  # Governed by RFC-0064 amendment 2026-07-20 ("Repo-level backlog & deferral
+  # register") + M3 ACs. Problem: (1) no home for well-shaped ready-now work
+  # below initiative scale; (2) open work split across docs/backlog.md, findings
+  # registers, and per-initiative queues — no single view; (3) the deferral
+  # habit needs a well-justified, visible gate. Fix (ONE coupled PR — see hazard):
+  #   - Add [backlog].open handling to workspace-status (surface with the queues).
+  #     (The header legend already documents the backlog:<slug> prefix and the
+  #     top-level [backlog] vs shaping_queue.backlog distinction.)
+  #   - Migrate all ~75 open items from docs/backlog.md into [backlog].open with
+  #     cold-start-sufficient comments; deferred-AC items carry
+  #     source = "spec/<name> ACn".
+  #   - Relocate deferral: spec (deferred: <slug>) resolves to a [backlog].open
+  #     entry (not a docs/backlog.md heading) + requires an inline justification;
+  #     add an explicit work-loop "is this deferral justified?" prompt; rewrite
+  #     lint-spec-status.py invariant (iv) in BOTH skill copies (.claude + .agents)
+  #     AND the pack source.
+  #   - Reduce docs/backlog.md to a ~15-line anchor-tombstone stub retaining ONLY
+  #     the anchors linked by Frozen RFCs: RFC-0007
+  #     #adapt-to-project--shipped-ac4b-transcripts-deferred, RFC-0023
+  #     #credbroker-phase-2, RFC-0058 #extraction-tier0-and-output-contract,
+  #     RFC-0065 #iac-terraform — each a one-line pointer to its [backlog] entry.
+  #   - Repoint editable refs: CONTRIBUTING.md, new-spec template, work-loop,
+  #     CONVENTIONS.md, export-catalogue.
+  # HAZARD (why one PR): the (deferred:) lint is a HARD gate. Removing backlog.md
+  # headings before the lint points at [backlog] dangles every existing
+  # (deferred: <anchor>) marker → red CI. Section + migration + lint rewrite +
+  # marker updates land atomically (or via a transitional dual-support lint).
+  # Consolidated from the earlier Spec B + Spec C split for this reason.
+  # Verify: full pytest for lint-spec-status (both test roots), make build-check
+  # green, grep for no dangling backlog.md# anchors, workspace-status renders
+  # [backlog]. Full-mode work-loop + adversarial-reviewer (HARD-gate + governance).
+  "spec/m3-backlog-absorption",
 
   # spec-A dependents — unlock when spec/spec-A-workspace-status-rename ships
   # Reliability before UX: reconciliation first, then next-actions, then pack skills

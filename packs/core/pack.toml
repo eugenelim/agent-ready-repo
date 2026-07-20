@@ -1,7 +1,7 @@
 [pack]
 name = "core"
-version = "0.12.1"
-description = "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
+version = "0.13.0"
+description = "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, queue-add skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
 readme = "README.md"
 display_name = "Core"
 license = "Apache-2.0 OR MIT"
