@@ -13,6 +13,7 @@ site_dir: ../build/docs
 
 theme:
   name: material
+  custom_dir: overrides
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
