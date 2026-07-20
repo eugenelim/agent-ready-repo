@@ -1,6 +1,6 @@
 # Spec: frontend-engineering skill for core
 
-- **Status:** Implementing
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0023](../../adr/0023-reviewer-ceiling-scopes-core-code-review-lenses.md)
