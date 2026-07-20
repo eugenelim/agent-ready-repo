@@ -72,9 +72,15 @@ shipped = [
   "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
   "spec/rfc-0064-errata-workspace-integrity", # Amendment to RFC-0064 documenting session-fragmentation gap
   "spec/workspace-status-next-actions", # Add ### 6. Next-actions closing step to workspace-status
+  "spec/apm-install-route-parity",    # T1–T12 shipped 2026-05-25; AC17 deferred pending transcript
+  "spec/render-proof",                # All 13 ACs verified; render-proof skill in packs/converters
 ]
 queue   = [
   # Independent track — no deps
+  "spec/ast10-pack-compliance",
+  "spec/catalogue-curation",
+  "spec/frontend-engineering-skill",
+  "spec/mermaid-rendering-improvements",
 
   # Schema + governance: workspace.toml [backlog] + docs/backlog.md absorption.
   # Governed by RFC-0064 amendment 2026-07-20 ("Repo-level backlog & deferral
