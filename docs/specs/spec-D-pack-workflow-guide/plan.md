@@ -1,7 +1,7 @@
 # Plan: spec-D-pack-workflow-guide
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -74,7 +74,7 @@ or derive from them? → Is work episodic or ongoing? → Which of four types?]
 - Arrive: how does a user start a session with this pack?
 - Orient: does this pack need a *-status skill?
 - Work: which skills drive the core workflow?
-- Persist: does this pack write durable artifacts? Where?
+- Persist: does this pack accumulate a project directory across sessions? Where?
 - Collaborate: how do artifacts from this pack feed other packs?]
 
 ## Step 3 — Name your skills
@@ -82,7 +82,7 @@ or derive from them? → Is work episodic or ongoing? → Which of four types?]
 cross-link to author-a-skill.md for the full table.]
 
 ## Step 4 — Decide your vault-path shape
-[If your pack writes files: single output_dir base per pack (configured via
+[If your pack maintains a persistent project directory across sessions: single output_dir base per pack (configured via
 agentbundle-layout.toml). Skill-specific subdirectories under the base.
 Canonical example: journey-mapping writes to <output_dir>/journeys/.]
 
@@ -147,10 +147,10 @@ Stateless: reserved category per ADR-0054; no current catalogue pack fits — gu
 **Depends on:** T1, T2, T3
 
 **Tests:**
-- Goal-based (AC12): `scripts/lint-spec-status.py` exits 0; `git status` clean except intended files.
+- Goal-based (AC12): `.claude/skills/work-loop/scripts/lint-spec-status.py --root .` exits 0; `git status` clean except intended files.
 
 **Approach:**
-- Run `scripts/lint-spec-status.py` on this spec.
+- Run `.claude/skills/work-loop/scripts/lint-spec-status.py --root .` on this spec.
 - Verify all ACs hold by re-reading the authored files.
 - Run adversarial review; address any Blockers.
 
@@ -165,21 +165,24 @@ Stateless: reserved category per ADR-0054; no current catalogue pack fits — gu
 **Decision tree (Step 1) structure:**
 
 ```
-Does the pack create durable files that persist across sessions?
-  No → Stateless (pure transformation) or Episodic (per-invocation complete)
-       └── Does each invocation produce a standalone artifact?
-             Yes → Episodic
-             No → Stateless
-  Yes → Does this pack own those files, or derive from files another pack created?
-         Own → Sustained-project (creates and manages the project)
+Does the pack maintain a work-in-progress thread across sessions —
+tracking phases, a growing project, or cumulative state?
+  No → Does each invocation produce a standalone artifact?
+        Yes → Episodic
+        No  → Stateless
+  Yes → Does this pack create and own the project thread,
+        or derive from a thread another pack owns?
+         Own    → Sustained-project (creates and manages the project)
          Derive → Sustained-derived (reads and extends the project)
 ```
+
+Note: an episodic pack *can* write a per-invocation artifact (e.g., a strategy document); the distinguishing question is whether it accumulates shared project state across sessions, not whether it writes any file at all.
 
 **Arc-mapping questions (Step 2):**
 - Arrive: "What does a user type to open this pack's first session?"
 - Orient: "When a user returns after a break, what do they need to know? → If the answer is non-trivial, the pack needs a `*-status` skill."
 - Work: "Which one or two skills are the core workflows this pack enables?"
-- Persist: "Does the pack write files? Where? → vault-path design."
+- Persist: "Does the pack accumulate a project directory across sessions? → vault-path design if yes; episodic packs that write standalone per-invocation artifacts skip Step 4."
 - Collaborate: "What does the next pack in the user's workflow consume from this one?"
 
 ## Rollout
@@ -194,3 +197,4 @@ Pure documentation write; no pack manifest changes; no projected-tree rebuild ne
 ## Changelog
 
 - 2026-07-20: initial plan, authored alongside the spec for RFC-0067 spec/plan/ADR follow-on work.
+- 2026-07-20: corrected decision tree first question from "creates durable files" to "maintains work-in-progress thread across sessions" — the original wording would misroute episodic packs that write standalone artifacts (e.g., product-strategy) to the sustained-project branch; the distinguishing criterion is cross-session accumulated project state, not file creation.
