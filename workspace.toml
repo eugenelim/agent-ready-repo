@@ -14,6 +14,13 @@
 #   "backlog:<slug>"   — depends on a repo-level [backlog] item
 # Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
 #
+# shaping_queue entry types: shape | research | strategy | signal | design
+#   shape    → frame-intent (or frame-situation when PE pack is available)
+#   research → desk-research-project-start (requires desk-research pack)
+#   strategy → frame-situation (PE pack — M2); interim: frame-intent
+#   signal   → no action; surfaces in "active context" section only
+#   design   → experience-status (requires experience-design pack); fallback: journey-mapping
+#
 # Note: the top-level [backlog] section (repo-durable — open work not scoped to
 # an active initiative) is distinct from a shaping_queue's `backlog` array (its
 # non-active tier).
@@ -62,6 +69,7 @@ shipped = [
   "spec/queue-add",              # PR #566
   "spec/work-loop-queue-shipped-fix", # Fix done-step + stale-queue warning + line-177 path bug
   "spec/spec-D-pack-workflow-guide",  # Pack workflow design guide + CONTRIBUTING step 0
+  "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
 ]
 queue   = [
   # Independent track — no deps
@@ -132,7 +140,5 @@ queue   = [
   # label and that activation phrases ("what's next", "what should I do") route
   # here and not to workspace-status itself.
   {path = "spec/workspace-status-next-actions",         needs = "work:spec/spec-A-workspace-status-rename"},
-  {path = "spec/spec-B-pack-status-skills",             needs = "work:spec/spec-A-workspace-status-rename"},
-  # spec/spec-D-pack-workflow-guide shipped — moved below
   {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
 ]
