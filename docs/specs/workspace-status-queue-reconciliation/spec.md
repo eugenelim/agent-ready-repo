@@ -1,6 +1,6 @@
 # Spec: workspace-status queue reconciliation
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064 (workspace.toml schema and workspace integrity doctrine)
@@ -126,59 +126,59 @@ inconsistency. Plan T2 handles pre-dogfood triage of these pre-existing cases.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** Given a `docs/specs/<slug>/spec.md` with `Status: Approved` or
+- [x] **AC1.** Given a `docs/specs/<slug>/spec.md` with `Status: Approved` or
   `Status: Implementing` whose canonical path `spec/<slug>` does not appear in
   any initiative's queue, active, or shipped list, workspace-status surfaces an
   "Untracked live specs" warning naming the spec path and its Status, and
   suggests running `queue-add` or editing `workspace.toml` manually.
 
-- [ ] **AC2.** Given a path in `[work].queue` or `[work].active` whose
+- [x] **AC2.** Given a path in `[work].queue` or `[work].active` whose
   `spec.md` shows `Status: Shipped`, workspace-status surfaces a "Stale
   queue/active entries" warning naming the path, its current list, and the
   spec's Status, and offers to move it to `[work].shipped`.
 
-- [ ] **AC3.** Given a path in `[work].queue` or `[work].active` whose
+- [x] **AC3.** Given a path in `[work].queue` or `[work].active` whose
   `spec.md` shows `Status: Archived`, workspace-status surfaces the same
   "Stale queue/active entries" warning and offers to remove it (not move
   to shipped — Archived means cancelled, not done).
 
-- [ ] **AC4.** Given a path in `[work].shipped` whose `spec.md` shows
+- [x] **AC4.** Given a path in `[work].shipped` whose `spec.md` shows
   `Status: Approved` or `Status: Implementing`, workspace-status surfaces a
   "Prematurely-shipped entries" warning naming the path, stating that the cause
   is either a stale spec Status or a wrongly-moved workspace.toml entry, and
   making no cleanup offer.
 
-- [ ] **AC5.** Given a path in queue/active/shipped with no corresponding
+- [x] **AC5.** Given a path in queue/active/shipped with no corresponding
   `spec.md` file, no warning is emitted for that path. Given a `spec.md`
   that exists but has no parseable `- **Status:**` line, no warning is
   emitted for that path.
 
-- [ ] **AC6.** Given a consistent workspace — all live specs tracked, all
+- [x] **AC6.** Given a consistent workspace — all live specs tracked, all
   queue/active entries with non-terminal Status — the Reconciliation block is
   omitted from the output entirely.
 
-- [ ] **AC7.** The Reconciliation block appears before all initiative sections
+- [x] **AC7.** The Reconciliation block appears before all initiative sections
   when inconsistencies are found. The initiative queue output follows unchanged.
 
-- [ ] **AC8.** When the skill offers to clean up stale entries (AC2, AC3), no
+- [x] **AC8.** When the skill offers to clean up stale entries (AC2, AC3), no
   write to `workspace.toml` occurs unless the user explicitly confirms. The
   offer names each entry to change. When the user declines, `workspace.toml`
   is byte-unchanged.
 
-- [ ] **AC9.** Inline-object queue entries (`{path = "spec/foo", needs = "..."}`)
+- [x] **AC9.** Inline-object queue entries (`{path = "spec/foo", needs = "..."}`)
   are handled correctly: the `path` field is extracted for spec.md lookup and
   for naming in the warning output.
 
-- [ ] **AC10.** The reconciliation check runs across all initiatives in
+- [x] **AC10.** The reconciliation check runs across all initiatives in
   `workspace.toml`, not just the first.
 
-- [ ] **AC11.** Cleanup for a stale `Status: Shipped` entry uses a
+- [x] **AC11.** Cleanup for a stale `Status: Shipped` entry uses a
   comment-preserving write: the entry is moved to the same initiative's
   `[work].shipped` as a bare string (dropping `needs` and other fields),
   without duplicating an entry already present in shipped, and leaving
   surrounding comments, inline objects, and whitespace intact.
 
-- [ ] **AC12.** After the implementing PR merges, every `docs/specs/<slug>/`
+- [x] **AC12.** After the implementing PR merges, every `docs/specs/<slug>/`
   directory whose `spec.md` has `Status: Approved` or `Status: Implementing`
   has its canonical path (`spec/<slug>`) present in at least one initiative's
   queue, active, or shipped list — verified by
@@ -187,7 +187,7 @@ inconsistency. Plan T2 handles pre-dogfood triage of these pre-existing cases.
   any live-status spec absent from all lists is an inconsistency that must be
   resolved (stamp, queue, or add to shipped) before this AC is met.
 
-- [ ] **AC13.** Confirmed cleanup for a stale `Status: Archived` entry uses a
+- [x] **AC13.** Confirmed cleanup for a stale `Status: Archived` entry uses a
   comment-preserving write: the entry is removed from the initiative's
   queue/active list; nothing is added to `[work].shipped`; surrounding comments,
   inline objects, and whitespace are intact.
