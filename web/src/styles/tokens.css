@@ -91,8 +91,10 @@
   --ds-cta-ghost-light-fg:     var(--prim-amber-700);
 
   /* ── Type family ────────────────────────────────────────────────── */
-  --ds-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Helvetica, Arial, sans-serif;
+  /* 'Inter Variable' is the family name Fontsource registers for the variable
+     package; 'Inter' remains for any static Inter, then system fallbacks. */
+  --ds-font-sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --ds-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
     Menlo, Consolas, monospace;
 
