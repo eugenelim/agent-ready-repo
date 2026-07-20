@@ -22,7 +22,7 @@ Two distinct paths share this journey:
 - **Self-serve** (solo / startup / small team): The evaluator is the installer. Value is demonstrated by running the tool on a real spec. No gatekeepers, no live demo required. The tool sells itself once it runs.
 - **Sponsored** (enterprise / AI adoption programme): The evaluator is not the installer. An internal champion must demonstrate value to a decision maker (CTO, engineering director, AI CoE lead), coordinate with a platform team, then onboard engineers at scale. Live demonstration on the org's own codebase is the critical gate — documentation alone does not move enterprise decisions.
 
-**Outcome:** The team ships their first spec using `work-loop`. `workspace.toml` is seeded on `main`. Engineers open sessions with `check-workspace`. The platform is the default workflow, not a pilot.
+**Outcome:** The team ships their first spec using `work-loop`. `workspace.toml` is seeded on `main`. Engineers open sessions with `workspace-status`. The platform is the default workflow, not a pilot.
 
 **Surface:** cross-platform — CLI/terminal, agent-assisted. Enterprise path includes a live-demo session in front of decision makers.
 
@@ -30,7 +30,7 @@ Two distinct paths share this journey:
 - Self-serve: Peer recommendation, blog post, conference mention, or GitHub discovery. Engineer has already been using Claude Code or similar and wants more structure.
 - Sponsored: Organisation has an AI adoption initiative. A champion is tasked with evaluating tools. Platform is identified as a candidate and escalated for a buy-in conversation.
 
-**End state:** `workspace.toml` seeded on `main`. At least one spec shipped via `work-loop`. Engineers run `check-workspace` at session start without being told to. For the sponsored path: rollout playbook executed, platform team owns the install, engineers have completed a guided first-use tutorial.
+**End state:** `workspace.toml` seeded on `main`. At least one spec shipped via `work-loop`. Engineers run `workspace-status` at session start without being told to. For the sponsored path: rollout playbook executed, platform team owns the install, engineers have completed a guided first-use tutorial.
 
 ---
 
@@ -38,7 +38,7 @@ Two distinct paths share this journey:
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `work-loop`, `check-workspace`, `new-spec`, `receive-brief`, `workspace.toml` schema |
+| core | repo | current | `work-loop`, `workspace-status`, `new-spec`, `receive-brief`, `workspace.toml` schema |
 | PE pack | user | optional for evaluation | `frame-intent`, `de-risk-intent` — not needed to evaluate or demonstrate the build room |
 
 **Self-serve setup:**
@@ -70,7 +70,7 @@ sequenceDiagram
     Note over ENG,CLI: Self-serve today — platform works, no guided path
     ENG->>CLI: Installs agentbundle
     ENG->>CLI: work-loop [spec] → ships successfully
-    ENG->>CLI: check-workspace → oriented
+    ENG->>CLI: workspace-status → oriented
     Note over ENG: Value is real but first-use path is self-discovered
 
     Note over CH,DM: Enterprise today — live-demo gap persists
@@ -98,7 +98,7 @@ sequenceDiagram
     ENG->>TUT: your-first-workspace tutorial
     TUT->>WS: Seed workspace.toml (one real spec)
     TUT->>ENG: run work-loop [spec]
-    ENG->>WS: check-workspace (session 2)
+    ENG->>WS: workspace-status (session 2)
     WS-->>ENG: Spec shipped · queue next?
     Note over ENG: Aha moment — workflow established
 
@@ -110,7 +110,7 @@ sequenceDiagram
     CH->>PT: Enterprise rollout playbook (M6)
     PT->>PT: Install core pack · configure harness · seed workspace.toml
     PT->>ENGS: your-first-workspace tutorial (M6)
-    ENGS->>WS: check-workspace (first session)
+    ENGS->>WS: workspace-status (first session)
     WS-->>ENGS: Active spec · run work-loop
     Note over ENGS: First spec shipped · workflow embedded
 ```
@@ -137,11 +137,11 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Engineer installs manually, following README. Seeds `workspace.toml` (or uses the existing one if the repo already has it). Runs `work-loop` on a real spec. Runs `check-workspace` to confirm state. |
-| **Emotions** | Determined (neutral → positive once the spec ships). The tool works and the confirmation is concrete — `check-workspace` shows "shipped" and what's next. |
+| **Actions** | Engineer installs manually, following README. Seeds `workspace.toml` (or uses the existing one if the repo already has it). Runs `work-loop` on a real spec. Runs `workspace-status` to confirm state. |
+| **Emotions** | Determined (neutral → positive once the spec ships). The tool works and the confirmation is concrete — `workspace-status` shows "shipped" and what's next. |
 | **Pains** | "I installed it but I'm not sure if skills are loading correctly." "I don't know if I should use an existing spec or create a new one — there's no tutorial to guide me." "The value was visible but I can't reproduce it reliably yet because I'm self-discovering the path." |
 
-> **With M6** — `your-first-workspace` tutorial ships: guided path from install to first shipped spec; no self-discovery needed; first session is explicitly confirmed via `check-workspace`.
+> **With M6** — `your-first-workspace` tutorial ships: guided path from install to first shipped spec; no self-discovery needed; first session is explicitly confirmed via `workspace-status`.
 
 ---
 
@@ -181,11 +181,11 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | After initial success, engineers continue using `work-loop` and `check-workspace` — or revert to old workflow when they hit friction on a non-standard case. |
-| **Emotions** | Building toward habitual (neutral). `check-workspace` is a real tool they can form a habit around. Reversion happens when a new case (no spec, ambiguous brief, unfamiliar harness) is encountered and there is no guidance. |
-| **Pains** | "It works well when I know what spec to run. When I don't, I go back to winging it." "New engineers joining the team don't know about `check-workspace` — they discover it weeks in." |
+| **Actions** | After initial success, engineers continue using `work-loop` and `workspace-status` — or revert to old workflow when they hit friction on a non-standard case. |
+| **Emotions** | Building toward habitual (neutral). `workspace-status` is a real tool they can form a habit around. Reversion happens when a new case (no spec, ambiguous brief, unfamiliar harness) is encountered and there is no guidance. |
+| **Pains** | "It works well when I know what spec to run. When I don't, I go back to winging it." "New engineers joining the team don't know about `workspace-status` — they discover it weeks in." |
 
-> **Embedded state (M6)** — `check-workspace` is the first command every engineer runs. `workspace.toml` is the team's source of truth for what's in flight. New engineers are onboarded to it on day one via the `your-first-workspace` tutorial. Reversion stops because the habit is established before friction arises.
+> **Embedded state (M6)** — `workspace-status` is the first command every engineer runs. `workspace.toml` is the team's source of truth for what's in flight. New engineers are onboarded to it on day one via the `your-first-workspace` tutorial. Reversion stops because the habit is established before friction arises.
 
 ---
 
@@ -213,11 +213,11 @@ The metrics that matter — and how to measure them at each adoption stage. Sour
 
 ### Session-start habit
 
-**What it measures:** Are engineers running `check-workspace` at the start of sessions? This is the embedding metric — once it's habitual, reversion is unlikely.
+**What it measures:** Are engineers running `workspace-status` at the start of sessions? This is the embedding metric — once it's habitual, reversion is unlikely.
 
 | Target | How to measure |
 |---|---|
-| `check-workspace` is the first command in > 70% of sessions by week 4 | Self-reported (survey) until INI-005 session instrumentation ships; proxy: `workspace.toml` `active` entries moving to `shipped` within single sessions |
+| `workspace-status` is the first command in > 70% of sessions by week 4 | Self-reported (survey) until INI-005 session instrumentation ships; proxy: `workspace.toml` `active` entries moving to `shipped` within single sessions |
 
 ### 30-day retention
 
@@ -287,7 +287,7 @@ Currently all metrics above require manual measurement or champion reporting. Th
 - Session-start detection (first command per session) — enables session-start habit metric
 - Per-engineer spec counts — enables activation rate and 30-day retention
 
-Until INI-005 ships, measure manually via periodic `check-workspace` output, per-team reporting, and champion aggregation. Prioritise TTFV (leading indicator) and 30-day org-wide retention (lagging indicator) — they bracket the adoption arc.
+Until INI-005 ships, measure manually via periodic `workspace-status` output, per-team reporting, and champion aggregation. Prioritise TTFV (leading indicator) and 30-day org-wide retention (lagging indicator) — they bracket the adoption arc.
 
 ---
 
@@ -301,13 +301,13 @@ Until INI-005 ships, measure manually via periodic `check-workspace` output, per
 - **Skill:** prepare-demo-scenario (enterprise)
 - **Skill:** deliver-live-demo (enterprise)
 - **Skill:** execute-rollout-playbook (enterprise)
-- **Skill:** run-check-workspace-at-session-start (habit)
+- **Skill:** run-workspace-status-at-session-start (habit)
 
 ---
 
 ## Emotional arc
 
-**Self-serve path:** Lowest point is Stage 2 (proof of value) — friction before the first success. Highest point is the moment the first spec ships and `check-workspace` shows "shipped" — immediate, visible, concrete.
+**Self-serve path:** Lowest point is Stage 2 (proof of value) — friction before the first success. Highest point is the moment the first spec ships and `workspace-status` shows "shipped" — immediate, visible, concrete.
 
 **Enterprise path:** Lowest point is Stage 3 (internal case / live demo) — the champion knows the platform is good but cannot transfer that conviction reliably to decision makers without a demo script. The platform is the best it has ever been and the champion is still losing rooms.
 
@@ -330,6 +330,6 @@ Until INI-005 ships, measure manually via periodic `check-workspace` output, per
 
 **For M6 spec authoring:** Stage 3 (Live Demo Gap) is the highest-priority M6 design problem. The live-demo guide is a prerequisite for the rollout playbook — enterprise can't roll out without buy-in, and buy-in requires a reliable demo. Sequence: live-demo guide → rollout playbook → your-first-workspace tutorial.
 
-**For `check-workspace` design (M1):** Stage 5 (Embedding) reveals that `check-workspace` is the session-start habit that prevents reversion. The M1 `check-workspace` AC should explicitly design for "first command in a session" UX — the output should answer "what do I work on next?" not just "what is in the queue?"
+**For `workspace-status` design (M1):** Stage 5 (Embedding) reveals that `workspace-status` is the session-start habit that prevents reversion. The M1 `workspace-status` AC should explicitly design for "first command in a session" UX — the output should answer "what do I work on next?" not just "what is in the queue?"
 
 **For INI-003 (Coding CLI Adapter Pack):** Stage 4 (Rollout) in mixed-harness orgs requires one adapter per harness type. The rollout playbook must handle harness selection as its first decision — the platform team cannot onboard engineers until they know which CLI everyone is using.

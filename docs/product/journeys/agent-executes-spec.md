@@ -8,7 +8,7 @@ status: shipped
 initiative_links:
   - id: INI-002
     name: Platform Core
-    milestones: M1 (delivered — check-workspace M1.5, work-loop M1.7)
+    milestones: M1 (delivered — workspace-status M1.5, work-loop M1.7)
     role: primary
   - id: INI-003
     name: Coding CLI Adapter Pack
@@ -23,7 +23,7 @@ updated: 2026-07-19
 
 **Outcome:** The spec is in `[work].shipped`. A PR is submitted and passing. `workspace.toml` reflects the new state. The next ready item is surfaced. The next agent starting a session can orient immediately without reading any prior session's context.
 
-**Surface:** cross-platform — runs identically across Claude Code (`claude`), Codex CLI (`codex`), Kiro CLI (`kiro`), GitHub Copilot CLI, Gemini CLI. The skill surface (`check-workspace`, `work-loop`) is harness-agnostic; harness-specific conventions (MCP vs static `.md`, context window limits) are adapter concerns (INI-003).
+**Surface:** cross-platform — runs identically across Claude Code (`claude`), Codex CLI (`codex`), Kiro CLI (`kiro`), GitHub Copilot CLI, Gemini CLI. The skill surface (`workspace-status`, `work-loop`) is harness-agnostic; harness-specific conventions (MCP vs static `.md`, context window limits) are adapter concerns (INI-003).
 
 **Trigger:** Agent session starts — invoked by a human running `claude`, by a CI/CD job dispatching a headless agent, or by a swarm supervisor allocating a spec.
 
@@ -35,7 +35,7 @@ updated: 2026-07-19
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `check-workspace`, `work-loop` (workspace integration), `new-spec` |
+| core | repo | current | `workspace-status`, `work-loop` (workspace integration), `new-spec` |
 | coding CLI adapter pack | user | planned (INI-003) | Harness-specific invocation, write-back contract implementation; one adapter per harness (Claude Code, Codex CLI, Kiro, etc.) |
 
 **One-time setup:**
@@ -59,7 +59,7 @@ sequenceDiagram
     participant R as Repo (spec branch)
 
     Note over A,WS: Session start — M1.5+
-    A->>SK: check-workspace
+    A->>SK: workspace-status
     SK->>WS: Read [shaping_queue]+[brief_queue]+[work], resolve DAG
     WS-->>SK: Active initiative · spec/m1-work-loop is ready · spec/m1-receive-brief blocked (needs brief-template)
     SK-->>A: Oriented · next action: work-loop spec/m1-work-loop
@@ -76,7 +76,7 @@ sequenceDiagram
     A->>R: Submit PR
 
     Note over A,WS: Exit — next agent starts from known-good state
-    A->>SK: check-workspace (final — confirms shipped state visible)
+    A->>SK: workspace-status (final — confirms shipped state visible)
     SK-->>A: spec/m1-work-loop: shipped · spec/m1-receive-brief: ready
 ```
 
@@ -86,8 +86,8 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `check-workspace`. Reads `workspace.toml`, resolves DAG across all queues, surfaces the active initiative, ready specs, blocked items with reasons, and parallel candidates. |
-| **Failure modes** | Context assembled incorrectly (wrong spec inferred — rare with `check-workspace`); spec already claimed by another agent (no atomic claiming until INI-003 adapter ships); stale `workspace.toml` if a prior agent did not write back on ship. |
+| **Actions** | Runs `workspace-status`. Reads `workspace.toml`, resolves DAG across all queues, surfaces the active initiative, ready specs, blocked items with reasons, and parallel candidates. |
+| **Failure modes** | Context assembled incorrectly (wrong spec inferred — rare with `workspace-status`); spec already claimed by another agent (no atomic claiming until INI-003 adapter ships); stale `workspace.toml` if a prior agent did not write back on ship. |
 | **Remaining pains** | "I can see the spec is ready but I can't confirm no other agent has claimed it — atomic claiming is an INI-003 adapter concern." |
 
 ---
@@ -132,15 +132,15 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Submits PR. `work-loop` moves spec `active → shipped` in `workspace.toml` on ship; surfaces next ready item; prompts `roadmap.md` update. Exit state is committed — next agent orients in one `check-workspace` call. |
-| **Failure modes** | PR submitted but write-back skipped (agent interrupted before `work-loop` completes write-back); `roadmap.md` update skipped. Next agent should run `check-workspace` to confirm state before starting. |
+| **Actions** | Submits PR. `work-loop` moves spec `active → shipped` in `workspace.toml` on ship; surfaces next ready item; prompts `roadmap.md` update. Exit state is committed — next agent orients in one `workspace-status` call. |
+| **Failure modes** | PR submitted but write-back skipped (agent interrupted before `work-loop` completes write-back); `roadmap.md` update skipped. Next agent should run `workspace-status` to confirm state before starting. |
 | **Remaining pains** | Partial-progress capture if the agent was interrupted mid-build (not committed). Full session continuity feeds INI-005. |
 
 ---
 
 ## Frontstage actions
 
-- **Skill:** run-check-workspace
+- **Skill:** run-workspace-status
 - **Skill:** validate-spec-in-active-queue
 - **Skill:** run-new-spec-if-needed
 - **Skill:** write-plan
@@ -148,15 +148,15 @@ sequenceDiagram
 - **Skill:** run-gates
 - **Skill:** submit-pr
 - **Skill:** update-workspace-on-ship
-- **Skill:** run-check-workspace-exit-state
+- **Skill:** run-workspace-status-exit-state
 
 ---
 
 ## Failure mode arc (replaces emotional arc for agent persona)
 
-Most critical failure: **Stage 1 (Orient)** — spec already claimed by another agent, or `workspace.toml` stale because a prior agent didn't write back. `check-workspace` catches the second; atomic claiming (INI-003) closes the first.
+Most critical failure: **Stage 1 (Orient)** — spec already claimed by another agent, or `workspace.toml` stale because a prior agent didn't write back. `workspace-status` catches the second; atomic claiming (INI-003) closes the first.
 
-Second most critical: **Stage 5 (Ship & Exit)** — PR submitted but `work-loop` write-back interrupted. Next agent re-picks the same spec. Mitigation: always run `check-workspace` at session start to confirm state before claiming.
+Second most critical: **Stage 5 (Ship & Exit)** — PR submitted but `work-loop` write-back interrupted. Next agent re-picks the same spec. Mitigation: always run `workspace-status` at session start to confirm state before claiming.
 
 Remaining failure modes (partial-progress capture, budget tracking, gate diagnostics) are post-M1 backlog items — some feed INI-005 design.
 
