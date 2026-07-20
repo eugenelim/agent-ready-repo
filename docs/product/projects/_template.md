@@ -3,7 +3,7 @@
 > **This is a template.** Copy it to `docs/product/projects/<slug>.md` and
 > fill in what you have. A project is a per-repo, time-bounded outcome — a
 > chunk of the roadmap bounded by a milestone and owned by this repo. Use
-> `check-workspace` at session start to see the current queue state.
+> `workspace-status` at session start to see the current queue state.
 
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
 - **Outcome:** <!-- one sentence: the user-facing or system change this project delivers -->

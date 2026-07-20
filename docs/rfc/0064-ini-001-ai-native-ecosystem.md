@@ -21,9 +21,9 @@
 
 ## How to orient at session start
 
-**Until `check-workspace` (M1.5) exists:** read this file + `docs/product/roadmap.md` + `docs/product/shaping/product-vision-INI-001.md` + `docs/product/shaping/ecosystem-overview.md`. Then check `docs/product/briefs/` for any in-progress brief stubs.
+**Until `workspace-status` (M1.5) exists:** read this file + `docs/product/roadmap.md` + `docs/product/shaping/product-vision-INI-001.md` + `docs/product/shaping/ecosystem-overview.md`. Then check `docs/product/briefs/` for any in-progress brief stubs.
 
-**Once `check-workspace` exists (after M1.5 ships):** run `check-workspace` — it reads `workspace.toml` and surfaces the current queue state and next action. This is the single cold-start command from M1.5 onward.
+**Once `workspace-status` exists (after M1.5 ships):** run `workspace-status` — it reads `workspace.toml` and surfaces the current queue state and next action. This is the single cold-start command from M1.5 onward.
 
 **Once `rfc-status` (M3 AC 3) exists:** run `rfc-status` — it will surface active sub-RFCs and milestone status.
 
@@ -41,7 +41,7 @@ Between M1.5 and M1.7: you can see the work queue but `work-loop` does not yet a
 
 | AC label | Milestone label | Key delivery |
 |---|---|---|
-| Batch 2 | M1.5 | `check-workspace` ships; all three queues become visible |
+| Batch 2 | M1.5 | `workspace-status` ships; all three queues become visible |
 | Batch 3 | M1.7 | `work-loop` workspace integration; work queue fully wired |
 | Batch 4 | M1.8 | `receive-brief` + `author-brief`; brief queue fully wired |
 | Batch 5 | M1.9 | `new-rfc` workspace prompt; governance integration |
@@ -69,9 +69,9 @@ M1 is organised into five functional delivery batches. Each batch ships as one P
 |---|---|
 | `workspace.toml` schema seed committed to `main`, pre-populated with INI-002 queue | New file on main. Non-breaking — nothing reads it yet. |
 | `agentbundle-layout.toml [product]` table: configurable `projects/` and `shaping/` paths | Config extension alongside the seed. |
-| `check-workspace` skill in core pack | Reads local `workspace.toml`; resolves DAG across all three queues; surfaces ready/blocked/parallel across all active initiatives. Offers to initialise if file absent. |
+| `workspace-status` skill in core pack | Reads local `workspace.toml`; resolves DAG across all three queues; surfaces ready/blocked/parallel across all active initiatives. Offers to initialise if file absent. |
 
-After this batch merges, **run `check-workspace` at every session start** — it orients in one command from here on.
+After this batch merges, **run `workspace-status` at every session start** — it orients in one command from here on.
 
 **Batch 3 — Work queue end-to-end** (after Batch 2; one PR)
 
@@ -130,7 +130,7 @@ If implementing a skill reveals the RFC's AC was wrong or too narrow, write an *
 - **Recommended outcome:** accept.
 - **Immediate change if accepted (M1 — begins on acceptance):**
   - New `workspace.toml` file format and seed in the core pack.
-  - New `check-workspace` skill in the core pack.
+  - New `workspace-status` skill in the core pack.
   - New `[shaping_queue]` section in `workspace.toml` (upstream of the existing `[brief_queue]` concept).
   - Extended brief template: adds `Status`, `Rabbit holes`, `Instrumentation`, and `## Design artifacts` fields.
   - Extended `work-loop`: reads `workspace.toml` at step 0; pops queue and updates brief Coverage post-ship.
@@ -162,9 +162,9 @@ If implementing a skill reveals the RFC's AC was wrong or too narrow, write an *
   | D4 | Git coordination pattern? | **`workspace.toml` on `main`** — spec branches target `main` directly; each spec PR updates `workspace.toml` in the same diff; no umbrella branch | Fast-merge, no-long-lived-branch model. Concurrent specs touch different TOML entries; rebase conflicts are trivially resolved. Umbrella branches solve a coordination problem that only exists with long-lived in-flight work — unnecessary here. | RFC acceptance | Accept or propose umbrella branch |
   | D5 | Shaping artifacts in-repo? | **Yes — vision, capability maps, opportunity assessments committed to `docs/product/shaping/`** | Strategic shaping artifacts are decisions, not corpora; they belong in the committed tree | RFC acceptance | Accept or propose external-only |
   | D6 | Brief-level `Status` field? | **Explicit hand-set field** (Draft → Ready → Executing → Shipped) distinct from spec-level Coverage | Spec Coverage is auto-derived from each spec's own `Status:` field (CONVENTIONS); brief-level Status is declared intent, hand-set at DoR gate and at ship — two different fields on two different artifact levels. DoR "Ready" gate: brief has Outcome, Appetite, ≥1 Rabbit hole, and a Spec map skeleton | RFC acceptance | Accept or propose auto-derive brief Status from spec rollup |
-  | D7 | Dependency model for queue entries? | **Inline `needs` field on queue entries** — entry is a string (no deps) or `{path/slug, needs}` (with deps); `needs` uses a queue-prefix notation (`work:`, `shape:`, `brief:`) to express cross-queue deps; cross-initiative deps prefix the initiative slug: `"ini-002:work:spec/..."` | Flat lists can't express "these three run in parallel, this one waits for that one." The JIT build-then-use pattern (build a skill → use it to do shaping work) requires cross-queue deps. Cross-initiative prefix enables `check-workspace` to resolve deps that span parallel initiatives in the same file. Enforcement stays with `check-workspace` (display); work-loop enforcement deferred | RFC acceptance | Accept or propose a separate `[deps]` table |
+  | D7 | Dependency model for queue entries? | **Inline `needs` field on queue entries** — entry is a string (no deps) or `{path/slug, needs}` (with deps); `needs` uses a queue-prefix notation (`work:`, `shape:`, `brief:`) to express cross-queue deps; cross-initiative deps prefix the initiative slug: `"ini-002:work:spec/..."` | Flat lists can't express "these three run in parallel, this one waits for that one." The JIT build-then-use pattern (build a skill → use it to do shaping work) requires cross-queue deps. Cross-initiative prefix enables `workspace-status` to resolve deps that span parallel initiatives in the same file. Enforcement stays with `workspace-status` (display); work-loop enforcement deferred | RFC acceptance | Accept or propose a separate `[deps]` table |
   | D8 | Research output path? | **`docs/product/research/<slug>/`** (repo-scoped default); personal workspace is user-configured (e.g. Obsidian ACE vault at `<vault>/efforts/research/<slug>/`) | `.context/research/` (current pack.toml default) is gitignored ephemeral scratch — not durable across sessions, not committed, not team-visible. Research artifacts are decisions that belong in the committed tree alongside `docs/product/shaping/`. `research/` is separate from `findings/` (structured registers: `rfc-candidates.md`, `roadmap-intents.md`). No universal Obsidian vault default path exists — personal branch of the elicitation prompts for the vault path explicitly. Dropped as part of M3 `research-project-start` fix. | RFC acceptance | Accept `docs/product/findings/` (mixes artifacts with registers) or external-only |
-  | D9 | Typed shaping_queue entries? | **`type` field on shaping_queue entries** — `research` (desk-research pack), `strategy` (product-strategy pack), `shape` (PE six-step, default), `signal` (ongoing landscape monitoring — does not graduate to a brief; surfaced by `check-workspace` as "active context," not "ready to start"; subtypes deferred — e.g., regulatory, market, technology, risk; hand-authored in `workspace.toml` by the strategist — no skill produces a `signal` entry); `check-workspace` surfaces each type with the right skill prompt; cross-type deps use the queue prefix: `needs = "research:<slug>"`. **Terminology note:** `frame-situation` consumes raw input signals (market events, OKR gaps) and routes them into the six-step sequence as `shape`-typed queue entries — distinct from `type = "signal"` entries. Input-signal = raw triggering event; `type = "signal"` = standing non-graduating landscape concern. | Research and altitude-0 strategy are upstream of PE shaping but are done by different people (researchers, product strategists). `signal` entries represent ongoing landscape concerns (regulatory surveillance, competitive monitoring, technology watch) whose lifecycle is fundamentally different — they inform shaping decisions without producing a brief; the canonical term is from strategic foresight practice (STEEP, horizon scanning). Typed entries give all roles queue visibility without adding separate sections. Default `shape` means existing entries require no migration. | RFC acceptance | Accept separate `[research_queue]` + `[strategy_queue]` sections |
+  | D9 | Typed shaping_queue entries? | **`type` field on shaping_queue entries** — `research` (desk-research pack), `strategy` (product-strategy pack), `shape` (PE six-step, default), `signal` (ongoing landscape monitoring — does not graduate to a brief; surfaced by `workspace-status` as "active context," not "ready to start"; subtypes deferred — e.g., regulatory, market, technology, risk; hand-authored in `workspace.toml` by the strategist — no skill produces a `signal` entry); `workspace-status` surfaces each type with the right skill prompt; cross-type deps use the queue prefix: `needs = "research:<slug>"`. **Terminology note:** `frame-situation` consumes raw input signals (market events, OKR gaps) and routes them into the six-step sequence as `shape`-typed queue entries — distinct from `type = "signal"` entries. Input-signal = raw triggering event; `type = "signal"` = standing non-graduating landscape concern. | Research and altitude-0 strategy are upstream of PE shaping but are done by different people (researchers, product strategists). `signal` entries represent ongoing landscape concerns (regulatory surveillance, competitive monitoring, technology watch) whose lifecycle is fundamentally different — they inform shaping decisions without producing a brief; the canonical term is from strategic foresight practice (STEEP, horizon scanning). Typed entries give all roles queue visibility without adding separate sections. Default `shape` means existing entries require no migration. | RFC acceptance | Accept separate `[research_queue]` + `[strategy_queue]` sections |
 
 ## Problem & goals
 
@@ -181,8 +181,8 @@ Teams operating at Step 1–2 of AI-native maturity have no structured way to:
 ### Goals
 
 - Any agent can open a session and, with one skill invocation, know: current initiative → shaping queue → brief queue → active specs → what to work on next.
-- `check-workspace` resolves the dependency graph and surfaces parallel candidates (what can start now) separately from blocked items (what is waiting and why).
-- A team can bootstrap `workspace.toml` from an RFC or roadmap — pre-seeded with all known work items and cross-queue deps — so cold-start is immediately useful from the first session after `check-workspace` ships.
+- `workspace-status` resolves the dependency graph and surfaces parallel candidates (what can start now) separately from blocked items (what is waiting and why).
+- A team can bootstrap `workspace.toml` from an RFC or roadmap — pre-seeded with all known work items and cross-queue deps — so cold-start is immediately useful from the first session after `workspace-status` ships.
 - `workspace.toml` works without any particular harness, tracker, or CI system.
 - The vocabulary maps to every major tracker so no team abandons their existing tools.
 
@@ -208,7 +208,7 @@ Teams operating at Step 1–2 of AI-native maturity have no structured way to:
 
 `workspace.toml` lives on `main`. It is a **repo-level artifact** that persists with the repo across initiatives — not scoped to any one initiative's lifetime. Each initiative gets its own named section. Multiple initiatives can run in parallel. When an initiative ships, its section is removed; git history preserves the record. Blank file (or empty-sections file) = no active initiatives.
 
-Queue entries are **strings** (no dependencies) or **inline objects** `{path/slug, needs}` (with dependencies). `needs` is a string or list; prefix with the queue: `"work:path"`, `"shape:slug"`, `"brief:path"`. Cross-initiative deps prefix the initiative slug: `"ini-002:work:spec/m1-check-workspace"`. `check-workspace` reads all sections, resolves the DAG across all active initiatives, and surfaces (a) items ready to start now, (b) blocked items with reason, (c) parallel candidates.
+Queue entries are **strings** (no dependencies) or **inline objects** `{path/slug, needs}` (with dependencies). `needs` is a string or list; prefix with the queue: `"work:path"`, `"shape:slug"`, `"brief:path"`. Cross-initiative deps prefix the initiative slug: `"ini-002:work:spec/m1-workspace-status"`. `workspace-status` reads all sections, resolves the DAG across all active initiatives, and surfaces (a) items ready to start now, (b) blocked items with reason, (c) parallel candidates.
 
 **Schema — per-initiative named section:**
 
@@ -222,7 +222,7 @@ parent    = "<INI-ID or URL>"
 ["<initiative-slug>".shaping_queue]
 # All upstream work. Entries are strings or {slug, type?, needs?} objects.
 # type: "shape" (default — PE six-step), "research" (desk-research pack), "strategy" (product-strategy pack), "signal" (ongoing monitoring — does not graduate to brief)
-# check-workspace surfaces each type with the right skill prompt for the user's packs.
+# workspace-status surfaces each type with the right skill prompt for the user's packs.
 # signal entries surface as "active context" (not "ready to start"). Cross-type deps: needs = "research:<slug>" or "strategy:<slug>"
 active  = []
 backlog = []
@@ -249,7 +249,7 @@ queue   = []
 # workspace.toml — add ["<initiative-slug>"] sections to declare initiatives
 ```
 
-**Closeout** — when all specs reach `shipped` and `active = []`, `check-workspace` surfaces: "ini-002: all specs shipped — run closeout?" Closeout removes the `["ini-002"]` section block. Git history preserves the record; no archive file needed.
+**Closeout** — when all specs reach `shipped` and `active = []`, `workspace-status` surfaces: "ini-002: all specs shipped — run closeout?" Closeout removes the `["ini-002"]` section block. Git history preserves the record; no archive file needed.
 
 **Multi-initiative example** — two parallel initiatives with a cross-initiative dependency:
 
@@ -324,9 +324,9 @@ queue   = [
 ]
 ```
 
-Note: Batches 1 and 2 (foundation docs + workspace core) need no spec entries — they are the infrastructure. `spec/m1-workspace-core` covers the workspace.toml seed, layout config, and check-workspace skill shipped as one unit.
+Note: Batches 1 and 2 (foundation docs + workspace core) need no spec entries — they are the infrastructure. `spec/m1-workspace-core` covers the workspace.toml seed, layout config, and workspace-status skill shipped as one unit.
 
-Once the workspace-core batch ships, run `check-workspace` — it reads this file and surfaces what is ready to start next.
+Once the workspace-core batch ships, run `workspace-status` — it reads this file and surfaces what is ready to start next.
 
 **Scale — start minimal, add sections as the team grows:**
 
@@ -354,15 +354,15 @@ The `[shaping_queue]` sits upstream of `[brief_queue]`. It holds all pre-brief u
 - **`type = "shape"`** (default) — PE six-step sequence: `frame-situation` → `identify-opportunities` → `diverge-solutions` → validate → `place-bet` → `map-capabilities`. Produces shaping artifacts in `docs/product/shaping/`.
 - **`type = "research"`** — desk-research pack: `research-project-start <slug>`. Produces findings in `docs/product/research/<slug>/` (or user-configured personal workspace). Non-technical users can pick these up without PE skills.
 - **`type = "strategy"`** — product-strategy pack (M4): altitude-0 analysis (SWOT, PESTLE, OKR cascade, PRFAQ). Non-technical product strategists pick these up. Artifacts committed to `docs/product/shaping/`.
-- **`type = "signal"`** — ongoing landscape monitoring (regulatory, competitive, technology, risk — subtypes deferred). Does not graduate to a brief. `check-workspace` surfaces signals as "active context" separately from project-bound "ready to start" items; the strategist acknowledges and notes shaping implications rather than promoting to a brief. Canonical term from strategic foresight practice (STEEP, horizon scanning at EU JRC and product strategy firms).
+- **`type = "signal"`** — ongoing landscape monitoring (regulatory, competitive, technology, risk — subtypes deferred). Does not graduate to a brief. `workspace-status` surfaces signals as "active context" separately from project-bound "ready to start" items; the strategist acknowledges and notes shaping implications rather than promoting to a brief. Canonical term from strategic foresight practice (STEEP, horizon scanning at EU JRC and product strategy firms).
 
-`check-workspace` surfaces each type with the appropriate skill prompt. A shaping item can depend on a research item: `needs = "research:adopter-persona"` — the shaping item becomes ready only when the research project's findings are committed.
+`workspace-status` surfaces each type with the appropriate skill prompt. A shaping item can depend on a research item: `needs = "research:adopter-persona"` — the shaping item becomes ready only when the research project's findings are committed.
 
 ### INI-002 milestone map
 
 | Milestone | Scope |
 |---|---|
-| M1 · Workspace Foundation | workspace.toml seed, check-workspace, brief template DoR fields, work-loop / receive-brief / new-rfc extensions |
+| M1 · Workspace Foundation | workspace.toml seed, workspace-status, brief template DoR fields, work-loop / receive-brief / new-rfc extensions |
 | M2 · Strategic Shaping | frame-situation, identify-opportunities, diverge-solutions, place-bet, map-capabilities, JTBD + Wardley in PE pack |
 | M3 · Findings & RFC Management | findings register seeds, rfc-status skill, research-project-start .context/ bug fix |
 | M4 · Product Strategy Layer | product-strategy pack, OKR → gap analysis routing, PRFAQ template |
@@ -371,7 +371,7 @@ The `[shaping_queue]` sits upstream of `[brief_queue]`. It holds all pre-brief u
 
 > **Ecosystem context (not in scope):** INI-003 (Coding CLI Adapter Pack), INI-004 (Remote Agent Runtime), INI-005 (Infra & Observability), and INI-006 (Control Plane) are separate initiatives in their own repos, each with its own RFC when triggered. They are painted in the product vision and `docs/product/shaping/ecosystem-overview.md` to complete the picture; they are not part of this RFC's scope or completion condition.
 >
-> **INI-004 note — remote agent runtime and non-technical users:** Two execution paths for non-local harnesses. **Path A — skill adaptation (INI-003 scope):** skills become MCP tools or system-prompt injections in the remote agent session; stateless single-pass skills port cleanly to the Claude Agents SDK; orchestration-heavy skills (e.g., `work-loop` supervisor mode) require re-plumbing because the SDK's "agent as tool" multi-agent pattern differs from Claude Code's `Agent` dispatch. **Path B — ephemeral box (INI-004 scope):** spin up a full Claude Code sandbox on demand (Modal, E2B, Daytona, Databricks), pass in `workspace.toml` and the task, execute the complete skill ecosystem natively; nothing to port, at the cost of cold-start latency and per-session sandbox overhead. `workspace.toml` is harness-agnostic under either path — it is a local file the agent reads and writes regardless of execution environment. **Non-technical user story (agentic UI):** for non-technical users on a hosted agentic UI (researcher, product strategist), `check-workspace` output is the natural session entry point; `type = "research"` and `type = "strategy"` entries surface the right skill prompt with no CLI required; the harness provides the environment. INI-004 RFC governs path selection, sandbox provider choice, and non-technical user onboarding.
+> **INI-004 note — remote agent runtime and non-technical users:** Two execution paths for non-local harnesses. **Path A — skill adaptation (INI-003 scope):** skills become MCP tools or system-prompt injections in the remote agent session; stateless single-pass skills port cleanly to the Claude Agents SDK; orchestration-heavy skills (e.g., `work-loop` supervisor mode) require re-plumbing because the SDK's "agent as tool" multi-agent pattern differs from Claude Code's `Agent` dispatch. **Path B — ephemeral box (INI-004 scope):** spin up a full Claude Code sandbox on demand (Modal, E2B, Daytona, Databricks), pass in `workspace.toml` and the task, execute the complete skill ecosystem natively; nothing to port, at the cost of cold-start latency and per-session sandbox overhead. `workspace.toml` is harness-agnostic under either path — it is a local file the agent reads and writes regardless of execution environment. **Non-technical user story (agentic UI):** for non-technical users on a hosted agentic UI (researcher, product strategist), `workspace-status` output is the natural session entry point; `type = "research"` and `type = "strategy"` entries surface the right skill prompt with no CLI required; the harness provides the environment. INI-004 RFC governs path selection, sandbox provider choice, and non-technical user onboarding.
 
 ## Acceptance criteria
 
@@ -390,8 +390,8 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 **Batch 2 — Workspace core** ← *unlock; ship as one PR*
 - [x] `workspace.toml` schema seed committed to `main` — repo-level artifact; per-initiative named sections (`["ini-002"]`, etc.); multi-initiative parallel sections supported; blank-file valid; closeout = remove the section when shipped
 - [x] `agentbundle-layout.toml [product]` table: configurable paths (`projects/`, `shaping/`; briefs path stays pinned)
-- [x] `check-workspace` skill: reads local `workspace.toml`; resolves DAG across all sections using `needs` fields and cross-initiative prefix (`ini-002:work:...`); surfaces (a) ready to start, (b) blocked with reason, (c) parallel candidates; surfaces each `[shaping_queue]` entry by `type` (`shape`/`research`/`strategy`/`signal`) with the matching skill prompt for the user's installed packs; `signal` entries surfaced as "active context" distinct from project-bound "ready to start" items (D9); offers to initialise if file absent; surfaces closeout prompt when all specs shipped
-- [x] Pre-populated INI-002 queue committed in the same PR as the seed — all Batch 3–5 specs pre-seeded so `check-workspace` is immediately useful
+- [x] `workspace-status` skill: reads local `workspace.toml`; resolves DAG across all sections using `needs` fields and cross-initiative prefix (`ini-002:work:...`); surfaces (a) ready to start, (b) blocked with reason, (c) parallel candidates; surfaces each `[shaping_queue]` entry by `type` (`shape`/`research`/`strategy`/`signal`) with the matching skill prompt for the user's installed packs; `signal` entries surfaced as "active context" distinct from project-bound "ready to start" items (D9); offers to initialise if file absent; surfaces closeout prompt when all specs shipped
+- [x] Pre-populated INI-002 queue committed in the same PR as the seed — all Batch 3–5 specs pre-seeded so `workspace-status` is immediately useful
 
 **Batch 3 — Work queue end-to-end** (after Batch 2)
 - [ ] `work-loop` extended: reads `workspace.toml` at step 0 for initiative/milestone context; on ship, edits `workspace.toml` in working directory (`[work].active → [work].shipped`) and surfaces `roadmap.md` update reminder; degrades gracefully if file absent
@@ -404,7 +404,7 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 **Batch 5 — Governance integration + shaping home** (after Batch 1; independent of Batches 2–4)
 - [ ] `new-rfc` extended: Accepted path prompts "Add implementation specs to `workspace.toml` queue?"; degrades if absent
 - [ ] `docs/product/projects/_template.md` seed + `findings/` directory seed + `initiatives/_template.md` seed — one PR (`docs/product/shaping/` is intentionally untouched: its content is M2-produced by PE skills, not seeded by this batch)
-- [ ] `workspace.toml` dependency model documented: inline `{path/slug, needs}` format; cross-queue prefix notation; cross-initiative prefix; `check-workspace` is the display surface; `work-loop` enforcement of DAG deferred to post-M1 backlog
+- [ ] `workspace.toml` dependency model documented: inline `{path/slug, needs}` format; cross-queue prefix notation; cross-initiative prefix; `workspace-status` is the display surface; `work-loop` enforcement of DAG deferred to post-M1 backlog
 
 ### M2 · Strategic Shaping
 
@@ -423,7 +423,7 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [x] `docs/product/findings/rfc-candidates.md` seed with schema: `| Problem | Source | Surfaced by | Date | Priority | Disposition |` — one row per candidate RFC; entries added by convention when `work-loop` defers something out of scope, or when `frame-situation` escalates a finding
 - [x] `docs/product/findings/roadmap-intents.md` seed with same schema adapted for roadmap items
 - [x] `rfc-status` skill in governance-extras: scans `docs/rfc/*.md` grouped by lifecycle state (valid states per CONVENTIONS.md §3 RFC lifecycle: `Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental | Superseded`; CONVENTIONS.md already defines this closed set — no update needed; `Shipped` is a spec status, not an RFC status); also scans `rfc-candidates.md` and surfaces candidate count separately
-- [x] `rfc-status` surfaced in `check-workspace` output as a count line: "N rfc candidates · M roadmap intents"
+- [x] `rfc-status` surfaced in `workspace-status` output as a count line: "N rfc candidates · M roadmap intents"
 - [x] `work-loop` convention documented: on spec ship, if anything is deferred out of scope, agent prompts "Add to rfc-candidates.md or roadmap-intents.md?"
 - [x] `research-project-start` bug fix (D8): remove `parent = ".context/research"` from resolution order in the skill — `.context/` is gitignored ephemeral scratch; the M3 fix also adds `[research] output_dir` key to `agentbundle-layout.toml` (new key — does not exist before this fix); resolution order: (1) user-scope `~/.agentbundle/agentbundle-layout.toml [research] output_dir` — personal workspace; (2) repo-scope `agentbundle-layout.toml [research] output_dir` — team convention; (3) neither → two-branch elicitation: repo branch ("Commit to this repo? [`docs/product/research/`]" → writes repo-scope config) or personal branch ("Write to personal workspace? Enter path:" → writes user-scope config; no default — Obsidian has no universal vault path; skill uses `~/Documents/<VaultName>/efforts/research/` as illustrative example only); output always at `<output_dir>/<research-project-slug>/`; co-land a test asserting elicitation fires rather than `.context/` fallback
 - [x] `research` pack renamed to `desk-research` — canonical practitioner term (desk research in consulting / secondary research in design-UX practice); scope: AI-assisted synthesis of existing sources, finding summary schema, research project scaffolding; pack manifest, `plugin.json`, build-self run; migration path documented in pack `AGENTS.md`. (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level alias; migration is documentation-only via `packs/desk-research/AGENTS.md`. `agentbundle-layout.toml [research]` section key is an activity-type identifier and does not change. Assessed 2026-07-18, eugenelim.)
@@ -513,7 +513,7 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 
 *(4) Portfolio coordination — open.* How does a portfolio-level pack move Layer-2 synthesis artifacts from a private research repo into shaping queues across multiple build repos? `workspace.toml` is per-repo; a CTO or AI adoption lead also needs aggregate adoption metrics (org activation rate, cross-repo throughput, value stream latency). Both may require a portfolio-level artifact (`portfolio.toml` or lightweight registry) aggregating per-repo `workspace.toml` status. **Feeds INI-006** (control plane) directly. Would be closed by: a follow-on RFC after M3 ships; org-level measurement requirements surface from the `team-evaluates-and-adopts` journey and the `adopter-persona` research project.
 
-**Resolved:** `check-workspace` absent-file behaviour — reads local `workspace.toml` from the current working directory (file lives on `main`; always present after Batch 2 ships). If absent: interactive sessions offer to initialise (copy seed); headless/CI sessions fail loudly with a named diagnostic. No `git show`, no branch detection needed.
+**Resolved:** `workspace-status` absent-file behaviour — reads local `workspace.toml` from the current working directory (file lives on `main`; always present after Batch 2 ships). If absent: interactive sessions offer to initialise (copy seed); headless/CI sessions fail loudly with a named diagnostic. No `git show`, no branch detection needed.
 
 **Resolved:** Write protocol — `workspace.toml` is a local file on the working branch. Skills (`work-loop`, `receive-brief`, `author-brief`) edit the file in the working directory and stage it as part of the spec diff; it commits to `main` with the spec PR. No worktree, no sidecar, no cross-branch write. Headless and remote-agent adapters (INI-003, INI-004) follow the same pattern — they edit the local file before committing; adapter-specific invocation details are each initiative's own concern.
 

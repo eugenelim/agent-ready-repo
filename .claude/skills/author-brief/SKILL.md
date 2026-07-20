@@ -6,7 +6,7 @@ description: Use this skill when the user has unstructured external input (an em
 # Skill: author-brief
 
 Turn any unstructured external input into a DoR-compliant product brief,
-then queue it so `check-workspace` can surface it immediately.
+then queue it so `workspace-status` can surface it immediately.
 
 `author-brief` stops at **draft** — it does not decompose the brief into specs
 and does not set `Status: Ready`. Those are `receive-brief`'s job. The two
