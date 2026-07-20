@@ -1,12 +1,12 @@
 ---
-status: Implementing
+status: Shipped
 type: enhancement
 created: 2026-07-16
 ---
 
 # Mermaid rendering improvements — markdown-to-html + render-proof
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 
 Mode: full (security boundary trigger: securityLevel change, CDN injection, user input rendered as HTML)
 
