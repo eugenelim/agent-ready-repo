@@ -34,10 +34,11 @@
 
 /* ── Accent token — single source of truth ──────────────────────────────── */
 /*
- * MkDocs Material resolves links and focus rings through --md-accent-fg-color
- * and --md-typeset-a-color. Without these overrides, Material's default
- * indigo/cyan (from mkdocs.yml palette) would leak into body links, focus
- * rings, and the active-nav marker — violating Rubric 4.
+ * mkdocs.yml uses palette.primary/accent: custom, so Material emits no default
+ * color tokens. All token values are defined explicitly here; nothing leaks from
+ * a named palette. --md-accent-fg-color drives links, focus rings, and the
+ * active-nav marker (Rubric 4). --md-primary-fg-color drives the mobile nav
+ * drawer header and other primary-keyed components.
  */
 
 :root,
@@ -45,6 +46,16 @@
   --md-accent-fg-color:              #e8952b;
   --md-accent-fg-color--transparent: rgba(232, 149, 43, 0.10);
   --md-typeset-a-color:              #8b5e0a;  /* text-safe amber on light — 6:1 contrast */
+  --md-default-bg-color:             #fafaf9;  /* warm near-white surface (--prim-neutral-50) */
+  --md-default-bg-color--light:      #fafaf9;
+  /* Required when mkdocs.yml uses palette.primary: custom — Material emits no
+   * primary tokens for custom; these prevent mobile nav drawer / active-nav
+   * from rendering with transparent/invalid values. */
+  --md-primary-fg-color:             #0b0e12;  /* dark zone — brand primary */
+  --md-primary-fg-color--light:      rgba(11, 14, 18, 0.54);
+  --md-primary-fg-color--dark:       rgba(11, 14, 18, 0.87);
+  --md-primary-bg-color:             #f8fafc;  /* text on dark primary */
+  --md-primary-bg-color--light:      rgba(248, 250, 252, 0.70);
 }
 
 /* ── Dark mode surface ladder ───────────────────────────────────────────── */
@@ -57,6 +68,12 @@
   --md-accent-fg-color:              #e8952b;
   --md-accent-fg-color--transparent: rgba(232, 149, 43, 0.12);
   --md-typeset-a-color:              #f5bc6a;  /* amber-300 — readable on dark surface */
+}
+
+/* Prevent 100vw hero from producing a horizontal scrollbar on Windows/Linux
+ * (scrollbar width is included in 100vw, causing body-level overflow). */
+body {
+  overflow-x: hidden;
 }
 
 /* ── Header: dark unified zone matching the hero ────────────────────────── */
@@ -319,6 +336,12 @@ article.md-content__inner:has(> .hero-section) {
 .md-typeset h2 {
   margin-top: 3rem;
   letter-spacing: -0.015em;
+}
+
+/* Scope h2 border-bottom removal to hero pages only — not all content pages.
+ * Fallback class .hero-h2-style for browsers without :has() support. */
+.md-content__inner:has(.hero-section) .md-typeset h2,
+.md-typeset h2.hero-h2-style {
   border-bottom: none;
   padding-bottom: 0;
 }
@@ -326,14 +349,14 @@ article.md-content__inner:has(> .hero-section) {
 /* ── Cards — lifted tint + border reveal on hover ───────────────────────── */
 /*
  * Rubric: cards on pure white have no visual weight (same plane as background).
- * A tinted background (#f8fafc) lifts the card. Border (not shadow) names the
- * card edge precisely. On hover: border brightens to the accent color (#e8952b).
- * Shadow reserved for elevated overlays (modals, dropdowns), never cards.
+ * SURFACE-1 (#f0efed) lifts the card off the page background. Border (not shadow)
+ * names the card edge precisely. On hover: border brightens to the accent color
+ * (#e8952b). Shadow reserved for elevated overlays (modals, dropdowns), never cards.
  */
 
 .grid.cards > ul > li,
 .grid.cards > ol > li {
-  background: #f8fafc;
+  background: #f0efed;
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.09);
   box-shadow: none;
@@ -344,7 +367,6 @@ article.md-content__inner:has(> .hero-section) {
 .grid.cards > ol > li:hover {
   border-color: #e8952b;
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(232, 149, 43, 0.12);
 }
 
 [data-md-color-scheme="slate"] .grid.cards > ul > li,
@@ -357,7 +379,6 @@ article.md-content__inner:has(> .hero-section) {
 [data-md-color-scheme="slate"] .grid.cards > ul > li:hover,
 [data-md-color-scheme="slate"] .grid.cards > ol > li:hover {
   border-color: rgba(232, 149, 43, 0.5);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Code blocks ───────────────────────────────────────────────────────── */
@@ -393,12 +414,11 @@ article.md-content__inner:has(> .hero-section) {
   color: #f5bc6a;  /* amber-300 — readable on dark surface */
 }
 
-/* ── Global primary CTA — amber-gold, overrides Material's palette.primary: indigo ── */
+/* ── Global primary CTA — amber-gold ────────────────────────────────────── */
 /*
- * mkdocs.yml sets palette.primary: indigo, which maps --md-primary-fg-color to
- * indigo (#5e6ad2). Without this rule, .md-button--primary outside .hero-section
- * inherits that indigo default. This global rule sets the correct amber-gold base;
- * the more-specific .hero-section .md-button--primary rule below still takes
+ * mkdocs.yml uses palette.primary: custom so Material does not emit any CTA
+ * color. This rule sets the amber-gold fill for .md-button--primary everywhere;
+ * the more-specific .hero-section .md-button--primary rule still takes
  * precedence inside the hero (higher specificity + !important), so no conflict.
  */
 
@@ -428,8 +448,8 @@ article.md-content__inner:has(> .hero-section) {
 
 /* ── Tables ────────────────────────────────────────────────────────────── */
 /*
- * Table headers use a light neutral tint — the same family as cards (#f8fafc).
- * Dark canvas (#0b0e12) belongs only in the navbar/hero zone, not the content area.
+ * Table headers use a light neutral tint (#f0efed). Dark canvas (#0b0e12)
+ * belongs only in the navbar/hero zone, not the content area.
  */
 
 .md-typeset table:not([class]) {
@@ -437,7 +457,7 @@ article.md-content__inner:has(> .hero-section) {
 }
 
 .md-typeset table:not([class]) th {
-  background-color: #f0f4f8;
+  background-color: #f0efed;
   color: #1a202c;
   font-weight: 600;
   border-bottom: 2px solid #e2e8f0;
