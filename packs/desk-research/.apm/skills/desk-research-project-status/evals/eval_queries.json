@@ -1,0 +1,21 @@
+[
+  {"query": "Where are we on the payments fraud research?", "should_trigger": true},
+  {"query": "Status of the competitive landscape investigation", "should_trigger": true},
+  {"query": "Resume the LLM evaluation research project", "should_trigger": true},
+  {"query": "What phase is the supply-chain research in?", "should_trigger": true},
+  {"query": "Where did we leave off on the churn driver research?", "should_trigger": true},
+  {"query": "Show me the current state of the regulatory watch project", "should_trigger": true},
+  {"query": "Orient me to the ongoing research project", "should_trigger": true},
+  {"query": "Research project status — what's the working hypothesis?", "should_trigger": true},
+  {"query": "What's the stop signal for the fraud research?", "should_trigger": true},
+  {"query": "Return to the database migration investigation — where were we?", "should_trigger": true},
+
+  {"query": "Start a research project on payments fraud that we'll work on over the next month", "should_trigger": false},
+  {"query": "Look up the current state of post-quantum cryptography standards", "should_trigger": false},
+  {"query": "Research with citations the evidence on churn-reduction tactics", "should_trigger": false},
+  {"query": "Is this research project saturated? Should I keep gathering sources?", "should_trigger": false},
+  {"query": "Digest the sources I've gathered for the fraud project", "should_trigger": false},
+  {"query": "Synthesize the research into a brief", "should_trigger": false},
+  {"query": "What should I work on next?", "should_trigger": false},
+  {"query": "Show the workspace queue", "should_trigger": false}
+]

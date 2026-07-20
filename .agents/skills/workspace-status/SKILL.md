@@ -63,6 +63,7 @@ Format output in four sections (omit sections with no entries):
 - `[shaping_queue]` `<slug>` (`shape`) — run `frame-intent`
 - `[shaping_queue]` `<slug>` (`research`) — run `desk-research-project-start`
 - `[shaping_queue]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
+- `[shaping_queue]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
 - `[brief_queue]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
 
 **Parallel candidates:** _(all of the above with no inter-dependencies can start concurrently)_
@@ -97,6 +98,7 @@ When surfacing shaping_queue entries, append the right skill invocation based on
 | `research` | `desk-research-project-start` (requires desk-research pack) |
 | `strategy` | route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim |
 | `signal` | no action — surface in "active context" section only |
+| `design` | `experience-status` (requires experience-design pack); if experience-design is not installed: `journey-mapping` |
 
 If the required pack is not installed, surface: "requires `<pack-name>` pack — install to work this item."
 

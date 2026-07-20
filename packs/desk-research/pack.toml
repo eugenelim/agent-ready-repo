@@ -39,7 +39,8 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # each listed skill ships evals/eval_queries.json and is measured by
 # tools/run-pack-evals.py. These are the prompt-triggered skills with a distinct
 # cold-prompt activation surface: the seven scoping / synthesis / decision-support
-# skills, plus research-project-start as the lifecycle entry point.
+# skills, research-project-start as the lifecycle entry point, and
+# research-project-status as the project-mode cold-start orient surface.
 #
 # Deliberately excluded (judgment, not oversight):
 #   - research-project-check / -digest / -synthesize — the *interior* steps of the
@@ -65,7 +66,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # digest emits for -check and -synthesize to consume, and the pack applies the
 # confidence/triangulation rail downstream at synthesis, not at digest time.
 [pack.evals]
-skills = ["desk-research", "source-map", "build-outline", "identify-perspectives", "compare-hypotheses", "devils-advocate", "decision-archaeology", "desk-research-project-start"]
+skills = ["desk-research", "source-map", "build-outline", "identify-perspectives", "compare-hypotheses", "devils-advocate", "decision-archaeology", "desk-research-project-start", "desk-research-project-status"]
 
 # RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
 # [research] section of an adopter-owned `agentbundle-layout.toml`. This is the

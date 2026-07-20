@@ -1,6 +1,6 @@
 # Spec: spec-B-pack-status-skills
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -46,22 +46,22 @@ All criteria use **goal-based check**: each SKILL.md is verified against the spe
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `packs/desk-research/.apm/skills/desk-research-project-status/SKILL.md` exists with `name: desk-research-project-status`.
-- [ ] **AC2.** `desk-research-project-status` reads `overview.md` at the configured `[research] output_dir`. When no project exists (no folder + `overview.md` at `output_dir`): surfaces "No research project found — run `desk-research-project-start` for a sustained project, or `desk-research` for a one-off lookup." Does NOT advance phase.
-- [ ] **AC3.** `desk-research-project-status` surfaces: phase (capture/digest/synthesize/feedback), working hypothesis (the `working_hypothesis:` field from `overview.md` — may be empty), stop-signal verdict, and what the next step is given the current phase.
-- [ ] **AC4.** `desk-research-project-status` activation triggers include: "where are we on the X research", "status of the Y investigation", "resume the Z project", and any return-to-a-named-research-project phrasing.
-- [ ] **AC5.** `desk-research-project-status` is added to `packs/desk-research/pack.toml`'s `[pack.evals].skills` allowlist.
-- [ ] **AC6.** `packs/experience-design/.apm/skills/experience-status/SKILL.md` exists with `name: experience-status`.
-- [ ] **AC7.** `experience-status` resolves `[design] output_dir` read-only (config chain: `agentbundle-layout.toml` → user-profile → stop; no elicitation). When not configured: surfaces "No `[design] output_dir` configured — run `journey-mapping` to create your first artifact (it will set the path)."
-- [ ] **AC8.** `experience-status` reads artifact frontmatter from: `<output_dir>/journeys/*.md` (type: customer-journey), `<output_dir>/screens/*-flow.md` (type: screen-flow), `<output_dir>/screens/<slug>/*.md` (matching `- **Type:** screen-brief` bold-body marker — per-screen briefs written by `user-flow`), `<output_dir>/blueprints/*.md` (type: service-blueprint). Reports what exists, what's missing, and which skill to run next.
-- [ ] **AC9.** `experience-status` steel-thread check: does a journey map exist? Does a screen flow exist? Do per-screen brief files exist under `screens/<slug>/`? The third clause (whether all journey stage actions are covered by screen briefs) requires cross-referencing and is reported as "manual check required" if the skill cannot resolve it from frontmatter alone. Reports gaps on all three checks.
-- [ ] **AC10.** `experience-status` no-artifacts case: "No design artifacts found — run `journey-mapping` to start the design thread."
-- [ ] **AC11.** `experience-status` activation triggers include: "where are we with the design", "what experience artifacts do we have", "status of the design thread", "what's next in the design".
-- [ ] **AC12.** `experience-status` is added to `packs/experience-design/pack.toml`'s `[pack.evals].skills` allowlist.
-- [ ] **AC13.** `packs/core/.apm/skills/workspace-status/SKILL.md` routing table updated: `{type = "design"}` entries route to `experience-status` (or `journey-mapping` if experience-design is not installed).
-- [ ] **AC14.** The workspace.toml seed comment in `packs/core/seeds/` (or equivalent source) updated to include `design` as a valid `shaping_queue` type alongside the existing enum (`shape`, `research`, `strategy`, `signal`).
-- [ ] **AC15.** `docs/product/workspace-toml-deps.md` updated to reflect the `design` type addition.
-- [ ] **AC16.** `make build-self` exits 0; both skills appear at their projected paths; `make build-check` exits 0.
+- [x] **AC1.** `packs/desk-research/.apm/skills/desk-research-project-status/SKILL.md` exists with `name: desk-research-project-status`.
+- [x] **AC2.** `desk-research-project-status` scans project subfolders under the configured `[research] output_dir` for `overview.md` files. When no project subfolder with `overview.md` is found: surfaces "No research project found — run `desk-research-project-start` for a sustained project, or `desk-research` for a one-off lookup." Does NOT advance phase.
+- [x] **AC3.** `desk-research-project-status` surfaces: phase (capture/digest/synthesize/feedback), working hypothesis (the `working_hypothesis:` field from `overview.md` — may be empty), stop-signal verdict, and what the next step is given the current phase.
+- [x] **AC4.** `desk-research-project-status` activation triggers include: "where are we on the X research", "status of the Y investigation", "resume the Z project", and any return-to-a-named-research-project phrasing.
+- [x] **AC5.** `desk-research-project-status` is added to `packs/desk-research/pack.toml`'s `[pack.evals].skills` allowlist.
+- [x] **AC6.** `packs/experience-design/.apm/skills/experience-status/SKILL.md` exists with `name: experience-status`.
+- [x] **AC7.** `experience-status` resolves `[design] output_dir` read-only (config chain: `agentbundle-layout.toml` → user-profile → stop; no elicitation). When not configured: surfaces "No `[design] output_dir` configured — run `journey-mapping` to create your first artifact (it will set the path)."
+- [x] **AC8.** `experience-status` reads artifact frontmatter from: `<output_dir>/journeys/*.md` (type: customer-journey), `<output_dir>/screens/*-flow.md` (type: screen-flow), `<output_dir>/screens/<slug>/*.md` (matching `- **Type:** screen-brief` bold-body marker — per-screen briefs written by `user-flow`), `<output_dir>/blueprints/*.md` (type: service-blueprint). Reports what exists, what's missing, and which skill to run next.
+- [x] **AC9.** `experience-status` steel-thread check: does a journey map exist? Does a screen flow exist? Do per-screen brief files exist under `screens/<slug>/`? The third clause (whether all journey stage actions are covered by screen briefs) requires cross-referencing and is reported as "manual check required" if the skill cannot resolve it from frontmatter alone. Reports gaps on all three checks.
+- [x] **AC10.** `experience-status` no-artifacts case: "No design artifacts found — run `journey-mapping` to start the design thread."
+- [x] **AC11.** `experience-status` activation triggers include: "where are we with the design", "what experience artifacts do we have", "status of the design thread", "what's next in the design".
+- [x] **AC12.** `experience-status` is added to `packs/experience-design/pack.toml`'s `[pack.evals].skills` allowlist.
+- [x] **AC13.** `packs/core/.apm/skills/workspace-status/SKILL.md` routing table updated: `{type = "design"}` entries route to `experience-status` (or `journey-mapping` if experience-design is not installed).
+- [x] **AC14.** The workspace.toml seed comment in `packs/core/seeds/` (or equivalent source) updated to include `design` as a valid `shaping_queue` type alongside the existing enum (`shape`, `research`, `strategy`, `signal`).
+- [x] **AC15.** `docs/product/workspace-toml-deps.md` updated to reflect the `design` type addition.
+- [x] **AC16.** `make build-self` exits 0; both skills appear at their projected paths; `make build-check` exits 0.
 
 ## Assumptions
 
