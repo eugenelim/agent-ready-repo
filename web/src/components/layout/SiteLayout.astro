@@ -45,12 +45,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:url" content={canonicalUrl} />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
-    />
+    <!-- Fonts are self-hosted via Fontsource — imported in src/styles/global.css. -->
   </head>
   <body>
     <a class="skip-nav" href="#main">Skip to content</a>
