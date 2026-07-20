@@ -29,7 +29,9 @@ A new pack is a coherent slice — a workflow, a reviewer lens, a document shape
 
 Steps:
 
-1. **Open an RFC.** New packs need RFC review — the contract surface is published, not internal. See [`docs/rfc/`](docs/rfc/) for the template and recent precedents (RFC-0004 added install-scope-per-pack; RFC-0007 added the user-scope converter pack).
+0. **Design the pack's workflow arc first.** A pack is a set of cohesive workflows for a role's work — not a list of features. Before writing any `SKILL.md`, work through the pack workflow design framework at [`docs/guides/_shared/explanation/pack-workflow-design.md`](docs/guides/_shared/explanation/pack-workflow-design.md). It takes you through: characterizing whether your pack is episodic, sustained-project, or sustained-derived; mapping the Arrive → Orient → Work → Persist → Collaborate arc to your pack's skill set; naming your skills against the verb taxonomy; and deciding whether your pack needs a status skill, a `*-project-start` skill, and config-driven output paths. The RFC reviewers will ask these questions; answering them before you write the skill bodies saves a review cycle.
+
+1. **Open an RFC.** New packs need RFC review — the contract surface is published, not internal. See [`docs/rfc/`](docs/rfc/) for the template and recent precedents (RFC-0004 added install-scope-per-pack; RFC-0007 added the user-scope converter pack). The RFC should include your arc mapping from step 0 — which skills cover which arc stages, and why.
 2. **Create `packs/<your-pack>/`** with the directory shape:
    - `pack.toml` — manifest. Conforms to [`docs/contracts/pack.schema.json`](docs/contracts/pack.schema.json). Required tables: `[pack]`, `[pack.adapter-contract]`, `[pack.install]`. Cross-field invariant `default-scope ∈ allowed-scopes` is schema-enforced.
    - `.apm/` — upstream for adapter-projected primitives (`skills/`, `agents/`, `hooks/`, `commands/`, `hook-wiring/`).
