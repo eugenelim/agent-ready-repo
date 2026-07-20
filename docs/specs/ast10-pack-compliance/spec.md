@@ -1,6 +1,6 @@
 # Spec: OWASP AST10 pack compliance
 
-- **Status:** Implementing
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Mode:** Full (security-boundary risk trigger)
 - **Owner:** eugenelim
 
