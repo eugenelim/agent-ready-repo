@@ -71,8 +71,10 @@
 }
 
 /* Prevent 100vw hero from producing a horizontal scrollbar on Windows/Linux
- * (scrollbar width is included in 100vw, causing body-level overflow). */
-body {
+ * (scrollbar width is included in 100vw, causing body-level overflow).
+ * Must target html, not just body — setting it on body alone makes html the
+ * scroll container, which on iOS allows the page to scroll horizontally. */
+html {
   overflow-x: hidden;
 }
 
