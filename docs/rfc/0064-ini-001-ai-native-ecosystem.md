@@ -243,6 +243,20 @@ shipped = []
 queue   = []
 ```
 
+**Repo-level backlog** — a top-level, repo-durable section (not scoped to any initiative; never removed on initiative ship). The single view of open work that is not tied to an active initiative:
+
+```toml
+# Repo-level backlog. The single aggregated view of all open, well-shaped work
+# that is not scoped to an active initiative — ad-hoc discoveries, follow-ons,
+# and deferred spec acceptance criteria. Entries are strings or
+# {slug, needs?, source?} objects. `needs` uses the same prefix notation as the
+# queues; depend on a backlog item via "backlog:<slug>". `source` names the
+# origin of a deferred AC (e.g. "spec/<name> AC3"). Per-entry comments must be
+# cold-start-sufficient: problem, fix, affected file/skill, key decisions.
+[backlog]
+open = []
+```
+
 **Blank state** — no active initiatives:
 
 ```toml
@@ -337,6 +351,47 @@ Once the workspace-core batch ships, run `workspace-status` — it reads this fi
 | 20–50 | All three sections per initiative | A dedicated PE role works the shaping queue |
 | 50+ / multi-repo | One `workspace.toml` per repo; cross-repo initiative tracking via external tracker | Multiple repos contributing to one initiative |
 
+### Repo-level backlog & deferral register
+
+`workspace.toml` gains a top-level `[backlog]` section: the **single view of all
+open work** not scoped to an active initiative. Two kinds of item live here:
+
+1. **Ad-hoc discoveries** — well-shaped, ready-now work that is not
+   initiative-scale. This is the common case that previously had no home: not big
+   enough for `roadmap-intents.md`, not a design question for `rfc-candidates.md`,
+   and not tied to an active initiative's `[work].queue`. New discoveries land
+   here.
+2. **Deferred spec acceptance criteria** — work cut from a spec's
+   implementation. The spec's own AC checkbox remains the source of truth for
+   status; the `[backlog]` entry is the aggregation that makes deferred work
+   visible in one place.
+
+This **absorbs `docs/backlog.md`**, which was a markdown aggregation of the same
+open items keyed by spec. The register moves into `workspace.toml` so
+`workspace-status` surfaces open work in one cold-start view alongside the queues.
+
+**Deferral relocation.** A deferred AC is marked in its spec with an inline
+justification and `(deferred: <slug>)`, where `<slug>` resolves to a
+`[backlog].open` entry (previously: a heading in `docs/backlog.md`). Deferral
+must be well-justified: the justification is required and surfaced, so cutting
+scope is a defended, visible decision rather than a silent drop. `work-loop`
+prompts explicitly before deferring; `lint-spec-status.py` invariant (iv) is
+rewritten to resolve the anchor against `workspace.toml [backlog]` and to require
+the justification.
+
+**Traceability.** The spec's AC status stays authoritative — a spec marking its
+own ACs is sufficient record. The `(deferred:) ↔ backlog slug` link is retained
+only to prevent silent rot and to keep the single aggregated view complete, not
+as a second source of truth.
+
+**Frozen inbound anchors.** A small set of Accepted (Frozen) RFCs link
+`docs/backlog.md#<anchor>` (RFC-0007, 0023, 0058, 0065) and cannot be edited.
+`docs/backlog.md` is reduced to a thin **anchor-tombstone stub** retaining only
+those anchors, each a one-line pointer to the corresponding `[backlog]` entry —
+the existing resolved-tombstone convention, generalized. Editable references
+(CONTRIBUTING.md, the `new-spec` template, `work-loop`, CONVENTIONS.md,
+`export-catalogue`) are repointed at `workspace.toml [backlog]`.
+
 ### Three-altitude model
 
 The six-step development sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) operates at every altitude with different time horizons:
@@ -428,6 +483,11 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [x] `research-project-start` bug fix (D8): remove `parent = ".context/research"` from resolution order in the skill — `.context/` is gitignored ephemeral scratch; the M3 fix also adds `[research] output_dir` key to `agentbundle-layout.toml` (new key — does not exist before this fix); resolution order: (1) user-scope `~/.agentbundle/agentbundle-layout.toml [research] output_dir` — personal workspace; (2) repo-scope `agentbundle-layout.toml [research] output_dir` — team convention; (3) neither → two-branch elicitation: repo branch ("Commit to this repo? [`docs/product/research/`]" → writes repo-scope config) or personal branch ("Write to personal workspace? Enter path:" → writes user-scope config; no default — Obsidian has no universal vault path; skill uses `~/Documents/<VaultName>/efforts/research/` as illustrative example only); output always at `<output_dir>/<research-project-slug>/`; co-land a test asserting elicitation fires rather than `.context/` fallback
 - [x] `research` pack renamed to `desk-research` — canonical practitioner term (desk research in consulting / secondary research in design-UX practice); scope: AI-assisted synthesis of existing sources, finding summary schema, research project scaffolding; pack manifest, `plugin.json`, build-self run; migration path documented in pack `AGENTS.md`. (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level alias; migration is documentation-only via `packs/desk-research/AGENTS.md`. `agentbundle-layout.toml [research]` section key is an activity-type identifier and does not change. Assessed 2026-07-18, eugenelim.)
 - [x] `experience` pack renamed to `experience-design` — canonical agency term (Experience Design, abbreviated XD; used by frog, Fjord/Accenture Song, AKQA, Huge); zero-ambiguity alignment with practitioner taxonomy; same migration-alias assessment as desk-research rename. (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level alias; migration is documentation-only via `packs/experience-design/AGENTS.md`. `agentbundle-layout.toml [experience]` section key is an activity-type identifier and does not change. Assessed 2026-07-18, eugenelim.)
+- [ ] `workspace.toml` gains a top-level `[backlog]` section (repo-durable, initiative-agnostic) — the single view of open work not scoped to an active initiative; `workspace-status` surfaces it alongside the queues
+- [ ] `docs/backlog.md` absorbed into `[backlog]`: all open items migrated with cold-start-sufficient comments; deferred-AC items carry `source = "spec/<name> ACn"`; `docs/backlog.md` reduced to an anchor-tombstone stub retaining only anchors linked by Frozen RFCs (RFC-0007/0023/0058/0065); editable references (CONTRIBUTING.md, `new-spec` template, `work-loop`, CONVENTIONS.md, `export-catalogue`) repointed
+- [ ] Deferral mechanism relocated: `(deferred: <slug>)` resolves to a `[backlog].open` entry (not a `docs/backlog.md` heading); deferral requires an inline justification and an explicit `work-loop` "is this deferral justified?" prompt; `lint-spec-status.py` invariant (iv) rewritten in both skill copies + pack source; `new-spec` template and CONVENTIONS.md updated
+- [x] `queue-add` skill (core pack): appends session-surfaced items to an active initiative's `[work].queue` or the repo-level `[backlog]`; infers `needs` from explicit sequencing only (never encodes a priority preference as a dependency); prioritizes (rubric-agnostic — order + comment rationale) and groups (independent batch / atomic bundle / suggest brief); escalation rubric suggests the right home when an item does not cleanly fit; writes cold-start-sufficient comments; user confirms before write. Spec: `docs/specs/queue-add/`
+- [ ] Research (shaping_queue): should `rfc-candidates.md` graduate into the `shaping_queue` (as research / strategy entries) rather than remain a separate register? Assess the intake taxonomy (findings registers vs `[backlog]` vs shaping queue) and recommend
 
 ### M4 · Product Strategy Layer
 
@@ -528,3 +588,22 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 **Resolved (2026-07-18):** M5 — tracker sync model. No webhook, no running infrastructure. The lifecycle is iterative: (1) first intake: `linear-brief-intake` creates brief from story; (2) spec written, ACs pasted back into tracker story for review round (write direction 2 — manual now; `push-acs-to-linear` is a sub-RFC stretch goal); (3) review round changes the story; (4) delta catch-up: `linear-brief-sync` re-fetches, diffs against current brief, presents delta for PE approval before writing — PE-authored brief fields (Appetite, Rabbit holes, Instrumentation) are protected; (5) lock: brief `Status: Executing` (spec building) → sync skill refuses further updates. Zero infrastructure at every step — all PE-triggered, no event subscription. Sub-RFC governs: delta model details, AC export scope, field mapping. `github-brief-intake` establishes the pattern first (M5 AC unchanged).
 
 **Unknowable:** Exact adoption journey for enterprise teams with Jira Align mandates. The integration surface is org-specific (custom workflow state names, program increment cadences); a generic portable sync is impossible — this will always require harness-layer configuration. The M5 `jira-align-brief-intake` AC is intentionally scoped to 1-way intake (Jira Align Feature → brief) with configuration-guided field mapping; it does not claim generic portability.
+
+## Amendments
+
+<!-- Draft-RFC additions and corrections to this RFC's own decisions. Becomes `## Errata` on acceptance per RFC-0055. -->
+
+- **2026-07-20 — Repo-level `[backlog]` + `docs/backlog.md` absorption.** Added a
+  top-level `[backlog]` section to the `workspace.toml` schema as the single view
+  of open work not scoped to an active initiative, absorbing the `docs/backlog.md`
+  aggregation and relocating the deferred-AC register into `workspace.toml`.
+  Motivated by three gaps: (1) no home existed for well-shaped, ready-now work
+  below initiative scale; (2) open work was split across `docs/backlog.md`, the
+  findings registers, and per-initiative queues with no single view; (3) the
+  deferral habit needs a stronger, well-justified, visible gate. Traceability is
+  preserved by relocating (not removing) the `(deferred:) ↔ register` link;
+  `docs/backlog.md` shrinks to an anchor-tombstone stub so Frozen inbound anchors
+  (RFC-0007/0023/0058/0065) still resolve. See "Repo-level backlog & deferral
+  register" (design) and the M3 ACs. Implemented by `docs/specs/queue-add/`
+  (intake skill) and the M3 backlog-migration + deferral-relocation specs.
+  eugenelim.
