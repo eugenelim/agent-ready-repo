@@ -251,16 +251,6 @@ open = [
   # Unblocks when: someone takes a spec scoping the cross-adapter hardening.
   {slug = "untrusted-catalogue-symlink-exfiltration"},
 
-  # Security. cursor.py's _project_direct_directory was hardened to drop nested
-  # symlinks (ignore=_ignore_symlinks), but kiro.py, codex, copilot, and claude-code
-  # still use copytree(symlinks=True). A nested symlink inside a skill dir in a
-  # malicious pack can be reproduced to an adopter's disk via those four adapters.
-  # Fix: lift cursor's symlink-skipping copy helper into
-  #   packages/agentbundle/agentbundle/projections/direct_directory.py and adopt it
-  #   in all four remaining adapters.
-  # Unblocks when: someone takes a focused cross-adapter hardening PR.
-  {slug = "nested-symlink-install-hardening"},
-
   # Security. packs/converters/.apm/skills/file-to-markdown/convert.py
   # _prescale_image disables PIL's decompression-bomb guard (Image.MAX_IMAGE_PIXELS
   # = None) with no dimension ceiling before decode. A pixel-flood image is fully
