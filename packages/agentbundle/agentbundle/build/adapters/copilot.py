@@ -34,6 +34,17 @@ from agentbundle.build.projections.copilot_hooks_json import (
 )
 
 
+def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: skip every symlink member.
+
+    Drops nested symlinks so they are never reproduced in the output
+    tree. The top-level `is_symlink()` skip in `_project_direct_directory`
+    covers the skill root; this covers the subtree.
+    """
+    base = Path(directory)
+    return {name for name in names if (base / name).is_symlink()}
+
+
 def _iter_primitives(contract: dict) -> Iterator[str]:
     """Yield Copilot's projected primitive names in phase order."""
     adapter_block = contract["adapter"]["copilot"]
@@ -86,13 +97,13 @@ def _project_direct_directory(
     """Copy each `<name>/` source tree to the target directory verbatim, then
     sweep orphaned target dirs no longer backed by a source.
 
-    Mirrors codex's `direct-directory` branch: `symlinks=True` keeps source
-    symlinks as symlinks (never dereferenced), a symlink at the entry root is
-    skipped (defense-in-depth — `lint-packs` already refuses symlinked packs,
-    but a direct `project()` caller bypasses that gate), and a destination
-    symlink is `unlink`ed (never `rmtree`d) before the copy. The orphan sweep is
-    **bounded to the `skill` primitive's** expected source names, so it can
-    never delete sibling `.github/agents/` or `.github/hooks/` content.
+    A symlink at the entry root is skipped (defense-in-depth — `lint-packs`
+    already refuses symlinked packs, but a direct `project()` caller bypasses
+    that gate). `ignore=_ignore_symlinks` drops nested symlinks so they are
+    never reproduced in the output tree. A destination symlink is `unlink`ed
+    (never `rmtree`d) before the copy. The orphan sweep is **bounded to the
+    `skill` primitive's** expected source names, so it can never delete sibling
+    `.github/agents/` or `.github/hooks/` content.
     """
     target_dir = output_root / rule["target-path"].rstrip("/")
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -107,6 +118,6 @@ def _project_direct_directory(
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            shutil.copytree(entry, destination, symlinks=True)
+            shutil.copytree(entry, destination, ignore=_ignore_symlinks)
     if primitive_name == "skill":
         sweep_orphans(target_dir, expected_names)
