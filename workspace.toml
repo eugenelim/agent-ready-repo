@@ -76,6 +76,7 @@ shipped = [
   "spec/workspace-status-queue-reconciliation", # PR #573 — reconciliation step
   "spec/m3-backlog-absorption",                # Migrate docs/backlog.md → workspace.toml [backlog]
   "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
+  "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
 ]
 queue   = [
   # ==================================================================
@@ -132,7 +133,6 @@ queue   = [
   "spec/m6-enterprise-rollout-playbook",  # champion→CTO→platform→engineers; staged rollout + retro template
 
   # ---------------- Independent track (not RFC-0064) ----------------
-  {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
   "spec/catalogue-curation",
 ]
 
@@ -655,6 +655,33 @@ open = [
   #   spec.
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
   {slug = "behavior-check-for-backend-skills"},
+
+  # spec/spec-C-workloop-argless-resume adversarial-reviewer Nit. The Active spec
+  # bullet mixes a control-flow action ("begin on that spec without asking") into
+  # the surface-list of orientation fields (Initiative/Milestone/Active spec) under
+  # "surface the following in a clearly labelled orientation block." Harmless; fixing
+  # it requires restructuring Step 0 — lifting the three-branch resolution out of the
+  # bullet list into its own labeled paragraph after the orientation block.
+  # quality-engineer Nit (Finding 4): same root — branch outcomes stated in two places
+  #   (bullet at line ~168 and closing paragraph at line ~188) that must stay aligned.
+  # Fix: restructure Step 0 in work-loop SKILL.md to separate data-surface fields
+  #   from control-flow resolution, collapsing to a single source of truth for branch
+  #   outcomes; edit source + run make build-self FORCE=1.
+  # File: packs/core/.apm/skills/work-loop/SKILL.md (Step 0 layout).
+  # Unblocks when: someone does a focused Step 0 readability pass.
+  {slug = "work-loop-step0-branch-layout-restructure", source = "spec/spec-C-workloop-argless-resume"},
+
+  # spec/spec-C-workloop-argless-resume quality-engineer Concern (Finding 2).
+  # Branch 1 (exactly one active item) starts the loop silently without echoing
+  # the resolved spec path. A stale .active entry pointing at the wrong spec goes
+  # undetected until PLAN is well under way.
+  # Fix: require the one-item branch to state the resolved path (e.g., "Beginning
+  #   on `<path>`") in the orientation block before proceeding — matches the
+  #   explicitness Branch 3 already provides. Needs AC2 text update + SKILL.md edit.
+  # File: packs/core/.apm/skills/work-loop/SKILL.md (Step 0 Branch 1) and
+  #   docs/specs/spec-C-workloop-argless-resume/spec.md (AC2).
+  # Unblocks when: a focused observability pass on Step 0 Branch 1.
+  {slug = "work-loop-step0-branch1-echo-resolved-path", source = "spec/spec-C-workloop-argless-resume"},
 
   # spec/adapt-to-project AC4b — deferred manual-QA rows (tombstone anchor for
   # RFC-0007 links). Repo-scope class-2/3/4 transcripts (rows 8–16): Claude-simulated

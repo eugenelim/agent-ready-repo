@@ -1,6 +1,6 @@
 ---
 name: work-loop
-description: Use this skill whenever you're implementing a non-trivial change -- a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan -> execute -> self-review -> fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
+description: Use this skill whenever you're implementing a non-trivial change -- a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. Also triggered by argless resume phrases -- "resume", "continue", "keep going", "pick up where I left off", "let's get going" (bare phrases only; "resume the X project" or "resume the X investigation" routes to desk-research-project-status). It enforces the project's plan -> execute -> self-review -> fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
 ---
 
 # Skill: work-loop
@@ -159,15 +159,18 @@ Before PLAN begins, orient to the current initiative and work queue:
 1. Look for `workspace.toml` in the working directory.
    - **If present:** read it and surface the following in a clearly labelled
      orientation block at the top of your response:
-     - **Initiative:** the `name` value from `["<slug>"]`
+     - **Initiative:** the `name` value from `["ini-NNN"]`
        (e.g. `"Platform Core"`).
-     - **Milestone:** the `milestone` value from `["<slug>"]`
+     - **Milestone:** the `milestone` value from `["ini-NNN"]`
        (e.g. `"M1 · Workspace Foundation"`).
-     - **Active spec:** the first path in `["<slug>".work].active`, if the
-       array is non-empty (e.g. `"spec/m1-work-queue"`). If the array is
-       empty, surface the initiative name and milestone only — no error.
+     - **Active spec (argless only — skip when a spec path is given):**
+       Collect every path in `["ini-NNN".work].active` across all active
+       initiatives. Exactly one → begin on that spec without asking. Zero
+       → surface "No active spec found — run `workspace-status` to see
+       what's ready to start." More than one (single initiative or across
+       initiatives) → list all and ask the user to pick.
      - **Stale-queue check.** For each active initiative, for each entry in
-       `["<slug>".work].queue` and `["<slug>".work].active`: resolve the
+       `["ini-NNN".work].queue` and `["ini-NNN".work].active`: resolve the
        path (bare string → as-is; inline object → `path` field; `slug` is
        shaping-queue only), strip the `spec/` prefix, and read
        `docs/specs/<slug>/spec.md`. If `**Status:**` is `Shipped` (ignoring
@@ -190,11 +193,12 @@ research→`desk-research-project-start`; strategy→`frame-situation`/`frame-in
 design→`experience-status`.) Signal: "Monitoring signal — `work-loop` is for
 build items only."
 
-After orienting (or immediately, if `workspace.toml` is absent), proceed
-to step 1 (PLAN). The active spec path tells you which spec you are
-expected to be working on — strip the `spec/` prefix from the stored path
-to get the slug, then read `docs/specs/<slug>/spec.md` and `plan.md`
-as step 1 of PLAN.
+If `workspace.toml` was absent or an explicit spec path was passed,
+proceed to step 1 (PLAN) immediately. Otherwise a path must be resolved:
+if exactly one active item, strip the `spec/` prefix, then read
+`docs/specs/<slug>/spec.md` and `plan.md` as step 1 of PLAN. In the
+zero and multi-item branches, stop after surfacing the message or list
+and do not proceed until the user picks.
 
 ### 1. PLAN — think before acting
 

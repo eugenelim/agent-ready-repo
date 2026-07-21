@@ -1,6 +1,6 @@
 # Spec: spec-C-workloop-argless-resume
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -41,22 +41,28 @@ A user who invokes `work-loop` without a spec path argument — or who types "re
 
 ## Testing Strategy
 
-All criteria use **goal-based check**: the SKILL.md body is read against the spec's three-branch contract and the removed first-path language. The change is to a markdown skill body; no compiled artifact. One **manual QA** step: invoke `work-loop` in a repo with each of the three `workspace.toml` active-item states (zero, one, multiple) and confirm the correct branch fires.
+All criteria use **goal-based check**: the SKILL.md body is read against the spec's three-branch contract and the removed first-path language. The change is to a markdown skill body; no compiled artifact. **Manual QA** — five invocation scenarios:
+1. `workspace.toml` present, one active spec → loop begins without asking.
+2. `workspace.toml` present, zero active specs → "No active spec found…" message.
+3. `workspace.toml` present, two active specs in one initiative → list presented, user asked to pick.
+4. `workspace.toml` present, two active specs across two initiatives → list presented (same Branch 3 path as scenario 3).
+5. `workspace.toml` absent → PLAN begins immediately, no error (AC6).
+6. Explicit spec path passed (e.g. `work-loop docs/specs/foo/spec.md`) → three-branch logic skipped entirely (AC5).
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `work-loop` SKILL.md `description:` field includes all five RFC-0067 §C trigger phrases: "resume", "continue", "keep going", "pick up where I left off", "let's get going".
-- [ ] **AC2.** The three-branch logic governs only the **argless invocation path** (no spec path argument passed to `work-loop`). When `workspace.toml` is absent, the existing skip behavior is preserved: Step 0 exits silently and PLAN begins immediately, as today. When `workspace.toml` is present and the active array logic runs, the three branches are:
+- [x] **AC1.** `work-loop` SKILL.md `description:` field includes all five RFC-0067 §C trigger phrases: "resume", "continue", "keep going", "pick up where I left off", "let's get going".
+- [x] **AC2.** The three-branch logic governs only the **argless invocation path** (no spec path argument passed to `work-loop`). When `workspace.toml` is absent, the existing skip behavior is preserved: Step 0 exits silently and PLAN begins immediately, as today. When `workspace.toml` is present and the active array logic runs, the three branches are:
   - Branch 1 (exactly one active item across all `["ini-NNN"]` sections with `status = "active"`): begin the loop on that spec without asking.
   - Branch 2 (zero active items, `workspace.toml` present): surface "No active spec found — run `workspace-status` to see what's ready to start."
   - Branch 3 (more than one active item, from a single initiative's multi-element `.active` array or across multiple initiatives): list all active paths and ask the user to pick before beginning.
-- [ ] **AC3.** The first-path auto-pick language is removed: the phrase "the first path in `[\"<slug>\".work].active`" (or equivalent) no longer appears in Step 0.
-- [ ] **AC4.** The singular framing ("The active spec path tells you which spec you are expected to be working on") is updated to handle the pending-user-pick state (zero or multi-item cases) — the language no longer implies exactly one active spec always exists.
-- [ ] **AC5.** Explicit spec-path argument invocations (user passes a path to `work-loop`) are unaffected — the three-branch logic is conditional on no path argument being provided.
-- [ ] **AC6.** The `workspace.toml`-absent skip behavior is explicitly preserved in the Step 0 prose: when no `workspace.toml` is present in the working directory, Step 0 does not error and PLAN begins immediately.
-- [ ] **AC7.** The work-loop `description:` field or evals near-miss cases distinguish bare "resume" / "continue" (routes to `work-loop`) from named-project phrasing "resume the X project" / "resume the X investigation" (routes to `desk-research-project-status`, not `work-loop`).
-- [ ] **AC8.** The projected copy of `work-loop` SKILL.md (`.claude/skills/work-loop/SKILL.md` and any adapter-projected equivalents) is updated via `make build-self`; `make build-check` exits 0.
-- [ ] **AC9.** `scripts/lint-spec-status.py` exits 0 on this spec.
+- [x] **AC3.** The first-path auto-pick language is removed: the phrase "the first path in `[\"<slug>\".work].active`" (or equivalent) no longer appears in Step 0.
+- [x] **AC4.** The singular framing ("The active spec path tells you which spec you are expected to be working on") is updated to handle the pending-user-pick state (zero or multi-item cases) — the language no longer implies exactly one active spec always exists.
+- [x] **AC5.** Explicit spec-path argument invocations (user passes a path to `work-loop`) are unaffected — the three-branch logic is conditional on no path argument being provided.
+- [x] **AC6.** The `workspace.toml`-absent skip behavior is explicitly preserved in the Step 0 prose: when no `workspace.toml` is present in the working directory, Step 0 does not error and PLAN begins immediately.
+- [x] **AC7.** The work-loop `description:` field or evals near-miss cases distinguish bare "resume" / "continue" (routes to `work-loop`) from named-project phrasing "resume the X project" / "resume the X investigation" (routes to `desk-research-project-status`, not `work-loop`).
+- [x] **AC8.** The projected copy of `work-loop` SKILL.md (`.claude/skills/work-loop/SKILL.md` and any adapter-projected equivalents) is updated via `make build-self`; `make build-check` exits 0.
+- [x] **AC9.** `scripts/lint-spec-status.py` exits 0 on this spec.
 
 ## Assumptions
 
