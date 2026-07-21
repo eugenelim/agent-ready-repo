@@ -1,0 +1,21 @@
+[
+  {"query": "Design the article page layout for our editorial blog", "should_trigger": true},
+  {"query": "How should the long-form content page be structured for readability?", "should_trigger": true},
+  {"query": "Design the reading experience for our news and editorial pages", "should_trigger": true},
+  {"query": "Structure an article template that works for our in-depth features", "should_trigger": true},
+  {"query": "How do we design a reading experience that keeps people engaged through long content?", "should_trigger": true},
+  {"query": "Design the typographic hierarchy for our editorial content pages", "should_trigger": true},
+  {"query": "What's the right layout structure for a thought-leadership article page?", "should_trigger": true},
+  {"query": "Design the layout for our research report pages — long, text-heavy content", "should_trigger": true},
+  {"query": "How do we structure an article page so readers stay until the end?", "should_trigger": true},
+
+  {"query": "Design the docs site for our technical documentation", "should_trigger": false},
+  {"query": "Design the landing page to convert trial visitors", "should_trigger": false},
+  {"query": "Design the dashboard layout for our analytics team", "should_trigger": false},
+  {"query": "Design the marketplace listing page for product discovery", "should_trigger": false},
+  {"query": "Write the article content for our product launch post", "should_trigger": false},
+  {"query": "Name the aesthetic direction for our editorial brand", "should_trigger": false},
+  {"query": "Critique the usability of our blog page", "should_trigger": false},
+  {"query": "Derive the font scale and spacing tokens for the article page", "should_trigger": false},
+  {"query": "Design the workspace UI for our collaborative writing tool", "should_trigger": false}
+]
