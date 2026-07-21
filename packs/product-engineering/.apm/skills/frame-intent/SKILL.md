@@ -75,10 +75,24 @@ Before framing, confirm:
 
 5. **Write the opportunity — solution-independent.** Frame what the user is
    trying to get done (a job / opportunity), not a solution. The default
-   outside-in lens is a JTBD job map. **Only in brownfield**, offer the
-   current-state inputs in `references/current-state-inputs.md` (a journey map,
-   or an L3 process map as a *constraint*) — in greenfield, skip them so you
-   don't pave cow paths.
+   outside-in lens is a three-tier JTBD job map
+   (see `references/jtbd-job-categories.md`). Elicit all four dimensions and
+   write the user's answers into the intent's Opportunity sub-fields before
+   continuing to step 6:
+
+   - **Functional job:** what the user is trying to accomplish — the core task
+     or outcome, independent of any product or solution.
+   - **Emotional job:** how they want to feel (or not feel) during or after
+     getting the job done.
+   - **Social job:** how they want to be perceived by others while doing the job.
+   - **Struggling moment:** the friction point where the current situation fails
+     them — the gap between where they are and where the job requires them to be.
+
+   **Only in brownfield**, also offer the current-state inputs in
+   `references/current-state-inputs.md` (a journey map, or an L3 process map
+   as a *constraint*) — in greenfield, skip them so you don't pave cow paths.
+   For full job discovery and opportunity scoring, run `identify-opportunities`
+   after framing.
 
 6. **Seed the assumptions.** List what must be true for the bet to pay off — one
    line each. Don't test them here; `de-risk-intent` picks the riskiest and
