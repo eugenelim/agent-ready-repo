@@ -30,9 +30,20 @@ fine in 0-to-1 — name the signal you'd accept as proof. -->
 
 <!-- LOAD-BEARING. The solution-independent need behind the outcome — what the
 user is trying to get done (a job / opportunity), framed without baking in a
-solution. -->
+solution.
 
-<the opportunity>
+Optional JTBD sub-fields — include when framing a job-shaped opportunity so all
+three job dimensions are surfaced alongside the struggling moment; free-form
+prose above is still valid for quick framing. See
+`references/jtbd-job-categories.md` for definitions and examples. -->
+
+<the opportunity — one sentence summary, or use the sub-fields below>
+
+<!-- optional structured JTBD fields (omit for free-form prose) -->
+- **Functional job:** <what the user is trying to accomplish>
+- **Emotional job:** <how they want to feel during or after the job>
+- **Social job:** <how they want to be perceived by others>
+- **Struggling moment:** <where the current situation fails them>
 
 ## Product-vision fields
 
