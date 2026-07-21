@@ -1,4 +1,4 @@
-# experience
+# experience-design
 
 The design/UX seat for a product team — the grown-up successor to
 `design-craft`. It carries the **whole design thread** as one walkable flow:
@@ -96,7 +96,7 @@ the general `information-architecture` skill):
 project-specific.
 
 ```
-agentbundle install --pack experience <catalogue>
+agentbundle install --pack experience-design <catalogue>
 ```
 
 It projects to every shipped adapter that supports the skill primitive
