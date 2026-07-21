@@ -37,7 +37,9 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         exit code); promoting it to a hard invariant stays deferred pending
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
-        resolves to a heading anchor in `docs/backlog.md`. HARD (exit non-zero).
+        resolves against the **union** of (a) `workspace.toml [backlog].open`
+        slug fields and (b) `docs/backlog.md` heading anchors (tombstone
+        backward-compat). HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
@@ -137,6 +139,54 @@ def backlog_anchors(backlog_text: str) -> set[str]:
         if m:
             anchors.add(slugify(m.group(1)))
     return anchors
+
+
+def _regex_backlog_slugs(workspace_text: str) -> set[str]:
+    """Extract [backlog].open slugs from workspace.toml text via regex fallback.
+
+    Used when tomllib/tomli is unavailable or the TOML is malformed.
+    Scans for slug = "..." lines within the [backlog] section only.
+    """
+    slugs: set[str] = set()
+    in_backlog = False
+    for line in workspace_text.splitlines():
+        if re.match(r"^\s*\[backlog\]", line):
+            in_backlog = True
+        elif re.match(r"^\s*\[", line) and "[backlog]" not in line:
+            in_backlog = False
+        if in_backlog:
+            m = re.search(r'\bslug\s*=\s*"([^"]+)"', line)
+            if m:
+                slugs.add(m.group(1))
+    return slugs
+
+
+def backlog_open_slugs(workspace_path: Path) -> set[str]:
+    """Return the set of slugs from workspace.toml [backlog].open.
+
+    Uses tomllib (Python 3.11+ stdlib) or tomli (backport) when available;
+    falls back to regex for all other cases including malformed TOML.
+    Returns an empty set when workspace.toml is absent.
+    """
+    if not workspace_path.is_file():
+        return set()
+    text = workspace_path.read_text(encoding="utf-8", errors="replace")
+    try:
+        try:
+            import tomllib  # type: ignore[import]
+        except ImportError:
+            try:
+                import tomli as tomllib  # type: ignore[import,no-redef]
+            except ImportError:
+                return _regex_backlog_slugs(text)
+        data = tomllib.loads(text)
+        return {
+            e["slug"]
+            for e in data.get("backlog", {}).get("open", [])
+            if isinstance(e, dict) and "slug" in e
+        }
+    except ValueError:
+        return _regex_backlog_slugs(text)
 
 
 def deferred_anchors(spec_text: str) -> list[tuple[int, str]]:
@@ -280,11 +330,12 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
     warn: list[str] = []
 
     backlog_path = root / "docs" / "backlog.md"
+    workspace_path = root / "workspace.toml"
     anchors = (
         backlog_anchors(backlog_path.read_text(encoding="utf-8", errors="replace"))
         if backlog_path.is_file()
         else set()
-    )
+    ) | backlog_open_slugs(workspace_path)
 
     base_resolvable = base_ref is not None
     if not base_resolvable:
@@ -313,7 +364,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             if anchor not in anchors:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve to a heading in docs/backlog.md"
+                    f"does not resolve in workspace.toml [backlog].open or docs/backlog.md"
                 )
 
         # (ii) ACs at the ship transition (diff-triggered)
