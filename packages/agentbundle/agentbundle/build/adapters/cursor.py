@@ -143,8 +143,8 @@ def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
     secret the symlink points at) into the projection. The top-level
     `is_symlink()` skip in `_project_direct_directory` only covers the skill
     root; this covers the subtree. (Build runs on trusted `packs/`; this is
-    the install-from-untrusted-catalogue defense — see docs/backlog.md for the
-    cross-adapter shared-helper follow-on.)
+    the install-from-untrusted-catalogue defense — mirrored in all five
+    direct-directory adapters.)
     """
     base = Path(directory)
     return {name for name in names if (base / name).is_symlink()}
