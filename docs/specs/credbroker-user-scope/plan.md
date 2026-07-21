@@ -204,7 +204,7 @@ The on-disk + import contract (spec's `Contract: none` — specified here):
 
 **Approach:**
 - Add the Approver-signed amendment to `docs/rfc/0023-credential-manager-broker.md` (layered delivery: vendored floor → offline/local pip → PyPI; resolves the deferred no-repo problem). **State explicitly (Concern 5) that the floor is *additive*** — the primary, highest-precedence contract is still `import credbroker` from site-packages, so ADR-0003's projected-shim *reversal* is unchanged and **no new/annotating ADR is required**; the floor is a fallback for that same import, recorded here in the RFC.
-- Guide: document the floor + the three layers; CONVENTIONS only if a credentialed-skill convention actually changes (else leave). Flip spec → Shipped; record any deferral (active `--with-credbroker` pip) in `docs/backlog.md`.
+- Guide: document the floor + the three layers; CONVENTIONS only if a credentialed-skill convention actually changes (else leave). Flip spec → Shipped; record any deferral (active `--with-credbroker` pip) in `workspace.toml [backlog]`.
 
 **Done when:** amendment recorded; docs read the layered model; spec Shipped; lints green.
 
@@ -262,7 +262,7 @@ The on-disk + import contract (spec's `Contract: none` — specified here):
   itself, so a crafted pack can't read an out-of-tree file
   (`/etc/passwd`, `~/.ssh/id_rsa`) into the floor (the build-pipeline twin
   on the trusted in-repo `packs/` intentionally doesn't filter). Two
-  follow-ons deferred to `docs/backlog.md` § `credbroker-user-scope`:
+  follow-ons deferred to `workspace.toml [backlog]`:
   graceful floor-skip if a future adapter omits `.agentbundle/` from its
   user prefixes, and reference-counted floor removal on uninstall.
 - 2026-06-09: T3 implemented. `agentbundle/build/user_libs.py` projects `packages/credbroker/credbroker/` byte-faithfully to **two** committed targets from one source: the catalogue-visible pack copy (`packs/credential-brokers/.apm/user-libs/credbroker/`, which `build/main.py` copytrees into each dist pack for T4) and the self-host floor staging (`<repo>/.agentbundle/lib/credbroker/`, mirroring the committed `.agentbundle/bin/`). `lib/` is written default-mode (no exec bit, unlike `bin/`'s `0o755`); the orphan scan skips `__pycache__`/`tests` so importing the floor (the purity test) can't masquerade as drift. Wired into `self_host.py` apply + `run_build_check_drift_gates`. **Version decision: no bump.** The `adapter-root-bins`/`shared-libs` precedent (#139, `de790fe`) added build-pipeline-only primitives — no per-adapter projection rules — *within* v0.7, not as a dedicated bump; `user-libs` is the same shape, so `[contract] version` stays `0.10`, the `test_contract.py` pin and marketplace aggregation are untouched, and the (primitive × adapter) pair count stays 20 (locked by a new `test_user_libs_is_build_pipeline_only`). `[primitive."user-libs"]` declared in both byte-identical `adapter.toml` copies; `"user-libs"` added to `safety.py:_PACK_PRIMITIVE_TYPES`. **Source-location call:** `user_libs` derives its source from `packs_dir.parent` and **no-ops when the package source is absent** (non-monorepo / fixture-packs invocations), so the existing install-marker drift-gate tests stay green; real `make build-check` (where `packs_dir.parent` is the repo root) gates fully. Full `packages/agentbundle` pytest run by hand per the contract-bump trap — no version-pin or stale-assertion breakage.
@@ -279,6 +279,6 @@ The on-disk + import contract (spec's `Contract: none` — specified here):
   **Shipped** with all 8 ACs checked (each verified against merged T1–T4 deliverables
   in-tree), and the `credbroker-user-scope` row in `docs/specs/README.md` flipped
   Draft → Shipped. The deferred **active `--with-credbroker` pip** convenience
-  (spec Boundaries → *Ask first*) recorded in `docs/backlog.md#active-with-credbroker-pip`;
+  (spec Boundaries → *Ask first*) recorded in `workspace.toml [backlog]` as `active-with-credbroker-pip`;
   it is not an unmet AC (the floor already gives zero-pip Tier-1/2/3). No deferred
   ACs — all eight met.

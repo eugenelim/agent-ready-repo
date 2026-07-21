@@ -26,8 +26,8 @@ skills — `map-screen-flow`, `map-customer-journey`, `blueprint-service`,
 `frame-intent`, `decompose-intent` — do not, so a future fail-closed traceability
 up-edge would be load-bearing on markers that don't exist. This change makes each
 producer's artifact schema emit the exact marker its node type's recognizer reads,
-closing the latent gap `docs/backlog.md#discovery-loop-type-marker-producers`
-tracks. Primarily a format change to the producer skills; it also (operator-directed)
+closing the latent gap previously tracked in the backlog as `discovery-loop-type-marker-producers`.
+Primarily a format change to the producer skills; it also (operator-directed)
 corrects the CONVENTIONS § 4 marker-form description to match the shipped lint, fixes
 the `recognize_screens` glob so nested per-screen briefs are found, and lands the
 intent↔chain rung mapping the lint's `recognize_ladder` docstring left "degrading."
@@ -143,7 +143,7 @@ recursion fix (the only recognizer change), never weakened.
   `.claude-plugin/plugin.json` (NOT the `[contract]` layout version) — and
   `marketplace.json` regenerated via `make build-self` with no other drift.
 - [x] `docs/product/changelog.md` `[Unreleased]` carries an entry; the
-  `docs/backlog.md#discovery-loop-type-marker-producers` entry is closed.
+  `discovery-loop-type-marker-producers` backlog entry is closed.
 
 ## Assumptions
 

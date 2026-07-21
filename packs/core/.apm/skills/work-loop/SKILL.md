@@ -578,7 +578,7 @@ go to FIX. Don't move past a failing gate by editing the gate.
 > `loop-cohort.py`) that checks spec *metadata* invariants against the contract
 > pinned in `CONVENTIONS.md` § 4: (i) status vocabulary, (ii) ACs
 > checked-or-deferred at the ship transition, (iii) dangling doc/code references
-> (warn-only), (iv) deferral anchors resolve in `docs/backlog.md`. Where you have
+> (warn-only), (iv) deferral anchors resolve in `workspace.toml [backlog].open`. Where you have
 > Python, **run it at the finish-time checklist** (DECIDE, below) —
 > `python <skill>/scripts/lint-spec-status.py` — as the mechanical companion to
 > the four drift invariants the `adversarial-reviewer` checks by judgment; it
@@ -765,19 +765,29 @@ mode below, then evaluate the terminal-state bullet last.
   Otherwise `defer` — one line in `Deferred:`. Every Nit resolves
   into one of the two; the `Deferred:` line *is* the acknowledgement
   that the loop saw the Nit and chose not to fix.
-- **Deferred items** → record each in the durable register,
-  `docs/backlog.md`, under a heading, so they don't rot. The spec criterion
-  that defers carries an inline `(deferred: <anchor>)` marker pointing at that
-  heading (`CONVENTIONS.md` § 4 Spec metadata contract). The PR description
-  keeps only a one-line **pointer** to the register entry — append it as a
-  standalone `Deferred:` section below the standard template content alongside
-  the `Bundled fixes:` section from EXECUTE; do not modify the template itself.
-  The register, not the PR comment, is the durable record: it's
-  version-controlled and greppable, and the `(deferred:) ↔ backlog.md`
-  resolution is mechanically checked (catalogue lint) or reviewer-checked
-  (adopters). Mirroring an item to an issue tracker is an option where one
-  exists, never assumed.
-  **After recording in `backlog.md`**, prompt: *"Does this item look like an RFC candidate (a cross-cutting proposal or design question) or a roadmap intent (a future feature)? If so, also add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Both registers are optional — skip the prompt if neither file exists. The backlog anchor is the primary durable record; the findings register is an extra surface for governance visibility.
+- **Deferred items** → before recording, ask: *"Is this deferral justified?
+  Could this be delivered in this PR without crossing the plan's scope or
+  introducing unreviewed risk?"* Only defer if the answer is genuinely no.
+  Then record each deferred item in `workspace.toml [backlog].open` as an
+  inline object `{slug = "...", source = "spec/<name> ACn"}` with a cold-
+  start-sufficient TOML comment (problem, fix, file/skill, unblock condition).
+  The spec criterion that defers carries an inline `(deferred: <slug>)` marker
+  matching the slug (`CONVENTIONS.md` § 4 Spec metadata contract). The PR
+  description keeps only a one-line **pointer** to the entry — append it as a
+  standalone `Deferred:` section alongside `Bundled fixes:`; do not modify the
+  template itself. The register, not the PR comment, is the durable record:
+  version-controlled, greppable, and the `(deferred:) ↔ [backlog].open`
+  resolution is mechanically checked (`lint-spec-status.py` invariant iv) or
+  reviewer-checked (adopters). Mirroring an item to an issue tracker is an
+  option where one exists, never assumed.
+  **After recording in `[backlog].open`**, prompt: *"Does this item look like
+  an RFC candidate (a cross-cutting proposal or design question) or a roadmap
+  intent (a future feature)? If so, also add a row to
+  `docs/product/findings/rfc-candidates.md` or
+  `docs/product/findings/roadmap-intents.md`."* Both registers are optional —
+  skip the prompt if neither file exists. The backlog entry is the primary
+  durable record; the findings register is an extra surface for governance
+  visibility.
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true. (**In light
   mode**, two lines relax per the [Modes](#modes-light-and-full) section: the
@@ -816,8 +826,8 @@ mode below, then evaluate the terminal-state bullet last.
   - **Doc-drift invariants hold** (the four the `adversarial-reviewer`'s
     "Spec drift" check names, against `CONVENTIONS.md` § 4): the touched spec's
     status reflects the change; every Acceptance Criterion is `[x]` or carries
-    `(deferred: <anchor>)`; each deferral resolves to a `docs/backlog.md`
-    heading; intra-repo references the change touches resolve. Where you have
+    `(deferred: <slug>)`; each deferral resolves in `workspace.toml
+    [backlog].open`; intra-repo references the change touches resolve. Where you have
     Python, run `scripts/lint-spec-status.py` (this skill's sibling to
     `loop-cohort.py`) to check these mechanically — it's the agent-invoked
     companion to the judgment check; no-ops without Python.
@@ -912,7 +922,7 @@ Three levers shed that noise (ordered by savings), each with a no-subagent floor
   read targeted line ranges, not whole files; never re-read a resident file.
 - **Compact at task boundaries** in a multi-loop spec, with a "preserve plan,
   open findings, decisions" hint — safe because `spec.md`, `plan.md`,
-  `state.json`, and `docs/backlog.md` are the externalized memory. `/compact` in
+  `state.json`, and `workspace.toml [backlog]` are the externalized memory. `/compact` in
   Claude Code; elsewhere your agent's own facility or the fresh-session mode in
   [Unattended loops](#unattended-afk-loops). *Floor:* re-read plan + open findings
   from disk and let the old transcript age out.
