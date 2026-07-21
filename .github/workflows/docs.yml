@@ -148,7 +148,6 @@ jobs:
           base="${{ github.event.pull_request.base.sha }}"
           head="${{ github.event.pull_request.head.sha }}"
           changed=$(git diff --name-only "$base" "$head" -- 'docs/adr/*.md' || true)
-          fail=0
           for f in $changed; do
             # skip new files
             if ! git cat-file -e "$base:$f" 2>/dev/null; then continue; fi
@@ -158,9 +157,7 @@ jobs:
               body_diff=$(git diff "$base" "$head" -- "$f" | tail -n +12 | grep -E '^[+-]' | grep -vE '^\+\+\+|^---|Status:' || true)
               if [[ -n "$body_diff" ]]; then
                 echo "::warning file=$f::This ADR was Accepted on base. Body edits are not allowed; supersede it with a new ADR instead. (Status-only edits are fine.)"
-                fail=1
               fi
             fi
           done
-          # We warn but don't fail — reviewers make the call. Set to 'exit $fail' to make blocking.
-          exit 0
+          # Non-blocking: warns but always exits 0 — reviewers make the call.
