@@ -16,6 +16,7 @@ You need:
 
 | Situation | Skill to invoke |
 | --- | --- |
+| You have unstructured external input (email, stakeholder message, Linear issue) and need to author a brief from it first | `author-brief` |
 | You received a multi-feature brief and need to route it into delivery | `receive-brief` |
 | You're authoring one feature yourself, from scratch | `new-spec` |
 | You're recording a decision already made | `new-adr` |
