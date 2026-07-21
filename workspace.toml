@@ -79,6 +79,7 @@ shipped = [
   "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
   "spec/author-brief-docs",                   # RFC-0064 P3: how-to + DoR gate fields reference
   "spec/m2-diverge-solutions",                # diverge-solutions PE skill (step 3 of six-step shaping sequence)
+  "spec/m2-lean-canvas-and-initiative-brief",  # lean-canvas PE skill + Lean Canvas initiative brief
 ]
 queue   = [
   # ==================================================================
@@ -113,7 +114,6 @@ queue   = [
   "spec/m2-place-bet",                    # bet-commitment gate + betting-table surface
   "spec/m2-map-capabilities",             # product vision → all capability areas in one pass
   "spec/m2-frame-intent-jtbd",            # JTBD into shipped frame-intent; back-compat assessed in-spec
-  "spec/m2-lean-canvas-and-initiative-brief", # Lean Canvas template + initiative brief (uses initiatives/_template)
 
   # ---------------- P3 · Brief → Build ----------------
   # Tooling already shipped (receive-brief, work-loop, brief queue). Docs only.
