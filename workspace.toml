@@ -77,6 +77,7 @@ shipped = [
   "spec/m3-backlog-absorption",                # Migrate docs/backlog.md → workspace.toml [backlog]
   "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
   "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
+  "spec/workspace-journey-guides-and-planning-doctrine", # RFC-0064 P1 Orient+Capture: 6 guides + phase-slice doctrine
   "spec/author-brief-docs",                   # RFC-0064 P3: how-to + DoR gate fields reference
   "spec/m2-diverge-solutions",                # diverge-solutions PE skill (step 3 of six-step shaping sequence)
   "spec/m2-lean-canvas-and-initiative-brief",  # lean-canvas PE skill + Lean Canvas initiative brief
@@ -97,13 +98,6 @@ queue   = [
 
   # ---------------- P1 · Orient + Capture ----------------
   # P1 guides + plan-by-phase doctrine (Amendment #3 e/f). Guides (docs/guides/core/):
-  # two-room build-vs-shape explanation, orient-at-session-start how-to, workspace-toml
-  # schema reference. Doctrine: canonical phase-slice planning principle in CONVENTIONS,
-  # referenced by new-rfc (add the roadmap-sequencing guidance it lacks — the gap that
-  # produced this RFC's own terminal-M6 mistake) + receive-brief (extend "shippable
-  # slice" to include its guide). Documents capture-work — lands after it.
-  {path = "spec/workspace-journey-guides-and-planning-doctrine", needs = "work:spec/capture-work"},
-
   # ---------------- P2 · Shape (M2 PE skills) ----------------
   # GATE: open + accept RFC-00XX pe-pack-strategic-shaping FIRST — it resolves skill
   # boundaries (RFC-0064 M2 ACs + Known Unknowns). Each skill spec is authored after
