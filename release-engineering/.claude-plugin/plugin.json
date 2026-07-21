@@ -5,7 +5,13 @@
   "hooks": {
     "SessionStart": [
       {
-        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins",
+            "timeout": 10
+          }
+        ]
       }
     ]
   },
@@ -16,12 +22,6 @@
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/eugenelim/agent-ready-repo",
   "repository": "https://github.com/eugenelim/agent-ready-repo",
-  "source": {
-    "source": "github",
-    "repo": "eugenelim/agent-ready-repo",
-    "branch": "claude-plugins-dist",
-    "directory": "release-engineering"
-  },
   "keywords": [
     "release",
     "deploy",
@@ -29,6 +29,5 @@
     "ephemeral-environments",
     "canary"
   ],
-  "category": "devops",
   "displayName": "Release Engineering"
 }

@@ -1,4 +1,5 @@
 {
+  "description": "Agent skills, subagents, and hooks for Claude Code and other coding agents.",
   "name": "agent-ready-repo",
   "owner": {
     "name": "eugenelim"
@@ -13,13 +14,6 @@
       "description": "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration.",
       "displayName": "Architect",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "design-docs",
         "diagrams",
@@ -46,13 +40,6 @@
       "description": "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, and jira-brief-intake workflows that compose them.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "jira",
         "confluence",
@@ -79,13 +66,6 @@
       "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
       "displayName": "Contracts",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "openapi",
         "asyncapi",
@@ -112,13 +92,6 @@
       "description": "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg and MIME .eml email → Markdown.",
       "displayName": "Converters",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "markdown",
         "html",
@@ -146,13 +119,6 @@
       "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, queue-add skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
       "displayName": "Core",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "work-loop",
         "spec-driven",
@@ -179,13 +145,6 @@
       "description": "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
       "displayName": "Credential Brokers",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "sso",
         "secrets",
@@ -212,13 +171,6 @@
       "description": "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
       "displayName": "Desk Research",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "osint",
         "synthesis",
@@ -245,13 +197,6 @@
       "description": "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping → user-flow → service-blueprint) and map the inside-out sibling (process-mapping); craft skills design each screen (creative-direction, design-system, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
       "displayName": "Experience Design",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "customer-journey",
         "service-blueprint",
@@ -279,13 +224,6 @@
       "description": "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid.",
       "displayName": "Figma",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "figma",
         "figjam",
@@ -312,13 +250,6 @@
       "description": "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs.",
       "displayName": "Governance Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "rfc",
         "adr",
@@ -344,13 +275,6 @@
       "description": "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth.",
       "displayName": "IaC (Terraform)",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "terraform",
         "opentofu",
@@ -378,13 +302,6 @@
       "description": "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template.",
       "displayName": "Monorepo Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "monorepo",
         "scaffolding",
@@ -410,13 +327,6 @@
       "description": "Shape product intent into shippable specs — and into the words users read. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (product-vision, product-strategy, capability, and feature intents are the same artifact at different levels — Level is an open recognized set decoupled from Scale): outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. `voice-and-microcopy` adds the content layer: characterize a product's voice and write blame-free, actionable UI copy. Upstream of the build loop, the `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief — diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks — no engine. Markdown skills + agent definitions, user-scope.",
       "displayName": "Product Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "intent",
         "specs",
@@ -443,13 +353,6 @@
       "description": "The strategy seat upstream of product engineering and experience design — SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder-research synthesis (Pillar 1); UX strategy with NN/g three-layer model, Jaime Levy four tenets, and Gothelf/Seiden OKR-linked UX framing (Pillar 2); content strategy via the Halvorson quad: Purpose + Process + Structure + Governance (Pillar 3). Pure method: no growth tooling, no primary research production, no stack tokens.",
       "displayName": "Product Strategy",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "swot",
         "okr",
@@ -477,13 +380,6 @@
       "description": "The SRE/ops outer loop — deployed end-to-end validation above work-loop's inner build loop. Ships the `release-lead` agent and the `release-loop` skill: deploy the integrated whole to an ephemeral environment, run e2e, observe telemetry, feed deployed findings back to the inner loop (no human relay), redeploy, and iterate until the deployed whole converges — then stop at the human consent gate for the prod ship (G5), surfaced as a release-readiness record to ratify rather than a bare go/no-go. Autonomy is carved by minimum-regret: the agent runs the inner and outer loops on reversible ephemeral envs unwatched; humans gate the irreversible exits (first real users or data, data migrations, spend over threshold, security/auth-boundary changes, anything irreversible, and the prod ship). Reuses core's operational-safety depth modules + quality-engineer + security-reviewer, consumes the discovery sidecar schema by convention, and ships no new runtime engine and no new reviewer. Completes the company OS: product (discovery) → engineering (build) → SRE/ops (release). Markdown skill + agent definition, repo-scope.",
       "displayName": "Release Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "release",
         "deploy",
@@ -511,13 +407,6 @@
       "description": "Diátaxis-shaped user-guide skeleton: guides/ + tutorials/how-to/reference/explanation seed READMEs, new-guide skill.",
       "displayName": "User Guide (Diátaxis)",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "hooks": {
-        "SessionStart": [
-          {
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
-          }
-        ]
-      },
       "keywords": [
         "diataxis",
         "tutorials",
