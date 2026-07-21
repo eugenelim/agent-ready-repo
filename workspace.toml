@@ -81,6 +81,7 @@ shipped = [
   "spec/m2-diverge-solutions",                # diverge-solutions PE skill (step 3 of six-step shaping sequence)
   "spec/m2-lean-canvas-and-initiative-brief",  # lean-canvas PE skill + Lean Canvas initiative brief
   "spec/m2-place-bet",                         # place-bet PE skill + worked example + how-to guide
+  "spec/m2-identify-opportunities",            # identify-opportunities PE skill + template + example + guide
 ]
 queue   = [
   # ==================================================================
@@ -109,7 +110,6 @@ queue   = [
   # that sub-RFC and ships WITH its guide (phase-slice doctrine — not all-skills-then-
   # all-guides). frame-situation + map-capabilities unblock the shaping_queue items
   # opp-assessment-pe-pack + capability-map-ini-002 (their `needs` already point here).
-  "spec/m2-identify-opportunities",       # JTBD (functional/emotional/social) + opportunity-assessment seed
   # "spec/m2-diverge-solutions" — shipped; moved to ["ini-002".work].shipped
   # "spec/m2-place-bet" — shipped; moved to ["ini-002".work].shipped
   "spec/m2-map-capabilities",             # product vision → all capability areas in one pass
