@@ -14,6 +14,9 @@ skills:
   - name: update-conventions
     description: "Evolves CONVENTIONS.md with tracked changes — the living record of how this project's team works."
     humanTouches: 1
+  - name: rfc-status
+    description: "Surfaces the current RFC landscape at a glance — how many RFCs are in each lifecycle state, which are active, and how many findings are waiting in the candidate register."
+    humanTouches: 0
 humanGates:
   - id: G-draft
     globalGate: null
