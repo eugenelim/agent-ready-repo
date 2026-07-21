@@ -32,7 +32,7 @@ skills:
   - name: author-brief
     description: "Converts unstructured external input (email threads, prose, Linear issues) into a DoR-compliant product brief and queues it in workspace.toml."
     humanTouches: 1
-  - name: queue-add
+  - name: capture-work
     description: "Captures follow-ons, deferred scope, and audit items surfaced in a session into workspace.toml so later sessions can pick them up cold."
     humanTouches: 1
   - name: workspace-status
