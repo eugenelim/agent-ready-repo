@@ -75,6 +75,20 @@ shipped = [
   "spec/workspace-status-queue-reconciliation", # PR #573 — reconciliation step
 ]
 queue   = [
+  # ==================================================================
+  # RFC-0064 remaining work, sequenced by JOURNEY PHASE (see RFC-0064
+  # Amendment #3). Phase order = PRIORITY (pick up P1 first), NOT a hard
+  # dependency — `needs` encodes only real "cannot start until" edges. Each
+  # phase is a per-repo Project (docs/product/projects/<slug>.md, 3–8 wks)
+  # that ships its tooling AND its guides together; guides ride with the
+  # capability they document — no terminal doc wave. Sub-RFC gates (P2, P4)
+  # are noted in the phase header, not as entries (an RFC is not a spec).
+  # Independent (non-RFC-0064) work is grouped at the bottom.
+  # ==================================================================
+
+  # ---------------- P1 · Orient + Capture ----------------
+  # The universal entry point + the fix for build/shape misrouting. Mostly
+  # built — cheapest complete slice. Ships as one Project.
   # Schema + governance: workspace.toml [backlog] + docs/backlog.md absorption.
   # Governed by RFC-0064 amendment 2026-07-20 ("Repo-level backlog & deferral
   # register") + M3 ACs. Problem: (1) no home for well-shaped ready-now work
@@ -109,9 +123,58 @@ queue   = [
   # [backlog]. Full-mode work-loop + adversarial-reviewer (HARD-gate + governance).
   "spec/m3-backlog-absorption",
 
-  {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
+  # capture-work front-door (Amendment #3 a/b/c). Rename queue-add → capture-work;
+  # classify build vs shaping + subtype; WRITE shaping-typed entries (revises D9);
+  # capability-detected core→pack hand-off (invoke frame-intent/frame-situation if
+  # PE pack installed, else stamp entry + install hint); work-loop orient-step guard
+  # (redirect shaping items — work-time backstop); [build]/[shape] mode tags in
+  # workspace-status. Full consumer sweep (.apm/.agents/.claude triplicate + refs).
+  # Needs [backlog] to carry modes first. Full-mode + adversarial (public-interface).
+  {path = "spec/capture-work", needs = "work:spec/m3-backlog-absorption"},
 
-  # Independent track — no deps
+  # P1 guides + plan-by-phase doctrine (Amendment #3 e/f). Guides (docs/guides/core/):
+  # two-room build-vs-shape explanation, orient-at-session-start how-to, workspace-toml
+  # schema reference. Doctrine: canonical phase-slice planning principle in CONVENTIONS,
+  # referenced by new-rfc (add the roadmap-sequencing guidance it lacks — the gap that
+  # produced this RFC's own terminal-M6 mistake) + receive-brief (extend "shippable
+  # slice" to include its guide). Documents capture-work — lands after it.
+  {path = "spec/workspace-journey-guides-and-planning-doctrine", needs = "work:spec/capture-work"},
+
+  # ---------------- P2 · Shape (M2 PE skills) ----------------
+  # GATE: open + accept RFC-00XX pe-pack-strategic-shaping FIRST — it resolves skill
+  # boundaries (RFC-0064 M2 ACs + Known Unknowns). Each skill spec is authored after
+  # that sub-RFC and ships WITH its guide (phase-slice doctrine — not all-skills-then-
+  # all-guides). frame-situation + map-capabilities unblock the shaping_queue items
+  # opp-assessment-pe-pack + capability-map-ini-002 (their `needs` already point here).
+  "spec/m2-frame-situation",              # signal → typed finding → six-step route; Wardley maturity
+  "spec/m2-identify-opportunities",       # JTBD (functional/emotional/social) + opportunity-assessment seed
+  "spec/m2-diverge-solutions",            # step-3 ≥3 structured options; boundary w/ explore-options per sub-RFC
+  "spec/m2-place-bet",                    # bet-commitment gate + betting-table surface
+  "spec/m2-map-capabilities",             # product vision → all capability areas in one pass
+  "spec/m2-frame-intent-jtbd",            # JTBD into shipped frame-intent; back-compat assessed in-spec
+  "spec/m2-lean-canvas-and-initiative-brief", # Lean Canvas template + initiative brief (uses initiatives/_template)
+
+  # ---------------- P3 · Brief → Build ----------------
+  # Tooling already shipped (receive-brief, work-loop, brief queue). Docs only.
+  "spec/author-brief-docs",               # how-to (intake-an-external-brief) + reference (DoR field defs)
+
+  # ---------------- P4 · Intake edges (M5 trackers) ----------------
+  # github-brief-intake first (independent, builds pattern confidence). GATE for the
+  # rest: open + accept RFC-00XX linear-pack sub-RFC (delta model, AC-export scope,
+  # field mapping). Each ships with its guide slice.
+  "spec/m5-github-brief-intake",          # GitHub Issue/Milestone → brief with Epic: pointer
+  "spec/m5-linear-brief-intake-and-sync", # first-time intake + delta sync; refuse when brief Executing
+  "spec/m5-jira-align-brief-intake",      # atlassian pack; 1-way intake only, config-guided field map
+  "spec/m5-tracker-guides",               # tracker decision tree + vocabulary mapping table
+
+  # ---------------- P5 · Adopt (terminal — needs whole journey stable) ----------------
+  "spec/m6-astro-project-index",          # Astro site: PM-facing project index from docs/product/projects/
+  "spec/m6-role-journey-guides",          # PM / engineer / agent role journeys, from docs/product/journeys/
+  "spec/m6-live-demo-guide",              # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
+  "spec/m6-enterprise-rollout-playbook",  # champion→CTO→platform→engineers; staged rollout + retro template
+
+  # ---------------- Independent track (not RFC-0064) ----------------
+  {path = "spec/spec-C-workloop-argless-resume",        needs = "work:spec/spec-B-pack-status-skills"},
   "spec/catalogue-curation",
 ]
 
