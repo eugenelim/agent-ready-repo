@@ -1,0 +1,21 @@
+[
+  {"query": "Design the workspace UI for our collaborative editing tool", "should_trigger": true},
+  {"query": "Structure the tool interface for a multi-agent coordination surface", "should_trigger": true},
+  {"query": "Design the agentic UI for our AI-assisted development environment", "should_trigger": true},
+  {"query": "How should we structure the layout for a long-running task management surface?", "should_trigger": true},
+  {"query": "Design the workspace for a team that works in sessions across multiple days", "should_trigger": true},
+  {"query": "How do we handle context-persistence in our productivity tool UI?", "should_trigger": true},
+  {"query": "Design the session arc for our collaborative code review tool", "should_trigger": true},
+  {"query": "Structure the attention zones and notification design for our IDE-like workspace", "should_trigger": true},
+  {"query": "How should we design the real-time collaboration state in our document editor?", "should_trigger": true},
+
+  {"query": "Design the analytics dashboard for the workspace metrics", "should_trigger": false},
+  {"query": "Design the marketplace for users to discover workspace integrations", "should_trigger": false},
+  {"query": "Design the article page for our workspace product blog", "should_trigger": false},
+  {"query": "Design the landing page to convert workspace tool visitors", "should_trigger": false},
+  {"query": "Name the aesthetic direction for the workspace product", "should_trigger": false},
+  {"query": "Critique the usability of the existing workspace screen", "should_trigger": false},
+  {"query": "Design the individual component interactions for the workspace toolbar", "should_trigger": false},
+  {"query": "Derive the token system for the workspace design", "should_trigger": false},
+  {"query": "Map the customer journey for new workspace users", "should_trigger": false}
+]

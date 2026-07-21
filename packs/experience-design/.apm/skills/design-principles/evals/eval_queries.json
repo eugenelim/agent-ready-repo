@@ -1,0 +1,21 @@
+[
+  {"query": "What are our design principles for this product?", "should_trigger": true},
+  {"query": "We keep arguing about the same design decisions — help us define our principles", "should_trigger": true},
+  {"query": "Derive design principles from this journey map", "should_trigger": true},
+  {"query": "Write our design principles so we can make consistent decisions", "should_trigger": true},
+  {"query": "How do we decide between competing design directions consistently?", "should_trigger": true},
+  {"query": "We need named rules that will guide our design choices across the sprint", "should_trigger": true},
+  {"query": "Turn our journey pain points into design principles", "should_trigger": true},
+  {"query": "Our team relitigates the same UX tradeoffs — we need a principles doc", "should_trigger": true},
+  {"query": "Give us decision rules we can use to resolve design disputes", "should_trigger": true},
+
+  {"query": "Name the aesthetic direction for this product before we design anything", "should_trigger": false},
+  {"query": "Derive the design token set from our brand direction", "should_trigger": false},
+  {"query": "Critique this screen and rank the usability issues", "should_trigger": false},
+  {"query": "Map the customer journey from discovery to first value", "should_trigger": false},
+  {"query": "Design the information architecture for the settings page", "should_trigger": false},
+  {"query": "Write the tone of voice for our product copy", "should_trigger": false},
+  {"query": "What should be above the fold on the landing page?", "should_trigger": false},
+  {"query": "Design the dashboard so analysts can drill down into the data", "should_trigger": false},
+  {"query": "Structure the navigation for the docs site", "should_trigger": false}
+]
