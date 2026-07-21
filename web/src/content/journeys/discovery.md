@@ -20,6 +20,9 @@ skills:
   - name: diverge-solutions
     description: "Generates ≥3 structured comparable solution options for a confirmed opportunity, with a recommendation and retained rationale for parked and rejected options."
     humanTouches: 1
+  - name: lean-canvas
+    description: "Elicits an initiative brief through an adapted Lean Canvas (simple 5-box or full 9-box) and produces a single shareable initiative brief with a Value Proposition section."
+    humanTouches: 1
   - name: de-risk-intent
     description: "Surfaces the riskiest assumption and designs a prototype approach to de-risk it before committing to build."
     humanTouches: 1
