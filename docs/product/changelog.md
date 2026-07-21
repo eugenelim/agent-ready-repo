@@ -17,11 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Claude plugin marketplace manifest now passes `claude plugin validate` (Claude Code 2.1.209).** Three generator defects caused 35 errors: (1) marketplace missing top-level `name` field, (2) plugin `author` emitted as a plain string instead of a `{name, email}` object, (3) plugin `source` field absent entirely. All three are fixed in the build pipeline (`derive_projectable_subset`, `_run_aggregate`, `_aggregate_marketplace`). The `.claude-plugin/marketplace.json` in the working tree now validates with 0 errors.
+
 ### Changed
 
 - **`workspace-status` skill (core pack 0.13.3) — Findings step shows inline tables.** When either `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md` has data rows, `workspace-status` now prints both tables inline rather than a bare count. When both registers are empty, a single summary line is shown (`0 rfc candidates · 0 roadmap intents — both registers empty`) instead of silently omitting the section.
 
 - **`work-loop` skill (core pack 0.13.2) — experience-reviewer rendered-output clarification for web surfaces.** The `experience-reviewer` bullet in the REVIEW section now explicitly states that for web surfaces (HTML/CSS/JS), "rendered output" means the built site — run the build and describe key pages from the output; the code diff alone cannot serve as the rendered artifact for genre-rubric or cross-page consistency checks. Backlog item `work-loop-xd-rendered-output`.
+- **Claude plugin install command updated to use marketplace format.** The documented install flow in `README.md` and the web catalogue now uses `claude plugin marketplace add eugenelim/agent-ready-repo` followed by `claude plugin install <pack>@agent-ready-repo`, replacing the deprecated repository-tree-URL form (`claude plugin install https://github.com/…/tree/claude-plugins-dist/<pack>`).
 
 - **`check-workspace` renamed to `workspace-status` (core pack — clean retire, no alias).** The workspace-level cold-start orient skill is now invoked as `workspace-status`. All operative references swept in one PR. Adopters invoking `check-workspace` by name will receive a "skill not found" signal; update to `workspace-status`. The new description triggers cover all phrasing the old skill responded to, plus "workspace status", "where am I", "orient me", "session start". ([RFC-0067](../rfc/0067-session-arc-conventions-and-pack-workflow-guide.md), [ADR-0054](../adr/0054-session-arc-verb-taxonomy-and-pack-type-classification.md))
 

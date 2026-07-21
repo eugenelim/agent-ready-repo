@@ -19,10 +19,9 @@ const { Content } = await render(entry);
 
 const hasJourney = !!data.journeyUrl;
 
-const PLUGIN_BRANCH = 'claude-plugins-dist';
-const REPO = 'eugenelim/agent-ready-repo';
+const MARKETPLACE = 'agent-ready-repo';
 const packSlug = entry.id.replace(/\.md$/, '');
-const pluginInstallCmd = `claude plugin install https://github.com/${REPO}/tree/${PLUGIN_BRANCH}/${packSlug}`;
+const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
 ---
 
 <SiteLayout
