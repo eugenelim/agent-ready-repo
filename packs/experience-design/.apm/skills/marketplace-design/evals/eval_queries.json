@@ -1,0 +1,21 @@
+[
+  {"query": "Design the marketplace catalogue and listing page", "should_trigger": true},
+  {"query": "Structure the search and filter UI for our product marketplace", "should_trigger": true},
+  {"query": "How should the listing card be structured to drive buyer decisions?", "should_trigger": true},
+  {"query": "Design the buyer journey from search to transaction on our marketplace", "should_trigger": true},
+  {"query": "What's the right filter and facet architecture for a B2B software catalogue?", "should_trigger": true},
+  {"query": "Design the comparison view for our marketplace listings", "should_trigger": true},
+  {"query": "Structure the product detail page for a two-sided marketplace", "should_trigger": true},
+  {"query": "How do we organize the discovery experience on our service marketplace?", "should_trigger": true},
+  {"query": "Design the search results page and listing cards for our app store", "should_trigger": true},
+
+  {"query": "Design the marketing landing page for a single product", "should_trigger": false},
+  {"query": "Design the workspace for managing marketplace listings internally", "should_trigger": false},
+  {"query": "Design the analytics dashboard for marketplace performance", "should_trigger": false},
+  {"query": "Design the product docs for marketplace sellers", "should_trigger": false},
+  {"query": "Name the aesthetic direction for the marketplace brand", "should_trigger": false},
+  {"query": "Critique the usability of the current listing page", "should_trigger": false},
+  {"query": "Derive the token taxonomy for the marketplace design system", "should_trigger": false},
+  {"query": "Map the seller journey for onboarding a new product", "should_trigger": false},
+  {"query": "Write the listing card copy for our marketplace", "should_trigger": false}
+]
