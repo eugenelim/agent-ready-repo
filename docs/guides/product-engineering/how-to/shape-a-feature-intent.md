@@ -14,6 +14,28 @@ Invoke **`frame-intent`**. It runs intake first: it infers **Scale** (one repo w
 - **Opportunity** — what the user is trying to get done, framed without a solution. In brownfield you may pull in a journey or process map; in greenfield, skip them.
 - **Assumptions** — what must be true for the bet to pay off, one line each.
 
+### JTBD enrichment in the Opportunity
+
+`frame-intent` step 5 prompts for all four dimensions of the opportunity using
+a three-tier JTBD model. Fill each into the intent's optional Opportunity
+sub-fields:
+
+- **Functional job:** what the user is trying to accomplish, independent of any
+  solution — *"get back into my account on my own without waiting for a support
+  queue."*
+- **Emotional job:** how they want to feel during or after the job — *"feel in
+  control of the situation, not at the mercy of a slow email link."*
+- **Social job:** how they want to be perceived by others — *"be seen as
+  self-sufficient and capable by my team."*
+- **Struggling moment:** where today's situation fails them — *"when locked
+  out, the reset-link email arrives minutes late — so the user is stuck with no
+  progress signal."*
+
+Free-form prose in the Opportunity section remains valid — use the sub-fields
+when the opportunity is job-shaped and you want all three dimensions captured.
+For a deeper pass that surfaces and scores every job behind the opportunity
+area, run `identify-opportunities` after framing.
+
 `frame-intent` is **knowledge-surface aware**: when an internal knowledge surface is reachable (an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set), it consults the business-domain and meaning areas so the outcome and opportunity use your org's real terms and rules instead of generic ones, and it states which surface it used — or "none", with the confidence lowered to match.
 
 ## 2. De-risk the riskiest assumption

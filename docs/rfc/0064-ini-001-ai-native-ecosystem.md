@@ -479,7 +479,7 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [ ] `place-bet` skill in PE pack: human commitment gate, betting table surface; overlap with `de-risk-intent` resolved per sub-RFC before this spec is authored
 - [ ] `map-capabilities` skill in PE pack: product vision → all capability areas in one pass
 - [ ] Initiative brief artifact using the `docs/product/initiatives/_template.md` seeded in Batch 5 (do not recreate — sole ownership is Batch 5)
-- [ ] JTBD framing embedded in `frame-intent` — this is a modification to a shipped skill; backward-compatibility impact assessed in its own spec (not bundled with other M2.6 items); existing `frame-intent` outputs remain valid
+- [x] JTBD framing embedded in `frame-intent` — this is a modification to a shipped skill; backward-compatibility impact assessed in its own spec (not bundled with other M2.6 items); existing `frame-intent` outputs remain valid
 - [ ] Lean Canvas initiative framing template
 
 ### M3 · Findings & RFC Management
