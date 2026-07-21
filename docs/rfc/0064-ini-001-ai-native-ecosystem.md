@@ -119,6 +119,15 @@ If implementing a skill reveals the RFC's AC was wrong or too narrow, write an *
 
 ### M3–M6 ordering notes
 
+> **Superseded for remaining work by Amendment #3 (2026-07-20).** M1, M3, and M4
+> shipped under the original milestone cut. The *remaining* work (M2, M5, and the
+> M6 guides) is re-sequenced into **vertical journey-phase slices** — each a
+> per-repo **Project** bounded by a milestone, shipping its tooling *and* its
+> guides together. The "Documentation Wave" as a terminal milestone is dissolved:
+> its guide ACs move into the phase they document; only the adoption artifacts
+> (live-demo, rollout playbook) remain terminal. See Amendment #3 for the
+> authoritative phase plan and order.
+
 - **M3** covers four groups: findings register seeds, `rfc-status` skill, `research-project-start` bug fix, and two pack renames (`research` → `desk-research`; `experience` → `experience-design`). No sub-RFC. The renames and bug fix are independent and can ship in parallel PRs; seeds and `rfc-status` form one PR.
 - **M4** (product-strategy pack full build-out) — RFC-0063 is already open as a draft; M4 begins on RFC-0063 acceptance. No new RFC to open.
 - **M5** (tracker integration) similarly opens RFC-00XX · linear-pack. The github-brief-intake skill can ship independently of the linear pack; do it first as a confidence-building spec.
@@ -449,17 +458,17 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [x] Pre-populated INI-002 queue committed in the same PR as the seed — all Batch 3–5 specs pre-seeded so `workspace-status` is immediately useful
 
 **Batch 3 — Work queue end-to-end** (after Batch 2)
-- [ ] `work-loop` extended: reads `workspace.toml` at step 0 for initiative/milestone context; on ship, edits `workspace.toml` in working directory (`[work].active → [work].shipped`) and surfaces `roadmap.md` update reminder; degrades gracefully if file absent
+- [x] `work-loop` extended: reads `workspace.toml` at step 0 for initiative/milestone context; on ship, edits `workspace.toml` in working directory (`[work].active → [work].shipped`) and surfaces `roadmap.md` update reminder; degrades gracefully if file absent
 
 **Batch 4 — Brief queue end-to-end** (after Batch 2; independent of Batch 3)
-- [ ] Brief template updated: `Status`, `Rabbit holes`, `Instrumentation`, `## Design artifacts` fields; existing briefs grandfathered — new fields not required retroactively; `receive-brief` handles both shapes
-- [ ] `receive-brief` extended: sets `Status: Ready` after decomposition; edits `workspace.toml` in working directory (brief `draft → ready`); degrades if absent
-- [ ] `author-brief` skill: takes unstructured external input (email, prose, Linear Issue text); elicits missing DoR fields interactively; creates a compliant brief file; writes to `[brief_queue].draft` in `workspace.toml`
+- [x] Brief template updated: `Status`, `Rabbit holes`, `Instrumentation`, `## Design artifacts` fields; existing briefs grandfathered — new fields not required retroactively; `receive-brief` handles both shapes
+- [x] `receive-brief` extended: sets `Status: Ready` after decomposition; edits `workspace.toml` in working directory (brief `draft → ready`); degrades if absent
+- [x] `author-brief` skill: takes unstructured external input (email, prose, Linear Issue text); elicits missing DoR fields interactively; creates a compliant brief file; writes to `[brief_queue].draft` in `workspace.toml`
 
 **Batch 5 — Governance integration + shaping home** (after Batch 1; independent of Batches 2–4)
-- [ ] `new-rfc` extended: Accepted path prompts "Add implementation specs to `workspace.toml` queue?"; degrades if absent
-- [ ] `docs/product/projects/_template.md` seed + `findings/` directory seed + `initiatives/_template.md` seed — one PR (`docs/product/shaping/` is intentionally untouched: its content is M2-produced by PE skills, not seeded by this batch)
-- [ ] `workspace.toml` dependency model documented: inline `{path/slug, needs}` format; cross-queue prefix notation; cross-initiative prefix; `workspace-status` is the display surface; `work-loop` enforcement of DAG deferred to post-M1 backlog
+- [x] `new-rfc` extended: Accepted path prompts "Add implementation specs to `workspace.toml` queue?"; degrades if absent
+- [x] `docs/product/projects/_template.md` seed + `findings/` directory seed + `initiatives/_template.md` seed — one PR (`docs/product/shaping/` is intentionally untouched: its content is M2-produced by PE skills, not seeded by this batch)
+- [x] `workspace.toml` dependency model documented: inline `{path/slug, needs}` format; cross-queue prefix notation; cross-initiative prefix; `workspace-status` is the display surface; `work-loop` enforcement of DAG deferred to post-M1 backlog
 
 ### M2 · Strategic Shaping
 
@@ -491,11 +500,11 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 
 ### M4 · Product Strategy Layer
 
-- [ ] RFC-0063 · product-strategy-pack is already open as a draft; M4 implementation begins when RFC-0063 is accepted; RFC-0063 governs framework skill designs, pack scope (fully building out the product-strategy pack), and the cross-pack dependency contract with PE pack
-- [ ] ADR recorded before implementation begins: decision to add `product-strategy` as a new pack, recorded in `docs/adr/` and in this repo's `AGENTS.md` (per CONVENTIONS — new dependencies recorded before adding)
-- [ ] `product-strategy` pack (new): SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade; `agentbundle-layout.toml` updated to register the pack; `plugin.json` updated; build-self run to propagate
-- [ ] OKR cascade skill routes to `frame-situation` (PE pack) — cross-pack dependency documented in `product-strategy` pack's `AGENTS.md`: PE pack is a required co-install; skill invocation is agent-mediated (not mechanical cross-pack call), so absent PE pack produces a graceful "frame-situation not found — install PE pack" diagnostic rather than a silent failure
-- [ ] PRFAQ template as altitude-0 initiative framing artifact
+- [x] RFC-0063 · product-strategy-pack **accepted** (was Draft at M4 planning); M4 implementation began on its acceptance; RFC-0063 governs framework skill designs, pack scope (fully building out the product-strategy pack), and the cross-pack dependency contract with PE pack
+- [x] ADR recorded before implementation begins: decision to add `product-strategy` as a new pack, recorded in `docs/adr/` and in this repo's `AGENTS.md` (per CONVENTIONS — new dependencies recorded before adding)
+- [x] `product-strategy` pack (new): SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade; `agentbundle-layout.toml` updated to register the pack; `plugin.json` updated; build-self run to propagate
+- [x] OKR cascade skill routes to `frame-situation` (PE pack) — cross-pack dependency documented in `product-strategy` pack's `AGENTS.md`: PE pack is a required co-install; skill invocation is agent-mediated (not mechanical cross-pack call), so absent PE pack produces a graceful "frame-situation not found — install PE pack" diagnostic rather than a silent failure
+- [x] PRFAQ template as altitude-0 initiative framing artifact (`write-prfaq` skill)
 
 ### M5 · Tracker Integration
 
@@ -506,6 +515,12 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [ ] Tracker decision tree and vocabulary mapping table in guides
 
 ### M6 · Documentation Wave
+
+<!-- Re-sequenced by Amendment #3: the workspace.toml / PE / author-brief guide ACs
+     below are redistributed into their journey-phase Project (they ship with the
+     tooling they document). Only the live-demo guide and enterprise rollout playbook
+     remain a terminal phase. This section is retained for AC-tracking; the phase
+     grouping in Amendment #3 governs. -->
 
 - [ ] `workspace.toml` Diátaxis guides: 1 tutorial (your-first-workspace), 2 how-tos (start-a-project, orient-at-session-start), 1 reference (workspace-toml schema), 1 explanation (two-room model — shaping vs. build)
 - [ ] PE pack Diátaxis guides: 2 tutorials, 4 how-tos, 2 reference, 2 explanation — named artifact list to be confirmed at M6 spec authoring time
@@ -599,6 +614,7 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 |---|------|-------|--------|
 | 1 | 2026-07-20 | Repo-level `[backlog]` + `docs/backlog.md` absorption | Extends `workspace.toml` schema with a top-level `[backlog]` section; adds M3 ACs for backlog migration, deferral relocation, and lint rewrite |
 | 2 | 2026-07-20 | workspace-status integrity trust boundary | Documents session-fragmentation gap + two skill fixes (`new-rfc-followon-queue-write` shipped; `workspace-status-queue-reconciliation` queued) + manual workaround |
+| 3 | 2026-07-20 | Workflow-model reshape: capture front-door, all-mode `[backlog]`, phase-slice planning | One coherent reshape: (a) reframes `queue-add` as the universal capture-then-triage front-door (candidate rename → `capture-work`); (b) permits the front-door to **write** shaping-typed queue entries (revises D9's "produced by shaping skills" boundary); (c) mandates capability-detected, never-hard core→optional-pack hand-off; (d) confirms `[backlog]` as the repo-level view of **all** open work regardless of mode (resolves the build/shape scale-decoupling asymmetry, no new section); (e) re-sequences remaining work (M2, M5, M6 guides) into vertical journey-phase **Projects** — capability + its guide shipped together — dissolving M6-as-terminal; (f) adds a plan-by-phase-slice doctrine to the planning skills (`new-rfc`, `receive-brief`, canonical in CONVENTIONS). Container sizing fixed: a phase is a **Project**, not a Brief |
 
 ### History / audit trail
 
@@ -634,3 +650,107 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   `docs/specs/*/spec.md` for specs with `Status: Approved|Implementing` that are
   absent from `workspace.toml [work].queue`, and add them via `queue-add` or
   hand-editing. eugenelim.
+
+- **2026-07-20 — Workflow-model reshape (capture front-door, all-mode
+  `[backlog]`, phase-slice planning).** One session's coherent reshape of how work
+  is captured, homed, and sequenced. It follows from one observation: the queue
+  model relies on a session already knowing *which* queue a piece of work belongs
+  to (build vs shaping), a distinction currently taught only in docs a working
+  session does not read — so misrouting is a tooling gap, not a documentation gap,
+  and the fix must live in the tooling. The six facets below are coupled and land
+  together.
+
+  1. **Capture as the canonical front-door.** `queue-add` is reframed from
+     "append to a known queue" to the single **capture-then-triage** entry point:
+     it classifies the item (build vs shaping, and the shaping subtype) and writes
+     it to the right destination. Its name understates this — a rename to
+     `capture-work` (or similar) is authorised, to land in the implementing spec
+     with the full consumer sweep (`.apm`/`.agents`/`.claude` triplicate,
+     `workspace-status`, `work-loop`, CONVENTIONS, pack READMEs, reference guides),
+     not here. The boundary with `author-brief` (unstructured prose → brief) and
+     `receive-brief` (brief → specs) is unchanged: capture-work triages
+     already-named items.
+
+  2. **The front-door may write shaping-typed entries.** This revises the
+     **D9** working assumption that `shaping_queue` entries are produced *only* by
+     shaping skills (`frame-situation`, `frame-intent`, …). Writing a typed entry
+     is a pure-data write and incurs no pack dependency; a capture-written entry is
+     an *intent to shape of type X*, not the shaped artifact — the shaping skill
+     still performs the shaping. D9's own note already contemplates strategist
+     hand-authoring of such entries; the front-door automates that. D9's typed-entry
+     model is otherwise unchanged.
+
+  3. **Capability-detected hand-off, never a hard dependency.** `queue-add` /
+     `workspace-status` live in **core**; `frame-intent` lives in the
+     **product-engineering** pack and `frame-situation` (the M2 target) is not yet
+     built. A base pack must never hard-depend on an optional pack, so the
+     front-door **detects** whether the matching shaping skill's pack is installed:
+     if present, it offers to invoke it (progressive hand-off); if absent, it stamps
+     the typed entry and emits an install hint (`requires <pack> — install to work
+     this item`), losing nothing. A later session with the pack picks the entry up
+     cold.
+
+  4. **`[backlog]` carries all open work regardless of mode.** Amendment #1
+     established `[backlog]` as "the single view of all open work not scoped to an
+     active initiative," but populated it with build items only — narrower than its
+     own charter. It is confirmed here as the repo-level home for **both** build and
+     shaping work, admitting shaping-typed entries (`research` / `strategy` /
+     `shape` / `design`) alongside build entries. This resolves the scale-decoupling
+     asymmetry — build had two tiers (`[work].queue` initiative + `[backlog].open`
+     repo-level) while shaping had only the initiative-scoped `shaping_queue` — with
+     **no new top-level section**, mirroring the typed-entry model `shaping_queue`
+     already uses. This partially subsumes the queued
+     `intake-taxonomy-rfc-candidates-to-shaping` research question (the findings
+     registers `rfc-candidates.md` / `roadmap-intents.md` remain the home for
+     genuinely un-shaped items; a `[backlog]` shaping entry is for work shaped
+     enough to route to a skill). The `type`-vocabulary review (whether `rfc`
+     warrants its own type, or `shape`/`strategy` entries route to `new-rfc`) is
+     deferred to the implementing spec.
+
+  5. **Vertical journey-phase slices; the Documentation Wave is dissolved.**
+     M1/M3/M4 shipped under the original horizontal milestone cut (foundation,
+     then findings, then strategy, …), which pushed *all* user-facing guides into a
+     terminal M6 "Documentation Wave" — and that is precisely why, at this
+     amendment's writing, every workspace-journey guide is still missing while the
+     tooling exists. The remaining work (M2, M5, and the M6 guides) is re-sequenced
+     into **vertical journey-phase slices**. The journey is *orient → capture →
+     shape → brief → build → ship*; each phase becomes a per-repo **Project**
+     (`docs/product/projects/<slug>.md`, bounded by a milestone) that ships its
+     **tooling and its guides together**, walkable end-to-end, before the next
+     phase starts. Guide ACs from M6 move into the phase they document; only the
+     genuinely cross-cutting adoption artifacts (live-demo guide, enterprise
+     rollout playbook) remain a terminal phase. **Container sizing:** a phase is a
+     **Project**, not a Brief — a brief is one appetite-bounded unit (≈ Issue /
+     Story) that lives *inside* a phase where a capability needs DoR shaping before
+     specs. Proposed phase order: **P1 Orient + Capture** (`[backlog]` modes →
+     capture-work → work-loop guard → workspace-status mode tags + the two-room
+     explanation, orient how-to, and schema reference — mostly built, cheapest
+     complete slice, and the fix for the misrouting above); **P2 Shape** (M2 PE
+     skills, each with its guide — *not* all-skills-then-all-guides); **P3 Brief →
+     Build** (tooling shipped; adds the author-brief how-to + brief-field
+     reference); **P4 Intake edges** (M5 trackers + guides); **P5 Adopt**
+     (live-demo + rollout playbook). Order is advisory; priority is the owner's
+     call.
+
+  6. **Plan-by-phase-slice doctrine added to the planning skills.** The slice
+     model is only durable if the skills that *plan* work default to it. The
+     canonical principle — *decompose a roadmap into vertical journey-phase slices
+     (each a Project: capability + its guide, walkable end-to-end), never
+     horizontal by-work-type layers; a terminal "documentation wave" is an
+     anti-pattern* — lands in CONVENTIONS (single source of truth) and is
+     referenced by `new-rfc` (primary: it had **no** roadmap/milestone-sequencing
+     guidance, the gap that produced this RFC's own terminal-M6 mistake) and
+     `receive-brief` (which already cuts by shippability — extend "shippable slice"
+     to include its user-facing docs). `init-project` already embodies this via its
+     walking-skeleton first slice and is the precedent to generalize from.
+     **Shaping is explicitly in scope:** M2 must be sliced this way too — a shaping
+     capability ships with its guide in its phase, not batched. These are skill /
+     doctrine edits (changelog entries required, `.apm` pack sources included),
+     landing in the same follow-on as the capture-work work.
+
+  **Companion (implementation, non-governance):** a `work-loop` orient-step guard
+  that redirects when handed a shaping-typed item (the work-time backstop for the
+  misrouting this amendment addresses at capture time), and `[build]` / `[shape]`
+  mode tags in `workspace-status` output. Detailed schema, routing table, and the
+  rename land in a follow-on spec (and, if the `type` vocabulary changes, a
+  sub-RFC). eugenelim.
