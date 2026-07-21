@@ -324,8 +324,8 @@ For anything beyond trivial, *think before you write code*. Concretely:
   | HTML/CSS/JS primary output | Frontend pre-flight (mandatory) | load `frontend-engineering` inline |
 
   ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory. Re-fires on mid-EXECUTE re-plan.
-  ² Security: auth, secrets, user input, deserialization, file/network I/O. Infra-flavored work: mandatory.
-  ³ New/changed page, screen, component, pack card, or docs page — recommended; `experience-reviewer` runs in full-mode REVIEW.
+  ² Security: auth, secrets, user input, deserialization, file/network I/O. Infra-flavored work: mandatory. Dispatch in **spec-stage secure-design mode**; inline boundary-matching modules (net-new wiring only) per the [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
+  ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`.
 
   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed, note in summary. Full depth (firing conditions, infra force-load, re-plan re-fire, `approve-plan` gate, Profile-A opt-out): [`references/pre-execute-review.md`](references/pre-execute-review.md).
 - **Initialize the loop's state file.** Run this skill's bundled
