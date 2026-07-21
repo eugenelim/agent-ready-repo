@@ -253,14 +253,6 @@ open = [
   # CI security. spec/pack-activation-evals introduces the repo's first long-lived
   # API-key workflow secret (ANTHROPIC_API_KEY for pack-evals.yml). No secret scanner
   # is wired today (only CodeQL + Bandit/Semgrep). Adjacent gaps: actionlint + zizmor
-  # for GitHub Actions script-injection class; pinned/locked install deps for the eval
-  # job (the agentbundle install runs in the same job that exposes the secret).
-  # Fix: wire gitleaks or trufflehog-class scanner into CI as its own PR (repo-wide
-  #   gate); add actionlint + zizmor; pin install deps.
-  # File: .github/workflows/ (new CI workflow or step).
-  # Unblocks when: someone takes CI security hardening as its own PR.
-  {slug = "secret-scanner-for-api-key-workflows"},
-
   # Security. pack-evals.yml runs `npm install -g @anthropic-ai/claude-code@2.1.185`
   # in the same job that exposes ANTHROPIC_API_KEY. The install is version-pinned but
   # has no npm lockfile or per-package integrity hash — a compromised npm CDN or a
