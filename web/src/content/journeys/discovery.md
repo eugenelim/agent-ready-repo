@@ -17,6 +17,9 @@ skills:
   - name: frame-situation
     description: "Classifies an initiative-level signal into a typed finding, assesses Wardley capability maturities, and anchors the team to the right entry point in the PE six-step shaping sequence."
     humanTouches: 1
+  - name: identify-opportunities
+    description: "Step 2 of the PE six-step shaping sequence — surfaces all functional, emotional, and social jobs behind an opportunity area, scores each via the Ulwick formula, and produces a ranked opportunity-assessment.md artifact."
+    humanTouches: 1
   - name: diverge-solutions
     description: "Generates ≥3 structured comparable solution options for a confirmed opportunity, with a recommendation and retained rationale for parked and rejected options."
     humanTouches: 1
