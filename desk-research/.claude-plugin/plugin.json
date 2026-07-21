@@ -9,10 +9,19 @@
       }
     ]
   },
-  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "author": {
+    "name": "eugenelim",
+    "email": "eugenelim@users.noreply.github.com"
+  },
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/eugenelim/agent-ready-repo",
   "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "source": {
+    "source": "github",
+    "repo": "eugenelim/agent-ready-repo",
+    "branch": "claude-plugins-dist",
+    "directory": "desk-research"
+  },
   "keywords": [
     "osint",
     "synthesis",
