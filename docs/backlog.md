@@ -1621,4 +1621,3 @@ Experience mapping (the organizational-level discipline of mapping current-state
 2. Open a follow-on RFC extending RFC-0050 (experience-design) and RFC-0066 (if it exists) — keeps the altitude-0 and altitude-1 work clearly separated.
 
 **Unblocks when:** RFC-0050 follow-on is opened to define the altitude boundary between organizational experience mapping and per-initiative journey mapping.
-
