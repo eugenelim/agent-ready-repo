@@ -151,8 +151,8 @@ checklists; verification-mode awareness applies to every review.
      `(deferred: <anchor>)` marker. An unchecked, undeferred AC on a shipping
      spec is a Blocker.
    - (c) **Deferred items recorded in the register.** Every `(deferred: <anchor>)`
-     points to a real heading in `docs/backlog.md`. A deferral that lives only in
-     the PR description rots — flag it.
+     resolves to a slug entry in `workspace.toml [backlog].open`. A deferral that
+     lives only in the PR description rots — flag it.
    - (d) **Intra-repo references resolve.** Doc links and `<spec>/<anchor>`
      references the diff touches actually resolve. Dangling refs are drift.
 6. **Security and privacy.** What data does this touch? Is access
