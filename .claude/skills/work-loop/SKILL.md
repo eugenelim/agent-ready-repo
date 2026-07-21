@@ -181,6 +181,23 @@ Before PLAN begins, orient to the current initiative and work queue:
 > When multiple `["ini-NNN"]` sections exist, read all sections whose
 > `status = "active"` and surface each one.
 
+**Shaping-item guard.** After reading workspace.toml, derive the spec slug
+from the argument path (strip `docs/specs/` prefix and trailing `/`). For
+each active initiative, check `["<ini-slug>".shaping_queue].active` and
+`["<ini-slug>".shaping_queue].backlog` for an entry whose `slug` field
+matches. Also check `[backlog].open` for entries with a `type` field whose
+`slug` matches. If any match is found, stop and emit:
+
+> "This is a `[shape]` item (`type = <subtype>`); use `<skill>` rather
+> than `work-loop` — `work-loop` is for build items only."
+
+where `<skill>` is the subtype-appropriate skill: `frame-intent` for
+`shape`; `desk-research-project-start` for `research`; `frame-situation`
+(or `frame-intent` as interim) for `strategy`; `experience-status` for
+`design`. For `signal` subtype, emit: "This is a monitoring signal, not
+workable via any action skill — `work-loop` is for build items only."
+Do not proceed to PLAN.
+
 After orienting (or immediately, if `workspace.toml` is absent), proceed
 to step 1 (PLAN). The active spec path tells you which spec you are
 expected to be working on — strip the `spec/` prefix from the stored path
