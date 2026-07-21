@@ -17,6 +17,9 @@ skills:
   - name: frame-situation
     description: "Classifies an initiative-level signal into a typed finding, assesses Wardley capability maturities, and anchors the team to the right entry point in the PE six-step shaping sequence."
     humanTouches: 1
+  - name: diverge-solutions
+    description: "Generates ≥3 structured comparable solution options for a confirmed opportunity, with a recommendation and retained rationale for parked and rejected options."
+    humanTouches: 1
   - name: de-risk-intent
     description: "Surfaces the riskiest assumption and designs a prototype approach to de-risk it before committing to build."
     humanTouches: 1
