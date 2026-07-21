@@ -1,0 +1,28 @@
+# zizmor configuration — suppress audits that represent accepted repo posture.
+#
+# unpinned-uses (HIGH in zizmor 1.27.0): the repo uses @vN tag pinning for
+# GitHub-owned actions (checkout, setup-python, upload-artifact, codeql,
+# pages/configure-pages/deploy-pages). SHA pinning is the correct long-term
+# posture and is tracked in backlog item `github-actions-sha-pin`;
+# suppressing here avoids gate noise while that work is planned.
+#
+# To suppress for a newly-added workflow: add its basename to the ignore list.
+# CONSTRAINT: only list workflows whose every `uses:` is a GitHub-owned action at @vN
+# (e.g. actions/checkout@v4, github/codeql-action@v3). Third-party or mutable-ref
+# actions (org/action@main, org/action@sha) must NOT be suppressed here — those are
+# exactly the cases unpinned-uses exists to catch.
+rules:
+  unpinned-uses:
+    ignore:
+      - build-check-windows.yml
+      - build-check.yml
+      - ci-security.yml
+      - codeql.yml
+      - docs.yml
+      - iac-release-loop-canary.yml
+      - iac-staleness.yml
+      - pack-evals.yml
+      - pages.yml
+      - publish-claude-plugins.yml
+      - release-agentbundle.yml
+      - release-credbroker.yml

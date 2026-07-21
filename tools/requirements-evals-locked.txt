@@ -1,0 +1,11 @@
+# Hash-pinned dependencies for pack-evals.yml (the repo's first managed-secret workflow).
+# Generated from tools/requirements.txt (pyyaml>=6.0).
+# To regenerate: pip-compile --generate-hashes tools/requirements.txt
+#
+# Only the sdist and the cp311-manylinux_2_17_x86_64 wheel are pinned here —
+# pack-evals.yml runs on ubuntu-latest / Python 3.11, which resolves to the
+# manylinux wheel; the sdist covers source-build fallback. Other platform wheels
+# are not pinned to keep --require-hashes from accepting unexpected artifacts.
+PyYAML==6.0.2 \
+    --hash=sha256:d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e \
+    --hash=sha256:3ad2a3decf9aaba3d29c8f537ac4b243e36bef957511b4766cb0057d32b0be85

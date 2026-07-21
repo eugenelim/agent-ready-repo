@@ -1,0 +1,9 @@
+# Hash-pinned dependencies for ci-security.yml (workflow-security job).
+# Generated from: pip index versions zizmor → 1.27.0; hashes from PyPI JSON API.
+# To regenerate: pip-compile --generate-hashes with zizmor==1.27.0 in a requirements file.
+#
+# ubuntu-latest resolves the manylinux_2_28_x86_64 wheel (any-Python binary wheel);
+# sdist covers source-build fallback. Other platform wheels are not pinned here.
+zizmor==1.27.0 \
+    --hash=sha256:ffaf8e1bb39447e643592d669761bfbc2aa636875db9079614f6a6c81cec60c8 \
+    --hash=sha256:afb28123882d2b8248f1e480bf6cc6d1af102e0d3fbe22a40f7f795b1aa9d435

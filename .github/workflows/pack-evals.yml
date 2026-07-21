@@ -46,7 +46,10 @@ jobs:
       - name: Install agentbundle (projection path) + tool deps
         run: |
           pip install -e packages/agentbundle/
-          pip install -r tools/requirements.txt
+          # Hash-pinned: pack-evals.yml is the repo's first managed-secret workflow;
+          # --require-hashes ensures the sdist/wheel bytes match PyPI's published digests.
+          # Regenerate with: pip-compile --generate-hashes tools/requirements.txt
+          pip install --require-hashes -r tools/requirements-evals-locked.txt
 
       - name: Install the claude CLI (activation detector)
         # Pinned: the activation event's stream shape is version-sensitive, so

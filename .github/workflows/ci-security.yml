@@ -1,0 +1,120 @@
+name: ci-security
+
+# CI security gate (secret-scanner-for-api-key-workflows backlog item).
+#
+# Three tools:
+#   gitleaks   — secret scanner; fails on detected secrets (exit 1)
+#   actionlint — GitHub Actions linter; fails on workflow errors
+#   zizmor     — GitHub Actions security analyzer; --min-severity high
+#
+# Posture (security-load-bearing; asserted by tools/test-ci-security-workflow.py):
+#   - pull_request + push ONLY — pull_request_target absent (would expose secrets
+#     to fork PRs in a repository that has managed secrets).
+#   - Top-level permissions: contents: read — no job-level escalation.
+#   - gitleaks shell body: env-var injection pattern (no ${{ }} in run: body).
+#   - gitleaks --redact: matched secret values never reach (public) CI logs.
+#   - Binary checksums: SHA-256 hardcoded in this file (not fetched from the same
+#     origin as the binary) — upstream tampering fails the gate at-rest.
+#   - cancel-in-progress: gated to pull_request events only — push-to-main scans
+#     run to completion.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  secret-scan:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4  # v4.2.2
+        with:
+          # Full history required: gitleaks detects secrets in git log, not just
+          # the working tree. On pull_request, the range scan (BASE..HEAD) needs
+          # all commits since the base to be present locally.
+          fetch-depth: 0
+
+      - name: Install gitleaks v8.30.1
+        run: |
+          set -euo pipefail
+          VERSION=8.30.1
+          TARBALL="gitleaks_${VERSION}_linux_x64.tar.gz"
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}"
+          curl -sfL "${BASE_URL}/${TARBALL}" -o gl.tar.gz
+          # SHA-256 hardcoded at pin time — repo-committed, so upstream re-tagging
+          # or release tampering fails this check rather than auto-passing.
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz" | sha256sum -c
+          tar xzf gl.tar.gz -C /usr/local/bin gitleaks
+          rm gl.tar.gz
+          gitleaks version
+
+      - name: Scan for secrets
+        # All GitHub-context values are passed via env: — never interpolated directly
+        # into the shell body (injection sink pattern from pack-evals.yml).
+        # On pull_request: scan only new commits (BASE_SHA..HEAD).
+        # On push:        scan commits since the previous HEAD (BEFORE_SHA..HEAD).
+        # Fallback:       scan the full history if either SHA is absent or zeroed.
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          ZEROS="0000000000000000000000000000000000000000"
+          if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "$ZEROS" ]; then
+            gitleaks detect --source . --log-opts="${BASE_SHA}..HEAD" \
+              --redact --verbose --exit-code 1
+          else
+            gitleaks detect --source . --redact --verbose --exit-code 1
+          fi
+
+  workflow-security:
+    name: actionlint + zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4  # v4.2.2
+
+      - name: Install actionlint v1.7.7
+        run: |
+          set -euo pipefail
+          VERSION=1.7.7
+          TARBALL="actionlint_${VERSION}_linux_amd64.tar.gz"
+          BASE_URL="https://github.com/rhysd/actionlint/releases/download/v${VERSION}"
+          curl -sfL "${BASE_URL}/${TARBALL}" -o al.tar.gz
+          # SHA-256 hardcoded at pin time — repo-committed, so upstream re-tagging
+          # or release tampering fails this check rather than auto-passing.
+          echo "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757  al.tar.gz" | sha256sum -c
+          tar xzf al.tar.gz -C /usr/local/bin actionlint
+          rm al.tar.gz
+          actionlint --version
+
+      - uses: actions/setup-python@v5  # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: Install zizmor 1.27.0
+        # Hash-pinned: same pattern as PyYAML in pack-evals.yml — a tampered or
+        # yanked-and-retagged wheel cannot silently defeat the gate.
+        run: pip install --require-hashes -r tools/requirements-ci-security-locked.txt
+
+      - name: actionlint
+        # Lints all workflow files in .github/workflows/ for syntax and
+        # common issues (shellcheck integration, expression type checks).
+        # Exit code 1 on any error.
+        run: actionlint -color
+
+      - name: zizmor (min-severity high)
+        # Scans workflow files for high-severity GitHub Actions vulnerabilities:
+        # template-injection, cache-poisoning, dangerous-triggers, artipacked, etc.
+        # unpinned-uses (HIGH in zizmor 1.27.0) is suppressed via .github/zizmor.yml —
+        # the repo accepts @vN tag-pinning as current posture (SHA pinning is backlog).
+        run: zizmor --min-severity high .github/workflows/

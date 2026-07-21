@@ -1,0 +1,41 @@
+# .gitleaksignore — gitleaks false-positive fingerprints for the full git history.
+#
+# Format: <commit>:<file>:<rule>:<line>   (one fingerprint per line; comments with #)
+#
+# All entries below are historical false positives confirmed during the initial
+# gitleaks scan (secret-scanner-for-api-key-workflows spec, T6).
+# Each group explains why the hit is not a real secret.
+
+# ── Keyword-argument false positives in Atlassian/Jira/Confluence skill scripts ──
+# gitleaks flags keyword arguments like `api_key=credentials.api_key` passed to
+# JiraClient / ConfluenceClient constructors. The matched value is a live
+# credential object reference (from the credbroker), not a hardcoded secret.
+441856ef38b8e21668acc68cf62c89dc3a5bea82:packs/atlassian/.apm/skills/jira/scripts/jira.py:generic-api-key:724
+85bdb3d423d4758d4fe431b90ac8e452fb57f287:packs/atlassian/.apm/skills/confluence-publisher/scripts/publish_page.py:generic-api-key:370
+85bdb3d423d4758d4fe431b90ac8e452fb57f287:.claude/skills/confluence-publisher/scripts/publish_page.py:generic-api-key:370
+2a96d31a2bc5716c7c9a57a6e88bfd013c7b3dab:.claude/skills/jira-align/scripts/jira_align.py:generic-api-key:468
+2a96d31a2bc5716c7c9a57a6e88bfd013c7b3dab:.claude/skills/jira/scripts/jira.py:generic-api-key:624
+2a96d31a2bc5716c7c9a57a6e88bfd013c7b3dab:packs/atlassian/.apm/skills/jira-align/scripts/jira_align.py:generic-api-key:468
+2a96d31a2bc5716c7c9a57a6e88bfd013c7b3dab:packs/atlassian/.apm/skills/jira/scripts/jira.py:generic-api-key:624
+
+# ── test_exit_codes.py fixture assignments (# noqa: S105) ──
+# `secret = "placeholder-value"  # noqa: S105` is a deliberate test fixture
+# used to exercise the credbroker's exit-code behavior. The value is a
+# placeholder string, never a real credential. The S105 suppression confirms
+# the team was aware of the variable name at write time.
+687919086f447c1dc6789805364dededa09c7fbd:packs/atlassian/.apm/skills/confluence-crawler/scripts/test_exit_codes.py:generic-api-key:60
+687919086f447c1dc6789805364dededa09c7fbd:packs/atlassian/.apm/skills/confluence-publisher/scripts/test_exit_codes.py:generic-api-key:59
+f036b2f0a03709193ee128ca9fb1d4d3b79ab2ca:packs/figma/.apm/skills/figma/scripts/test_exit_codes.py:generic-api-key:41
+f036b2f0a03709193ee128ca9fb1d4d3b79ab2ca:packs/atlassian/.apm/skills/jira-align/scripts/test_exit_codes.py:generic-api-key:41
+f036b2f0a03709193ee128ca9fb1d4d3b79ab2ca:packs/atlassian/.apm/skills/jira/scripts/test_exit_codes.py:generic-api-key:49
+
+# ── Keychain integration test fixture ──
+# `credential("fixture_t4", "API_TOKEN", "placeholder")` is a test fixture
+# seeding the macOS Keychain test harness with a known-safe placeholder.
+1839388e8f928e4b40dd54fb69d6831ed65ac1e8:packages/agentbundle/tests/integration/test_keychain_macos.py:generic-api-key:65
+
+# ── HTTP reference doc example header ──
+# `Idempotency-Key: <value>` in a Markdown reference document illustrating
+# standard HTTP request headers. Not a secret; a standard RFC header name.
+3033f71d3f500714a644e4d169080339d58908df:.claude/skills/api-contract/references/http-methods-and-status-codes.md:generic-api-key:120
+3033f71d3f500714a644e4d169080339d58908df:packs/contracts/.apm/skills/api-contract/references/http-methods-and-status-codes.md:generic-api-key:120
