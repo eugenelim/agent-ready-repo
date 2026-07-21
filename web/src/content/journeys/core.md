@@ -29,6 +29,21 @@ skills:
   - name: adapt-to-project
     description: "Adapts the agent-ready-repo conventions to an existing project's idioms and structure — the on-ramp for brownfield repos."
     humanTouches: 1
+  - name: author-brief
+    description: "Converts unstructured external input (email threads, prose, Linear issues) into a DoR-compliant product brief and queues it in workspace.toml."
+    humanTouches: 1
+  - name: queue-add
+    description: "Captures follow-ons, deferred scope, and audit items surfaced in a session into workspace.toml so later sessions can pick them up cold."
+    humanTouches: 1
+  - name: workspace-status
+    description: "Reads workspace.toml and surfaces ready-to-start items, blocked items, parallel candidates, and active signals — the cold-start orient for every session."
+    humanTouches: 0
+  - name: operational-safety
+    description: "Provides failure-mode-keyed operational safety checklists for the work-loop's quality-engineer reviewer. Loaded selectively for infra and destructive work — not invoked directly."
+    humanTouches: 0
+  - name: security-checklists
+    description: "Provides boundary-keyed security checklists for the security-reviewer. The work-loop loads only the boundary-matching modules — not invoked directly."
+    humanTouches: 0
 humanGates:
   - id: G-plan
     globalGate: null
