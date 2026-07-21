@@ -558,6 +558,7 @@ def _aggregate_marketplace(
     output_root: Path,
     owner: str = "eugenelim",
     name: str = "agent-ready-repo",
+    description: str = "Agent skills, subagents, and hooks for Claude Code and other coding agents.",
 ) -> Path:
     """Aggregate `packs/*/.claude-plugin/plugin.json` into
     `output_root/.claude-plugin/marketplace.json` so this repo is itself
@@ -571,6 +572,8 @@ def _aggregate_marketplace(
         manifest = pack_path / ".claude-plugin" / "plugin.json"
         if manifest.exists():
             entry = json.loads(manifest.read_text(encoding="utf-8"))
+            # hooks are per-plugin artifacts; strip them from marketplace entries.
+            entry.pop("hooks", None)
             # enriched-pack-manifest: surface the projectable metadata subset
             # (author / license / links / keywords / category / displayName /
             # source) derived from pack.toml. Emit-only-when-present keeps
@@ -584,6 +587,7 @@ def _aggregate_marketplace(
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "name": name,
+        "description": description,
         "owner": {"name": owner},
         "plugins": entries,
     }

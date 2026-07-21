@@ -24,11 +24,15 @@ workspace.
 # CLI route
 agentbundle install architect
 
-# Claude plugin route
-claude plugin install architect
-
 # APM route
 apm install architect
+```
+
+For the Claude plugin route, add the marketplace first:
+
+```bash
+claude plugin marketplace add eugenelim/agent-ready-repo
+claude plugin install architect@agent-ready-repo
 ```
 
 Scope can be flipped to repo-local if you want the skills pinned to

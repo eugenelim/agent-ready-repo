@@ -55,12 +55,20 @@ Auto-detects your agent. Override with `--adapter`:
 
 Install directly from Claude's plugin marketplace without touching the CLI.
 
-```
-claude plugin install eugenelim/core
-claude plugin install eugenelim/desk-research
+First, add the marketplace (one-time setup):
+
+```bash
+claude plugin marketplace add eugenelim/agent-ready-repo
 ```
 
-Available for all 14 packs. Plugin names match the pack name.
+Then install any pack using `<pack>@agent-ready-repo`:
+
+```bash
+claude plugin install core@agent-ready-repo
+claude plugin install desk-research@agent-ready-repo
+```
+
+Available for all 14 packs. Pack names match the directory names under `packs/`.
 
 ## Route 3: APM (Agent Package Manager)
 

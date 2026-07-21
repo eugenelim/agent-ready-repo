@@ -28,8 +28,14 @@ adapter's equivalent) so the skills load in every workspace.
 
 ```bash
 agentbundle install product-engineering     # CLI route
-claude plugin install product-engineering    # Claude plugin route
 apm install product-engineering               # APM route
+```
+
+For the Claude plugin route, add the marketplace first:
+
+```bash
+claude plugin marketplace add eugenelim/agent-ready-repo
+claude plugin install product-engineering@agent-ready-repo
 ```
 
 Flip to repo scope to pin the skills to one workspace:
