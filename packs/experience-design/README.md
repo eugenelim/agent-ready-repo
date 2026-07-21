@@ -56,12 +56,39 @@ names correctness goals has not cleared the gate.
   accessibility floor (WCAG pointed-to), and "motion communicates state, honor
   reduced-motion." One floor, referenced by every consuming skill.
 
+**Genre-specific Direct skills** — surface-typed structural IA used when a
+screen has a known surface genre (run before `interaction-design` in place of
+the general `information-architecture` skill):
+
+- `analytical-design` — structural specification for analytical and dashboard
+  surfaces: widget hierarchy, role-based view architecture,
+  business-question-to-layout map.
+- `conversion-design` — structural specification for marketing and acquisition
+  surfaces: above-fold contract, scroll story, social-proof architecture.
+- `documentation-design` — structural specification for documentation surfaces:
+  content hierarchy, navigation strategy, TTFV architecture; Diátaxis content
+  typing.
+- `informational-design` — structural specification for informational and
+  editorial surfaces: typographic hierarchy, reading-pattern calibration,
+  editorial grid.
+- `marketplace-design` — structural specification for marketplace surfaces:
+  listing card IA, filter and facet architecture, transaction bridge.
+- `workspace-design` — structural specification for workspace and productivity
+  surfaces: context-persistence architecture, attention zone layout, interrupt
+  design.
+
 **The independent review:**
 
 - `experience-reviewer` — a forked-context, read-only reviewer agent that gives
   the design step an independent design-time review (the grounded aesthetic
   reference + platform fit + cross-brief coherence + the full quality floor),
   so design can run autonomously between human-value-add gates.
+
+**Session orientation:**
+
+- `experience-status` — orients to the current design thread at a glance: reads
+  design artifacts from the configured output directory and surfaces what exists,
+  what's missing, and which skill to run next.
 
 ## Install
 
