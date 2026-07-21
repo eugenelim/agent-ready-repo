@@ -58,10 +58,6 @@ except ImportError:
     )
     sys.exit(1)
 
-# Disable decompression bomb limit — we work with trusted local files
-# and regularly encounter large exports from Miro, FigJam, Lucidchart, etc.
-Image.MAX_IMAGE_PIXELS = None
-
 # ── Constants ────────────────────────────────────────────────────────────
 
 SUPPORTED_FORMATS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp", ".gif"}
@@ -72,6 +68,12 @@ MIN_STRIDE = 200             # px — floor to prevent excessive tiles
 MAX_TILES_WARN = 100         # warn if detail pass would exceed this
 DEFAULT_MAX_SOURCE = 8000    # px — auto-downscale source images above this
 MAX_TILE_BYTES = 50 * 1024 * 1024  # 50 MB — MCP server default limit
+
+# Hard pixel ceiling: PIL raises DecompressionBombError at 2× this value, so
+# the hard block lands at 512 MP — enough for the largest Miro/FigJam exports
+# while refusing genuine pixel-flood attacks. Never set to None.
+_MAX_IMAGE_PIXELS = DEFAULT_MAX_SOURCE * DEFAULT_MAX_SOURCE * 8
+Image.MAX_IMAGE_PIXELS = _MAX_IMAGE_PIXELS
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────

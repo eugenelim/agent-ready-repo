@@ -1099,3 +1099,27 @@ def test_default_no_flag_run_writes_only_markdown(tmp_path, monkeypatch):
     md = (tmp_path / "legacy.md").read_text()
     assert 'tier: "2-approved-ml"' in md
     assert "Plain Docling body" in md
+
+
+def test_prescale_image_respects_pixel_ceiling(tmp_path, monkeypatch):
+    """_prescale_image must enforce _MAX_IMAGE_PIXELS, not set it to None.
+
+    With the ceiling set to 1, a 10×10 PNG (100 pixels) must trigger
+    PIL's DecompressionBombError rather than decoding silently.
+    """
+    PIL_Image = pytest.importorskip("PIL.Image")
+    DecompressionBombError = getattr(PIL_Image, "DecompressionBombError", None)
+    if DecompressionBombError is None:
+        pytest.skip("DecompressionBombError not present in this Pillow version")
+
+    img = PIL_Image.new("RGB", (10, 10))
+    img_path = tmp_path / "tiny.png"
+    img.save(str(img_path))
+    img.close()
+
+    # Register PIL_Image.MAX_IMAGE_PIXELS for monkeypatch teardown so that
+    # _prescale_image's side-effect (setting it to 1) is undone after this test.
+    monkeypatch.setattr(PIL_Image, "MAX_IMAGE_PIXELS", PIL_Image.MAX_IMAGE_PIXELS)
+    monkeypatch.setattr(convert, "_MAX_IMAGE_PIXELS", 1)
+    with pytest.raises(DecompressionBombError):
+        convert._prescale_image(img_path, str(tmp_path))
