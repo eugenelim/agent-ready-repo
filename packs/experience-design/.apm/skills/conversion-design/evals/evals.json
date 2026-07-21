@@ -1,0 +1,19 @@
+{
+  "skill_name": "conversion-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the structural specification for a conversion surface. The surface is the product homepage for a B2B SaaS project-management tool. The target action is starting a free trial. A content brief exists naming the primary audience (engineering team leads at 50–500 person companies) and their dominant pain (too much context-switching between tools).",
+      "expected_output": "A structural specification for a conversion surface that starts by naming the dominant buyer behavior (this is a low-awareness, high-skepticism audience — browse-first) and selecting a hero approach from the five canonical types, justified by the product's awareness stage. It defines the above-fold contract — the primary claim, the proof context, and a single CTA visible before scroll. It structures the scroll story as a sequence of proof tiers ordered by credibility weight (claim → social proof → feature evidence → objection handling → final CTA), with each tier earning the next. It names the social-proof architecture (which type of proof is most credible to this audience and why). The output is structural specification and section order only — no copy, no color values, no implementation code.",
+      "assertions": [
+        "Names the dominant buyer behavior (browse-first or search-first) and justifies the choice against the audience's awareness stage",
+        "Selects one of the five hero types and justifies the choice against the audience and their pain",
+        "Defines the above-fold contract: primary claim + proof context + single CTA, all visible before scroll",
+        "Sequences the scroll story as proof tiers, each tier earning the next",
+        "Names the social-proof architecture and explains why that proof type is most credible to this specific audience",
+        "Does NOT write copy (not a content-design or tone-of-voice output)",
+        "Does NOT produce color values, font names, or implementation code"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+[
+  {"query": "Design the landing page to convert visitors to sign-ups", "should_trigger": true},
+  {"query": "Structure the homepage so visitors understand what we do and take action", "should_trigger": true},
+  {"query": "What goes above the fold on our product marketing page?", "should_trigger": true},
+  {"query": "Design the pricing page to reduce drop-off at the conversion point", "should_trigger": true},
+  {"query": "How do we structure the scroll story on our acquisition landing page?", "should_trigger": true},
+  {"query": "Design a marketing surface that converts visitors into trial users", "should_trigger": true},
+  {"query": "What's the right structure for our SaaS product homepage?", "should_trigger": true},
+  {"query": "How should we order the sections on our campaign landing page?", "should_trigger": true},
+  {"query": "Structure the above-fold section of our product page for maximum clarity", "should_trigger": true},
+
+  {"query": "Design the article page layout for our editorial blog", "should_trigger": false},
+  {"query": "Structure the docs site navigation and help center hierarchy", "should_trigger": false},
+  {"query": "Design the marketplace catalogue and listing filter UI", "should_trigger": false},
+  {"query": "Design the dashboard for monitoring system health", "should_trigger": false},
+  {"query": "Write the hero headline and above-fold copy", "should_trigger": false},
+  {"query": "Name the aesthetic direction for the marketing page", "should_trigger": false},
+  {"query": "Critique this landing page and rank the usability issues", "should_trigger": false},
+  {"query": "Design the workspace UI for our collaborative editing tool", "should_trigger": false},
+  {"query": "Map the customer journey from first visit to purchase", "should_trigger": false}
+]

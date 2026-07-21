@@ -48,7 +48,7 @@ output_dir = "docs/design"
 # skill, so it is not listed here (its eval surface is its review-list output
 # contract + manual-QA dispatch; RFC-0050 § Errata).
 [pack.evals]
-skills = ["creative-direction", "content-design", "tone-of-voice", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "experience-status"]
+skills = ["creative-direction", "content-design", "tone-of-voice", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "experience-status", "design-principles", "analytical-design", "conversion-design", "documentation-design", "informational-design", "marketplace-design", "workspace-design"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

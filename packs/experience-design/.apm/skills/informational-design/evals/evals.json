@@ -1,0 +1,19 @@
+{
+  "skill_name": "informational-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the structural specification for an informational surface. The surface is an article page for a B2B publication covering enterprise software and technology. Articles range from 800–3,000 words. The target audience is technical leaders who scan before committing to read. Reading goal: understand a trend and its practical implications for their team.",
+      "expected_output": "A structural specification for an informational surface that establishes typography as the primary design tool — every layout decision is justified by reading legibility, not decoration. It names the reading goal explicitly (the reader leaves knowing something or able to do something they couldn't before) and selects a reading pattern (F-pattern for this scan-before-commit audience) justified by the audience's behavior. It designs the typographic hierarchy (headline → standfirst → subhead → body → callout) so the scanner extracts the article's argument without reading every word. It designs the 'what's next' chain that sustains engagement after the primary content is consumed. The output is structural specification and typography reasoning only — no copy, no CSS, no color values.",
+      "assertions": [
+        "Names the reading goal explicitly — what the reader knows or can do after reading that they didn't before",
+        "Establishes typography as the primary design tool; every layout decision is grounded in reading legibility",
+        "Selects a reading pattern (F-pattern or Z-pattern) justified by the audience's scanning behavior, not by habit",
+        "Designs a typographic hierarchy that lets a scanner extract the article's argument without reading every word",
+        "Designs the 'what's next' chain that sustains engagement after the primary content ends",
+        "Does NOT write content (not a content-design or tone-of-voice output)",
+        "Does NOT produce CSS, color values, font name decisions, or spacing values"
+      ]
+    }
+  ]
+}

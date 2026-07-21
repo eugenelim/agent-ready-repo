@@ -1,0 +1,21 @@
+[
+  {"query": "Design the dashboard for our analytics team", "should_trigger": true},
+  {"query": "How should we structure the reporting view for sales managers?", "should_trigger": true},
+  {"query": "What goes on the KPI monitoring screen?", "should_trigger": true},
+  {"query": "Design a monitoring view that lets engineers see system health at a glance", "should_trigger": true},
+  {"query": "Structure the data visualization layout for our metrics dashboard", "should_trigger": true},
+  {"query": "How do we organize our reporting screen so analysts can drill down?", "should_trigger": true},
+  {"query": "Design the analytics surface for our product team", "should_trigger": true},
+  {"query": "Structure this reporting view — from status signal to diagnostic to action", "should_trigger": true},
+  {"query": "What's the right layout grammar for a business intelligence dashboard?", "should_trigger": true},
+
+  {"query": "Design the individual chart encodings for the bar chart component", "should_trigger": false},
+  {"query": "Design the landing page to convert trial visitors", "should_trigger": false},
+  {"query": "Design the workspace for collaborative editing sessions", "should_trigger": false},
+  {"query": "Design the product catalogue and search filter UI", "should_trigger": false},
+  {"query": "Structure the docs site navigation and content hierarchy", "should_trigger": false},
+  {"query": "Name the visual direction for the dashboard before we design it", "should_trigger": false},
+  {"query": "Derive the token taxonomy from the aesthetic direction", "should_trigger": false},
+  {"query": "Critique the usability of this analytics screen", "should_trigger": false},
+  {"query": "Map the customer journey for new users", "should_trigger": false}
+]

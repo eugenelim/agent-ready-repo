@@ -1,0 +1,19 @@
+{
+  "skill_name": "analytical-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the structural specification for an analytical surface. The surface is a sales performance dashboard for regional managers. Business questions: Which regions are off-track this quarter? What are the top three deals likely to close this week? Where is the pipeline blocked?",
+      "expected_output": "A structural specification for an analytical surface that starts by naming the domain model (objects: deal, region, stage; attributes: value, probability, owner; relationships: deal-to-region, deal-to-stage; actions: drill down, filter by region). It then names the 3–5 business questions the surface must answer and builds a widget hierarchy ordered by decision weight — high-level signal widgets first (status/health at a glance), diagnostic widgets second (why the signal is what it is), action widgets third (what the manager can do). It designs a role-based view architecture so regional managers see their region's data without needing to filter globally. It designs the signal → diagnostic → action flow as a spatial grammar so the eye moves from status to cause to next step without backtracking. The output is IA reasoning and concepts only — no color values, chart type implementation, or code.",
+      "assertions": [
+        "Names the domain model first — objects, attributes, relationships, and actions — before placing any widget",
+        "Names the specific business questions (3–5) the surface must answer; 'give me insights' is not accepted as a question",
+        "Builds a widget hierarchy ordered by decision weight: signal → diagnostic → action",
+        "Designs a role-based view architecture that scopes each role's default view without requiring global filtering",
+        "Designs the spatial grammar so the eye follows the signal → diagnostic → action flow without backtracking",
+        "Does NOT design individual chart encodings (that is interaction-design's domain)",
+        "Does NOT produce color values, chart type implementations, or layout/styling code"
+      ]
+    }
+  ]
+}

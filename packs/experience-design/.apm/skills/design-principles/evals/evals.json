@@ -1,0 +1,18 @@
+{
+  "skill_name": "design-principles",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce design principles for the product described. A journey map exists showing three key pain points: slow task recovery after errors, inconsistent labeling across screens, and users skipping secondary information they need later.",
+      "expected_output": "A set of 3–5 named design principles, each in the form [Imperative verb] + [what] + [why/for whom], derived from the journey map pain points rather than from editorial taste. The principles are ranked with a single dominant principle named. Each principle carries an arbitration test — a concrete yes/no question the team can run to check whether a given design decision satisfies it. The output distinguishes the principles from brand values (those belong in creative-direction) and from universal heuristics (Nielsen applies everywhere; these are product-specific). No hex values, font names, visual direction, or implementation code appear.",
+      "assertions": [
+        "Derives each principle from a specific journey moment or pain point, not from editorial preference",
+        "Produces 3–5 named principles, each in imperative verb + what + why/for whom form",
+        "Ranks the principles and names a single dominant one that wins when goals conflict",
+        "Each principle carries an arbitration test — a concrete yes/no question that resolves a real design dispute",
+        "Distinguishes the output from brand values (→ creative-direction) and universal heuristics (Nielsen applies everywhere)",
+        "No hex values, font names, spacing values, or visual direction appear in the output"
+      ]
+    }
+  ]
+}

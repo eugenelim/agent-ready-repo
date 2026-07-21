@@ -1,0 +1,21 @@
+[
+  {"query": "Design the docs site structure for our developer API", "should_trigger": true},
+  {"query": "Structure the help centre so users find answers quickly", "should_trigger": true},
+  {"query": "How should we organize our technical documentation?", "should_trigger": true},
+  {"query": "What goes on the docs landing page to get developers to their first value moment?", "should_trigger": true},
+  {"query": "Design the navigation for our API reference documentation", "should_trigger": true},
+  {"query": "How do we structure a docs site that serves both tutorials and reference docs?", "should_trigger": true},
+  {"query": "Plan the information architecture for our SDK documentation", "should_trigger": true},
+  {"query": "Design the docs landing page to route engineers to what they need fast", "should_trigger": true},
+  {"query": "How should we organize a documentation site that's grown too large to navigate?", "should_trigger": true},
+
+  {"query": "Write the actual tutorial content for the getting-started guide", "should_trigger": false},
+  {"query": "Design the marketing landing page for our developer tool", "should_trigger": false},
+  {"query": "Design the article page layout for our editorial blog", "should_trigger": false},
+  {"query": "Structure the layout for an in-product help panel", "should_trigger": false},
+  {"query": "Name the aesthetic direction for the documentation site", "should_trigger": false},
+  {"query": "Critique the usability of the existing docs site navigation", "should_trigger": false},
+  {"query": "Derive the token system for the docs site brand", "should_trigger": false},
+  {"query": "Design the dashboard for engineering metrics", "should_trigger": false},
+  {"query": "Map the customer journey for new developer sign-ups", "should_trigger": false}
+]

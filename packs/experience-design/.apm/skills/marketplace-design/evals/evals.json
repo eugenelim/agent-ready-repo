@@ -1,0 +1,20 @@
+{
+  "skill_name": "marketplace-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the structural specification for a marketplace surface. The surface is a B2B software tools catalogue. Buyers are engineering leads comparing tools before a purchase decision. The listing object model includes: tool name, category, pricing model, integration count, and user rating. Dominant buyer behavior: comparison-first (buyers know what category they want; they're evaluating options within it).",
+      "expected_output": "A structural specification for a marketplace surface that names the listing object model explicitly (objects, attributes, which attributes drive filtering, which drive comparison). It designs the listing card with attributes ordered by decision weight for this audience — the comparison-driving attributes are primary, not the most visually prominent. It designs the filter and facet architecture grouped by how buyers narrow their choice (not by the listing schema), with the most-used facets visible without scroll. It designs comparison affordances for the comparison-driving attributes. It names the transaction bridge — the moment of commitment and what the buyer needs to know to cross it. The output is structural specification only — no component markup, no color values, no implementation code.",
+      "assertions": [
+        "Names the listing object model — objects, attributes, which attributes drive filtering, which drive comparison",
+        "Designs the listing card with attributes ordered by decision weight, comparison-driving attributes primary",
+        "Designs filter and facet architecture grouped by how buyers narrow choice, not by the listing schema",
+        "Places the most-used facets visible without scroll",
+        "Designs comparison affordances for the comparison-driving attributes",
+        "Names the transaction bridge — what the buyer needs to know to commit, and how the surface provides it",
+        "Does NOT design individual card components (not interaction-design's component state machine)",
+        "Does NOT produce component markup, color values, or implementation code"
+      ]
+    }
+  ]
+}

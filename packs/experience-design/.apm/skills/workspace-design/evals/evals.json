@@ -1,0 +1,20 @@
+{
+  "skill_name": "workspace-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the structural specification for a workspace surface. The surface is an AI-assisted code review tool. Users (individual engineers) return to it across sessions to manage an ongoing queue of code review requests. Collaboration model: asynchronous — reviewers and authors don't work at the same time. The session arc: engineer arrives, resumes the review where they left off, completes several review cycles, leaves with their queue updated.",
+      "expected_output": "A structural specification for a workspace surface that starts by naming the session arc (arrive → resume → work → persist → leave) and the collaboration model (asynchronous, no live presence needed). It designs context-persistence using a named pattern (session resume — the engineer lands where they left off without hunting). It designs the attention zone layout: a primary work area for the active review, a peripheral zone for the queue state (what's waiting, what's done), and a notification zone for async events (new requests, resolved threads). It designs the interrupt architecture — how incoming review requests surface without disrupting the current focus. It covers how agentic output (AI suggestions, summaries) surfaces without displacing the engineer's workflow. The output is structural specification only — no component markup, no color values, no implementation code.",
+      "assertions": [
+        "Names the session arc (arrive → work → persist → leave) before designing any surface element",
+        "Names the collaboration model and explains how it drives presence, live-editing, and sharing IA decisions",
+        "Designs context-persistence using a named pattern appropriate to the session arc",
+        "Designs the attention zone layout — primary work area, peripheral status zone, notification zone — with spatial relationships named",
+        "Designs the interrupt architecture — how async events surface without disrupting the current focus",
+        "Covers how agentic output surfaces without displacing the user's primary workflow",
+        "Does NOT design individual component interactions (not interaction-design's domain)",
+        "Does NOT produce component markup, color values, or implementation code"
+      ]
+    }
+  ]
+}

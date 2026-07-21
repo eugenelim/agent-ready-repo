@@ -1,0 +1,19 @@
+{
+  "skill_name": "documentation-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the structural specification for a documentation surface. The surface is the docs site for a developer API. The content set includes a getting-started tutorial, conceptual guides, a full API reference, and a set of how-to recipes. The target audience is backend engineers integrating the API for the first time.",
+      "expected_output": "A structural specification for a documentation surface that starts by typing the content set using the Diátaxis framework (tutorial → how-to → reference → explanation), mapping each piece of content to exactly one primary type. It names a TTFV target — what the engineer accomplishes in the first successful session. It then designs the navigation trading depth against breadth, grouped by how engineers look for things (task-goal first, not by the API's internal schema), with landing page IA that routes each content type to its fastest TTFV path. It designs the machine-readability decisions (what the reference format must support for tooling and LLM consumption). The output is structural specification only — no content writing, no markup, no styling code.",
+      "assertions": [
+        "Types the content set using Diátaxis — each piece gets exactly one primary type (tutorial/how-to/reference/explanation)",
+        "Names a TTFV target — what the reader accomplishes in the first successful session, specific enough to measure",
+        "Designs navigation grouped by how readers look for things, not by the API's internal schema or org structure",
+        "Designs the landing page as a TTFV accelerant — routes each content type to its fastest path, not as a table of contents",
+        "Addresses machine-readability decisions for the reference format",
+        "Does NOT write documentation content (not a new-guide output)",
+        "Does NOT produce markup, color values, or styling code"
+      ]
+    }
+  ]
+}
