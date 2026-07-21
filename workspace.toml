@@ -74,6 +74,7 @@ shipped = [
   "spec/workspace-status-next-actions", # Add ### 6. Next-actions closing step to workspace-status
   "spec/workspace-status-queue-reconciliation", # PR #573 — reconciliation step
   "spec/m3-backlog-absorption",                # Migrate docs/backlog.md → workspace.toml [backlog]
+  "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
 ]
 queue   = [
   # ==================================================================
@@ -88,15 +89,6 @@ queue   = [
   # ==================================================================
 
   # ---------------- P1 · Orient + Capture ----------------
-  # capture-work front-door (Amendment #3 a/b/c). Rename queue-add → capture-work;
-  # classify build vs shaping + subtype; WRITE shaping-typed entries (revises D9);
-  # capability-detected core→pack hand-off (invoke frame-intent/frame-situation if
-  # PE pack installed, else stamp entry + install hint); work-loop orient-step guard
-  # (redirect shaping items — work-time backstop); [build]/[shape] mode tags in
-  # workspace-status. Full consumer sweep (.apm/.agents/.claude triplicate + refs).
-  # Needs [backlog] to carry modes first. Full-mode + adversarial (public-interface).
-  {path = "spec/capture-work", needs = "work:spec/m3-backlog-absorption"},
-
   # P1 guides + plan-by-phase doctrine (Amendment #3 e/f). Guides (docs/guides/core/):
   # two-room build-vs-shape explanation, orient-at-session-start how-to, workspace-toml
   # schema reference. Doctrine: canonical phase-slice planning principle in CONVENTIONS,

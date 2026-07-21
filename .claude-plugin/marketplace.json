@@ -142,7 +142,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, queue-add skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+      "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
       "displayName": "Core",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
