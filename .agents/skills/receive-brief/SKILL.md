@@ -76,7 +76,7 @@ upward provenance pointer you carry but never interpret, exactly like `Epic:`.
 Cut the brief into slices, each of which is **independently shippable and
 independently testable** — a feature `work-loop` can carry end to end. This is
 the shippability test, **not** a component or layer split: "auth service" and
-"auth UI" are not two slices unless each ships and tests on its own.
+"auth UI" are not two slices unless each ships and tests on its own. A slice's scope includes the guide its capability needs to be independently usable — a slice without its guide is not shippable.
 
 - In **Shape A**, derive slice boundaries from Outcome + Scope.
 - In **Shape B**, group the stories into slices; each slice becomes one spec.
