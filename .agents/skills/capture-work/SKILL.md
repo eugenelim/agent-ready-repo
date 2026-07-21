@@ -183,9 +183,8 @@ how to add them by hand, and stop.
 ### 11. Hand off
 
 For each `[shape]` item (non-signal), after writing, check whether the matching
-skill is installed by probing for its SKILL.md in the projected skill paths:
-`.claude/skills/<skill-name>/SKILL.md` or `.agents/skills/<skill-name>/SKILL.md`
-(pack is present if either exists).
+skill is installed by probing for its `SKILL.md` under each adapter's installed
+skill directory (pack is present if the probe succeeds in either location).
 
 - **Pack present:** offer to invoke the matching skill in this session. If the
   user confirms, invoke it. If they decline, proceed.
