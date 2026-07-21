@@ -18,6 +18,7 @@ paths.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
 import tomllib
@@ -32,6 +33,16 @@ from agentbundle.build.validate import validate as validate_instance
 PACKAGE_ROOT = Path(__file__).resolve().parent
 RECIPES_DIR = PACKAGE_ROOT / "recipes"
 REPO_ROOT = PACKAGE_ROOT.parent.parent.parent.parent
+
+# Canonical branch name for the published Claude-plugins distribution.
+# All marketplace entries' source.branch must match this value so `claude plugin
+# install` fetches from the right branch.
+_DIST_BRANCH = "claude-plugins-dist"
+
+# Match https://github.com/owner/repo (optional trailing .git and slash).
+_GITHUB_URL_RE = re.compile(
+    r"^https?://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$"
+)
 
 
 def _bundled_or_repo(name: str) -> Path:
@@ -187,8 +198,11 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
     subset into the claude-plugins + apm routes (the ``plugin.json`` /
     ``marketplace.json`` entry). Fixed mapping:
 
-      - ``author``      ← first ``[[pack.maintainers]]``, rendered
-        ``"Name <email>"`` (name alone when no email).
+      - ``author``      ← first ``[[pack.maintainers]]``, as object
+        ``{"name": ..., "email": ...}`` (email omitted when absent).
+      - ``source``      ← derived from ``[pack.links].repository`` when it is a
+        GitHub URL: ``{"source": "github", "repo": "owner/name",
+        "branch": _DIST_BRANCH, "directory": pack.name}``.
       - ``license``     ← ``[pack].license`` (verbatim).
       - ``homepage``    ← ``[pack.links].homepage`` (verbatim).
       - ``repository``  ← ``[pack.links].repository`` (verbatim).
@@ -214,10 +228,10 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
             name = first.get("name")
             email = first.get("email")
             if isinstance(name, str) and name:
+                author_obj: dict = {"name": name}
                 if isinstance(email, str) and email:
-                    out["author"] = f"{name} <{email}>"
-                else:
-                    out["author"] = name
+                    author_obj["email"] = email
+                out["author"] = author_obj
 
     license_ = pack.get("license")
     if isinstance(license_, str) and license_:
@@ -231,6 +245,18 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
         repository = links.get("repository")
         if isinstance(repository, str) and repository:
             out["repository"] = repository
+            # Derive source field: tells Claude Code where to fetch the plugin
+            # from the canonical distribution branch.
+            pack_name = pack.get("name", "")
+            if isinstance(pack_name, str) and pack_name:
+                m = _GITHUB_URL_RE.match(repository)
+                if m:
+                    out["source"] = {
+                        "source": "github",
+                        "repo": m.group(1),
+                        "branch": _DIST_BRANCH,
+                        "directory": pack_name,
+                    }
 
     keywords = pack.get("keywords")
     if isinstance(keywords, list):
@@ -628,8 +654,30 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
     output_path = output_dir / recipe.output_file
     _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Derive marketplace name and owner from the first entry that carries a
+    # source.repo field (populated by derive_projectable_subset).
+    marketplace_name: str | None = None
+    marketplace_owner: dict | None = None
+    for entry in entries:
+        src = entry.get("source")
+        if isinstance(src, dict):
+            repo = src.get("repo", "")
+            if isinstance(repo, str) and "/" in repo:
+                owner_part, name_part = repo.split("/", 1)
+                marketplace_name = name_part
+                marketplace_owner = {"name": owner_part}
+                break
+
+    payload: dict = {}
+    if marketplace_name:
+        payload["name"] = marketplace_name
+    if marketplace_owner:
+        payload["owner"] = marketplace_owner
+    payload["plugins"] = entries
+
     output_path.write_text(
-        json.dumps({"plugins": entries}, indent=2, sort_keys=True) + "\n",
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n",
     )
     return {"recipe": recipe.name, "type": recipe.type, "entries": len(entries)}
