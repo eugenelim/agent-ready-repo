@@ -77,6 +77,7 @@ shipped = [
   "spec/m3-backlog-absorption",                # Migrate docs/backlog.md → workspace.toml [backlog]
   "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
   "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
+  "spec/author-brief-docs",                   # RFC-0064 P3: how-to + DoR gate fields reference
 ]
 queue   = [
   # ==================================================================
@@ -115,7 +116,7 @@ queue   = [
 
   # ---------------- P3 · Brief → Build ----------------
   # Tooling already shipped (receive-brief, work-loop, brief queue). Docs only.
-  "spec/author-brief-docs",               # how-to (intake-an-external-brief) + reference (DoR field defs)
+  # spec/author-brief-docs shipped — moved to work.shipped above.
 
   # ---------------- P4 · Intake edges (M5 trackers) ----------------
   # github-brief-intake first (independent, builds pattern confidence). GATE for the

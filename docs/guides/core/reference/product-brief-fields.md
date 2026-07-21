@@ -1,8 +1,8 @@
 # Product brief fields
 
-Authoritative field list for a **product brief** and the linkage fields it stamps on derived specs. A brief lives at `docs/product/briefs/<slug>.md` and is created by the `receive-brief` skill. For how to use it, see [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md); for why the layer exists, see [Why a brief layer](../explanation/why-a-brief-layer.md).
+Authoritative field list for a **product brief** and the linkage fields it stamps on derived specs. A brief lives at `docs/product/briefs/<slug>.md`. Use `author-brief` to draft a brief from unstructured external input (email, stakeholder message, Linear issue); use `receive-brief` to receive a formed brief and decompose it into specs. For how to use either skill, see [Intake an external brief into a product brief](../how-to/intake-an-external-brief.md) or [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md); for why the layer exists, see [Why a brief layer](../explanation/why-a-brief-layer.md).
 
-> The brief template is a **guide, not a schema**. Every field below except Outcome and Scope is optional. `receive-brief` elicits what's missing; it never rejects a brief for not matching this list.
+> The brief template is a **guide, not a schema**. Every field below except Outcome and Scope is optional. `author-brief` elicits missing DoR fields when authoring from unstructured input; `receive-brief` elicits what's missing when receiving a formed brief. Neither rejects a brief for not matching this list.
 
 ## Brief header fields
 
@@ -23,6 +23,21 @@ Authoritative field list for a **product brief** and the linkage fields it stamp
 | `Appetite` | optional | A *constraint*, not an estimate: how much time/effort the outcome is worth ("a few weeks, not a quarter"). Bounds the decomposition. |
 | `User stories` | optional (Shape B) | Stories with ids (`US-1`, `US-2`, …). Present → decomposition groups stories into specs and coverage is story-granular. Absent → Shape A, spec-granular coverage. |
 | `Spec map` | yes | The coverage table. One row per derived spec; the Status column is **auto-derived** by the coverage lint (never hand-edited). Shape B adds a `Story` column. |
+| `Rabbit holes` | optional (≥1 for DoR) | Named design traps, constraints, or out-of-bounds explorations to avoid. Optional in general use; ≥1 is required to reach `Ready` per the DoR gate. |
+| `Status` | set by skill | Lifecycle marker. Set by the authoring skill: `Draft` (by `author-brief`); `Ready` (by `receive-brief`, after decomposition is confirmed). |
+
+## DoR gate
+
+A brief is **Ready** — eligible for decomposition by `receive-brief` — when it satisfies all four eligibility fields. These are required to reach `Ready`, not required in general:
+
+| Field | Requirement |
+| --- | --- |
+| `Outcome` | Present and non-empty |
+| `Appetite` | Present (a default is acceptable) |
+| `Rabbit holes` | ≥1 named entry |
+| `Spec map` | ≥1 placeholder row |
+
+`author-brief` elicits these fields and sets `Status: Draft`. Only `receive-brief` sets `Status: Ready`, after decomposition is confirmed.
 
 ## The Spec map
 
