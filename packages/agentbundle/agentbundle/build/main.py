@@ -39,6 +39,12 @@ REPO_ROOT = PACKAGE_ROOT.parent.parent.parent.parent
 # install` fetches from the right branch.
 _DIST_BRANCH = "claude-plugins-dist"
 
+# Marketplace description included in both the dist and self-hosted marketplace.json.
+# The description field is required for `claude plugin validate --strict` to pass.
+_MARKETPLACE_DESCRIPTION = (
+    "Agent skills, subagents, and hooks for Claude Code and other coding agents."
+)
+
 # Match https://github.com/owner/repo (optional trailing .git and slash).
 _GITHUB_URL_RE = re.compile(
     r"^https?://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$"
@@ -504,8 +510,22 @@ def _run_per_pack_single(
         destination.parent.mkdir(parents=True, exist_ok=True)
         # Load, splice in synthesised SessionStart hook, re-serialise.
         derived = json.loads(plugin_manifest.read_text(encoding="utf-8"))
+        # Claude Code 2.1.209+ hook contract: each event entry is an object
+        # with a nested "hooks" array of typed hook objects, not a flat
+        # {command} object. The old flat shape ({command}) is rejected with
+        # "hooks: Invalid input" by the plugin validator.
         derived["hooks"] = {
-            "SessionStart": [{"command": _SESSION_START_COMMAND}]
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": _SESSION_START_COMMAND,
+                            "timeout": 10,
+                        }
+                    ]
+                }
+            ]
         }
         # enriched-pack-manifest: merge the projectable metadata subset derived
         # from this pack's pack.toml (emit-only-when-present, so a legacy pack
@@ -516,6 +536,12 @@ def _run_per_pack_single(
                 pack_toml_for_subset.read_text(encoding="utf-8")
             )
             derived.update(derive_projectable_subset(pack_meta))
+        # Strip marketplace-only fields from the per-pack plugin.json.
+        # "source" and "category" belong only in marketplace.json entries;
+        # the Claude plugin validator warns they are ignored in plugin.json.
+        # _run_aggregate re-adds them from pack.toml when building marketplace.json.
+        for _marketplace_key in ("source", "category"):
+            derived.pop(_marketplace_key, None)
         # Validate the derived manifest IN MEMORY before writing to disk
         # (Blocker-3: pre-write validation so a synthesis bug never lands
         # a malformed plugin.json in dist/).
@@ -650,13 +676,30 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
         for plugin_dir in sorted(input_dir.iterdir()):
             manifest = plugin_dir / ".claude-plugin" / "plugin.json"
             if manifest.exists():
-                entries.append(json.loads(manifest.read_text(encoding="utf-8")))
+                entry = json.loads(manifest.read_text(encoding="utf-8"))
+                # hooks are per-plugin installation artifacts, not marketplace
+                # metadata; strip them from marketplace entries.
+                entry.pop("hooks", None)
+                # Re-add marketplace-only fields (source, category) from the
+                # projected pack.toml (also present in the dist directory).
+                # These were stripped from plugin.json to keep it clean of
+                # fields the Claude plugin loader ignores at runtime.
+                pack_toml_path = plugin_dir / "pack.toml"
+                if pack_toml_path.exists():
+                    pack_meta = tomllib.loads(
+                        pack_toml_path.read_text(encoding="utf-8")
+                    )
+                    subset = derive_projectable_subset(pack_meta)
+                    for _mk in ("source", "category"):
+                        if _mk in subset:
+                            entry[_mk] = subset[_mk]
+                entries.append(entry)
     output_path = output_dir / recipe.output_file
     _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Derive marketplace name and owner from the first entry that carries a
-    # source.repo field (populated by derive_projectable_subset).
+    # source.repo field (populated above from pack.toml via derive_projectable_subset).
     marketplace_name: str | None = None
     marketplace_owner: dict | None = None
     for entry in entries:
@@ -672,6 +715,7 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
     payload: dict = {}
     if marketplace_name:
         payload["name"] = marketplace_name
+        payload["description"] = _MARKETPLACE_DESCRIPTION
     if marketplace_owner:
         payload["owner"] = marketplace_owner
     payload["plugins"] = entries

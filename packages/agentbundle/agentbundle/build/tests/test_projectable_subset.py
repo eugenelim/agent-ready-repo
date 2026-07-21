@@ -131,9 +131,17 @@ categories = ["governance", "testing"]
             "name": "research",
             "version": "0.1.0",
             "description": "Evidence-grounded research.",
-            "hooks": {"SessionStart": [{"command": "python3 x.py"}]},
+            "hooks": {
+                "SessionStart": [
+                    {"hooks": [{"type": "command", "command": "python3 x.py"}]}
+                ]
+            },
         }
-        manifest.update(derive_projectable_subset(tomllib.loads(ENRICHED_TOML)))
+        subset = derive_projectable_subset(tomllib.loads(ENRICHED_TOML))
+        # category is marketplace-only; the build pipeline strips it before
+        # writing plugin.json, so strip it here to mirror that behaviour.
+        subset.pop("category", None)
+        manifest.update(subset)
         schema = json.loads(DERIVED_SCHEMA_PATH.read_text(encoding="utf-8"))
         self.assertEqual(validate(manifest, schema), [])
 

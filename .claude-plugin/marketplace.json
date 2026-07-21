@@ -1,4 +1,5 @@
 {
+  "description": "Agent skills, subagents, and hooks for Claude Code and other coding agents.",
   "name": "agent-ready-repo",
   "owner": {
     "name": "eugenelim"

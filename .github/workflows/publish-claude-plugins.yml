@@ -1,14 +1,23 @@
 name: Publish Claude plugin packages
 
-# Builds the per-pack claude-plugins output and publishes it to the
-# `claude-plugins-dist` branch so adopters can install any pack directly
-# with `claude plugin install <url>`.
+# Builds the per-pack claude-plugins output, validates the generated manifests
+# with a hermetic schema check, and publishes to the `claude-plugins-dist` branch
+# so adopters can install any pack with:
+#
+#   claude plugin marketplace add eugenelim/agent-ready-repo
+#   claude plugin install <pack>@agent-ready-repo
 #
 # Excludes `catalogue-curation/` (operator-only pack) but includes
 # `marketplace.json` at the branch root for machine-readable discovery.
 #
 # Skips committing when content is byte-for-byte identical to the
 # previous publish; cancels in-flight runs when a newer push lands.
+#
+# Validation note: the `claude` CLI binary is not available in standard CI.
+# This workflow uses the hermetic Python schema check (plugin-manifest.derived.schema.json)
+# as the build-time gate. Real-client validation (`claude plugin validate`) must be
+# run locally before merging PRs that touch the plugin build pipeline.
+# Client version used for local validation: Claude Code 2.1.209.
 
 on:
   push:
@@ -39,6 +48,10 @@ jobs:
 
       - name: Build claude-plugin artifacts
         run: make build
+
+      - name: Validate generated plugin manifests (hermetic schema check)
+        run: |
+          python3 tools/validate-claude-plugin-manifests.py
 
       - name: Configure git identity
         run: |
