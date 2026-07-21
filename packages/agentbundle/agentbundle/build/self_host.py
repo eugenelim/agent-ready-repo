@@ -557,12 +557,13 @@ def _aggregate_marketplace(
     packs_dir: Path,
     output_root: Path,
     owner: str = "eugenelim",
+    name: str = "agent-ready-repo",
 ) -> Path:
     """Aggregate `packs/*/.claude-plugin/plugin.json` into
     `output_root/.claude-plugin/marketplace.json` so this repo is itself
-    a usable marketplace at HEAD. `owner` defaults to this repo's
-    concrete value but `run_self_host` overrides it from
-    `.adapt-discovery.toml[adapt].owner` so adopters get their own."""
+    a usable marketplace at HEAD. `owner` and `name` default to this repo's
+    concrete values but `run_self_host` overrides them from
+    `.adapt-discovery.toml` so adopters get their own."""
     entries: list[dict] = []
     for pack_path in sorted(packs_dir.iterdir()):
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
@@ -571,9 +572,9 @@ def _aggregate_marketplace(
         if manifest.exists():
             entry = json.loads(manifest.read_text(encoding="utf-8"))
             # enriched-pack-manifest: surface the projectable metadata subset
-            # (author / license / links / keywords / category / displayName)
-            # derived from pack.toml, so the catalogue entry is described
-            # richly. Emit-only-when-present keeps legacy entries byte-identical.
+            # (author / license / links / keywords / category / displayName /
+            # source) derived from pack.toml. Emit-only-when-present keeps
+            # legacy entries byte-identical.
             pack_meta = tomllib.loads(
                 (pack_path / "pack.toml").read_text(encoding="utf-8")
             )
@@ -582,6 +583,7 @@ def _aggregate_marketplace(
     target = output_root / ".claude-plugin" / "marketplace.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "name": name,
         "owner": {"name": owner},
         "plugins": entries,
     }
@@ -1079,6 +1081,7 @@ def run_self_host(
         return 3
     discovery_flat = dict(discovery.markers)
     owner = discovery_flat.get("owner", "eugenelim")
+    marketplace_name = discovery_flat.get("project-name", "agent-ready-repo")
 
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
@@ -1096,7 +1099,7 @@ def run_self_host(
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
-            _aggregate_marketplace(packs_dir, shadow, owner=owner)
+            _aggregate_marketplace(packs_dir, shadow, owner=owner, name=marketplace_name)
             _recreate_claude_symlink(shadow, force_copy=no_symlink)
             extra_marker_paths = list(seed_map.keys()) + [
                 Path(".claude-plugin") / "marketplace.json",
@@ -1152,7 +1155,7 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4
-    _aggregate_marketplace(packs_dir, working_tree, owner=owner)
+    _aggregate_marketplace(packs_dir, working_tree, owner=owner, name=marketplace_name)
     _recreate_claude_symlink(working_tree, force_copy=no_symlink)
     extra_marker_paths = list(seed_map.keys()) + [
         Path(".claude-plugin") / "marketplace.json",

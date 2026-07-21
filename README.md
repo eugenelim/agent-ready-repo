@@ -25,11 +25,14 @@ agentbundle install --pack core
 
 ## Quick start
 
-**Install via Claude Code / Claude Desktop** (no extra tooling required):
+**Install via Claude Code** (no extra tooling required):
 
 ```bash
-# Install any pack directly — no CLI to set up
-claude plugin install https://github.com/eugenelim/agent-ready-repo/tree/claude-plugins-dist/core
+# Add the marketplace once
+claude plugin marketplace add eugenelim/agent-ready-repo
+
+# Install any pack by name
+claude plugin install core@agent-ready-repo
 
 # Browse all available packs with install commands
 # → https://eugenelim.github.io/agent-ready-repo/plugins/

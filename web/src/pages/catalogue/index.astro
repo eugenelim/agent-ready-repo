@@ -4,8 +4,7 @@ import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
-const PLUGIN_BRANCH = 'claude-plugins-dist';
-const REPO = 'eugenelim/agent-ready-repo';
+const MARKETPLACE = 'agent-ready-repo';
 
 // SDLC value-stream order (RFC-0064 three-altitude model + the three loops):
 // core anchors first, then strategy → research → shaping → design →
@@ -44,7 +43,6 @@ const packs = allPacks
   })
   .map((e) => {
     const slug = e.id.replace(/\.md$/, '');
-    const pluginUrl = `https://github.com/${REPO}/tree/${PLUGIN_BRANCH}/${slug}`;
     return {
       slug,
       name: e.data.name,
@@ -52,7 +50,7 @@ const packs = allPacks
       tagline: e.data.tagline,
       skillCount: e.data.skills.length,
       cliCmd: e.data.installCommand,
-      pluginCmd: `claude plugin install ${pluginUrl}`,
+      pluginCmd: `claude plugin install ${slug}@${MARKETPLACE}`,
       detailUrl: withBase(`/packs/${slug}/`),
     };
   });

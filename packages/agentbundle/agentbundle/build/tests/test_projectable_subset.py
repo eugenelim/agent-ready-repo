@@ -59,13 +59,19 @@ class DeriveProjectableSubsetTests(unittest.TestCase):
         self.assertEqual(
             subset,
             {
-                "author": "Example User <example@example.com>",
+                "author": {"name": "Example User", "email": "example@example.com"},
                 "license": "Apache-2.0",
                 "homepage": "https://example.com",
                 "repository": "https://github.com/example/repo",
                 "keywords": ["osint", "synthesis", "citations"],
                 "category": "research",
                 "displayName": "Research",
+                "source": {
+                    "source": "github",
+                    "repo": "example/repo",
+                    "branch": "claude-plugins-dist",
+                    "directory": "research",
+                },
             },
         )
 
@@ -100,7 +106,7 @@ name = "Solo Maintainer"
 """
         self.assertEqual(
             derive_projectable_subset(tomllib.loads(toml)),
-            {"author": "Solo Maintainer"},
+            {"author": {"name": "Solo Maintainer"}},
         )
 
     def test_category_is_first_of_categories(self) -> None:
