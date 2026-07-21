@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 # Minimal pack.toml with full enriched metadata (maintainers + links).
 _PACK_WITH_METADATA = {
