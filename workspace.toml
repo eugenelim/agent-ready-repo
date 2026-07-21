@@ -196,16 +196,6 @@ open = [
   # File: web/src/content/journeys/product-strategy.md (new)
   {slug = "product-strategy-web-journey"},
 
-  # Genre routing bridge for frontend-engineering skill: after aesthetic-reference
-  # step, check available-skills for conversion-design / documentation-design / etc.
-  # and load the matching Direct skill before writing code. Named by name, T2
-  # conditional (skip with note if experience-design absent). Projects to all adopters
-  # via core pack. Constraining ADRs: ADR-0023, ADR-0042, ADR-0047. Key decisions
-  # settled 2026-07-20: name by name not inference; T2 conditional; fallback = note
-  # in spec and proceed with design pre-flight below.
-  # File: packs/core/.apm/skills/frontend-engineering/SKILL.md (PLAN phase, after step 1)
-  {slug = "xd-genre-routing-frontend-engineering"},
-
   # Clarify work-loop experience-reviewer trigger: for web surface diffs, "rendered
   # output" means build the site and describe key pages from build output — not the
   # code diff. Without the built artifact the reviewer cannot apply genre rubrics or
