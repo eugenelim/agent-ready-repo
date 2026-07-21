@@ -318,7 +318,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   warn-only posture is this spec's firm shipped contract; **future hardening** —
   promoting drift to a hard violation once the sidecar matrix schema is pinned — is
   tracked at
-  [`docs/backlog.md` → `sidecar-drift-hard-fail`](../../backlog.md#sidecar-drift-hard-fail).
+  `workspace.toml [backlog]` entry `sidecar-drift-hard-fail`.
 - [x] The lint **no-ops cleanly** — exit 0, no diagnostic — when no chain artifacts
   exist (the `lint-brief-coverage.py` no-brief precedent), and **degrades
   gracefully** (informational, never a crash) when a marker, pointer, layer,
