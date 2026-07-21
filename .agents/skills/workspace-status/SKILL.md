@@ -170,6 +170,17 @@ Format output in four sections (omit sections with no entries):
 - **When either file has data rows:** output a `**Findings:**` section with both tables printed inline — paste each file's full markdown table (column header row + separator + data rows) under a sub-label (`RFC candidates:` / `Roadmap intents:`). If one file is absent or has no data rows, output its sub-label followed by `_(empty)_`.
 - **When both are empty or absent:** emit a single line: `0 rfc candidates · 0 roadmap intents — both registers empty`
 
+**Backlog:** when `[backlog].open` in `workspace.toml` is non-empty, render:
+
+```
+**Backlog** — N open item(s):
+- `<slug>` — <first # comment line above the entry>
+- `<slug>` — <first # comment line above the entry>
+  ...
+```
+
+To extract the first comment line: read `workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
+
 ---
 
 ### 4. Skill prompts by type

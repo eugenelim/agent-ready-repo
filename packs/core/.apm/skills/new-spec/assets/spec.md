@@ -118,11 +118,11 @@ mere design detail:
 - [ ] <observable outcome>
 
 A criterion that ships unmet *on purpose* is never left silently unchecked —
-mark it deferred with an inline anchor into the backlog register:
+mark it deferred with a slug that resolves in `workspace.toml [backlog].open`:
 
-- [ ] <observable outcome> (deferred: <backlog-anchor>)
+- [ ] <observable outcome> (deferred: <slug>)
 
-where <backlog-anchor> resolves to a heading in `docs/backlog.md`.
+where <slug> matches a `slug` field in `workspace.toml [backlog].open`.
 
 Optional story trace: when this spec was derived from a product brief that
 carries user stories (Shape B; see receive-brief), append `Satisfies: US-n`
