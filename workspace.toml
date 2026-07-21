@@ -183,17 +183,10 @@ queue   = [
 # workspace-status alongside initiative queues. See spec/m3-backlog-absorption
 # for the full schema and docs/backlog.md migration plan.
 open = [
-  # Experience-design gap remediation — 2026-07-20 audit gap analysis
+  # Experience-design gap remediation — 2026-07-20 audit gap analysis — ALL DONE.
   # product-strategy-web-journey DONE #576.
-  # lint-web-journey-parity DONE (this PR).
-  # Remaining: xd-genre-routing-frontend-engineering (then work-loop-xd-rendered-output advisory-after).
-
-  # Clarify work-loop experience-reviewer trigger: for web surface diffs, "rendered
-  # output" means build the site and describe key pages from build output — not the
-  # code diff. Without the built artifact the reviewer cannot apply genre rubrics or
-  # check cross-page consistency. One-liner clarification in REVIEW section.
-  # Advisory: sharper once xd-genre-routing-frontend-engineering ships.
-  # File: packs/core/.apm/skills/work-loop/SKILL.md (REVIEW §, experience-reviewer block)
-  {slug = "work-loop-xd-rendered-output"},
+  # lint-web-journey-parity DONE #579.
+  # xd-genre-routing-frontend-engineering DONE #580.
+  # work-loop-xd-rendered-output DONE (this PR, core 0.13.2).
 
 ]

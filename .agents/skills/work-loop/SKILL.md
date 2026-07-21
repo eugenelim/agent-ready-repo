@@ -717,12 +717,12 @@ note in the summary, not a blocker.
   [`references/infra-verification.md`](references/infra-verification.md).
 - Match `experience-reviewer` — for diffs that change what a reader or adopter
   sees (a new page, a redesigned screen, a pack card, a docs page) **in full-mode
-  work**. This is a design/experience lens, distinct from the three core
-  code-review lenses. Pass the **rendered output** (a described screen state, a
-  screenshot, or a path to the built artifact) **plus the grounded aesthetic
-  reference and constraints** (persona, outcome, platform surface) — not the
-  code diff; experience-reviewer reviews design artifacts, not code diffs, and
-  its confirm-before-reviewing gate requires the grounded reference. Fallback if
+  work**. Pass the **rendered output** (a described screen state, a screenshot, or
+  a path to the built artifact) **plus the grounded aesthetic reference and
+  constraints** (persona, outcome, platform surface) — not the code diff; its
+  confirm-before-reviewing gate requires the grounded reference. **For web surfaces
+  (HTML/CSS/JS), "rendered output" means the built site** — run the build and describe
+  key pages from the output, not the code diff. Fallback if
   no `experience-reviewer` is installed (experience-design pack absent): proceed and
   note it — absence of the experience-design pack is a named skip, not a silent pass.
 
