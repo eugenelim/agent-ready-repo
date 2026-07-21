@@ -60,6 +60,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  "spec/m2-frame-situation",     # frame-situation PE skill
   "spec/m1-workspace-core",      # Batch 2
   "spec/m1-work-queue",          # Batch 3
   "spec/m1-brief-queue",         # Batch 4
