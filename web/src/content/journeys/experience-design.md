@@ -59,6 +59,9 @@ skills:
   - name: design-review
     description: "Reviews an existing screen design against the quality floor — handle-all-states, accessibility, reduced-motion — before the independent review."
     humanTouches: 0
+  - name: experience-status
+    description: "Orients to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next."
+    humanTouches: 0
 humanGates:
   - id: G-journey
     globalGate: null

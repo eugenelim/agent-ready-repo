@@ -184,17 +184,9 @@ queue   = [
 # for the full schema and docs/backlog.md migration plan.
 open = [
   # Experience-design gap remediation — 2026-07-20 audit gap analysis
-  # Items 1–2 parallel-safe. Item 3 advisory-after 1+2 (lint fails on existing
-  # drift if run first). Item 4 advisory-after item 3 ships.
-
-  # New web journey page for product-strategy pack. Pack is in catalogue (9 skills,
-  # 3 pillars: market strategy, UX strategy, content strategy), has internal journey
-  # at docs/product/journeys/product-strategist-sets-direction.md, but no
-  # web/src/content/journeys/product-strategy.md. Follow existing journey schema:
-  # pack/scope/tagline/prerequisitePacks/whatChanges/skills/humanGates/typicalSession
-  # frontmatter + stage prose. Reference: packs/product-strategy/pack.toml + README.md.
-  # File: web/src/content/journeys/product-strategy.md (new)
-  {slug = "product-strategy-web-journey"},
+  # product-strategy-web-journey DONE #576.
+  # lint-web-journey-parity DONE (this PR).
+  # Remaining: xd-genre-routing-frontend-engineering (then work-loop-xd-rendered-output advisory-after).
 
   # Clarify work-loop experience-reviewer trigger: for web surface diffs, "rendered
   # output" means build the site and describe key pages from build output — not the
@@ -203,15 +195,5 @@ open = [
   # Advisory: sharper once xd-genre-routing-frontend-engineering ships.
   # File: packs/core/.apm/skills/work-loop/SKILL.md (REVIEW §, experience-reviewer block)
   {slug = "work-loop-xd-rendered-output"},
-
-  # Catalogue-maintainer lint: tools/lint-web-journey-parity.py cross-checks
-  # web/src/content/journeys/<pack>.md skills frontmatter count against
-  # packs/<pack>/.apm/skills/ directory count. Follow lint-knowledge-surface-parity.py
-  # pattern (canonical source, fail-closed, env-override fixture mode for self-test).
-  # Wire as _run step in tools/pre-pr-catalogue.py. Not projected to adopters.
-  # Advisory: ship after xd-web-journey-skill-count + product-strategy-web-journey
-  # so the gate starts green on first CI run.
-  # Files: tools/lint-web-journey-parity.py (new), tools/pre-pr-catalogue.py
-  {slug = "lint-web-journey-parity"},
 
 ]

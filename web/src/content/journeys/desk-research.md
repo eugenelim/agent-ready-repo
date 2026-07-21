@@ -26,9 +26,12 @@ skills:
   - name: decision-archaeology
     description: "Reconstructs why a prior decision was made from artifacts, commit history, and design docs — used when the answer is historical rather than open."
     humanTouches: 0
-  - name: desk-desk-research-project-start
+  - name: desk-research-project-start
     description: "Initializes a research project folder with a scoped question, source list, and corpus skeleton."
     humanTouches: 1
+  - name: desk-research-project-status
+    description: "Orients to the current desk-research project at a glance — reads overview.md and surfaces phase, working hypothesis, stop-signal verdict, and what to do next."
+    humanTouches: 0
   - name: desk-research-project-check
     description: "Snapshots progress: which sources are captured, what the corpus covers, and what remains."
     humanTouches: 0
