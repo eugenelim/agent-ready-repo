@@ -166,13 +166,14 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
     `additionalProperties: false` (a genuinely unknown key still fails).
     """
 
+    # category is marketplace-only — not a valid field in plugin.json (derived schema).
+    # It is kept in the source schema's allow-list for hand-authored files only.
     _SUBSET = {
         "author": {"name": "Eugene Lim", "email": "eugenelim@users.noreply.github.com"},
         "license": "Apache-2.0",
         "homepage": "https://example.com",
         "repository": "https://github.com/example/repo",
         "keywords": ["osint", "synthesis"],
-        "category": "research",
         "displayName": "Research",
         "source": {
             "source": "github",
@@ -181,6 +182,8 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
             "directory": "research",
         },
     }
+    # category is valid in the source schema but not the derived schema.
+    _SOURCE_ONLY_FIELDS = {"category": "research"}
 
     def test_source_schema_admits_projectable_subset(self) -> None:
         from agentbundle.build.validate import validate
@@ -190,11 +193,13 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
             "version": "0.1.0",
             "description": "Research.",
             **self._SUBSET,
+            **self._SOURCE_ONLY_FIELDS,  # category is valid in source schema
         }
         errors = validate(manifest, _load_schema())
         self.assertEqual(errors, [], "\n".join(errors))
 
     def test_derived_schema_admits_projectable_subset(self) -> None:
+        """Derived schema accepts plugin.json fields; category is stripped (marketplace-only)."""
         from agentbundle.build.validate import validate
 
         manifest = {
@@ -202,9 +207,17 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
             "version": "0.1.0",
             "description": "Research.",
             **self._SUBSET,
+            # category excluded: it is marketplace-only, stripped before plugin.json is written
             "hooks": {
                 "SessionStart": [
-                    {"command": 'python3 "${CLAUDE_PLUGIN_ROOT}/x.py"'}
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": 'python3 "${CLAUDE_PLUGIN_ROOT}/x.py"',
+                            }
+                        ]
+                    }
                 ]
             },
         }
@@ -311,6 +324,7 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
         )
 
         # Manifest with synthesised hooks.SessionStart block must be accepted.
+        # Shape: {hooks: [{type, command, timeout}]} — the 2.1.209+ contract.
         derived = {
             "name": "agent-ready-core",
             "version": "0.1.0",
@@ -318,7 +332,13 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
             "hooks": {
                 "SessionStart": [
                     {
-                        "command": 'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": 'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"',
+                                "timeout": 10,
+                            }
+                        ]
                     }
                 ]
             },

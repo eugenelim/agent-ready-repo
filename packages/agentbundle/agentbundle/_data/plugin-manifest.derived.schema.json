@@ -29,13 +29,13 @@
       "type": "array",
       "items": {"type": "string"}
     },
-    "category": {"type": "string"},
     "displayName": {"type": "string"},
     "source": {
       "type": "object",
+      "required": ["source", "repo", "branch", "directory"],
       "additionalProperties": false,
       "properties": {
-        "source": {"type": "string"},
+        "source": {"type": "string", "enum": ["github"]},
         "repo": {"type": "string"},
         "branch": {"type": "string"},
         "directory": {"type": "string"}
@@ -43,14 +43,27 @@
     },
     "hooks": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "SessionStart": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["command"],
+            "additionalProperties": false,
             "properties": {
-              "command": {"type": "string"}
+              "hooks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["type", "command"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {"type": "string", "enum": ["command"]},
+                    "command": {"type": "string"},
+                    "timeout": {"type": "integer"}
+                  }
+                }
+              }
             }
           }
         }

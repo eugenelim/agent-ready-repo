@@ -122,7 +122,11 @@ def test_derivation_projects_install_marker(tmp_path, pack_name):
 
 @pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)
 def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
-    """AC9 (a): derived plugin.json carries the synthesised SessionStart hook for every pack."""
+    """AC9 (a): derived plugin.json carries the synthesised SessionStart hook for every pack.
+
+    Claude Code 2.1.209+ hook contract: each event entry must be an object with a
+    nested "hooks" array of typed hook objects, not a flat {command} object.
+    """
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
@@ -138,10 +142,19 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
     session_start = hooks["SessionStart"]
     assert isinstance(session_start, list), "SessionStart must be a list"
     assert len(session_start) == 1, f"[{pack_name}] Expected 1 SessionStart entry"
-    assert session_start[0]["command"] == EXPECTED_COMMAND, (
+    # New nested hook contract: {hooks: [{type, command, timeout}]}
+    entry = session_start[0]
+    assert "hooks" in entry, (
+        f"[{pack_name}] SessionStart entry must have nested 'hooks' list "
+        f"(Claude Code 2.1.209+ contract); got keys: {list(entry.keys())}"
+    )
+    inner = entry["hooks"]
+    assert isinstance(inner, list) and len(inner) == 1, f"[{pack_name}] inner hooks must be 1-element list"
+    assert inner[0]["type"] == "command", f"[{pack_name}] inner hook type must be 'command'"
+    assert inner[0]["command"] == EXPECTED_COMMAND, (
         f"[{pack_name}] SessionStart command mismatch:\n"
         f"  expected: {EXPECTED_COMMAND!r}\n"
-        f"  got:      {session_start[0]['command']!r}"
+        f"  got:      {inner[0]['command']!r}"
     )
 
 
@@ -381,7 +394,8 @@ def test_shell_exec_quoting_survives_space_in_root(tmp_path):
         tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
     )
     manifest = json.loads(derived_json.read_text(encoding="utf-8"))
-    command = manifest["hooks"]["SessionStart"][0]["command"]
+    # Command is now nested: hooks.SessionStart[0].hooks[0].command
+    command = manifest["hooks"]["SessionStart"][0]["hooks"][0]["command"]
 
     # Substitute a CLAUDE_PLUGIN_ROOT value containing a space.
     synthetic_root = "/tmp/with space/root"
@@ -465,6 +479,84 @@ def test_claude_plugins_hook_command_now_passes_flag(tmp_path):
         tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
     )
     manifest = json.loads(derived_json.read_text(encoding="utf-8"))
-    command = manifest["hooks"]["SessionStart"][0]["command"]
+    # Command is now nested: hooks.SessionStart[0].hooks[0].command
+    command = manifest["hooks"]["SessionStart"][0]["hooks"][0]["command"]
     assert command.endswith("--install-route claude-plugins"), command
     assert command == EXPECTED_COMMAND
+
+
+# ---------------------------------------------------------------------------
+# Regression: old flat hooks shape rejected; marketplace has no hooks
+# (pinned 2026-07-21 — the previously emitted shape was rejected by
+# `claude plugin validate` with "hooks: Invalid input" on 2.1.209)
+# ---------------------------------------------------------------------------
+
+
+def test_derived_schema_rejects_old_flat_hooks_shape():
+    """Derived schema must reject the old flat {command} hook shape emitted before 2026-07-21.
+
+    The old shape lacked the required nested {hooks: [{type, command}]} structure and
+    caused 17+ errors from `claude plugin validate` on Claude Code 2.1.209.
+    """
+    import json as _json
+    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.validate import validate as validate_instance
+
+    schema = _json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+    # Exact shape that was emitted before the 2026-07-21 fix.
+    old_shape_manifest = {
+        "name": "test-pack",
+        "version": "1.0.0",
+        "description": "test",
+        "hooks": {
+            "SessionStart": [
+                {"command": "python3 test.py"}  # missing nested hooks/type
+            ]
+        },
+    }
+    errors = validate_instance(old_shape_manifest, schema)
+    assert errors, (
+        "Derived schema must reject the old flat {command} hooks shape "
+        "(regression: hooks: Invalid input on claude plugin validate 2.1.209). "
+        f"Schema accepted it with no errors."
+    )
+
+
+@pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)
+def test_derived_plugin_json_has_no_marketplace_only_fields(tmp_path, pack_name):
+    """Generated plugin.json must not contain 'source' or 'category'.
+
+    These are marketplace-only fields; Claude Code warns they are ignored in
+    plugin.json. The marketplace aggregator re-adds them from pack.toml.
+    """
+    result = _run_build(FIXTURES_PACKS, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    derived_json = (
+        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
+    )
+    manifest = json.loads(derived_json.read_text(encoding="utf-8"))
+    for field in ("source", "category"):
+        assert field not in manifest, (
+            f"[{pack_name}] generated plugin.json must not contain '{field}' "
+            f"(marketplace-only field; ignored by Claude Code plugin loader)"
+        )
+
+
+def test_marketplace_entries_have_no_hooks(tmp_path):
+    """Generated marketplace.json must not embed hooks in plugin entries.
+
+    Hooks are per-plugin installation artifacts; including them in marketplace
+    entries caused `plugins.N.hooks: Invalid input` from `claude plugin validate`.
+    """
+    result = _run_build(FIXTURES_PACKS, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    marketplace = tmp_path / "claude-plugins" / "marketplace.json"
+    assert marketplace.exists(), "marketplace.json missing after build"
+    data = json.loads(marketplace.read_text(encoding="utf-8"))
+    for plugin in data.get("plugins", []):
+        assert "hooks" not in plugin, (
+            f"Plugin '{plugin.get('name')}' in marketplace.json contains 'hooks' — "
+            "hooks are per-plugin artifacts and must not appear in marketplace entries"
+        )
