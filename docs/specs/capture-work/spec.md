@@ -135,19 +135,19 @@ are modified. Verification is goal-based and manual QA.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Rename + activation.** The skill is named `capture-work` in
+- [x] **AC1 — Rename + activation.** The skill is named `capture-work` in
   frontmatter, directory, and activation phrases. Triggers on "capture this",
   "add this to the queue", "capture these as queue items", "queue this up",
   "add this to the backlog" (and close paraphrases). `queue-add` is no longer
   a reachable activation target — no frontmatter, no directory, no projected
   copy uses that name.
 
-- [ ] **AC2 — Classification surfaced before write.** For each input item, the
+- [x] **AC2 — Classification surfaced before write.** For each input item, the
   skill surfaces its classification (`[build]` or `[shape]` + subtype) to the
   user as part of the confirmation-before-write step. No item is written
   without the user seeing its classification.
 
-- [ ] **AC3 — Build routing preserved.** Build-classified items route to the
+- [x] **AC3 — Build routing preserved.** Build-classified items route to the
   active initiative's `[work].queue` (initiative-scoped) or `[backlog].open`
   (not initiative-scoped) — the same destinations and routing logic as
   `queue-add`. All prior AC behavior (slug derivation, collision check,
@@ -156,7 +156,7 @@ are modified. Verification is goal-based and manual QA.
   escalation rubric, comment quality, confirmation, comment-preserving write,
   schema respect, graceful degradation) is preserved exactly.
 
-- [ ] **AC4 — Shaping-item routing: initiative-scoped.** When a shaping item
+- [x] **AC4 — Shaping-item routing: initiative-scoped.** When a shaping item
   is initiative-scoped, it is written to the active initiative's
   `[shaping_queue].backlog` as an inline object `{slug = "...", type = "<subtype>"}`.
   Exception: `signal`-subtype items route to `[shaping_queue].active` (not
@@ -165,12 +165,12 @@ are modified. Verification is goal-based and manual QA.
   The entry carries a cold-start-sufficient TOML comment (problem, fix,
   file/skill, unblock condition). It is never written to `[work].queue`.
 
-- [ ] **AC5 — Shaping-item routing: repo-level.** When a shaping item is not
+- [x] **AC5 — Shaping-item routing: repo-level.** When a shaping item is not
   initiative-scoped (the common ad-hoc case), it is written to
   `[backlog].open` as `{slug = "...", type = "<subtype>", needs?, source?}`.
   The `type` field is always written; no `type` is written for build entries.
 
-- [ ] **AC6 — Progressive capability-detected hand-off.** After writing a
+- [x] **AC6 — Progressive capability-detected hand-off.** After writing a
   shaping-typed entry, the skill checks whether the matching skill's pack is
   installed by probing for the skill file in the projected skill paths (both
   `.claude/skills/<skill-name>/SKILL.md` and `.agents/skills/<skill-name>/SKILL.md`
@@ -183,7 +183,7 @@ are modified. Verification is goal-based and manual QA.
   The entry is always written before the hand-off check. `signal`-subtype items
   skip the hand-off entirely — signals have no matching action skill.
 
-- [ ] **AC7 — workspace-status: every item prefixed.** Every item in the
+- [x] **AC7 — workspace-status: every item prefixed.** Every item in the
   "Ready to start" section and every item in the Backlog section of
   `workspace-status` output carries an explicit room prefix:
   - In "Ready to start": `[work]` queue items → `[build]`
@@ -196,13 +196,13 @@ are modified. Verification is goal-based and manual QA.
   The prefix replaces the existing label; subtype and skill-prompt rendering is
   unchanged.
 
-- [ ] **AC8 — workspace-status: queue-add references updated.** The two
+- [x] **AC8 — workspace-status: queue-add references updated.** The two
   `queue-add` references in `packs/core/.apm/skills/workspace-status/SKILL.md`
   are updated to `capture-work`:
   - "add to [work].queue or run queue-add" → "add to [work].queue or run capture-work"
   - "Start new work … `queue-add`" → "Start new work … `capture-work`"
 
-- [ ] **AC9 — work-loop orient-step guard.** At work-loop step 0, after
+- [x] **AC9 — work-loop orient-step guard.** At work-loop step 0, after
   reading `workspace.toml`, if the spec slug (derived from the argument path or
   the active spec path) matches any shaping entry — an entry in any initiative's
   `[shaping_queue]` (active or backlog) OR a `[backlog].open` entry carrying a
@@ -214,7 +214,7 @@ are modified. Verification is goal-based and manual QA.
     action skill — `work-loop` is for build items only."
   The guard does not fire on build items (items without a `type` field).
 
-- [ ] **AC10 — Consumer sweep complete.** After `make build-self`, no
+- [x] **AC10 — Consumer sweep complete.** After `make build-self`, no
   `queue-add` reference survives in operative refs: `packs/core/pack.toml`,
   `packs/core/.claude-plugin/plugin.json`, `docs/specs/README.md`,
   `docs/product/changelog.md` (operative [Unreleased] entry only — shipped
@@ -224,14 +224,14 @@ are modified. Verification is goal-based and manual QA.
   `marketplace.json` is regenerated from `plugin.json` by `make build-self` —
   verify it carries `capture-work` after the run.
 
-- [ ] **AC11 — build-self gate.** `make build-self` exits 0.
+- [x] **AC11 — build-self gate.** `make build-self` exits 0.
   `.claude/skills/capture-work/SKILL.md` and
   `.agents/skills/capture-work/SKILL.md` exist and are byte-identical to
   `packs/core/.apm/skills/capture-work/SKILL.md`. Neither
   `.claude/skills/queue-add/` nor `.agents/skills/queue-add/` exists after the
   run.
 
-- [ ] **AC12 — Changelog entry.** The existing `[Unreleased]` `queue-add`
+- [x] **AC12 — Changelog entry.** The existing `[Unreleased]` `queue-add`
   entry in `docs/product/changelog.md` is rewritten in place to cover
   `capture-work` — not a second entry added. The rewritten entry covers:
   (a) `capture-work` rename + classification extension (replacing the
@@ -239,10 +239,10 @@ are modified. Verification is goal-based and manual QA.
   `[brief]` mode tags, (c) work-loop orient-step guard. No historical
   mention of `queue-add` is added to the Unreleased section.
 
-- [ ] **AC13 — workspace.toml updated.** `workspace.toml` moves
+- [x] **AC13 — workspace.toml updated.** `workspace.toml` moves
   `spec/capture-work` from `[work].queue` to `[work].shipped` in the same PR.
 
-- [ ] **AC14 — roadmap.md updated.** `docs/product/roadmap.md` receives a
+- [x] **AC14 — roadmap.md updated.** `docs/product/roadmap.md` receives a
   one-line shipped entry for capture-work.
 
 ## Assumptions
