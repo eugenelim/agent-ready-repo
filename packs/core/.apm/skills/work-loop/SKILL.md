@@ -943,32 +943,21 @@ keep the rationale, edge cases, and findings the reader needs.
 
 ## Unattended (AFK) loops
 
-The work-loop above is an *in-session* loop: one conversation, state in
-working memory plus the repo. Some agents also offer an **unattended
-mode** for long-running work — overnight, weekend, AFK: a fresh instance
-per iteration, with state living entirely in files (a stable task prompt,
-progress notes, git history, AGENTS.md updates) and no human in the seat.
-Use your agent's own facility for this; don't hand-roll a loop around the
-CLI.
+The work-loop above is an *in-session* loop: one conversation, state in working
+memory plus the repo. Some agents offer an **unattended mode** — a fresh instance
+per iteration with state living in files (task prompt, progress notes, git history,
+AGENTS.md updates), no human in the seat. Use your agent's facility for this;
+don't hand-roll a loop around the CLI.
 
-Reach for it only when **all** of these hold:
+Reach for it only when **all** of these hold: the completion criterion is *fully
+mechanical* (tests pass, checklist ticked, benchmark hit); the task slices into
+single-context-window items; verification is reliable (flaky tests → slot machine);
+and you've already run the in-session loop at least once on something similar.
 
-- The completion criterion is *fully mechanical* — tests pass, a spec
-  checklist is fully ticked, a benchmark hits a threshold.
-- The task slices into items each small enough for a single context
-  window.
-- Verification is reliable — flaky tests turn an unattended loop into a
-  slot machine.
-- You've already run the in-session loop above on a similar task at
-  least once. An unattended loop amplifies whatever your conventions
-  are; if those aren't tight, it just produces more bad code faster.
-
-It's the wrong tool when "done" is fuzzy or aesthetic, when the task
-needs human judgment mid-flight (architectural choices, ambiguous
-requirements), or when it touches a sensitive surface (auth, secrets,
-data deletion). Set hard caps (iteration, spend) before you start and
-review every commit after — unattended doesn't mean *unconsidered*, it
-means *pre-considered*.
+It's the wrong tool when "done" is fuzzy, when the task needs human judgment
+mid-flight, or when it touches a sensitive surface (auth, secrets, data deletion).
+Set hard caps (iteration, spend) before you start and review every commit after —
+unattended doesn't mean *unconsidered*, it means *pre-considered*.
 
 ## Anti-patterns to refuse
 
@@ -990,18 +979,14 @@ means *pre-considered*.
   picks its verification mode (TDD / goal-based / manual QA) during PLAN;
   for TDD-mode tasks, the test exists before the production code does.
 - **Editing the test until it passes.** This makes the gate green by lying.
-  If a test is wrong, fix the test in a separate commit with a justification.
-- **Deferring a test because the code fails it.** The inverse of editing
-  the test — same lie, opposite direction. If a red test fails because the
-  code under test is wrong, fix the code; plausible-sounding rationales
-  ("flaky", "out of scope for this PR", "covered elsewhere") are how
-  regressions ship. (Beyoncé Rule: if you liked it, you should have put
-  a test on it.) If the test is genuinely wrong, fix it in a separate
-  commit with the reason; if the test is right and the code can't pass it
-  this session, the task isn't done — surface it, don't bury it.
-- **Declaring victory because gates pass.** Gates are necessary, not
-  sufficient. Review catches what gates can't (missing edge cases, scope
-  creep, spec drift).
+  If a test is wrong, fix it in a separate commit with a justification.
+- **Deferring a test because the code fails it.** Same lie, opposite direction.
+  Fix the code; plausible rationales ("flaky", "out of scope", "covered elsewhere")
+  are how regressions ship. If the test is genuinely wrong, fix it in a separate
+  commit with the reason; if the test is right and the code can't pass it this
+  session, the task isn't done — surface it, don't bury it.
+- **Declaring victory because gates pass.** Gates are necessary, not sufficient.
+  Review catches what gates can't (missing edge cases, scope creep, spec drift).
 - **Declaring spec-complete from per-task gates.** When a spec is
   decomposed into N loops, per-task gates verify N contracts — not the
   integrated journey. Before the final loop's DECIDE, run
@@ -1010,5 +995,5 @@ means *pre-considered*.
 - **Running an unattended loop on a fresh task instead of the in-session
   loop.** Unattended loops compound bad foundations. Do at least one
   in-session pass first to validate the approach.
-- **Looping without capturing learnings.** Every loop that ends without
-  updating *some* doc, skill, or note is a loop whose lessons are lost.
+- **Looping without capturing learnings.** Every loop that ends without updating
+  *some* doc, skill, or note is a loop whose lessons are lost.
