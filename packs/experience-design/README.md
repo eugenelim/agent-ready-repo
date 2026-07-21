@@ -1,4 +1,4 @@
-# experience
+# experience-design
 
 The design/UX seat for a product team — the grown-up successor to
 `design-craft`. It carries the **whole design thread** as one walkable flow:
@@ -40,9 +40,17 @@ names correctness goals has not cleared the gate.
   to `architect` / `contracts` by-name.
 - `process-mapping` — the inside-out sibling: an internal business process
   flow (APQC L3→L4, as-is + to-be, SIPOC, swimlane, pain/waste register).
+- `content-design` — a content brief for a surface: what it should say, for
+  whom, in what form, and to what objective; runs before the screen flow is
+  derived so content intent is set as a constraint before screens are sequenced.
+- `tone-of-voice` — named, ranked copy goals grounded in stable referents;
+  records the copy arbitration rules the rest of the build references.
 
 **The craft** — design each screen, held to one shared floor:
 
+- `design-principles` — 3–5 named decision rules derived from journey-map
+  insights; resolves design disputes and holds screens to a shared standard
+  across sprints, each principle grounded in a journey moment.
 - `creative-direction` — turn a vague "vibe" into named goals **grounded** in
   persona + precedent + standards + platform conventions; coherence arbitration.
 - `design-system` — derive a token/scale taxonomy from intent.
@@ -56,6 +64,27 @@ names correctness goals has not cleared the gate.
   accessibility floor (WCAG pointed-to), and "motion communicates state, honor
   reduced-motion." One floor, referenced by every consuming skill.
 
+**Genre-specific Direct skills** — surface-typed structural IA used when a
+screen has a known surface genre (run before `interaction-design` in place of
+the general `information-architecture` skill):
+
+- `analytical-design` — structural specification for analytical and dashboard
+  surfaces: widget hierarchy, role-based view architecture,
+  business-question-to-layout map.
+- `conversion-design` — structural specification for marketing and acquisition
+  surfaces: above-fold contract, scroll story, social-proof architecture.
+- `documentation-design` — structural specification for documentation surfaces:
+  content hierarchy, navigation strategy, TTFV architecture; Diátaxis content
+  typing.
+- `informational-design` — structural specification for informational and
+  editorial surfaces: typographic hierarchy, reading-pattern calibration,
+  editorial grid.
+- `marketplace-design` — structural specification for marketplace surfaces:
+  listing card IA, filter and facet architecture, transaction bridge.
+- `workspace-design` — structural specification for workspace and productivity
+  surfaces: context-persistence architecture, attention zone layout, interrupt
+  design.
+
 **The independent review:**
 
 - `experience-reviewer` — a forked-context, read-only reviewer agent that gives
@@ -63,13 +92,19 @@ names correctness goals has not cleared the gate.
   reference + platform fit + cross-brief coherence + the full quality floor),
   so design can run autonomously between human-value-add gates.
 
+**Session orientation:**
+
+- `experience-status` — orients to the current design thread at a glance: reads
+  design artifacts from the configured output directory and surfaces what exists,
+  what's missing, and which skill to run next.
+
 ## Install
 
 `experience-design` is **user-scope by default** — design method is portable, not
 project-specific.
 
 ```
-agentbundle install --pack experience <catalogue>
+agentbundle install --pack experience-design <catalogue>
 ```
 
 It projects to every shipped adapter that supports the skill primitive
