@@ -37,9 +37,8 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         exit code); promoting it to a hard invariant stays deferred pending
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
-        resolves against the **union** of (a) `workspace.toml [backlog].open`
-        slug fields and (b) `docs/backlog.md` heading anchors (tombstone
-        backward-compat). HARD (exit non-zero).
+        resolves against `workspace.toml [backlog].open` slug fields.
+        HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
@@ -88,8 +87,6 @@ _CONTRACT_TOKEN_RE = re.compile(r"contracts/[A-Za-z0-9._/-]+")
 # Vendor-extension-bearing contract formats (carry `x-spec` inline); other
 # formats (e.g. .proto, .graphql) use the REGISTRY.md back-ref channel.
 _XSPEC_FORMATS = (".yaml", ".yml", ".json")
-# Markdown heading line.
-_HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
 # AC checklist items.
 _AC_OPEN_RE = re.compile(r"^\s*-\s*\[ \]\s")
 _AC_DONE_RE = re.compile(r"^\s*-\s*\[[xX]\]\s")
@@ -118,27 +115,6 @@ def parse_status(spec_text: str) -> str | None:
             return extract_status_token(m.group(1))
     return None
 
-
-def slugify(heading: str) -> str:
-    """GitHub-style heading anchor slug: lowercase, drop punctuation
-    other than spaces/hyphens, spaces → hyphens."""
-    text = heading.strip().lower()
-    # Strip inline markdown emphasis/code markers before slugging.
-    text = text.replace("`", "")
-    text = re.sub(r"[^\w\s-]", "", text)
-    # GitHub does NOT collapse consecutive hyphens: a stripped `/` between
-    # two spaces yields a double hyphen (`a / b` → `a--b`). Match that —
-    # only spaces become hyphens; existing/produced hyphen runs are kept.
-    return text.replace(" ", "-")
-
-
-def backlog_anchors(backlog_text: str) -> set[str]:
-    anchors: set[str] = set()
-    for line in backlog_text.splitlines():
-        m = _HEADING_RE.match(line)
-        if m:
-            anchors.add(slugify(m.group(1)))
-    return anchors
 
 
 def _regex_backlog_slugs(workspace_text: str) -> set[str]:
@@ -329,13 +305,8 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
     hard: list[str] = []
     warn: list[str] = []
 
-    backlog_path = root / "docs" / "backlog.md"
     workspace_path = root / "workspace.toml"
-    anchors = (
-        backlog_anchors(backlog_path.read_text(encoding="utf-8", errors="replace"))
-        if backlog_path.is_file()
-        else set()
-    ) | backlog_open_slugs(workspace_path)
+    anchors = backlog_open_slugs(workspace_path)
 
     base_resolvable = base_ref is not None
     if not base_resolvable:
@@ -364,7 +335,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             if anchor not in anchors:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve in workspace.toml [backlog].open or docs/backlog.md"
+                    f"does not resolve in workspace.toml [backlog].open"
                 )
 
         # (ii) ACs at the ship transition (diff-triggered)

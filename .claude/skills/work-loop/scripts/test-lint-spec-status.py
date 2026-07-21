@@ -38,6 +38,16 @@ def write_backlog(root: Path, headings: list[str]) -> None:
     p.write_text(body, encoding="utf-8")
 
 
+def write_workspace_backlog(root: Path, slugs: list[str]) -> None:
+    p = root / "workspace.toml"
+    if slugs:
+        lines = "\n".join(f'  {{slug = "{s}"}},' for s in slugs)
+        body = f"[backlog]\nopen = [\n{lines}\n]\n"
+    else:
+        body = "[backlog]\nopen = []\n"
+    p.write_text(body, encoding="utf-8")
+
+
 def run_lint(root: Path, base_ref: str | None = None) -> tuple[int, str, str]:
     argv = [sys.executable, str(LINTER), "--root", str(root)]
     if base_ref is not None:
@@ -110,7 +120,7 @@ def case_invariant_ii_transition_fails() -> None:
 def case_invariant_ii_transition_ok_when_deferred() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, ["later-work"])
+        write_workspace_backlog(root, ["later-work"])
         write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
         git_init_commit(root)
         write_spec(
@@ -155,28 +165,15 @@ def case_invariant_i_missing_status() -> None:
         expect("no `- **Status:**`" in err, f"expected missing-status msg: {err}")
 
 
-def case_invariant_iv_resolves_multiword_anchor() -> None:
+def case_invariant_iv_resolves_workspace_slug() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        # A real multi-word, punctuated heading must slugify and resolve.
-        write_backlog(root, ["Cross Spec Work!"])
+        # A slug in workspace.toml [backlog].open must resolve a (deferred:) marker.
+        write_workspace_backlog(root, ["some-deferred-item"])
         write_spec(root, "deferring", "Draft",
-                   "- [ ] AC1 (deferred: cross-spec-work)\n")
+                   "- [ ] AC1 (deferred: some-deferred-item)\n")
         rc, _, err = run_lint(root)
-        expect(rc == 0, f"deferral to slugified heading should resolve, got {rc}: {err}")
-
-
-def case_invariant_iv_github_double_hyphen_anchor() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        # GitHub turns `## A / b` into anchor `a--b` (double hyphen, no
-        # collapse). The lint must match that to keep its "GitHub slug
-        # rules" promise.
-        write_backlog(root, ["Cross-spec / outside"])
-        write_spec(root, "deferring", "Draft",
-                   "- [ ] AC1 (deferred: cross-spec--outside)\n")
-        rc, _, err = run_lint(root)
-        expect(rc == 0, f"double-hyphen GitHub anchor should resolve, got {rc}: {err}")
+        expect(rc == 0, f"deferral to workspace.toml slug should resolve, got {rc}: {err}")
 
 
 def case_invariant_ii_born_shipped_fails() -> None:
@@ -408,8 +405,7 @@ def main() -> int:
         case_invariant_ii_no_base,
         case_invariant_i_missing_status,
         case_invariant_ii_born_shipped_fails,
-        case_invariant_iv_resolves_multiword_anchor,
-        case_invariant_iv_github_double_hyphen_anchor,
+        case_invariant_iv_resolves_workspace_slug,
         case_invariant_iv_missing_anchor,
         case_invariant_iv_placeholder_ignored,
         case_invariant_iii_warn_only,

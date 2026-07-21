@@ -58,7 +58,9 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = []
+active  = [
+  "spec/catalogue-curation",  # in progress — pending manual-QA live tests (assimilate-primitive, export-catalogue, assimilate-repo dry runs)
+]
 shipped = [
   "spec/m2-frame-situation",     # frame-situation PE skill
   "spec/m1-workspace-core",      # Batch 2
@@ -128,8 +130,6 @@ queue   = [
   "spec/m6-live-demo-guide",              # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
   "spec/m6-enterprise-rollout-playbook",  # champion→CTO→platform→engineers; staged rollout + retro template
 
-  # ---------------- Independent track (not RFC-0064) ----------------
-  "spec/catalogue-curation",
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.
@@ -144,16 +144,6 @@ queue   = [
 open = [
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
-
-  # packs/core/.apm/skills/adversarial-reviewer.md line ~154 references
-  # docs/backlog.md as the deferral register. After m3-backlog-absorption ships,
-  # deferrals resolve to workspace.toml [backlog].open instead. The stale reference
-  # actively misdirects reviewers checking deferral resolution.
-  # Fix: update the deferral-resolution description in adversarial-reviewer.md to
-  #   reference workspace.toml [backlog].open instead of docs/backlog.md.
-  # Unblocks when: m3-backlog-absorption ships; this is a one-file follow-on.
-  {slug = "adversarial-reviewer-deferral-resolution-update"},
-
 
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
@@ -434,18 +424,8 @@ open = [
   # (RFC-0062) produces the artifact; the reviewer's scope extension is a follow-on RFC.
   # Fix: open a follow-on RFC extending RFC-0062 to add content-brief to
   #   experience-reviewer's reviewable artifact set.
-  # Unblocks when: RFC-0062 content-design skill spec ships.
+  # Ready — RFC-0062 content-design-skill spec is Shipped; this item is now actionable.
   {slug = "experience-reviewer-content-brief-scope"},
-
-  # RFC-0062 opened 2026-07-18. Implementing copy-direction skill in experience pack
-  # (experience 0.5.0) — the copy twin of aesthetic-direction. Same interrogation
-  # structure (vibe → named goals → grounding → arbitration) applied to copy voice
-  # and positioned copy; produces copy-direction.md grounded in persona, copy
-  # precedents, and persuasion standards (painkiller-first, tweet test, 5-second scan).
-  # RFC must address: scope boundary relative to voice-and-microcopy; whether
-  # conversion architecture belongs here or in a future growth-pack track.
-  # Unblocks when: RFC-0062 is Accepted and the implementing spec is approved.
-  {slug = "copy-direction-skill-rfc"},
 
   # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
   # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
