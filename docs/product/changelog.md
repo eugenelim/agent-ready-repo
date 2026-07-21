@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`workspace-status` skill (core pack 0.13.3) — Findings step shows inline tables.** When either `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md` has data rows, `workspace-status` now prints both tables inline rather than a bare count. When both registers are empty, a single summary line is shown (`0 rfc candidates · 0 roadmap intents — both registers empty`) instead of silently omitting the section.
+
 - **`work-loop` skill (core pack 0.13.2) — experience-reviewer rendered-output clarification for web surfaces.** The `experience-reviewer` bullet in the REVIEW section now explicitly states that for web surfaces (HTML/CSS/JS), "rendered output" means the built site — run the build and describe key pages from the output; the code diff alone cannot serve as the rendered artifact for genre-rubric or cross-page consistency checks. Backlog item `work-loop-xd-rendered-output`.
 
 - **`check-workspace` renamed to `workspace-status` (core pack — clean retire, no alias).** The workspace-level cold-start orient skill is now invoked as `workspace-status`. All operative references swept in one PR. Adopters invoking `check-workspace` by name will receive a "skill not found" signal; update to `workspace-status`. The new description triggers cover all phrasing the old skill responded to, plus "workspace status", "where am I", "orient me", "session start". ([RFC-0067](../rfc/0067-session-arc-conventions-and-pack-workflow-guide.md), [ADR-0054](../adr/0054-session-arc-verb-taxonomy-and-pack-type-classification.md))

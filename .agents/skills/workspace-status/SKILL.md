@@ -165,13 +165,10 @@ Format output in four sections (omit sections with no entries):
 
 **Closeout check:** if `[work].queue` is empty and `[work].active` is empty and `[work].shipped` is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 
-**Findings:** count non-header rows in `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if the files exist. Surface as a single count line:
+**Findings:** Read `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if they exist. Count non-header rows in each (a non-header row is any `|…|` line after the header separator row — the `|---|...|` line of dashes).
 
-```
-N rfc candidates · M roadmap intents
-```
-
-Omit the line entirely when both counts are zero or the files are absent.
+- **When either file has data rows:** output a `**Findings:**` section with both tables printed inline — paste each file's full markdown table (column header row + separator + data rows) under a sub-label (`RFC candidates:` / `Roadmap intents:`). If one file is absent or has no data rows, output its sub-label followed by `_(empty)_`.
+- **When both are empty or absent:** emit a single line: `0 rfc candidates · 0 roadmap intents — both registers empty`
 
 ---
 
