@@ -124,14 +124,6 @@ open = [
   # Items 1–2 parallel-safe. Item 3 advisory-after 1+2 (lint fails on existing
   # drift if run first). Item 4 advisory-after item 3 ships.
 
-  # Content fix: RFC-0066 added 9 genre-specific Direct skills to experience-design
-  # but web/src/content/journeys/experience-design.md skills frontmatter still lists
-  # 9 (journey-mapping through design-review). Pack now has 18. Also update
-  # whatChanges text to name genre-specific skills and the stage prose to reflect
-  # the full chain including genre-specific Direct skills.
-  # File: web/src/content/journeys/experience-design.md
-  {slug = "xd-web-journey-skill-count"},
-
   # New web journey page for product-strategy pack. Pack is in catalogue (9 skills,
   # 3 pillars: market strategy, UX strategy, content strategy), has internal journey
   # at docs/product/journeys/product-strategist-sets-direction.md, but no
@@ -168,4 +160,15 @@ open = [
   # so the gate starts green on first CI run.
   # Files: tools/lint-web-journey-parity.py (new), tools/pre-pr-catalogue.py
   {slug = "lint-web-journey-parity"},
+
+  # Update packs/experience-design/pack.toml [pack.evals].skills allowlist to
+  # add the 7 RFC-0066 additions omitted at time of pack.toml authoring:
+  # design-principles + 6 genre-specific Direct skills (analytical-design,
+  # conversion-design, documentation-design, informational-design,
+  # marketplace-design, workspace-design). They now ship and are advertised in
+  # the web journey. Each needs eval_queries.json + evals.json per the existing
+  # eval-coverage contract. Advisory: ship after xd-web-journey-skill-count.
+  # Source: adversarial-reviewer finding on PR #eugene/xd-web-journey-skill-count.
+  # File: packs/experience-design/pack.toml + each skill's evals/ directory
+  {slug = "xd-evals-allowlist-rfc066-skills"},
 ]

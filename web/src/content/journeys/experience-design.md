@@ -3,11 +3,17 @@ pack: experience-design
 scope: user
 tagline: "The design/UX seat for product teams."
 prerequisitePacks: []
-whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` and `user-flow` derive the screen list from a named outcome. `creative-direction` and `design-system` establish the visual constraints before any screen is designed. `interaction-design` and `design-review` craft and critique each screen to a shared quality floor. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion."
+whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` maps the journey; `content-design` and `tone-of-voice` name what the surface says and how it sounds. `design-principles` records the decision rules that hold screens to a shared standard. `user-flow` derives the screen list. `creative-direction` and `design-system` set the visual constraints. Genre-specific Direct skills (`analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`) produce surface-appropriate IA before `interaction-design` and `design-review` craft and critique each screen. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion."
 skills:
   - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
     humanTouches: 1
+  - name: content-design
+    description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
+    humanTouches: 0
+  - name: tone-of-voice
+    description: "Turns a vague copy vibe into named, ranked copy goals grounded in stable referents, and records copy arbitration rules the rest of the build references."
+    humanTouches: 0
   - name: user-flow
     description: "Derives the screen inventory and flow from the customer journey — what screens exist, what state each handles, what the transitions are."
     humanTouches: 1
@@ -17,6 +23,9 @@ skills:
   - name: process-mapping
     description: "Documents the internal processes that run behind user-facing screens — the APQC/BPMN model of what people do."
     humanTouches: 0
+  - name: design-principles
+    description: "Converts journey-map insights into 3–5 named design principles — decision rules that resolve disputes and persist across sprints, each grounded in a journey moment."
+    humanTouches: 0
   - name: creative-direction
     description: "Establishes the visual direction for a surface — named emotional and brand goals grounded in stable referents — as the aesthetic reference all subsequent screens must satisfy."
     humanTouches: 1
@@ -25,6 +34,24 @@ skills:
     humanTouches: 0
   - name: information-architecture
     description: "Designs the layout zones and information hierarchy for a screen, given its per-screen brief."
+    humanTouches: 0
+  - name: analytical-design
+    description: "Produces a structural specification for an analytical surface — dashboard IA, widget hierarchy, and role-based view architecture — from business questions and domain model."
+    humanTouches: 0
+  - name: conversion-design
+    description: "Produces a structural specification for a marketing surface — above-fold contract, scroll story, and social-proof architecture — from content brief and design principles."
+    humanTouches: 0
+  - name: documentation-design
+    description: "Produces a structural specification for a documentation surface — content hierarchy, navigation strategy, and TTFV architecture — from Diátaxis content typing and reading goal."
+    humanTouches: 0
+  - name: informational-design
+    description: "Produces a structural specification for an informational surface — typographic hierarchy, reading-pattern calibration, and editorial grid — from editorial structure and reading goal."
+    humanTouches: 0
+  - name: marketplace-design
+    description: "Produces a structural specification for a marketplace surface — listing card IA, filter and facet architecture, and transaction bridge — from buyer journey and listing object model."
+    humanTouches: 0
+  - name: workspace-design
+    description: "Produces a structural specification for a workspace surface — context-persistence architecture, attention zone layout, and interrupt design — from session arc and collaboration model."
     humanTouches: 0
   - name: interaction-design
     description: "Designs the interactive behaviors for a screen — states, transitions, feedback patterns — against WCAG 2.2 AA."
@@ -87,6 +114,8 @@ relatedJourneys:
 
 You describe the feature, user, and outcome. The agent runs `journey-mapping` to produce the customer journey map — the current state (what happens today), the desired state (what should happen after this feature), and the key moments where the current journey breaks down.
 
+With the journey in hand, the agent can run `content-design` to produce a content brief — what the surface should say, for whom, and to what objective — and `tone-of-voice` to name the copy direction. These run before the screen flow is derived, so the surface's content intent and register are set as constraints before screens are sequenced. The content brief and copy direction don't require a separate gate; review them informally when you read the journey map.
+
 **You:** Read the journey map and approve it at the G-journey gate. This is the most important gate in the experience thread — the screen list flows directly from it. If the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived. A one-sentence correction here saves a full design cycle.
 
 ---
@@ -101,7 +130,7 @@ With the journey approved, the agent runs `user-flow` to derive the screen inven
 
 ## Stage 3 — Establish design intent
 
-Before designing any screen, the agent runs `creative-direction` to establish the visual character of the surface — named emotional and brand goals grounded in stable referents — as a named aesthetic reference. It then runs `design-system` to derive the design token set.
+Before designing any screen, the agent runs `design-principles` to convert journey-map insights into 3–5 named decision rules — the principles that resolve design disputes and hold screens to a shared standard across the sprint. The principles don't require a separate gate; review them alongside the aesthetic direction below. The agent then runs `creative-direction` to establish the visual character of the surface — named emotional and brand goals grounded in stable referents — as a named aesthetic reference. `design-system` derives the design token set from that direction.
 
 **You:** Approve the aesthetic direction at the G-aesthetic gate. An aesthetic direction that says "clean and professional" is not an aesthetic direction — it needs to name a specific visual character with enough specificity to say whether a given design decision is consistent or not. If the tokens introduce hardcoded values outside the semantic token system, reject them.
 
@@ -109,7 +138,7 @@ Before designing any screen, the agent runs `creative-direction` to establish th
 
 ## Stage 4 — Design each screen
 
-The agent runs `information-architecture` and `interaction-design` on each screen in the flow, working from each screen's per-screen brief. It then runs `design-review` on each screen before the independent review — a self-check against the quality floor.
+The agent runs a structural IA skill on each screen before `interaction-design`. For general screens it uses `information-architecture`. When a screen has a specific surface genre, a genre-specific Direct skill produces a more targeted specification: `analytical-design` for dashboards and reporting views; `conversion-design` for marketing and acquisition surfaces; `documentation-design` for docs sites and help centres; `informational-design` for article and editorial pages; `marketplace-design` for catalogue and listing surfaces; `workspace-design` for productivity and agentic tool UIs. Once the IA is set, `interaction-design` designs the states, transitions, and feedback patterns, and `design-review` applies the quality floor as a self-check before the independent review.
 
 **You:** Watch each screen take shape. If a screen is missing a state — no empty state for a list that could be empty, no loading state for an async action — name it. The agent will miss states not explicitly mentioned in the brief; that's what the experience-reviewer catches, but catching it here is cheaper.
 
