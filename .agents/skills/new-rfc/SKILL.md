@@ -344,6 +344,7 @@ additive; the following list runs unchanged:
 - One or more ADRs to record the architectural decisions.
 - One or more specs in `docs/specs/` for features.
 - Edits to `docs/CONVENTIONS.md` if the RFC changes conventions.
+- **Phase-slice sequencing (multi-phase RFCs only):** when the RFC covers multiple journey phases, confirm that each phase's roadmap includes its guide(s). Guides ship with the phase that introduces their capability — not in a terminal documentation wave. A phase entry in `workspace.toml` or the RFC's roadmap that ships tooling without a `docs/guides/` artifact is an incomplete slice; name the missing guide in the follow-on spec or as a `workspace.toml` queue entry.
 
 The RFC itself is then "done" and stays as historical record.
 
