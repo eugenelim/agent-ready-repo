@@ -30,6 +30,17 @@
       "items": {"type": "string"}
     },
     "displayName": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["source", "repo", "branch", "directory"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {"type": "string", "enum": ["github"]},
+        "repo": {"type": "string"},
+        "branch": {"type": "string"},
+        "directory": {"type": "string"}
+      }
+    },
     "hooks": {
       "type": "object",
       "additionalProperties": false,
