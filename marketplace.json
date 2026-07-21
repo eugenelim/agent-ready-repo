@@ -119,7 +119,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "core",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.13.0"
+      "version": "0.13.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
