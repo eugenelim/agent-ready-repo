@@ -554,6 +554,8 @@ not done until those are updated.
 in a way that makes the description wrong. Keep them short — the goal is
 to *orient* a reader, not to duplicate the code or the spec.
 
+**Phase-slice doctrine applies here.** When a feature phase ships, its guides ship with it — not in a terminal documentation wave. A phase whose tooling is shipped but whose guides are absent is not a complete slice. See [§ Phase-slice planning](#phase-slice-planning) in *How we do non-trivial work*.
+
 ---
 
 ## Pack source-of-truth split
@@ -744,6 +746,14 @@ Both converge on the same downstream loop: `brief → reference.md → spec →
 low-level design → work-loop`. Neither is mandatory ceremony — the greenfield
 trigger gate sends a throwaway straight to scaffolding, and a small change in an
 existing repo just opens a PR.
+
+### Phase-slice planning
+
+Each journey phase ships its capability and its guide together. A phase whose tooling ships without its guide is not a complete slice — the guide is part of what makes the capability independently usable. Deferring all guides to a terminal documentation wave is an anti-pattern: it accumulates authoring debt, makes earlier phases incompletely documented, and often results in guides that are never written.
+
+**What counts as a guide for a phase:** a Diátaxis artifact in `docs/guides/` (see *§ 5c. docs/guides/*) that covers the capability the phase introduces. The guide need not be comprehensive — it should orient the user to the capability and link to the reference for the rest.
+
+**Enforcement:** the `receive-brief` skill extends the shippability test to include guides; the `new-rfc` skill requires that when an RFC covers multiple phases, each phase's guides ship with that phase — not in a terminal wave.
 
 ### Work-loop state
 
