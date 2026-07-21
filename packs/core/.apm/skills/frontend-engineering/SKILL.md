@@ -14,7 +14,7 @@ surface already covered by a grounded aesthetic reference.
 
 ## PLAN phase — Design Pre-flight
 
-Complete all three steps before writing any code. These are not suggestions;
+Complete all four steps before writing any code. These are not suggestions;
 they are the contract for greenfield frontend work.
 
 ### 1. Named aesthetic reference
@@ -36,6 +36,32 @@ training data, so "nice", "clean", "modern" all converge there).
 Name the reference in the spec: `Aesthetic reference: Linear (professional SaaS —
 dark surface, high contrast, no gradients)`. If the target must match an existing
 user-provided theme (e.g. a PPT brand), describe its key token values instead.
+
+### 1b. Genre routing (T2 — requires experience-design pack)
+
+After naming the aesthetic reference, route to the XD discipline skill that
+matches your surface's primary purpose. These skills add surface-specific IA,
+structure, and conversion principles on top of the generic design pre-flight.
+
+**Check availability:** the experience-design pack is installed if skill
+`conversion-design` appears in your available skills. If absent, record a named
+skip in the spec — `XD genre routing: skipped (experience-design pack absent)` —
+and proceed to step 2. A named skip is not a failure; it is honest accounting.
+
+**Load the skill that matches your surface (name it by name in the spec):**
+
+| Surface type | Load |
+|---|---|
+| Marketing page, landing page, pricing page, acquisition flow | `conversion-design` |
+| Documentation site, help centre, API reference, technical guide | `documentation-design` |
+| Dashboard, reporting view, analytics screen, monitoring surface | `analytical-design` |
+| Article page, editorial page, blog, long-form content page | `informational-design` |
+| Form flow, component state machines, transitions, interactions | `interaction-design` |
+| Content strategy — what the surface says and for whom | `content-design` |
+
+Load the matched skill inline before writing code. Record the result in the spec
+as either `XD genre routing: <skill-name> loaded` or `XD genre routing: skipped
+(experience-design pack absent)`.
 
 ### 2. Seed token block
 
