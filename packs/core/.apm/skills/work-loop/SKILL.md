@@ -181,6 +181,15 @@ Before PLAN begins, orient to the current initiative and work queue:
 > When multiple `["ini-NNN"]` sections exist, read all sections whose
 > `status = "active"` and surface each one.
 
+**Shaping-item guard.** Derive slug (strip `docs/specs/` prefix + trailing `/`);
+check all active initiatives' `[shaping_queue].active`, `.backlog`, and
+`[backlog].open` typed entries for a slug match. On match, stop before PLAN.
+Non-signal: "This is a `[shape]` item (`type = <subtype>`); use `<skill>` —
+`work-loop` is for build items only." (shape→`frame-intent`;
+research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`;
+design→`experience-status`.) Signal: "Monitoring signal — `work-loop` is for
+build items only."
+
 After orienting (or immediately, if `workspace.toml` is absent), proceed
 to step 1 (PLAN). The active spec path tells you which spec you are
 expected to be working on — strip the `spec/` prefix from the stored path
@@ -305,63 +314,20 @@ For anything beyond trivial, *think before you write code*. Concretely:
   A stub that won't compile is the mechanical signal an AC is too vague,
   caught here instead of mid-EXECUTE. Goal-based and manual-QA tasks record
   `no stub (mode)`; light mode skips this entirely.
-- **Pre-EXECUTE adversarial review.** Select a subagent matching
-  `adversarial-reviewer` and ask it to review the spec + plan in
-  spec/plan-review mode. Iterate to clean before EXECUTE begins when **either**
-  trigger fires (fallback if no such subagent is installed: proceed but note the
-  missing review in the final summary):
+- **Pre-EXECUTE gates — select by work shape; multiple can fire:**
 
-  1. **Spec amendment** — PLAN produced or modified a spec (`new-spec`, or you
-     sharpened an existing `spec.md` / `plan.md`).
-  2. **Structural change** — any plan task introduces structural surface area;
-     the trigger fires if **any** matches: a **new module boundary** (a new
-     directory under `packages/` or `apps/`), a **new dependency** added to
-     package code, a **new abstraction layer** (a new interface / factory /
-     registry / locator mediating two concrete things), or a **new top-level
-     directory**. The trigger is the **plan's task shape**, not a spec edit — it
-     fires even when no spec is amended, and **re-fires on a mid-EXECUTE re-plan**
-     that introduces a condition the original plan lacked.
+  | Work shape | Gate | Reviewer |
+  |-----------|------|---------|
+  | Spec amended or structural change¹ | Spec/plan adversarial review | `adversarial-reviewer` |
+  | Security boundary² | Secure-design review | `security-reviewer` |
+  | User-facing surface³ | Design-intent pass | `creative-direction` / `design-review` |
+  | HTML/CSS/JS primary output | Frontend pre-flight (mandatory) | load `frontend-engineering` inline |
 
-  How the reviewer measures a structural change (the spec's **Boundaries**
-  section and its fallback chain), the re-plan re-fire mechanics, the
-  `loop-cohort approve-plan` / `check --phase plan` gate, and the **Profile-A
-  opt-out** are progressive-disclosure depth in
-  [`references/pre-execute-review.md`](references/pre-execute-review.md).
-- **Pre-EXECUTE secure-design review (security-boundary trigger).** Security
-  review **shifts left** — when the **security-boundary risk trigger** is present
-  (auth, secrets, user input, deserialization, or file/network I/O), also select
-  a subagent matching `security-reviewer` and dispatch it in **spec-stage
-  secure-design mode** against the spec, asking whether each control is specified
-  as an acceptance criterion at the right depth (confinement, not just traversal;
-  scheme allowlist, not "validate the URL"; broker-mediated secrets, not ad-hoc
-  reads). Inline **only** the boundary-matching modules (net-new wiring) per the
-  [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
-  **On infra-flavored work this pass is mandatory, not discretionary** — it keys
-  on the same classifier that drives security-module loading (the
-  destructive/irreversible trigger + the Module index's IaC / deploy-config
-  entry). The full firing conditions, the infra force-load set, and the
-  diff-stage / scanner-pairing interaction are progressive-disclosure depth in
-  [`references/pre-execute-review.md`](references/pre-execute-review.md) and the
-  REVIEW `security-reviewer` bullet. Same Profile-A opt-out and `approve-plan`
-  gate; fallback if no `security-reviewer` is installed: proceed and note it.
-- **Pre-EXECUTE design-intent pass (user-facing surface trigger).** When the
-  change produces a user-facing surface — a new page, a redesigned screen, a
-  component, a pack card, a docs page — establish design intent **before writing
-  code**. Run `creative-direction` (if no grounded aesthetic reference exists
-  yet) and/or `design-review` (if there is an existing surface to evaluate)
-  and record the design intent in the spec. This is the design analogue of
-  "write the test first": design intent before implementation prevents the
-  common failure mode of technically correct surfaces with no design sense. Applies
-  in both light and full mode as a recommendation; the mandatory fresh-context
-  gate (`experience-reviewer`) runs in REVIEW for full-mode work.
-  **Frontend surface exception — mandatory, not recommended.** When the task's
-  primary output is HTML, CSS, or JS (a new page, component, slide deck,
-  dashboard, or standalone web artifact), this pass is mandatory in both modes:
-  load the `frontend-engineering` skill inline before writing code. It carries
-  the design pre-flight requirements (named aesthetic reference, seed token
-  block, state matrix), the craft rules, and the GATES verification commands
-  for that surface. The judgment call — whether the output is "primary"
-  HTML/CSS/JS or incidental — is the implementer's; when in doubt, load it.
+  ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory. Re-fires on mid-EXECUTE re-plan.
+  ² Security: auth, secrets, user input, deserialization, file/network I/O. Infra-flavored work: mandatory. Dispatch in **spec-stage secure-design mode**; inline boundary-matching modules (net-new wiring only) per the [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
+  ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`.
+
+  Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed, note in summary. Full depth (firing conditions, infra force-load, re-plan re-fire, `approve-plan` gate, Profile-A opt-out): [`references/pre-execute-review.md`](references/pre-execute-review.md).
 - **Initialize the loop's state file.** Run this skill's bundled
   `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
   the bundled `assets/state.json` template into place, sets `feature`

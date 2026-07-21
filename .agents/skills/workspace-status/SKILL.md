@@ -98,7 +98,7 @@ entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`
 **Reconciliation** — N inconsistenc(y/ies) detected:
 
   Untracked live specs (Approved or Implementing, not in any initiative list):
-  - `spec/<slug>` (Status: Approved) — add to [work].queue or run queue-add
+  - `spec/<slug>` (Status: Approved) — add to [work].queue or run capture-work
 
   Stale queue/active entries (spec shows Shipped or Archived):
   - `spec/<slug>` in [ini-002 work].queue — Status: Shipped
@@ -146,12 +146,12 @@ Format output in four sections (omit sections with no entries):
 - `<slug>` (`signal`) — no action needed; informs shaping decisions
 
 **Ready to start:**
-- `[work]` `<path>` — run `work-loop` on `docs/specs/<path>/`
-- `[shaping_queue]` `<slug>` (`shape`) — run `frame-intent`
-- `[shaping_queue]` `<slug>` (`research`) — run `desk-research-project-start`
-- `[shaping_queue]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
-- `[shaping_queue]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
-- `[brief_queue]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
+- `[build]` `<path>` — run `work-loop` on `docs/specs/<path>/`
+- `[shape]` `<slug>` (`shape`) — run `frame-intent`
+- `[shape]` `<slug>` (`research`) — run `desk-research-project-start`
+- `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
+- `[shape]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
+- `[brief]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
 
 **Parallel candidates:** _(all of the above with no inter-dependencies can start concurrently)_
 
@@ -174,12 +174,12 @@ Format output in four sections (omit sections with no entries):
 
 ```
 **Backlog** — N open item(s):
-- `<slug>` — <first # comment line above the entry>
-- `<slug>` — <first # comment line above the entry>
+- `[shape]` `<slug>` — <first # comment line above the entry>
+- `[build]` `<slug>` — <first # comment line above the entry>
   ...
 ```
 
-To extract the first comment line: read `workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
+Each entry is prefixed with its room: `[shape]` when the entry carries a `type` field (shaping work); `[build]` when it does not (build work). To extract the first comment line: read `workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
 
 ---
 
@@ -246,7 +246,7 @@ Emit the following choices in order. Omit any whose source is empty; renumber se
 - **Active spec:** `work-loop docs/specs/<slug>/` — continue active spec. Present when `active_spec` is non-empty.
 - **Next queue item:** `work-loop docs/specs/<slug>/` — next unblocked queue item. Present when `next_queue` is non-empty.
 - **First shaping item:** skill command per Step 4 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
-- **Start new work (always — final choice):** `new-spec` · `new-rfc` · `new-adr` · `queue-add`
+- **Start new work (always — final choice):** `new-spec` · `new-rfc` · `new-adr` · `capture-work`
 
 ## See also
 
