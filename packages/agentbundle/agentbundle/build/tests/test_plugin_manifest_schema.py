@@ -167,13 +167,19 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
     """
 
     _SUBSET = {
-        "author": "Eugene Lim <eugenelim@users.noreply.github.com>",
+        "author": {"name": "Eugene Lim", "email": "eugenelim@users.noreply.github.com"},
         "license": "Apache-2.0",
         "homepage": "https://example.com",
         "repository": "https://github.com/example/repo",
         "keywords": ["osint", "synthesis"],
         "category": "research",
         "displayName": "Research",
+        "source": {
+            "source": "github",
+            "repo": "example/repo",
+            "branch": "claude-plugins-dist",
+            "directory": "research",
+        },
     }
 
     def test_source_schema_admits_projectable_subset(self) -> None:

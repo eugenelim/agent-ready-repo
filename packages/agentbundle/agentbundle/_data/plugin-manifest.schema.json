@@ -14,7 +14,14 @@
       "type": "array",
       "items": {"type": "string"}
     },
-    "author": {"type": "string"},
+    "author": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "email": {"type": "string"}
+      }
+    },
     "license": {"type": "string"},
     "homepage": {"type": "string"},
     "repository": {"type": "string"},
@@ -23,6 +30,16 @@
       "items": {"type": "string"}
     },
     "category": {"type": "string"},
-    "displayName": {"type": "string"}
+    "displayName": {"type": "string"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {"type": "string"},
+        "repo": {"type": "string"},
+        "branch": {"type": "string"},
+        "directory": {"type": "string"}
+      }
+    }
   }
 }
