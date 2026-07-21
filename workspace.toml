@@ -253,13 +253,25 @@ open = [
   # CI security. spec/pack-activation-evals introduces the repo's first long-lived
   # API-key workflow secret (ANTHROPIC_API_KEY for pack-evals.yml). No secret scanner
   # is wired today (only CodeQL + Bandit/Semgrep). Adjacent gaps: actionlint + zizmor
-  # for GitHub Actions script-injection class; pinned/locked install deps for the eval
-  # job (the agentbundle install runs in the same job that exposes the secret).
-  # Fix: wire gitleaks or trufflehog-class scanner into CI as its own PR (repo-wide
-  #   gate); add actionlint + zizmor; pin install deps.
-  # File: .github/workflows/ (new CI workflow or step).
-  # Unblocks when: someone takes CI security hardening as its own PR.
-  {slug = "secret-scanner-for-api-key-workflows"},
+  # Security. pack-evals.yml runs `npm install -g @anthropic-ai/claude-code@2.1.185`
+  # in the same job that exposes ANTHROPIC_API_KEY. The install is version-pinned but
+  # has no npm lockfile or per-package integrity hash — a compromised npm CDN or a
+  # re-tagged release could deliver malicious JS that exfiltrates the API key.
+  # Fix: research whether `npm install -g` supports `--integrity` or a lockfile
+  #   approach; if not, vendor the tarball or use an alternative install path.
+  # File: .github/workflows/pack-evals.yml
+  # Unblocks when: a concrete path to npm global-install integrity verification is found.
+  {slug = "pack-evals-npm-lockfile-integrity", source = "spec/secret-scanner-for-api-key-workflows AC Assumption 5"},
+
+  # Security. All .github/workflows/*.yml use @vN tag pinning (e.g. actions/checkout@v4).
+  # Tag pinning is a TOFU posture — a re-tagged release is not detected.
+  # SHA pinning (actions/checkout@<sha>) is immune to tag mutation attacks.
+  # zizmor's unpinned-uses audit (HIGH) is suppressed for existing workflows via
+  # .github/zizmor.yml; SHA pinning retires that suppression.
+  # Fix: pin each action to a commit SHA in each .github/workflows/*.yml;
+  #   update zizmor.yml to remove per-file ignore once all actions are SHA-pinned.
+  # Unblocks when: someone takes a SHA-pin sweep PR for all existing workflows.
+  {slug = "github-actions-sha-pin", source = "spec/secret-scanner-for-api-key-workflows zizmor.yml Concern"},
 
   # spec/shared-prefix-aware-multi-adapter-install follow-on (reviewer Concern).
   # install routes state RMW through statelock.persist_state_locked (concurrency AC).
