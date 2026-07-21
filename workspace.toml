@@ -78,6 +78,7 @@ shipped = [
   "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
   "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
   "spec/author-brief-docs",                   # RFC-0064 P3: how-to + DoR gate fields reference
+  "spec/m2-diverge-solutions",                # diverge-solutions PE skill (step 3 of six-step shaping sequence)
 ]
 queue   = [
   # ==================================================================
@@ -108,7 +109,7 @@ queue   = [
   # opp-assessment-pe-pack + capability-map-ini-002 (their `needs` already point here).
   "spec/m2-frame-situation",              # signal → typed finding → six-step route; Wardley maturity
   "spec/m2-identify-opportunities",       # JTBD (functional/emotional/social) + opportunity-assessment seed
-  "spec/m2-diverge-solutions",            # step-3 ≥3 structured options; boundary w/ explore-options per sub-RFC
+  # "spec/m2-diverge-solutions" — shipped; moved to ["ini-002".work].shipped
   "spec/m2-place-bet",                    # bet-commitment gate + betting-table surface
   "spec/m2-map-capabilities",             # product vision → all capability areas in one pass
   "spec/m2-frame-intent-jtbd",            # JTBD into shipped frame-intent; back-compat assessed in-spec
