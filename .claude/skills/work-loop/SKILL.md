@@ -578,7 +578,7 @@ go to FIX. Don't move past a failing gate by editing the gate.
 > `loop-cohort.py`) that checks spec *metadata* invariants against the contract
 > pinned in `CONVENTIONS.md` § 4: (i) status vocabulary, (ii) ACs
 > checked-or-deferred at the ship transition, (iii) dangling doc/code references
-> (warn-only), (iv) deferral anchors resolve in `docs/backlog.md`. Where you have
+> (warn-only), (iv) deferral anchors resolve in `workspace.toml [backlog].open`. Where you have
 > Python, **run it at the finish-time checklist** (DECIDE, below) —
 > `python <skill>/scripts/lint-spec-status.py` — as the mechanical companion to
 > the four drift invariants the `adversarial-reviewer` checks by judgment; it
@@ -765,19 +765,29 @@ mode below, then evaluate the terminal-state bullet last.
   Otherwise `defer` — one line in `Deferred:`. Every Nit resolves
   into one of the two; the `Deferred:` line *is* the acknowledgement
   that the loop saw the Nit and chose not to fix.
-- **Deferred items** → record each in the durable register,
-  `docs/backlog.md`, under a heading, so they don't rot. The spec criterion
-  that defers carries an inline `(deferred: <anchor>)` marker pointing at that
-  heading (`CONVENTIONS.md` § 4 Spec metadata contract). The PR description
-  keeps only a one-line **pointer** to the register entry — append it as a
-  standalone `Deferred:` section below the standard template content alongside
-  the `Bundled fixes:` section from EXECUTE; do not modify the template itself.
-  The register, not the PR comment, is the durable record: it's
-  version-controlled and greppable, and the `(deferred:) ↔ backlog.md`
-  resolution is mechanically checked (catalogue lint) or reviewer-checked
-  (adopters). Mirroring an item to an issue tracker is an option where one
-  exists, never assumed.
-  **After recording in `backlog.md`**, prompt: *"Does this item look like an RFC candidate (a cross-cutting proposal or design question) or a roadmap intent (a future feature)? If so, also add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Both registers are optional — skip the prompt if neither file exists. The backlog anchor is the primary durable record; the findings register is an extra surface for governance visibility.
+- **Deferred items** → before recording, ask: *"Is this deferral justified?
+  Could this be delivered in this PR without crossing the plan's scope or
+  introducing unreviewed risk?"* Only defer if the answer is genuinely no.
+  Then record each deferred item in `workspace.toml [backlog].open` as an
+  inline object `{slug = "...", source = "spec/<name> ACn"}` with a cold-
+  start-sufficient TOML comment (problem, fix, file/skill, unblock condition).
+  The spec criterion that defers carries an inline `(deferred: <slug>)` marker
+  matching the slug (`CONVENTIONS.md` § 4 Spec metadata contract). The PR
+  description keeps only a one-line **pointer** to the entry — append it as a
+  standalone `Deferred:` section alongside `Bundled fixes:`; do not modify the
+  template itself. The register, not the PR comment, is the durable record:
+  version-controlled, greppable, and the `(deferred:) ↔ [backlog].open`
+  resolution is mechanically checked (`lint-spec-status.py` invariant iv) or
+  reviewer-checked (adopters). Mirroring an item to an issue tracker is an
+  option where one exists, never assumed.
+  **After recording in `[backlog].open`**, prompt: *"Does this item look like
+  an RFC candidate (a cross-cutting proposal or design question) or a roadmap
+  intent (a future feature)? If so, also add a row to
+  `docs/product/findings/rfc-candidates.md` or
+  `docs/product/findings/roadmap-intents.md`."* Both registers are optional —
+  skip the prompt if neither file exists. The backlog entry is the primary
+  durable record; the findings register is an extra surface for governance
+  visibility.
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true. (**In light
   mode**, two lines relax per the [Modes](#modes-light-and-full) section: the
@@ -816,8 +826,8 @@ mode below, then evaluate the terminal-state bullet last.
   - **Doc-drift invariants hold** (the four the `adversarial-reviewer`'s
     "Spec drift" check names, against `CONVENTIONS.md` § 4): the touched spec's
     status reflects the change; every Acceptance Criterion is `[x]` or carries
-    `(deferred: <anchor>)`; each deferral resolves to a `docs/backlog.md`
-    heading; intra-repo references the change touches resolve. Where you have
+    `(deferred: <slug>)`; each deferral resolves in `workspace.toml
+    [backlog].open`; intra-repo references the change touches resolve. Where you have
     Python, run `scripts/lint-spec-status.py` (this skill's sibling to
     `loop-cohort.py`) to check these mechanically — it's the agent-invoked
     companion to the judgment check; no-ops without Python.
@@ -912,7 +922,7 @@ Three levers shed that noise (ordered by savings), each with a no-subagent floor
   read targeted line ranges, not whole files; never re-read a resident file.
 - **Compact at task boundaries** in a multi-loop spec, with a "preserve plan,
   open findings, decisions" hint — safe because `spec.md`, `plan.md`,
-  `state.json`, and `docs/backlog.md` are the externalized memory. `/compact` in
+  `state.json`, and `workspace.toml [backlog]` are the externalized memory. `/compact` in
   Claude Code; elsewhere your agent's own facility or the fresh-session mode in
   [Unattended loops](#unattended-afk-loops). *Floor:* re-read plan + open findings
   from disk and let the old transcript age out.
@@ -933,32 +943,21 @@ keep the rationale, edge cases, and findings the reader needs.
 
 ## Unattended (AFK) loops
 
-The work-loop above is an *in-session* loop: one conversation, state in
-working memory plus the repo. Some agents also offer an **unattended
-mode** for long-running work — overnight, weekend, AFK: a fresh instance
-per iteration, with state living entirely in files (a stable task prompt,
-progress notes, git history, AGENTS.md updates) and no human in the seat.
-Use your agent's own facility for this; don't hand-roll a loop around the
-CLI.
+The work-loop above is an *in-session* loop: one conversation, state in working
+memory plus the repo. Some agents offer an **unattended mode** — a fresh instance
+per iteration with state living in files (task prompt, progress notes, git history,
+AGENTS.md updates), no human in the seat. Use your agent's facility for this;
+don't hand-roll a loop around the CLI.
 
-Reach for it only when **all** of these hold:
+Reach for it only when **all** of these hold: the completion criterion is *fully
+mechanical* (tests pass, checklist ticked, benchmark hit); the task slices into
+single-context-window items; verification is reliable (flaky tests → slot machine);
+and you've already run the in-session loop at least once on something similar.
 
-- The completion criterion is *fully mechanical* — tests pass, a spec
-  checklist is fully ticked, a benchmark hits a threshold.
-- The task slices into items each small enough for a single context
-  window.
-- Verification is reliable — flaky tests turn an unattended loop into a
-  slot machine.
-- You've already run the in-session loop above on a similar task at
-  least once. An unattended loop amplifies whatever your conventions
-  are; if those aren't tight, it just produces more bad code faster.
-
-It's the wrong tool when "done" is fuzzy or aesthetic, when the task
-needs human judgment mid-flight (architectural choices, ambiguous
-requirements), or when it touches a sensitive surface (auth, secrets,
-data deletion). Set hard caps (iteration, spend) before you start and
-review every commit after — unattended doesn't mean *unconsidered*, it
-means *pre-considered*.
+It's the wrong tool when "done" is fuzzy, when the task needs human judgment
+mid-flight, or when it touches a sensitive surface (auth, secrets, data deletion).
+Set hard caps (iteration, spend) before you start and review every commit after —
+unattended doesn't mean *unconsidered*, it means *pre-considered*.
 
 ## Anti-patterns to refuse
 
@@ -980,18 +979,14 @@ means *pre-considered*.
   picks its verification mode (TDD / goal-based / manual QA) during PLAN;
   for TDD-mode tasks, the test exists before the production code does.
 - **Editing the test until it passes.** This makes the gate green by lying.
-  If a test is wrong, fix the test in a separate commit with a justification.
-- **Deferring a test because the code fails it.** The inverse of editing
-  the test — same lie, opposite direction. If a red test fails because the
-  code under test is wrong, fix the code; plausible-sounding rationales
-  ("flaky", "out of scope for this PR", "covered elsewhere") are how
-  regressions ship. (Beyoncé Rule: if you liked it, you should have put
-  a test on it.) If the test is genuinely wrong, fix it in a separate
-  commit with the reason; if the test is right and the code can't pass it
-  this session, the task isn't done — surface it, don't bury it.
-- **Declaring victory because gates pass.** Gates are necessary, not
-  sufficient. Review catches what gates can't (missing edge cases, scope
-  creep, spec drift).
+  If a test is wrong, fix it in a separate commit with a justification.
+- **Deferring a test because the code fails it.** Same lie, opposite direction.
+  Fix the code; plausible rationales ("flaky", "out of scope", "covered elsewhere")
+  are how regressions ship. If the test is genuinely wrong, fix it in a separate
+  commit with the reason; if the test is right and the code can't pass it this
+  session, the task isn't done — surface it, don't bury it.
+- **Declaring victory because gates pass.** Gates are necessary, not sufficient.
+  Review catches what gates can't (missing edge cases, scope creep, spec drift).
 - **Declaring spec-complete from per-task gates.** When a spec is
   decomposed into N loops, per-task gates verify N contracts — not the
   integrated journey. Before the final loop's DECIDE, run
@@ -1000,5 +995,5 @@ means *pre-considered*.
 - **Running an unattended loop on a fresh task instead of the in-session
   loop.** Unattended loops compound bad foundations. Do at least one
   in-session pass first to validate the approach.
-- **Looping without capturing learnings.** Every loop that ends without
-  updating *some* doc, skill, or note is a loop whose lessons are lost.
+- **Looping without capturing learnings.** Every loop that ends without updating
+  *some* doc, skill, or note is a loop whose lessons are lost.

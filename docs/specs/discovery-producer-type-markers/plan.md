@@ -173,8 +173,7 @@ appear and no false `ORPHAN` is attributable to a missing marker.
   and the `version` in `.claude-plugin/plugin.json`; run `make build-self` to
   regenerate `marketplace.json` (no other drift).
 - Add a `docs/product/changelog.md` `[Unreleased]` entry.
-- Close `docs/backlog.md#discovery-loop-type-marker-producers` (mark resolved,
-  retain the anchor — the discovery-loop spec's AC36 links it). Add a new backlog
+- Close the `discovery-loop-type-marker-producers` backlog entry (resolved by this spec). Add a new backlog
   follow-up for the screen-glob↔nested-path gap (the surfaced out-of-scope item).
 
 **Done when:** versions bumped, marketplace.json regenerated, changelog + backlog updated.

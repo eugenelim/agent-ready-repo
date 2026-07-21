@@ -297,11 +297,11 @@ mechanical rule.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Deferral token.** A criterion that ships *unmet on purpose* is not left
-  unchecked and silent — it carries an inline `(deferred: <anchor>)` marker whose
-  `<anchor>` resolves to a heading in `docs/backlog.md`, the durable register of
-  open work. Form: `- [ ] <outcome> (deferred: <backlog-anchor>)`. A deferral
-  recorded only in a PR comment rots; the register is version-controlled and
-  greppable.
+  unchecked and silent — it carries an inline `(deferred: <slug>)` marker whose
+  `<slug>` resolves to a `slug` field in `workspace.toml [backlog].open`, the
+  durable register of open work. Form: `- [ ] <outcome> (deferred: <slug>)`. A
+  deferral recorded only in a PR comment rots; the register is version-controlled
+  and greppable. Run `workspace-status` to see all open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief (`product/briefs/<slug>.md`). It
   records *product provenance* and is distinct from `Constrained by:` (which

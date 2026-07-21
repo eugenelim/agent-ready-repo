@@ -20,7 +20,7 @@
 > the `shared-libs/` projection + drift gate once no consumer imports the
 > vendored shim. **Phase 2 was out of this spec's scope** (it shipped
 > out-of-band on 2026-06-10 — `credbroker 0.1.0` on PyPI; see Acceptance
-> Criteria and [`docs/backlog.md`](../../backlog.md#credbroker)). All Phase-1 tasks live in
+> Criteria and [`docs/backlog.md` § `credbroker-phase-2`](../../backlog.md#credbroker-phase-2)). All Phase-1 tasks live in
 > one spec so the migration cannot drift between the package and its consumers —
 > the same single-spec discipline the `credential-broker-contract` spec used for
 > the reverse migration.
