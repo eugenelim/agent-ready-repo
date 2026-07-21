@@ -1621,13 +1621,3 @@ Experience mapping (the organizational-level discipline of mapping current-state
 2. Open a follow-on RFC extending RFC-0050 (experience-design) and RFC-0066 (if it exists) — keeps the altitude-0 and altitude-1 work clearly separated.
 
 **Unblocks when:** RFC-0050 follow-on is opened to define the altitude boundary between organizational experience mapping and per-initiative journey mapping.
-
-
-
-### xd-readme-missing-craft-skills
-
-**Source:** Adversarial review of PR #583 — post-RFC-0066 README gap.
-
-`packs/experience-design/README.md` "What's inside" is still missing three shipped skills: `content-design`, `tone-of-voice`, and `design-principles`. These were added by RFC-0066 alongside the genre-specific Direct skills but are absent from the README's skill list. `content-design` appears only in the cross-pack section; the other two appear nowhere.
-
-**Fix:** Add one-line bullets for all three under "The craft" subsection in `packs/experience-design/README.md`, matching the existing bullet style.

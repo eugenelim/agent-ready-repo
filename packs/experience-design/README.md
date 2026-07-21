@@ -40,9 +40,17 @@ names correctness goals has not cleared the gate.
   to `architect` / `contracts` by-name.
 - `process-mapping` — the inside-out sibling: an internal business process
   flow (APQC L3→L4, as-is + to-be, SIPOC, swimlane, pain/waste register).
+- `content-design` — a content brief for a surface: what it should say, for
+  whom, in what form, and to what objective; runs before the screen flow is
+  derived so content intent is set as a constraint before screens are sequenced.
+- `tone-of-voice` — named, ranked copy goals grounded in stable referents;
+  records the copy arbitration rules the rest of the build references.
 
 **The craft** — design each screen, held to one shared floor:
 
+- `design-principles` — 3–5 named decision rules derived from journey-map
+  insights; resolves design disputes and holds screens to a shared standard
+  across sprints, each principle grounded in a journey moment.
 - `creative-direction` — turn a vague "vibe" into named goals **grounded** in
   persona + precedent + standards + platform conventions; coherence arbitration.
 - `design-system` — derive a token/scale taxonomy from intent.
