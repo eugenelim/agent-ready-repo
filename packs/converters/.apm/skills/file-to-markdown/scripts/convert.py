@@ -58,6 +58,11 @@ DOCLING_EXTS = {".xls"} | IMAGE_EXTS
 
 # Images wider or taller than this are pre-scaled before Docling processes them.
 MAX_IMAGE_DIM = 4000
+# Hard pixel ceiling for _prescale_image. PIL raises DecompressionBombError when
+# pixels > 2 × MAX_IMAGE_PIXELS, so setting this to 128 MP makes the hard error
+# fire at 256 MP — enough for a 16 000 × 16 000 scan. Never set to None (which
+# disables the check and opens the door to pixel-flood attacks).
+_MAX_IMAGE_PIXELS = MAX_IMAGE_DIM * MAX_IMAGE_DIM * 8
 
 # Sparse-text threshold: a digital PDF yielding fewer than this many words
 # is treated as image-only / low-quality and escalated, not silently emitted.
@@ -617,7 +622,7 @@ def _extract_eml(path: Path) -> ExtractResult:
 def _prescale_image(input_path: Path, tmp_dir: str) -> Path:
     from PIL import Image
 
-    Image.MAX_IMAGE_PIXELS = None  # disable PIL's bomb check for the resize step
+    Image.MAX_IMAGE_PIXELS = _MAX_IMAGE_PIXELS
     with Image.open(input_path) as img:
         w, h = img.size
         if max(w, h) <= MAX_IMAGE_DIM:
@@ -711,12 +716,12 @@ def _extract_docling(
     is_image = input_path.suffix.lower() in IMAGE_EXTS
     tmp_dir = None
     convert_path = input_path
-    if is_image:
-        tmp_dir = tempfile.mkdtemp()
-        convert_path = _prescale_image(input_path, tmp_dir)
-        if convert_path != input_path:
-            print(f"WARNING: image pre-scaled to fit {MAX_IMAGE_DIM}px before OCR")
     try:
+        if is_image:
+            tmp_dir = tempfile.mkdtemp()
+            convert_path = _prescale_image(input_path, tmp_dir)
+            if convert_path != input_path:
+                print(f"WARNING: image pre-scaled to fit {MAX_IMAGE_DIM}px before OCR")
         # Enrichment adds local models to the pipeline; the default path stays the
         # bare converter so its Tier-2 body is byte-identical to slice 2.
         converter = _build_enriched_converter() if enrich else DocumentConverter()
