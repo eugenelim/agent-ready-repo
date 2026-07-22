@@ -1,6 +1,6 @@
 # `linear` — guides
 
-Linear integration for the agent-ready-repo catalogue. Read Linear Issues
+Linear integration for this catalogue. Read Linear Issues
 and Projects, then turn them into shippable product briefs or keep existing
 briefs in sync as issues evolve.
 
