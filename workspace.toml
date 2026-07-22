@@ -37,6 +37,13 @@ backlog = [
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   # Research items — any user with the desk-research pack can pick these up
+  # adopter-persona: deliverable must cover pack-segmented setup posture across the
+  # proposed Level B set (architect, atlassian, converters, desk-research,
+  # experience-design, figma, governance-extras, product-engineering,
+  # product-strategy, user-guide-diataxis); include terminology comprehension,
+  # prerequisite visibility, artifact discovery, and inputs to P5 persona and
+  # live-demo design. Do not add a second generic user-study item — broaden this
+  # one; formative evaluation folds into the pilots and later P5/rollout ACs.
   {slug = "adopter-persona",            type = "research"},
   # Research (RFC-0064 M3 AC): should rfc-candidates.md graduate into the
   # shaping_queue (as research/strategy entries) rather than remain a separate
@@ -50,6 +57,21 @@ backlog = [
   "ini-002-initiative-brief",
   {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
   {slug = "capability-map-ini-002",  needs = "work:spec/m2-map-capabilities"},
+  # Post-pilot rollout shaping — RFC-0064 Amendment #4 cross-pack overlay.
+  # Deliverable after shaping: one appetite-bounded formal brief whose independently
+  # shippable slices cover the remaining ratified Level B packs (beyond the three
+  # pilots). Each pack slice includes its guide, surface evidence, safety boundary,
+  # recovery, eval, and only necessary skill change. Must audit P2/P3/P4 guides and
+  # existing tutorials before proposing work. Blocked until all three pilot work
+  # items complete (evidence base for shaping).
+  {slug = "nontechnical-pack-first-value-rollout", type = "shape", needs = ["work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  # Portfolio outcome entry-surfaces — design (RFC-0064 Amendment #4). Deliverable
+  # after shaping: a surface/flow brief for homepage, catalogue, pack pages, READMEs,
+  # journeys, and docs routing that consumes the contract and routes by plain-language
+  # outcome. Explicitly excludes site-social-proof-band, site-mobile-responsiveness,
+  # site-design-system-spec, and P5's Astro project index; reference those owners.
+  # Blocked until the contract is ratified and all three pilots complete.
+  {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
 ]
 
 ["ini-002".brief_queue]
@@ -86,6 +108,7 @@ shipped = [
   "spec/m2-place-bet",                         # place-bet PE skill + worked example + how-to guide
   "spec/m2-identify-opportunities",            # identify-opportunities PE skill + template + example + guide
   "spec/m2-map-capabilities",                  # map-capabilities PE skill + template + examples + how-to guide
+  "spec/m2-frame-intent-jtbd",                 # PR #599 — JTBD three-tier elicitation into frame-intent; back-compat assessed in spec
 ]
 queue   = [
   # ==================================================================
@@ -109,7 +132,8 @@ queue   = [
   # opp-assessment-pe-pack + capability-map-ini-002 (their `needs` already point here).
   # "spec/m2-diverge-solutions" — shipped; moved to ["ini-002".work].shipped
   # "spec/m2-place-bet" — shipped; moved to ["ini-002".work].shipped
-  "spec/m2-frame-intent-jtbd",            # JTBD into shipped frame-intent; back-compat assessed in-spec
+  # "spec/m2-map-capabilities" — shipped; moved to ["ini-002".work].shipped
+  # "spec/m2-frame-intent-jtbd" — shipped; moved to ["ini-002".work].shipped
 
   # ---------------- P3 · Brief → Build ----------------
   # Tooling already shipped (receive-brief, work-loop, brief queue). Docs only.
@@ -125,11 +149,73 @@ queue   = [
   "spec/m5-tracker-guides",               # tracker decision tree + vocabulary mapping table
 
   # ---------------- P5 · Adopt (terminal — needs whole journey stable) ----------------
+  # Authoring gate: each P5 spec must consume the adopter-persona research findings
+  # and the three pilot transcripts (portfolio-first-run-pilot-architect/figma/
+  # governance-extras) as evidence base. Do not author P5 specs before those work
+  # items complete — the evidence does not yet exist.
   "spec/m6-astro-project-index",          # Astro site: PM-facing project index from docs/product/projects/
   "spec/m6-role-journey-guides",          # PM / engineer / agent role journeys, from docs/product/journeys/
   "spec/m6-live-demo-guide",              # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
   "spec/m6-enterprise-rollout-playbook",  # champion→CTO→platform→engineers; staged rollout + retro template
 
+  # ---- RFC-0064 Amendment #4: Cross-pack first-value overlay ----
+  # Complements P1–P5 phases; may progress in parallel where dependencies allow;
+  # feeds P5 adoption evidence. Group order = priority; `needs` encodes only the
+  # hard "cannot start until" edges stated in Amendment #4.
+
+  # Problem: pack audience, surface, install, verification, recovery, first-task,
+  # artifact, tutorial, and next-action facts are distributed across pack metadata,
+  # guides, journeys, README prose, and generated manifests without one maintained
+  # ownership contract.
+  # Deliver: ratified Level A/Level B obligations and membership; smallest
+  # authoritative semantic record; all seventeen current packs migrated; schema/
+  # parity validation; one real consumer and one independent parity proof.
+  # Done: inventory reconciles; required fields and negative fixtures pass; one
+  # source change propagates or fails every governed consumer; manifest validation
+  # green.
+  {path = "spec/portfolio-pack-first-value-contract"},
+
+  # Problem: Architect is explicitly non-technical by setup posture, but portfolio
+  # readiness is not proven by its existing tutorial or manifest alone
+  # (local/no-credential archetype — simplest pilot risk profile).
+  # Deliver: no-terminal, supported-surface path from architecture outcome to one
+  # bounded concept/diagram/review artifact; install verification, exact starter
+  # prompt, visible result, recovery, next action, cold-start transcript; only
+  # evidence-led skill changes.
+  # Done: fresh evaluator completes path without undocumented terminal/repo knowledge;
+  # tutorial/contract/eval stay in parity.
+  {path = "spec/portfolio-first-run-pilot-architect", needs = "work:spec/portfolio-pack-first-value-contract"},
+
+  # Problem: credentialed non-technical pack needs proven prerequisite and read-only
+  # first-value pattern; authentication failure must not be mistaken for user error
+  # (credentialed read-only archetype).
+  # Deliver: Figma token/service prereq disclosure, safe read-only first task against
+  # synthetic/authorized data, artifact/decision visibility, exact recovery, dated
+  # surface evidence. Reuse behavior-check-for-backend-skills and credential-broker
+  # evidence; do not invent another cassette/backend harness.
+  # Done: representative read path passes or surface is honestly graded Limited with
+  # a reproducible blocker; no secret enters docs, prompts, fixtures, or transcripts.
+  {path = "spec/portfolio-first-run-pilot-figma", needs = "work:spec/portfolio-pack-first-value-contract"},
+
+  # Problem: repository-writing packs need a non-technical first run that explains
+  # the decision and prevents an unexpected shared-state write (preview-confirm write
+  # archetype).
+  # Deliver: preview-confirm path to one bounded ADR/RFC artifact in a user-owned
+  # repo; plain-language decision framing, target path/effect preview, confirmation,
+  # recovery/resume, next action, cold-start evidence.
+  # Done: evaluator can explain what will be written, where, why, and how to stop
+  # or revise before confirmation.
+  {path = "spec/portfolio-first-run-pilot-governance-extras", needs = "work:spec/portfolio-pack-first-value-contract"},
+
+  # Problem: successful terminal installation can end in dense file-operation output
+  # without pack-specific verification, expected first result, or a copy-ready next
+  # prompt.
+  # Deliver: consume the accepted contract in concise human-default install completion
+  # output while preserving dry-run, detailed, and structured automation behavior.
+  # Done: a successful install ends with pack-specific verification, expected first
+  # result, and next prompt; automation snapshots and advanced modes remain compatible.
+  # Graphical onboarding remains the Level B default.
+  {path = "spec/agentbundle-first-value-handoff", needs = "work:spec/portfolio-pack-first-value-contract"},
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.
@@ -201,6 +287,28 @@ open = [
   # Fix: run the mobile audit; open a mobile-CSS PR.
   # Unblocks when: screened on actual mobile viewport + physical device.
   {slug = "site-mobile-responsiveness"},
+
+  # tools/validate-claude-plugin-manifests.py runs in publish CI (publish-plugins.yml)
+  # but not the normal local build-check path. A manifest contract failure that CI
+  # would catch is invisible to a standard make build-check run.
+  # Fix: wire the existing validator into the documented local preflight (e.g. a make
+  #   target or a build-check step), or add a tested, documented exception if the
+  #   parity difference is intentional. Reuse the validator; do not duplicate schema
+  #   logic.
+  # File: tools/validate-claude-plugin-manifests.py + Makefile (or build-check path).
+  # Done: the normal local preflight catches the same manifest contract failure as
+  #   publish CI, or the deliberate difference is executable and documented.
+  {slug = "local-claude-manifest-validator-gate"},
+
+  # docs/guides/desk-research/tutorials/desk-research-first-session.md line 15 says
+  # `agentbundle install research --scope user` but the pack id is `desk-research`
+  # (renamed in M3). Stale id fails silently for new adopters.
+  # Fix: use the canonical `agentbundle install desk-research --scope user` install
+  #   path; extend the owning docs/parity lint with a retired-id negative fixture.
+  # File: docs/guides/desk-research/tutorials/desk-research-first-session.md:15.
+  # Done: active content uses `desk-research`; the stale id fails the owning check.
+  # Do not expand this item into a tutorial redesign.
+  {slug = "desk-research-install-name-drift"},
 
   # ── High severity ────────────────────────────────────────────────────────────
   # (security findings or concretely broken behavior with a known internal fix path)
@@ -339,6 +447,12 @@ open = [
   #     packs' rubrics are done).
   #   Tier 5: CI automation (ANTHROPIC_API_KEY secret + pack-evals.yml schedule);
   #     calibration → gating (RFC-0037 Open Q1: report-only → regression-from-baseline).
+  # Also extend scope (RFC-0064 Amendment #4): add capture-work / author-brief /
+  #   receive-brief / new-spec activation-boundary eval cases (all four were absent from
+  #   the core pack's eval allowlist at the baseline); add reusable first-value rubric
+  #   fields (first-task completion, visible-artifact presence, recovery path, next-action
+  #   clarity) to support the cross-pack adoption overlay. Do not create a new eval
+  #   framework or duplicate slug.
   # Fix: take pack-by-pack (Tier 2 first — highest value, lowest cost).
   # Unblocks when: ANTHROPIC_API_KEY secret is configured in GitHub (Tier 5 activation).
   {slug = "pack-eval-coverage-rollout"},
@@ -668,4 +782,16 @@ open = [
   #   docs/specs/adapt-to-project/notes/manual-qa-matrix.md.
   # Unblocks when: adapt-to-project-apm-install-parity + real adopter sessions land.
   {slug = "adapt-to-project-ac4b-transcripts"},
+
+  # Strict and hermetic manifest validation is green, but a fresh user profile has
+  # not proved the real add-marketplace → install → enable → discover →
+  # uninstall/recover lifecycle on the graphical Claude client.
+  # Fix: record a dated clean-room matrix on the currently supported graphical Claude
+  #   client. Add the marketplace once; sample at least one Level A-only pack plus
+  #   architect, figma, and governance-extras; record client version, in-product
+  #   actions, visible signals, recovery, and limitations.
+  # Done: every sampled route passes or names a reproducible client limitation with
+  #   a captured defect. Does not reopen manifest repair; does not duplicate
+  #   adapt-to-project behavior/parity rows.
+  {slug = "claude-clean-room-plugin-smoke"},
 ]

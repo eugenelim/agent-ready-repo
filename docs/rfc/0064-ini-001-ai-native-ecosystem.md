@@ -615,6 +615,7 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 | 1 | 2026-07-20 | Repo-level `[backlog]` + `docs/backlog.md` absorption | Extends `workspace.toml` schema with a top-level `[backlog]` section; adds M3 ACs for backlog migration, deferral relocation, and lint rewrite |
 | 2 | 2026-07-20 | workspace-status integrity trust boundary | Documents session-fragmentation gap + two skill fixes (`new-rfc-followon-queue-write` shipped; `workspace-status-queue-reconciliation` queued) + manual workaround |
 | 3 | 2026-07-20 | Workflow-model reshape: capture front-door, all-mode `[backlog]`, phase-slice planning | One coherent reshape: (a) reframes `queue-add` as the universal capture-then-triage front-door (candidate rename → `capture-work`); (b) permits the front-door to **write** shaping-typed queue entries (revises D9's "produced by shaping skills" boundary); (c) mandates capability-detected, never-hard core→optional-pack hand-off; (d) confirms `[backlog]` as the repo-level view of **all** open work regardless of mode (resolves the build/shape scale-decoupling asymmetry, no new section); (e) re-sequences remaining work (M2, M5, M6 guides) into vertical journey-phase **Projects** — capability + its guide shipped together — dissolving M6-as-terminal; (f) adds a plan-by-phase-slice doctrine to the planning skills (`new-rfc`, `receive-brief`, canonical in CONVENTIONS). Container sizing fixed: a phase is a **Project**, not a Brief |
+| 4 | 2026-07-21 | Cross-pack first-value adoption overlay | Defines Level A/B pack obligations and a pilot-first rollout contract; adds five `["ini-002".work].queue` entries (contract, three pilot specs, agentbundle handoff) and two `["ini-002".shaping_queue].backlog` entries; complements P1–P5, may progress in parallel where dependencies allow, feeds P5 adoption evidence |
 
 ### History / audit trail
 
@@ -754,3 +755,59 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   mode tags in `workspace-status` output. Detailed schema, routing table, and the
   rename land in a follow-on spec (and, if the `type` vocabulary changes, a
   sub-RFC). eugenelim.
+
+- **2026-07-21 — Cross-pack first-value adoption overlay.** The P1–P5 vertical
+  journey phases ship capability and guides for specific workflow stages; they do not
+  guarantee that every published pack meets a minimum usability bar for its target
+  audience on first run. Four gaps motivate this overlay: (1) no maintained contract
+  owns audience posture, prerequisites, supported surfaces, canonical first task, and
+  recovery across packs; (2) packs aimed at non-technical users (setup posture, not
+  professional sophistication) lack a verified no-terminal first-value path; (3) no
+  evidence base exists for the P5 adoption artifacts before they are authored; (4)
+  agentbundle installation ends without pack-specific next-step guidance. The overlay
+  complements, rather than replaces, the P1–P5 phases. It may progress in parallel
+  where dependencies allow and feeds P5 adoption evidence. The following decisions
+  are recorded:
+
+  1. **Level A obligations apply to every published pack.** Level A is an internal
+     working label for the fit/install/support/verification/recovery baseline. It does
+     not become public copy.
+  2. **Level B is an additive internal label for non-technical or mixed-audience
+     packs.** Level A plus a canonical no-terminal path from a plain-language outcome
+     to one safe task, visible artifact or decision, recovery, and next action.
+     Maintainers ratify explicit Level B membership. The starting proposal is ten
+     packs: `architect`, `atlassian`, `converters`, `desk-research`,
+     `experience-design`, `figma`, `governance-extras`, `product-engineering`,
+     `product-strategy`, and `user-guide-diataxis`. Initial Level A-only candidates:
+     `catalogue-curation`, `contracts`, `core`, `credential-brokers`,
+     `iac-terraform`, `monorepo-extras`, and `release-engineering`.
+  3. **One maintained semantic contract owns all audience facts.** One authoritative
+     record owns: audience posture, prerequisites, supported surfaces, canonical
+     install/verification/recovery, and — when Level B — starter task, expected
+     artifact/decision, safety gate, tutorial, and next action. Public consumers are
+     generated from or parity-checked against the contract; no second hand-maintained
+     inventory. Implementation details (whether fields live in `pack.toml`, normalized
+     content, or a generated/validated companion) are decided in
+     `spec/portfolio-pack-first-value-contract` after inspecting current architecture.
+  4. **Three pilots establish the pattern before portfolio rollout.** Risk archetypes:
+     `architect` (local, no credential), `figma` (credentialed read-only),
+     `governance-extras` (preview-confirm repository write). A pilot may substitute an
+     equivalent pack only with recorded rationale that preserves all three archetypes.
+  5. **Remaining Level B packs are shaped and decomposed after the pilots.** Product
+     Engineering consumes P2/P3 guides; Atlassian consumes P4 where tracker intake is
+     the representative task; Product Strategy consumes its existing tutorial. Existing
+     work is audited before any incremental spec is created.
+  6. **P5 adoption artifacts retain their Platform Core purpose.** P5 role guides,
+     live-demo guide, and enterprise rollout playbook consume the persona/contract/
+     pilot evidence but retain their P5 phasing. The P5 Astro project index is not
+     the public pack catalogue.
+  7. **Public outcome-to-pack routing is a separate design-shaped follow-on.** It
+     explicitly excludes the already-owned `site-social-proof-band`,
+     `site-mobile-responsiveness`, and `site-design-system-spec` backlog work.
+  8. **Existing eval, backend replay, adapter, credential, and manual-QA backlog
+     items remain the owning infrastructure.** New overlay slices add cases to them
+     or consume their evidence; they do not create parallel frameworks.
+
+  Implementation: five new `["ini-002".work].queue` entries and two new
+  `["ini-002".shaping_queue].backlog` entries added in the same PR. See
+  `workspace.toml` entry comments for details and dependency edges. eugenelim.
