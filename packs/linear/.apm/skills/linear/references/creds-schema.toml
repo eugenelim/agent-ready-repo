@@ -1,0 +1,20 @@
+# Credentials schema for the linear credentialed primitive.
+# Format: a [namespace] table plus one [[namespace.keys]] entry per key.
+#
+# Resolution: load_credentials("linear", required_keys=[...]) walks
+# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 (~/.agentbundle/credentials.env).
+# Env-var shape is <NAMESPACE>_<KEY> — LINEAR_API_KEY.
+#
+# Linear is SaaS-only (api.linear.app); there is no on-prem / self-hosted
+# variant, so no BASE_URL key. The token is a Personal API Key generated at
+# Linear → Settings → API → Personal API keys.
+#
+# Auth shape: Authorization: <KEY>  (no "Bearer" prefix — Linear uses bare token)
+
+[namespace]
+name = "linear"
+
+[[namespace.keys]]
+name = "API_KEY"
+label = "Linear Personal API Key (Settings → API → Personal API keys)"
+secret = true
