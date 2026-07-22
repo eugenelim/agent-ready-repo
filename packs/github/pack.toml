@@ -1,0 +1,31 @@
+[pack]
+name = "github"
+version = "0.1.0"
+description = "GitHub integration: `github-brief-intake` — turn a GitHub Milestone into a product brief and hand off to `receive-brief`."
+readme = "README.md"
+display_name = "GitHub"
+license = "Apache-2.0 OR MIT"
+categories = ["integrations", "project-management"]
+keywords = ["github", "milestone", "brief", "intake", "receive-brief"]
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# RFC-0011 / pack-allowed-adapters. `kiro-ide` is the current name for the
+# Kiro harness (RFC-0022 split; bare `kiro` deprecated). Append-only (RFC-0011
+# declared-order).
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/github/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

@@ -1,0 +1,74 @@
+{
+  "_note": "Captured 2026-07-22 via gh api + synthetic entries. Used for manual-QA dry-run per plan.md manual verification steps 1-7. Real data: anthropics/claude-code milestone 'P1'. Synthetic entries: open-issue (step 5) and empty-milestone (step 6).",
+
+  "milestone": {
+    "_source": "gh api repos/anthropics/claude-code/milestones --jq '[.[] | select(.title == \"P1\")] | .[0]'",
+    "number": 1,
+    "title": "P1",
+    "description": "",
+    "html_url": "https://github.com/anthropics/claude-code/milestone/1",
+    "open_issues": 0,
+    "closed_issues": 14
+  },
+
+  "issues_sample": {
+    "_source": "gh issue list --repo anthropics/claude-code --milestone 'P1' --state all --json number,title,body,labels,url,state (first 3 of 14 shown; all 14 are CLOSED)",
+    "issues": [
+      {
+        "number": 1522,
+        "title": "[BUG] `_claude_fs_right:/Users...` URL crashes rust-analyzer",
+        "body": "(truncated — see live API for full body)",
+        "labels": [{"name": "bug"}, {"name": "has repro"}, {"name": "platform:macos"}, {"name": "area:core"}, {"name": "area:ide"}, {"name": "platform:vscode"}],
+        "url": "https://github.com/anthropics/claude-code/issues/1522",
+        "state": "CLOSED"
+      },
+      {
+        "number": 1390,
+        "title": "[BUG] Claude COde doesn't work on WSL2, WHY ??????????",
+        "body": "(truncated)",
+        "labels": [{"name": "bug"}, {"name": "platform:windows"}, {"name": "platform:linux"}, {"name": "area:ide"}, {"name": "platform:vscode"}],
+        "url": "https://github.com/anthropics/claude-code/issues/1390",
+        "state": "CLOSED"
+      },
+      {
+        "number": 1376,
+        "title": "Incorrect Project Context When Multiple Projects Are Open in PyCharm",
+        "body": "(truncated)",
+        "labels": [{"name": "bug"}, {"name": "has repro"}, {"name": "platform:macos"}, {"name": "area:ide"}, {"name": "platform:intellij"}],
+        "url": "https://github.com/anthropics/claude-code/issues/1376",
+        "state": "CLOSED"
+      }
+    ]
+  },
+
+  "synthetic_open_issue": {
+    "_note": "Synthetic entry per plan.md step 5 — exercises AC-S4 open-issue path (no [closed] annotation). Real P1 has 0 open issues; this entry ensures the non-annotated story line is verified.",
+    "number": 9999,
+    "title": "Add support for streaming responses in the MCP bridge",
+    "body": "As a developer, I want streaming responses from the MCP bridge, so that long-running operations give feedback progressively.",
+    "labels": [{"name": "enhancement"}],
+    "url": "https://github.com/anthropics/claude-code/issues/9999",
+    "state": "OPEN",
+    "_expected_story_line": "- **US-n.** (#9999) As a developer, I want streaming responses from the MCP bridge, so that long-running operations give feedback progressively."
+  },
+
+  "synthetic_empty_milestone": {
+    "_note": "Synthetic scenario per plan.md step 6 — exercises AC-S9 empty-milestone path. Skill should produce a brief with an empty Shape B section and an elicit note, not abort.",
+    "milestone": {
+      "number": 99,
+      "title": "Future work",
+      "description": "Placeholder milestone for future features",
+      "html_url": "https://github.com/example/repo/milestone/99",
+      "open_issues": 0,
+      "closed_issues": 0
+    },
+    "issues": [],
+    "_expected_behavior": "Skill produces brief with milestone title -> Outcome draft, html_url -> Epic:, empty '## User stories' section, and elicit note: 'No issues found in this milestone — receive-brief will elicit user stories during the Elicit stage.'"
+  },
+
+  "dry_run_results": {
+    "status": "complete",
+    "record": "notes/manual-qa.md",
+    "verdict": "PASS — all 9 skill ACs, pack gate, guide, and cross-cutting docs verified"
+  }
+}

@@ -272,6 +272,33 @@
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"
       },
+      "category": "integrations",
+      "description": "GitHub integration: `github-brief-intake` \u2014 turn a GitHub Milestone into a product brief and hand off to `receive-brief`.",
+      "displayName": "GitHub",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "github",
+        "milestone",
+        "brief",
+        "intake",
+        "receive-brief"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "github",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "source": {
+        "branch": "claude-plugins-dist",
+        "directory": "github",
+        "repo": "eugenelim/agent-ready-repo",
+        "source": "github"
+      },
+      "version": "0.1.0"
+    },
+    {
+      "author": {
+        "email": "eugenelim@users.noreply.github.com",
+        "name": "eugenelim"
+      },
       "category": "governance",
       "description": "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs.",
       "displayName": "Governance Extras",
