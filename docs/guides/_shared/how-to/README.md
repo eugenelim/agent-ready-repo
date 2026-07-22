@@ -30,3 +30,17 @@ A good how-to:
 ## Maintenance
 
 How-tos drift when the product changes underneath them. Make doc updates part of the spec workflow: when a spec ships, check whether any how-to references the changed behavior, and update in the same PR.
+
+## Pages in this directory
+
+- [`author-a-skill.md`](author-a-skill.md) — frontmatter, body structure, naming, directory layout, dependency tiers, and eval authoring for skills in any pack.
+- [`build-an-org-stack-pack.md`](build-an-org-stack-pack.md) — scaffold and populate a pack for an org's own tools and conventions.
+- [`configure-adapter.md`](configure-adapter.md) — set up or change the active adapter for a pack.
+- [`design-a-profile.md`](design-a-profile.md) — four design tests for a profile, worked examples from the three shipped profiles, and how to propose a new one via RFC.
+- [`install-a-profile.md`](install-a-profile.md) — install a named profile in one command.
+- [`install-agentbundle-from-clone.md`](install-agentbundle-from-clone.md) — install from a local clone instead of the registry.
+- [`install-user-scope-pack-into-codex.md`](install-user-scope-pack-into-codex.md) — user-scope pack install on the Codex adapter.
+- [`install-user-scope-pack-into-kiro.md`](install-user-scope-pack-into-kiro.md) — user-scope pack install on the Kiro adapter.
+- [`preview-install-or-upgrade.md`](preview-install-or-upgrade.md) — dry-run an install or upgrade before committing.
+- [`run-a-full-inception.md`](run-a-full-inception.md) — run the inception sequence on a new repo.
+- [`upgrade-packs.md`](upgrade-packs.md) — upgrade one or all installed packs to the latest version.
