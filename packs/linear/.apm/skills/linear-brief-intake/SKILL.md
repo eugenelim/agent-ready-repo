@@ -1,6 +1,6 @@
 ---
 name: linear-brief-intake
-description: Use this skill when the user points at a Linear Issue or Project and wants it turned into a shippable product brief — "turn LIN-123 into a brief", "create a brief from this Linear project". Pulls the issue or project via the `linear` skill, maps fields onto a product brief per the fixed mapping (issue.title + issue.description → Outcome verbatim; issue.children → US-n stories tagged with their identifier; issue.project.url → Epic: provenance pointer), writes to `docs/product/briefs/<slug>.md`, registers under [brief_queue].draft in workspace.toml, and hands off to `receive-brief`. For projects with >10 issues, surfaces the count and asks PE to filter before proceeding.
+description: "Use this skill when the user points at a Linear Issue or Project and wants it turned into a shippable product brief — \"turn LIN-123 into a brief\", \"create a brief from this Linear project\". Pulls the issue or project via the `linear` skill, maps fields onto a product brief per the fixed mapping (issue.title + issue.description → Outcome verbatim; issue.children → US-n stories tagged with their identifier; issue.project.url → Epic: provenance pointer), writes to `docs/product/briefs/<slug>.md`, registers under [brief_queue].draft in workspace.toml, and hands off to `receive-brief`. For projects with >10 issues, surfaces the count and asks PE to filter before proceeding."
 metadata:
   version: "0.1"
 ---
