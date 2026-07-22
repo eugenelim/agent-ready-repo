@@ -113,6 +113,7 @@ shipped = [
   "spec/m5-github-brief-intake",              # github pack + github-brief-intake skill + how-to guide
   "spec/portfolio-pack-first-value-contract",  # PR #602 — 17-pack first-value contract migration + lint gate
   "spec/m6-role-journey-guides",              # RFC-0064 P5: role journey guide (PM / engineer / agent)
+  "spec/portfolio-first-run-pilot-governance-extras", # RFC-0064 Amendment #4 preview-confirm write pilot
 ]
 queue   = [
   # ==================================================================
@@ -209,7 +210,7 @@ queue   = [
   # recovery/resume, next action, cold-start evidence.
   # Done: evaluator can explain what will be written, where, why, and how to stop
   # or revise before confirmation.
-  {path = "spec/portfolio-first-run-pilot-governance-extras", needs = "work:spec/portfolio-pack-first-value-contract"},
+  # spec/portfolio-first-run-pilot-governance-extras — shipped; moved to ["ini-002".work].shipped
 
   # Problem: successful terminal installation can end in dense file-operation output
   # without pack-specific verification, expected first result, or a copy-ready next

@@ -4,6 +4,10 @@ A written trail for the decisions a long-lived repo accumulates. Three skills, t
 
 New here? [Propose a change with an RFC](how-to/new-rfc.md) when something is still open; [record it with an ADR](how-to/new-adr.md) once it's settled.
 
+## Tutorials
+
+- [Your first governance session](tutorials/governance-extras-first-session.md) — install the pack, record one ADR with the preview-confirm gate, and commit it in about fifteen minutes.
+
 ## How-to
 
 - [Propose a cross-cutting change (RFC)](how-to/new-rfc.md) — open a proposal for input before a decision is locked in.
