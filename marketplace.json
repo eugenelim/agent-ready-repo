@@ -325,6 +325,32 @@
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"
       },
+      "category": "integrations",
+      "description": "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief.",
+      "displayName": "Linear",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "linear",
+        "brief",
+        "intake",
+        "sync"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "linear",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "source": {
+        "branch": "claude-plugins-dist",
+        "directory": "linear",
+        "repo": "eugenelim/agent-ready-repo",
+        "source": "github"
+      },
+      "version": "0.1.0"
+    },
+    {
+      "author": {
+        "email": "eugenelim@users.noreply.github.com",
+        "name": "eugenelim"
+      },
       "category": "devops",
       "description": "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template.",
       "displayName": "Monorepo Extras",

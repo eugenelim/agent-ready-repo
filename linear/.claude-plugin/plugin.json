@@ -1,0 +1,32 @@
+{
+  "name": "linear",
+  "version": "0.1.0",
+  "description": "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "author": {
+    "name": "eugenelim",
+    "email": "eugenelim@users.noreply.github.com"
+  },
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "linear",
+    "brief",
+    "intake",
+    "sync"
+  ],
+  "displayName": "Linear"
+}
