@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tracker intake guides — decision tree + vocabulary mapping table.** Adds two
+  cross-cutting guides in `docs/guides/_shared/`: `choose-a-tracker-integration.md`
+  (decision table and per-tracker sections covering GitHub `github-brief-intake`,
+  Linear `linear-brief-intake`, Jira `jira-brief-intake`, Jira Align
+  `jira-align-brief-intake`, and the no-tracker `author-brief` path) and
+  `tracker-vocabulary.md` (cross-tracker object-level mapping table + brief-intake
+  skill routing table). P4 guide slice for the RFC-0064 tracker intake phase.
+  ([spec](../specs/m5-tracker-guides/spec.md))
+
 - **governance-extras 0.8.2 — first-session tutorial (preview-confirm write pilot).** Adds `docs/guides/governance-extras/tutorials/governance-extras-first-session.md`: a step-by-step walkthrough of the `new-adr` preview-confirm write gate — decision framing, ADR content preview, target path preview, confirm/stop/revise, recovery, and next actions. Adds `tutorial` field to `[pack.first-value]` in `pack.toml`. Completes the `portfolio-first-run-pilot-governance-extras` pilot (RFC-0064 Amendment #4 preview-confirm write archetype).
 - **`architect-first-session.md` first-session tutorial (architect pack 0.13.3).** First-value guided tutorial for the no-terminal architecture path; wires the `tutorial` pointer in the pack's first-value contract. Covers install verification, verbatim starter-prompt, expected-result (`docs/architecture/reference.md`), recovery, and next action. Pilot transcript confirms the path works via direct model reasoning (no skill required for the starter-prompt).
 
