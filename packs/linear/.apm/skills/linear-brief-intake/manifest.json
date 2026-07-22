@@ -1,0 +1,37 @@
+{
+  "id": "linear-brief-intake",
+  "name": "Linear Brief Intake",
+  "version": "0.1.0",
+  "description": "Turn a Linear Issue (with sub-issues) or a Project into a shippable product brief: pull via the `linear` skill, map fields onto a Shape B brief (issue title → Outcome, children → US-n stories tagged with their Linear identifier), write to `docs/product/briefs/<slug>.md`, and hand off to `receive-brief`. Caps at 10 stories; read-only against Linear. Pure choreography — composes existing skills by name, never by path.",
+  "category": "workflows",
+  "tags": ["linear", "brief", "receive-brief", "intake", "workflow", "orchestration", "read-only"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
+    "skills": [
+      {
+        "name": "linear",
+        "source": "this pack — packs/linear/.apm/skills/linear/",
+        "purpose": "All Linear reads: check, get-issue, get-project. The intake skill never makes a raw GraphQL call and never invokes a write verb. Hard dependency — there is no degraded path without it."
+      },
+      {
+        "name": "receive-brief",
+        "source": "host repo — core pack — .apm/skills/receive-brief/",
+        "purpose": "Owns Elicit, Decompose, and Execute. The intake skill hands off the assembled brief and never reimplements elicitation. SOFT dependency: when absent, the skill degrades gracefully, inlining a decompose/execute instruction."
+      }
+    ],
+    "system": []
+  },
+  "input": {
+    "arguments": "a Linear Issue identifier (e.g., ENG-123) with sub-issues, or a Project UUID. A single issue with no children is out of scope — the skill recommends `new-spec` instead."
+  },
+  "output": {
+    "artifacts": [
+      "docs/product/briefs/<slug>.md — a Shape B product brief: Outcome from the issue title/description, one `US-n` story per child issue tagged with its Linear identifier, the issue identifier or project UUID as the `Linear:` provenance pointer.",
+      "a hand-off to the `receive-brief` skill (normal flow), or an inlined decompose/execute instruction (degraded flow when `receive-brief` is absent)."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
