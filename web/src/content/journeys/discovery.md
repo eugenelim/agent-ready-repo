@@ -32,6 +32,9 @@ skills:
   - name: place-bet
     description: "Step 5 of the PE six-step shaping sequence — commits the team to a chosen direction by producing a structured bet.md with a full betting table for map-capabilities to reason against."
     humanTouches: 1
+  - name: map-capabilities
+    description: "Step 6 (terminal) of the PE six-step shaping sequence — translates a committed bet into a Capability Map with L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing."
+    humanTouches: 1
   - name: decompose-intent
     description: "Decomposes the chosen direction into briefs and specs for the delivery loop."
     humanTouches: 1
