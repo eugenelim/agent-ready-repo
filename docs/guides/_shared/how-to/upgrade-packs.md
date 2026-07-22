@@ -17,7 +17,7 @@ Three granularities are available, in order of increasing specificity.
 Pick the verb that matches how you originally installed.
 
 - **APM:** `apm update <pack>`.
-- **Claude Code plugins:** `/plugin update <pack>@agent-ready-repo`.
+- **Claude Code plugins:** `/plugin update <pack>@<catalogue>`.
 - **`agentbundle` CLI:**
 
   ```bash
@@ -28,7 +28,7 @@ Pick the verb that matches how you originally installed.
 
 The first two use the host tool's native verbs and follow that tool's conflict-resolution rules, not the catalogue's. The `agentbundle upgrade` verb is the only route that drops `*.upstream.<ext>` companions next to any Tier-2 file whose content has diverged since install — letting you walk the merges later via the `adapt-to-project` skill (see *One file at a time* below). Before it writes, it tells you how many of your edited files it will preserve as companions.
 
-`<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/eugenelim/agent-ready-repo` or a local checkout path.
+`<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/<owner>/<catalogue>` or a local checkout path.
 
 > **Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
 
