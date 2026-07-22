@@ -44,3 +44,4 @@ How-tos drift when the product changes underneath them. Make doc updates part of
 - [`preview-install-or-upgrade.md`](preview-install-or-upgrade.md) — dry-run an install or upgrade before committing.
 - [`run-a-full-inception.md`](run-a-full-inception.md) — run the inception sequence on a new repo.
 - [`upgrade-packs.md`](upgrade-packs.md) — upgrade one or all installed packs to the latest version.
+- [`choose-a-tracker-integration.md`](choose-a-tracker-integration.md) — pick the right brief-intake skill for your tracker (GitHub, Linear, Jira, Jira Align, or none).

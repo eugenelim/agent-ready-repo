@@ -10,11 +10,13 @@ Guides about the catalogue itself — installing it, upgrading it, seeing what e
 - [Preview an install or upgrade with `--dry-run`](how-to/preview-install-or-upgrade.md) — see every file that would change before it changes.
 - [Upgrade an installed pack](how-to/upgrade-packs.md) — pull new pack content without clobbering your edits.
 - [Author a skill](how-to/author-a-skill.md) — write a new skill for any pack, to the catalogue's standards.
+- [Choose a tracker integration](how-to/choose-a-tracker-integration.md) — pick the right brief-intake skill for your tracker (GitHub, Linear, Jira, Jira Align, or none).
 
 ## Reference
 
 - [`agentbundle` reference](reference/agentbundle.md) — install the CLI, install a pack, configure the default adapter.
 - [Adapter support matrix](reference/adapter-support.md) — which primitives each agent tool receives, and where it degrades.
+- [Tracker vocabulary](reference/tracker-vocabulary.md) — how brief and spec levels map across GitHub, Linear, Jira, and Jira Align; skill routing table.
 
 ## Explanation
 

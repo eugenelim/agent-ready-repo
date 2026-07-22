@@ -73,9 +73,10 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 Cross-cutting topics — about the catalogue itself, not any single pack — live in [`_shared/`](_shared/):
 
 - **Install & upgrade** — [from a clone](_shared/how-to/install-agentbundle-from-clone.md), into [Codex](_shared/how-to/install-user-scope-pack-into-codex.md) or [Kiro](_shared/how-to/install-user-scope-pack-into-kiro.md), [preview first with `--dry-run`](_shared/how-to/preview-install-or-upgrade.md), [upgrade an installed pack](_shared/how-to/upgrade-packs.md).
-- **Reference** — the [`agentbundle` CLI](_shared/reference/agentbundle.md) and the [adapter support matrix](_shared/reference/adapter-support.md).
+- **Reference** — the [`agentbundle` CLI](_shared/reference/agentbundle.md), the [adapter support matrix](_shared/reference/adapter-support.md), and the [tracker vocabulary](_shared/reference/tracker-vocabulary.md) (how brief/spec levels map across GitHub, Linear, Jira, and Jira Align).
 - **Understand** — [the three loops](_shared/explanation/the-three-loops.md), [install routes](_shared/explanation/install-routes.md), [the pack catalogue](_shared/explanation/pack-catalogue.md), [the file-safety contract](_shared/explanation/file-safety-contract.md), and [shaping a new engagement](_shared/explanation/shaping-a-new-engagement.md).
 - **Contribute** — [how to author a skill](_shared/how-to/author-a-skill.md) for any pack.
+- **Tracker intake** — [choose a tracker integration](_shared/how-to/choose-a-tracker-integration.md) for the right brief-intake skill across GitHub, Linear, Jira, Jira Align, or no tracker.
 
 ---
 
