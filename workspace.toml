@@ -143,8 +143,9 @@ queue   = [
 
   # ---------------- P4 · Intake edges (M5 trackers) ----------------
   # github-brief-intake first (independent, builds pattern confidence). GATE for the
-  # rest: open + accept RFC-00XX linear-pack sub-RFC (delta model, AC-export scope,
-  # field mapping). Each ships with its guide slice.
+  # rest: open + accept RFC-0068 linear-pack (delta diff format, AC-export scope).
+  # Field mapping and protected-field convention resolved in the m5 spec. Each ships
+  # with its guide slice.
   # "spec/m5-github-brief-intake" — shipped; moved to ["ini-002".work].shipped
   "spec/m5-linear-brief-intake-and-sync", # first-time intake + delta sync; refuse when brief Executing
   # "spec/m5-jira-align-brief-intake" — shipped; moved to ["ini-002".work].shipped
@@ -796,4 +797,16 @@ open = [
   #   a captured defect. Does not reopen manifest repair; does not duplicate
   #   adapt-to-project behavior/parity rows.
   {slug = "claude-clean-room-plugin-smoke"},
+
+  # RFC-0068 D4 (deferred follow-on). After linear-brief-intake ships, PE
+  # manually pastes spec ACs back into the Linear Issue for a review round.
+  # push-acs-to-linear would automate that: read derived spec ACs, format as
+  # a markdown checklist, post to the Linear Issue via commentCreate (additive,
+  # reversible — NOT issueUpdate/description, which is destructive). Requires
+  # PE confirmation before posting. A comment posted to the wrong Issue is
+  # visible to the whole workspace; admin rights may be needed to delete it.
+  # Fix: add a fourth skill to packs/linear/.apm/skills/push-acs-to-linear/
+  #   using the linear primitive's create-comment subcommand.
+  # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
+  {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 ]
