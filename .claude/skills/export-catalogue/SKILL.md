@@ -74,9 +74,9 @@ lists + a gate. Full manifest:
    touches this repo's engine, so it is not a D6 change.
 9. **Project required tools into the target.** Copy core, governance-extras, and
    catalogue-curation (from this catalogue's `packs/<name>/.apm/skills/`) into
-   the target's `.claude/skills/` and `.agents/skills/` directories. These travel
-   as *local installed tools* — not as catalogue packs in the fork's own
-   catalogue — so the fork can self-curate from day one without inheriting
+   the target's installed-skill directories (Claude Code and Agents skill trees).
+   These travel as *local installed tools* — not as catalogue packs in the fork's
+   own catalogue — so the fork can self-curate from day one without inheriting
    agent-ready-repo's pack catalogue. Apply the four-anchor substitution to any
    projected file that still carries upstream identity.
 10. **Verify, fail-closed.** Grep the target for surviving upstream **URL, email,
