@@ -1,0 +1,32 @@
+[pack]
+name = "linear"
+version = "0.1.0"
+description = "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief."
+readme = "README.md"
+display_name = "Linear"
+license = "Apache-2.0 OR MIT"
+categories = ["integrations", "project-management"]
+keywords = ["linear", "brief", "intake", "sync"]
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# RFC-0011 / pack-allowed-adapters. Declared order also drives the
+# greenfield fallback (claude-code matches DEFAULT_USER_SCOPE_ADAPTER).
+# Admitted adapters match the atlassian/figma precedent for user-scope
+# credentialed packs that declare `.agentbundle/` in `allowed-prefixes.user`.
+# Append-only (RFC-0011 declared-order).
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021)
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/linear/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
