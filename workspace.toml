@@ -85,6 +85,7 @@ shipped = [
   "spec/m2-lean-canvas-and-initiative-brief",  # lean-canvas PE skill + Lean Canvas initiative brief
   "spec/m2-place-bet",                         # place-bet PE skill + worked example + how-to guide
   "spec/m2-identify-opportunities",            # identify-opportunities PE skill + template + example + guide
+  "spec/m2-map-capabilities",                  # map-capabilities PE skill + template + examples + how-to guide
 ]
 queue   = [
   # ==================================================================
@@ -108,7 +109,6 @@ queue   = [
   # opp-assessment-pe-pack + capability-map-ini-002 (their `needs` already point here).
   # "spec/m2-diverge-solutions" — shipped; moved to ["ini-002".work].shipped
   # "spec/m2-place-bet" — shipped; moved to ["ini-002".work].shipped
-  "spec/m2-map-capabilities",             # product vision → all capability areas in one pass
   "spec/m2-frame-intent-jtbd",            # JTBD into shipped frame-intent; back-compat assessed in-spec
 
   # ---------------- P3 · Brief → Build ----------------
