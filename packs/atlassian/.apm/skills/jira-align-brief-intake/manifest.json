@@ -1,0 +1,38 @@
+{
+  "id": "jira-align-brief-intake",
+  "name": "Jira Align Brief Intake",
+  "version": "1.0.0",
+  "description": "Turn a Jira Align Feature into a product brief and shippable specs: fetch the Feature and its child stories/tasks/defects via the `jira-align` skill, map them onto a Shape B product brief (Feature title/description -> Outcome, children -> `US-n` user stories tagged with their Jira Align IDs, Feature ID -> `Epic:` provenance pointer), write it to `docs/product/briefs/<slug>.md`, and hand off to `receive-brief` to elicit gaps, decompose, and build. 1-way intake only — never writes to Jira Align. Configuration-guided field mapping (customize `references/field-mapping.md` for your org's workflow states and PI cadences before first use). Pure choreography — composes existing skills by name, never by path.",
+  "category": "workflows",
+  "tags": ["jira-align", "brief", "receive-brief", "intake", "feature", "workflow", "orchestration", "read-only", "portfolio"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
+    "skills": [
+      {
+        "name": "jira-align",
+        "source": "this pack — packs/atlassian/.apm/skills/jira-align/",
+        "purpose": "All Jira Align reads: check, get (features), list (stories, tasks, defects with featureID filter). The intake skill never makes a raw Jira Align REST call and never invokes a write verb (no create, update, delete). Hard dependency — there is no degraded path without it."
+      },
+      {
+        "name": "receive-brief",
+        "source": "host repo — core pack — .apm/skills/receive-brief/ (projected to .claude/skills/receive-brief/)",
+        "purpose": "Owns Elicit (fill missing Outcome/Scope conversationally), Decompose (cut into shippable slices), and Execute (chain new-spec -> work-loop). The intake skill hands off the assembled brief and never reimplements elicitation. SOFT dependency: when absent, the skill degrades gracefully, producing the brief and inlining a decompose/execute instruction for the agent to act on."
+      }
+    ],
+    "system": []
+  },
+  "input": {
+    "arguments": "a Jira Align Feature ID (integer or string). A Feature is the mid-level planning unit in Jira Align (below an Epic, above Stories). Not for Portfolio Epics (too large) or individual Stories (use new-spec instead).",
+    "env": {}
+  },
+  "output": {
+    "artifacts": [
+      "docs/product/briefs/<slug>.md — a Shape B product brief: Outcome from the Feature title/description, one `US-n` story per child item tagged with its Jira Align resource ID and type (e.g. `(stories/4521)`), the Feature ID as the `Epic:` provenance pointer. Gaps (Success metrics, Appetite, silent Scope) are left for `receive-brief` to elicit.",
+      "a hand-off to the `receive-brief` skill (normal flow), or an inlined decompose/execute instruction (degraded flow when `receive-brief` is absent)."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
