@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **RFC-0064 Amendment #4 — cross-pack first-value adoption overlay.** Records Level A/B pack obligations, a pilot-first rollout contract, and eight decisions governing non-technical pack onboarding. Adds five work queue entries (`spec/portfolio-pack-first-value-contract`, three pilot specs, `spec/agentbundle-first-value-handoff`) and two shaping entries to `workspace.toml`. Reconciles `spec/m2-frame-intent-jtbd` from queue to shipped. ([RFC-0064 Amendment #4](../rfc/0064-ini-001-ai-native-ecosystem.md))
+
 - **`frame-intent` skill (product-engineering pack 0.12.0) — three-tier JTBD elicitation in step 5.** The Opportunity framing step now explicitly elicits a functional job, emotional job, social job, and struggling moment. The intent template's Opportunity section carries four corresponding optional sub-fields. Existing intents with free-form Opportunity prose remain valid without migration.
 
 - **`workspace-status` skill (core pack 0.13.3) — Findings step shows inline tables.** When either `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md` has data rows, `workspace-status` now prints both tables inline rather than a bare count. When both registers are empty, a single summary line is shown (`0 rfc candidates · 0 roadmap intents — both registers empty`) instead of silently omitting the section.
