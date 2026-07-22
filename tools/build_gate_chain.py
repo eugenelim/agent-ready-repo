@@ -166,6 +166,8 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-traceability",
             ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",
         ),
+        _script_step("test-lint-first-value-contract", "tools", "test-lint-first-value-contract.py"),
+        _script_step("lint-first-value-contract", "tools", "lint-first-value-contract.py"),
     ]
     return _run_chain(steps)
 

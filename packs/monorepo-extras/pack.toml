@@ -1,6 +1,6 @@
 [pack]
 name = "monorepo-extras"
-version = "0.1.2"
+version = "0.1.3"
 description = "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template."
 readme = "README.md"
 display_name = "Monorepo Extras"
@@ -45,3 +45,11 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (monorepo engineers); no first-run prompting required.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = ["core pack installed"]
+verification     = "Run new-package with a package name and confirm the packages/ scaffold is created."
+recovery         = "Confirm the repo structure has a packages/ directory or core is installed at repo scope."
