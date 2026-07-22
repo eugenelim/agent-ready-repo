@@ -148,7 +148,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 - Add changelog entry + backlog anchors for `retire-primitive`, `audit-catalogue`, ledger stale-run sweep.
 **Done when:** entries present and greppable.
 
-### T11: Full gate + build-self green
+### T11: Full gate + build-self green ✓
 **Depends on:** T1-T10
 **Touches:** (verification only)
 **Tests:**
@@ -156,6 +156,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 **Approach:**
 - Run the full pre-pr gate; fix drift; confirm.
 **Done when:** the complete gate is green on a clean tree.
+**Result (2026-07-22):** 49 unit tests pass; build-check exit 0 (all lint, SAST/SCA, semgrep clean); projection drift-free after clearing stray `__pycache__` dirs from scripts/ and re-running `build-self --force`.
 
 ## Rollout
 
@@ -174,3 +175,4 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 
 - 2026-07-02: initial plan (from RFC-0059 + ADR-0048).
 - 2026-07-02: folded spec-stage security review — untrusted-code review + hook-confirm, URL SSRF allowlist, `safety.write_jailed` write-confinement, honest verify bounds, ledger free-text ceiling; and the operator direction to run the repo's own lints + SAST/SCA on ingested code proactively (T4/T5/T7 tests extended; no new dependency).
+- 2026-07-22: T11 complete — build-check green (49 unit tests, lint, SAST/SCA, semgrep); projection drift-free. Remaining: 3 manual-QA sessions for agent-behavior ACs (assimilate-primitive, export-catalogue, assimilate-repo).
