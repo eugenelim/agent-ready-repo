@@ -112,6 +112,7 @@ shipped = [
   "spec/m5-jira-align-brief-intake",           # atlassian pack 0.4.0; jira-align-brief-intake skill; 1-way intake, config-guided field map
   "spec/m5-github-brief-intake",              # github pack + github-brief-intake skill + how-to guide
   "spec/portfolio-pack-first-value-contract",  # PR #602 — 17-pack first-value contract migration + lint gate
+  "spec/m6-role-journey-guides",              # RFC-0064 P5: role journey guide (PM / engineer / agent)
 ]
 queue   = [
   # ==================================================================
@@ -158,7 +159,6 @@ queue   = [
   # governance-extras) as evidence base. Do not author P5 specs before those work
   # items complete — the evidence does not yet exist.
   "spec/m6-astro-project-index",          # Astro site: PM-facing project index from docs/product/projects/
-  "spec/m6-role-journey-guides",          # PM / engineer / agent role journeys, from docs/product/journeys/
   "spec/m6-live-demo-guide",              # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
   "spec/m6-enterprise-rollout-playbook",  # champion→CTO→platform→engineers; staged rollout + retro template
 
@@ -776,6 +776,17 @@ open = [
   #   docs/specs/spec-C-workloop-argless-resume/spec.md (AC2).
   # Unblocks when: a focused observability pass on Step 0 Branch 1.
   {slug = "work-loop-step0-branch1-echo-resolved-path", source = "spec/spec-C-workloop-argless-resume"},
+
+  # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
+  # docs/guides/core/explanation/role-journeys.md covers headless AI execution
+  # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension
+  # (derived from engineer-scales-to-swarm journey, status: shaping) is deferred.
+  # Fix: once engineer-scales-to-swarm is shaped and its journey map is promoted from
+  #   shaping → planned/shipped, extend the Agent section with coordinated headless
+  #   CLI swarm patterns; update docs/guides/core/explanation/role-journeys.md.
+  # File: docs/guides/core/explanation/role-journeys.md (Agent section).
+  # Unblocks when: engineer-scales-to-swarm journey is shaped (status moves from shaping).
+  {slug = "role-journey-agent-swarm-section", source = "spec/m6-role-journey-guides AC6"},
 
   # spec/adapt-to-project AC4b — deferred manual-QA rows (tombstone anchor for
   # RFC-0007 links). Repo-scope class-2/3/4 transcripts (rows 8–16): Claude-simulated

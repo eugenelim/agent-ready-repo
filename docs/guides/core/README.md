@@ -39,6 +39,7 @@ Understanding-oriented — the *why* behind the design.
 - [About the walking skeleton](explanation/walking-skeleton-vs-throwaway.md) — the thinnest end-to-end slice, and when to throw code away instead.
 - [About foundation vs. map](explanation/foundation-vs-map.md) — the two things you record at inception and why they're different.
 - [Why a brief layer](explanation/why-a-brief-layer.md) — why a brief sits above the spec when work spans many features.
+- [Role journeys](explanation/role-journeys.md) — how PMs, engineers, and agents use the system at their operating altitude.
 
 ---
 
