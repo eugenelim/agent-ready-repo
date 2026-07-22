@@ -8,6 +8,7 @@ New here? [Establish your repo's reference architecture](how-to/establish-refere
 
 ## Tutorials
 
+- [Your first architecture session](tutorials/architect-first-session.md) — Start here — the guided first session from install verification to your first architecture artifact.
 - [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md) — stand up the golden-path file from scratch and put it to work.
 
 ## How-to
