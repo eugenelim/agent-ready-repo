@@ -6,6 +6,7 @@ skills:
   - jira
   - jira-align
   - jira-brief-intake
+  - jira-align-brief-intake
   - jira-defect-flow
   - flow-metrics
   - confluence-crawler
