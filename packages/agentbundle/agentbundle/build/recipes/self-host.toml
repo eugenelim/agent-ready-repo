@@ -23,7 +23,7 @@ targets = ["claude-code", "codex"]
 # advertised via `marketplace.json` but their primitives don't belong in this
 # repo's `.claude/skills/` tree; `monorepo-extras` is repo-only by metadata but
 # the bundle is not a canonical `new-package` consumer, so it's left out too.
-include = ["core", "governance-extras", "user-guide-diataxis", "catalogue-curation", "iac-terraform"]
+include = ["core", "governance-extras", "user-guide-diataxis", "catalogue-curation"]
 
 [recipe.iterate]
 over = "packs/*/"
