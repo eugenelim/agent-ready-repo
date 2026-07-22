@@ -69,6 +69,7 @@ catalogue listing — see [`pack-manifest.md`](pack-manifest.md).
 | `contracts` | user (default) or repo | `api-contract` (OpenAPI 3.1) and `event-contract` (AsyncAPI). |
 | `converters` | user (default) or repo | Document/image → Markdown, Markdown → styled HTML, Outlook `.msg` → Markdown. |
 | `atlassian` | user (default) or repo | `jira`, `jira-align`, `confluence-crawler` (credentialed CLIs) + the `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`, `jira-brief-intake`, `jira-align-brief-intake` workflows that compose them. |
+| `github` | user (default) or repo | `github-brief-intake` — turns a GitHub Milestone into a product brief and hands off to `receive-brief`. Uses the `gh` CLI; no credentialed-skill frontmatter. |
 | `figma` | user (default) or repo | `figma` credentialed CLI (REST API reads, frame renders, FigJam → Mermaid). |
 | `research` | user (default) or repo | Seven research skills (scoping → synthesis → decision support) + two read-only retrieval subagents. |
 | `architect` | user (default) or repo | `architect-design`, `architect-diagram`, `architect-review` (Mermaid + Google-style design docs). |
