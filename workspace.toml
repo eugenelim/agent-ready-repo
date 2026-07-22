@@ -814,4 +814,25 @@ open = [
   #   using the linear primitive's create-comment subcommand.
   # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
   {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
+
+  # catalogue-curation shipped but four AC paths were not exercised in QA.
+  # Re-sync RFC routing: when an assimilated source-RFC is re-synced, the skill
+  # must route the record to Amendment (Open RFC), Erratum (Frozen + correction),
+  # or a new RFC (Frozen + new decisions) per RFC-0055 forms. Not exercised in QA.
+  {slug = "catalogue-curation-resync-rfc-routing", source = "spec/catalogue-curation"},
+
+  # catalogue-curation anti-pattern detection: assimilation should detect known
+  # misuse patterns (scripts triggering skills, agents reviewing own output,
+  # flooding prompts) and reshape or reject, citing the repo rule. Not exercised.
+  {slug = "catalogue-curation-antipattern-steering", source = "spec/catalogue-curation"},
+
+  # catalogue-curation propose-catalogue-pack: the skill tests additivity + fit
+  # against the local CHARTER coverage model and the four CHARTER principles;
+  # on pass it scaffolds the pack shell and emits an RFC. No QA session run yet.
+  {slug = "catalogue-curation-propose-pack", source = "spec/catalogue-curation"},
+
+  # catalogue-curation hook-confirm: an ingested hook or script (executable code)
+  # must be flagged distinctly and require an explicit human confirm before landing.
+  # The QA session exercised skill ingest only; hook ingest path not yet exercised.
+  {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
 ]
