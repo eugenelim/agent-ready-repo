@@ -15,7 +15,7 @@ You need:
 
   ```bash
   pip install agentbundle
-  agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
+  agentbundle install --pack core git+https://github.com/<owner>/<catalogue>
   ```
 
   Then start a fresh agent session so it picks up the new skill.

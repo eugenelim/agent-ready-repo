@@ -5,7 +5,7 @@ Install a role's whole toolkit, or a repo's full governance setup, in one comman
 ## Prerequisites
 
 - The `agentbundle` CLI on your PATH (`pip install agentbundle`, or the [clone-and-pip route](install-agentbundle-from-clone.md)).
-- A catalogue URI — a local checkout path or `git+https://github.com/eugenelim/agent-ready-repo`.
+- A catalogue URI — a local checkout path or `git+https://github.com/<owner>/<catalogue>`.
 
 ## Discover what's available
 
@@ -30,7 +30,7 @@ agentbundle install --profile <name> <catalogue>
 For example, to set up a repo's full governance bundle:
 
 ```bash
-agentbundle install --profile full-ceremony git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --profile full-ceremony git+https://github.com/<owner>/<catalogue>
 ```
 
 The command installs every pack in the profile **at the profile's declared scope**, in the authored dependency-first order (so `core` lands before the packs that build on it), onto **one** adapter target. A pack already installed at that scope is left alone and reported `already present, skipped`. When it finishes, you get a per-pack summary of what was installed, skipped, or failed.
