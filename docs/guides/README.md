@@ -18,8 +18,9 @@ Documentation for the agent-ready-repo catalogue, organized to get you to the ri
 
 | I work as… | Start here | Also useful |
 | --- | --- | --- |
-| **Engineer** | [`core`](core/) — the build loop | [`architect`](architect/) for design; [`contracts`](contracts/) for API authoring; [`converters`](converters/) for document handling |
-| **Product manager / strategist** | [`product-engineering`](product-engineering/) — intent shaping and the discovery loop | [`desk-research`](desk-research/) for evidence; [`governance-extras`](governance-extras/) for decision trails |
+| **Engineer** | [`core`](core/) — the build loop | [`architect`](architect/) for design; [`contracts`](contracts/) for API authoring; [`converters`](converters/) for document handling; [how engineers use the system](core/explanation/role-journeys.md) |
+| **Product manager / strategist** | [`product-engineering`](product-engineering/) — intent shaping and the discovery loop | [`desk-research`](desk-research/) for evidence; [`governance-extras`](governance-extras/) for decision trails; [how PMs use the system](core/explanation/role-journeys.md) |
+| **AI agent** | [`core`](core/) — the build loop; `workspace-status` + `work-loop` for autonomous execution | [how agents use the system](core/explanation/role-journeys.md) |
 | **Designer / UX** | [`experience-design`](experience-design/) — journey mapping, screen flows, service blueprints, design review | [`figma`](figma/) for Figma reads; [`product-engineering`](product-engineering/) for voice and microcopy |
 | **Architect** | [`architect`](architect/) — system design and pressure-testing | [`contracts`](contracts/) for API contracts; [`desk-research`](desk-research/) for prior art |
 | **SRE / DevOps** | [`release-engineering`](release-engineering/) — the release loop, ephemeral deploy, e2e convergence | [`core`](core/) (required dependency) |
