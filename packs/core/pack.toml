@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "0.13.3"
+version = "0.13.4"
 description = "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
 readme = "README.md"
 display_name = "Core"
@@ -55,3 +55,11 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (software engineers using Claude Code); foundational pack with no first-run prompting required.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+prerequisites    = []
+verification     = "Run workspace-status and confirm your workspace.toml queue state is displayed."
+recovery         = "If workspace-status does not activate, re-run adapt-to-project to refresh your repo's skill index."
