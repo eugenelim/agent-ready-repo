@@ -150,6 +150,26 @@
               }
             }
           }
+        },
+        "first-value": {
+          "type": "object",
+          "description": "Pack first-value contract (RFC-0064 Amendment #4). Level A required for all packs; Level B required when level-b = true.",
+          "properties": {
+            "audience-posture": {"type": "string", "enum": ["non-technical", "mixed", "technical"]},
+            "surfaces": {"type": "array", "items": {"type": "string"}},
+            "prerequisites": {"type": "array", "items": {"type": "string"}},
+            "verification": {"type": "string"},
+            "recovery": {"type": "string"},
+            "level-b": {"type": "boolean"},
+            "starter-task": {"type": "string"},
+            "starter-prompt": {"type": "string"},
+            "expected-result": {"type": "string"},
+            "next-action": {"type": "string"},
+            "tutorial": {"type": "string"},
+            "writes-to-repo": {"type": "boolean"},
+            "safety-gate": {"type": "string"}
+          },
+          "additionalProperties": false
         }
       },
       "if": {
