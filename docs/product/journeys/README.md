@@ -91,6 +91,7 @@ These journeys cover the end-to-end experience of a specific optional pack. They
 |---|---|---|---|
 | [Engineer provisions infrastructure](engineer-provisions-infrastructure.md) | `iac-terraform` — repo scope | shipped | [RFC-0065](../../rfc/0065-iac-terraform-pack.md) |
 | [Designer designs a surface](designer-designs-surface.md) | `experience-design` — user scope; genre-aware design chain (1.0.0) | shipped | [RFC-0066](../../rfc/0066-experience-pack-surface-genre-and-skill-uplift.md) |
+| [Catalogue engineer converges skills](catalogue-engineer-converges-skills.md) | `catalogue-curation` — repo scope; external skills and subagents converged to catalogue-native | planned | [RFC-0059](../../rfc/0059-catalogue-curation-pack.md) |
 
 ---
 
