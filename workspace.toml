@@ -80,10 +80,9 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = [
-  "spec/catalogue-curation",  # in progress — pending manual-QA live tests (assimilate-primitive, export-catalogue, assimilate-repo dry runs)
-]
+active  = []
 shipped = [
+  "spec/catalogue-curation",                # PR #614
   "spec/m2-frame-situation",     # frame-situation PE skill
   "spec/m1-workspace-core",      # Batch 2
   "spec/m1-work-queue",          # Batch 3
@@ -114,6 +113,9 @@ shipped = [
   "spec/portfolio-pack-first-value-contract",  # PR #602 — 17-pack first-value contract migration + lint gate
   "spec/m6-role-journey-guides",              # RFC-0064 P5: role journey guide (PM / engineer / agent)
   "spec/portfolio-first-run-pilot-governance-extras", # RFC-0064 Amendment #4 preview-confirm write pilot
+  "spec/m5-linear-brief-intake-and-sync",            # first-time intake + delta sync
+  "spec/portfolio-first-run-pilot-architect",         # RFC-0064 Amendment #4 local/no-credential pilot
+  "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
 ]
 queue   = [
   # ==================================================================
@@ -150,7 +152,7 @@ queue   = [
   # Field mapping and protected-field convention resolved in the m5 spec. Each ships
   # with its guide slice.
   # "spec/m5-github-brief-intake" — shipped; moved to ["ini-002".work].shipped
-  "spec/m5-linear-brief-intake-and-sync", # first-time intake + delta sync; refuse when brief Executing
+  # "spec/m5-linear-brief-intake-and-sync" — shipped; moved to ["ini-002".work].shipped
   # "spec/m5-jira-align-brief-intake" — shipped; moved to ["ini-002".work].shipped
   "spec/m5-tracker-guides",               # tracker decision tree + vocabulary mapping table
 
@@ -189,18 +191,8 @@ queue   = [
   # evidence-led skill changes.
   # Done: fresh evaluator completes path without undocumented terminal/repo knowledge;
   # tutorial/contract/eval stay in parity.
-  {path = "spec/portfolio-first-run-pilot-architect", needs = "work:spec/portfolio-pack-first-value-contract"},
-
-  # Problem: credentialed non-technical pack needs proven prerequisite and read-only
-  # first-value pattern; authentication failure must not be mistaken for user error
-  # (credentialed read-only archetype).
-  # Deliver: Figma token/service prereq disclosure, safe read-only first task against
-  # synthetic/authorized data, artifact/decision visibility, exact recovery, dated
-  # surface evidence. Reuse behavior-check-for-backend-skills and credential-broker
-  # evidence; do not invent another cassette/backend harness.
-  # Done: representative read path passes or surface is honestly graded Limited with
-  # a reproducible blocker; no secret enters docs, prompts, fixtures, or transcripts.
-  {path = "spec/portfolio-first-run-pilot-figma", needs = "work:spec/portfolio-pack-first-value-contract"},
+  # "spec/portfolio-first-run-pilot-architect" — shipped; moved to ["ini-002".work].shipped
+  # "spec/portfolio-first-run-pilot-figma" — shipped; moved to ["ini-002".work].shipped
 
   # Problem: repository-writing packs need a non-technical first run that explains
   # the decision and prevents an unexpected shared-state write (preview-confirm write
@@ -822,4 +814,25 @@ open = [
   #   using the linear primitive's create-comment subcommand.
   # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
   {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
+
+  # catalogue-curation shipped but four AC paths were not exercised in QA.
+  # Re-sync RFC routing: when an assimilated source-RFC is re-synced, the skill
+  # must route the record to Amendment (Open RFC), Erratum (Frozen + correction),
+  # or a new RFC (Frozen + new decisions) per RFC-0055 forms. Not exercised in QA.
+  {slug = "catalogue-curation-resync-rfc-routing", source = "spec/catalogue-curation"},
+
+  # catalogue-curation anti-pattern detection: assimilation should detect known
+  # misuse patterns (scripts triggering skills, agents reviewing own output,
+  # flooding prompts) and reshape or reject, citing the repo rule. Not exercised.
+  {slug = "catalogue-curation-antipattern-steering", source = "spec/catalogue-curation"},
+
+  # catalogue-curation propose-catalogue-pack: the skill tests additivity + fit
+  # against the local CHARTER coverage model and the four CHARTER principles;
+  # on pass it scaffolds the pack shell and emits an RFC. No QA session run yet.
+  {slug = "catalogue-curation-propose-pack", source = "spec/catalogue-curation"},
+
+  # catalogue-curation hook-confirm: an ingested hook or script (executable code)
+  # must be flagged distinctly and require an explicit human confirm before landing.
+  # The QA session exercised skill ingest only; hook ingest path not yet exercised.
+  {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
 ]
