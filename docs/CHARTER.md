@@ -17,6 +17,18 @@ anchor they actually use, documentation they can navigate, conventions
 that hold up at scale, and reviewers that catch what they miss. Most
 repos aren't built that way; this catalogue is an attempt to build one.
 
+## Domain
+
+Software engineering / SDLC: skills for software teams and their AI coding
+agents — code quality, architecture, testing, CI/CD, project governance, and
+engineering process at any scale, from solo developer to a team of fifty.
+**Out of scope:** personal productivity, PKM (personal knowledge management),
+creative writing, legal/compliance services, business operations unrelated to
+software delivery, and any domain not tied to building software products.
+
+This section is the machine-readable scope anchor used by `assimilate-repo`
+to determine whether an external skill belongs in this catalogue.
+
 ## Scope
 
 What this project does:

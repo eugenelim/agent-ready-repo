@@ -4,9 +4,9 @@ Four ways to install a pack from this catalogue:
 
 | Route | Command | When it fits |
 | --- | --- | --- |
-| **Claude plugins** | `/plugin marketplace add eugenelim/agent-ready-repo` then `/plugin install <pack>@agent-ready-repo` | You're on Claude Code and want one-line install with auto-update. |
-| **APM** | `apm install eugenelim/agent-ready-repo/<pack>` | You're in any other IDE harness with the [APM](https://github.com/agent-package-manager) CLI. |
-| **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/eugenelim/agent-ready-repo` | You want a pinned, scriptable install with state tracking from day one. |
+| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. |
+| **APM** | `apm install <owner>/<catalogue>/<pack>` | You're in any other IDE harness with the [APM](https://github.com/agent-package-manager) CLI. |
+| **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/<owner>/<catalogue>` | You want a pinned, scriptable install with state tracking from day one. |
 | **Local clone** | `git clone … && pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
 
 The same pack content lands every way; the differences are in mechanics (state tracking, where the marker drops, how upgrades work). This page explains *why* there are four and how to pick.
@@ -37,7 +37,7 @@ The writer template at [`packages/agentbundle/templates/install-marker.py`](../.
 
 **You're on Claude Code, you have a GitHub remote, and you don't mind auto-update.** Use the Claude-plugins route. One line of setup, one line per pack, and `/plugin update` keeps you current.
 
-**You're in another IDE (Cursor, Copilot, Gemini, Codex, Windsurf, OpenCode).** Use APM. The same `eugenelim/agent-ready-repo/<pack>` target works; APM's `HookIntegrator` projects the hooks for whichever IDE you're in. RFC-0010 closes the install→adapt chain on the four hook-capable APM targets — Claude Code (asserted in CI), Cursor, Gemini, Copilot (deferred to manual QA per AC17). The other three targets — Codex, OpenCode, Windsurf — have no hook surface in APM, so the per-pack README documents `agentbundle adapt` as the explicit manual gesture instead.
+**You're in another IDE (Cursor, Copilot, Gemini, Codex, Windsurf, OpenCode).** Use APM. The same `<owner>/<catalogue>/<pack>` target works; APM's `HookIntegrator` projects the hooks for whichever IDE you're in. RFC-0010 closes the install→adapt chain on the four hook-capable APM targets — Claude Code (asserted in CI), Cursor, Gemini, Copilot (deferred to manual QA per AC17). The other three targets — Codex, OpenCode, Windsurf — have no hook surface in APM, so the per-pack README documents `agentbundle adapt` as the explicit manual gesture instead.
 
 **You want pinned versions and full state tracking.** Use the reference CLI. `agentbundle install` hashes every projected file into `.agentbundle-state.toml` at install time, so upgrade-time safety is exact from day one. The other routes need a one-shot `agentbundle init-state` after install to reach the same baseline.
 

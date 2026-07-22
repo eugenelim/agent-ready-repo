@@ -21,7 +21,7 @@ posture in the produced brief.
 Tell your agent, for example:
 
 - "Turn our Q3 milestone into specs."
-- "Intake the 'v2 launch' milestone from eugenelim/my-repo."
+- "Intake the 'v2 launch' milestone from your-org/my-repo."
 - "Pull GitHub milestone #4 and create a brief."
 
 The `github-brief-intake` skill fires automatically when the agent recognises

@@ -12,7 +12,7 @@ User-scope packs travel across projects via your IDE's per-user configuration di
 From any directory (user-scope installs don't need a project context):
 
 ```bash
-agentbundle install --pack atlassian --scope user agent-ready-repo
+agentbundle install --pack atlassian --scope user <catalogue>
 ```
 
 The CLI's six-step resolver picks Kiro automatically when:
@@ -46,7 +46,7 @@ The state file records `adapter = "kiro"` for the pack — this is the hint that
 ## Upgrade
 
 ```bash
-agentbundle upgrade --pack atlassian --to <version> agent-ready-repo
+agentbundle upgrade --pack atlassian --to <version> <catalogue>
 ```
 
 Upgrade reuses the recorded adapter from `~/.agentbundle/state.toml`, so adding a second CLI home post-install (e.g. installing Claude Code later) does not migrate the pack — it stays at Kiro until you uninstall and reinstall.

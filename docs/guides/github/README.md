@@ -1,6 +1,6 @@
 # `github` — guides
 
-GitHub integration for the agent-ready-repo catalogue. The pack ships one skill:
+GitHub integration for this catalogue. The pack ships one skill:
 
 - **`github-brief-intake`** — pull a GitHub Milestone and its issues via the
   `gh` CLI, map them to a Shape B product brief, and hand off to `receive-brief`.

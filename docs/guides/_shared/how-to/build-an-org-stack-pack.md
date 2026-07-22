@@ -68,7 +68,7 @@ You need:
    allowed-scopes = ["repo"]
 
    [[pack.dependencies.required]]
-   catalogue = "agent-ready-repo"
+   catalogue = "<catalogue>"
    pack = "core"
    version = "^0.1"
    ```

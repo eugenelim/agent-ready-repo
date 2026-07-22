@@ -1,6 +1,6 @@
 # Guides
 
-Documentation for the agent-ready-repo catalogue, organized to get you to the right place fast — by what you're trying to do, by your role, or by pack.
+Documentation for this catalogue, organized to get you to the right place fast — by what you're trying to do, by your role, or by pack.
 
 ## What do you want to do?
 

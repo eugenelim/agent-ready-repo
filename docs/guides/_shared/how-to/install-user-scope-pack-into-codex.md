@@ -10,7 +10,7 @@ This guide covers landing a user-scope-capable pack from the catalogue into Code
 ## Install
 
 ```bash
-agentbundle install --pack figma --scope user agent-ready-repo
+agentbundle install --pack figma --scope user <catalogue>
 ```
 
 The resolver picks Codex automatically when:
@@ -42,7 +42,7 @@ Codex's skills root is `~/.agents/skills/` regardless of where the Codex CLI's o
 ## Upgrade
 
 ```bash
-agentbundle upgrade --pack figma --to <version> agent-ready-repo
+agentbundle upgrade --pack figma --to <version> <catalogue>
 ```
 
 Upgrade reuses the recorded adapter from state; cross-adapter migration requires uninstall + reinstall.
