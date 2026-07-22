@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.13.2"
+version = "0.13.3"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 readme = "README.md"
 display_name = "Architect"
@@ -69,3 +69,4 @@ starter-task     = "Get a plain-language map of how this codebase is organized"
 starter-prompt   = "Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions."
 expected-result  = "A docs/architecture/reference.md file with the codebase's key components and structural decisions described in plain language."
 next-action      = "On your next design question, ask: 'Does this approach align with our reference architecture?'"
+tutorial         = "docs/guides/architect/tutorials/architect-first-session.md"
