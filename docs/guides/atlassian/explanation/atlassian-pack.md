@@ -19,6 +19,7 @@ Several skills compose the surfaces above instead of touching the API directly:
 - **[`ai-adoption-report`](../../../../packs/atlassian/.apm/skills/ai-adoption-report/)** pairs `flow-metrics` JSON outputs and renders a Markdown comparison report. It makes no upstream calls; its only inputs are local JSON files.
 - **[`jira-defect-flow`](../../../../packs/atlassian/.apm/skills/jira-defect-flow/)** handles a Jira defect end-to-end: pulls the ticket via `jira`, hands the fix to the `bug-fix` skill, opens a PR, then comments and transitions the ticket.
 - **[`jira-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-brief-intake/)** turns a Jira epic (or a board / JQL selection) into shippable specs: pulls the epic and its children via `jira`, maps them onto a Shape B product brief, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira; degrades gracefully when `receive-brief` is absent.
+- **[`jira-align-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-align-brief-intake/)** turns a Jira Align Feature into shippable specs: fetches the Feature and its child stories, tasks, and defects via `jira-align`, maps them onto a Shape B product brief using a configuration-guided field mapping reference (customised for org-specific workflow states and PI cadences), and hands off to `receive-brief`. 1-way intake only — never writes to Jira Align. Degrades gracefully when `receive-brief` is absent.
 
 ## The auth model
 

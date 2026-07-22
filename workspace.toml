@@ -109,6 +109,7 @@ shipped = [
   "spec/m2-identify-opportunities",            # identify-opportunities PE skill + template + example + guide
   "spec/m2-map-capabilities",                  # map-capabilities PE skill + template + examples + how-to guide
   "spec/m2-frame-intent-jtbd",                 # PR #599 — JTBD three-tier elicitation into frame-intent; back-compat assessed in spec
+  "spec/m5-jira-align-brief-intake",           # atlassian pack 0.4.0; jira-align-brief-intake skill; 1-way intake, config-guided field map
 ]
 queue   = [
   # ==================================================================
@@ -145,7 +146,7 @@ queue   = [
   # field mapping). Each ships with its guide slice.
   "spec/m5-github-brief-intake",          # GitHub Issue/Milestone → brief with Epic: pointer
   "spec/m5-linear-brief-intake-and-sync", # first-time intake + delta sync; refuse when brief Executing
-  "spec/m5-jira-align-brief-intake",      # atlassian pack; 1-way intake only, config-guided field map
+  # "spec/m5-jira-align-brief-intake" — shipped; moved to ["ini-002".work].shipped
   "spec/m5-tracker-guides",               # tracker decision tree + vocabulary mapping table
 
   # ---------------- P5 · Adopt (terminal — needs whole journey stable) ----------------

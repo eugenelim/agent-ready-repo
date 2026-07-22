@@ -1,0 +1,20 @@
+[
+  {"query": "Intake Feature 1234 from Jira Align as a product brief", "should_trigger": true},
+  {"query": "Turn this Jira Align feature into shippable specs", "should_trigger": true},
+  {"query": "Pull JA feature 789 into a brief", "should_trigger": true},
+  {"query": "We track delivery in Jira Align — turn Feature 456 into specs", "should_trigger": true},
+  {"query": "Convert this Jira Align Feature and its stories into a product brief", "should_trigger": true},
+  {"query": "Decompose Jira Align Feature 1001 into work items", "should_trigger": true},
+  {"query": "Map this Jira Align Feature onto a brief and hand it off to receive-brief", "should_trigger": true},
+  {"query": "Intake this Jira Align Feature — it has child stories I want as user stories", "should_trigger": true},
+
+  {"query": "Create a Jira Align feature for this initiative", "should_trigger": false},
+  {"query": "Fetch the details of Feature 1234 from Jira Align", "should_trigger": false},
+  {"query": "Fix the Jira defect PROJ-123 end to end", "should_trigger": false},
+  {"query": "Turn this Jira epic PROJ-100 into shippable specs", "should_trigger": false},
+  {"query": "Write a spec for a single new feature", "should_trigger": false},
+  {"query": "What's the cycle time for this program's features?", "should_trigger": false},
+  {"query": "Pull flow metrics for program 42", "should_trigger": false},
+  {"query": "Shape the intent behind this initiative", "should_trigger": false},
+  {"query": "Decompose this 40-page PRD from the client", "should_trigger": false}
+]
