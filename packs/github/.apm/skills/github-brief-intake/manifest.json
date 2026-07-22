@@ -1,0 +1,39 @@
+{
+  "id": "github-brief-intake",
+  "name": "GitHub Brief Intake",
+  "version": "1.0.0",
+  "description": "Turn a GitHub Milestone into shippable specs: pull the milestone and its issues via the `gh` CLI, map them onto a Shape B product brief (milestone title -> Outcome draft, open and closed issues -> `US-n` user stories tagged with their issue number, milestone URL -> `Epic:` provenance pointer), write it to `docs/product/briefs/<slug>.md`, and hand off to the `receive-brief` skill to elicit gaps, decompose, and build. Closed issues are annotated `[closed]` in the story map. Gracefully degrades to an inlined decompose/execute instruction when `receive-brief` is not installed. Pure choreography over the `gh` CLI and `receive-brief` — no raw GitHub REST calls.",
+  "category": "workflows",
+  "tags": ["github", "milestone", "brief", "receive-brief", "intake", "workflow", "orchestration"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
+    "skills": [
+      {
+        "name": "receive-brief",
+        "source": "host repo — core pack — .apm/skills/receive-brief/ (projected to .claude/skills/receive-brief/)",
+        "purpose": "Owns Elicit (fill missing Outcome / Scope conversationally), Decompose (cut into shippable slices), and Execute (chain new-spec -> work-loop). The intake skill hands off the assembled brief and never reimplements elicitation. SOFT dependency: when absent, the skill degrades gracefully, producing the brief and inlining a decompose/execute instruction for the agent to act on."
+      }
+    ],
+    "system": [
+      {
+        "name": "gh",
+        "minimum_version": "2.0",
+        "install_hint": "https://cli.github.com — install the GitHub CLI, then run `gh auth login` for private repos"
+      }
+    ]
+  },
+  "input": {
+    "arguments": "a GitHub Milestone — specified as a milestone title (e.g. 'Q3 launch'), a milestone number, or a {owner}/{repo} + milestone. A single issue with no milestone container is out of scope — the skill recommends `new-spec` instead.",
+    "env": {}
+  },
+  "output": {
+    "artifacts": [
+      "docs/product/briefs/<slug>.md — a Shape B product brief: Outcome draft from the milestone title/description, one `US-n` story per issue tagged with its GitHub issue number (#NNN), closed issues annotated `[closed]`, the milestone html_url as the `Epic:` provenance pointer. Gaps (Success metrics, Appetite, silent Scope) are left for `receive-brief` to elicit.",
+      "a hand-off to the `receive-brief` skill (normal flow), or an inlined decompose/execute instruction (degraded flow when `receive-brief` is absent)."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}

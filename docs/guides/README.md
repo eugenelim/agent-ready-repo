@@ -56,6 +56,7 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | [`experience-design`](experience-design/) | [home](experience-design/) | The full design thread — journey mapping, screen flows, service blueprints, creative direction, design system, design review, and the `experience-reviewer` subagent. |
 | [`credential-brokers`](credential-brokers/) | [home](credential-brokers/) | The broker behind credentialed skills — secrets resolve in-process, never reaching the model. |
 | [`atlassian`](atlassian/) | [home](atlassian/) | Jira, Confluence, and flow metrics — `jira`, `confluence-crawler`/`-publisher`, `flow-metrics`, `jira-defect-flow`, and more. |
+| [`github`](github/) | [home](github/) | GitHub integration — `github-brief-intake` turns a Milestone into a product brief and hands off to `receive-brief`. |
 | [`contracts`](contracts/) | [home](contracts/) | Contract-first API design — `api-contract` (OpenAPI 3.1) with a pluggable house standard. |
 | [`converters`](converters/) | [home](converters/) | Documents in and out of Markdown — `file-to-markdown`, `markdown-to-docx`/`-pptx`/`-xlsx`, `mermaid-renderer`, `msg-to-markdown`. |
 | [`figma`](figma/) | [home](figma/) | The Figma REST primitive — read files, nodes, and comments; render frames; turn FigJam into Mermaid. |
