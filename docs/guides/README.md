@@ -60,6 +60,7 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | [`contracts`](contracts/) | [home](contracts/) | Contract-first API design — `api-contract` (OpenAPI 3.1) with a pluggable house standard. |
 | [`converters`](converters/) | [home](converters/) | Documents in and out of Markdown — `file-to-markdown`, `markdown-to-docx`/`-pptx`/`-xlsx`, `mermaid-renderer`, `msg-to-markdown`. |
 | [`figma`](figma/) | [home](figma/) | The Figma REST primitive — read files, nodes, and comments; render frames; turn FigJam into Mermaid. |
+| [`linear`](linear/) | [home](linear/) | Linear Issues and Projects — `linear` credentialed CLI plus `linear-brief-intake` (issue → product brief) and `linear-brief-sync` (delta catch-up). |
 | [`governance-extras`](governance-extras/) | [home](governance-extras/) | A written trail for decisions — `new-rfc`, `new-adr`, `update-conventions`. |
 | [`monorepo-extras`](monorepo-extras/) | [home](monorepo-extras/) | Monorepo scaffolding — `new-package` and a package template. |
 | [`user-guide-diataxis`](user-guide-diataxis/) | [home](user-guide-diataxis/) | The docs skeleton — Diátaxis quadrants plus `new-guide`. |

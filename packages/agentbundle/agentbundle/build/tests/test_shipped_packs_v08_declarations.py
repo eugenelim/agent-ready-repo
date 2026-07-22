@@ -13,6 +13,7 @@ declared v0.8 at birth. A future pack landing at v0.8 should add itself to
 ``V08_PACKS`` so this test surfaces the new declaration.
 
   - ``catalogue-curation`` (RFC-0059) landed at v0.8 and is registered here.
+  - ``linear`` (RFC-0068) landed at v0.8 and is registered here.
 
 Packs in-tree NOT at v0.8:
 
@@ -44,6 +45,7 @@ V08_PACKS = (
     "converters",
     "figma",
     "governance-extras",
+    "linear",
     "monorepo-extras",
     "user-guide-diataxis",
 )

@@ -1,0 +1,30 @@
+{
+  "id": "linear-brief-sync",
+  "name": "Linear Brief Sync",
+  "version": "0.1.0",
+  "description": "Catch up an existing product brief with changes in its linked Linear Issue: re-fetch via `linear get-issue`, diff Linear-sourced fields against the current brief, present section-level before/after for PE approval, and write only the approved changes. Refuses when brief Status is Executing. Protected fields (Outcome, Scope, Success metrics, Appetite, Spec map) are never overwritten. Pure choreography — composes the `linear` skill by name, never by path.",
+  "category": "workflows",
+  "tags": ["linear", "brief", "sync", "workflow", "read-only"],
+  "license": "MIT",
+  "deps": {
+    "skills": [
+      {
+        "name": "linear",
+        "source": "this pack — packs/linear/.apm/skills/linear/",
+        "purpose": "Re-fetches the Linear Issue for diff. Hard dependency — there is no degraded path without it."
+      }
+    ],
+    "system": []
+  },
+  "input": {
+    "arguments": "a brief path (e.g., docs/product/briefs/my-feature.md). The brief must contain a `**Linear:**` field with an issue identifier. If absent, the user is asked to provide the identifier explicitly."
+  },
+  "output": {
+    "artifacts": [
+      "docs/product/briefs/<slug>.md — updated in-place with only the PE-approved changes from the Linear diff."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}

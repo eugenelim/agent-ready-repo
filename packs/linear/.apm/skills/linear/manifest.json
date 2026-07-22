@@ -1,0 +1,30 @@
+{
+  "id": "linear",
+  "name": "Linear Client",
+  "version": "0.1.0",
+  "description": "Read Linear Issues and Projects via the GraphQL API. Exposes check, get-issue, and get-project subcommands. The agent never sees the API key. Read-only in v1 — write operations ship with the push-acs-to-linear follow-on.",
+  "category": "integrations",
+  "tags": ["linear", "graphql", "issue-tracking", "brief", "credentialed"],
+  "license": "MIT",
+  "deps": {
+    "pip": [
+      "httpx>=0.27",
+      "credbroker"
+    ]
+  },
+  "credentials": {
+    "namespace": "linear",
+    "setup": "credential-setup",
+    "schema": "references/creds-schema.toml"
+  },
+  "input": {
+    "arguments": "a subcommand and its arguments (e.g., get-issue ENG-123 or get-project <uuid>)"
+  },
+  "output": {
+    "fileTypes": [".json", ".jsonl"],
+    "layout": "JSON to stdout by default; --output writes to a file in the chosen --format"
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
