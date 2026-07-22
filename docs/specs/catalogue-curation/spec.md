@@ -1,6 +1,6 @@
 # Spec: catalogue-curation pack
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0059, ADR-0048, RFC-0055 (erratum/amendment convention), RFC-0002 (self-hosting)
