@@ -111,6 +111,7 @@ shipped = [
   "spec/m2-frame-intent-jtbd",                 # PR #599 — JTBD three-tier elicitation into frame-intent; back-compat assessed in spec
   "spec/m5-jira-align-brief-intake",           # atlassian pack 0.4.0; jira-align-brief-intake skill; 1-way intake, config-guided field map
   "spec/m5-github-brief-intake",              # github pack + github-brief-intake skill + how-to guide
+  "spec/portfolio-pack-first-value-contract",  # PR #602 — 17-pack first-value contract migration + lint gate
 ]
 queue   = [
   # ==================================================================
@@ -176,7 +177,7 @@ queue   = [
   # Done: inventory reconciles; required fields and negative fixtures pass; one
   # source change propagates or fails every governed consumer; manifest validation
   # green.
-  {path = "spec/portfolio-pack-first-value-contract"},
+  # spec/portfolio-pack-first-value-contract — moved to active
 
   # Problem: Architect is explicitly non-technical by setup posture, but portfolio
   # readiness is not proven by its existing tutorial or manifest alone
