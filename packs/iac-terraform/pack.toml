@@ -29,7 +29,7 @@ pack = "governance-extras"
 # mode + the extension-contract convention to governance-extras, so pin the NEW
 # minor those land in (bump governance-extras in the same PR) — never a range that
 # can resolve to a version predating them.
-version = ">=0.6"
+version = "^0.6"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
