@@ -17,10 +17,50 @@ Any time you need to orient: which initiative is active, what specs are ready to
 
 Open `workspace.toml` from the repo root. Parse it as TOML (`tomllib.loads()` in Python 3.11+ / `tomli.loads()` backport for earlier).
 
-**If absent:** offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file contains only the one-line comment:
+**If absent:** offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
 ```toml
-# workspace.toml — add ["<initiative-slug>"] sections to declare initiatives
+# workspace.toml
+#
+# Declared-intent coordination artifact for this repo.
+# Each initiative gets its own named section. Run `workspace-status` to surface
+# ready items, blocked items, and active signals.
+#
+# Queue entries are strings (no deps) or inline objects {path/slug, needs}
+# (with dependencies). `needs` uses queue-prefix notation:
+#   "work:<path>"      — depends on a work queue entry
+#   "shape:<slug>"     — depends on a shaping queue entry
+#   "research:<slug>"  — depends on a research entry
+#   "brief:<path>"     — depends on a brief queue entry
+#   "backlog:<slug>"   — depends on a repo-level [backlog] item
+# Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
+#
+# shaping_queue entry types: shape | research | strategy | signal | design
+#   shape    → frame-intent (or frame-situation when PE pack is available)
+#   research → desk-research-project-start (requires desk-research pack)
+#   strategy → frame-situation (PE pack — M2); interim: frame-intent
+#   signal   → no action; surfaces in "active context" section only
+#   design   → experience-status (requires experience-design pack); fallback: journey-mapping
+#
+# The top-level [backlog] section (repo-durable open work not scoped to any
+# active initiative) is distinct from a shaping_queue's `backlog` array.
+
+["<initiative-slug>"]
+name      = "<Initiative Name>"
+status    = "active"      # active | paused | closed
+milestone = "<milestone>"
+
+["<initiative-slug>".work]
+queue   = []  # ordered list of spec paths to build; earliest-first
+active  = []  # currently in-progress
+shipped = []  # completed
+
+["<initiative-slug>".shaping_queue]
+active  = []
+backlog = []
+
+[backlog]
+open = []
 ```
 
 **If present and unparseable:** surface the TOML parse error and stop — do not proceed with partial data.
