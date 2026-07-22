@@ -1,6 +1,6 @@
 [pack]
 name = "credential-brokers"
-version = "0.2.0"
+version = "0.2.1"
 description = "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill."
 readme = "README.md"
 display_name = "Credential Brokers"
@@ -36,3 +36,11 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (developers configuring credentialed skills); no first-run prompting required.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Ask the agent to show your credential broker status and confirm it responds with tier and resolution info."
+recovery         = "If the broker is missing, confirm credential-brokers is installed at user scope; run agentbundle install credential-brokers --scope user."
