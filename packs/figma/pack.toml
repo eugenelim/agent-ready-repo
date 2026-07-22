@@ -1,6 +1,6 @@
 [pack]
 name = "figma"
-version = "0.1.5"
+version = "0.1.6"
 description = "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid."
 readme = "README.md"
 display_name = "Figma"
@@ -45,10 +45,11 @@ email = "eugenelim@users.noreply.github.com"
 audience-posture = "non-technical"
 surfaces         = ["claude-code"]
 prerequisites    = ["Figma personal access token via the credential-brokers pack", "Access to a Figma file with at least view permission"]
-verification     = "Ask the agent 'List the files in my Figma workspace' and confirm it returns file names without an authentication error."
+verification     = "Ask the agent to check your Figma connection; it should confirm your account name is visible with no authentication error."
 recovery         = "If authentication fails, regenerate your Figma token at figma.com/settings, update it in the credential broker, and retry."
 level-b          = true
 starter-task     = "Read the contents of a Figma file you have access to"
 starter-prompt   = "Read the file structure of my main design file in Figma and list the page names and top-level frame names."
 expected-result  = "A list of pages and top-level frames from your Figma file, showing the design's navigation structure."
 next-action      = "Ask the agent to export a specific frame as a Markdown description to use in a spec or doc."
+tutorial         = "docs/guides/figma/tutorials/figma-first-session.md"
