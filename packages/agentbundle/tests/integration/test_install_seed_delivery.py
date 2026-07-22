@@ -49,7 +49,6 @@ def test_install_delivers_seeds(tmp_path):
         "AGENTS.md",
         "docs/CHARTER.md",
         "docs/CONVENTIONS.md",
-        "docs/backlog.md",
         "docs/specs/README.md",
         "docs/architecture/overview.md",
     ):

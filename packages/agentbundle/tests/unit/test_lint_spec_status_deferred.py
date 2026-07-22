@@ -1,9 +1,8 @@
-"""TDD stubs for lint-spec-status.py invariant (iv) dual-source rewrite.
+"""Tests for lint-spec-status.py invariant (iv) — workspace.toml [backlog] resolution.
 
 Tests:
-  (a) workspace-only slug passes check() — red until T4b wires the union in check()
-  (b) tombstone heading slug resolves — passes via existing backlog_anchors()
-  (c) slug-in-neither is a HARD violation
+  (a) workspace-only slug passes check()
+  (c) slug-absent-from-workspace.toml is a HARD violation
   (d) absent workspace.toml → backlog_open_slugs returns empty set
   (e) malformed TOML drives through backlog_open_slugs (not just _regex helper)
   (f) _regex_backlog_slugs directly resolves slugs from [backlog].open
@@ -27,15 +26,11 @@ def _load_lint_module() -> types.ModuleType:
 
 
 def test_workspace_only_slug_passes_check(tmp_path: Path) -> None:
-    """(a) Slug present only in workspace.toml [backlog].open — check() has no HARD violation."""
+    """(a) Slug in workspace.toml [backlog].open — check() has no HARD violation."""
     lint = _load_lint_module()
 
     workspace = tmp_path / "workspace.toml"
     workspace.write_text('[backlog]\nopen = [{slug = "my-ws-only-slug"}]\n', encoding="utf-8")
-
-    backlog = tmp_path / "docs" / "backlog.md"
-    backlog.parent.mkdir(parents=True)
-    backlog.write_text("# tombstone\n", encoding="utf-8")  # no heading with that slug
 
     specs = tmp_path / "docs" / "specs" / "my-spec"
     specs.mkdir(parents=True)
@@ -52,20 +47,8 @@ def test_workspace_only_slug_passes_check(tmp_path: Path) -> None:
     )
 
 
-def test_tombstone_heading_slug_passes(tmp_path: Path) -> None:
-    """(b) Slug from a docs/backlog.md heading resolves (tombstone backward-compat)."""
-    lint = _load_lint_module()
-
-    backlog = tmp_path / "docs" / "backlog.md"
-    backlog.parent.mkdir(parents=True)
-    backlog.write_text("### credbroker-phase-2\n\nsome text\n", encoding="utf-8")
-
-    anchors = lint.backlog_anchors(backlog.read_text())
-    assert "credbroker-phase-2" in anchors
-
-
-def test_slug_in_neither_is_hard_violation(tmp_path: Path) -> None:
-    """(c) Slug absent from both workspace.toml and backlog.md → HARD violation."""
+def test_slug_absent_from_workspace_is_hard_violation(tmp_path: Path) -> None:
+    """(c) Slug absent from workspace.toml [backlog].open → HARD violation."""
     lint = _load_lint_module()
 
     specs = tmp_path / "docs" / "specs" / "my-spec"
@@ -75,7 +58,6 @@ def test_slug_in_neither_is_hard_violation(tmp_path: Path) -> None:
         "- [ ] do thing (deferred: nonexistent-slug)\n",
         encoding="utf-8",
     )
-    (tmp_path / "docs" / "backlog.md").write_text("# tombstone\n", encoding="utf-8")
     (tmp_path / "workspace.toml").write_text("[backlog]\nopen = []\n", encoding="utf-8")
 
     hard, _warn = lint.check(tmp_path, base_ref=None)

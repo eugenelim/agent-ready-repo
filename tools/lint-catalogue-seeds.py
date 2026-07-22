@@ -103,7 +103,6 @@ REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
         "<package-name>",
     ),
     "docs/specs/README.md": ("<!-- no specs yet -->",),
-    "docs/backlog.md": ("<!-- no deferred items yet -->",),
     "docs/knowledge/patterns.jsonl": (),  # empty file required; see check
     "docs/rfc/README.md": ("<!-- no RFCs yet -->",),
     "docs/adr/README.md": ("<!-- no ADRs yet -->",),
