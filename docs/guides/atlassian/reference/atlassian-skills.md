@@ -54,6 +54,14 @@ Credentialed skills resolve secrets in-process through the tier ladder (environm
 - **Required credentials.** None — consumes local JSON files only.
 - **Source.** [`ai-adoption-report`](../../../../packs/atlassian/.apm/skills/ai-adoption-report/)
 
+## `jira-align-brief-intake`
+
+- **Purpose.** Turn a Jira Align Feature into a product brief and shippable specs. Fetches the Feature and its child stories, tasks, and defects via the `jira-align` skill, maps them onto a Shape B product brief (Feature title/description → Outcome, children → `US-n` user stories tagged with their Jira Align IDs, Feature ID → `Epic:` provenance pointer), writes it to `docs/product/briefs/<slug>.md`, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. 1-way intake only — never writes to Jira Align. Requires one-time customisation of the field mapping reference (`references/field-mapping.md`) for org-specific workflow state names and Program Increment cadences.
+- **Primary inputs.** A Jira Align Feature ID. Composes sibling and host skills by name: `jira-align` (reads only — `check`, `get features`, `list stories`/`tasks`/`defects` with `featureID eq` filter) and `receive-brief` (soft dependency — degrades gracefully when absent).
+- **Outputs.** A Shape B product brief at `docs/product/briefs/<slug>.md`, then a hand-off to `receive-brief` (or an inlined decompose/execute instruction in the degraded path).
+- **Required credentials.** None of its own — Jira Align access is inherited through the `jira-align` skill (`JIRAALIGN_BASE_URL`, `JIRAALIGN_API_TOKEN`).
+- **Source.** [`jira-align-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-align-brief-intake/)
+
 ## `jira-defect-flow`
 
 - **Purpose.** Handle a Jira defect end-to-end. Pulls the ticket via the `jira` skill, hands the fix to the `bug-fix` skill, opens a PR linking back to Jira, then comments and transitions the ticket. Stops at PR-opened by default; runs a dev-deploy step only when the consumer repo provides one. For defects, not stories, tasks, or feature work.

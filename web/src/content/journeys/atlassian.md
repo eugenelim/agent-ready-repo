@@ -14,6 +14,9 @@ skills:
   - name: jira-brief-intake
     description: "Converts a Jira epic into a structured engineering brief: problem, user, success criteria, and constraints — the input to a work-loop spec."
     humanTouches: 1
+  - name: jira-align-brief-intake
+    description: "Pulls a Jira Align Feature and its child stories/tasks/defects via the jira-align primitive, maps them to a Shape B product brief using a configuration-guided field mapping reference, and hands off to receive-brief."
+    humanTouches: 1
   - name: jira-defect-flow
     description: "Drives a defect from triage through root-cause analysis to fix, with the Jira issue updated at each stage."
     humanTouches: 2
