@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.4.0"
+version = "0.4.1"
 description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, and jira-align-brief-intake workflows that compose them."
 readme = "README.md"
 display_name = "Atlassian"
@@ -44,3 +44,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: mixed audience (developers + PMs); Atlassian credential requirement warrants a first-run prompt.
+[pack.first-value]
+audience-posture = "mixed"
+surfaces         = ["claude-code"]
+prerequisites    = ["Atlassian API token or SSO credentials via the credential-brokers pack"]
+verification     = "Ask the agent 'List my open Jira issues' and confirm it returns results without an authentication error."
+recovery         = "If authentication fails, run the credential-brokers setup to configure your Atlassian API token; if your org uses SSO, run the sso-broker flow first."
+level-b          = true
+starter-task     = "See your open Jira issues without opening a browser"
+starter-prompt   = "Show me the Jira issues currently assigned to me that are open or in progress."
+expected-result  = "A formatted list of your assigned Jira issues with status, priority, and issue keys."
+next-action      = "Ask the agent to draft a comment updating the status of your most urgent issue."

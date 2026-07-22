@@ -1,6 +1,6 @@
 [pack]
 name = "linear"
-version = "0.1.0"
+version = "0.1.1"
 description = "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief."
 readme = "README.md"
 display_name = "Linear"
@@ -30,3 +30,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: mixed audience (developers + PMs); requires Linear Personal API Key for first run.
+[pack.first-value]
+audience-posture = "mixed"
+surfaces         = ["claude-code"]
+prerequisites    = ["Linear Personal API Key — configure via the credential-brokers pack"]
+verification     = "Run `linear check` to confirm your credentials are working and your workspace is accessible."
+recovery         = "If authentication fails, reconfigure your Linear API key via the credential-brokers pack; verify the key has read access to the correct Linear workspace."
+level-b          = true
+starter-task     = "Check your Linear credentials and see your open issues"
+starter-prompt   = "Run linear check to confirm my credentials, then show me the open issues assigned to me in Linear."
+expected-result  = "Confirmation that your Linear credentials are valid, followed by a list of your open assigned issues."
+next-action      = "Ask the agent to run linear-brief-intake on one of the issues to convert it into a product brief."

@@ -1,6 +1,6 @@
 [pack]
 name = "converters"
-version = "0.9.0"
+version = "0.9.1"
 description = "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg and MIME .eml email → Markdown."
 readme = "README.md"
 display_name = "Converters"
@@ -39,3 +39,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: mixed audience (content authors + developers); document-conversion value is immediately tangible for non-technical users.
+[pack.first-value]
+audience-posture = "mixed"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Ask the agent to convert README.md to a Word document; confirm a README.docx file is created."
+recovery         = "If the conversion fails, check that the source file exists and is a supported format; try converting a simpler file first."
+level-b          = true
+starter-task     = "Export this project's README as a shareable Word document"
+starter-prompt   = "Convert README.md in this project to a Word document and save it as README.docx."
+expected-result  = "A README.docx file in the project root with the README content formatted as a Word document."
+next-action      = "Share README.docx with a teammate who does not use GitHub, or submit it as project documentation."

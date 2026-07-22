@@ -1,6 +1,6 @@
 [pack]
 name = "catalogue-curation"
-version = "0.1.1"
+version = "0.1.2"
 description = "Catalogue-operator skills: assimilate external primitives, survey repos, propose packs, and export white-label / attributed derivatives of the catalogue."
 readme = "README.md"
 display_name = "Catalogue Curation"
@@ -41,3 +41,11 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (pack maintainers) building or managing their own skill catalogue.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = ["core pack installed"]
+verification     = "Run assimilate-primitive on a test skill and confirm it is added to your catalogue."
+recovery         = "Check that the source pack path exists and is a valid pack.toml directory; re-run with --dry-run to preview changes before committing."

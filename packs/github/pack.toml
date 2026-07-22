@@ -1,6 +1,6 @@
 [pack]
 name = "github"
-version = "0.1.0"
+version = "0.1.1"
 description = "GitHub integration: `github-brief-intake` — turn a GitHub Milestone into a product brief and hand off to `receive-brief`."
 readme = "README.md"
 display_name = "GitHub"
@@ -29,3 +29,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: mixed audience (developers + PMs); requires GitHub token for first run.
+[pack.first-value]
+audience-posture = "mixed"
+surfaces         = ["claude-code"]
+prerequisites    = ["GitHub token with `repo` scope — configure via the credential-brokers pack"]
+verification     = "Run `github-brief-intake` on a GitHub Milestone and confirm a product brief draft is returned without an error."
+recovery         = "If authentication fails, reconfigure your GitHub token via the credential-brokers pack; ensure the token has `repo` scope and access to the target repository."
+level-b          = true
+starter-task     = "Turn a GitHub Milestone into a product brief"
+starter-prompt   = "Use github-brief-intake to convert my most recent open GitHub milestone into a product brief."
+expected-result  = "A structured product brief drafted from the milestone's issues, ready for hand-off to receive-brief."
+next-action      = "Ask the agent to run receive-brief on the drafted brief to formally queue it for implementation."

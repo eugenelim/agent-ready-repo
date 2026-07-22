@@ -1,6 +1,6 @@
 [pack]
 name = "product-engineering"
-version = "0.12.0"
+version = "0.12.1"
 description = "Shape product intent into shippable specs — and into the words users read. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (product-vision, product-strategy, capability, and feature intents are the same artifact at different levels — Level is an open recognized set decoupled from Scale): outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. `voice-and-microcopy` adds the content layer: characterize a product's voice and write blame-free, actionable UI copy. Upstream of the build loop, the `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief — diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks — no engine. Markdown skills + agent definitions, user-scope."
 readme = "README.md"
 display_name = "Product Engineering"
@@ -51,3 +51,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: non-technical audience (product managers, PEs); problem-framing value is immediately tangible without terminal knowledge.
+[pack.first-value]
+audience-posture = "non-technical"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Run frame-intent on a brief description of a problem you want to solve and confirm a framed intent artifact is produced."
+recovery         = "If frame-intent does not activate, confirm product-engineering is installed at user scope; re-run agentbundle install product-engineering --scope user."
+level-b          = true
+starter-task     = "Frame a problem you want your team to solve before writing a spec"
+starter-prompt   = "Help me frame the problem of new users not understanding the value of our product within the first session."
+expected-result  = "A framed intent artifact with the problem, the jobs-to-be-done, and the opportunity clearly stated."
+next-action      = "Use the framed intent to open a new brief, or share it with an engineer to start scoping a spec."

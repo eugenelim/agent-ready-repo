@@ -1,5 +1,5 @@
 {
   "name": "github",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GitHub integration: `github-brief-intake` — turn a GitHub Milestone into a product brief and hand off to `receive-brief`."
 }

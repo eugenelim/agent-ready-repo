@@ -1,6 +1,6 @@
 [pack]
 name = "contracts"
-version = "0.3.3"
+version = "0.3.4"
 description = "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract). User-scope default — contract style is portable across projects."
 readme = "README.md"
 display_name = "Contracts"
@@ -38,3 +38,11 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (API and event contract authors); no guided first-run prompting required.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Run api-contract on a service description and confirm an OpenAPI spec file is created."
+recovery         = "Confirm the pack is installed at repo scope and re-run adapt-to-project to refresh the skill index."

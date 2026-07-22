@@ -1,6 +1,6 @@
 [pack]
 name = "desk-research"
-version = "1.1.0"
+version = "1.1.1"
 description = "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 readme = "README.md"
 display_name = "Desk Research"
@@ -90,3 +90,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: mixed audience (researchers + PMs); research scaffolding value is tangible immediately for non-technical users.
+[pack.first-value]
+audience-posture = "mixed"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Run desk-research-project-start with a topic name and confirm a research scaffold is created in docs/product/research/."
+recovery         = "If the scaffold is not created, check your agentbundle-layout.toml for a [research] output_dir setting; if absent, the skill will prompt you to configure one."
+level-b          = true
+starter-task     = "Start a research project on a topic relevant to your work"
+starter-prompt   = "Start a desk research project on the competitive landscape for our product category."
+expected-result  = "A research project folder in docs/product/research/ with a structured brief and source tracking file."
+next-action      = "Run desk-research-project-digest to get a synthesized summary when you have collected enough sources."

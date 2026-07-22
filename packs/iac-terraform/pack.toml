@@ -1,6 +1,6 @@
 [pack]
 name = "iac-terraform"
-version = "0.1.0"
+version = "0.1.1"
 description = "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth."
 readme = "README.md"
 display_name = "IaC (Terraform)"
@@ -39,3 +39,11 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (DevOps/platform engineers); no first-run prompting required.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = ["core pack installed", "governance-extras pack installed", "terraform or opentofu CLI in PATH"]
+verification     = "Run generate-iac on a simple resource description and confirm .tf files are generated."
+recovery         = "Verify terraform is in PATH (run terraform version); confirm governance-extras is installed at repo scope."
