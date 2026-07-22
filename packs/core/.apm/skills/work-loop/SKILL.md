@@ -50,36 +50,7 @@ PLAN  ──►  EXECUTE  ──►  GATES  ──►  REVIEW  ──►  DECIDE
 
 ## The self-coverage gate
 
-The discipline: between human gates, **resolve everything a referent can resolve
-and surface only the irreducible** — value origination, irreversible risk, or value
-conflict. The self-coverage gate is a phase the loop runs, not a skill you may skip;
-where a harness offers structural enforcement, use it but never depend on it.
-
-Most of its steps are passes the loop already runs; two checks and one refusal item
-are net-new. In order:
-
-1. **Pre-mortem hook** — *existing (PLAN):* the assumption trio + declined-pattern
-   register.
-2. **Conditional domain-grounding** — *net-new (PLAN):* only when the build rests on
-   an ungrounded load-bearing domain claim, ground it before EXECUTE; otherwise it
-   degrades to "the spec already grounds this." Distinct from the EXECUTE
-   contract-grounding gate, which grounds API/library contracts, not domain claims.
-3. **Resolve-vs-surface disposition record** — *net-new (PLAN, closed at DECIDE):*
-   mark every open item either resolved-with-referent (cite the referent) or
-   surfaced-with-reason (value origination, irreversible risk, value conflict, or a
-   referent that genuinely failed). The
-   [resolve-vs-surface reference](references/self-coverage/resolve-vs-surface.md)
-   calibrates the call.
-4. **Fresh-context-adversarial review** — *existing (REVIEW):* reviewers selected
-   from the work-type-keyed roster.
-5. **Resolve-vs-surface routing** — *existing (DECIDE):* `Surface` + apply/defer.
-6. **Done-checklist refusal** — *net-new (DECIDE):* don't declare done until the
-   disposition record exists and every fresh-context finding is resolved.
-
-The two net-new checks are governed by the light/full mode the loop already runs at
-spec time — small in both, no second knob. Non-skippability rests on the named phase
-plus the step-6 refusal item. The full seven-module design-convergence battery is
-`discovery-loop`'s, never bolted onto this build loop.
+The discipline: between human gates, resolve everything a referent can resolve and surface only the irreducible. This gate is a phase the loop runs at PLAN, REVIEW, and DECIDE — not a skill you may skip. Three steps are **net-new** obligations (the rest overlap passes the loop already runs): **(1) conditional domain-grounding** at PLAN — only when the build rests on an ungrounded domain claim, distinct from the EXECUTE contract-grounding gate; **(2) resolve-vs-surface disposition record**, opened at PLAN and closed at DECIDE, calibrated against [`references/self-coverage/resolve-vs-surface.md`](references/self-coverage/resolve-vs-surface.md); and **(3) done-checklist refusal** at DECIDE — don't declare done until the record exists and every REVIEW finding is resolved. Full six-step protocol and light/full mode applicability: [`references/self-coverage/protocol.md`](references/self-coverage/protocol.md) — load when you need the complete sequence.
 
 ## Modes: light and full
 
@@ -292,16 +263,6 @@ For anything beyond trivial, *think before you write code*. Concretely:
   missing infra smoke check. It strengthens the assumption-trio — "the
   mechanism exists" is the kind of assumption that goes unsurfaced precisely
   because it doesn't feel like one.
-
-  For **infra/deploy** the mechanism is rarely one artifact; the preflight
-  enumerates a **multi-artifact set, each its own task-zero** — a
-  **verify-status** script, a **teardown** script, **test-data / mock-user
-  seeding**, a **provider-appropriate policy-as-code / CSPM scanner**
-  (per-provider-depth source, **mechanism-level not tool-level**, feeding both
-  the static preflight and the mandatory security pass), and a **durable
-  credential session** (establish once, reuse). Detail — and that none ship as
-  executable tooling — in
-  [`references/infra-verification.md`](references/infra-verification.md).
 
   Spikes and throwaway exploration are out of scope.
 - **Design tests up front, before any code.** The contract lives in
@@ -542,6 +503,8 @@ Run, in order, and only proceed if each passes:
 
 These are the project's **objective** completion criteria. If a gate fails,
 go to FIX. Don't move past a failing gate by editing the gate.
+
+**Pre-existing failure triage.** When a gate fails on a file not in the diff, it is pre-existing — the file-not-in-diff check is confirmation enough, no stash required. When the failing file IS in the diff but the failure looks unrelated to your change, confirm with `git show HEAD:<file>` or `git stash -u && <gate> && git stash pop`. If pre-existing: grep `[backlog].open` for the test or file name first — if no entry exists, add `{slug = "pre-existing-…", source = "pre-flight/<iso-date>"}` with a cold-start-sufficient comment, then treat the failure as a known-skip (continue, don't go to FIX). If the diff made the failure worse (more variants failing, new error messages), it is in-scope: go to FIX. Full entry schema, the three-condition known-skip heuristic, and the "made it worse" test: [`references/pre-flight-failures.md`](references/pre-flight-failures.md) (load on demand).
 
 > **Mechanical doc-drift check — `scripts/lint-spec-status.py`.** This skill
 > ships a stdlib Python lint at `scripts/lint-spec-status.py` (sibling to
