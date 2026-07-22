@@ -4,6 +4,10 @@
 our craft — end to end. By the end you'll have adopted a skill from a URL and
 seen where every guardrail fires.
 
+**Before you start.** Read [Skill standards](../explanation/skill-standards.md) — it tells you what you're measuring incoming material against.
+When assimilating, the three standards apply in reverse: you review the incoming skill against them rather than building to them.
+Standard 3 (OWASP AST) applies with extra weight here because the material arrives from outside.
+
 You need the `catalogue-curation` pack installed (it requires `core` +
 `governance-extras`).
 
@@ -56,5 +60,20 @@ source.
 
 Every step had a guardrail: scheme allowlist, raw-content review, code confirm,
 repo lints/scanners, collision check, anti-pattern steering, path-jail. That's
-the difference between *adopting* a skill and *pasting* one. Next: survey a whole
-repo at once — see [Survey a repo](../how-to/survey-a-repo.md).
+the difference between *adopting* a skill and *pasting* one.
+
+## Definition of done
+
+Before the skill is fully landed, verify:
+
+- [ ] Raw body confirmed safe (human review of the verbatim fetch output)
+- [ ] OWASP AST review ran and returned clean (handled by `assimilate-primitive`)
+- [ ] `make build-self` ran without error after landing
+- [ ] `agentbundle show <pack>` lists the assimilated skill by name
+- [ ] Activation evals authored and passing (`evals/eval_queries.json`)
+- [ ] PR open; adversarial review returned `Clean — ready to commit.`
+
+The [full definition-of-done table](../explanation/skill-standards.md#the-definition-of-done--both-paths) in the standards file covers both assimilation and writing paths side by side.
+
+Next: survey a whole repo at once — see [Survey a repo](../how-to/survey-a-repo.md).
+Or bring in a subagent — see [Your first subagent](./your-first-subagent.md).
