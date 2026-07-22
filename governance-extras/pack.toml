@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "0.8.1"
+version = "0.8.2"
 description = "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -67,3 +67,4 @@ starter-prompt   = "Create an ADR for the decision to use TOML as the format for
 expected-result  = "A new ADR file in docs/adr/ that records the decision, its rationale, and the alternatives considered."
 next-action      = "Share the ADR with your team and link to it from the relevant code or config file."
 safety-gate      = "The new-adr skill shows you a preview of the ADR content and the target file path before writing anything. Confirm the preview before the file is created."
+tutorial         = "docs/guides/governance-extras/tutorials/governance-extras-first-session.md"
