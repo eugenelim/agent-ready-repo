@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`jira-align-brief-intake` skill (atlassian pack 0.4.0).** Turns a Jira Align Feature into a product brief and shippable specs: fetches the Feature and its child stories, tasks, and defects via the `jira-align` skill, maps them onto a Shape B product brief using a configuration-guided field mapping reference (customised for org-specific workflow state names and Program Increment cadences), and hands off to `receive-brief` to elicit gaps, decompose, and build. 1-way intake only — never writes to Jira Align. Mirrors the `jira-brief-intake` choreography pattern for Jira Align's program-level delivery unit. ([RFC-0064 M5](../rfc/0064-ini-001-ai-native-ecosystem.md))
+
 ### Fixed
 
 - **Claude plugin marketplace manifest now passes `claude plugin validate` (Claude Code 2.1.209).** Three generator defects caused 35 errors: (1) marketplace missing top-level `name` field, (2) plugin `author` emitted as a plain string instead of a `{name, email}` object, (3) plugin `source` field absent entirely. All three are fixed in the build pipeline (`derive_projectable_subset`, `_run_aggregate`, `_aggregate_marketplace`). The `.claude-plugin/marketplace.json` in the working tree now validates with 0 errors.
