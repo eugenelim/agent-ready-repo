@@ -1,6 +1,6 @@
 {
   "name": "governance-extras",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs.",
   "hooks": {
     "SessionStart": [

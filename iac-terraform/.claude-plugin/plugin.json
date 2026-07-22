@@ -1,6 +1,6 @@
 {
   "name": "iac-terraform",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth.",
   "hooks": {
     "SessionStart": [

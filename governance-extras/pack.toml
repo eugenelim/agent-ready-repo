@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "0.8.0"
+version = "0.8.1"
 description = "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -52,3 +52,18 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: mixed audience (teams making architectural decisions); RFC-0064 "preview-confirm write" archetype — writes shared governance records.
+[pack.first-value]
+audience-posture = "mixed"
+surfaces         = ["claude-code"]
+prerequisites    = ["core pack installed at repo scope"]
+verification     = "Run rfc-status and confirm it lists the RFC lifecycle states without error."
+recovery         = "If rfc-status fails, confirm governance-extras is installed at repo scope; check that docs/rfc/ exists in your repo."
+level-b          = true
+writes-to-repo   = true
+starter-task     = "Record an architectural decision your team has already made"
+starter-prompt   = "Create an ADR for the decision to use TOML as the format for our workspace coordination file."
+expected-result  = "A new ADR file in docs/adr/ that records the decision, its rationale, and the alternatives considered."
+next-action      = "Share the ADR with your team and link to it from the relevant code or config file."
+safety-gate      = "The new-adr skill shows you a preview of the ADR content and the target file path before writing anything. Confirm the preview before the file is created."

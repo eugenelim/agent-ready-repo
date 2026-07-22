@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.13.1"
+version = "0.13.2"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 readme = "README.md"
 display_name = "Architect"
@@ -56,3 +56,16 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/gu
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
+
+# Level B: non-technical/mixed audience (product managers, non-engineer leads) needing plain-language architecture guidance.
+[pack.first-value]
+audience-posture = "non-technical"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Ask the agent 'What does the architecture of this project look like?' and confirm it replies with structural context."
+recovery         = "If the agent says it cannot find architectural context, it will offer to create a reference.md — accept to begin."
+level-b          = true
+starter-task     = "Get a plain-language map of how this codebase is organized"
+starter-prompt   = "Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions."
+expected-result  = "A docs/architecture/reference.md file with the codebase's key components and structural decisions described in plain language."
+next-action      = "On your next design question, ask: 'Does this approach align with our reference architecture?'"

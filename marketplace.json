@@ -29,7 +29,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.13.1"
+      "version": "0.13.2"
     },
     {
       "author": {
@@ -55,7 +55,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.4.0"
+      "version": "0.4.1"
     },
     {
       "author": {
@@ -81,7 +81,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.3.3"
+      "version": "0.3.4"
     },
     {
       "author": {
@@ -108,7 +108,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.9.0"
+      "version": "0.9.1"
     },
     {
       "author": {
@@ -134,7 +134,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.13.3"
+      "version": "0.13.4"
     },
     {
       "author": {
@@ -160,7 +160,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "author": {
@@ -186,7 +186,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "1.1.0"
+      "version": "1.1.1"
     },
     {
       "author": {
@@ -213,7 +213,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "1.1.0"
+      "version": "1.1.1"
     },
     {
       "author": {
@@ -239,7 +239,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.4"
+      "version": "0.1.5"
     },
     {
       "author": {
@@ -266,7 +266,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": {
@@ -291,7 +291,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.8.0"
+      "version": "0.8.1"
     },
     {
       "author": {
@@ -318,7 +318,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": {
@@ -344,7 +344,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": {
@@ -369,7 +369,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.2"
+      "version": "0.1.3"
     },
     {
       "author": {
@@ -395,7 +395,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.12.0"
+      "version": "0.12.1"
     },
     {
       "author": {
@@ -422,7 +422,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": {
@@ -449,7 +449,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": {
@@ -475,7 +475,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.6"
+      "version": "0.1.7"
     }
   ]
 }

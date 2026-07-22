@@ -1,6 +1,6 @@
 {
   "name": "contracts",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
   "hooks": {
     "SessionStart": [

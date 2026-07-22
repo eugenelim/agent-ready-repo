@@ -1,6 +1,6 @@
 {
   "name": "credential-brokers",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
   "hooks": {
     "SessionStart": [
