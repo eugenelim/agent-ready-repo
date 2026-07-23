@@ -136,7 +136,9 @@ Before PLAN begins, orient to the current initiative and work queue:
        (e.g. `"M1 · Workspace Foundation"`).
      - **Active spec (argless only — skip when a spec path is given):**
        Collect every path in `["ini-NNN".work].active` across all active
-       initiatives. Exactly one → begin on that spec without asking. Zero
+       initiatives. Exactly one → state the resolved spec path in the
+       orientation block (e.g., "Beginning on `docs/specs/<slug>/spec.md`")
+       and begin on that spec without asking. Zero
        → surface "No active spec found — run `workspace-status` to see
        what's ready to start." More than one (single initiative or across
        initiatives) → list all and ask the user to pick.
@@ -166,10 +168,11 @@ build items only."
 
 If `workspace.toml` was absent or an explicit spec path was passed,
 proceed to step 1 (PLAN) immediately. Otherwise a path must be resolved:
-if exactly one active item, strip the `spec/` prefix, then read
-`docs/specs/<slug>/spec.md` and `plan.md` as step 1 of PLAN. In the
-zero and multi-item branches, stop after surfacing the message or list
-and do not proceed until the user picks.
+if exactly one active item, state the resolved path (e.g.,
+"Beginning on `docs/specs/<slug>/spec.md`") in the orientation block, strip
+the `spec/` prefix, then read `docs/specs/<slug>/spec.md` and `plan.md` as
+step 1 of PLAN. In the zero and multi-item branches, stop after surfacing
+the message or list and do not proceed until the user picks.
 
 ### 1. PLAN — think before acting
 

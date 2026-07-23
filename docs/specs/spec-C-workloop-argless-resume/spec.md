@@ -42,7 +42,7 @@ A user who invokes `work-loop` without a spec path argument — or who types "re
 ## Testing Strategy
 
 All criteria use **goal-based check**: the SKILL.md body is read against the spec's three-branch contract and the removed first-path language. The change is to a markdown skill body; no compiled artifact. **Manual QA** — five invocation scenarios:
-1. `workspace.toml` present, one active spec → loop begins without asking.
+1. `workspace.toml` present, one active spec → resolved path stated in orientation block, loop begins without asking.
 2. `workspace.toml` present, zero active specs → "No active spec found…" message.
 3. `workspace.toml` present, two active specs in one initiative → list presented, user asked to pick.
 4. `workspace.toml` present, two active specs across two initiatives → list presented (same Branch 3 path as scenario 3).
@@ -53,7 +53,7 @@ All criteria use **goal-based check**: the SKILL.md body is read against the spe
 
 - [x] **AC1.** `work-loop` SKILL.md `description:` field includes all five RFC-0067 §C trigger phrases: "resume", "continue", "keep going", "pick up where I left off", "let's get going".
 - [x] **AC2.** The three-branch logic governs only the **argless invocation path** (no spec path argument passed to `work-loop`). When `workspace.toml` is absent, the existing skip behavior is preserved: Step 0 exits silently and PLAN begins immediately, as today. When `workspace.toml` is present and the active array logic runs, the three branches are:
-  - Branch 1 (exactly one active item across all `["ini-NNN"]` sections with `status = "active"`): begin the loop on that spec without asking.
+  - Branch 1 (exactly one active item across all `["ini-NNN"]` sections with `status = "active"`): state the resolved path in the orientation block (e.g., "Beginning on `docs/specs/<slug>/spec.md`") before beginning.
   - Branch 2 (zero active items, `workspace.toml` present): surface "No active spec found — run `workspace-status` to see what's ready to start."
   - Branch 3 (more than one active item, from a single initiative's multi-element `.active` array or across multiple initiatives): list all active paths and ask the user to pick before beginning.
 - [x] **AC3.** The first-path auto-pick language is removed: the phrase "the first path in `[\"<slug>\".work].active`" (or equivalent) no longer appears in Step 0.
