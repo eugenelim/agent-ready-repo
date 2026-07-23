@@ -3,6 +3,13 @@ pack: atlassian
 scope: user
 tagline: "Jira and Confluence from the agent — with DORA metrics."
 prerequisitePacks: []
+contract:
+  useItWhen: "You need to query Jira, publish to Confluence, or produce AI adoption metrics from your team's Jira data."
+  youProvide: "A configured credential, a JQL scope, and a reporting window or Confluence target."
+  youReceive: "A Markdown adoption report with metric deltas and a JSON sidecar, or a published Confluence page."
+  yourDecisions:
+    - "Set the scope, confirm the credential, and agree the labeling convention"
+    - "Review the report before it is published or shared"
 whatChanges: "After installing atlassian, Jira and Confluence are reachable from your agent session via credentialed REST API calls. `jira` and `jira-align` search, fetch, create, and update issues. `confluence-crawler` and `confluence-publisher` read and write wiki pages. `flow-metrics` computes DORA and Flow Framework metrics over a Jira scope. `jira-brief-intake` turns a Jira epic into a structured engineering brief. The credential resolves in-process via credential-brokers — it never reaches the model."
 skills:
   - name: jira
@@ -77,24 +84,25 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Configure credentials and scope
+## 1. Configure credentials and scope
 
-Before any API call, the agent checks that a credential is configured via `credential-brokers`. For first-time setup, it walks you through generating a Jira API token and storing it in your OS keychain — the token never appears in a file the agent can read. It then asks you to confirm the JQL scope or Confluence target before running the first query.
-
-**You:** Confirm the credential is in place — or tell the agent to set it up. Name the scope explicitly: project key, date range, and any filters (component, label, team). For AI adoption reports, decide whether you're running a cohort split within one window (`labels = ai-assisted` vs unlabeled) or a before/after comparison across two windows. A scoped query takes 10 seconds to define; an unscoped query returns every issue in the project and the numbers will be meaningless.
-
----
-
-## Stage 2 — Collect and compute
-
-With credentials and scope confirmed, the agent runs the appropriate skill. For `flow-metrics`, it reads Jira changelogs — never the issues themselves — and computes cycle time, throughput, defect ratio, rework rate, and flow distribution for the scoped period. For a cohort split, it measures the AI-labeled and unlabeled stories against the same window and records both sides in the JSON output. For a program-level rollup, it runs one invocation per project and then passes all JSON files to `ai-adoption-report program`.
-
-**You:** Watch the collection complete. If the agent reports an unmapped status or an empty cohort, address it before continuing — an unmapped status exits with the offending name, and an empty cohort means no stories were labeled in that window. It's faster to fix the scope or labeling than to interpret a report built on incomplete data.
+- **Agent does:** checks that a credential is configured via `credential-brokers`; for first-time setup, walks you through generating a Jira API token and storing it in your OS keychain — the token never appears in a file the agent can read.
+- **You decide:** confirm the credential is in place at the G-scope gate, or tell the agent to set it up; name the JQL scope explicitly — project key, date range, and any filters; for AI adoption reports, choose between a cohort split within one window or a before/after comparison across two windows.
+- **Output:** a confirmed credential and a scoped query ready to run.
 
 ---
 
-## Stage 3 — Review the report and share
+## 2. Collect and compute
 
-The agent presents the adoption report — a Markdown file with metric deltas, a per-scope table (program mode), and a JSON sidecar — for your review before any further action.
+- **Agent does:** runs the appropriate skill — `flow-metrics` reads Jira changelogs and computes cycle time, throughput, defect ratio, rework rate, and flow distribution; for cohort splits, measures AI-labeled and unlabeled stories against the same window; for program rollups, runs one invocation per project and then passes all JSON files to `ai-adoption-report program`.
+- **You do:** watch the collection complete; if the agent reports an unmapped status or an empty cohort, address it before continuing — fixing the scope or labeling is faster than interpreting a report built on incomplete data.
+- **Output:** a JSON output file, or set of files for program mode, ready for reporting.
 
-**You:** Check that the numbers match your informal expectations. An unexpectedly large or small cohort, a metric that looks implausible, or a scope that accidentally included cancelled work are all worth investigating before the report leaves the session. Once you're satisfied, tell the agent how to share it: publish to Confluence, paste into a Teams update, or extract the headline numbers for a slide. The JSON sidecar is available for dashboards or Power BI if you need a structured feed rather than a formatted document.
+---
+
+## 3. Review the report and share
+
+- **Agent does:** presents the adoption report — a Markdown file with metric deltas, a per-scope table for program mode, and a JSON sidecar.
+- **You do:** check that the metric values match your informal expectations; investigate any unexpectedly large or small cohort, an implausible metric, or a scope that accidentally included cancelled work.
+- **You decide:** once satisfied at the G-output gate, choose how to share — publish to Confluence, paste into a Teams update, or extract the headline numbers for a slide.
+- **Output:** a reviewed adoption report shared via the chosen channel, with a JSON sidecar available for dashboards.
