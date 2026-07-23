@@ -508,3 +508,103 @@ if ! grep -qF -- "'model' must be a string" <<< "$out_norway_model"; then
 fi
 
 echo "✓ Self-test (Norway-scalar required-string fields): passed (description + model both refused cleanly)."
+
+# ── APM skill-body leak guard ─────────────────────────────────────────────
+#
+# Negative: SKILL.md body contains a catalogue-internal reference (agent-ready-repo).
+# LINT_APM_ROOT points the linter at a temp skills dir; LINT_ROOT points at an
+# empty dir so the .claude/ scan produces no false errors.
+
+TMP_APM_LEAK="$(mktemp -d)"
+TMP_APM_CLEAN="$(mktemp -d)"  # empty — linter warns but exits 0 for .claude/ part
+trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS" "$TMP_DEEP" "$TMP_FOLDED" "$TMP_NORWAY_BOOL" "$TMP_NORWAY_NAME" "$TMP_NORWAY_DESC" "$TMP_NORWAY_MODEL" "$TMP_APM_LEAK" "$TMP_APM_CLEAN"' EXIT
+
+# Leak: catalogue name in SKILL.md body.
+mkdir -p "$TMP_APM_LEAK/leaky-skill"
+cat > "$TMP_APM_LEAK/leaky-skill/SKILL.md" <<'EOF'
+---
+name: leaky-skill
+description: Skill that leaks an internal catalogue reference.
+---
+
+See agent-ready-repo for context on how this skill was designed.
+EOF
+
+set +e
+out_leak="$(LINT_APM_ROOT="$TMP_APM_LEAK" LINT_ROOT="$TMP_APM_CLEAN" \
+  python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_leak=$?
+set -e
+
+if (( exit_leak == 0 )); then
+  echo "✖ apm-leak-catalogue-name: lint exited 0; expected non-zero." >&2
+  echo "---" >&2
+  echo "$out_leak" >&2
+  echo "---" >&2
+  exit 1
+fi
+if ! grep -qF "agent-ready-repo" <<< "$out_leak"; then
+  echo "✖ apm-leak-catalogue-name: output missing 'agent-ready-repo'." >&2
+  echo "---" >&2
+  echo "$out_leak" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+# Leak: RFC reference in an examples/ file.
+mkdir -p "$TMP_APM_LEAK/leaky-skill/examples"
+cat > "$TMP_APM_LEAK/leaky-skill/examples/example.md" <<'EOF'
+# Example
+
+This example was designed per RFC-0042 requirements.
+EOF
+
+set +e
+out_rfc="$(LINT_APM_ROOT="$TMP_APM_LEAK" LINT_ROOT="$TMP_APM_CLEAN" \
+  python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_rfc=$?
+set -e
+
+if (( exit_rfc == 0 )); then
+  echo "✖ apm-leak-rfc-ref: lint exited 0; expected non-zero." >&2
+  echo "---" >&2
+  echo "$out_rfc" >&2
+  echo "---" >&2
+  exit 1
+fi
+if ! grep -qF "catalogue RFC reference" <<< "$out_rfc"; then
+  echo "✖ apm-leak-rfc-ref: output missing 'catalogue RFC reference'." >&2
+  echo "---" >&2
+  echo "$out_rfc" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+# Positive: clean skill passes.
+TMP_APM_OK="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS" "$TMP_DEEP" "$TMP_FOLDED" "$TMP_NORWAY_BOOL" "$TMP_NORWAY_NAME" "$TMP_NORWAY_DESC" "$TMP_NORWAY_MODEL" "$TMP_APM_LEAK" "$TMP_APM_CLEAN" "$TMP_APM_OK"' EXIT
+mkdir -p "$TMP_APM_OK/clean-skill"
+cat > "$TMP_APM_OK/clean-skill/SKILL.md" <<'EOF'
+---
+name: clean-skill
+description: A skill with no catalogue leaks.
+---
+
+This skill body contains no internal governance references.
+EOF
+
+set +e
+out_clean="$(LINT_APM_ROOT="$TMP_APM_OK" LINT_ROOT="$TMP_APM_CLEAN" \
+  python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_clean=$?
+set -e
+
+if (( exit_clean != 0 )); then
+  echo "✖ apm-clean: lint exited $exit_clean; expected 0." >&2
+  echo "---" >&2
+  echo "$out_clean" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+echo "✓ Self-test (APM skill-body leak guard): passed (catalogue-name + RFC-ref refused; clean skill accepted)."
