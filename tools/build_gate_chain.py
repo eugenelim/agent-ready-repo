@@ -12,6 +12,8 @@ in one command on any platform:
                                                      # -> spec-status (self-test+lint)
                                                      # -> brief-coverage (self-test+lint)
                                                      # -> traceability (self-test+lint)
+                                                     # -> first-value-contract (self-test+lint)
+                                                     # -> validate-claude-plugin-manifests
 
 **Why it lives in `tools/`, not the shipped `agentbundle` package.** It
 orchestrates *this repo's* gates: `build-check` spawns repo-native scripts —
@@ -125,9 +127,10 @@ def build_check(args: argparse.Namespace) -> int:
 
     lint-packs → build → check → pre-pr-catalogue → lint-spec-status
     (self-test + lint) → brief-coverage (self-test + lint) → traceability
-    (self-test + lint), in that order. The
-    SAST leg is intentionally omitted (Semgrep has no Windows support and is
-    conditional) — it stays Makefile-appended after this chain.
+    (self-test + lint) → first-value-contract (self-test + lint) →
+    validate-claude-plugin-manifests, in that order. The SAST leg is
+    intentionally omitted (Semgrep has no Windows support and is conditional)
+    — it stays Makefile-appended after this chain.
     """
     packs_dir = args.packs_dir
     steps: list[Step] = [
@@ -168,6 +171,7 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _script_step("test-lint-first-value-contract", "tools", "test-lint-first-value-contract.py"),
         _script_step("lint-first-value-contract", "tools", "lint-first-value-contract.py"),
+        _script_step("validate-claude-plugin-manifests", "tools", "validate-claude-plugin-manifests.py"),
     ]
     return _run_chain(steps)
 
@@ -188,7 +192,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     bc = sub.add_parser(
         "build-check",
-        help="lint-packs, build, check, pre-pr-catalogue, spec-status, brief-coverage, traceability (no SAST).",
+        help="lint-packs, build, check, pre-pr-catalogue, spec-status, brief-coverage, traceability, first-value-contract, validate-claude-plugin-manifests (no SAST).",
     )
     bc.add_argument("--packs-dir", default="packs")
     bc.add_argument(
