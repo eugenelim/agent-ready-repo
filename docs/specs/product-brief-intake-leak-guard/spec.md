@@ -1,6 +1,6 @@
 # Spec: product-brief-intake-leak-guard
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 
 Mode: light (no risk trigger fired)

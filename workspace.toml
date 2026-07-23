@@ -251,16 +251,6 @@ open = [
   # Unblocks when: Azure worked example is authored and passes the three-command gate.
   {slug = "iac-terraform-azure-validation"},
 
-  # spec/product-brief-intake reviewer follow-on. The adopter-facing leak guard (no
-  # agent-ready-repo / RFC-NNNN / catalogue-spec-name) is enforced by
-  # tools/lint-catalogue-seeds.py for seed files only. The shipped receive-brief/
-  # SKILL.md and examples/*.md live under packs/core/.apm/skills/ — outside the lint's
-  # scope, clean by inspection but unguarded against regression.
-  # Fix: extend tools/lint-agent-artifacts.py to cover shipped-skill bodies and
-  #   examples/ under packs/core/.apm/skills/.
-  # Unblocks when: someone extends the lint during a routine maintenance PR.
-  {slug = "product-brief-intake-leak-guard"},
-
   # Platform site (web/). The site ships zero social proof or credibility signal —
   # no version/recency badge, no install count, no adopter logos, no dogfooding claim.
   # The strongest available honest signals: agentbundle PyPI version badge, install
@@ -277,18 +267,6 @@ open = [
   # Fix: run the mobile audit; open a mobile-CSS PR.
   # Unblocks when: screened on actual mobile viewport + physical device.
   {slug = "site-mobile-responsiveness"},
-
-  # tools/validate-claude-plugin-manifests.py runs in publish CI (publish-plugins.yml)
-  # but not the normal local build-check path. A manifest contract failure that CI
-  # would catch is invisible to a standard make build-check run.
-  # Fix: wire the existing validator into the documented local preflight (e.g. a make
-  #   target or a build-check step), or add a tested, documented exception if the
-  #   parity difference is intentional. Reuse the validator; do not duplicate schema
-  #   logic.
-  # File: tools/validate-claude-plugin-manifests.py + Makefile (or build-check path).
-  # Done: the normal local preflight catches the same manifest contract failure as
-  #   publish CI, or the deliberate difference is executable and documented.
-  {slug = "local-claude-manifest-validator-gate"},
 
   # docs/guides/desk-research/tutorials/desk-research-first-session.md line 15 says
   # `agentbundle install research --scope user` but the pack id is `desk-research`
