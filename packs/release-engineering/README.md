@@ -24,7 +24,7 @@ Repo scope, into the **build repo** — the same repo `work-loop` ran in (where 
 deploy-ready component lives and `core` is repo-installed):
 
 ```bash
-agentbundle install release-engineering --scope repo
+agentbundle install --pack release-engineering <catalogue> --scope repo
 ```
 
 The pack **hard-depends on `core`** and reuses its `operational-safety` modules +
