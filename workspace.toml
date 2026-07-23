@@ -240,16 +240,6 @@ open = [
   # Unblocks when: apm-leak-lint-rfc RFC is approved, or explicit approval obtained.
   {slug = "credbroker-frozen-pack-ref-sweep", source = "spec/apm-internal-ref-sweep"},
 
-  # Security. Both markdown-to-html and render-proof load mermaid@11 from jsDelivr
-  # with a floating major-range specifier and no integrity= hash. A CDN compromise
-  # or MITM could inject arbitrary JS into the generated page's origin, bypassing
-  # DOMPurify. Affects two script tags in each skill.
-  # Fix: pin an exact patch version (mermaid@11.a.b) and add integrity="sha384-..."
-  #   + crossorigin="anonymous" to both script tags, or vendor mermaid locally.
-  # File: packs/converters/.apm/skills/markdown-to-html + render-proof (script tags).
-  # Unblocks when: a specific Mermaid patch version is chosen and its SRI hash computed.
-  {slug = "cdn-sri-mermaid", source = "spec/mermaid-rendering-improvements"},
-
   # RFC-0065 D5 (source-author review 2026-07-18). Azure shipped contract-complete
   # in iac-terraform v1 (four provider files + providers/azure.md) but no worked
   # example has passed terraform init -backend=false && fmt -check && validate. The
