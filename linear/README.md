@@ -15,7 +15,8 @@ evolves.
 ## Install
 
 ```bash
-agentbundle install linear
+# <catalogue> is your catalogue URI: a local clone path or a git+https://… URL.
+agentbundle install --pack linear <catalogue>
 ```
 
 Requires the `credential-brokers` pack for API key resolution. After install,

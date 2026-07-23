@@ -51,19 +51,33 @@ If any of these checks fail, push back rather than proceeding.
    belongs in the Decision section, not the H1. A title that compresses the whole
    argument into a clause makes the ADR index hard to scan.
 
-3. Copy this skill's bundled `assets/adr.md` into `docs/adr/` and
-   rename to `NNNN-<title>.md`. (Paths are skill-relative — the
-   `assets/` folder lives next to this `SKILL.md` wherever your IDE
-   installed the skill.)
+3. **Resolve the write target — before creating anything.** Establish *where*
+   this ADR will live and surface it, before any file exists:
+   - **Resolve and display the repository root** — the absolute path the ADR
+     and its index live under — so the author sees where the write will land.
+   - **Inspect the project's instructions and governance conventions**
+     (`AGENTS.md` / `CLAUDE.md`, `docs/CONVENTIONS.md`) for an ADR location, a
+     numbering rule, or an identity convention that overrides the defaults here.
+   - **Determine whether the project uses a non-default ADR location.** The
+     default is `docs/adr/`; if the conventions or the existing tree place ADRs
+     elsewhere, use that location (and its sibling index) instead.
+
+   You now hold the number (step 1), the filename (step 2), and the target
+   directory — but **nothing is on disk yet.** The bundled `assets/adr.md`
+   template is copied and renamed to `NNNN-<title>.md` only after the preview
+   gate (step 7) clears. (Paths are skill-relative — the `assets/` folder lives
+   next to this `SKILL.md` wherever your IDE installed the skill.)
 
 4. Fill in the frontmatter: status `Proposed`, today's date, the
    `Decision-makers` who own the call, and — when the decision was run past
    others — the `Consulted` (whose input was sought, two-way) and `Informed`
    (who is kept up to date, one-way). Delete the `Consulted`/`Informed` lines
-   if neither applies. Keep the metadata *pointer-like* — `Consulted` and
-   `Related` are short lists of handles and ADR/RFC/spec references, not prose.
-   If a relationship needs explaining, the explanation goes in Context or
-   References, never in the frontmatter.
+   if neither applies. **Identify people however the project does** — a name, a
+   GitHub handle, or an email are all valid; don't assume GitHub handles unless
+   the project's conventions require them. Keep the metadata *pointer-like* —
+   `Consulted` and `Related` are short lists of identifiers and ADR/RFC/spec
+   references, not prose. If a relationship needs explaining, the explanation
+   goes in Context or References, never in the frontmatter.
 
 5. **Frame the decision before drafting — offer, don't force.** An ADR records a
    decision *already made*, so the job here is to isolate it cleanly, not to
@@ -122,12 +136,36 @@ If any of these checks fail, push back rather than proceeding.
      — no foreseeable trigger` is a valid explicit value, not a reason to omit
      the line.
 
-7. Update `docs/adr/README.md` to add the new ADR to the table.
+7. **Preview and confirm — the write gate.** Before creating the file or
+   touching any index, show the author, in the conversation:
+   - the **identifier** — `ADR-NNNN`;
+   - the **status** — `Proposed`;
+   - the **target path** — absolute *and* repo-relative;
+   - the **index path** that will gain a row;
+   - a **content preview** of the drafted ADR.
 
-8. Leave the status `Proposed`. Once the decision-makers sign off, mark it
-   `Accepted`; if they decline it, mark it `Rejected` and keep the file — a
-   recorded rejection stops the same option being re-proposed later. After
-   `Accepted`, the body is frozen (see Lifecycle below).
+   Then **wait for explicit confirmation. Do not create the document and do not
+   update its index before the author confirms.**
+
+8. **On confirmation, write.** Copy the bundled `assets/adr.md` into the
+   resolved location (step 3), rename to `NNNN-<title>.md`, write the drafted
+   content, then add the new ADR's row to the index (`<adr-dir>/README.md`,
+   default `docs/adr/README.md`).
+
+9. **Return a completion receipt.** After writing, hand back:
+   - **Identifier** — `ADR-NNNN`;
+   - **File path** — the exact path written;
+   - **Index path** — the index file updated;
+   - **Status** — `Proposed`;
+   - **Files changed** — the ADR file and the index;
+   - **Owner** — the decision-maker(s) who own the call;
+   - **Next step** — get sign-off from the decision-makers, then flip the
+     status to `Accepted` (or `Rejected`).
+
+10. Leave the status `Proposed`. Once the decision-makers sign off, mark it
+    `Accepted`; if they decline it, mark it `Rejected` and keep the file — a
+    recorded rejection stops the same option being re-proposed later. After
+    `Accepted`, the body is frozen (see Lifecycle below).
 
 ## Lifecycle after acceptance
 

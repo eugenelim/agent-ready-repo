@@ -47,6 +47,17 @@
         "A Revisit if: trigger is present in Consequences for a decision likely to age, with 'stable — no foreseeable trigger' as the valid explicit value when it will not",
         "When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Use the new-adr skill to record our decision to standardize on TOML for our project's config format, chosen over YAML and JSON.",
+      "expected_output": "Before creating any file, the skill resolves and surfaces where the ADR will live (the repository root and the ADR directory, defaulting to docs/adr/ unless the project's conventions declare another location) and drafts the ADR content, then presents a preview and waits for explicit confirmation. The preview shows the proposed identifier (ADR-NNNN), the status (Proposed), the target file path (absolute and/or repo-relative), the index path that would gain a row, and the drafted content. The skill does NOT create the ADR file or update the index in this turn — the write is gated on the author's confirmation. Only after confirmation would it write the file, update the index, and hand back a completion receipt (identifier, file path, index path, status, files changed, owner, next step).",
+      "assertions": [
+        "Surfaces where the ADR will be written (repository root and the ADR directory) before writing anything",
+        "Presents a preview naming the proposed identifier (ADR-NNNN), the status (Proposed), and the target file path before any file is created",
+        "Explicitly waits for the author's confirmation before creating the file or updating the index — it does not claim the ADR file or index was already written in this turn",
+        "Does not assume GitHub handles are the only valid identity for Decision-makers unless the project's conventions require them"
+      ]
     }
   ]
 }

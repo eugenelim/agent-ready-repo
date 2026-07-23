@@ -1,7 +1,7 @@
 # `iac-terraform` pack
 
 > **Opt-in, repo-scope.** Not included in any default profile — install explicitly:
-> `agentbundle install iac-terraform`
+> `agentbundle install --pack iac-terraform <catalogue>` (`<catalogue>` is a local clone path or a `git+https://…` URL)
 
 Turn a plain-language infrastructure intent into governed, best-practice
 Terraform/OpenTofu — decision-record-driven, cloud-agnostic, and human-gated
