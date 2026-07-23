@@ -23,6 +23,14 @@ const journeys = defineCollection({
     tagline: z.string(),
     prerequisitePacks: z.array(z.string()).default([]),
     whatChanges: z.string().optional(),
+    // Compact above-the-fold contract (journey-template-revamp). Required —
+    // every journey carries one, enforced here and by lint-journey-contract.py.
+    contract: z.object({
+      useItWhen: z.string(),
+      youProvide: z.string(),
+      youReceive: z.string(),
+      yourDecisions: z.array(z.string()),
+    }),
     skills: z.array(
       z.object({
         name: z.string(),

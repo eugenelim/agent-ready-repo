@@ -1,5 +1,9 @@
 # When to use `linear-brief-intake` vs `linear-brief-sync`
 
+**Use this when:** you have a Linear Issue (with sub-issues) or Project to turn into a product brief, or an existing brief to sync after the Linear issue has changed.
+**Prerequisites:** Linear Personal API Key stored under namespace `linear` via `credential-setup`; connectivity verified with `linear: check` — see [Prerequisites](#prerequisites).
+**Result:** a new brief at `docs/product/briefs/<slug>.md` registered in `workspace.toml` (intake), or Linear-sourced fields updated in an existing brief with your approval (sync).
+
 **Use `linear-brief-intake` when:** you have a Linear Issue (with sub-issues)
 or a Project and want to create a product brief from scratch.
 

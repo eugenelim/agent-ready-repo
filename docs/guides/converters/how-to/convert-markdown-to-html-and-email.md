@@ -1,5 +1,9 @@
 # Convert Markdown to HTML, and email to Markdown
 
+**Use this when:** You need a shareable self-contained HTML page from a Markdown document, or you need to bring an Outlook `.msg` email into Markdown.
+**Prerequisites:** Node.js with `marked` and `highlight.js` for HTML output; `@nicecode/msg-reader` npm package for email conversion.
+**Result:** A self-contained styled HTML page (from Markdown) or structured Markdown with headers, body, and attachment metadata (from a `.msg` file).
+
 Two converters at the edges of your Markdown workflow. `markdown-to-html` takes a `.md` file out to a self-contained, styled HTML page you can share or print to PDF. `msg-to-markdown` brings an Outlook `.msg` email in, headers and all. This guide covers both.
 
 ## Markdown to a shareable HTML page

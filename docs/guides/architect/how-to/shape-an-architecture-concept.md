@@ -1,5 +1,9 @@
 # Shape an architecture concept
 
+**Use this when:** You have a product feature or strategy and a real technical choice to make, and you want the architecture shape agreed cheaply before committing to a full design doc.
+**Prerequisites:** The `architect` pack installed; a clear product bet or feature brief; optionally a `reference.md` golden path.
+**Result:** An agreed ≤½-page concept naming the problem, constraints, candidate shapes, provider, and key tradeoff — optionally converged into a full design doc.
+
 > Get a ≤½-page architecture concept agreed before you commit to a full design doc. Assumes you know roughly what you're building; if the product bet itself is still unsettled, shape that first with [`product-engineering`](../../product-engineering/).
 
 You have a product to build — a strategy, a brief, or a clear feature — and a real technical choice to make. Before writing a multi-page design doc, `architect-design` shapes a **Stage-0 concept**: the elevator-pitch version of the architecture that gets the shape agreed cheaply, while changing it still costs a sentence. Install the `architect` pack, then work the steps below.

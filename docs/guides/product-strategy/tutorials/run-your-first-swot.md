@@ -1,5 +1,9 @@
 # Run your first SWOT
 
+**What you'll build:** a committed `docs/product/shaping/swot-analysis.md` — a four-quadrant read of one product's position in the shaping surface.
+**Prerequisites:** `product-strategy` pack installed and a repo with (or happy to create) a `docs/product/` tree.
+**Time:** 20–30 minutes from standing start to committed artifact.
+
 By the end you'll have a committed `docs/product/shaping/swot-analysis.md` —
 a four-quadrant read of one product's position — and you'll have seen where it
 lands in the shaping surface the downstream build packs read. One skill,

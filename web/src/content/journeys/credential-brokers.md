@@ -3,6 +3,12 @@ pack: credential-brokers
 scope: user
 tagline: "Credential resolution — env → OS keyring → dotfile. Never cleartext."
 prerequisitePacks: []
+contract:
+  useItWhen: "You are setting up a credentialed pack for the first time, or a previously stored credential has stopped resolving."
+  youProvide: "The service name, the credential type, and your preferred storage location."
+  youReceive: "A credential stored in the resolution chain, verified by a live test invocation."
+  yourDecisions:
+    - "Confirm credential type and storage location"
 whatChanges: "After installing credential-brokers, every credentialed skill in your toolkit resolves its token in-process — environment variable, OS keyring, or a local dotfile — without the value ever reaching the model. You set up a credential once; every subsequent session that needs it resolves it automatically."
 skills:
   - name: credential-setup
@@ -33,24 +39,25 @@ relatedJourneys:
   - atlassian
 ---
 
-## Stage 1 — Identify the credential needed
+### 1. Identify the credential needed
 
-You decide to install a credentialed pack — figma, atlassian, or another service that requires an API key or personal access token. The agent walks you through identifying what credential type the service requires and which resolution path to use.
-
-**You:** Decide where the credential will live — environment variable, OS keyring, or dotfile — based on your environment and security preferences. Read the `credential-setup` output to confirm the resolution path makes sense. For most developer workstations, the OS keyring is the right choice: it persists across terminal sessions and is encrypted at rest. For CI environments, an environment variable is the right choice.
-
----
-
-## Stage 2 — Set up and verify
-
-The agent runs `credential-setup`, prompts for the token value (which is never logged), and stores it via the configured resolution chain. It then runs a test invocation to confirm the credential resolves correctly before ending the session.
-
-**You:** Provide the token value when prompted — this is the one moment the credential passes through your clipboard or input. Verify the test invocation succeeded. If it fails, work through the resolution chain with the agent: is the environment variable exported in the current shell? Is the keyring unlocked? Is the dotfile in the expected location and readable?
+- **You provide:** the name of the service and the credential type it requires — API key, personal access token, or SSO cookie.
+- **Agent does:** walks you through identifying what credential type the service requires and which resolution path to use.
+- **You decide:** confirm credential type and storage location at the G-setup gate — choose where the credential will live: environment variable (CI-friendly), OS keyring (secure, persistent), or dotfile (portable); for most developer workstations, the OS keyring is the right choice.
+- **Output:** an agreed credential type and resolution path.
 
 ---
 
-## Stage 3 — Credential available to all sessions
+### 2. Set up and verify
 
-After setup, the credential resolves automatically in every subsequent session that needs it. No repeat entry. The token value is stored in the configured location and never passes through the model again.
+- **Agent does:** runs `credential-setup`, prompts for the token value (which is never logged), stores it via the configured resolution chain, and then runs a test invocation to confirm the credential resolves correctly.
+- **You do:** provide the token value when prompted; verify the test invocation succeeded; if it fails, work through the resolution chain with the agent — is the environment variable exported? Is the keyring unlocked? Is the dotfile in the expected location and readable?
+- **Output:** a stored credential verified by a successful test invocation.
 
-**You:** Confirm that the first real invocation of the credentialed skill works end-to-end. The most common post-setup failure is a scope mismatch — the token was set up correctly but lacks the permissions the skill needs. If a skill returns an auth error after a successful setup, the first check is always: does this token have the right scope for this operation?
+---
+
+### 3. Credential available to all sessions
+
+- **Agent does:** confirms the credential is stored and will resolve automatically in every subsequent session that needs it — the token value never passes through the model again.
+- **You do:** confirm that the first real invocation of the credentialed skill works end-to-end; if a skill returns an auth error after a successful setup, the first check is always whether the token has the right scope for this operation.
+- **Output:** a fully operational credential available to all subsequent sessions.

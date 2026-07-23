@@ -1,5 +1,9 @@
 # How to shape a feature intent in an app repo
 
+**Use this when:** You have an idea or request at app scale (one repo, one feature) and want to turn it into a spec your delivery loop can build — without skipping framing, de-risking, and decomposition.
+**Prerequisites:** `product-engineering` pack installed; an app-scale repo with app code; a feature idea, request, or brownfield context to shape.
+**Result:** A de-risked feature intent decomposed into a `core` brief at `docs/product/briefs/<slug>.md`, ready for `receive-brief`, `new-spec`, and `work-loop`.
+
 > **Diátaxis: how-to.** A goal-oriented walk through the `product-engineering` loop at **app scale** (one repo, one feature). For the why, see the explanation *The intent tree*; for fields, the reference *Intent fields and modes*. For business-unit / cross-component shaping (a capability across many component repos), see the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
 
 You have an idea or a request and you want to turn it into a spec your delivery loop can build, without skipping the thinking. Install the `product-engineering` pack, then:

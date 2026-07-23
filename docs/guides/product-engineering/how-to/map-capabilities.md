@@ -1,5 +1,9 @@
 # How to map capabilities
 
+**Use this when:** You have a committed bet from `place-bet` and need to enumerate what to build, buy, or adopt — and in what order — before any spec or initiative brief is written.
+**Prerequisites:** `product-engineering` pack installed; a committed `bet.md` from `place-bet` (step 5 of the shaping sequence).
+**Result:** A capability map with Wardley-stage and strategic-criticality annotations, a dependency-ordered build sequence, and a `workspace.toml` spec-queue ready to seed M3–M6.
+
 **Goal:** You have a committed bet and need to enumerate all the capability areas
 the initiative implies — what to build, what to buy or adopt, and in what order
 to build — before any spec or brief is written.

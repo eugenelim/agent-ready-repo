@@ -1,5 +1,9 @@
 # Your first research session
 
+**What you'll build:** Research artifacts in all four modes — quick inline answer, cited survey, applied practitioner survey, and deep survey with counterpoints — using the `desk-research` pack.
+**Prerequisites:** `agentbundle` on `$PATH` and any project directory — see [Prerequisites](#prerequisites) below.
+**Time:** About twenty minutes.
+
 In about twenty minutes you'll install the `desk-research` pack at user scope, run `/desk-research` in all four modes against real questions, and see the artifact signature that distinguishes them. By the end you'll know which mode to reach for and what each one leaves behind on disk.
 
 This is a tutorial — it leads. For the dry catalogue of every flag and field, see the [desk-research pack reference](../reference/desk-research-pack.md). For *why* the pack is shaped the way it is — seven convergent methodologies, mode-on-research, retrieval-only subagents — see [the research methodology explanation](../explanation/desk-research-methodology.md).

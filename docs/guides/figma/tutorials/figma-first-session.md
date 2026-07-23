@@ -1,5 +1,9 @@
 # Your first Figma session
 
+**What you'll build:** a working connection between the agent and your Figma account, with a real file's page and frame structure read and summarized.
+**Prerequisites:** Figma account with file access, `credential-brokers` and `figma` packs installed, and `credbroker` + `httpx` Python dependencies installed.
+**Time:** 15–20 minutes.
+
 By the end of this tutorial you'll have connected the agent to your Figma account and read the page and frame structure of a file you own.
 
 This is a learning walkthrough, not a reference. For the full set of things the figma skill can do, see [Inspect a Figma file](../how-to/inspect-a-figma-file.md) afterward.

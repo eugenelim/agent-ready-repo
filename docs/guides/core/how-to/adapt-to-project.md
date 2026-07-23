@@ -1,5 +1,9 @@
 # How to adapt a freshly-installed pack to your project
 
+**Use this when:** You have just installed a pack and need to tailor its seed content (AGENTS.md, CHARTER.md, conventions) to your project's name, stack, and existing conventions.
+**Prerequisites:** `core` pack installed and an `.adapt-install-marker.toml` present at the install scope root; see Prerequisites below.
+**Result:** Foundational files tailored — project name, stack commands, charter, and any companion files merged for your install route.
+
 A just-installed pack ships *seed* content — generic `AGENTS.md`, generic `docs/CHARTER.md`, generic governance shapes — that needs to be tailored to your actual project's name, stack, and existing conventions. The `adapt-to-project` skill (shipped in `core`) walks you through the tailoring with per-item approval. This page explains what the skill does, what answers it asks of you, and how greenfield and brownfield repos differ.
 
 ## Prerequisites
