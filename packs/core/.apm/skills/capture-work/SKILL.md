@@ -155,6 +155,16 @@ to write the full spec: **the problem, the fix, the affected file or skill, and
 any key decisions already taken.** One-liners are not enough — write what a fresh
 session would otherwise have to reconstruct.
 
+For a `[backlog]` entry, also state the **unblock condition** — what must become
+true before the item is workable ("Unblocks when: …"). Then cross-check it against
+step 4: **if that condition is the completion of another *tracked* item — a
+`[backlog]` slug or a `[work]` spec — as a hard prerequisite, add the matching
+`needs` edge so the dependency is machine-readable, not prose only.** Do *not* add
+a `needs` when the condition is disjunctive (satisfied by A *or* B — `needs` is
+AND-only), names an entity not tracked in `workspace.toml`, or is an external event
+(credentials provisioned, hardware available, a real-adopter session, "someone
+takes the PR"). Those stay prose-only.
+
 ### 9. Confirm
 
 Present the complete proposed change — entries (with their classification),
@@ -225,6 +235,10 @@ now, and at what scale?*
 
 - **Creating spec files.** This skill writes `workspace.toml` only.
 - **Inventing a dependency.** Add `needs` only from explicit sequencing language.
+- **Leaving a tracked hard-dependency as prose only.** If a `[backlog]` entry's
+  unblock condition is the completion of another tracked item, it needs a `needs`
+  edge (step 8) — not just an "Unblocks when" line. (Disjunctive, untracked, or
+  external unblocks stay prose.)
 - **Encoding a priority preference as a `needs`.** Preference is order + comment.
 - **Writing a numeric priority or a new schema field.** Priority is order +
   comment; the schema is not extended beyond the `type` field for shaping entries.
