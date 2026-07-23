@@ -43,7 +43,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Author the contract
+### 1. Author the contract
 
 - **You provide:** a description of the API surface — resources, actions, consumers, and any house naming conventions.
 - **Agent does:** runs `api-contract` or `event-contract` with the pluggable house standard configured (Zalando guidelines by default), producing a first-draft contract: endpoints, request/response schemas, error codes, and a consumer-perspective check.
@@ -52,7 +52,7 @@ relatedJourneys:
 
 ---
 
-## 2. Review from the consumer's perspective
+### 2. Review from the consumer's perspective
 
 - **Agent does:** runs a self-review against the house standard and surfaces the contract for your review at the G-contract gate.
 - **You decide:** read through the error responses first — the most common failure mode is a contract that specifies the happy path thoroughly but skips 400, 404, or 500 cases; name any missing error cases explicitly, and correct naming inconsistencies before implementation begins.
@@ -60,7 +60,7 @@ relatedJourneys:
 
 ---
 
-## 3. Commit the versioned contract
+### 3. Commit the versioned contract
 
 - **Agent does:** emits the ratified contract as a versioned OpenAPI 3.1 or AsyncAPI 2.x file, ready to commit alongside the implementation it governs.
 - **You do:** confirm the contract file is placed alongside the service it governs — not in a separate repository or a documentation folder that would diverge from the service over time.

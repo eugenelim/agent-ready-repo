@@ -39,7 +39,7 @@ relatedJourneys:
   - atlassian
 ---
 
-## 1. Identify the credential needed
+### 1. Identify the credential needed
 
 - **You provide:** the name of the service and the credential type it requires — API key, personal access token, or SSO cookie.
 - **Agent does:** walks you through identifying what credential type the service requires and which resolution path to use.
@@ -48,7 +48,7 @@ relatedJourneys:
 
 ---
 
-## 2. Set up and verify
+### 2. Set up and verify
 
 - **Agent does:** runs `credential-setup`, prompts for the token value (which is never logged), stores it via the configured resolution chain, and then runs a test invocation to confirm the credential resolves correctly.
 - **You do:** provide the token value when prompted; verify the test invocation succeeded; if it fails, work through the resolution chain with the agent — is the environment variable exported? Is the keyring unlocked? Is the dotfile in the expected location and readable?
@@ -56,7 +56,7 @@ relatedJourneys:
 
 ---
 
-## 3. Credential available to all sessions
+### 3. Credential available to all sessions
 
 - **Agent does:** confirms the credential is stored and will resolve automatically in every subsequent session that needs it — the token value never passes through the model again.
 - **You do:** confirm that the first real invocation of the credentialed skill works end-to-end; if a skill returns an auth error after a successful setup, the first check is always whether the token has the right scope for this operation.

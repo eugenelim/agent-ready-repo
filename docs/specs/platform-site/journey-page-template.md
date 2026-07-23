@@ -100,10 +100,11 @@ The ordering enacts progressive disclosure: contract + narrative lead; catalogue
 
 ## The staged narrative (fixed stage cards)
 
-The markdown body is a sequence of stages. Each stage is:
+The markdown body is a sequence of stages. Each stage is an `h3` (`### N.`),
+subordinate to the section's "The journey" `h2`:
 
 ```markdown
-## N. <imperative outcome title>
+### N. <imperative outcome title>
 
 - **You provide:** <what the human feeds in — only on stages where they do>
 - **<Actor> does:** <what the agent / reviewer / loop does>
@@ -117,7 +118,7 @@ The markdown body is a sequence of stages. Each stage is:
 - The label set is exactly: **`You provide` · `<Actor> does` · `You do` · `You decide` · `Output`**.
 - Each stage uses only the **applicable subset**, in that **order**; `Output` is **always** present.
 - The **actor token** in `<Actor> does` is one of the closed set `Agent` / `Reviewer` / `Loop` — `Agent` for whatever the AI does (regardless of which named skill or subagent), `Reviewer` for a review/critique step, `Loop` for the iterate-to-clean mechanism.
-- Headings are `## N. <title>` (numbered, imperative). No `## Stage N —` prose-narrative format.
+- Headings are `### N. <title>` (h3, numbered, imperative), subordinate to the "The journey" section `h2`. No `## Stage N —` prose-narrative format, and no h2 stage headings.
 
 Worked exemplar: `web/src/content/journeys/core.md`.
 

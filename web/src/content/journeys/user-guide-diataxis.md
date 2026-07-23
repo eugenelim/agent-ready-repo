@@ -53,7 +53,7 @@ relatedJourneys:
   - governance-extras
 ---
 
-## 1. Identify and classify the documentation need
+### 1. Identify and classify the documentation need
 
 - **You provide:** a description of the documentation gap — what the guide needs to cover and who the reader is.
 - **Agent does:** activates new-guide; asks clarifying questions; proposes the correct Diátaxis category based on the reader need (tutorial for learning, how-to for doing, reference for information, explanation for understanding).
@@ -63,7 +63,7 @@ relatedJourneys:
 
 ---
 
-## 2. Draft the guide
+### 2. Draft the guide
 
 - **Agent does:** scaffolds the guide in the correct guides/ subdirectory and drafts the content — entry conditions, steps or information organized by category structure, and exit conditions.
 - **You do:** watch the draft take shape; for how-tos, check that every step is an action, not a paragraph of explanation (explanation belongs in a linked document); for tutorials, confirm the reader can follow the steps sequentially and arrive at a working outcome, not just a theoretical understanding.
@@ -71,7 +71,7 @@ relatedJourneys:
 
 ---
 
-## 3. Review and merge
+### 3. Review and merge
 
 - **You do:** read the guide as a first-time reader — if you have to re-read a sentence to understand what action it asks for, it needs rewriting; if a paragraph of background explanation appears in a how-to, flag it for extraction into a linked explanation document.
 - **You decide:** review the drafted guide — gate passes when category, voice, entry state, and exit state are consistent.

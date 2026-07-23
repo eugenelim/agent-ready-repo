@@ -87,7 +87,7 @@ relatedJourneys:
   - release
 ---
 
-## 0. Gate the governance
+### 0. Gate the governance
 
 - **Agent does:** activates generate-iac and loads the governance index — a manifest mapping each infrastructure decision domain (state backend, IAM model, OIDC trust policy, tagging, encryption at rest) to the ADRs and standards that bind it; reads only the 2–3 files the intent touches; if no governance-index.toml exists, bootstraps one from docs/adr/ and waits for your confirmation before proceeding; surfaces any uncovered decision domain and waits for a new ADR or explicit assumption before continuing.
 - **You do:** review the governance index load; confirm the cited ADRs cover the intent's decision domains; check that no domain is uncovered; if the agent bootstrapped the index, verify it is complete enough to proceed.
@@ -96,7 +96,7 @@ relatedJourneys:
 
 ---
 
-## 1. Specify with a vocabulary firewall
+### 1. Specify with a vocabulary firewall
 
 - **You provide:** the required infrastructure inputs — target cloud, engine (terraform or opentofu), environments, region, account/tenant isolation model, and CI system.
 - **Agent does:** writes the spec in generic infrastructure terms — no cloud-specific service names (no RDS, S3, GCS) before PLAN; records the account isolation model and its consequences for OIDC trust-policy scoping and state backend key structure; proposes the inner-loop plan.
@@ -106,7 +106,7 @@ relatedJourneys:
 
 ---
 
-## 2. Generate schema-grounded Terraform
+### 2. Generate schema-grounded Terraform
 
 - **Agent does:** decomposes the spec into a tier-ordered task list — Foundation (remote state, backend, provider config) → Network → Compute/Data → App → Polish — with ADR citations and parallel annotations only where no shared resource dependency exists; acquires the live provider schema via contract-acquisition (terraform/tofu providers schema -json against the pinned provider version) before authoring any resource block.
 - **Loop does:** iterates write Terraform → fmt → validate → plan; feeds schema hallucination errors back immediately; does not advance until the plan is clean.
@@ -115,7 +115,7 @@ relatedJourneys:
 
 ---
 
-## 3. Run static preflight and hand off to G4
+### 3. Run static preflight and hand off to G4
 
 - **Agent does:** runs policy-as-code (OPA/Conftest against the plan JSON — approved resource types, required tags, encryption at rest, no hard-coded credentials); runs Infracost for an optional cost delta; pins the plan digest; assembles the G4 handoff artifact with all evidence.
 - **Reviewer does:** security-reviewer scans the generated configurations (Trivy/Checkov); adversarial-reviewer reads the spec, plan, and diff cold with no context from the authoring session.
@@ -125,7 +125,7 @@ relatedJourneys:
 
 ---
 
-## 4. Deploy and converge
+### 4. Deploy and converge
 
 - **Agent does:** deploys to an ephemeral environment — uniquely named, per-cycle, teardownable — running terraform apply against the exact pinned plan.
 - **Loop does:** reads apply-time failures invisible to plan (IAM propagation delays, service quotas, dependency ordering, terminal-failed resources) from the real environment; translates them into inner-loop build tasks for a corrected plan; redeploys until convergence — apply clean, e2e/smoke clean, telemetry stable.
@@ -134,7 +134,7 @@ relatedJourneys:
 
 ---
 
-## 5. Ratify the release readiness record
+### 5. Ratify the release readiness record
 
 - **Agent does:** produces the release readiness record — plan digest, policy-pass evidence, apply log (resources created/modified/destroyed), e2e results, telemetry snapshot, security diff review, and cost delta (estimated vs. actual); lists borderline gates explicitly.
 - **You do:** read the full record, not just the summary; the borderline gates section is the critical one — these are cases where the agent decided "close enough"; make the spend-gate call if the actual cost delta materially exceeds the Infracost estimate.
@@ -143,7 +143,7 @@ relatedJourneys:
 
 ---
 
-## 6. Audit and reconcile drift
+### 6. Audit and reconcile drift
 
 - **Agent does:** runs reconcile-iac on a weekly schedule, as mandatory preflight before a follow-on change, or immediately after a known out-of-band event; runs terraform plan and produces a drift audit — per-drifted-resource cause class, blast radius against governance standards, and proposed disposition (codify back into IaC, add ignore_changes, open a remediation PR, or block the follow-on change); surfaces that resources created entirely outside Terraform — ClickOps, console actions with no state entry — are invisible to plan and not covered by the audit.
 - **You do:** read the drift audit; approve clear dispositions (e.g., ignore_changes for an auto-scaling group self-modification); escalate ambiguous ones that expand permissions or require a new ADR before codifying back; approve the remediation PR.

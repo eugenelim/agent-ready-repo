@@ -59,7 +59,7 @@ relatedJourneys:
   - experience-design
 ---
 
-## 1. Ground the design in the reference architecture
+### 1. Ground the design in the reference architecture
 
 - **Agent does:** checks for a `reference.md` in the repo — the golden-path file that describes the stack, patterns, and constraints the architecture skills design against — and offers to create it if one doesn't exist.
 - **You do:** confirm the reference is accurate for this task; update it before the design session starts if it is stale or missing a key constraint.
@@ -67,7 +67,7 @@ relatedJourneys:
 
 ---
 
-## 2. Frame the Stage 0 concept
+### 2. Frame the Stage 0 concept
 
 - **You provide:** a description of the design problem.
 - **Agent does:** runs `architect-design` in Stage 0 mode, producing a half-page concept that frames the problem, names constraints, and proposes a candidate approach with at least one alternative.
@@ -76,7 +76,7 @@ relatedJourneys:
 
 ---
 
-## 3. Write the full design document
+### 3. Write the full design document
 
 - **Agent does:** writes the full Stage 1 design document — problem statement, alternatives with rejection reasoning, proposed design, open questions, and success criteria — grounded against `reference.md` throughout.
 - **You do:** watch the document take shape; if the alternatives section omits an approach the team has already discussed and ruled out, mention it; note any scope drift from the approved concept.
@@ -84,7 +84,7 @@ relatedJourneys:
 
 ---
 
-## 4. Review independently
+### 4. Review independently
 
 - **Reviewer does:** reads the design cold in a forked context (`design-reviewer`) — a reviewer that has not seen the authoring session — and returns findings grouped by severity: Blockers, Concerns, Nits.
 - **You do:** read the findings as they land; give a one-sentence steer on any Blocker you disagree with.

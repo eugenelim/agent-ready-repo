@@ -59,7 +59,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Invoke the converter
+### 1. Invoke the converter
 
 - **You provide:** the source file, the target format, and (for office output) the branded template to fill.
 - **Agent does:** invokes the appropriate skill — `file-to-markdown` for a PDF or Office document, `markdown-to-docx` or `markdown-to-pptx` for output artifacts, `mermaid-renderer` for diagrams embedded in a Markdown file.
@@ -68,7 +68,7 @@ relatedJourneys:
 
 ---
 
-## 2. Select the extraction tier
+### 2. Select the extraction tier
 
 - **Agent does:** selects the appropriate capability tier — Tier 1 (no external tools, pure text extraction), Tier 2 (local tools like Pandoc or Poppler), or Tier 3 (agent vision for scanned or image-heavy documents) — and reports which tier was used and why.
 - **You do:** confirm the tier makes sense for the document type; if the document is a scanned PDF and the agent selects Tier 1, redirect to Tier 3 or flag the document as needing OCR before extraction.
@@ -76,7 +76,7 @@ relatedJourneys:
 
 ---
 
-## 3. Review the output
+### 3. Review the output
 
 - **Agent does:** reports where the output lands and emits a brief summary of what it converted.
 - **You decide:** open the output file at the G-output gate and review it — check for truncation, structure loss, and template application; if a section is missing, re-run with an explicit instruction to include it.

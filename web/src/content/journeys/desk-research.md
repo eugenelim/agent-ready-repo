@@ -86,7 +86,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Scope the question
+### 1. Scope the question
 
 - **You provide:** the question and chosen depth mode (shallow through exhaustive).
 - **Agent does:** activates `desk-research` or `desk-research-project-start`; identifies the question type and maps the source space; emits a scope statement.
@@ -96,7 +96,7 @@ relatedJourneys:
 
 ---
 
-## 2. Curate sources
+### 2. Curate sources
 
 - **Agent does:** runs `source-map` to identify the canonical sources for the question domain; dispatches retrieval subagents to fetch and synthesize source material.
 - **You do:** watch the source list take shape; if a key source is missing — a specific industry report, a primary author's paper, an internal standard you know exists — name it explicitly; the agent doesn't know your domain.
@@ -104,7 +104,7 @@ relatedJourneys:
 
 ---
 
-## 3. Synthesize and grade
+### 3. Synthesize and grade
 
 - **Agent does:** synthesizes a brief graded by confidence (GRADE A–D), citing each claim to its source; marks unsupported claims as explicit gaps.
 - **You do:** read the confidence grades first — a GRADE-C synthesis needs a different follow-on (narrow the question, run another retrieval pass) than a GRADE-A; check that each claim has a source citation and is not an unsupported assertion.

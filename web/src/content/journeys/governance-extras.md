@@ -75,7 +75,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Draft the RFC
+### 1. Draft the RFC
 
 - **You provide:** the cross-cutting change or problem to address, and any known stakeholders or alternatives.
 - **Agent does:** activates `new-rfc`, drafts the problem statement, and structures the proposer and objector perspectives.
@@ -85,7 +85,7 @@ relatedJourneys:
 
 ---
 
-## 2. Manage the comment period
+### 2. Manage the comment period
 
 - **Agent does:** documents each objection and drafts responses, keeping the RFC's objector section updated as the conversation evolves.
 - **You do:** manage the comment period — keep it time-boxed, ensure genuine objections get genuine responses, and prevent accumulation without resolution; an RFC with no decision date is a governance failure.
@@ -93,7 +93,7 @@ relatedJourneys:
 
 ---
 
-## 3. Decide and record
+### 3. Decide and record
 
 - **Agent does:** updates the RFC status with the decision; if accepted, runs `new-adr` to record the architectural decision.
 - **You do:** verify the ADR captures the actual decision and the honest forces behind it — not a post-hoc rationalization; merge the ADR as part of the same PR or directly following one.

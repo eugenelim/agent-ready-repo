@@ -121,7 +121,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Map the customer journey
+### 1. Map the customer journey
 
 - **You provide:** the feature, user, and intended outcome.
 - **Agent does:** runs `journey-mapping` to produce the current-state and desired-state journey map with key failure modes; then runs `content-design` and `tone-of-voice` to set content intent and register before screens are sequenced.
@@ -131,7 +131,7 @@ relatedJourneys:
 
 ---
 
-## 2. Derive the screen flow
+### 2. Derive the screen flow
 
 - **Agent does:** runs `user-flow` to derive the screen inventory — what screens exist, what state each handles (empty, loading, populated, error), and what the transitions are; produces a per-screen brief for each.
 - **You do:** check that the screen list doesn't add screens not implied by the journey and doesn't miss screens the journey requires; remove any screen not derived from the journey.
@@ -139,7 +139,7 @@ relatedJourneys:
 
 ---
 
-## 3. Establish design intent
+### 3. Establish design intent
 
 - **Agent does:** runs `design-principles` to derive 3–5 named decision rules from the journey map; then runs `creative-direction` to establish the visual character and `design-system` to derive the token set.
 - **You do:** review the design principles alongside the aesthetic direction.
@@ -148,7 +148,7 @@ relatedJourneys:
 
 ---
 
-## 4. Design each screen
+### 4. Design each screen
 
 - **Agent does:** runs a structural IA skill on each screen — `information-architecture` for general screens, or a genre-specific skill for dashboards (`analytical-design`), marketing surfaces (`conversion-design`), docs (`documentation-design`), editorial pages (`informational-design`), marketplaces (`marketplace-design`), or workspace tools (`workspace-design`) — then `interaction-design` for states and transitions, and `design-review` as a pre-independent-review self-check.
 - **You do:** watch each screen take shape; if a screen is missing a state — no empty state for a list, no loading state for an async action — name it; catching it here is cheaper than the independent review.
@@ -156,7 +156,7 @@ relatedJourneys:
 
 ---
 
-## 5. Review independently
+### 5. Review independently
 
 - **Reviewer does:** runs the `experience-reviewer` in a forked context — no access to the authoring session — returning findings on the full screen set: handle-all-states violations, WCAG 2.2 AA failures, and aesthetic inconsistencies.
 - **You do:** read the findings; apply Blockers before design intent feeds the build loop — they are the floor every screen must clear; handle-all-states violations are the most common finding.

@@ -43,8 +43,11 @@ FIXED_RANK = {
     "Output": 4,
 }
 
-_HEADING_NEW = re.compile(r"^##\s+(\d+)\.\s+\S")
-_HEADING_OLD = re.compile(r"^##\s+Stage\s+\d+", re.IGNORECASE)
+# Stages are h3 (`### N.`), subordinate to the section's "The journey" h2.
+_HEADING_NEW = re.compile(r"^###\s+(\d+)\.\s+\S")
+# Old formats that must not survive: the `## Stage N —` prose narrative, and a
+# stage left at h2 (`## N.`) before the h3 subordination fix.
+_HEADING_OLD = re.compile(r"^##\s+(?:Stage\s+\d+|\d+\.)", re.IGNORECASE)
 _LABEL = re.compile(r"^\s*-\s+\*\*(.+?):\*\*")
 _ACTOR_DOES = re.compile(r"^(Agent|Reviewer|Loop) does$")
 

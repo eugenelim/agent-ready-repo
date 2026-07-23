@@ -29,7 +29,7 @@ contract:
     - "Approve the plan"
 ---
 
-## 1. Agree on the plan
+### 1. Agree on the plan
 
 - **You provide:** the request.
 - **Agent does:** writes the plan.
@@ -38,7 +38,7 @@ contract:
 
 ---
 
-## 2. Build and verify
+### 2. Build and verify
 
 - **Agent does:** implements and runs gates.
 - **You do:** watch at key moments.
@@ -102,7 +102,7 @@ def test_unknown_actor() -> None:
 def test_surviving_old_heading() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         j = pathlib.Path(tmp)
-        _write(j, "alpha.md", _VALID.replace("## 2. Build and verify", "## Stage 2 — Build and verify"))
+        _write(j, "alpha.md", _VALID.replace("### 2. Build and verify", "## Stage 2 — Build and verify"))
         r = _run(j)
         _assert(r.returncode == 1, f"expected exit 1 for a surviving `## Stage N —` heading; got {r.returncode}")
         _assert("old-format" in r.stderr.lower(), f"expected old-format message; got:\n{r.stderr}")

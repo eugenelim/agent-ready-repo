@@ -117,7 +117,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Shape intent
+### 1. Shape intent
 
 - **You provide:** a product idea or problem description.
 - **Agent does:** activates `discovery-loop`, runs `frame-intent` to establish product framing (problem, user, outcome), and emits an intent document.
@@ -127,7 +127,7 @@ relatedJourneys:
 
 ---
 
-## 2. Diverge across candidates
+### 2. Diverge across candidates
 
 - **Agent does:** runs `explore-options` to generate candidate product shapes with distinct tradeoff profiles.
 - **You do:** watch candidates appear; if a candidate is obviously out-of-scope or repeats a prior approach, say so before the lens roster runs — it saves a review cycle.
@@ -135,7 +135,7 @@ relatedJourneys:
 
 ---
 
-## 3. Run the lens roster
+### 3. Run the lens roster
 
 - **Reviewer does:** runs two discovery reviewers — threat and reliability — against each surviving candidate; each reads cold and returns findings; candidates that fail are eliminated.
 - **You do:** monitor the review output; if a candidate you want to keep is eliminated, read the finding — sometimes it rests on a false premise you can correct with one sentence.
@@ -143,7 +143,7 @@ relatedJourneys:
 
 ---
 
-## 4. Check mid-discovery
+### 4. Check mid-discovery
 
 - **Agent does:** surfaces the surviving candidates for a mid-course review.
 - **You do:** review which candidates remain and whether the field feels right; if only one candidate survives and it feels too easy, consider asking the agent to re-explore from a different angle.
@@ -152,7 +152,7 @@ relatedJourneys:
 
 ---
 
-## 5. Converge on the candidate
+### 5. Converge on the candidate
 
 - **Agent does:** runs `de-risk-intent` to surface the riskiest assumption and design a prototype approach to test it; then runs `decompose-intent` to decompose the chosen direction into specs and briefs for the delivery loop.
 - **You do:** watch the assumption-test take shape; if the prototype approach is too expensive or won't actually test the assumption, redirect — a bad de-risk approach means an untested assumption at the brief's core.
@@ -160,7 +160,7 @@ relatedJourneys:
 
 ---
 
-## 6. Reconcile and commit
+### 6. Reconcile and commit
 
 - **Agent does:** presents the full discovery sidecar — intent, assumption-test, validated candidate, and decomposition.
 - **You do:** read the full brief — all sections; G2 is "is this brief complete?" and G3 is "am I ready to build this?" — these are two distinct decisions.

@@ -84,7 +84,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Configure credentials and scope
+### 1. Configure credentials and scope
 
 - **Agent does:** checks that a credential is configured via `credential-brokers`; for first-time setup, walks you through generating a Jira API token and storing it in your OS keychain — the token never appears in a file the agent can read.
 - **You decide:** confirm the credential is in place at the G-scope gate, or tell the agent to set it up; name the JQL scope explicitly — project key, date range, and any filters; for AI adoption reports, choose between a cohort split within one window or a before/after comparison across two windows.
@@ -92,7 +92,7 @@ relatedJourneys:
 
 ---
 
-## 2. Collect and compute
+### 2. Collect and compute
 
 - **Agent does:** runs the appropriate skill — `flow-metrics` reads Jira changelogs and computes cycle time, throughput, defect ratio, rework rate, and flow distribution; for cohort splits, measures AI-labeled and unlabeled stories against the same window; for program rollups, runs one invocation per project and then passes all JSON files to `ai-adoption-report program`.
 - **You do:** watch the collection complete; if the agent reports an unmapped status or an empty cohort, address it before continuing — fixing the scope or labeling is faster than interpreting a report built on incomplete data.
@@ -100,7 +100,7 @@ relatedJourneys:
 
 ---
 
-## 3. Review the report and share
+### 3. Review the report and share
 
 - **Agent does:** presents the adoption report — a Markdown file with metric deltas, a per-scope table for program mode, and a JSON sidecar.
 - **You do:** check that the metric values match your informal expectations; investigate any unexpectedly large or small cohort, an implausible metric, or a scope that accidentally included cancelled work.

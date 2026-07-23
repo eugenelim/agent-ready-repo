@@ -93,7 +93,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Build and gate the market situation
+### 1. Build and gate the market situation
 
 - **You provide:** the market and organizational context — company OKRs, any prior desk-research project outputs, and the scope of the initiative or strategic question to address.
 - **Agent does:** runs synthesize-stakeholder-research if prior desk-research outputs exist; then runs run-pestle-analysis, run-porters-five-forces, and run-bcg-matrix; synthesizes all inputs into a committed SWOT as the capstone situation picture; commits each artifact to docs/product/shaping/.
@@ -103,7 +103,7 @@ relatedJourneys:
 
 ---
 
-## 2. Commit the altitude-0 direction
+### 2. Commit the altitude-0 direction
 
 - **Agent does:** runs write-prfaq to draft the press release + FAQ — naming the specific person, the measurable benefit, and the hardest objection a skeptical stakeholder would raise; commits to docs/product/shaping/prfaq.md.
 - **You do:** read the PRFAQ; if the press release doesn't name a specific person or deliver a measurable benefit, or doesn't connect to the approved situation picture, redirect before the cascade and experience direction are set against an unspecific vision.
@@ -112,7 +112,7 @@ relatedJourneys:
 
 ---
 
-## 3. Cascade strategy gaps to the shaping queue
+### 3. Cascade strategy gaps to the shaping queue
 
 - **Agent does:** runs run-okr-cascade to derive team-level OKRs from company targets, identify gaps between current state and each target, and prepare strategy-type entries for workspace.toml; each gap becomes a {type = "strategy"} entry ranked by OKR weight.
 - **You do:** review the gap list; confirm each gap reflects an actual gap (not a feature the team wants regardless of OKRs), is ranked by OKR weight, and is specific enough for frame-situation to scope into a shaping brief without re-scoping from scratch.
@@ -121,7 +121,7 @@ relatedJourneys:
 
 ---
 
-## 4. Set experience and content direction
+### 4. Set experience and content direction
 
 - **Agent does:** runs define-ux-strategy to produce a committed ux-strategy.md — experience vision, goals with measures, and plan, grounded in the approved market situation and PRFAQ; runs define-content-strategy to produce a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance).
 - **You do:** review both artifacts before sharing with design and content teams; confirm ux-strategy.md connects to the approved PRFAQ; confirm content-strategy.md names specific decisions — channel priority, ownership model, update cadence — not aspirational intent.

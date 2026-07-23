@@ -39,7 +39,7 @@ relatedJourneys:
   - governance-extras
 ---
 
-## 1. Name and describe the new package
+### 1. Name and describe the new package
 
 - **You provide:** the package name (using the project's naming convention — kebab-case, domain-qualified, etc.), a one-sentence description of its role and who uses it, and whether an existing package serves as the closest structural analogue.
 - **Agent does:** activates new-package; asks for the package name and brief description; checks existing packages in the repo for the closest structural analogue.
@@ -47,7 +47,7 @@ relatedJourneys:
 
 ---
 
-## 2. Scaffold, wire, and gate the package
+### 2. Scaffold, wire, and gate the package
 
 - **Agent does:** produces the package skeleton — directory structure, package.json (or equivalent), AGENTS.md, build configuration, and test directory; populates AGENTS.md with the package name, description, and correct build and test commands.
 - **You do:** at the G-review gate, check the two things most likely to be wrong: the AGENTS.md still has placeholder text, and the test command points to the wrong root; both are easy to catch here and expensive to fix after other packages have extended the scaffolded pattern.
@@ -56,7 +56,7 @@ relatedJourneys:
 
 ---
 
-## 3. Commit and verify CI wiring
+### 3. Commit and verify CI wiring
 
 - **Agent does:** commits the scaffold, pushes the branch, and verifies that CI output shows the new package's tests running.
 - **You do:** watch the CI run complete; if the new package's tests don't appear in CI output, the test wiring is incomplete — add the explicit CI step if needed (common cause: CI uses a hard-coded package list rather than a glob).

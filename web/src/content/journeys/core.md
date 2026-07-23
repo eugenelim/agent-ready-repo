@@ -9,7 +9,7 @@ contract:
   youReceive: "An agreed plan, a checked implementation, review findings, and a merge decision."
   yourDecisions:
     - "Approve the plan"
-    - "Approve the final change"
+    - "Merge the PR"
 whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. You get lint, typecheck, and tests as mechanical gates. Three specialist reviewers read every diff cold. The loop cannot self-certify — it always surfaces to you for plan approval and PR merge."
 skills:
   - name: work-loop
@@ -88,7 +88,7 @@ relatedJourneys:
   - release
 ---
 
-## 1. Agree on the plan
+### 1. Agree on the plan
 
 - **You provide:** the requested change and its important constraints.
 - **Agent does:** activates `work-loop`, checks whether risk triggers require full mode, writes the lean inline spec — the **trio** (problem, user, success criteria) — and surfaces its assumptions.
@@ -97,7 +97,7 @@ relatedJourneys:
 
 ---
 
-## 2. Build and verify
+### 2. Build and verify
 
 - **Agent does:** implements against the spec, running lint, typecheck, and tests after each logical change; when a gate fails, it fixes the issue and re-runs the gate before continuing.
 - **You do:** watch at key moments — after each logical task, skim the output for file names you didn't expect, for scope creep, and for a surfaced question. Answer quickly if it surfaces; a blocked agent costs more than a fast redirect. If all is well, let it run.
@@ -105,7 +105,7 @@ relatedJourneys:
 
 ---
 
-## 3. Review independently
+### 3. Review independently
 
 - **Reviewer does:** reads the diff cold in a fresh session (`adversarial-reviewer`) with no context from the build, and returns findings grouped by severity — Blockers, Concerns, Nits.
 - **Loop does:** fixes Blockers and re-runs the gates, iterating until the reviewer reports clean.
@@ -114,7 +114,7 @@ relatedJourneys:
 
 ---
 
-## 4. Decide the merge
+### 4. Decide the merge
 
 - **Agent does:** opens the PR with a description covering what changed, why, what was deferred, and what was found mid-implementation.
 - **You do:** read the description, not just the diff — it tells you what the agent decided when it had choices. Confirm the implementation matches the plan you approved, the spec and code align, and no unexplained scope appeared.

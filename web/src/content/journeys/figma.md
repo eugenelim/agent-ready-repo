@@ -54,7 +54,7 @@ relatedJourneys:
   - credential-brokers
 ---
 
-## 1. Configure the credential
+### 1. Configure the credential
 
 - **You provide:** the target Figma file URL or key, and a Personal Access Token if not already in credential-brokers.
 - **Agent does:** verifies the credential resolves via credential-brokers and can reach the target file.
@@ -64,7 +64,7 @@ relatedJourneys:
 
 ---
 
-## 2. Read the design artifact
+### 2. Read the design artifact
 
 - **Agent does:** invokes the `figma` skill; fetches the file structure, navigates to the target frame or component, and returns design data — rendered image, node properties, variable values, or connector graph.
 - **You do:** watch the fetch complete; if the agent returns data from the wrong frame, redirect with the specific node ID or frame path — human-readable names in Figma's file tree aren't always unique.
@@ -72,7 +72,7 @@ relatedJourneys:
 
 ---
 
-## 3. Review and use
+### 3. Review and use
 
 - **Agent does:** presents the extracted artifact — rendered frame image, CSS variable set, Mermaid connector diagram, or structured property dump.
 - **You do:** check the artifact matches the intended design; for FigJam diagrams, verify all connectors and labels are preserved; for variable values, confirm they match the published design system state.

@@ -1,6 +1,6 @@
 # Spec: journey-template-revamp
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -110,17 +110,17 @@ mode-separation constraint.
 
 ## Acceptance Criteria
 
-- [ ] Every `web/src/content/journeys/*.md` (all 16) carries a `contract` object with `useItWhen`, `youProvide`, `youReceive`, and `yourDecisions`, and the zod schema requires it.
-- [ ] Every web-journey stage renders the fixed labels — `You provide` / `<Actor> does` / `You do` / `You decide` / `Output` — in that order, using only the applicable subset, with `Output` always present.
-- [ ] The rendered journey page shows sections in the fixed order: hero → contract → what-changes → narrative → good-output/transcript → human gates → typical session → install → skills → technical reference.
-- [ ] `JourneyContract.astro` renders the four contract lines above the narrative. (That each journey's `yourDecisions` correspond to its `humanGates` is a REVIEW/manual-QA check on the converted journeys, not a lint-enforced criterion.)
-- [ ] `npm run build` in `web/` succeeds and `lint-web-journey-parity.py` still passes (skill counts unchanged).
-- [ ] `lint-journey-contract.py` passes against the tree and fails on a fixture journey missing the contract or a stage label; its self-test is green.
-- [ ] All 68 how-to and 14 tutorial guides under `docs/guides/**` carry a per-quadrant contract header (how-to: `Use this when` / `Prerequisites` / `Result`; tutorial: `What you'll build` / `Prerequisites` / `Time`); the two per-quadrant framework-explainer READMEs (`_shared/how-to/README.md`, `_shared/tutorials/README.md`) and every reference or explanation guide are NOT modified.
-- [ ] The `new-guide` skill's `assets/how-to.md` and `assets/tutorials.md` templates carry the contract header so future guides inherit it.
-- [ ] All 11 product-journey maps under `docs/product/journeys/*.md` (the glob matches 12 files — the 11 maps plus `README.md`, which is the index and is NOT modified) carry a 4-line contract header (`Use it when` / `You provide` / `You receive` / `Your decisions`); their stage tables are unchanged.
-- [ ] `docs/specs/platform-site/journey-page-template.md` (a living template-reference doc, not frozen spec history) documents the new structure (contract block, fixed stage labels, reordered sections) and no longer prescribes the superseded per-stage `**You did:**` prose-narrative convention.
-- [ ] The MkDocs docs build (`site/mkdocs.yml`) succeeds with the guide and product-journey edits.
+- [x] Every `web/src/content/journeys/*.md` (all 16) carries a `contract` object with `useItWhen`, `youProvide`, `youReceive`, and `yourDecisions`, and the zod schema requires it.
+- [x] Every web-journey stage renders the fixed labels — `You provide` / `<Actor> does` / `You do` / `You decide` / `Output` — in that order, using only the applicable subset, with `Output` always present.
+- [x] The rendered journey page shows sections in the fixed order: hero → contract → what-changes → narrative → good-output/transcript → human gates → typical session → install → skills → technical reference.
+- [x] `JourneyContract.astro` renders the four contract lines above the narrative. (That each journey's `yourDecisions` correspond to its `humanGates` is a REVIEW/manual-QA check on the converted journeys, not a lint-enforced criterion.)
+- [x] `npm run build` in `web/` succeeds and `lint-web-journey-parity.py` still passes (skill counts unchanged).
+- [x] `lint-journey-contract.py` passes against the tree and fails on a fixture journey missing the contract or a stage label; its self-test is green.
+- [x] All 68 how-to and 14 tutorial guides under `docs/guides/**` carry a per-quadrant contract header (how-to: `Use this when` / `Prerequisites` / `Result`; tutorial: `What you'll build` / `Prerequisites` / `Time`); the two per-quadrant framework-explainer READMEs (`_shared/how-to/README.md`, `_shared/tutorials/README.md`) and every reference or explanation guide are NOT modified.
+- [x] The `new-guide` skill's `assets/how-to.md` and `assets/tutorials.md` templates carry the contract header so future guides inherit it.
+- [x] All 11 product-journey maps under `docs/product/journeys/*.md` (the glob matches 12 files — the 11 maps plus `README.md`, which is the index and is NOT modified) carry a 4-line contract header (`Use it when` / `You provide` / `You receive` / `Your decisions`); their stage tables are unchanged.
+- [x] `docs/specs/platform-site/journey-page-template.md` (a living template-reference doc, not frozen spec history) documents the new structure (contract block, fixed stage labels, reordered sections) and no longer prescribes the superseded per-stage `**You did:**` prose-narrative convention.
+- [x] The MkDocs docs build (`site/mkdocs.yml`) succeeds with the guide and product-journey edits.
 
 ## Assumptions
 

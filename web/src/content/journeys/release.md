@@ -39,7 +39,7 @@ relatedJourneys:
   - core
 ---
 
-## 1. Trigger and confirm the deploy
+### 1. Trigger and confirm the deploy
 
 - **Agent does:** activates release-loop on completion of the inner build loop (work-loop + adversarial review clean); deploys the integrated whole to an ephemeral environment.
 - **You do:** watch the initial deploy log to confirm the right branch and config are targeted; if the deploy target looks wrong, stop it early — a mid-cycle redirect costs more than catching it at the first log line.
@@ -47,7 +47,7 @@ relatedJourneys:
 
 ---
 
-## 2. Validate and converge
+### 2. Validate and converge
 
 - **Loop does:** runs end-to-end tests against the deployed environment, observes telemetry, feeds deployed findings back to the inner loop, redeploys after each inner-loop fix, and iterates until convergence — e2e clean, telemetry stable.
 - **You do:** check in at the end of each outer loop iteration — skim the e2e results and telemetry snapshot; flag anomalies the agent might not catch (an assertion too weak to detect a real failure, a telemetry spike marked as noise); provide judgment on what "stable" means for your service.
@@ -55,7 +55,7 @@ relatedJourneys:
 
 ---
 
-## 3. Ratify the release readiness record
+### 3. Ratify the release readiness record
 
 - **Agent does:** generates the release readiness record — e2e results, telemetry snapshot, security review on the deployed diff, deferred items, and any borderline gates.
 - **You do:** read the full release readiness record, not just the summary; the borderline gates section matters most — these are the agent's "close enough" calls you may decide differently.
