@@ -1,5 +1,9 @@
 # Report AI adoption as a delivery lead
 
+**Use this when:** You lead two to eight teams and need to report AI adoption impact to program or value stream leadership using cohort-split or before/after flow metrics from Jira.
+**Prerequisites:** Atlassian pack installed and Jira credentials working; teams applying the `ai-assisted` label before the first reporting window opens.
+**Result:** A stakeholder-ready Markdown adoption report — cohort split or baseline comparison — publishable to Confluence, slides, or a JSON sidecar for dashboards.
+
 This guide is for delivery leads who run two to eight teams, need to report AI adoption impact upward to program or value stream leadership, and are not responsible for running the CLI themselves — the agent does that. It covers the full journey from first-time setup through a stakeholder-ready report.
 
 For the conceptual background on the measurement model and self-certification, read [Measuring AI adoption with flow metrics](../explanation/ai-adoption-measurement.md) first.
