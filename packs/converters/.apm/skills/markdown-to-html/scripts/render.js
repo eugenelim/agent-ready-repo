@@ -261,7 +261,7 @@ function main() {
 
   const hasMermaid = args.mermaid && /<div class="mermaid">/.test(html);
   const mermaidScript = hasMermaid
-    ? '<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>'
+    ? '<script src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js" integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E" crossorigin="anonymous"></script>'
     : '';
   const mermaidInit = hasMermaid ? `
 mermaid.initialize({
