@@ -3,6 +3,13 @@ pack: desk-research
 scope: user
 tagline: "Evidence-grounded desk research — portable across every repo."
 prerequisitePacks: []
+contract:
+  useItWhen: "You have a question that needs evidence grounded in primary sources — single-session query or a sustained multi-week investigation."
+  youProvide: "A research question, a chosen depth mode, and any known sources or prior corpus."
+  youReceive: "A confidence-graded synthesis brief citing primary sources, with an explicit gap map."
+  yourDecisions:
+    - "Set scope and depth"
+    - "Review the synthesized brief"
 whatChanges: "After installing research, every question your agent takes on is grounded before it answers. `/desk-research` runs scoping, source curation, and synthesis in one session across four depth modes. For sustained investigations, the four `desk-research-project-*` skills run a multi-week lifecycle that accumulates a corpus and ends in a brief you can hand to a decision."
 skills:
   - name: desk-research
@@ -79,24 +86,27 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Scope the question
+## 1. Scope the question
 
-You give the agent a question and select a depth mode. For a single-session query, the agent activates `/desk-research` and runs a scoping pass — identifying what kind of question this is (factual, comparative, historical, open-ended) and which sources to consult. For a project-mode investigation, it runs `desk-research-project-start` to create a corpus folder and an initial source list.
-
-**You:** Read the scope statement the agent produces before it begins fetching. A bad scope leads to a confident answer to the wrong question — the cheapest fix is here, not after the synthesis returns. If the agent's framing misses the real question, redirect with one sentence before the retrieval subagents run.
-
----
-
-## Stage 2 — Source curation
-
-The agent runs `source-map` or its equivalent, identifying the canonical sources for the question domain. Two retrieval subagents — `evidence-retriever` and `source-extractor` — fetch and synthesize source material without polluting the main session context.
-
-**You:** Watch the source list take shape. If a key source is missing — a specific industry report, a primary author's original paper, an internal standard you know exists — name it explicitly. The agent doesn't know what you know about your domain. A one-sentence nudge here is faster than a post-synthesis correction.
+- **You provide:** the question and chosen depth mode (shallow through exhaustive).
+- **Agent does:** activates `desk-research` or `desk-research-project-start`; identifies the question type and maps the source space; emits a scope statement.
+- **You do:** read the scope statement before retrieval begins; if the agent's framing misses the real question, redirect with one sentence — a bad scope leads to a confident answer to the wrong question.
+- **You decide:** set scope and depth — the direction for everything that follows.
+- **Output:** a scoped question with chosen depth mode confirmed.
 
 ---
 
-## Stage 3 — Synthesis and grading
+## 2. Curate sources
 
-After sources are captured, the agent synthesizes a brief graded by confidence (GRADE A–D). Each claim cites its source. Unsupported claims are marked explicitly as gaps, not silently omitted.
+- **Agent does:** runs `source-map` to identify the canonical sources for the question domain; dispatches retrieval subagents to fetch and synthesize source material.
+- **You do:** watch the source list take shape; if a key source is missing — a specific industry report, a primary author's paper, an internal standard you know exists — name it explicitly; the agent doesn't know your domain.
+- **Output:** a curated source set with fetched material ready for synthesis.
 
-**You:** Review the synthesis at the G-synthesis gate. The confidence grades are the first thing to read — a GRADE-C synthesis needs a different follow-on action (narrow the question, run another retrieval pass, seek a domain expert) than a GRADE-A synthesis (act on it). If a claim lacks a source citation, check whether it's an inference the agent labeled correctly or an assertion it presented as fact.
+---
+
+## 3. Synthesize and grade
+
+- **Agent does:** synthesizes a brief graded by confidence (GRADE A–D), citing each claim to its source; marks unsupported claims as explicit gaps.
+- **You do:** read the confidence grades first — a GRADE-C synthesis needs a different follow-on (narrow the question, run another retrieval pass) than a GRADE-A; check that each claim has a source citation and is not an unsupported assertion.
+- **You decide:** review the synthesized brief — act on it, narrow the question, or run another retrieval pass.
+- **Output:** a confidence-graded synthesis brief with cited sources and explicit gap map.

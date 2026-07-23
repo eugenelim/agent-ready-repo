@@ -3,6 +3,14 @@ pack: governance-extras
 scope: repo
 tagline: "Decision trail — RFCs, ADRs, and conventions for long-lived repos."
 prerequisitePacks: []
+contract:
+  useItWhen: "A cross-cutting change, architectural decision, or working-convention update needs a structured paper trail that survives personnel changes."
+  youProvide: "The change or decision to document, plus any objections or alternatives already under consideration."
+  youReceive: "A completed RFC, a merged ADR, or an updated CONVENTIONS.md — with structured rationale the next person can follow."
+  yourDecisions:
+    - "Review the RFC draft before circulation"
+    - "Accept, reject, or defer the RFC"
+    - "Merge the ADR"
 whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything, architectural decisions are recorded in ADRs with critique tracks, and CONVENTIONS.md evolves through tracked updates. Every significant 'why did we choose this?' question has an answer that survives personnel changes."
 skills:
   - name: new-rfc
@@ -67,24 +75,27 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Identify the change and open an RFC
+## 1. Draft the RFC
 
-You recognize a cross-cutting change — something that affects more than one person, more than one package, or an established convention. The agent activates `new-rfc`, drafts the problem statement, and structures the proposer and objector perspectives.
-
-**You:** Read the RFC draft at the G-draft gate. The most common error at this stage is confusing the solution with the problem — the RFC should name what's broken or missing, not what you want to adopt. If the draft leads with the solution, redirect the agent to reframe around the underlying need. Circulate the draft to the relevant stakeholders after the draft gate passes.
-
----
-
-## Stage 2 — Comment period and objection handling
-
-Stakeholders review the RFC and raise objections. The agent helps document each objection and draft responses, keeping the RFC's objector section updated as the conversation evolves.
-
-**You:** Manage the comment period — keep it time-boxed, ensure genuine objections get genuine responses, and prevent the RFC from accumulating comments without resolution. An RFC that's "still being discussed" with no decision date is a governance failure, not a process success.
+- **You provide:** the cross-cutting change or problem to address, and any known stakeholders or alternatives.
+- **Agent does:** activates `new-rfc`, drafts the problem statement, and structures the proposer and objector perspectives.
+- **You do:** read the RFC draft; the most common error is confusing the solution with the problem — the RFC should name what's broken or missing; if the draft leads with the solution, redirect to reframe around the underlying need.
+- **You decide:** review the RFC draft at G-draft before circulating to stakeholders.
+- **Output:** a circulated RFC draft with a clear problem statement and genuine adversarial perspectives.
 
 ---
 
-## Stage 3 — Decision and follow-on ADR
+## 2. Manage the comment period
 
-Once the comment period closes, you make the decision — Accept, Reject, or Defer — and the agent updates the RFC status. If accepted, the agent runs `new-adr` to record the architectural decision that resulted from the RFC.
+- **Agent does:** documents each objection and drafts responses, keeping the RFC's objector section updated as the conversation evolves.
+- **You do:** manage the comment period — keep it time-boxed, ensure genuine objections get genuine responses, and prevent accumulation without resolution; an RFC with no decision date is a governance failure.
+- **Output:** a resolved objection record with all objections addressed or explicitly set aside.
 
-**You:** Make the call at the G-accept gate. Verify the ADR at the G-merge gate: check that it captures the actual decision and the honest forces behind it, not a post-hoc rationalization. Merge the ADR as part of the same PR or a directly following one — decisions and their documentation belong together.
+---
+
+## 3. Decide and record
+
+- **Agent does:** updates the RFC status with the decision; if accepted, runs `new-adr` to record the architectural decision.
+- **You do:** verify the ADR captures the actual decision and the honest forces behind it — not a post-hoc rationalization; merge the ADR as part of the same PR or directly following one.
+- **You decide:** accept, reject, or defer the RFC at G-accept; then merge the ADR at G-merge.
+- **Output:** a decided RFC and, if accepted, a merged ADR with honest rationale.

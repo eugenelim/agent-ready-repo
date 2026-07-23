@@ -3,6 +3,14 @@ pack: experience-design
 scope: user
 tagline: "The design/UX seat for product teams."
 prerequisitePacks: []
+contract:
+  useItWhen: "A product team needs a full design thread — from outcome to independently-reviewed screens — before build begins."
+  youProvide: "The feature, user, and intended outcome, plus any existing brand or design-system constraints."
+  youReceive: "A complete, independently-reviewed design set — journey map, screen inventory, interaction specs, and accessibility-clean designs."
+  yourDecisions:
+    - "Approve the customer journey and derived screen list"
+    - "Approve the aesthetic direction and token set"
+    - "Review the designs after the independent experience-reviewer pass"
 whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` maps the journey; `content-design` and `tone-of-voice` name what the surface says and how it sounds. `design-principles` records the decision rules that hold screens to a shared standard. `user-flow` derives the screen list. `creative-direction` and `design-system` set the visual constraints. Genre-specific Direct skills (`analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`) produce surface-appropriate IA before `interaction-design` and `design-review` craft and critique each screen. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion. `experience-status` orients to the design thread at a glance — what artifacts exist, what's missing, and which skill to run next."
 skills:
   - name: journey-mapping
@@ -113,42 +121,44 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Map the customer journey
+## 1. Map the customer journey
 
-You describe the feature, user, and outcome. The agent runs `journey-mapping` to produce the customer journey map — the current state (what happens today), the desired state (what should happen after this feature), and the key moments where the current journey breaks down.
-
-With the journey in hand, the agent can run `content-design` to produce a content brief — what the surface should say, for whom, and to what objective — and `tone-of-voice` to name the copy direction. These run before the screen flow is derived, so the surface's content intent and register are set as constraints before screens are sequenced. The content brief and copy direction don't require a separate gate; review them informally when you read the journey map.
-
-**You:** Read the journey map and approve it at the G-journey gate. This is the most important gate in the experience thread — the screen list flows directly from it. If the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived. A one-sentence correction here saves a full design cycle.
-
----
-
-## Stage 2 — Derive the screen flow
-
-With the journey approved, the agent runs `user-flow` to derive the screen inventory: what screens exist, what state each one handles (empty, loading, populated, error), and what the transitions between them are. Each screen gets a per-screen brief: the user's goal, the information they need, the states to handle.
-
-**You:** Check that the screen list feels right — that it doesn't add screens not implied by the journey, and doesn't miss screens the journey requires. If the agent adds a screen that looks useful but isn't derived from the journey, remove it here.
+- **You provide:** the feature, user, and intended outcome.
+- **Agent does:** runs `journey-mapping` to produce the current-state and desired-state journey map with key failure modes; then runs `content-design` and `tone-of-voice` to set content intent and register before screens are sequenced.
+- **You do:** read the journey map and content brief informally; if the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived — a one-sentence correction here saves a full design cycle.
+- **You decide:** approve the customer journey and derived screen list at G-journey — the screen list flows directly from it.
+- **Output:** an approved journey map with content brief and copy direction.
 
 ---
 
-## Stage 3 — Establish design intent
+## 2. Derive the screen flow
 
-Before designing any screen, the agent runs `design-principles` to convert journey-map insights into 3–5 named decision rules — the principles that resolve design disputes and hold screens to a shared standard across the sprint. The principles don't require a separate gate; review them alongside the aesthetic direction below. The agent then runs `creative-direction` to establish the visual character of the surface — named emotional and brand goals grounded in stable referents — as a named aesthetic reference. `design-system` derives the design token set from that direction.
-
-**You:** Approve the aesthetic direction at the G-aesthetic gate. An aesthetic direction that says "clean and professional" is not an aesthetic direction — it needs to name a specific visual character with enough specificity to say whether a given design decision is consistent or not. If the tokens introduce hardcoded values outside the semantic token system, reject them.
-
----
-
-## Stage 4 — Design each screen
-
-The agent runs a structural IA skill on each screen before `interaction-design`. For general screens it uses `information-architecture`. When a screen has a specific surface genre, a genre-specific Direct skill produces a more targeted specification: `analytical-design` for dashboards and reporting views; `conversion-design` for marketing and acquisition surfaces; `documentation-design` for docs sites and help centres; `informational-design` for article and editorial pages; `marketplace-design` for catalogue and listing surfaces; `workspace-design` for productivity and agentic tool UIs. Once the IA is set, `interaction-design` designs the states, transitions, and feedback patterns, and `design-review` applies the quality floor as a self-check before the independent review.
-
-**You:** Watch each screen take shape. If a screen is missing a state — no empty state for a list that could be empty, no loading state for an async action — name it. The agent will miss states not explicitly mentioned in the brief; that's what the experience-reviewer catches, but catching it here is cheaper.
+- **Agent does:** runs `user-flow` to derive the screen inventory — what screens exist, what state each handles (empty, loading, populated, error), and what the transitions are; produces a per-screen brief for each.
+- **You do:** check that the screen list doesn't add screens not implied by the journey and doesn't miss screens the journey requires; remove any screen not derived from the journey.
+- **Output:** a screen inventory with per-screen briefs derived from the approved journey.
 
 ---
 
-## Stage 5 — Independent review
+## 3. Establish design intent
 
-The agent runs the `experience-reviewer` subagent in a forked context — a reviewer that has not seen the authoring session. The reviewer returns findings on the full screen set: handle-all-states violations, accessibility failures, aesthetic inconsistencies.
+- **Agent does:** runs `design-principles` to derive 3–5 named decision rules from the journey map; then runs `creative-direction` to establish the visual character and `design-system` to derive the token set.
+- **You do:** review the design principles alongside the aesthetic direction.
+- **You decide:** approve the aesthetic direction and token set at G-aesthetic; an aesthetic direction that says "clean and professional" is not specific enough — reject tokens that introduce hardcoded values outside the semantic token system.
+- **Output:** approved design principles, aesthetic direction, and token set.
 
-**You:** Read the review findings at the G-experience-review gate. Handle-all-states violations are the most common finding — a screen that works for the happy path but has no designed error state. WCAG findings affect all users. Apply Blockers before the design intent feeds the build loop; they represent the floor the spec says all screens must clear.
+---
+
+## 4. Design each screen
+
+- **Agent does:** runs a structural IA skill on each screen — `information-architecture` for general screens, or a genre-specific skill for dashboards (`analytical-design`), marketing surfaces (`conversion-design`), docs (`documentation-design`), editorial pages (`informational-design`), marketplaces (`marketplace-design`), or workspace tools (`workspace-design`) — then `interaction-design` for states and transitions, and `design-review` as a pre-independent-review self-check.
+- **You do:** watch each screen take shape; if a screen is missing a state — no empty state for a list, no loading state for an async action — name it; catching it here is cheaper than the independent review.
+- **Output:** a self-reviewed screen set with states, transitions, and accessibility checks applied.
+
+---
+
+## 5. Review independently
+
+- **Reviewer does:** runs the `experience-reviewer` in a forked context — no access to the authoring session — returning findings on the full screen set: handle-all-states violations, WCAG 2.2 AA failures, and aesthetic inconsistencies.
+- **You do:** read the findings; apply Blockers before design intent feeds the build loop — they are the floor every screen must clear; handle-all-states violations are the most common finding.
+- **You decide:** review the designs after the independent experience-reviewer pass.
+- **Output:** a review-clean design set ready to feed the build loop.
