@@ -6,10 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [Unreleased]
+## [0.12.1] — 2026-07-23
 
 ### Changed
 
+- **`install --dry-run` now previews governance seed files alongside the
+  projected adapter files.** Seeds (AGENTS.md, docs/CHARTER.md,
+  CONVENTIONS.md, and companions) are classified read-only and included in
+  the plan output — `create tier-1`, `companion tier-2`, or skipped — so
+  the dry-run is a complete picture of what a real install would write, not
+  just the adapter projection.
 - **`assert_projection_jailed` centralises the two-step path-jail check.**
   A new read-only helper in `agentbundle/safety.py` unifies the root-escape
   (`assert_under`) and prefix-match checks that were duplicated across
