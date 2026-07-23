@@ -78,7 +78,5 @@ pan-zoom module across skills, SKILL.md prose updates.
   `textContent` recovers the original unescaped source for Mermaid's parser.
 - Mermaid CDN script is added to the page wrapper, not the DOMPurify-sanitized
   markdown body. `render-proof` FORBID_TAGS applies to the markdown body only.
-- **Deferred: CDN SRI pinning** — both skills load `mermaid@11` from jsDelivr without
-  an `integrity=` hash. Pinning to an exact patch version + adding SRI would harden
-  supply-chain risk but requires ongoing version maintenance. Tracked in backlog.
-  (deferred: cdn-sri-mermaid)
+- **Shipped: CDN SRI pinning** — both skills now load `mermaid@11.16.0` from jsDelivr
+  with `integrity="sha384-..."` and `crossorigin="anonymous"`. Shipped in `cdn-sri-mermaid`.
