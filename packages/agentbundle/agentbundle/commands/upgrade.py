@@ -79,6 +79,7 @@ def run(args: "argparse.Namespace") -> int:
         format_plan_line,
         plan_action,
         resolve_catalogue_uri,
+        resolve_state_path,
         summarize_plan,
     )
     from agentbundle.config import (
@@ -115,7 +116,7 @@ def run(args: "argparse.Namespace") -> int:
     # If the pack is at both scopes, --scope is required; at one scope, infer.
     from agentbundle import scope as scope_mod
 
-    repo_state_path = root / ".agentbundle-state.toml"
+    repo_state_path = resolve_state_path("repo", root)
     # A legacy (non-v0.4) state file is refused on read too (RFC-0052);
     # surface it as a clean refuse rather than a traceback.
     try:
@@ -129,7 +130,7 @@ def run(args: "argparse.Namespace") -> int:
     user_state_for_check = None
     try:
         user_root_resolved = scope_mod.resolve_user_root()
-        user_state_path = user_root_resolved / ".agentbundle" / "state.toml"
+        user_state_path = resolve_state_path("user", user_root_resolved)
         user_state_for_check = load_state(user_state_path)
         installed_at_user = user_state_for_check.has_pack(pack_name)
     except scope_mod.UserScopeUnresolvable:
@@ -248,7 +249,7 @@ def run(args: "argparse.Namespace") -> int:
     if effective_scope == "user":
         state_path = user_state_path  # already resolved above
     else:
-        state_path = root / ".agentbundle-state.toml"
+        state_path = resolve_state_path("repo", root)
     try:
         state = load_state(state_path, for_write=True)
     except ConfigError as exc:
