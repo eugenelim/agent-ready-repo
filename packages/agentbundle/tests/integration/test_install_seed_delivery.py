@@ -162,3 +162,23 @@ def test_install_identical_seed_skipped(tmp_path):
     assert not (target / "docs" / "CHARTER.upstream.md").exists(), (
         "no companion should be created when the seed already matches on disk"
     )
+
+
+def test_install_records_skipped_seed_in_state(tmp_path):
+    """AC9: a byte-identical seed (action=='skipped') is still recorded in state."""
+    from pathlib import Path as _Path
+
+    target = tmp_path / "repo"
+    target.mkdir()
+    (target / "docs").mkdir()
+    # Pre-install CHARTER.md with the exact content that would be delivered.
+    charter_src = CORE_SEEDS / "docs" / "CHARTER.md"
+    (target / "docs" / "CHARTER.md").write_bytes(charter_src.read_bytes())
+
+    rc, _out, err = _install_core(target)
+    assert rc == 0, err
+    state = tomllib.loads((target / ".agentbundle-state.toml").read_text(encoding="utf-8"))
+    files = state["pack"]["core"]["adapters"]["claude-code"]["files"]
+    assert "docs/CHARTER.md" in files, (
+        "skipped seed docs/CHARTER.md should still be recorded in state"
+    )

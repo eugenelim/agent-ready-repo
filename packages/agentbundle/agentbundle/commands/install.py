@@ -927,6 +927,8 @@ def run(args: "argparse.Namespace") -> int:
     # recap). `--force` is refused up front, so there is exactly one writing
     # plan here (dual-scope writes arise only under --force).
     if dry_run:
+        from agentbundle.commands._common import _classify_seeds
+
         actions: list[str] = []
         for plan in plans:
             if plan.already_installed:
@@ -946,6 +948,21 @@ def run(args: "argparse.Namespace") -> int:
                 )
                 print(format_plan_line(action, tier.value, relpath, companion))
                 actions.append(action)
+            if plan.scope == "repo":
+                seeds_dir = pack_dir / "seeds"
+                if seeds_dir.is_dir():
+                    for record in _classify_seeds(seeds_dir, plan.root):
+                        if record.action == "skipped":
+                            continue
+                        verb = "create" if record.action == "wrote" else "companion"
+                        tier_str = "tier-1" if record.action == "wrote" else "tier-2"
+                        path_str = (
+                            record.relpath
+                            if record.action == "wrote"
+                            else f"{record.relpath} -> {record.companion_relpath}"
+                        )
+                        print(format_plan_line(verb, tier_str, path_str))
+                        actions.append(verb)
         print(summarize_plan(actions))
         return 0
 

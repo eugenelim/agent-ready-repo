@@ -1,6 +1,6 @@
 # Spec: projection-dry-run-governance-seeds
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Constrained by:** [`projection-dry-run`](../projection-dry-run/spec.md) — Never-do: "Fork, reimplement, or special-case the tier-classification logic."
 
@@ -28,32 +28,32 @@ real delivery path and the dry-run preview path.
 
 ## Acceptance Criteria
 
-- [ ] AC1: A pure function `_classify_seeds(seeds_dir: Path, root: Path) -> list[SeedDelivery]`
+- [x] AC1: A pure function `_classify_seeds(seeds_dir: Path, root: Path) -> list[SeedDelivery]`
   exists in `packages/agentbundle/agentbundle/commands/_common.py`. It performs
   no writes. It walks `seeds_dir` with the same symlink-skip and
   composition-fragment logic as the current `deliver_seeds`, reads each seed's
   bytes (composing `AGENTS.md` from body+footer when the footer fragment is
   present), and returns `SeedDelivery` records with `action` set to `"wrote"`
   (absent on disk), `"skipped"` (byte-identical), or `"companion"` (differs — Tier-2).
-- [ ] AC2: `deliver_seeds` calls `_classify_seeds` internally and drives writes
+- [x] AC2: `deliver_seeds` calls `_classify_seeds` internally and drives writes
   from its result. The real install and scaffold delivery paths produce byte-for-byte
   identical outcomes — no behaviour change.
-- [ ] AC3: `install --dry-run --scope repo` includes seed files in the plan output.
+- [x] AC3: `install --dry-run --scope repo` includes seed files in the plan output.
   Each seed is printed on a separate line using the existing `format_plan_line`
   formatter: `create` + `tier-1` for an absent seed; `companion` + `tier-2` +
   `<path> -> <companion>` for a user-edited seed. Byte-identical seeds (`"skipped"`)
   produce no plan line.
-- [ ] AC4: The `summarize_plan` count at the end of the dry-run output includes
+- [x] AC4: The `summarize_plan` count at the end of the dry-run output includes
   seed files. The count matches `create` + `companion` seed entries added to the
   existing projection entries.
-- [ ] AC5: Running `install --dry-run --scope repo` writes nothing — no seed file,
+- [x] AC5: Running `install --dry-run --scope repo` writes nothing — no seed file,
   no `.upstream.<ext>` companion, no `.agentbundle-state.toml`, no install marker.
   The no-write invariant from `projection-dry-run` AC6 extends to seeds.
-- [ ] AC6: All existing dry-run integration tests in
+- [x] AC6: All existing dry-run integration tests in
   `tests/integration/test_install_cmd.py`, `tests/integration/test_install_seed_delivery.py`,
   and `tests/unit/test_scaffold_cmd.py` pass unchanged. (`test_scaffold_cmd.py` exercises the
   symlink-skip security invariant that `_classify_seeds` must preserve.)
-- [ ] AC7: A unit test for `_classify_seeds` covers:
+- [x] AC7: A unit test for `_classify_seeds` covers:
   (a) seed absent on disk → `action == "wrote"`;
   (b) seed byte-identical on disk → `action == "skipped"`;
   (c) seed differs on disk → `action == "companion"` with the correct `companion_relpath`;
@@ -64,11 +64,11 @@ real delivery path and the dry-run preview path.
   (h) calling `_classify_seeds(seeds_dir, root)` against a real `seeds_dir` and an empty `root`
   writes nothing under `root` — the no-write invariant is verified by asserting `root` directory
   is unchanged after the call.
-- [ ] AC8: A new integration test asserts that the stdout plan for a fresh
+- [x] AC8: A new integration test asserts that the stdout plan for a fresh
   `install --dry-run --scope repo` includes at least `AGENTS.md`, `docs/CHARTER.md`,
   and `docs/CONVENTIONS.md` as `create tier-1` lines, and that the tree is
   byte-identical before and after (AC5 regression guard specific to seeds).
-- [ ] AC9: `deliver_seeds` returns the full `list[SeedDelivery]` from `_classify_seeds`
+- [x] AC9: `deliver_seeds` returns the full `list[SeedDelivery]` from `_classify_seeds`
   unchanged — including `"skipped"` records. An existing state-recording test (or a new
   test added alongside AC7) asserts that a byte-identical seed (`action == "skipped"`)
   is still recorded in the install state `files` map after `deliver_seeds` completes. This
@@ -183,6 +183,10 @@ Write integration tests first (TDD, AC3/AC5/AC8). Then add seed preview to
 `"companion"`, append the verb to `actions`.
 
 **Done when:** new integration tests pass; existing dry-run tests pass unchanged.
+
+## Changelog
+
+- 2026-07-23: Implemented and shipped — `_classify_seeds` extracted from `deliver_seeds`; `deliver_seeds` refactored to call it; seed preview added to `install --dry-run`. All ACs pass.
 
 ## Declined
 

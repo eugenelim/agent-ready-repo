@@ -1,6 +1,6 @@
 # Spec: share-scope-state-path-resolver
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 
@@ -65,22 +65,22 @@ future commands a single, tested source of truth for scope-to-path resolution.
 
 ## Acceptance Criteria
 
-- [ ] AC1: `_common.resolve_state_path(scope, root)` exists, is public, and carries
+- [x] AC1: `_common.resolve_state_path(scope, root)` exists, is public, and carries
   a docstring naming both scope values and their returned paths.
-- [ ] AC2: All three commands — `uninstall.py`, `upgrade.py`, `diff.py` — call
+- [x] AC2: All three commands — `uninstall.py`, `upgrade.py`, `diff.py` — call
   `resolve_state_path` for their state-file path computation. No inline path-build
   expressions of the form `root / ".agentbundle-state.toml"` or
   `root / ".agentbundle" / "state.toml"` remain in non-comment, non-docstring code
   (verified by grep excluding `#`-prefixed lines). Exception: `upgrade.py`'s string
   comparison `state_relpath == ".agentbundle-state.toml"` at line 724 is a filename
   equality check — not a path build — and must remain unchanged.
-- [ ] AC3: Every existing regression test for `uninstall`, `upgrade`, and `diff`
+- [x] AC3: Every existing regression test for `uninstall`, `upgrade`, and `diff`
   (unit and integration) passes unchanged — no assertion text, no helper count,
   no exit code asserted by a test is modified.
-- [ ] AC4: A new unit test for `resolve_state_path` covers `scope="repo"` and
+- [x] AC4: A new unit test for `resolve_state_path` covers `scope="repo"` and
   `scope="user"`, asserts the exact `Path` returned, and lives in
   `packages/agentbundle/tests/unit/`.
-- [ ] AC5: `_common.py` imports no new module — `resolve_state_path` uses only
+- [x] AC5: `_common.py` imports no new module — `resolve_state_path` uses only
   `pathlib.Path`, which is already imported at module level.
 
 ## Assumptions

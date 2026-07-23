@@ -614,3 +614,71 @@ def test_dry_run_preflight_path_jail_passthrough(tmp_path):
     assert not (tmp_path / malicious_relpath).resolve().exists(), (
         "malicious file must not be written even under dry-run"
     )
+
+
+# Dry-run seed preview (projection-dry-run-governance-seeds spec)
+# ---------------------------------------------------------------------------
+
+CORE_SEEDS = REPO_ROOT / "packs" / "core" / "seeds"
+
+
+def test_dry_run_includes_seed_create_lines(tmp_path):
+    """AC3/AC8: dry-run fresh install stdout contains AGENTS.md, docs/CHARTER.md,
+    docs/CONVENTIONS.md as 'create tier-1' lines."""
+    target = tmp_path / "repo"
+    target.mkdir()
+
+    _reset_inband_cache()
+    rc, out, err = _run_core(_args_core(target, dry_run=True))
+    assert rc == 0, f"dry-run must exit 0: {err}"
+
+    # format_plan_line pads action to 9 chars; "tier-1 <path>" uniquely identifies
+    assert "tier-1 AGENTS.md" in out, f"AGENTS.md seed create line missing:\n{out}"
+    assert "tier-1 docs/CHARTER.md" in out, f"docs/CHARTER.md missing:\n{out}"
+    assert "tier-1 docs/CONVENTIONS.md" in out, f"docs/CONVENTIONS.md missing:\n{out}"
+    # verify these lines are create lines, not some other tier-1 entry
+    for line in out.splitlines():
+        if "AGENTS.md" in line and "tier-1" in line:
+            assert line.startswith("create"), f"AGENTS.md line must be a create: {line}"
+        if "docs/CHARTER.md" in line and "tier-1" in line:
+            assert line.startswith("create"), f"docs/CHARTER.md line must be a create: {line}"
+
+
+def test_dry_run_seed_companion_line(tmp_path):
+    """AC3: a user-edited seed shows 'companion tier-2 <path> -> <companion>' in
+    dry-run output, and no companion is written to disk (AC5)."""
+    target = tmp_path / "repo"
+    target.mkdir()
+    (target / "docs").mkdir()
+    charter_on_disk = target / "docs" / "CHARTER.md"
+    charter_on_disk.write_bytes(b"# adopter edited charter\n")
+
+    before = _snapshot_tree(target)
+    _reset_inband_cache()
+    rc, out, err = _run_core(_args_core(target, dry_run=True))
+    assert rc == 0, f"dry-run must exit 0: {err}"
+
+    assert "CHARTER" in out, f"companion line for edited seed missing:\n{out}"
+    for line in out.splitlines():
+        if "CHARTER" in line:
+            assert "companion" in line and "tier-2" in line, (
+                f"CHARTER seed line should be companion tier-2: {line}"
+            )
+    assert "CHARTER.upstream.md" in out, f"companion path missing:\n{out}"
+    # No companion must be written to disk.
+    assert not (target / "docs" / "CHARTER.upstream.md").exists(), (
+        "dry-run must not write the companion"
+    )
+
+
+def test_dry_run_writes_nothing_including_seeds(tmp_path):
+    """AC5: tree is byte-identical before and after a dry-run install (no-write
+    invariant extends to seeds)."""
+    target = tmp_path / "repo"
+    target.mkdir()
+    before = _snapshot_tree(target)
+
+    _reset_inband_cache()
+    rc, _out, err = _run_core(_args_core(target, dry_run=True))
+    assert rc == 0, err
+    assert _snapshot_tree(target) == before, "dry-run must write nothing including seeds"
