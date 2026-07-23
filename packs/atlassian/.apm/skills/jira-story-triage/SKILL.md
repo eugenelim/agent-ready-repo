@@ -1,6 +1,6 @@
 ---
 name: jira-story-triage
-description: Use this skill to audit a Jira backlog, sprint, or any JQL-scoped set of stories for agent-readiness — score each story against the five-question actionability bar and output a Tier A / B / C / Blocked table with complexity grouping. Triggers on "score the backlog", "which tickets are ready to ship", "triage sprint for actionability", "classify PROJ backlog by tier", "what's agent-ready in PROJ", "run a backlog health audit", "score these stories", "which stories in sprint 12 can we execute". Do NOT use for: showing team sprint status with a pick-up hand-off (use `jira-team-status`), creating or updating issues (use `jira`), turning an epic into specs (use `jira-brief-intake`), or fixing a defect (use `jira-defect-flow`).
+description: "Use this skill to audit a Jira backlog, sprint, or any JQL-scoped set of stories for agent-readiness — score each story against the five-question actionability bar and output a Tier A / B / C / Blocked table with complexity grouping. Triggers on \"score the backlog\", \"which tickets are ready to ship\", \"triage sprint for actionability\", \"classify PROJ backlog by tier\", \"what's agent-ready in PROJ\", \"run a backlog health audit\", \"score these stories\", \"which stories in sprint 12 can we execute\". Do NOT use for: showing team sprint status with a pick-up hand-off (use jira-team-status), creating or updating issues (use jira), turning an epic into specs (use jira-brief-intake), or fixing a defect (use jira-defect-flow)."
 metadata:
   version: "1.0"
 ---
