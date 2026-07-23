@@ -4,6 +4,13 @@ scope: user
 tagline: "Read and render Figma designs — files, frames, variables."
 prerequisitePacks:
   - credential-brokers
+contract:
+  useItWhen: "You need to read or extract design artifacts from a Figma file — frames, variables, connector graphs, or dev specs — to feed a design or build task."
+  youProvide: "A Figma file URL or key and the artifact you want to extract."
+  youReceive: "Extracted design data — rendered frame images, CSS variable sets, Mermaid connector diagrams, or structured property dumps."
+  yourDecisions:
+    - "Confirm the Figma credential"
+    - "Review extracted design data before acting on it"
 whatChanges: "After installing figma, your agent can read Figma files, render frame images, query variables, post comments, and convert FigJam connector graphs to Mermaid diagrams — all through the Figma REST API using a credential resolved via credential-brokers. The token never reaches the model; it resolves in-process at invocation time."
 skills:
   - name: figma
@@ -47,24 +54,27 @@ relatedJourneys:
   - credential-brokers
 ---
 
-## Stage 1 — Configure the credential
+### 1. Configure the credential
 
-Before the first API call, you confirm the Figma Personal Access Token is configured in credential-brokers. The agent checks that the credential resolves and reaches the target file.
-
-**You:** Run `credential-brokers` setup if this is the first session, or confirm the existing token is still valid. Name the file key or file URL you want the agent to work with. This is a one-time setup per service — once the token is in place, every subsequent figma session resolves it automatically.
-
----
-
-## Stage 2 — Read the design artifact
-
-With the credential confirmed, the agent invokes the `figma` skill. It fetches the file structure, navigates to the target frame or component, and returns the design data — rendered image, node properties, variable values, or connector graph, depending on what you asked for.
-
-**You:** Watch the fetch complete. If the agent returns data from the wrong frame — because a component name matches multiple instances in the file — redirect with the specific node ID or frame path. Figma's file tree uses human-readable names that aren't always unique; the node ID is the authoritative identifier.
+- **You provide:** the target Figma file URL or key, and a Personal Access Token if not already in credential-brokers.
+- **Agent does:** verifies the credential resolves via credential-brokers and can reach the target file.
+- **You do:** run credential-brokers setup if this is the first session, or confirm the existing token is still valid — once in place, every subsequent figma session resolves it automatically.
+- **You decide:** confirm the Figma credential at G-credential before any API call is made.
+- **Output:** a confirmed credential resolving to the target file.
 
 ---
 
-## Stage 3 — Review and use
+### 2. Read the design artifact
 
-The agent presents the extracted artifact — a rendered frame image, a CSS variable set, a Mermaid connector diagram, or a structured property dump. You review it at the G-output gate before passing it to the next step in your workflow.
+- **Agent does:** invokes the `figma` skill; fetches the file structure, navigates to the target frame or component, and returns design data — rendered image, node properties, variable values, or connector graph.
+- **You do:** watch the fetch complete; if the agent returns data from the wrong frame, redirect with the specific node ID or frame path — human-readable names in Figma's file tree aren't always unique.
+- **Output:** raw design data from the target frame or component.
 
-**You:** Check that the extracted artifact matches the design you intended to capture. For FigJam diagrams, verify that all connectors and labels are preserved. For variable values, confirm they match the published (not draft) design system state. Pass the reviewed artifact to the next step — typically a design implementation task using the `experience-design` or `core` pack.
+---
+
+### 3. Review and use
+
+- **Agent does:** presents the extracted artifact — rendered frame image, CSS variable set, Mermaid connector diagram, or structured property dump.
+- **You do:** check the artifact matches the intended design; for FigJam diagrams, verify all connectors and labels are preserved; for variable values, confirm they match the published design system state.
+- **You decide:** review extracted design data at G-output before passing it to the next workflow step.
+- **Output:** a reviewed design artifact ready to pass to the next workflow step.

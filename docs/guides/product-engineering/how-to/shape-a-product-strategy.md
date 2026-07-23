@@ -1,5 +1,9 @@
 # How to shape a product strategy
 
+**Use this when:** Your product vision has survived its market-existence test and you need the path — which problem, for which segment, in what order, and why now — named as a bet you can test.
+**Prerequisites:** `product-engineering` pack installed; a survived `product-vision` intent (or a clear strategic challenge if entering at the strategy altitude directly, without a framed vision above it).
+**Result:** A de-risked `product-strategy` intent decomposed into capability intents, each ready to re-enter the frame–de-risk–decompose loop toward a `core` brief.
+
 > **Diátaxis: how-to.** Shape the *path* from a product vision — the second product altitude. For the model, see [*The intent tree*](../explanation/the-intent-tree.md); for the altitude above, [*Frame a product vision*](frame-a-product-vision.md); for how the pieces fit at engagement start, [*Shaping a new engagement*](../../_shared/explanation/shaping-a-new-engagement.md).
 
 You have a product vision that survived its market-existence test, and now you need the path to realize it: which problem, for which segment, in what order, and why now. That path is a **product-strategy** intent. Install the `product-engineering` pack, then work the moves below.

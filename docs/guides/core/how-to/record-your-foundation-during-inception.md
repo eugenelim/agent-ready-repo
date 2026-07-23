@@ -1,5 +1,9 @@
 # Decide and record your foundation during inception
 
+**Use this when:** You are at the foundation step of `init-project` and need to choose a stack, record the rationale as an ADR, and instantiate `docs/architecture/reference.md`.
+**Prerequisites:** A stated business value and MVP (the value gate's output) and the `init-project` skill running at the foundation step.
+**Result:** An ADR in `docs/adr/` and a seeded `docs/architecture/reference.md` — the golden path that steers every spec that follows.
+
 This guide is for someone running the greenfield front door (`init-project`) who has reached the **foundation** step and needs to choose the stack and record it well. It assumes you've already passed the value gate — you can state the business value and the MVP — and you know what a `reference.md` is for. If you don't, read [About foundation vs. map](../explanation/foundation-vs-map.md) first.
 
 If you're starting from the very beginning, walk [From idea to a walking skeleton](../tutorials/start-a-new-project.md) instead — this guide zooms in on one step of that flow.

@@ -1,5 +1,9 @@
 # Generate an API contract
 
+**Use this when:** You own an API's resources and need a complete OpenAPI 3.1 contract from requirements, a domain model, or plain-English prose.
+**Prerequisites:** `contracts` pack installed, active standard known (Zalando by default), and you are the API producer.
+**Result:** A validated OpenAPI 3.1 YAML document ready to feed into code generators, mock servers, or SDK builders.
+
 You have requirements — user stories, a domain model, plain-English prose, or a half-finished spec — and you need a complete OpenAPI 3.1 contract downstream tooling can consume without edits. This is the `api-contract` skill's job.
 
 ## Before you start

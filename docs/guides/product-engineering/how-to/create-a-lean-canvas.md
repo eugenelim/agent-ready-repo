@@ -1,5 +1,9 @@
 # How to create a Lean Canvas for an initiative
 
+**Use this when:** You have a committed bet (and optionally a capability map) and need to produce a shareable, version-controlled initiative brief through structured elicitation.
+**Prerequisites:** `product-engineering` pack installed; a committed bet from `place-bet` and capability map from `map-capabilities` are recommended for pre-population, though the skill runs standalone without them.
+**Result:** A `docs/product/initiatives/<ini-slug>.md` initiative brief with a `## Value Proposition` section and a `workspace.toml` entry suggestion, ready to commit and share with stakeholders.
+
 Use the `lean-canvas` skill when you need to produce a shareable, version-
 controlled initiative brief through a structured elicitation. The skill
 adapts the Lean Canvas for internal initiatives — replacing startup vocabulary

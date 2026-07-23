@@ -1,5 +1,9 @@
 # Your first release
 
+**What you'll build:** a ratified prod ship of a concrete scenario — a payment refund endpoint with a database migration — walked through all six stages of the release loop.
+**Prerequisites:** `core` and `release-engineering` installed at repo scope, and an ephemeral deploy target configured — see [Prerequisites](#prerequisites).
+**Time:** 15 minutes to read; an actual release run takes as long as your e2e suite and deploy pipeline (a few minutes to 30+).
+
 This tutorial walks you through a complete release cycle from end to end — from a deploy-ready build to a ratified prod ship — so you understand what each stage does and what you're looking at when `release-lead` surfaces a result.
 
 We'll follow a concrete scenario: a small team just finished a work-loop run that ships a new `/payments/refund` API endpoint and a related database migration. `core` is installed, tests are green, the adversarial review says `Clean`. Now it's time to get it to production.

@@ -1,5 +1,9 @@
 # Your first governance session
 
+**What you'll build:** A confirmed ADR file in `docs/adr/`, recorded through the `new-adr` skill's preview-confirm write gate.
+**Prerequisites:** `agentbundle` on PATH, a repo with `core` pack installed, and write access to add `docs/adr/`.
+**Time:** About fifteen minutes.
+
 In fifteen minutes you'll install the `governance-extras` pack, use `new-adr` to record one architectural decision, and see the preview-confirm write gate in action — the step where you read exactly what will land in your repo and where, before confirming the write.
 
 This is a tutorial — it leads. For the full `new-adr` procedure, see [How to record a decision (ADR)](../how-to/new-adr.md). For `new-rfc`, see [How to propose a change (RFC)](../how-to/new-rfc.md).

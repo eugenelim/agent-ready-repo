@@ -1,5 +1,9 @@
 # Publish Markdown as a branded Office file
 
+**Use this when:** You have a polished Markdown artifact and need it as a branded Word, PowerPoint, or Excel file using your organization's template.
+**Prerequisites:** A branded Office template with fill-points (Jinja tags for `.docx`, layout placeholders for `.pptx`, named ranges for `.xlsx`) and the relevant Python library installed (`docxtpl`, `python-pptx`, or `openpyxl`).
+**Result:** A branded Word document, PowerPoint deck, or Excel workbook filled from your Markdown content and template.
+
 You've got a polished Markdown artifact — a report, a deck outline, a tabular
 summary — and a stakeholder who wants it as a real Word doc, PowerPoint, or Excel
 file, on-brand. Three `converters` skills do that by **filling your branded

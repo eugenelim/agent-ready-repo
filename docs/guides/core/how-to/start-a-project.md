@@ -1,5 +1,9 @@
 # How to start working on a project
 
+**Use this when:** You have been given access to an existing repo that uses `workspace.toml` and need to get oriented and pick up your first piece of work.
+**Prerequisites:** Repo access (local clone or Conductor workspace) and the `core` pack installed; see Prerequisites below for the install command.
+**Result:** Your first ready spec identified in the build queue and `work-loop` invoked on it.
+
 You have been given access to a repo that uses `workspace.toml`. This guide walks you through confirming the setup, getting oriented, and picking up your first piece of work.
 
 For the greenfield case — starting a brand-new project from scratch — see [From idea to a walking skeleton](../tutorials/start-a-new-project.md). For an end-to-end walkthrough of a complete workspace session, see [Your first workspace session](../tutorials/your-first-workspace.md).

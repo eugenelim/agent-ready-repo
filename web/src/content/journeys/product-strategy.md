@@ -4,6 +4,14 @@ scope: user
 tagline: "Market, UX, and content strategy — committed artifacts upstream of every initiative."
 prerequisitePacks:
   - product-engineering
+contract:
+  useItWhen: "You're building the committed strategy layer — market analysis, altitude-0 direction, and OKR-derived gap routing — upstream of any product initiative."
+  youProvide: "Company OKRs, any prior desk-research outputs, and the scope of the initiative or strategic question to address."
+  youReceive: "Committed SWOT, PRFAQ, OKR-derived gap entries in workspace.toml, ux-strategy.md, and content-strategy.md."
+  yourDecisions:
+    - "Approve the market situation picture"
+    - "Approve the PRFAQ"
+    - "Approve the OKR cascade and gap routing"
 whatChanges: "After installing product-strategy, the altitude-0 work above every initiative has a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market context (PESTLE, Porter's Five Forces), portfolio position (BCG Matrix, SWOT), altitude-0 forcing function (PRFAQ), OKR cascade with direct routing to the PE pack's shaping queue, and the experience and content direction that the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` where downstream packs — product-engineering and experience-design (including its content-design skill) — can reference it by path."
 skills:
   - name: synthesize-stakeholder-research
@@ -85,32 +93,36 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Build the market situation
+### 1. Build and gate the market situation
 
-You give the agent the market and organizational context. If prior desk-research project outputs exist, the agent runs `synthesize-stakeholder-research` first to produce a committed stakeholder narrative. It then runs `run-pestle-analysis` and `run-porters-five-forces` to cover the macro environment and competitive landscape, `run-bcg-matrix` to map portfolio position, and `run-swot` as the capstone — synthesizing all four inputs into the committed situation picture.
-
-**You:** Approve the situation picture at the G-situation gate before moving forward — the PRFAQ and OKR cascade both build on this foundation. The cheapest correction is here: if the SWOT introduces claims you can't trace to the prior analyses, redirect before the altitude-0 artifacts are committed.
-
----
-
-## Stage 2 — Commit the altitude-0 direction
-
-With the situation picture approved, the agent runs `write-prfaq` to draft the press release + FAQ. The PRFAQ is the altitude-0 forcing function: the imagined future press release that answers "who is this for, what changes for them, and why does it matter?" before any initiative is scoped. It commits to `docs/product/shaping/prfaq.md` where initiative briefs can link to it as their strategic rationale.
-
-**You:** Approve the PRFAQ at the G-prfaq gate. The press release is the altitude-0 forcing function — once committed, initiative briefs trace back to it. A PRFAQ that any product could claim is not yet a PRFAQ; redirect before the cascade and experience direction are set against an unspecific vision.
+- **You provide:** the market and organizational context — company OKRs, any prior desk-research project outputs, and the scope of the initiative or strategic question to address.
+- **Agent does:** runs synthesize-stakeholder-research if prior desk-research outputs exist; then runs run-pestle-analysis, run-porters-five-forces, and run-bcg-matrix; synthesizes all inputs into a committed SWOT as the capstone situation picture; commits each artifact to docs/product/shaping/.
+- **You do:** before moving forward, confirm the SWOT reads as a synthesis of the prior analyses — redirect if it introduces claims you can't trace back to PESTLE, Porter's, or BCG.
+- **You decide:** approve the market situation picture.
+- **Output:** committed PESTLE, Porter's Five Forces, BCG matrix, and SWOT — the grounded situation picture all downstream artifacts build on.
 
 ---
 
-## Stage 3 — Cascade strategy gaps to the shaping queue
+### 2. Commit the altitude-0 direction
 
-The agent runs `run-okr-cascade` to derive team-level OKRs from the company targets, identify the gaps between current state and each target, and prepare strategy-type entries to route into `workspace.toml`. Each gap becomes a `{type = "strategy"}` entry in the shaping queue, signaling to the PE pack's `frame-situation` which items to pick up next.
-
-**You:** Review the gap list at the G-cascade gate before it writes to `workspace.toml`. The cascade write is a shared state change — once entries appear in the shaping queue, product engineers will treat them as the highest-priority strategy-driven work. The correction window is here, before the write.
+- **Agent does:** runs write-prfaq to draft the press release + FAQ — naming the specific person, the measurable benefit, and the hardest objection a skeptical stakeholder would raise; commits to docs/product/shaping/prfaq.md.
+- **You do:** read the PRFAQ; if the press release doesn't name a specific person or deliver a measurable benefit, or doesn't connect to the approved situation picture, redirect before the cascade and experience direction are set against an unspecific vision.
+- **You decide:** approve the PRFAQ.
+- **Output:** committed prfaq.md — the altitude-0 forcing function that initiative briefs trace back to as their strategic rationale.
 
 ---
 
-## Stage 4 — Set the experience and content direction
+### 3. Cascade strategy gaps to the shaping queue
 
-The agent runs `define-ux-strategy` to produce a committed `ux-strategy.md` — the experience vision, goals with measures, and plan, grounded in the approved market situation and PRFAQ. It then runs `define-content-strategy` to produce a committed `content-strategy.md` using the Halvorson quad (Purpose + Process + Structure + Governance), the organizational governance layer that sets the intent above per-surface content work.
+- **Agent does:** runs run-okr-cascade to derive team-level OKRs from company targets, identify gaps between current state and each target, and prepare strategy-type entries for workspace.toml; each gap becomes a {type = "strategy"} entry ranked by OKR weight.
+- **You do:** review the gap list; confirm each gap reflects an actual gap (not a feature the team wants regardless of OKRs), is ranked by OKR weight, and is specific enough for frame-situation to scope into a shaping brief without re-scoping from scratch.
+- **You decide:** approve the OKR cascade and gap routing.
+- **Output:** strategy-type gap entries written to workspace.toml — signaling strategy-driven shaping items to product engineers via workspace-status.
 
-**You:** Review both artifacts before sharing them with design and content teams. `ux-strategy.md` is the anchor the experience-design pack reads from when `journey-mapping` and `user-flow` run — an experience vision that doesn't connect to the approved PRFAQ will cause drift between strategy and design. `content-strategy.md` sets the organizational governance intent that the experience-design pack's content-design skill operates within — a governance doc that doesn't name specific decisions (channel priority, ownership model, update cadence) is still a wish list.
+---
+
+### 4. Set experience and content direction
+
+- **Agent does:** runs define-ux-strategy to produce a committed ux-strategy.md — experience vision, goals with measures, and plan, grounded in the approved market situation and PRFAQ; runs define-content-strategy to produce a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance).
+- **You do:** review both artifacts before sharing with design and content teams; confirm ux-strategy.md connects to the approved PRFAQ; confirm content-strategy.md names specific decisions — channel priority, ownership model, update cadence — not aspirational intent.
+- **Output:** committed ux-strategy.md and content-strategy.md — the anchors the experience-design pack reads from when journey-mapping and content-design run.

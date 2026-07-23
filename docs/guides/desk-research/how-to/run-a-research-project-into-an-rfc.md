@@ -1,5 +1,9 @@
 # Run a research project and feed it into an RFC
 
+**Use this when:** A decision needs more than one sitting and you want the research evidence to land in an RFC with citations and confidence tags intact.
+**Prerequisites:** `desk-research` pack installed and familiarity with the project lifecycle — walk [your first research project](../tutorials/your-first-research-project.md) first if needed.
+**Result:** A self-contained research brief promoted into the RFC's `NNNN-notes/` companion folder, with findings mapped into *Evidence & prior art*.
+
 You have a decision that needs more than one sitting — a framework choice, a
 migration, a build-vs-buy — and you want the result to land in an RFC with its
 evidence intact. This guide runs the `desk-research` project lifecycle and promotes

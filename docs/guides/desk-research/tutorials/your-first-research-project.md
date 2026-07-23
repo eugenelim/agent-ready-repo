@@ -1,5 +1,9 @@
 # Your first research project
 
+**What you'll build:** A complete research project folder with a self-contained, cited brief ready to hand to a decision-maker.
+**Prerequisites:** `desk-research` pack installed at user scope and a question you want to investigate — see [Prerequisites](#prerequisites) below.
+**Time:** About thirty minutes.
+
 In about thirty minutes you'll run a **research project** end to end — start it,
 feed it a few sources, build a digest, and synthesize a one-page brief you could
 hand to a decision. By the end you'll have a project folder on disk and a
