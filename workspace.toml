@@ -398,16 +398,6 @@ open = [
   # Unblocks when: someone takes the safety refactor.
   {slug = "unify-path-jail-projection-probe"},
 
-  # spec/install-state-visibility follow-on. list-installed, upgrade, diff, and
-  # uninstall each resolve user → ~/.agentbundle/state.toml and
-  # repo → <root>/.agentbundle-state.toml inline — the same path mapping repeated in
-  # each command, with subtly different scope-inference logic pinned by existing tests.
-  # Fix: extract _common.resolve_state_path(scope, root) and migrate all three read
-  #   commands through it with a focused regression pass.
-  # File: packages/agentbundle/agentbundle/commands/{uninstall,upgrade,diff}.py + _common.py.
-  # Unblocks when: someone is already touching all three commands' scope handling.
-  {slug = "share-scope-state-path-resolver"},
-
   # spec/pack-activation-evals Tier 2–5 remaining work. Tier 1 (activation eval for
   # all catalogue packs) is done (2026-07-02). Remaining:
   #   Tier 2: B-lite behavior for deterministic skills (contracts api-contract /
