@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 from agentbundle import render, safety
-from agentbundle.commands._common import check_spec_version_gate
+from agentbundle.commands._common import check_spec_version_gate, resolve_state_path
 from agentbundle.config import ConfigError, load_pack_toml
 
 
@@ -57,7 +57,7 @@ def run(args: argparse.Namespace) -> int:
         # hard cross-version refusal); surface it as a clean refuse rather
         # than a traceback.
         try:
-            repo_state_for_check = load_state(root / ".agentbundle-state.toml")
+            repo_state_for_check = load_state(resolve_state_path("repo", root))
         except ConfigError as exc:
             print(f"diff: {exc}", file=sys.stderr)
             return 1
@@ -65,7 +65,7 @@ def run(args: argparse.Namespace) -> int:
         try:
             user_root_resolved = scope_mod.resolve_user_root()
             user_state_for_check = load_state(
-                user_root_resolved / ".agentbundle" / "state.toml"
+                resolve_state_path("user", user_root_resolved)
             )
             installed_at_user = user_state_for_check.has_pack(pack_name)
         except scope_mod.UserScopeUnresolvable:
