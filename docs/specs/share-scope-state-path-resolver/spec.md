@@ -117,3 +117,7 @@ See `plan.md`.
   spec (`unify-path-jail-projection-probe` covers the jail side; a future scope
   spec would cover the path-formula side) is the right vehicle. The Objective
   "single, tested source of truth" is scoped to the three disambiguator commands.
+
+## Changelog
+
+- 2026-07-23: Implemented and shipped — `resolve_state_path` added to `_common.py`; `diff.py`, `uninstall.py`, `upgrade.py` migrated. Full regression suite passes.
