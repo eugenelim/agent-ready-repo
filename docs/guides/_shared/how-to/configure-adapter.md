@@ -1,5 +1,9 @@
 # Configure your agent adapter
 
+**Use this when:** You work across several IDEs or want to pin a non-default adapter instead of relying on auto-detection.
+**Prerequisites:** `agentbundle` CLI on your PATH.
+**Result:** A pinned default adapter (or per-install `--adapter` override) so every install targets the correct IDE without re-specifying the flag.
+
 Installs auto-detect the agent you're working in and fall back to **Claude Code** when there's nothing to detect. To work across several IDEs — or to pin a different default — configure the adapter explicitly.
 
 ## Pin a default adapter
