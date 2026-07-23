@@ -44,7 +44,8 @@ product-engineering          experience-design        content-design skill
 Default scope is **user** — installed under `~/.claude/skills/` (or your adapter's equivalent) so the skills load in every workspace.
 
 ```bash
-agentbundle install product-strategy     # CLI route
+# <catalogue> is your catalogue URI: a local clone path or a git+https://… URL.
+agentbundle install --pack product-strategy <catalogue>   # CLI route
 ```
 
 Or via your adapter's plugin marketplace UI.

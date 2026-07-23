@@ -1,5 +1,5 @@
 {
   "name": "linear",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief."
 }

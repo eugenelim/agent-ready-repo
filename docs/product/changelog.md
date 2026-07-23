@@ -53,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Shared install/upgrade guides — removed the stale `--to <version>` flag.** The `agentbundle upgrade` verb no longer accepts `--to`; version selection is by pointing `<catalogue>` at a git ref. Corrected the flag out of `preview-install-or-upgrade`, `install-user-scope-pack-into-kiro`, `install-user-scope-pack-into-codex`, and the `file-safety-contract` explanation.
 
+- **Invalid bare `agentbundle install <name>` forms corrected across the remaining packs.** The install verb requires `--pack`; the bare-positional form the current parser rejects was still documented in `linear` (0.1.2), `iac-terraform` (0.1.2), `product-strategy` (0.1.2), `product-engineering` (0.12.2 — including a two-pack-in-one-command line split into two invocations), and `release-engineering` (0.1.3) READMEs, plus the `catalogue-curation`, `desk-research`, `figma`, and `governance-extras` first-session tutorials. All now use `agentbundle install --pack <name> …`; the `desk-research` tutorial also drops the pre-rename `research` pack name. Follow-up to the RFC-0064 Amendment #4 adopter front-door fixes.
+
 - **Claude plugin marketplace manifest now passes `claude plugin validate` (Claude Code 2.1.209).** Three generator defects caused 35 errors: (1) marketplace missing top-level `name` field, (2) plugin `author` emitted as a plain string instead of a `{name, email}` object, (3) plugin `source` field absent entirely. All three are fixed in the build pipeline (`derive_projectable_subset`, `_run_aggregate`, `_aggregate_marketplace`). The `.claude-plugin/marketplace.json` in the working tree now validates with 0 errors.
 
 ### Changed
