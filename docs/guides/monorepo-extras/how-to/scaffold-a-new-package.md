@@ -1,5 +1,9 @@
 # Scaffold a new package
 
+**Use this when:** you need a new shared library under `packages/` that matches monorepo conventions from the first commit.
+**Prerequisites:** `monorepo-extras` (requires `core`) installed at repo scope; what you're building is a shared library, not a deployable app.
+**Result:** a scaffolded `packages/<name>/` directory with standard files, workspace config wired, a passing placeholder test, and an entry added to `docs/architecture/overview.md`.
+
 You need a new shared library under `packages/`. You want it to match every other package in the monorepo from the first commit. Ask your agent and let the `new-package` skill do the scaffolding.
 
 ## Before you start

@@ -1,5 +1,9 @@
 # How to propose a cross-cutting change (RFC)
 
+**Use this when:** A change touches more than one package, reverses a prior decision, or needs cross-team consensus before implementation begins.
+**Prerequisites:** `governance-extras` pack installed, a `docs/rfc/` directory, and web search available for the prior-art sweep — see [Prerequisites](#prerequisites) below.
+**Result:** A scaffolded, research-backed RFC at `docs/rfc/NNNN-<title>.md`, gate-checked and ready to circulate as `Open`.
+
 You have a change in mind that touches more than one package, alters a convention, or reverses a previous decision — the kind of change where "open a PR and see what happens" is the wrong shape. This guide walks the path of drafting an RFC with the `new-rfc` skill: scaffolding the file, running the per-subpoint research-and-de-risk phase before any body sentence gets written, drafting answer-first, and circulating the proposal after a self-review gate.
 
 For the surrounding system — where RFCs sit relative to ADRs, specs, and the loop that builds features once an RFC is accepted — read [the core pack as a system](../../core/explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.

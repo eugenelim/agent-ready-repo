@@ -15,6 +15,11 @@ updated: 2026-07-19
 
 # Journey: Engineer runs the work-loop
 
+**Use it when:** you're picking up a unit of work — a spec, ticket, issue, or the next ready item from `workspace-status`.
+**You provide:** the spec or task to implement, and your judgment at the plan and gate-failure moments.
+**You receive:** a shipped spec, a PR passing its gates, and the next ready item surfaced.
+**Your decisions:** approve the plan; handle gate failures; approve PR submission.
+
 **Persona:** A software engineer who uses the `work-loop` skill day-to-day to implement specs. They may or may not be on the RFC path — this journey covers anyone running the core build cycle: plan → build → verify → review. In smaller orgs this is the same person as the product engineer; in larger orgs it is a distinct implementer role. They are always in the loop — reviewing plans, handling gate failures, making judgment calls — unlike the agent-executes-spec journey where execution is headless.
 
 **Outcome:** The spec is shipped. A PR is submitted and passing gates. The spec is marked done. The engineer knows exactly what to pick up next.

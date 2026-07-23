@@ -1,5 +1,9 @@
 # How to intake a GitHub Milestone as a product brief
 
+**Use this when:** you have a GitHub Milestone with grouped issues and want to turn the full story map into a product brief that feeds the `receive-brief` intake pipeline.
+**Prerequisites:** `github` pack and `gh` CLI installed; for private repos, authenticated with `gh auth login` — see [Prerequisites](#prerequisites).
+**Result:** a Shape B product brief at `docs/product/briefs/<slug>.md`, handed off to `receive-brief` for gap elicitation, decomposition, and spec-chained execution.
+
 Turn a GitHub Milestone — and the issues grouped under it — into a
 [Shape B product brief](../../core/reference/product-brief-fields.md) that
 feeds the `receive-brief` intake pipeline.

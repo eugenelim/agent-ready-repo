@@ -1,5 +1,9 @@
 # How to upgrade an installed pack
 
+**Use this when:** You want to move an installed pack to a newer version — whether a whole pack, a single primitive, or resolving companion files left by a previous upgrade.
+**Prerequisites:** A pack already installed from the catalogue and the `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).
+**Result:** The pack upgraded to the newer version with any local edits preserved as `.upstream.<ext>` companion files for selective merging.
+
 Move an installed pack to a newer version, with the conflict handling you expect when your local edits and the upstream pack have both moved on.
 
 ## Prerequisites

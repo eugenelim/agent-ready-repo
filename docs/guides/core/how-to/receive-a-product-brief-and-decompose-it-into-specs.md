@@ -1,5 +1,9 @@
 # How to receive a product brief and decompose it into specs
 
+**Use this when:** A multi-feature product brief lands in your lap and you need to cut it into independently shippable specs and get them into the build queue.
+**Prerequisites:** The `core` pack installed, a brief in any form (pasted document, file, or link), and a sense of which repo's slice of the work you own.
+**Result:** Feature-sized specs scaffolded in `docs/specs/`, each back-linked to the brief, with coverage tracked automatically by the bundled lint.
+
 Someone handed you a product brief — a PRD, a solution document, a packet of requirements that spans several features — and you need to turn it into work your team can actually ship. The `receive-brief` skill (shipped in `core`) is the entry point. This guide walks the path from "here's a brief" through "feature-sized specs are in the normal build loop and a coverage map tracks them automatically."
 
 For the *why* behind a brief sitting between the roadmap and the specs, read [Why a brief layer](../explanation/why-a-brief-layer.md). For the exact fields a brief and a derived spec carry, see [Product brief fields](../reference/product-brief-fields.md). This page is task-oriented: what to type and what to expect back.

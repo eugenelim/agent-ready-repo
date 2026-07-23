@@ -1,5 +1,9 @@
 # How to plan and execute non-trivial work
 
+**Use this when:** You are about to start a feature, refactor, or multi-file change that goes beyond a one-line edit.
+**Prerequisites:** `core` pack installed, a working directory with edit/commit/gate access, and familiarity with the four mandatory spec sections; see Prerequisites below.
+**Result:** A spec and plan in `docs/specs/<feature>/`, a green-gates PR, and an adversarial-reviewer-clean diff ready to ship.
+
 You have a feature to build, a refactor to drive, a migration to run — anything past a one-line edit. This guide walks the path from "I'm about to start" through "the PR is green and the reviewer is clean", using the two skills that drive it: `new-spec` and `work-loop`.
 
 For the *why* behind this discipline, read [the core pack as a system](../explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.

@@ -1,5 +1,9 @@
 # How to: install a user-scope pack into Kiro
 
+**Use this when:** You use Kiro and want to install a user-scope-capable pack from the catalogue into `~/.kiro/skills/`.
+**Prerequisites:** Kiro CLI installed with `~/.kiro/` present and `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).
+**Result:** A user-scope pack installed at `~/.kiro/skills/` and tracked in `~/.agentbundle/state.toml`.
+
 User-scope packs travel across projects via your IDE's per-user configuration directory. This guide covers landing one of the catalogue's user-scope-capable packs (e.g. `atlassian`, `figma`, `converters`, `contracts`) into Kiro's home tree at `~/.kiro/skills/`.
 
 ## Prerequisites

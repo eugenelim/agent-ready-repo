@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import JourneyHero from '../../components/journey/JourneyHero.astro';
+import JourneyContract from '../../components/journey/JourneyContract.astro';
 import GateDetail from '../../components/journey/GateDetail.astro';
 import { withBase } from '../../lib/paths';
 
@@ -33,7 +34,7 @@ const installCommand =
   title={`${data.pack} journey — agent-ready-repo`}
   description={data.tagline}
 >
-  <!-- Section 1: Pack hero (light zone, amber accents) -->
+  <!-- 1. Pack hero (light zone, amber accents) -->
   <JourneyHero
     name={data.pack}
     scope={data.scope}
@@ -45,8 +46,18 @@ const installCommand =
     docsUrl={data.docsUrl}
   />
 
-  <!-- Section 2: What changes when you install this -->
-  <Section tone="surface">
+  <!-- 2. The contract — compact above-the-fold summary (journey-template-revamp) -->
+  {data.contract && (
+    <Section tone="surface">
+      <div class="content-body">
+        <h2 class="section-h2">The contract</h2>
+        <JourneyContract contract={data.contract} />
+      </div>
+    </Section>
+  )}
+
+  <!-- 3. What changes when you install this -->
+  <Section tone="surface-alt">
     <div class="content-body">
       <h2 class="section-h2">What changes when you install this</h2>
       {data.whatChanges ? (
@@ -70,7 +81,75 @@ const installCommand =
     </div>
   </Section>
 
-  <!-- Section 3: Skills in this pack -->
+  <!-- 4. The journey — staged narrative (primary content) from markdown body -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">The journey</h2>
+      <div class="journey-narrative">
+        <Content />
+      </div>
+    </div>
+  </Section>
+
+  <!-- 5. What good output looks like (transcript / artifact — only when present) -->
+  {data.goodOutputDescription && (
+    <Section tone="surface-alt">
+      <div class="content-body">
+        <h2 class="section-h2">What good output looks like</h2>
+        <p class="good-output">{data.goodOutputDescription}</p>
+      </div>
+    </Section>
+  )}
+
+  <!-- 6. Human gates — the detailed approval checklist -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">Human gates</h2>
+      <p class="gates-intro">
+        For each gate, everything you need to make a confident decision.
+      </p>
+      <ul class="gates-list" role="list">
+        {data.humanGates.map((gate) => (
+          <li>
+            <GateDetail gate={gate} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </Section>
+
+  <!-- 7. Typical session — timing -->
+  <Section tone="surface-alt">
+    <div class="content-body">
+      <h2 class="section-h2">Typical session</h2>
+      <dl class="session-stats">
+        <div class="session-stat">
+          <dt>Agent turns</dt>
+          <dd>{data.typicalSession.agentTurns}</dd>
+        </div>
+        <div class="session-stat">
+          <dt>Human gates</dt>
+          <dd>{data.typicalSession.humanTouches}</dd>
+        </div>
+        <div class="session-stat">
+          <dt>Wall-clock time</dt>
+          <dd>{data.typicalSession.wallClockMinutes} min</dd>
+        </div>
+      </dl>
+    </div>
+  </Section>
+
+  <!-- 8. Install -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">Install</h2>
+      <div class="install-block">
+        <pre class="install-block__code"><code>{installCommand}</code></pre>
+      </div>
+    </div>
+  </Section>
+
+  <!-- 9. Skills in this pack -->
   <Section tone="surface-alt">
     <div class="content-body">
       <h2 class="section-h2">Skills in this pack</h2>
@@ -92,72 +171,10 @@ const installCommand =
     </div>
   </Section>
 
-  <!-- Section 4: The journey — staged narrative from markdown body -->
+  <!-- 10. Technical reference and next steps -->
   <Section tone="surface">
     <div class="content-body">
-      <h2 class="section-h2">The journey</h2>
-      <div class="journey-narrative">
-        <Content />
-      </div>
-    </div>
-  </Section>
-
-  <!-- Section 5: Human gates (detailed) — amber-bordered cards on light bg -->
-  <Section tone="surface-alt">
-    <div class="content-body">
-      <h2 class="section-h2">Human gates</h2>
-      <p class="gates-intro">
-        For each gate, everything you need to make a confident decision.
-      </p>
-      <ul class="gates-list" role="list">
-        {data.humanGates.map((gate) => (
-          <li>
-            <GateDetail gate={gate} />
-          </li>
-        ))}
-      </ul>
-    </div>
-  </Section>
-
-  <!-- Section 6: What good output looks like (only when data is present) -->
-  {data.goodOutputDescription && (
-    <Section tone="surface">
-      <div class="content-body">
-        <h2 class="section-h2">What good output looks like</h2>
-        <p class="good-output">{data.goodOutputDescription}</p>
-      </div>
-    </Section>
-  )}
-
-  <!-- Section 7: Typical session shape -->
-  <Section tone="surface-alt">
-    <div class="content-body">
-      <h2 class="section-h2">Typical session</h2>
-      <dl class="session-stats">
-        <div class="session-stat">
-          <dt>Agent turns</dt>
-          <dd>{data.typicalSession.agentTurns}</dd>
-        </div>
-        <div class="session-stat">
-          <dt>Human gates</dt>
-          <dd>{data.typicalSession.humanTouches}</dd>
-        </div>
-        <div class="session-stat">
-          <dt>Wall-clock time</dt>
-          <dd>{data.typicalSession.wallClockMinutes} min</dd>
-        </div>
-      </dl>
-    </div>
-  </Section>
-
-  <!-- Section 8: Install and next steps -->
-  <Section tone="surface">
-    <div class="content-body">
-      <h2 class="section-h2">Install and next steps</h2>
-      <div class="install-block">
-        <pre class="install-block__code"><code>{installCommand}</code></pre>
-      </div>
-
+      <h2 class="section-h2">Technical reference &amp; next steps</h2>
       <nav class="next-steps" aria-label="Next steps">
         <ul class="next-steps__list" role="list">
           <li>
@@ -195,7 +212,7 @@ const installCommand =
     color: var(--ds-on-surface);
   }
 
-  /* Section 2 */
+  /* What changes (section 3) */
   .what-changes {
     font-size: var(--ds-type-body-lg);
     color: var(--ds-on-surface-2);
@@ -226,7 +243,7 @@ const installCommand =
     color: var(--ds-accent-deep);
   }
 
-  /* Section 3 */
+  /* Skills in this pack (section 9) */
   .skills-list {
     display: grid;
     gap: var(--ds-space-5);
@@ -265,14 +282,15 @@ const installCommand =
     line-height: var(--ds-lead-body);
   }
 
-  /* Section 4 — journey narrative markdown */
+  /* The journey — narrative markdown (section 4) */
   .journey-narrative {
     font-size: var(--ds-type-body);
     color: var(--ds-on-surface-2);
     line-height: var(--ds-lead-body);
   }
 
-  .journey-narrative :global(h2) {
+  /* Stage headings are h3 (`### N.`), subordinate to the section's h2. */
+  .journey-narrative :global(h3) {
     font-size: var(--ds-type-h3);
     color: var(--ds-on-surface);
     margin-top: var(--ds-space-7);
@@ -281,7 +299,7 @@ const installCommand =
     border-bottom: 1px solid var(--ds-border);
   }
 
-  .journey-narrative :global(h2:first-child) {
+  .journey-narrative :global(h3:first-child) {
     margin-top: 0;
   }
 
@@ -291,6 +309,33 @@ const installCommand =
 
   .journey-narrative :global(strong) {
     color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  /* Fixed stage-card labels (journey-template-revamp). Each `### N.` stage is
+     followed by a bold-label list — You provide / <Actor> does / You do / You
+     decide / Output — rendered as a card with the leading label in accent. */
+  .journey-narrative :global(ul) {
+    list-style: none;
+    display: grid;
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-5);
+    margin-bottom: var(--ds-space-5);
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+  }
+
+  .journey-narrative :global(li) {
+    margin: 0;
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .journey-narrative :global(li) > :global(strong):first-child {
+    color: var(--ds-accent-deep);
     font-weight: var(--ds-weight-semibold);
   }
 
@@ -309,7 +354,7 @@ const installCommand =
     margin-block: var(--ds-space-6);
   }
 
-  /* Section 5 */
+  /* Human gates (section 6) */
   .gates-intro {
     font-size: var(--ds-type-body);
     color: var(--ds-on-surface-muted);
@@ -321,7 +366,7 @@ const installCommand =
     gap: var(--ds-space-5);
   }
 
-  /* Section 6 */
+  /* What good output looks like (section 5) */
   .good-output {
     font-size: var(--ds-type-body-lg);
     color: var(--ds-on-surface-2);

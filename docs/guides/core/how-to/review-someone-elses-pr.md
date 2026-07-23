@@ -1,5 +1,9 @@
 # Review a branch or PR you didn't write
 
+**Use this when:** You need to run an adversarial (and specialist) review on a branch or PR you did not write.
+**Prerequisites:** The `core` pack installed and your agent able to reach the branch or PR (local branch, GitHub PR via `gh`, or a GitLab MR).
+**Result:** Severity-tagged review findings (Blockers / Concerns / Nits) ready to hand back to the author.
+
 The reviewer subagents don't care who wrote the diff. The work loop points them at your own working tree, but you can point them at anyone's.
 
 Prompt your agent:

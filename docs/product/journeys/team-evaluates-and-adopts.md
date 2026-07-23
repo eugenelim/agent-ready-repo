@@ -15,6 +15,11 @@ updated: 2026-07-19
 
 # Journey: Engineering team evaluates and adopts
 
+**Use it when:** your team is ready to move from ad-hoc AI-assisted coding to a structured, coordinated build workflow — whether self-serve on a single repo or a sponsored enterprise rollout.
+**You provide:** a real pending spec to use as the first proof-of-value, and (for enterprise) a demo scenario on your org's own codebase.
+**You receive:** a shipped first spec, a seeded `workspace.toml`, and engineers with `workspace-status` as their session-start habit.
+**Your decisions:** select the first real spec (not a toy example); choose self-serve or rollout path; (enterprise) prepare and deliver the live demo; execute the rollout playbook.
+
 **Persona:** An engineering team evaluating the platform for adoption — ranging from a solo senior engineer at a startup trying it on a real spec, to an enterprise champion building an internal case for a CTO before a platform team rolls it out across multiple teams.
 
 Two distinct paths share this journey:

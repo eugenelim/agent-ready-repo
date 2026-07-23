@@ -1,5 +1,9 @@
 # How to <named problem in the reader's words>
 
+**Use this when:** <the specific problem or trigger this guide solves — one line>.
+**Prerequisites:** <one line — what the reader must have or have done before starting>.
+**Result:** <what the reader has or can do when finished — one line>.
+
 This guide is for <competent user> who needs to <accomplish the named
 goal>. It assumes you already <list the baseline competence — what the
 reader has, knows, or has set up>.

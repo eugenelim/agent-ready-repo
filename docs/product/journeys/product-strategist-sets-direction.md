@@ -15,6 +15,11 @@ updated: 2026-07-19
 
 # Journey: Product strategist sets altitude-0 direction
 
+**Use it when:** a planning cycle, market event, or new initiative cluster requires committing altitude-0 direction into the shaping queue.
+**You provide:** company OKRs, stakeholder research outputs, and your strategic judgment at each framework (PESTLE, Porter's, BCG, SWOT, PRFAQ, OKR cascade).
+**You receive:** a committed set of altitude-0 artifacts in `docs/product/shaping/` and OKR gaps routed as `{type="strategy"}` items into the shaping queue for product engineers to pick up.
+**Your decisions:** approve the synthesized market picture; commit the PRFAQ direction; approve the OKR cascade gaps routed to the shaping queue; set initiative priority order.
+
 **Persona:** A product strategist, CPO, or senior PM working at altitude-0 — company or multi-product level. They set the strategic direction that all initiatives must align to. Their time horizon is years, not quarters. In smaller orgs this may be the same person as the product engineer; in larger orgs it is a distinct role with a distinct artifact vocabulary (OKRs, PRFAQs, market analysis, portfolio position).
 
 **Outcome:** A set of committed altitude-0 artifacts — stakeholder synthesis, PRFAQ, OKR cascade, market context, portfolio position, UX strategy, and content strategy — that translate company direction into initiative-level shaping inputs. Gaps identified by the OKR cascade feed directly into `frame-situation` as `{type = "strategy"}` shaping items, closing the loop between altitude-0 direction and altitude-1 shaping.
