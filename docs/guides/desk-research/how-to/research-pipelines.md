@@ -1,5 +1,9 @@
 # How to run the research pipelines
 
+**Use this when:** You have a research question and need a one-shot pipeline — broad survey, contested-choice comparison, or "why did we do it this way" archaeology.
+**Prerequisites:** `desk-research` pack installed at user scope (the [first research session tutorial](../tutorials/desk-research-first-session.md) covers the install).
+**Result:** One or more typed research artifacts: a cited synthesis (`-survey.md`), a comparative matrix with counterpoints (`-hypotheses.md` + `-counterpoints.md`), or a rationale trace (`-archaeology.md`).
+
 The `desk-research` pack ships seven skills. Three multi-skill pipelines compose them into the patterns adopters actually reach for: the **survey** pipeline for broad questions, the **decision** pipeline for contested choices, and the **archaeology** pipeline for "why did we do it this way" questions.
 
 This guide is task-shaped. It assumes you already know what the pack does — if you don't, start with [your first research session](../tutorials/desk-research-first-session.md). For the dry catalogue of every skill, see the [reference](../reference/desk-research-pack.md).

@@ -1,5 +1,9 @@
 # How to record a decision (ADR)
 
+**Use this when:** You've made (or are formally proposing) an architectural decision with a concrete tradeoff and need it durably recorded in `docs/adr/`.
+**Prerequisites:** `governance-extras` pack installed and a decision that is architectural in scope, made, and has a real tradeoff — see [Prerequisites](#prerequisites) below.
+**Result:** A confirmed ADR file in `docs/adr/` with its row added to the index, ready for sign-off and acceptance.
+
 You made an architectural call — a database choice, a process commitment, a structural rule the team will live with — and the next person to ask "why did we do it this way?" deserves an answer in writing. The `new-adr` skill drafts an Architecture Decision Record in `docs/adr/` from the bundled template, with the next sequential number, and pushes back on hand-wavy sections before you commit.
 
 This guide is task-oriented; for the *why* of ADRs (immutable history vs. living docs), read [`docs/CONVENTIONS.md` § ADR](../../../CONVENTIONS.md#2-adr--architecture-decision-records--docsadr). For where ADRs sit in the wider doc system, see [the core pack as a system](../../core/explanation/core-pack.md).

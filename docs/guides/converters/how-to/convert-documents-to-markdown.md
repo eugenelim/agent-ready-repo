@@ -1,5 +1,9 @@
 # Convert documents to Markdown
 
+**Use this when:** You have a PDF, Word doc, slide deck, spreadsheet, or diagram image and need clean Markdown output.
+**Prerequisites:** Docling installed (`pip install docling Pillow`) for documents; the first run downloads ML models; Pillow alone suffices for images.
+**Result:** A Markdown file written next to the input, with conversion statistics and any warnings surfaced inline.
+
 You have a PDF, a Word doc, a slide deck, a spreadsheet, or a diagram image, and you want clean Markdown out of it. The `file-to-markdown` skill does this. You point it at a file; it picks the right branch and writes the Markdown next to the input.
 
 ## Before you start
