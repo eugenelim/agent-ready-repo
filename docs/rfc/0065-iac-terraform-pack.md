@@ -1373,6 +1373,16 @@ _All in one PR (Q2 — companions ship with the pack)._
   a third **ADR compliance check trigger** was added (checks an incoming IaC diff
   against governance-index ADRs for changes not authored by `generate-iac`).
 
+## Errata
+
+- **2026-07-23 — Remote execution platform support (RFC-0070).** RFC-0065 §8
+  deferred "commercial platform configs" (HCP Terraform, Scalr, Atlantis, etc.)
+  as a follow-on reference. [RFC-0070](0070-iac-terraform-remote-exec-platforms.md)
+  fulfils the HCP Terraform and Scalr portion of that deferral: it adds
+  `references/remote-exec/hcp-terraform.md` + `references/remote-exec/scalr.md`,
+  a new `remote_exec_platform` clarify input to `generate-iac`, a generated
+  `REMOTE_EXEC_SETUP.md`, and backend-type detection in `reconcile-iac`.
+
 ## Deferred items (post-ship)
 
 - **Azure provider validation (deferred to v2).** Azure shipped
