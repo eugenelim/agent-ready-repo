@@ -27,8 +27,9 @@ Default scope is **user** — installed under `~/.claude/skills/` (or your
 adapter's equivalent) so the skills load in every workspace.
 
 ```bash
-agentbundle install product-engineering     # CLI route
-apm install product-engineering               # APM route
+# <catalogue> is your catalogue URI: a local clone path or a git+https://… URL.
+agentbundle install --pack product-engineering <catalogue>   # CLI route
+apm install product-engineering                               # APM route
 ```
 
 For the Claude plugin route, add the marketplace first:
@@ -41,7 +42,7 @@ claude plugin install product-engineering@agent-ready-repo
 Flip to repo scope to pin the skills to one workspace:
 
 ```bash
-agentbundle install product-engineering --scope repo
+agentbundle install --pack product-engineering <catalogue> --scope repo
 ```
 
 Adapters: `claude-code`, `kiro-ide`, `codex`, `copilot`, `cursor`, `gemini`.
@@ -146,7 +147,9 @@ per-screen briefs live in the `experience-design` pack. The two packs read as on
 Install both packs to run the full design-to-copy thread:
 
 ```bash
-agentbundle install experience-design product-engineering
+# install takes one pack per invocation — run it twice.
+agentbundle install --pack experience-design <catalogue>
+agentbundle install --pack product-engineering <catalogue>
 ```
 
 → See the [`experience-design` pack README](../experience-design/README.md).

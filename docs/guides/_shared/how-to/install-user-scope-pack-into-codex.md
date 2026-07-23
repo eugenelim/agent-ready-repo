@@ -42,7 +42,7 @@ Codex's skills root is `~/.agents/skills/` regardless of where the Codex CLI's o
 ## Upgrade
 
 ```bash
-agentbundle upgrade --pack figma --to <version> <catalogue>
+agentbundle upgrade --pack figma <catalogue>
 ```
 
 Upgrade reuses the recorded adapter from state; cross-adapter migration requires uninstall + reinstall.

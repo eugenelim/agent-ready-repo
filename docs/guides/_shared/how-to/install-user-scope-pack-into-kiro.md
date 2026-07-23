@@ -46,7 +46,7 @@ The state file records `adapter = "kiro"` for the pack — this is the hint that
 ## Upgrade
 
 ```bash
-agentbundle upgrade --pack atlassian --to <version> <catalogue>
+agentbundle upgrade --pack atlassian <catalogue>
 ```
 
 Upgrade reuses the recorded adapter from `~/.agentbundle/state.toml`, so adding a second CLI home post-install (e.g. installing Claude Code later) does not migrate the pack — it stays at Kiro until you uninstall and reinstall.

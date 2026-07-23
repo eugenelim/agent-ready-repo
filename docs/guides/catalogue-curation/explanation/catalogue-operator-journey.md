@@ -4,7 +4,7 @@ How the three operator sub-personas — org-stack engineer, catalogue maintainer
 
 ## First install and orientation
 
-If you have not yet installed the pack, run `agentbundle install catalogue-curation --scope repo`.
+If you have not yet installed the pack, run `agentbundle install --pack catalogue-curation --scope repo`.
 The pack requires core and governance-extras at repo scope.
 After install, run `agentbundle show catalogue-curation` to confirm all four skills are present with their activation phrases.
 
