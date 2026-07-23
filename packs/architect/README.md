@@ -1,8 +1,18 @@
 # architect
 
-Solution-architecture skills — three peer skills plus one review
-subagent, installed to user scope so they travel across every workspace
-and engagement, not just one repo.
+Three things your agent can do for you in any project:
+
+- **Shape a system concept** — talk a design decision through and turn it
+  into a design doc.
+- **Draw a system** — get a diagram of an architecture, a flow, or a data
+  model.
+- **Review an architecture** — hand it an existing design and get a verdict
+  with specific findings.
+
+Installed to user scope by default, so they travel across every workspace
+and engagement, not just one repo. Under the hood these are peer skills plus
+one review subagent (the tables below) — but you don't need to know that to
+start.
 
 | Skill | What it does |
 | --- | --- |
@@ -20,9 +30,15 @@ Default scope is **user** — installed under `~/.claude/skills/`
 (or the equivalent for your adapter) so the skills load in every
 workspace.
 
+**Which route?** Use the **Claude plugin** route if you're in Claude Code
+and haven't set up a CLI; the **CLI** (`agentbundle`) route if you want a
+pinned, scriptable install; the **APM** route if your team standardizes on
+APM. All three land the same skills.
+
 ```bash
-# CLI route
-agentbundle install architect
+# CLI route — <catalogue> is your catalogue URI: a local clone path
+# or a git+https://… URL.
+agentbundle install --pack architect <catalogue>
 
 # APM route
 apm install architect
@@ -39,11 +55,12 @@ Scope can be flipped to repo-local if you want the skills pinned to
 one workspace:
 
 ```bash
-agentbundle install architect --scope repo
+agentbundle install --pack architect <catalogue> --scope repo
 ```
 
-Adapters supported: `claude-code`, `kiro`, `codex`. Pure-markdown
-`SKILL.md` surface; no Claude-specific primitives.
+Adapters supported: `claude-code`, `codex`, `copilot`, `kiro-ide`,
+`kiro-cli`, `cursor`, `gemini`. Pure-markdown `SKILL.md` surface; no
+Claude-specific primitives.
 
 ## Design principles
 
