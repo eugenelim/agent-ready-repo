@@ -129,6 +129,7 @@ async function run() {
   const { renderProof } = require('../scripts/render-proof.js');
   const proofWith = await renderProof('# T\n\n```mermaid\ngraph TD\n  A --> B\n```\n', {});
   assert(proofWith.html.includes('cdn.jsdelivr.net/npm/mermaid@11'), 'renderProof: CDN not injected when diagram present');
+  assert(proofWith.html.includes('integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E"'), 'renderProof: mermaid CDN tag missing SRI integrity hash');
   const proofWithout = await renderProof('# T\n\nHello world\n', {});
   assert(!proofWithout.html.includes('cdn.jsdelivr.net'), 'renderProof: CDN injected when no diagram present');
 
