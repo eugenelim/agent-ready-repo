@@ -32,19 +32,22 @@ milestone = "M1 · Workspace Foundation"
 parent    = "INI-001"
 
 ["ini-002".shaping_queue]
-active  = []
+# adopter-persona: deliverable must cover pack-segmented setup posture across the
+# proposed Level B set (architect, atlassian, converters, desk-research,
+# experience-design, figma, governance-extras, product-engineering,
+# product-strategy, user-guide-diataxis); include terminology comprehension,
+# prerequisite visibility, artifact discovery, and inputs to P5 persona and
+# live-demo design. Do not add a second generic user-study item — broaden this
+# one; formative evaluation folds into the pilots and later P5/rollout ACs.
+# Project (personal vault): efforts/research/2026-07-22-adopter-persona; phase=capture.
+# Un-gates the three P5 m6-* build items; summary elevates as RFC-0064 notes.
+active  = [
+  {slug = "adopter-persona",            type = "research"},
+]
 backlog = [
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   # Research items — any user with the desk-research pack can pick these up
-  # adopter-persona: deliverable must cover pack-segmented setup posture across the
-  # proposed Level B set (architect, atlassian, converters, desk-research,
-  # experience-design, figma, governance-extras, product-engineering,
-  # product-strategy, user-guide-diataxis); include terminology comprehension,
-  # prerequisite visibility, artifact discovery, and inputs to P5 persona and
-  # live-demo design. Do not add a second generic user-study item — broaden this
-  # one; formative evaluation folds into the pilots and later P5/rollout ACs.
-  {slug = "adopter-persona",            type = "research"},
   # Research (RFC-0064 M3 AC): should rfc-candidates.md graduate into the
   # shaping_queue (as research/strategy entries) rather than remain a separate
   # findings register? Assess the whole intake taxonomy — findings registers
@@ -116,6 +119,7 @@ shipped = [
   "spec/m5-linear-brief-intake-and-sync",            # first-time intake + delta sync
   "spec/portfolio-first-run-pilot-architect",         # RFC-0064 Amendment #4 local/no-credential pilot
   "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
+  "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
 ]
 queue   = [
   # ==================================================================
@@ -154,7 +158,6 @@ queue   = [
   # "spec/m5-github-brief-intake" — shipped; moved to ["ini-002".work].shipped
   # "spec/m5-linear-brief-intake-and-sync" — shipped; moved to ["ini-002".work].shipped
   # "spec/m5-jira-align-brief-intake" — shipped; moved to ["ini-002".work].shipped
-  "spec/m5-tracker-guides",               # tracker decision tree + vocabulary mapping table
 
   # ---------------- P5 · Adopt (terminal — needs whole journey stable) ----------------
   # Authoring gate: each P5 spec must consume the adopter-persona research findings
