@@ -15,7 +15,7 @@ This is a tutorial — it leads. For the full `new-adr` procedure, see [How to r
 Open your agent (Claude Code or equivalent) in the repo you'll work in, then run:
 
 ```bash
-agentbundle install governance-extras --scope repo
+agentbundle install --pack governance-extras --scope repo
 ```
 
 The pack lands in `.claude/skills/` with four skills: `new-adr`, `new-rfc`, `update-conventions`, and `rfc-status`.

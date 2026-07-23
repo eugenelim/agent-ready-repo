@@ -33,7 +33,7 @@ dry-run: 29 file(s) — 29 create. Nothing written.
 ## Preview an upgrade
 
 ```bash
-agentbundle upgrade <catalogue-uri> --pack core --to 0.2.0 --dry-run
+agentbundle upgrade <catalogue-uri> --pack core --dry-run
 ```
 
 When you've edited a projected file since install, that file shows as a `companion` line naming the `.upstream.<ext>` the real run would drop alongside your edit (your file is never overwritten):
@@ -48,7 +48,7 @@ dry-run: 20 file(s) — 19 overwrite, 1 companion. Nothing written.
 A per-primitive preview narrows the plan to one primitive:
 
 ```bash
-agentbundle upgrade <catalogue-uri> --pack core --to 0.2.0 --skill work-loop --dry-run
+agentbundle upgrade <catalogue-uri> --pack core --skill work-loop --dry-run
 ```
 
 ## How to read the plan

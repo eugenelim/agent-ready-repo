@@ -40,8 +40,19 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
-2. Copy this skill's bundled `assets/rfc.md` into `docs/rfc/` and rename
-   to `NNNN-<kebab-title>.md`. **Keep the title short** — it should
+2. **Resolve the target — don't create the file yet.** Pick the filename and
+   resolve *where* the RFC will live before anything is written:
+   - **Resolve and display the repository root** so the author sees where the
+     write will land.
+   - **Inspect the project's instructions and governance conventions**
+     (`AGENTS.md` / `CLAUDE.md`, `docs/CONVENTIONS.md`) for an RFC location or
+     numbering convention. The default is `docs/rfc/`; honor a non-default
+     location if the project declares one (use its sibling index too).
+
+   The bundled `assets/rfc.md` template is copied and renamed to
+   `NNNN-<kebab-title>.md` **only after** the research checkpoint (step 4)
+   clears and you've previewed the target with the author (step 5) — **not
+   now.** **Keep the title short** — it should
    *identify* the proposal in a few words (`RFC-NNNN: Coordinator
    contract`), and the kebab filename follows it; the fuller explanation
    belongs in **The ask**, not the title. A title that carries the whole
@@ -77,8 +88,9 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    dropping a gate check. Offer the frame; don't block on a form — a half-formed
    ask is normal input.
 
-4. **Research + de-risk checkpoint — gated.** With the file scaffolded, stop.
-   Don't write a single body sentence yet. A complex RFC is a tree, not one
+4. **Research + de-risk checkpoint — gated.** Before scaffolding the file, stop.
+   The RFC file does not exist yet — don't create it and don't write a single
+   body sentence. A complex RFC is a tree, not one
    blob: research the *subpoints*, model the options out, and de-risk your own
    riskiest assumption before handing anything to a reviewer. A single shallow
    up-front sweep is the failure this replaces. **Scale the depth to the
@@ -158,7 +170,17 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    without an alternative, or genuinely deferred, stay in `Open questions` —
    with a recommended default + owner + decide-by, never bare.
 
-5. **Draft the body, answer-first.** Set the header fields, including the
+5. **Preview the target, create the file, then draft the body.** The RFC still
+   doesn't exist on disk. First show the author the **identifier**
+   (`RFC-NNNN`), the **status** (`Draft`), the **target path** (absolute *and*
+   repo-relative), the **index path** that will gain a row, and a **content
+   preview** — draft the answer-first top matter (the Reviewer brief and The
+   ask, built from the findings the author signed off in step 4) in the
+   conversation and show it, so the author previews the decision-bearing
+   content before any file exists. Then, on their go-ahead, copy `assets/rfc.md`
+   to that path (step 2's deferred write) and draft the full body into it.
+   **Do not create the file or update the index before this
+   preview.** Then draft **answer-first.** Set the header fields, including the
    `Decision weight` you picked in step 3. Open with the **Reviewer brief**, then
    **The ask**; then route the findings: repo precedent → `Problem & goals` /
    `Evidence & prior art`; external precedent and the spike result →
@@ -284,8 +306,16 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 
 7. Set status to `Draft` until the user is ready to circulate, then `Open`.
 
-8. Update `docs/rfc/README.md` table (create the file with the standard
-   header row if absent).
+8. Update the RFC index table (`docs/rfc/README.md` by default, or the
+   non-default location's sibling index; create it with the standard header
+   row if absent).
+
+9. **Return a completion receipt** (alongside the `REVIEW READINESS` summary
+   from step 6): the **identifier** (`RFC-NNNN`); the **file path** written;
+   the **index path** updated; the **current status** (`Draft`, or `Open` once
+   you circulate); the **files changed** (the RFC plus the index); the **owner**
+   (the named Approver); and the **next step** — circulate for review (→ `Open`),
+   then Approver sign-off (→ `Accepted`).
 
 ## After acceptance
 

@@ -24,8 +24,10 @@ to the user.
 
 ### Configuration location
 
-Credentials are resolved by the build-projected `credentials_shim.load_credentials`
-through the Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile ladder.
+Credentials are resolved in-process by the standalone `credbroker` library
+(`from credbroker import load_credentials`, installed via
+`pip install credbroker`) through the Tier 1 (env) → Tier 2 (OS keyring) →
+Tier 3 dotfile ladder.
 The dotfile lives at `~/.agentbundle/credentials.env` (mode 0600 on
 POSIX; DACL-restricted on Windows). The declared schema is in
 `references/creds-schema.toml`:
@@ -92,8 +94,8 @@ specific cause, then act on the band:
 A **401** (invalid/expired token) and a **403** (Variables need Enterprise, Dev
 Resources need Dev Mode / the `file_dev_resources:read` scope) both map to exit
 2 — the user re-auths or regenerates the PAT with the right scope; don't retry.
-`Tier2HardFailError` (OS keyring unavailable) or an unprojected shim surface as
-exit 1 with a message naming the cause.
+`Tier2HardFailError` (OS keyring unavailable) or a missing `credbroker` install
+surface as exit 1 with a message naming the cause.
 
 ### Step 2: Extract the FILE_KEY
 
@@ -186,13 +188,27 @@ python scripts/figma.py export-images FILE_KEY \
 The render endpoint is rate-limited (Figma docs cite Tier 2 ≈ ~25
 requests/min). The client honors `Retry-After` automatically.
 
+**Render receipt (mandatory).** After every `export-images` run, end your reply
+to the user with a short receipt so they can find the output and know nothing
+changed on Figma. Include, at minimum:
+
+- **Source** — the Figma file (key or URL) and the frame(s)/node id(s) rendered.
+- **Output path** — the exact local path(s) written, as a clickable
+  `file://`-resolvable absolute path, one per rendered node.
+- **Format** — the render format and scale (e.g. `PNG @2x`).
+- **Warnings** — any nodes the CLI skipped (empty render URL) or rendered at
+  lower fidelity, echoing the CLI's stderr; write `none` if there were none.
+- **Remote status** — `No Figma changes made` (rendering is a read; nothing on
+  Figma's side is created or modified).
+
 ### Step 6: Comments — read freely, write carefully
 
 Comment reads are safe. Comment writes are visible to every collaborator
 on the file. Treat `post-comment` like a git push:
 
-- Confirm the FILE_KEY, message, and target node with the user before
-  posting if any of those were inferred rather than explicitly stated.
+- **Always confirm the FILE_KEY, message, and target node with the user
+  before posting** — every comment write is visible to all collaborators, so
+  no comment write is ever automatic, even when the target seems obvious.
 - For replies, include `--reply-to` with the parent comment id (look it
   up via `list-comments` first).
 - For node-pinned comments, the `--node-id` argument pins the comment
@@ -287,8 +303,9 @@ python scripts/figma.py figjam-to-mermaid abc123XYZ 1:2 \
   the token into it.
 - Don't write your own REST calls to Figma — extend the scripts
   instead, and surface the gap to the user if a subcommand is missing.
-- Don't post a comment speculatively. Confirm the FILE_KEY, message,
-  and target node with the user first if any of them were inferred.
+- Don't post a comment without explicit confirmation. Every comment write is
+  collaborator-visible; confirm the FILE_KEY, message, and target node with the
+  user before posting, even when they seem obvious.
 - Don't promise to modify a Figma file's design content via REST. The
   REST API is read + comments + dev resources only; creating or
   editing nodes requires the Plugin API (desktop / web only) or the

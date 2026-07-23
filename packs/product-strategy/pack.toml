@@ -1,6 +1,6 @@
 [pack]
 name = "product-strategy"
-version = "0.1.1"
+version = "0.1.2"
 description = "The strategy seat upstream of product engineering and experience design. Pillar 1 — Market & competitive strategy: SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, and stakeholder-research synthesis — seven frameworks that produce committed artifacts in docs/product/shaping/ and feed the PE pack's shaping queue. Pillar 2 — UX strategy: defines the experience vision, goals/measures, and plan (NN/g three-layer model · Jaime Levy four tenets · Gothelf/Seiden OKR-linked UX framing) upstream of journey-mapping. Pillar 3 — Content strategy: the Halvorson quad (Purpose + Process + Structure + Governance) — the organizational/governance layer above per-surface content-design. Pure method: no growth tooling, no primary research production, no stack tokens — references canonical frameworks by name, never reprints them."
 readme = "README.md"
 display_name = "Product Strategy"

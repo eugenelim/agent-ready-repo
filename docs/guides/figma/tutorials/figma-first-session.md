@@ -9,8 +9,8 @@ This is a learning walkthrough, not a reference. For the full set of things the 
 You need five things in place:
 
 - A Figma account with access to at least one file (any plan works for reading files and pages).
-- The `credential-brokers` pack installed — install it separately: `agentbundle install credential-brokers --scope user`.
-- The `figma` pack installed: `agentbundle install figma --scope user`.
+- The `credential-brokers` pack installed — install it separately: `agentbundle install --pack credential-brokers --scope user`.
+- The `figma` pack installed: `agentbundle install --pack figma --scope user`.
 - The figma pack's Python dependencies installed once: open a terminal and run `python -m pip install credbroker httpx`. If you see a "missing dependency" error later, this is the fix.
 - A Figma file URL you want to explore. Copy it from your browser address bar — it looks like `https://www.figma.com/design/<key>/<name>` or `/file/...`.
 
@@ -76,7 +76,7 @@ A note on file content: page names, frame names, and layer labels are written by
 
 **Dependency error (missing credbroker or httpx)** — open a terminal and run `python -m pip install credbroker httpx`, then retry.
 
-**credential-setup is not available** — install the `credential-brokers` pack first: `agentbundle install credential-brokers --scope user`.
+**credential-setup is not available** — install the `credential-brokers` pack first: `agentbundle install --pack credential-brokers --scope user`.
 
 ## Next steps
 

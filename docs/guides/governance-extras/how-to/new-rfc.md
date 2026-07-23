@@ -69,7 +69,7 @@ The skill also **picks the RFC's `Decision weight`** here — `light`, `standard
 
 ## Step 3 — Watch the research + de-risk phase
 
-The skill scaffolds `docs/rfc/NNNN-<kebab-title>.md` from the bundled template and then **stops** before writing any body sentence. This is the load-bearing move: a complex RFC is a tree, not one blob, so the skill researches each *subpoint*, models its options out, and de-risks its own riskiest assumption — rather than handing you a pile of un-researched questions to rescue.
+The skill resolves where the RFC will live (the repository root and `docs/rfc/`, or a non-default location your conventions declare) and then **stops** before creating the file or writing any body sentence. This is the load-bearing move: a complex RFC is a tree, not one blob, so the skill researches each *subpoint*, models its options out, and de-risks its own riskiest assumption — rather than handing you a pile of un-researched questions to rescue.
 
 You'll see a `RESEARCH FINDINGS:` block in chat (not in the RFC file — the body is gated) with these sections:
 
@@ -88,7 +88,7 @@ Read the recommendations carefully. For each:
 
 ## Step 4 — Drafting resumes, answer-first
 
-Once you sign off, the skill drafts the body — leading with the decision, then cascading detail:
+Once you sign off, the skill previews the target — the identifier (`RFC-NNNN`), the status (`Draft`), the target path, and the index path — then, on your go-ahead, creates the file and drafts the body, leading with the decision, then cascading detail:
 
 - **Reviewer brief.** A fixed first-screen orientation grid above "The ask" (Decision · Recommended outcome · Change if accepted · Affected surface · Stakes · Review focus · Not in scope). It *orients* the reviewer; "The ask" *argues* the decision — the skill keeps them de-duplicated rather than restating the BLUF twice. (This in-body brief is distinct from the chat-only `REVIEW READINESS` summary in Step 5.)
 - **The ask.** Answer-first: the recommendation (BLUF) + an SCQA framing (Situation → Complication → Question) + the decisions you're being asked to make rendered as a **table** — one row per decision, each with a recommended option, a decide-by, and a *reviewer action* column naming what you must do (confirm X, rule on Y). A reviewer should know what they're approving from the first screen.
@@ -101,6 +101,8 @@ Once you sign off, the skill drafts the body — leading with the decision, then
 - **Experiment / validation** (optional). Present only if the proposal needs an experiment — hypothesis, what's measured, success/failure criteria — with the *results* linked out to a spike note, not pasted into the RFC. Once circulating, while the trial runs the RFC sits in `Experimental` (see Step 6).
 
 The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft`, the `Decision weight` set, and an `Approver` named in the frontmatter.
+
+Once the file and the RFC index are written, the skill hands back a short **completion receipt**: the identifier (`RFC-NNNN`), the file path, the index path, the current status (`Draft`, or `Open` once you circulate), the files changed, the owner (the named Approver), and the next step — circulate for review (→ `Open`), then Approver sign-off (→ `Accepted`).
 
 ## Step 5 — The pre-handoff gate
 

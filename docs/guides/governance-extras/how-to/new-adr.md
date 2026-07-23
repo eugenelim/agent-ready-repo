@@ -65,11 +65,11 @@ Before the skill scaffolds anything, it asks (explicitly or implicitly) about ar
 
 The skill runs its bundled `scripts/next-ordinal.py` helper (the path is skill-relative; the skill resolves it for you). It prints the next 4-digit ordinal — `0001` if `docs/adr/` is empty, max-plus-one otherwise. Numbers are sequential and never reused. The helper parses the full digit prefix, so transitions like `0099` → `0100` work correctly without manual zero-padding.
 
-The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`), copies its bundled `assets/adr.md` into `docs/adr/`, and renames. The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index. The skill keeps it **short** — the title *identifies* the decision rather than encoding the whole rationale (that lives in the Decision section); a title that compresses the whole argument into a clause makes the index hard to scan.
+The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`) and **resolves where the ADR will live** — it surfaces the repository root and the ADR directory (`docs/adr/` by default, or a non-default location your project's conventions declare). It **does not create the file yet**: it drafts the ADR, shows you a preview, and waits for your confirmation before writing anything (see [Preview and confirm](#preview-and-confirm) below). The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index. The skill keeps it **short** — the title *identifies* the decision rather than encoding the whole rationale (that lives in the Decision section); a title that compresses the whole argument into a clause makes the index hard to scan.
 
 ## Step 4 — Fill in frontmatter
 
-Status starts as `Proposed`. Today's date. `Decision-makers` are the GitHub handles of the people who own the call; add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references, not prose; if a relationship needs explaining, that explanation goes in Context or References, not the frontmatter.
+Status starts as `Proposed`. Today's date. `Decision-makers` are the people who own the call, identified however your team does — a name, a GitHub handle, or an email (don't assume GitHub handles unless your conventions require them); add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references, not prose; if a relationship needs explaining, that explanation goes in Context or References, not the frontmatter.
 
 ## Step 5 — Draft the body sections
 
@@ -94,6 +94,10 @@ The skill adds a row to `docs/adr/README.md` so the new ADR appears in the table
 ## Step 7 — Get sign-off, then mark Accepted (or Rejected)
 
 The skill leaves status as `Proposed` and tells you to flip it to `Accepted` once the decision-makers have signed off — usually in the same PR, sometimes in a follow-up commit. If the proposal is declined, mark it `Rejected` and keep the file: a recorded rejection stops the same option being re-proposed later. Once Accepted, the body is frozen. See the immutability mechanic below.
+
+## Preview and confirm
+
+`new-adr` never writes silently. Before it creates the ADR file or touches the index, it shows you a preview — the proposed **identifier** (`ADR-NNNN`), the **status** (`Proposed`), the **target path** (absolute and repo-relative), the **index path** it will update, and the **drafted content** — and waits for your explicit confirmation. Nothing lands on disk until you approve. After it writes, it hands back a short **completion receipt**: the identifier, the file path, the index path, the status, the files changed, the owner (the decision-maker), and the next step — get sign-off, then flip to `Accepted`.
 
 ## The immutability principle
 
