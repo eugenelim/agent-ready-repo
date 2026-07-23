@@ -26,8 +26,9 @@ directory's purpose ahead of that work.
 ## How entries get here
 
 - **`work-loop`:** when the loop defers something out of scope, the
-  `Deferred:` entry in the PR description points to `docs/backlog.md`.
+  `Deferred:` entry in the PR description names the slug tracked in
+  `workspace.toml [backlog].open`.
   A `frame-situation` escalation or a pattern that warrants an RFC is
-  promoted from `backlog.md` into `rfc-candidates.md` (M3).
+  promoted into `rfc-candidates.md` (M3).
 - **`workspace-status`** (after M3 ships): surfaces the candidate count
   at session start — "N rfc candidates · M roadmap intents".

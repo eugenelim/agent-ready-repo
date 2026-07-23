@@ -49,9 +49,9 @@ def test_install_delivers_seeds(tmp_path):
         "AGENTS.md",
         "docs/CHARTER.md",
         "docs/CONVENTIONS.md",
-        "docs/backlog.md",
         "docs/specs/README.md",
         "docs/architecture/overview.md",
+        "workspace.toml",
     ):
         assert (target / rel).exists(), f"seed {rel!r} was not delivered (stderr: {err})"
 

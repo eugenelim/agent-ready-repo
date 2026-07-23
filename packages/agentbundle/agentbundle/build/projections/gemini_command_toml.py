@@ -28,8 +28,8 @@ dollar-amount in prose or a fenced shell example (``$10/month``, or a ``$1``
 inside a fenced code block) trips it too. This is **fail-closed** (a loud build
 error an author can act on, never a silent bad emit), and no shipped command
 contains a ``$<digit>``. An injection-context-aware parser (skip fenced/inline code, require
-an injection-shaped token) is a documented follow-on — see ``docs/backlog.md``
-§ ``gemini-full-parity``. Until then: keep literal ``$<digit>`` out of command
+an injection-shaped token) is a documented follow-on — see ``workspace.toml [backlog]``
+slug ``gemini-full-parity``. Until then: keep literal ``$<digit>`` out of command
 bodies, or the build will refuse the command.
 
 The one-source-file → one-output-file shape and the frontmatter helpers mirror

@@ -4,10 +4,10 @@ docs/CHARTER.md
 docs/CONVENTIONS.md
 docs/architecture/README.md
 docs/architecture/overview.md
-docs/backlog.md
 docs/knowledge/README.md
 docs/knowledge/patterns.jsonl
 docs/product/README.md
 docs/product/changelog.md
 docs/product/roadmap.md
 docs/specs/README.md
+workspace.toml

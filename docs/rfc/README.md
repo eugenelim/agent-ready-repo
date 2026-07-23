@@ -74,6 +74,7 @@
 | [0066](0066-experience-pack-surface-genre-and-skill-uplift.md) | Experience pack surface-genre uplift — 7-type genre taxonomy, 7 new skills, 7 extensions across 6 existing skills, 9 canonical renames → experience 0.6.0 | Accepted | 2026-07-18 | 2026-07-19 |
 | [0067](0067-session-arc-conventions-and-pack-workflow-guide.md) | Session-arc naming conventions and pack workflow guide — rename `workspace-status` → `workspace-status` (clean retire + verb taxonomy), add `desk-research-project-status` and `experience-status`, wire argless work-loop resume, and create a pack workflow design guide for future pack authors | Accepted | 2026-07-20 | 2026-07-20 |
 | [0068](0068-linear-pack.md) | `linear` pack — Linear Issue intake + delta-sync skills for the brief pipeline: `linear` primitive (GraphQL, credential-brokers `creds` path), `linear-brief-intake` (Issue/Project → brief, Shape A/B, 10-Issue cap), `linear-brief-sync` (PE-approval gate, protected-field fixed convention, Executing lock); D3 section-level before/after approval; D4 `push-acs-to-linear` deferred to backlog | Accepted | 2026-07-21 | 2026-07-21 |
+| [0069](0069-workspace-toml-adopter-seeding.md) | workspace.toml adopter seeding — add workspace.toml as a minimal core-pack seed (comments + [backlog] section) delivered on install; EXCLUDED_PATTERNS protection; REQUIRED_PLACEHOLDERS lint | Draft | 2026-07-22 | — |
 
 ## Adding a new RFC
 

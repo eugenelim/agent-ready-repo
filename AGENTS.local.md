@@ -115,7 +115,7 @@ the parser consumes, not a citation).
 Precedent: `lint-seeds` already enforces this for `seeds/**`. There is **no
 automated lint for `.apm/**` skills/agents yet** — a `lint-seeds`-analogue is a
 possible follow-on, but adding one is a new convention and therefore RFC-gated
-(tracked at `docs/backlog.md` § `apm-leak-lint-rfc`). Until then this is a
+(tracked at `workspace.toml [backlog]` as slug `apm-leak-lint-rfc`). Until then this is a
 hand-checked authoring rule.
 
 ## House style for our own internal docs
@@ -350,7 +350,7 @@ the bump to re-aggregate it, or `build-check` red-fails on stale drift.
 
 A new pack, or a **non-cosmetic** update to an existing one, must also build
 or update that pack's **eval harness**. This is the standing default the
-[`pack-eval-coverage-rollout`](docs/backlog.md) backlog item is rolling across
+`pack-eval-coverage-rollout` backlog item (see `workspace.toml [backlog]`) is rolling across
 the catalogue, made a rule here so it stops being a one-off. Per the
 [`pack-activation-evals` spec](docs/specs/pack-activation-evals/spec.md):
 
