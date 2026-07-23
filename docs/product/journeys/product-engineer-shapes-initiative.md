@@ -15,6 +15,11 @@ updated: 2026-07-18
 
 # Journey: Product engineer shapes an initiative
 
+**Use it when:** a signal arrives — a user pain, market observation, OKR gap, or engineering finding — and you need to shape it into a DoR-ready brief with a committed artifact trail.
+**You provide:** the raw signal or gap, your judgment at the opportunity-assessment and validation stages, and the final bet decision.
+**You receive:** a committed shaping artifact chain (situation → opportunity → options → bet → capability map) and a brief in `[brief_queue].ready` ready for spec decomposition.
+**Your decisions:** classify the signal and approve the opportunity ranking; select and validate the preferred solution; commit the bet; fill the DoR fields for the brief.
+
 **Persona:** A product engineer (or PM with technical depth) responsible for shaping an initiative — moving from a raw signal or strategic gap through the six-step sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) to produce a shaped brief that can enter the build queue. In smaller orgs this is one person; in larger orgs this role is distinct from both the product strategist (altitude-0) and the engineer executing specs (build room).
 
 **Outcome:** A shaped brief — with Outcome, Appetite, Rabbit holes, and Instrumentation — committed to `docs/product/briefs/` and queued in `[brief_queue].draft`. Backed by a chain of committed shaping artifacts (situation finding → opportunity assessment → solution options → capability map → bet) that any agent or reviewer can trace.

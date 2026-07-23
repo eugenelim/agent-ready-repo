@@ -15,6 +15,11 @@ updated: 2026-07-19
 
 # Journey: Engineer adopts AI-native coordination
 
+**Use it when:** your team hits the coordination gap — sessions expire, context is lost, or a second agent has no idea what the first one did.
+**You provide:** your repo with core pack installed, an existing working rhythm with 1–2 agents, and willingness to commit `workspace.toml` as the session-start artifact.
+**You receive:** a DAG-resolved queue any agent can cold-start from, parallel specs that execute without collision, and a team lead view that shows exceptions rather than every action.
+**Your decisions:** shape and prioritise work (Stage 2); answer DoR prompts when briefing (Stage 3); approve plans and handle gate failures during execution (Stage 4).
+
 **Persona:** A platform-oriented engineering team — internal tooling, multi-component systems, or a developer platform group — that already runs one or two AI agents but has no coordination layer. Sessions expire and context is lost. A second agent knows nothing about the first. The team has no visibility into what is in flight.
 
 **Outcome:** Any agent can cold-start a session, run `workspace-status`, know exactly what to work on, and the team lead only reviews what diverged. Multiple specs execute in parallel without collision. Shaping artifacts survive sessions. The team operates at Step 2 maturity reliably.
