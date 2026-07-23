@@ -168,8 +168,8 @@ def test_write_jailed_user_scope_refuses_outside_prefix(tmp_path):
             scope="user",
             allowed_prefixes=[".claude/", ".agentbundle/"],
         )
-    assert "allowed prefixes" in str(ei.value)
-    assert "scope 'user'" in str(ei.value)
+    assert "not within any declared prefix zone" in str(ei.value)
+    assert "scope=user" in str(ei.value)
 
 
 def test_write_jailed_user_scope_prefix_directory_boundary(tmp_path):

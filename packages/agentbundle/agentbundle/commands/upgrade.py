@@ -542,24 +542,13 @@ def run(args: "argparse.Namespace") -> int:
         # the print loop (probe-all-then-print): a jail violation on a late file
         # aborts with a clean stderr refusal instead of a partial plan already
         # on stdout.
-        for relpath in sorted(work_projection):
-            target = root / relpath
-            try:
-                safety.assert_under(root, target)
-            except safety.PathJailError as exc:
-                print(f"upgrade: {exc}", file=sys.stderr)
-                return 1
-            if allowed_prefixes is not None:
-                target_relpath = (
-                    target.resolve().relative_to(root.resolve()).as_posix()
-                )
-                if not any(target_relpath.startswith(p) for p in allowed_prefixes):
-                    print(
-                        f"upgrade: refusing to write outside allowed prefixes "
-                        f"for scope {effective_scope!r}: {target.resolve()}",
-                        file=sys.stderr,
-                    )
-                    return 1
+        try:
+            safety.assert_projection_jailed(
+                root, sorted(work_projection), allowed_prefixes, command="upgrade"
+            )
+        except safety.PathJailError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
         actions: list[str] = []
         for relpath in sorted(work_projection):
             tier = safety.classify(relpath, root, state)
@@ -575,6 +564,20 @@ def run(args: "argparse.Namespace") -> int:
             actions.append(action)
         print(summarize_plan(actions))
         return 0
+
+    # ── Path-jail pre-flight (AC4) — probe all before any write ──────────────
+    # Mirror the dry-run probe: refuse if any projected path escapes root or
+    # violates allowed_prefixes, before touching disk. Without this gate a
+    # prefix violation surfaces mid-loop via write_jailed, after earlier files
+    # have already been written — the probe-all-before-write contract means a
+    # violation is always a clean abort.
+    try:
+        safety.assert_projection_jailed(
+            root, sorted(work_projection), allowed_prefixes, command="upgrade"
+        )
+    except safety.PathJailError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     # ── Walk projection; apply Tier contract ──────────────────────────────────
     # Collect `.upstream.<ext>` companions dropped this run so we can surface
