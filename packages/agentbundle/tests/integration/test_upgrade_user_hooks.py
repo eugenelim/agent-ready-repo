@@ -260,7 +260,7 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
 
     @unittest.expectedFailure
     def test_legacy_kiro_upgrade_orphans_stale_json_known_limitation(self):
-        """KNOWN LIMITATION (docs/backlog.md#upgrade-orphan-removal-on-projection-shape-change):
+        """KNOWN LIMITATION (workspace.toml [backlog] slug: upgrade-orphan-removal-on-projection-shape-change):
         `upgrade` has no orphan-removal step, so when an agent's projected file
         SHAPE changes across the upgrade (legacy kiro `.json` → kiro-ide `.md`),
         the new file is written but the stale `.json` is left on disk. For

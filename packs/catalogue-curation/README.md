@@ -39,7 +39,7 @@ be reused for both.
 
 The pack is the deliberate home for catalogue operations as they arise —
 e.g. retiring a primitive, deprecating a pack, or a dedicated greenfield
-skill-authoring flow. Deferred items live in `docs/backlog.md`.
+skill-authoring flow. Deferred items live in `workspace.toml [backlog]`.
 
 ## Learn it
 
