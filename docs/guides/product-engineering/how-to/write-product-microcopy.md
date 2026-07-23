@@ -1,5 +1,9 @@
 # How to write a product's voice and microcopy
 
+**Use this when:** You have a shaped feature with a spec and need the actual words users read — errors, empty states, buttons, and labels — written consistently with the product's voice.
+**Prerequisites:** `product-engineering` pack installed; a shaped feature with a spec; a voice chart (created once on first use of the skill and reused across all subsequent features).
+**Result:** UI-state copy — errors, empty states, CTAs, and labels — that passes the content checklist and is consistent with the product's documented voice chart.
+
 > **Diátaxis: how-to.** A goal-oriented walk through the `voice-and-microcopy`
 > skill — characterizing a product's voice, then writing the recurring UI-state
 > copy. For shaping the *intent* behind a feature, see the how-to

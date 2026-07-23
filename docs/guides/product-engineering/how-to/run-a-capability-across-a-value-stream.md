@@ -1,5 +1,9 @@
 # How to run a capability across a value stream (many component repos)
 
+**Use this when:** A capability you want to ship cuts across multiple component repos in a polyrepo and you need to shape, slice, and track delivery across all of them — without standing up a runtime coordination service.
+**Prerequisites:** `product-engineering` pack installed; a polyrepo with multiple component repos; the capability scoped at initiative or business-unit altitude.
+**Result:** A value-stream meta-repo with a federated Backstage catalog, shared-contract authority, per-component briefs, and a cross-component delivery rollup tracking AND-completion across all repos.
+
 > **Diátaxis: how-to.** A goal-oriented walk through the `product-engineering` loop at **business-unit scale** — one capability that fans out across many component repos, coordinated from a value-stream meta-repo. For app scale (one repo, one feature) see the how-to *Shape a feature intent*; for the fields, the reference *Intent fields and modes*; for the why, the explanation *The intent tree*.
 
 You run a product org whose work spans many component repos (a polyrepo), and a capability you want to ship cuts across several of them. You want to shape it, slice it per component, and track whether the whole thing is delivered — without standing up a runtime coordination service. Install the `product-engineering` pack, then:

@@ -1,5 +1,9 @@
 # Run a release
 
+**Use this when:** `work-loop` has produced a deploy-ready artifact and you need to run it through the release loop to a ratified prod ship.
+**Prerequisites:** `core` and `release-engineering` installed at repo scope and an ephemeral deploy target configured.
+**Result:** a ratified prod ship with a harness-attested release-readiness record, or a held artifact with the non-convergence state and next steps documented.
+
 This guide walks through running a release from a deploy-ready artifact to a ratified prod ship. It assumes:
 
 - `core` is installed in the repo

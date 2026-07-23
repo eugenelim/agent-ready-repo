@@ -1,5 +1,9 @@
 # Thread a feature from journey to screens
 
+**Use this when:** you have a feature to design end to end — from a customer journey through screen briefs, service blueprint, and critique to an independent design review.
+**Prerequisites:** `experience-design` pack installed.
+**Result:** durable design-intent artifacts committed to your repo — a journey map, screen flow with per-screen briefs, service blueprint, grounded aesthetic direction, and a critique — each framework-agnostic and steerable to any build stack.
+
 > **How-to** — task-oriented. Run the `experience-design` thread end to end, from a
 > customer journey to a reviewed set of per-screen briefs. Assumes the pack is
 > installed (see [`../_shared/`](../../_shared/)). For *why* the thread is shaped

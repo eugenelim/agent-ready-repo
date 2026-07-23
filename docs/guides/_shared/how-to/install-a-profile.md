@@ -1,5 +1,9 @@
 # How to install a curated set of packs in one command
 
+**Use this when:** You want to install a role's whole toolkit or a repo's full governance setup in one command instead of running `agentbundle install --pack` multiple times.
+**Prerequisites:** `agentbundle` CLI and a catalogue URI; see [Prerequisites](#prerequisites).
+**Result:** Every pack in the chosen profile installed at the correct scope for your agent.
+
 Install a role's whole toolkit, or a repo's full governance setup, in one command instead of running `install --pack` N times. A **profile** is a first-party-curated, single-scope set of packs the catalogue ships ready to install.
 
 ## Prerequisites

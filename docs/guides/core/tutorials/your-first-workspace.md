@@ -1,5 +1,9 @@
 # Your first workspace session
 
+**What you'll build:** A complete workspace session — oriented with `workspace-status`, a spec progressed through `work-loop`, a deferred item captured mid-session with `capture-work`, and a clean queue handed off for the next session.
+**Prerequisites:** A repo with `workspace.toml` at the root and the `core` pack installed; see [How to start working on a project](../how-to/start-a-project.md) for the install step.
+**Time:** About 30 minutes.
+
 > At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, captured a deferred item mid-session using `capture-work`, and left the queue in a clean state for the next session.
 
 We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with one active initiative, two specs in its build queue, and one shaping item being framed as strategy. The session goal is to orient, pick a spec, and begin building.

@@ -3,6 +3,13 @@ pack: architect
 scope: user
 tagline: "Design docs, diagrams, and reviews — workspace-agnostic."
 prerequisitePacks: []
+contract:
+  useItWhen: "You need a technical design doc, architecture diagram, or design critique for your codebase."
+  youProvide: "The design problem, real constraints, and the repo's reference architecture."
+  youReceive: "An approved Stage 1 design document with alternatives and an independent severity-tagged critique."
+  yourDecisions:
+    - "Approve the Stage 0 concept"
+    - "Review the design and independent critique"
 whatChanges: "After installing architect, every architecture artifact gets a method: `architect-design` produces Google-style design docs grounded against your repo's `reference.md`, `architect-diagram` draws the system in Mermaid (C4, sequence, state, ER, deployment), and `architect-review` critiques any design artifact with a severity-tagged rubric. The forked-context `design-reviewer` subagent gives every design an independent read — a reviewer that has not seen the authoring session."
 skills:
   - name: architect-design
@@ -52,32 +59,34 @@ relatedJourneys:
   - experience-design
 ---
 
-## Stage 1 — Establish the reference
+### 1. Ground the design in the reference architecture
 
-Before any design work begins, the agent checks for a `reference.md` in the repo — the golden-path file that describes the stack, patterns, and constraints the architecture skills design against. If one doesn't exist, the agent offers to create it.
-
-**You:** Confirm the reference is accurate for this task. A grounded `reference.md` keeps the agent's designs inside your actual architecture, not an idealized one. If the reference is stale or missing a key constraint, update it before the design session starts — the agent designs against whatever it finds.
-
----
-
-## Stage 2 — Stage 0 concept
-
-You describe the design problem. The agent runs `architect-design` in Stage 0 mode, producing a half-page concept framing the problem, naming constraints, and proposing a candidate approach with at least one alternative.
-
-**You:** Read the concept at the G-concept gate. If the framing misses the real constraint — for example, it proposes a new service when the constraint is "must run inside the existing Lambda" — redirect here, before the full write-up. The concept gate is the cheapest point to course-correct. If the alternatives section feels thin, ask for one more before approving.
+- **Agent does:** checks for a `reference.md` in the repo — the golden-path file that describes the stack, patterns, and constraints the architecture skills design against — and offers to create it if one doesn't exist.
+- **You do:** confirm the reference is accurate for this task; update it before the design session starts if it is stale or missing a key constraint.
+- **Output:** a current, grounded `reference.md` the design skills can rely on.
 
 ---
 
-## Stage 3 — Full design document
+### 2. Frame the Stage 0 concept
 
-After concept approval, the agent writes the full Stage 1 design document: problem statement, alternatives considered with rejection reasoning, proposed design, open questions, and success criteria. It grounds the design against the repo's `reference.md` throughout.
-
-**You:** Watch the doc take shape. If the alternatives section omits an approach the team has already discussed and ruled out, mention it — a design doc that doesn't address the alternatives an experienced reader would ask about generates questions in review. If the agent drifts from the approved concept, note it.
+- **You provide:** a description of the design problem.
+- **Agent does:** runs `architect-design` in Stage 0 mode, producing a half-page concept that frames the problem, names constraints, and proposes a candidate approach with at least one alternative.
+- **You decide:** approve the concept at the G-concept gate, or redirect before the full write-up begins; if the alternatives section feels thin, ask for one more before approving.
+- **Output:** an approved Stage 0 concept.
 
 ---
 
-## Stage 4 — Independent review
+### 3. Write the full design document
 
-The agent runs `architect-review`, which dispatches the `design-reviewer` subagent in a forked context — a reviewer that has not seen the authoring session. The reviewer returns findings grouped by severity (Blockers, Concerns, Nits).
+- **Agent does:** writes the full Stage 1 design document — problem statement, alternatives with rejection reasoning, proposed design, open questions, and success criteria — grounded against `reference.md` throughout.
+- **You do:** watch the document take shape; if the alternatives section omits an approach the team has already discussed and ruled out, mention it; note any scope drift from the approved concept.
+- **Output:** a full Stage 1 design document ready for independent review.
 
-**You:** Read the review findings at the G-review gate. For each Blocker, decide whether to fix it or provide a one-sentence reason it doesn't apply — "this is expected because the constraint was already accepted in the RFC." For Concerns and Nits, apply or defer with a reason. The independent read is the closest thing to "a colleague who just walked in" before the doc goes to stakeholders.
+---
+
+### 4. Review independently
+
+- **Reviewer does:** reads the design cold in a forked context (`design-reviewer`) — a reviewer that has not seen the authoring session — and returns findings grouped by severity: Blockers, Concerns, Nits.
+- **You do:** read the findings as they land; give a one-sentence steer on any Blocker you disagree with.
+- **You decide:** for each Blocker, fix it or provide a one-sentence reason it doesn't apply; apply or defer Concerns and Nits with a reason.
+- **Output:** a design doc with a clean independent review, or concerns surfaced clearly to you.

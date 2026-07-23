@@ -14,6 +14,11 @@ updated: 2026-07-19
 
 # Journey: Engineer provisions infrastructure with iac-terraform
 
+**Use it when:** you need to provision governed cloud infrastructure — a new service environment, data store, ingestion pipeline, or secrets backend — without re-deriving best practices from scratch.
+**You provide:** a description of the infrastructure intent in generic terms, and your `governance-index.toml` (bootstrapped on first use if absent).
+**You receive:** schema-grounded, policy-verified Terraform ready for apply, a G4 handoff artifact with a pinned plan digest, and a day-2 `reconcile-iac` schedule for ongoing drift management.
+**Your decisions:** confirm the governance gate (Stage 0); approve the tier-ordered plan (Stage 2); ratify the G4 handoff artifact (Stage 3); ratify the G5 release readiness record (Stage 5); approve each drift remediation PR (Stage 6).
+
 **Persona:** A software engineer or platform engineer who needs to provision cloud infrastructure for a feature or service. They are comfortable with Terraform concepts but want to avoid re-deriving best practices (layered state, OIDC, policy-as-code, least-privilege IAM) from scratch. They operate inside a repo that has `core` installed and follows the work-loop / release-loop conventions.
 
 **Outcome:** Governed, schema-grounded Terraform is authored, verified with policy-as-code and security review, and shipped through the loop arc (G4 inner handoff → release-loop outer loop → G5 prod ship). Day-2 drift is audited and dispositioned without autonomous apply. The engineer never runs `terraform apply` directly — the loop arc owns it.

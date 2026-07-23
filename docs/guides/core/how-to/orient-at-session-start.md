@@ -1,5 +1,9 @@
 # How to orient at the start of a session
 
+**Use this when:** You are starting an agent session on a repo that uses `workspace.toml` and need to read queue state before picking work.
+**Prerequisites:** `core` pack installed and a terminal or agent session open in the repo root; see Prerequisites below.
+**Result:** Active initiative, milestone, and next ready action identified — you know which spec to start or which shaping skill to run.
+
 You are starting an agent session on a repo that uses `workspace.toml`. This guide walks you through running `workspace-status` to read the queue state, identifying your active initiative, and picking your next action before starting any work.
 
 For *why* the shaping and build queues are separated, see [The two-room model](../explanation/two-room-model.md). For the authoritative description of every `workspace.toml` field, see [workspace.toml schema reference](../reference/workspace-toml-schema.md).

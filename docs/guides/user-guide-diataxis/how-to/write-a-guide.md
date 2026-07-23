@@ -1,5 +1,9 @@
 # How to write a guide
 
+**Use this when:** a feature already ships and you need to document it in the right Diátaxis kind — tutorial, how-to, reference, or explanation — from the first page.
+**Prerequisites:** `user-guide-diataxis` pack installed, a real reader in mind, and behavior that already ships (not a proposal).
+**Result:** a scaffolded guide at `docs/guides/<pack>/<quadrant>/<slug>.md`, kind-checked against a signed-off audience contract, with kind-specific rules applied and sibling cross-links verified.
+
 This guide is for someone documenting a feature that already ships and who wants the page to land in the right Diátaxis kind the first time. It assumes you've installed the `user-guide-diataxis` pack and that your agent can run the `new-guide` skill.
 
 New to the four kinds? Read [About the Diátaxis framework](../explanation/the-diataxis-framework.md) first — it's the model this procedure rests on.

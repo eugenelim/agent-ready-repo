@@ -1,5 +1,9 @@
 # Your first assimilation
 
+**What you'll build:** One external skill adopted into the catalogue — fetched, security-reviewed, shaped to catalogue convention, and verified with a passing definition-of-done checklist.
+**Prerequisites:** The `catalogue-curation` pack installed (requires `core` + `governance-extras`); read [Skill standards](../explanation/skill-standards.md) first.
+**Time:** 30–45 minutes.
+
 **Goal:** bring one external skill into the catalogue — safely, and shaped to
 our craft — end to end. By the end you'll have adopted a skill from a URL and
 seen where every guardrail fires.

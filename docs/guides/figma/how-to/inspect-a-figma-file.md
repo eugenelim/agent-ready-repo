@@ -1,5 +1,9 @@
 # Inspect a Figma file
 
+**Use this when:** you have a Figma URL and need to read page or frame structure, metadata, comments, version history, render frames to images, or convert a FigJam connector diagram to Mermaid.
+**Prerequisites:** `figma` pack installed and a Figma Personal Access Token stored via `credential-setup`.
+**Result:** the requested Figma content retrieved and reported — page list, node structure, comment threads, rendered image files, or a Mermaid diagram — without any edits to the design file.
+
 You have a Figma URL and you want what's inside it: the page list, a specific frame, the file's metadata, the comments, a rendered image, or the structure of a FigJam board. The `figma` skill reads all of it over the REST API. It never edits design content — REST can't.
 
 ## Before you start

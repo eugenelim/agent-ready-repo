@@ -1,5 +1,9 @@
 # Render Mermaid diagrams to images
 
+**Use this when:** Your Markdown has Mermaid fenced blocks and the target tool (Confluence, PDF pipeline, or slide deck) doesn't render Mermaid live.
+**Prerequisites:** Mermaid CLI (`mmdc`) installed globally via npm (`npm install -g @mermaid-js/mermaid-cli`); no Python dependencies beyond stdlib.
+**Result:** Rendered PNG (or SVG) image files and a rewritten Markdown copy with every Mermaid fence replaced by an image reference.
+
 Your Markdown has ` ```mermaid ` fenced blocks, and the tool you're shipping to doesn't render Mermaid live — Confluence, a PDF pipeline, a slide deck. The `mermaid-renderer` skill extracts each fence, renders it to a PNG (or SVG), and writes a rewritten copy of your Markdown with every fence swapped for an image reference. Your original file stays untouched.
 
 ## Before you start

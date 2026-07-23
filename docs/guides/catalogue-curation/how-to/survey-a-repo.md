@@ -1,5 +1,9 @@
 # Survey a repo for what to adopt
 
+**Use this when:** You want to evaluate an entire external repo or catalogue for skills to adopt, not just a single known unit.
+**Prerequisites:** The `catalogue-curation` pack installed; an HTTPS or git URL for the source repo.
+**Result:** A reviewable RFC capturing inventory verdicts (assimilate / reject / needs-new-pack) for every candidate, resumable if the session is interrupted.
+
 When you want to evaluate a *whole* external repo or catalogue — not one known
 unit — reach for `assimilate-repo`. It inventories every candidate, gives each a
 verdict, and emits a reviewable RFC, resumably.

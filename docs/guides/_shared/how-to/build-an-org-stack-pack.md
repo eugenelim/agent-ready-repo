@@ -1,5 +1,9 @@
 # How to ship your organization's standard stack as a reusable pack
 
+**Use this when:** You want every team in your organization to start from the same reference architecture, conventions, and internal framework knowledge, installed in one command.
+**Prerequisites:** A forked catalogue your organization owns, your real stack documented, and a chosen pack name; see "Before you start".
+**Result:** A distributable org-stack pack with a filled `reference.md` seed, framework-library skills, and a one-command profile install for your teams.
+
 This guide is for a platform or tooling lead who wants every team in the
 organization to start from the same golden path — your real reference
 architecture, your conventions, and the agent knowledge of your internal

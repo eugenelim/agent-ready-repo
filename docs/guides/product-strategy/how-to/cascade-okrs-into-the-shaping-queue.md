@@ -1,5 +1,9 @@
 # Cascade OKRs into the shaping queue
 
+**Use this when:** you have company objectives and need to turn the gaps they expose into typed shaping-queue entries the build loop picks up automatically.
+**Prerequisites:** `product-strategy` pack installed and `workspace.toml` present in the repo.
+**Result:** an `okr-cascade.md` in `docs/product/shaping/` and `{type = "strategy"}` gap entries appended to the initiative's shaping queue in `workspace.toml`.
+
 You have company objectives, and you need them to become work the build loop
 picks up — not a slide that stops at the leadership offsite. This guide covers
 the three Pillar-1 skills that carry an objective from altitude down to a typed

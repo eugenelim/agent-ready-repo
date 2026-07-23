@@ -1,5 +1,9 @@
 # How to frame a product vision
 
+**Use this when:** You are starting a new engagement with a product idea and the core question is whether this product should exist at all — not which features to build first.
+**Prerequisites:** `product-engineering` pack installed; a product idea to frame as an existence bet for a specific target user.
+**Result:** A de-risked `product-vision` intent at `docs/product/intents/<slug>.md`, decomposed to a `product-strategy` child and ready for the next altitude down.
+
 > **Diátaxis: how-to.** Shape the top of the intent tree — the *existence bet* for a new product or engagement. For the model behind the altitudes, see the explanation [*The intent tree*](../explanation/the-intent-tree.md); for the feature-altitude walk, [*Shape a feature intent*](shape-a-feature-intent.md); for how vision, strategy, and the architecture concept fit together at the start of an engagement, [*Shaping a new engagement*](../../_shared/explanation/shaping-a-new-engagement.md).
 
 You are starting a new engagement with a product idea, and the real question is not which features to build but whether this product should exist at all, and for whom. A product vision answers that as a bet you can test. Install the `product-engineering` pack, then work the three moves below.

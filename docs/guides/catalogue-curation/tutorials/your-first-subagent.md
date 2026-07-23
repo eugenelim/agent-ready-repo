@@ -1,5 +1,9 @@
 # Your first subagent assimilation
 
+**What you'll build:** One external subagent definition adopted into the catalogue — OWASP AST-reviewed with subagent-specific emphasis, shaped to catalogue convention, and verified.
+**Prerequisites:** The `catalogue-curation` pack installed (requires `core` + `governance-extras`); read [Skill standards](../explanation/skill-standards.md), especially Standard 3.
+**Time:** 30–45 minutes.
+
 **Goal:** bring one external subagent definition into the catalogue safely, with the right security emphasis.
 By the end you'll have seen how a subagent assimilation differs from a skill assimilation and where the OWASP AST review shifts focus.
 

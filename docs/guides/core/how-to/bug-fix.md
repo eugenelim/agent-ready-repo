@@ -1,5 +1,9 @@
 # How to fix a bug
 
+**Use this when:** Code deviates from intended behavior and you need to reproduce it, pin the root cause, and land a minimum fix with a regression test.
+**Prerequisites:** `core` pack installed, a working directory with edit/commit/gate access, and at least a signal (stack trace, log line, or user report) to drive toward a reproducer; see Prerequisites below.
+**Result:** A merged PR with a minimum fix, a regression test pinned to the observable contract, and the root cause documented in the commit body.
+
 You have a defect — a deviation between what the code does and what it's supposed to do — and you want to drive it through the project's fix discipline rather than vibe-patching it. The `bug-fix` skill (shipped in `core`) is the entry point. This page walks the path from "I have a bug" through "the fix is in main and the regression test will catch this if it ever comes back."
 
 For the *why* behind the loop discipline the skill runs under the hood, read [the core pack as a system](../explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.

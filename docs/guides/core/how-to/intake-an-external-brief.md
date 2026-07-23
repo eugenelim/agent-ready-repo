@@ -1,5 +1,9 @@
 # How to intake an external brief into a product brief
 
+**Use this when:** You have unstructured external input (email, stakeholder message, Linear issue, or verbal sketch) describing multi-feature work and need to draft a DoR-compliant product brief.
+**Prerequisites:** The `core` pack installed and any raw input to hand; no existing brief file at the target slug path.
+**Result:** A draft brief file at `docs/product/briefs/<slug>.md` queued in `workspace.toml`, ready to decompose with `receive-brief`.
+
 You have an email thread, a stakeholder message, a Linear issue, or a verbal sketch — unstructured input that describes multi-feature work. The `author-brief` skill turns that input into a DoR-compliant product brief file, elicits any missing gate fields in a short conversation, and queues the brief so `workspace-status` surfaces it immediately.
 
 ## Is `author-brief` the right entry point?

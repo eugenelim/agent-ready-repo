@@ -1,5 +1,9 @@
 # How to frame a situation
 
+**Use this when:** You hold a raw signal — market observation, OKR gap, user pain, or engineering finding — and need to classify it and find the right PE-sequence entry point before committing to any solution.
+**Prerequisites:** `product-engineering` pack installed; a signal with a subject, an observation, and a symptom or consequence (no prior shaping artifacts required).
+**Result:** A classified signal with a Wardley capability assessment, a recommended shaping-sequence entry point, and a `workspace.toml` snippet to queue the item for the next step.
+
 **Goal:** You have a raw signal — a market observation, an OKR gap, user pain
 patterns, an engineering finding — and you need to decide what kind of thing
 it is and where to take it next.

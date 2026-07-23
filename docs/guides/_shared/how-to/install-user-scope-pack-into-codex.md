@@ -1,5 +1,9 @@
 # How to: install a user-scope pack into Codex
 
+**Use this when:** You use Codex and want to install a user-scope-capable pack from the catalogue into `~/.agents/skills/`.
+**Prerequisites:** Codex CLI installed and `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).
+**Result:** A user-scope pack installed at `~/.agents/skills/` and tracked in `~/.agentbundle/state.toml`.
+
 This guide covers landing a user-scope-capable pack from the catalogue into Codex's home tree at `~/.agents/skills/`.
 
 ## Prerequisites

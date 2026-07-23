@@ -1,5 +1,9 @@
 # How to author a skill
 
+**Use this when:** You are authoring a new skill — writing the SKILL.md, scripts, and evals — and need to meet the catalogue's structural and lint-enforced standards.
+**Prerequisites:** A skill directory under `packs/<pack>/.apm/skills/<name>/` with a `SKILL.md`; see "Before you start".
+**Result:** A lint-clean, catalogue-standard skill with correct frontmatter, body structure, dependency handling, and evaluation fixtures.
+
 This guide collects the standards every skill in this catalogue follows — the bundled packs and the skills you author in your own pack alike. Some standards are checked by lint (called out inline, with the linter as the authority); the rest are reviewer-enforced. It assumes you already know what a skill is and when to add one ([`docs/CONVENTIONS.md`](../../../CONVENTIONS.md) § Skills: you've done the same multi-step thing three times, and you're not adding one speculatively).
 
 If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills.

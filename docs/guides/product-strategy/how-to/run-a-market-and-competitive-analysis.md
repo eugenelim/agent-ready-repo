@@ -1,5 +1,9 @@
 # Run a market and competitive analysis
 
+**Use this when:** you need a defensible, committed read on internal position, competitive structure, macro forces, or portfolio mix — one artifact per question.
+**Prerequisites:** `product-strategy` pack installed.
+**Result:** one or more committed analysis artifacts in `docs/product/shaping/` — `swot-analysis.md`, `competitive-landscape.md`, `macro-environment.md`, or `portfolio-position.md` — each a standalone readable document.
+
 You need a defensible picture of where the product stands — internal position,
 competitive pressure, macro forces, portfolio mix — and you want each part
 committed as an artifact a stakeholder can read, not a slide that evaporates.

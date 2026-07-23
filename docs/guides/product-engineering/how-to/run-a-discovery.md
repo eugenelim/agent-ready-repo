@@ -1,5 +1,9 @@
 # How to run a discovery end-to-end
 
+**Use this when:** You have a raw product idea and want a ratified, build-ready decision brief by running the full discovery loop through three consent gates — without skipping the divergence, lensing, and validation steps.
+**Prerequisites:** `product-engineering` pack installed; a harness that supports human-in-the-loop gate pauses with an append-only verdict store.
+**Result:** A ratified decision brief with a validated spine, ordered dependency-aware backlog, and validation plan, handed to `work-loop` at G3.
+
 > **Diátaxis: how-to.** A goal-oriented walk through the discovery loop. For *why* it is shaped this way, see the explanation [*The discovery loop*](../explanation/the-discovery-loop.md); for a fully worked example, the tutorial [*Walk a discovery end-to-end*](../tutorials/walk-a-discovery-end-to-end.md); for the slots and roster, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md).
 
 You have a raw product idea and you want a ratified, build-ready decision brief — without skipping the thinking. Install the `product-engineering` pack, then:

@@ -1,5 +1,9 @@
 # Create and use your `reference.md`
 
+**What you'll build:** A committed `docs/architecture/reference.md` with one real architecture standard filled in, used to steer one design decision.
+**Prerequisites:** A repo with at least one settled architecture decision and the `adapt-to-project` skill available — see [Prerequisites](#prerequisites) below.
+**Time:** 20–30 minutes.
+
 > At the end of this tutorial you'll have a committed `docs/architecture/reference.md` with one real section filled in, and you'll have used it to steer one design decision. You'll learn the rhythm of the golden path by walking it once.
 
 This is a learning walkthrough, not a reference. For *why* `reference.md` exists, read [Foundation vs. map](../../core/explanation/foundation-vs-map.md) afterward; for the full section list, see [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md).

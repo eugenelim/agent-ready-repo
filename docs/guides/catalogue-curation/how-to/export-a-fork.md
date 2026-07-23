@@ -1,5 +1,9 @@
 # Export a white-label or domain fork
 
+**Use this when:** You want to produce a redistributable white-label or attributed derivative of the catalogue for an org rebrand or domain re-purpose.
+**Prerequisites:** The `export-catalogue` skill available; a target path outside this repo; identity anchors (URL, email, slug, owner) ready for substitution.
+**Result:** A verified catalogue copy at the target path with upstream identity stripped or credited, fail-closed against any surviving upstream trace.
+
 `export-catalogue` produces a redistributable derivative of the catalogue at a
 target path — for an organization rebrand, or to re-purpose the machinery into a
 different domain (a creative-writing or investment-research catalogue). One

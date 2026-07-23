@@ -19,6 +19,11 @@ updated: 2026-07-18
 
 # Journey: Engineer scales to coordinated agent swarm
 
+**Use it when:** INI-002 M1 is installed and your team has more ready specs than engineers to manually dispatch — you want CI/CD to drain the queue autonomously.
+**You provide:** `workspace.toml` on `main`, adapter packs installed for each harness in the swarm, and the atomic claiming protocol configured.
+**You receive:** a self-draining queue where agents claim, execute, and mark specs shipped without collision, and stalled-spec detection that surfaces exceptions without constant manual monitoring.
+**Your decisions:** configure the adapter per harness (Stage 1); approve stalled-spec reassignment and recovery (Stage 5).
+
 **Persona:** An engineering team that has INI-002 M1 installed — `workspace.toml` is their session-start artifact, briefs flow through the queue, work-loop is their execution pattern. They want to scale from 1–2 manually dispatched agent sessions to N headless CLI agents running in CI/CD, each claiming specs from the queue and executing without collision.
 
 **Outcome:** A CI/CD job dispatches N headless CLI agents. Each reads `workspace.toml`, claims an unblocked spec, executes via work-loop, marks it shipped, and exits. The team lead monitors via `workspace-status` and only intervenes when a spec stalls or fails. Throughput scales with agents, not with engineers watching.

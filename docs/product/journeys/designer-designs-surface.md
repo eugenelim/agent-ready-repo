@@ -15,6 +15,11 @@ updated: 2026-07-19
 
 # Journey: Designer designs a surface
 
+**Use it when:** a product brief exists and you need to take a surface from journey mapping through to a genre-grounded, review-ready handoff artefact.
+**You provide:** a product brief or design intent, discovery evidence, and your judgment at the design-principles and review gates.
+**You receive:** a genre-specific design document, a design-principles artefact, screen-flow briefs with `surface-genre:` declared, and a handoff package for engineering.
+**Your decisions:** approve the design principles (Stage 2); select the surface genre (Stage 3–4); approve design-review findings before handoff (Stage 5).
+
 **Persona:** A designer or design-engineering hybrid authoring upstream design intent — a solo product designer at a startup, a design lead at an agency, or a design-eng hybrid who owns design through to build. They use the experience-design pack to move from raw brief through to a design-ready handoff artefact.
 
 Two paths share this journey:

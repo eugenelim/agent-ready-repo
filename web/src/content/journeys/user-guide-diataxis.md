@@ -3,6 +3,13 @@ pack: user-guide-diataxis
 scope: repo
 tagline: "Diátaxis-shaped documentation skeleton."
 prerequisitePacks: []
+contract:
+  useItWhen: "You need to add a new document to your project's documentation and want it structured correctly in the right Diátaxis category from the start."
+  youProvide: "A description of the documentation gap — what the guide needs to cover and who the reader is."
+  youReceive: "A Diátaxis-categorized, correctly structured guide draft — scaffolded in the right quadrant, with entry and exit conditions, ready for review and merge."
+  yourDecisions:
+    - "Confirm the Diátaxis category"
+    - "Review the drafted guide"
 whatChanges: "After installing user-guide-diataxis, your repo has a `guides/` directory shaped to the Diátaxis framework — separate directories for tutorials, how-to guides, reference, and explanation. The `new-guide` skill scaffolds each new document in the correct category, preventing the most common documentation failure: mixing instruction and reference in the same document."
 skills:
   - name: new-guide
@@ -46,24 +53,26 @@ relatedJourneys:
   - governance-extras
 ---
 
-## Stage 1 — Identify the documentation need and classify it
+### 1. Identify and classify the documentation need
 
-You identify a gap in the project's documentation — something users need to know that isn't written down, or is written in the wrong form. The agent activates `new-guide`, asks what the guide needs to cover, and helps classify it into the correct Diátaxis category.
-
-**You:** Make the classification decision at the G-classify gate. This is the most consequential decision in the documentation session — the wrong category means the wrong structure, the wrong voice, and the wrong reader. If you're unsure between how-to and tutorial, ask: is this reader learning, or is this reader doing? Learning → tutorial. Doing → how-to.
-
----
-
-## Stage 2 — Draft the guide
-
-With the category confirmed, the agent scaffolds the guide in the correct `guides/` subdirectory and drafts the content — entry conditions, steps or information organized by category structure, and exit conditions.
-
-**You:** Watch the draft take shape. For how-tos: check that every step is an action, not a paragraph of explanation. Explanation belongs in a linked explanation document. For tutorials: confirm the reader can follow the steps sequentially and arrive at a working outcome, not just a theoretical understanding.
+- **You provide:** a description of the documentation gap — what the guide needs to cover and who the reader is.
+- **Agent does:** activates new-guide; asks clarifying questions; proposes the correct Diátaxis category based on the reader need (tutorial for learning, how-to for doing, reference for information, explanation for understanding).
+- **You do:** consider the classification — is this reader learning or doing? If unsure between how-to and tutorial: learning → tutorial, doing → how-to; check whether an existing document in the wrong category should be replaced or split rather than extended.
+- **You decide:** confirm the Diátaxis category.
+- **Output:** a confirmed document category and a clear statement of the reader's need and entry state.
 
 ---
 
-## Stage 3 — Review and merge
+### 2. Draft the guide
 
-After the draft completes, you review at the G-review gate for structure consistency and category fidelity, then the agent opens a PR.
+- **Agent does:** scaffolds the guide in the correct guides/ subdirectory and drafts the content — entry conditions, steps or information organized by category structure, and exit conditions.
+- **You do:** watch the draft take shape; for how-tos, check that every step is an action, not a paragraph of explanation (explanation belongs in a linked document); for tutorials, confirm the reader can follow the steps sequentially and arrive at a working outcome, not just a theoretical understanding.
+- **Output:** a category-consistent guide draft.
 
-**You:** Read the guide as a first-time reader — not as the author who knows what it means. If you have to re-read a sentence twice to understand what action it's asking for, it needs rewriting. If a paragraph of background explanation appears in the middle of a how-to, flag it for extraction into a linked explanation document. Merge after the review gate passes.
+---
+
+### 3. Review and merge
+
+- **You do:** read the guide as a first-time reader — if you have to re-read a sentence to understand what action it asks for, it needs rewriting; if a paragraph of background explanation appears in a how-to, flag it for extraction into a linked explanation document.
+- **You decide:** review the drafted guide — gate passes when category, voice, entry state, and exit state are consistent.
+- **Output:** a review-gate-passed guide; the agent opens a PR after approval.

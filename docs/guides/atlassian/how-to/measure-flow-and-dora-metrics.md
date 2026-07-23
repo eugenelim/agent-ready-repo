@@ -1,5 +1,9 @@
 # Measure flow and DORA metrics
 
+**Use this when:** You need cycle time, lead time, throughput, WIP, or other Flow Framework / DORA metrics for a Jira project, program, or portfolio — or an AI-adoption comparison report pairing two runs.
+**Prerequisites:** Jira credentials verified (`python scripts/jira.py check`); for Align scope, the `jira-align` skill installed and authenticated.
+**Result:** JSON metrics output for the scope and window, optionally paired into a Markdown adoption comparison report via `ai-adoption-report`.
+
 Compute cycle time, lead time, throughput, WIP, and the rest of the Flow Framework / DORA set over a Jira scope with [`flow-metrics`](../../../../packs/atlassian/.apm/skills/flow-metrics/), then pair two runs into a comparison report with [`ai-adoption-report`](../../../../packs/atlassian/.apm/skills/ai-adoption-report/).
 
 `flow-metrics` is read-only. It reads through the `jira` skill, joins `jira-align` for program and portfolio scope, and never transitions, comments, or mutates Jira.

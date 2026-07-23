@@ -1,5 +1,9 @@
 # Run a full inception for a new project
 
+**Use this when:** You are starting a greenfield project and need to know which packs and skills to apply at each stage — from raw idea to a first buildable slice — before the build loop takes over.
+**Prerequisites:** An idea and the `core` pack installed; optionally the `inception` profile (`desk-research`, `product-engineering`, `architect`); see "Before you start".
+**Result:** A sequenced map of which packs and skills to apply at each uncertain stage, ending in a walking-skeleton spec ready for `work-loop`.
+
 This guide is for someone starting a greenfield project who wants to know which
 packs to reach for, and in what order, before the build loop takes over.
 Inception is the stretch from a raw idea to a recorded foundation and a first

@@ -1,5 +1,9 @@
 # Your first skill
 
+**What you'll build:** A standard-compliant skill with valid frontmatter, shaped body, activation evals, output-quality evals, and all four lint gates passing — ready for PR review.
+**Prerequisites:** `agentbundle`, `core`, `governance-extras`, and `catalogue-curation` packs installed; a clear idea of what the skill does and one situation where using it would be wrong.
+**Time:** 60–90 minutes.
+
 **Goal:** write one standard-compliant skill from scratch and land it in the catalogue.
 By the end you'll have a skill with valid frontmatter, a shaped body, activation evals, and a definition of done you can verify.
 

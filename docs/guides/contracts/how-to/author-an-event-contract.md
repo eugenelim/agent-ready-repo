@@ -1,5 +1,9 @@
 # Author an event contract
 
+**Use this when:** You own an event type and need a complete, validated AsyncAPI contract for consumers to integrate against.
+**Prerequisites:** `contracts` pack installed; know your active event-design standard (Axis A) and message envelope (Axis B).
+**Result:** A single AsyncAPI YAML document with channels, operations, messages, and schemas ready for downstream consumers.
+
 You're publishing an event stream — an order placed, a shipment dispatched, a price changed — and consumers need a contract to integrate against. The `event-contract` skill turns your requirements into a complete, validated AsyncAPI document.
 
 ## Before you start

@@ -1,5 +1,9 @@
 # How to define an extension contract
 
+**Use this when:** A component you ship exposes an intentional hook — a plugin point, config extension, or lifecycle callback — that adopters are expected to plug into.
+**Prerequisites:** A design doc, RFC, or ADR that describes why the extension hook exists.
+**Result:** A documented extension contract naming the hook's shape, stable guarantees, out-of-contract boundaries, and verification method.
+
 An extension contract is a documented agreement between a component and its
 adopters: here is the hook you may use, here is the shape it must satisfy, and
 here is what we promise to keep stable. It is a convention, not a skill — you

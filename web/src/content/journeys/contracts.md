@@ -3,6 +3,12 @@ pack: contracts
 scope: user
 tagline: "OpenAPI 3.1 and AsyncAPI — API-first design."
 prerequisitePacks: []
+contract:
+  useItWhen: "You are designing an API or event-driven interface and need a machine-readable contract before implementation starts."
+  youProvide: "The API surface — resources, actions, consumers, and any house standard to apply."
+  youReceive: "A validated OpenAPI 3.1 or AsyncAPI 2.x contract file, versioned and ready to commit."
+  yourDecisions:
+    - "Review the contract before it drives implementation"
 whatChanges: "After installing contracts, API design starts from the contract, not the code. `api-contract` produces a validated OpenAPI 3.1 spec from requirements, user stories, or a domain model. `event-contract` produces an AsyncAPI 2.x spec for event-driven interfaces. Both skills apply a pluggable house standard — the Zalando guidelines by default, your own base + delta bundle without forking the skill."
 skills:
   - name: api-contract
@@ -37,24 +43,25 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Author the contract
+### 1. Author the contract
 
-You describe the API surface — the resources, actions, and consumers. The agent runs `api-contract` or `event-contract` with the pluggable house standard configured (Zalando guidelines by default). It produces a first-draft contract: endpoints, request/response schemas, error codes, and the consumer-perspective check.
-
-**You:** Watch the draft take shape and note corrections as they arise — don't wait for the full draft to redirect on a naming convention or a missing error case. Small corrections mid-draft are faster than a full re-generate. If you know the consumer will call this API in a specific way, say so before the agent finalizes the response schemas.
-
----
-
-## Stage 2 — Review from the consumer's perspective
-
-After the first complete draft, the agent runs a self-review against the house standard. You review the contract at the G-contract gate — reading from the consumer's perspective, not the producer's.
-
-**You:** Read through the error responses first. The most common failure mode is a contract that specifies the happy path thoroughly but skips error cases — a 200 response with no corresponding 400, 404, or 500. If an error case is missing, name it explicitly: the agent can't infer which errors are real without domain knowledge. If the schema field names use inconsistent conventions (camelCase in some places, snake_case in others), correct them here before implementation begins.
+- **You provide:** a description of the API surface — resources, actions, consumers, and any house naming conventions.
+- **Agent does:** runs `api-contract` or `event-contract` with the pluggable house standard configured (Zalando guidelines by default), producing a first-draft contract: endpoints, request/response schemas, error codes, and a consumer-perspective check.
+- **You do:** watch the draft take shape and note corrections as they arise — don't wait for the full draft to redirect on a naming convention or a missing error case; if you know the consumer will call this API in a specific way, say so before the agent finalizes the response schemas.
+- **Output:** a first-draft contract ready for consumer-perspective review.
 
 ---
 
-## Stage 3 — Versioned output
+### 2. Review from the consumer's perspective
 
-The ratified contract is emitted as a versioned OpenAPI 3.1 or AsyncAPI 2.x file, ready to commit alongside the implementation it governs.
+- **Agent does:** runs a self-review against the house standard and surfaces the contract for your review at the G-contract gate.
+- **You decide:** read through the error responses first — the most common failure mode is a contract that specifies the happy path thoroughly but skips 400, 404, or 500 cases; name any missing error cases explicitly, and correct naming inconsistencies before implementation begins.
+- **Output:** a ratified contract that covers the consumer's full perspective, including all error codes.
 
-**You:** Confirm the contract file is placed alongside the service it governs — not in a separate repository or a documentation folder that would diverge from the service over time. A contract that lives apart from its implementation drifts silently until a consumer discovers the mismatch.
+---
+
+### 3. Commit the versioned contract
+
+- **Agent does:** emits the ratified contract as a versioned OpenAPI 3.1 or AsyncAPI 2.x file, ready to commit alongside the implementation it governs.
+- **You do:** confirm the contract file is placed alongside the service it governs — not in a separate repository or a documentation folder that would diverge from the service over time.
+- **Output:** a versioned contract file committed alongside its implementation.

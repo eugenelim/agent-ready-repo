@@ -3,6 +3,13 @@ pack: core
 scope: repo
 tagline: "Spec → shipped code. Supervised."
 prerequisitePacks: []
+contract:
+  useItWhen: "You're implementing a feature, fixing a bug, or changing an existing repo."
+  youProvide: "The task and its important constraints."
+  youReceive: "An agreed plan, a checked implementation, review findings, and a merge decision."
+  yourDecisions:
+    - "Approve the plan"
+    - "Merge the PR"
 whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. You get lint, typecheck, and tests as mechanical gates. Three specialist reviewers read every diff cold. The loop cannot self-certify — it always surfaces to you for plan approval and PR merge."
 skills:
   - name: work-loop
@@ -81,32 +88,35 @@ relatedJourneys:
   - release
 ---
 
-## Stage 1 — Brief the loop
+### 1. Agree on the plan
 
-You open a task and describe it. The agent activates `work-loop`, checks whether risk triggers require full mode, writes the lean inline spec — the **trio**: problem, user, success criteria — and surfaces its assumptions.
-
-**You:** Read the trio in the chat. Confirm the scope matches what you asked for — or redirect if the agent overreached. Check that the correct mode (light or full) was selected. Approve the plan. Five to ten minutes of focused reading; this is the gate that costs least and protects most.
-
----
-
-## Stage 2 — Execution
-
-After your plan approval, the agent implements against the spec. It runs lint, typecheck, and tests after each logical change. When a gate fails, it fixes the issue and re-runs the gate before continuing.
-
-**You:** Watch the chat at key moments. After each logical task completes, skim the agent's output to catch early drift. You don't need to read every line — look for file names you didn't expect, for scope creep, and for the agent surfacing a question. If it surfaces, answer quickly — a blocked agent costs more time than a fast redirect. If all is well, let it run.
+- **You provide:** the requested change and its important constraints.
+- **Agent does:** activates `work-loop`, checks whether risk triggers require full mode, writes the lean inline spec — the **trio** (problem, user, success criteria) — and surfaces its assumptions.
+- **You decide:** approve the plan, or redirect if the agent overreached the scope or picked the wrong mode. Five to ten minutes of focused reading — the gate that costs least and protects most.
+- **Output:** an agreed, bounded plan.
 
 ---
 
-## Stage 3 — Specialist review
+### 2. Build and verify
 
-After all mechanical gates pass, the agent runs `adversarial-reviewer` in a fresh session. The reviewer reads the diff cold — no context from the build session. It returns findings grouped by severity (Blockers, Concerns, Nits). The loop iterates on Blockers until the reviewer reports clean.
-
-**You:** Monitor the review output as it lands. If the reviewer flags a Blocker you disagree with, provide a brief direction ("this is expected behavior because…") so the next fix targets the real issue. For Concerns and Nits, scan them — you may choose to apply or defer without waiting for the loop to finish.
+- **Agent does:** implements against the spec, running lint, typecheck, and tests after each logical change; when a gate fails, it fixes the issue and re-runs the gate before continuing.
+- **You do:** watch at key moments — after each logical task, skim the output for file names you didn't expect, for scope creep, and for a surfaced question. Answer quickly if it surfaces; a blocked agent costs more than a fast redirect. If all is well, let it run.
+- **Output:** a green implementation.
 
 ---
 
-## Stage 4 — PR and merge
+### 3. Review independently
 
-After all reviewers report clean, the agent opens the PR with a description including: what changed, why, what was deferred, and what was found mid-implementation.
+- **Reviewer does:** reads the diff cold in a fresh session (`adversarial-reviewer`) with no context from the build, and returns findings grouped by severity — Blockers, Concerns, Nits.
+- **Loop does:** fixes Blockers and re-runs the gates, iterating until the reviewer reports clean.
+- **You do:** monitor the findings as they land; give a one-line steer on any Blocker you disagree with ("this is expected because…"); scan Concerns and Nits and choose to apply or defer.
+- **Output:** a clean review — or concerns surfaced clearly to you.
 
-**You:** Review the PR diff in GitHub or your editor. Read the description, not just the diff — the description tells you what the agent decided when it had choices. Check that the spec and implementation align. Look for anything in the diff that wasn't in the plan you approved. Merge when satisfied.
+---
+
+### 4. Decide the merge
+
+- **Agent does:** opens the PR with a description covering what changed, why, what was deferred, and what was found mid-implementation.
+- **You do:** read the description, not just the diff — it tells you what the agent decided when it had choices. Confirm the implementation matches the plan you approved, the spec and code align, and no unexplained scope appeared.
+- **You decide:** merge, redirect, or defer.
+- **Output:** a merge-ready change.

@@ -1,5 +1,9 @@
 # Choose a tracker integration for brief intake
 
+**Use this when:** You have work in a project board or issue tracker and want to turn it into a product brief that feeds the spec-driven build pipeline.
+**Prerequisites:** The relevant pack installed (`core`, `github`, `linear`, or `atlassian`) and any required tracker credentials configured.
+**Result:** The correct intake skill identified for your tracker and a `receive-brief`-ready path chosen.
+
 You have work tracked in a project board or issue tracker and want to turn it into a
 [product brief](../../core/reference/product-brief-fields.md) that feeds the
 spec-driven build pipeline. Use this guide to choose the right intake skill.

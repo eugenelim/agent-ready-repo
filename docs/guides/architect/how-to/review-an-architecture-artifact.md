@@ -1,5 +1,9 @@
 # Review an architecture artifact
 
+**Use this when:** You have a finished-enough artifact — design doc, diagram, RFC, or ADR — and want severity-tagged findings rather than a design conversation.
+**Prerequisites:** A concrete artifact to paste or point at; the `architect` pack installed.
+**Result:** A verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), findings ordered by severity with suggested fixes, and strengths to preserve.
+
 > Get a severity-tagged critique of a design doc, diagram, RFC, or ADR out of the `architect-review` skill. Assumes you have a finished-enough artifact and want findings, not a conversation. Want to *produce* an artifact instead? Reach for [`architect-design`](../../../../packs/architect/.apm/skills/architect-design) or [`architect-diagram`](diagram-a-system.md).
 
 You have an artifact and you want to know what's wrong with it. Paste it, ask for a review, and the [`architect-review`](../../../../packs/architect/.apm/skills/architect-review) skill walks the right rubric for its type and hands back a verdict plus findings ordered by severity. Reviews render inline; they're throwaway by design.

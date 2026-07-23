@@ -1,5 +1,9 @@
 # How to capture and triage a work item
 
+**Use this when:** You surface a new item mid-session — a deferred spec AC, an out-of-scope bug, a review follow-on, or an unformed idea — and need to route it to the right room in `workspace.toml`.
+**Prerequisites:** The `core` pack installed in the target repo and a `workspace.toml` at the repo root.
+**Result:** The item classified as `[build]` or `[shape]` and written to `workspace.toml`, with the matching shaping skill offered immediately if the item is shape-typed.
+
 Mid-session, you notice something that should be tracked: a follow-on from a spec, a bug, an idea, or an item a spec marked as deferred. This guide walks through using `capture-work` to classify the item and write it to the right room in `workspace.toml`.
 
 For *why* items route to either the shape room or the build room, see [The two-room model](../explanation/two-room-model.md). For the `workspace.toml` sections that `capture-work` writes to, see [workspace.toml schema reference](../reference/workspace-toml-schema.md).

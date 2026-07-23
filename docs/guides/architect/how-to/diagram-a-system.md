@@ -1,5 +1,9 @@
 # Diagram a system
 
+**Use this when:** You know what you want drawn and need a Mermaid diagram of a system, flow, state machine, data model, or deployment topology.
+**Prerequisites:** The `architect` pack installed; optionally a `docs/architecture/reference.md` for document-mode diagrams grounded in your stack.
+**Result:** A self-checked Mermaid diagram in the right notation, with an offer to save it to the repo.
+
 > Get a Mermaid diagram of a system, flow, state, data model, or deployment topology out of the `architect-diagram` skill. Assumes you know what you want drawn; if you're still framing the problem, that's a design conversation — reach for [`architect-design`](../../../../packs/architect/.apm/skills/architect-design) instead.
 
 You have something to draw. Ask in plain language and the [`architect-diagram`](../../../../packs/architect/.apm/skills/architect-diagram) skill picks the notation, drafts the diagram inline, and self-checks it before you ever see it.

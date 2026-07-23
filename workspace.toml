@@ -732,4 +732,22 @@ open = [
   #   distinctly and requires explicit human confirm before landing. Hook-ingest path not
   #   exercised (QA covered skill ingest only).
   {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
+
+  # ── journey-template-revamp follow-ups (experience-reviewer, deferred) ─────────
+  # The revamp landed the contract + fixed stage cards; these are experience polish
+  # the reviewer surfaced as out-of-scope-for-this-spec enhancements.
+  # Journey "what good output looks like" (template section 5) renders only when a
+  #   journey sets goodOutputDescription — no journey does, so the highest-value
+  #   "what do I get?" proof is absent site-wide. Fix: author a real transcript/
+  #   artifact snippet for the P1 journeys (core, discovery, release) in their
+  #   goodOutputDescription frontmatter. File: web/src/content/journeys/*.md.
+  {slug = "journey-good-output-transcripts", source = "spec/journey-template-revamp experience-review Minor-3"},
+  # Journey hero h1 is a bare pack slug ("core"), meaningless when deep-linked cold;
+  #   the five-second scan rests entirely on the tagline. Fix: pair the slug with a
+  #   short descriptive eyebrow/qualifier in JourneyHero.astro.
+  {slug = "journey-hero-descriptive-eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
+  # Contract "Your decisions" chips look interactive (share chip styling) but aren't,
+  #   and duplicate the gate labels below. Fix: anchor each chip to its GateDetail
+  #   card (turn duplication into wayfinding). Files: JourneyContract.astro + GateDetail.astro.
+  {slug = "journey-decision-chip-gate-anchors", source = "spec/journey-template-revamp experience-review Nit-5"},
 ]

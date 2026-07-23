@@ -1,0 +1,105 @@
+---
+// Compact above-the-fold contract for a journey page (journey-template-revamp).
+// Four fixed lines — Use it when / You provide / You receive / Your decisions —
+// so a reader learns the shape once and reuses it on every journey. Light zone,
+// amber left border, same --ds-* token vocabulary as GateDetail.astro. Zero JS.
+
+interface Contract {
+  useItWhen: string;
+  youProvide: string;
+  youReceive: string;
+  yourDecisions: string[];
+}
+
+interface Props {
+  contract: Contract;
+}
+
+const { contract } = Astro.props;
+---
+
+<div class="contract-card">
+  <dl class="contract-list">
+    <div class="contract-row">
+      <dt>Use it when</dt>
+      <dd>{contract.useItWhen}</dd>
+    </div>
+    <div class="contract-row">
+      <dt>You provide</dt>
+      <dd>{contract.youProvide}</dd>
+    </div>
+    <div class="contract-row">
+      <dt>You receive</dt>
+      <dd>{contract.youReceive}</dd>
+    </div>
+    <div class="contract-row">
+      <dt>Your decisions</dt>
+      <dd class="contract-decisions">
+        {contract.yourDecisions.map((decision) => (
+          <span class="decision-chip">{decision}</span>
+        ))}
+      </dd>
+    </div>
+  </dl>
+</div>
+
+<style>
+  .contract-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    max-width: 72ch;
+  }
+
+  .contract-list {
+    display: grid;
+    gap: var(--ds-space-4);
+  }
+
+  .contract-row {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: var(--ds-space-2) var(--ds-space-5);
+    align-items: baseline;
+  }
+
+  .contract-row dt {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent-deep);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .contract-row dd {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .contract-decisions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-3);
+  }
+
+  .decision-chip {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  /* Stack labels above values on narrow viewports. */
+  @media (max-width: 40rem) {
+    .contract-row {
+      grid-template-columns: 1fr;
+      gap: var(--ds-space-1);
+    }
+  }
+</style>

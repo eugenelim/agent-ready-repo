@@ -1,5 +1,9 @@
 # Set UX and content strategy
 
+**Use this when:** design is about to start and you want the experience vision and content governance system fixed before journey maps and screen briefs are authored.
+**Prerequisites:** `product-strategy` pack installed.
+**Result:** `ux-strategy.md` and/or `content-strategy.md` committed to `docs/product/shaping/`, setting the system-level direction the experience-design pack works within.
+
 Design is about to start, and you want the experience and content direction fixed
 first — so the journey maps and screens that follow have a vision to serve rather
 than inventing one per surface. This guide covers the two skills that set that

@@ -1,5 +1,9 @@
 # How to add a credentialed skill
 
+**Use this when:** your skill calls an external authenticated service (API token, vendor CLI, or corporate SSO) and the credential must never pass through the model.
+**Prerequisites:** target service's auth shape identified, namespace name chosen, and the `credential-brokers` pack installed if you're using the `creds` or `sso-cookie` broker.
+**Result:** a scaffolded, lint-passing credentialed skill directory with the correct broker wired, a `### Security rules (non-negotiable)` block in `SKILL.md`, and banded exit-code handling in `scripts/cli.py`.
+
 This is a one-page walk-through for authoring a credentialed primitive — a skill that calls an authenticated external API on behalf of the user. The architecture rule ([RFC-0006 § 1](../../../rfc/0006-skill-secrets-storage.md#1-two-layer-architecture-skills-dont-hold-credentials), preserved verbatim by [RFC-0013](../../../rfc/0013-credential-broker-contract.md)) is *skills don't hold credentials*; a Python CLI under the skill's `scripts/` directory owns the secret on disk and constructs the API call inside its own process. The LLM never sees the token as a tool argument.
 
 For a runnable, shipped reference, read a real consumer — [`packs/atlassian/.apm/skills/jira/`](../../../../packs/atlassian/.apm/skills/jira) is a live `auth: creds` credentialed-CLI whose `scripts/_client.py` resolves a PAT via the `credbroker` library; this guide is the procedure that gets you to your own.

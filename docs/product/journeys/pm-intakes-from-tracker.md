@@ -15,6 +15,11 @@ updated: 2026-07-18
 
 # Journey: PM intakes work from tracker
 
+**Use it when:** a tracker issue is ready for engineering work and you want it to become a DoR-compliant brief in the queue without manual reformatting.
+**You provide:** a tracker issue in Linear, Jira, or GitHub, and your answers to any DoR gap-fill prompts the intake skill surfaces.
+**You receive:** a brief in `[brief_queue].draft` linked back to the tracker issue via `Epic:`, which auto-closes on spec ship via PR convention.
+**Your decisions:** answer the Appetite, Rabbit holes, and Instrumentation gap-fill prompts; approve any delta re-sync when the tracker issue is updated.
+
 **Persona:** A PM who lives in Linear, Jira, or GitHub Issues. They create and manage issues in their tracker of choice and need them to flow into the platform's brief queue without manual reformatting. They are not primarily a terminal user — they think in tracker terms (Linear Issue, Jira Story, Epic, Sprint) and want the platform to speak their language, not the other way around.
 
 **Outcome:** An issue or story in the PM's tracker of choice becomes a DoR-compliant brief in `[brief_queue].draft`, with all fields populated and the tracker issue linked bidirectionally. When the spec ships, the tracker issue closes automatically via PR convention. The PM never needs to leave their tracker to manage the brief lifecycle.

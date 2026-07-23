@@ -1,5 +1,9 @@
 # How to set up a governance index
 
+**Use this when:** You need a single YAML manifest mapping architectural domains to their ADRs and standards files so agents and contributors load only the relevant files.
+**Prerequisites:** `governance-extras` installed and at least one accepted ADR — see [Prerequisites](#prerequisites) below.
+**Result:** A committed `docs/governance-index.yaml` that indexes each architectural domain for fast lookup.
+
 A governance index is a single YAML manifest that maps each architectural
 decision domain to the ADR(s) and standard file(s) that bind it. An agent
 (or a new team member) reads the index first and loads only the 2–3 files it

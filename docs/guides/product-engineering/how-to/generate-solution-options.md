@@ -1,5 +1,9 @@
 # How to generate solution options
 
+**Use this when:** You hold a confirmed opportunity at initiative or capability scope and need to surface ≥3 structured, comparable options before committing to a direction in `place-bet`.
+**Prerequisites:** `product-engineering` pack installed; a confirmed opportunity at initiative or capability altitude — ideally from `identify-opportunities` (feature-scope goes to `explore-options` instead).
+**Result:** A structured options artifact with ≥3 spanning options, a recommended selection with a dominant-bet rationale, and retained reasoning for parked and rejected alternatives.
+
 Use `diverge-solutions` when you hold a confirmed opportunity at initiative or
 capability scope and need to surface the full option space before committing to
 a direction. The skill forces ≥3 structured, comparable options — the discipline

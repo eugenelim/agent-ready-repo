@@ -1,5 +1,9 @@
 # How to: identify opportunities
 
+**Use this when:** You have a confirmed problem area and want to understand what users are actually trying to get done — across functional, emotional, and social dimensions — before committing to any solution direction.
+**Prerequisites:** `product-engineering` pack installed; a problem description, affected user population, and current source of pain (a prior `situation-framing.md` from `frame-situation` improves pre-population but is optional).
+**Result:** A ranked `opportunity-assessment.md` with functional, emotional, and social job tables and a scored top-opportunities list ready to pass to `diverge-solutions`.
+
 Use this skill when you have a problem area worth exploring and want to know
 what users are actually trying to get done before committing to a solution direction.
 The output is a ranked `opportunity-assessment.md` artifact ready to hand to `diverge-solutions`.

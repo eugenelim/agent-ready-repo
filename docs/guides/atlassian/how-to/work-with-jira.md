@@ -1,5 +1,9 @@
 # Work with Jira
 
+**Use this when:** You need to search, fetch, create, update, or transition Jira issues through the CLI or an agent workflow.
+**Prerequisites:** Jira credentials configured (`JIRA_BASE_URL`, `JIRA_API_TOKEN`); verify with `python scripts/jira.py check`.
+**Result:** JSON or CSV issue data returned, or a created, updated, or transitioned issue visible on the Jira instance.
+
 Search, fetch, create, and update Jira issues through the [`jira`](../../../../packs/atlassian/.apm/skills/jira/) skill. The skill wraps the Jira REST API behind a CLI and handles Cloud vs Server / Data Center, pagination, ADF wrapping, and output formatting for you.
 
 This is for Jira the issue tracker, not Jira Align — those are separate skills with separate credentials.

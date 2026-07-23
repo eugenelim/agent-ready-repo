@@ -1,5 +1,9 @@
 # How to preview an install or upgrade with `--dry-run`
 
+**Use this when:** You want to see exactly which files an install or upgrade would create, overwrite, or preserve as companions before committing any writes.
+**Prerequisites:** `agentbundle` CLI on your PATH; for upgrades, the pack already installed; see [Prerequisites](#prerequisites).
+**Result:** A printed plan of every file action (`create`, `overwrite`, `companion`) the real run would perform, with nothing written to disk.
+
 See exactly what `agentbundle install` or `agentbundle upgrade` *would* do to your working tree — which files it creates, which it overwrites, and which of your edits it would preserve as `.upstream.<ext>` companions — without writing a single byte.
 
 ## When to reach for it

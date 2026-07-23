@@ -1,5 +1,9 @@
 # How to design a profile
 
+**Use this when:** You want to propose a new curated set of packs that a named adopter persona would install in one command.
+**Prerequisites:** Familiarity with the pack catalogue and `python3 tools/lint-profiles.py` available to validate your manifest.
+**Result:** A `profiles/<name>.toml` manifest that passes all four design tests and the profile lint, ready to submit via RFC.
+
 A profile is a curated, single-scope set of packs that installs in one command:
 
 ```bash

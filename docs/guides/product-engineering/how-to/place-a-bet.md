@@ -1,5 +1,9 @@
 # How to place a bet
 
+**Use this when:** You have evaluated your solution options and are ready to commit the team to a chosen direction and produce the `bet.md` artifact that `map-capabilities` will reason against.
+**Prerequisites:** `product-engineering` pack installed; a solutions artifact from `diverge-solutions` or `explore-options` (recommended); `validation-notes.md` from `de-risk-intent` (optional but folds kill conditions in automatically).
+**Result:** A committed `bet.md` at `<output_dir>/shaping/<slug>/bet.md` recording the chosen option, confidence, appetite, rationale, accepted risks, and assumptions — ready to anchor step 6.
+
 **Goal:** You have evaluated options and completed (or deliberately skipped)
 validation. You are ready to commit the team to a chosen direction and produce
 the artifact `map-capabilities` will reason against.

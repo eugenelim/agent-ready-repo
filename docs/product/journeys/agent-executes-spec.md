@@ -19,6 +19,11 @@ updated: 2026-07-19
 
 # Journey: Agent executes a spec autonomously
 
+**Use it when:** an agent session starts and needs to orient, claim a spec, execute it through the work-loop, and exit with committed state.
+**You provide:** a workspace with `workspace.toml` on `main` and write access to the spec branch.
+**You receive:** a shipped spec, a PR passing gates, and `workspace.toml` updated so the next agent orients immediately.
+**Your decisions:** None — this journey runs headless.
+
 **Persona:** An AI agent — Claude Code, Codex CLI, Kiro CLI, or any headless harness — starting a fresh session with no persistent memory of prior sessions. The agent has no human in the loop for the execution phase. It must orient itself, pick up the right spec, execute it through the work-loop, navigate gates, submit a PR, mark the spec shipped, and exit cleanly.
 
 **Outcome:** The spec is in `[work].shipped`. A PR is submitted and passing. `workspace.toml` reflects the new state. The next ready item is surfaced. The next agent starting a session can orient immediately without reading any prior session's context.

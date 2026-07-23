@@ -3,6 +3,15 @@ pack: product-engineering
 scope: user
 tagline: "Raw idea → build-ready decision brief."
 prerequisitePacks: []
+contract:
+  useItWhen: "You have a raw product idea or problem and need to converge on a build-ready decision brief before anyone writes code."
+  youProvide: "A product idea or problem description, with any scope constraints or prior discovery context."
+  youReceive: "A build-ready decision brief — intent, validated candidate, assumption-test, and decomposition into delivery briefs."
+  yourDecisions:
+    - "Shape intent"
+    - "Mid-discovery check"
+    - "Reconcile"
+    - "Commit to build"
 whatChanges: "After installing product-engineering, upstream intent work runs through discovery-loop: frame → explore → converge → commit. The discovery-lead agent diverges across candidate product shapes, drives the lens roster to convergence, and emits a connected hypothesis with validation hooks — no engine. You review at four human gates; the agent runs everything between them."
 skills:
   - name: discovery-loop
@@ -108,48 +117,52 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Shape intent
+### 1. Shape intent
 
-You describe a product idea or problem to the `discovery-lead` agent. The agent activates `discovery-loop`, runs `frame-intent` to establish product framing (problem, user, outcome), and emits an intent document.
-
-**You:** Read the intent document — the framing is only a page. Give concrete corrections if the problem statement is too vague ("users want to collaborate faster" → "the PM can't see which stories are blocked without checking three tools"). Give G0 consent once the framing is specific enough to eliminate candidates from. This gate sets the direction for everything that follows.
-
----
-
-## Stage 2 — Diverge
-
-The agent runs `explore-options` to generate candidate product shapes with distinct tradeoff profiles. Each candidate represents a meaningfully different approach to the problem.
-
-**You:** Watch as candidates appear. If a candidate is obviously out-of-scope or repeats a prior approach, say so before the lens roster runs — it saves a review cycle. Otherwise, let the diverge step complete.
+- **You provide:** a product idea or problem description.
+- **Agent does:** activates `discovery-loop`, runs `frame-intent` to establish product framing (problem, user, outcome), and emits an intent document.
+- **You do:** read the intent document — the framing is only a page; give concrete corrections if the problem statement is too vague ("users want to collaborate faster" → "the PM can't see which stories are blocked without checking three tools").
+- **You decide:** give G0 consent once the framing is specific enough to eliminate candidates — this gate sets the direction for everything that follows.
+- **Output:** an intent document with a specific problem, named user, and measurable outcome.
 
 ---
 
-## Stage 3 — Lens roster
+### 2. Diverge across candidates
 
-After generating candidates, the agent runs two discovery reviewers — threat and reliability — against each candidate. Each reviewer reads cold and returns findings. Candidates that fail the reviewers are eliminated.
-
-**You:** Monitor the review output. If a candidate you want to keep is eliminated, read the finding that killed it — sometimes the finding is correct and you need to hear it; sometimes it rests on a false premise you can correct with one sentence.
-
----
-
-## Stage 4 — Mid-discovery check
-
-The agent surfaces the surviving candidates for a mid-course human check. You review which candidates remain and whether the field feels right.
-
-**You:** At G1.5, make a call. If only one candidate survives and it feels too easy, ask the agent to re-explore from a different angle. If the survivors feel genuinely distinct, confirm and let the loop converge. This is the last moment to expand the option space cheaply.
+- **Agent does:** runs `explore-options` to generate candidate product shapes with distinct tradeoff profiles.
+- **You do:** watch candidates appear; if a candidate is obviously out-of-scope or repeats a prior approach, say so before the lens roster runs — it saves a review cycle.
+- **Output:** a set of candidate product shapes with distinct tradeoff profiles.
 
 ---
 
-## Stage 5 — Converge
+### 3. Run the lens roster
 
-The agent runs `de-risk-intent` to surface the riskiest assumption and design a prototype approach to test it. It then runs `decompose-intent` to decompose the chosen direction into specs and briefs for the delivery loop.
-
-**You:** Watch the assumption-test take shape. If the prototype approach the agent proposes is too expensive or won't actually test the assumption, redirect. A bad de-risk approach means the brief reaches the delivery loop with an untested assumption at its core.
+- **Reviewer does:** runs two discovery reviewers — threat and reliability — against each surviving candidate; each reads cold and returns findings; candidates that fail are eliminated.
+- **You do:** monitor the review output; if a candidate you want to keep is eliminated, read the finding — sometimes it rests on a false premise you can correct with one sentence.
+- **Output:** a filtered candidate set with review findings attached.
 
 ---
 
-## Stage 6 — Reconcile and commit
+### 4. Check mid-discovery
 
-The agent presents the full discovery sidecar — intent, assumption-test, validated candidate, decomposition. You review the G2 reconciliation record and confirm the decision brief is build-ready.
+- **Agent does:** surfaces the surviving candidates for a mid-course review.
+- **You do:** review which candidates remain and whether the field feels right; if only one candidate survives and it feels too easy, consider asking the agent to re-explore from a different angle.
+- **You decide:** confirm the surviving candidates at the mid-discovery check (G1.5), or direct a re-exploration — this is the last moment to expand the option space cheaply.
+- **Output:** a confirmed candidate field ready for convergence.
 
-**You:** Read the full brief — all sections. At G2 you ratify the reconciliation record; at G3 you commit the brief to the delivery loop. These are two distinct decisions: G2 is "is this brief complete?" and G3 is "am I ready to build this?" A brief can be complete but still wrong.
+---
+
+### 5. Converge on the candidate
+
+- **Agent does:** runs `de-risk-intent` to surface the riskiest assumption and design a prototype approach to test it; then runs `decompose-intent` to decompose the chosen direction into specs and briefs for the delivery loop.
+- **You do:** watch the assumption-test take shape; if the prototype approach is too expensive or won't actually test the assumption, redirect — a bad de-risk approach means an untested assumption at the brief's core.
+- **Output:** a de-risked candidate with decomposition into delivery briefs.
+
+---
+
+### 6. Reconcile and commit
+
+- **Agent does:** presents the full discovery sidecar — intent, assumption-test, validated candidate, and decomposition.
+- **You do:** read the full brief — all sections; G2 is "is this brief complete?" and G3 is "am I ready to build this?" — these are two distinct decisions.
+- **You decide:** ratify the reconciliation record at G2; commit the brief to the delivery loop at G3.
+- **Output:** a ratified decision brief handed to the delivery loop.

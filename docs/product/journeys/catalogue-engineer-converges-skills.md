@@ -15,6 +15,11 @@ updated: 2026-07-22
 
 # Journey: Catalogue engineer converges skills
 
+**Use it when:** you want to bring external skills or subagents safely into your org's catalogue — one primitive at a time or as a full convergence survey.
+**You provide:** a source repo URL or primitive URL, and your judgment on charter fitness and OWASP AST review findings.
+**You receive:** OWASP-reviewed, catalogue-native primitives in an auditable pack, with an assimilation ledger and a redistributable profile or fork.
+**Your decisions:** confirm the raw-body review for each primitive; approve new pack creation via charter test; choose the publication path (profile vs. export).
+
 **Persona:** A platform engineer or catalogue maintainer who manages a derived catalogue or an org-stack pack.
 They have an existing catalogue (or are starting one) and a set of external skills, subagents, or hooks they want to bring in safely.
 They are not a solo adopter installing from the public catalogue — they are the person who decides what goes *into* a catalogue.
