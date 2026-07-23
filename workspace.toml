@@ -243,6 +243,8 @@ queue   = [
 #   source — deferred-AC provenance, e.g. "spec/foo AC3"
 #   needs  — same prefix notation as queue entries ("backlog:<slug>", "work:spec/...")
 # Per-entry TOML comments must be cold-start-sufficient: problem, fix, file/skill, unblock.
+# When the unblock condition is another tracked item (a hard AND dependency), also
+# add a `needs` edge — not prose alone. Disjunctive/untracked/external unblocks stay prose.
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
