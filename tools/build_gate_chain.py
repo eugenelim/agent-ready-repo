@@ -7,8 +7,9 @@ and remember the order. This script chains the same steps so the whole gate runs
 in one command on any platform:
 
     python tools/build_gate_chain.py build-self     # lint-packs -> self
-    python tools/build_gate_chain.py build-check    # lint-packs -> build -> check
-                                                     # -> pre-pr-catalogue
+    python tools/build_gate_chain.py build-check    # lint-packs -> build
+                                                     # -> validate-claude-plugin-manifests
+                                                     # -> check -> pre-pr-catalogue
                                                      # -> spec-status (self-test+lint)
                                                      # -> brief-coverage (self-test+lint)
                                                      # -> traceability (self-test+lint)
@@ -123,13 +124,24 @@ def build_self(args: argparse.Namespace) -> int:
 def build_check(args: argparse.Namespace) -> int:
     """`build-check` chain: every Windows-clean step of `make build-check`.
 
-    lint-packs → build → check → pre-pr-catalogue → lint-spec-status
-    (self-test + lint) → brief-coverage (self-test + lint) → traceability
-    (self-test + lint), in that order. The
-    SAST leg is intentionally omitted (Semgrep has no Windows support and is
-    conditional) — it stays Makefile-appended after this chain.
+    lint-packs → build → validate-claude-plugin-manifests → check →
+    pre-pr-catalogue → lint-spec-status (self-test + lint) →
+    brief-coverage (self-test + lint) → traceability (self-test + lint),
+    in that order. The SAST leg is intentionally omitted (Semgrep has no
+    Windows support and is conditional) — it stays Makefile-appended after
+    this chain.
     """
     packs_dir = args.packs_dir
+    # validate-claude-plugin-manifests always reads dist/claude-plugins/ (hardcoded
+    # in the validator). Warn when --output-dir differs so the user knows the
+    # validator will inspect that directory rather than the freshly-built tree.
+    if Path(args.output_dir).resolve() != (REPO_ROOT / "dist").resolve():
+        print(
+            f"build chain: ⚠  validate-claude-plugin-manifests reads "
+            f"dist/claude-plugins/ regardless of --output-dir ({args.output_dir!r}); "
+            "it will validate the dist/ tree, not the custom output dir.",
+            file=sys.stderr,
+        )
     steps: list[Step] = [
         _handler_step("lint-packs", cmd_lint_packs, packs_dir=packs_dir),
         _handler_step(
@@ -140,6 +152,7 @@ def build_check(args: argparse.Namespace) -> int:
             recipe=None,
             pack=None,
         ),
+        _script_step("validate-claude-plugin-manifests", "tools", "validate-claude-plugin-manifests.py"),
         _handler_step("check", cmd_check, packs_dir=packs_dir, output_dir="."),
         _script_step("pre-pr-catalogue", "tools", "pre-pr-catalogue.py"),
         _script_step(

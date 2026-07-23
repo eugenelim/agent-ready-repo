@@ -133,6 +133,14 @@ ALLOWED_AUTH_BROKERS = ("env", "cli", "creds", "sso-cookie")
 ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
 
+# Patterns that must not appear in shipped .apm/ skill bodies (adopter-facing
+# leak guard for source skills, mirroring lint-catalogue-seeds.BLOCKLIST_PATTERNS).
+_APM_SKILL_BLOCKLIST: tuple[tuple[str, str], ...] = (
+    (r"agent-ready-repo", "catalogue name 'agent-ready-repo'"),
+    (r"RFC-00\d\d", "catalogue RFC reference (RFC-NNNN)"),
+    (r"K-00\d\d", "catalogue knowledge entry (K-NNNN)"),
+)
+
 
 def main() -> int:
     os.chdir(_repo_root())
@@ -457,6 +465,31 @@ def main() -> int:
         f"Artifacts checked: {skill_count} skill(s), "
         f"{agent_count} subagent(s), {command_count} command(s)."
     )
+
+    # ── Adopter-facing leak guard for source .apm/ skill bodies ──────────
+    # Scans all *.md files under packs/core/.apm/skills/ (SKILL.md,
+    # examples/, references/, assets/) for catalogue-internal strings that
+    # must not reach adopters. Scoped to core only per the backlog item;
+    # other packs are a follow-on (see backlog:product-brief-intake-leak-guard).
+    # Override the scan root via LINT_APM_ROOT (used by the self-test).
+    apm_skills_dir = pathlib.Path(
+        os.environ.get("LINT_APM_ROOT", "packs/core/.apm/skills")
+    ).resolve()
+    apm_body_count = 0
+    if apm_skills_dir.exists():
+        for skill_dir in sorted(p for p in apm_skills_dir.iterdir()
+                                if p.is_dir()):
+            for target in sorted(skill_dir.rglob("*.md")):
+                apm_body_count += 1
+                text = target.read_text(encoding="utf-8")
+                for pat, label in _APM_SKILL_BLOCKLIST:
+                    for lineno, line in enumerate(text.splitlines(), 1):
+                        if re.search(pat, line):
+                            err(target, f"leaked {label} in shipped skill body",
+                                line=lineno)
+        print(f"Skill-body leak guard: {apm_body_count} file(s) checked.")
+    else:
+        warn(f"apm/skills root not found: {apm_skills_dir} — skipping leak guard")
 
     if error_count:
         print()
