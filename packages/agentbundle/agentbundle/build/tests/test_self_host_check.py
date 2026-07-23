@@ -710,66 +710,6 @@ class SelfHostPackFilterTests(unittest.TestCase):
                 msg="atlassian seed must not project — not in SELF_HOST_PACKS",
             )
 
-    def _core_pack_with_backlog_seed(self, packs_dir: Path) -> None:
-        """Build a minimal `core` pack whose seed carries a placeholder
-        `docs/backlog.md` (RFC-0016 mechanism 5)."""
-        pack = packs_dir / "core"
-        (pack / "seeds" / "docs").mkdir(parents=True)
-        (pack / "seeds" / "docs" / "backlog.md").write_text(
-            "# Backlog\n\n<!-- no deferred items yet -->\n", encoding="utf-8"
-        )
-        (pack / "pack.toml").write_text(
-            '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
-        )
-
-    def test_backlog_path_is_excluded(self) -> None:
-        from agentbundle.build.self_host import _is_excluded
-
-        # docs/backlog.md must be Manual (Excluded) so the preserve gate fires.
-        self.assertTrue(_is_excluded(Path("docs/backlog.md")))
-
-    def test_curated_backlog_preserved_on_reprojection(self) -> None:
-        """`_project_seeds` MUST NOT clobber a curated on-disk
-        `docs/backlog.md` — it is Excluded and already exists (AC7)."""
-        from agentbundle.build.self_host import _project_seeds
-
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            packs_dir = tmp_path / "packs"
-            packs_dir.mkdir()
-            self._core_pack_with_backlog_seed(packs_dir)
-            output = tmp_path / "out"
-            (output / "docs").mkdir(parents=True)
-            curated = output / "docs" / "backlog.md"
-            curated_bytes = b"# Backlog\n\n## real-spec\n- AC1 open\n"
-            curated.write_bytes(curated_bytes)
-
-            _project_seeds(packs_dir, output)
-
-            self.assertEqual(
-                curated.read_bytes(),
-                curated_bytes,
-                msg="curated docs/backlog.md must survive re-projection byte-identical",
-            )
-
-    def test_backlog_seed_lands_when_absent(self) -> None:
-        """On a tree lacking `docs/backlog.md`, the placeholder seed lands
-        (first-install scaffold branch of the preserve gate)."""
-        from agentbundle.build.self_host import _project_seeds
-
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            packs_dir = tmp_path / "packs"
-            packs_dir.mkdir()
-            self._core_pack_with_backlog_seed(packs_dir)
-            output = tmp_path / "out"
-            output.mkdir()
-
-            _project_seeds(packs_dir, output)
-
-            landed = output / "docs" / "backlog.md"
-            self.assertTrue(landed.is_file())
-            self.assertIn("<!-- no deferred items yet -->", landed.read_text(encoding="utf-8"))
 
 
 class ExcludedGlobTests(unittest.TestCase):
@@ -847,6 +787,7 @@ class ExcludedGlobTests(unittest.TestCase):
             "docs/guides/_shared/reference/README.md",
             "docs/guides/_shared/explanation/README.md",
             # Explicit literal additions:
+            "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
             "docs/knowledge/patterns.jsonl",
             "docs/rfc/README.md",
@@ -951,6 +892,44 @@ class SeedProjectionTests(unittest.TestCase):
             )
             self.assertIn("| foo | Draft |", on_disk)
             self.assertNotIn("<!-- no specs yet -->", on_disk)
+
+    def test_workspace_toml_curated_content_preserved_on_reprojection(self) -> None:
+        """RFC-0069 D4: a curated workspace.toml on disk (with live initiative
+        data) must survive `_project_seeds` unchanged — the blank seed template
+        must NOT overwrite it.
+
+        Regression guard: if `workspace.toml` is removed from EXCLUDED_PATTERNS,
+        make build-self would silently wipe the repo's initiative queue.
+        """
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = packs_dir / "core"
+            pack.mkdir(parents=True)
+            # Blank seed template (what ships to adopters on fresh install).
+            (pack / "seeds").mkdir()
+            (pack / "seeds" / "workspace.toml").write_text(
+                "[backlog]\nopen = []\n", encoding="utf-8"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+            )
+            output = tmp_path / "out"
+            output.mkdir()
+            # Live initiative data on disk (the adopter's/repo's curated file).
+            curated = (
+                '[backlog]\nopen = [{slug = "my-deferred-item"}]\n\n'
+                '["ini-001"]\nname = "Platform Core"\n'
+            )
+            (output / "workspace.toml").write_text(curated, encoding="utf-8")
+
+            _project_seeds(packs_dir, output)
+
+            on_disk = (output / "workspace.toml").read_text(encoding="utf-8")
+            self.assertEqual(on_disk, curated, "workspace.toml was clobbered by reprojection")
 
     def test_excluded_path_missing_on_disk_gets_seed(self) -> None:
         """First-install case: when an Excluded path does NOT exist on

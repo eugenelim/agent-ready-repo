@@ -31,13 +31,6 @@ def write_spec(root: Path, name: str, status: str, acs: str) -> None:
     )
 
 
-def write_backlog(root: Path, headings: list[str]) -> None:
-    p = root / "docs" / "backlog.md"
-    p.parent.mkdir(parents=True, exist_ok=True)
-    body = "# Backlog\n\n" + "".join(f"## {h}\n\n- item\n\n" for h in headings)
-    p.write_text(body, encoding="utf-8")
-
-
 def write_workspace_backlog(root: Path, slugs: list[str]) -> None:
     p = root / "workspace.toml"
     if slugs:
@@ -78,7 +71,6 @@ def expect(cond: bool, msg: str) -> None:
 def case_clean() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_spec(root, "ok", "Draft", "- [ ] AC1 open\n")
         rc, _, err = run_lint(root)  # no base ref → invariant (ii) skipped
         expect(rc == 0, f"clean fixture should exit 0, got {rc}: {err}")
@@ -87,7 +79,6 @@ def case_clean() -> None:
 def case_invariant_i_out_of_vocab() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_spec(root, "bad", "Drafting", "- [ ] AC1\n")
         rc, _, err = run_lint(root)
         expect(rc == 1, f"out-of-vocab 'Drafting' should exit 1, got {rc}")
@@ -97,7 +88,6 @@ def case_invariant_i_out_of_vocab() -> None:
 def case_invariant_i_lenient() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_spec(root, "annotated", "Shipped (2026-05-26)", "- [x] AC1\n")
         write_spec(root, "arrowed", "Approved → Shipped (landed)", "- [x] AC1\n")
         rc, _, err = run_lint(root)
@@ -107,7 +97,6 @@ def case_invariant_i_lenient() -> None:
 def case_invariant_ii_transition_fails() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
         git_init_commit(root)
         # Flip to Shipped in the working tree with an unchecked, undeferred AC.
@@ -134,7 +123,6 @@ def case_invariant_ii_transition_ok_when_deferred() -> None:
 def case_invariant_ii_grandfather() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # Already Shipped on the base with an unchecked AC → grandfathered.
         write_spec(root, "old", "Shipped", "- [ ] AC1 never checked\n")
         git_init_commit(root)
@@ -145,7 +133,6 @@ def case_invariant_ii_grandfather() -> None:
 def case_invariant_ii_no_base() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)  # plain dir, not a git repo, no base ref
-        write_backlog(root, [])
         write_spec(root, "shipping", "Shipped", "- [ ] AC1 open\n")
         rc, _, err = run_lint(root)  # resolve_default_base_ref → None
         expect(rc == 0, f"no base ref → (ii) skipped, should exit 0, got {rc}: {err}")
@@ -155,7 +142,6 @@ def case_invariant_ii_no_base() -> None:
 def case_invariant_i_missing_status() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # A spec with no `- **Status:**` header line at all.
         p = root / "docs" / "specs" / "headless" / "spec.md"
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -179,7 +165,6 @@ def case_invariant_iv_resolves_workspace_slug() -> None:
 def case_invariant_ii_born_shipped_fails() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # A brand-new spec absent at base, born Shipped with an unchecked AC.
         write_spec(root, "preexisting", "Draft", "- [x] AC1\n")
         git_init_commit(root)  # base has no `newborn` spec
@@ -192,7 +177,6 @@ def case_invariant_ii_born_shipped_fails() -> None:
 def case_invariant_iv_missing_anchor() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, ["some-other-heading"])
         write_spec(root, "deferring", "Draft",
                    "- [ ] AC1 (deferred: nonexistent-anchor)\n")
         rc, _, err = run_lint(root)
@@ -203,7 +187,6 @@ def case_invariant_iv_missing_anchor() -> None:
 def case_invariant_iv_placeholder_ignored() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # The template placeholder `<anchor>` must NOT be treated as a real
         # deferral marker (it would never resolve).
         write_spec(root, "templatey", "Draft",
@@ -215,7 +198,6 @@ def case_invariant_iv_placeholder_ignored() -> None:
 def case_invariant_iii_warn_only() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         p = root / "docs" / "specs" / "linky" / "spec.md"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(
@@ -249,7 +231,6 @@ def touch(root: Path, rel: str) -> None:
 def case_iii_code_ref_resolves_and_missing() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         touch(root, "tools/real.py")
         write_spec_body(root, "coderef",
                         "Touches `tools/real.py` and `tools/missing.py`.")
@@ -264,7 +245,6 @@ def case_iii_code_ref_exclusions_with_controls() -> None:
     # IS flagged — so a no-op extractor (matching nothing) fails this case.
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_spec_body(
             root, "excl",
             "Bare `install.py`; placeholder `packages/<pkg>/x.py`; glob "
@@ -292,7 +272,6 @@ def case_iii_code_ref_exclusions_with_controls() -> None:
 def case_iii_code_ref_suffix_strip() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         touch(root, "tools/y.py")
         write_spec_body(
             root, "suffix",
@@ -308,7 +287,6 @@ def case_iii_code_ref_suffix_strip() -> None:
 def case_iii_code_ref_markdown_link() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_spec_body(root, "linkref", "See [the helper](../../tools/nope.py).")
         rc, _, err = run_lint(root)
         expect(rc == 0, f"exit 0 expected, got {rc}")
@@ -337,7 +315,6 @@ def write_contract(root: Path, relpath: str, content: str) -> None:
 def case_v_agreement_passes() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         write_contract(root, "contracts/openapi/orders.yaml",
                        "openapi: 3.1.0\nx-spec: [docs/specs/orders/]\n")
         write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
@@ -349,7 +326,6 @@ def case_v_agreement_passes() -> None:
 def case_v_forward_without_backward_warns() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # contract exists but carries no x-spec back-ref, and no REGISTRY.md
         write_contract(root, "contracts/openapi/orders.yaml", "openapi: 3.1.0\n")
         write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
@@ -361,7 +337,6 @@ def case_v_forward_without_backward_warns() -> None:
 def case_v_no_contracts_noop() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # template placeholder value + an explicit "none"; no contracts/ tree
         write_spec_with_contract(
             root, "templ", '<!-- contracts/<type>/<name> … or "none" -->')
@@ -374,7 +349,6 @@ def case_v_no_contracts_noop() -> None:
 def case_v_extensionless_registry_and_dangling() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_backlog(root, [])
         # extensionless format → REGISTRY.md is the backward channel
         write_contract(root, "contracts/proto/payments/v1/payments.proto",
                        'syntax = "proto3";\n')
