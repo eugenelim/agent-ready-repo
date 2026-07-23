@@ -46,12 +46,13 @@ def run(args: "argparse.Namespace") -> int:
     """
     from agentbundle.config import ConfigError, dump_state, load_state
     from agentbundle import safety
+    from agentbundle.commands._common import resolve_state_path
 
     pack_name: str = args.pack
     cli_scope: str | None = getattr(args, "scope", None)
     cli_adapter: str | None = getattr(args, "adapter", None)
     root = Path(args.root).resolve()
-    state_path = root / ".agentbundle-state.toml"
+    state_path = resolve_state_path("repo", root)
 
     # ── Step 1: Multi-scope disambiguator (RFC-0004) ──────────────────────────
     # If the pack is at both repo and user scopes, --scope is required.
@@ -72,7 +73,7 @@ def run(args: "argparse.Namespace") -> int:
     user_state_for_check = None
     try:
         user_root = scope_mod.resolve_user_root()
-        user_state_path = user_root / ".agentbundle" / "state.toml"
+        user_state_path = resolve_state_path("user", user_root)
         user_state_for_check = load_state(user_state_path)
         installed_at_user = user_state_for_check.has_pack(pack_name)
     except scope_mod.UserScopeUnresolvable:
