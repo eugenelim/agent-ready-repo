@@ -1,0 +1,32 @@
+{
+  "id": "jira-story-triage",
+  "name": "Jira Story Triage",
+  "version": "1.0.0",
+  "description": "Audit a Jira backlog, sprint, or JQL-scoped set of stories for agent-readiness: score each story against the five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR) and output a Tier A / B / C / Blocked table with complexity grouping (Quick / Standard / Involved) within the Tier A set. Read-only; composes the `jira` skill for all reads.",
+  "category": "workflows",
+  "tags": ["jira", "triage", "backlog", "actionability", "agent-readiness", "story-quality", "sprint-planning"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
+    "skills": [
+      {
+        "name": "jira",
+        "source": "this pack — packs/atlassian/.apm/skills/jira/",
+        "purpose": "All Jira reads: check, search (for the JQL scope), get-issue (for image-content confirmation). This skill never makes a raw Jira REST call and never invokes a write verb. Hard dependency — there is no degraded path without it."
+      }
+    ],
+    "system": []
+  },
+  "input": {
+    "arguments": "A JQL expression, a sprint/board scope, or a project key (defaults to open sprints). Optionally a repo URL or name for grounding.",
+    "env": {}
+  },
+  "output": {
+    "artifacts": [
+      "A Markdown triage table with Tier A / B / C / Blocked rows, complexity grouping within Tier A (Quick / Standard / Involved), and an invocation-repo header. Displayed in the agent session; not written to disk unless the user requests --output."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
