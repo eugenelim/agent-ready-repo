@@ -21,6 +21,8 @@ CAT_V1 = FIXTURE_ROOT / "catalogue_v1"
 CAT_V2 = FIXTURE_ROOT / "catalogue_v2"
 CAT_V3 = FIXTURE_ROOT / "catalogue_v3"
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
 PACK_V1 = CAT_V1 / "packs" / "core"
 PACK_V2 = CAT_V2 / "packs" / "core"
 
@@ -775,6 +777,50 @@ def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
         "the escaping file must not be written even under dry-run"
     )
     assert _snapshot_tree(tmp_path) == before, "nothing may change"
+
+
+def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
+    """AC4: non-dry-run upgrade refuses before writing when a Tier-2 path is outside
+    allowed_prefixes — probe-all-before-write behavioral change."""
+    from unittest import mock
+    from agentbundle import safety
+    from agentbundle.config import PackState, State, dump_state
+
+    outside_rel = "outside-prefix/file.md"
+    # State indicates per-IDE install: files under .claude/ (not apm/ or claude-plugins/).
+    # Also records the outside-prefix path from a hypothetical prior install.
+    installed_sha = safety.sha256_bytes(b"original\n")
+    s = State()
+    s.packs[("core", "claude-code")] = PackState(
+        installed_version="0.1.0",
+        adapter="claude-code",
+        scope="repo",
+        primitives=["skill"],
+        files={
+            ".claude/SKILL.md": {"sha": "a" * 64, "from-pack-version": "0.1.0"},
+            outside_rel: {"sha": installed_sha, "from-pack-version": "0.1.0"},
+        },
+    )
+    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(s), encoding="utf-8")
+    # On-disk: user has edited the outside-prefix file (different from installed sha)
+    (tmp_path / "outside-prefix").mkdir()
+    (tmp_path / outside_rel).write_bytes(b"user edited\n")
+
+    before = _snapshot_tree(tmp_path)
+    new_projection = {outside_rel: b"new pack content\n"}
+
+    with mock.patch(
+        "agentbundle.commands.install._render_for_repo_scope",
+        return_value=("claude-code", new_projection),
+    ):
+        rc = _run_upgrade(pack="core", catalogue=str(REPO_ROOT), root=str(tmp_path))
+
+    assert rc != 0, f"upgrade must exit non-zero on prefix violation; got rc={rc}"
+    assert _snapshot_tree(tmp_path) == before, "upgrade must write nothing including companions"
+    stderr = capsys.readouterr().err
+    assert "not within any declared prefix zone" in stderr, (
+        f"pre-flight refusal must appear in stderr; got: {stderr!r}"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -375,29 +375,6 @@ open = [
   # ── Medium effort, internal ──────────────────────────────────────────────────
   # (no external environment; needs a focused session or an RFC decision)
 
-  # spec/projection-dry-run follow-on. install --dry-run previews the rendered adapter
-  # projection but not the governance seeds (AGENTS.md, docs/CHARTER.md, CONVENTIONS.md)
-  # that a real repo-scope install also delivers. Previewing seeds without writing
-  # requires splitting deliver_seeds into a read-only classify half + a write half;
-  # the spec forbids forking the classifier under --dry-run.
-  # Fix: extract deliver_seeds' classification into a pure function and call it from
-  #   both the dry-run preview and the real delivery path.
-  # File: packages/agentbundle/agentbundle/commands/_common.py (deliver_seeds).
-  # Unblocks when: someone takes the deliver_seeds refactor.
-  {slug = "projection-dry-run-governance-seeds"},
-
-  # spec/projection-dry-run follow-on. The prefix-jail rule has three near-verbatim
-  # copies: install Step 8 probe, upgrade --dry-run probe, and safety.write_jailed's
-  # inline prefix block. A semantics change must touch all three or they drift.
-  # Fix: extract read-only safety.assert_projection_jailed(root, relpaths,
-  #   allowed_prefixes, *, command) and route all three call sites through it with
-  #   regression coverage. The non-dry-run upgrade write loop must be included (spec
-  #   Never do: change non-dry-run behavior — means that loop was out of scope for
-  #   the dry-run PR, not that it's permanently out of scope).
-  # File: packages/agentbundle/agentbundle/commands/{install,upgrade}.py + safety.py.
-  # Unblocks when: someone takes the safety refactor.
-  {slug = "unify-path-jail-projection-probe"},
-
   # spec/pack-activation-evals Tier 2–5 remaining work. Tier 1 (activation eval for
   # all catalogue packs) is done (2026-07-02). Remaining:
   #   Tier 2: B-lite behavior for deterministic skills (contracts api-contract /

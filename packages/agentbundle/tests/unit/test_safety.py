@@ -246,3 +246,42 @@ def test_classify_returns_tier_2_when_recorded_path_lacks_sha(tmp_path):
     f = tmp_path / "AGENTS.md"
     f.write_bytes(b"anything")
     assert safety.classify("AGENTS.md", tmp_path, state) is safety.Tier.TIER_2
+
+
+# ---------------------------------------------------------------------------
+# assert_projection_jailed — TDD stubs (unify-path-jail-projection-probe)
+# ---------------------------------------------------------------------------
+
+def test_assert_projection_jailed_valid_with_prefixes(tmp_path):
+    """Valid relpath inside root and within allowed_prefixes → no exception."""
+    safety.assert_projection_jailed(
+        tmp_path, [".claude/SKILL.md"], [".claude/"], command="test"
+    )
+
+
+def test_assert_projection_jailed_valid_none_prefixes(tmp_path):
+    """Valid relpath inside root with allowed_prefixes=None → no exception."""
+    safety.assert_projection_jailed(
+        tmp_path, ["tools/hook.py"], None, command="test"
+    )
+
+
+def test_assert_projection_jailed_root_escape(tmp_path):
+    """Relpath that escapes root via ../ → raises PathJailError."""
+    with pytest.raises(safety.PathJailError):
+        safety.assert_projection_jailed(
+            tmp_path, ["../escape.txt"], None, command="test"
+        )
+
+
+def test_assert_projection_jailed_outside_prefix(tmp_path):
+    """Relpath inside root but outside all allowed_prefixes → raises PathJailError."""
+    with pytest.raises(safety.PathJailError):
+        safety.assert_projection_jailed(
+            tmp_path, ["tools/hook.py"], [".claude/"], command="test"
+        )
+
+
+def test_assert_projection_jailed_empty_relpaths(tmp_path):
+    """Empty relpaths iterable → no exception."""
+    safety.assert_projection_jailed(tmp_path, [], [".claude/"], command="test")

@@ -139,3 +139,4 @@ Write the new integration test for AC4 first. Then add the pre-flight call and r
 ## Changelog
 
 - 2026-07-23: Initial plan authored.
+- 2026-07-23: Implemented and shipped — all 3 tiers complete; T1 (assert_projection_jailed), T2 (install + upgrade dry-run call sites), T3 (write_jailed routing + upgrade non-dry-run pre-flight). All 7 ACs verified green.

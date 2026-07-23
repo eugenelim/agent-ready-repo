@@ -892,30 +892,13 @@ def run(args: "argparse.Namespace") -> int:
         projection = repo_projection if plan.scope == "repo" else user_projection
         if projection is None:
             continue
-        for relpath in projection.keys():
-            target = plan.root / relpath
-            try:
-                safety.assert_under(plan.root, target)
-            except safety.PathJailError as exc:
-                print(f"install: {exc}", file=sys.stderr)
-                return 1
-            # Per-prefix probe fires whenever the plan has an
-            # allowed_prefixes list (user scope always; repo scope when
-            # the per-IDE path is in use — RFC-0012). With
-            # `allowed_prefixes=None` the probe is skipped (legacy
-            # dist-tree producer at repo scope under
-            # --emit-install-routes).
-            if plan.allowed_prefixes is not None:
-                target_relpath = target.resolve().relative_to(plan.root.resolve()).as_posix()
-                prefixes = plan.allowed_prefixes or []
-                # Directory-boundary matching only — see safety.py.
-                if not any(target_relpath.startswith(p) for p in prefixes):
-                    print(
-                        f"install: refusing to write outside allowed prefixes "
-                        f"for scope {plan.scope!r}: {target.resolve()}",
-                        file=sys.stderr,
-                    )
-                    return 1
+        try:
+            safety.assert_projection_jailed(
+                plan.root, projection.keys(), plan.allowed_prefixes, command="install"
+            )
+        except safety.PathJailError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
 
     # ── Dry-run: all read-only pre-flight passed — preview and stop ───────────
     # At the top of Step 9 (after Step 8's path-jail probe) so every pre-flight

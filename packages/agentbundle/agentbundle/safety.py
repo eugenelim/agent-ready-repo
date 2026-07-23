@@ -162,6 +162,33 @@ def assert_under(root: Path, target: Path) -> None:
         ) from exc
 
 
+def assert_projection_jailed(
+    root: Path,
+    relpaths: "Iterable[str]",
+    allowed_prefixes: "list[str] | None",
+    *,
+    command: str,
+) -> None:
+    """Raise PathJailError if any relpath escapes root or violates allowed_prefixes.
+
+    When allowed_prefixes is None, only root-escape is checked.
+    root must be an absolute resolved Path.
+    The command parameter is prefixed on all PathJailError messages raised.
+    """
+    for relpath in relpaths:
+        target = root / relpath
+        try:
+            assert_under(root, target)
+        except PathJailError as exc:
+            raise PathJailError(f"{command}: {exc}") from exc
+        if allowed_prefixes is not None:
+            target_relpath = target.resolve().relative_to(root.resolve()).as_posix()
+            if not any(target_relpath.startswith(p) for p in allowed_prefixes):
+                raise PathJailError(
+                    f"{command}: path {relpath!r} is not within any declared prefix zone"
+                )
+
+
 # ---------------------------------------------------------------------------
 # Windows-portability guard
 # ---------------------------------------------------------------------------
@@ -320,31 +347,20 @@ def write_jailed(
     assert_under(root, target)
 
     if allowed_prefixes is not None:
-        # Check the resolved target is under one of the declared
-        # prefixes relative to root. Use directory-boundary matching:
-        # the prefix's trailing slash is mandatory, so ``.claude/``
-        # admits ``.claude/skills/foo`` but rejects a top-level
-        # ``.claude`` file (which would otherwise let a pack replace
-        # the directory with a file).
-        prefixes = allowed_prefixes
-        # Defense-in-depth: the adapter contract schema enforces a
-        # trailing slash on every `allowed-prefixes` entry; assert it
-        # at runtime so a future caller that bypasses the schema
-        # (e.g. constructing the list in code) cannot silently widen
-        # the jail. A `.claude` (no slash) prefix would otherwise
-        # admit `.claudefoo` — exactly the bug the equality-clause
-        # removal was meant to fix.
-        if not all(p.endswith("/") for p in prefixes):
+        # Defense-in-depth: the adapter contract schema enforces a trailing
+        # slash on every `allowed-prefixes` entry; assert it at runtime so a
+        # future caller that bypasses the schema (e.g. constructing the list in
+        # code) cannot silently widen the jail. A `.claude` (no slash) prefix
+        # would otherwise admit `.claudefoo` — exactly the bug the
+        # equality-clause removal was meant to fix.
+        if not all(p.endswith("/") for p in allowed_prefixes):
             raise PathJailError(
                 f"refusing to write at scope {scope!r}: allowed_prefixes "
-                f"must each end with '/'; got {prefixes!r}"
+                f"must each end with '/'; got {allowed_prefixes!r}"
             )
-        target_relpath = target.resolve().relative_to(root.resolve()).as_posix()
-        if not any(target_relpath.startswith(p) for p in prefixes):
-            raise PathJailError(
-                f"refusing to write outside allowed prefixes for scope "
-                f"{scope!r}: {target.resolve()}"
-            )
+        assert_projection_jailed(
+            root, [relpath], allowed_prefixes, command=f"scope={scope}"
+        )
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
