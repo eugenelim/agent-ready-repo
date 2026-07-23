@@ -37,7 +37,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, and jira-align-brief-intake workflows that compose them.",
+      "description": "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, jira-align-brief-intake, jira-story-triage, and jira-team-status workflows that compose them.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -55,7 +55,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.4.1"
+      "version": "0.5.0"
     },
     {
       "author": {
