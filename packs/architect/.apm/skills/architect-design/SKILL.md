@@ -84,6 +84,18 @@ If any check fails, push back rather than proceeding.
    tier only. The overlay itself gates which tiers bite — do not enumerate its
    concerns here.
 
+   **Stage 0 is a valid stopping point — end with a receipt.** After the user
+   agrees the shape, they may stop here; a concept does not oblige the full
+   doc, and saving one never requires continuing to Stage 1. When the user
+   stops (or asks to save the concept), offer to save it using the **same
+   path resolution as step 7 below** — `assets/concept.md` written into
+   `<output_dir>/<topic-slug>/` — then **emit a Stage-0 completion receipt**,
+   exactly one of:
+   - **Chat only** — `Result: chat only; no file was created.`
+   - **Saved** — the exact absolute path written, plus one line naming what
+     it contains (problem + constraints + candidate shape(s) + prioritized
+     quality attributes).
+
 4. **Draft inline.** Use the skeleton in `assets/design-doc.md` (load it
    when you start the draft). Sections in order: TL;DR (≤3 sentences),
    Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks,
@@ -146,7 +158,8 @@ If any check fails, push back rather than proceeding.
    **per-effort folder**: `<output_dir>/<topic-slug>/` where `<topic-slug>`
    is a short (~2–5 word) kebab-case slug derived from the design doc's
    title. The design doc, diagrams, and notes all go inside that folder —
-   not as a loose file beside it.
+   not as a loose file beside it. A Stage-0 concept saved on its own (step 3)
+   shares this same effort folder, so a later full doc lands beside it.
 
    **Anchor `output_dir` by the layout file's own location**, never against
    the ambient cwd: a **repo-root** file's `output_dir` is

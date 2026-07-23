@@ -24,6 +24,17 @@
         "Grounds each binding managed-service contract claim it depends on in an authoritative source with stated confidence, not model memory",
         "Does not bundle a specific per-vendor binding number as fact; routes the exact figure to a platform skill / official docs"
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "Shape a one-page concept for a link-shortener service — I only want the concept, don't write the full design doc. I'm not going to continue past the concept this session. If you aren't saving a file, say so plainly.",
+      "expected_output": "A Stage-0 concept only — problem + constraints, one or two candidate shapes, provider or provider-class, and the top prioritized quality attributes — and nothing more: the agent does NOT proceed to the full Google-style design doc (no Proposal / Alternatives Considered / Rollout sections). Saving is offered, never forced, and stopping at the concept is honored. The response ends with a Stage-0 completion receipt that is exactly one of: 'Result: chat only; no file was created.' or the exact file path written plus a one-line note of what it contains.",
+      "assertions": [
+        "Produces a Stage-0 concept (problem + constraints + one or two candidate shapes + prioritized quality attributes), not a full design doc",
+        "Does not proceed to the full design doc — no Proposal / Alternatives Considered / Rollout sections are drafted",
+        "Does not make saving the concept conditional on continuing to the full design-document stage",
+        "Ends with an explicit completion receipt: either 'chat only; no file was created' or an exact file path with a one-line description of its contents"
+      ]
     }
   ]
 }

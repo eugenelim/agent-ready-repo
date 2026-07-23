@@ -52,7 +52,7 @@ Re-invoke the `adapt-to-project` skill. It walks any `*.upstream.<ext>` companio
 
 ## Downgrades
 
-Not supported in v0.1. To roll back: `agentbundle uninstall <pack>` and reinstall at the prior version. Tier-2 (your edited copies) and Tier-3 (files outside the pack's projected paths) survive the uninstall by design — only the upstream-managed Tier-1 files are removed.
+Not supported in v0.1. To roll back: `agentbundle uninstall --pack <pack>` and reinstall at the prior version. Tier-2 (your edited copies) and Tier-3 (files outside the pack's projected paths) survive the uninstall by design — only the upstream-managed Tier-1 files are removed.
 
 ## Related
 

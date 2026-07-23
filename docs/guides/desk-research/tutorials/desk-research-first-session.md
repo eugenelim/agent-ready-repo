@@ -12,7 +12,7 @@ This is a tutorial — it leads. For the dry catalogue of every flag and field, 
 ## Step 1 — install at user scope
 
 ```bash
-agentbundle install research --scope user
+agentbundle install --pack desk-research --scope user
 ```
 
 The pack lands in `~/.claude/skills/` and `~/.claude/agents/`. Every project you open from now on can invoke `/desk-research`, `/source-map`, and the other five skills.
