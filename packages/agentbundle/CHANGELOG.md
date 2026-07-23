@@ -8,6 +8,18 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Changed
+
+- **`assert_projection_jailed` centralises the two-step path-jail check.**
+  A new read-only helper in `agentbundle/safety.py` unifies the root-escape
+  (`assert_under`) and prefix-match checks that were duplicated across
+  `install.py` Step 8, `upgrade.py`'s dry-run probe, and `write_jailed`'s
+  inline prefix block. All three call sites now route through it.
+- **`upgrade` probes all projected paths before any write.**
+  The non-dry-run upgrade path gains the same probe-all-before-write
+  pre-flight that `install`'s Step 8 uses: a prefix-jail violation now aborts
+  with zero files written, rather than failing mid-loop after some writes.
+
 ## [0.11.1] — 2026-07-16
 
 ### Fixed
