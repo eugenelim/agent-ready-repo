@@ -340,6 +340,16 @@ def main() -> None:
     else:
         print("  warn  CONTRIBUTING.md missing", file=sys.stderr)
 
+    print("build-site: copying design tokens …")
+    tokens_src = REPO_ROOT / "web" / "src" / "styles" / "tokens.css"
+    tokens_dst = SITE_DOCS / "stylesheets" / "tokens.css"
+    if tokens_src.exists():
+        copy_file(tokens_src, tokens_dst, dry_run=args.dry_run)
+        generated.append(tokens_dst)
+    else:
+        print(f"error  web/src/styles/tokens.css missing — site CSS depends on it", file=sys.stderr)
+        sys.exit(1)
+
     write_siteignore(generated, dry_run=args.dry_run)
     print("build-site: done." + (" (dry run)" if args.dry_run else ""))
 
