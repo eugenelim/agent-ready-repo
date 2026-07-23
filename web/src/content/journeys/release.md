@@ -4,6 +4,12 @@ scope: repo
 tagline: "Deploy. Verify. Converge. Then ship."
 prerequisitePacks:
   - core
+contract:
+  useItWhen: "A build-loop PR is adversarial-review-clean and ready to go to production."
+  youProvide: "A merged, adversarial-review-clean inner build-loop output."
+  youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and a convergence-verified prod ship."
+  yourDecisions:
+    - "Approve the prod ship"
 whatChanges: "After installing release-engineering, completed build-loop output goes through release-loop before reaching production. The release-lead agent deploys to an ephemeral environment, runs e2e tests, observes telemetry, and feeds deployed findings back to the inner loop — no human relay. You review at one gate: the prod ship."
 skills:
   - name: release-loop
@@ -33,24 +39,25 @@ relatedJourneys:
   - core
 ---
 
-## Stage 1 — Trigger release loop
+## 1. Trigger and confirm the deploy
 
-A completed inner build loop (work-loop + adversarial review clean) triggers the release loop. The `release-lead` agent activates `release-loop` and deploys the integrated whole to an ephemeral environment.
-
-**You:** Watch the initial deploy log in the chat to confirm the right environment is targeted. You do not intervene in the deploy itself, but reading the first deploy confirms the agent is operating on the right branch and config. If the deploy target looks wrong, stop it early — it's cheaper than a mid-cycle redirect.
-
----
-
-## Stage 2 — E2E validation and convergence
-
-The agent runs end-to-end tests against the deployed environment, observes telemetry, and feeds deployed findings back to the inner loop — no human relay. It redeploys after each inner-loop fix. It iterates until the deployed whole converges: e2e clean, telemetry stable.
-
-**You:** Check in at the end of each outer loop iteration — after each redeploy, skim the e2e results and the telemetry snapshot. Look for anomalies the agent might not flag: a test that passes but whose assertion is too weak to catch a real failure, or a telemetry spike the agent marked as noise. The agent handles the mechanical convergence; you provide the judgment on what "stable" means for your service.
+- **Agent does:** activates release-loop on completion of the inner build loop (work-loop + adversarial review clean); deploys the integrated whole to an ephemeral environment.
+- **You do:** watch the initial deploy log to confirm the right branch and config are targeted; if the deploy target looks wrong, stop it early — a mid-cycle redirect costs more than catching it at the first log line.
+- **Output:** a running ephemeral deployment.
 
 ---
 
-## Stage 3 — Release readiness record
+## 2. Validate and converge
 
-After the deployed whole converges, the agent generates a release readiness record: e2e results, telemetry snapshot, security review on the deployed diff, what was deferred, and any borderline gates.
+- **Loop does:** runs end-to-end tests against the deployed environment, observes telemetry, feeds deployed findings back to the inner loop, redeploys after each inner-loop fix, and iterates until convergence — e2e clean, telemetry stable.
+- **You do:** check in at the end of each outer loop iteration — skim the e2e results and telemetry snapshot; flag anomalies the agent might not catch (an assertion too weak to detect a real failure, a telemetry spike marked as noise); provide judgment on what "stable" means for your service.
+- **Output:** a converged deployed state — e2e clean, telemetry stable.
 
-**You:** At G5, read the full release readiness record — not just the summary. The borderline gates section is the one that matters most: these are cases where the agent decided "close enough" and you may decide differently. Ratify if satisfied. Reject with a one-line reason if not — the agent re-enters the loop. This gate is the only one between the ephemeral environment and production.
+---
+
+## 3. Ratify the release readiness record
+
+- **Agent does:** generates the release readiness record — e2e results, telemetry snapshot, security review on the deployed diff, deferred items, and any borderline gates.
+- **You do:** read the full release readiness record, not just the summary; the borderline gates section matters most — these are the agent's "close enough" calls you may decide differently.
+- **You decide:** approve the prod ship — ratify if satisfied, or reject with a one-line reason to re-enter the loop.
+- **Output:** a prod-ship decision; after this gate the change reaches real users or real data.

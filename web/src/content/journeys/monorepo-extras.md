@@ -3,6 +3,12 @@ pack: monorepo-extras
 scope: repo
 tagline: "Package scaffolding for monorepos."
 prerequisitePacks: []
+contract:
+  useItWhen: "You're adding a new package to an existing monorepo and need it correctly scaffolded and wired from the start."
+  youProvide: "The package name, a one-sentence description of its role, and the project's naming and build conventions."
+  youReceive: "A package skeleton — directory layout, AGENTS.md, build configuration, and test wiring — committed and CI-verified."
+  yourDecisions:
+    - "Review the scaffolded package before first commit"
 whatChanges: "After installing monorepo-extras, adding a new package to your monorepo runs through `new-package` — a structured scaffold that produces the correct directory layout, AGENTS.md, build configuration, and test wiring in one step. The alternative is doing it by hand from a peer package, which consistently misses the build system wiring."
 skills:
   - name: new-package
@@ -33,24 +39,25 @@ relatedJourneys:
   - governance-extras
 ---
 
-## Stage 1 — Name the package and describe its role
+## 1. Name and describe the new package
 
-You decide to add a new package to the monorepo and describe its purpose. The agent activates `new-package`, asks for the package name and a brief description, and checks whether any existing packages in the repo serve as the closest structural analogue.
-
-**You:** Name the package precisely — using the project's naming convention (kebab-case, domain-qualified, etc.). Describe the package's role in one sentence: what it does and who uses it. If the agent suggests looking at an existing package as a template, confirm whether that package is actually the right model or just the closest match.
-
----
-
-## Stage 2 — Scaffold and wire
-
-The agent produces the package skeleton: directory structure, `package.json` (or equivalent), `AGENTS.md`, build configuration, and test directory. It populates the AGENTS.md with the package name, a description, and the correct build and test commands.
-
-**You:** Review the scaffolded package at the G-review gate. The two things most likely to be wrong: the AGENTS.md still has placeholder text, and the test command points to the wrong root. Both are easy to catch and easy to fix at this gate; neither is easy to fix after other packages have extended the scaffolded pattern.
+- **You provide:** the package name (using the project's naming convention — kebab-case, domain-qualified, etc.), a one-sentence description of its role and who uses it, and whether an existing package serves as the closest structural analogue.
+- **Agent does:** activates new-package; asks for the package name and brief description; checks existing packages in the repo for the closest structural analogue.
+- **Output:** a confirmed package name, role description, and structural analogue.
 
 ---
 
-## Stage 3 — First commit and CI verification
+## 2. Scaffold, wire, and gate the package
 
-After the review gate passes, the agent commits the scaffold, pushes the branch, and verifies that CI runs the new package's tests correctly.
+- **Agent does:** produces the package skeleton — directory structure, package.json (or equivalent), AGENTS.md, build configuration, and test directory; populates AGENTS.md with the package name, description, and correct build and test commands.
+- **You do:** at the G-review gate, check the two things most likely to be wrong: the AGENTS.md still has placeholder text, and the test command points to the wrong root; both are easy to catch here and expensive to fix after other packages have extended the scaffolded pattern.
+- **You decide:** review the scaffolded package before first commit.
+- **Output:** a reviewed, corrected scaffold ready for commit.
 
-**You:** Watch the CI run complete. If the new package's tests don't appear in the CI output, the test wiring is incomplete — the CI configuration doesn't know about the new package. Add the explicit CI step if needed. The most common cause: the CI config uses a hard-coded list of packages rather than a glob.
+---
+
+## 3. Commit and verify CI wiring
+
+- **Agent does:** commits the scaffold, pushes the branch, and verifies that CI output shows the new package's tests running.
+- **You do:** watch the CI run complete; if the new package's tests don't appear in CI output, the test wiring is incomplete — add the explicit CI step if needed (common cause: CI uses a hard-coded package list rather than a glob).
+- **Output:** scaffold committed with CI wiring confirmed.
