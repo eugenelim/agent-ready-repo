@@ -221,6 +221,19 @@ queue   = [
   # result, and next prompt; automation snapshots and advanced modes remain compatible.
   # Graphical onboarding remains the Level B default.
   # "spec/agentbundle-first-value-handoff" — moved to active (spec + plan authored)
+
+  # ---- Backlog-graduated specs (reconciled from [backlog]; Approved, evidence in #627) ----
+  # These were authored from [backlog] items and are Approved-not-shipped; their origin
+  # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
+  "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
+  "spec/site-design-system-spec",                        # site token spec + zone-violation lint
+  "spec/atlassian-sso-cookie-selector-integration-test", # end-to-end test for the auth selector branch
+  # work-loop-step0-observability: AC1 echo already landed ad-hoc in main (commit
+  # fb7435e9); remaining work is AC3/AC4/AC6 — trim the "Active spec" bullet's
+  # duplicated branch-outcome text and relocate Branch 2's verbatim message to the
+  # closing paragraph (single source of truth). Do not re-add the echo.
+  "spec/work-loop-step0-observability",                  # consumes work-loop-step0-{branch1-echo,layout} backlog items
+  "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.
@@ -427,28 +440,6 @@ open = [
   # Unblocks when: semgrep releases with updated mcp + click transitive dep pins.
   {slug = "semgrep-mcp-cve-allowlist"},
 
-  # Platform site CSS has inline token-role documentation but no machine-readable
-  # token spec. Open work: formalize color tokens + zones, typography scale, spacing
-  # rhythm, component vocabulary, dark mode equivalents; wire a zone-violation lint;
-  # audit Material-injected third-party components against the token spec; resolve card
-  # icon parity (loop cards have icons, catalogue cards don't — two design systems).
-  # Fix: author site/design-system.md + a zone-violation lint check (no RFC needed —
-  #   internal docs tooling; normal PR).
-  # Unblocks when: someone opens this as a normal PR.
-  {slug = "site-design-system-spec"},
-
-  # spec/credential-broker-contract security hardening (spec changelog 2026-05-26).
-  # Three deferred items:
-  # (1) D3: dotfile-read substring scan is bypassable via part-composition; rewrite as
-  #     AST walk over open()/Path.read_text()/Path.read_bytes() in _credbroker_test.py.
-  # (2) _is_canonical_shim byte-equality: lint-time check, not a runtime tampering
-  #     guard; path-anchor the exemption or sign + verify at build time.
-  # (3) Integration tests: _load_cli_module() loads from pack source, not the
-  #     projected .claude/skills/... mirror; parametrise over both.
-  # File: packages/agentbundle/tests/ (credbroker test suite).
-  # Unblocks when: someone takes a security-hardening follow-on for the credbroker tests.
-  {slug = "credbroker-security-hardening"},
-
   # Four skills need a live-mock MCP knowledge-tool test to fully verify the
   # knowledge-surface detection path: architect-design, architect-review,
   # architect-diagram, and product-engineering frame-intent. Walkthrough and projection
@@ -597,17 +588,6 @@ open = [
   # Unblocks when: atlassian-sso-cookie-live-dc-read-transcript is complete.
   {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
 
-  # spec/atlassian-sso-cookie quality follow-on (quality-engineer Concern). The
-  # _run/main_async auth selector (config absent → token path; sso-cookie →
-  # from_sso_cookies; malformed → EXIT_USER_ACTION) has no end-to-end test. Each
-  # input/output is unit-tested; the ~6-line selector branch is uncovered. Driving
-  # the async CLI entrypoint requires importing a module designed for python <script>
-  # invocation (bootstrap sets __package__) and stubbing the command layer.
-  # Fix: extract the selector to a directly-testable function and add an end-to-end
-  #   test, or wait until CLI entrypoints gain an import-safe seam.
-  # Unblocks when: CLI entrypoints gain an import-safe seam, or selector is extracted.
-  {slug = "atlassian-sso-cookie-selector-integration-test"},
-
   # spec/credential-broker-contract manual-QA matrix: six platform × mode transcripts
   # are pending under docs/specs/credential-broker-contract/notes/:
   #   `creds` × macOS (security Tier-2); `creds` × Windows (CredReadW/CredWriteW);
@@ -686,33 +666,6 @@ open = [
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
   {slug = "behavior-check-for-backend-skills"},
 
-  # spec/spec-C-workloop-argless-resume adversarial-reviewer Nit. The Active spec
-  # bullet mixes a control-flow action ("begin on that spec without asking") into
-  # the surface-list of orientation fields (Initiative/Milestone/Active spec) under
-  # "surface the following in a clearly labelled orientation block." Harmless; fixing
-  # it requires restructuring Step 0 — lifting the three-branch resolution out of the
-  # bullet list into its own labeled paragraph after the orientation block.
-  # quality-engineer Nit (Finding 4): same root — branch outcomes stated in two places
-  #   (bullet at line ~168 and closing paragraph at line ~188) that must stay aligned.
-  # Fix: restructure Step 0 in work-loop SKILL.md to separate data-surface fields
-  #   from control-flow resolution, collapsing to a single source of truth for branch
-  #   outcomes; edit source + run make build-self FORCE=1.
-  # File: packs/core/.apm/skills/work-loop/SKILL.md (Step 0 layout).
-  # Unblocks when: someone does a focused Step 0 readability pass.
-  {slug = "work-loop-step0-branch-layout-restructure", source = "spec/spec-C-workloop-argless-resume"},
-
-  # spec/spec-C-workloop-argless-resume quality-engineer Concern (Finding 2).
-  # Branch 1 (exactly one active item) starts the loop silently without echoing
-  # the resolved spec path. A stale .active entry pointing at the wrong spec goes
-  # undetected until PLAN is well under way.
-  # Fix: require the one-item branch to state the resolved path (e.g., "Beginning
-  #   on `<path>`") in the orientation block before proceeding — matches the
-  #   explicitness Branch 3 already provides. Needs AC2 text update + SKILL.md edit.
-  # File: packs/core/.apm/skills/work-loop/SKILL.md (Step 0 Branch 1) and
-  #   docs/specs/spec-C-workloop-argless-resume/spec.md (AC2).
-  # Unblocks when: a focused observability pass on Step 0 Branch 1.
-  {slug = "work-loop-step0-branch1-echo-resolved-path", source = "spec/spec-C-workloop-argless-resume"},
-
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
   # docs/guides/core/explanation/role-journeys.md covers headless AI execution
   # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension
@@ -732,7 +685,7 @@ open = [
   # Fix: real-adopter sessions for each row; record under
   #   docs/specs/adapt-to-project/notes/manual-qa-matrix.md.
   # Unblocks when: adapt-to-project-apm-install-parity + real adopter sessions land.
-  {slug = "adapt-to-project-ac4b-transcripts"},
+  {slug = "adapt-to-project-ac4b-transcripts", needs = "backlog:adapt-to-project-apm-install-parity"},
 
   # Strict and hermetic manifest validation is green, but a fresh user profile has
   # not proved the real add-marketplace → install → enable → discover →
@@ -758,24 +711,23 @@ open = [
   # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
   {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 
-  # catalogue-curation shipped but four AC paths were not exercised in QA.
-  # Re-sync RFC routing: when an assimilated source-RFC is re-synced, the skill
-  # must route the record to Amendment (Open RFC), Erratum (Frozen + correction),
-  # or a new RFC (Frozen + new decisions) per RFC-0055 forms. Not exercised in QA.
+  # Deferred-AC anchors for docs/specs/catalogue-curation/spec.md (four (deferred: <slug>)
+  # markers, lint-spec-status invariant iv). The shaped work that closes them is
+  # spec/catalogue-curation-qa-coverage (in [work].queue): its AC8 flips the four
+  # deferred markers to [x], after which these anchors can be removed. Kept here until
+  # then so the deferred-marker lint resolves.
+  # catalogue-curation resync RFC routing: re-synced source-RFC routes to Amendment
+  #   (Open), Erratum (Frozen+correction), or new RFC (Frozen+new). Not exercised in QA.
   {slug = "catalogue-curation-resync-rfc-routing", source = "spec/catalogue-curation"},
-
-  # catalogue-curation anti-pattern detection: assimilation should detect known
-  # misuse patterns (scripts triggering skills, agents reviewing own output,
-  # flooding prompts) and reshape or reject, citing the repo rule. Not exercised.
+  # catalogue-curation anti-pattern detection: assimilation detects known misuse
+  #   (scripts triggering skills, agents reviewing own output, flooding prompts) and
+  #   reshapes or rejects, citing the repo rule. Not exercised in QA.
   {slug = "catalogue-curation-antipattern-steering", source = "spec/catalogue-curation"},
-
-  # catalogue-curation propose-catalogue-pack: the skill tests additivity + fit
-  # against the local CHARTER coverage model and the four CHARTER principles;
-  # on pass it scaffolds the pack shell and emits an RFC. No QA session run yet.
+  # catalogue-curation propose-catalogue-pack: tests additivity + fit against local
+  #   CHARTER + four principles; on pass scaffolds a pack shell and emits an RFC. No QA yet.
   {slug = "catalogue-curation-propose-pack", source = "spec/catalogue-curation"},
-
-  # catalogue-curation hook-confirm: an ingested hook or script (executable code)
-  # must be flagged distinctly and require an explicit human confirm before landing.
-  # The QA session exercised skill ingest only; hook ingest path not yet exercised.
+  # catalogue-curation hook-confirm: an ingested hook/script (executable code) is flagged
+  #   distinctly and requires explicit human confirm before landing. Hook-ingest path not
+  #   exercised (QA covered skill ingest only).
   {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
 ]
