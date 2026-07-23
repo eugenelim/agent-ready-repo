@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`capture-work` captures machine-readable dependencies for backlog items (core pack 0.13.7).** When a `[backlog]` entry's unblock condition is the completion of another tracked item (a `[backlog]` slug or a `[work]` spec) as a hard prerequisite, `capture-work` now adds the matching `needs` edge instead of recording the dependency in prose only — so `workspace-status` can resolve it. Disjunctive ("A or B"), untracked-target, and external ("credentials provisioned", "someone takes the PR") unblocks deliberately stay prose. The `workspace.toml` seed and `[backlog]` schema header now state the same rule.
+
 ### Added
 
 - **First-value handoff block in `agentbundle install` (agentbundle 0.12.0).** A successful `agentbundle install` now prints a guidance block after the `installed:` line. Level B packs (non-technical audience, `level-b = true`) show four labelled lines — `Verify:`, `Try:`, `Expected:`, and optionally `Next:` — drawn from the pack's `[pack.first-value]` schema. Level A packs show `Verify:` only. Packs without `[pack.first-value]` are unchanged. Dry-run, upgrade, and profile-install paths are not affected. ([RFC-0064 Amendment #4](../rfc/0064-ini-001-ai-native-ecosystem.md) · [spec](../specs/agentbundle-first-value-handoff/spec.md))

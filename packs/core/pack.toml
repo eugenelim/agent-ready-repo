@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "0.13.6"
+version = "0.13.7"
 description = "Core: work-loop, new-spec, bug-fix, adapt-to-project, init-project, receive-brief, author-brief, capture-work, workspace-status, frontend-engineering, contract-acquisition, operational-safety, security-checklists skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md, CHARTER, CONVENTIONS, docs/architecture, docs/knowledge, docs/product, docs/specs, workspace.toml seeds."
 readme = "README.md"
 display_name = "Core"
