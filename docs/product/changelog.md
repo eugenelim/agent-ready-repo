@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`workspace.toml` seed (core pack 0.13.6).** `agentbundle install core` now
+  delivers a minimal `workspace.toml` — schema comments and a `[backlog]` section
+  — so the file exists from day one. Closes the gap where the installed
+  CONVENTIONS.md references `workspace.toml [backlog].open` but install never
+  created the file. The workspace-status "offer to initialise" path remains the
+  upgrade tool for adding the full initiative schema. ([RFC-0069](../rfc/0069-workspace-toml-adopter-seeding.md))
+
 - **Tracker intake guides — decision tree + vocabulary mapping table.** Adds two
   cross-cutting guides in `docs/guides/_shared/`: `choose-a-tracker-integration.md`
   (decision table and per-tracker sections covering GitHub `github-brief-intake`,

@@ -362,9 +362,11 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/product/*.md",
     "docs/knowledge/*.md",
     "docs/guides/**/*.md",
+    # Seeded-once / adopter-curated files (RFC-0002 Manual semantics).
+    "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
     # Manual seed-projected paths (RFC-0002 amendment 2026-05-25). The
     # `docs/<area>/*.md` patterns above cover 11 of the 19 reclassified
-    # paths; the following 8 are not matched by any pattern and need
+    # paths; the following 7 are not matched by any pattern and need
     # explicit listing. See `docs/specs/self-hosting/spec.md` AC20.
     "docs/CHARTER.md",
     "docs/knowledge/patterns.jsonl",

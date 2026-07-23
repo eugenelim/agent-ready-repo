@@ -10,3 +10,4 @@ docs/product/README.md
 docs/product/changelog.md
 docs/product/roadmap.md
 docs/specs/README.md
+workspace.toml

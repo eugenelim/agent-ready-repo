@@ -20,11 +20,11 @@
     directories so the repo's own agents use the latest skill versions.
 -->
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-22
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-07-22
 - **Decision weight:** light
 - **Related:** RFC-0064 (workspace.toml schema + workspace-status skill), RFC-0002 (self-hosting; Manual semantics and EXCLUDED\_PATTERNS), RFC-0001 (seed delivery contract), docs/specs/core-install-seed-delivery/ (seed delivery mechanics)
 
@@ -197,7 +197,5 @@ None — all decisions are recommended above and ready to decide in this review.
 
 ## Follow-on artifacts
 
-_Filled in when accepted._
-
-- Spec: `docs/specs/workspace-toml-adopter-seeding/`
+- Spec: `docs/specs/workspace-toml-adopter-seeding/` (Implementing → Shipped in same PR)
 - No ADR needed: this is an application of existing RFC-0002 Manual semantics to a new file, not a new architectural decision.

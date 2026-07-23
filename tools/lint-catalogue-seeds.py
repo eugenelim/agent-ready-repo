@@ -121,6 +121,7 @@ REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     # the pack ships no seeds/ and stays user-scope (enriched-pack-manifest;
     # AGENTS.local.md skill-template convention). They are skill reference content
     # now, not adopter seeds, so they leave the seed registry.
+    "workspace.toml": ("[backlog]",),
     "docs/CONVENTIONS.md": (),
     "AGENTS.md": ("<project-name>",),
     "docs/guides/README.md": (),
