@@ -74,7 +74,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Perform `--force`'s destructive cleanup (install Step 3c) under `--dry-run` —
   refuse the combination instead (see *Always do*), never silently skip *or*
   silently execute it.
-- Change the behavior of a non-`--dry-run` `install` / `upgrade` in any way.
+- Change the behavior of a non-`--dry-run` `install` / `upgrade` in any way. _(Superseded in part for `upgrade`'s non-dry-run path — see Erratum at bottom of this file.)_
 - Add a new top-level directory or a new runtime dependency.
 
 ## Testing Strategy
@@ -174,3 +174,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   changes no contract is spec-level, not RFC-level (source: `docs/CONVENTIONS.md`
   §3 "a new feature that fits cleanly within an existing package and doesn't
   change any interface — write a spec, not an RFC"; user confirmation 2026-06-11).
+
+<!-- Erratum 2026-07-23 — eugenelim
+  The Never-do "Change the behavior of a non-`--dry-run` `install` / `upgrade` in any way"
+  was scoped to the dry-run PR (the projection-dry-run spec). It is superseded in part by
+  `docs/specs/unify-path-jail-projection-probe/spec.md`, which adds a whole-projection pre-flight to
+  `upgrade`'s non-dry-run write loop — changing the failure mode from partial-write-then-fail
+  to probe-all-before-write. That behavioral change is intentional and in scope for the
+  follow-on refactoring spec. This erratum records the boundary revision; the Never-do
+  otherwise continues to apply to install's non-dry-run path.
+-->
