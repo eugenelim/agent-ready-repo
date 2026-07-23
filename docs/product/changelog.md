@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Story quality gate on `jira: create-issue` (atlassian pack 0.5.0).** The `jira` skill now runs a pre-create quality gate before every `create-issue` call: it detects the invocation repo via `git remote -v` ("Invocation repo" label), then checks the candidate story against the five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR — Q5 added because Jira stories are a legacy capacity-allocation mechanism and oversized stories cannot be handed to a single agent or engineer). Six concrete checks with story-points as the primary Q5 signal. Gate fires on `create-issue` only; `update-issue` is unaffected. ([spec](../specs/jira-story-actionability/spec.md))
+
+- **`jira-story-triage` skill (atlassian pack 0.5.0).** Audits a Jira backlog, sprint, or JQL-scoped set of stories for agent-readiness. Scores each story against the five-question actionability bar, applies a Blocked pre-check (image-only descriptions and discovery issuetypes short-circuit before Q1–Q5), classifies into Tier A (all five pass), B (exactly one named external gate fails), or C (any content failure or Q5 fail), then groups Tier A by complexity: Quick (≤ 2pts or ≤ 100 words), Standard (3–5pts), Involved (> 5pts). Read-only; composes `jira` for all reads. ([spec](../specs/jira-story-actionability/spec.md))
+
+- **`jira-team-status` skill (atlassian pack 0.5.0).** Session-entry-point for sprint planning and daily coordination — modelled on the `workspace-status` pattern. Shows a scored sprint snapshot in four sections (§1 Agent-ready grouped by Quick/Standard/Involved, §2 Parallel batching candidates, §3 Gated, §4 Needs shaping), then offers a pick-up hand-off: Option A routes delivery to `jira-defect-flow` (bugs) or `new-spec` (tasks/stories); Option B shapes a blocked story collaboratively and calls `update-issue` once with explicit user consent. No reference to local workspace files or workspace.toml — completely separate from local queue management. ([spec](../specs/jira-story-actionability/spec.md))
+
 ### Changed
 
 - **`capture-work` captures machine-readable dependencies for backlog items (core pack 0.13.7).** When a `[backlog]` entry's unblock condition is the completion of another tracked item (a `[backlog]` slug or a `[work]` spec) as a hard prerequisite, `capture-work` now adds the matching `needs` edge instead of recording the dependency in prose only — so `workspace-status` can resolve it. Disjunctive ("A or B"), untracked-target, and external ("credentials provisioned", "someone takes the PR") unblocks deliberately stay prose. The `workspace.toml` seed and `[backlog]` schema header now state the same rule.
