@@ -234,6 +234,8 @@ queue   = [
   # closing paragraph (single source of truth). Do not re-add the echo.
   "spec/work-loop-step0-observability",                  # consumes work-loop-step0-{branch1-echo,layout} backlog items
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
+  # ---- Independent skill improvements ----
+  "spec/new-guide-conversation-first",                  # user-guide-diataxis 0.2.0: conversation-first doctrine + revised procedure + evals
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.

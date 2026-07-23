@@ -19,5 +19,17 @@
   {"query": "Write the release notes for the 2.0 release", "should_trigger": false},
   {"query": "Fix the broken link in the installation guide", "should_trigger": false},
   {"query": "Write the empty-state and error microcopy for the upload screen", "should_trigger": false},
-  {"query": "Write a blog post announcing our new export feature", "should_trigger": false}
+  {"query": "Write a blog post announcing our new export feature", "should_trigger": false},
+
+  {"query": "Rewrite this Jira guide so the reader sees what to ask first", "should_trigger": true},
+  {"query": "Turn this skill-list page into a task-led pack page", "should_trigger": true},
+  {"query": "Make this Diátaxis how-to less dense", "should_trigger": true},
+  {"query": "Add a realistic multi-turn conversation to this guide", "should_trigger": true},
+  {"query": "Audit these docs for inventory-first writing", "should_trigger": true},
+  {"query": "Revise this journey page to show a complete user flow", "should_trigger": true},
+
+  {"query": "Create a Jira story for password reset", "should_trigger": false},
+  {"query": "Show me the Atlas team's blockers", "should_trigger": false},
+  {"query": "Fix spelling in this README", "should_trigger": false},
+  {"query": "What is Diátaxis and how does it work", "should_trigger": false}
 ]
