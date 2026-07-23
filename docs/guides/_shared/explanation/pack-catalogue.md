@@ -49,7 +49,7 @@ Profiles cover *installing* a set; there is no `upgrade --profile` or `uninstall
 
 Packs compose by convention, not by import — no pack ever imports code from another pack. The rule is one-directional: repo-scope packs depend on `core`; user-scope packs don't.
 
-The one **runtime** dependency that catches adopters off-guard: every credentialed primitive in `atlassian` and `figma` imports `from agentbundle.credentials import load_credentials`, so installing those packs via Claude plugins or APM still requires the `agentbundle` Python module to be importable in the agent's shell-out subprocess. See [the `install-agentbundle-from-clone` guide](../how-to/install-agentbundle-from-clone.md) for the pip step that closes the loop, and the [README's install section](../../../../README.md#install) for the same caveat in the front-door framing.
+The one **runtime** dependency that catches adopters off-guard: every credentialed primitive in `atlassian` and `figma` imports `from credbroker import load_credentials`, so installing those packs via Claude plugins or APM still requires the standalone `credbroker` module (`pip install credbroker`) to be importable in the agent's shell-out subprocess. See [the `install-agentbundle-from-clone` guide](../how-to/install-agentbundle-from-clone.md) for the pip step that closes the loop, and the [README's install section](../../../../README.md#install) for the same caveat in the front-door framing.
 
 ## Why a catalogue, not a template
 
