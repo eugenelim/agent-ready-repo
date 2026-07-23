@@ -1,6 +1,6 @@
 # `atlassian` — guides
 
-Jira, Jira Align, and Confluence over their REST APIs — plus the flow metrics and intake workflows you build on top of them. The pack ships `jira` and `jira-align` for issue and portfolio data, `confluence-crawler` and `confluence-publisher` for wiki content, `jira-defect-flow` for end-to-end defect handling, `jira-brief-intake` to turn a Jira epic into a product brief, `jira-align-brief-intake` to turn a Jira Align Feature into a product brief, and `flow-metrics` + `ai-adoption-report` for DORA / Flow Framework measurement. The four API-touching skills are credentialed: the secret resolves in-process and never reaches the model.
+Jira, Jira Align, and Confluence over their REST APIs — plus the flow metrics and intake workflows you build on top of them. The pack ships `jira` and `jira-align` for issue and portfolio data, `confluence-crawler` and `confluence-publisher` for wiki content, `jira-defect-flow` for end-to-end defect handling, `jira-brief-intake` to turn a Jira epic into a product brief, `jira-align-brief-intake` to turn a Jira Align Feature into a product brief, `jira-story-triage` to audit a backlog for agent-readiness, `jira-team-status` to score a sprint and pick up a story for delivery or shaping, and `flow-metrics` + `ai-adoption-report` for DORA / Flow Framework measurement. The four API-touching skills are credentialed: the secret resolves in-process and never reaches the model.
 
 New here? Read [The `atlassian` pack as a system](explanation/atlassian-pack.md) first — it's the map. Then [work with Jira](how-to/work-with-jira.md) to search and mutate issues.
 
@@ -10,7 +10,8 @@ Delivery leads looking to measure AI adoption: start with [Measuring AI adoption
 
 Task-oriented recipes for a problem you already have.
 
-- [Work with Jira](how-to/work-with-jira.md) — JQL search with auto-pagination, plus fetch, create, and update issues through the `jira` skill.
+- [Work with Jira](how-to/work-with-jira.md) — JQL search with auto-pagination, plus fetch, create, and update issues through the `jira` skill. Includes the five-question story quality bar for writing actionable stories.
+- [Triage a Jira backlog for agent-readiness](how-to/work-with-jira.md#write-actionable-stories) — score a sprint or backlog against the five-question bar with `jira-story-triage`, or get a team sprint snapshot and pick-up hand-off with `jira-team-status`.
 - [Measure flow and DORA metrics](how-to/measure-flow-and-dora-metrics.md) — compute cycle time, throughput, and the rest over a Jira scope, then compare runs into a report.
 - [Report AI adoption as a delivery lead](how-to/report-ai-adoption-as-a-delivery-lead.md) — set up the labeling convention, run team-level and program-level adoption reports, and convert to a shareable format.
 - [Crawl and publish Confluence](how-to/crawl-and-publish-confluence.md) — mirror a space to Markdown and push Markdown back to a page.

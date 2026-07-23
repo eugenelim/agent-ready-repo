@@ -209,6 +209,48 @@ Writes are real and visible to every user of the instance. Treat them
 the same way you would a git push: confirm the intent, show the payload
 when practical, and prefer narrow updates over wholesale replacement.
 
+#### Repo grounding and pre-create quality gate
+
+**Applies to `create-issue` intent only. Skip for `update-issue`, `transition`, `comment`, and all other write operations.**
+
+Before constructing any `create-issue` payload, run the following two steps:
+
+**Step 5a — Repo grounding.** Detect `git remote -v` in the working directory.
+If a URL is found, capture it as the **invocation repo** for this session —
+the repo the agent is running from, not necessarily the target of every story.
+If not in a git repo (or no remote configured), surface:
+
+> "Optionally supply a repo URL or name — this helps the agent verify the
+> story's scope and write clearer acceptance criteria. Enter to skip."
+
+Proceed with "Invocation repo: unknown" if the user declines. Never block on
+this prompt.
+
+**Step 5b — Five-question actionability bar.** Every story created through this skill
+should satisfy:
+
+> A story is actionable when all five are true:
+> (Q1) it is a **self-contained code/config/doc change** — not discovery, design, or coordination work;
+> (Q2) it names a **reachable repo or file scope** so the change can be located without a follow-up meeting;
+> (Q3) its **acceptance criteria are checkable by diff review alone** — no "TBD", "coordinate with", "decide on", or "prototype";
+> (Q4) **no human decision is needed mid-flight** — no open design question, no external approval gate that cannot be confirmed before work starts;
+> (Q5) it is **right-sized for one PR** — the scope is an enumerable set of files or PRs a single person or agent can produce without decomposing into sub-stories.
+
+**Step 5c — Six-point pre-create checklist.** Check each point against the summary
+and description the user has provided. On any failure, surface the named elicitation
+prompt and wait for the user's response. If the user supplies the missing signal,
+incorporate it and continue. If the user explicitly overrides ("proceed anyway"),
+proceed and note the override in the payload confirmation. Never silently bypass.
+
+| # | Check | Bar Q | Signal the gate looks for | Failure mode | What to ask the user |
+|---|---|---|---|---|---|
+| 1 | **Summary specificity** | Q1/Q2 | Summary names the specific change, not just a domain or area | "Add telemetry", "Update agents", "Fix things" | "The summary is too broad — name the specific change. E.g. 'Add dotenv support to the telemetry dashboard (DASH-1881)'" |
+| 2 | **Repo/file scope in description** | Q2 | Description names a repo URL, repo name, or file path the change touches | Blank description or no code anchor | "Which repo or file does this change touch? This makes the story executable without a meeting." |
+| 3 | **ACs present and binary** | Q3 | Description or an ACs field contains testable, diff-checkable criteria | No ACs, or ACs contain "TBD", "coordinate with", "decide on", "prototype" | "Add acceptance criteria checkable from a diff alone — each should be verifiable without a meeting." |
+| 4 | **No discovery or coordination language; appropriate issuetype** | Q1 | Summary and description free of "define how", "explore", "assess", "design the approach", "discuss", "align with", "determine", "investigate", "look into", "coordinate with"; issuetype is Story, Task, Bug, or Sub-task | Discovery language or discovery issuetype (Solution Design, Discovery, unbounded Spike) | "This reads like discovery or design work. Should this be a shaping item, or can you reframe it as a concrete change?" |
+| 5 | **No mid-flight approval gate** | Q4 | No open design question or unnamed approval pending | "pending decision from", "TBD — awaiting alignment", "blocked on [unnamed]" | "Is there a specific person who can confirm this decision now? Name them and the decision. Otherwise this story is Tier B until they do." |
+| 6 | **Right-sized for one PR** | Q5 | Scope is an enumerable set of files or PRs one person or agent can produce; story-points (if present) within the team's single-story threshold | Multi-week scope, cross-team dependency, story-points well above threshold, or "multiple repos" language | "This looks too large for one PR. Can you split it into one bounded change per story? Jira stories are a capacity-allocation unit — an agent or engineer needs a PR-sized scope to execute without decomposition." |
+
 - `create-issue` sends `POST /rest/api/<v>/issue`. Required fields are
   almost always `project`, `summary`, and `issuetype`. The body may be
   flat (`--field summary=...`) or pre-wrapped (`--data-file` containing
@@ -280,6 +322,10 @@ python scripts/jira.py transition PROJ-123 --to "In Progress"
 
 ### Don't
 
+- Don't skip the pre-create quality gate on `create-issue` calls. The gate is the
+  minimum bar for a story an agent or engineer can act on without a meeting or a
+  follow-up question. `update-issue`, `transition`, `comment`, and other write
+  operations do not require the gate.
 - Don't read `~/.agentbundle/credentials.env` from skill body.
 - Don't print or log the API token / PAT.
 - Don't run `credential-setup` skill non-interactively or pipe the

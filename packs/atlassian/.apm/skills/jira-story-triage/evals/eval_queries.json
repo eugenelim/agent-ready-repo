@@ -1,0 +1,21 @@
+[
+  {"query": "Score our Jira backlog for agent-readiness", "should_trigger": true},
+  {"query": "Triage this sprint for actionability", "should_trigger": true},
+  {"query": "Which tickets are ready to ship in PROJ", "should_trigger": true},
+  {"query": "Classify the PLATFORM backlog by tier", "should_trigger": true},
+  {"query": "What's agent-ready in PROJ sprint 14", "should_trigger": true},
+  {"query": "Run a backlog health audit for project DEVKIT", "should_trigger": true},
+  {"query": "Score these 20 stories against the actionability bar", "should_trigger": true},
+  {"query": "Which stories in sprint 12 can we execute without a meeting", "should_trigger": true},
+  {"query": "Audit the open backlog for items an agent can take", "should_trigger": true},
+
+  {"query": "Show team sprint status and help me pick one up", "should_trigger": false},
+  {"query": "What should we start this sprint — give me the team overview and a pick-up", "should_trigger": false},
+  {"query": "Team backlog overview with hand-off for PLATFORM", "should_trigger": false},
+  {"query": "Show me my open Jira issues", "should_trigger": false},
+  {"query": "Create a Jira story for the login regression", "should_trigger": false},
+  {"query": "Turn PROJ-100 into shippable specs", "should_trigger": false},
+  {"query": "Fix the bug in PROJ-99 end to end", "should_trigger": false},
+  {"query": "What's next in the workspace queue", "should_trigger": false},
+  {"query": "Orient me to this repo", "should_trigger": false}
+]

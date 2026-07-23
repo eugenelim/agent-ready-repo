@@ -32,6 +32,12 @@ skills:
   - name: ai-adoption-report
     description: "Pairs flow-metrics JSON outputs and renders a Markdown comparison report. Three modes: baseline (before/after two windows), cohort (AI-tagged vs control within one window), program (roll up across multiple teams or projects). No Jira calls — reads only local JSON files."
     humanTouches: 1
+  - name: jira-story-triage
+    description: "Audits a Jira backlog, sprint, or JQL-scoped set of stories for agent-readiness. Scores each story against a five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR) and outputs a Tier A / B / C / Blocked table with complexity grouping (Quick / Standard / Involved) within Tier A. Read-only."
+    humanTouches: 0
+  - name: jira-team-status
+    description: "Session-entry-point for sprint planning. Shows a scored sprint snapshot in four sections (Agent-ready grouped by complexity, Parallel batching, Gated, Needs shaping), then offers a pick-up hand-off: start delivery on a ready story or shape a blocked story collaboratively with optional update-issue on explicit user consent."
+    humanTouches: 1
 humanGates:
   - id: G-scope
     globalGate: null

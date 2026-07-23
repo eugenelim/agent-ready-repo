@@ -70,6 +70,22 @@ Credentialed skills resolve secrets in-process through the tier ladder (environm
 - **Required credentials.** None of its own — Jira access is inherited through the `jira` skill. Requires `gh auth` for PR opening.
 - **Source.** [`jira-defect-flow`](../../../../packs/atlassian/.apm/skills/jira-defect-flow/)
 
+## `jira-story-triage`
+
+- **Purpose.** Audit a Jira backlog, sprint, or JQL-scoped set of stories for agent-readiness. Scores each story against the five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR) and outputs a Tier A / B / C / Blocked table with complexity grouping (Quick / Standard / Involved) within the Tier A set. Read-only; composes the `jira` skill for all reads. Use for bulk backlog health audits without a pick-up hand-off — use `jira-team-status` instead when you want to score the sprint *and* immediately pick up a story.
+- **Primary inputs.** A Jira project key + optional sprint or JQL filter; optional repo URL for grounding.
+- **Outputs.** A scored table grouped by tier. Tier A stories grouped by Quick / Standard / Involved complexity. Footer with count summary.
+- **Required credentials.** None of its own — inherited through the `jira` skill.
+- **Source.** [`jira-story-triage`](../../../../packs/atlassian/.apm/skills/jira-story-triage/)
+
+## `jira-team-status`
+
+- **Purpose.** Show a team's Jira sprint or backlog scored for agent-readiness, then offer a pick-up hand-off. Scores each story using the same five-question bar as `jira-story-triage`, groups Tier A stories by complexity (Quick / Standard / Involved), and surfaces two options: start delivery on a ready story (routes to `jira-defect-flow` for bugs or `new-spec` for tasks/stories) or shape a blocked story into an executable form (collaborative rewrite + conditional `update-issue` with explicit user consent). Session-entry-point pattern — use it at sprint cadence for the "what's our status and what should I pick up?" moment. Use `jira-story-triage` instead for a bulk audit without hand-off.
+- **Primary inputs.** A Jira project key + optional sprint (default: open sprints), team name, or JQL filter; optional repo URL for grounding.
+- **Outputs.** A four-section sprint snapshot: §1 Agent-ready (Tier A, grouped Quick/Standard/Involved), §2 Parallel batching candidates, §3 Gated (Tier B), §4 Needs shaping (Tier C + Blocked). Followed by a pick-up hand-off (delivery routing or shaping). Conditional `update-issue` write with explicit user confirmation in the shaping flow.
+- **Required credentials.** None of its own — inherited through the `jira` skill.
+- **Source.** [`jira-team-status`](../../../../packs/atlassian/.apm/skills/jira-team-status/)
+
 ## `jira-brief-intake`
 
 - **Purpose.** Turn a Jira epic (or a board / sprint / JQL selection) into shippable specs. Pulls the epic and its children via the `jira` skill, maps them onto a Shape B product brief (epic → Outcome, child issues → `US-n` user stories tagged with their Jira key, epic key → `Epic:` provenance pointer), writes it to `docs/product/briefs/<slug>.md`, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira; gracefully degrades to an inlined decompose/execute instruction when `receive-brief` is absent. For an epic or multi-feature body of work — a single feature goes through `new-spec`, a defect through `jira-defect-flow`.

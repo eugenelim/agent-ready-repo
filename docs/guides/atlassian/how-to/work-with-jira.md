@@ -91,6 +91,23 @@ python scripts/jira.py list-transitions PROJ-123
 python scripts/jira.py transition PROJ-123 --to "In Progress"
 ```
 
+## Write actionable stories
+
+Before creating a story, check it passes the five-question actionability bar — the same bar the `jira-story-triage` and `jira-team-status` skills use to score backlog health.
+
+> A story is actionable when all five are true:
+> **(Q1)** it is a **self-contained code/config/doc change** — not discovery, design, or coordination work;
+> **(Q2)** it names a **reachable repo or file scope** so the change can be located without a follow-up meeting;
+> **(Q3)** its **acceptance criteria are checkable by diff review alone** — no "TBD", "coordinate with", "decide on", or "prototype";
+> **(Q4)** **no human decision is needed mid-flight** — no open design question, no external approval gate that cannot be confirmed before work starts;
+> **(Q5)** it is **right-sized for one PR** — the scope is an enumerable set of files or PRs a single person or agent can produce without decomposing into sub-stories.
+
+Q5 exists because Jira stories are a legacy delivery-capacity allocation mechanism: a story sized for a full sprint passes Q1–Q4 but cannot be handed to a single agent or engineer without decomposition. Use the story-points field as the primary signal (≤ 5pts is one PR; > 5pts is a strong Q5 failure signal).
+
+If the agent is running inside a git repo, the `jira` skill attaches an "Invocation repo" label to stories it creates — the git remote URL of the repo the agent is running from. Stories that name this repo in their description pass Q2 automatically, which gives the agent a verifiable scope anchor.
+
+To score an existing backlog rather than gate a single story, see [`jira-story-triage`](../reference/atlassian-skills.md#jira-story-triage) and [`jira-team-status`](../reference/atlassian-skills.md#jira-team-status).
+
 ## Pitfalls
 
 - **A 401** means the credential is invalid or expired (exit 2) — regenerate the token and re-run `credential-setup`.

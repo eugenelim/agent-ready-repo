@@ -1,0 +1,42 @@
+{
+  "id": "jira-team-status",
+  "name": "Jira Team Status",
+  "version": "1.0.0",
+  "description": "Show a team's Jira sprint or backlog scored for agent-readiness, then pick up a story to deliver or shape. Scores each story against the five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR), groups Tier A stories by complexity (Quick / Standard / Involved), and surfaces a pick-up hand-off: start delivery on a ready story (routes to jira-defect-flow for bugs or new-spec for tasks/stories) or shape a blocked story into an executable form (collaborative rewrite + optional update-issue with explicit consent). Session-entry-point pattern; reads Jira for the snapshot and may write once in the shaping hand-off with explicit user confirmation.",
+  "category": "workflows",
+  "tags": ["jira", "team", "sprint", "backlog", "agent-readiness", "story-quality", "sprint-planning", "session-start"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
+    "skills": [
+      {
+        "name": "jira",
+        "source": "this pack — packs/atlassian/.apm/skills/jira/",
+        "purpose": "All Jira reads for the snapshot (check, search) and the conditional update-issue call in the shaping hand-off (only with explicit user consent). Hard dependency — there is no degraded path without it."
+      },
+      {
+        "name": "jira-defect-flow",
+        "source": "this pack — packs/atlassian/.apm/skills/jira-defect-flow/",
+        "purpose": "Pick-up hand-off for Tier A stories whose issuetype is Bug or Defect. Soft dependency — when absent, the skill surfaces an install hint rather than stopping."
+      },
+      {
+        "name": "new-spec",
+        "source": "host repo — core pack — .apm/skills/new-spec/ (projected to .claude/skills/new-spec/)",
+        "purpose": "Pick-up hand-off for Tier A stories whose issuetype is Story or Task. Soft dependency — when absent, the skill surfaces an install hint rather than stopping."
+      }
+    ],
+    "system": []
+  },
+  "input": {
+    "arguments": "A Jira project key (required). Optional: sprint name or ID (default: open sprints), team name or JQL filter. Optionally a repo URL or name for grounding.",
+    "env": {}
+  },
+  "output": {
+    "artifacts": [
+      "A scored sprint snapshot with four sections: §1 Agent-ready (Tier A, grouped by Quick/Standard/Involved), §2 Parallel batching candidates, §3 Gated (Tier B), §4 Needs shaping (Tier C + Blocked). Followed by a pick-up hand-off offering delivery routing or shaping. Conditional Jira write (update-issue) with explicit user consent in the shaping flow."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}

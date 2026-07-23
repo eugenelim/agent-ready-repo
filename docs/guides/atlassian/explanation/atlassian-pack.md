@@ -33,6 +33,9 @@ The full two-layer model, and how it differs by install route, lives in [Credent
 
 The composed skills inherit auth by composition. `flow-metrics` reads credentials through the `jira` and `jira-align` skills it invokes by name; it never reads a secret file itself. `ai-adoption-report` needs no credentials — it only reads local files.
 
+- **[`jira-story-triage`](../../../../packs/atlassian/.apm/skills/jira-story-triage/)** scores a Jira backlog, sprint, or JQL-scoped set of stories against the five-question actionability bar and outputs a Tier A / B / C / Blocked table with complexity grouping (Quick / Standard / Involved) within Tier A. Read-only; a bulk audit tool without a pick-up hand-off.
+- **[`jira-team-status`](../../../../packs/atlassian/.apm/skills/jira-team-status/)** scores a team's sprint using the same bar, then offers a pick-up hand-off: start delivery on a ready story (routing to `jira-defect-flow` for bugs or `new-spec` for tasks) or shape a blocked story into an executable form (collaborative rewrite + optional `update-issue` with explicit user consent). Session-entry-point — use it at sprint cadence.
+
 ## How they fit together
 
 A common arc: `flow-metrics` runs twice over a project — one pre-AI window, one current — and writes two JSON files. `ai-adoption-report` pairs them and renders the deltas. The crawler mirrors a space to Markdown, you edit, and the publisher pushes it back via the frontmatter the crawler left behind. Each skill does one job and hands its output to the next.
