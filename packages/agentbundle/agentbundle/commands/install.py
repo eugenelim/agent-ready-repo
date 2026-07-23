@@ -1406,7 +1406,41 @@ def run(args: "argparse.Namespace") -> int:
             # path the new branches don't capture.
             print(f"installed: {pack_name} @ {plan.scope}")
 
+    # ── Step 14: First-value handoff ─────────────────────────────────────────
+    _emit_first_value_handoff(
+        pack_toml.get("pack", {}).get("first-value", {})
+    )
+
     return 0
+
+
+# ---------------------------------------------------------------------------
+# First-value handoff (spec/agentbundle-first-value-handoff)
+# ---------------------------------------------------------------------------
+
+
+def _emit_first_value_handoff(first_value: dict) -> None:
+    """Emit the first-value handoff block to stdout after install.
+
+    Step 14 of :func:`run`. Reads from the pack's ``[pack.first-value]`` dict:
+
+    - Empty dict (no section): no output.
+    - Level A (``level-b`` absent or false): blank line + ``Verify:`` label.
+    - Level B (``level-b = true``): blank line + ``Verify:`` / ``Try:`` /
+      ``Expected:`` / optional ``Next:`` labels.
+
+    Labels are padded to 10 chars (label + colon + spaces) so values align.
+    The ``Try:`` value is the verbatim ``starter-prompt`` — no substitution.
+    """
+    if not first_value:
+        return
+    print()  # blank-line separator from the installed: line(s)
+    print(f"Verify:   {first_value['verification']}")
+    if first_value.get("level-b"):
+        print(f"Try:      {first_value['starter-prompt']}")
+        print(f"Expected: {first_value['expected-result']}")
+        if first_value.get("next-action"):
+            print(f"Next:     {first_value['next-action']}")
 
 
 # ---------------------------------------------------------------------------

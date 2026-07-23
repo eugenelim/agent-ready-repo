@@ -85,6 +85,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  "spec/agentbundle-first-value-handoff",          # PR this branch — first-value handoff block in agentbundle install
   "spec/catalogue-curation",                # PR #614
   "spec/m2-frame-situation",     # frame-situation PE skill
   "spec/m1-workspace-core",      # Batch 2
@@ -215,7 +216,7 @@ queue   = [
   # Done: a successful install ends with pack-specific verification, expected first
   # result, and next prompt; automation snapshots and advanced modes remain compatible.
   # Graphical onboarding remains the Level B default.
-  {path = "spec/agentbundle-first-value-handoff", needs = "work:spec/portfolio-pack-first-value-contract"},
+  # "spec/agentbundle-first-value-handoff" — moved to active (spec + plan authored)
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.

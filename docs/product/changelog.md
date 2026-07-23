@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **First-value handoff block in `agentbundle install` (agentbundle 0.12.0).** A successful `agentbundle install` now prints a guidance block after the `installed:` line. Level B packs (non-technical audience, `level-b = true`) show four labelled lines — `Verify:`, `Try:`, `Expected:`, and optionally `Next:` — drawn from the pack's `[pack.first-value]` schema. Level A packs show `Verify:` only. Packs without `[pack.first-value]` are unchanged. Dry-run, upgrade, and profile-install paths are not affected. ([RFC-0064 Amendment #4](../rfc/0064-ini-001-ai-native-ecosystem.md) · [spec](../specs/agentbundle-first-value-handoff/spec.md))
+
 - **`workspace.toml` seed (core pack 0.13.6).** `agentbundle install core` now
   delivers a minimal `workspace.toml` — schema comments and a `[backlog]` section
   — so the file exists from day one. Closes the gap where the installed
