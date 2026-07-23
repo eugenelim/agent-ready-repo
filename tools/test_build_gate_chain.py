@@ -119,10 +119,11 @@ class BuildCheckChainTest(unittest.TestCase):
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # Handlers first three, then nine spawned scripts — Makefile order, no SAST.
+        # Handlers: lint-packs, build, check; one spawned script between build and
+        # check (validate-claude-plugin-manifests); nine more after check — ten total.
         self.assertEqual(
             order,
-            ["lint-packs", "build", "check"] + ["script"] * 9,
+            ["lint-packs", "build", "script", "check"] + ["script"] * 9,
         )
 
         self.assertEqual(ns_by_label["lint-packs"].packs_dir, "packs")
@@ -135,11 +136,12 @@ class BuildCheckChainTest(unittest.TestCase):
         self.assertEqual(check_ns.packs_dir, "packs")
         self.assertEqual(check_ns.output_dir, ".")  # working tree, not dist
 
-        # The nine spawned scripts, in Makefile order.
+        # The ten spawned scripts, in Makefile order.
         spawned = [Path(argv[1]).as_posix() for argv in script_argvs]
         self.assertEqual(
             spawned,
             [
+                "tools/validate-claude-plugin-manifests.py",
                 "tools/pre-pr-catalogue.py",
                 ".claude/skills/work-loop/scripts/test-lint-spec-status.py",
                 ".claude/skills/work-loop/scripts/lint-spec-status.py",
