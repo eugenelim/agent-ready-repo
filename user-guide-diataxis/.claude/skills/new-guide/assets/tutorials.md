@@ -1,5 +1,9 @@
 # <Verb-first title — "Build a working X", "Set up your first Y">
 
+**What you'll build:** <the end artifact — one line>.
+**Prerequisites:** <one line>.
+**Time:** <a realistic estimate, e.g. "About 15 minutes">.
+
 > At the end of this tutorial you'll have <one concrete, working artifact
 > the reader can see, touch, or run>.
 
