@@ -165,9 +165,13 @@ queue   = [
   # and the three pilot transcripts (portfolio-first-run-pilot-architect/figma/
   # governance-extras) as evidence base. Do not author P5 specs before those work
   # items complete — the evidence does not yet exist.
-  "spec/m6-astro-project-index",          # Astro site: PM-facing project index from docs/product/projects/
-  "spec/m6-live-demo-guide",              # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
-  "spec/m6-enterprise-rollout-playbook",  # champion→CTO→platform→engineers; staged rollout + retro template
+  # `needs` encodes the P5 authoring gate above: the adopter-persona research must
+  # complete first (its findings are the evidence base). The three pilot transcripts
+  # (portfolio-first-run-pilot-architect/figma/governance-extras) are already Shipped,
+  # so they are omitted here — adopter-persona is the only open edge.
+  {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
+  {path = "spec/m6-live-demo-guide",             needs = "research:adopter-persona"},  # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
+  {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
 
   # ---- RFC-0064 Amendment #4: Cross-pack first-value overlay ----
   # Complements P1–P5 phases; may progress in parallel where dependencies allow;
