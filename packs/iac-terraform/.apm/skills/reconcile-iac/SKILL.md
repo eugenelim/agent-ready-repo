@@ -40,6 +40,20 @@ full drift coverage — the audit covers managed resources only.
 ## Procedure
 
 ```
+0. Detect the remote execution platform by scanning all *.tf files in the
+   project root (and workspace subdirectory if one is in use):
+   • Any .tf file with terraform { cloud { ... } }
+     → platform = hcp-terraform; plan runs remotely on HCP Terraform
+   • Any .tf file with terraform { backend "remote" { ... } }; check hostname:
+     - "app.terraform.io" → legacy TFC config; flag for migration to cloud {}
+       and surface a migration note before proceeding
+     - "*.scalr.io"       → platform = scalr; plan runs remotely on Scalr
+     - other              → unknown remote backend; note in report; proceed
+   • Neither found in any .tf file → platform = none (plan runs locally)
+   Record the platform in the audit report header. For remote-exec platforms, add:
+   "plan runs remotely on <platform>; resources created entirely outside Terraform
+   are invisible to plan — the blind-spot caveat applies as with local execution."
+
 1. Confirm the repo's governance-index is loaded (Stage 0 of generate-iac).
    If the index is absent, offer to bootstrap it before proceeding.
 
@@ -92,7 +106,7 @@ that bypassed Stage 0.
 2. Identify which governance domains the diff touches. Map by resource type:
    • aws_iam_* / google_project_iam_* / azurerm_role_assignment → iam
    • aws_vpc_* / google_compute_network / azurerm_virtual_network → networking
-   • terraform { backend } / aws_s3_bucket (state bucket) → state
+   • terraform { backend } / terraform { cloud {} } / aws_s3_bucket (state bucket) → state
    • resource_group / project / aws_organizations_account → layout
    • any provider block changes → layout
    • aws_security_group / aws_security_group_rule → networking + policy

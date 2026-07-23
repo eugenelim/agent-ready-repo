@@ -97,7 +97,8 @@ plan-based drift audit via `reconcile-iac`.
 | Region | **ask** | |
 | Decision-record source | repo's `docs/adr/` | |
 | CI system | `github-actions` | `github-actions \| azure-devops \| gitlab` |
-| State backend | derive from cloud | S3 (AWS), GCS (GCP), Azure Blob |
+| Remote execution platform | `none` | `none \| hcp-terraform \| scalr`; when `engine = opentofu`, only `none` and `scalr` are valid — `cloud {}` is Terraform-only and incompatible with OpenTofu |
+| State backend | derive from cloud | S3 (AWS), GCS (GCP), Azure Blob — **only when `remote_exec_platform = none`**; remote exec platforms own the state |
 | Account/tenant isolation model | separate account per env | drives OIDC trust-policy scoping and state backend key structure |
 
 ## Stage sequence
@@ -111,6 +112,7 @@ Stage 2: CLARIFY
   → collect all inputs; ask for missing; confirm engine + cloud + region
 Stage 3: PLAN
   → load provider reference for target cloud; load CI reference for target CI
+  → when platform ≠ none: load references/remote-exec/<platform>.md
   → draft: ADR-compliance table + standards-mapping table + layered layout
   → networking design + pipeline design + reversibility hints per stateful resource
   → ADR-compliance table must have zero ❌/⚠️ rows before proceeding to Stage 4
@@ -121,8 +123,16 @@ Stage 4: TASKS
   → [P] only when files are disjoint with no resource/data dependency
 Stage 5: WRITE TF
   → ground every resource type in live schema via contract-acquisition
-  → emit the four-file provider config (versions.tf / provider.tf /
-    backend.tf / backend.hcl.example) per references/provider-contract.md
+  → emit provider config files (versions.tf / provider.tf) per
+    references/provider-contract.md; backend config branches on platform:
+    • platform = none (default): backend.tf + backend.hcl.example
+      (cloud-native object store: S3 / GCS / Azure Blob)
+    • platform = hcp-terraform: cloud {} block in versions.tf;
+      no backend.tf, no backend.hcl.example
+    • platform = scalr: backend.tf with backend "remote" block;
+      no backend.hcl.example
+  → when platform ≠ none: emit REMOTE_EXEC_SETUP.md (credential guidance,
+    token setup, traps) per references/remote-exec/<platform>.md
   → apply all mandatory tagging (references/tagging-standard.md)
   → tag stateful resources with reversibility-class annotations
     (reversible | costly-to-reverse | one-way-door)
@@ -164,6 +174,7 @@ Load per target (never all at once):
 - `references/providers/<cloud>.md` — cloud-specific config (aws / gcp / azure / …)
 - `references/opentofu-differences.md` — **load ONLY when engine = opentofu**
 - `references/pipeline/<ci>.md` — CI pipeline shape (github-actions / azure-devops / gitlab)
+- `references/remote-exec/<platform>.md` — **load ONLY when platform ≠ none** — config block, auth, credential model, CI trigger delta, bootstrap narrative (hcp-terraform / scalr)
 
 Policy and plan shape:
 - `references/policy-on-plan.md` — starter Rego rules + Trivy/Checkov guidance
@@ -230,3 +241,9 @@ unavailable. The RFC does not claim full mode as the default.
 - Committing `*.tfvars` with real values or raw credentials.
 - Emitting a Sentinel policy (incompatible with OpenTofu — use OPA/Conftest
   for the open-source policy path that works on both engines).
+- Emitting `backend "remote" { hostname = "app.terraform.io" ... }` for an HCP
+  Terraform target — this is the deprecated form; generate a `cloud {}` block
+  in `versions.tf` instead.
+- Emitting a `cloud {}` block for an `engine = opentofu` target — it is
+  Terraform-only and incompatible; offer `platform = scalr` with
+  `backend "remote"` as the OpenTofu-compatible remote execution alternative.

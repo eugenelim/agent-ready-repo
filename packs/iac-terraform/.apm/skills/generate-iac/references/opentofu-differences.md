@@ -72,7 +72,11 @@ only the extension differs.
 
 - **Ephemeral values / write-only arguments** (Terraform 1.10+) — no equivalent in OpenTofu
 - **Terraform Stacks** — no equivalent in OpenTofu
-- **HCP Terraform cloud blocks** — OpenTofu uses standard backends
+- **HCP Terraform cloud blocks** — OpenTofu uses standard backends. When a
+  remote execution platform is required for an OpenTofu target, use **Scalr**
+  with `backend "remote"` — it is OpenTofu-compatible and is the pack's
+  recommended `platform` option for `engine = opentofu`. See
+  `references/remote-exec/scalr.md`.
 
 ## The `.tofu` override-file mechanism
 
