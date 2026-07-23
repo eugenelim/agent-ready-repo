@@ -4,6 +4,8 @@ Compute cycle time, lead time, throughput, WIP, and the rest of the Flow Framewo
 
 `flow-metrics` is read-only. It reads through the `jira` skill, joins `jira-align` for program and portfolio scope, and never transitions, comments, or mutates Jira.
 
+> **Delivery lead?** The [Report AI adoption as a delivery lead](report-ai-adoption-as-a-delivery-lead.md) guide covers the full journey — credential setup, labeling convention, team and program rollup, and shareable report formats. This page covers the CLI in depth.
+
 ## Before you start
 
 `flow-metrics` composes the `jira` skill, so verify Jira first:

@@ -17,4 +17,4 @@ docsUrl: /docs/guides/atlassian/
 journeyUrl: /journeys/atlassian/
 ---
 
-Atlassian installs Jira and Confluence primitives (credentialed CLI with SSO-cookie auth) plus four workflow skills: `flow-metrics` (DORA + cycle time), `ai-adoption-report` (measuring agent adoption across a portfolio), `jira-defect-flow` (triage to fix), and `jira-brief-intake` (turning Jira tickets into structured engineering briefs). Credentials resolved via `credential-brokers` — cleartext never reaches the model.
+Atlassian installs credentialed CLIs for Jira, Jira Align, and Confluence — plus the workflow skills built on top. `flow-metrics` computes cycle time, throughput, and DORA metrics over a Jira project or Jira Align program. `ai-adoption-report` pairs those outputs to show how AI-tagged stories compare to the control: before/after a rollout, cohort vs control within a window, or rolled up across a program. `jira-defect-flow` handles defects end-to-end from Jira to PR. `jira-brief-intake` turns a Jira epic into a structured engineering brief. Credentials resolved via `credential-brokers` — cleartext never reaches the model.

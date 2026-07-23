@@ -4,13 +4,17 @@ Jira, Jira Align, and Confluence over their REST APIs — plus the flow metrics 
 
 New here? Read [The `atlassian` pack as a system](explanation/atlassian-pack.md) first — it's the map. Then [work with Jira](how-to/work-with-jira.md) to search and mutate issues.
 
+Delivery leads looking to measure AI adoption: start with [Measuring AI adoption with flow metrics](explanation/ai-adoption-measurement.md) for the model, then [Report AI adoption as a delivery lead](how-to/report-ai-adoption-as-a-delivery-lead.md) for the step-by-step guide.
+
 ## How-to
 
 Task-oriented recipes for a problem you already have.
 
 - [Work with Jira](how-to/work-with-jira.md) — JQL search with auto-pagination, plus fetch, create, and update issues through the `jira` skill.
 - [Measure flow and DORA metrics](how-to/measure-flow-and-dora-metrics.md) — compute cycle time, throughput, and the rest over a Jira scope, then compare runs into a report.
+- [Report AI adoption as a delivery lead](how-to/report-ai-adoption-as-a-delivery-lead.md) — set up the labeling convention, run team-level and program-level adoption reports, and convert to a shareable format.
 - [Crawl and publish Confluence](how-to/crawl-and-publish-confluence.md) — mirror a space to Markdown and push Markdown back to a page.
+- [Authenticate Jira and Confluence with SSO cookies](how-to/authenticate-jira-confluence-with-sso-cookies.md) — for Data Center instances that block API tokens.
 
 ## Reference
 
@@ -23,6 +27,7 @@ Information-oriented, dry and complete.
 Understanding-oriented — the *why* behind the design.
 
 - [The `atlassian` pack as a system](explanation/atlassian-pack.md) — how the skills compose over the Atlassian REST APIs and the credentialed-skill auth model.
+- [Measuring AI adoption with flow metrics](explanation/ai-adoption-measurement.md) — the self-certification model, what the metrics tell you, and the limits of Jira-based AI adoption measurement.
 
 ---
 
