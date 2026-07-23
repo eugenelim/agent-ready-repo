@@ -1,7 +1,7 @@
 [pack]
 name = "atlassian"
-version = "0.4.1"
-description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, and jira-align-brief-intake workflows that compose them."
+version = "0.5.0"
+description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, jira-align-brief-intake, jira-story-triage, and jira-team-status workflows that compose them."
 readme = "README.md"
 display_name = "Atlassian"
 license = "Apache-2.0 OR MIT"
@@ -32,7 +32,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # fires — no Atlassian credentials are needed to measure these (Tier-A only;
 # behavior testing of a backend skill is future-Tier-B-RFC scope, see the spec).
 [pack.evals]
-skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report"]
+skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report", "jira-story-triage", "jira-team-status"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
