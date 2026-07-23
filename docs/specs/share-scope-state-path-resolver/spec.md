@@ -1,6 +1,6 @@
 # Spec: share-scope-state-path-resolver
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 

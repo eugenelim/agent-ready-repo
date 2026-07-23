@@ -88,6 +88,48 @@ def _compose_agents_md_bytes(body: bytes, footer_path: Path) -> bytes:
     return (text + footer).encode("utf-8")
 
 
+def _classify_seeds(seeds_dir: Path, root: Path) -> list[SeedDelivery]:
+    """Classify seeds without writing — pure read-only; same walk logic as deliver_seeds.
+
+    Returns a list of SeedDelivery records with action 'wrote' (absent on disk),
+    'skipped' (byte-identical), or 'companion' (differs — Tier-2). No filesystem
+    writes occur under root.
+    """
+    import os
+
+    from agentbundle import safety
+
+    footer_path = seeds_dir / "_agents-footer.md"
+    footer_ok = footer_path.is_file() and not footer_path.is_symlink()
+
+    seed_files: list[Path] = []
+    for dirpath, _dirnames, filenames in os.walk(seeds_dir, followlinks=False):
+        for fname in filenames:
+            fpath = Path(dirpath) / fname
+            if fpath.is_symlink():
+                continue
+            seed_files.append(fpath)
+
+    results: list[SeedDelivery] = []
+    for seed_file in sorted(seed_files):
+        if seed_file.name.startswith("_"):
+            continue
+        relpath = seed_file.relative_to(seeds_dir).as_posix()
+        content = seed_file.read_bytes()
+        if relpath == "AGENTS.md" and footer_ok:
+            content = _compose_agents_md_bytes(content, footer_path)
+
+        on_disk = root / relpath
+        if not on_disk.exists():
+            results.append(SeedDelivery(relpath, content, "wrote", None))
+        elif on_disk.read_bytes() == content:
+            results.append(SeedDelivery(relpath, content, "skipped", None))
+        else:
+            companion = safety.companion_path(Path(relpath)).as_posix()
+            results.append(SeedDelivery(relpath, content, "companion", companion))
+    return results
+
+
 def deliver_seeds(seeds_dir: Path, output: Path) -> list[SeedDelivery]:
     """Deliver a pack's ``seeds/`` into ``output`` with Tier-1/2/3 safety.
 
@@ -108,53 +150,16 @@ def deliver_seeds(seeds_dir: Path, output: Path) -> list[SeedDelivery]:
     Raises ``safety.PathJailError`` if any seed relpath would escape ``output``;
     the caller is expected to catch it, print to stderr, and exit 1.
     """
-    import os
-
     from agentbundle import safety
 
-    footer_path = seeds_dir / "_agents-footer.md"
-    # Guard the footer read too — ``_compose_agents_md_bytes`` reads
-    # ``footer_path`` directly, so a symlinked footer would be read through.
-    footer_ok = footer_path.is_file() and not footer_path.is_symlink()
-
-    # Defence-in-depth against a malicious pack exfiltrating a host file
-    # (``/etc/passwd``, ``~/.ssh/id_rsa``) into the adopter tree by symlinking
-    # a seed — never read *through* a pack-shipped symlink. We must not rely on
-    # ``Path.rglob``'s symlink posture: on Python 3.11/3.12 ``rglob`` recurses
-    # *into* symlinked directories (3.13 changed the default to
-    # ``recurse_symlinks=False``), so ``seeds/x -> /`` would surface real host
-    # files as non-symlink entries. ``os.walk(followlinks=False)`` never
-    # descends into a symlinked directory on any supported Python, and we also
-    # skip symlinked files — closing both the file and directory cases.
-    seed_files: list[Path] = []
-    for dirpath, _dirnames, filenames in os.walk(seeds_dir, followlinks=False):
-        for fname in filenames:
-            fpath = Path(dirpath) / fname
-            if fpath.is_symlink():
-                continue
-            seed_files.append(fpath)
-
-    results: list[SeedDelivery] = []
-    for seed_file in sorted(seed_files):
-        # Composition fragments are folded in, never delivered standalone.
-        if seed_file.name.startswith("_"):
-            continue
-        relpath = seed_file.relative_to(seeds_dir).as_posix()
-        content = seed_file.read_bytes()
-        if relpath == "AGENTS.md" and footer_ok:
-            content = _compose_agents_md_bytes(content, footer_path)
-
-        on_disk = output / relpath
-        if not on_disk.exists():
-            safety.write_jailed(output, relpath, content)
-            results.append(SeedDelivery(relpath, content, "wrote", None))
-        elif on_disk.read_bytes() == content:
-            results.append(SeedDelivery(relpath, content, "skipped", None))
-        else:
-            safety.write_companion(output, relpath, content)
-            companion = safety.companion_path(Path(relpath)).as_posix()
-            results.append(SeedDelivery(relpath, content, "companion", companion))
-    return results
+    records = _classify_seeds(seeds_dir, output)
+    for record in records:
+        if record.action == "wrote":
+            safety.write_jailed(output, record.relpath, record.content)
+        elif record.action == "companion":
+            safety.write_companion(output, record.relpath, record.content)
+        # "skipped" → no-op
+    return records
 
 
 def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
