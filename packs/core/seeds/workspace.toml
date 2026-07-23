@@ -1,0 +1,21 @@
+# workspace.toml
+#
+# Declared-intent coordination artifact for this repo.
+# Each initiative gets its own named section. Run `workspace-status` to surface
+# ready items, blocked items, and active signals — or to initialise this file
+# with your first initiative and the full schema.
+#
+# Queue entries are strings (no deps) or inline objects {path/slug, needs}.
+# `needs` uses queue-prefix notation:
+#   "work:<path>"      — depends on a work queue entry
+#   "shape:<slug>"     — depends on a shaping queue entry
+#   "research:<slug>"  — depends on a research entry
+#   "brief:<path>"     — depends on a brief queue entry
+#   "backlog:<slug>"   — depends on a repo-level [backlog] item
+#
+# The [backlog] section below tracks open work not yet scoped to an initiative.
+# Add items as: {slug = "my-deferred-item"}
+# Run `workspace-status` to see all open backlog items.
+
+[backlog]
+open = []
