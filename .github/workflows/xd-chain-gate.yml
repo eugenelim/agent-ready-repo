@@ -1,0 +1,33 @@
+name: xd-chain-gate
+
+# Cross-pack XD chain structural invariant gate (ini-003 Wave 4F).
+# Runs check-xd-chain.py --gate against every PR that touches XD pack content.
+# Gates only on deterministic checker failure; the LLM judge (Wave 4H) is advisory only.
+# See docs/specs/cross-pack-experience-eval/spec.md.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packs/experience-design/**"
+  push:
+    branches: [main]
+
+jobs:
+  xd-chain-gate:
+    name: check-xd-chain --gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tools dependencies
+        run: pip install -r tools/requirements.txt
+
+      - name: Run XD chain gate
+        run: python3 tools/check-xd-chain.py --gate --root .
