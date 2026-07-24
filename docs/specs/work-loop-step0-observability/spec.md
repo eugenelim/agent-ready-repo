@@ -1,6 +1,6 @@
 # Spec: work-loop-step0-observability
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Constrained by:** `spec/spec-C-workloop-argless-resume` (defines Branch-1 behavior; Status: Shipped — body not modified by this spec); RFC-0067 §Change C
 
@@ -32,24 +32,24 @@ the closing paragraph.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** The closing paragraph of Step 0 in the source SKILL.md
+- [x] **AC1.** The closing paragraph of Step 0 in the source SKILL.md
   (`packs/core/.apm/skills/work-loop/SKILL.md`) directs Branch 1 to echo
   "Beginning on `<resolved-path>`" (or equivalent phrasing) before
   proceeding to PLAN — so the resolved path is explicitly visible to the
   user. This instruction lives in the closing paragraph, not in the
   "Active spec" bullet.
-- [ ] **AC2.** Branch 3 (more than one active item) already lists all active
+- [x] **AC2.** Branch 3 (more than one active item) already lists all active
   paths — verified that no change to its behavior is needed.
-- [ ] **AC3.** The three data-surface fields (Initiative / Milestone / Active
+- [x] **AC3.** The three data-surface fields (Initiative / Milestone / Active
   spec) in the orientation block's bullet list do not contain embedded
   control-flow action text — the "Exactly one → begin on that spec without
   asking. Zero → surface… More than one → list…" clause is removed from the
   "Active spec" bullet.
-- [ ] **AC4.** Branch-outcome resolution is stated once (in the closing
+- [x] **AC4.** Branch-outcome resolution is stated once (in the closing
   paragraph), not at both the "Active spec" bullet and the closing paragraph.
-- [ ] **AC5.** `make build-self FORCE=1` exits 0 and the projected
+- [x] **AC5.** `make build-self FORCE=1` exits 0 and the projected
   `.claude/skills/work-loop/SKILL.md` reflects all changes.
-- [ ] **AC6.** The closing paragraph's Branch 1 instruction directs the echo,
+- [x] **AC6.** The closing paragraph's Branch 1 instruction directs the echo,
   and Branch 2's exact message ("No active spec found — run `workspace-status`
   to see what's ready to start.") and Branch 3's "list all and ask" phrasing
   are relocated verbatim from the "Active spec" bullet into the closing
