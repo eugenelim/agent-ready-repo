@@ -87,7 +87,7 @@ _CONF = _REPO / "packs/atlassian/.apm/skills/confluence-crawler/scripts"
 # The per-skill SSO files RFC-0023 forbids sharing as a projected module, so they
 # are duplicated byte-for-byte across the two skills. Pin them equal here so a
 # one-sided edit to the security-control loader fails loudly instead of drifting.
-_DUPLICATED = ("_sso_config.py", "setup_sso.py", "test_sso_config.py", "test_setup_sso.py")
+_DUPLICATED = ("_sso_config.py", "setup_sso.py", "test_sso_config.py", "test_setup_sso.py", "test_auth_selector.py")
 
 
 def _load_module(path: Path, name: str):

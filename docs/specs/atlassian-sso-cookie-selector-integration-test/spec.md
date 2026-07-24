@@ -1,6 +1,6 @@
 # Spec: atlassian-sso-cookie-selector-integration-test
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Constrained by:** `atlassian-sso-cookie` (parent spec, Shipped; AC13 asserted the selector; tests for each component exist; the wiring is the gap)
 - **Brief:** none
@@ -19,20 +19,20 @@ The fix is a targeted extraction: add a directly-testable `_select_auth_path(con
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `_select_auth_path(config_path: Path | None = None) -> tuple[str, SsoConfig | None]` exists in `_sso_config.py` in **both** jira/ and confluence-crawler/ `scripts/`. The function:
+- [x] **AC1.** `_select_auth_path(config_path: Path | None = None) -> tuple[str, SsoConfig | None]` exists in `_sso_config.py` in **both** jira/ and confluence-crawler/ `scripts/`. The function:
   - Returns `("token", None)` when `load_sso_config(config_path)` returns `None` (config absent or `auth_default = "creds"`).
   - Returns `("sso-cookie", sso_config)` when `load_sso_config(config_path)` returns an `SsoConfig` (valid `auth_default = "sso-cookie"` config).
   - Propagates any exception from `load_sso_config()` without catching it — callers map this to `EXIT_USER_ACTION`.
   - Is underscore-prefixed (internal helper, not part of any public surface).
-- [ ] **AC2.** `_run()` in `jira/scripts/jira.py` calls `_select_auth_path()` (imported from `._sso_config`) instead of calling `load_sso_config()` inline. The surrounding `try/except Exception → EXIT_USER_ACTION` block remains. The `if sso_config is not None:` branch (the current condition) is replaced by branching on the returned tuple: the `"sso-cookie"` path calls `JiraClient.from_sso_cookies(sso_config)`; the `"token"` path calls `load_credentials()` + `JiraClient(credentials, ...)`. Behavior is identical to today's code.
-- [ ] **AC3.** `main_async()` in `confluence-crawler/scripts/crawl_space.py` applies the same delegation — calls `_select_auth_path()` instead of inline `load_sso_config()`, with equivalent surrounding structure.
-- [ ] **AC4.** A new `test_auth_selector.py` file exists in **both** skills' `scripts/` directories (byte-identical per the parity constraint). The file opens with `pytest.importorskip("credbroker")` and then `from credbroker import SsoConfigError` (mirroring `test_sso_config.py:18-19`). It contains three tests:
+- [x] **AC2.** `_run()` in `jira/scripts/jira.py` calls `_select_auth_path()` (imported from `._sso_config`) instead of calling `load_sso_config()` inline. The surrounding `try/except Exception → EXIT_USER_ACTION` block remains. The `if sso_config is not None:` branch (the current condition) is replaced by branching on the returned tuple: the `"sso-cookie"` path calls `JiraClient.from_sso_cookies(sso_config)`; the `"token"` path calls `load_credentials()` + `JiraClient(credentials, ...)`. Behavior is identical to today's code.
+- [x] **AC3.** `main_async()` in `confluence-crawler/scripts/crawl_space.py` applies the same delegation — calls `_select_auth_path()` instead of inline `load_sso_config()`, with equivalent surrounding structure.
+- [x] **AC4.** A new `test_auth_selector.py` file exists in **both** skills' `scripts/` directories (byte-identical per the parity constraint). The file opens with `pytest.importorskip("credbroker")` and then `from credbroker import SsoConfigError` (mirroring `test_sso_config.py:18-19`). It contains three tests:
   - **absent → token**: `_select_auth_path(tmp_path / "no-such.toml")` returns `("token", None)`.
   - **valid sso-cookie → sso-cookie**: `_select_auth_path(path_to_valid_fixture)` returns `("sso-cookie", <SsoConfig instance>)`.
   - **malformed → raises**: `_select_auth_path(path_to_malformed_fixture)` raises `SsoConfigError`.
-- [ ] **AC5.** `tools/test-lint-sso-config.py`'s `_DUPLICATED` list is extended to include `"test_auth_selector.py"`, and the parity check passes (both copies byte-identical).
-- [ ] **AC6.** All existing sso-cookie tests still pass: `test_sso_config.py`, `test_sso_client.py`, `test_setup_sso.py`, `test_exit_codes.py` in both skills; `tools/test-lint-sso-config.py` passes (parity + schema-parity + upstream-file lint).
-- [ ] **AC7.** The `_ALLOWED_SSO_KEYS` set in `_sso_config.py` is unchanged (no schema drift; adding `_select_auth_path` must not cause the `lint._ALLOWED_SSO_KEYS != loader._ALLOWED_SSO_KEYS` parity check to fail).
+- [x] **AC5.** `tools/test-lint-sso-config.py`'s `_DUPLICATED` list is extended to include `"test_auth_selector.py"`, and the parity check passes (both copies byte-identical).
+- [x] **AC6.** All existing sso-cookie tests still pass: `test_sso_config.py`, `test_sso_client.py`, `test_setup_sso.py`, `test_exit_codes.py` in both skills; `tools/test-lint-sso-config.py` passes (parity + schema-parity + upstream-file lint).
+- [x] **AC7.** The `_ALLOWED_SSO_KEYS` set in `_sso_config.py` is unchanged (no schema drift; adding `_select_auth_path` must not cause the `lint._ALLOWED_SSO_KEYS != loader._ALLOWED_SSO_KEYS` parity check to fail).
 
 ## Boundaries
 

@@ -230,7 +230,6 @@ queue   = [
   # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
   "spec/site-design-system-spec",                        # site token spec + zone-violation lint
-  "spec/atlassian-sso-cookie-selector-integration-test", # end-to-end test for the auth selector branch
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
 ]
 
