@@ -1,0 +1,94 @@
+[
+  {
+    "query": "What should this error message say?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the empty-state copy for the inbox",
+    "should_trigger": true
+  },
+  {
+    "query": "Name this button \u2014 it submits the form",
+    "should_trigger": true
+  },
+  {
+    "query": "Characterize our product's voice",
+    "should_trigger": true
+  },
+  {
+    "query": "Make this microcopy blame-free",
+    "should_trigger": true
+  },
+  {
+    "query": "Review this copy before it ships",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the label for the password field",
+    "should_trigger": true
+  },
+  {
+    "query": "Our error toasts feel harsh \u2014 rewrite them to be kind",
+    "should_trigger": true
+  },
+  {
+    "query": "What should the loading-state text say?",
+    "should_trigger": true
+  },
+  {
+    "query": "Shape the intent behind the onboarding feature",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a tutorial for the export feature",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the empty-state layout and visual hierarchy",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the API error-response schema",
+    "should_trigger": false
+  },
+  {
+    "query": "Decompose this intent into specs",
+    "should_trigger": false
+  },
+  {
+    "query": "What's the intent behind the new dashboard?",
+    "should_trigger": false
+  },
+  {
+    "query": "Document how to rotate an API token",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the release notes for v2",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique this design doc",
+    "should_trigger": false
+  },
+  {
+    "query": "Make the onboarding feel more intuitive",
+    "should_trigger": false
+  },
+  {
+    "query": "The checkout flow layout isn't working \u2014 help me fix the structure",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the bet for the new pricing tier feature",
+    "should_trigger": false
+  },
+  {
+    "query": "What should we measure post-launch to confirm the bet paid off?",
+    "should_trigger": false
+  },
+  {
+    "query": "Document the first-success event for the onboarding flow",
+    "should_trigger": false
+  }
+]

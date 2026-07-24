@@ -64,7 +64,7 @@ drift:
   primary button, the same empty-state pattern across screens.
 - **States uniform** — a loading state means the same thing everywhere; an error
   is framed the same blame-free way.
-- **Copy voice aligned** — one voice across the flow (hand to `voice-and-microcopy`).
+- **Copy voice aligned** — one voice across the flow (hand to `ux-writing`).
 - **Navigation non-contradictory** — no two screens disagree about where "back"
   goes or what the persistent chrome is.
 

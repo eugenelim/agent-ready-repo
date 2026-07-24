@@ -1,6 +1,6 @@
 ---
 name: content-design
-description: "Use when a designer or product person needs to decide what a surface should say, for whom, in what form, and to what objective — before any wireframe or screen flow is opened. Routes across two surface types: acquisition surfaces (marketing pages, landing pages, web onboarding flows) and product/reference surfaces (help pages, feature reference, in-product wayfinding). Triggers on \"what should this landing page say\", \"write a content brief for our onboarding flow\", \"what's the narrative arc for this marketing page\", \"what does this feature page need to communicate\", \"help me decide the above-fold structure\". Do NOT use to write final copy (use `tone-of-voice` for copy voice, then `voice-and-microcopy` for UI strings), to produce an analytics or CRO measurement framework, or to generate SEO keyword plans. Do NOT use for copy voice — use `copy-direction` (surface) or `tone-of-voice` (brand). Do NOT use for per-state UI strings — use `voice-and-microcopy` in the `product-engineering` pack."
+description: "Use when a designer or product person needs to decide what a surface should say, for whom, in what form, and to what objective — before any wireframe or screen flow is opened. Routes across two surface types: acquisition surfaces (marketing pages, landing pages, web onboarding flows) and product/reference surfaces (help pages, feature reference, in-product wayfinding). Triggers on \"what should this landing page say\", \"write a content brief for our onboarding flow\", \"what's the narrative arc for this marketing page\", \"what does this feature page need to communicate\", \"help me decide the above-fold structure\". Do NOT use to write final copy (use `tone-of-voice` for copy voice, then `ux-writing` for UI strings), to produce an analytics or CRO measurement framework, or to generate SEO keyword plans. Do NOT use for copy voice — use `copy-direction` (surface) or `tone-of-voice` (brand). Do NOT use for per-state UI strings — use `ux-writing` in the `product-engineering` pack."
 ---
 
 # Skill: content-design
@@ -13,7 +13,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real surface with a defined purpose** — a specific page, flow, or section with a business objective. A vague "we need content" is not yet a brief; identify the surface and its goal before proceeding.
 2. **No content brief already exists for this surface** — if one exists, you are amending it, not starting fresh.
-3. **You are deciding direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job and hands off to `tone-of-voice` for voice and `voice-and-microcopy` for UI strings.
+3. **You are deciding direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job and hands off to `tone-of-voice` for voice and `ux-writing` for UI strings.
 4. **You know or can elicit the target audience** — either `journey-mapping` output is available, or you can elicit persona and outcome inline before routing to a sub-path.
 
 ## Procedure
