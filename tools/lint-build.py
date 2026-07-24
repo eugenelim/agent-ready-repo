@@ -33,6 +33,12 @@ from pathlib import Path
 RFC_AUTHORISED_DIRS = (
     "packs",  # RFC-0002 — self-hosting source-of-truth split
     ".agentbundle",  # RFC-0013 — adapter-root-bins/ self-hosted projection (sso-broker.py + helpers)
+    ".agents",  # RFC-0009 — Codex adapter native .agents/skills/ projection
+    ".claude-plugin",  # RFC-0008 — Claude-plugins install-route parity (per-pack SessionStart writer)
+    ".codex",  # RFC-0009 — Codex native skills adapter projection
+    "profiles",  # RFC-0034 — pack profiles (one-command curated pack install)
+    "site",  # RFC-0061 explicitly recognises site/ as sibling to web/; predates the gate, retroactively in-scope
+    "web",  # RFC-0061 — Astro marketing site top-level directory
     "governance",  # RFC-0065 D16 — governance-index template seed projection (governance-extras)
 )
 

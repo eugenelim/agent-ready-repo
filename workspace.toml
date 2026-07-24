@@ -434,7 +434,6 @@ queue   = [
   # Done: FE can't claim completion without evidence manifest; page contract gates
   #   significant UI code; performance and accessibility explicit; pack page +
   #   FE journey + page-contract how-to + performance reference updated.
-  {path = "spec/frontend-engineering-doctrine-update", needs = "work:spec/digital-experience-contract"},
 
   # M5 · Cross-Pack Experience Eval
   # Problem: no cross-pack golden-path eval tests continuity from raw opportunity
@@ -492,6 +491,7 @@ shipped = [
   "spec/digital-experience-contract",              # Shipped 2026-07-23
   "spec/xd-copy-direction",                        # Shipped 2026-07-23 — copy-direction skill + three-way copy boundary
   "spec/product-engineering-shaping-doctrine",     # Shipped 2026-07-23 — PE shaping doctrine; ux-writing rename; thin-slice + learning contract
+  "spec/frontend-engineering-doctrine-update",     # Shipped 2026-07-23 — FE doctrine: four modes, 18 states, WCAG 2.2 AA, CWV targets (core 0.14.0)
 ]
 
 ["ini-003".shaping_queue]
