@@ -1,6 +1,6 @@
 ---
 name: experience-status
-description: "Orient to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next. Triggers on 'where are we with the design', 'what experience artifacts do we have', 'status of the design thread', 'what's next in the design', 'show me what design work exists', or any cold-start orient for the experience-design work thread. Read-only: never writes files, never elicits configuration."
+description: "Orient to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next. Triggers on 'where are we with the design', 'what experience artifacts do we have', 'status of the design thread', 'what's next in the design', 'show me what design work exists', or any cold-start orient for the experience-design work thread. Read-only: never writes files, never elicits configuration. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
 ---
 
 # /experience-status
