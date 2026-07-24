@@ -14,6 +14,10 @@ template** at the Jinja fill-points the designer placed, via
 from scratch — so the cover page, paragraph styles, headers/footers, and any
 placed logo survive.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Prerequisites
 
 This skill is **Tier-1** on `docxtpl` (the exact canonical PyPI package — a real

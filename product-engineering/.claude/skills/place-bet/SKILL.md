@@ -8,6 +8,10 @@ description: Step 5 of the PE six-step shaping sequence — the bet-commitment g
 Commit the team to a chosen direction — producing a structured `bet.md` the
 next step (`map-capabilities`) can reason against.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Run after any validation work (de-risk-intent, validation-notes.md) and before

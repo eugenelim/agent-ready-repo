@@ -8,6 +8,10 @@ description: Adversarially review a research artifact (`<topic-slug>-survey.md`)
 The adversarial review pass. Reads a finding, an artifact, or a claim,
 and tries to take it down with cited counter-evidence.
 
+## Output rendering
+
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+
 ## When to invoke
 
 - **Auto-invoked** by `/desk-research` deep mode against `<topic-slug>-survey.md`.

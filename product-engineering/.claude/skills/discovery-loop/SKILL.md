@@ -24,6 +24,10 @@ hypothesis**: every load-bearing assumption carries a validation hook
 (kill-condition + the real-world activity that would confirm it). Desk-grounding
 is not validation; the loop says so structurally.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## The contract this skill carries
 
 - **The typed sidecar schema** — [`references/sidecar-schema.md`](references/sidecar-schema.md),

@@ -10,6 +10,11 @@ artifacts: the project's own **typed verdict** (for the project's own readers)
 and a **single-file governance brief** that can travel out of the folder into an
 RFC, ADR, or spec.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Inside an existing project folder with a populated digest, on phrasing like

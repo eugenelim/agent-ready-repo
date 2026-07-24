@@ -26,6 +26,11 @@ infrastructure**, and surfaces only the irreducible.
 > (what happened, what state things are in), and wait for human direction. It is
 > the project's house verb, shared with `work-loop` and `discovery-loop`.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## The loop is data, not runtime
 
 This skill ships **no engine** — no daemon, scheduler, orchestrator, cost-gate, or

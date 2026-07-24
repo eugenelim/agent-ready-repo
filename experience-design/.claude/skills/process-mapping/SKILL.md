@@ -9,6 +9,11 @@ Produces an **internal business process map** — the inside-out sibling of `jou
 
 **Inputs:** job aids, SOPs, or work instructions (primary); SME knowledge elicited inline when no documents are present. Both are standalone-useful without upstream design artifacts. **Consumed by:** `product-engineering`'s `frame-intent` skill — this map is the producer of the "current-state process map" input that `frame-intent` uses as a brownfield constraint. **Cross-reference:** when the process being mapped is triggered by a customer action, cross-reference the service blueprint by name (the `service-blueprint` output for the same journey).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
+
 ## When to invoke
 
 Confirm all three before drafting; if any fails, resolve it first.

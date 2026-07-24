@@ -18,6 +18,10 @@ This is a pure-Python skill. `.msg` is read via `olefile` + first-party MAPI
 decoding; `.eml` via the Python stdlib. No Node.js, no ML/OCR model, no network
 call. (See ADR-0046 for the reader decision.)
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Prerequisites
 
 `.eml` conversion needs only the Python standard library. `.msg` conversion needs

@@ -9,6 +9,10 @@ Critique an existing architecture artifact. Severity-tagged findings,
 genre-aware rubric routing, no file write — reviews are throwaway
 artifacts.
 
+## Output rendering
+
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+
 ## When to invoke
 
 Before reviewing, confirm:

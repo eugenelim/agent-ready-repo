@@ -1,6 +1,6 @@
 [pack]
 name = "github"
-version = "0.1.1"
+version = "0.1.2"
 description = "GitHub integration: `github-brief-intake` — turn a GitHub Milestone into a product brief and hand off to `receive-brief`."
 readme = "README.md"
 display_name = "GitHub"

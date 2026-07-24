@@ -9,6 +9,10 @@ Produces a **customer/end-user journey map** — the stages a customer moves thr
 
 **Inputs:** a persona (or role description) and an outcome the customer is trying to achieve. Both are elicited inline when absent — this skill is standalone-useful without upstream research artifacts. **Consumed by:** `user-flow` (derives the screen sequence and per-screen briefs from the journey stages) and `service-blueprint` (maps the frontstage actions to backstage services). When `architect` or `contracts` are not installed, downstream services are named textually rather than by package reference.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm all four before drafting; if any fails, resolve it first.

@@ -16,6 +16,10 @@ It is **prompt-only** (CHARTER Principle 3): no engine, no scorer, no candidate
 generator script — the agent following this body writes the candidates as
 blackboard slots. **No new agent, no new reviewer.**
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 1. There is a **framed intent** to diverge on (from `frame-intent`) — you are

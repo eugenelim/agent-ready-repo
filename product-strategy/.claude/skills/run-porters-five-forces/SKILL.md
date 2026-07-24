@@ -7,6 +7,10 @@ description: Use when a strategist needs to understand the competitive dynamics 
 
 Produces a **competitive landscape analysis** using Porter's Five Forces framework — the structural forces that determine industry attractiveness and competitive pressure. The five forces are: Supplier Power, Buyer Power, Threat of New Entrants, Threat of Substitutes, and Competitive Rivalry. References Porter's framework by name; see `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 1. **An industry boundary is nameable** — the analysis requires a defined market (e.g., "B2B HR software", "direct-to-consumer meal kits"); without it, the forces cannot be assessed.

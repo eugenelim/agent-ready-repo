@@ -12,6 +12,10 @@ deterministically with `marked` + `highlight.js`, post-processes for
 callouts and table wraps, builds a sidebar nav and print TOC from
 heading IDs, and stamps everything into `scripts/template.html`.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Instructions
 
 You are not the renderer. The script is. Invoke it and report the path.

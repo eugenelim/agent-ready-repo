@@ -9,6 +9,10 @@ Classify a raw signal, assess relevant capability maturities, and anchor the
 situation to the PE shaping sequence — so the team knows *what kind of thing
 this is* and *where to enter the six-step loop* before any shaping work begins.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm the signal is **initiative or capability level** (affects a whole
