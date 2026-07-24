@@ -1,6 +1,6 @@
 ---
 name: service-blueprint
-description: Use when you need to map the backing services that fulfil a customer journey — building a service blueprint with four rows (frontstage / line-of-visibility / backstage / support) that ties every screen action to the service or system behind it. Triggers on "service blueprint", "what backs this screen", "map the backstage", "what services support this journey", "blueprint the service". Do NOT use to map the customer journey itself (use `journey-mapping`), to sequence screens and their transitions (use `user-flow`), or to design system components (use `design-system`).
+description: Use when you need to map the backing services that fulfil a customer journey — building a service blueprint with four rows (frontstage / line-of-visibility / backstage / support) that ties every screen action to the service or system behind it. Triggers on "service blueprint", "what backs this screen", "map the backstage", "what services support this journey", "blueprint the service". Do NOT use to map the customer journey itself (use `journey-mapping`), to sequence screens and their transitions (use `user-flow`), or to design system components (use `design-system`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 ---
 
 # Skill: service-blueprint

@@ -1,6 +1,6 @@
 ---
 name: informational-design
-description: "Use when designing an informational surface — an article page, a news or editorial page, a long-form content page, or a content-rich page whose primary purpose is to inform, not to convert or enable tasks. Triggers on 'design the article page', 'structure the editorial page', 'how should the blog look', 'long-form content design', 'reading experience design'. Uses typography as the primary design tool. Do NOT use for documentation (use documentation-design), marketing (use conversion-design), or tool/app surfaces (use workspace-design). Surface genre: informational."
+description: "Use when designing an informational surface — an article page, a news or editorial page, a long-form content page, or a content-rich page whose primary purpose is to inform, not to convert or enable tasks. Triggers on 'design the article page', 'structure the editorial page', 'how should the blog look', 'long-form content design', 'reading experience design'. Uses typography as the primary design tool. Do NOT use for documentation (use documentation-design), marketing (use conversion-design), or tool/app surfaces (use workspace-design). Surface genre: informational. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
 ---
 
 # Skill: informational-design
