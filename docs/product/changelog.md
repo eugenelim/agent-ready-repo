@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`new-guide` skill broadened to create or substantially revise guides (user-guide-diataxis 0.2.0).** The skill now triggers on rewrite, audit, simplify, and modernize requests in addition to new-guide creation — covering pack pages and journey pages alongside the four Diátaxis quadrants. The audience contract is replaced by a seven-field conversation contract (reader, job, natural_start, minimum_scope, first_result, write_boundary, next_request) as the gated checkpoint before any prose is drafted. Per-page-type contracts for all six surface types now live in a dedicated `references/page-contracts.md`. Three new reference files ship with the skill: `conversation-first.md` (sequencing rules), `page-contracts.md` (six surface contracts), and `usability-review.md` (pre-publish checklist). `clear-prose.md` gains a `## Conversation-first structure` section with eight page-level structural rules. Evals updated with revise/audit trigger cases and a conversation-first output-quality rubric. Key doctrine: *Diátaxis determines where information lives. User intent determines how readers enter it.* ([spec](../specs/new-guide-conversation-first/spec.md))
+
 ### Added
 
 - **Story quality gate on `jira: create-issue` (atlassian pack 0.5.0).** The `jira` skill now runs a pre-create quality gate before every `create-issue` call: it detects the invocation repo via `git remote -v` ("Invocation repo" label), then checks the candidate story against the five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR — Q5 added because Jira stories are a legacy capacity-allocation mechanism and oversized stories cannot be handed to a single agent or engineer). Six concrete checks with story-points as the primary Q5 signal. Gate fires on `create-issue` only; `update-issue` is unaffected. ([spec](../specs/jira-story-actionability/spec.md))
