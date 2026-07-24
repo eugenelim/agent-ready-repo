@@ -244,15 +244,17 @@ nav:
         - Converter Skills: guides/converters/reference/converter-skills.md
     - Atlassian:
       - guides/atlassian/README.md
-      - Explanation:
-        - The Atlassian Pack: guides/atlassian/explanation/atlassian-pack.md
+      - Tutorials:
+        - Review Your Team Backlog: guides/atlassian/tutorials/review-your-team-backlog.md
       - How-to:
+        - Work with Jira: guides/atlassian/how-to/work-with-jira.md
         - Authenticate with SSO: guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md
         - Crawl Confluence: guides/atlassian/how-to/crawl-and-publish-confluence.md
         - DORA Metrics: guides/atlassian/how-to/measure-flow-and-dora-metrics.md
-        - Work with Jira: guides/atlassian/how-to/work-with-jira.md
       - Reference:
         - Atlassian Skills: guides/atlassian/reference/atlassian-skills.md
+      - Explanation:
+        - The Atlassian Pack: guides/atlassian/explanation/atlassian-pack.md
     - Figma:
       - guides/figma/README.md
       - How-to:

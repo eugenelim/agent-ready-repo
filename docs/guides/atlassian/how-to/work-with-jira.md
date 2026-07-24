@@ -1,140 +1,265 @@
-# Work with Jira
+# Work with Jira from a conversation
 
-**Use this when:** You need to search, fetch, create, update, or transition Jira issues through the CLI or an agent workflow.
-**Prerequisites:** Jira credentials configured (`JIRA_BASE_URL`, `JIRA_API_TOKEN`); verify with `python scripts/jira.py check`.
-**Result:** JSON or CSV issue data returned, or a created, updated, or transitioned issue visible on the Jira instance.
+Ask in your own words. The agent selects the right workflow, starts read-only, and
+only writes to Jira after you approve the exact change.
 
-Search, fetch, create, and update Jira issues through the [`jira`](../../../../packs/atlassian/.apm/skills/jira/) skill. The skill wraps the Jira REST API behind a CLI and handles Cloud vs Server / Data Center, pagination, ADF wrapping, and output formatting for you.
+**Tasks on this page:**
 
-This is for Jira the issue tracker, not Jira Align — those are separate skills with separate credentials.
+| I want to… | Jump to |
+| --- | --- |
+| Review the whole team backlog | [→ Review the whole team backlog](#review-the-whole-team-backlog) |
+| Find work that is ready to pull | [→ Find ready work](#find-work-that-is-ready-to-pull) |
+| Find blockers and stale work | [→ Find blockers](#find-blockers-and-stale-work) |
+| Make stories actionable | [→ Improve stories](#improve-stories-that-are-not-actionable) |
+| Update approved Jira issues | [→ Update Jira](#update-approved-jira-issues) |
+| Prepare a team summary | [→ Prepare a summary](#prepare-a-team-or-sprint-summary) |
 
-## Before you start
+> **Reviewing and drafting do not change Jira. Only an explicitly approved update
+> request writes to Jira.**
 
-The `jira` skill is credentialed. Verify connectivity first:
+---
 
-```bash
-python scripts/jira.py check
+## Review the whole team backlog
+
+**YOU SAY**
+
+```
+Show me the whole Acme team backlog across APP and API.
+
+Include the current sprint, open backlog, unassigned work, and blocked issues.
+Group everything into:
+
+- ready to pull
+- needs story work
+- blocked
+- in progress
+
+Recommend five items for the team to discuss next.
+Do not change Jira.
 ```
 
-Exit 0 means authenticated — proceed. Exit 2 means you must act: run the `credential-setup` skill to enter `JIRA_BASE_URL`, `JIRA_API_TOKEN`, and (on Cloud) `JIRA_EMAIL`. The model never sees the token — see [Credentialed skills](../../credential-brokers/explanation/credentialed-skills.md).
+**WHAT HAPPENS**
 
-## Search with JQL
+The agent checks Jira credentials, resolves the Acme team scope (it may ask
+which scope to use if two match — board or team field), then reads all open issues
+across APP and API. Read-only. Scope and coverage are disclosed.
 
-JQL filters issues. Quote the whole expression so the shell doesn't split it. The `search` subcommand paginates automatically — Cloud uses `nextPageToken`, Server uses `startAt`.
+**WHAT YOU GET**
 
-```bash
-python scripts/jira.py search "project = PROJ AND status = \"In Progress\""
+A summary showing scope searched, time horizon, issue counts, and a short
+prioritized candidate list. Not a raw issue list.
+
+Example:
+
+```
+Scope: APP and API · Sprint 24 + open backlog · 12 issues (complete result)
+─────────────────────────────────────────────────────
+Ready to pull: 3 · Needs story work: 3 · Blocked: 2 · In progress: 2
+─────────────────────────────────────────────────────
+Top 5 to discuss:
+1. APP-203  Add rate limiting to API gateway       Ready to pull · Standard
+2. API-98   Paginate GET /users endpoint            Ready to pull · Quick
+3. APP-206  Improve performance                     Needs story work
+4. APP-215  Migrate auth service                    Blocked — security review
+5. API-104  Fix search results                      Needs story work
+─────────────────────────────────────────────────────
+APP-220, API-107 unassigned — no sprint assigned.
+Jira was not changed.
 ```
 
-Narrow the payload with `--fields` and cap the result count with `--limit`:
+**WHAT TO ASK NEXT**
 
-```bash
-python scripts/jira.py search \
-  "project = PROJ AND issuetype = Bug ORDER BY created DESC" \
-  --fields "summary,status,priority,created" \
-  --limit 50
+```
+Take the items that need story work and show me why each fails.
 ```
 
-Common JQL shapes:
+---
 
-- `assignee = currentUser() AND resolution = Unresolved`
-- `text ~ "login bug"` (full-text)
-- `labels in (urgent, security)`
-- `"Epic Link" = PROJ-100`
+## Find work that is ready to pull
 
-On Cloud, user-valued clauses need an `accountId`, not a username. Look one up with `list-users --query "<email or name>"`.
+**YOU SAY**
 
-## Export in bulk
-
-For more than ~100 records, stream to disk as JSON Lines. `--format json` buffers the whole list in memory; `jsonl` does not.
-
-```bash
-python scripts/jira.py search \
-  "project = PROJ AND created >= -7d" \
-  --fields "summary,status,created" \
-  --format jsonl --output recent.jsonl
+```
+What can the Acme team pick up next in APP and API?
 ```
 
-`--format csv` is also available for spreadsheet-bound exports.
+**SCOPE ASSUMPTIONS**
 
-## Fetch one issue
+Current sprint in APP and API, or open backlog if no sprint is specified.
 
-```bash
-python scripts/jira.py get-issue PROJ-123 --fields "summary,status,assignee"
+**READ/WRITE**  Read-only.
+
+**WHAT YOU GET**
+
+Items grouped as Quick (≤ half a day), Standard (1–2 days), or Involved (more),
+only those that pass all four readiness conditions:
+
+1. In the selected team scope
+2. In an eligible backlog state (not already in progress or done)
+3. No known unresolved blocker
+4. Meets the [five-question story-readiness bar](#the-five-question-bar)
+
+Items where any condition can't be determined are labelled **needs confirmation**,
+not asserted ready.
+
+**WHAT TO ASK NEXT**
+
+```
+Show me the Quick items with no assignee.
 ```
 
-Custom fields come back as `customfield_10010`-style keys. Resolve their display names with `--expand names`, or pull the full catalog with `python scripts/jira.py raw GET field`.
+---
 
-## Create an issue
+## Find blockers and stale work
 
-Writes are real and visible to everyone on the instance. Confirm the project, fields, and payload before you send. Required fields are almost always `project`, `summary`, and `issuetype`. `--field` values are JSON-parsed when possible, so objects and arrays work:
+**YOU SAY**
 
-```bash
-python scripts/jira.py create-issue \
-  --field 'project={"key":"PROJ"}' \
-  --field summary="Onboarding revamp" \
-  --field 'issuetype={"name":"Task"}' \
-  --field description="Migrate the welcome flow to the new tour."
+```
+What is blocked in the Acme backlog?
+What items haven't been updated this week?
 ```
 
-On Cloud, `description` and `environment` need ADF — the CLI auto-wraps a plain string for those two fields. For richer formatting (lists, code blocks, mentions) pass a pre-built ADF document via `--data-file`.
+**WHAT YOU GET**
 
-## Update an issue
+Blocked items with the blocker named — flagged field, unresolved "is blocked by"
+link, or a status in a team-declared blocked set. Stale items with last-update date.
 
-`update-issue` sends a partial `PUT` — only the fields you pass change, and the API merges rather than replaces:
+**WHAT TO ASK NEXT**
 
-```bash
-python scripts/jira.py update-issue PROJ-123 \
-  --field summary="Onboarding revamp (Q3)"
+```
+Which blocked items have had no update for more than five days?
 ```
 
-Workflow state is the exception. `status` set through `update-issue` is silently ignored — use `transition`:
+---
 
-```bash
-python scripts/jira.py list-transitions PROJ-123
-python scripts/jira.py transition PROJ-123 --to "In Progress"
+## Improve stories that are not actionable
+
+There are two ways to ask:
+
+**Natural:**
+
+```
+Make these stories actionable.
 ```
 
-## Write actionable stories
+**Expert phrasing:**
 
-Before creating a story, check it passes the five-question actionability bar — the same bar the `jira-story-triage` and `jira-team-status` skills use to judge whether work is ready for engineering.
+```
+Apply the five-question bar to the items that need story work.
+```
+
+Both activate the same workflow.
+
+### The five-question bar
 
 > A story is actionable when all five are true:
-> **(Q1)** it is a **self-contained code/config/doc change** — not discovery, design, or coordination work;
-> **(Q2)** it names a **reachable repo or file scope** so the change can be located without a follow-up meeting;
-> **(Q3)** its **acceptance criteria are checkable by diff review alone** — no "TBD", "coordinate with", "decide on", or "prototype";
-> **(Q4)** **no human decision is needed mid-flight** — no open design question, no external approval gate that cannot be confirmed before work starts;
-> **(Q5)** it is **right-sized for one PR** — the scope is an enumerable set of files or PRs a single person or agent can produce without decomposing into sub-stories.
+> **(Q1)** it is a **self-contained code/config/doc change** — not discovery, design,
+> or coordination work;
+> **(Q2)** it names a **reachable repo or file scope** so the change can be located
+> without a follow-up meeting;
+> **(Q3)** its **acceptance criteria are checkable by diff review alone** — no "TBD",
+> "coordinate with", "decide on", or "prototype";
+> **(Q4)** **no human decision is needed mid-flight** — no open design question,
+> no external approval gate that cannot be confirmed before work starts;
+> **(Q5)** it is **right-sized for one PR** — the scope is an enumerable set of files
+> or PRs a single person or agent can produce without decomposing into sub-stories.
 
-Q5 exists because Jira stories are a legacy delivery-capacity allocation mechanism: a story sized for a full sprint passes Q1–Q4 but cannot be handed to a single agent or engineer without decomposition. Use the story-points field as the primary signal (≤ 5pts is one PR; > 5pts is a strong Q5 failure signal).
+**WHAT YOU GET**
 
-If the agent is running inside a git repo, the `jira` skill attaches an "Invocation repo" label to stories it creates — the git remote URL of the repo the agent is running from. Stories that name this repo in their description pass Q2 automatically, which gives the agent a verifiable scope anchor.
+For each weak item:
 
-## Review a backlog, or get a team status
+```
+APP-206 — "Improve performance"
+What is missing:       Q2 (no scope) · Q3 (no metric or ACs)
+Why it prevents action: An engineer can't locate the change or know when done.
+Proposed improvement:  "Reduce p95 on GET /api/products from 800 ms to ≤ 400 ms.
+                        ACs: p95 ≤ 400 ms in load test; histogram added."
+Unresolved question:   None.
+Ready after change?    Yes.
+Jira not changed.
+```
 
-You don't name these skills — you ask in your own words and the right one activates.
+**YOUR DECISION**
 
-- Ask **"which stories are not ready for engineering?"**, **"clean up the weak items in the backlog"**, **"make these tickets actionable"**, or **"draft acceptance criteria for the top five"** and [`jira-story-triage`](../reference/atlassian-skills.md#jira-story-triage) reviews each item, tells you *why* it is not ready (which question failed and the gap), and — on your say-so — drafts the fix and writes it back only after you approve the exact payload.
-- Ask **"what can the team pick up next?"**, **"what is blocked?"**, **"what is sitting unassigned?"**, **"what changed in this sprint?"**, or **"give me a team status for stand-up"** and [`jira-team-status`](../reference/atlassian-skills.md#jira-team-status) returns a read-only snapshot organized by Ready to pull / In progress / Blocked / Unassigned / Needs detail, then offers to start delivery on a ready item (or routes a weak one to `jira-story-triage`).
+Review each draft. If a draft is wrong, say so — the agent revises without touching
+Jira. When you're satisfied, move to the approval step.
 
-The split: `jira-team-status` *surfaces where work stands and what to pick up*; `jira-story-triage` *judges readiness in depth and fixes weak items*.
+---
 
-### What "ready to pull" means
+## Review → Draft → Approve → Write
 
-`jira-team-status` treats an item as **ready to pull** only when all four hold — it is **not** a silent `status = "To Do"`:
+These four phases are always separate. The agent never skips from reading to writing.
 
-1. it belongs to the **selected team scope** (the project, board, sprint, or team field you asked about);
-2. it is in an **eligible backlog state** — by default Jira's `statusCategory = "To Do"` (which spans Backlog / To Do / Selected for Development / Open across any instance, and excludes work already In Progress or Done). **Your team can override** the eligible statuses — name your own (e.g. "Ready for Dev") and the rule uses those;
-3. it has **no known unresolved blocker** — the Flagged/impediment field is unset, no unresolved "is blocked by" link, and its status is not in a blocked set you declared;
-4. it **meets the story-readiness bar** — the five questions above.
+| Phase | What happens | Jira changes? |
+| --- | --- | --- |
+| Review | Read all issues; group by state | No |
+| Draft | Propose improvements per item | No |
+| Approve | You confirm exact issues and fields | No |
+| Write | Agent updates only approved items | **Yes** |
 
-When any clause can't be determined for an item (its status doesn't map cleanly, the blocker field isn't readable, readiness is ambiguous), the item is labelled **needs confirmation** — the skill never claims an item is ready, or not ready, on a signal it couldn't read.
+---
 
-## Pitfalls
+## Update approved Jira issues
 
-- **A 401** means the credential is invalid or expired (exit 2) — regenerate the token and re-run `credential-setup`.
-- **A 403** means authenticated but forbidden (missing permission) — relay the message, don't retry.
-- **`delete-issue` refuses to run without `--yes`**, and there is no undo. Only add `--yes` when you explicitly mean to delete.
-- **A JQL parse error** comes back as a 400 naming the offending token. Quote string literals inside the JQL with double quotes and shell-quote the whole expression.
+**YOU SAY**
 
-For the complete subcommand and flag surface, see the [`atlassian` skills reference](../reference/atlassian-skills.md).
+```
+Update APP-206, APP-219, and API-104 with the approved drafts.
+Leave every other issue unchanged.
+Do not change status, assignee, priority, sprint, or labels.
+```
+
+**BEFORE WRITING** — the agent shows a write confirmation:
+
+```
+Issues to update:  APP-206, APP-219, API-104
+Field to change:   description
+Protected fields:  status, assignee, priority, sprint, labels
+Total writes:      3
+─────────────────────────────────────────────────────
+[Cancel]   [Apply all three]
+```
+
+**AFTER WRITING** — the agent confirms what changed and what didn't, with links
+to each updated issue. Partial success (one write failed) is reported explicitly,
+with a retry path.
+
+---
+
+## Prepare a team or sprint summary
+
+**YOU SAY**
+
+```
+Give me a stand-up summary for the Acme team.
+Include progress, blockers, risks, and what is ready next.
+
+Then prepare a concise weekly version suitable for the Acme Confluence space.
+Do not publish until I approve it.
+```
+
+**WHAT YOU GET**
+
+A stand-up block (in-progress, ready, blocked, risks) and a Confluence draft.
+The draft is not published until you say so.
+
+---
+
+## Common follow-ups
+
+```
+Which ready items have no assignee?
+Which blocked items have had no update this week?
+Show only backend-ready work.
+What changed since yesterday?
+Turn this into a stand-up summary.
+Prepare a Confluence update, but do not publish it.
+```
+
+---
+
+## Want the full start-to-finish walkthrough?
+
+See the [tutorial: Review your team's Jira backlog from start to finish](../tutorials/review-your-team-backlog.md).
+
+For exact skill contracts, limits, and field lists: [Atlassian skills reference](../reference/atlassian-skills.md).
