@@ -60,11 +60,10 @@ backlog = [
   {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research"},
   # Shaping items — PE picks up when upstream research is done
   "ini-002-initiative-brief",
-  # No longer blocked (2026-07-24): m2-frame-situation and m2-map-capabilities have
-  # shipped, so the two items below are ready to shape. `needs` retained as provenance;
-  # both edges now resolve satisfied.
-  {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
-  {slug = "capability-map-ini-002",  needs = "work:spec/m2-map-capabilities"},
+  # Ready to shape (2026-07-24): their upstream (m2-frame-situation, m2-map-capabilities)
+  # has shipped, so the dependency edges were dropped — these are unconditional now.
+  {slug = "opp-assessment-pe-pack"},
+  {slug = "capability-map-ini-002"},
   # Post-pilot rollout shaping — RFC-0064 Amendment #4 cross-pack overlay.
   # Deliverable after shaping: one appetite-bounded formal brief whose independently
   # shippable slices cover the remaining ratified Level B packs (beyond the three
@@ -72,7 +71,7 @@ backlog = [
   # recovery, eval, and only necessary skill change. Must audit P2/P3/P4 guides and
   # existing tutorials before proposing work. No longer blocked (2026-07-24): all
   # three pilots have shipped (evidence base complete) — ready to shape.
-  {slug = "nontechnical-pack-first-value-rollout", type = "shape", needs = ["work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  {slug = "nontechnical-pack-first-value-rollout", type = "shape"},
   # Portfolio outcome entry-surfaces — design (RFC-0064 Amendment #4). Deliverable
   # after shaping: a surface/flow brief for homepage, catalogue, pack pages, READMEs,
   # journeys, and docs routing that consumes the contract and routes by plain-language
@@ -80,7 +79,7 @@ backlog = [
   # site-design-system-spec, and P5's Astro project index; reference those owners.
   # No longer blocked (2026-07-24): the contract is ratified and all three pilots
   # have shipped — ready to shape.
-  {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  {slug = "portfolio-outcome-entry-surfaces", type = "design"},
 ]
 
 ["ini-002".brief_queue]
