@@ -5,10 +5,13 @@
   {"query": "Create an altitude-0 forcing function for our product direction", "should_trigger": true},
   {"query": "Write the press release + FAQ for our upcoming launch", "should_trigger": true},
   {"query": "I need a PRFAQ to align the team before engineering starts", "should_trigger": true},
+  {"query": "What does first success look like for this product? I want to write the PRFAQ around it", "should_trigger": true},
 
   {"query": "Write the marketing copy for our homepage", "should_trigger": false},
   {"query": "Draft the product spec for the new feature", "should_trigger": false},
   {"query": "Run a SWOT analysis on our product", "should_trigger": false},
   {"query": "Define our content strategy", "should_trigger": false},
-  {"query": "Cascade OKRs to team level", "should_trigger": false}
+  {"query": "Cascade OKRs to team level", "should_trigger": false},
+  {"query": "Write a polished vision statement for our product — make it inspiring but keep it high-level and don't name specific choices yet", "should_trigger": false},
+  {"query": "Write the press release but skip the customer FAQ — we don't have answers to hard questions yet", "should_trigger": false}
 ]
