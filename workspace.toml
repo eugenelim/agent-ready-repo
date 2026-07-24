@@ -1073,9 +1073,13 @@ open = [
   # Shape: [organization] preferred_adapter = "cursor" — silently overridden by an
   #   explicit --adapter flag; ignored when the pack's allowed-adapters list doesn't
   #   include it; never persisted in state (it's a convenience default, not provenance).
-  # Unblocks when: ini-004 spec/organization-artifactory-bootstrap ships (the
-  #   [organization] block in install-defaults.toml is already the right home).
-  {slug = "install-defaults-preferred-adapter-hint", needs = "ini-004:work:spec/organization-artifactory-bootstrap"},
+  # Note: RFC-0046 mentioned an "in-repo adapter override" (repo-scoped, overrides
+  #   user preference) as a possible follow-on. That concept is NOT pursued — a cloned
+  #   repo directing which adapter paths get written has the same trust boundary problem
+  #   as repo-scoped source (blocked by ADR-0036). The org preferred-adapter hint here
+  #   is the right level: org-distributed in the packaged wheel, not repo-injected.
+  # Separable from ini-004: touches install-defaults.toml and install.py independently.
+  {slug = "install-defaults-preferred-adapter-hint"},
 
   # Live-install transcripts for apm install of core (project scope), converters
   # (user scope), and per-target characterisation at Copilot/Cursor/Gemini are
