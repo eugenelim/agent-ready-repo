@@ -10,7 +10,7 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
-whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. You get lint, typecheck, and tests as mechanical gates. Three specialist reviewers read every diff cold. The loop cannot self-certify — it always surfaces to you for plan approval and PR merge."
+whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. You get lint, typecheck, and tests as mechanical gates. Three specialist reviewers read every diff cold. The loop cannot self-certify — it always surfaces to you for plan approval and PR merge. The core pack's frontend-engineering skill fills the Frontend Engineering section of the Digital Experience Contract — the shared schema that enforces continuity from strategy to rendered evidence."
 skills:
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews — mechanical gates and human checkpoints the agent cannot bypass."

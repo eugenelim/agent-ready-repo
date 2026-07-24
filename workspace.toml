@@ -238,6 +238,318 @@ queue   = [
   "spec/new-guide-conversation-first",                  # user-guide-diataxis 0.2.0: conversation-first doctrine + revised procedure + evals
 ]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ini-003 · Digital Experience Doctrine
+#
+# Cross-pack doctrine update across experience-design, product-engineering,
+# product-strategy, and core (frontend-engineering). Mission: change the
+# definition of done so digital work is complete only when it produces an
+# observable outcome, not merely a valid artifact or green build.
+#
+# Introduces the Digital Experience Contract as the shared cross-pack primitive.
+# Closes all phantom handoffs (design-system-foundations, copy-direction
+# boundary, voice-and-microcopy). Requires the following pre-implementation
+# decisions to be ratified in RFC-0071 before any M1+ spec starts:
+#   1. Contract storage: pack-local references/digital-experience-contract.md
+#      with deterministic drift check (preserves independent installability).
+#   2. voice-and-microcopy stays in product-engineering; frontmatter boundary
+#      wording updated in both packs.
+#   3. design-system-foundations as new XD skill (distinct job: apply the
+#      token taxonomy; distinct from design-system which derives the method).
+#   4. copy-direction extends tone-of-voice frontmatter; not a new skill.
+#   5. FE four modes (create/retrofit/audit/verify) as conditional sections
+#      within one SKILL.md, not separate skills.
+# ─────────────────────────────────────────────────────────────────────────────
+["ini-003"]
+name      = "Digital Experience Doctrine"
+status    = "active"
+milestone = "M1 · Contract + Governance"
+
+["ini-003".work]
+active  = [
+  # GOVERNANCE GATE — RFC-0071 (docs/rfc/0071-digital-experience-doctrine.md).
+  # Accepted 2026-07-23. Resolves D1–D10; see RFC for decisions.
+  # Accepts RFC-0062 (copy-direction) and implements RFC-0066 D7 (ux-writing rename).
+  # New shared convention (Digital Experience Contract) + new skills
+  # (design-system-foundations, copy-direction) require an RFC gate per governance.
+  # Spec: docs/specs/rfc-digital-product-experience-doctrine/spec.md
+  "spec/rfc-digital-product-experience-doctrine",
+]
+queue   = [
+
+  # M1 · Digital Experience Contract
+  # Problem: no shared artifact connects strategy → PE → XD → FE. Each
+  #   discipline outputs isolated artifacts with no continuity check across
+  #   outcomes, terminology, first-success events, or journey.
+  # Deliver: canonical contract schema (markdown template, schema-version: "1.0")
+  #   in each pack's references/ with deterministic drift check; ownership map;
+  #   risk modes (explore/pilot/production field sets); graceful capability-detection
+  #   rules (safe fallback + provisional label when a skill is absent).
+  #   Site/guide: short explanation guide in docs/guides/core/explanation/ describing
+  #   the contract, its three risk modes, and which skills read/write which fields;
+  #   a brief cross-reference note added to each affected pack's journey page (web/
+  #   and site/) pointing to the contract explanation.
+  # Done: all four packs reference the same field set; drift check green;
+  #   explanation guide published; pack journey pages reference the contract.
+  # spec/digital-experience-contract — Shipped 2026-07-23; moved to shipped below.
+  # {path = "spec/digital-experience-contract", needs = "work:spec/rfc-digital-product-experience-doctrine"},
+
+  # M2a · Product Strategy Adoption Doctrine
+  # Problem: product-strategy pack doesn't explicitly own adoption hypothesis,
+  #   first-success event, value loop, or causal metric tree. A strategy can
+  #   ship polished and choice-free, leaving first-success ownerless until a
+  #   growth pack exists.
+  # Deliver: 14-point strategy output structure (situation+diagnosis through
+  #   strategy-to-experience implications); strategy-to-experience section with
+  #   8 named fields; anti-pattern review (vision-without-choices, launch-as-
+  #   adoption, moat-without-mechanism, etc.); updated triggers + near-misses
+  #   across all PS skills; updated evals with weak fixtures (polished-but-
+  #   choice-free strategy, metric list without causal tree, unsupported moat
+  #   claim, etc.); define-content-strategy / XD content-hierarchy boundary
+  #   clarified in frontmatter.
+  #   Site/guide: update product-strategy pack page (web/ + site/) — jobs-first
+  #   layout; add how-to guide for authoring an adoption hypothesis + causal
+  #   metric tree; update product-strategy journey page to reflect the new
+  #   14-point output and strategy-to-experience handoff.
+  # Done: PS skills explicitly own adoption hypothesis + causal metric tree;
+  #   weak fixtures fail; pack page + journey page + adoption-hypothesis how-to
+  #   guide published.
+  {path = "spec/product-strategy-adoption-doctrine", needs = "work:spec/digital-experience-contract"},
+
+  # M2b · Product Engineering Shaping Doctrine
+  # Problem: PE shaping flow produces a complete brief but doesn't require a
+  #   thin end-to-end slice, first-success operationalization, or post-launch
+  #   learning contract. Gate language uses internal IDs. Options divergence is
+  #   a fixed-number ritual, not a decision-exposing minimum. voice-and-microcopy
+  #   rename to ux-writing (RFC-0066 D7, deferred) is included here since this
+  #   spec touches all PE skill boundary labels.
+  # Deliver: 19-field shaping output structure including thin-slice required
+  #   field and post-launch learning contract; thin-slice requirement in
+  #   place-bet (one user can begin a real task, reach a meaningful result,
+  #   encounter/recover from one material failure, and produce instrumentation);
+  #   evidence ladder (observed/supported/inferred/assumed/unknown); risk-selected
+  #   specialist lenses (product/experience/architecture/safety default + conditional
+  #   additions); plain-English gate language; voice-and-microcopy → ux-writing
+  #   rename per ADR-0038 alias-free precedent (grep-verified count required before
+  #   rename ships — mirrors RFC-0066 D7 verification requirement); updated evals
+  #   with weak fixtures (five fake alternatives, no first success, component-layer
+  #   slice, bet with no instrumentation, handoff saying "make it intuitive").
+  #   Site/guide: update product-engineering pack page (web/ + site/) — jobs-first;
+  #   update PE journey page (thin-slice + learning-contract steps visible); update
+  #   place-bet how-to guide to show what a good thin-slice definition looks like;
+  #   add how-to guide for writing a post-launch learning contract.
+  # Done: PE output always includes first-success + thin slice + learning contract;
+  #   gate language is human-readable; voice-and-microcopy → ux-writing complete
+  #   in PE pack + XD pack cross-references; weak fixtures fail; pack page + journey
+  #   + relevant how-to guides updated.
+  {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
+
+  # XD prerequisite · copy-direction (fulfills RFC-0062 — Accepted 2026-07-23)
+  # Governance: RFC-0062 (Accepted), not RFC-0071. RFC-0071 accepted RFC-0062;
+  #   this spec is its implementation, tracked here for ini-003 coordination.
+  # Problem: RFC-0062 designed copy-direction as a full new XD skill. content-design
+  #   landed; copy-direction did not. The three-way copy boundary (copy-direction /
+  #   ux-writing / content-design) must be settled before xd-skill-boundaries (M3a)
+  #   can install frontmatter near-miss guards that reference copy-direction by name.
+  # Deliver: copy-direction SKILL.md per RFC-0062 design (copy twin of
+  #   creative-direction; produces copy-direction.md capturing copy voice goals,
+  #   copy precedents, and copy arbitration rules; scope boundary: marketing/
+  #   acquisition copy voice + positioned copy; feeds ux-writing for per-state
+  #   strings); reference tree; activation eval; XD pack version bump.
+  #   Site/guide: update experience-design pack page (web/ + site/) to list
+  #   copy-direction; update design journey page to include copy-direction in
+  #   the design thread sequence; add how-to guide for the three-way copy boundary
+  #   (copy-direction / ux-writing / content-design — when to use which).
+  # Done: copy-direction skill exists; three-way boundary documented in all three
+  #   skill frontmatter entries; RFC-0062 Date closed confirmed; pack page + journey
+  #   + boundary how-to guide updated.
+  {path = "spec/xd-copy-direction", needs = "work:spec/digital-experience-contract"},
+
+  # M3a · XD Skill Boundaries
+  # Problem: XD skill frontmatter descriptions are artifact-named not natural-
+  #   language-triggered; near-misses don't guard adjacent disciplines. 20
+  #   skills (19 + new copy-direction) need consistent boundary language. The
+  #   three-way copy boundary (copy-direction / ux-writing / content-design)
+  #   is settled by spec/xd-copy-direction before this spec runs.
+  # Deliver: updated trigger descriptions + near-misses across all 20 XD skills
+  #   using natural requests (redesign this experience / make this onboarding
+  #   understandable / etc.); explicit near-miss guards for strategy, PE shaping,
+  #   and routine FE; tone-of-voice frontmatter updated to note its upstream
+  #   (copy-direction) and downstream (ux-writing) neighbors; all three copy-
+  #   layer boundaries explicit in frontmatter not buried prose.
+  #   Site/guide: update experience-design pack page (web/ + site/) — trigger
+  #   language and near-miss guards visible to adopters; ensure all 20 skill
+  #   listings on pack page use the new natural-language descriptions.
+  # Done: natural requests route correctly; near-misses prevent discipline bleed;
+  #   full three-way copy boundary is explicit in frontmatter; pack page updated.
+  {path = "spec/xd-skill-boundaries", needs = ["work:spec/digital-experience-contract", "work:spec/xd-copy-direction"]},
+
+  # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
+  # Problem: design-system produces a token taxonomy (method only; explicitly
+  #   refuses values). No skill bridges "derived taxonomy" → "set up this project's
+  #   token foundation" — phantom handoff. design-system's trigger "set up design
+  #   tokens" would clash with the new design-system-foundations skill. design-system
+  #   also misdescribes DTCG as "the W3C Design Tokens interchange shape."
+  # Deliver: rename design-system → design-token-taxonomy (ADR-0038 alias-free;
+  #   grep-verified sweep required; updated triggers: "derive a token taxonomy /
+  #   name our tokens by semantic role / derive our spacing and type scale"; near-miss
+  #   added: "set up / implement design tokens → design-system-foundations"); corrected
+  #   DTCG description; new design-system-foundations skill (lightweight mode: semantic
+  #   colors, typography, spacing, radius, focus, key statuses, responsive rules, core
+  #   components; full mode: DTCG 2025.10-compatible token source, light/dark themes,
+  #   semantic aliases, full component anatomy, generated platform outputs);
+  #   FE genre routing updated; XD pack version bump + evals.
+  #   Site/guide: update experience-design pack page to list design-system-foundations
+  #   and show the renamed design-token-taxonomy; update design journey page to show
+  #   the two-step design system chain (derive taxonomy → apply foundations); add
+  #   how-to guide covering when to use lightweight vs. full mode; update FE genre
+  #   routing how-to to reference design-system-foundations by name.
+  # Done: phantom handoff eliminated; design-token-taxonomy and design-system-foundations
+  #   have non-overlapping activation triggers; DTCG description accurate; pack page
+  #   + journey + how-to guides updated.
+  {path = "spec/xd-design-system-foundations", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
+
+  # M3c · XD Information Architecture, Page Archetypes, Product Objects
+  # Problem: XD has no page archetype references for key surface types (12+
+  #   types). No product-object mapping guidance. Card-use test not formalized.
+  #   Attention contract and read/write permission contract undefined.
+  # Deliver: references/page-archetypes.md covering ≥12 surface types (marketing
+  #   landing, onboarding, product workspace, dashboard/admin, transactional
+  #   flow, pack/catalogue, journey, tutorial, task how-to, reference index,
+  #   explanation, multi-surface) each with primary user, job, first-screen
+  #   contract, primary action, expected result, next action, proof, read/write
+  #   consequence, critical states, navigation behavior; product-object mapping
+  #   guidance (object the user creates / receives / inspects / changes / approves;
+  #   visual weight requirement); card-use test and non-card alternatives; attention
+  #   contract (no-action / optional-progress / decision-required / blocked-pending);
+  #   read/write permission contract (read-only / draft / proposed-write /
+  #   confirmed-write / destructive / undo-recovery).
+  #   Site/guide: add IA how-to guide (page archetypes — when to use which, with
+  #   the 12+ archetype quick-reference); update marketing site and docs site
+  #   pages that are the strongest examples of each archetype to link to the
+  #   relevant archetype spec; update design journey page to show IA + product-
+  #   object mapping as named steps.
+  # Done: IA skill references archetypes; product-object mapping is a required
+  #   workflow step; card-use test documented; IA how-to guide + archetype
+  #   reference published; design journey page updated.
+  {path = "spec/xd-ia-archetypes-objects", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
+
+  # M3d · XD State Coverage, Experience Reviewer Three Passes, Evals
+  # Problem: quality-floor.md state set is incomplete (missing offline, blocked,
+  #   destructive-confirmation, long-content, large-data-set, high-zoom, reduced-
+  #   motion, keyboard-only). design-review skill does a single-pass review.
+  #   Weak eval fixtures don't reflect current failure modes.
+  # Deliver: complete state set (18 states) in quality-floor.md; three-pass
+  #   experience-reviewer (pass 1: cold-read with audience+job+rendered only;
+  #   pass 2: primary task + one unhappy path, desktop/tablet/mobile, keyboard
+  #   + focus + zoom + reduced-motion; pass 3: contract review across all
+  #   disciplines); severity tiers (blocker / concern / suggestion) with rules
+  #   (don't soften a11y failure to suggestion; don't present aesthetic preference
+  #   as usability defect); rendered evidence required when rendered surface exists;
+  #   updated evals with weak fixtures (architecture-first hero, inventory-first
+  #   pack page, every-section-as-cards, desktop-only, missing permission states,
+  #   attractive-UI-with-unclear-write-consequences).
+  #   Site/guide: update design-review how-to guide to show the three-pass
+  #   structure and severity rubric; update state coverage reference in docs
+  #   (expand state table to 18 states with example treatment per state);
+  #   update design journey page to show design-review three-pass as the
+  #   explicit gate before handoff to FE.
+  # Done: all 18 states covered; reviewer three passes enforced; rendered
+  #   evidence required; weak fixtures fail; design-review how-to + state
+  #   reference + journey page updated.
+  {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
+
+  # M4 · Frontend Engineering Doctrine Update
+  # Problem: frontend-engineering lacks four explicit modes (create/retrofit/
+  #   audit/verify), a required page/screen contract before significant UI code,
+  #   explicit WCAG 2.2 AA baseline, browser policy, CWV performance targets,
+  #   a card-use check, complete state coverage, brownfield inspection, multi-
+  #   surface shell contract, and an evidence manifest as a required output.
+  # Deliver: four-mode structure (conditional sections in one SKILL.md, not
+  #   separate skills) for create/retrofit/audit/verify; page/screen contract
+  #   (12 fields: target user, primary job, primary action, expected result, next
+  #   action, first-screen content, product proof, read/write consequence, critical
+  #   states, responsive behavior, a11y requirements, measurement event —
+  #   proportional to risk and scope, not a ritual for trivial components); 18-
+  #   state coverage; WCAG 2.2 AA default; Baseline Widely Available browser
+  #   policy; CWV targets (LCP ≤2.5s / INP ≤200ms / CLS ≤0.1 at p75) with
+  #   asset budgets (JS, images, fonts, third-party, hydration, route-level,
+  #   long tasks); brownfield inspection checklist (what-to-preserve, duplicated-
+  #   systems, hard-coded values, a11y-debt, responsive-debt, visual-regression-
+  #   risk); evidence manifest (routes, viewports, browsers, states, screenshots,
+  #   a11y result, perf result, console/network result, analytics events, known
+  #   exceptions, unverified items); conditional public-surface guidance (metadata,
+  #   canonical URLs, sitemaps, structured data, search indexing intent).
+  #   Site/guide: update core/FE pack page (web/ + site/) with four-mode
+  #   description + jobs-first layout; update FE journey page to show page/
+  #   screen contract, evidence manifest, and CWV gate as named steps; add
+  #   how-to guide for filling the page/screen contract (when is it required,
+  #   what each field means, proportional application examples); add performance
+  #   targets quick-reference (CWV values + asset budgets by surface type).
+  # Done: FE can't claim completion without evidence manifest; page contract gates
+  #   significant UI code; performance and accessibility explicit; pack page +
+  #   FE journey + page-contract how-to + performance reference updated.
+  {path = "spec/frontend-engineering-doctrine-update", needs = "work:spec/digital-experience-contract"},
+
+  # M5 · Cross-Pack Experience Eval
+  # Problem: no cross-pack golden-path eval tests continuity from raw opportunity
+  #   through strategy → PE → XD → FE → rendered evidence → measurement. No
+  #   multi-intent routing examples. No deterministic checks for phantom handoffs,
+  #   contract field presence, or pack-copy drift.
+  # Deliver: golden-path eval (≥4 fixture types: public marketing+docs, SaaS
+  #   onboarding+workspace, internal dashboard, transactional service) evaluating
+  #   contract continuity, first-success continuity, strategy traceability, journey
+  #   continuity, product-object visibility, state coverage, responsive behavior,
+  #   accessibility, performance, instrumentation, uncertainty, reviewer findings;
+  #   multi-intent routing examples (audit-and-rebuild / full-stack-from-opportunity /
+  #   unify-marketing-docs-onboarding) that route across disciplines; weak
+  #   regression fixtures generalized from current failure modes; deterministic
+  #   checks (referenced skill exists, no phantom handoff, contract fields present
+  #   for risk mode, pack-copy drift ≤0, evidence manifest entries present);
+  #   all new evals start report-only (calibrate before promoting to gates).
+  #   Site/guide: add a brief how-to guide explaining how to run the cross-pack
+  #   eval, interpret the report-only output, and promote a fixture to a gate.
+  # Done: one cross-pack eval discriminates coherent from locally-polished-but-
+  #   globally-weak; deterministic checks pass; report-only mode green; eval
+  #   how-to guide published.
+  {path = "spec/cross-pack-experience-eval", needs = [
+    "work:spec/product-strategy-adoption-doctrine",
+    "work:spec/product-engineering-shaping-doctrine",
+    "work:spec/xd-skill-boundaries",
+    "work:spec/xd-design-system-foundations",
+    "work:spec/xd-ia-archetypes-objects",
+    "work:spec/xd-state-reviewer-doctrine",
+    "work:spec/frontend-engineering-doctrine-update",
+  ]},
+
+  # M6 · Cross-Pack Integrative Guides (phase-slice doctrine: per-discipline
+  #   guides ship with their discipline spec above; this spec covers only the
+  #   integrative content that requires all disciplines to be complete first)
+  # Problem: no end-to-end tutorial shows the full
+  #   strategy→PE→XD→FE→rendered-review→measurement arc using a realistic
+  #   example. No cross-pack intent indexes ("I want to…" → skill or workflow).
+  #   No "under the hood" skill inventory restructure for pack pages that spans
+  #   multiple disciplines in one surface (marketing site + docs site + journeys).
+  # Deliver: end-to-end tutorial (realistic digital-product example — marketing
+  #   site or SaaS onboarding — expected outputs at each stage, where assumptions
+  #   remain, first step that changes code or remote state); cross-pack intent
+  #   indexes ("I want to…" → which pack + skill + guide for each common starting
+  #   job); audit of marketing site (web/) and docs site (site/) journey pages to
+  #   confirm all per-discipline guide updates from M2a–M5 are reflected; any
+  #   missing cross-discipline surface link-throughs added.
+  # Done: adopter can follow tutorial cold without repo knowledge; cross-pack
+  #   intent indexes route any common starting job to the right skill; web/ and
+  #   site/ journey pages are consistent with the full updated doctrine.
+  {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
+]
+shipped = [
+  "spec/digital-experience-contract",  # Shipped 2026-07-23
+]
+
+["ini-003".shaping_queue]
+active  = []
+backlog = []
+
 # Repo-level backlog — open work not scoped to any active initiative.
 # Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
 # Entries are inline objects: {slug, needs?, source?} where:
@@ -456,17 +768,11 @@ open = [
   # Unblocks when: a test fixture can register a stub MCP retrieval tool.
   {slug = "live-mock-mcp-detection-qa"},
 
-  # aesthetic-direction explicitly refuses to produce token values ("no palette, font
-  # name, or spacing value here — hand off to design-system-foundations") but the
-  # design-system-foundations skill does not exist in the experience pack. An adopter
-  # who completes aesthetic-direction has named goals but no path to a token set.
-  # Option A: author design-system-foundations skill (direction doc → color roles,
-  #   type scale, spacing rhythm, elevation, motion tokens).
-  # Option B: extend aesthetic-direction to include a lightweight token scaffold,
-  #   removing the phantom handoff.
-  # Fix: open an RFC scoping the option decision and the boundary with design-critique.
-  # Unblocks when: an RFC is opened to resolve the option decision.
-  {slug = "design-system-foundations-skill-gap"},
+  # RFC-0071 D3a resolved this: Option A (new design-system-foundations skill) is
+  # accepted. Implementation tracked as spec/xd-design-system-foundations in ini-003.
+  # This backlog entry closes when spec/xd-design-system-foundations ships.
+  # Unblocks when: spec/xd-design-system-foundations is Shipped.
+  {slug = "design-system-foundations-skill-gap", needs = "ini-003:work:spec/xd-design-system-foundations"},
 
   # RFC-0062 OQ1. Extend experience-reviewer's scope to include content briefs
   # (type: content-brief) as a reviewable artifact type. The content-design skill
@@ -475,6 +781,86 @@ open = [
   #   experience-reviewer's reviewable artifact set.
   # Ready — RFC-0062 content-design-skill spec is Shipped; this item is now actionable.
   {slug = "experience-reviewer-content-brief-scope"},
+
+  # spec/digital-experience-contract deferred AC. No product-engineering journey page
+  # exists in web/src/content/journeys/; the PE journey page is authored by
+  # spec/product-engineering-shaping-doctrine. Once that page ships, add a sentence
+  # referencing the Digital Experience Contract to its whatChanges field.
+  # File: web/src/content/journeys/product-engineering.md (new, in that spec).
+  # Unblocks when: spec/product-engineering-shaping-doctrine is Shipped.
+  {slug = "digital-experience-contract-pe-journey-xref", source = "spec/digital-experience-contract AC15", needs = "ini-003:work:spec/product-engineering-shaping-doctrine"},
+
+  # spec/digital-experience-contract deferred AC. The drift check
+  # (tools/check-contract-drift.py) ships as an on-demand tool. Promoting it to a
+  # build-check gate requires calibration evidence: at least two drift-check passes on
+  # the live repo with no false positives, confirming exit-0 stability on clean copies.
+  # Fix: after two clean passes on origin/main, wire the check into build-check.yml
+  #   and remove the deferred marker from spec/digital-experience-contract AC16.
+  # Unblocks when: two clean drift-check passes are recorded (manual or CI).
+  {slug = "contract-drift-check-gate-promotion", source = "spec/digital-experience-contract AC16"},
+
+  # ini-003 follow-on. After the Digital Experience Doctrine initiative ships, the four
+  # packs (product-strategy, product-engineering, experience-design, core) form a coherent
+  # digital product chain with a shared contract, skill boundaries, and a cross-pack eval.
+  # The catalogue's current user-scope profiles don't serve the "digital product maker"
+  # persona — the three existing profiles are: solution-architect (architect+research+
+  # contracts, infrastructure focus), inception (research+PE+architect, tech venture
+  # focus), and full-ceremony (repo governance bundle, repo scope). None target the person
+  # who owns strategy→shaping→experience→build for a digital product end to end.
+  #
+  # Profile holistic analysis (all four profiles through an adoption lens):
+  #   solution-architect: correctly scoped; stays as-is. The infrastructure/system
+  #     architect persona is distinct from the digital product maker.
+  #   full-ceremony (repo): correctly scoped; stays as-is. Governance bundle, not a
+  #     discipline toolkit.
+  #   inception (user): desk-research+product-engineering+architect. The `architect`
+  #     pack serves a tech-founding persona (system design before build). For a pure
+  #     digital product inception, product-strategy matters more than architect; but
+  #     amending inception changes its meaning and breaks adopters already using it.
+  #     Decision for the spec: whether to (A) amend inception to swap/add product-strategy
+  #     alongside architect, or (B) leave inception as-is for tech ventures and let the
+  #     new profile serve the digital product persona. Recommendation: B — leave inception
+  #     targeting the "tech founder / solo dev" shape; the new profile targets the
+  #     "product maker / digital team" shape. The personas are genuinely different.
+  #   digital-product (new, user): product-strategy+product-engineering+experience-design
+  #     +desk-research. The complete four-discipline toolkit for digital product work.
+  #     Note: core (frontend-engineering) stays repo-scope; it installs per-repo, not as
+  #     a portable user skill. The user-scope profile gives the practitioner their thinking
+  #     toolkit; the repo-scope core pack covers the build layer.
+  #
+  # Fix: author the spec covering:
+  #   1. New `profiles/digital-product.toml` (user scope): product-strategy +
+  #      product-engineering + experience-design + desk-research, deps-first ordered.
+  #   2. Decision confirmation that `inception` stays as-is (or amend if the evidence
+  #      from ini-003 adoption changes the case).
+  #   3. Marketing site (web/) journey page for the "digital product maker" persona —
+  #      mirrors the existing solution-architect journey page shape; positions the profile
+  #      vs. the inception and solution-architect profiles.
+  #   4. Docs site (site/) guide entry point for the digital product profile — tutorial
+  #      showing the first-session workflow: install profile → run product-strategy → shape
+  #      → design → hand off contract to a repo's core pack.
+  #   5. pack-profiles spec AC update: the "ask first" boundary (currently "Adding a
+  #      third shipped first-party profile") needs updating since inception made three.
+  # File: profiles/digital-product.toml (new); web/src/pages/journeys/; docs/guides/.
+  # Unblocks when: all ini-003 specs ship (the skill set must be final before the
+  #   profile's guide content is authored; premature guide content will drift).
+  {slug = "digital-product-profile", needs = "ini-003:work:spec/digital-product-guides-update"},
+
+  # Pack strategy. The digital-experience-contract (spec/digital-experience-contract)
+  # anchors its Frontend Engineering section to the `frontend-engineering` skill inside
+  # the `core` pack. `core` is a repo-governance pack; a backend-only repo that installs
+  # it has no use for FE-specific skills (performance, accessibility evidence, browser
+  # behavior, reliability). The nine FE section fields imply enough depth to warrant a
+  # dedicated `frontend-engineering` pack once adoption evidence from the digital-product
+  # profile confirms the persona. When that pack exists, `core` drops the
+  # `frontend-engineering` skill; the contract anchor path migrates to the new pack;
+  # build-self projection updates accordingly.
+  # Gate: decide in the `digital-product-profile` spec whether a dedicated
+  #   `frontend-engineering` pack is in scope for the profile or deferred further.
+  # Fix: when the gate fires — open an RFC for the pack; scope it to the nine FE-section
+  #   fields in the contract + the migration of the anchor path.
+  # Unblocks when: `digital-product-profile` spec explicitly decides in-scope or deferred.
+  {slug = "frontend-engineering-pack-split", needs = "backlog:digital-product-profile"},
 
   # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
   # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
