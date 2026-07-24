@@ -1,108 +1,143 @@
 ---
 pack: atlassian
 scope: user
-tagline: "Jira and Confluence from the agent — with DORA metrics."
+tagline: "Run Jira and Confluence from a conversation"
 prerequisitePacks: []
 contract:
-  useItWhen: "You need to query Jira, publish to Confluence, or produce AI adoption metrics from your team's Jira data."
-  youProvide: "A configured credential, a JQL scope, and a reporting window or Confluence target."
-  youReceive: "A Markdown adoption report with metric deltas and a JSON sidecar, or a published Confluence page."
+  useItWhen: "You need to review a team's Jira backlog, improve weak stories, apply approved changes, or prepare a team summary — without starting from JQL or internal skill names."
+  youProvide: "A team name or Jira project scope, and explicit approval before any issue is updated."
+  youReceive: "A grouped backlog summary, story-readiness findings with proposed rewrites, a write-confirmation preview, and a stand-up or Confluence-ready summary."
   yourDecisions:
-    - "Set the scope, confirm the credential, and agree the labeling convention"
-    - "Review the report before it is published or shared"
-whatChanges: "After installing atlassian, Jira and Confluence are reachable from your agent session via credentialed REST API calls. `jira` and `jira-align` search, fetch, create, and update issues. `confluence-crawler` and `confluence-publisher` read and write wiki pages. `flow-metrics` computes DORA and Flow Framework metrics over a Jira scope. `jira-brief-intake` turns a Jira epic into a structured engineering brief. The credential resolves in-process via credential-brokers — it never reaches the model."
+    - "Which team scope to use when more than one matches"
+    - "Whether each story draft is correct before approving the write"
+    - "Which issues to update and which to leave unchanged"
+    - "Whether to publish the Confluence update"
+whatChanges: "After installing the atlassian pack, Jira and Confluence are reachable from your agent session. You can ask for a team backlog summary, have stories reviewed against the five-question readiness bar, approve targeted updates to individual issues, and produce stand-up or Confluence output — all from a conversation. The credential resolves in-process via credential-brokers; it never reaches the model."
 skills:
-  - name: jira
-    description: "Searches issues with JQL (auto-paginated), fetches issue detail, creates, and updates issues through the Jira REST API."
-    humanTouches: 1
-  - name: jira-align
-    description: "Queries and manages Jira Align portfolio data — objectives, programs, and teams at the portfolio level."
-    humanTouches: 1
-  - name: jira-brief-intake
-    description: "Converts a Jira epic into a structured engineering brief: problem, user, success criteria, and constraints — the input to a work-loop spec."
-    humanTouches: 1
-  - name: jira-align-brief-intake
-    description: "Pulls a Jira Align Feature and its child stories/tasks/defects via the jira-align primitive, maps them to a Shape B product brief using a configuration-guided field mapping reference, and hands off to receive-brief."
-    humanTouches: 1
-  - name: jira-defect-flow
-    description: "Drives a defect from triage through root-cause analysis to fix, with the Jira issue updated at each stage."
-    humanTouches: 2
-  - name: flow-metrics
-    description: "Computes cycle time, lead time, throughput, WIP, defect ratio, and the rest of the Flow Framework / DORA set over a Jira project or Jira Align program. Split AI-tagged stories from the control with --cohort-jql 'labels = ai-assisted'."
-    humanTouches: 1
-  - name: confluence-crawler
-    description: "Mirrors a Confluence space or page tree to Markdown for local analysis or ingestion into another workflow."
-    humanTouches: 0
-  - name: confluence-publisher
-    description: "Publishes a Markdown artifact to a Confluence page — creates or updates the page in place."
-    humanTouches: 1
-  - name: ai-adoption-report
-    description: "Pairs flow-metrics JSON outputs and renders a Markdown comparison report. Three modes: baseline (before/after two windows), cohort (AI-tagged vs control within one window), program (roll up across multiple teams or projects). No Jira calls — reads only local JSON files."
+  - name: jira-team-status
+    description: "A read-only status view of a team's Jira work, grouped by Ready to pull, In progress, Blocked, Unassigned, and Needs detail. 'Ready to pull' is a defined rule — in scope, eligible state, no unresolved blocker, and meets the five-question readiness bar — not a silent status check."
     humanTouches: 1
   - name: jira-story-triage
-    description: "Reviews a Jira backlog, sprint, or JQL-scoped set of work items for readiness to hand to engineering and improves the weak ones. For every not-ready item it explains why — which of the five-question bar's questions failed (self-contained change, reachable repo scope, checkable ACs, no mid-flight decision, right-sized for one PR) and the specific gap — not a bare tier label. On request it drafts acceptance criteria or a clearer outcome and writes it back only after you approve the exact payload. Read-only until an approval."
+    description: "Reviews a Jira backlog or JQL scope for story readiness using the five-question bar. Explains exactly why each item fails, proposes a rewrite, and writes to Jira only after you approve the exact drafted payload. Read-only until an approval."
     humanTouches: 1
-  - name: jira-team-status
-    description: "A read-only status view of a team's Jira work, organized by the dimensions people ask about — Ready to pull, In progress, Blocked, Unassigned, Needs detail — plus recently-changed and stale markers, for sprint, stand-up, and team-status summaries. 'Ready to pull' is a documented, team-overridable rule (in scope + eligible backlog state + no known blocker + meets the readiness bar); unreadable signals are labelled 'needs confirmation'. Ends in a read-only pick-up hand-off: start delivery on a ready item, or route one that needs detail to jira-story-triage."
+  - name: jira
+    description: "Reads and updates Jira issues via the REST API. Used for targeted writes after story-triage approval — only the fields and issues you named."
+    humanTouches: 1
+  - name: confluence-publisher
+    description: "Publishes a Markdown artifact to a Confluence page — creates or updates in place. Requires explicit approval before publishing."
+    humanTouches: 1
+  - name: jira-defect-flow
+    description: "Handles a Jira defect end-to-end: pulls the ticket, hands the fix to the bug-fix skill, opens a PR, then comments and transitions the ticket."
+    humanTouches: 2
+  - name: jira-brief-intake
+    description: "Turns a Jira epic or multi-issue selection into a structured engineering brief and hands off to receive-brief."
+    humanTouches: 1
+  - name: jira-align
+    description: "Queries and manages Jira Align portfolio data — objectives, programs, and teams."
+    humanTouches: 1
+  - name: jira-align-brief-intake
+    description: "Pulls a Jira Align Feature and maps it to a product brief using a configuration-guided field mapping reference, then hands off to receive-brief."
+    humanTouches: 1
+  - name: flow-metrics
+    description: "Computes DORA and Flow Framework metrics over a Jira project or Jira Align program. Read-only."
+    humanTouches: 1
+  - name: confluence-crawler
+    description: "Mirrors a Confluence space or page tree to Markdown for local analysis."
+    humanTouches: 0
+  - name: ai-adoption-report
+    description: "Pairs flow-metrics JSON outputs and renders a Markdown comparison report. Three modes: baseline, cohort, and program rollup. No Jira calls — reads only local JSON files."
     humanTouches: 1
 humanGates:
   - id: G-scope
     globalGate: null
-    label: "Set the scope, confirm the credential, and agree the labeling convention"
-    trigger: "Before any Jira query or Confluence operation is executed"
+    label: "Confirm team scope"
+    trigger: "When the agent finds more than one matching team scope"
+    duration: "1 minute"
+    whatToCheck:
+      - "Which scope matches your team — the Jira board, or issues where the Team field is your team name?"
+      - "If you have a custom Team field with a different name, provide it explicitly so the agent doesn't guess."
+    whatGoodLooksLike: "A single, confirmed scope. All subsequent reads use this scope and disclose what was searched."
+    whatBadLooksLike: "An unverified scope that silently includes issues from another team's board."
+    consequence: "A misscoped read produces a backlog view that includes the wrong work. Ready counts look plausible but measure the wrong team."
+  - id: G-draft-review
+    globalGate: null
+    label: "Review story drafts before approving"
+    trigger: "After the agent returns story-readiness findings and proposed rewrites"
     duration: "5–10 minutes"
     whatToCheck:
-      - "Is the credential configured via credential-brokers? The agent fails with a clear error if the credential is absent or expired — but you want to catch this before starting a long metrics run."
-      - "Is the JQL scope specific enough? Project key, date range, and any label or component filters should be named explicitly. An unscoped query returns every issue in the project and the metrics will be meaningless."
-      - "For cohort reports: have teams been applying the 'ai-assisted' label consistently for at least two sprints? A cohort of fewer than ten stories produces unreliable percentiles."
-      - "For program rollups: do you have the Jira Align program ID and join field name, or the list of project keys to collect individually?"
-      - "For Confluence publish: is the target space and parent page confirmed before any write?"
-    whatGoodLooksLike: "Credential check passes. Scope is a specific project key with a named date range. Cohort label has been applied consistently for the reporting period. Confluence target confirmed if publishing."
-    whatBadLooksLike: "Credential check skipped because 'it worked last time' — credentials expire. A JQL query with no project filter. A cohort report requested for a window where the team hasn't been labeling yet."
-    consequence: "A miscoped query produces metrics over the wrong population — the numbers look plausible but measure the wrong thing. An expired credential stops the run mid-collection. An inconsistently labeled cohort produces a report that understates AI adoption and can't be trusted by leadership."
-  - id: G-output
+      - "Does the proposed rewrite match what the team actually intends for this story?"
+      - "Are the acceptance criteria checkable — no 'TBD', no 'coordinate with', no unresolvable assumption?"
+      - "For items flagged as Gated: has the blocking external dependency been named precisely? Who owns it and by when?"
+      - "Is the scope right-sized for one PR, or does it need to be split?"
+    whatGoodLooksLike: "Each approved draft gives an engineer a clear, located, self-contained task. No open design questions remain inside the approved scope."
+    whatBadLooksLike: "Approving a draft because 'it looks fine' without checking whether the ACs are genuinely checkable by diff review."
+    consequence: "A story that passes the readiness bar on paper but fails in practice delays the sprint and produces a PR that doesn't know when it is done."
+  - id: G-write-confirm
     globalGate: null
-    label: "Review the report before it is published or shared"
-    trigger: "After flow-metrics and ai-adoption-report complete, or after confluence-publisher completes"
-    duration: "10–20 minutes"
+    label: "Confirm the write before applying"
+    trigger: "After you request an update and the agent shows the write-confirmation panel"
+    duration: "2–3 minutes"
     whatToCheck:
-      - "Do the metric values match your informal expectation? Cycle times of 15 minutes or 15 months are both suspicious — check the state-config mapping and window bounds."
-      - "Is the cohort size large enough to trust the percentiles? The report notes section will flag a small cohort."
-      - "Are cancelled or out-of-scope issues included? Check the notes section — the skill records cancelled-in-window issues and permission undercounts."
-      - "For program mode: are the right projects included? Check the per-scope rows to confirm no unexpected projects were picked up from the inputs directory."
-      - "For Confluence publish: is the page in the right space and under the right parent page?"
-    whatGoodLooksLike: "Metric deltas that match your intuition, or have a clear explanation when they don't. Cohort size is at least ten stories. Notes section is empty or contains only expected caveats. Confluence target is correct."
-    whatBadLooksLike: "A large positive cycle time delta that turns out to be caused by a single long-running outlier story. A cohort so small that the p90 is the same story as the p50. A Confluence page published to the wrong space."
-    consequence: "A flow metrics report shared with leadership is acted on. Delivery leads have walked into program reviews with incorrect data because the scope included cancelled work or the cohort was too small to be statistically meaningful. Review before the output leaves the session."
+      - "Are the exact issues listed the ones you intended to update?"
+      - "Is the field being changed (description or acceptance criteria) the right one — not status, assignee, or priority?"
+      - "Are the protected fields listed? The agent should name status, assignee, priority, sprint, and labels as protected."
+      - "Is the number of writes correct — one per issue?"
+    whatGoodLooksLike: "Three issues listed, description field only, protected fields confirmed, total writes = 3."
+    whatBadLooksLike: "An issue ID you didn't name appearing in the list, or a field like status or priority appearing as a change."
+    consequence: "A write to the wrong issue or field is visible to everyone on the instance. Undo requires manual revert."
+  - id: G-publish
+    globalGate: null
+    label: "Approve before publishing to Confluence"
+    trigger: "After the agent produces a Confluence-ready draft"
+    duration: "5 minutes"
+    whatToCheck:
+      - "Is the draft going to the right Confluence space and parent page?"
+      - "Does the content accurately reflect the sprint state, or does it include items from a previous review?"
+      - "Is the tone appropriate for the audience (team vs. leadership)?"
+    whatGoodLooksLike: "A draft that a reader unfamiliar with the sprint could understand. Target space confirmed. Content matches current Jira state."
+    whatBadLooksLike: "A Confluence page published to the wrong space, or one that includes issue IDs that have since changed."
+    consequence: "A published Confluence page is immediately visible to the space's readers. Incorrect data shared with leadership is acted on."
 typicalSession:
-  agentTurns: "5–10"
-  humanTouches: 2
-  wallClockMinutes: "15–40"
+  agentTurns: "6–10"
+  humanTouches: 4
+  wallClockMinutes: "20–40"
 docsUrl: /docs/guides/atlassian/
 packUrl: /packs/atlassian/
 relatedJourneys:
   - core
+goodOutputDescription: "A grouped backlog summary showing 12 issues across APP and API (3 ready, 3 needs work, 2 blocked, 2 in progress, 2 unassigned). Story-readiness findings for 3 weak items with proposed rewrites. A write-confirmation panel listing APP-206, APP-219, and API-104 with description as the only changed field. A stand-up summary and a Confluence draft ready to review."
 ---
 
-### 1. Configure credentials and scope
+### 1. See the work
 
-- **Agent does:** checks that a credential is configured via `credential-brokers`; for first-time setup, walks you through generating a Jira API token and storing it in your OS keychain — the token never appears in a file the agent can read.
-- **You decide:** confirm the credential is in place at the G-scope gate, or tell the agent to set it up; name the JQL scope explicitly — project key, date range, and any filters; for AI adoption reports, choose between a cohort split within one window or a before/after comparison across two windows.
-- **Output:** a confirmed credential and a scoped query ready to run.
-
----
-
-### 2. Collect and compute
-
-- **Agent does:** runs the appropriate skill — `flow-metrics` reads Jira changelogs and computes cycle time, throughput, defect ratio, rework rate, and flow distribution; for cohort splits, measures AI-labeled and unlabeled stories against the same window; for program rollups, runs one invocation per project and then passes all JSON files to `ai-adoption-report program`.
-- **You do:** watch the collection complete; if the agent reports an unmapped status or an empty cohort, address it before continuing — fixing the scope or labeling is faster than interpreting a report built on incomplete data.
-- **Output:** a JSON output file, or set of files for program mode, ready for reporting.
+- **You say:** "Show me the whole Atlas team backlog across APP and API. Include the current sprint, open backlog, unassigned work, and blocked issues. Group everything into ready to pull, needs story work, blocked, in progress. Do not change Jira."
+- **Agent does:** Checks credentials. Resolves scope — if two Atlas scopes exist (board and team field), asks which to use. Reads all open issues across APP and API. Discloses scope searched, time horizon, issue count, and whether the result is complete or filtered.
+- **You get:** A summary: 12 issues inspected, 3 ready to pull, 3 needs story work, 2 blocked, 2 in progress, 2 unassigned. Top 5 candidates listed with readiness state. Jira not changed.
+- **You decide:** Does the ready count look right? If an item is missing or mislabelled, ask why — the agent will explain what signal it couldn't read.
 
 ---
 
-### 3. Review the report and share
+### 2. Improve weak stories
 
-- **Agent does:** presents the adoption report — a Markdown file with metric deltas, a per-scope table for program mode, and a JSON sidecar.
-- **You do:** check that the metric values match your informal expectations; investigate any unexpectedly large or small cohort, an implausible metric, or a scope that accidentally included cancelled work.
-- **You decide:** once satisfied at the G-output gate, choose how to share — publish to Confluence, paste into a Teams update, or extract the headline numbers for a slide.
-- **Output:** a reviewed adoption report shared via the chosen channel, with a JSON sidecar available for dashboards.
+- **You say:** "Take the items that need story work. Apply our five-question bar and show me why each fails, a proposed rewrite, any question the product owner still needs to answer, and whether the item would be ready after the change. Draft only. Do not update Jira."
+- **Agent does:** Applies the five-question readiness bar to APP-206, APP-219, and API-104. For each: names the failed questions and the specific gap, proposes a rewrite, flags any unresolved human question. No Jira write.
+- **You get:** Per-item findings — what is missing, why it prevents action, the proposed improvement, any unresolved question, and whether the item would pass after the draft. Jira not changed.
+- **You decide:** Is each draft correct? If a draft is wrong, say so and the agent revises. When satisfied with the three drafts, move to the approval step.
+
+---
+
+### 3. Apply approved changes
+
+- **You say:** "Update APP-206, APP-219, and API-104 with the approved drafts. Leave every other issue unchanged. Do not change status, assignee, priority, sprint, or labels."
+- **Agent does:** Shows a write-confirmation panel listing the exact issues, the field to change (description), the protected fields (status, assignee, priority, sprint, labels), and the total number of writes (3). Waits for your confirmation.
+- **You get:** After you say apply: a result showing what changed (APP-206, APP-219, API-104 descriptions updated), what remained unchanged (everything else), and links to each updated issue. Any failure reported explicitly with a retry path.
+- **You decide:** Review the write-confirmation panel before saying apply. This is the point of no return — everything up to here was read-only.
+
+---
+
+### 4. Share the result
+
+- **You say:** "Give me a stand-up summary for the Atlas team. Include progress, blockers, risks, and what is ready next. Then prepare a concise weekly version suitable for the Atlas Confluence space. Do not publish until I approve it."
+- **Agent does:** Produces a stand-up block (in-progress, ready, blocked, risks) and a Confluence draft. Does not publish.
+- **You get:** A stand-up summary and a Confluence draft to review. The draft shows the target page and space.
+- **You decide:** Review the Confluence draft. When satisfied, say "Publish." The agent will not publish without your instruction.
