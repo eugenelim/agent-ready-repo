@@ -867,13 +867,6 @@ open = [
 
 
 
-  # ini-003 M5 deferred: the golden-path fixtures describe scenarios in structured form
-  # but carry no evals.json-style LLM judge rubric. Separate concern from the deterministic
-  # checker. Unblocks when: LLM judge rubric format is standardized across packs.
-  {slug = "cross-pack-eval-llm-judge", source = "spec/cross-pack-experience-eval"},
-
-
-
 
   # RFC-0062 OQ1. Extend experience-reviewer's scope to include content briefs
   # (type: content-brief) as a reviewable artifact type. The content-design skill
