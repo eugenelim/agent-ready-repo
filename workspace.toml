@@ -266,15 +266,7 @@ status    = "active"
 milestone = "M1 · Contract + Governance"
 
 ["ini-003".work]
-active  = [
-  # GOVERNANCE GATE — RFC-0071 (docs/rfc/0071-digital-experience-doctrine.md).
-  # Accepted 2026-07-23. Resolves D1–D10; see RFC for decisions.
-  # Accepts RFC-0062 (copy-direction) and implements RFC-0066 D7 (ux-writing rename).
-  # New shared convention (Digital Experience Contract) + new skills
-  # (design-system-foundations, copy-direction) require an RFC gate per governance.
-  # Spec: docs/specs/rfc-digital-product-experience-doctrine/spec.md
-  "spec/rfc-digital-product-experience-doctrine",
-]
+active  = []
 queue   = [
 
   # M1 · Digital Experience Contract
@@ -543,7 +535,8 @@ queue   = [
   {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
 ]
 shipped = [
-  "spec/digital-experience-contract",  # Shipped 2026-07-23
+  "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
+  "spec/digital-experience-contract",              # Shipped 2026-07-23
 ]
 
 ["ini-003".shaping_queue]
