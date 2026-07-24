@@ -13,6 +13,25 @@
         "Prose reads human and task-respecting: second person, active voice, present tense; no reader-blaming fillers (simply/just/easy/obviously), no softened imperatives (please), no inline version-history narration",
         "Cross-links (\"See also\") point only to sibling pages that exist — no fabricated or broken links"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create or revise a user-facing guide following the conversation-first doctrine.",
+      "expected_output": "A guide that states the reader and their job early, shows a natural-language request near the top (within the first 120 words), explains the first result the reader gets, shows at least one realistic follow-up request, makes read/write boundaries explicit, puts skill/command inventory after user outcomes rather than before, and keeps reference material out of the primary flow. It does not open with product architecture or a skill list. The reader can begin a task without knowing any skill or pack name. The page shows a visible start and finish for at least one complete task.",
+      "assertions": [
+        "States the reader and their job — the page has an implied or explicit audience",
+        "Shows a natural-language request near the top, within the first 120 words",
+        "Explains the first result — the reader knows what they will get before the detail starts",
+        "Shows at least one realistic follow-up request, not only the entry request",
+        "Makes read/write boundaries explicit — separates what the agent reads from what it may change",
+        "Puts skill/command inventory after user outcomes, not before",
+        "Keeps reference material (exhaustive options, parameter tables) out of the primary flow",
+        "Does not open with product architecture or an internal component diagram",
+        "Does not begin by presenting a list of available skills, packs, or commands before the reader's first task",
+        "Does not require the reader to know any skill or pack name to begin",
+        "Is not a collection of isolated prompt snippets — shows what the agent returns and not just what the user says",
+        "Does not indiscriminately mix Diátaxis quadrants — tutorial material is not blended with reference"
+      ]
     }
   ]
 }
