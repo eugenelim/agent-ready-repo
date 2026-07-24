@@ -100,7 +100,7 @@ The phantom-handoff check finds every backtick-quoted name in the `description:`
 
 ## Deferred
 
-- **CI workflow** (`cross-pack-eval-ci-gate`): Once calibration confirms the deterministic checks are stable, wire `check-xd-chain.py --gate` into a CI workflow. The `--gate` flag is the hook point. (deferred: cross-pack-eval-ci-gate)
+- **CI workflow** (`cross-pack-eval-ci-gate`): Once calibration confirms the deterministic checks are stable, wire `check-xd-chain.py --gate` into a CI workflow. The `--gate` flag is the hook point. (shipped: cross-pack-eval-ci-gate)
 - **LLM-judge rubric** (`cross-pack-eval-llm-judge`): The golden-path fixtures describe scenarios in structured form but carry no `evals.json`-style LLM judge rubric. (deferred: cross-pack-eval-llm-judge)
 
 ## Acceptance Criteria
