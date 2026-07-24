@@ -306,7 +306,6 @@ queue   = [
   # Done: PS skills explicitly own adoption hypothesis + causal metric tree;
   #   weak fixtures fail; pack page + journey page + adoption-hypothesis how-to
   #   guide published.
-  {path = "spec/product-strategy-adoption-doctrine", needs = "work:spec/digital-experience-contract"},
 
   # M2b · Product Engineering Shaping Doctrine
   # Problem: PE shaping flow produces a complete brief but doesn't require a
@@ -537,6 +536,7 @@ queue   = [
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
+  "spec/product-strategy-adoption-doctrine",      # Shipped 2026-07-23 — M2a Product Strategy Adoption Doctrine
 ]
 
 ["ini-003".shaping_queue]

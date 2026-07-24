@@ -1,6 +1,6 @@
 ---
 name: run-porters-five-forces
-description: Use when a strategist needs to understand the competitive dynamics of an industry before setting market positioning. Triggers on "run Porter's Five Forces", "I need to understand the competitive landscape", "map industry attractiveness", "how competitive is this market", "supplier and buyer power analysis". Produces a committed competitive-landscape artifact. Do NOT use for individual competitor profiling — this is an industry-structure analysis, not a competitor teardown.
+description: Use when a strategist needs to understand the competitive dynamics of an industry before setting market positioning or evaluating entry. Triggers on "run Porter's Five Forces", "I need to understand how competitive this industry is before we enter", "map the competitive structure of our market", "how much leverage do our buyers and suppliers have", "what structural forces determine who wins in this industry". Produces a committed competitive-landscape artifact. Do NOT use for individual competitor profiling — this is an industry-structure analysis, not a competitor teardown.
 ---
 
 # Skill: run-porters-five-forces
@@ -29,3 +29,4 @@ Produces a **competitive landscape analysis** using Porter's Five Forces framewo
 - **Individual competitor profiling in a Forces analysis.** Rivalry assessment names the competitive dynamic, not a competitor teardown; detailed competitor profiles are separate artifacts.
 - **Force ratings without evidence.** Each force requires at least one observable fact — a named supplier, a measured churn rate, a regulatory threshold. "High rivalry because the market is competitive" is circular.
 - **Static analysis in dynamic markets.** Label the time horizon and flag forces that are likely to shift. A Five Forces snapshot taken today may be wrong in 18 months.
+- **Force profile without moat derivation.** Rating the five forces produces an industry portrait, not a competitive position. A Five Forces analysis that ends with "rivalry is high and buyers have moderate power" but does not name the structural mechanism that protects this specific player — the barrier to entry they can exploit, the switching cost they can create, the supplier relationship they can lock — has mapped the battlefield but named no position. The strategic implication must name a mechanism.

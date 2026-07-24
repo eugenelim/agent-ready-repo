@@ -1,14 +1,13 @@
 [
-  {"query": "Run a PESTLE analysis for our market entry into Southeast Asia", "should_trigger": true},
+  {"query": "Run a PESTLE analysis on our market", "should_trigger": true},
   {"query": "I need to understand the macro environment before setting strategy", "should_trigger": true},
-  {"query": "What political and economic forces affect our industry?", "should_trigger": true},
-  {"query": "Do a macro scan — Political Economic Social Technological Legal Environmental", "should_trigger": true},
-  {"query": "Scan the external environment for risks and opportunities", "should_trigger": true},
-  {"query": "PESTLE analysis for fintech regulation in the EU", "should_trigger": true},
+  {"query": "What external forces are moving in our industry right now", "should_trigger": true},
+  {"query": "Macro scan covering political economic social technological forces for our sector", "should_trigger": true},
+  {"query": "What macro trends should I factor into this market entry decision", "should_trigger": true},
 
-  {"query": "Run a SWOT analysis on our product portfolio", "should_trigger": false},
-  {"query": "Analyze the Five Forces in the payments industry", "should_trigger": false},
-  {"query": "Cascade OKRs from company to team level", "should_trigger": false},
-  {"query": "Write the press release for our new product", "should_trigger": false},
-  {"query": "Define our UX strategy", "should_trigger": false}
+  {"query": "Run a SWOT analysis", "should_trigger": false},
+  {"query": "Map the competitive structure of our industry", "should_trigger": false},
+  {"query": "Forecast our revenue for the next three years", "should_trigger": false},
+  {"query": "Write our competitive strategy", "should_trigger": false},
+  {"query": "Run a macro scan and tell me it proves we have a competitive advantage", "should_trigger": false}
 ]
