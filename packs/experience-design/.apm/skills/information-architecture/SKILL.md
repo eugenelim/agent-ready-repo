@@ -1,6 +1,6 @@
 ---
 name: information-architecture
-description: Use when designing how a screen or flow is organized — what goes where, in what order, and how a user stays oriented. Triggers on "structure this screen", "information architecture", "lay out this flow", "what's the hierarchy here", "how should this navigation be organized", "why does this page feel cluttered". Produces an information-architecture and layout reasoning doc — hierarchy, reading flow, progressive disclosure, and wayfinding as concepts. Do NOT use when the work is choosing mood, type, or color personality (use `creative-direction`); when defining reusable tokens, scales, or component rules (use `design-system`); or when judging an existing design against a standard (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+description: Use when designing how a screen or flow is organized — what goes where, in what order, and how a user stays oriented. Triggers on "structure this screen", "information architecture", "lay out this flow", "what's the hierarchy here", "how should this navigation be organized", "why does this page feel cluttered". Produces an information-architecture and layout reasoning doc — hierarchy, reading flow, progressive disclosure, and wayfinding as concepts. Do NOT use when the work is choosing mood, type, or color personality (use `creative-direction`); when defining a token/scale taxonomy (use `design-token-taxonomy`); or when judging an existing design against a standard (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 ---
 
 # Skill: information-architecture
@@ -27,7 +27,7 @@ Confirm before drafting:
   serves this metric; choices that cannot be traced to it are decoration.
 
 If the ask is mood/type/color, hand to `creative-direction`; if it's
-reusable tokens or component rules, `design-system`; if it's
+a token/scale taxonomy, `design-token-taxonomy`; if it's
 judging an existing screen, `design-review`.
 
 ## Procedure

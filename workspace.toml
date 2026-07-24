@@ -352,7 +352,8 @@ queue   = [
   # Done: phantom handoff eliminated; design-token-taxonomy and design-system-foundations
   #   have non-overlapping activation triggers; DTCG description accurate; pack page
   #   + journey + how-to guides updated.
-  {path = "spec/xd-design-system-foundations", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
+  # spec/xd-design-system-foundations — Shipped 2026-07-24; moved to shipped below.
+  # {path = "spec/xd-design-system-foundations", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
 
   # M3c · XD Information Architecture, Page Archetypes, Product Objects
   # Problem: XD has no page archetype references for key surface types (12+
@@ -496,6 +497,7 @@ shipped = [
   "spec/product-strategy-adoption-doctrine",       # Shipped 2026-07-23 — M2a Product Strategy Adoption Doctrine
   "spec/xd-skill-boundaries",                       # Shipped 2026-07-23 — copy-direction near-miss guards across all 17 unguarded XD skills (1.2.1)
   "spec/xd-ia-archetypes-objects",                   # Shipped 2026-07-23 — page archetypes, product-object mapping, card-use test, attention + permission contracts (1.3.0)
+  "spec/xd-design-system-foundations",               # Shipped 2026-07-24 — design-token-taxonomy rename + design-system-foundations skill (1.4.0)
 ]
 
 ["ini-003".shaping_queue]

@@ -5,7 +5,7 @@ to a generative design tool / a UI-codegen step), yet **carrying the connective
 context so the whole flow holds together**. The mechanism is a split:
 
 - **Shared design contract** — authored ONCE per product (by `creative-direction`
-  + `design-system` + the navigation model + `interaction-design`'s
+  + `design-token-taxonomy` + the navigation model + `interaction-design`'s
   behavioral conventions + the shared quality floor), *referenced* by every screen
   brief, never copied. This is what keeps N independently-generated screens coherent.
 - **Per-screen spec** — this screen only (its job, states, data, actions, copy).
