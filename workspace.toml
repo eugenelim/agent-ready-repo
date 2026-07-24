@@ -404,7 +404,8 @@ queue   = [
   # Done: all 18 states covered; reviewer three passes enforced; rendered
   #   evidence required; weak fixtures fail; design-review how-to + state
   #   reference + journey page updated.
-  {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
+  # spec/xd-state-reviewer-doctrine — Shipped 2026-07-24; moved to shipped below.
+  # {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
 
   # M4 · Frontend Engineering Doctrine Update
   # Problem: frontend-engineering lacks four explicit modes (create/retrofit/
@@ -498,6 +499,7 @@ shipped = [
   "spec/xd-skill-boundaries",                       # Shipped 2026-07-23 — copy-direction near-miss guards across all 17 unguarded XD skills (1.2.1)
   "spec/xd-ia-archetypes-objects",                   # Shipped 2026-07-23 — page archetypes, product-object mapping, card-use test, attention + permission contracts (1.3.0)
   "spec/xd-design-system-foundations",               # Shipped 2026-07-24 — design-token-taxonomy rename + design-system-foundations skill (1.4.0)
+  "spec/xd-state-reviewer-doctrine",                # Shipped 2026-07-24 — 18-state quality floor + three-pass design-review + severity tiers (1.5.0)
 ]
 
 ["ini-003".shaping_queue]

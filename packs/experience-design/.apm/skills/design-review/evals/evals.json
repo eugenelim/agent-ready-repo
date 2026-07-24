@@ -4,14 +4,95 @@
     {
       "id": 1,
       "prompt": "Run a design critique on the screen or flow the user provided.",
-      "expected_output": "A prioritized, severity-rated findings list. It first frames the surface — the user, the primary task, and the steps under review — so every severity call is anchored. It runs the shared quality-floor pass (all states, the accessibility floor, the reduced-motion principle) AND a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding maps to the single best-fit usability principle (or floor commitment), with accessibility misses starting at major; each carries a 0–4 severity naming the frequency × impact × persistence factors behind it. Findings are sorted worst-first under a count-by-severity headline, and each has one concrete recommendation expressed as DESIGN INTENT — never a stack-specific implementation (no framework, property, or value).",
+      "expected_output": "A prioritized, severity-rated findings list using the three-pass structure. Pass 1 (cold-read) names the audience and job derivable from the rendered surface alone and records a first-impression finding. Pass 2 (primary task and one unhappy path) walks the task across desktop/tablet/mobile and checks keyboard navigation, focus management, zoom, and reduced-motion. Pass 3 (contract review) runs the full quality-floor pass — all 18 states, accessibility floor, reduced-motion principle — and a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding is labelled with its severity tier (Blocker / Concern / Suggestion), its source pass (pass-1 / pass-2 / pass-3), and its source mode (floor / heuristic / marketing / taste). Accessibility failures are Blockers, never softened. Findings are sorted Blockers → Concerns → Suggestions under a count-by-severity headline; each carries one concrete recommendation expressed as design intent — never a stack-specific implementation.",
       "assertions": [
-        "Frames the user, primary task, and steps under review before judging",
-        "Runs the quality-floor pass (states, accessibility floor, reduced-motion) in addition to the heuristics, with accessibility misses starting at major",
-        "Maps every finding to a single named usability principle or floor commitment",
-        "Assigns a 0–4 severity to each finding and names the factors that set it",
-        "Sorts findings worst-first and leads with a count-by-severity headline",
-        "Recommendations are design intent, not stack-specific — no framework, CSS property, or literal value is prescribed"
+        "Runs three passes in order: cold-read (Pass 1), primary-task-and-unhappy-path (Pass 2), contract review (Pass 3)",
+        "Pass 1 names the audience and primary job from the rendered surface alone, before consulting the brief",
+        "Pass 2 checks the primary task and one unhappy path across at least desktop and mobile viewports, and checks keyboard navigation and reduced-motion",
+        "Pass 3 runs the quality-floor pass (all applicable states from the 18-state set, accessibility floor, reduced-motion) in addition to the heuristics",
+        "Severity tiers used: Blocker, Concern, or Suggestion — accessibility failures are always Blockers, never softened",
+        "No finding is presented as a Blocker or Concern solely on aesthetic preference grounds — aesthetic findings without a grounded reference warrant go in Director's notes",
+        "When a rendered surface exists, findings on that surface include a rendered evidence observation, or the finding is marked ⚠ unverified",
+        "Maps every finding to a single named usability principle, floor commitment, or severity-tier criterion",
+        "Sorts findings Blockers → Concerns → Suggestions and leads with a count-by-severity headline",
+        "Recommendations are design intent, not stack-specific — no framework, literal value, or platform-specific property is prescribed"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "This hero section leads with our company history and product line before saying what the product does. What is wrong with it from a conversion standpoint?",
+      "fixture": "architecture-first-hero",
+      "expected_output": "Identifies the architecture-first hero as a conversion failure: the hero communicates organizational structure rather than the reader's problem or desired outcome. Pass 1 (cold-read) finds that the audience and job cannot be answered from the above-fold alone. Rates this as at minimum a Concern (missed painkiller-first structure) or a Blocker (if the five-second scan cannot answer what/who/should I care). Recommends leading with the reader's problem or outcome before naming the product or the organization.",
+      "assertions": [
+        "Pass 1 (cold-read) surfaces the architecture-first problem — the surface communicates structure, not the reader's job",
+        "Identifies the hero approach as organization-first rather than reader-problem-first",
+        "Maps the finding to the painkiller-first criterion or the hero approach-fit genre rubric item",
+        "Rates the finding at Concern or Blocker (not Suggestion)",
+        "Recommends leading with the reader's recognized need or desired outcome"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The UI looks polished and attractive but the primary action permanently deletes all data in the current project without any confirmation step. Is there a problem?",
+      "fixture": "attractive-ui-unclear-write-consequences",
+      "expected_output": "Identifies the missing destructive-confirmation state as a Blocker regardless of visual polish. States that attractiveness does not substitute for the write-consequence contract. Names the destructive-confirmation state from the quality-floor as the violated commitment. Recommends requiring explicit confirmation with a clear statement of what will be destroyed and a safe default (cancel).",
+      "assertions": [
+        "Identifies the missing destructive-confirmation state as a Blocker",
+        "Explicitly notes that visual polish does not substitute for the quality-floor state requirement",
+        "Maps the finding to the destructive-confirmation state in the quality-floor",
+        "Does not downgrade the finding to Concern or Suggestion based on aesthetic quality",
+        "Recommends explicit confirmation with a clear statement of consequences and a safe default"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our pack page lists every skill we have with equal visual weight — all twenty in identical cards — before any headline explains what problem the pack solves. Critique it.",
+      "fixture": "inventory-first-pack-page",
+      "expected_output": "Pass 1 (cold-read) surfaces that the primary job cannot be determined from the above-fold: the page leads with inventory, not with the problem it solves. The finding maps to the five-second scan criterion (what is this / who is it for / should I care?) and the hero approach-fit rubric item. Rates as Blocker if the reader cannot determine fit from the above-fold, or Concern if a job-statement is present but buried. Recommends leading with the problem solved and the target user before presenting the skill inventory.",
+      "assertions": [
+        "Pass 1 (cold-read) surfaces the inventory-first structure as the primary finding",
+        "Maps the finding to the five-second scan criterion or the hero approach-fit genre rubric item",
+        "Rates the finding at Blocker or Concern (not Suggestion) — inventory-first prevents the reader from determining fit",
+        "Does not simply suggest reordering cards; recommends leading with a problem-and-user framing"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Every section on this page — the testimonials, the features list, the pricing tiers, and the navigation links — uses the same card component with identical visual weight. Review it.",
+      "fixture": "every-section-as-cards",
+      "expected_output": "Pass 3 (contract review) surfaces the every-section-as-cards pattern as a heuristic violation: using the same card weight for every content type removes the hierarchy that tells users what matters most. Maps to recognized usability principles around match between system and real world (cards signal 'this is a decision unit') and visibility of system status (equal weight makes everything look equally important). Rates as Concern (hierarchy is missing but content is still accessible) or Blocker (if the primary CTA is indistinguishable from secondary content). Recommends differentiating visual weight by content role, not by content type.",
+      "assertions": [
+        "Identifies the every-section-as-cards pattern in Pass 3 (contract review)",
+        "Maps the finding to a recognized heuristic or floor principle (hierarchy, recognition, or similar)",
+        "Notes that card uniformity removes hierarchy, making primary actions and key decisions indistinguishable from secondary content",
+        "Rates at Concern or Blocker (not Suggestion or Director's notes)",
+        "Recommends differentiating visual weight by content decision-importance, not by arbitrary section styling"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "We only have a desktop design. Can you review it for mobile?",
+      "fixture": "desktop-only",
+      "expected_output": "Pass 2 (primary task and unhappy path) notes that mobile task completion cannot be verified. For each action in the primary task, rates absence of a mobile design as a Concern at minimum. If any action is reachable only via pointer interaction with no defined mobile equivalent, rates that as a Blocker. Does not rate desktop findings as if they represent mobile — explicitly marks mobile task completion as unverified. Recommends completing mobile designs before final review, and notes that the independent experience-reviewer will surface mobile gaps.",
+      "assertions": [
+        "Pass 2 explicitly notes that mobile task completion is unverified, not absent",
+        "Does not rate desktop layout decisions as if they apply to mobile without verification",
+        "Rates mobile-unverified actions as Concern at minimum; rates pointer-only actions with no defined mobile path as Blocker",
+        "Recommends completing mobile designs; does not silently skip the mobile pass",
+        "Does not rate the desktop-only design as 'complete' — marks mobile coverage as an open finding"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "The design looks complete but we haven't added any states for when a user doesn't have permission to see a resource. Is that a problem?",
+      "fixture": "missing-permission-states",
+      "expected_output": "Pass 3 (contract review) identifies the missing permission/denied state as a quality-floor finding. On a gated surface, permission/denied is a required state — its absence means an unauthorized user sees a blank screen or an unhandled error. Rates as Blocker: the surface cannot ship with an unauthorized viewer having no path forward. Recommends designing a read-only or locked view with a recoverable note (who can act, how to request access).",
+      "assertions": [
+        "Identifies the missing permission/denied state as a Pass 3 quality-floor finding",
+        "Rates the missing state as a Blocker (not Concern or Suggestion) — absence leaves unauthorized users with no path forward",
+        "Maps the finding to the permission/denied state in the quality-floor",
+        "Recommends a read-only or locked view with a recoverable note naming who can act and how to request access",
+        "Does not suggest the design is otherwise complete — the missing state is a ship-blocking gap"
       ]
     }
   ]
