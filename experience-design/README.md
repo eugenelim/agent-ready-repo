@@ -13,7 +13,7 @@ Every skill ships portable **method**, not your stack: no UI-framework code,
 no styling-language syntax, no animation library, and **no values tables** (no
 fixed spacing, timing, color, motion-curve, or breakpoint cheat-sheets, no
 fixed token set, no pixel comps). The skills point to the recognized
-standards — WCAG, the W3C Design Tokens interchange shape, Apple HIG, Material
+standards — WCAG, the Design Tokens Community Group (DTCG) specification, Apple HIG, Material
 3, APQC, BPMN — and ship the method to *derive* your design, never the values.
 
 **Correctness is the floor, not the ceiling.** Accessibility compliance,
@@ -53,7 +53,8 @@ names correctness goals has not cleared the gate.
   across sprints, each principle grounded in a journey moment.
 - `creative-direction` — turn a vague "vibe" into named goals **grounded** in
   persona + precedent + standards + platform conventions; coherence arbitration.
-- `design-system` — derive a token/scale taxonomy from intent.
+- `design-token-taxonomy` — derive a token/scale taxonomy from intent.
+- `design-system-foundations` — apply the token taxonomy as a working token foundation.
 - `information-architecture` — hierarchy, reading flow, wayfinding.
 - `interaction-design` — how a screen *behaves*: feedback & timing, input &
   forms, component state machines, purposeful motion, navigation-as-behavior,

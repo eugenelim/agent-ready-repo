@@ -194,7 +194,7 @@
         "name": "eugenelim"
       },
       "category": "design",
-      "description": "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping → user-flow → service-blueprint) and map the inside-out sibling (process-mapping); copy and content skills name surface voice goals (copy-direction, tone-of-voice) and content structure (content-design); craft skills design each screen (creative-direction, design-system, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
+      "description": "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping → user-flow → service-blueprint) and map the inside-out sibling (process-mapping); copy and content skills name surface voice goals (copy-direction, tone-of-voice) and content structure (content-design); craft skills design each screen (creative-direction, design-token-taxonomy, design-system-foundations, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / Design Tokens Community Group (DTCG) / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
       "displayName": "Experience Design",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -213,7 +213,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "1.3.0"
+      "version": "1.4.0"
     },
     {
       "author": {

@@ -5,7 +5,7 @@ description: "Use when designing a marketplace surface — a catalogue, a listin
 
 # Skill: marketplace-design
 
-Converts the buyer journey and the listing object model into a **structural specification for a marketplace surface** — the listing card IA, the filter and facet architecture, the comparison affordances, and the transaction bridge that carries a buyer from discovery to commitment. This skill is IA and structure; it does not design individual card components (that is `interaction-design`'s component state machine) and does not derive tokens or color (that is `design-system` and `creative-direction`).
+Converts the buyer journey and the listing object model into a **structural specification for a marketplace surface** — the listing card IA, the filter and facet architecture, the comparison affordances, and the transaction bridge that carries a buyer from discovery to commitment. This skill is IA and structure; it does not design individual card components (that is `interaction-design`'s component state machine) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
 ## When to invoke
 
