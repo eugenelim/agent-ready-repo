@@ -19,8 +19,14 @@ import tempfile
 _SCRIPT = pathlib.Path(__file__).parent / "lint-web-journey-parity.py"
 
 
-def _run(journey_dir: pathlib.Path, packs_dir: pathlib.Path) -> subprocess.CompletedProcess[str]:
+def _run(
+    journey_dir: pathlib.Path,
+    packs_dir: pathlib.Path,
+    profiles_dir: pathlib.Path | None = None,
+) -> subprocess.CompletedProcess[str]:
     env = {**os.environ, "WJP_JOURNEY_DIR": str(journey_dir), "WJP_PACKS_DIR": str(packs_dir)}
+    if profiles_dir is not None:
+        env["WJP_PROFILES_DIR"] = str(profiles_dir)
     return subprocess.run(
         [sys.executable, str(_SCRIPT)],
         capture_output=True, text=True, env=env, check=False,
@@ -93,6 +99,22 @@ def test_missing_skills_dir() -> None:
         _assert(r.returncode == 1, f"expected exit 1 when pack directory is absent; got {r.returncode}")
 
 
+def test_profile_page_skipped() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        j = pathlib.Path(tmp) / "journeys"
+        p = pathlib.Path(tmp) / "packs"
+        pr = pathlib.Path(tmp) / "profiles"
+        j.mkdir()
+        pr.mkdir()
+        _make_journey(j, "my-profile.md", "my-profile", [])
+        (pr / "my-profile.toml").write_text("scope = \"user\"\n")
+        _make_journey(j, "real.md", "real-pack", ["s1"])
+        _make_pack_skills(p, "real-pack", ["s1"])
+        r = _run(j, p, pr)
+        _assert(r.returncode == 0, f"expected exit 0 when profile page is present; got {r.returncode}\n{r.stderr}")
+        _assert("my-profile" not in r.stderr, f"profile page should not appear in stderr; got:\n{r.stderr}")
+
+
 def test_multiple_journeys_one_drifted() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         j = pathlib.Path(tmp) / "journeys"
@@ -114,6 +136,7 @@ def main() -> None:
         test_drift_detected,
         test_missing_pack_field,
         test_missing_skills_dir,
+        test_profile_page_skipped,
         test_multiple_journeys_one_drifted,
     ]
     for t in tests:

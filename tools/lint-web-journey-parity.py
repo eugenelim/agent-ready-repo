@@ -13,10 +13,16 @@ A skill added to a pack without a corresponding journey update trips the
 invariant; a journey entry added without a matching skill directory also trips
 it. Either way the author is forced to reconcile.
 
+Profile pages: journey files whose `pack:` value resolves to a profile TOML
+at profiles/<pack>.toml (rather than a pack directory) are skipped — they
+represent persona journeys spanning multiple packs and have no single skill
+directory to count against.
+
 Exit 0 when every journey is in parity; exit 1 on any drift.
 
-Fixture mode (used by the paired self-test): set WJP_JOURNEY_DIR and
-WJP_PACKS_DIR to point to fixture directories instead of the real tree.
+Fixture mode (used by the paired self-test): set WJP_JOURNEY_DIR,
+WJP_PACKS_DIR, and WJP_PROFILES_DIR to point to fixture directories instead
+of the real tree.
 """
 
 from __future__ import annotations
@@ -84,6 +90,9 @@ def main() -> int:
     packs_dir = pathlib.Path(
         os.environ.get("WJP_PACKS_DIR", root / "packs")
     )
+    profiles_dir = pathlib.Path(
+        os.environ.get("WJP_PROFILES_DIR", root / "profiles")
+    )
 
     if not journey_dir.exists():
         print(
@@ -105,6 +114,11 @@ def main() -> int:
 
         skills_dir = packs_dir / pack / ".apm" / "skills"
         if not skills_dir.exists():
+            # Profile pages reference a profiles/<pack>.toml rather than a pack
+            # directory — skip them; they span multiple packs and have no single
+            # skill directory to count against.
+            if (profiles_dir / f"{pack}.toml").exists():
+                continue
             findings.append(
                 f"  {journey_file.name}: pack `{pack}` has no .apm/skills/ directory"
             )

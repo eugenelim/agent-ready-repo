@@ -30,7 +30,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Ask first
 
-- Adding a third shipped first-party profile beyond `solution-architect` and `full-ceremony`.
+- Adding a new first-party profile (currently shipped: `solution-architect`, `full-ceremony`, `inception`, `digital-product`).
 - Any change to the resolved behavior of the existing single-pack `install`/`upgrade`/`uninstall` paths (the profile orchestrator sits above them).
 - Introducing a new on-disk schema field beyond `scope`, `description`, and the ordered `packs` list.
 
@@ -71,7 +71,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] `--profile` and `--pack` are mutually exclusive (a required mutex group); `--scope` is rejected when combined with `--profile`.
 - [x] No profile is recorded in state; per-pack rows are written at the profile's scope exactly as a manual per-pack install would; `STATE_SCHEMA_VERSION` is unchanged.
 - [x] `install_route` on each profile-installed pack's state row reads `"profile"` (RFC-0034 OQ3, accepted); the adapter contract version is unchanged.
-- [x] Two first-party profiles ship: `profiles/solution-architect.toml` (`scope = "user"`) and `profiles/full-ceremony.toml` (`scope = "repo"`), each installing cleanly against the live catalogue.
+- [x] Four first-party profiles ship: `profiles/solution-architect.toml` (`scope = "user"`), `profiles/full-ceremony.toml` (`scope = "repo"`), `profiles/inception.toml` (`scope = "user"`), and `profiles/digital-product.toml` (`scope = "user"`), each installing cleanly against the live catalogue.
 - [x] No change to `.claude-plugin/marketplace.json`, the build pipeline, or self-host. Verified by a name-only `git diff --name-only origin/main` over the feature's diff showing none of those paths are touched — sufficient for this additive, CLI-route-only PR (`profiles/` is a new top-level dir outside `packs/`, so `build-self` never aggregates it into `marketplace.json`). Wiring profiles into any of those surfaces would be a separate change with its own review; this AC asserts this PR does not.
 
 ## Assumptions
