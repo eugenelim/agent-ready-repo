@@ -326,7 +326,8 @@ queue   = [
   #   listings on pack page use the new natural-language descriptions.
   # Done: natural requests route correctly; near-misses prevent discipline bleed;
   #   full three-way copy boundary is explicit in frontmatter; pack page updated.
-  {path = "spec/xd-skill-boundaries", needs = ["work:spec/digital-experience-contract", "work:spec/xd-copy-direction"]},
+  # spec/xd-skill-boundaries — Shipped 2026-07-23; moved to shipped below.
+  # {path = "spec/xd-skill-boundaries", needs = ["work:spec/digital-experience-contract", "work:spec/xd-copy-direction"]},
 
   # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
   # Problem: design-system produces a token taxonomy (method only; explicitly
@@ -492,6 +493,7 @@ shipped = [
   "spec/product-engineering-shaping-doctrine",     # Shipped 2026-07-23 — PE shaping doctrine; ux-writing rename; thin-slice + learning contract
   "spec/frontend-engineering-doctrine-update",     # Shipped 2026-07-23 — FE doctrine: four modes, 18 states, WCAG 2.2 AA, CWV targets (core 0.14.0)
   "spec/product-strategy-adoption-doctrine",       # Shipped 2026-07-23 — M2a Product Strategy Adoption Doctrine
+  "spec/xd-skill-boundaries",                       # Shipped 2026-07-23 — copy-direction near-miss guards across all 17 unguarded XD skills (1.2.1)
 ]
 
 ["ini-003".shaping_queue]
@@ -964,6 +966,18 @@ open = [
   # This backlog entry closes when spec/xd-design-system-foundations ships.
   # Unblocks when: spec/xd-design-system-foundations is Shipped.
   {slug = "design-system-foundations-skill-gap", needs = "ini-003:work:spec/xd-design-system-foundations"},
+
+  # spec/xd-skill-boundaries deferred: experience-design pack page needs trigger language
+  # and near-miss guards updated (web/ + site/). Deferred from M3a PR — pack-page changes
+  # require web/ edits outside the pack scope gate. Unblocks when ini-003 M3 is complete.
+  {slug = "xd-pack-page-trigger-language-update", source = "spec/xd-skill-boundaries"},
+
+  # spec/xd-skill-boundaries deferred: reference guide sync obligation.
+  # docs/guides/experience-design/reference/experience-design.md carries a same-PR-sync
+  # contract; 17 skill descriptions were updated but the guide was not (pre-existing
+  # debt in the guide — copy-direction unlisted, M3a guards absent — would entangle).
+  # Fix: sync the 17 copy-direction guards into the guide + clear pre-existing debt.
+  {slug = "xd-reference-guide-description-sync", source = "spec/xd-skill-boundaries"},
 
   # RFC-0062 OQ1. Extend experience-reviewer's scope to include content briefs
   # (type: content-brief) as a reviewable artifact type. The content-design skill

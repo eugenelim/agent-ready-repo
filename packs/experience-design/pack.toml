@@ -1,6 +1,6 @@
 [pack]
 name = "experience-design"
-version = "1.2.0"
+version = "1.2.1"
 description = "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping → content-design → copy-direction → tone-of-voice → user-flow → service-blueprint) and map the inside-out sibling (process-mapping); craft skills design each screen (creative-direction, design-system, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them."
 readme = "README.md"
 display_name = "Experience Design"
