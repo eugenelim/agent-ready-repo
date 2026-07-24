@@ -77,7 +77,7 @@ try:
     )
     from ._convert import to_markdown  # noqa: E402
     from ._links import LinkTargets  # noqa: E402
-    from ._sso_config import load_sso_config  # noqa: E402
+    from ._sso_config import _select_auth_path  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # A missing module here is a non-secret dependency (e.g. httpx);
     # `credbroker` is imported lazily inside load_credentials(), so its
@@ -391,13 +391,13 @@ async def main_async(args: argparse.Namespace) -> int:
     # Auth selector: sso-config.toml with auth_default = "sso-cookie"
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
-        sso_config = load_sso_config()
+        auth_path, sso_config = _select_auth_path()
     except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
         log.error("%s", exc)
         return EXIT_USER_ACTION
 
     try:
-        if sso_config is not None:
+        if auth_path == "sso-cookie":
             client = ConfluenceClient.from_sso_cookies(
                 sso_config,
                 concurrency=args.concurrency,

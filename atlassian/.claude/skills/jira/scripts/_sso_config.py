@@ -161,3 +161,21 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
         session_filename=session_filename,
         ttl_hint_minutes=sso.get("ttl_hint_minutes"),
     )
+
+
+def _select_auth_path(
+    config_path: Path | None = None,
+) -> tuple[str, SsoConfig | None]:
+    """Resolve the auth path and return a typed selector tuple.
+
+    :returns: ``("token", None)`` when :func:`load_sso_config` returns ``None``
+        (config absent or ``auth_default = "creds"``); ``("sso-cookie", sso_config)``
+        when an :class:`SsoConfig` is returned (valid ``auth_default = "sso-cookie"``).
+    :raises: any exception from :func:`load_sso_config` is propagated unchanged —
+        the caller maps this to ``EXIT_USER_ACTION``.
+    """
+    sso_config = load_sso_config(config_path)
+    if sso_config is not None:
+        return ("sso-cookie", sso_config)
+    return ("token", None)
+
