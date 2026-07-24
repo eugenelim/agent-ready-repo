@@ -42,16 +42,14 @@ Steps:
 
 ### Adding or modifying a skill
 
-Skills in this catalogue follow the [agentskills.io specification](https://agentskills.io/specification) — each skill is a **self-contained folder** with `SKILL.md` plus optional `scripts/`, `references/`, `assets/`, and `evals/` subdirectories. Self-contained is non-negotiable: a skill must not import from another skill's folder, rely on globally-installed scripts the SKILL.md doesn't name, or assume files outside its own directory are present. The skill should copy, audit, and install as one unit. Skill changes are the most common contribution.
+Skills in this catalogue follow the [agentskills.io specification](https://agentskills.io/specification). Full authoring rules, spec compliance requirements, and linting guidance live in [`packs/AGENTS.md § Authoring or editing a skill`](packs/AGENTS.md#authoring-or-editing-a-skill). Skill changes are the most common contribution.
 
 Steps:
 
-1. **Pick the pack.** If your skill belongs in an existing pack, edit there. If it doesn't fit any pack and you don't want to create one, that's a signal — open an issue rather than wedging it in.
-2. **Edit `packs/<pack>/.apm/skills/<name>/SKILL.md`** (upstream). Never edit the projection at `.claude/skills/<name>/SKILL.md`. Put any companion code under `scripts/`, fixed reference material under `references/`, binary or static assets under `assets/`, and evaluation fixtures under `evals/` per [agentskills.io § Directory layout](https://agentskills.io/specification).
-3. **Frontmatter contract.** The closed top-level key set is `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools` — anything else belongs nested under `metadata:`. `name` is kebab-case (`^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 chars). The linter at `tools/lint-skill-spec.py` enforces both rules; canonical shapes live in `packs/core/.apm/skills/work-loop/`, `new-spec/`, and `bug-fix/`.
-4. **For credentialed skills** (calls an authenticated external API on the user's behalf), follow the how-to [`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`](docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md) — the security rules around credential handling are non-negotiable; [`packs/atlassian/.apm/skills/jira/`](packs/atlassian/.apm/skills/jira/) is a runnable reference consumer.
-5. **Evaluate, if behavior is non-trivial.** Drop fixtures under `evals/files/<fixture>` and the manifest at `evals/evals.json` per [agentskills.io § Evaluating skills](https://agentskills.io/skill-creation/evaluating-skills). The linter's directory-layout check exempts `evals/` from the depth rule that applies to `scripts/`, `references/`, and `assets/`.
-6. **Run `make build-self`**, commit upstream + projection together.
+1. **Pick the pack.** Edit an existing pack's `.apm/skills/` if your skill fits there. If it doesn't fit any pack, open an issue rather than wedging it in.
+2. **Edit `packs/<pack>/.apm/skills/<name>/SKILL.md`** (the source). Never edit a projected copy.
+3. **For credentialed skills**, follow [`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`](docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md); [`packs/atlassian/.apm/skills/jira/`](packs/atlassian/.apm/skills/jira/) is a reference consumer.
+4. **Run `make build-self`**, commit source + projection together.
 
 ### Adding or modifying a subagent
 
