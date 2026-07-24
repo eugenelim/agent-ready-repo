@@ -10,6 +10,13 @@
   {"query": "Look over this screen and flag the worst usability issues first", "should_trigger": true},
   {"query": "Heuristic review of this mockup, please — map each problem to a principle", "should_trigger": true},
 
+  {"query": "This hero section leads with our company history and product line before saying what the product does — is that a problem?", "should_trigger": true, "fixture": "architecture-first-hero"},
+  {"query": "Our pack page lists every skill we have with equal visual weight before showing what problem it solves — critique it", "should_trigger": true, "fixture": "inventory-first-pack-page"},
+  {"query": "Every section on this page uses cards — the testimonials, the features, the pricing, the navigation — review whether that works", "should_trigger": true, "fixture": "every-section-as-cards"},
+  {"query": "This mockup only shows the desktop layout — we haven't designed mobile yet — can you review what we have?", "should_trigger": true, "fixture": "desktop-only"},
+  {"query": "The design looks complete but we haven't added states for when a user doesn't have permission to see a resource — is that a problem?", "should_trigger": true, "fixture": "missing-permission-states"},
+  {"query": "The UI looks polished and attractive but the main action permanently deletes data without any confirmation — flag what's wrong", "should_trigger": true, "fixture": "attractive-ui-unclear-write-consequences"},
+
   {"query": "Name the aesthetic direction for this product", "should_trigger": false},
   {"query": "Make it feel more premium and calm", "should_trigger": false},
   {"query": "Derive our token taxonomy from the direction", "should_trigger": false},
