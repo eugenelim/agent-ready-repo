@@ -250,8 +250,8 @@ backlog = []
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-004"]
 name      = "AgentBundle Enterprise Distribution"
-status    = "active"
-milestone = "M1 · Source Provenance + Conflict Guard"
+status    = "shipped"
+milestone = "M6 · Release — 0.13.0 on PyPI"
 
 ["ini-004".shaping_queue]
 active  = []
