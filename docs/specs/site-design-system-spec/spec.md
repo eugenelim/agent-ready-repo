@@ -45,25 +45,25 @@ documented resolution decision.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `web/src/design-system.md` documents all color tokens from
+- [x] **AC1.** `web/src/design-system.md` documents all color tokens from
   `web/src/styles/tokens.css`: Tier 1 primitive names with hex values and
   roles (dark zone, neutral/light zone, amber-gold accent, alpha tokens),
   Tier 2 semantic names with their primitive targets and zone assignments
   (hero/dark zone vs. content/light zone vs. accent layer vs. CTA layer),
   and the layering rule (component CSS references semantic tokens only —
   never primitives directly).
-- [ ] **AC2.** `web/src/design-system.md` documents the typography scale:
+- [x] **AC2.** `web/src/design-system.md` documents the typography scale:
   font families (`--ds-font-sans`, `--ds-font-mono`), all eight size steps
   (`--ds-type-display` through `--ds-type-mono-sm`) with pixel-range
   equivalents, all five weight steps, all four tracking values, and all
   four leading values — each with its intended usage context.
-- [ ] **AC3.** `web/src/design-system.md` documents the spacing rhythm: the
+- [x] **AC3.** `web/src/design-system.md` documents the spacing rhythm: the
   4px base grid, all ten `--ds-space-*` steps with pixel values, and the
   four responsive layout tokens (`--ds-section-gap`, `--ds-section-pad-y`,
   `--ds-content-max`, `--ds-content-pad-x`). It also documents radius (4
   steps), shadow (overlay-only philosophy), motion (3 durations + 2 easing
   curves), and z-index (5 steps).
-- [ ] **AC4.** `web/src/design-system.md` documents the component
+- [x] **AC4.** `web/src/design-system.md` documents the component
   vocabulary for the marketing-homepage and catalogue/pack components. Scope:
   Hero section, StatStrip, ThreeLoops loop items, HumanGates gate cards,
   AdapterMatrix table, InstallTerminal + CSS-only tabs, PackCatalogue
@@ -75,15 +75,15 @@ documented resolution decision.
   tokens it uses. Spot-check greps per component (e.g. `grep "loop__n"
   web/src/design-system.md` for ThreeLoops, `grep "cat-card"` for
   catalogue card) must each return a match.
-- [ ] **AC5.** `web/src/design-system.md` states that the Astro marketing
+- [x] **AC5.** `web/src/design-system.md` states that the Astro marketing
   site has no `prefers-color-scheme: dark` media query; dark zone is a
   layout property (specific sections use `--ds-hero-bg`), not a
   user-preference mode. Dark mode equivalents exist only in the MkDocs
   layer (`site/docs/stylesheets/extra.css` via `[data-md-color-scheme=
   "slate"]`). The document lists the dark-mode token values defined there:
-  surface (`#0b0e12`), code background (`#141516`), accent (`#e8952b`),
+  surface (`#0b0e12`), code background (`#111520` — `var(--prim-dark-900)`, overriding Material's default `#141516`), accent (`#e8952b`),
   link color (`#f5bc6a`).
-- [ ] **AC6.** `web/src/design-system.md` documents the card icon parity
+- [x] **AC6.** `web/src/design-system.md` documents the card icon parity
   decision: ThreeLoops section (Section 4) items carry ordered numeric
   sequence badges (`.loop__n`: 01 / 02 / 03) because they represent named
   steps in a sequential "how it works" narrative; PackCatalogue section
@@ -93,7 +93,7 @@ documented resolution decision.
   types with different information architectures. No badge or icon
   additions are in scope for this spec; this AC records the decision so the
   question is closed.
-- [ ] **AC7.** `web/src/design-system.md` audits Material-injected
+- [x] **AC7.** `web/src/design-system.md` audits Material-injected
   component deviations: the MkDocs `extra.css` overrides Material for
   MkDocs using raw hex values (by necessity — `--ds-*` custom properties
   are defined in the Astro build layer and are not available to the MkDocs
@@ -105,7 +105,7 @@ documented resolution decision.
   `#141516` (dark code background) vs `--prim-dark-900: #111520`; `#1a202c`
   (table header text) vs `--prim-neutral-900: #1c1b18`; `#e2e8f0` (table
   border) which has no primitive-scale equivalent.
-- [ ] **AC8.** `tools/lint_zone_violations.py` exists and scans
+- [x] **AC8.** `tools/lint_zone_violations.py` exists and scans
   `web/src/**/*.{astro,css}` for raw color assignments (bare hex literals
   `#rrggbb` or `rgba()` calls used as CSS property values) that appear
   outside a `:root {}` token-definition block. The script excludes:
@@ -115,11 +115,11 @@ documented resolution decision.
   assumes flat, single-line-brace `:root` blocks (the current `tokens.css` shape — two
   single-line `{` openings, no nested braces). Exits 0 = clean, exits 1 = violations found,
   printing `file:line: <value>` for each hit.
-- [ ] **AC9.** `python tools/lint_zone_violations.py web/src/` exits 0 on
+- [x] **AC9.** `python tools/lint_zone_violations.py web/src/` exits 0 on
   the current codebase. Note: this AC is validated by running the lint itself, not by
   a preliminary grep — the lint's comment-exclusion logic (including `//` comments in Astro
   frontmatter) determines the outcome.
-- [ ] **AC10.** `docs/specs/README.md` is updated to include this spec in
+- [x] **AC10.** `docs/specs/README.md` is updated to include this spec in
   the active list.
 
 ## Boundaries
