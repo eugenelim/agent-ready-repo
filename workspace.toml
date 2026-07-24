@@ -156,7 +156,7 @@ queue   = [
   # These were authored from [backlog] items and are Approved-not-shipped; their origin
   # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
-  "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
+  "spec/catalogue-curation-qa-coverage",                 # AC1-AC3 done (fixtures + transcripts); AC4-AC9 pending human QA
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
