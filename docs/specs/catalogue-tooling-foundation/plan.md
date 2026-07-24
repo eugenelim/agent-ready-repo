@@ -1,7 +1,7 @@
 # Plan: Catalogue Tooling Foundation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Shipped
 
 ## Approach
 
@@ -152,7 +152,7 @@ tests file at `tests/unit/test_catalogue_tooling_foundation.py`.
 - `test_config_valid_public` — parse minimal valid public config; assert success
 - `test_config_valid_enterprise` — parse enterprise config with Artifactory;
   assert success
-- One test per validation rule (13 tests): bad schema, unsafe name, absolute
+- One test per validation rule (14 tests): bad schema, unsafe name, absolute
   path, traversal, symlink escape, required⊄include, unknown recipe, unsafe
   recipe path, bad adapter, bad source, bad Artifactory, credential URL, bad
   version, unknown key

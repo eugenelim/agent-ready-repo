@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling Foundation
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -92,42 +92,42 @@ errors. All Wave 2 specs depend on these foundations.
 
 ## Acceptance Criteria
 
-- [ ] AC1: `agentbundle/catalogue_tooling/` exists with all 11 modules
+- [x] AC1: `agentbundle/catalogue_tooling/` exists with all 11 modules
   importable with no `ImportError`.
-- [ ] AC2: Every stub function/class in Wave 2-4 modules raises
+- [x] AC2: Every stub function/class in Wave 2-4 modules raises
   `NotImplementedError` (not `pass` — the raise is the signal to Wave 2 implementers).
-- [ ] AC3: `results.py` exports at least: `Severity` (enum: ERROR/WARN/INFO),
+- [x] AC3: `results.py` exports at least: `Severity` (enum: ERROR/WARN/INFO),
   `Diagnostic` (dataclass: code, severity, pack, path, line, col, message,
   remediation), `CommandResult` (dataclass: ok, diagnostics, schema_version,
   command, operation, agentbundle_version, catalogue_schema_version),
   `LintResult(CommandResult)`, `VerifyResult(CommandResult)`,
   `BuildResult(CommandResult)`, `SelfHostResult(CommandResult)`,
   `PackageResult(CommandResult)`, `SyncDefaultsResult(CommandResult)`.
-- [ ] AC4: `docs/contracts/catalogue.schema.json` exists and is valid JSON.
+- [x] AC4: `docs/contracts/catalogue.schema.json` exists and is valid JSON.
   `agentbundle/_data/catalogue.schema.json` exists and is byte-identical.
   A test asserts byte equality.
-- [ ] AC5: `load_catalogue_config(root)` returns `None` when `catalogue.toml`
+- [x] AC5: `load_catalogue_config(root)` returns `None` when `catalogue.toml`
   is absent, preserving all existing default behavior.
-- [ ] AC6: `load_catalogue_config(root)` raises `CatalogueConfigError` for each
-  of the 13 validation failure paths listed in Boundaries: bad schema integer,
+- [x] AC6: `load_catalogue_config(root)` raises `CatalogueConfigError` for each
+  of the 14 validation failure paths listed in Boundaries: bad schema integer,
   unsafe name, absolute path, traversal, symlink escape, required not in include,
   unknown recipe, unsafe recipe path, unknown preferred-adapter, invalid source,
   malformed Artifactory fields, credential URL, non-comparable version string,
   unknown top-level key (without extension table).
-- [ ] AC7: `catalogue.toml` at repo root is present, parses without error, and
+- [x] AC7: `catalogue.toml` at repo root is present, parses without error, and
   passes `load_catalogue_config` validation.
-- [ ] AC8: `catalogue.toml` contains: `schema`, `[catalogue]` (name,
+- [x] AC8: `catalogue.toml` contains: `schema`, `[catalogue]` (name,
   display-name, description, minimum-agentbundle-version),
   `[catalogue.paths]` (packs, profiles, contracts, marketplace, build-output),
   `[catalogue.build]` (recipes list, self-host bool, claude-plugin-branch,
   marketplace-description), `[catalogue.package]` (include, required),
   `[distribution.agentbundle]` (install-defaults-output, preferred-adapter,
   default-source), `[distribution.agentbundle.artifactory]` (enabled = false).
-- [ ] AC9: `agentbundle catalogue --help` exits non-zero (stub) and lists
+- [x] AC9: `agentbundle catalogue --help` exits non-zero (stub) and lists
   `lint`, `verify`, `build`, `self-host`, `package`, `sync-defaults` in output.
-- [ ] AC10: `agentbundle lint packs --help` exits non-zero (stub) and shows
+- [x] AC10: `agentbundle lint packs --help` exits non-zero (stub) and shows
   `--root` in the help text.
-- [ ] AC11: All existing AgentBundle tests pass unmodified.
+- [x] AC11: All existing AgentBundle tests pass unmodified.
 
 ## Assumptions
 

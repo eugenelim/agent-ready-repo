@@ -163,6 +163,20 @@ def _shipped_adapters_choices() -> tuple[str, ...]:
     return shipped_adapters_from_contract()
 
 
+class _StubHelpAction(argparse.Action):
+    """A --help action for stub subcommand groups that exits 1 (not 0).
+
+    Used on the `catalogue` and `lint packs` parsers so callers can
+    distinguish "this group is not yet implemented" (exit 1) from a
+    normal help print (exit 0). Wave 2-4 specs replace these stubs with
+    real handlers; this action will be removed at that point.
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.print_help()
+        parser.exit(1)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = _VerbAwareParser(
         prog="agentbundle",
@@ -706,6 +720,61 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Publication timestamp for the channel descriptor (ISO-8601).",
     )
     sp.set_defaults(func=_lazy("package_catalogue"))
+
+    # --- catalogue <sub> --- (Wave 2-4 stubs; all exit 1 until implemented)
+    cat_parser = subparsers.add_parser(
+        "catalogue",
+        help="Portable catalogue engine commands (Wave 2-4 — not yet implemented).",
+        add_help=False,
+    )
+    cat_parser.add_argument(
+        "-h",
+        "--help",
+        action=_StubHelpAction,
+        default=argparse.SUPPRESS,
+        nargs=0,
+        help="show this help message and exit",
+    )
+    cat_subs = cat_parser.add_subparsers(dest="catalogue_sub", metavar="<sub>")
+    for _cat_sub, _cat_help in (
+        ("lint", "Lint catalogue packs (stub)."),
+        ("verify", "Verify catalogue against contracts (stub)."),
+        ("build", "Build catalogue dist tree (stub)."),
+        ("self-host", "Write self-host install-defaults (stub)."),
+        ("package", "Package catalogue into an archive (stub)."),
+        ("sync-defaults", "Sync install-defaults from catalogue.toml (stub)."),
+    ):
+        _p = cat_subs.add_parser(_cat_sub, help=_cat_help)
+        _p.add_argument("--root", default=".", help="Catalogue root directory.")
+        if _cat_sub in ("lint", "verify", "build", "package"):
+            _p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+        if _cat_sub in ("lint", "verify", "package"):
+            _p.add_argument(
+                "--format", choices=("table", "json"), default="table", help="Output format."
+            )
+        _p.set_defaults(func=_lazy("catalogue_tooling_stub"))
+
+    # --- lint packs --- (Wave 2 stub; exits 1 until implemented)
+    lint_parser = subparsers.add_parser(
+        "lint",
+        help="Lint commands (Wave 2 — not yet implemented).",
+    )
+    lint_subs = lint_parser.add_subparsers(dest="lint_sub", metavar="<sub>")
+    packs_p = lint_subs.add_parser(
+        "packs",
+        help="Lint catalogue packs (stub — use 'agentbundle catalogue lint' instead).",
+        add_help=False,
+    )
+    packs_p.add_argument(
+        "-h",
+        "--help",
+        action=_StubHelpAction,
+        default=argparse.SUPPRESS,
+        nargs=0,
+        help="show this help message and exit",
+    )
+    packs_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    packs_p.set_defaults(func=_lazy("catalogue_tooling_stub"))
 
     return parser
 
