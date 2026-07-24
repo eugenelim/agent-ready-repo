@@ -1,6 +1,6 @@
 # Spec: agentbundle-enterprise-distribution-release
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0072 (full initiative RFC; this spec closes the release step),
@@ -98,19 +98,19 @@ TDD does not apply — no new behavioral logic is introduced.
 
 **Version bump.**
 
-- [ ] AC1. `packages/agentbundle/pyproject.toml` declares `version = "0.13.0"`.
+- [x] AC1. `packages/agentbundle/pyproject.toml` declares `version = "0.13.0"`.
   Verifier: `grep 'version = "0.13.0"' packages/agentbundle/pyproject.toml` exits 0.
-- [ ] AC2. `packages/agentbundle/agentbundle/version.py` declares
+- [x] AC2. `packages/agentbundle/agentbundle/version.py` declares
   `CLI_VERSION = "0.13.0"`. Verifier: `grep 'CLI_VERSION = "0.13.0"' packages/agentbundle/agentbundle/version.py` exits 0.
-- [ ] AC3. After building and installing the wheel into a fresh venv, `agentbundle --version` reports `0.13.0`.
+- [x] AC3. After building and installing the wheel into a fresh venv, `agentbundle --version` reports `0.13.0`.
 
 **CHANGELOG.**
 
-- [ ] AC4. `packages/agentbundle/CHANGELOG.md` has `## [0.13.0]` as the first version
+- [x] AC4. `packages/agentbundle/CHANGELOG.md` has `## [0.13.0]` as the first version
   heading (directly after the file's prose header). Verifier:
   `grep -m1 '^## \[' packages/agentbundle/CHANGELOG.md` outputs a line beginning with
   `## [0.13.0] —`.
-- [ ] AC5. The `## [0.13.0]` entry's `### Added` section covers all seven M1–M6
+- [x] AC5. The `## [0.13.0]` entry's `### Added` section covers all seven M1–M6
   feature clusters, each as a distinct bullet: (a) PackState source provenance — every
   installed row records the actual catalogue source used at install time; the
   historical hard-coded literal is removed; (b) source conflict install guard — same
@@ -128,19 +128,19 @@ TDD does not apply — no new behavioral logic is introduced.
   source precedence, fail-closed on malformed `enabled = true`; (g) `agentbundle
   package-catalogue` — new command producing a deterministic Artifactory artifact
   layout (versioned archive + channel descriptor JSON) from a catalogue directory.
-- [ ] AC6. The `## [0.13.0]` entry includes a section (e.g., `### Documentation`)
+- [x] AC6. The `## [0.13.0]` entry includes a section (e.g., `### Documentation`)
   acknowledging the M5b Artifactory publishing workflow guide and the M6 enterprise
   adoption guides (`use-an-artifactory-catalogue.md` and the targeted updates to
   existing guides).
-- [ ] AC7. No real hostnames, org names, Artifactory URLs, or credentials appear
+- [x] AC7. No real hostnames, org names, Artifactory URLs, or credentials appear
   anywhere in the `## [0.13.0]` entry.
 
 **PyPI README.**
 
-- [ ] AC8. `packages/agentbundle/README.md` contains an `## Enterprise distribution`
+- [x] AC8. `packages/agentbundle/README.md` contains an `## Enterprise distribution`
   section. Verifier: `grep -F "## Enterprise distribution" packages/agentbundle/README.md`
   exits 0.
-- [ ] AC9. The enterprise distribution section documents all five capabilities with
+- [x] AC9. The enterprise distribution section documents all five capabilities with
   working CLI examples using `example.test` hostnames: (a) HTTPS channel install —
   `agentbundle config set source catalogue+https://artifactory.example.test/agentbundle/catalogues/core/channels/stable.json`
   followed by `agentbundle install --pack core`, with a prose note that the bearer
@@ -157,14 +157,14 @@ TDD does not apply — no new behavioral logic is introduced.
   `agentbundle/_data/install-defaults.toml`, stating that the block ships disabled
   (`enabled = false`) by default and that an org fork with `enabled = true` routes
   developers to the configured channel without a manual `config set source` step.
-- [ ] AC10. All hostnames and Artifactory URLs in the enterprise distribution section
+- [x] AC10. All hostnames and Artifactory URLs in the enterprise distribution section
   of the README use `example.test` or subdomains only. Verifier: the section contains
   no domains outside `example.test`.
-- [ ] AC11. The enterprise distribution section cross-references the enterprise
+- [x] AC11. The enterprise distribution section cross-references the enterprise
   adoption guide at exactly `docs/guides/_shared/how-to/use-an-artifactory-catalogue.md`
   (the M6 deliverable). Verifier: `grep -F "use-an-artifactory-catalogue.md"
   packages/agentbundle/README.md` exits 0.
-- [ ] AC12. `python -m build && twine check --strict dist/*` exits 0 (strict mode
+- [x] AC12. `python -m build && twine check --strict dist/*` exits 0 (strict mode
   treats warnings as failures), confirming the updated README renders without PyPI
   long-description warnings. This check is a mandatory local pre-tag gate run in T4
   — the release workflow uses non-strict `twine check` and cannot substitute for it;
@@ -172,7 +172,7 @@ TDD does not apply — no new behavioral logic is introduced.
 
 **Release gate (human-verified before tag push).**
 
-- [ ] AC13. All nine M1–M6 code implementations are present on the main branch before
+- [x] AC13. All nine M1–M6 code implementations are present on the main branch before
   `agentbundle-v0.13.0` is pushed. The workspace.toml `shipped` list is a cross-check
   on spec completion, not on code merge; the authoritative gate is the artifact layer.
   (a) Workspace cross-check — all nine spec paths appear under `["ini-004".work].shipped`
@@ -198,18 +198,18 @@ TDD does not apply — no new behavioral logic is introduced.
 
 **Tag and publish (visual / manual QA).**
 
-- [ ] AC14. Tag `agentbundle-v0.13.0` exists and points to a commit on main.
+- [x] AC14. Tag `agentbundle-v0.13.0` exists and points to a commit on main.
   Verifier: `git log --oneline agentbundle-v0.13.0 | head -1` outputs the expected
   merge commit SHA.
-- [ ] AC15. The `release-agentbundle` workflow's `build-and-smoke` job completes
+- [x] AC15. The `release-agentbundle` workflow's `build-and-smoke` job completes
   successfully for the tag push: the tag-vs-pyproject assertion passes, the
   tag-vs-CLI_VERSION assertion passes, the tag-on-main ancestry assertion passes,
   the wheel and sdist build, `twine check` passes, the wheel installs into a clean
   venv, and `agentbundle --help` exits 0 on PATH.
-- [ ] AC16. The `publish-pypi` job completes successfully. From a clean venv on a
+- [x] AC16. The `publish-pypi` job completes successfully. From a clean venv on a
   separate machine: `pip install agentbundle==0.13.0` resolves and installs, and
   `agentbundle --version` reports `0.13.0`.
-- [ ] AC17. The PyPI package page for agentbundle version 0.13.0 shows the updated
+- [x] AC17. The PyPI package page for agentbundle version 0.13.0 shows the updated
   long description including the enterprise distribution section.
 
 ## Assumptions
