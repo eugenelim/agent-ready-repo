@@ -133,6 +133,17 @@ def run(args: "argparse.Namespace") -> int:
     # pre-flight in `_resolve_target_adapter` no-ops when this is None,
     # so legacy callers see exactly today's behavior.
     user_config: "UserConfig | None" = getattr(args, "_user_config", None)
+    # Org preferred-adapter hint — read once, used at every _resolve_target_adapter
+    # call site below.  A blank or absent [organization].preferred_adapter yields
+    # None and leaves all existing behaviour unchanged.  A present but invalid
+    # value (not in the shipped adapter contract) is diagnosed here, before any
+    # I/O, so the install exits 1 with a clear error message.
+    from agentbundle.source_defaults import read_packaged_preferred_adapter as _read_pref_adapter
+    try:
+        _org_preferred_adapter: str | None = _read_pref_adapter()
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
     output_root = Path(args.output).resolve()
 
     # `--force-merge` runtime binding (Step 2's resolved scope is the
@@ -399,6 +410,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -423,6 +435,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
             _orphan_filter_relpaths = set(_early_repo_projection.keys())
         except (FileNotFoundError, ValueError):
@@ -461,6 +474,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -589,6 +603,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,  # First install has no prior state here.
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -721,6 +736,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused:
             # Repo resolution failed; defer the actual refusal to the
@@ -821,6 +837,7 @@ def run(args: "argparse.Namespace") -> int:
                     state_adapter=None,
                     command_name="install",
                     user_config=user_config,
+                    preferred_adapter=_org_preferred_adapter,
                 )
         if any(p.scope == "user" for p in plans):
             user_projection = _render_for_user_scope(
@@ -831,6 +848,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
             user_scope_hooks_enabled = bool(
                 isinstance(pack_install, dict)
@@ -2888,6 +2906,7 @@ def _render_for_user_scope(
     state_adapter: str | None = None,
     command_name: str = "install",
     user_config: "UserConfig | None" = None,
+    preferred_adapter: str | None = None,
 ) -> dict[str, bytes]:
     """Project a pack via the Claude Code / Kiro / Codex adapter
     (depending on RFC-0011 resolution), for user-scope install.
@@ -2945,6 +2964,7 @@ def _render_for_user_scope(
         state_adapter=state_adapter,
         user_config=user_config,
         command_name=command_name,
+        preferred_adapter=preferred_adapter,
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
@@ -3003,6 +3023,7 @@ def _render_for_repo_scope(
     state_adapter: str | None = None,
     command_name: str = "install",
     user_config: "UserConfig | None" = None,
+    preferred_adapter: str | None = None,
 ) -> tuple[str, dict[str, bytes]]:
     """Project a pack via the resolved adapter (RFC-0011 + RFC-0012
     six-step lookup at ``scope="repo"``), for repo-scope install at
@@ -3044,6 +3065,7 @@ def _render_for_repo_scope(
         state_adapter=state_adapter,
         command_name=command_name,
         user_config=user_config,
+        preferred_adapter=preferred_adapter,
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
@@ -3202,6 +3224,7 @@ def _resolve_target_adapter(
     state_adapter: str | None = None,
     command_name: str = "install",
     user_config: "UserConfig | None" = None,
+    preferred_adapter: str | None = None,
 ) -> str:
     """Resolve the adapter that an install/upgrade targets at *scope*
     (RFC-0011 substrate; RFC-0012 widens to repo scope).
@@ -3378,6 +3401,31 @@ def _resolve_target_adapter(
                 f"clear it."
             )
         return candidate
+
+    # Step 2.75: org preferred-adapter hint from packaged
+    # _data/install-defaults.toml.  Fires only when state_adapter is None
+    # (same gate as step 2.5) so upgrade correctness is preserved — state-hint
+    # (step 2) and user-config (step 2.5) already returned above when set.
+    # The value was validated against the shipped adapter contract by
+    # read_packaged_preferred_adapter(); here we validate against the
+    # pack's allowed_adapters and the scope-appropriate admissible set.
+    if state_adapter is None and preferred_adapter is not None:
+        admissible_at_scope = user_capable if scope == "user" else shipped
+        if preferred_adapter not in admissible_at_scope:
+            raise _AdapterResolutionRefused(
+                f"{command_name}: org preferred_adapter {preferred_adapter!r} is "
+                f"not supported at {scope} scope. Adapters supported at "
+                f"{scope} scope: {sorted(admissible_at_scope)}. To override: "
+                f"pass --adapter <name> or run `agentbundle config set adapter "
+                f"<name>`."
+            )
+        if allowed_adapters is not None and preferred_adapter not in allowed_adapters:
+            raise _AdapterResolutionRefused(
+                f"{command_name}: org preferred_adapter {preferred_adapter!r} "
+                f"is not in pack {pack_name!r}'s allowed-adapters "
+                f"{sorted(allowed_adapters)}."
+            )
+        return preferred_adapter
 
     # Step 3 + Step 4: contract-version gate + per-scope branch.
     if (
@@ -4041,6 +4089,12 @@ def _run_profile(args: "argparse.Namespace") -> int:
         return 1
     cli_adapter: str | None = getattr(args, "adapter", None)
     user_config = getattr(args, "_user_config", None)
+    from agentbundle.source_defaults import read_packaged_preferred_adapter as _read_pref_adapter_profile
+    try:
+        _org_preferred_adapter: str | None = _read_pref_adapter_profile()
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
     output_root = Path(args.output).resolve()
 
     # ── Resolve catalogue + load the profile manifest ─────────────────────────
@@ -4098,6 +4152,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
             state_adapter=None,
             command_name="install",
             user_config=user_config,
+            preferred_adapter=_org_preferred_adapter,
         )
     except _AdapterResolutionRefused as exc:
         print(str(exc), file=sys.stderr)
@@ -4123,6 +4178,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused:
             compat = (

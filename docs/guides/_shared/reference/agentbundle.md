@@ -72,8 +72,9 @@ Once installed, `agentbundle` resolves the target adapter on every install via a
 1. The `--adapter` flag, if passed.
 2. The state-hint from a prior install of the same pack (so an upgrade stays on the adapter it was originally installed under).
 3. The user-config file, if you've set one.
-4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/`, or `~/.kiro/` populated, the matching adapter is picked. This is the auto-detection layer for users who never ran `agentbundle config set` and don't pass `--adapter`.
-5. The built-in default (`scope.DEFAULT_ADAPTER`, currently `claude-code`).
+4. The org preferred-adapter hint, if your org ships one in its packaged `agentbundle` wheel (see [Org adapter default](#org-adapter-default) below).
+5. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/`, or `~/.kiro/` populated, the matching adapter is picked. This is the auto-detection layer for users who never ran `agentbundle config set` and don't pass `--adapter`.
+6. The built-in default (`scope.DEFAULT_ADAPTER`, currently `claude-code`).
 
 `agentbundle config` reads and writes layer 3. Four actions:
 
@@ -134,6 +135,19 @@ If you have `adapter = "<name>"` configured and either:
 then `agentbundle install` refuses with a message naming the conflict and listing the escape hatches (`--scope`, `--adapter`, `agentbundle config set`, `agentbundle config unset`). The configured value is preserved — the install just doesn't proceed under a value you didn't pick.
 
 Upgrades preserve their existing adapter regardless of user-config. If you installed a pack under `claude-code`, then ran `agentbundle config set adapter codex`, then upgraded that pack, the upgrade stays on `claude-code` — `agentbundle config` shapes fresh installs, not relayouts of existing ones.
+
+### Org adapter default
+
+If your organization ships a private `agentbundle` wheel (or a fork pinned to your internal catalogue), the org can set a default adapter for all developers in the wheel's packaged `_data/install-defaults.toml`:
+
+```toml
+[organization]
+preferred_adapter = "cursor"
+```
+
+When a developer on your team runs `agentbundle install --pack core` with no `--adapter`, the org hint fires at cascade step 4 — after the user-config (step 3) but before the on-disk probe (step 5). The explicit `--adapter` flag and a developer's personal `agentbundle config set adapter` both win. To clear the hint, blank the value (`preferred_adapter = ""`) or remove the `[organization]` table. The hint is never written to state — it applies at install time only.
+
+The value must be in the shipped adapter contract (`claude-code`, `codex`, `copilot`, `cursor`, `gemini`, `kiro`, `kiro-cli`, `kiro-ide`). An invalid value causes `install` to exit 1 with a clear error before touching any file.
 
 ## What `upgrade` reports
 

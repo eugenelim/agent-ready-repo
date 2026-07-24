@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [Unreleased]
+
+### Added
+
+- **Org preferred-adapter hint in `_data/install-defaults.toml`.** Org forks of
+  `agentbundle` can now add `[organization] preferred_adapter = "cursor"` to
+  the packaged wheel's `_data/install-defaults.toml`. On a bare `agentbundle
+  install --pack <pack>` with no `--adapter`, the hint fires as step 2.75 in the
+  adapter resolution chain — after user-config and before the on-disk IDE probe.
+  Explicit `--adapter`, state-hint (for upgrades), and `agentbundle config set
+  adapter` all win. Blank or absent value silently falls through; a present but
+  invalid value causes install to exit 1 before writing anything. The value is
+  never persisted in state and has no effect on individual developers' machines
+  unless it arrives inside an org-packaged wheel.
+
 ## [0.12.1] — 2026-07-23
 
 ### Changed
