@@ -77,14 +77,25 @@ def _make_pack(
     return pack_dir
 
 
-def _plant_state(adopter: Path, *, pack_name: str, adapter: str = "claude-code") -> None:
+def _plant_state(
+    adopter: Path,
+    *,
+    pack_name: str,
+    adapter: str = "claude-code",
+    source: str = "agent-ready-repo",
+) -> None:
     """Write a minimal v0.4 state.toml carrying one ``[pack.<name>.adapters.<a>]``
     row.
 
     The fixture mirrors a prior install — the row exists but no repo-scope
     per-IDE files match it on disk (dist-tree or orphan artifacts are planted
     by the caller). The adapter is part of the table key (RFC-0052).
+
+    ``source`` defaults to the legacy sentinel; pass the fixture catalogue path
+    so that the source-conflict guard (RFC-0072 D3) allows the subsequent
+    install when the same catalogue is used.
     """
+    source_line = f'source = "{source}"' if source else ""
     state_path = adopter / ".agentbundle-state.toml"
     state_path.write_text(
         textwrap.dedent(
@@ -93,7 +104,7 @@ def _plant_state(adopter: Path, *, pack_name: str, adapter: str = "claude-code")
 
             [pack.{pack_name}.adapters.{adapter}]
             installed-version = "0.1.0"
-            source = "agent-ready-repo"
+            {source_line}
             install-route = "cli"
             scope = "repo"
             """
@@ -136,7 +147,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
             adopter = tmp / "adopter"
             adopter.mkdir()
-            _plant_state(adopter, pack_name="demo")
+            _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             # Plant dist-tree files (pre-RFC-0012 shape).
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
@@ -174,7 +185,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
             adopter = tmp / "adopter"
             adopter.mkdir()
-            _plant_state(adopter, pack_name="demo")
+            _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
@@ -259,7 +270,7 @@ class CrossAdapterCoexistenceTests(unittest.TestCase):
             adopter = tmp / "adopter"
             adopter.mkdir()
             # State records claude-code; install kiro as a second adapter row.
-            _plant_state(adopter, pack_name="demo", adapter="claude-code")
+            _plant_state(adopter, pack_name="demo", adapter="claude-code", source=str(packs_dir))
             # NO dist-tree files.
 
             rc, stderr = _run_install(
@@ -284,7 +295,7 @@ class CrossAdapterCoexistenceTests(unittest.TestCase):
             _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
             adopter = tmp / "adopter"
             adopter.mkdir()
-            _plant_state(adopter, pack_name="demo", adapter="claude-code")
+            _plant_state(adopter, pack_name="demo", adapter="claude-code", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
@@ -326,7 +337,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             adopter = tmp / "adopter"
             adopter.mkdir()
             # Pack A: state row + dist-tree files → (b) should fire.
-            _plant_state(adopter, pack_name="apack")
+            _plant_state(adopter, pack_name="apack", source=str(packs_dir))
             (adopter / "claude-plugins" / "apack").mkdir(parents=True)
             (adopter / "claude-plugins" / "apack" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
@@ -421,7 +432,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
             adopter = tmp / "adopter"
             adopter.mkdir()
-            _plant_state(adopter, pack_name="demo")
+            _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
@@ -458,7 +469,7 @@ class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
             _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
             adopter = tmp / "adopter"
             adopter.mkdir()
-            _plant_state(adopter, pack_name="demo")
+            _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
@@ -493,7 +504,7 @@ class ForceCleanupConfirmTests(unittest.TestCase):
         _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
         adopter = tmp / "adopter"
         adopter.mkdir()
-        _plant_state(adopter, pack_name="demo")
+        _plant_state(adopter, pack_name="demo", source=str(packs_dir))
         (adopter / "claude-plugins" / "demo").mkdir(parents=True)
         (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
             "{}", encoding="utf-8"
