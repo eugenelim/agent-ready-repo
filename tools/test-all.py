@@ -41,6 +41,7 @@ def _repo_root() -> Path:
 # self-tests prefer `sys.executable` over a bare `python3` so the
 # child runs with the same interpreter as the umbrella.
 TESTS: list[tuple[str, list[str]]] = [
+    ("check-xd-chain",     [sys.executable, "tools/test-check-xd-chain.py"]),
     ("lint-agent-artifacts", ["bash", "tools/test-lint-agent-artifacts.sh"]),
     ("lint-catalogue-seeds", [sys.executable, "tools/test-lint-catalogue-seeds.py"]),
     ("lint-knowledge",       ["bash", "tools/test-lint-knowledge.sh"]),

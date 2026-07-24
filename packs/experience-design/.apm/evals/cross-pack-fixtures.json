@@ -1,0 +1,238 @@
+{
+  "schema_version": "1.0",
+  "description": "Cross-pack XD skill chain eval fixtures (ini-003 M5 / spec/cross-pack-experience-eval). All fixtures are report-only — use check-xd-chain.py with --gate to promote deterministic checks to a CI gate. See docs/guides/experience-design/how-to/run-cross-pack-eval.md.",
+
+  "golden_path": [
+    {
+      "id": "gp-01",
+      "name": "Public marketing + documentation site",
+      "scenario": "A product team launching a developer tool needs to establish the end-to-end experience for their marketing site and documentation portal simultaneously. The team has a strategy artifact and a PE shaping brief.",
+      "expected_skill_sequence": [
+        "creative-direction",
+        "design-token-taxonomy",
+        "design-system-foundations",
+        "information-architecture",
+        "copy-direction",
+        "tone-of-voice",
+        "content-design",
+        "design-review"
+      ],
+      "handoff_completeness_criteria": [
+        "creative-direction output (aesthetic direction artifact) is the input to design-token-taxonomy",
+        "design-token-taxonomy output (token taxonomy) is the input to design-system-foundations",
+        "design-system-foundations output (token foundation) grounds information-architecture layout decisions",
+        "information-architecture output (hierarchy, reading flow, wayfinding) sets the surface for copy-direction",
+        "copy-direction output (named ranked copy goals, arbitration rules) guides tone-of-voice and content-design",
+        "design-review pass evaluates the assembled surface against the quality floor and heuristics"
+      ],
+      "coherence_indicators": [
+        "Token taxonomy naming conventions appear in the design-system-foundations output",
+        "Copy goals from copy-direction are traceable in the content-design output",
+        "Design-review findings reference the grounded aesthetic direction from creative-direction",
+        "At least one finding in design-review is flagged as a cross-surface integration issue (marketing vs. docs)"
+      ],
+      "weak_indicators": [
+        "copy-direction references no stable precedent or persona language (directional flag absent)",
+        "design-review does not run the marketing clarity pass on above-fold copy",
+        "Token taxonomy is derived without an aesthetic direction input"
+      ]
+    },
+    {
+      "id": "gp-02",
+      "name": "SaaS onboarding + workspace",
+      "scenario": "A SaaS team redesigning their onboarding flow and in-app workspace. The primary goal is first-success continuity: a new user should reach their first value moment without confusion.",
+      "expected_skill_sequence": [
+        "journey-mapping",
+        "creative-direction",
+        "design-token-taxonomy",
+        "design-system-foundations",
+        "information-architecture",
+        "interaction-design",
+        "copy-direction",
+        "user-flow",
+        "design-review"
+      ],
+      "handoff_completeness_criteria": [
+        "journey-mapping identifies the first-success event that grounds the onboarding scope",
+        "creative-direction is grounded in the persona from the journey map",
+        "information-architecture structures the onboarding screens and workspace layout",
+        "interaction-design patterns reference the design-system-foundations token foundation",
+        "copy-direction names goals for the onboarding surface specifically (not the whole product)",
+        "user-flow captures the step sequence including unhappy paths and recovery states",
+        "design-review runs the full three-pass structure (cold-read, primary task + unhappy path, contract review)"
+      ],
+      "coherence_indicators": [
+        "The first-success event from journey-mapping appears as a design intent in information-architecture",
+        "Interaction patterns from interaction-design reference the token foundation (semantic role names, not values)",
+        "Design-review findings for the onboarding surface reference both the aesthetic direction and the product-object mapping",
+        "State coverage covers the loading, empty, error, and success states at minimum"
+      ],
+      "weak_indicators": [
+        "Copy direction is set at brand level (tone-of-voice) instead of surface-specific level (copy-direction)",
+        "User flow does not include unhappy paths or recovery states",
+        "Design-review runs only a single pass rather than the three-pass structure"
+      ]
+    },
+    {
+      "id": "gp-03",
+      "name": "Internal analytics dashboard",
+      "scenario": "A data team building an internal analytics dashboard for operational KPI tracking. No public-facing surfaces; the primary concern is information density, business-question traceability, and accessibility.",
+      "expected_skill_sequence": [
+        "design-token-taxonomy",
+        "design-system-foundations",
+        "information-architecture",
+        "analytical-design",
+        "design-review"
+      ],
+      "handoff_completeness_criteria": [
+        "design-token-taxonomy establishes a token taxonomy appropriate for data-dense surfaces (including status and categorical tokens)",
+        "design-system-foundations applies the token foundation with full component anatomy for analytical components",
+        "information-architecture structures the dashboard hierarchy so Tier 1 KPIs are above the fold",
+        "analytical-design applies the business-question traceability rubric and widget-tier structure",
+        "design-review runs the analytical genre rubric in Pass 3"
+      ],
+      "coherence_indicators": [
+        "Information-architecture output names the 3-5 business questions the dashboard answers",
+        "Analytical-design output maps each widget to at least one named business question",
+        "Design-review's analytical genre rubric confirms Tier 1 KPIs are within the 9-widget ceiling",
+        "No marketing clarity pass fires (internal tool, no persuasion goal)"
+      ],
+      "weak_indicators": [
+        "Dashboard design proceeds without naming the business questions first",
+        "Tier 1 KPIs include more than 9 widgets or lack comparison baselines",
+        "design-review does not apply the analytical genre rubric"
+      ]
+    },
+    {
+      "id": "gp-04",
+      "name": "Transactional service surface",
+      "scenario": "A fintech product adding a transactional flow (funds transfer, confirmation, receipt) to an existing product. The primary concern is error handling, state completeness, and accessibility at the WCAG floor.",
+      "expected_skill_sequence": [
+        "design-token-taxonomy",
+        "design-system-foundations",
+        "information-architecture",
+        "interaction-design",
+        "copy-direction",
+        "design-review"
+      ],
+      "handoff_completeness_criteria": [
+        "design-system-foundations includes error, warning, and status token roles in the foundation",
+        "information-architecture maps the transaction flow including confirmation, error, and receipt states",
+        "interaction-design specifies focus management and keyboard navigation for the transaction steps",
+        "copy-direction names goals for transactional copy (error messages, confirmations, receipts) as a distinct surface",
+        "design-review quality-floor pass confirms all 18 states are addressed and accessibility floor is met"
+      ],
+      "coherence_indicators": [
+        "Error and warning token roles from design-system-foundations appear in the interaction-design output",
+        "The transaction flow from information-architecture includes all states (loading, processing, success, error, retry)",
+        "Copy direction artifact is scoped to the transactional surface, not the whole product",
+        "Design-review accessibility misses are flagged starting at major severity"
+      ],
+      "weak_indicators": [
+        "State coverage in design-review omits processing, timeout, or retry states",
+        "Copy direction is set at brand level without a transactional surface artifact",
+        "Interaction-design does not address keyboard navigation or focus management"
+      ]
+    }
+  ],
+
+  "multi_intent_routing": [
+    {
+      "id": "mir-01",
+      "name": "Audit and rebuild",
+      "prompt_pattern": "Our current onboarding is broken — users are dropping off before they see value. Audit it and tell me what to rebuild.",
+      "expected_routing": [
+        {"skill": "design-review", "role": "Audit the existing surface — identify what is broken, severity-rated"},
+        {"skill": "information-architecture", "role": "Restructure the hierarchy after the audit identifies IA failures"},
+        {"skill": "copy-direction", "role": "Name copy goals for the rebuilt surface if copy problems are found"},
+        {"skill": "design-review", "role": "Second pass on the rebuilt surface to verify improvements"}
+      ],
+      "routing_rationale": "The prompt has two jobs: evaluate the existing state (design-review) and rebuild it (IA + copy-direction). A coherent response names both jobs and routes to the right skill for each. A weak response either runs only the audit or only the rebuild without the other."
+    },
+    {
+      "id": "mir-02",
+      "name": "Full-stack from opportunity",
+      "prompt_pattern": "We have a validated opportunity: small-business owners need faster invoice approval. Take it all the way to a design-ready brief.",
+      "expected_routing": [
+        {"skill": "creative-direction", "role": "Establish the aesthetic direction for the surface"},
+        {"skill": "design-token-taxonomy", "role": "Derive the token taxonomy from the direction"},
+        {"skill": "design-system-foundations", "role": "Apply the token foundation"},
+        {"skill": "information-architecture", "role": "Structure the invoice approval flow"},
+        {"skill": "copy-direction", "role": "Name copy goals for the approval surface"},
+        {"skill": "user-flow", "role": "Capture the step sequence including approval, rejection, and escalation states"},
+        {"skill": "design-review", "role": "Review the assembled flow before handing to implementation"}
+      ],
+      "routing_rationale": "A full-stack-from-opportunity prompt requires the complete XD chain. A coherent response routes through all chain skills in order and produces handoff artifacts at each step. A weak response skips chain steps or conflates multiple skills' jobs into a single response."
+    },
+    {
+      "id": "mir-03",
+      "name": "Unify marketing, docs, and onboarding",
+      "prompt_pattern": "Our marketing site, docs, and in-app onboarding all feel like different products. Unify them.",
+      "expected_routing": [
+        {"skill": "creative-direction", "role": "Establish a single grounded aesthetic direction that spans all three surfaces"},
+        {"skill": "information-architecture", "role": "Structure each surface's hierarchy independently, then map cross-surface wayfinding"},
+        {"skill": "copy-direction", "role": "Name surface-specific copy goals for marketing, docs, and onboarding as three separate artifacts"},
+        {"skill": "tone-of-voice", "role": "Establish brand-level register that the three surface copy directions align to"},
+        {"skill": "design-review", "role": "Run a multi-surface pass with explicit cross-surface integration check"}
+      ],
+      "routing_rationale": "A unification prompt spans three surfaces. A coherent response treats each surface separately (separate information-architecture and copy-direction artifacts) while grounding them in a shared creative direction and tone-of-voice. A weak response produces a single undifferentiated copy direction for all three surfaces."
+    }
+  ],
+
+  "boundary_violations": [
+    {
+      "id": "bv-01",
+      "name": "design-system-foundations doing information-architecture's job",
+      "violating_skill": "design-system-foundations",
+      "violated_skill": "information-architecture",
+      "description": "A response where design-system-foundations output includes page layout decisions, hierarchy structure, or reading flow — work that belongs to information-architecture.",
+      "detection_signal": "design-system-foundations output prescribes which sections appear above or below the fold, names the navigation structure, or specifies reading flow order.",
+      "guard": "design-system-foundations SKILL.md: 'Near-misses — do not use to ... structure hierarchy and reading flow (use `information-architecture`)'",
+      "example_violation": "A design-system-foundations response that says 'place the hero section above the fold with the token palette below' — layout prescriptions belong in information-architecture, not the token foundation."
+    },
+    {
+      "id": "bv-02",
+      "name": "information-architecture doing copy-direction's job",
+      "violating_skill": "information-architecture",
+      "violated_skill": "copy-direction",
+      "description": "A response where information-architecture output includes copy voice goals, named tone attributes, or prescribed headline language — work that belongs to copy-direction.",
+      "detection_signal": "information-architecture output names copy goals ('the hero headline should be direct and warm'), tone adjectives for sections, or prescribes specific wording for navigation labels as voice rather than structural choices.",
+      "guard": "information-architecture SKILL.md: 'Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.'",
+      "example_violation": "An information-architecture response that includes 'Copy voice for the navigation should be conversational and outcome-focused' — copy voice goals belong in copy-direction, not IA."
+    },
+    {
+      "id": "bv-03",
+      "name": "copy-direction doing design-review's job",
+      "violating_skill": "copy-direction",
+      "violated_skill": "design-review",
+      "description": "A response where copy-direction output includes heuristic evaluation findings, severity-rated usability issues, or quality-floor pass results — work that belongs to design-review.",
+      "detection_signal": "copy-direction output includes a prioritized findings list, severity ratings, or heuristic evaluations of the surface.",
+      "guard": "copy-direction is a goal-naming skill (named, ranked copy goals + arbitration rules), not an evaluation skill. Evaluation belongs to design-review.",
+      "example_violation": "A copy-direction response that rates the hero copy as '3/4 severity: painkiller-first structure violated' — severity-rated findings belong in design-review's marketing clarity pass, not copy-direction output."
+    }
+  ],
+
+  "weak_regression": [
+    {
+      "id": "wr-01",
+      "name": "Locally polished but globally weak — chain skipped",
+      "description": "A response that produces high-quality output for one skill in the chain but skips the upstream skills the output depends on. The result looks complete but is ungrounded.",
+      "failure_mode": "design-review runs and produces severity-rated findings, but no design-token-taxonomy, design-system-foundations, or copy-direction artifacts exist. The findings cannot reference a grounded aesthetic direction or copy goals.",
+      "detection_criterion": "design-review's taste critique and marketing clarity findings reference no grounded aesthetic direction artifact (no creative-direction output) and no copy goals artifact (no copy-direction output). Findings are unanchored opinions, not referent-grounded judgments."
+    },
+    {
+      "id": "wr-02",
+      "name": "Chain ordering violation — token foundation before taxonomy",
+      "description": "A response where design-system-foundations is applied before design-token-taxonomy has named the token taxonomy. The foundation has no semantic naming convention to implement.",
+      "failure_mode": "design-system-foundations output names semantic roles (e.g., 'color-primary', 'spacing-md') without a prior design-token-taxonomy artifact that established those names and their rationale. The naming choices are arbitrary.",
+      "detection_criterion": "design-system-foundations output references token names, but no design-token-taxonomy artifact exists in the session or workspace. Alternatively, design-system-foundations uses generic placeholder names ('color1', 'size2') that suggest no taxonomy was derived."
+    },
+    {
+      "id": "wr-03",
+      "name": "Phantom handoff — skill references a non-existent successor",
+      "description": "A skill's output explicitly hands off to a skill that does not exist in the pack or has been renamed. The user is given an instruction they cannot follow.",
+      "failure_mode": "A skill's output says 'hand this off to design-token-system to apply values' but the skill is named 'design-token-taxonomy'. Or a skill references 'ux-writing' for product UI strings without clarifying this is in the product-engineering pack, leaving the user unable to find the skill.",
+      "detection_criterion": "The checker's phantom-handoff check (check-xd-chain.py) reports a backtick-quoted skill name in a Do-NOT-use guard that does not resolve to an existing SKILL.md in the pack, and is not exempted as a cross-pack reference."
+    }
+  ]
+}
