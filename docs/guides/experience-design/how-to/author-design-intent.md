@@ -69,6 +69,8 @@ timing, input/validation flow, a component **state machine** (a mermaid
 behavior, gesture, and cognitive-law fit. It designs how the screen *behaves* —
 the macro flow across screens stays `user-flow`'s.
 
+For the two-step token chain (`design-token-taxonomy` → `design-system-foundations`) in detail, see [Derive a token taxonomy and apply the design token foundation](design-system-chain.md). To identify the right page archetype before designing hierarchy, see [Page archetypes: when to use which](page-archetypes.md).
+
 ## 5. Critique as you author
 
 > "Run a critique of this screen — heuristics and taste — and rank the findings."

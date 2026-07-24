@@ -91,3 +91,7 @@ Full mode output additionally names:
 2. Run `design-token-taxonomy` to derive the token/scale taxonomy from those goals — naming tokens by semantic role and choosing a single ratio as the organizing concept.
 3. Run `design-system-foundations` in lightweight or full mode to apply the taxonomy as a working foundation.
 4. Build components using the foundation tokens (route to `interaction-design` for component state machines).
+
+## See also
+
+- [Thread a feature from journey to screens](author-design-intent.md) — the full XD chain context in which this two-step token chain sits.
