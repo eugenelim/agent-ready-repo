@@ -40,10 +40,10 @@ skills:
     description: "Pairs flow-metrics JSON outputs and renders a Markdown comparison report. Three modes: baseline (before/after two windows), cohort (AI-tagged vs control within one window), program (roll up across multiple teams or projects). No Jira calls — reads only local JSON files."
     humanTouches: 1
   - name: jira-story-triage
-    description: "Audits a Jira backlog, sprint, or JQL-scoped set of stories for agent-readiness. Scores each story against a five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR) and outputs a Tier A / B / C / Blocked table with complexity grouping (Quick / Standard / Involved) within Tier A. Read-only."
-    humanTouches: 0
+    description: "Reviews a Jira backlog, sprint, or JQL-scoped set of work items for readiness to hand to engineering and improves the weak ones. For every not-ready item it explains why — which of the five-question bar's questions failed (self-contained change, reachable repo scope, checkable ACs, no mid-flight decision, right-sized for one PR) and the specific gap — not a bare tier label. On request it drafts acceptance criteria or a clearer outcome and writes it back only after you approve the exact payload. Read-only until an approval."
+    humanTouches: 1
   - name: jira-team-status
-    description: "Session-entry-point for sprint planning. Shows a scored sprint snapshot in four sections (Agent-ready grouped by complexity, Parallel batching, Gated, Needs shaping), then offers a pick-up hand-off: start delivery on a ready story or shape a blocked story collaboratively with optional update-issue on explicit user consent."
+    description: "A read-only status view of a team's Jira work, organized by the dimensions people ask about — Ready to pull, In progress, Blocked, Unassigned, Needs detail — plus recently-changed and stale markers, for sprint, stand-up, and team-status summaries. 'Ready to pull' is a documented, team-overridable rule (in scope + eligible backlog state + no known blocker + meets the readiness bar); unreadable signals are labelled 'needs confirmation'. Ends in a read-only pick-up hand-off: start delivery on a ready item, or route one that needs detail to jira-story-triage."
     humanTouches: 1
 humanGates:
   - id: G-scope

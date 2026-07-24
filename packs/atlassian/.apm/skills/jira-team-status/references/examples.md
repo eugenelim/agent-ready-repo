@@ -1,8 +1,8 @@
 # `jira-team-status` — worked examples
 
-## Example 1: Mixed sprint snapshot with pick-up hand-off
+## Example 1: Stand-up status snapshot with pick-up hand-off
 
-**Invocation:** "Show team sprint status for the PLATFORM team in sprint 8, and help me pick a story."
+**Invocation:** "Give me a team status for stand-up — the PLATFORM team, sprint 8."
 
 **Skill behaviour:**
 
@@ -11,95 +11,93 @@
 3. Runs:
    ```
    jira: search "project = PLATFORM AND sprint = 'Sprint 8' AND statusCategory != Done"
-         --fields "summary,description,issuetype,status,priority,labels,customfield_*"
+         --fields "summary,description,issuetype,status,statusCategory,assignee,updated,priority,labels,issuelinks,customfield_*"
          --limit 100
    ```
-4. Receives 8 stories. Applies pre-check, then Q1–Q5 scoring.
-
-**Pre-check:**
-- PLATFORM-205: description = `!arch-diagram.png!` → **Blocked** (image-only).
-
-**Scoring (7 remaining stories):**
-
-| Key | Q1 | Q2 | Q3 | Q4 | Q5 | Tier | Complexity |
-|---|---|---|---|---|---|---|---|
-| PLATFORM-201 | ✓ | ✓ | ✓ | ✓ | ✓ (1pt) | A | Quick |
-| PLATFORM-202 | ✓ | ✓ | ✓ | ✓ | ✓ (2pts) | A | Quick |
-| PLATFORM-206 | ✓ | ✓ | ✓ | ✓ | ✓ (4pts) | A | Standard |
-| PLATFORM-207 | ✓ | ✓ | ✓ | ✓ | ✓ (3pts) | A | Standard |
-| PLATFORM-208 | ✓ | ✓ | ✓ | ✓ | ✓ (8pts) | A | Involved |
-| PLATFORM-203 | ✓ | ✓ | ✓ | ✗ (Q4: pending sign-off from infra-lead) | ✓ | B | — |
-| PLATFORM-204 | ✗ (Q1: "investigate options for") | ✗ | ✗ | ✗ | unknown | C | — |
+4. Receives 8 items. Classifies each into a primary dimension; computes cross-cutting views.
 
 **Output:**
 
 ```
 Invocation repo: github.com/acme/platform-core (detected)
-Sprint scope: project = PLATFORM AND sprint = "Sprint 8"
-Stories fetched: 8
+Scope: project = PLATFORM AND sprint = "Sprint 8"
+Coverage: all 8 items (not truncated)
 ```
 
 ---
 
-### §1 — Agent-ready (Tier A)
+### §1 — Ready to pull
 
-Stories ready to hand to an agent or engineer with no follow-up needed.
+Meets the ready-to-pull rule (eligible state · no blocker · passes the readiness bar).
 
-**Quick** (≤ 2pts — grab if you have 1–2 hours)
+**Quick** (≤ 2pts)
 
-| Key | Summary | Priority | Complexity | Invocation repo match? |
-|---|---|---|---|---|
-| PLATFORM-201 | Remove deprecated `FeatureFlags.LEGACY_AUTH` constant | High | Quick | Yes |
-| PLATFORM-202 | Update `platform-core` agent frontmatter to claude-sonnet-5 | Medium | Quick | Yes |
+| Key | Summary | Priority | Complexity | Updated (⚠ if stale) | Invocation repo match? |
+|---|---|---|---|---|---|
+| PLATFORM-201 | Remove deprecated `FeatureFlags.LEGACY_AUTH` constant | High | Quick | yesterday | Yes |
+| PLATFORM-202 | Update `platform-core` agent frontmatter to claude-sonnet-5 | Medium | Quick | 3 days ago | Yes |
 
-**Standard** (3–5pts — grab if you have half a day)
+**Standard** (3–5pts)
 
-| Key | Summary | Priority | Complexity | Invocation repo match? |
-|---|---|---|---|---|
-| PLATFORM-206 | Add structured logging to the credential rotation hook | High | Standard | Yes |
-| PLATFORM-207 | Retrofit telemetry onto the renamed `ce-ai-enablement-pack` | Medium | Standard | Yes |
+| Key | Summary | Priority | Complexity | Updated (⚠ if stale) | Invocation repo match? |
+|---|---|---|---|---|---|
+| PLATFORM-206 | Add structured logging to the credential rotation hook | High | Standard | 2 days ago | Yes |
 
-**Involved** (>5pts — grab if you have a full day; consider pairing)
-
-| Key | Summary | Priority | Complexity | Invocation repo match? |
-|---|---|---|---|---|
-| PLATFORM-208 | Migrate CI pipeline from Jenkins to GitHub Actions | High | Involved | Yes |
+Can run concurrently: **PLATFORM-201, PLATFORM-202, PLATFORM-206** (distinct scopes; no stated dependency).
 
 ---
 
-### §2 — Parallel batching candidates
+### §2 — In progress
 
-Can run concurrently: **PLATFORM-201, PLATFORM-202, PLATFORM-206** (distinct file scopes; no dependency language between them).
-
----
-
-### §3 — Gated (Tier B)
-
-| Key | Summary | Gate (what must resolve first) | Owner hint |
+| Key | Summary | Assignee | Updated |
 |---|---|---|---|
-| PLATFORM-203 | Enable mTLS for service-to-service calls | Q4: sign-off from infra-lead on cert provisioning plan | @infra-lead |
+| PLATFORM-207 | Retrofit telemetry onto the renamed `ce-ai-enablement-pack` | @dev-mira | 4h ago |
+| PLATFORM-208 | Migrate CI pipeline from Jenkins to GitHub Actions | @dev-omar | ⚠ 18 days ago (stale) |
 
 ---
 
-### §4 — Needs shaping (Tier C + Blocked)
+### §3 — Blocked
 
-| Key | Summary | Tier | Specific gap |
+| Key | Summary | Blocker (which signal) | Owner hint |
 |---|---|---|---|
-| PLATFORM-204 | Investigate options for distributed tracing | C | Q1: "investigate" = discovery work; Q2: no repo named; Q3: no ACs |
-| PLATFORM-205 | !arch-diagram.png! | Blocked | Image-only description — no text content |
-
-These 2 stories need shaping before they can be executed.
+| PLATFORM-203 | Enable mTLS for service-to-service calls | "is blocked by" PLATFORM-190 (cert provisioning), unresolved | @infra-lead |
 
 ---
 
+### §4 — Unassigned
+
+| Key | Summary | Primary dimension | Status |
+|---|---|---|---|
+| PLATFORM-201 | Remove deprecated `FeatureFlags.LEGACY_AUTH` constant | Ready to pull | To Do |
+| PLATFORM-202 | Update `platform-core` agent frontmatter to claude-sonnet-5 | Ready to pull | To Do |
+| PLATFORM-206 | Add structured logging to the credential rotation hook | Ready to pull | Selected for Dev |
+| PLATFORM-204 | Investigate options for distributed tracing | Needs detail | To Do |
+
+(Ready-to-pull items are expected to be unassigned; the signal to watch is that no
+*in-progress* item is orphaned here.)
+
+---
+
+### §5 — Needs detail (product attention)
+
+| Key | Summary | What's missing (coarse) | Fix with |
+|---|---|---|---|
+| PLATFORM-204 | Investigate options for distributed tracing | Discovery-shaped; no repo/ACs | `jira-story-triage` |
+| PLATFORM-205 | !arch-diagram.png! | Image-only description | `jira-story-triage` |
+
+---
+
+**Recently changed:** PLATFORM-207 (4h ago), PLATFORM-201 (yesterday), PLATFORM-206 (2 days ago).
+
 ```
-Sprint snapshot: 8 total.  Agent-ready: 5 (Quick: 2, Std: 2, Inv: 1).
-Gated: 1.  Need shaping: 2.  Invocation repo: github.com/acme/platform-core.
+Team status: 8 items.  Ready to pull: 3 (Quick 2 / Std 1 / Inv 0).
+In progress: 2.  Blocked: 1.  Unassigned: 4.  Needs detail: 2.  Stale: 1.
+Scope: project = PLATFORM AND sprint = "Sprint 8".  Coverage: all 8.  Invocation repo: github.com/acme/platform-core.
 ```
 
 ---
 
-### Pick-up hand-off
+### Pick-up hand-off (read-only)
 
 **Option A — Start delivery:**
 
@@ -108,122 +106,60 @@ Gated: 1.  Need shaping: 2.  Invocation repo: github.com/acme/platform-core.
 
 **User:** yes
 
-> "PLATFORM-201 is a Task — routing to `new-spec` to scope the delivery.
-> Starting a `new-spec` session for PLATFORM-201: Remove deprecated `FeatureFlags.LEGACY_AUTH` constant."
+> "PLATFORM-201 is a Task — routing to `new-spec` to scope the delivery."
 > → `new-spec` skill loads with PLATFORM-201 context.
 
-**Option B — Shape a story:**
+**Option B — Improve an item that needs detail:**
 
-> "Want to shape a story into something executable? Suggested: **PLATFORM-204** — Investigate options for distributed tracing (Tier C; fails Q1, Q2, Q3).
+> "Want to make a not-ready item actionable — draft acceptance criteria, clarify the outcome? Suggested: **PLATFORM-204** — Investigate options for distributed tracing.
 > [yes / pick another / skip]"
-
-**User:** (if they had chosen `yes` for Option B instead)
-
-> "Here is PLATFORM-204's current content:
->
-> **Summary:** Investigate options for distributed tracing
-> **Description:** We should look into what distributed tracing solutions exist and which ones are compatible with our stack.
-> **Acceptance Criteria:** (none)
->
-> This story fails Q1 (discovery language: "investigate"), Q2 (no specific repo or service named), and Q3 (no ACs).
->
-> Let's rewrite it together:
->
-> **Q1 — What is the specific code/config/doc change?** e.g., 'Add OpenTelemetry tracing to the `platform-core` API gateway'
-> What should the summary say?"
-
-→ (Collaborative rewrite continues for each failed question.)
-
-After all fields are addressed:
-
-> "Here is the complete rewritten payload:
->
-> **Summary:** Add OpenTelemetry tracing to the `platform-core` API gateway
-> **Description:** Instrument the API gateway in `github.com/acme/platform-core/services/api-gateway` with OpenTelemetry. Configure the OTLP exporter to forward spans to the existing Jaeger instance at `jaeger.infra.acme.internal`.
-> **Acceptance Criteria:**
-> - [ ] `api-gateway/main.go` initialises an OTLP trace provider on startup.
-> - [ ] Incoming HTTP requests emit a root span with `http.method`, `http.route`, and `http.status_code` attributes.
-> - [ ] Spans are visible in Jaeger UI for a test request.
->
-> **issuetype:** Task (unchanged)
->
-> Update PLATFORM-204 in Jira with this rewritten content? [yes / no]"
 
 **User:** yes
 
-> Running: `jira: update-issue PLATFORM-204 --field summary="Add OpenTelemetry tracing to the platform-core API gateway" --field description="Instrument the API gateway ... Acceptance Criteria:\n- Initialises OTLP trace provider\n- Emits root spans\n- Visible in Jaeger UI"`
->
-> Updated. PLATFORM-204 now passes Q1, Q2, and Q3. It will appear in §1 on the next sprint status run.
+> "Routing to `jira-story-triage` for PLATFORM-204 — it will explain exactly what's
+> missing and draft a fix you approve before anything is written to Jira."
+> → `jira-story-triage` loads scoped to PLATFORM-204.
+
+This skill runs no rewrite of its own — improvement lives in `jira-story-triage`.
 
 ---
 
-## Example 2: No Tier A stories — shaping-only hand-off
+## Example 2: "What is blocked / unassigned?" across the whole backlog
 
-**Invocation:** "Team sprint status for ALPHA sprint 3."
+**Invocation:** "Show me the entire ALPHA backlog — what's blocked and what's sitting unassigned?"
 
 **Skill behaviour:**
 
 1. `jira: check` → exit 0.
-2. `git remote -v` → `https://github.com/acme/alpha-service` → **Invocation repo: `github.com/acme/alpha-service`**.
-3. Fetches 5 stories; all fail scoring.
+2. Whole-backlog scope requested → drops the open-sprints default:
+   ```
+   jira: search "project = ALPHA AND statusCategory != Done" --fields "...,assignee,updated,issuelinks,statusCategory,..." --limit 100
+   ```
+3. Result exceeds `--limit` → discloses coverage.
 
-**Output:**
+**Output (abridged to the asked dimensions):**
 
 ```
-Invocation repo: github.com/acme/alpha-service (detected)
-Sprint scope: project = ALPHA AND sprint = "Sprint 3"
-Stories fetched: 5
+Scope: project = ALPHA (whole backlog, statusCategory != Done)
+Coverage: truncated at 100 — total 137 items (narrow scope or ask to paginate for the rest)
 ```
 
----
+### §3 — Blocked
 
-### §1 — Agent-ready (Tier A)
-
-None in this scope.
-
----
-
-### §2 — Parallel batching candidates
-
-(Omitted — no Tier A stories.)
-
----
-
-### §3 — Gated (Tier B)
-
-| Key | Summary | Gate | Owner hint |
+| Key | Summary | Blocker (which signal) | Owner hint |
 |---|---|---|---|
-| ALPHA-031 | Deploy new auth middleware to staging | Q4: security sign-off from @sec-lead required before staging deploy | @sec-lead |
+| ALPHA-031 | Deploy new auth middleware to staging | Flagged (impediment set) | @sec-lead |
+| ALPHA-044 | Wire billing webhook | "is blocked by" ALPHA-040, unresolved | — |
+| ALPHA-052 | Migrate session store | needs confirmation — blocker field not in response | — |
 
----
+### §4 — Unassigned
 
-### §4 — Needs shaping (Tier C + Blocked)
-
-| Key | Summary | Tier | Specific gap |
+| Key | Summary | Primary dimension | Status |
 |---|---|---|---|
-| ALPHA-028 | Make the API faster | C | Q1: vague; Q2: no endpoint named; Q3: no ACs; Q5: no size signal |
-| ALPHA-029 | Coordinate with mobile team on the new login flow | C | Q1: coordination work, not a code change |
-| ALPHA-030 | !wireframes-v2.png! | Blocked | Image-only description |
-| ALPHA-032 | Address all technical debt this sprint | C | Q5: too large for one PR (no story-points; 400+ word description) |
+| ALPHA-028 | Make the API faster | Needs detail | Backlog |
+| ALPHA-033 | Add rate-limit headers | Ready to pull | To Do |
+| ALPHA-047 | Refund flow edge cases | In progress | In Progress |
 
-These 4 stories need shaping before they can be executed.
-
----
-
-```
-Sprint snapshot: 5 total.  Agent-ready: 0 (Quick: 0, Std: 0, Inv: 0).
-Gated: 1.  Need shaping: 4.  Invocation repo: github.com/acme/alpha-service.
-```
-
----
-
-### Pick-up hand-off
-
-No agent-ready stories in this scope — shaping §4 stories is the fastest path to Tier A.
-
-**Option B — Shape a story:**
-
-> "Want to shape a story into something executable? Suggested: **ALPHA-028** — Make the API faster (Tier C; fails Q1, Q2, Q3, Q5).
-> [yes / pick another / skip]"
-
-Option A is not offered (§1 is empty).
+ALPHA-047 is **in progress but unassigned** — the kind of orphaned WIP §4 exists to
+surface. ALPHA-052's blocker state couldn't be read, so it is **needs confirmation**,
+not asserted unblocked.

@@ -12,10 +12,12 @@ skills: `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`,
   AI-adoption report, a Jira defect-flow analysis, a Jira epic → product-brief
   intake, and a Jira Align Feature → product-brief intake — all feeding
   `receive-brief`.
-- Story quality skills: `jira-story-triage` (bulk backlog audit against a
-  five-question actionability bar, tiered A/B/C/Blocked with complexity
-  grouping) and `jira-team-status` (sprint snapshot + pick-up hand-off to
-  delivery or shaping).
+- Story quality skills: `jira-story-triage` (reviews a backlog for readiness
+  against a five-question bar, explains why each weak item is not ready, and
+  improves it with write-after-approval) and `jira-team-status` (a read-only
+  team status snapshot — ready to pull / in progress / blocked / unassigned /
+  needs detail — with a pick-up hand-off). Both activate from natural
+  team-and-backlog language; neither needs you to name the skill.
 
 ## Install
 
