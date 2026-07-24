@@ -40,16 +40,13 @@ What you'll get:
 
 ```
 Scope: APP and API · Sprint 24 + open backlog · 12 issues (complete)
-───────────────────────────────────────────────────────
 Ready to pull: 3  ·  Needs story work: 3  ·  Blocked: 2  ·  In progress: 2
-───────────────────────────────────────────────────────
 Top 5 to discuss:
  APP-203  Add rate limiting to API gateway       Ready · Standard
  API-98   Paginate GET /users endpoint            Ready · Quick
  APP-206  Improve performance                     Needs story work
  APP-215  Migrate auth service                    Blocked — security review
  API-104  Fix search results                      Needs story work
-───────────────────────────────────────────────────────
 Jira was not changed.
 ```
 
@@ -113,4 +110,4 @@ always read-only.
 ### Skills included — under the hood
 
 The skills below activate from natural-language requests. You don't need to name
-them to use them. See the [skills reference](/docs/guides/atlassian/reference/atlassian-skills/) for exact contracts and limits.
+them to use them. See the [skills reference](../../docs/guides/atlassian/reference/atlassian-skills/) for exact contracts and limits.

@@ -57,7 +57,7 @@ Understanding the limits is part of understanding the model:
 
 - **Code quality.** Test coverage, cyclomatic complexity, static-analysis findings — use your CI quality gates for these. They're not in Jira changelogs.
 
-- **Adoption breadth at enterprise scale, in a single command.** `flow-metrics` runs one scope at a time. Measuring 100 teams requires 100 invocations. The `program` mode of `ai-adoption-report` handles the rollup, but the data collection step must be scripted at that scale. See [Report AI adoption as a delivery lead](../how-to/report-ai-adoption-as-a-delivery-lead.md#roll-up-to-program--value-stream-level) for the scripted pattern.
+- **Adoption breadth at enterprise scale, in a single command.** `flow-metrics` runs one scope at a time. Measuring 100 teams requires 100 invocations. The `program` mode of `ai-adoption-report` handles the rollup, but the data collection step must be scripted at that scale. See [Report AI adoption as a delivery lead](../how-to/report-ai-adoption-as-a-delivery-lead.md#roll-up-to-program-value-stream-level) for the scripted pattern.
 
 - **Real-time or live metrics.** Each run is a point-in-time snapshot with a defined window. There is no streaming or live-dashboard mode.
 
