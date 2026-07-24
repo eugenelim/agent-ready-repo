@@ -4,14 +4,17 @@
     {
       "id": 1,
       "prompt": "Write a PRFAQ for an AI-powered contract review tool aimed at in-house legal teams at mid-market companies. The problem: legal teams spend 60% of their time on low-complexity contract review that blocks faster deal closure.",
-      "expected_output": "A prfaq.md artifact committed to the resolved layout path with frontmatter type: prfaq. The press release section includes: a headline naming the product and its customer benefit; a sub-headline with a key detail; a problem statement in the customer's words (not legal-industry jargon); a solution description that names what the product does differently; a call to action; and a leadership quote attributing the strategic rationale to a named role. The customer FAQ has 3–5 questions a real customer would ask (pricing, reliability, comparison to current tools) answered honestly including trade-offs. The internal FAQ has 3–5 questions naming the riskiest assumption, the hardest technical challenge, and the success metric. No product spec, backlog item, or API contract appears. The resolved path is surfaced before writing.",
+      "expected_output": "A prfaq.md artifact committed to the resolved layout path with frontmatter type: prfaq. The press release section includes: a headline naming the product and its customer benefit; a sub-headline with a key detail; a problem statement in the customer's words (not legal-industry jargon); a solution description that names what the product does differently; a call to action; and a leadership quote attributing the strategic rationale to a named role. An explicit adoption hypothesis is derived: the first-success event (the one action that proves first value — e.g., legal team completes first contract review in under 5 minutes) and the repeat-value behavior (what brings the user back). The customer FAQ has 3–5 questions answered honestly, including at least one trade-off. The internal FAQ names the riskiest assumption, the hardest technical challenge, and a success metric that is traceable to the named first-success event. No product spec, backlog item, or API contract appears. The resolved path is surfaced before writing.",
       "assertions": [
         "The press release includes all six required elements: headline, sub-headline, problem, solution, call to action, leadership quote",
         "The problem statement is written in the customer's words — no legal-industry jargon or abstract framing",
         "The solution describes what the product does differently — not a generic 'AI-powered' claim",
         "The leadership quote attributes to a role and names the strategic rationale — not a placeholder",
+        "An adoption hypothesis is explicitly derived: first-success event (a specific behavioral observable) and repeat-value behavior are both named",
+        "The first-success event is behavioral and observable — not 'user signs up' or 'user completes onboarding'",
         "Customer FAQ has 3–5 questions answered honestly, including at least one trade-off",
         "Internal FAQ names the riskiest assumption, the hardest technical challenge, and a success metric",
+        "The internal FAQ success metric is traceable to the first-success event named in the adoption hypothesis — not a vanity metric like 'user count'",
         "No product spec, acceptance criteria, API contract, or feature backlog appears",
         "The Amazon PRFAQ format is referenced by name; no verbatim template or format definition appears",
         "The artifact is committed to the resolved path with frontmatter type: prfaq; path is surfaced before writing"
