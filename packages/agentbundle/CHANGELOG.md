@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [Unreleased]
+## [0.13.0] — 2026-07-24
 
 ### Added
 
@@ -20,6 +20,76 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   invalid value causes install to exit 1 before writing anything. The value is
   never persisted in state and has no effect on individual developers' machines
   unless it arrives inside an org-packaged wheel.
+
+- **PackState source provenance** — every installed row now records the actual
+  catalogue source used at install time. The historical hard-coded `"agent-ready-repo"`
+  literal is removed; source-based operations (conflict detection, upgrade routing,
+  update-status) now rest on real provenance data. Implements RFC-0072 / ADR-0036.
+
+- **Source conflict install guard** — installing the same pack name at the same scope
+  from a different source is refused before any file, state, or hook is written.
+  `--force` does not bypass a source mismatch. The error message identifies the
+  conflicting adapters and their respective sources. Same-scope, same-source,
+  multi-adapter install is unaffected.
+
+- **`list-installed --format table|json`** — machine-readable JSON output for CI
+  pipelines. New status values: `up-to-date` / `upgrade-available` / `ahead` /
+  `unknown`; `ahead` is never mis-reported as `up-to-date`. Machine-readable reason
+  codes for `unknown` rows (`source-unavailable`, `source-unknown`, `pack-not-found`,
+  `unparseable-*-version`, `incompatible-contract`, `adapter-no-longer-supported`,
+  `malformed-catalogue`). `--updates-only` filter includes upgrade-available, ahead,
+  and unknown rows. Stable JSON contract (`schema_version` 1) with a `sources` array
+  and per-row `status_reason` field. Credential-redacted source strings in all output.
+
+- **`upgrade --all --scope repo|user`** — scoped bulk upgrade of all installed packs.
+  Each `(pack, adapter)` pair is an independent upgrade row. Preflights all rows
+  before any file is written; a blocked row (unknown source, manifest error) prevents
+  all writes. Stop-on-first-failure with `completed` / `failed` / `not-attempted`
+  outcome tracking. `--yes` required for non-interactive use. Stable JSON contract
+  (`schema_version` 1) with per-row `outcome` field and summary. Never silently
+  downgrades an ahead row.
+
+- **`catalogue+https://` and `archive+https://` source schemes** — HTTPS-hosted
+  catalogue channels for enterprise Artifactory or any static HTTPS server.
+  `catalogue+https://` fetches a mutable channel descriptor pointing to an immutable
+  versioned archive. `archive+https://` is a direct archive URI with a required
+  `#sha256=<digest>` fragment. SHA-256 verified during streaming download before
+  extraction. Bearer token auth via `AGENTBUNDLE_HTTP_BEARER_TOKEN` (never persisted,
+  never printed, never forwarded across host redirects). Named safety limits:
+  descriptor 1 MiB, compressed archive 256 MiB, members 20 000, expanded 1 GiB,
+  finite HTTP timeout. Path traversal, absolute paths, symlinks, hard links, and
+  special files rejected during extraction.
+
+- **Organization Artifactory bootstrap** — an optional `[organization.artifactory]`
+  block in the package's bundled `agentbundle/_data/install-defaults.toml` lets an
+  org fork ship a pre-configured default channel. Source precedence: explicit arg →
+  user config → org bootstrap → editable clone → packaged default. Fail-closed on a
+  malformed `enabled = true` config — no silent fallback to the public source.
+
+- **`agentbundle package-catalogue`** — new CLI command producing the Artifactory
+  artifact layout (immutable versioned release archive + mutable channel descriptor
+  JSON) from a catalogue repository directory. `--root`, `--bundle`, `--release`,
+  `--channel`, `--output` required; `--source-revision`,
+  `--minimum-agentbundle-version`, `--published-at`, and `SOURCE_DATE_EPOCH` honored
+  as optional reproducibility inputs. Deterministic archive: sorted paths, normalized
+  uid/gid/timestamps/modes, reproducible gzip, SHA-256 generated after final bytes.
+  Refuses to overwrite an existing release archive by default.
+
+### Documentation
+
+- **Enterprise adoption guide** (`docs/guides/_shared/how-to/use-an-artifactory-catalogue.md`)
+  — six documented flows: org bootstrap from a fork, repo-scope CI bulk-upgrade via
+  JSON output and PR annotation, user-scope MDM upgrade, source-conflict remediation,
+  fully disconnected hosts via local catalogue directory, security controls. All flows
+  use `example.test` hostnames; no real credentials appear.
+
+- **Artifactory publishing workflow** — how-to guide and disabled GitHub Actions
+  template for the five-step publish sequence (validate → package-catalogue → upload
+  archive → upload checksum → verify upload → upload channel JSON last); explicit
+  statement that channel JSON is always uploaded last.
+
+- Targeted updates to the existing install, list-installed, upgrade, dry-run, and
+  constrained-network guides for enterprise context.
 
 ## [0.12.1] — 2026-07-23
 
