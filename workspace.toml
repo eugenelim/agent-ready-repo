@@ -470,24 +470,7 @@ queue   = [
   #   "work:spec/frontend-engineering-doctrine-update",
   # ]},
 
-  # M6 · Cross-Pack Integrative Guides (phase-slice doctrine: per-discipline
-  #   guides ship with their discipline spec above; this spec covers only the
-  #   integrative content that requires all disciplines to be complete first)
-  # Problem: no end-to-end tutorial shows the full
-  #   strategy→PE→XD→FE→rendered-review→measurement arc using a realistic
-  #   example. No cross-pack intent indexes ("I want to…" → skill or workflow).
-  #   No "under the hood" skill inventory restructure for pack pages that spans
-  #   multiple disciplines in one surface (marketing site + docs site + journeys).
-  # Deliver: end-to-end tutorial (realistic digital-product example — marketing
-  #   site or SaaS onboarding — expected outputs at each stage, where assumptions
-  #   remain, first step that changes code or remote state); cross-pack intent
-  #   indexes ("I want to…" → which pack + skill + guide for each common starting
-  #   job); audit of marketing site (web/) and docs site (site/) journey pages to
-  #   confirm all per-discipline guide updates from M2a–M5 are reflected; any
-  #   missing cross-discipline surface link-throughs added.
-  # Done: adopter can follow tutorial cold without repo knowledge; cross-pack
-  #   intent indexes route any common starting job to the right skill; web/ and
-  #   site/ journey pages are consistent with the full updated doctrine.
+  # M6 · Cross-Pack Integrative Guides — shipped 2026-07-24; deferred items (xd-cross-pack-tutorial, xd-cross-pack-intent-index) → [backlog].open below.
 ]
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs

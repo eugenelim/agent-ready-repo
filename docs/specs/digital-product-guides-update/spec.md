@@ -107,3 +107,10 @@ Mixed: **goal-based checks** for most behaviors; **manual QA** for the organizat
 - Technical: `workspace.toml:1064` contains `{slug = "digital-product-profile", needs = "ini-003:work:spec/digital-product-guides-update"}` — this is a legitimate dependency reference that must NOT be removed in Task 4
 - Process: Docs-only changes do not warrant a pack version bump (established by M6 brief in workspace.toml)
 - Process: Conventional Commits, no Co-Authored-By trailer; git user eugenelim
+
+## Bundled fixes
+
+Ride-along edits in scope of the same PR (same-area, same-concern):
+
+- **`docs/specs/README.md`** — DPGU spec row moved from Active specs to Shipped specs (archived); `| --- | --- | --- | --- |` table delimiter restored (was replaced when inserting the row); status cell corrected to "Shipped" to match `spec.md`. Same-concern: this index tracks the lifecycle state of every spec in this repo, including this one.
+- **`docs/guides/experience-design/README.md` line 15** — citation updated from "the W3C Design Tokens interchange shape" to "the Design Tokens Community Group (DTCG)". Same sentence as the skill-count and skill-name edits that Task 1 touches; DTCG is the recognized body name used in the pack's SKILL.md bodies and is more precise than the original phrasing. No AC or plan step explicitly called for this; it is declared here as a bundled mechanical improvement to the standards citation in the same intro paragraph the plan edits.
