@@ -865,12 +865,6 @@ open = [
   # Unblocks when: a test fixture can register a stub MCP retrieval tool.
   {slug = "live-mock-mcp-detection-qa"},
 
-  # RFC-0071 D3a resolved this: Option A (new design-system-foundations skill) is
-  # accepted. Implementation tracked as spec/xd-design-system-foundations in ini-003.
-  # This backlog entry closes when spec/xd-design-system-foundations ships.
-  # Unblocks when: spec/xd-design-system-foundations is Shipped.
-  {slug = "design-system-foundations-skill-gap", needs = "ini-003:work:spec/xd-design-system-foundations"},
-
   # ini-003 M5 deferred: wire check-xd-chain.py --gate into CI once calibration confirms
   # the deterministic checks are stable. The --gate flag is the hook point; the check
   # already runs in report-only mode. Unblocks when: calibration period (a few ini-003 PRs)
@@ -963,7 +957,7 @@ open = [
   # Fix: when the gate fires — open an RFC for the pack; scope it to the nine FE-section
   #   fields in the contract + the migration of the anchor path.
   # Unblocks when: `digital-product-profile` spec explicitly decides in-scope or deferred.
-  {slug = "frontend-engineering-pack-split", needs = "ini-003:work:digital-product-profile"},
+  {slug = "frontend-engineering-pack-split"},
 
   # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
   # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
