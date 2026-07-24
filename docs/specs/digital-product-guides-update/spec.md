@@ -90,7 +90,7 @@ Mixed: **goal-based checks** for most behaviors; **manual QA** for the organizat
 - [x] `web/src/content/journeys/experience-design.md` step 5 mentions the cross-pack eval in prose (no inline hyperlink; consistent with existing link-free body style).
 - [x] `web/src/content/packs/experience-design.md` skill list includes `experience-status`; prose description updated to "21 skills" (not "20 skills").
 - [x] `workspace.toml` updated: `spec/digital-product-guides-update` absent from `queue`, present in `shipped`; backlog entries added for `xd-cross-pack-tutorial` and `xd-cross-pack-intent-index`; `digital-product-profile` needs-reference intact; `tomllib.load` exits 0; spec `Status: Shipped`; ACs #1–#9 set to `[x]`.
-- [ ] End-to-end cross-pack tutorial (strategy→PE→XD→FE→review→measurement example). (deferred: xd-cross-pack-tutorial)
+- [x] End-to-end cross-pack tutorial (strategy→PE→XD→FE→review→measurement example). Shipped as Wave 3B — docs/guides/experience-design/tutorials/xd-cross-pack-tutorial.md
 - [x] Cross-pack intent index (“I want to…” → pack + skill + guide). Shipped as Wave 3C — docs/guides/experience-design/reference/intent-index.md
 
 ## Assumptions
