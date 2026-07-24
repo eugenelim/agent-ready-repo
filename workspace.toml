@@ -459,15 +459,16 @@ queue   = [
   # Done: one cross-pack eval discriminates coherent from locally-polished-but-
   #   globally-weak; deterministic checks pass; report-only mode green; eval
   #   how-to guide published.
-  {path = "spec/cross-pack-experience-eval", needs = [
-    "work:spec/product-strategy-adoption-doctrine",
-    "work:spec/product-engineering-shaping-doctrine",
-    "work:spec/xd-skill-boundaries",
-    "work:spec/xd-design-system-foundations",
-    "work:spec/xd-ia-archetypes-objects",
-    "work:spec/xd-state-reviewer-doctrine",
-    "work:spec/frontend-engineering-doctrine-update",
-  ]},
+  # spec/cross-pack-experience-eval — Shipped 2026-07-24; moved to shipped below.
+  # {path = "spec/cross-pack-experience-eval", needs = [
+  #   "work:spec/product-strategy-adoption-doctrine",
+  #   "work:spec/product-engineering-shaping-doctrine",
+  #   "work:spec/xd-skill-boundaries",
+  #   "work:spec/xd-design-system-foundations",
+  #   "work:spec/xd-ia-archetypes-objects",
+  #   "work:spec/xd-state-reviewer-doctrine",
+  #   "work:spec/frontend-engineering-doctrine-update",
+  # ]},
 
   # M6 · Cross-Pack Integrative Guides (phase-slice doctrine: per-discipline
   #   guides ship with their discipline spec above; this spec covers only the
@@ -500,6 +501,7 @@ shipped = [
   "spec/xd-ia-archetypes-objects",                   # Shipped 2026-07-23 — page archetypes, product-object mapping, card-use test, attention + permission contracts (1.3.0)
   "spec/xd-design-system-foundations",               # Shipped 2026-07-24 — design-token-taxonomy rename + design-system-foundations skill (1.4.0)
   "spec/xd-state-reviewer-doctrine",                # Shipped 2026-07-24 — 18-state quality floor + three-pass design-review + severity tiers (1.5.0)
+  "spec/cross-pack-experience-eval",               # Shipped 2026-07-24 — XD chain deterministic checker + cross-pack fixtures + how-to guide (1.6.0)
 ]
 
 ["ini-003".shaping_queue]

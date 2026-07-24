@@ -1,5 +1,5 @@
 {
   "name": "experience-design",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "The design/UX seat for product teams \u2014 the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping \u2192 user-flow \u2192 service-blueprint) and map the inside-out sibling (process-mapping); copy and content skills name surface voice goals (copy-direction, tone-of-voice) and content structure (content-design); craft skills design each screen (creative-direction, design-token-taxonomy, design-system-foundations, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps \u2014 points to WCAG / Design Tokens Community Group (DTCG) / Apple HIG / Material 3 / APQC / BPMN, never reprints them."
 }
