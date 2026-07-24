@@ -1,5 +1,5 @@
 {
   "name": "product-strategy",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "The strategy seat upstream of product engineering and experience design \u2014 SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder-research synthesis (Pillar 1); UX strategy with NN/g three-layer model, Jaime Levy four tenets, and Gothelf/Seiden OKR-linked UX framing (Pillar 2); content strategy via the Halvorson quad: Purpose + Process + Structure + Governance (Pillar 3). Pure method: no growth tooling, no primary research production, no stack tokens."
 }
