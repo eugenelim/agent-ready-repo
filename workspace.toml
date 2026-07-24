@@ -481,7 +481,6 @@ queue   = [
   # Done: FE can't claim completion without evidence manifest; page contract gates
   #   significant UI code; performance and accessibility explicit; pack page +
   #   FE journey + page-contract how-to + performance reference updated.
-  {path = "spec/frontend-engineering-doctrine-update", needs = "work:spec/digital-experience-contract"},
 
   # M5 · Cross-Pack Experience Eval
   # Problem: no cross-pack golden-path eval tests continuity from raw opportunity
@@ -537,6 +536,7 @@ queue   = [
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
+  "spec/frontend-engineering-doctrine-update",    # Shipped 2026-07-23
 ]
 
 ["ini-003".shaping_queue]
