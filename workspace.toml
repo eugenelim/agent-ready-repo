@@ -32,17 +32,19 @@ milestone = "M1 · Workspace Foundation"
 parent    = "INI-001"
 
 ["ini-002".shaping_queue]
-# adopter-persona: deliverable must cover pack-segmented setup posture across the
-# proposed Level B set (architect, atlassian, converters, desk-research,
-# experience-design, figma, governance-extras, product-engineering,
-# product-strategy, user-guide-diataxis); include terminology comprehension,
-# prerequisite visibility, artifact discovery, and inputs to P5 persona and
-# live-demo design. Do not add a second generic user-study item — broaden this
-# one; formative evaluation folds into the pilots and later P5/rollout ACs.
-# Project (personal vault): efforts/research/2026-07-22-adopter-persona; phase=capture.
-# Un-gates the three P5 m6-* build items; summary elevates as RFC-0064 notes.
+# experience-design-for-our-sites (research): one desk-research pass that applies
+# ini-003's shipped experience-design doctrine to our own two surfaces — the
+# marketing site (web/) and the docs site (site/). Deliverable: an experience
+# direction grounded in the XD contract + reviewer passes, feeding the
+# portfolio-outcome-entry-surfaces design brief and the site-* backlog items.
+# Scope boundary — that is all: no monolithic adopter-persona study, no enterprise
+# rollout playbook, no live-demo program, no standalone Astro project index.
+# Replaces the former adopter-persona research item (RFC-0064 Amendment #5,
+# 2026-07-24: the P5 Adopt program is descoped to experience-design applied to our
+# own sites; the three m6-* build specs it gated are dropped).
+# Project (personal vault): efforts/research/2026-07-24-experience-design-for-our-sites.
 active  = [
-  {slug = "adopter-persona",            type = "research"},
+  {slug = "experience-design-for-our-sites", type = "research"},
 ]
 backlog = [
   # Signal items — hand-authored by strategist; ongoing, non-graduating
@@ -58,23 +60,26 @@ backlog = [
   {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research"},
   # Shaping items — PE picks up when upstream research is done
   "ini-002-initiative-brief",
-  {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
-  {slug = "capability-map-ini-002",  needs = "work:spec/m2-map-capabilities"},
+  # Ready to shape (2026-07-24): their upstream (m2-frame-situation, m2-map-capabilities)
+  # has shipped, so the dependency edges were dropped — these are unconditional now.
+  {slug = "opp-assessment-pe-pack"},
+  {slug = "capability-map-ini-002"},
   # Post-pilot rollout shaping — RFC-0064 Amendment #4 cross-pack overlay.
   # Deliverable after shaping: one appetite-bounded formal brief whose independently
   # shippable slices cover the remaining ratified Level B packs (beyond the three
   # pilots). Each pack slice includes its guide, surface evidence, safety boundary,
   # recovery, eval, and only necessary skill change. Must audit P2/P3/P4 guides and
-  # existing tutorials before proposing work. Blocked until all three pilot work
-  # items complete (evidence base for shaping).
-  {slug = "nontechnical-pack-first-value-rollout", type = "shape", needs = ["work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  # existing tutorials before proposing work. No longer blocked (2026-07-24): all
+  # three pilots have shipped (evidence base complete) — ready to shape.
+  {slug = "nontechnical-pack-first-value-rollout", type = "shape"},
   # Portfolio outcome entry-surfaces — design (RFC-0064 Amendment #4). Deliverable
   # after shaping: a surface/flow brief for homepage, catalogue, pack pages, READMEs,
   # journeys, and docs routing that consumes the contract and routes by plain-language
   # outcome. Explicitly excludes site-social-proof-band, site-mobile-responsiveness,
   # site-design-system-spec, and P5's Astro project index; reference those owners.
-  # Blocked until the contract is ratified and all three pilots complete.
-  {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  # No longer blocked (2026-07-24): the contract is ratified and all three pilots
+  # have shipped — ready to shape.
+  {slug = "portfolio-outcome-entry-surfaces", type = "design"},
 ]
 
 ["ini-002".brief_queue]
@@ -121,6 +126,7 @@ shipped = [
   "spec/portfolio-first-run-pilot-architect",         # RFC-0064 Amendment #4 local/no-credential pilot
   "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
   "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
+  "spec/new-guide-conversation-first",         # PR #639 — user-guide-diataxis 0.2.0 conversation-first doctrine
 ]
 queue   = [
   # ==================================================================
@@ -160,18 +166,14 @@ queue   = [
   # "spec/m5-linear-brief-intake-and-sync" — shipped; moved to ["ini-002".work].shipped
   # "spec/m5-jira-align-brief-intake" — shipped; moved to ["ini-002".work].shipped
 
-  # ---------------- P5 · Adopt (terminal — needs whole journey stable) ----------------
-  # Authoring gate: each P5 spec must consume the adopter-persona research findings
-  # and the three pilot transcripts (portfolio-first-run-pilot-architect/figma/
-  # governance-extras) as evidence base. Do not author P5 specs before those work
-  # items complete — the evidence does not yet exist.
-  # `needs` encodes the P5 authoring gate above: the adopter-persona research must
-  # complete first (its findings are the evidence base). The three pilot transcripts
-  # (portfolio-first-run-pilot-architect/figma/governance-extras) are already Shipped,
-  # so they are omitted here — adopter-persona is the only open edge.
-  {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
-  {path = "spec/m6-live-demo-guide",             needs = "research:adopter-persona"},  # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
-  {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
+  # ---------------- P5 · Adopt — DESCOPED (RFC-0064 Amendment #5, 2026-07-24) ----------------
+  # The former P5 Adopt program (adopter-persona study → m6-astro-project-index,
+  # m6-live-demo-guide, m6-enterprise-rollout-playbook) is descoped. The remaining
+  # experience work is one desk-research pass (experience-design-for-our-sites, in
+  # the shaping_queue) that applies ini-003's XD doctrine to web/ + site/, feeding
+  # portfolio-outcome-entry-surfaces and the site-* backlog items. No enterprise
+  # rollout playbook, live-demo guide, or standalone Astro project index in this
+  # initiative. See RFC-0064 Amendment #5 for the rationale.
 
   # ---- RFC-0064 Amendment #4: Cross-pack first-value overlay ----
   # Complements P1–P5 phases; may progress in parallel where dependencies allow;
@@ -234,8 +236,6 @@ queue   = [
   # closing paragraph (single source of truth). Do not re-add the echo.
   "spec/work-loop-step0-observability",                  # consumes work-loop-step0-{branch1-echo,layout} backlog items
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
-  # ---- Independent skill improvements ----
-  "spec/new-guide-conversation-first",                  # user-guide-diataxis 0.2.0: conversation-first doctrine + revised procedure + evals
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

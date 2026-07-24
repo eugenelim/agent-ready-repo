@@ -616,6 +616,7 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 | 2 | 2026-07-20 | workspace-status integrity trust boundary | Documents session-fragmentation gap + two skill fixes (`new-rfc-followon-queue-write` shipped; `workspace-status-queue-reconciliation` queued) + manual workaround |
 | 3 | 2026-07-20 | Workflow-model reshape: capture front-door, all-mode `[backlog]`, phase-slice planning | One coherent reshape: (a) reframes `queue-add` as the universal capture-then-triage front-door (candidate rename → `capture-work`); (b) permits the front-door to **write** shaping-typed queue entries (revises D9's "produced by shaping skills" boundary); (c) mandates capability-detected, never-hard core→optional-pack hand-off; (d) confirms `[backlog]` as the repo-level view of **all** open work regardless of mode (resolves the build/shape scale-decoupling asymmetry, no new section); (e) re-sequences remaining work (M2, M5, M6 guides) into vertical journey-phase **Projects** — capability + its guide shipped together — dissolving M6-as-terminal; (f) adds a plan-by-phase-slice doctrine to the planning skills (`new-rfc`, `receive-brief`, canonical in CONVENTIONS). Container sizing fixed: a phase is a **Project**, not a Brief |
 | 4 | 2026-07-21 | Cross-pack first-value adoption overlay | Defines Level A/B pack obligations and a pilot-first rollout contract; adds five `["ini-002".work].queue` entries (contract, three pilot specs, agentbundle handoff) and two `["ini-002".shaping_queue].backlog` entries; complements P1–P5, may progress in parallel where dependencies allow, feeds P5 adoption evidence |
+| 5 | 2026-07-24 | P5 Adopt program descope: experience-design applied to our own sites | Descopes the P5 Adopt program. Replaces the monolithic `adopter-persona` research item with a scoped `experience-design-for-our-sites` research item; drops the three m6-* build specs (`m6-astro-project-index`, `m6-live-demo-guide`, `m6-enterprise-rollout-playbook`); supersedes Amendment #4 D6. Remaining experience work = one desk-research pass applying ini-003's XD doctrine to `web/` + `site/`, feeding `portfolio-outcome-entry-surfaces` and the `site-*` backlog items |
 
 ### History / audit trail
 
@@ -811,3 +812,39 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   Implementation: five new `["ini-002".work].queue` entries and two new
   `["ini-002".shaping_queue].backlog` entries added in the same PR. See
   `workspace.toml` entry comments for details and dependency edges. eugenelim.
+
+- **2026-07-24 — P5 Adopt program descope: experience-design applied to our own
+  sites.** The P5 Adopt program as originally framed — a monolithic `adopter-persona`
+  research study mechanically un-gating three terminal build specs (`m6-astro-project-index`,
+  `m6-live-demo-guide`, `m6-enterprise-rollout-playbook`) — was an odd shape: it did
+  not follow the repo's own shape → spec → build flow, and the open-ended persona
+  study created a premature-ready hazard (the `research:adopter-persona` edge resolves
+  satisfied the moment the item is picked up into `shaping_queue.active`, not when its
+  findings are committed, so the three gated specs could surface as ready before any
+  evidence existed). The remaining discretionary experience work is descoped to a
+  single, honestly-scoped effort: **one desk-research pass that lifts our
+  experience-design capabilities (already delivered by ini-003, the Digital Experience
+  Doctrine) and applies them to our own two surfaces — the marketing site (`web/`) and
+  the docs site (`site/`).** The decisions recorded:
+
+  1. **The `adopter-persona` research item is replaced by `experience-design-for-our-sites`
+     (`type = "research"`).** Deliverable: an experience direction for `web/` + `site/`
+     grounded in the XD contract and reviewer passes. That is the whole scope — no
+     monolithic persona study, no enterprise rollout playbook, no live-demo program,
+     no standalone Astro project index.
+  2. **The three P5 m6-* build specs are dropped** from `["ini-002".work].queue`. They
+     were never authored (no `spec.md` on disk) and were premised on the persona
+     evidence this amendment declines to produce.
+  3. **The scoped research feeds work already owned elsewhere.** Its findings route into
+     the `portfolio-outcome-entry-surfaces` design item (Amendment #4) and the `site-*`
+     backlog items (`site-social-proof-band`, `site-mobile-responsiveness`,
+     `site-design-system-spec`) — no new build entries are created by this amendment.
+  4. **This supersedes Amendment #4 decision 6** ("P5 adoption artifacts retain their
+     Platform Core purpose"): the live-demo guide, enterprise rollout playbook, and P5
+     Astro project index are no longer in scope for this initiative. Amendment #4's
+     other decisions (Level A/B obligations, the three pilots, the first-value contract)
+     stand — all have shipped.
+
+  Implementation: `["ini-002".shaping_queue].active` swaps the research item and the P5
+  queue block is replaced with a descope note in the same PR. See `workspace.toml` entry
+  comments for details. eugenelim.
