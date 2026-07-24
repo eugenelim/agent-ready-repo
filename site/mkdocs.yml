@@ -252,10 +252,12 @@ nav:
         - Authenticate with SSO: guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md
         - Crawl Confluence: guides/atlassian/how-to/crawl-and-publish-confluence.md
         - DORA Metrics: guides/atlassian/how-to/measure-flow-and-dora-metrics.md
+        - Report AI Adoption: guides/atlassian/how-to/report-ai-adoption-as-a-delivery-lead.md
       - Reference:
         - Atlassian Skills: guides/atlassian/reference/atlassian-skills.md
       - Explanation:
         - The Atlassian Pack: guides/atlassian/explanation/atlassian-pack.md
+        - Measuring AI Adoption: guides/atlassian/explanation/ai-adoption-measurement.md
     - Figma:
       - guides/figma/README.md
       - How-to:
