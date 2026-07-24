@@ -97,7 +97,7 @@ python scripts/jira.py transition PROJ-123 --to "In Progress"
 
 ## Write actionable stories
 
-Before creating a story, check it passes the five-question actionability bar — the same bar the `jira-story-triage` and `jira-team-status` skills use to score backlog health.
+Before creating a story, check it passes the five-question actionability bar — the same bar the `jira-story-triage` and `jira-team-status` skills use to judge whether work is ready for engineering.
 
 > A story is actionable when all five are true:
 > **(Q1)** it is a **self-contained code/config/doc change** — not discovery, design, or coordination work;
@@ -110,7 +110,25 @@ Q5 exists because Jira stories are a legacy delivery-capacity allocation mechani
 
 If the agent is running inside a git repo, the `jira` skill attaches an "Invocation repo" label to stories it creates — the git remote URL of the repo the agent is running from. Stories that name this repo in their description pass Q2 automatically, which gives the agent a verifiable scope anchor.
 
-To score an existing backlog rather than gate a single story, see [`jira-story-triage`](../reference/atlassian-skills.md#jira-story-triage) and [`jira-team-status`](../reference/atlassian-skills.md#jira-team-status).
+## Review a backlog, or get a team status
+
+You don't name these skills — you ask in your own words and the right one activates.
+
+- Ask **"which stories are not ready for engineering?"**, **"clean up the weak items in the backlog"**, **"make these tickets actionable"**, or **"draft acceptance criteria for the top five"** and [`jira-story-triage`](../reference/atlassian-skills.md#jira-story-triage) reviews each item, tells you *why* it is not ready (which question failed and the gap), and — on your say-so — drafts the fix and writes it back only after you approve the exact payload.
+- Ask **"what can the team pick up next?"**, **"what is blocked?"**, **"what is sitting unassigned?"**, **"what changed in this sprint?"**, or **"give me a team status for stand-up"** and [`jira-team-status`](../reference/atlassian-skills.md#jira-team-status) returns a read-only snapshot organized by Ready to pull / In progress / Blocked / Unassigned / Needs detail, then offers to start delivery on a ready item (or routes a weak one to `jira-story-triage`).
+
+The split: `jira-team-status` *surfaces where work stands and what to pick up*; `jira-story-triage` *judges readiness in depth and fixes weak items*.
+
+### What "ready to pull" means
+
+`jira-team-status` treats an item as **ready to pull** only when all four hold — it is **not** a silent `status = "To Do"`:
+
+1. it belongs to the **selected team scope** (the project, board, sprint, or team field you asked about);
+2. it is in an **eligible backlog state** — by default Jira's `statusCategory = "To Do"` (which spans Backlog / To Do / Selected for Development / Open across any instance, and excludes work already In Progress or Done). **Your team can override** the eligible statuses — name your own (e.g. "Ready for Dev") and the rule uses those;
+3. it has **no known unresolved blocker** — the Flagged/impediment field is unset, no unresolved "is blocked by" link, and its status is not in a blocked set you declared;
+4. it **meets the story-readiness bar** — the five questions above.
+
+When any clause can't be determined for an item (its status doesn't map cleanly, the blocker field isn't readable, readiness is ambiguous), the item is labelled **needs confirmation** — the skill never claims an item is ready, or not ready, on a signal it couldn't read.
 
 ## Pitfalls
 
