@@ -18,9 +18,7 @@ means you're ready.
 
 ## Progress
 
-```
-1. See the work   →   2. Improve weak stories   →   3. Apply approved changes   →   4. Share the result
-```
+1. See the work → 2. Improve weak stories → 3. Apply approved changes → 4. Share the result
 
 This tutorial walks all four stages once, in order.
 
@@ -90,13 +88,11 @@ The agent returns a **summary**, not a raw issue dump:
 Scope searched:    APP and API, current sprint (Sprint 24) + open backlog
 Time horizon:      Sprint 24 (active) + all open backlog items
 Issues inspected:  12 issues — complete result, no truncation
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Ready to pull:     3
 Needs story work:  3
 Blocked:           2
 In progress:       2
 Unassigned:        2
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Top 5 candidates for team discussion:
 
 1. APP-203 — Add rate limiting to API gateway (Ready to pull · Standard)
@@ -162,7 +158,6 @@ One block per issue, draft only:
 
 ```
 APP-206 — "Improve performance"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 What is missing:   Q2 — no service or file scope. Q3 — no metric or baseline.
 Why it prevents action: An engineer can't locate the change or know when done.
 Proposed improvement:
@@ -176,7 +171,6 @@ Ready after change?   Yes — all five questions would pass.
 Jira not changed.
 
 APP-219 — "SSO changes for new IdP"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 What is missing:   Q2 — no service or config path. Q3 — no ACs. Q4 — open
                    design question: which IdP fields to map.
 Why it prevents action: An engineer doesn't know what to change or how to
@@ -192,7 +186,6 @@ Ready after change?   Gated — passes once PO confirms tenant ID.
 Jira not changed.
 
 API-104 — "Fix search results"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 What is missing:   Q2 — no endpoint or file. Q3 — "fixed" is not checkable.
 Why it prevents action: "Fix" says nothing actionable about the expected
                         behavior or scope.
@@ -232,13 +225,11 @@ Before anything is written, the agent shows you exactly what will change:
 
 ```
 Write confirmation — review before applying
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Issues to update:    APP-206, APP-219, API-104
 Field to change:     description (and acceptance criteria sub-field)
 Fields protected:    status, assignee, priority, sprint, labels,
                      issuetype — none of these change
 Total writes:        3 (one update-issue call per issue)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Cancel]   [Apply all three]
 ```
 
@@ -249,13 +240,11 @@ Total writes:        3 (one update-issue call per issue)
 
 ```
 Result
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Changed:   APP-206 (description updated)
            APP-219 (description updated — Gated; remind PO to confirm tenant ID)
            API-104 (description updated)
 Unchanged: All other issues in APP and API
 Links:     APP-206 · APP-219 · API-104
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 **Failure handling:** If one write fails (a 409 conflict or a permission error),
@@ -285,7 +274,6 @@ Do not publish until I approve it.
 
 ```
 Acme team stand-up — Sprint 24
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 In progress:  APP-198 (OAuth token refresh), API-92 (Webhook retry)
 Completed:    —
 Ready next:   APP-203 (rate limiting), APP-211 (error messages), API-98 (pagination)
@@ -294,10 +282,7 @@ Risks:        APP-219 — needs PO to confirm Okta tenant ID before starting
 Notes:        3 stories updated this session (APP-206, APP-219, API-104).
               APP-220 and API-107 unassigned — team to triage.
 
-───
-
 Acme weekly update (draft — not published)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 This week, the Acme team progressed OAuth token refresh (APP-198) and webhook
 delivery retry (API-92). Three backlog stories were sharpened to be ready for
 engineering. Three items are ready to pull next sprint: rate limiting, error
