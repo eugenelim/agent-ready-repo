@@ -28,6 +28,10 @@ If you find yourself writing a Jira REST call, a reproduction recipe, or
 a root-cause checklist inside this skill, stop — the right place is one
 of the three above.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Cross-skill invocation — name, not path
 
 This skill names sibling skills (`jira`, `bug-fix`) and subagents

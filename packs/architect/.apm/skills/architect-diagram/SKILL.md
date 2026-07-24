@@ -9,6 +9,10 @@ Produce Mermaid diagrams that survive enterprise wiki rendering and stay
 readable at a glance. Structural discipline (boundaries, technology labels,
 trust zones) beats pretty.
 
+## Output rendering
+
+Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
+
 ## Mode detection — pick one at entry
 
 Read the user's message and route once. Don't ask the user to flag intent.

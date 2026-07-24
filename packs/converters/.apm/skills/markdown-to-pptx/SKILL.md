@@ -12,6 +12,10 @@ assemble nothing by hand. It **fills a user-provided, branded `.pptx` template**
 at the placeholders the designer already laid out, rather than building a deck
 from scratch — so the slide master, theme, fonts, and any placed logo survive.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Prerequisites
 
 This skill is **Tier-1** on [`python-pptx`](https://pypi.org/project/python-pptx/)

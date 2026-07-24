@@ -8,6 +8,10 @@ description: Use this skill when the user asks to create, write, draft, or open 
 Create a new ADR in `docs/adr/` from the template, with the next sequential
 number.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before invoking, confirm:

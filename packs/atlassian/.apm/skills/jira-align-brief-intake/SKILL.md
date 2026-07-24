@@ -22,6 +22,10 @@ If you find yourself writing a Jira Align REST call or interrogating the
 user for missing Outcome/Scope fields, stop — the right place is one of
 the two above.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## One-time setup: customise the field mapping
 
 Before first use on a new Jira Align instance, open

@@ -61,6 +61,16 @@ Links inside markdown files rendered via `<Content />` (pack and journey bodies)
 - The `docsUrl` and `journeyUrl` frontmatter fields are the canonical navigation
   entry points and are already processed through `withBase()` by the template.
 
+## Broken links in MkDocs docs
+
+Both the Astro marketing site and the MkDocs docs site are built in the same
+`pages.yml` job with `mkdocs build --strict`. Broken anchors in `docs/guides/**`
+fail the entire build.
+
+Run `mkdocs build --strict --config-file site/mkdocs.yml` before committing any
+doc change. Anchor slugging rules (em dash, slash, backtick stripping) are in
+[`site/AGENTS.md § Broken links`](../site/AGENTS.md#broken-links).
+
 ## Navigation cohesion
 
 Every pack that has documentation must set `docsUrl` in its frontmatter. Every

@@ -24,6 +24,10 @@ written brief. It composes two things that already exist:
 The one thing this skill owns is the **Linear → brief mapping**: `receive-brief`
 knows nothing about Linear, and `linear` knows nothing about briefs.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Cross-skill invocation — name, not path
 
 Name sibling skills (`linear`, `receive-brief`) **by their `name:` field,

@@ -21,11 +21,16 @@ before committing. In strict mode, any broken link or unresolved anchor is a
 build error.
 
 **Anchor slugging rule.** MkDocs slugifies headings by stripping non-word
-characters and collapsing whitespace/hyphens into a single `-`. The heading
-`## Roll up to program / value stream level` becomes
-`#roll-up-to-program-value-stream-level` (single hyphen around `/`), not
-`#roll-up-to-program--value-stream-level` (double hyphen). Verify anchors
-against the actual heading text before linking.
+characters and collapsing whitespace/hyphens into a single `-`. Two common cases:
+
+- `## Roll up to program / value stream level` → `#roll-up-to-program-value-stream-level`
+  (the `/` and surrounding spaces collapse into one `-`, not `--`)
+- `## Step 1 — Reproduce the bug` → `#step-1-reproduce-the-bug`
+  (the em dash `—` and surrounding spaces collapse into one `-`, not `--`)
+
+Verify anchors against the actual heading text before linking. A `--` in an
+anchor almost always means a slash or em dash was incorrectly counted as two
+separate characters — that is the most common form of broken anchor in this repo.
 
 ## Navigation cohesion
 

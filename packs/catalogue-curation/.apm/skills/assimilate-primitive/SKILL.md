@@ -14,6 +14,10 @@ or command (or a small connected bundle, e.g. a skill + its hook).
 Run in **two phases**: judge the untrusted content **safe** first, then shape it
 to our target state. Never merge the two — you inspect raw, then transform.
 
+## Output rendering
+
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+
 ## Phase 1 — fetch and make it safe (before you trust a byte)
 
 1. **Fetch, SSRF-guarded.** A local path is read as-is. A **URL** is fetched

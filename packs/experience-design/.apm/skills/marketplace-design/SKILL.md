@@ -7,6 +7,10 @@ description: "Use when designing a marketplace surface — a catalogue, a listin
 
 Converts the buyer journey and the listing object model into a **structural specification for a marketplace surface** — the listing card IA, the filter and facet architecture, the comparison affordances, and the transaction bridge that carries a buyer from discovery to commitment. This skill is IA and structure; it does not design individual card components (that is `interaction-design`'s component state machine) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm all three before specifying:

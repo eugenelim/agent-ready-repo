@@ -83,7 +83,7 @@ The skill pushes back rather than reviewing when:
 - **Nothing concrete is attached.** "Review our architecture" with no artifact is a design conversation, not a review. Route to [`architect-design`](../../../../packs/architect/.apm/skills/architect-design).
 - **The artifact is too thin to critique.** A two-bullet outline is a discussion; the skill won't critique tumbleweeds.
 - **You want a conversation, not findings.** If you're still shaping the idea, switch to a design surface.
-- **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique — reach for the [`design-reviewer` subagent](#an-independent-review--the-design-reviewer-subagent) to get that independent pass.
+- **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique — reach for the [`design-reviewer` subagent](#an-independent-review-the-design-reviewer-subagent) to get that independent pass.
 
 ## See also
 

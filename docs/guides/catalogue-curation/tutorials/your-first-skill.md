@@ -390,7 +390,7 @@ The adversarial review must return `Clean — ready to commit.` before merge.
 ## Definition of done
 
 Check every item before asking for review.
-The [full table](../explanation/skill-standards.md#the-definition-of-done--both-paths) is in the standards file;
+The [full table](../explanation/skill-standards.md#the-definition-of-done-both-paths) is in the standards file;
 this is the writing-path subset:
 
 - [ ] `lint-skill-spec.py` passes — no errors; warnings reviewed

@@ -13,6 +13,10 @@ Markdown file, extracts ` ```mermaid ` blocks, calls the Mermaid CLI
 where every fence is replaced by a standard Markdown image reference
 pointing at the rendered file (e.g. `mermaid-1.png`).
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Prerequisites
 
 The renderer shells out to `@mermaid-js/mermaid-cli`. Install once:

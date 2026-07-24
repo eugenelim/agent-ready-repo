@@ -7,6 +7,10 @@ description: "Use when designing a marketing surface — a landing page, product
 
 Converts the content brief and design-principles artefact into a **structural specification for a marketing surface** — the above-fold contract, the scroll story, and the social-proof architecture that carries a visitor from "not sure" to "ready to act." This skill is IA and structure; it does not write copy (that is `content-design` and `tone-of-voice`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm all three before specifying:

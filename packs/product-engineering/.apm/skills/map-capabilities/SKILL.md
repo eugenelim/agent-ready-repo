@@ -9,6 +9,10 @@ Translate a committed bet into a structured Capability Map — so the team knows
 exactly what capabilities the initiative implies, which to build versus
 buy/partner/adopt, and in what order to build them.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm scope is initiative or capability level, not a single feature or endpoint.

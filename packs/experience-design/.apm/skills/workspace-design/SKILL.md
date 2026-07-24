@@ -7,6 +7,10 @@ description: "Use when designing a workspace surface — a productivity tool, a 
 
 Converts the session arc, the collaboration model, and the agentic patterns into a **structural specification for a workspace surface** — the context-persistence architecture, the attention zone layout, the collaboration state IA, the interrupt and notification design, and the agentic patterns that make a workspace surface feel like a professional environment rather than a series of disconnected screens. This skill is IA and structure; it does not design individual component interactions (that is `interaction-design`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm all three before specifying:

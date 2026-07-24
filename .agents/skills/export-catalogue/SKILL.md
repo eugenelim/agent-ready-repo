@@ -13,6 +13,10 @@ a **fail-closed** leak check. One mechanism; the transform is three declared
 lists + a gate. Full manifest:
 [`references/transform-manifest.md`](references/transform-manifest.md).
 
+## Output rendering
+
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## Modes
 
 - **`white-label`** (default) — strip *all* upstream identity; zero trace. For
