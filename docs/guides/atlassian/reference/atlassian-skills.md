@@ -1,95 +1,491 @@
-# `atlassian` skills
+# `atlassian` skills reference
 
-Every skill in the `atlassian` pack. One entry each: purpose, primary inputs, outputs, and required credentials.
+Exact inputs, reads, writes, outputs, limits, and approval behavior for every skill
+in the atlassian pack.
 
-Credentialed skills resolve secrets in-process through the tier ladder (environment variable → OS keyring → `~/.agentbundle/credentials.env` dotfile); see [Credentialed skills](../../credential-brokers/explanation/credentialed-skills.md).
+Credentials resolve in-process through a three-tier ladder (environment variable →
+OS keyring → `~/.agentbundle/credentials.env` dotfile). Cleartext never reaches the
+model. See [Credentialed skills](../../credential-brokers/explanation/credentialed-skills.md).
 
-## `jira`
+---
 
-- **Purpose.** Read and mutate Jira (Atlassian Cloud or self-hosted Server / Data Center) via the REST API. JQL search with auto-pagination; fetch issues, projects, and users; create, update, delete, and transition issues; comment; attach; raw escape hatch. Auto-detects Cloud (REST v3, ADF, `nextPageToken`) vs Server / DC (REST v2, plain text, `startAt`) from the base URL host.
-- **Primary inputs.** Subcommands: `check`, `whoami`, `get-issue`, `search`, `create-issue`, `update-issue`, `delete-issue`, `list-transitions`, `transition`, `comment`, `attach`, `get-project`, `list-projects`, `get-user`, `list-users`, `raw`. Global flags: `--format json|jsonl|csv`, `--output FILE`, `--verbose`, `--insecure`. `search` takes `--fields`, `--limit`, `--page-size` (≤ 100); write subcommands take repeatable `--field KEY=VALUE` (JSON-parsed) or `--data-file`; `delete-issue` requires `--yes`.
-- **Outputs.** Issue / project / user JSON, JSONL, or CSV to stdout or `--output`. Read-only and mutating both available.
-- **Required credentials.** `JIRA_BASE_URL` (required), `JIRA_API_TOKEN` (required), `JIRA_EMAIL` (Cloud only), `JIRA_FLAVOR` (optional — auto-detected). Cloud token from `id.atlassian.com → API tokens`; Server PAT from the user's profile.
-- **Auth (dual).** `auth: sso-cookie` with a `creds` fallback (RFC-0035). On a Data Center instance behind corporate SSO where tokens are blocked, pre-bake `references/sso-config.toml` (`auth_default = "sso-cookie"`) and run `python scripts/setup_sso.py` once; reads then authenticate by a captured web session (no token). Absent SSO config, the token path above is unchanged. Cookie-path reads only (writes are refused pending XSRF design).
-- **Source.** [`jira`](../../../../packs/atlassian/.apm/skills/jira/)
+## Intent index
 
-## `jira-align`
+| I want to… | Use |
+| --- | --- |
+| See everything a team can work on | `jira-team-status` |
+| Find work that is ready to pull | `jira-team-status` |
+| Find blockers, stale work, or unassigned work | `jira-team-status` |
+| Find stories that are not actionable | `jira-story-triage` |
+| Draft better story details and acceptance criteria | `jira-story-triage` |
+| Search, create, or update individual Jira issues | `jira` |
+| Fix a defect end-to-end from Jira to PR | `jira-defect-flow` |
+| Turn a Jira epic into engineering specs | `jira-brief-intake` |
+| Turn a Jira Align feature into engineering specs | `jira-align-brief-intake` |
+| Compute DORA / Flow Framework metrics | `flow-metrics` |
+| Compare AI-tagged stories to control stories | `ai-adoption-report` |
+| Mirror a Confluence space to Markdown | `confluence-crawler` |
+| Publish Markdown to a Confluence page | `confluence-publisher` |
 
-- **Purpose.** Read and mutate Jira Align (Cloud or self-hosted / on-prem) via REST API 2.0. Fetch individual records; paginate collections with OData-style `$filter` / `$select` / `$orderby` / `expand`; create, update (PUT or PATCH), and delete records; raw escape hatch. A separate product from Jira, with separate credentials.
-- **Primary inputs.** Subcommands: `check`, `whoami`, `get`, `list`, `search`, `create`, `update`, `delete`, `raw`. Resources mirror the URL segment (`epics`, `features`, `stories`, `capabilities`, `themes`, `portfolios`, `programs`, `teams`, `users`, `sprints`, etc.). Global flags: `--format json|jsonl|csv`, `--output FILE`, `--verbose`, `--insecure`. `list` takes `--filter`, `--select`, `--orderby`, `--expand`, `--limit`; `update` takes `--method PATCH`; `create` / `update` take repeatable `--field KEY=VALUE` or `--data-file`; `delete` requires `--yes`.
-- **Outputs.** Record JSON, JSONL, or CSV to stdout or `--output`.
-- **Required credentials.** `JIRAALIGN_BASE_URL` (required), `JIRAALIGN_API_TOKEN` (required), `JIRAALIGN_FLAVOR` (optional — auto-detected). Personal API Token from the Jira Align Profile page.
-- **Source.** [`jira-align`](../../../../packs/atlassian/.apm/skills/jira-align/)
+---
 
-## `confluence-crawler`
+## Filter by behavior
 
-- **Purpose.** Crawl an authenticated Confluence space (Cloud or Server / Data Center) by page hierarchy and convert each page to Markdown with YAML frontmatter. Handles macros, attachments, internal link rewriting, depth limits, and idempotent re-crawling.
-- **Primary inputs.** `crawl_space.py` with `--check`, `--space KEY` (required), `--root PAGE_ID`, `--depth N`, `--output DIR` (default `./confluence-out`), `--force`, `--no-attachments`, `--concurrency N` (default 4), `--min-delay-ms N` (default 100), `--insecure`, `--verbose`.
-- **Outputs.** `<output>/<slug>.md` per page (flat layout) with frontmatter (`confluence_id`, `version`, `space_key`, `updated`, `author`, `parent_id`, `labels`, `url`, `slug`); `<output>/attachments/<page_id>/<filename>` for attachments. Final log line `wrote N pages (failed: X, skipped: Y)`.
-- **Required credentials.** `CONFLUENCE_BASE_URL` (required — Cloud must include `/wiki`), `CONFLUENCE_API_TOKEN` (required), `CONFLUENCE_EMAIL` (Cloud only), `CONFLUENCE_FLAVOR` (optional — auto-detected). Shares the `confluence` namespace with `confluence-publisher`.
-- **Auth (dual).** `auth: sso-cookie` with a `creds` fallback (RFC-0035), like `jira`: on a Data Center instance behind corporate SSO, pre-bake `references/sso-config.toml` and run `python scripts/setup_sso.py` once to crawl by captured web session. Absent SSO config, the token path is unchanged.
-- **Source.** [`confluence-crawler`](../../../../packs/atlassian/.apm/skills/confluence-crawler/)
+**Read-only:** `jira-team-status` · `flow-metrics` · `confluence-crawler` · `ai-adoption-report`
 
-## `confluence-publisher`
+**Drafts only (no Jira write until approval):** `jira-story-triage`
 
-- **Purpose.** Publish content to a Confluence page (Cloud or Server / Data Center) by creating a new page or updating an existing one. Accepts Markdown (default), storage XHTML, or plain text. Handles optimistic-locking 409s with one retry.
-- **Primary inputs.** `publish_page.py` with `--check`; target via `--page-id ID`, `--url URL`, `--from-frontmatter`, or `--space KEY --title TITLE [--parent-id ID]`; `--input PATH` or `-` (required); `--input-format markdown|storage|text`; `--version-comment TEXT`; repeatable `--attach PATH` and `--label LABEL`; `--dry-run`, `--insecure`, `--verbose`.
-- **Outputs.** On success, a line naming the operation, page ID, new version, and URL: `OK: <create|update> page <id> (version N) — <url>`. `--dry-run` prints rendered storage XHTML and the planned operation without writing.
-- **Required credentials.** Same `confluence` namespace and schema as `confluence-crawler`; configuring either skill satisfies both.
-- **Source.** [`confluence-publisher`](../../../../packs/atlassian/.apm/skills/confluence-publisher/)
+**Writes Jira:** `jira` · `jira-defect-flow` · `jira-story-triage` (after approval only)
 
-## `flow-metrics`
+**Writes Confluence:** `confluence-publisher`
 
-- **Purpose.** Compute DORA / Flow Framework metrics over a Jira scope — cycle time, lead time, throughput, WIP, flow load, rework rate, flow time, flow efficiency, flow distribution, defect ratio — from Jira changelogs, optionally joined with Jira Align for program / portfolio scope. Read-only; composes the `jira` and `jira-align` skills, never reads credentials itself.
-- **Primary inputs.** `flow-metrics` shim (or `python -m flow_metrics`). Exactly one of `--project KEY`, `--program-id ID`, `--portfolio-id ID` (required). `--team NAME` (project scope only), `--from`/`--to ISO` (default last 90 days), `--jql`, `--align-filter`, `--cohort-jql`, `--metrics LIST` (default all ten), `--state-config`, `--issuetype-config`, `--team-field-override`, `--align-join-field`, `--align-teams-path`, `--include-subtasks`, `--format json|csv`, `--output FILE`, `--per-issue` (requires `--output`), `--no-cache`, `--verbose`, `--yes`.
-- **Outputs.** Canonical JSON or CSV with `meta`, `aggregates`, optional `cohort_breakdown`, optional `per_team`, and `notes`; pinned by `references/output.schema.json`. `--per-issue` emits one JSONL row per issue. On-disk cache at `.context/flow-metrics/cache/`.
-- **Required credentials.** None of its own — inherited through the `jira` skill (and `jira-align` for Align scope).
-- **Source.** [`flow-metrics`](../../../../packs/atlassian/.apm/skills/flow-metrics/)
+**Team-level:** `jira-team-status` · `jira-story-triage` · `flow-metrics` · `ai-adoption-report`
 
-## `ai-adoption-report`
+**Issue-level:** `jira` · `jira-defect-flow` · `jira-brief-intake`
 
-- **Purpose.** Pair `flow-metrics` JSON outputs and render a Markdown comparison report. Three modes: `baseline` (one scope, two windows), `cohort` (within-window AI vs control), `program` (roll up many scopes for one window). Read-only; makes no upstream calls.
-- **Primary inputs.** `ai-adoption-report` shim (or `python -m ai_adoption_report`) plus a mode. `baseline`: `--baseline PATH`, `--current PATH`, `--include-cohort-breakdown`. `cohort`: `--input PATH`. `program`: `--inputs DIR`, `--window FROM..TO`, `--include-cohort-breakdown`. Common: `--output FILE`, `--format markdown|json|both` (default `both`), `--overwrite`, `--title`, `--verbose`. Input paths are literal; absolute paths outside CWD exit 2.
-- **Outputs.** A Markdown report at `--output` and (by default) a JSON sidecar at the same path with `.md` replaced by `.json`. Markdown sections: title, header line, `## Summary`, `## Metric deltas`, `## Per-scope rows` (program), `## Cohort breakdown` (when requested), `## Notes`, `## Provenance`.
-- **Required credentials.** None — consumes local JSON files only.
-- **Source.** [`ai-adoption-report`](../../../../packs/atlassian/.apm/skills/ai-adoption-report/)
-
-## `jira-align-brief-intake`
-
-- **Purpose.** Turn a Jira Align Feature into a product brief and shippable specs. Fetches the Feature and its child stories, tasks, and defects via the `jira-align` skill, maps them onto a Shape B product brief (Feature title/description → Outcome, children → `US-n` user stories tagged with their Jira Align IDs, Feature ID → `Epic:` provenance pointer), writes it to `docs/product/briefs/<slug>.md`, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. 1-way intake only — never writes to Jira Align. Requires one-time customisation of the field mapping reference (`references/field-mapping.md`) for org-specific workflow state names and Program Increment cadences.
-- **Primary inputs.** A Jira Align Feature ID. Composes sibling and host skills by name: `jira-align` (reads only — `check`, `get features`, `list stories`/`tasks`/`defects` with `featureID eq` filter) and `receive-brief` (soft dependency — degrades gracefully when absent).
-- **Outputs.** A Shape B product brief at `docs/product/briefs/<slug>.md`, then a hand-off to `receive-brief` (or an inlined decompose/execute instruction in the degraded path).
-- **Required credentials.** None of its own — Jira Align access is inherited through the `jira-align` skill (`JIRAALIGN_BASE_URL`, `JIRAALIGN_API_TOKEN`).
-- **Source.** [`jira-align-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-align-brief-intake/)
-
-## `jira-defect-flow`
-
-- **Purpose.** Handle a Jira defect end-to-end. Pulls the ticket via the `jira` skill, hands the fix to the `bug-fix` skill, opens a PR linking back to Jira, then comments and transitions the ticket. Stops at PR-opened by default; runs a dev-deploy step only when the consumer repo provides one. For defects, not stories, tasks, or feature work.
-- **Primary inputs.** A Jira issue key. Composes sibling and host skills by name: `jira`, `bug-fix`, and the reviewer subagents. Branch naming via `scripts/branch_name.py $KEY "$SUMMARY"` (override prefix with `--prefix` or `JIRA_DEFECT_FIX_PREFIX`). Optional dev-deploy via `$DEPLOY_DEV_CMD` or an executable `.context/deploy_dev.sh`.
-- **Outputs.** A triage brief at `.context/defects/$KEY.md`, a feature branch, a PR whose `Why?` section carries `Closes: $KEY`, and Jira comments plus transitions on the ticket.
-- **Required credentials.** None of its own — Jira access is inherited through the `jira` skill. Requires `gh auth` for PR opening.
-- **Source.** [`jira-defect-flow`](../../../../packs/atlassian/.apm/skills/jira-defect-flow/)
-
-## `jira-story-triage`
-
-- **Purpose.** Review a Jira backlog, sprint, or JQL-scoped set of work items for readiness to hand to engineering, and improve the weak ones. For every item that is not ready, it explains *why* — which of the five-question bar's questions failed (self-contained change, reachable repo scope, checkable ACs, no mid-flight decision, right-sized for one PR) and the specific gap — rather than a bare tier label. On request it drafts the fix (acceptance criteria, a clearer outcome, a tighter scope) and writes it back via `update-issue` **only after the user approves the exact drafted payload**. Read-only until an approval; the write flow is opt-in and per-item. Use this to judge and fix item quality; use `jira-team-status` for a read-only status snapshot and what to pick up next.
-- **Primary inputs.** A Jira project key + optional sprint or JQL filter; optional repo URL for grounding.
-- **Outputs.** A reason-first readiness review: one row per item with an outcome (Ready for engineering / Gated / Not ready — needs shaping / Needs detail), complexity for Ready items, and a "Why not ready" column naming the failed question(s) and gap. Followed by an opt-in improve flow (draft → approve → `update-issue`, one confirmation per item).
-- **Required credentials.** None of its own — inherited through the `jira` skill.
-- **Source.** [`jira-story-triage`](../../../../packs/atlassian/.apm/skills/jira-story-triage/)
+---
 
 ## `jira-team-status`
 
-- **Purpose.** A read-only status view of a team's Jira work, organized by the dimensions people ask about — **Ready to pull, In progress, Blocked, Unassigned, and Needs detail (product attention)**, plus recently-changed and stale markers — for sprint, stand-up, and team-status summaries. "Ready to pull" is a documented, team-overridable rule (in scope + eligible backlog state, default `statusCategory = "To Do"` + no known blocker + meets the five-question readiness bar); signals it can't read are labelled "needs confirmation" rather than asserted. Ends in a read-only pick-up hand-off: start delivery on a ready item (routing to `jira-defect-flow` for bugs or `new-spec` for tasks/stories) or route an item that needs detail to `jira-story-triage`. Read-only by default; its only write is a confirmed bare pass-through to the `jira` skill's `update-issue` when the user explicitly asks to set a field. Use `jira-story-triage` instead to judge readiness in depth or improve weak items.
-- **Primary inputs.** A Jira project key (one or several) + optional sprint (default: open sprints), team name, JQL filter, or whole-backlog scope; optional repo URL for grounding.
-- **Outputs.** A five-section snapshot: §1 Ready to pull (grouped Quick/Standard/Involved), §2 In progress, §3 Blocked, §4 Unassigned, §5 Needs detail — plus a recently-changed note, stale markers, and a coverage-disclosing summary line. Followed by a read-only pick-up hand-off (start-delivery routing, or a route to `jira-story-triage` for improvement). A confirmed bare pass-through `update-issue` only on an explicit user request.
-- **Required credentials.** None of its own — inherited through the `jira` skill.
-- **Source.** [`jira-team-status`](../../../../packs/atlassian/.apm/skills/jira-team-status/)
+**Use it for:** A read-only status view of a team's Jira work — what can be picked up
+next, what is blocked, what is unassigned, and a stand-up or sprint summary.
+
+**Natural requests**
+
+- "What can the Atlas team pick up next in APP and API?"
+- "Give me a team status for stand-up."
+- "Show me the whole Atlas team backlog — current sprint, open backlog, unassigned, and blocked."
+- "What's blocked in APP this week?"
+
+**Required scope**
+
+One or more Jira project keys, plus one of: current sprint (default), a named sprint, a
+team name, a JQL filter, or a whole-backlog flag.
+
+**Reads**
+
+Issues from `jira: search` using the resolved scope. Fields: `summary`, `status`,
+`statusCategory`, `assignee`, `issuetype`, `priority`, `flagged` / impediment,
+`issuelinks` (blocker links), `customfield_*` for team field and story points.
+
+**Writes**
+
+Nothing, by default. Its only write is a bare pass-through to `jira: update-issue`
+when the user explicitly asks to set a field — with the payload confirmed first.
+
+**Returns**
+
+A five-section snapshot:
+1. Ready to pull (grouped Quick / Standard / Involved)
+2. In progress
+3. Blocked
+4. Unassigned
+5. Needs detail (product attention)
+
+Plus a recently-changed note, stale markers, and a summary line disclosing scope
+and coverage. Followed by a read-only pick-up hand-off (start-delivery routing or
+route to `jira-story-triage`).
+
+**Coverage**
+
+Discloses whether the result is complete, filtered, or capped. Pagination is
+automatic. When Jira returns incomplete results (permission gaps, API limits), the
+summary line says so.
+
+**Limits**
+
+Whole-backlog requests across many projects may be slow on large Jira instances.
+Use `--limit` or a narrowing JQL to cap the fetch.
+
+**Approval behavior**
+
+Read-only by default. Any write requires an explicit user request and a payload
+confirmation before `update-issue` fires.
+
+**Team-scope resolution**
+
+1. Direct project key(s) named by the user.
+2. A Jira board with the team name in its name.
+3. Issues whose Team custom field matches the team name.
+4. A JQL filter the user provided.
+
+When two scopes match, the agent asks which to use before reading.
+
+**Ready-to-pull rule**
+
+An item is **ready to pull** only when all four hold:
+1. In the selected team scope.
+2. In an eligible backlog state — default `statusCategory = "To Do"` (spans Backlog / To Do / Selected for Development / Open). Teams override by naming explicit statuses.
+3. No known unresolved blocker — Flagged field set, an unresolved "is blocked by" link, or status in a team-declared blocked set.
+4. Meets the five-question readiness bar.
+
+When any condition can't be determined, the item is labelled **needs confirmation**,
+not asserted ready or blocked.
+
+**Common follow-up**
+
+```
+Which ready items have no assignee?
+What changed since yesterday?
+```
+
+**Related skills:** `jira-story-triage` (to judge readiness in depth and fix weak items)
+
+---
+
+## `jira-story-triage`
+
+**Use it for:** Reviewing a Jira backlog, sprint, or JQL scope for story readiness,
+and improving the weak ones.
+
+**Natural requests**
+
+- "Which stories are not ready for engineering?"
+- "Make these tickets actionable."
+- "Apply the five-question bar to the items that need story work."
+- "Draft acceptance criteria for the top five."
+
+**Required scope**
+
+A Jira project key plus one of: a sprint, a JQL filter, or a list of issue keys.
+
+**Reads**
+
+Issue summary, description, acceptance criteria (custom field or description section),
+issuetype, status, story points, and the invoking repo URL (for Q2 scope grounding).
+
+**Writes**
+
+Nothing until approval. The write flow is:
+1. Agent drafts a proposed improvement.
+2. You review the draft.
+3. You explicitly approve the exact payload.
+4. Agent calls `jira: update-issue` for that one issue only.
+
+**Returns**
+
+Per-item findings:
+- What is missing (which question failed and the specific gap)
+- Why it prevents action
+- The proposed improvement (description rewrite or AC addition)
+- Any unresolved human question (PO decision needed)
+- Expected readiness after the draft
+- Confirmation that no Jira write occurred
+
+**The five-question readiness bar**
+
+> A story is actionable when all five are true:
+> **(Q1)** it is a **self-contained code/config/doc change** — not discovery, design,
+> or coordination work;
+> **(Q2)** it names a **reachable repo or file scope** so the change can be located
+> without a follow-up meeting;
+> **(Q3)** its **acceptance criteria are checkable by diff review alone** — no "TBD",
+> "coordinate with", "decide on", or "prototype";
+> **(Q4)** **no human decision is needed mid-flight** — no open design question,
+> no external approval gate that cannot be confirmed before work starts;
+> **(Q5)** it is **right-sized for one PR** — the scope is an enumerable set of files
+> or PRs a single person or agent can produce without decomposing into sub-stories.
+
+**Readiness outcomes**
+
+| Outcome | Condition |
+| --- | --- |
+| Ready for engineering | All five questions pass |
+| Gated (external) | Exactly one failure, and it is a specific named external dependency (not a content gap) |
+| Not ready — needs shaping | Any content failure: Q1 wrong type, Q2 missing scope, Q3 missing ACs, Q4 open design question, Q5 too large |
+| Needs detail | Empty description, image-only description, or discovery issuetype with no ACs |
+
+**Coverage**
+
+Processes all issues in the stated scope. Discloses count and completeness. Large
+scopes may be batched; batching is disclosed.
+
+**Limits**
+
+Items whose description is empty or image-only are flagged as "Needs detail" and
+not scored.
+
+**Approval behavior**
+
+Each write is per-item and opt-in. The agent shows the exact field and value before
+calling `update-issue`. There is no batch-approve all.
+
+**Common follow-up**
+
+```
+Show me the approved draft for APP-219 again before I confirm.
+Which items would be ready if the PO answered the open question?
+```
+
+**Related skills:** `jira-team-status` (for the read-only team state view), `jira`
+(for the write path)
+
+---
+
+## `jira`
+
+**Use it for:** Direct JQL search, issue fetch, create, update, transition, comment,
+and attach. The underlying primitive that `jira-team-status`, `jira-story-triage`,
+and `jira-defect-flow` invoke.
+
+**Natural requests**
+
+- "Search for all open bugs in APP created in the last 7 days."
+- "Fetch APP-203 with full fields."
+- "Create a story in API with summary X and description Y."
+- "Transition API-92 to Done."
+
+**Required scope**
+
+A project key for search; an issue key for fetch, update, transition, comment, attach.
+
+**Reads**
+
+JQL search with auto-pagination. Fields: `summary`, `status`, `assignee`, `issuetype`,
+`priority`, `created`, `updated`, `description`, `customfield_*`. Custom fields
+identified by `customfield_10010`-style keys; resolve display names with `--expand names`.
+
+**Writes**
+
+`create-issue` — creates an issue with the fields you provide.
+`update-issue` — partial PUT: only the fields you pass change.
+`transition` — changes workflow state. (`status` via `update-issue` is silently ignored — use `transition`.)
+`comment` — adds a comment.
+`delete-issue` — requires `--yes`; no undo.
+
+**Returns**
+
+Issue JSON, JSONL, or CSV to stdout or `--output`. `search` returns an array; single-issue
+commands return one object.
+
+**Coverage**
+
+`search` paginates automatically — Cloud uses `nextPageToken`, Server uses `startAt`.
+For bulk exports (> 100 issues), use `--format jsonl` to stream to disk.
+
+**Limits**
+
+`--page-size` capped at 100 by the Jira API. Very large result sets should use
+`--format jsonl --output FILE` to avoid memory pressure.
+
+**Approval behavior**
+
+`delete-issue` refuses without `--yes`. Writes are real and immediately visible to
+everyone on the instance — confirm project and field payload before calling.
+
+**Required credentials**
+
+`JIRA_BASE_URL` (required), `JIRA_API_TOKEN` (required), `JIRA_EMAIL` (Cloud only).
+
+**Auth (dual)**
+
+`auth: sso-cookie` with a `creds` fallback. On Data Center instances behind corporate
+SSO where tokens are blocked, pre-bake `references/sso-config.toml` and run
+`setup_sso.py` once; subsequent reads authenticate by captured web session. Writes
+via SSO cookie are refused pending XSRF design — use token auth for writes.
+
+**Related skills:** `jira-team-status`, `jira-story-triage`, `jira-defect-flow`
+
+---
+
+## `jira-defect-flow`
+
+**Use it for:** Handling a Jira defect end-to-end: pull the ticket, fix the code,
+open a PR, then comment and transition the ticket.
+
+**Natural requests**
+
+- "Fix APP-203 — take it from Jira to a PR."
+
+**Required scope**
+
+A single Jira issue key.
+
+**Reads**
+
+The issue via `jira: get-issue`. Hands the fix to `bug-fix`. Opens a PR via `gh`.
+
+**Writes**
+
+Adds a comment and transitions the ticket after the PR is opened.
+
+**Returns**
+
+A triage brief at `.context/defects/$KEY.md`, a feature branch, a PR, and Jira
+comments and transitions.
+
+**Coverage**
+
+Stops at PR-opened by default. A dev-deploy step runs only when the consumer repo
+provides one.
+
+**Approval behavior**
+
+No explicit approval gate beyond the PR review. Jira writes (comment + transition)
+are automatic after the PR is opened.
+
+**Related skills:** `jira` (for the Jira read/write path), `bug-fix` (for the fix)
+
+---
 
 ## `jira-brief-intake`
 
-- **Purpose.** Turn a Jira epic (or a board / sprint / JQL selection) into shippable specs. Pulls the epic and its children via the `jira` skill, maps them onto a Shape B product brief (epic → Outcome, child issues → `US-n` user stories tagged with their Jira key, epic key → `Epic:` provenance pointer), writes it to `docs/product/briefs/<slug>.md`, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira; gracefully degrades to an inlined decompose/execute instruction when `receive-brief` is absent. For an epic or multi-feature body of work — a single feature goes through `new-spec`, a defect through `jira-defect-flow`.
-- **Primary inputs.** A Jira epic key, or a JQL / board / sprint selection. Composes sibling and host skills by name: `jira` (reads only — `check`, `get-issue`, `search` with a flavor-correct child query) and `receive-brief` (soft dependency — degrades gracefully when absent).
-- **Outputs.** A Shape B product brief at `docs/product/briefs/<slug>.md`, then a hand-off to `receive-brief` (or an inlined decompose/execute instruction in the degraded path).
-- **Required credentials.** None of its own — Jira access is inherited through the `jira` skill.
-- **Source.** [`jira-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-brief-intake/)
+**Use it for:** Turning a Jira epic or multi-issue selection into a structured
+engineering brief.
+
+**Natural requests**
+
+- "Turn APP-epic-42 into a product brief."
+- "Pull the Atlas board sprint into a brief."
+
+**Required scope**
+
+A Jira epic key, a board, a sprint, or a JQL selection.
+
+**Reads**
+
+Epic and its children via `jira: get-issue` and `search`. Maps issues onto a Shape B
+product brief.
+
+**Writes**
+
+A brief at `docs/product/briefs/<slug>.md`. Read-only against Jira — never writes
+back.
+
+**Returns**
+
+A Shape B product brief, then a hand-off to `receive-brief`.
+
+**Required credentials**
+
+None of its own — inherits through `jira`.
+
+**Related skills:** `jira`, `receive-brief`, `jira-align-brief-intake`
+
+---
+
+## `jira-align-brief-intake`
+
+**Use it for:** Turning a Jira Align Feature into a product brief.
+
+Same pattern as `jira-brief-intake` but reads from Jira Align via `jira-align`.
+Requires one-time customisation of `references/field-mapping.md` for org-specific
+workflow state names. 1-way intake only — never writes to Jira Align.
+
+**Required credentials**
+
+`JIRAALIGN_BASE_URL`, `JIRAALIGN_API_TOKEN`.
+
+---
+
+## `jira-align`
+
+**Use it for:** Reading and managing Jira Align portfolio data — epics, features,
+stories, capabilities, portfolios, programs, and teams.
+
+A separate product from Jira with separate credentials. Subcommands: `check`,
+`whoami`, `get`, `list`, `search`, `create`, `update`, `delete`, `raw`.
+
+**Required credentials**
+
+`JIRAALIGN_BASE_URL`, `JIRAALIGN_API_TOKEN`.
+
+---
+
+## `flow-metrics`
+
+**Use it for:** Computing DORA / Flow Framework metrics over a Jira project or Jira
+Align program.
+
+**Reads**
+
+Issue changelogs via `jira` and `jira-align`. Computes cycle time, lead time,
+throughput, WIP, flow load, rework rate, flow time, flow efficiency, flow
+distribution, and defect ratio.
+
+**Writes**
+
+Nothing. Read-only.
+
+**Returns**
+
+Canonical JSON or CSV with `meta`, `aggregates`, optional `cohort_breakdown`, and
+`notes`. Output schema pinned at `references/output.schema.json`.
+
+**Coverage**
+
+Date range defaults to last 90 days. Cancelled or out-of-scope issues are noted in
+the `notes` section.
+
+**Required credentials**
+
+None of its own — inherits through `jira` (and `jira-align` for Align scope).
+
+---
+
+## `ai-adoption-report`
+
+**Use it for:** Pairing `flow-metrics` outputs and rendering a Markdown comparison
+report. Three modes: `baseline` (before/after two windows), `cohort` (AI-tagged vs
+control within one window), `program` (roll up across many scopes).
+
+**Reads**
+
+Local JSON files only — no upstream calls.
+
+**Writes**
+
+A Markdown report and a JSON sidecar at `--output`.
+
+**Required credentials**
+
+None — reads only local files.
+
+---
+
+## `confluence-crawler`
+
+**Use it for:** Mirroring a Confluence space or page tree to Markdown for local
+analysis.
+
+**Reads**
+
+Page hierarchy via the Confluence REST API. Converts each page to Markdown with YAML
+frontmatter (`confluence_id`, `version`, `space_key`, `updated`, `author`, `url`).
+
+**Writes**
+
+Local Markdown files. Nothing is written to Confluence.
+
+**Required credentials**
+
+`CONFLUENCE_BASE_URL`, `CONFLUENCE_API_TOKEN`, `CONFLUENCE_EMAIL` (Cloud only).
+Shares the `confluence` namespace with `confluence-publisher`.
+
+---
+
+## `confluence-publisher`
+
+**Use it for:** Publishing Markdown to a Confluence page — creates or updates in place.
+
+**Reads**
+
+The target page's current version (for optimistic-locking conflict detection).
+
+**Writes**
+
+Creates or updates a Confluence page. Handles optimistic-locking 409s with one retry.
+
+**Returns**
+
+`OK: <create|update> page <id> (version N) — <url>` on success.
+
+**Approval behavior**
+
+`--dry-run` prints rendered storage XHTML and the planned operation without writing.
+No built-in approval gate in the CLI — the skill body requires explicit user
+confirmation before calling the publisher.
+
+**Required credentials**
+
+Same `confluence` namespace as `confluence-crawler` — configure either and both work.
