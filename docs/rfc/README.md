@@ -76,6 +76,8 @@
 | [0068](0068-linear-pack.md) | `linear` pack — Linear Issue intake + delta-sync skills for the brief pipeline: `linear` primitive (GraphQL, credential-brokers `creds` path), `linear-brief-intake` (Issue/Project → brief, Shape A/B, 10-Issue cap), `linear-brief-sync` (PE-approval gate, protected-field fixed convention, Executing lock); D3 section-level before/after approval; D4 `push-acs-to-linear` deferred to backlog | Accepted | 2026-07-21 | 2026-07-21 |
 | [0069](0069-workspace-toml-adopter-seeding.md) | workspace.toml adopter seeding — add workspace.toml as a minimal core-pack seed (comments + [backlog] section) delivered on install; EXCLUDED_PATTERNS protection; REQUIRED_PLACEHOLDERS lint | Draft | 2026-07-22 | — |
 | [0070](0070-iac-terraform-remote-exec-platforms.md) | Remote execution platforms for `iac-terraform` — HCP Terraform (`cloud {}` block) and Scalr (`backend "remote"`) support: new `references/remote-exec/` directory, `remote_exec_platform` clarify input, generated `REMOTE_EXEC_SETUP.md`, `reconcile-iac` backend-type detection. Follow-on to RFC-0065 §8. | Accepted | 2026-07-23 | 2026-07-23 |
+| [0071](0071-digital-experience-doctrine.md) | Digital experience doctrine — copy-direction and content-design discipline conventions for the experience pack | Accepted | 2026-07-23 | 2026-07-23 |
+| [0072](0072-agentbundle-enterprise-distribution.md) | AgentBundle enterprise distribution — source provenance, org Artifactory bootstrap, bulk upgrade, machine-readable output, and `package-catalogue` command | Accepted | 2026-07-23 | 2026-07-23 |
 
 ## Adding a new RFC
 
