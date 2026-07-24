@@ -1,86 +1,38 @@
-# workspace.toml
-#
-# Declared-intent coordination artifact for this repo.
-# Each initiative gets its own named section. Skills read this file at session
-# start to orient to the current queue state — run `workspace-status` to surface
-# ready items, blocked items, and active signals.
-#
-# Queue entries are strings (no dependencies) or inline objects
-# {path/slug, needs?, source?, summary?, type?}. `summary` is a short one-line
-# label that workspace-status renders as the item's title; the fuller `#` comment
-# below an entry carries cold-start detail. `needs` uses queue-prefix notation:
-#   "work:<path>"      — depends on a work queue entry
+# workspace.toml — declared-intent coordination artifact.
+# Queue entries are strings (no deps) or inline objects {path/slug, needs?, source?, summary?, type?}.
+# `needs` uses queue-prefix notation:
+#   "work:<path>"      — depends on a work queue entry (satisfied when shipped)
 #   "shape:<slug>"     — depends on a shaping queue entry
-#   "research:<slug>"  — depends on a research entry
+#   "research:<slug>"  — depends on a research shaping entry
 #   "brief:<path>"     — depends on a brief queue entry
 #   "backlog:<slug>"   — depends on a repo-level [backlog] item
 # Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
 #
-# shaping_queue entry types: shape | research | strategy | signal | design
-#   shape    → frame-intent (or frame-situation when PE pack is available)
-#   research → desk-research-project-start (requires desk-research pack)
-#   strategy → frame-situation (PE pack — M2); interim: frame-intent
-#   signal   → no action; surfaces in "active context" section only
-#   design   → experience-status (requires experience-design pack); fallback: journey-mapping
-#
-# Note: the top-level [backlog] section (repo-durable — open work not scoped to
-# an active initiative) is distinct from a shaping_queue's `backlog` array (its
-# non-active tier).
+# Note: [backlog] (repo-durable open work, not scoped to any initiative) is distinct
+# from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 
 ["ini-002"]
 name      = "Platform Core"
 status    = "shipped"
 milestone = "M1 · Workspace Foundation"
 parent    = "INI-001"
+# RFC-0064 journey-phase work: workspace tooling (workspace-status, work-loop, capture-work,
+# author-brief), PE skills (frame-intent, frame-situation, diverge-solutions, lean-canvas,
+# place-bet, identify-opportunities, map-capabilities), pack integrations (Jira, GitHub,
+# Linear), governance, and guides. RFC-0064 Amendment #5 descopes P5 Adopt to an XD
+# desk-research pass (experience-design-for-our-sites, in shaping_queue).
 
 ["ini-002".shaping_queue]
-# experience-design-for-our-sites (research): one desk-research pass that applies
-# ini-003's shipped experience-design doctrine to our own two surfaces — the
-# marketing site (web/) and the docs site (site/). Deliverable: an experience
-# direction grounded in the XD contract + reviewer passes, feeding the
-# portfolio-outcome-entry-surfaces design brief and the site-* backlog items.
-# Scope boundary — that is all: no monolithic adopter-persona study, no enterprise
-# rollout playbook, no live-demo program, no standalone Astro project index.
-# Replaces the former adopter-persona research item (RFC-0064 Amendment #5,
-# 2026-07-24: the P5 Adopt program is descoped to experience-design applied to our
-# own sites; the three m6-* build specs it gated are dropped).
-# Project (personal vault): efforts/research/2026-07-24-experience-design-for-our-sites.
 active  = [
   {slug = "experience-design-for-our-sites", summary = "Apply ini-003 XD doctrine to our marketing + docs sites", type = "research"},
 ]
 backlog = [
-  # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", summary = "Signal: AI-native regulatory watch (ongoing)", type = "signal"},
-  # Research items — any user with the desk-research pack can pick these up
-  # Research (RFC-0064 M3 AC): should rfc-candidates.md graduate into the
-  # shaping_queue (as research/strategy entries) rather than remain a separate
-  # findings register? Assess the whole intake taxonomy — findings registers
-  # (rfc-candidates, roadmap-intents) vs the new repo-level [backlog] vs the
-  # shaping_queue. Owner intuition: rfc-candidates are "things we should work
-  # through" and belong in shaping. Deliverable: a recommendation (keep separate
-  # / fold / hybrid) feeding a possible RFC-0064 follow-on. Requires desk-research.
   {slug = "intake-taxonomy-rfc-candidates-to-shaping", summary = "Research: should rfc-candidates graduate into the shaping queue?", type = "research"},
-  # Shaping items — PE picks up when upstream research is done
   "ini-002-initiative-brief",
-  # Ready to shape (2026-07-24): their upstream (m2-frame-situation, m2-map-capabilities)
-  # has shipped, so the dependency edges were dropped — these are unconditional now.
   {slug = "opp-assessment-pe-pack", summary = "Opportunity assessment for the PE pack"},
   {slug = "capability-map-ini-002", summary = "Capability map for ini-002"},
-  # Post-pilot rollout shaping — RFC-0064 Amendment #4 cross-pack overlay.
-  # Deliverable after shaping: one appetite-bounded formal brief whose independently
-  # shippable slices cover the remaining ratified Level B packs (beyond the three
-  # pilots). Each pack slice includes its guide, surface evidence, safety boundary,
-  # recovery, eval, and only necessary skill change. Must audit P2/P3/P4 guides and
-  # existing tutorials before proposing work. No longer blocked (2026-07-24): all
-  # three pilots have shipped (evidence base complete) — ready to shape.
   {slug = "nontechnical-pack-first-value-rollout", summary = "Shape the non-technical pack first-value rollout", type = "shape"},
-  # Portfolio outcome entry-surfaces — design (RFC-0064 Amendment #4). Deliverable
-  # after shaping: a surface/flow brief for homepage, catalogue, pack pages, READMEs,
-  # journeys, and docs routing that consumes the contract and routes by plain-language
-  # outcome. Explicitly excludes site-social-proof-band, site-mobile-responsiveness,
-  # site-design-system-spec, and P5's Astro project index; reference those owners.
-  # No longer blocked (2026-07-24): the contract is ratified and all three pilots
-  # have shipped — ready to shape.
   {slug = "portfolio-outcome-entry-surfaces", summary = "Design the portfolio outcome entry-surfaces", type = "design"},
 ]
 
@@ -92,123 +44,81 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
-  "spec/agentbundle-first-value-handoff",          # PR this branch — first-value handoff block in agentbundle install
-  "spec/catalogue-curation",                # PR #614
-  "spec/m2-frame-situation",     # frame-situation PE skill
-  "spec/m1-workspace-core",      # Batch 2
-  "spec/m1-work-queue",          # Batch 3
-  "spec/m1-brief-queue",         # Batch 4
-  "spec/m1-governance-integration", # Batch 5
-  "spec/spec-A-workspace-status-rename", # RFC-0067 Change A
+  "spec/agentbundle-first-value-handoff",
+  "spec/catalogue-curation",
+  "spec/m2-frame-situation",
+  "spec/m1-workspace-core",
+  "spec/m1-work-queue",
+  "spec/m1-brief-queue",
+  "spec/m1-governance-integration",
+  "spec/spec-A-workspace-status-rename",
   "spec/new-rfc-followon-queue-write",
-  "spec/queue-add",              # PR #566
-  "spec/work-loop-queue-shipped-fix", # Fix done-step + stale-queue warning + line-177 path bug
-  "spec/spec-D-pack-workflow-guide",  # Pack workflow design guide + CONTRIBUTING step 0
-  "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
-  "spec/rfc-0064-errata-workspace-integrity", # Amendment to RFC-0064 documenting session-fragmentation gap
-  "spec/workspace-status-next-actions", # Add ### 6. Next-actions closing step to workspace-status
-  "spec/workspace-status-queue-reconciliation", # PR #573 — reconciliation step
-  "spec/m3-backlog-absorption",                # Migrate docs/backlog.md → workspace.toml [backlog]
-  "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
-  "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
-  "spec/workspace-journey-guides-and-planning-doctrine", # RFC-0064 P1 Orient+Capture: 6 guides + phase-slice doctrine
-  "spec/author-brief-docs",                   # RFC-0064 P3: how-to + DoR gate fields reference
-  "spec/m2-diverge-solutions",                # diverge-solutions PE skill (step 3 of six-step shaping sequence)
-  "spec/m2-lean-canvas-and-initiative-brief",  # lean-canvas PE skill + Lean Canvas initiative brief
-  "spec/m2-place-bet",                         # place-bet PE skill + worked example + how-to guide
-  "spec/m2-identify-opportunities",            # identify-opportunities PE skill + template + example + guide
-  "spec/m2-map-capabilities",                  # map-capabilities PE skill + template + examples + how-to guide
-  "spec/m2-frame-intent-jtbd",                 # PR #599 — JTBD three-tier elicitation into frame-intent; back-compat assessed in spec
-  "spec/m5-jira-align-brief-intake",           # atlassian pack 0.4.0; jira-align-brief-intake skill; 1-way intake, config-guided field map
-  "spec/m5-github-brief-intake",              # github pack + github-brief-intake skill + how-to guide
-  "spec/portfolio-pack-first-value-contract",  # PR #602 — 17-pack first-value contract migration + lint gate
-  "spec/m6-role-journey-guides",              # RFC-0064 P5: role journey guide (PM / engineer / agent)
-  "spec/portfolio-first-run-pilot-governance-extras", # RFC-0064 Amendment #4 preview-confirm write pilot
-  "spec/m5-linear-brief-intake-and-sync",            # first-time intake + delta sync
-  "spec/portfolio-first-run-pilot-architect",         # RFC-0064 Amendment #4 local/no-credential pilot
-  "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
-  "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
-  "spec/new-guide-conversation-first",         # PR #639 — user-guide-diataxis 0.2.0 conversation-first doctrine
-  "spec/credbroker-security-hardening",                # credbroker test-suite security hardening (D3 AST walk, shim path anchor, parametrised integration tests)
-  "spec/work-loop-step0-observability",         # consumes work-loop-step0-{branch1-echo,layout} backlog items
+  "spec/queue-add",
+  "spec/work-loop-queue-shipped-fix",
+  "spec/spec-D-pack-workflow-guide",
+  "spec/spec-B-pack-status-skills",
+  "spec/rfc-0064-errata-workspace-integrity",
+  "spec/workspace-status-next-actions",
+  "spec/workspace-status-queue-reconciliation",
+  "spec/m3-backlog-absorption",
+  "spec/capture-work",
+  "spec/spec-C-workloop-argless-resume",
+  "spec/workspace-journey-guides-and-planning-doctrine",
+  "spec/author-brief-docs",
+  "spec/m2-diverge-solutions",
+  "spec/m2-lean-canvas-and-initiative-brief",
+  "spec/m2-place-bet",
+  "spec/m2-identify-opportunities",
+  "spec/m2-map-capabilities",
+  "spec/m2-frame-intent-jtbd",
+  "spec/m5-jira-align-brief-intake",
+  "spec/m5-github-brief-intake",
+  "spec/portfolio-pack-first-value-contract",
+  "spec/m6-role-journey-guides",
+  "spec/portfolio-first-run-pilot-governance-extras",
+  "spec/m5-linear-brief-intake-and-sync",
+  "spec/portfolio-first-run-pilot-architect",
+  "spec/portfolio-first-run-pilot-figma",
+  "spec/m5-tracker-guides",
+  "spec/new-guide-conversation-first",
+  "spec/credbroker-security-hardening",
+  "spec/work-loop-step0-observability",
 ]
 queue   = [
-  # ==================================================================
-  # RFC-0064 remaining work, sequenced by JOURNEY PHASE (see RFC-0064
-  # Amendment #3). Phase order = PRIORITY (pick up P1 first), NOT a hard
-  # dependency — `needs` encodes only real "cannot start until" edges. Each
-  # phase is a per-repo Project (docs/product/projects/<slug>.md, 3–8 wks)
-  # that ships its tooling AND its guides together; guides ride with the
-  # capability they document — no terminal doc wave. Sub-RFC gates (P2, P4)
-  # are noted in the phase header, not as entries (an RFC is not a spec).
-  # Independent (non-RFC-0064) work is grouped at the bottom.
-  # ==================================================================
-
-
-  # ---------------- P5 · Adopt — DESCOPED (RFC-0064 Amendment #5, 2026-07-24) ----------------
-  # The former P5 Adopt program (adopter-persona study → m6-astro-project-index,
-  # m6-live-demo-guide, m6-enterprise-rollout-playbook) is descoped. The remaining
-  # experience work is one desk-research pass (experience-design-for-our-sites, in
-  # the shaping_queue) that applies ini-003's XD doctrine to web/ + site/, feeding
-  # portfolio-outcome-entry-surfaces and the site-* backlog items. No enterprise
-  # rollout playbook, live-demo guide, or standalone Astro project index in this
-  # initiative. See RFC-0064 Amendment #5 for the rationale.
-
-
-  # ---- Backlog-graduated specs (reconciled from [backlog]; Approved, evidence in #627) ----
-  # These were authored from [backlog] items and are Approved-not-shipped; their origin
-  # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
-  "spec/catalogue-curation-qa-coverage",                 # AC1-AC3 done (fixtures + transcripts); AC4-AC9 pending human QA
+  "spec/catalogue-curation-qa-coverage",  # AC1-AC3 done; AC4-AC9 pending human QA
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ini-003 · Digital Experience Doctrine
-#
-# Cross-pack doctrine update across experience-design, product-engineering,
-# product-strategy, and core (frontend-engineering). Mission: change the
-# definition of done so digital work is complete only when it produces an
-# observable outcome, not merely a valid artifact or green build.
-#
-# Introduces the Digital Experience Contract as the shared cross-pack primitive.
-# Closes all phantom handoffs (design-system-foundations, copy-direction
-# boundary, voice-and-microcopy). Requires the following pre-implementation
-# decisions to be ratified in RFC-0071 before any M1+ spec starts:
-#   1. Contract storage: pack-local references/digital-experience-contract.md
-#      with deterministic drift check (preserves independent installability).
-#   2. voice-and-microcopy stays in product-engineering; frontmatter boundary
-#      wording updated in both packs.
-#   3. design-system-foundations as new XD skill (distinct job: apply the
-#      token taxonomy; distinct from design-system which derives the method).
-#   4. copy-direction extends tone-of-voice frontmatter; not a new skill.
-#   5. FE four modes (create/retrofit/audit/verify) as conditional sections
-#      within one SKILL.md, not separate skills.
-# ─────────────────────────────────────────────────────────────────────────────
+
 ["ini-003"]
 name      = "Digital Experience Doctrine"
 status    = "shipped"
 milestone = "Wave 4 · Complete"
+# Cross-pack XD doctrine (experience-design, product-engineering, product-strategy, core):
+# Digital Experience Contract, skill boundaries, copy-direction, design-system-foundations,
+# 18-state quality floor, cross-pack eval chain, XD intent index, and integrative guides.
 
 ["ini-003".work]
 active  = []
 queue   = []
 shipped = [
-  "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
-  "spec/digital-experience-contract",              # Shipped 2026-07-23
-  "spec/xd-copy-direction",                        # Shipped 2026-07-23 — copy-direction skill + three-way copy boundary
-  "spec/product-engineering-shaping-doctrine",     # Shipped 2026-07-23 — PE shaping doctrine; ux-writing rename; thin-slice + learning contract
-  "spec/frontend-engineering-doctrine-update",     # Shipped 2026-07-23 — FE doctrine: four modes, 18 states, WCAG 2.2 AA, CWV targets (core 0.14.0)
-  "spec/product-strategy-adoption-doctrine",       # Shipped 2026-07-23 — M2a Product Strategy Adoption Doctrine
-  "spec/xd-skill-boundaries",                       # Shipped 2026-07-23 — copy-direction near-miss guards across all 17 unguarded XD skills (1.2.1)
-  "spec/xd-ia-archetypes-objects",                   # Shipped 2026-07-23 — page archetypes, product-object mapping, card-use test, attention + permission contracts (1.3.0)
-  "spec/xd-design-system-foundations",               # Shipped 2026-07-24 — design-token-taxonomy rename + design-system-foundations skill (1.4.0)
-  "spec/xd-state-reviewer-doctrine",                # Shipped 2026-07-24 — 18-state quality floor + three-pass design-review + severity tiers (1.5.0)
-  "spec/cross-pack-experience-eval",               # Shipped 2026-07-24 — XD chain deterministic checker + cross-pack fixtures + how-to guide (1.6.0)
-  "spec/digital-product-guides-update",             # Shipped 2026-07-24 — M6 integrative XD guides: README index, Start here walkthrough, cross-links, web/ skill inventory
-  "xd-pack-page-trigger-language-update",            # Shipped 2026-07-24 — Wave 3D: pack + journey page near-miss guards for design-token-taxonomy, design-system-foundations, copy-direction
-  "xd-reference-guide-description-sync",             # Shipped 2026-07-24 — synced 21-skill descriptions to SKILL.md frontmatter; added copy-direction, design-token-taxonomy, design-system-foundations, experience-status; removed design-system
-  "spec/xd-cross-pack-intent-index",               # Shipped 2026-07-24 — cross-pack "I want to…" intent index: adopter jobs → pack + skill + guide
-  "spec/xd-cross-pack-tutorial",                    # Shipped 2026-07-24 — cross-pack tutorial: full XD chain on SaaS onboarding surface
-  "digital-product-profile",                          # Shipped 2026-07-24 — digital-product profile + journey page + tutorial (Wave 3A)
+  "spec/rfc-digital-product-experience-doctrine",
+  "spec/digital-experience-contract",
+  "spec/xd-copy-direction",
+  "spec/product-engineering-shaping-doctrine",
+  "spec/frontend-engineering-doctrine-update",
+  "spec/product-strategy-adoption-doctrine",
+  "spec/xd-skill-boundaries",
+  "spec/xd-ia-archetypes-objects",
+  "spec/xd-design-system-foundations",
+  "spec/xd-state-reviewer-doctrine",
+  "spec/cross-pack-experience-eval",
+  "spec/digital-product-guides-update",
+  "xd-pack-page-trigger-language-update",
+  "xd-reference-guide-description-sync",
+  "spec/xd-cross-pack-intent-index",
+  "spec/xd-cross-pack-tutorial",
+  "digital-product-profile",
 ]
 
 ["ini-003".shaping_queue]
@@ -216,42 +126,14 @@ active  = []
 backlog = []
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ini-004 · AgentBundle Enterprise Distribution
-#
-# Makes agentbundle viable in corporate/enterprise environments by closing four
-# interconnected gaps: source provenance (PackState), observability (JSON status
-# output), operations (bulk upgrade with adapter-row granularity), and distribution
-# infrastructure (HTTPS catalogue channels, organization bootstrap, catalogue
-# packaging, and corporate update documentation).
-#
-# Non-goals (do not implement in this initiative): full hosted registry, registry
-# search/publication APIs, dependency solver, pack@version selectors, upgrade --to/
-# --latest, multiple named user registries, background update daemon, cross-scope
-# transaction, cross-pack rollback, Artifactory AQL-based discovery, sorting
-# filenames to infer latest release. Runtime remains Python 3.11 stdlib-only.
-#
-# ADR decisions required before code starts (resolved in the RFC gate):
-#   1. Mutable channel descriptor pointing to an immutable versioned archive.
-#   2. Package-shipped organization bootstrap configuration.
-#   3. Source identity as part of pack ownership at a scope.
-#   4. Bulk upgrade: preflighted but not transactionally atomic.
-#
-# Backlog connections:
-#   - multi-adapter-state-lock-uninstall-upgrade: bulk upgrade touches the upgrade
-#     command extensively; the uninstall/upgrade state-write concurrency gap stays
-#     a separate backlog item — note it explicitly in spec/upgrade-bulk-all scope.
-#   - upgrade-orphan-removal-on-projection-shape-change: bulk upgrade may trigger
-#     projection shape changes; orphan removal stays a separate backlog item.
-#   - convenient-install-defaults-followons: SHA-256 verification introduced here
-#     closes the integrity concern for catalogue+https / archive+https sources;
-#     git+https integrity pinning remains open.
-#   - artifactory-first-publish-gesture: becomes actionable once ini-004 ships
-#     (packaging infrastructure exists; first upload still needs GitHub secrets).
-# ─────────────────────────────────────────────────────────────────────────────
+
 ["ini-004"]
 name      = "AgentBundle Enterprise Distribution"
 status    = "shipped"
 milestone = "M6 · Release — 0.13.0 on PyPI"
+# Closes four enterprise gaps: source provenance (PackState), JSON status output,
+# bulk upgrade, and HTTPS catalogue channels + org bootstrap + catalogue packaging.
+# Non-goals: hosted registry, dependency solver, pack@version selectors, background daemon.
 
 ["ini-004".shaping_queue]
 active  = []
@@ -260,625 +142,196 @@ backlog = []
 ["ini-004".work]
 active  = []
 shipped = [
-  "spec/rfc-agentbundle-enterprise-distribution",        # RFC-0072 Accepted; unlocks all downstream ini-004 specs
-  "spec/packstate-source-provenance",                    # spec + plan authored; adversarial review Clean 2026-07-23
-  "spec/https-catalogue-channels",                       # spec + plan authored; adversarial review Clean 2026-07-23
-  "spec/source-conflict-install-guard",                  # spec + plan authored; adversarial review Clean 2026-07-24 (8 passes)
-  "spec/list-installed-update-status",                   # spec + plan authored; adversarial review Clean 2026-07-24 (15 passes)
-  "spec/upgrade-bulk-all",                               # spec + plan authored; adversarial review Clean 2026-07-24 (32 passes)
-  "spec/organization-artifactory-bootstrap",             # spec + plan authored; adversarial review Clean 2026-07-24 (9 passes)
-  "spec/package-catalogue-command",                      # spec + plan authored; adversarial review Clean 2026-07-24 (12 passes)
-  "spec/artifactory-publishing-workflow",                # spec + plan authored; adversarial review Clean 2026-07-24 (4 passes)
-  "spec/corporate-update-documentation",                 # spec + plan authored; adversarial review Clean 2026-07-24 (8 passes)
-  "spec/agentbundle-enterprise-distribution-release",    # spec + plan authored; adversarial review Clean 2026-07-24
+  "spec/rfc-agentbundle-enterprise-distribution",
+  "spec/packstate-source-provenance",
+  "spec/https-catalogue-channels",
+  "spec/source-conflict-install-guard",
+  "spec/list-installed-update-status",
+  "spec/upgrade-bulk-all",
+  "spec/organization-artifactory-bootstrap",
+  "spec/package-catalogue-command",
+  "spec/artifactory-publishing-workflow",
+  "spec/corporate-update-documentation",
+  "spec/agentbundle-enterprise-distribution-release",
 ]
 queue   = []
 
 # Repo-level backlog — open work not scoped to any active initiative.
-# Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
-# Entries are inline objects: {slug, needs?, source?, summary?} where:
-#   slug    — unique identifier; matches any (deferred: <slug>) marker in specs
-#   summary — short one-line label workspace-status renders as the item's title
-#   source  — deferred-AC provenance, e.g. "spec/foo AC3"
-#   needs   — same prefix notation as queue entries ("backlog:<slug>", "work:spec/...")
-# The `summary` is the label; the per-entry TOML comment carries the cold-start
-# detail (problem, fix, file/skill, unblock) — do not duplicate one into the other.
-# When the unblock condition is another tracked item (a hard AND dependency), also
-# add a `needs` edge — not prose alone. Disjunctive/untracked/external unblocks stay prose.
-# Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
+# Entries: {slug, summary, needs?, source?} — slug matches (deferred: <slug>) markers in specs.
 [backlog]
 open = [
-  # ── Deferred from ini-003 M6 ────────────────────────────────────────────────
   # ── Quick wins ───────────────────────────────────────────────────────────────
-  # (single focused session; no external environment; small diff)
 
-  # spec/organization-artifactory-bootstrap AC17: _is_valid_source must accept
-  # catalogue+https:// URLs before the xfail(strict=True) test can pass.
-  # Fix: ship spec/https-catalogue-channels (AC1 extends _is_valid_source), then
-  #   remove the xfail marker from test_org_bootstrap_is_valid_source_accepts_constructed_url.
-  # Unblocks when: spec/https-catalogue-channels is Shipped.
-  {slug = "https-catalogue-channels-ac17-gate", summary = "Remove xfail once https-catalogue-channels ships (accepts catalogue+https)", source = "spec/organization-artifactory-bootstrap"},
-
-  # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
-  # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
-  # __init__.py, _core.py, _vault.py). The pack is frozen by RFC-0013 (§4/§4d);
-  # the apm-internal-ref-sweep cleaned core + figma but left this frozen pack.
-  # Fix: a focused comment-only PR with explicit RFC-0013 approver sign-off, or fold
-  #   into apm-leak-lint-rfc when that RFC lands.
-  # Unblocks when: apm-leak-lint-rfc RFC is approved, or explicit approval obtained.
+  # The credential-brokers pack's .apm/** carries RFC-0023/RFC-0006 citations (frozen by RFC-0013 §4/§4d).
+  # Fix: focused comment-only PR with explicit RFC-0013 approver sign-off, or fold into apm-leak-lint-rfc.
   {slug = "credbroker-frozen-pack-ref-sweep", summary = "Comment-only RFC-ref sweep of the frozen credential-brokers pack", source = "spec/apm-internal-ref-sweep"},
 
-  # RFC-0065 D5 (source-author review 2026-07-18). Azure shipped contract-complete
-  # in iac-terraform v1 (four provider files + providers/azure.md) but no worked
-  # example has passed terraform init -backend=false && fmt -check && validate. The
-  # provider index entry is stamped "experimental — not validated in v1."
-  # Fix: author examples/azure/ (match shape of examples/aws/ and examples/gcp/);
-  #   run the three-command validation gate; remove the experimental stamp from
-  #   providers/azure.md; bump the provider index entry to validated.
-  # File: packs/core/.apm/skills/iac-terraform/ (examples/azure/ + providers/azure.md).
-  # Unblocks when: Azure worked example is authored and passes the three-command gate.
-  {slug = "iac-terraform-azure-validation", summary = "Author + validate the iac-terraform Azure worked example"},
-
-  # Platform site (web/). The site ships zero social proof or credibility signal —
-  # no version/recency badge, no install count, no adopter logos, no dogfooding claim.
-  # The strongest available honest signals: agentbundle PyPI version badge, install
-  # count, "built with itself" dogfooding statement, adapter count.
-  # Fix: add a proof-band section between the hero and loops sections in
-  #   web/src/pages/index.astro; no formal spec needed — normal PR + experience-reviewer.
-  # Unblocks when: someone decides what signal is available and honest to publish.
+  # web/src/pages/index.astro: add a proof-band between hero and loops (version badge, install count,
+  # dogfooding claim). Unblocks when: someone decides what honest signal to publish.
   {slug = "site-social-proof-band", summary = "Add an honest social-proof band to the platform site hero"},
 
-  # Platform site mobile CSS covers the hero section only. Needs a full mobile audit:
-  # cards grid on narrow viewports, navigation, code block overflow, table horizontal
-  # scroll, tab-panel usability on touch. Test via Chrome DevTools device emulation
-  # (375/390/430px) and a physical device. Dev server: make site-serve.
-  # Fix: run the mobile audit; open a mobile-CSS PR.
-  # Unblocks when: screened on actual mobile viewport + physical device.
+  # Full mobile audit: cards grid, nav, code block overflow, table scroll, tab-panel usability.
+  # Test via Chrome DevTools (375/390/430px) and physical device. Dev server: make site-serve.
   {slug = "site-mobile-responsiveness", summary = "Full mobile-responsiveness audit + CSS for the platform site"},
 
-  # docs/guides/desk-research/tutorials/desk-research-first-session.md line 15 says
-  # `agentbundle install research --scope user` but the pack id is `desk-research`
-  # (renamed in M3). Stale id fails silently for new adopters.
-  # Fix: use the canonical `agentbundle install desk-research --scope user` install
-  #   path; extend the owning docs/parity lint with a retired-id negative fixture.
-  # File: docs/guides/desk-research/tutorials/desk-research-first-session.md:15.
-  # Done: active content uses `desk-research`; the stale id fails the owning check.
-  # Do not expand this item into a tutorial redesign.
-  {slug = "desk-research-install-name-drift", summary = "Fix stale `research` pack id -> `desk-research` in a tutorial"},
-
   # ── High severity ────────────────────────────────────────────────────────────
-  # (security findings or concretely broken behavior with a known internal fix path)
 
-  # Security (HIGH). agentbundle install calls render_pack(pack_dir) with no
-  # lint_pack gate. _collect_tree does path.read_bytes(), dereferencing inside-tree
-  # symlinks. A malicious pack shipping .apm/skills/x/leak -> /etc/passwd writes the
-  # target's bytes to the adopter's disk (path jail passes on the relpath). Affects
-  # all four direct-directory adapters: claude-code, kiro, codex, copilot.
-  # cursor.py was hardened (ignore=_ignore_symlinks) but the other four use
-  # copytree(symlinks=True); on Python 3.11/3.12 a dirlink -> /etc recurses.
-  # Fix: gate install-path render_pack with lint_pack (flags inside-tree symlinks
-  #   at build/lint_packs.py), OR make _collect_tree skip symlinked entries via
-  #   os.walk(followlinks=False) across all four adapters.
-  # File: packages/agentbundle/agentbundle/render.py + install.py + adapter files.
-  # Unblocks when: someone takes a spec scoping the cross-adapter hardening.
+  # Security (HIGH). install calls render_pack with no lint_pack gate; _collect_tree dereferences
+  # inside-tree symlinks across four adapters (claude-code, kiro, codex, copilot use copytree(symlinks=True)).
+  # Fix: gate install-path render_pack with lint_pack, OR make _collect_tree skip symlinks (os.walk(followlinks=False)).
   {slug = "untrusted-catalogue-symlink-exfiltration", summary = "HIGH: block symlink exfiltration on install across four adapters"},
 
-  # Security. cursor.py's _project_direct_directory was hardened to drop nested
-  # symlinks (ignore=_ignore_symlinks), but kiro.py, codex, copilot, and claude-code
-  # still use copytree(symlinks=True). A nested symlink inside a skill dir in a
-  # malicious pack can be reproduced to an adopter's disk via those four adapters.
-  # Fix: lift cursor's symlink-skipping copy helper into
-  #   packages/agentbundle/agentbundle/projections/direct_directory.py and adopt it
-  #   in all four remaining adapters.
-  # Unblocks when: someone takes a focused cross-adapter hardening PR.
+  # Security. Cursor hardened with symlink-skipping ignore; kiro, codex, copilot, claude-code still
+  # use copytree(symlinks=True). Fix: lift cursor's helper into direct_directory.py; adopt in four adapters.
   {slug = "nested-symlink-install-hardening", summary = "Adopt cursor's symlink-skipping copy in four remaining adapters"},
 
-  # CI security. spec/pack-activation-evals introduces the repo's first long-lived
-  # API-key workflow secret (ANTHROPIC_API_KEY for pack-evals.yml). No secret scanner
-  # is wired today (only CodeQL + Bandit/Semgrep). Adjacent gaps: actionlint + zizmor
-  # Security. pack-evals.yml runs `npm install -g @anthropic-ai/claude-code@2.1.185`
-  # in the same job that exposes ANTHROPIC_API_KEY. The install is version-pinned but
-  # has no npm lockfile or per-package integrity hash — a compromised npm CDN or a
-  # re-tagged release could deliver malicious JS that exfiltrates the API key.
-  # Fix: research whether `npm install -g` supports `--integrity` or a lockfile
-  #   approach; if not, vendor the tarball or use an alternative install path.
-  # File: .github/workflows/pack-evals.yml
-  # Unblocks when: a concrete path to npm global-install integrity verification is found.
+  # CI security. pack-evals.yml installs npm package version-pinned but no integrity hash.
+  # Fix: research --integrity/lockfile approach; if unavailable, vendor the tarball.
   {slug = "pack-evals-npm-lockfile-integrity", summary = "Add integrity pinning for the pack-evals npm install", source = "spec/secret-scanner-for-api-key-workflows AC Assumption 5"},
 
-  # Security. All .github/workflows/*.yml use @vN tag pinning (e.g. actions/checkout@v4).
-  # Tag pinning is a TOFU posture — a re-tagged release is not detected.
-  # SHA pinning (actions/checkout@<sha>) is immune to tag mutation attacks.
-  # zizmor's unpinned-uses audit (HIGH) is suppressed for existing workflows via
-  # .github/zizmor.yml; SHA pinning retires that suppression.
-  # Fix: pin each action to a commit SHA in each .github/workflows/*.yml;
-  #   update zizmor.yml to remove per-file ignore once all actions are SHA-pinned.
-  # Unblocks when: someone takes a SHA-pin sweep PR for all existing workflows.
+  # Security. GH Actions use @vN tag pinning (TOFU). SHA-pin each action; retire zizmor suppression.
   {slug = "github-actions-sha-pin", summary = "SHA-pin all GitHub Actions and retire the zizmor suppression", source = "spec/secret-scanner-for-api-key-workflows zizmor.yml Concern"},
 
-  # spec/shared-prefix-aware-multi-adapter-install follow-on (reviewer Concern).
-  # install routes state RMW through statelock.persist_state_locked (concurrency AC).
-  # uninstall and upgrade write state via bare safety.write_jailed, so a concurrent
-  # install + uninstall/upgrade can lose-update one writer's change.
-  # Fix: route uninstall's row-drop and upgrade's version-bump through
-  #   persist_state_locked with a mutate closure that re-derives against freshly-read
-  #   state; add a multi-process stress test for statelock's stale-reclaim collision.
-  # File: packages/agentbundle/agentbundle/commands/{uninstall,upgrade}.py + statelock.py.
-  # Unblocks when: someone takes a concurrency hardening PR for uninstall/upgrade.
+  # install routes state RMW through statelock; uninstall and upgrade write via bare safety.write_jailed.
+  # Fix: route uninstall row-drop and upgrade version-bump through persist_state_locked.
   {slug = "multi-adapter-state-lock-uninstall-upgrade", summary = "Route uninstall/upgrade state writes through statelock"},
 
-  # agentbundle upgrade re-renders the new projection and writes it, but has no
-  # orphan-removal step: a file in old state.files but absent from the new projection
-  # is left on disk. Exposed by the kiro alias migration (.kiro/agents/<n>.json
-  # orphaned when kiro-ide re-renders <n>.md — kiro-ide loads both, creating a
-  # duplicate with stale hooks). Test: @unittest.expectedFailure pinned in
-  # test_upgrade_user_hooks.py::LegacyKiroJsonUpgradeMigrationTests.
-  # Fix: upgrade grows a Tier-1 orphan-removal pass (old state.files ∖ new
-  #   projection) ordered against hook-wiring unproject, gated to whole-pack upgrades.
-  # Unblocks when: someone picks up the upgrade command refactor.
+  # upgrade re-renders new projection but has no orphan-removal step; old files stay on disk.
+  # @expectedFailure pinned in test_upgrade_user_hooks.py::LegacyKiroJsonUpgradeMigrationTests.
   {slug = "upgrade-orphan-removal-on-projection-shape-change", summary = "Add an orphan-removal pass to upgrade", source = "spec/kiro-install-alias-parity AC8"},
 
-  # Security (AST09). No auditable inventory records per-skill version + content hash
-  # + scan status for the installed set; no logged-execution trail ties an agent
-  # action back to the skill version that instructed it. The agentbundle install
-  # markers and state files provide a partial record but carry no per-skill content-
-  # hash or scan-status fields.
-  # Fix: extend the install-marker schema to include content hash + scan status per
-  #   skill, OR document that the install marker IS the sanctioned governance surface
-  #   and flag the missing hash field as the AST09 closure condition in agentic-skills.md.
-  # Unblocks when: a governance RFC or install-marker schema extension closes the gap.
+  # Security (AST09). No per-skill content-hash or scan-status in install markers.
+  # Fix: extend install-marker schema or document it as the governance surface + flag missing hash.
   {slug = "skill-governance-inventory-gap", summary = "AST09: per-skill version+hash+scan inventory"},
 
-  # Security (AST07). The agentic-skills module's AST07 check (version drift)
-  # delegates to a wired SCA scanner. Whether pip-audit or Dependabot is wired in CI
-  # for packages/agentbundle's dependency set was not confirmed during the
-  # owasp-ast10-module security audit.
-  # Fix: confirm pip-audit (or Dependabot) is wired in CI for packages/agentbundle;
-  #   wire it if not.
-  # File: .github/workflows/ (CI config for packages/agentbundle).
-  # Unblocks when: CI config confirms a wired SCA scanner for packages/agentbundle.
+  # Security (AST07). Whether pip-audit or Dependabot is wired for packages/agentbundle is unconfirmed.
   {slug = "ast07-sca-scanner-agentbundle", summary = "AST07: confirm/wire an SCA scanner for packages/agentbundle"},
 
   # ── Medium effort, internal ──────────────────────────────────────────────────
-  # (no external environment; needs a focused session or an RFC decision)
 
-  # spec/pack-activation-evals Tier 2–5 remaining work. Tier 1 (activation eval for
-  # all catalogue packs) is done (2026-07-02). Remaining:
-  #   Tier 2: B-lite behavior for deterministic skills (contracts api-contract /
-  #     event-contract — emit/validate a contract artifact → add expect block + fixture).
-  #   Tier 4: LLM-judge rubrics for new-package and core's judgment skills (all other
-  #     packs' rubrics are done).
-  #   Tier 5: CI automation (ANTHROPIC_API_KEY secret + pack-evals.yml schedule);
-  #     calibration → gating (RFC-0037 Open Q1: report-only → regression-from-baseline).
-  # Also extend scope (RFC-0064 Amendment #4): add capture-work / author-brief /
-  #   receive-brief / new-spec activation-boundary eval cases (all four were absent from
-  #   the core pack's eval allowlist at the baseline); add reusable first-value rubric
-  #   fields (first-task completion, visible-artifact presence, recovery path, next-action
-  #   clarity) to support the cross-pack adoption overlay. Do not create a new eval
-  #   framework or duplicate slug.
-  # Fix: take pack-by-pack (Tier 2 first — highest value, lowest cost).
-  # Unblocks when: ANTHROPIC_API_KEY secret is configured in GitHub (Tier 5 activation).
+  # Tier 2-5 remaining: B-lite behavior tests, LLM-judge rubrics for new-package/core judgment skills,
+  # CI automation (ANTHROPIC_API_KEY + pack-evals.yml schedule), calibration → gating.
+  # Also add capture-work/author-brief/receive-brief/new-spec eval cases.
   {slug = "pack-eval-coverage-rollout", summary = "pack-activation-evals Tier 2-5 rollout"},
 
-  # spec/pack-activation-evals plan T8 (non-blocking follow-on). The converters
-  # evals.json carry-over gate in build-check.yml enumerates covered skills by hand.
-  # RFC-0037 names an optional consolidation: have that gate read [pack.evals].skills
-  # instead. Must reconcile mermaid-renderer (coverage present but outside the five-
-  # skill enumeration). Risks the harness if folded in prematurely.
-  # Fix: after pack-eval-coverage-rollout Tier 2 is stable, take the consolidation
-  #   as its own PR; reconcile the mermaid-renderer coverage gap in that PR.
-  # Unblocks when: pack-eval-coverage-rollout Tier 2 ships.
+  # After Tier 2 stable: consolidate converters gate to read [pack.evals].skills instead of hand-enumeration.
   {slug = "pack-evals-converters-gate-consolidation", summary = "Converters build-check gate reads [pack.evals].skills", needs = "backlog:pack-eval-coverage-rollout"},
 
-  # The traceability lint's sidecar cross-check (_state/traceability.json ↔ on-disk
-  # edge set) ships warn-only (exit 0) because the sidecar matrix schema is RFC-0048
-  # doctrine not yet pinned — a hard-failing check against an undefined schema would
-  # be dead code or a false-positive generator.
-  # Fix: promote sidecar drift from warn to hard violation (exit 1) in
-  #   packs/core/.apm/skills/work-loop/scripts/lint-traceability.py once the RFC-0048
-  #   Decision-7 spike pins the traceability.json schema.
-  # Unblocks when: the sidecar schema is pinned (RFC-0048 Decision-7 spike lands).
+  # Promote sidecar drift from warn (exit 0) to hard violation (exit 1) once RFC-0048 Decision-7 pins schema.
   {slug = "sidecar-drift-hard-fail", summary = "Promote traceability sidecar-drift lint from warn to hard-fail"},
 
-  # Monitoring. semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both with
-  # published CVEs. These are transitive SAST-tooling deps only — never shipped to
-  # end users. The Makefile sast target carries --ignore-vuln flags to suppress them
-  # while upstream semgrep hasn't released an update. Low risk (requires attacker
-  # control of MCP protocol messages or CLI args inside an ephemeral CI runner).
-  # Fix: remove the --ignore-vuln flags from the Makefile sast target once semgrep
-  #   ships mcp>=1.28.1 and click>=8.3.3. Check via `pip show semgrep | grep Requires`.
-  # Unblocks when: semgrep releases with updated mcp + click transitive dep pins.
+  # semgrep>=1.166 hard-pins mcp==1.23.3 + click~=8.1.8 (CVEs, SAST-tooling only). Makefile suppresses.
+  # Remove --ignore-vuln once semgrep updates those transitive deps.
   {slug = "semgrep-mcp-cve-allowlist", summary = "Drop Makefile sast --ignore-vuln once semgrep updates mcp+click"},
 
-  # Four skills need a live-mock MCP knowledge-tool test to fully verify the
-  # knowledge-surface detection path: architect-design, architect-review,
-  # architect-diagram, and product-engineering frame-intent. Walkthrough and projection
-  # checks passed; the live-mock run (inject stub MCP retrieval tool; exercise
-  # present/absent/sensitive/brownfield scenarios for each skill) is pending.
-  # Also: architect-diagram's contradicted-edge rail (c) needs a two-fact driver
-  #   (surface says X→Y, repo shows X→Z) to get scenario-level proof alongside rails (a)(b).
-  # Fix: when a harness/test fixture can register a stub MCP retrieval tool, run each
-  #   skill's detection scenarios and record transcripts.
-  # Unblocks when: a test fixture can register a stub MCP retrieval tool.
+  # Four skills need a live-mock MCP knowledge-tool test (architect-design/review/diagram, PE frame-intent).
+  # Also: architect-diagram rail (c) needs a two-fact contradicted-edge driver. Unblocks when: stub MCP fixture available.
   {slug = "live-mock-mcp-detection-qa", summary = "Live-mock MCP knowledge-tool test for four skills"},
 
-
-
-  # RFC-0062 OQ1. Extend experience-reviewer's scope to include content briefs
-  # (type: content-brief) as a reviewable artifact type. The content-design skill
-  # (RFC-0062) produces the artifact; the reviewer's scope extension is a follow-on RFC.
-  # Fix: open a follow-on RFC extending RFC-0062 to add content-brief to
-  #   experience-reviewer's reviewable artifact set.
-  # Ready — RFC-0062 content-design-skill spec is Shipped; this item is now actionable.
+  # Extend experience-reviewer to include content briefs as a reviewable artifact type (RFC-0062 OQ1).
   {slug = "experience-reviewer-content-brief-scope", summary = "Extend experience-reviewer to review content briefs"},
 
-
-  # spec/digital-experience-contract deferred AC. The drift check
-  # (tools/check-contract-drift.py) ships as an on-demand tool. Promoting it to a
-  # build-check gate requires calibration evidence: at least two drift-check passes on
-  # the live repo with no false positives, confirming exit-0 stability on clean copies.
-  # Fix: after two clean passes on origin/main, wire the check into build-check.yml
-  #   and remove the deferred marker from spec/digital-experience-contract AC16.
-  # Unblocks when: two clean drift-check passes are recorded (manual or CI).
+  # Promote contract-drift check (tools/check-contract-drift.py) from on-demand to build-check gate
+  # after two clean passes on origin/main confirm exit-0 stability.
   {slug = "contract-drift-check-gate-promotion", summary = "Promote the contract-drift check to a build-check gate", source = "spec/digital-experience-contract AC16"},
 
-  # ini-003 follow-on. After the Digital Experience Doctrine initiative ships, the four
-  # packs (product-strategy, product-engineering, experience-design, core) form a coherent
-  # digital product chain with a shared contract, skill boundaries, and a cross-pack eval.
-  # The catalogue's current user-scope profiles don't serve the "digital product maker"
-  # persona — the three existing profiles are: solution-architect (architect+research+
-  # contracts, infrastructure focus), inception (research+PE+architect, tech venture
-  # focus), and full-ceremony (repo governance bundle, repo scope). None target the person
-  # who owns strategy→shaping→experience→build for a digital product end to end.
-  #
-  # Profile holistic analysis (all four profiles through an adoption lens):
-  #   solution-architect: correctly scoped; stays as-is. The infrastructure/system
-  #     architect persona is distinct from the digital product maker.
-  #   full-ceremony (repo): correctly scoped; stays as-is. Governance bundle, not a
-  #     discipline toolkit.
-  #   inception (user): desk-research+product-engineering+architect. The `architect`
-  #     pack serves a tech-founding persona (system design before build). For a pure
-  #     digital product inception, product-strategy matters more than architect; but
-  #     amending inception changes its meaning and breaks adopters already using it.
-  #     Decision for the spec: whether to (A) amend inception to swap/add product-strategy
-  #     alongside architect, or (B) leave inception as-is for tech ventures and let the
-  #     new profile serve the digital product persona. Recommendation: B — leave inception
-  #     targeting the "tech founder / solo dev" shape; the new profile targets the
-  #     "product maker / digital team" shape. The personas are genuinely different.
-  #   digital-product (new, user): product-strategy+product-engineering+experience-design
-  #     +desk-research. The complete four-discipline toolkit for digital product work.
-  #     Note: core (frontend-engineering) stays repo-scope; it installs per-repo, not as
-  #     a portable user skill. The user-scope profile gives the practitioner their thinking
-  #     toolkit; the repo-scope core pack covers the build layer.
-  #
-  # Fix: author the spec covering:
-  #   1. New `profiles/digital-product.toml` (user scope): product-strategy +
-  #      product-engineering + experience-design + desk-research, deps-first ordered.
-  #   2. Decision confirmation that `inception` stays as-is (or amend if the evidence
-  #      from ini-003 adoption changes the case).
-  #   3. Marketing site (web/) journey page for the "digital product maker" persona —
-  #      mirrors the existing solution-architect journey page shape; positions the profile
-  #      vs. the inception and solution-architect profiles.
-  #   4. Docs site (site/) guide entry point for the digital product profile — tutorial
-  #      showing the first-session workflow: install profile → run product-strategy → shape
-  #      → design → hand off contract to a repo's core pack.
-  #   5. pack-profiles spec AC update: the "ask first" boundary (currently "Adding a
-  #      third shipped first-party profile") needs updating since inception made three.
-  # File: profiles/digital-product.toml (new); web/src/pages/journeys/; docs/guides/.
-  # Unblocks when: all ini-003 specs ship (the skill set must be final before the
-  #   profile's guide content is authored; premature guide content will drift).
-
-  # Pack strategy. The digital-experience-contract (spec/digital-experience-contract)
-  # anchors its Frontend Engineering section to the `frontend-engineering` skill inside
-  # the `core` pack. `core` is a repo-governance pack; a backend-only repo that installs
-  # it has no use for FE-specific skills (performance, accessibility evidence, browser
-  # behavior, reliability). The nine FE section fields imply enough depth to warrant a
-  # dedicated `frontend-engineering` pack once adoption evidence from the digital-product
-  # profile confirms the persona. When that pack exists, `core` drops the
-  # `frontend-engineering` skill; the contract anchor path migrates to the new pack;
-  # build-self projection updates accordingly.
-  # Gate: decide in the `digital-product-profile` spec whether a dedicated
-  #   `frontend-engineering` pack is in scope for the profile or deferred further.
-  # Fix: when the gate fires — open an RFC for the pack; scope it to the nine FE-section
-  #   fields in the contract + the migration of the anchor path.
-  # Unblocks when: `digital-product-profile` spec explicitly decides in-scope or deferred.
+  # FE contract section implies enough depth for a dedicated frontend-engineering pack.
+  # Gate: decide in digital-product-profile spec whether in-scope or deferred further.
   {slug = "frontend-engineering-pack-split", summary = "Split frontend-engineering into its own pack once adoption confirms"},
 
-  # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
-  # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
-  # build when the need is real, not speculatively.
-  # Fix: author a retire/deprecate skill in the catalogue-curation pack when a real
-  #   retirement need arises.
-  # Unblocks when: a real pack or skill retirement need arises.
+  # Retire/deprecate skill in catalogue-curation pack (RFC-0059 Non-goals). Build when the need is real.
   {slug = "catalogue-curation-retire-primitive", summary = "Author a retire/deprecate skill in catalogue-curation"},
 
-  # Integrity-pinning for the layer-4 git+https catalogue fetch is deferred from
-  # spec/convenient-install-defaults. Today agentbundle install pulls an
-  # unauthenticated GitHub-archive tarball with no checksum, signature, or pin
-  # (trust-on-first-use against current tip). A supply-chain attack on the upstream
-  # repo would silently deliver malicious pack content to adopters.
-  # Fix: open RFC-0046 + ADR-0036 for the integrity-pinning design; lean on existing
-  #   SCA/lockfile-hash infrastructure rather than hand-rolling verification.
-  # Unblocks when: someone opens the integrity-pinning RFC.
+  # Open RFC-0046 + ADR-0036 for git+https catalogue integrity pinning (TOFU gap on direct-clone sources).
   {slug = "convenient-install-defaults-followons", summary = "Integrity-pinning RFC for the git+https catalogue fetch", source = "spec/convenient-install-defaults"},
 
-  # Live-install transcripts for apm install of core (project scope), converters
-  # (user scope), and per-target characterisation at Copilot/Cursor/Gemini are
-  # pending (manual-QA matrix rows 32–34). Three uncovered HookIntegrator targets
-  # (Codex/OpenCode/Windsurf) run the documented agentbundle adapt fallback.
-  # Fix: run the three installs; record transcripts under
-  #   docs/specs/apm-install-route-parity/notes/manual-qa-matrix.md.
-  # Unblocks when: a dev environment with all three adapters is available for QA.
+  # Live-install transcripts for apm install of core (project), converters (user), Copilot/Cursor/Gemini.
+  # Three uncovered HookIntegrator targets (Codex/OpenCode/Windsurf) run the agentbundle adapt fallback.
   {slug = "apm-install-route-parity", summary = "Live-install transcripts for the apm install route", source = "spec/apm-install-route-parity AC17"},
 
-  # The shipped core pack's .apm/** still carries ~10 internal-governance citations
-  # (RFC numbers, make commands, docs/ paths) that should not appear in adopter-
-  # facing artifacts. The most sensitive file is work-loop/SKILL.md, which has a
-  # byte-identical risk-trigger block mirrored across four files — a hand-sweep
-  # risks drift. A mechanical lint requires an RFC (new convention).
-  # Fix: open an RFC for a lint-catalogue-seeds-analogue for packs/*/.apm/**; then
-  #   drive the sweep under it. File: tools/lint-agent-artifacts.py (extend scope).
-  # Unblocks when: RFC is opened and approved.
+  # Open RFC for lint-catalogue-seeds analogue covering packs/*/.apm/**; then drive the ref sweep.
   {slug = "apm-leak-lint-rfc", summary = "RFC + lint to sweep internal-governance citations from packs/*/.apm/**", source = "spec/house-voice-writing-craft"},
 
-  # Boundary deferred from spec/architect-knowledge-surfaces (Shipped). Extending
-  # the consult-grounding step to architect-review or architect-diagram requires a
-  # separate RFC decision. The underlying architect-diagram knowledge-surfaces work
-  # shipped (pack 0.5.0 / ADR-0032). Slug retained: the Shipped spec's Boundaries
-  # block carries a live (deferred:) marker pointing here (lint-enforced).
-  # Fix: open an RFC explicitly scoping the architect-review/architect-diagram
-  #   grounding extension when the need arises.
-  # Unblocks when: a new RFC scopes the extension.
+  # Extending consult-grounding to architect-review/architect-diagram requires a separate RFC decision.
   {slug = "architect-review-diagram-knowledge-surfaces", summary = "Extend consult-grounding to architect-review/diagram (RFC)", source = "spec/architect-knowledge-surfaces"},
 
-  # packs/architect/.apm/skills/architect-review/references/rubric-well-architected.md
-  # names four workload-class lenses: ML, GenAI/agentic, SaaS, serverless. GenAI/
-  # agentic and serverless lenses are backed (reference files exist); ML and SaaS
-  # remain named-but-unbacked. A reviewer consulting the rubric finds empty lens slots.
-  # Fix: a future RFC backs ML with lens-ml.md and SaaS with lens-saas.md, or removes
-  #   the named-but-unbacked entries from the rubric.
-  # Unblocks when: someone opens an RFC to add or remove the ML/SaaS lens.
+  # ML and SaaS lenses named in rubric-well-architected.md but have no backing reference files.
+  # Fix: RFC to add lens-ml.md + lens-saas.md, or remove the named-but-unbacked entries.
   {slug = "ml-saas-serverless-workload-class-lenses", summary = "Back or remove the ML/SaaS workload-class review lenses", source = "spec/agentic-well-architected-overlay"},
 
-  # RFC-0063 OQ1 (ADR-0053 D4). Growth strategy (AARRR, PLG loops, PMF testing,
-  # conversion architecture, SEO keyword-intent) was explicitly scoped out of the
-  # product-strategy v1 pack. It warrants its own growth pack but requires a charter
-  # scoping decision first (is growth/marketing within the company OS scope?).
-  # Also collects: content-strategy-and-marketing-copy-lens item 2 (Conversion + SEO).
-  # Fix: confirm charter scoping, then open an RFC for the growth pack.
-  # Unblocks when: charter scoping decision is made.
+  # Growth pack (AARRR, PLG, PMF, conversion, SEO) needs a charter scoping decision first.
   {slug = "growth-strategy-pack", summary = "Charter-scope decision, then a growth-strategy pack RFC"},
 
-  # spec/user-scope-hooks is Shipped; the "first user-scope hook-bearing consumer
-  # pack" remains deferred (RFC-0005 § First consumer). Correctness is measured via
-  # fixture packs; the real test is a consumer pack declaring it. Rail B (user-scope
-  # hook-wiring merge story) also blocks until this lands.
-  # Fix: author or designate a consumer pack declaring allowed-scopes = ["user"] and
-  #   wire a hook at user scope; confirm hook fires via a live install transcript.
-  # Unblocks when: a pack maintainer wants to ship a user-scope hook.
+  # First pack declaring allowed-scopes = ["user"] with a wired hook (RFC-0005 § First consumer).
   {slug = "user-scope-hooks-first-consumer", summary = "Designate the first user-scope hook-bearing consumer pack"},
 
-  # spec/adapt-to-project is Shipped. APM-install-route and Claude-plugins-install-
-  # route adopters never hit the install-marker write, the session-start nudge, or
-  # the chained adapt.run because the spec is CLI-only by contract. RFC-0004 parity
-  # work would close this gap.
-  # Fix: open a parity RFC for APM/Claude-plugins install-route (modeled on RFC-0004
-  #   claude-plugins precedent).
-  # Unblocks when: APM/Claude-plugins adapter parity work is prioritised.
+  # APM/Claude-plugins install-route parity RFC for adapt-to-project (CLI-only by contract today).
   {slug = "adapt-to-project-apm-install-parity", summary = "APM/Claude-plugins install-route parity RFC for adapt-to-project"},
 
-  # spec/extraction-higher-tiers follow-on (RFC-0058 D5 / Open-Q3). D5 decides
-  # pre-egress redaction is out of scope for Tier-3 — documents sent to the managed
-  # vendor unmodified; adopters gate at their own classification layer. An optional
-  # pre-egress redaction/PII-scrubbing hook for adopters who want in-skill control
-  # remains an open design question.
-  # Fix: if an adopter need surfaces, open a new slice with a fresh security review
-  #   (it changes the egress-boundary security-reviewer gates).
-  # Unblocks when: a concrete adopter need for in-skill redaction surfaces.
+  # Optional pre-egress redaction/PII-scrubbing hook for Tier-3 extraction (RFC-0058 D5 / OQ3).
+  # Open a new slice if a concrete adopter need surfaces.
   {slug = "extraction-tier3-pre-egress-redaction-hook", summary = "Optional pre-egress redaction hook for Tier-3 extraction"},
 
   # ── External dependency / high effort ────────────────────────────────────────
-  # (blocked on real hardware, credentials, live environments, or real-adopter sessions)
 
-  # Final AC for spec/atlassian-sso-cookie (AC19). Moving from Experimental to
-  # Accepted requires one manual-QA run against a real Atlassian Data Center instance
-  # behind corporate SSO: sso-broker register (headed Chromium) → get-cookies →
-  # authenticated Jira JQL search returns results → sso-broker test exits 0.
-  # Transcript: docs/specs/atlassian-sso-cookie/notes/. Blocked: no corporate-SSO
-  # DC deployment in CI. Same gap RFC-0013 §9 reason (b) named.
-  # Unblocks when: a real DC instance is available for a read flow.
+  # Final AC for atlassian-sso-cookie (AC19): manual-QA against a real DC instance behind corporate SSO.
   {slug = "atlassian-sso-cookie-live-dc-read-transcript", summary = "Live Data-Center SSO read transcript for atlassian-sso-cookie (AC19)", source = "spec/atlassian-sso-cookie AC19"},
 
-  # spec/atlassian-sso-cookie security follow-on (security-reviewer Concern). The
-  # consumer validates success_url_pattern for https scheme (AC3) but does not confine
-  # its host to cookie_domains. login_url legitimately points at an off-domain IdP so
-  # a blanket host-in-domains rule doesn't apply uniformly; cookie-send confinement is
-  # independently enforced (AC4/5/6/20). Deferred pending the live-DC transcript
-  # clarifying actual broker behavior with the pattern host.
-  # Fix: after the live-DC transcript, decide whether to tighten pattern-host
-  #   validation at the broker (capture-time) layer.
-  # Unblocks when: atlassian-sso-cookie-live-dc-read-transcript is complete.
+  # After live-DC transcript: decide broker-side pattern-host confinement for success_url_pattern.
   {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", summary = "Decide broker-side pattern-host confinement after the live-DC transcript", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
 
-  # spec/credential-broker-contract manual-QA matrix: six platform × mode transcripts
-  # are pending under docs/specs/credential-broker-contract/notes/:
-  #   `creds` × macOS (security Tier-2); `creds` × Windows (CredReadW/CredWriteW);
-  #   `creds` × Linux (dotfile); `sso-cookie` × macOS (real corporate-SSO endpoint);
-  #   `sso-cookie` × Windows; `sso-cookie` × Linux (file-floor).
-  # Each row: consuming skill resolves PAT / sso-broker test exits 0.
-  # Unblocks when: real corporate-SSO and per-platform environments are available.
+  # Six platform × mode credential-broker QA transcripts (macOS/Windows/Linux × creds/sso-cookie).
   {slug = "credential-broker-contract-manual-qa", summary = "Six platform x mode credential-broker QA transcripts"},
 
-  # AC14 of spec/agentbundle-wheel-release. The release-agentbundle.yml publish-
-  # artifactory job has never fired because the three secrets (ARTIFACTORY_URL /
-  # ARTIFACTORY_USER / ARTIFACTORY_TOKEN) are not configured in GitHub. The first
-  # real upload claims the corp Artifactory package name.
-  # Fix: configure the three Artifactory secrets as GitHub repo secrets; push a tag.
-  # Unblocks when: corp Artifactory credentials are available and configured.
+  # First real Artifactory upload: configure three GitHub secrets then push a tag. Blocked on credentials.
   {slug = "artifactory-first-publish-gesture", summary = "First real Artifactory upload once secrets are configured", source = "spec/agentbundle-wheel-release AC14"},
 
-  # AC3 of spec/extraction-msg-to-markdown-python-contract. A numbered real-world
-  # .msg + .eml sample with a manual-verification artifact is the absolute-fidelity
-  # signal for the msg-to-markdown converter (generated corpora share blind spots
-  # with the parser that produces them). No PII-free real-world .msg was obtainable
-  # during implementation; the in-PR substitute used an independent-implementation
-  # oracle (Node msgreader on the same generated corpus).
-  # Fix: obtain a PII-free real-world .msg/.eml; run through the shipped converter;
-  #   record results under docs/specs/extraction-msg-to-markdown-python-contract/notes/.
-  # Unblocks when: a PII-free real-world .msg sample is obtainable.
+  # PII-free real-world .msg/.eml sample for the msg-to-markdown converter (AC3).
   {slug = "extraction-msg-realworld-sample", summary = "Verify the msg-to-markdown converter on a real-world .msg/.eml", source = "spec/extraction-msg-to-markdown-python-contract AC3"},
 
-  # spec/kiro-ide-hook is Shipped, but T-CONTRACT (v0.4 contract bump) is probe-
-  # gated. Requires two probes against a real Kiro install:
-  #   Q6: does Kiro recurse into .kiro/hooks/<subdir>/? (glob *.kiro.hook, or read every file?)
-  #   Q11: capture a real IDE-authored .kiro.hook to fix canonical ide-event/ide-action vocabularies.
-  # Without these probes the contract cannot safely bump. T-F (ADR on merged-contracts
-  # + primitive-per-surface) is also post-T-CONTRACT.
-  # Fix: run Q6 + Q11 probes against a live Kiro install; record results; then author
-  #   the T-CONTRACT bump + T-F ADR.
-  # Unblocks when: a Kiro IDE install is available for probe runs.
+  # Q6 + Q11 probes against a live Kiro install required before the v0.4 contract bump.
   {slug = "kiro-ide-hook-contract-probe", summary = "Run Q6/Q11 Kiro probes, then the v0.4 contract bump"},
 
-  # spec/cursor-full-parity follow-on. RFC-0026 verified .cursor/* paths and
-  # vocabularies against docs but no test loaded generated artifacts on the real Cursor
-  # tool. Follow-up: drop a generated core .cursor/ tree into a Cursor workspace +
-  # ~/.cursor/, confirm skills/subagents/commands load and readonly reviewers are
-  # restricted; record Cursor version + per-primitive results.
-  # (Mirrors the copilot AC23 smoke.)
-  # Fix: run the live smoke on Cursor IDE/CLI; record under docs/specs/cursor-full-parity/notes/.
-  # Unblocks when: Cursor IDE/CLI available for a live test session.
+  # Live smoke: drop a generated core .cursor/ tree into Cursor workspace + ~/.cursor/; confirm load.
   {slug = "cursor-live-smoke", summary = "Live smoke of generated .cursor/ artifacts on real Cursor"},
 
-  # spec/pack-activation-evals Phase 2 (RFC-0037 Errata E2). Optional ergonomic
-  # follow-on: a .kiro/ command or hook so a Kiro user invokes the pack-evals dispatch
-  # loop with one action instead of following the documented procedure by hand. The
-  # procedure already works without it (harness-agnostic; Claude Code validated).
-  # Fix: add a catalogue-internal .kiro/commands/run-pack-evals or hook.
-  # Unblocks when: someone wants the one-click Kiro ergonomics.
+  # Optional .kiro command/hook for the pack-evals dispatch loop.
   {slug = "kiro-native-in-harness-driver", summary = "Optional .kiro command/hook for the pack-evals dispatch loop"},
 
-  # spec/credbroker-user-scope deferred (spec Boundaries → Ask first). An
-  # agentbundle install … --with-credbroker flag that auto-runs
-  # pip install credbroker[crypto] during install. Not an unmet AC: the vendored floor
-  # already gives full Tier-1/2/3 resolution with zero pip; auto-pip would auto-enable
-  # the encrypted [crypto] vault. Deferred because the open risk is interpreter/venv
-  # targeting — which Python would pip into — which could silently land the package
-  # where the skill can't import it.
-  # Unblocks when: a concrete adopter need surfaces AND the interpreter/venv-resolution
-  #   question is settled.
+  # `install --with-credbroker` auto-pip: deferred on interpreter/venv-targeting risk.
   {slug = "active-with-credbroker-pip", summary = "`install --with-credbroker` auto-pip (deferred on venv-targeting risk)"},
 
-  # spec/pack-activation-evals Phase 3 (RFC-0037 Errata E3). atlassian (8 skills) and
-  # figma (1 skill) have Tier-A activation coverage but no behavior test. Running them
-  # needs live auth + a real backend that may mutate remote state. Repeatable behavior
-  # verification needs recorded-interaction replay (cassettes) or a disposable test
-  # backend/sandbox with broker-provisioned test credentials.
-  # Fix: open a Tier-B grading RFC (LLM-judge / deltas) or a dedicated cassette harness
-  #   spec.
-  # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
+  # atlassian/figma Tier-A activation coverage but no behavior test. Needs cassettes or disposable backend.
   {slug = "behavior-check-for-backend-skills", summary = "Behavior tests for atlassian/figma via cassettes or a test backend"},
 
-  # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
-  # docs/guides/core/explanation/role-journeys.md covers headless AI execution
-  # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension
-  # (derived from engineer-scales-to-swarm journey, status: shaping) is deferred.
-  # Fix: once engineer-scales-to-swarm is shaped and its journey map is promoted from
-  #   shaping → planned/shipped, extend the Agent section with coordinated headless
-  #   CLI swarm patterns; update docs/guides/core/explanation/role-journeys.md.
-  # File: docs/guides/core/explanation/role-journeys.md (Agent section).
-  # Unblocks when: engineer-scales-to-swarm journey is shaped (status moves from shaping).
+  # Add coordinated-swarm section to the Agent role-journey guide. Unblocks when: engineer-scales-to-swarm shaped.
   {slug = "role-journey-agent-swarm-section", summary = "Add the coordinated-swarm section to the Agent role-journey guide", source = "spec/m6-role-journey-guides AC6"},
 
-  # spec/adapt-to-project AC4b — deferred manual-QA rows (tombstone anchor for
-  # RFC-0007 links). Repo-scope class-2/3/4 transcripts (rows 8–16): Claude-simulated
-  # captures recorded as preparatory evidence; close when a real-adopter session
-  # replaces them. User-scope LLM-judgment rows (rows 19–28): close when a pack
-  # declaring allowed-scopes=["user"] lands.
-  # Fix: real-adopter sessions for each row; record under
-  #   docs/specs/adapt-to-project/notes/manual-qa-matrix.md.
-  # Unblocks when: adapt-to-project-apm-install-parity + real adopter sessions land.
+  # Real-adopter transcripts for adapt-to-project manual-QA rows (class-2/3/4 + user-scope rows).
   {slug = "adapt-to-project-ac4b-transcripts", summary = "Real-adopter transcripts for adapt-to-project manual-QA rows", needs = "backlog:adapt-to-project-apm-install-parity"},
 
-  # Strict and hermetic manifest validation is green, but a fresh user profile has
-  # not proved the real add-marketplace → install → enable → discover →
-  # uninstall/recover lifecycle on the graphical Claude client.
-  # Fix: record a dated clean-room matrix on the currently supported graphical Claude
-  #   client. Add the marketplace once; sample at least one Level A-only pack plus
-  #   architect, figma, and governance-extras; record client version, in-product
-  #   actions, visible signals, recovery, and limitations.
-  # Done: every sampled route passes or names a reproducible client limitation with
-  #   a captured defect. Does not reopen manifest repair; does not duplicate
-  #   adapt-to-project behavior/parity rows.
+  # Dated clean-room matrix on graphical Claude client: add-marketplace → install → enable → uninstall/recover.
   {slug = "claude-clean-room-plugin-smoke", summary = "Clean-room marketplace lifecycle smoke on the graphical Claude client"},
-  # spec/credbroker-security-hardening AC11 follow-on. The projected-path variant
-  # of the sso_broker verb test (AC11) only exercises the source-install path. The
-  # projected-path variant (adapter installs the broker into a worktree) is not yet
-  # covered by CI — needs a test fixture that installs via projection.
-  # Fix: add a pytest fixture that projects credbroker into a temp dir and runs
-  #   test_sso_broker_verbs against that path; wire into the same parametrised suite.
-  # File: packages/agentbundle/tests/unit/test_sso_broker_verbs.py
+
+  # projected-path variant of sso_broker verb test not yet in CI (source-install path only covered).
   {slug = "credbroker-projected-variant-ci-coverage", summary = "CI coverage for the projected-path sso_broker verb test", source = "spec/credbroker-security-hardening AC11"},
 
-  # RFC-0068 D4 (deferred follow-on). After linear-brief-intake ships, PE
-  # manually pastes spec ACs back into the Linear Issue for a review round.
-  # push-acs-to-linear would automate that: read derived spec ACs, format as
-  # a markdown checklist, post to the Linear Issue via commentCreate (additive,
-  # reversible — NOT issueUpdate/description, which is destructive). Requires
-  # PE confirmation before posting. A comment posted to the wrong Issue is
-  # visible to the whole workspace; admin rights may be needed to delete it.
-  # Fix: add a fourth skill to packs/linear/.apm/skills/push-acs-to-linear/
-  #   using the linear primitive's create-comment subcommand.
-  # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
+  # RFC-0068 D4: push-acs-to-linear skill (comment-only, additive write-back). Unblocks when linear pack v1 ships.
   {slug = "push-acs-to-linear", summary = "Add a push-acs-to-linear skill (comment-only write-back)", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 
-  # Deferred-AC anchors for docs/specs/catalogue-curation/spec.md (four (deferred: <slug>)
-  # markers, lint-spec-status invariant iv). The shaped work that closes them is
-  # spec/catalogue-curation-qa-coverage (in [work].queue): its AC8 flips the four
-  # deferred markers to [x], after which these anchors can be removed. Kept here until
-  # then so the deferred-marker lint resolves.
-  # catalogue-curation resync RFC routing: re-synced source-RFC routes to Amendment
-  #   (Open), Erratum (Frozen+correction), or new RFC (Frozen+new). Not exercised in QA.
-  {slug = "catalogue-curation-resync-rfc-routing", summary = "QA the catalogue-curation resync RFC-routing path", source = "spec/catalogue-curation"},
-  # catalogue-curation anti-pattern detection: assimilation detects known misuse
-  #   (scripts triggering skills, agents reviewing own output, flooding prompts) and
-  #   reshapes or rejects, citing the repo rule. Not exercised in QA.
-  {slug = "catalogue-curation-antipattern-steering", summary = "QA catalogue-curation anti-pattern detection/reshaping", source = "spec/catalogue-curation"},
-  # catalogue-curation propose-catalogue-pack: tests additivity + fit against local
-  #   CHARTER + four principles; on pass scaffolds a pack shell and emits an RFC. No QA yet.
-  {slug = "catalogue-curation-propose-pack", summary = "QA propose-catalogue-pack additivity/fit + RFC scaffold", source = "spec/catalogue-curation"},
-  # catalogue-curation hook-confirm: an ingested hook/script (executable code) is flagged
-  #   distinctly and requires explicit human confirm before landing. Hook-ingest path not
-  #   exercised (QA covered skill ingest only).
-  {slug = "catalogue-curation-hook-confirm", summary = "QA the catalogue-curation hook-ingest confirm path", source = "spec/catalogue-curation"},
-
-  # ── journey-template-revamp follow-ups (experience-reviewer, deferred) ─────────
-  # The revamp landed the contract + fixed stage cards; these are experience polish
-  # the reviewer surfaced as out-of-scope-for-this-spec enhancements.
-  # Journey "what good output looks like" (template section 5) renders only when a
-  #   journey sets goodOutputDescription — no journey does, so the highest-value
-  #   "what do I get?" proof is absent site-wide. Fix: author a real transcript/
-  #   artifact snippet for the P1 journeys (core, discovery, release) in their
-  #   goodOutputDescription frontmatter. File: web/src/content/journeys/*.md.
-  {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
-  # Journey hero h1 is a bare pack slug ("core"), meaningless when deep-linked cold;
-  #   the five-second scan rests entirely on the tagline. Fix: pair the slug with a
-  #   short descriptive eyebrow/qualifier in JourneyHero.astro.
-  {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
-  # Contract "Your decisions" chips look interactive (share chip styling) but aren't,
-  #   and duplicate the gate labels below. Fix: anchor each chip to its GateDetail
-  #   card (turn duplication into wayfinding). Files: JourneyContract.astro + GateDetail.astro.
-  {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
-
-  # agentbundle PyPI README + extended user docs update (ini-004 follow-on). After the
-  # enterprise distribution release ships, the PyPI package page (readme= in pyproject.toml)
-  # will document new enterprise capabilities (HTTPS catalogue channels, organization
-  # bootstrap, bulk upgrade, package-catalogue command). The user-visible CLI --help text
-  # should also be audited for accuracy against the final implementation.
-  # Additionally: the public docs/guides/ entries for install, upgrade, and configuration
-  # should be reviewed for completeness now that both public and enterprise paths exist.
-  # Fix: post-release audit of (a) PyPI README for accuracy and enterprise coverage,
-  #   (b) CLI --help text for all new flags/commands, (c) docs/guides/ cross-references
-  #   between public and Artifactory paths (e.g., use-an-artifactory-catalogue.md links).
+  # Post-release PyPI README + CLI --help + docs/guides/ audit for enterprise distribution capabilities.
   # Unblocks when: spec/agentbundle-enterprise-distribution-release is Shipped.
   {slug = "agentbundle-enterprise-pypi-readme-and-user-docs-audit", summary = "Post-release PyPI README + user-docs audit for enterprise distribution", needs = "ini-004:work:spec/agentbundle-enterprise-distribution-release"},
+
+  # ── catalogue-curation deferred-AC anchors ────────────────────────────────────
+  # (lint-spec-status invariant iv; closed when spec/catalogue-curation-qa-coverage AC8 ships)
+  {slug = "catalogue-curation-resync-rfc-routing", summary = "QA the catalogue-curation resync RFC-routing path", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-antipattern-steering", summary = "QA catalogue-curation anti-pattern detection/reshaping", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-propose-pack", summary = "QA propose-catalogue-pack additivity/fit + RFC scaffold", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-hook-confirm", summary = "QA the catalogue-curation hook-ingest confirm path", source = "spec/catalogue-curation"},
+
+  # ── journey-template-revamp experience polish ─────────────────────────────────
+  {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
+  {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
+  {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
 ]
