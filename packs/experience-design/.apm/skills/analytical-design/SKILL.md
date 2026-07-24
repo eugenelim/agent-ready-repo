@@ -5,7 +5,7 @@ description: "Use when designing an analytical surface — a dashboard, a report
 
 # Skill: analytical-design
 
-Converts business questions and the domain model into a **structural specification for an analytical surface** — the widget hierarchy, the spatial layout grammar, and the role-based view architecture that lets a user move from a status signal to a diagnostic to a corrective action without losing their place. This skill is dashboard IA; it does not design individual chart encodings (that is `interaction-design`'s widget state machine) and does not derive tokens or color (that is `design-system` and `creative-direction`).
+Converts business questions and the domain model into a **structural specification for an analytical surface** — the widget hierarchy, the spatial layout grammar, and the role-based view architecture that lets a user move from a status signal to a diagnostic to a corrective action without losing their place. This skill is dashboard IA; it does not design individual chart encodings (that is `interaction-design`'s widget state machine) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
 ## When to invoke
 

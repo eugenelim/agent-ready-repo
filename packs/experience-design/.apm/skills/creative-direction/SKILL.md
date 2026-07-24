@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: Use when a designer or stakeholder has a felt "vibe" but no named direction — turning a vague mood into ranked emotional/brand goals and an creative-direction doc the rest of the build references. Triggers on "make it feel premium/calm/playful", "I want it to feel like X", "what's the vibe here", "we need a look and feel", "before we pick colors/type". Runs the interrogation that converges a mood into named goals, grounds each goal in a stable referent (persona, precedent, standards, platform conventions), then records which goal wins when two goals conflict. Do NOT use to derive a token or scale taxonomy (use `design-system`), to structure hierarchy and reading flow (use `information-architecture`), or to evaluate an existing screen (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+description: Use when a designer or stakeholder has a felt "vibe" but no named direction — turning a vague mood into ranked emotional/brand goals and an creative-direction doc the rest of the build references. Triggers on "make it feel premium/calm/playful", "I want it to feel like X", "what's the vibe here", "we need a look and feel", "before we pick colors/type". Runs the interrogation that converges a mood into named goals, grounds each goal in a stable referent (persona, precedent, standards, platform conventions), then records which goal wins when two goals conflict. Do NOT use to derive a token or scale taxonomy (use `design-token-taxonomy`), to structure hierarchy and reading flow (use `information-architecture`), or to evaluate an existing screen (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 ---
 
 # Skill: creative-direction
@@ -13,7 +13,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real vibe to name** — the user can describe a feeling, an audience, or examples to react to. A blank "make it nice" is not yet a brief; draw out a first felt word before proceeding.
 2. **The direction isn't already named** — no current creative-direction doc owns this surface. If one exists, you're amending it, not starting fresh.
-3. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-system`. This skill stops at named goals.
+3. **You're naming direction, not deriving values** — the moment the ask is spacing, type, or color *values*, hand off to `design-token-taxonomy`. This skill stops at named goals.
 4. **You know the target surface** — `responsive-web`, `iOS`, `Android`, or `cross-platform`. If absent, elicit it before grounding the goals; platform conventions are a referent for every goal.
 
 ## Procedure
@@ -25,7 +25,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 5. **Record arbitration.** For each likely conflict, name which goal wins and why, so the build doesn't re-litigate it. Load `references/coherence-arbitration.md`.
 6. **Capture the doc.** Copy `assets/creative-direction-template.md` into the user's repo and fill it: the surface, the ranked goals with their referents, what each means and what would violate it, the dominant goal, and open questions.
 7. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-review/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
-8. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-system` to derive the tokens and scales that express them.
+8. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-token-taxonomy` to derive the tokens and scales that express them.
 
 ## Genre canonical reference tier
 
@@ -49,7 +49,7 @@ For each goal you ground in step 3, name which qualities of the reference you ar
 
 ## Anti-patterns to refuse
 
-- **Printing the answer.** No palette, font name, or spacing/timing value here. This skill produces *direction*, not the values that express it — those are `design-system`' job.
+- **Printing the answer.** No palette, font name, or spacing/timing value here. This skill produces *direction*, not the values that express it — those are `design-token-taxonomy`'s job.
 - **Goals nobody can recall.** If a goal isn't a short noun phrase a non-designer remembers, it can't arbitrate a choice later. Rewrite it until it sticks.
 - **Unranked goals.** A flat list of equals can't break a tie. Refuse to close without a dominant goal.
 - **Ungrounded goals.** A goal with no persona, precedent, standard, or platform referent is still a fresh opinion. Refuse to record it until it has at least one stable referent.

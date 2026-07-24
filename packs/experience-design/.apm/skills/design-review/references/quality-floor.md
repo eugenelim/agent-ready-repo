@@ -3,7 +3,7 @@
 The **pack-shared floor** every `experience-design` artifact is held to — one file,
 referenced by skills across the pack, never copied into a private sibling. The
 authoring and connective skills (`creative-direction`,
-`design-system`, `information-architecture`,
+`design-token-taxonomy`, `information-architecture`,
 `user-flow`, `interaction-design`) reference it as they work via the
 sibling-relative path `../design-review/references/quality-floor.md`;
 `design-review` applies it as an explicit pass; `product-engineering`'s

@@ -1,9 +1,9 @@
 ---
-name: design-system
-description: Use when an aesthetic direction exists and the next move is a system — deriving a token/scale taxonomy and its rationale from intent. Triggers on "derive a scale", "set up design tokens", "name our tokens", "what's our spacing/type system", "turn the direction into a system". Names tokens by semantic role, organizes scales by a single ratio-as-concept, treats accessibility as a floor, and composes atomically (build systems, not pages). Do NOT use to set the vibe first (use `creative-direction`), to lay out a screen's hierarchy and flow (use `information-architecture`), or to evaluate an existing surface (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+name: design-token-taxonomy
+description: Use when an aesthetic direction exists and the next move is naming the token taxonomy — deriving a token/scale taxonomy and its rationale from intent. Triggers on "derive a token taxonomy", "name our tokens by semantic role", "what should our token naming convention be", "derive our spacing and type scale from the direction". Names tokens by semantic role, organizes scales by a single ratio-as-concept, treats accessibility as a floor, and composes atomically (build systems, not pages). Do NOT use to set up or implement the token foundation for a project — use `design-system-foundations` for that. Do NOT use to set the vibe first (use `creative-direction`), to lay out a screen's hierarchy and flow (use `information-architecture`), or to evaluate an existing surface (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 ---
 
-# Skill: design-system
+# Skill: design-token-taxonomy
 
 Produce a **token/scale taxonomy** and the rationale behind it, derived from a
 named aesthetic direction. You ship the *method* to derive values and a
@@ -17,9 +17,9 @@ Before drafting, confirm:
 1. **An aesthetic direction exists.** A taxonomy without named emotional/brand
    goals is arbitrary. If the direction isn't written down yet, route to
    `creative-direction` first.
-2. **The ask is the system, not a screen.** If the user wants hierarchy,
-   reading flow, or wayfinding for a specific surface, route to
-   `information-architecture`.
+2. **The ask is the taxonomy, not the implementation.** If the user wants to
+   set up working token values for their project, apply a foundation, or wire
+   tokens into code, route to `design-system-foundations` instead.
 3. **You're deriving, not reprinting.** You will hand back the method and a
    taxonomy *shape* the reader fills with values — not a values sheet.
 
@@ -45,8 +45,9 @@ Before drafting, confirm:
 6. **Compose atomically.** Build the system bottom-up: primitive tokens →
    composed components → pages. Define once, reuse. Model in
    `references/atomic-composition.md`.
-7. **Serialize portably.** Record the taxonomy in the W3C Design Tokens
-   interchange shape so it travels across tools. Pointer in
+7. **Serialize portably.** Record the taxonomy in the Design Tokens Community
+   Group (DTCG) specification format so it travels across tools. The DTCG
+   specification is a W3C Community Group deliverable. Pointer in
    `references/token-taxonomy-derivation.md`.
 
 ## Anti-patterns to refuse
@@ -62,3 +63,6 @@ Before drafting, confirm:
   every token at derivation time, not a cleanup chore.
 - **Designing pages instead of systems.** One-off screens don't compose and
   don't stay coherent as they grow. Build reusable elements.
+- **Setting up the working token foundation.** Once the taxonomy is derived,
+  applying it to a project (creating actual token files, wiring values, setting
+  up light/dark themes) is the job of `design-system-foundations`, not this skill.

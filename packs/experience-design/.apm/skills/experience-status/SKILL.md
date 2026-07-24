@@ -95,7 +95,7 @@ Format output with the following sections (omit sections with zero entries):
 - If journey map is missing: run `journey-mapping`
 - If screen flow is missing (but journey map exists): run `user-flow`
 - If per-screen briefs are missing (but flow exists): run `user-flow`
-- If all three exist: thread is complete — run `service-blueprint` if backstage mapping is needed, or `creative-direction` / `design-system` / `interaction-design` to enrich the screen briefs.
+- If all three exist: thread is complete — run `service-blueprint` if backstage mapping is needed, or `creative-direction` / `design-token-taxonomy` / `interaction-design` to enrich the screen briefs.
 
 ---
 

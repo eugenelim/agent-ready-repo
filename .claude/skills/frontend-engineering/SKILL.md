@@ -72,6 +72,7 @@ and proceed to step 2. A named skip is not a failure; it is honest accounting.
 | Article page, editorial page, blog, long-form content page | `informational-design` |
 | Form flow, component state machines, transitions, interactions | `interaction-design` |
 | Content strategy — what the surface says and for whom | `content-design` |
+| Token foundation setup, semantic alias layer, light/dark theme tokens | `design-system-foundations` |
 
 Load the matched skill inline before writing code. Record the result in the spec
 as either `XD genre routing: <skill-name> loaded` or `XD genre routing: skipped

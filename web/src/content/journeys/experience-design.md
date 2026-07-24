@@ -5,13 +5,13 @@ tagline: "The design/UX seat for product teams."
 prerequisitePacks: []
 contract:
   useItWhen: "A product team needs a full design thread — from outcome to independently-reviewed screens — before build begins."
-  youProvide: "The feature, user, and intended outcome, plus any existing brand or design-system constraints."
+  youProvide: "The feature, user, and intended outcome, plus any existing brand or token-system constraints."
   youReceive: "A complete, independently-reviewed design set — journey map, screen inventory, interaction specs, and accessibility-clean designs."
   yourDecisions:
     - "Approve the customer journey and derived screen list"
     - "Approve the aesthetic direction and token set"
     - "Review the designs after the independent experience-reviewer pass"
-whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` maps the journey; `content-design` names what the surface says, `copy-direction` sets the copy voice goals and arbitration rules for marketing surfaces, and `tone-of-voice` records the general brand register. `design-principles` records the decision rules that hold screens to a shared standard. `user-flow` derives the screen list. `creative-direction` and `design-system` set the visual constraints. Genre-specific Direct skills (`analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`) produce surface-appropriate IA before `interaction-design` and `design-review` craft and critique each screen. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion. `experience-status` orients to the design thread at a glance — what artifacts exist, what's missing, and which skill to run next. Experience design skills fill the Experience Design section of the Digital Experience Contract — the shared schema that connects strategy intent to rendered evidence."
+whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` maps the journey; `content-design` names what the surface says, `copy-direction` sets the copy voice goals and arbitration rules for marketing surfaces, and `tone-of-voice` records the general brand register. `design-principles` records the decision rules that hold screens to a shared standard. `user-flow` derives the screen list. `creative-direction` and `design-token-taxonomy` name the direction and derive the token taxonomy; `design-system-foundations` applies the taxonomy as a working token foundation. Genre-specific Direct skills (`analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`) produce surface-appropriate IA before `interaction-design` and `design-review` craft and critique each screen. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion. `experience-status` orients to the design thread at a glance — what artifacts exist, what's missing, and which skill to run next. Experience design skills fill the Experience Design section of the Digital Experience Contract — the shared schema that connects strategy intent to rendered evidence."
 skills:
   - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
@@ -40,8 +40,11 @@ skills:
   - name: creative-direction
     description: "Establishes the visual direction for a surface — named emotional and brand goals grounded in stable referents — as the aesthetic reference all subsequent screens must satisfy."
     humanTouches: 1
-  - name: design-system
-    description: "Derives the design token set from the creative direction — the primitive and semantic tokens that carry the design into code."
+  - name: design-token-taxonomy
+    description: "Derives the token/scale taxonomy from the aesthetic direction — naming tokens by semantic role and organizing scales by a single ratio-as-concept."
+    humanTouches: 0
+  - name: design-system-foundations
+    description: "Applies the token taxonomy as a working foundation — semantic color roles, typography, spacing, radius, focus, status tokens, responsive breakpoints, and core component tokens. Full mode adds DTCG 2025.10-compatible token source, light/dark themes, semantic alias layer, and full component anatomy."
     humanTouches: 0
   - name: information-architecture
     description: "Identifies the page archetype, names the product object and permission contract, then designs the layout zones and information hierarchy for a screen, given its per-screen brief."
@@ -90,7 +93,7 @@ humanGates:
   - id: G-aesthetic
     globalGate: null
     label: "Approve the aesthetic direction and token set"
-    trigger: "After creative-direction and optionally design-system complete"
+    trigger: "After creative-direction and optionally design-token-taxonomy and design-system-foundations complete"
     duration: "5–10 minutes"
     whatToCheck:
       - "Does the aesthetic direction name a specific visual character — not just 'clean and modern'?"
@@ -144,7 +147,7 @@ relatedJourneys:
 
 ### 3. Establish design intent
 
-- **Agent does:** runs `design-principles` to derive 3–5 named decision rules from the journey map; then runs `creative-direction` to establish the visual character and `design-system` to derive the token set.
+- **Agent does:** runs `design-principles` to derive 3–5 named decision rules from the journey map; then runs `creative-direction` to establish the visual character, `design-token-taxonomy` to derive the token/scale taxonomy, and `design-system-foundations` to apply it as a working foundation.
 - **You do:** review the design principles alongside the aesthetic direction.
 - **You decide:** approve the aesthetic direction and token set at G-aesthetic; an aesthetic direction that says "clean and professional" is not specific enough — reject tokens that introduce hardcoded values outside the semantic token system.
 - **Output:** approved design principles, aesthetic direction, and token set.

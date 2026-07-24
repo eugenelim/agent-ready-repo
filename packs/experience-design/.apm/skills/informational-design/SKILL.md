@@ -5,7 +5,7 @@ description: "Use when designing an informational surface — an article page, a
 
 # Skill: informational-design
 
-Converts the editorial structure and reading goal into a **structural specification for an informational surface** — the typographic hierarchy, the reading-pattern calibration, the editorial grid, and the "what's next" chain that sustains reader engagement after the primary content is consumed. This skill uses **typography as the primary design tool**; layout, grid, and navigation are typography's support structure. It does not write the content (that is `content-design`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
+Converts the editorial structure and reading goal into a **structural specification for an informational surface** — the typographic hierarchy, the reading-pattern calibration, the editorial grid, and the "what's next" chain that sustains reader engagement after the primary content is consumed. This skill uses **typography as the primary design tool**; layout, grid, and navigation are typography's support structure. It does not write the content (that is `content-design`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
 ## When to invoke
 

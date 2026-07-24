@@ -101,10 +101,10 @@ sits at low contrast so the few high-contrast elements carry real emphasis.
 
 ## Portable serialization
 
-Record the taxonomy in the **W3C Design Tokens interchange shape** — the
+Record the taxonomy in the **Design Tokens Community Group (DTCG) specification** format — the
 standard, tool-neutral way to serialize tokens (a token has a name, a type,
 and a value, and tokens nest into groups). Serializing to that shape means the
 system travels across design and build tools instead of living in one editor.
 
-Read the interchange format from the W3C Design Tokens specification; this
+Read the specification from the W3C Community Group (DTCG); this
 reference points to it rather than embedding a schema or any values.

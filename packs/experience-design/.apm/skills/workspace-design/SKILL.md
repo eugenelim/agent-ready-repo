@@ -5,7 +5,7 @@ description: "Use when designing a workspace surface — a productivity tool, a 
 
 # Skill: workspace-design
 
-Converts the session arc, the collaboration model, and the agentic patterns into a **structural specification for a workspace surface** — the context-persistence architecture, the attention zone layout, the collaboration state IA, the interrupt and notification design, and the agentic patterns that make a workspace surface feel like a professional environment rather than a series of disconnected screens. This skill is IA and structure; it does not design individual component interactions (that is `interaction-design`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
+Converts the session arc, the collaboration model, and the agentic patterns into a **structural specification for a workspace surface** — the context-persistence architecture, the attention zone layout, the collaboration state IA, the interrupt and notification design, and the agentic patterns that make a workspace surface feel like a professional environment rather than a series of disconnected screens. This skill is IA and structure; it does not design individual component interactions (that is `interaction-design`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
 
 ## When to invoke
 
