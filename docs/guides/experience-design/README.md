@@ -32,6 +32,9 @@ run it end to end.
 - [Thread a feature from journey to screens](how-to/author-design-intent.md) —
   map the journey, derive the screen flow and per-screen briefs, blueprint the
   services, design and critique each screen, and get an independent review.
+- [Page archetypes: when to use which](how-to/page-archetypes.md) —
+  identify the right page archetype before designing hierarchy, apply the
+  first-screen contract, attention contract, and read/write permission contract.
 
 ## Reference
 
