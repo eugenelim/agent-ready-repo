@@ -46,6 +46,7 @@ TESTS: list[tuple[str, list[str]]] = [
     ("lint-catalogue-seeds", [sys.executable, "tools/test-lint-catalogue-seeds.py"]),
     ("lint-knowledge",       ["bash", "tools/test-lint-knowledge.sh"]),
     ("lint-skill-spec",      [sys.executable, "tools/test-lint-skill-spec.py"]),
+    ("llm-judge-cross-pack-eval", [sys.executable, "tools/test-llm-judge-cross-pack-eval.py"]),
     ("loop-cohort",          ["bash", "tools/test-loop-cohort.sh"]),
     ("pre-pr",               ["bash", "tools/test-pre-pr.sh"]),
     ("session-start",        ["bash", "tools/test-session-start.sh"]),
