@@ -15,176 +15,63 @@ path through the `[experience]` layout table (below).
 
 ### `journey-mapping`
 
-**Triggers on:** "map the customer journey", "what does the user go through",
-"journey map this flow", "what are the touchpoints", "where does the user feel
-pain".
-
-**Use when** a team needs to understand how a customer moves through an
-experience end-to-end. Produces a journey map — stages × actions / emotions /
-pains / opportunities, outside-in — carrying a `surface` axis. Customer/end-user
-scoped (employee journeys are out of v1). **Consumed by** `user-flow` and
-`service-blueprint`.
-
-**Do NOT use** to design screen interactions (use `user-flow`), to
-blueprint services (use `service-blueprint`), or to map an internal process (use
-`process-mapping`).
-
-**Writes:** `<parent>/journeys/<slug>.md` (`type: customer-journey`).
+Use when a product team needs to understand how a customer moves through an experience end-to-end — mapping the stages, actions, emotions, pains, and opportunities along the path. Triggers on "map the customer journey", "what does the user go through", "journey map this flow", "map out the experience stages", "what are the customer touchpoints", "where does the user feel pain". Carries a platform/surface axis (responsive-web, iOS, Android, cross-platform) that changes what the method asks at each stage. Scoped to customer/end-user journeys only — employee journeys are out of v1. Do NOT use to design screen interactions (use `user-flow`), to blueprint the backing services (use `service-blueprint`), or to map an internal business process (use `process-mapping`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `user-flow`
 
-**Triggers on:** "map the screen flow", "what screens do we need", "sequence the
-screens", "design the screen-to-screen flow", "what happens when this action
-fails".
-
-**Use when** a journey needs to become the screens that realize it. Produces a
-**screen flow** — screens sequenced, with transitions and error/edge flows, a
-per-screen state matrix (deferring to the quality floor), and the surface axis —
-plus **one per-screen brief per screen** (shared-contract / per-screen-spec
-split). Ends in a cross-brief consistency pass and a **non-droppable steel
-thread** (prototype → text-only, never nothing). Can emit an optional design-tool
-handover (instructions, never pixels). **Consumed by** the craft skills,
-`ux-writing`, and `experience-reviewer`.
-
-**Do NOT use** to map the journey (use `journey-mapping`), to design
-in-screen behavior (use `interaction-design`), or to blueprint services (use
-`service-blueprint`).
-
-**Writes:** `<parent>/screens/<slug>-flow.md` (`type: screen-flow`) + briefs at
-`<parent>/screens/<slug>/<screen>.md` + optional `<screen>.handover.md`.
+Use when a customer journey needs to become the screens that realize it — sequencing the screens, the transitions between them, and the error/edge flows (a failed action lands the user where?), then emitting one self-contained brief per screen. Triggers on map the screen flow, what screens do we need, sequence the screens for this journey, design the screen-to-screen flow, what happens when this action fails, turn this journey into screens. Carries a platform/surface axis and ends in a whole-journey walk that never skips. Do NOT use to map the journey itself (use journey-mapping), to design how one screen behaves internally (use interaction-design), or to blueprint the backing services (use service-blueprint). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `service-blueprint`
 
-**Triggers on:** "blueprint the service", "what services back these screens",
-"map frontstage and backstage", "what happens behind the line of visibility".
-
-**Use when** the screens exist and the next question is what's behind them.
-Produces a service blueprint — frontstage / line-of-visibility / backstage /
-support. The backstage column is the slicing instrument handed **by-name** to
-`architect` / `contracts` (named textually when those are absent). **Consumed
-by** `architect` and the spec LLD.
-
-**Do NOT use** to map the customer's experience (use `journey-mapping`) or
-to map an internal process with no customer touchpoint (use
-`process-mapping`).
-
-**Writes:** `<parent>/blueprints/<slug>.md` (`type: service-blueprint`).
+Use when you need to map the backing services that fulfil a customer journey — building a service blueprint with four rows (frontstage / line-of-visibility / backstage / support) that ties every screen action to the service or system behind it. Triggers on "service blueprint", "what backs this screen", "map the backstage", "what services support this journey", "blueprint the service". Do NOT use to map the customer journey itself (use `journey-mapping`), to sequence screens and their transitions (use `user-flow`), or to derive a token/scale taxonomy (use `design-token-taxonomy`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `process-mapping` — the inside-out sibling
 
-**Triggers on:** "map our internal process", "current-state / target-state of
-this workflow", "swimlane this process", "as-is and to-be for this operation".
-
-**Use when** the process spans many touchpoints, has no customer-facing layer,
-or is a constraint on the solution. Produces (anchored on APQC L3→L4): a SIPOC
-scoping table, a mermaid swimlane (`flowchart` + `subgraph` lanes), **as-is + to-be**
-with an as-is→to-be delta table, and a pain/waste register. Points to APQC PCF /
-BPMN 2.0 / BABOK, reprints none. **Carries no surface axis.** Cross-references
-the service blueprint by-name when customer-triggered; is the producer of
-`product-engineering`'s `frame-intent` "current-state process map" input.
-
-**Do NOT use** for the customer-facing journey (use `journey-mapping`).
-
-**Writes:** `<parent>/processes/<slug>.md` (`type: process-flow`).
+Use when a team needs to understand, document, or improve how an internal business operation works — mapping an APQC L3 process end-to-end as a swimlane flow with as-is and to-be states, a SIPOC scoping table, and a pain/waste register. Triggers on "map our internal process", "document this business process", "what does our current process look like", "as-is to-be process", "process improvement", "how does this workflow actually work", "swimlane diagram for this process", "map the claims process", "map the order fulfilment flow". This is the inside-out operations sibling of `journey-mapping`. Do NOT use to map what a customer experiences (use `journey-mapping`), to blueprint how screens tie to backing services (use `service-blueprint`), or to sequence screen transitions (use `user-flow`). Does NOT carry a platform/surface axis — it is actor/swimlane-shaped, not device-shaped. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ## The Define phase
 
 ### `design-principles`
 
-**Triggers on:** "derive our design principles", "what should guide our design decisions", "we need a principle set", "articulate our design philosophy", "what principles should our design honor".
-
-**Use when** a team needs to turn journey insights and product values into explicit, testable design principles — before craft work begins. Follows the NNGroup 4-step model: insight → user-grounded → arbitration-aware → team-owned. Each principle passes the arbitration test: "given two wireframes, can this principle distinguish between them?" If not, it is not a principle — it is a brand value or an aspiration. Carries `evidence-level` from the upstream journey map: assumption-based journeys produce hypothesis principles. **Consumed by** `creative-direction`, `information-architecture`, `content-design`, and `design-review`.
-
-**Do NOT confuse with** brand values (which belong in `creative-direction`) or the `quality-floor` (which is a universal floor, not a product-specific principle).
-
-**Writes:** `<parent>/principles/<slug>.md`.
+Use when a design team needs shared, durable decision rules — converting journey-map insights and opportunity pains into 3–5 named principles that resolve design disputes and persist across sprints. Triggers on "what are our design principles", "how do we make design decisions consistently", "we keep relitigating the same tradeoffs", "write our design principles", "derive principles from this journey". Produces principles in the form [Imperative verb] + [what] + [why/for whom] with an arbitration test. Do NOT use to set visual direction (use `creative-direction`), to derive a token/scale taxonomy (use `design-token-taxonomy`), or to evaluate an existing screen (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ## The craft
 
 ### `creative-direction`
 
-**Triggers on:** "make it feel premium/calm/playful", "I want it to feel like
-X", "what's the vibe here", "we need a look and feel", "before we pick
-colors/type".
+Use when a designer or stakeholder has a felt "vibe" but no named direction — turning a vague mood into ranked emotional/brand goals and an creative-direction doc the rest of the build references. Triggers on "make it feel premium/calm/playful", "I want it to feel like X", "what's the vibe here", "we need a look and feel", "before we pick colors/type". Runs the interrogation that converges a mood into named goals, grounds each goal in a stable referent (persona, precedent, standards, platform conventions), then records which goal wins when two goals conflict. Do NOT use to derive a token or scale taxonomy (use `design-token-taxonomy`), to structure hierarchy and reading flow (use `information-architecture`), or to evaluate an existing screen (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
-**Use when** there's a felt "vibe" but no named direction. Converges a mood into
-named, ranked goals, **grounds each goal in a stable referent** (persona,
-precedent, standards, platform conventions for the target `surface`), records
-what grounds each, and copies an creative-direction doc into the repo. Stays
-method-not-values.
+### `design-token-taxonomy`
 
-**Ships:** `references/interrogation-sequence.md`,
-`references/coherence-arbitration.md`, `references/grounding.md`, and
-`assets/creative-direction-template.md`.
+Use when an aesthetic direction exists and the next move is naming the token taxonomy — deriving a token/scale taxonomy and its rationale from intent. Triggers on "derive a token taxonomy", "name our tokens by semantic role", "what should our token naming convention be", "derive our spacing and type scale from the direction". Names tokens by semantic role, organizes scales by a single ratio-as-concept, treats accessibility as a floor, and composes atomically (build systems, not pages). Do NOT use to set up or implement the token foundation for a project — use `design-system-foundations` for that. Do NOT use to set the vibe first (use `creative-direction`), to lay out a screen's hierarchy and flow (use `information-architecture`), or to evaluate an existing surface (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
-### `design-system`
+### `design-system-foundations`
 
-**Triggers on:** "derive a scale", "set up design tokens", "name our tokens",
-"turn the direction into a system".
-
-**Use when** a direction exists and the next move is a system. Derives a
-token/scale taxonomy from intent — semantic-role naming, ratio-as-concept scales,
-accessibility as a floor, atomic composition. Points to WCAG and the W3C Design
-Tokens shape; **never reprints a values table.**
+Use when a token taxonomy exists and the next step is applying it as a working token foundation. Triggers on "apply design token foundations", "set up our token implementation", "build the design token foundation for this project", "implement the token system", "create the light and dark themes", "set up semantic aliases for our components". Takes a derived token taxonomy (from `design-token-taxonomy`) and produces the working foundation — lightweight mode covers semantic color roles, typography, spacing, radius, focus styles, key statuses, responsive breakpoints, and core component tokens; full mode adds DTCG 2025.10-compatible token source, light/dark theme switching, semantic alias layer, and full component anatomy. Near-misses — do not use to derive the taxonomy (use `design-token-taxonomy`), name felt direction (use `creative-direction`), evaluate an existing surface (use `design-review`), or structure hierarchy and reading flow (use `information-architecture`).
 
 ### `information-architecture`
 
-**Triggers on:** "structure this screen", "information architecture", "lay out
-this flow", "what's the hierarchy here", "why does this page feel cluttered".
-
-**Use when** designing how a screen or flow is organized — hierarchy, reading
-flow, progressive disclosure, wayfinding, **as concepts** (never ARIA roles or
-CSS grid).
+Use when designing how a screen or flow is organized — what goes where, in what order, and how a user stays oriented. Triggers on "structure this screen", "information architecture", "lay out this flow", "what's the hierarchy here", "how should this navigation be organized", "why does this page feel cluttered". Produces an information-architecture and layout reasoning doc — hierarchy, reading flow, progressive disclosure, and wayfinding as concepts. Do NOT use when the work is choosing mood, type, or color personality (use `creative-direction`); when defining a token/scale taxonomy (use `design-token-taxonomy`); or when judging an existing design against a standard (use `design-review`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `interaction-design`
 
-**Triggers on:** "design how this behaves", "what's the feedback for this
-action", "model this component's states", "how should this form validate", "what
-motion does this need".
-
-**Use when** designing **how a screen behaves** — feedback & timing (the Doherty
-perceived-performance lens, design-time), input & forms, a component **state
-machine** (mermaid `stateDiagram-v2`; statecharts as the referent, never a
-state-management library), purposeful motion (honors reduced-motion, reprints no
-durations/easing), navigation-as-behavior, gesture/pointer on the surface axis,
-and cognitive-law fit. **References** onboarding and search-interaction pattern
-families. **Enriches the per-screen brief**; owns no file-per-slug artifact and
-no layout entry.
-
-**Do NOT confuse with** `information-architecture` (structure),
-`creative-direction` (visual taste), the quality floor (the state *set*), or
-`user-flow` (the *cross-screen* macro flow). It owns the *in-component*
-state machine, motion, and feedback.
+Use when a screen or component needs its behavioral layer designed — how it responds to actions, validates input, transitions between states, and guides users through gesture and cognitive fit. Triggers on "design how this form behaves", "what happens when the user taps submit", "design the loading and error states", "map the state machine for this component", "design the micro-interactions", "how should this feel to use". Do NOT use to structure hierarchy or wayfinding (use `information-architecture`), to name aesthetic direction (use `creative-direction`), to map cross-screen navigation routes (use `user-flow`), or to enumerate which states exist (that enumeration belongs to the shared quality floor). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `design-review`
 
-**Triggers on:** "critique this design", "review this screen", "what's wrong
-with this mockup", "do a heuristic eval", "is this usable".
-
-**Use to** evaluate an existing screen — an interactive, **authoring-time**
-critique. Applies the shared `quality-floor`, evaluates against usability
-heuristics, and runs a **taste mode** (against the grounded aesthetic reference +
-platform fit). Maps each issue to its principle, rates severity (0–4), returns a
-prioritized list. It is **not fresh-context and not the reviewer agent** — a
-same-session critique marks its own homework; the independent pass is
-`experience-reviewer`.
-
-**Ships:** `references/heuristics.md`, `references/taste-critique.md`,
-`references/quality-floor.md` (the shared floor below).
+Evaluate an existing screen, flow, or mockup with a severity-rated findings list using a three-pass structure: Pass 1 cold-read (audience, job, rendered state only); Pass 2 primary task and one unhappy path (desktop, tablet, mobile, keyboard, focus, zoom, reduced-motion); Pass 3 contract review (quality-floor, heuristics, marketing clarity, taste). Triggers on "critique this design", "review this screen", "what is wrong with this mockup", "do a heuristic eval", "is this usable", "does this fit our aesthetic", "does this page convert", "is this copy compelling", "tweet test". Do NOT use to name a felt direction (use creative-direction), to derive tokens (use design-token-taxonomy), or to structure hierarchy (use information-architecture). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `content-design`
 
-**Triggers on:** "write the copy for this screen", "what should this button say", "content design for this flow", "name this empty state", "tone for this error message".
-
-**Use when** a per-screen brief needs its copy layer designed — functional copy (labels, CTAs, error messages, empty states, microcopy) and persuasion copy (above-fold narrative). Distinguishes acquisition copy (persuasion goal) from product-reference copy (task-enablement goal) and designs each accordingly. **Consumed by** `design-review` and `experience-reviewer`.
-
-**Do NOT use** for setting the brand tone direction (use `tone-of-voice`).
+Use when a designer or product person needs to decide what a surface should say, for whom, in what form, and to what objective — before any wireframe or screen flow is opened. Routes across two surface types: acquisition surfaces (marketing pages, landing pages, web onboarding flows) and product/reference surfaces (help pages, feature reference, in-product wayfinding). Triggers on "what should this landing page say", "write a content brief for our onboarding flow", "what's the narrative arc for this marketing page", "what does this feature page need to communicate", "help me decide the above-fold structure". Do NOT use to write final copy (use `tone-of-voice` for copy voice, then `ux-writing` for UI strings), to produce an analytics or CRO measurement framework, or to generate SEO keyword plans. Do NOT use for copy voice — use `copy-direction` (surface) or `tone-of-voice` (brand). Do NOT use for per-state UI strings — use `ux-writing` in the `product-engineering` pack.
 
 ### `tone-of-voice`
 
-**Triggers on:** "what's our tone of voice", "how should we sound", "define our brand voice", "are we formal or casual", "voice and tone guidelines".
+Use when a designer, copywriter, or builder has a felt "copy vibe" but no named direction — turning a vague register sense into ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and recording copy arbitration rules the rest of the build references. Triggers on "what voice should our copy have", "write a tone-of-voice doc", "what is our brand register", "how should our brand sound across channels", "copy vibe check". Do NOT use for product UI copy states (error messages, empty states, button labels, form labels) — use `ux-writing` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting, advertising copy templates, or brand identity documentation. Do NOT use if you need copy direction for a specific marketing or acquisition surface (landing page, above-fold hero, announcement) — use `copy-direction` for that surface-specific scope.
 
-**Use when** a product needs a named, consistent brand voice across all surfaces — the personality axis (formal↔casual, authoritative↔approachable, playful↔serious) and the application rules that make it concrete. Distinct from `content-design`, which applies the voice; `tone-of-voice` defines the voice `content-design` applies.
+### `copy-direction`
+
+Use when the surface needs a defined copy voice — turning a vague 'how we sound' into named, ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and recording copy arbitration rules the rest of the build references. Triggers on "what should our marketing copy sound like", "copy voice for our landing page", "how does our headline differ from competitors", "what should our positioning copy feel like", "before we write the hero copy we need to name the direction". Do NOT use for product UI strings (error messages, empty states, button labels) — use `ux-writing` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting or full brand identity documentation. Do NOT use for content structure or section jobs — use `content-design`. Do NOT use for general brand tone — use `tone-of-voice`.
 
 ## Genre-specific design
 
@@ -192,39 +79,33 @@ Declare the surface genre once in the per-screen brief's `surface-genre:` field;
 
 ### `conversion-design`
 
-**Triggers on:** "design the marketing page", "structure the landing page", "what goes above the fold", "hero design", "conversion-rate design", "how do we structure the homepage". Surface genre: `marketing`.
-
-**Use when** designing a marketing surface — a landing page, product page, or above-fold conversion surface. Produces: hero approach selection (5 types), above-fold 6-element spec, scroll-story 7-zone structure, social proof tier, product tour spine. **Do NOT use** for documentation (use `documentation-design`) or informational editorial pages (use `informational-design`).
+Use when designing a marketing surface — a landing page, product homepage, pricing page, or acquisition flow — where the primary goal is to convert a visitor into a lead, trial user, or customer. Triggers on "design the landing page", "structure the homepage", "what goes above the fold", "convert visitors", "design the pricing page", "product marketing surface". Produces IA and structural specifications for conversion surfaces. Do NOT use for product UI design (use user-flow + interaction-design), documentation surfaces (use documentation-design), or analytical dashboards (use analytical-design). Surface genre: marketing. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `documentation-design`
 
-**Triggers on:** "design the docs site", "structure the help centre", "IA for the API reference", "TTFV for this tutorial", "docs landing page design". Surface genre: `documentation`.
-
-**Use when** designing a documentation surface — a docs site, a help centre, or an API reference. Produces: Diátaxis type map, navigation-at-scale strategy, docs landing page hub structure, TTFV target, machine-readability as design-phase decision. **Do NOT use** for marketing (use `conversion-design`) or informational editorial (use `informational-design`).
+Use when designing a documentation surface — a docs site, a help centre, an API reference, or a technical guide set. Decides what type of content belongs where, how navigation scales with content volume, and what the first-value-moment is for each content type. Triggers on "design the docs site", "structure the help centre", "what goes on the docs landing page", "how should we navigate the API reference", "TTFV for this tutorial". Produces IA and navigation specifications for documentation surfaces. Do NOT use for marketing surfaces (use conversion-design) or informational editorial pages (use informational-design). Surface genre: documentation. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `analytical-design`
 
-**Triggers on:** "design the dashboard", "KPI layout", "structure the reporting view", "what goes on the analytics screen", "monitoring view design". Surface genre: `analytical`.
-
-**Use when** designing an analytical surface — a dashboard, monitoring screen, or reporting view. Produces: domain-model-first IA, business-question anchoring (3–5 questions), 3-tier widget hierarchy, Shneiderman's mantra applied to layout, role-based views, spatial layout grammar, per-widget state handling. **Do NOT use** for workspace productivity surfaces (use `workspace-design`).
+Use when designing an analytical surface — a dashboard, a reporting view, a monitoring screen, or any surface whose primary purpose is to help a user understand a data set and act on it. Triggers on "design the dashboard", "structure the reporting view", "what goes on the analytics screen", "KPI layout", "design a monitoring view". Produces domain-model-first IA and widget hierarchy specifications. Scope boundary — individual chart encoding design is out of scope (use interaction-design for component state machines); this skill handles dashboard IA only. Do NOT use for marketing surfaces (use conversion-design) or workspace productivity surfaces (use workspace-design). Surface genre: analytical. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `marketplace-design`
 
-**Triggers on:** "design the marketplace", "listing card design", "filter and facet architecture", "catalogue IA", "buyer journey", "search and filter". Surface genre: `marketplace`.
-
-**Use when** designing a marketplace surface — a listing grid, product detail page, or buying flow. Produces: listing card IA hierarchy, filter/facet architecture, comparison affordances, browse-first vs. search-first routing, transaction bridge to wizard patterns. **Do NOT use** for single-product marketing (use `conversion-design`).
+Use when designing a marketplace surface — a catalogue, a listing grid, a product detail page, or a buying/transaction flow that connects buyers and sellers or producers and consumers. Triggers on "design the marketplace", "structure the listing page", "how should the catalogue work", "design the search and filter", "buyer journey on the marketplace", "product card design". Produces IA specifications for catalogue, filter, comparison, and transaction bridge surfaces. Do NOT use for single-product marketing surfaces (use conversion-design) or workspace tool surfaces (use workspace-design). Surface genre: marketplace. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `informational-design`
 
-**Triggers on:** "design the article page", "structure the editorial page", "reading experience design", "long-form content design", "blog design". Surface genre: `informational`.
-
-**Use when** designing an informational surface — an article page, editorial page, or content-rich page. Uses typography as the primary design tool. Produces: typographic hierarchy (line-length constraint, line-height, scale contrast), F/Z-pattern calibration, editorial grid, article page structure, "what's next" chain (4 category types). **Do NOT use** for documentation (use `documentation-design`).
+Use when designing an informational surface — an article page, a news or editorial page, a long-form content page, or a content-rich page whose primary purpose is to inform, not to convert or enable tasks. Triggers on "design the article page", "structure the editorial page", "how should the blog look", "long-form content design", "reading experience design". Uses typography as the primary design tool. Do NOT use for documentation (use documentation-design), marketing (use conversion-design), or tool/app surfaces (use workspace-design). Surface genre: informational. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ### `workspace-design`
 
-**Triggers on:** "design the workspace", "collaborative editing surface", "agentic UI design", "task management surface", "session arc design", "multi-agent coordination UI". Surface genre: `workspace`.
+Use when designing a workspace surface — a productivity tool, a collaborative environment, an agentic UI, or any surface whose primary purpose is to support sustained professional work across sessions. Triggers on "design the workspace", "structure the tool UI", "collaborative editing surface", "agentic UI design", "multi-agent coordination UI", "task management surface", "session arc design". Covers context-persistence, collaboration state IA, ambient attention, agentic patterns, and interrupt design. Do NOT use for dashboards and monitoring views (use analytical-design) or marketplace surfaces (use marketplace-design). Surface genre: workspace. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
-**Use when** designing a workspace surface — a productivity tool, collaborative environment, or agentic UI. Produces: context-persistence patterns, session arc (5 stages), collaboration state IA, interrupt escalation design, agentic UI patterns (task queue, agent status, HITL confirmation, output review, multi-agent coordination). **Do NOT use** for dashboards (use `analytical-design`).
+## Status and orientation
+
+### `experience-status`
+
+Orient to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next. Triggers on "where are we with the design", "what experience artifacts do we have", "status of the design thread", "what's next in the design", "show me what design work exists", or any cold-start orient for the experience-design work thread. Read-only: never writes files, never elicits configuration. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
 
 ## The reviewer agent
 
