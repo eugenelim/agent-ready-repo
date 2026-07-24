@@ -1,0 +1,5 @@
+PACK                 ADAPTER      SCOPE  INSTALLED
+-------------------  -----------  -----  ---------
+analýsis             codex        repo   1.2.0
+core                 claude-code  repo   0.13.5
+very-long-pack-name  kiro-ide     repo   0.5.0
