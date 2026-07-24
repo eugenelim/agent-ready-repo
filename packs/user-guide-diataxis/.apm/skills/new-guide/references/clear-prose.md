@@ -105,3 +105,35 @@ will miss:
 When your environment has subagents, the skill's optional copyedit pass hands
 the draft and this checklist to a fresh reader so the style read stays off your
 main context. The cold self-read is the floor either way.
+
+## Conversation-first structure
+
+These are page-level structural rules. They complement the word-level checklist
+above — a draft can pass every vocabulary check and still fail these. Run them
+after the prose pass, not instead of it. For the full framing and sequencing
+rationale, see [`references/conversation-first.md`](conversation-first.md).
+
+- **Put one observable outcome before the first conceptual explanation.** The
+  reader needs to see what they will get before they are asked to understand
+  why. An outcome is a command, a result, or a concrete next step — not a
+  category name.
+- **Put a realistic user request within the first 120 words.** The reader
+  scanning for "how do I begin?" should find it without scrolling.
+- **Introduce no more than two product-specific terms before that request.**
+  Every term introduced before the first example is a term the reader must
+  carry before they can act.
+- **Do not lead with a component, skill, command, or pack inventory.** Leading
+  with what the product contains is inventory-first. The reader came with a
+  goal, not a browse session. The inventory belongs after the first task
+  completes.
+- **Use user language first and implementation names second.** "Show me the
+  team's open work" before `jira-team-status`. The page can use both; the
+  user term opens the sentence.
+- **Show the next likely request, not only the initial request.** A guide
+  that ends with the first task done leaves the reader stranded. Name where
+  they go next.
+- **Separate read-only exploration from remote writes.** State clearly when an
+  action reads data vs. when it changes something. Never leave the read/write
+  boundary implicit.
+- **Put exhaustive options in reference, not in the main procedure.** Embed a
+  link; do not embed the reference page.
