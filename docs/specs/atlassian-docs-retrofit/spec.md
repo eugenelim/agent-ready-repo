@@ -29,7 +29,7 @@ writes, and communicate the result.
 - [x] AC12. Journey page presents four connected stages before generated skill cards.
 - [x] AC13. Reference page provides exact inputs, reads, writes, outputs, limits, coverage, and approval behavior.
 - [x] AC14. Explanation page teaches workflow composition without repeating a procedural guide.
-- [x] AC15. Six pages use consistent terminology, sample data (Team Atlas), and visual states.
+- [x] AC15. Six pages use consistent terminology, sample data (Team Acme), and visual states.
 - [x] AC16. MkDocs and Astro surfaces feel like parts of the same product.
 - [x] AC17. Public URLs and links remain valid.
 - [x] AC18. Tutorial is added to MkDocs nav.
@@ -46,7 +46,7 @@ writes, and communicate the result.
 
 ## Shared example dataset
 
-Team: Atlas · Projects: APP and API · Sprint 24
+Team: Acme · Projects: APP and API · Sprint 24
 - Ready to pull (3): APP-203, APP-211, API-98
 - In progress (2): APP-198, API-92
 - Needs story work (3): APP-206, APP-219, API-104

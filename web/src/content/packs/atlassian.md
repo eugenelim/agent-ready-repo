@@ -30,7 +30,7 @@ names.
 ### Try this first
 
 ```
-Show me the whole Atlas team backlog across APP and API.
+Show me the whole Acme team backlog across APP and API.
 Include the current sprint, open backlog, unassigned work, and blocked issues.
 Group everything into ready to pull · needs story work · blocked · in progress.
 Do not change Jira.
@@ -61,7 +61,7 @@ Jira was not changed.
 Ask for the whole backlog, a sprint status, what's blocked, or what's unassigned.
 The agent reads Jira and returns a grouped summary. Nothing is written.
 
-> "What can the Atlas team pick up next?"
+> "What can the Acme team pick up next?"
 > "What is blocked in APP?"
 > "What's sitting unassigned this sprint?"
 

@@ -24,7 +24,7 @@ only writes to Jira after you approve the exact change.
 **YOU SAY**
 
 ```
-Show me the whole Atlas team backlog across APP and API.
+Show me the whole Acme team backlog across APP and API.
 
 Include the current sprint, open backlog, unassigned work, and blocked issues.
 Group everything into:
@@ -40,7 +40,7 @@ Do not change Jira.
 
 **WHAT HAPPENS**
 
-The agent checks Jira credentials, resolves the Atlas team scope (it may ask
+The agent checks Jira credentials, resolves the Acme team scope (it may ask
 which scope to use if two match — board or team field), then reads all open issues
 across APP and API. Read-only. Scope and coverage are disclosed.
 
@@ -53,16 +53,13 @@ Example:
 
 ```
 Scope: APP and API · Sprint 24 + open backlog · 12 issues (complete result)
-─────────────────────────────────────────────────────
 Ready to pull: 3 · Needs story work: 3 · Blocked: 2 · In progress: 2
-─────────────────────────────────────────────────────
 Top 5 to discuss:
 1. APP-203  Add rate limiting to API gateway       Ready to pull · Standard
 2. API-98   Paginate GET /users endpoint            Ready to pull · Quick
 3. APP-206  Improve performance                     Needs story work
 4. APP-215  Migrate auth service                    Blocked — security review
 5. API-104  Fix search results                      Needs story work
-─────────────────────────────────────────────────────
 APP-220, API-107 unassigned — no sprint assigned.
 Jira was not changed.
 ```
@@ -80,7 +77,7 @@ Take the items that need story work and show me why each fails.
 **YOU SAY**
 
 ```
-What can the Atlas team pick up next in APP and API?
+What can the Acme team pick up next in APP and API?
 ```
 
 **SCOPE ASSUMPTIONS**
@@ -115,7 +112,7 @@ Show me the Quick items with no assignee.
 **YOU SAY**
 
 ```
-What is blocked in the Atlas backlog?
+What is blocked in the Acme backlog?
 What items haven't been updated this week?
 ```
 
@@ -216,7 +213,6 @@ Issues to update:  APP-206, APP-219, API-104
 Field to change:   description
 Protected fields:  status, assignee, priority, sprint, labels
 Total writes:      3
-─────────────────────────────────────────────────────
 [Cancel]   [Apply all three]
 ```
 
@@ -231,10 +227,10 @@ with a retry path.
 **YOU SAY**
 
 ```
-Give me a stand-up summary for the Atlas team.
+Give me a stand-up summary for the Acme team.
 Include progress, blockers, risks, and what is ready next.
 
-Then prepare a concise weekly version suitable for the Atlas Confluence space.
+Then prepare a concise weekly version suitable for the Acme Confluence space.
 Do not publish until I approve it.
 ```
 

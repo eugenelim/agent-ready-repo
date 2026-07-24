@@ -52,9 +52,9 @@ next, what is blocked, what is unassigned, and a stand-up or sprint summary.
 
 **Natural requests**
 
-- "What can the Atlas team pick up next in APP and API?"
+- "What can the Acme team pick up next in APP and API?"
 - "Give me a team status for stand-up."
-- "Show me the whole Atlas team backlog — current sprint, open backlog, unassigned, and blocked."
+- "Show me the whole Acme team backlog — current sprint, open backlog, unassigned, and blocked."
 - "What's blocked in APP this week?"
 
 **Required scope**
@@ -336,7 +336,7 @@ engineering brief.
 **Natural requests**
 
 - "Turn APP-epic-42 into a product brief."
-- "Pull the Atlas board sprint into a brief."
+- "Pull the Acme board sprint into a brief."
 
 **Required scope**
 

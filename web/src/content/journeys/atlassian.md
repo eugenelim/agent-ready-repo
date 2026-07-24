@@ -110,8 +110,8 @@ goodOutputDescription: "A grouped backlog summary showing 12 issues across APP a
 
 ### 1. See the work
 
-- **You say:** "Show me the whole Atlas team backlog across APP and API. Include the current sprint, open backlog, unassigned work, and blocked issues. Group everything into ready to pull, needs story work, blocked, in progress. Do not change Jira."
-- **Agent does:** Checks credentials. Resolves scope — if two Atlas scopes exist (board and team field), asks which to use. Reads all open issues across APP and API. Discloses scope searched, time horizon, issue count, and whether the result is complete or filtered.
+- **You say:** "Show me the whole Acme team backlog across APP and API. Include the current sprint, open backlog, unassigned work, and blocked issues. Group everything into ready to pull, needs story work, blocked, in progress. Do not change Jira."
+- **Agent does:** Checks credentials. Resolves scope — if two Acme scopes exist (board and team field), asks which to use. Reads all open issues across APP and API. Discloses scope searched, time horizon, issue count, and whether the result is complete or filtered.
 - **You get:** A summary: 12 issues inspected, 3 ready to pull, 3 needs story work, 2 blocked, 2 in progress, 2 unassigned. Top 5 candidates listed with readiness state. Jira not changed.
 - **You decide:** Does the ready count look right? If an item is missing or mislabelled, ask why — the agent will explain what signal it couldn't read.
 
@@ -137,7 +137,7 @@ goodOutputDescription: "A grouped backlog summary showing 12 issues across APP a
 
 ### 4. Share the result
 
-- **You say:** "Give me a stand-up summary for the Atlas team. Include progress, blockers, risks, and what is ready next. Then prepare a concise weekly version suitable for the Atlas Confluence space. Do not publish until I approve it."
+- **You say:** "Give me a stand-up summary for the Acme team. Include progress, blockers, risks, and what is ready next. Then prepare a concise weekly version suitable for the Acme Confluence space. Do not publish until I approve it."
 - **Agent does:** Produces a stand-up block (in-progress, ready, blocked, risks) and a Confluence draft. Does not publish.
 - **You get:** A stand-up summary and a Confluence draft to review. The draft shows the target page and space.
 - **You decide:** Review the Confluence draft. When satisfied, say "Publish." The agent will not publish without your instruction.

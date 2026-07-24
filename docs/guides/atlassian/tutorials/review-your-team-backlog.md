@@ -1,6 +1,6 @@
 # Review your team's Jira backlog from start to finish
 
-**What you'll do:** Ask the agent to show you everything the Atlas team has in their
+**What you'll do:** Ask the agent to show you everything the Acme team has in their
 Jira backlog, identify what's ready to pick up and what needs work, draft story
 improvements, approve three targeted Jira updates, and prepare a stand-up summary.
 
@@ -18,9 +18,7 @@ means you're ready.
 
 ## Progress
 
-```
-1. See the work   →   2. Improve weak stories   →   3. Apply approved changes   →   4. Share the result
-```
+1. See the work → 2. Improve weak stories → 3. Apply approved changes → 4. Share the result
 
 This tutorial walks all four stages once, in order.
 
@@ -47,7 +45,7 @@ For the full credential model, see [Credentialed skills](../../credential-broker
 
 ## Stage 1 — See the work
 
-**Goal:** get a complete, read-only snapshot of everything the Atlas team has
+**Goal:** get a complete, read-only snapshot of everything the Acme team has
 across APP and API.
 
 ### Step 1.1 — The opening request
@@ -55,7 +53,7 @@ across APP and API.
 Say this to your agent:
 
 ```
-Show me the whole Atlas team backlog across APP and API.
+Show me the whole Acme team backlog across APP and API.
 
 Include the current sprint, open backlog, unassigned work, and blocked issues.
 Group everything into:
@@ -73,14 +71,14 @@ Do not change Jira.
 
 When two matching scopes exist, the agent asks before proceeding:
 
-> "I found two possible Atlas scopes:
+> "I found two possible Acme scopes:
 >
-> 1. The Atlas Jira board
-> 2. Issues whose Team field is Atlas
+> 1. The Acme Jira board
+> 2. Issues whose Team field is Acme
 >
 > Which should I use?"
 
-Reply with your preference. If you don't have a Team field configured, say "the Atlas board."
+Reply with your preference. If you don't have a Team field configured, say "the Acme board."
 
 ### Step 1.3 — What you receive
 
@@ -90,13 +88,11 @@ The agent returns a **summary**, not a raw issue dump:
 Scope searched:    APP and API, current sprint (Sprint 24) + open backlog
 Time horizon:      Sprint 24 (active) + all open backlog items
 Issues inspected:  12 issues — complete result, no truncation
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Ready to pull:     3
 Needs story work:  3
 Blocked:           2
 In progress:       2
 Unassigned:        2
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Top 5 candidates for team discussion:
 
 1. APP-203 — Add rate limiting to API gateway (Ready to pull · Standard)
@@ -162,7 +158,6 @@ One block per issue, draft only:
 
 ```
 APP-206 — "Improve performance"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 What is missing:   Q2 — no service or file scope. Q3 — no metric or baseline.
 Why it prevents action: An engineer can't locate the change or know when done.
 Proposed improvement:
@@ -176,7 +171,6 @@ Ready after change?   Yes — all five questions would pass.
 Jira not changed.
 
 APP-219 — "SSO changes for new IdP"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 What is missing:   Q2 — no service or config path. Q3 — no ACs. Q4 — open
                    design question: which IdP fields to map.
 Why it prevents action: An engineer doesn't know what to change or how to
@@ -192,14 +186,13 @@ Ready after change?   Gated — passes once PO confirms tenant ID.
 Jira not changed.
 
 API-104 — "Fix search results"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 What is missing:   Q2 — no endpoint or file. Q3 — "fixed" is not checkable.
 Why it prevents action: "Fix" says nothing actionable about the expected
                         behavior or scope.
 Proposed improvement:
   "GET /api/search?q= returns results ranked by title-match score first,
   then recency. Scope: api/search.py and tests. ACs: query 'atlas' returns
-  Atlas project first; empty query returns 400; tests cover ranking and
+  Acme project first; empty query returns 400; tests cover ranking and
   edge cases."
 Unresolved question:  None — ranking behavior is derivable from existing
                        documentation.
@@ -232,13 +225,11 @@ Before anything is written, the agent shows you exactly what will change:
 
 ```
 Write confirmation — review before applying
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Issues to update:    APP-206, APP-219, API-104
 Field to change:     description (and acceptance criteria sub-field)
 Fields protected:    status, assignee, priority, sprint, labels,
                      issuetype — none of these change
 Total writes:        3 (one update-issue call per issue)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [Cancel]   [Apply all three]
 ```
 
@@ -249,13 +240,11 @@ Total writes:        3 (one update-issue call per issue)
 
 ```
 Result
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Changed:   APP-206 (description updated)
            APP-219 (description updated — Gated; remind PO to confirm tenant ID)
            API-104 (description updated)
 Unchanged: All other issues in APP and API
 Links:     APP-206 · APP-219 · API-104
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 **Failure handling:** If one write fails (a 409 conflict or a permission error),
@@ -273,19 +262,18 @@ publishing until you say so.
 ### Step 4.1 — Stand-up summary
 
 ```
-Give me a stand-up summary for the Atlas team.
+Give me a stand-up summary for the Acme team.
 
 Include progress, blockers, risks, and what is ready next.
 
-Then prepare a concise weekly version suitable for the Atlas Confluence space.
+Then prepare a concise weekly version suitable for the Acme Confluence space.
 Do not publish until I approve it.
 ```
 
 ### Step 4.2 — What you receive
 
 ```
-Atlas team stand-up — Sprint 24
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Acme team stand-up — Sprint 24
 In progress:  APP-198 (OAuth token refresh), API-92 (Webhook retry)
 Completed:    —
 Ready next:   APP-203 (rate limiting), APP-211 (error messages), API-98 (pagination)
@@ -294,11 +282,8 @@ Risks:        APP-219 — needs PO to confirm Okta tenant ID before starting
 Notes:        3 stories updated this session (APP-206, APP-219, API-104).
               APP-220 and API-107 unassigned — team to triage.
 
-───
-
-Atlas weekly update (draft — not published)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This week, the Atlas team progressed OAuth token refresh (APP-198) and webhook
+Acme weekly update (draft — not published)
+This week, the Acme team progressed OAuth token refresh (APP-198) and webhook
 delivery retry (API-92). Three backlog stories were sharpened to be ready for
 engineering. Three items are ready to pull next sprint: rate limiting, error
 message standardisation, and user endpoint pagination. One item (APP-215) is
@@ -314,7 +299,7 @@ The agent will not publish automatically.
 
 ## What you built
 
-You walked the complete Atlas team backlog from end to end:
+You walked the complete Acme team backlog from end to end:
 
 - Oriented to the full backlog state without changing anything
 - Applied the five-question bar to surface exactly what was missing
