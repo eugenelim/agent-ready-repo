@@ -336,26 +336,6 @@ queue   = [
   #   + relevant how-to guides updated.
   {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
 
-  # XD prerequisite · copy-direction (fulfills RFC-0062 — Accepted 2026-07-23)
-  # Governance: RFC-0062 (Accepted), not RFC-0071. RFC-0071 accepted RFC-0062;
-  #   this spec is its implementation, tracked here for ini-003 coordination.
-  # Problem: RFC-0062 designed copy-direction as a full new XD skill. content-design
-  #   landed; copy-direction did not. The three-way copy boundary (copy-direction /
-  #   ux-writing / content-design) must be settled before xd-skill-boundaries (M3a)
-  #   can install frontmatter near-miss guards that reference copy-direction by name.
-  # Deliver: copy-direction SKILL.md per RFC-0062 design (copy twin of
-  #   creative-direction; produces copy-direction.md capturing copy voice goals,
-  #   copy precedents, and copy arbitration rules; scope boundary: marketing/
-  #   acquisition copy voice + positioned copy; feeds ux-writing for per-state
-  #   strings); reference tree; activation eval; XD pack version bump.
-  #   Site/guide: update experience-design pack page (web/ + site/) to list
-  #   copy-direction; update design journey page to include copy-direction in
-  #   the design thread sequence; add how-to guide for the three-way copy boundary
-  #   (copy-direction / ux-writing / content-design — when to use which).
-  # Done: copy-direction skill exists; three-way boundary documented in all three
-  #   skill frontmatter entries; RFC-0062 Date closed confirmed; pack page + journey
-  #   + boundary how-to guide updated.
-  {path = "spec/xd-copy-direction", needs = "work:spec/digital-experience-contract"},
 
   # M3a · XD Skill Boundaries
   # Problem: XD skill frontmatter descriptions are artifact-named not natural-
@@ -537,6 +517,7 @@ queue   = [
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
+  "spec/xd-copy-direction",                        # Shipped 2026-07-23 — copy-direction skill + three-way copy boundary
 ]
 
 ["ini-003".shaping_queue]
