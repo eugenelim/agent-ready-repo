@@ -34,6 +34,27 @@ judging an existing screen, `design-review`.
 
 0. **Surface inventory (multi-surface platforms only).** If the subject is a multi-surface platform: (a) enumerate every surface and label its genre; (b) confirm which surface this pass covers; (c) note which other surfaces exist — they need separate passes; (d) flag: cross-surface wayfinding check required (see step 6). If the subject is a single surface, skip to step 1.
 
+0a. **Identify the page archetype.** Match the surface to one of the twelve
+    archetypes in `references/page-archetypes.md` (marketing landing,
+    onboarding, product workspace, dashboard/admin, transactional flow,
+    pack/catalogue, journey, tutorial, task how-to, reference index,
+    explanation, multi-surface). Read the matched archetype's **first-screen
+    contract**, **critical states**, and **navigation behavior** before
+    designing hierarchy — the archetype has already made the primary
+    structural decisions for that surface type. If no archetype fits cleanly,
+    name the two closest and state which structural decisions each one
+    implies; the closer match wins unless a specific constraint overrides it.
+
+0b. **Identify the product object and apply the object mapping.** Name the
+    primary object on this surface (what the user creates, receives, inspects,
+    changes, or approves — see `references/page-archetypes.md` §
+    Product-object mapping). The object role determines the visual weight of
+    the primary action: creates/changes/approves → primary action at maximum
+    weight; receives → incoming object at maximum weight, action secondary;
+    inspects → no primary action above the fold. Apply the **attention
+    contract** and **read/write permission contract** for this surface from
+    `references/page-archetypes.md` before designing controls.
+
 1. **Frame the surface(s) and route by genre.** For each, write its one job and
    its audience. This anchors every later call. Then **route by surface genre**:
    if the per-screen brief declares a `surface-genre:`, read the corresponding
@@ -78,9 +99,11 @@ judging an existing screen, `design-review`.
    (`../design-review/references/quality-floor.md`). Empty, loading, and
    error states change the IA — first-run orients and invites, no-results
    shows recovery, loading preserves layout so the surface doesn't jump.
-8. **Write the IA doc** — the ranked content, the reading pattern and why,
-   the disclosure stages, the navigation shape, the wayfinding plan, and
-   the per-state layout notes. Reasoning and rationale, no layout code.
+8. **Write the IA doc** — the matched archetype and first-screen contract,
+   the product object and its role, the attention and permission contracts,
+   the ranked content, the reading pattern and why, the disclosure stages,
+   the navigation shape, the wayfinding plan, and the per-state layout notes.
+   Reasoning and rationale, no layout code.
 
 ## Anti-patterns to refuse
 
@@ -97,3 +120,9 @@ judging an existing screen, `design-review`.
   product that feels broken at the edges.
 - **A tree that mirrors the schema or org chart.** Group by how users look
   for things, not by how the data is stored or the team is organized.
+- **Skipping archetype identification.** The archetype's first-screen contract
+  and navigation behavior are load-bearing — skipping them means designing
+  hierarchy without a frame, then discovering the mismatch in design review.
+- **Ignoring the permission contract.** A surface that shows edit controls
+  to a read-only user, or a destructive action without a confirmation
+  pattern, is not finished IA — it is an accessibility and trust failure.

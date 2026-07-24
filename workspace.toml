@@ -377,7 +377,8 @@ queue   = [
   # Done: IA skill references archetypes; product-object mapping is a required
   #   workflow step; card-use test documented; IA how-to guide + archetype
   #   reference published; design journey page updated.
-  {path = "spec/xd-ia-archetypes-objects", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
+  # spec/xd-ia-archetypes-objects — Shipped 2026-07-23; moved to shipped below.
+  # {path = "spec/xd-ia-archetypes-objects", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
 
   # M3d · XD State Coverage, Experience Reviewer Three Passes, Evals
   # Problem: quality-floor.md state set is incomplete (missing offline, blocked,
@@ -494,6 +495,7 @@ shipped = [
   "spec/frontend-engineering-doctrine-update",     # Shipped 2026-07-23 — FE doctrine: four modes, 18 states, WCAG 2.2 AA, CWV targets (core 0.14.0)
   "spec/product-strategy-adoption-doctrine",       # Shipped 2026-07-23 — M2a Product Strategy Adoption Doctrine
   "spec/xd-skill-boundaries",                       # Shipped 2026-07-23 — copy-direction near-miss guards across all 17 unguarded XD skills (1.2.1)
+  "spec/xd-ia-archetypes-objects",                   # Shipped 2026-07-23 — page archetypes, product-object mapping, card-use test, attention + permission contracts (1.3.0)
 ]
 
 ["ini-003".shaping_queue]

@@ -44,7 +44,7 @@ skills:
     description: "Derives the design token set from the creative direction — the primitive and semantic tokens that carry the design into code."
     humanTouches: 0
   - name: information-architecture
-    description: "Designs the layout zones and information hierarchy for a screen, given its per-screen brief."
+    description: "Identifies the page archetype, names the product object and permission contract, then designs the layout zones and information hierarchy for a screen, given its per-screen brief."
     humanTouches: 0
   - name: analytical-design
     description: "Produces a structural specification for an analytical surface — dashboard IA, widget hierarchy, and role-based view architecture — from business questions and domain model."
@@ -153,9 +153,9 @@ relatedJourneys:
 
 ### 4. Design each screen
 
-- **Agent does:** runs a structural IA skill on each screen — `information-architecture` for general screens, or a genre-specific skill for dashboards (`analytical-design`), marketing surfaces (`conversion-design`), docs (`documentation-design`), editorial pages (`informational-design`), marketplaces (`marketplace-design`), or workspace tools (`workspace-design`) — then `interaction-design` for states and transitions, and `design-review` as a pre-independent-review self-check.
-- **You do:** watch each screen take shape; if a screen is missing a state — no empty state for a list, no loading state for an async action — name it; catching it here is cheaper than the independent review.
-- **Output:** a self-reviewed screen set with states, transitions, and accessibility checks applied.
+- **Agent does:** For each screen, first runs `information-architecture` to identify the **page archetype** (marketing landing, onboarding, product workspace, dashboard/admin, transactional flow, pack/catalogue, journey, tutorial, task how-to, reference index, explanation, or multi-surface) and apply its first-screen contract; then names the **product object** and the user's role with it (creates / receives / inspects / changes / approves), which determines the visual weight of the primary action. Applies the appropriate **attention contract** (no-action / optional-progress / decision-required / blocked-pending) and **read/write permission contract** (read-only / draft / proposed-write / confirmed-write / destructive / undo-recovery) before designing controls. For genre-specific surfaces, runs the matched genre skill — `analytical-design` for dashboards, `conversion-design` for marketing surfaces, `documentation-design` for docs, `informational-design` for editorial pages, `marketplace-design` for catalogues, or `workspace-design` for workspace tools — then `interaction-design` for states and transitions, and `design-review` as a pre-independent-review self-check.
+- **You do:** watch each screen take shape; if a screen is missing a state — no empty state for a list, no loading state for an async action — name it; if a destructive action lacks a confirmation pattern, flag it; catching both here is cheaper than the independent review.
+- **Output:** a self-reviewed screen set with archetype, product-object mapping, permission and attention contracts, states, transitions, and accessibility checks applied.
 
 ---
 
