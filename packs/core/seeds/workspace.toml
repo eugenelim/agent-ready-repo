@@ -5,8 +5,10 @@
 # ready items, blocked items, and active signals — or to initialise this file
 # with your first initiative and the full schema.
 #
-# Queue entries are strings (no deps) or inline objects {path/slug, needs}.
-# `needs` uses queue-prefix notation:
+# Queue entries are strings (no deps) or inline objects
+# {path/slug, needs?, source?, summary?, type?}. `summary` is a short one-line label
+# that workspace-status renders as the item's title; a fuller `#` comment below an
+# entry can carry cold-start detail. `needs` uses queue-prefix notation:
 #   "work:<path>"      — depends on a work queue entry
 #   "shape:<slug>"     — depends on a shaping queue entry
 #   "research:<slug>"  — depends on a research entry
@@ -14,7 +16,7 @@
 #   "backlog:<slug>"   — depends on a repo-level [backlog] item
 #
 # The [backlog] section below tracks open work not yet scoped to an initiative.
-# Add items as: {slug = "my-deferred-item"}
+# Add items as: {slug = "my-deferred-item", summary = "one-line label"}
 # When a backlog item is blocked by another tracked item, encode it as a `needs`
 # edge (e.g. {slug = "b", needs = "backlog:a"}) — not just a prose comment.
 # Run `workspace-status` to see all open backlog items.

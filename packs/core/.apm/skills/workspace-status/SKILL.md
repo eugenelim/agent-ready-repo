@@ -67,7 +67,10 @@ open = []
 
 ### 2. Resolve the DAG
 
-For each initiative's `[work]` and `[shaping_queue]`:
+Consider only initiatives whose `status` is `active`. Skip `paused` and `closed`
+initiatives — they contribute no ready, blocked, or parallel items and are not
+listed under "Active initiatives" (a `closed` initiative is a completed record kept
+for history). For each active initiative's `[work]` and `[shaping_queue]`:
 
 - A queue entry is **ready** when all its `needs` entries are satisfied (see below).
 - A queue entry is **blocked** when one or more `needs` entries are not yet satisfied.
@@ -176,34 +179,69 @@ Use a comment-preserving write — targeted text insertion or `tomlkit`; never a
 If the Reconciliation block from Step 2a is non-empty (N > 0), it has already been
 output first. Continue with the following sections.
 
-Format output in four sections (omit sections with no entries):
+**Rendering** — match the output shape to the content; emit only the shapes named
+below, and keep any runnable command intact and unwrapped so it can be copied.
+Omit any section with no entries.
+
+- **Status list** — Ready to start, Blocked, Backlog, and signals lead each row
+  with a status glyph, glyph first, one item per line: `○` ready · `●`
+  active/in-progress · `⚠` blocked · `✓` shipped. Label each row with the entry's
+  `summary` field when it has one; otherwise fall back to the slug/path alone.
+- **Table** — Active initiatives, when more than one is active: columns
+  `Initiative · Name · Milestone · Shipped`, shipped count right-aligned. A single
+  active initiative uses the one-line form.
+- **Key–value** — Brief queue: an aligned `label: value` list (Executing / Ready /
+  Draft), not a table.
+- **Diagram/flow** — the Step 6b dependency graph: prefer a fenced `mermaid` flow
+  in chat; keep the ASCII block as the terminal-only fallback.
+- **Table (already)** — Findings: the RFC-candidate and roadmap-intent registers
+  stay full Markdown tables (see the Findings section).
+
+Format output in the sections below:
 
 ---
 
-**Active initiatives:** `<ini-slug>` — `<name>` (milestone: `<milestone>`)
+**Active initiatives** — one active, the one-line form:
+`<ini-slug>` — `<name>` (milestone: `<milestone>`). More than one active, a table
+(shipped = `len([work].shipped)`, right-aligned):
+
+| Initiative | Name | Milestone | Shipped |
+|---|---|---|--:|
+| `<ini-slug>` | `<name>` | `<milestone>` | `<n>` |
 
 **Active context — signals** _(ongoing; do not need action):_
-- `<slug>` (`signal`) — no action needed; informs shaping decisions
+- `○` `<slug>` (`signal`) — no action needed; informs shaping decisions
 
-**Ready to start:**
-- `[build]` `<path>` — run `work-loop` on `docs/specs/<path>/`
-- `[shape]` `<slug>` (`shape`) — run `frame-intent`
-- `[shape]` `<slug>` (`research`) — run `desk-research-project-start`
-- `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
-- `[shape]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
-- `[brief]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
+**Ready to start:** _(status list — `○` ready, glyph first)_
+- `○` `[build]` `<path>` — run `work-loop` on `docs/specs/<path>/`
+- `○` `[shape]` `<slug>` (`shape`) — run `frame-intent`
+- `○` `[shape]` `<slug>` (`research`) — run `desk-research-project-start`
+- `○` `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
+- `○` `[shape]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
+- `○` `[brief]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
 
 **Parallel candidates:** _(all of the above with no inter-dependencies can start concurrently)_
 
-**Blocked:**
-- `<path>` — waiting on `<needs-entry>` (status: `<queued|in-progress>`)
+**Blocked:** _(status list — `⚠`, glyph first)_
+- `⚠` `<path>` — waiting on `<needs-entry>` (status: `<queued|in-progress>`)
 
 **Brief queue:**
 - Executing: `<path>` (or "none")
 - Ready: `<count>` item(s)
 - Draft: `<count>` item(s)
 
-**Closeout check:** if `[work].queue` is empty and `[work].active` is empty and `[work].shipped` is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
+**Closeout check** — two moments, each eliciting a decision:
+
+- **Initiative complete (last item shipped):** if `[work].queue` and `[work].active`
+  are both empty and `[work].shipped` is non-empty → elicit: "`<ini-slug>`: all specs
+  shipped — mark the initiative completed? (sets `status = "closed"`; it then drops
+  off the active surface, and git history preserves the record)." On confirmation,
+  set that initiative's `status = "closed"` with a comment-preserving edit (`tomlkit`
+  or targeted text edit; never a `tomllib`+`tomli_w` round-trip).
+- **Last item about to start:** if exactly one unshipped item remains across
+  `[work].queue` + `[work].active` (their combined count is 1) → when surfacing that
+  item, note: "last item in `<ini-slug>` — shipping it completes the initiative, and
+  `work-loop` will offer to mark it closed on ship."
 
 **Findings:** Read `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if they exist. Count non-header rows in each (a non-header row is any `|…|` line after the header separator row — the `|---|...|` line of dashes).
 
@@ -213,13 +251,13 @@ Format output in four sections (omit sections with no entries):
 **Backlog:** when `[backlog].open` in `workspace.toml` is non-empty, render:
 
 ```
-**Backlog** — N open item(s):
-- `[shape]` `<slug>` — <first # comment line above the entry>
-- `[build]` `<slug>` — <first # comment line above the entry>
+**Backlog** — N open item(s): _(status list — `○` open, glyph first)_
+- `○` `[shape]` `<slug>` — <summary>
+- `○` `[build]` `<slug>` — <summary>
   ...
 ```
 
-Each entry is prefixed with its room: `[shape]` when the entry carries a `type` field (shaping work); `[build]` when it does not (build work). To extract the first comment line: read `workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
+Each entry is prefixed with its room: `[shape]` when the entry carries a `type` field (shaping work); `[build]` when it does not (build work). Use the entry's `summary` field as the item label. For back-compat with un-migrated entries that carry no `summary`, fall back to the nearest `# ` comment line immediately preceding `{slug = "<slug>"}` (read `workspace.toml` as text; strip the leading `# `). If neither is present, render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
 
 ---
 
@@ -239,7 +277,7 @@ If the required pack is not installed, surface: "requires `<pack-name>` pack —
 
 ### 5. Missing fields
 
-`workspace.toml` evolves: older entries may lack a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
+`workspace.toml` evolves: older entries may lack a `summary` field (fall back to the nearest preceding comment line, then the bare slug/path), a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
 
 ### 6. Next-actions
 
@@ -258,7 +296,10 @@ From the state already computed in Step 2:
 
 **6b. ASCII dependency graph (when ≥2 unblocked work items)**
 
-If `len(unblocked) ≥ 2`, render the following block _before_ the numbered choices:
+If `len(unblocked) ≥ 2`, render the dependency relationships _before_ the numbered
+choices. In chat, prefer a fenced `mermaid` flowchart (`flowchart LR`, one node per
+unblocked or blocked item, an edge from each blocked item to its `<dep-slug>`); on a
+terminal-only surface, fall back to the ASCII block below:
 
 ```
 Work queue — parallel opportunities:
