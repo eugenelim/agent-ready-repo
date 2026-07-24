@@ -1,12 +1,4 @@
-# Azure provider reference — experimental, not validated in v1
-
-> **experimental — not validated in v1.** This reference is `contract-complete`
-> but no worked example has passed `init -backend=false && fmt -check &&
-> validate`. Treat as a starting point; verify the four-file contract produces
-> valid HCL for your Azure configuration before relying on it.
->
-> Named maintainer: eugenelim. Deprecation path: if this reference is not
-> validated by v1.1, it will be marked deprecated.
+# Azure provider reference
 
 ## Four-file contract
 
