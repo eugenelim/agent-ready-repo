@@ -3,16 +3,18 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Run a SWOT analysis for a mid-market B2B SaaS company entering the HR analytics market. No prior strategy artifacts exist.",
-      "expected_output": "A swot-analysis.md artifact committed to the resolved layout path (docs/product/shaping/swot-analysis.md by default). The artifact names the scope (B2B SaaS, HR analytics, specific time horizon). Each of the four quadrants — Strengths, Weaknesses, Opportunities, Threats — contains at least three entries with specific, evidence-grounded claims (not generic assertions). The synthesis section derives at least one SO, ST, WO, and WT strategic implication pair. The framework (SWOT) is named; no definition or verbatim framework text appears. The resolved path is surfaced before writing.",
+      "prompt": "Run a SWOT analysis for a B2B SaaS company entering the project management market. We have strong enterprise sales relationships, deep workflow integration expertise, and $10M ARR in adjacent markets. The market is crowded with Asana, Monday, Jira, and Linear competing on features. We're a late entrant.",
+      "expected_output": "A swot-analysis.md artifact committed to the resolved layout path with frontmatter type: swot-analysis. The SWOT covers four quadrants with at least three entries per quadrant, each specific and sourced (not generic). Strategic implications section covers SO, ST, WO, and WT pairs (at least one each). The synthesis explicitly names an adoption hypothesis: which SO pair translates into a first-success event, and what that first-success event is (a specific customer behavior, not 'user signs up'). The synthesis explicitly names a differentiation mechanism: the structural advantage that makes the position defensible (not a generic 'we'll be better' claim). The scope, time horizon, and competitive reference point are stated upfront. No strategy decisions or OKR targets appear — SWOT maps the situation.",
       "assertions": [
-        "Scope is named before the quadrants are populated — entity, time horizon, and competitive reference point are explicit",
-        "Each quadrant has at least three entries; entries are specific (name a real capability, asset, gap, trend, or risk) not generic",
-        "Weaknesses are direct and honest — softened weaknesses or positive reframings are not accepted",
-        "Opportunities reference at least one observable external signal (trend, regulatory shift, competitor gap) with a named source or proxy",
-        "Threats include a rough time horizon (near-term / medium-term) for at least one entry",
-        "Strategic implications section derives at least one SO, ST, WO, and WT pair",
-        "SWOT is named as the framework; no definition, template structure, or verbatim explanation of SWOT appears in the output",
+        "Strengths are internal capabilities — not market conditions or external trends; at least three named",
+        "Weaknesses are direct and specific — not softened; at least one names a genuine competitive disadvantage",
+        "Opportunities reference an evidence source (PESTLE output, competitor move, market research) — not generic trends",
+        "Threats name a time horizon (near-term / medium-term) for at least two entries",
+        "Strategic implications section covers all four pair types: SO, ST, WO, WT with at least one entry each",
+        "Adoption hypothesis is named: which opportunity-strength pair produces a first-success event, and what that event is behaviorally",
+        "Differentiation mechanism is named: a specific structural advantage (switching cost, network effect, data advantage, proprietary capability) — not a generic quality claim",
+        "The scope and competitive reference point are stated at the start",
+        "No OKR targets, no strategy decisions, no implementation plans appear — SWOT is a situation map",
         "The artifact is committed to the resolved path with frontmatter type: swot-analysis; path is surfaced before writing"
       ]
     }

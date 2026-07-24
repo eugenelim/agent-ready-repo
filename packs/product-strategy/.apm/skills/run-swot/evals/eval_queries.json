@@ -1,14 +1,15 @@
 [
-  {"query": "Run a SWOT analysis for our product", "should_trigger": true},
-  {"query": "I need a situation synthesis before setting strategy", "should_trigger": true},
-  {"query": "What are our strengths and weaknesses as a company?", "should_trigger": true},
-  {"query": "Map out the opportunities and threats in our market", "should_trigger": true},
-  {"query": "I need to understand our competitive position before the planning session", "should_trigger": true},
-  {"query": "Do a SWOT on our market entry into Europe", "should_trigger": true},
+  {"query": "Run a SWOT on our company", "should_trigger": true},
+  {"query": "I need to understand our position before setting strategy", "should_trigger": true},
+  {"query": "Situation synthesis before we commit to a direction", "should_trigger": true},
+  {"query": "What are our strengths and weaknesses relative to this market opportunity", "should_trigger": true},
+  {"query": "Map out our opportunities and threats before we decide", "should_trigger": true},
+  {"query": "Help me build the situation picture before we set OKRs", "should_trigger": true},
 
-  {"query": "Run Porter's Five Forces on the SaaS industry", "should_trigger": false},
-  {"query": "What is our macro environment — run PESTLE", "should_trigger": false},
-  {"query": "Map the customer journey for our onboarding flow", "should_trigger": false},
-  {"query": "I need to cascade our company OKRs to team level", "should_trigger": false},
-  {"query": "Write the press release before the product", "should_trigger": false}
+  {"query": "Run a PESTLE analysis on our market", "should_trigger": false},
+  {"query": "Run Porter's Five Forces for our industry", "should_trigger": false},
+  {"query": "Cascade OKRs to identify strategic gaps", "should_trigger": false},
+  {"query": "Define our UX strategy", "should_trigger": false},
+  {"query": "Write a PRFAQ for this product idea", "should_trigger": false},
+  {"query": "Just summarize our strengths as a company — don't analyze threats or implications, keep it positive", "should_trigger": false}
 ]

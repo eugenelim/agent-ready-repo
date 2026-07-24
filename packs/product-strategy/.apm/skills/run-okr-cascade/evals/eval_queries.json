@@ -1,14 +1,15 @@
 [
-  {"query": "Cascade our company OKRs to team level", "should_trigger": true},
-  {"query": "I need to identify gaps between our OKRs and our current capabilities", "should_trigger": true},
-  {"query": "Run an OKR cascade and add gaps to the shaping queue", "should_trigger": true},
-  {"query": "Align our team OKRs to the company objectives", "should_trigger": true},
-  {"query": "What are we missing to hit our Q3 objectives?", "should_trigger": true},
-  {"query": "Map company goals to team-level Key Results and find the gaps", "should_trigger": true},
+  {"query": "Run an OKR cascade from company to team level", "should_trigger": true},
+  {"query": "I need to cascade company OKRs down to our team", "should_trigger": true},
+  {"query": "Align our team OKRs to company goals and identify the gaps", "should_trigger": true},
+  {"query": "What are the gaps between our current state and our OKR targets", "should_trigger": true},
+  {"query": "Which metrics causally predict our north-star and map to OKR gaps", "should_trigger": true},
+  {"query": "Derive the causal metric tree from our OKRs", "should_trigger": true},
 
-  {"query": "Run a SWOT analysis", "should_trigger": false},
-  {"query": "Set per-feature goals for the next sprint", "should_trigger": false},
-  {"query": "Map the customer journey for our onboarding", "should_trigger": false},
-  {"query": "Define the UX strategy before design begins", "should_trigger": false},
-  {"query": "Synthesize stakeholder research into strategic direction", "should_trigger": false}
+  {"query": "Set goals for the next sprint", "should_trigger": false},
+  {"query": "Write OKRs for a specific feature team", "should_trigger": false},
+  {"query": "Define our UX strategy objectives", "should_trigger": false},
+  {"query": "Run a SWOT on our OKR coverage", "should_trigger": false},
+  {"query": "Give me a list of metrics we should track", "should_trigger": false},
+  {"query": "Give me a list of 10 metrics we should track without telling me how they causally relate to each other", "should_trigger": false}
 ]
