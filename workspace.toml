@@ -1078,23 +1078,6 @@ open = [
   # Unblocks when: someone opens the integrity-pinning RFC.
   {slug = "convenient-install-defaults-followons", source = "spec/convenient-install-defaults"},
 
-  # Org forks of agentbundle can already ship a default catalogue source via
-  # install-defaults.toml (RFC-0072 layer 3). A complementary preferred-adapter
-  # hint would let orgs that standardize on one IDE (e.g. Cursor or Claude Code)
-  # skip typing --adapter on every install. The hint is per-org (not per-developer)
-  # because it lives in the packaged _data/install-defaults.toml, so it only applies
-  # to orgs that ship their own agentbundle fork/wheel.
-  # Shape: [organization] preferred_adapter = "cursor" — silently overridden by an
-  #   explicit --adapter flag; ignored when the pack's allowed-adapters list doesn't
-  #   include it; never persisted in state (it's a convenience default, not provenance).
-  # Note: RFC-0046 mentioned an "in-repo adapter override" (repo-scoped, overrides
-  #   user preference) as a possible follow-on. That concept is NOT pursued — a cloned
-  #   repo directing which adapter paths get written has the same trust boundary problem
-  #   as repo-scoped source (blocked by ADR-0036). The org preferred-adapter hint here
-  #   is the right level: org-distributed in the packaged wheel, not repo-injected.
-  # Separable from ini-004: touches install-defaults.toml and install.py independently.
-  {slug = "install-defaults-preferred-adapter-hint"},
-
   # Live-install transcripts for apm install of core (project scope), converters
   # (user scope), and per-target characterisation at Copilot/Cursor/Gemini are
   # pending (manual-QA matrix rows 32–34). Three uncovered HookIntegrator targets

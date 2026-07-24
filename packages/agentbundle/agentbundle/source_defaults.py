@@ -243,6 +243,62 @@ def read_packaged_default() -> str | None:
     return _source_from_install_defaults(text)
 
 
+def _preferred_adapter_from_install_defaults(text: str) -> str | None:
+    """Parse ``[organization].preferred_adapter`` from ``install-defaults.toml`` text.
+
+    Returns ``None`` for malformed TOML, a missing ``[organization]`` table, or an
+    absent/blank ``preferred_adapter`` (the private-fork pattern).  Validation
+    against the shipped adapter contract is left to the caller.
+    """
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return None
+    organization = data.get("organization")
+    if not isinstance(organization, dict):
+        return None
+    raw = organization.get("preferred_adapter")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    return raw
+
+
+def read_packaged_preferred_adapter() -> str | None:
+    """Return the validated ``[organization].preferred_adapter`` from the packaged
+    ``_data/install-defaults.toml``, or ``None``.
+
+    An absent file, an absent ``[organization]`` table, or an absent/blank
+    ``preferred_adapter`` all yield ``None`` (the private-fork pattern — silent
+    fall-through, no error).
+
+    A present but invalid value (not in the shipped adapter contract) raises
+    :class:`~agentbundle.catalogue.CatalogueError` naming the invalid value and
+    the admissible set — fail-closed so a misconfigured org fork is diagnosed at
+    install time rather than silently falling through to auto-probe.
+    """
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle").joinpath("_data/install-defaults.toml")
+        if not resource.is_file():
+            return None
+        text = resource.read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError, OSError):
+        return None
+    raw = _preferred_adapter_from_install_defaults(text)
+    if raw is None:
+        return None
+    from agentbundle.scope import shipped_adapters_from_contract
+    shipped = shipped_adapters_from_contract()
+    if raw not in shipped:
+        raise CatalogueError(
+            f"install-defaults.toml: [organization].preferred_adapter {raw!r} is "
+            f"not in the shipped adapter contract. Admissible: {sorted(shipped)}. "
+            f"Blank the value to disable the org hint."
+        )
+    return raw
+
+
 def _load_distribution() -> object | None:
     """Return the ``agentbundle`` distribution, **preferring** one that carries
     a ``direct_url.json`` (the editable record).

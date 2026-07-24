@@ -32,7 +32,11 @@ mechanism, two modes.
    creative-writing catalogue; always keep the engine, a `core`, and
    `catalogue-curation` itself so the fork can curate itself.
 5. **Persists the fork's own defaults** — its default adapter and self-host set —
-   into the target copy, so every future user of the fork inherits them.
+   into the target copy, so every future user of the fork inherits them. After
+   export, add `[organization].preferred_adapter` to `_data/install-defaults.toml`
+   in the fork's packaged wheel to set a default adapter for every developer who
+   installs from your fork — no `--adapter` or personal `agentbundle config set`
+   required (see [Org adapter default](../../_shared/reference/agentbundle.md#org-adapter-default)).
 6. **Verifies, fail-closed** — greps the target for any surviving upstream
    identity (case-insensitive, text files, declared literals). In white-label
    mode a single hit **hard-fails the export**; in attributed mode a hit is

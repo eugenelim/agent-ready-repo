@@ -102,6 +102,15 @@ is deliberately lossy per tool.
 
 Point a catalogue URI (a git URL or a local path) at the repo that holds your packs. Then `validate` a pack against the adapter contract, `render` it to preview the projection, and `install` it into a target repo. `scaffold` drops a pack's seeds into a fresh directory to start from. The build pipeline (`agentbundle.build`) is the same engine `make build` runs.
 
+**Org adapter default:** If your org ships a private `agentbundle` wheel (or a fork pinned to your internal catalogue), you can set a default adapter for all developers without requiring them to run `agentbundle config set` or pass `--adapter` on every install. Add an `[organization]` table to `_data/install-defaults.toml` in your fork:
+
+```toml
+[organization]
+preferred_adapter = "cursor"
+```
+
+The org hint fires after the user-config but before the on-disk IDE probe — so `--adapter`, user-config, and upgrade state-hints all take priority. An invalid value exits 1 before writing anything. See the [`agentbundle` reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/reference/agentbundle.md#org-adapter-default) for the full cascade.
+
 See the [pack layout reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/architecture/pack-layout.md) and [authoring a skill](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/how-to/author-a-skill.md).
 
 ## Credentials
