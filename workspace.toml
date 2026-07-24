@@ -498,6 +498,249 @@ shipped = [
 active  = []
 backlog = []
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ini-004 · AgentBundle Enterprise Distribution
+#
+# Makes agentbundle viable in corporate/enterprise environments by closing four
+# interconnected gaps: source provenance (PackState), observability (JSON status
+# output), operations (bulk upgrade with adapter-row granularity), and distribution
+# infrastructure (HTTPS catalogue channels, organization bootstrap, catalogue
+# packaging, and corporate update documentation).
+#
+# Non-goals (do not implement in this initiative): full hosted registry, registry
+# search/publication APIs, dependency solver, pack@version selectors, upgrade --to/
+# --latest, multiple named user registries, background update daemon, cross-scope
+# transaction, cross-pack rollback, Artifactory AQL-based discovery, sorting
+# filenames to infer latest release. Runtime remains Python 3.11 stdlib-only.
+#
+# ADR decisions required before code starts (resolved in the RFC gate):
+#   1. Mutable channel descriptor pointing to an immutable versioned archive.
+#   2. Package-shipped organization bootstrap configuration.
+#   3. Source identity as part of pack ownership at a scope.
+#   4. Bulk upgrade: preflighted but not transactionally atomic.
+#
+# Backlog connections:
+#   - multi-adapter-state-lock-uninstall-upgrade: bulk upgrade touches the upgrade
+#     command extensively; the uninstall/upgrade state-write concurrency gap stays
+#     a separate backlog item — note it explicitly in spec/upgrade-bulk-all scope.
+#   - upgrade-orphan-removal-on-projection-shape-change: bulk upgrade may trigger
+#     projection shape changes; orphan removal stays a separate backlog item.
+#   - convenient-install-defaults-followons: SHA-256 verification introduced here
+#     closes the integrity concern for catalogue+https / archive+https sources;
+#     git+https integrity pinning remains open.
+#   - artifactory-first-publish-gesture: becomes actionable once ini-004 ships
+#     (packaging infrastructure exists; first upload still needs GitHub secrets).
+# ─────────────────────────────────────────────────────────────────────────────
+["ini-004"]
+name      = "AgentBundle Enterprise Distribution"
+status    = "active"
+milestone = "M1 · Source Provenance + Conflict Guard"
+
+["ini-004".shaping_queue]
+active  = []
+backlog = []
+
+["ini-004".work]
+active  = []
+shipped = []
+queue   = [
+
+  # ── RFC gate ─────────────────────────────────────────────────────────────────
+  # Problem: four architecture decisions (mutable channel → immutable archive,
+  #   package-shipped org bootstrap, source identity as pack ownership, bulk upgrade
+  #   preflighted not atomic) plus three new public CLI surfaces (--format flag on
+  #   list-installed/upgrade, --all bulk upgrade mode, agentbundle package-catalogue
+  #   command) all need coordinated ratification before implementation begins.
+  # Deliver: RFC formally proposing the CLI surface additions and the new source-scheme
+  #   introduction (catalogue+https / archive+https); four ADR stubs resolving the
+  #   design decisions; acceptance unlocks all M1–M6 implementation specs.
+  # Done: RFC accepted; four ADR decisions ratified; downstream specs reference a
+  #   stable, agreed design.
+  "spec/rfc-agentbundle-enterprise-distribution",
+
+  # ── M1a · PackState Source Provenance ────────────────────────────────────────
+  # Problem: PackState hard-codes source = "agent-ready-repo" regardless of actual
+  #   install origin. The historical literal is indistinguishable from a real record,
+  #   making all source-based operations — conflict detection, upgrade routing, status
+  #   reporting — unreliable.
+  # Deliver: source: str | None = None with no default; single canonicalization function
+  #   used by install, upgrade, status, and conflict checks (local: absolute normalized
+  #   path; remote: logical channel URI, normalized scheme/host, no credentials, no
+  #   temporary extraction paths); legacy-unknown semantics for None and the historical
+  #   "agent-ready-repo" literal (neither proves public-repo origin); explicit source
+  #   write in all install/upgrade paths; tested migration contract (legacy rows
+  #   preserved on read, provenance not invented); upgrade source selection order
+  #   documented (explicit arg → row source → configured default for legacy-only rows).
+  # Done: new installs never write a hard-coded source; all paths use the
+  #   canonicalization function consistently; legacy rows parse cleanly without mutation;
+  #   all existing tests pass.
+  {path = "spec/packstate-source-provenance", needs = "work:spec/rfc-agentbundle-enterprise-distribution"},
+
+  # ── M1b · Source Conflict Install Guard ──────────────────────────────────────
+  # Problem: the same pack name can be installed at one scope from multiple sources
+  #   across different adapter rows, creating unresolvable provenance ambiguity that
+  #   silently corrupts upgrade routing and status reporting.
+  # Deliver: pre-install scan of all adapter rows for the same pack name at the target
+  #   scope; refusal when canonical sources differ (concrete vs. concrete, or concrete
+  #   vs. legacy/unknown); --force does not bypass a source mismatch; refusal fires before
+  #   any projection write, hook, state write, or other mutation; error message identifies
+  #   existing adapters and their sources; same-scope, same-source, multi-adapter install
+  #   remains allowed; cross-scope (repo vs. user) same-pack from different sources is not
+  #   blocked (status may warn).
+  # Done: second-source install is refused before any mutation; same-source multi-adapter
+  #   install is not falsely rejected; --force bypass is confirmed non-functional.
+  {path = "spec/source-conflict-install-guard", needs = "work:spec/packstate-source-provenance"},
+
+  # ── M2 · Update Status + JSON Output ─────────────────────────────────────────
+  # Problem: list-installed produces a human table only, with no machine-readable
+  #   output and no accurate update-status semantics. It does not distinguish "ahead"
+  #   from "up-to-date," gives no actionable reason for "unknown" rows, and assumes
+  #   every installed pack comes from one source.
+  # Deliver: --format table|json flag (table default); status values up-to-date /
+  #   upgrade-available / ahead / unknown; unknown with machine-readable reason codes
+  #   (source-unavailable, source-unknown, pack-not-found, unparseable-*-version,
+  #   incompatible-contract, adapter-no-longer-supported, malformed-catalogue);
+  #   --updates-only filter (includes upgrade-available, ahead, unknown; excludes
+  #   up-to-date only); multiple-source grouping (resolve each source once per
+  #   invocation; one source failure does not hide rows from other sources); stable
+  #   JSON contract (schema_version 1, sources array, rows with status_reason, summary);
+  #   credential-redacted source strings; diagnostics to stderr; no state mutation.
+  # Done: JSON stdout parses cleanly; ahead is never misreported as up-to-date; all
+  #   unknown reasons are covered by tests; adapter-specific installed versions remain
+  #   independent.
+  {path = "spec/list-installed-update-status", needs = "work:spec/packstate-source-provenance"},
+
+  # ── M3 · Bulk Upgrade (--all) ─────────────────────────────────────────────────
+  # Problem: upgrade requires a single named pack; there is no way to upgrade all
+  #   installed packs in one scoped operation, and multiple adapter rows for one pack
+  #   do not independently track their upgrade state.
+  # Deliver: --pack <name> | --all (mutually exclusive, one required); --scope required
+  #   for --all (no --scope all, no inferred dual scope); adapter-row model (each (pack,
+  #   adapter) pair is an independent upgrade row); preflight before all writes (resolve
+  #   sources, compare versions, check manifests, render projections, path-jail, classify
+  #   all rows); blocked rows (unknown / source error / manifest error) prevent all writes;
+  #   deterministic apply order (canonical source → pack → adapter); stop-on-first-failure
+  #   with completed/failed/not-attempted outcome tracking; --yes required for noninteractive
+  #   JSON mutation; combined JSON contract (schema_version 1, rows with outcome field,
+  #   summary); co-owned adapter paths retain existing safety classification.
+  #   Explicitly out-of-scope: multi-adapter-state-lock-uninstall-upgrade concurrency gap
+  #   (stays separate backlog item); upgrade-orphan-removal (stays separate backlog item).
+  # Done: no silent downgrade of ahead rows; blocked plan writes nothing; partial failure
+  #   is honestly reported and not described as rolled back; JSON output is valid on success,
+  #   blocked preflight, and partial failure.
+  {path = "spec/upgrade-bulk-all", needs = ["work:spec/packstate-source-provenance", "work:spec/list-installed-update-status"]},
+
+  # ── M4a · HTTPS Catalogue Channels ───────────────────────────────────────────
+  # Problem: agentbundle only resolves catalogues from local directories or git+https
+  #   archives. Enterprise environments need a channel-descriptor pattern (mutable
+  #   stable.json → immutable versioned archive) with SHA-256 verification, bearer token
+  #   auth, and safety limits on download and extraction. The mechanism must be vendor-
+  #   neutral, not Artifactory-specific.
+  # Deliver: catalogue+https and archive+https source schemes; channel descriptor schema
+  #   v1 (schema, kind, bundle, channel, release, artifact, sha256 required; published_at,
+  #   source_revision, minimum_agentbundle_version optional); SHA-256 verified before
+  #   extraction; bearer token via AGENTBUNDLE_HTTP_BEARER_TOKEN (not persisted, not
+  #   printed, not forwarded across host redirects); named safety limits (descriptor 1 MiB,
+  #   archive 256 MiB, members 20k, expanded 1 GiB, finite HTTP timeout); path-traversal,
+  #   absolute-path, symlink/hard-link, and special-file rejection; logical source identity
+  #   (channel URI, not temporary extraction path); cross-origin and HTTP artifact URLs
+  #   refused; local in-process HTTP server fixture for tests (no external network calls).
+  # Done: digest mismatch fails before any install mutation; temp files cleaned on failure;
+  #   client version checked against minimum_agentbundle_version before archive download.
+  {path = "spec/https-catalogue-channels", needs = "work:spec/rfc-agentbundle-enterprise-distribution"},
+
+  # ── M4b · Organization Artifactory Bootstrap ──────────────────────────────────
+  # Problem: there is no way for an organization's AgentBundle fork to ship a default
+  #   internal catalogue source so developers receive the correct channel without manual
+  #   configuration — and without the configuration being stored outside the vetted fork.
+  # Deliver: optional [organization.artifactory] block in agentbundle/_data/install-
+  #   defaults.toml (enabled, base-url, repository, bundle, channel); constructed source
+  #   catalogue+<base-url>/<repository>/catalogues/<bundle>/channels/<channel>.json;
+  #   documented five-level source precedence (explicit arg → user-configured → org
+  #   bootstrap → editable-clone → packaged fallback); HTTPS-only, no-credentials
+  #   validation; safe path-segment grammar for repository/bundle/channel; fail-closed
+  #   on a malformed enabled config (no silent fallback to public source); public default
+  #   ships enabled = false; all tests and docs use example.test placeholders only.
+  # Done: a fork with enabled = true routes to the configured Artifactory channel after
+  #   user config but before editable-clone; a malformed enabled config fails with a
+  #   clear diagnostic and no fallback; no real org endpoints appear in the public repo.
+  {path = "spec/organization-artifactory-bootstrap", needs = ["work:spec/packstate-source-provenance", "work:spec/https-catalogue-channels"]},
+
+  # ── M5a · Package-Catalogue Command ──────────────────────────────────────────
+  # Problem: there is no tooling to produce the expected Artifactory artifact layout
+  #   (immutable release archive + mutable channel descriptor JSON) from the catalogue
+  #   repository, making CI publishing a manual multi-step operation prone to layout
+  #   errors and non-deterministic archives.
+  # Deliver: agentbundle package-catalogue CLI (--root, --bundle, --release, --channel,
+  #   --output required; --source-revision, --minimum-agentbundle-version, --published-at,
+  #   SOURCE_DATE_EPOCH honored as optional); dist/artifactory layout (releases/<release>/
+  #   + channels/); catalogue content allowlist (packs/, profiles/, docs/contracts/,
+  #   README, LICENSE, catalogue-manifest.json — no .git/, build/, credentials, or
+  #   untracked files); deterministic archive (sorted paths, normalized uid/gid/timestamps/
+  #   modes, reproducible gzip, digest generated after final bytes); catalogue-manifest.json
+  #   (schema, bundle, release, source_revision, generated_at, included files + SHA-256
+  #   digests, pack names + versions); refuse overwrite of existing release archive by
+  #   default; pre-package validation (valid packs/profiles, no unsafe symlinks,
+  #   included paths remain inside catalogue root); no git shell-out.
+  # Done: identical inputs + SOURCE_DATE_EPOCH produce byte-identical archives; archive
+  #   is resolvable by existing list/install logic; overwrite refused without explicit
+  #   flag (none added in this version).
+  {path = "spec/package-catalogue-command", needs = "work:spec/https-catalogue-channels"},
+
+  # ── M5b · Artifactory Publishing Workflow ────────────────────────────────────
+  # Problem: no canonical CI reference or GitHub Actions template documents the correct
+  #   upload sequence (immutable archive must be uploaded and verified before the mutable
+  #   channel descriptor is replaced — reversing this order serves stale content).
+  # Deliver: docs/guides/_shared/how-to/publish-to-artifactory.md covering the five-step
+  #   publish sequence (validate → package-catalogue → upload archive → upload checksum →
+  #   verify upload → upload channel JSON last); disabled/template GitHub Actions workflow
+  #   using JFrog CLI with current official syntax; explicit statement that Artifactory
+  #   stores/serves but does not parse AgentBundle's pack layout; upload-credentials
+  #   guidance (environment secrets only, not in workflow YAML values).
+  # Done: publish sequence is canonically documented; channel JSON update is always last;
+  #   template contains no real credentials or org endpoints.
+  {path = "spec/artifactory-publishing-workflow", needs = "work:spec/package-catalogue-command"},
+
+  # ── M6 · Corporate Update Documentation ──────────────────────────────────────
+  # Problem: no documentation covers the end-to-end enterprise adoption flows:
+  #   organization bootstrap, repo-scope CI upgrade, user-scope MDM upgrade,
+  #   source-conflict remediation, fully disconnected hosts, or security controls.
+  #   Existing guides assume public catalogue access.
+  # Deliver: docs/guides/_shared/how-to/use-an-artifactory-catalogue.md; updates to
+  #   clone-install guide, getting-started page, configuration reference, list-installed
+  #   reference, upgrade guide, dry-run guide, and constrained-network guidance; six
+  #   documented flows (A: org bootstrap from fork, B: repo-scope CI update via JSON
+  #   output + PR annotation, C: user-scope MDM update, D: source-conflict remediation,
+  #   E: fully disconnected hosts via local catalogue directory, F: security controls);
+  #   all flows use example.test placeholders; explicit statements: no background daemon,
+  #   --all requires explicit scope, partial-failure is not a rollback, no automatic
+  #   fallback to public source on malformed corporate config or integrity failure.
+  # Done: an enterprise adopter can configure, install, upgrade, and troubleshoot
+  #   without undocumented steps; security controls are explicitly stated; no real
+  #   credentials or org endpoints appear anywhere in the delivered content.
+  {path = "spec/corporate-update-documentation", needs = [
+    "work:spec/list-installed-update-status",
+    "work:spec/upgrade-bulk-all",
+    "work:spec/source-conflict-install-guard",
+    "work:spec/organization-artifactory-bootstrap",
+    "work:spec/package-catalogue-command",
+    "work:spec/artifactory-publishing-workflow",
+  ]},
+
+  # ── Release ───────────────────────────────────────────────────────────────────
+  # Problem: all M1–M6 work ships across multiple PRs; without a coordinated release
+  #   step the new enterprise distribution features are not represented in the published
+  #   agentbundle version or its PyPI listing.
+  # Deliver: agentbundle version bump (semver minor — new CLI surface: --format, --all,
+  #   package-catalogue command); [Unreleased] → new version in CHANGELOG; PyPI README
+  #   (readme= in pyproject.toml) updated to describe the new enterprise distribution
+  #   capabilities; git tag agentbundle-vX.Y.0; PyPI publish.
+  # Done: agentbundle --version reflects the new version; PyPI package page describes
+  #   enterprise distribution; all M1–M6 PRs are merged and the tag points to a clean
+  #   main.
+  {path = "spec/agentbundle-enterprise-distribution-release", needs = "work:spec/corporate-update-documentation"},
+]
+
 # Repo-level backlog — open work not scoped to any active initiative.
 # Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
 # Entries are inline objects: {slug, needs?, source?} where:
@@ -1079,4 +1322,17 @@ open = [
   #   and duplicate the gate labels below. Fix: anchor each chip to its GateDetail
   #   card (turn duplication into wayfinding). Files: JourneyContract.astro + GateDetail.astro.
   {slug = "journey-decision-chip-gate-anchors", source = "spec/journey-template-revamp experience-review Nit-5"},
+
+  # agentbundle PyPI README + extended user docs update (ini-004 follow-on). After the
+  # enterprise distribution release ships, the PyPI package page (readme= in pyproject.toml)
+  # will document new enterprise capabilities (HTTPS catalogue channels, organization
+  # bootstrap, bulk upgrade, package-catalogue command). The user-visible CLI --help text
+  # should also be audited for accuracy against the final implementation.
+  # Additionally: the public docs/guides/ entries for install, upgrade, and configuration
+  # should be reviewed for completeness now that both public and enterprise paths exist.
+  # Fix: post-release audit of (a) PyPI README for accuracy and enterprise coverage,
+  #   (b) CLI --help text for all new flags/commands, (c) docs/guides/ cross-references
+  #   between public and Artifactory paths (e.g., use-an-artifactory-catalogue.md links).
+  # Unblocks when: spec/agentbundle-enterprise-distribution-release is Shipped.
+  {slug = "agentbundle-enterprise-pypi-readme-and-user-docs-audit", needs = "ini-004:work:spec/agentbundle-enterprise-distribution-release"},
 ]
