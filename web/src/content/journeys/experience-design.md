@@ -20,7 +20,7 @@ skills:
     description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
     humanTouches: 0
   - name: copy-direction
-    description: "Names the copy voice goals and arbitration rules for a marketing or acquisition surface — what the copy should sound like and which goal wins when goals conflict."
+    description: "Names the copy voice goals and arbitration rules for a marketing or acquisition surface — what the copy should sound like and which goal wins when goals conflict. Near-miss: for general brand voice and register, use `tone-of-voice`; for product UI strings (error messages, labels, empty states), use `ux-writing` in the product-engineering pack."
     humanTouches: 0
   - name: tone-of-voice
     description: "Turns a vague copy vibe into named, ranked copy goals grounded in stable referents, and records copy arbitration rules the rest of the build references."
@@ -41,10 +41,10 @@ skills:
     description: "Establishes the visual direction for a surface — named emotional and brand goals grounded in stable referents — as the aesthetic reference all subsequent screens must satisfy."
     humanTouches: 1
   - name: design-token-taxonomy
-    description: "Derives the token/scale taxonomy from the aesthetic direction — naming tokens by semantic role and organizing scales by a single ratio-as-concept."
+    description: "Derives the token/scale taxonomy from the aesthetic direction — naming tokens by semantic role and organizing scales by a single ratio-as-concept. Near-miss: to apply the taxonomy as a working foundation, run `design-system-foundations` next — don't invoke this skill without following through to the foundations step."
     humanTouches: 0
   - name: design-system-foundations
-    description: "Applies the token taxonomy as a working foundation — semantic color roles, typography, spacing, radius, focus, status tokens, responsive breakpoints, and core component tokens. Full mode adds DTCG 2025.10-compatible token source, light/dark themes, semantic alias layer, and full component anatomy."
+    description: "Applies the token taxonomy as a working foundation — semantic color roles, typography, spacing, radius, focus, status tokens, responsive breakpoints, and core component tokens. Full mode adds DTCG 2025.10-compatible token source, light/dark themes, semantic alias layer, and full component anatomy. Near-miss: requires a derived taxonomy from `design-token-taxonomy` first — don't skip the taxonomy step."
     humanTouches: 0
   - name: information-architecture
     description: "Identifies the page archetype, names the product object and permission contract, then designs the layout zones and information hierarchy for a screen, given its per-screen brief."
