@@ -4,7 +4,7 @@
 > `design-review` (at design time) and `frontend-engineering` (at build time),
 > aligned so design vocabulary and build vocabulary match. For the design-intent
 > floor rules each state must clear, see
-> [`quality-floor.md`](../../packs/experience-design/.apm/skills/design-review/references/quality-floor.md)
+> [`quality-floor.md`](../../../../packs/experience-design/.apm/skills/design-review/references/quality-floor.md)
 > in the pack. For how to apply this during a review, see the
 > [how-to guide](../how-to/design-review.md).
 

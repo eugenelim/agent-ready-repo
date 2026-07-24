@@ -28,7 +28,7 @@ This spec closes the gap: the quality floor matches the FE state matrix exactly
 (18 states), `design-review` enforces a three-pass structure with severity tiers
 and rendered evidence, and the evals include weak fixtures for each named failure
 mode. Adopters receive a how-to guide, a state coverage reference, and an updated
-journey page showing design-review as the explicit gate before FE handoff.
+journey page showing design-review as the explicit gate before the independent experience-reviewer pass.
 
 ## Boundaries
 
@@ -84,7 +84,7 @@ manual QA:
 - [x] `evals.json` assertions reflect the three-pass structure and severity tier rules.
 - [x] `docs/guides/experience-design/how-to/design-review.md` exists and shows the three-pass structure and severity rubric.
 - [x] `docs/guides/experience-design/reference/` contains a state coverage reference with all 18 states and example treatment per state.
-- [x] `web/src/content/journeys/experience-design.md` shows design-review three-pass as the explicit gate before FE handoff.
+- [x] `web/src/content/journeys/experience-design.md` shows design-review three-pass as the explicit gate before the independent experience-reviewer pass.
 - [x] `packs/experience-design/pack.toml` version is `1.5.0`.
 - [x] `packs/experience-design/.claude-plugin/plugin.json` version is `1.5.0`.
 - [x] `workspace.toml` has `spec/xd-state-reviewer-doctrine` in `["ini-003".work].shipped`, not in `.queue`.

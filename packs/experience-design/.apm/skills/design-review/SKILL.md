@@ -31,7 +31,9 @@ Confirm all three before drafting; if any fails, resolve it first.
 
 When the surface under review has a rendered form (a live page, a built screen, a high-fidelity mockup at a specific viewport), **you must obtain rendered evidence before rating any finding**. Evidence means: a described observation from the actual rendered state at the viewport in question ("at narrow-phone width the hero CTA is below the fold"), a screenshot observation, or an explicit note that the rendered state was examined. A finding rated against code or a spec alone — without the rendered form — is marked `⚠ unverified` and is not a Blocker.
 
-> If the session has no access to the rendered surface (design-only session, no build available), say so explicitly at the top of the findings list and mark all severity-3+ findings `⚠ unverified` — the independent `experience-reviewer` will pick them up when a rendered form exists.
+**Exception — accessibility failures determinable without rendering.** An accessibility failure that is derivable from the design artifact alone (a color contrast ratio, a label absence, a color-only meaning indicator) remains a **Blocker** even in a design-only session and even without render confirmation. The `⚠ unverified` mark records "not yet confirmed against the rendered output" — it is an evidence-completeness flag, not a tier downgrade. The a11y-always-Blocker rule takes precedence over the unverified mark.
+
+> If the session has no access to the rendered surface (design-only session, no build available), say so explicitly at the top of the findings list and mark rendering-dependent findings `⚠ unverified` — the independent `experience-reviewer` will confirm them when a rendered form exists.
 
 ## Procedure
 
