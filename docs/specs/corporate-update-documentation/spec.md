@@ -1,6 +1,6 @@
 # Spec: Corporate Update Documentation
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0072 (follow-on spec deliverable), spec/packstate-source-provenance, spec/https-catalogue-channels, spec/list-installed-update-status, spec/upgrade-bulk-all, spec/source-conflict-install-guard, spec/organization-artifactory-bootstrap, spec/package-catalogue-command, spec/artifactory-publishing-workflow

@@ -21,6 +21,27 @@ That import has to resolve against the interpreter's `sys.path` at the time you 
 - A local clone of the catalogue (`git clone …`).
 - A Python interpreter ≥ 3.11 on PATH, ideally inside a virtualenv you control (see [On venvs and which interpreter](#on-venvs-and-which-interpreter) below).
 
+## Installing from an org fork
+
+If your organisation maintains a fork of the catalogue with an internal Artifactory mirror configured, installing agentbundle from that fork gives every developer the org Artifactory channel at Layer 3 — no `agentbundle config set source` step is needed.
+
+An org fork ships an `[organization.artifactory]` block in `agentbundle/_data/install-defaults.toml`:
+
+```toml
+[organization.artifactory]
+enabled    = true
+base-url   = "https://artifactory.example.test"
+repository = "agentbundle-local"
+bundle     = "core"
+channel    = "stable"
+```
+
+When you run `pip install -e packages/agentbundle/` against the org fork (or install the packaged org wheel), agentbundle reads this block at install time and activates it as **Layer 3** in the five-layer source precedence chain. The developer's next `agentbundle install --pack core` resolves to the org Artifactory channel automatically, without any manual configuration.
+
+A developer's explicit `--catalogue` argument (Layer 1) or personal `agentbundle config set source` (Layer 2) still takes precedence over the org bootstrap (Layer 3).
+
+For the complete org-fork bootstrap sequence — including how to edit `install-defaults.toml`, package the catalogue archive, and distribute the fork — see [Flow A in use-an-artifactory-catalogue.md](use-an-artifactory-catalogue.md#flow-a--org-bootstrap-from-fork).
+
 ## Step 1 — Install the module
 
 From the clone root, use the editable install:
