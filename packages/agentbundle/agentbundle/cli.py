@@ -243,9 +243,9 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs="?",
         default=None,
         help=(
-            "Catalogue URI to compare installed versions against. Optional: when "
-            "omitted, the source is resolved from your config, an editable clone, "
-            "or the packaged default (RFC-0047). Ignored under --no-check."
+            "[Deprecated] Catalogue URI -- now ignored; rows are resolved against "
+            "their recorded provenance. Use --no-check to skip catalogue resolution "
+            "entirely."
         ),
     )
     sp.add_argument("--root", default=".")
@@ -270,6 +270,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Add a DRIFT column counting installed files locally edited since "
             "install (on-disk SHA differs from the recorded SHA)."
+        ),
+    )
+    sp.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format: table (default) or json.",
+    )
+    sp.add_argument(
+        "--updates-only",
+        action="store_true",
+        default=False,
+        help=(
+            "Show only rows needing attention (upgrade-available, ahead, unknown). "
+            "Summary counts always reflect the full set. No effect under --no-check."
         ),
     )
     sp.set_defaults(func=_lazy("list_installed"))
