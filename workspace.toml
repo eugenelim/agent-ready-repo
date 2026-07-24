@@ -1064,6 +1064,19 @@ open = [
   # Unblocks when: someone opens the integrity-pinning RFC.
   {slug = "convenient-install-defaults-followons", source = "spec/convenient-install-defaults"},
 
+  # Org forks of agentbundle can already ship a default catalogue source via
+  # install-defaults.toml (RFC-0072 layer 3). A complementary preferred-adapter
+  # hint would let orgs that standardize on one IDE (e.g. Cursor or Claude Code)
+  # skip typing --adapter on every install. The hint is per-org (not per-developer)
+  # because it lives in the packaged _data/install-defaults.toml, so it only applies
+  # to orgs that ship their own agentbundle fork/wheel.
+  # Shape: [organization] preferred_adapter = "cursor" — silently overridden by an
+  #   explicit --adapter flag; ignored when the pack's allowed-adapters list doesn't
+  #   include it; never persisted in state (it's a convenience default, not provenance).
+  # Unblocks when: ini-004 spec/organization-artifactory-bootstrap ships (the
+  #   [organization] block in install-defaults.toml is already the right home).
+  {slug = "install-defaults-preferred-adapter-hint", needs = "ini-004:work:spec/organization-artifactory-bootstrap"},
+
   # Live-install transcripts for apm install of core (project scope), converters
   # (user scope), and per-target characterisation at Copilot/Cursor/Gemini are
   # pending (manual-QA matrix rows 32–34). Three uncovered HookIntegrator targets
