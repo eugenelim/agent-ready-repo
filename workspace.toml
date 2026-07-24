@@ -957,7 +957,7 @@ open = [
   # Fix: when the gate fires — open an RFC for the pack; scope it to the nine FE-section
   #   fields in the contract + the migration of the anchor path.
   # Unblocks when: `digital-product-profile` spec explicitly decides in-scope or deferred.
-  {slug = "frontend-engineering-pack-split", needs = "ini-003:work:digital-product-profile"},
+  {slug = "frontend-engineering-pack-split"},
 
   # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
   # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
