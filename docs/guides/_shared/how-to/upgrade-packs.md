@@ -22,17 +22,34 @@ Pick the verb that matches how you originally installed.
 
 - **APM:** `apm update <pack>`.
 - **Claude Code plugins:** `/plugin update <pack>@<catalogue>`.
-- **`agentbundle` CLI:**
+- **`agentbundle` CLI (single pack):**
 
   ```bash
   agentbundle upgrade --pack <name> <catalogue>
   ```
 
+- **`agentbundle` CLI (all packs at a scope — bulk mode):**
+
+  ```bash
+  agentbundle upgrade --all --scope repo
+  agentbundle upgrade --all --scope user
+  ```
+
+  `--all` upgrades every `(pack, adapter)` row at the specified scope. It is mutually exclusive with `--pack`.
+
+  For machine-readable output (CI pipelines, PR annotation), add `--format json`. The JSON document is the sole content on stdout; all progress, warnings, and diagnostics go to stderr. In JSON mode you must also pass `--yes` (the interactive confirmation prompt is suppressed):
+
+  ```bash
+  agentbundle upgrade --all --scope repo --format json --yes
+  ```
+
+  See [Flow B in use-an-artifactory-catalogue.md](use-an-artifactory-catalogue.md#flow-b--repo-scope-ci-upgrade) for the full CI sequence including a GitHub Actions YAML example.
+
 `upgrade` takes **no version** — the target is whatever the catalogue you point at declares. To move to a specific past version, point `<catalogue>` at that git ref.
 
 The first two use the host tool's native verbs and follow that tool's conflict-resolution rules, not the catalogue's. The `agentbundle upgrade` verb is the only route that drops `*.upstream.<ext>` companions next to any Tier-2 file whose content has diverged since install — letting you walk the merges later via the `adapt-to-project` skill (see *One file at a time* below). Before it writes, it tells you how many of your edited files it will preserve as companions.
 
-`<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/<owner>/<catalogue>` or a local checkout path.
+`<catalogue>` is the same URI you installed from, e.g. `git+https://git.example.test/<owner>/<catalogue>` or a local checkout path.
 
 > **Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
 
@@ -53,6 +70,10 @@ agentbundle upgrade --pack <name> --skill <skill-name> <catalogue>
 ### One file at a time
 
 Re-invoke the `adapt-to-project` skill. It walks any `*.upstream.<ext>` companions still on disk one by one, with per-file accept / edit / skip / decline. This is the merge UI for the companions a previous `agentbundle upgrade` (or first-install collision) left behind.
+
+## Troubleshooting
+
+**Source-conflict error.** If `agentbundle install` is refused with a source-conflict error — a message indicating that a different canonical source is already recorded for that pack name at this scope — see [Flow D in use-an-artifactory-catalogue.md](use-an-artifactory-catalogue.md#flow-d--source-conflict-remediation) for the two recovery paths (migrate the legacy row via `upgrade`, or uninstall and reinstall).
 
 ## Downgrades
 

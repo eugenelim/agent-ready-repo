@@ -46,11 +46,13 @@ architect   codex        user   0.9.0      0.10.0  upgrade-available
 core        claude-code  repo   0.5.0      0.5.0   up-to-date
 ```
 
-The `STATUS` is computed against the resolved catalogue: `up-to-date`, `upgrade-available`, or `unknown` (when the catalogue can't be resolved, or doesn't carry that pack). When the catalogue is unreachable the command still lists every row — `LATEST` shows `—` and `STATUS` is `unknown` — and exits 0; it never fails just because it couldn't reach a catalogue.
+The `STATUS` is computed against the resolved catalogue: `up-to-date`, `upgrade-available`, `ahead` (installed version is newer than the catalogue), or `unknown` (when the catalogue can't be resolved, or doesn't carry that pack). When the catalogue is unreachable the command still lists every row — `LATEST` shows `—` and `STATUS` is `unknown` — and exits 0; it never fails just because it couldn't reach a catalogue.
 
 | Flag                  | Effect                                                                                       |
 | --------------------- | -------------------------------------------------------------------------------------------- |
 | `--scope {repo,user}` | Limit the listing to one scope; default lists both.                                          |
+| `--format {table,json}` | Emit the result as a human-readable table (default) or as a single JSON document (schema_version 1) to stdout, with all diagnostics going to stderr. |
+| `--updates-only`      | Omit `up-to-date` and `unknown` rows; show only rows with an upgrade available. Combinable with `--format json`. |
 | `--no-check` / `--offline` | Skip the catalogue check entirely (no network): print only `PACK ADAPTER SCOPE INSTALLED`. |
 | `--check-drift`       | Add a `DRIFT` column counting installed files edited locally since install (on-disk SHA differs from the recorded one). |
 
@@ -149,6 +151,28 @@ When a developer on your team runs `agentbundle install --pack core` with no `--
 
 The value must be in the shipped adapter contract (`claude-code`, `codex`, `copilot`, `cursor`, `gemini`, `kiro`, `kiro-cli`, `kiro-ide`). An invalid value causes `install` to exit 1 with a clear error before touching any file.
 
+## Bulk upgrade
+
+`agentbundle upgrade --all` upgrades every `(pack, adapter)` row at the specified scope. It is mutually exclusive with `--pack`.
+
+```bash
+agentbundle upgrade --all --scope repo
+agentbundle upgrade --all --scope user
+```
+
+`--all` runs a full preflight phase first — resolving sources, comparing versions, validating manifests, and rendering projections — without writing anything. If any row cannot be safely upgraded (source-error, manifest-error, render-failure, or path-jail violation), all writes are blocked and the command reports the blocked rows before exiting non-zero.
+
+| Flag                  | Effect                                                                                       |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `--scope {repo,user}` | Required with `--all`. Selects the scope to operate on. Mutually exclusive with `--pack`.   |
+| `--format {table,json}` | Emit the result as a human-readable table (default) or as a single JSON document (schema_version 1) to stdout. In `--format json` mode all progress, warnings, and diagnostics go to stderr. |
+| `--yes`               | Required when `--format json` and `--dry-run` is not set. Skips the interactive confirmation prompt. |
+| `--dry-run`           | Run the preflight phase and report the plan without writing anything. Exits non-zero when any row is blocked. `--yes` not required in dry-run mode. |
+
+**Partial failure.** If an apply step fails midway, the command stops. Completed rows are not rolled back. The output discloses partial completion honestly: completed rows report `completed`, the failing row reports `failed`, and remaining rows report `not-attempted`. Re-running `upgrade --all` after a partial failure is safe — already-upgraded rows are detected as `up-to-date` and skipped.
+
+See [Flow B in use-an-artifactory-catalogue.md](../how-to/use-an-artifactory-catalogue.md#flow-b--repo-scope-ci-upgrade) for a complete CI example with JSON output.
+
 ## What `upgrade` reports
 
 `agentbundle upgrade` takes **no version** — the target is whatever the catalogue you point at declares (to pin a past version, point the catalogue at that git ref). It tells you honestly what it did:
@@ -156,6 +180,38 @@ The value must be in the shipped adapter contract (`claude-code`, `codex`, `copi
 - A real version change reports `upgraded: <pack> @ <scope> <from> -> <to>`.
 - Re-running against the version you already have is a **re-apply**, not an upgrade: it reports `re-applied: <pack> @ <scope> <version> (already current)` — or names the count of locally edited files it kept as `.upstream` companions, when there were edits. Before it acts, it tells you up front how many of your edits will be preserved.
 - A pack installed for **more than one adapter** at a scope needs `--adapter` to disambiguate; the refusal lists each adapter with its installed version, e.g. `pass --adapter to pick one: claude-code (0.9.0), codex (0.9.0)`. The same applies to `diff` and `uninstall`.
+
+## Source configuration
+
+### Five-layer source precedence chain
+
+When `agentbundle install` or `agentbundle upgrade` resolves which catalogue to use, it walks five layers in order and uses the first one it finds:
+
+1. **Explicit `--catalogue` argument** — the URI or path passed directly on the command line. Always wins.
+2. **User config `[settings].source`** — the value set by `agentbundle config set source <uri>`, stored in `config.toml`. Overrides the org default.
+3. **Org bootstrap** — `[organization.artifactory]` in the wheel's packaged `agentbundle/_data/install-defaults.toml`. Activated when an org fork ships the block with `enabled = true` and all four required fields (`base-url`, `repository`, `bundle`, `channel`).
+4. **Editable-clone detection** — PEP 610 direct URL metadata. Activated automatically when agentbundle is installed in editable mode (`pip install -e`) from a local catalogue clone; the clone's path is used as the catalogue source.
+5. **Packaged fallback** — `[defaults].source` in the wheel's packaged `install-defaults.toml`. The public catalogue default.
+
+Use `agentbundle config get source` to see the effective value and which layer it came from.
+
+### `AGENTBUNDLE_HTTP_BEARER_TOKEN`
+
+The `AGENTBUNDLE_HTTP_BEARER_TOKEN` environment variable supplies the bearer token for `catalogue+https://` and `archive+https://` catalogue sources (Artifactory-hosted catalogues). It is the only supported mechanism for bearer token supply — there is no `--token` flag and no config-file token field.
+
+**Redaction guarantees:**
+- The token is never written to any state file, config file, or install marker.
+- The token never appears in stdout (table output, JSON output, or the `installed:` confirmation line).
+- The token is removed from exception repr and error messages before they are shown. Authorization header values appear as `[redacted]` in any error output.
+
+Set it in CI via a secrets mechanism:
+
+```yaml
+env:
+  AGENTBUNDLE_HTTP_BEARER_TOKEN: ${{ secrets.AGENTBUNDLE_HTTP_BEARER_TOKEN }}
+```
+
+For the full security-controls reference — cross-origin redirect refusal, TLS trust model, SHA-256 integrity verification, and extraction hardening — see [Flow F in use-an-artifactory-catalogue.md](../how-to/use-an-artifactory-catalogue.md#flow-f--security-controls).
 
 ## Other subcommands
 

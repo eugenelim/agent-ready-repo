@@ -55,6 +55,36 @@ A per-primitive preview narrows the plan to one primitive:
 agentbundle upgrade <catalogue-uri> --pack core --skill work-loop --dry-run
 ```
 
+## Preview a bulk upgrade
+
+To see what `agentbundle upgrade --all` would do across every installed pack at a scope, add `--dry-run`:
+
+```bash
+agentbundle upgrade --all --scope repo --dry-run
+```
+
+The output shows one row per `(pack, adapter)` pair, with the status and planned action:
+
+```
+PACK        ADAPTER      SCOPE  INSTALLED  AVAILABLE  STATUS             PLAN
+architect   claude-code  repo   0.9.0      0.10.0     upgrade-available  would-upgrade
+core        claude-code  repo   0.13.6     0.13.7     upgrade-available  would-upgrade
+governance  claude-code  repo   0.8.0      —          unknown            blocked (source-error)
+contracts   claude-code  repo   0.4.0      0.4.0      up-to-date         skip
+
+dry-run: 4 row(s) — 2 would-upgrade, 1 skip, 1 blocked. Nothing written.
+```
+
+**Blocked rows prevent all writes.** If any row is classified `blocked` (source-error, manifest-error, render-failure, or path-jail violation), the bulk operation will not write any row in the real run. The blocked plan is shown in full, and `--dry-run` exits non-zero when blocked rows are present. Review and resolve the blocked row before running without `--dry-run`.
+
+A dry-run JSON preview is also available:
+
+```bash
+agentbundle upgrade --all --scope repo --dry-run --format json
+```
+
+`--yes` is not required for `--dry-run` because no writes occur.
+
 ## How to read the plan
 
 Each line is `<action> <tier> <target path>`:
