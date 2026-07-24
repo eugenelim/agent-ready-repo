@@ -29,7 +29,7 @@
   {"query": "Revise this journey page to show a complete user flow", "should_trigger": true},
 
   {"query": "Create a Jira story for password reset", "should_trigger": false},
-  {"query": "Show me the Atlas team's blockers", "should_trigger": false},
+  {"query": "Show me the Acme team's blockers", "should_trigger": false},
   {"query": "Fix spelling in this README", "should_trigger": false},
   {"query": "What is Diátaxis and how does it work", "should_trigger": false}
 ]

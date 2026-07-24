@@ -50,7 +50,7 @@ Program Increment names follow your org's naming convention. Common patterns:
 |---|---|---|
 | Quarterly (`YYYY-Qn`) | `PI 2026-Q1` | Most common for Scaled Agile orgs |
 | Numbered | `PI 24`, `PI 25` | Sequential numbering since program start |
-| Named | `PI Orion`, `PI Atlas` | Thematic or project-specific naming |
+| Named | `PI Orion`, `PI Acme` | Thematic or project-specific naming |
 | Custom | *(your format)* | Fill in your org's convention |
 
 When the Feature's `milestones` expand to a PI record, extract the PI `name`
