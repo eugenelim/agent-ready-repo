@@ -1,12 +1,19 @@
 # RFC-0062: content-design and copy-direction skills
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-18
-- **Date closed:**
+- **Date closed:** 2026-07-23
 - **Decision weight:** standard
-- **Related:** ADR-0024 (experience-pack posture), ADR-0038 (renamed the pack from its original design-craft name to experience), RFC-0050 (the experience pack), backlog `copy-direction-skill-rfc`, backlog `content-strategy-and-marketing-copy-lens`
+- **Related:** ADR-0024 (experience-pack posture), ADR-0038 (renamed the pack from its
+  original design-craft name to experience), RFC-0050 (the experience pack),
+  RFC-0071 (digital experience doctrine — accepts this RFC; `copy-direction`
+  implementation tracked as `spec/xd-copy-direction` under ini-003),
+  backlog `copy-direction-skill-rfc`, backlog `content-strategy-and-marketing-copy-lens`
+- **Implementation:** `content-design` shipped (pre-acceptance). `copy-direction`
+  tracked as `spec/xd-copy-direction` in `["ini-003".work].queue`; ships as
+  fulfillment of this RFC.
 
 ## Reviewer brief
 
