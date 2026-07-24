@@ -1,10 +1,10 @@
 {
   "id": "jira-story-triage",
   "name": "Jira Story Triage",
-  "version": "1.0.0",
-  "description": "Audit a Jira backlog, sprint, or JQL-scoped set of stories for agent-readiness: score each story against the five-question actionability bar (self-contained change, reachable repo scope, binary ACs, no mid-flight decision, right-sized for one PR) and output a Tier A / B / C / Blocked table with complexity grouping (Quick / Standard / Involved) within the Tier A set. Read-only; composes the `jira` skill for all reads.",
+  "version": "1.1.0",
+  "description": "Review a Jira backlog, sprint, or JQL-scoped set of work items for readiness to hand to engineering, and improve the weak ones. For every item that is not ready, the output explains why — which of the five-question bar's questions failed and the specific gap — not merely a tier label. On request, drafts the fix (acceptance criteria, a clearer outcome, a tighter scope) and writes it back to Jira via update-issue only after the user approves the exact drafted payload. Read-only until an approval; the write flow is opt-in and per-item.",
   "category": "workflows",
-  "tags": ["jira", "triage", "backlog", "actionability", "agent-readiness", "story-quality", "sprint-planning"],
+  "tags": ["jira", "triage", "backlog", "readiness", "actionability", "story-quality", "acceptance-criteria", "sprint-planning"],
   "license": "MIT",
   "deps": {
     "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
@@ -12,7 +12,7 @@
       {
         "name": "jira",
         "source": "this pack — packs/atlassian/.apm/skills/jira/",
-        "purpose": "All Jira reads: check, search (for the JQL scope), get-issue (for image-content confirmation). This skill never makes a raw Jira REST call and never invokes a write verb. Hard dependency — there is no degraded path without it."
+        "purpose": "All Jira reads: check, search (for the JQL scope), get-issue (image-content confirmation). Also the conditional update-issue call in the improve flow — invoked once per item only after the user approves the exact drafted payload. Hard dependency — there is no degraded path without it."
       }
     ],
     "system": []
@@ -23,7 +23,7 @@
   },
   "output": {
     "artifacts": [
-      "A Markdown triage table with Tier A / B / C / Blocked rows, complexity grouping within Tier A (Quick / Standard / Involved), and an invocation-repo header. Displayed in the agent session; not written to disk unless the user requests --output."
+      "A reason-first Markdown readiness review: one row per item with an outcome (Ready for engineering / Gated / Not ready — needs shaping / Needs detail), complexity for Ready items, and a 'Why not ready' column naming the failed question(s) and specific gap. Followed by an opt-in improve flow that drafts fixes and writes them back via update-issue only after per-item approval."
     ]
   },
   "targets": {
