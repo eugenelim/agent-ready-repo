@@ -1,0 +1,37 @@
+# catalogue.toml — ini-005 Bucket 3 configuration layer for this repository.
+# Defines the portable catalogue engine's view of this repo's catalogue.
+# Schema: https://github.com/eugenelim/agent-ready-repo/docs/contracts/catalogue.schema.json
+schema = 1
+
+[catalogue]
+name                         = "agent-ready-repo"
+display-name                 = "Agent-Ready Repo"
+description                  = "Reference catalogue for the agent-ready-repo adapter contract."
+minimum-agentbundle-version  = "0.14.0"
+
+[catalogue.paths]
+packs       = "packs"
+profiles    = "profiles"
+contracts   = "docs/contracts"
+marketplace = ".claude-plugin/marketplace.json"
+build-output = "dist"
+
+[catalogue.build]
+recipes                  = ["default"]
+self-host                = false
+claude-plugin-branch     = "main"
+marketplace-description  = "Reference catalogue providing agent-ready skills, agents, and tooling for the adapter contract."
+
+[catalogue.package]
+# Packs to include in a packaged archive; 'core' is always required.
+include  = ["packs/core"]
+required = ["packs/core"]
+
+[distribution.agentbundle]
+install-defaults-output = "packages/agentbundle/agentbundle/_data/install-defaults.toml"
+preferred-adapter        = "claude-code"
+default-source           = "git+https://github.com/eugenelim/agent-ready-repo"
+
+[distribution.agentbundle.artifactory]
+# Disabled by default — private forks configure this to point to their registry.
+enabled = false

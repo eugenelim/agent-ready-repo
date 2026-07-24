@@ -353,7 +353,8 @@ active  = []
 backlog = []
 
 ["ini-005".work]
-active  = [
+active  = []
+shipped = [
   "spec/catalogue-tooling-foundation",
 ]
 queue   = [
