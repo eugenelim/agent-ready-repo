@@ -29,7 +29,7 @@
 
 ["ini-002"]
 name      = "Platform Core"
-status    = "active"
+status    = "shipped"
 milestone = "M1 · Workspace Foundation"
 parent    = "INI-001"
 
@@ -185,8 +185,8 @@ queue   = [
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-003"]
 name      = "Digital Experience Doctrine"
-status    = "active"
-milestone = "M1 · Contract + Governance"
+status    = "shipped"
+milestone = "Wave 4 · Complete"
 
 ["ini-003".work]
 active  = []
