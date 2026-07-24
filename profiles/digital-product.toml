@@ -1,0 +1,45 @@
+# Pack profile: digital-product (ini-003)
+#
+# The portable, user-scope toolkit for a digital product maker — someone who
+# owns strategy → shaping → experience → build for a digital product end to
+# end. Covers the full practitioner arc: desk research the space, shape the
+# product strategy and adoption hypothesis, design the experience, and shape
+# the build — so the same person can hold the whole thread in one installed
+# toolkit, carried across every repo they work in.
+#
+# Positions vs. the other user-scope profiles:
+#   inception       — tech founder / solo dev carrying an idea to a buildable
+#                     repo; architect-focused; pre-team. Use it when the job
+#                     is "design the system", not "own the product".
+#   solution-architect — architecture + desk research + contracts; no product
+#                     strategy or experience design. Use it when the job is
+#                     "design and govern the technical solution".
+#   digital-product — product manager, product designer, or product lead on a
+#                     cross-functional team owning a digital product end to end.
+#                     Use it when the job spans strategy through experience with
+#                     a build hand-off.
+#
+# The build loop itself is the repo-scope `core` pack, installed into each
+# repo. This profile gives the practitioner the thinking and design toolkit;
+# core handles the build layer.
+#
+# Installs in one command:
+#   agentbundle install --profile digital-product <catalogue>
+#
+# Lint invariants (tools/lint-profiles.py): scope-homogeneous (every pack
+# allows user scope), dependency-complete, deps-first ordered.
+
+scope = "user"
+description = "Digital product maker's portable user-scope toolkit: desk research the space, shape the product strategy and adoption hypothesis, design the experience, and prepare the build hand-off — end to end."
+
+[[packs]]
+pack = "desk-research"
+
+[[packs]]
+pack = "product-strategy"
+
+[[packs]]
+pack = "product-engineering"
+
+[[packs]]
+pack = "experience-design"

@@ -409,6 +409,7 @@ shipped = [
   "xd-reference-guide-description-sync",             # Shipped 2026-07-24 — synced 21-skill descriptions to SKILL.md frontmatter; added copy-direction, design-token-taxonomy, design-system-foundations, experience-status; removed design-system
   "spec/xd-cross-pack-intent-index",               # Shipped 2026-07-24 — cross-pack "I want to…" intent index: adopter jobs → pack + skill + guide
   "spec/xd-cross-pack-tutorial",                    # Shipped 2026-07-24 — cross-pack tutorial: full XD chain on SaaS onboarding surface
+  "digital-product-profile",                          # Shipped 2026-07-24 — digital-product profile + journey page + tutorial (Wave 3A)
 ]
 
 ["ini-003".shaping_queue]
@@ -947,7 +948,6 @@ open = [
   # File: profiles/digital-product.toml (new); web/src/pages/journeys/; docs/guides/.
   # Unblocks when: all ini-003 specs ship (the skill set must be final before the
   #   profile's guide content is authored; premature guide content will drift).
-  {slug = "digital-product-profile", needs = "ini-003:work:spec/digital-product-guides-update"},
 
   # Pack strategy. The digital-experience-contract (spec/digital-experience-contract)
   # anchors its Frontend Engineering section to the `frontend-engineering` skill inside

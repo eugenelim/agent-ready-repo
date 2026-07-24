@@ -30,7 +30,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Ask first
 
-- Adding a third shipped first-party profile beyond `solution-architect` and `full-ceremony`.
+- Adding a new first-party profile (currently shipped: `solution-architect`, `full-ceremony`, `inception`, `digital-product`).
 - Any change to the resolved behavior of the existing single-pack `install`/`upgrade`/`uninstall` paths (the profile orchestrator sits above them).
 - Introducing a new on-disk schema field beyond `scope`, `description`, and the ordered `packs` list.
 

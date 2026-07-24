@@ -87,6 +87,13 @@ Organized by XD chain phase:
   run the deterministic `check-xd-chain.py` checker, read its output, and promote
   a check to a fail-closed gate.
 
+## Tutorials
+
+- [First session with the digital-product profile](tutorials/xd-digital-product-profile.md) —
+  install the `digital-product` profile and walk the full arc: desk research → product strategy
+  (SWOT + PRFAQ + OKR cascade) → experience design (journey → screens → independent review) →
+  Digital Experience Contract hand-off to the build loop.
+
 ## Reference
 
 - [The skills, the reviewer, and the `quality-floor`](reference/experience-design.md) —
