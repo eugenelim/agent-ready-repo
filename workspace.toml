@@ -1211,7 +1211,7 @@ open = [
   # Fix: add a pytest fixture that projects credbroker into a temp dir and runs
   #   test_sso_broker_verbs against that path; wire into the same parametrised suite.
   # File: packages/agentbundle/tests/unit/test_sso_broker_verbs.py
-  {slug = "credbroker-projected-variant-ci-coverage", source = "spec/credbroker-security-hardening AC11"},,
+  {slug = "credbroker-projected-variant-ci-coverage", source = "spec/credbroker-security-hardening AC11"},
 
   # RFC-0068 D4 (deferred follow-on). After linear-brief-intake ships, PE
   # manually pastes spec ACs back into the Linear Issue for a review round.
