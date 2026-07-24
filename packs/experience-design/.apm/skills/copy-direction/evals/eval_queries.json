@@ -40,6 +40,14 @@
     "should_trigger": true
   },
   {
+    "query": "Name the copy voice goals for our analytics dashboard — it's the first thing evaluators see when they sign up",
+    "should_trigger": true
+  },
+  {
+    "query": "What copy direction should drive how we communicate value across the onboarding flow's above-fold moments?",
+    "should_trigger": true
+  },
+  {
     "query": "Write the error message for when login fails",
     "should_trigger": false
   },
