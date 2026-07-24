@@ -1,6 +1,6 @@
 # Spec: rfc-digital-product-experience-doctrine
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** none — single-task spec; no plan file needed
 - **Constrained by:** [RFC-0071](../../rfc/0071-digital-experience-doctrine.md) (D1–D10), [RFC-0062](../../rfc/0062-content-design-and-copy-direction-skills.md) (accepted by RFC-0071)
@@ -66,21 +66,21 @@ All verification is structural — no runtime logic.
 
 ## Acceptance Criteria
 
-- [ ] `docs/rfc/0071-digital-experience-doctrine.md` has `Status: Accepted` and
+- [x] `docs/rfc/0071-digital-experience-doctrine.md` has `Status: Accepted` and
   `Date closed: 2026-07-23` in its frontmatter block.
-- [ ] `docs/rfc/0071-digital-experience-doctrine.md` `Review focus` section is
+- [x] `docs/rfc/0071-digital-experience-doctrine.md` `Review focus` section is
   updated: D2 and D9 are confirmed (or the open-question note is replaced with
   the confirmed decision text).
-- [ ] `docs/rfc/0062-content-design-and-copy-direction-skills.md` has
+- [x] `docs/rfc/0062-content-design-and-copy-direction-skills.md` has
   `Status: Accepted`, `Date closed: 2026-07-23`, and an implementation note
   pointing to `spec/xd-copy-direction` under ini-003 as the fulfillment of
   `copy-direction`.
-- [ ] `workspace.toml` `["ini-003".work].active` contains
+- [x] `workspace.toml` `["ini-003".work].active` contains
   `"spec/rfc-digital-product-experience-doctrine"`.
-- [ ] `workspace.toml` `["ini-003".work].queue` no longer contains
+- [x] `workspace.toml` `["ini-003".work].queue` no longer contains
   `spec/rfc-digital-product-experience-doctrine` as a string or path key.
-- [ ] `workspace.toml` passes `python3 -c "import tomllib; tomllib.load(open('workspace.toml','rb'))"` with exit 0 and the 11 remaining queue items intact.
-- [ ] No skill files, pack files, guide files, site files, or journey files are
+- [x] `workspace.toml` passes `python3 -c "import tomllib; tomllib.load(open('workspace.toml','rb'))"` with exit 0 and the 11 remaining queue items intact.
+- [x] No skill files, pack files, guide files, site files, or journey files are
   modified in this PR.
 
 ## Assumptions
