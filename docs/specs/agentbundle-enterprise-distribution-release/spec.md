@@ -1,6 +1,6 @@
 # Spec: agentbundle-enterprise-distribution-release
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0072 (full initiative RFC; this spec closes the release step),
@@ -182,8 +182,9 @@ TDD does not apply — no new behavioral logic is introduced.
   spec/organization-artifactory-bootstrap, spec/package-catalogue-command,
   spec/artifactory-publishing-workflow, spec/corporate-update-documentation.
   (b) Artifact layer — all of the following checks pass on the merged main tree:
-  — M1a: `! grep -q '"agent-ready-repo"' packages/agentbundle/agentbundle/config.py`
-    exits 0 (hard-coded PackState literal removed);
+  — M1a: `! grep -q 'source.*=.*"agent-ready-repo"' packages/agentbundle/agentbundle/config.py`
+    exits 0 (hard-coded PackState default removed; `canonicalize_source` retains
+    the backward-compat mapping as an explicit rule, which is correct and expected);
   — M1b: `grep -rF "source_conflict" packages/agentbundle/agentbundle/` exits 0
     (source-conflict guard present);
   — M2: `agentbundle list-installed --help | grep -F -- "--format"` exits 0;

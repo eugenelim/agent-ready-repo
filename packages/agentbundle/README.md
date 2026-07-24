@@ -72,6 +72,90 @@ A **profile** is a catalogue-curated, single-scope set of packs you install in o
 
 **Mutating commands ask first.** `uninstall`, the `--force` cleanup, and the upgrade offer all preview what they'll do and confirm before touching anything; `--dry-run` previews without writing, and `--yes` skips the prompt for non-interactive / CI use (where, without it, they refuse rather than hang).
 
+## Enterprise distribution
+
+For organizations running an internal Artifactory mirror or any static HTTPS server,
+agentbundle's enterprise distribution capabilities handle the full adoption loop —
+from org-wide channel configuration to CI-driven bulk upgrades.
+
+**Install from an internal Artifactory channel:**
+
+```bash
+# Point agentbundle at your org's channel descriptor (one-time per machine,
+# or pre-configured in your org fork — see Org bootstrap below)
+agentbundle config set source catalogue+https://artifactory.example.test/agentbundle/catalogues/core/channels/stable.json
+
+agentbundle install --pack core
+```
+
+The channel descriptor points to an immutable versioned archive; agentbundle
+fetches, verifies its SHA-256 digest, and installs. Pass a bearer token via
+`AGENTBUNDLE_HTTP_BEARER_TOKEN` — it is never stored in state, never printed, and
+never forwarded to a different host.
+
+**JSON output for CI pipelines:**
+
+```bash
+# See what's installed and what needs upgrading — machine-readable
+agentbundle list-installed --format json
+agentbundle list-installed --format json --updates-only
+```
+
+Returns a stable JSON contract (`schema_version` 1) with per-row status
+(`up-to-date` / `upgrade-available` / `ahead` / `unknown`) and machine-readable
+reason codes for unknown rows. Pipe into `jq` or your CI annotation step.
+
+**Bulk upgrade in one scoped command:**
+
+```bash
+# Upgrade all installed packs in a scope — preflights before any write
+agentbundle upgrade --all --scope repo --yes
+agentbundle upgrade --all --scope user --format json --yes
+```
+
+Preflights all rows before writing anything; a blocked row stops the run before the
+filesystem is touched. Partial failure is reported honestly — not described as a
+rollback. Never silently downgrades an `ahead` row.
+
+**Package your catalogue for Artifactory:**
+
+```bash
+agentbundle package-catalogue \
+  --root /path/to/catalogue \
+  --bundle my-packs \
+  --release 1.0.0 \
+  --channel stable \
+  --output dist/
+```
+
+Produces a deterministic, reproducible gzip archive (versioned) and a mutable channel
+descriptor JSON (`stable.json`), ready to upload to Artifactory. Identical inputs
+produce byte-identical archives (honors `SOURCE_DATE_EPOCH`).
+
+**Org bootstrap — ship the default channel in your fork:**
+
+Add an `[organization.artifactory]` block to
+`agentbundle/_data/install-defaults.toml` in your org's agentbundle fork:
+
+```toml
+[organization.artifactory]
+enabled = true
+base-url = "https://artifactory.example.test"
+repository = "agentbundle"
+bundle = "core"
+channel = "stable"
+```
+
+Developers installing from your fork get the internal channel without a manual
+`config set source` step. The block ships `enabled = false` in the public package.
+A malformed `enabled = true` config fails closed — no silent fallback to the public
+source.
+
+See the full enterprise adoption guide at
+`docs/guides/_shared/how-to/use-an-artifactory-catalogue.md` for all six flows
+(org bootstrap, repo-scope CI upgrade, user-scope MDM, source-conflict remediation,
+disconnected hosts, and security controls).
+
 ## Build your own catalogue
 
 `agentbundle` isn't tied to the agent-ready-repo catalogue. Any repo that lays its packs out the same way can use it. A pack is a directory:

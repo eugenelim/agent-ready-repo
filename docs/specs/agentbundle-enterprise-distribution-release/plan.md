@@ -88,8 +88,9 @@ workspace.toml `shipped` means "spec + plan authored; adversarial review Clean")
 
 _Artifact layer_ — authoritative gate; code is actually in the tree (prevent
 publishing a wheel whose CHANGELOG describes features absent from the code):
-- M1a: `! grep -q '"agent-ready-repo"' packages/agentbundle/agentbundle/config.py`
-  exits 0 (hard-coded PackState literal removed)
+- M1a: `! grep -q 'source.*=.*"agent-ready-repo"' packages/agentbundle/agentbundle/config.py`
+  exits 0 (hard-coded PackState default removed; backward-compat mapping in
+  `canonicalize_source` is expected and correct)
 - M1b: `grep -rF "source_conflict" packages/agentbundle/agentbundle/` exits 0
   (source-conflict guard present)
 - M2: `agentbundle list-installed --help | grep -F -- "--format"` exits 0
