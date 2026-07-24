@@ -11,7 +11,6 @@ Covers:
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -184,8 +183,6 @@ def test_resolve_per_source_single_ok(tmp_path):
 
 def test_resolve_per_source_single_failed(tmp_path):
     """CatalogueError → source-unavailable; sources entry has resolved=False."""
-    from agentbundle.catalogue import CatalogueError
-
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
          "_pack_state": PackState(installed_version="1.0.0", source="git+ssh://example.test/repo")},
@@ -201,8 +198,6 @@ def test_resolve_per_source_single_failed(tmp_path):
 
 def test_resolve_per_source_two_sources_independence(tmp_path):
     """Source A ok, source B fails; rows isolated per source."""
-    from agentbundle.catalogue import CatalogueError
-
     cat_a = _write_catalogue(tmp_path / "cat_a", {"core": "1.1.0"})
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
@@ -460,7 +455,6 @@ def test_redact_error_clean_passthrough():
 
 def _parse_list_installed(argv: list[str]) -> SimpleNamespace:
     """Parse 'agentbundle list-installed <argv>' and return the namespace."""
-    import argparse
     from agentbundle.cli import _build_parser
     parser = _build_parser()
     return parser.parse_args(["list-installed"] + argv)
@@ -477,7 +471,6 @@ def test_format_json_accepted():
 
 
 def test_format_invalid_rejected():
-    import argparse
     with pytest.raises(SystemExit):
         _parse_list_installed(["--format", "xml"])
 
@@ -851,7 +844,7 @@ def test_table_source_truncated_to_40_visible_chars(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "SOURCE" in out
     # Find source cells in data rows (skip header and separator)
-    lines = [l for l in out.splitlines() if "core" in l or "arch" in l]
+    lines = [ln for ln in out.splitlines() if "core" in ln or "arch" in ln]
     for line in lines:
         # The source cell is a token in the line
         # We can't trivially extract the column, but we can check no cell
@@ -880,7 +873,7 @@ def test_table_null_source_shows_dash_in_source_column(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "SOURCE" in out
     # The mystery row should display "—" in the SOURCE column
-    mystery_lines = [l for l in out.splitlines() if "mystery" in l]
+    mystery_lines = [ln for ln in out.splitlines() if "mystery" in ln]
     assert len(mystery_lines) == 1
     assert "—" in mystery_lines[0]
 
@@ -985,8 +978,8 @@ def test_table_sort_order_scope_pack_adapter(tmp_path, capsys):
     args = _make_args(root=str(tmp_path), scope="repo", no_check=True)
     li.run(args)
     out = capsys.readouterr().out
-    lines = [l for l in out.splitlines() if "repo" in l]
-    packs = [l.split()[0] for l in lines]
+    lines = [ln for ln in out.splitlines() if "repo" in ln]
+    packs = [ln.split()[0] for ln in lines]
     assert packs == sorted(packs)
 
 
@@ -1042,7 +1035,7 @@ def test_table_drift_column_rendered_with_flag(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "DRIFT" in out
     # Find the data row and check drift count
-    rows = [l for l in out.splitlines() if "core" in l]
+    rows = [ln for ln in out.splitlines() if "core" in ln]
     assert any("1" in r for r in rows)
 
 
@@ -1097,7 +1090,7 @@ def test_table_column_alignment_mixed_lengths_and_unicode(tmp_path, capsys):
     out = capsys.readouterr().out
     lines = out.splitlines()
     # Find separator line (contains "---")
-    sep_idx = next(i for i, l in enumerate(lines) if "---" in l)
+    sep_idx = next(i for i, ln in enumerate(lines) if "---" in ln)
     sep_line = lines[sep_idx]
     # Find column positions from separator (dashes = column, space = separator)
     col_ends: list[int] = []
@@ -1148,10 +1141,10 @@ def test_table_long_pack_name_no_broken_structure(tmp_path, capsys):
     out = capsys.readouterr().out
     lines = out.splitlines()
     # Find separator
-    sep_lines = [l for l in lines if set(l.replace(" ", "").replace("-", "")) == set()]
+    sep_lines = [ln for ln in lines if set(ln.replace(" ", "").replace("-", "")) == set()]
     assert len(sep_lines) >= 1
     # Every data row has the long pack name
-    data_lines = [l for l in lines if long_name in l]
+    data_lines = [ln for ln in lines if long_name in ln]
     assert len(data_lines) >= 1
 
 
