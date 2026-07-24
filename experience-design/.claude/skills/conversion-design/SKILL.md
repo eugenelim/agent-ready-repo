@@ -1,6 +1,6 @@
 ---
 name: conversion-design
-description: "Use when designing a marketing surface — a landing page, product homepage, pricing page, or acquisition flow — where the primary goal is to convert a visitor into a lead, trial user, or customer. Triggers on 'design the landing page', 'structure the homepage', 'what goes above the fold', 'convert visitors', 'design the pricing page', 'product marketing surface'. Produces IA and structural specifications for conversion surfaces. Do NOT use for product UI design (use user-flow + interaction-design), documentation surfaces (use documentation-design), or analytical dashboards (use analytical-design). Surface genre: marketing."
+description: "Use when designing a marketing surface — a landing page, product homepage, pricing page, or acquisition flow — where the primary goal is to convert a visitor into a lead, trial user, or customer. Triggers on 'design the landing page', 'structure the homepage', 'what goes above the fold', 'convert visitors', 'design the pricing page', 'product marketing surface'. Produces IA and structural specifications for conversion surfaces. Do NOT use for product UI design (use user-flow + interaction-design), documentation surfaces (use documentation-design), or analytical dashboards (use analytical-design). Surface genre: marketing. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
 ---
 
 # Skill: conversion-design
