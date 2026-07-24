@@ -88,6 +88,9 @@ Organized by XD chain phase:
 - [State coverage reference — the 18-state set](reference/state-coverage.md) —
   the canonical 18-state set shared by `design-review` (at design time) and
   `frontend-engineering` (at build time), aligned so design and build vocabulary match.
+- [I want to… intent index](reference/intent-index.md) —
+  cross-pack lookup: map a starting job to the right pack, skill, and guide.
+  Covers single-skill jobs, multi-skill chains, and out-of-scope redirects.
 
 ---
 
