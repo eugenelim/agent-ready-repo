@@ -1,0 +1,20 @@
+{
+  "skill_name": "design-system-foundations",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Apply a token foundation for this project. The taxonomy derives from a 'calm, precise, accessible' aesthetic direction with a minor-third spacing ratio and APCA-based contrast.",
+      "expected_output": "A working token foundation that applies the taxonomy \u2014 semantic color roles (primary, surface, on-surface, error, warning, success, info, disabled, overlay), typography tokens (font family, scale steps, weights), spacing tokens (named steps from the taxonomy), radius system, focus styles meeting WCAG 2.4.11, key status tokens (success/warning/error/info), responsive breakpoints, and core component tokens (button, input, card, modal). Each token is named for its semantic role and maps to a value from the taxonomy method. Accessibility claims are stated for foreground/background pairs. The output names the structure and roles \u2014 it does not reprint a values table or re-derive the taxonomy method.",
+      "assertions": [
+        "Names semantic color roles (at minimum: primary, surface, on-surface, error, warning, success, info) \u2014 does not reprint a palette",
+        "Includes typography tokens: font family, scale steps by semantic level, weights",
+        "Includes spacing tokens named by semantic step, mapped from the taxonomy",
+        "Includes focus style token that references the recognized accessibility standard (WCAG 2.4.11)",
+        "Includes key status tokens: success, warning, error, info (each with background, foreground, border roles)",
+        "Includes responsive breakpoints with named steps",
+        "Includes core component tokens: button, input, card, modal at minimum",
+        "Does NOT reprint raw pixel/hex values as the deliverable \u2014 states structure and semantic roles"
+      ]
+    }
+  ]
+}

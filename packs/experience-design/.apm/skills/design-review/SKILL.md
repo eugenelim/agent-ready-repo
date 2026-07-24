@@ -1,6 +1,6 @@
 ---
 name: design-review
-description: "Evaluate an existing screen, flow, or mockup with a severity-rated findings list: quality-floor pass (states, a11y, motion), heuristic eval (Nielsen's 10), marketing clarity pass (tweet test, five-second scan, painkiller-first — fires on above-fold copy with a persuasion goal), and taste critique (grounded aesthetic reference + platform fit). Triggers on 'critique this design', 'review this screen', 'what is wrong with this mockup', 'do a heuristic eval', 'is this usable', 'does this fit our aesthetic', 'does this page convert', 'is this copy compelling', 'tweet test'. Do NOT use to name a felt direction (use creative-direction), to derive tokens (use design-system), or to structure hierarchy (use information-architecture). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Evaluate an existing screen, flow, or mockup with a severity-rated findings list: quality-floor pass (states, a11y, motion), heuristic eval (Nielsen's 10), marketing clarity pass (tweet test, five-second scan, painkiller-first — fires on above-fold copy with a persuasion goal), and taste critique (grounded aesthetic reference + platform fit). Triggers on 'critique this design', 'review this screen', 'what is wrong with this mockup', 'do a heuristic eval', 'is this usable', 'does this fit our aesthetic', 'does this page convert', 'is this copy compelling', 'tweet test'. Do NOT use to name a felt direction (use creative-direction), to derive a token taxonomy (use design-token-taxonomy), or to structure hierarchy (use information-architecture). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
 ---
 
 # Skill: design-review
@@ -22,7 +22,7 @@ Confirm all three before drafting; if any fails, resolve it first.
 
 1. **There is something concrete to review** — a screen, flow, mockup, or described surface. A vibe with no artifact isn't ready; route to `creative-direction`.
 2. **You know whose task you're judging** — a critique needs a user and a goal. Without them, severity is unanchored guesswork; draw out the primary task first.
-3. **You're evaluating, not creating** — the ask is "is this good," not "make this." If it's deriving values or structuring a layout, hand to `design-system` or `information-architecture`.
+3. **You're evaluating, not creating** — the ask is "is this good," not "make this." If it's deriving values or structuring a layout, hand to `design-token-taxonomy` or `information-architecture`.
 
 ## Procedure
 

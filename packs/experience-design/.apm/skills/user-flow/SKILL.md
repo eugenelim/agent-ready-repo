@@ -19,7 +19,7 @@ machine, motion — is `interaction-design`'s, not this skill's. See
 **Inputs:** a customer journey (from `journey-mapping`, or elicited inline —
 this skill is standalone-useful without an upstream artifact) and the backing
 services (from `service-blueprint`, or named textually when it is absent).
-**Consumed by:** `creative-direction` / `design-system` /
+**Consumed by:** `creative-direction` / `design-token-taxonomy` /
 `information-architecture` / `interaction-design` (each enriches a
 per-screen brief), `product-engineering`'s `ux-writing` (writes copy per
 screen × state, keyed to the state matrix), the `experience-reviewer` agent
@@ -126,7 +126,7 @@ Confirm all four before drafting; if any fails, resolve it first.
    whichever tool they use. The handover is **instructions keyed to the brief**,
    never pixels or values; it names tool *categories*, endorses none.
 10. **Hand off.** Point the craft skills (`creative-direction`,
-    `design-system`, `information-architecture`,
+    `design-token-taxonomy`, `information-architecture`,
     `interaction-design`) at the briefs to enrich, `ux-writing` at the
     state matrix for copy, and the `experience-reviewer` for the independent review.
 

@@ -1,0 +1,82 @@
+[
+  {
+    "query": "Set up our design tokens and name them by role",
+    "should_trigger": true
+  },
+  {
+    "query": "Turn the named aesthetic direction into a design system",
+    "should_trigger": true
+  },
+  {
+    "query": "Establish a semantic token system for the product",
+    "should_trigger": true
+  },
+  {
+    "query": "Create the foundational design-system rules from our direction",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up the token and scale taxonomy for our component library",
+    "should_trigger": true
+  },
+  {
+    "query": "Apply design token foundations to our project",
+    "should_trigger": true
+  },
+  {
+    "query": "Build the design token foundation for this project",
+    "should_trigger": true
+  },
+  {
+    "query": "Create light and dark themes for our product using our token taxonomy",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up semantic aliases so primitive values map through to components",
+    "should_trigger": true
+  },
+  {
+    "query": "Wire up our tokens as CSS variables using the taxonomy we derived",
+    "should_trigger": true
+  },
+  {
+    "query": "Derive a spacing scale from our aesthetic direction",
+    "should_trigger": false
+  },
+  {
+    "query": "What should our type scale be, structurally \u2014 what ratio organizes it?",
+    "should_trigger": false
+  },
+  {
+    "query": "Name our tokens by semantic role and derive the organizing ratio",
+    "should_trigger": false
+  },
+  {
+    "query": "Derive our spacing and type scale from the direction",
+    "should_trigger": false
+  },
+  {
+    "query": "What token naming convention should we use and why?",
+    "should_trigger": false
+  },
+  {
+    "query": "Name the emotional direction for this product first",
+    "should_trigger": false
+  },
+  {
+    "query": "Critique this screen's usability and rank the issues",
+    "should_trigger": false
+  },
+  {
+    "query": "Structure the information architecture for the dashboard",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the microcopy for our button labels",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the backstage services that fulfil this customer journey",
+    "should_trigger": false
+  }
+]

@@ -4,7 +4,7 @@
   Copied into your repo by the `creative-direction` skill. Fill the angle-
   bracket prompts and delete this comment. This doc names *direction* — the
   emotional and brand goals the build steers by. It holds NO palette, font,
-  or values; those are derived later by `design-system`. Keep it
+  or values; those are derived later by `design-token-taxonomy`. Keep it
   short enough that a non-designer reads it in two minutes.
 -->
 
