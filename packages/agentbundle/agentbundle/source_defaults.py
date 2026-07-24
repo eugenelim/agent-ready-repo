@@ -1,13 +1,14 @@
 """Default catalogue-source resolution for ``install`` / ``upgrade`` (RFC-0046).
 
 When the ``catalogue`` positional is omitted, the install/upgrade handlers
-resolve a default source through a four-layer, trusted-by-construction,
+resolve a default source through a five-layer, trusted-by-construction,
 first-match-wins chain (ADR-0036):
 
-  1. the explicit ``catalogue`` arg — passed through verbatim (layer 1);
-  2. the user ``[settings].source`` config value (layer 2);
-  3. editable-install detection via PEP 610 ``direct_url.json`` (layer 3);
-  4. the packaged ``_data/install-defaults.toml`` default (layer 4).
+  1. the explicit ``catalogue`` arg — passed through verbatim;
+  2. the user ``[settings].source`` config value;
+  3. package-shipped org Artifactory bootstrap (RFC-0072 D2);
+  4. editable-install detection via PEP 610 ``direct_url.json``;
+  5. the packaged ``_data/install-defaults.toml`` default.
 
 ``resolve_catalogue`` (``catalogue.py``) stays a thin fetcher with no
 path/marker validation; **all** validation lives here. Resolution is
@@ -39,6 +40,8 @@ _SHA256_FRAGMENT_RE = _re.compile(r"^sha256=[0-9a-f]{64}$")
 # colon, then a separator. Checked *before* the urlsplit scheme test because
 # ``urlsplit("C:/x").scheme`` is ``"c"`` and would otherwise read as a URL.
 _WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+# Segment grammar for org-bootstrap path components (repository, bundle, channel).
+_ORG_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
 
 _MARKER_DIR = "packs"
 _MARKER_FILE = (".claude-plugin", "marketplace.json")
@@ -53,12 +56,12 @@ _NO_SOURCE_MSG = (
 )
 
 # Sentinel: distinguishes "caller did not pass a distribution" (load it
-# lazily) from "caller passed None" (no distribution — skip layer 3).
+# lazily) from "caller passed None" (no distribution — skip layer 4).
 _UNSET: object = object()
 
 
 # ---------------------------------------------------------------------------
-# Validation gate (layers 2 and 4)
+# Validation gate (layers 2 and 5)
 # ---------------------------------------------------------------------------
 
 
@@ -79,7 +82,7 @@ def _local_path_has_markers(value: str) -> bool:
 
 
 def _is_valid_source(value: str) -> bool:
-    """The scheme/marker gate applied to layer-2 and layer-4 sources.
+    """The scheme/marker gate applied to layer-2 and layer-5 sources.
 
     Exact allowlist discriminator (spec validation AC), in order:
       1. literal ``git+https://`` prefix (case-sensitive, matching
@@ -116,7 +119,169 @@ def _is_valid_source(value: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Layer 3 — editable-install detection
+# Layer 3 — org Artifactory bootstrap (RFC-0072 D2)
+# ---------------------------------------------------------------------------
+
+
+def _source_from_org_bootstrap(text: str, *, config_path: str) -> str | None:
+    """Parse ``[organization.artifactory]`` from ``install-defaults.toml`` text.
+
+    Returns ``None`` when the bootstrap is disabled: absent table, absent or
+    ``false`` ``enabled`` key, or unparseable TOML (the file cannot reveal
+    ``enabled``, so fall-through is the only safe choice — AC2b).
+
+    When ``enabled = true`` (TOML boolean), applies all validation rules before
+    constructing the URL. On any validation failure raises ``CatalogueError``
+    naming the malformed field and the ``config_path`` — fail-closed, never
+    falls through to Layer 4.
+
+    Returns a ``catalogue+https://…`` URI string when all fields are valid.
+    """
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return None
+
+    # Two-step isinstance-guarded nesting access — avoids AttributeError when
+    # an intermediate key holds a non-dict TOML value (e.g. `organization = "typo"`).
+    org = data.get("organization")
+    if not isinstance(org, dict):
+        return None
+    org_block = org.get("artifactory")
+    if not isinstance(org_block, dict):
+        return None
+
+    enabled = org_block.get("enabled")
+    if enabled is None or enabled is False:
+        return None
+    if enabled is not True:
+        raise CatalogueError(
+            f"organization.artifactory.enabled: must be a boolean (true/false) "
+            f"in {config_path}"
+        )
+
+    # --- enabled is True: fail-closed from here on ---
+
+    # Validate base-url
+    base_url = org_block.get("base-url")
+    if base_url is None:
+        raise CatalogueError(
+            f"organization.artifactory.base-url: required field missing in {config_path}"
+        )
+    if not isinstance(base_url, str) or not base_url.strip():
+        raise CatalogueError(
+            f"organization.artifactory.base-url: must be a non-empty string "
+            f"in {config_path}"
+        )
+    # Case-sensitive prefix check before urlsplit so uppercase schemes are
+    # rejected here, guaranteeing the constructed URL starts with lower-case
+    # `catalogue+https://` as required by _is_valid_source.
+    if not base_url.startswith("https://"):
+        raise CatalogueError(
+            f"organization.artifactory.base-url: must start with 'https://' "
+            f"in {config_path}"
+        )
+    parsed = urlsplit(base_url)
+    if not parsed.netloc:
+        raise CatalogueError(
+            f"organization.artifactory.base-url: netloc must not be empty "
+            f"in {config_path}"
+        )
+    if "@" in parsed.netloc:
+        # Do NOT include the raw base_url in the message — it may contain credentials.
+        raise CatalogueError(
+            f"organization.artifactory.base-url: netloc must not contain '@' "
+            f"in {config_path}"
+        )
+    if parsed.query:
+        raise CatalogueError(
+            f"organization.artifactory.base-url: must not contain a query string "
+            f"in {config_path}"
+        )
+    if parsed.fragment:
+        raise CatalogueError(
+            f"organization.artifactory.base-url: must not contain a fragment "
+            f"in {config_path}"
+        )
+
+    # Normalize trailing slash before joining path segments.
+    base_url = base_url.rstrip("/")
+
+    # Validate repository, bundle, channel
+    segments: dict[str, str] = {}
+    for fname in ("repository", "bundle", "channel"):
+        val = org_block.get(fname)
+        if val is None:
+            raise CatalogueError(
+                f"organization.artifactory.{fname}: required field missing "
+                f"in {config_path}"
+            )
+        if not isinstance(val, str) or not val.strip():
+            raise CatalogueError(
+                f"organization.artifactory.{fname}: must be a non-empty string "
+                f"in {config_path}"
+            )
+        # Defense-in-depth: explicit reject before regex (both `.` chars are
+        # individually valid but the combination is a path-traversal pattern).
+        if val == "..":
+            raise CatalogueError(
+                f"organization.artifactory.{fname}: must not be '..' "
+                f"in {config_path}"
+            )
+        if not _ORG_SEGMENT_RE.fullmatch(val):
+            raise CatalogueError(
+                f"organization.artifactory.{fname}: contains invalid characters "
+                f"(expected [A-Za-z0-9._-]+) in {config_path}"
+            )
+        segments[fname] = val
+
+    return (
+        f"catalogue+{base_url}"
+        f"/{segments['repository']}/catalogues/{segments['bundle']}"
+        f"/channels/{segments['channel']}.json"
+    )
+
+
+def read_org_bootstrap(
+    read_text: "Callable[[], tuple[str, str] | None] | None" = None,
+) -> str | None:
+    """Return the org Artifactory bootstrap source URI, or ``None``.
+
+    When ``read_text`` is ``None`` (production path): reads the packaged
+    ``_data/install-defaults.toml`` via ``importlib.resources``; absorbs
+    ``(FileNotFoundError, ModuleNotFoundError, OSError)`` as ``None``; passes
+    ``config_path=str(resource)`` for error messages.
+
+    When ``read_text`` is provided (test injection path): calls it; if it
+    returns ``None``, returns ``None``; otherwise unpacks ``(text, config_path)``
+    and delegates to ``_source_from_org_bootstrap``.
+
+    Returns ``None`` when the bootstrap is disabled.  Raises ``CatalogueError``
+    when ``enabled = true`` and any field is malformed (fail-closed).
+    """
+    if read_text is not None:
+        result = read_text()
+        if result is None:
+            return None
+        text, config_path = result
+        return _source_from_org_bootstrap(text, config_path=config_path)
+
+    # Production path: read from the packaged resource.
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle").joinpath("_data/install-defaults.toml")
+        if not resource.is_file():
+            return None
+        text = resource.read_text(encoding="utf-8")
+        config_path = str(resource)
+    except (FileNotFoundError, ModuleNotFoundError, OSError):
+        return None
+    return _source_from_org_bootstrap(text, config_path=config_path)
+
+
+# ---------------------------------------------------------------------------
+# Layer 4 — editable-install detection
 # ---------------------------------------------------------------------------
 
 
@@ -218,7 +383,7 @@ def _detect_editable_source(dist: object, *, stream: TextIO | None = None) -> st
 
 
 # ---------------------------------------------------------------------------
-# Layer 4 — packaged default
+# Layer 5 — packaged default
 # ---------------------------------------------------------------------------
 
 
@@ -246,7 +411,7 @@ def read_packaged_default() -> str | None:
     ``_data/install-defaults.toml``, or ``None``.
 
     An absent file, an empty/blanked ``source``, or malformed TOML all yield
-    ``None`` (no layer-4 default) — the private-fork pattern.
+    ``None`` (no layer-5 default) — the private-fork pattern.
     """
     try:
         from importlib.resources import files
@@ -324,7 +489,7 @@ def _load_distribution() -> object | None:
     the venv's ``.dist-info`` after an editable install; a plain
     ``metadata.distribution("agentbundle")`` may then return the egg-info
     (which has no ``direct_url.json``), silently defeating editable detection —
-    exactly the gateway-bound-fork case layer 3 exists for. Scanning and
+    exactly the gateway-bound-fork case layer 4 exists for. Scanning and
     preferring the record-bearing distribution makes detection robust to that
     shadowing.
     """
@@ -367,18 +532,24 @@ def resolve_default_source(
     config_source: str | None = None,
     dist: object = _UNSET,
     read_packaged: Callable[[], str | None] | None = None,
+    read_org: Callable[[], str | None] | None = None,
     stream: TextIO | None = None,
 ) -> str:
-    """Resolve the catalogue source through the four-layer chain.
+    """Resolve the catalogue source through the five-layer chain.
 
     First-match-wins, highest-first: explicit arg (verbatim, unvalidated —
-    today's behaviour) › validated ``config_source`` › editable detection ›
-    validated packaged default. Raises ``CatalogueError`` naming all recovery
-    paths when no layer yields a source. Writes nothing on any path.
+    today's behaviour) › validated ``config_source`` › org Artifactory
+    bootstrap (RFC-0072 D2) › editable detection › validated packaged default.
+    Raises ``CatalogueError`` naming all recovery paths when no layer yields a
+    source. Writes nothing on any path.
+
+    Layer 3 (org Artifactory bootstrap) raises ``CatalogueError`` fail-closed
+    when ``enabled = true`` and any field is malformed — it does not fall
+    through to Layer 4.
 
     Pure over its injected environment (``config_source``, ``dist``,
-    ``read_packaged``) so the precedence and validation logic is unit-testable
-    without touching the real filesystem or installed metadata.
+    ``read_packaged``, ``read_org``) so the precedence and validation logic is
+    unit-testable without touching the real filesystem or installed metadata.
     """
     if stream is None:
         stream = sys.stderr
@@ -397,14 +568,21 @@ def resolve_default_source(
             file=stream,
         )
 
-    # Layer 3 — editable detection.
+    # Layer 3 — org Artifactory bootstrap (RFC-0072 D2).
+    if read_org is None:
+        read_org = read_org_bootstrap
+    org = read_org()  # None when disabled; raises CatalogueError on fail-closed
+    if org is not None:
+        return org
+
+    # Layer 4 — editable detection.
     if dist is _UNSET:
         dist = _load_distribution()
     editable = _detect_editable_source(dist, stream=stream)
     if editable is not None:
         return editable
 
-    # Layer 4 — packaged default, validated.
+    # Layer 5 — packaged default, validated.
     if read_packaged is None:
         read_packaged = read_packaged_default
     packaged = read_packaged()
