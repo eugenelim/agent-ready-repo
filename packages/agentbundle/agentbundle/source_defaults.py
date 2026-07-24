@@ -27,9 +27,14 @@ from typing import Callable, TextIO
 from urllib.parse import unquote, urlsplit
 from urllib.request import url2pathname
 
+import re as _re
+
 from agentbundle.catalogue import CatalogueError
 
 _GIT_HTTPS_PREFIX = "git+https://"
+_CATALOGUE_HTTPS_PREFIX = "catalogue+https://"
+_ARCHIVE_HTTPS_PREFIX = "archive+https://"
+_SHA256_FRAGMENT_RE = _re.compile(r"^sha256=[0-9a-f]{64}$")
 # A Windows drive path (``C:\repo`` / ``C:/repo``): a single drive letter, a
 # colon, then a separator. Checked *before* the urlsplit scheme test because
 # ``urlsplit("C:/x").scheme`` is ``"c"`` and would otherwise read as a URL.
@@ -90,6 +95,18 @@ def _is_valid_source(value: str) -> bool:
     if not value:
         return False
     if value.startswith(_GIT_HTTPS_PREFIX):
+        return True
+    if value.startswith(_CATALOGUE_HTTPS_PREFIX):
+        parsed = urlsplit(value)
+        if "@" in parsed.netloc:
+            return False
+        return True
+    if value.startswith(_ARCHIVE_HTTPS_PREFIX):
+        parsed = urlsplit(value)
+        if "@" in parsed.netloc:
+            return False
+        if not _SHA256_FRAGMENT_RE.fullmatch(parsed.fragment):
+            return False
         return True
     if _WIN_DRIVE_RE.match(value):
         return _local_path_has_markers(value)
