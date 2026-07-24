@@ -1,6 +1,6 @@
 ---
 name: design-system-foundations
-description: Use when a token taxonomy exists and the next step is applying it as a working token foundation. Triggers on "apply design token foundations", "set up our token implementation", "build the design token foundation for this project", "implement the token system", "wire up our tokens as CSS variables", "create the light and dark themes", "set up semantic aliases for our components". Takes a derived token taxonomy (from `design-token-taxonomy`) and produces the working foundation — lightweight mode covers semantic color roles, typography, spacing, radius, focus styles, key statuses, responsive breakpoints, and core component tokens; full mode adds DTCG 2025.10-compatible token source, light/dark theme switching, semantic alias layer, and full component anatomy. Near-misses — do not use to derive the taxonomy (use `design-token-taxonomy`), name felt direction (use `creative-direction`), evaluate an existing surface (use `design-review`), or structure hierarchy and reading flow (use `information-architecture`).
+description: Use when a token taxonomy exists and the next step is applying it as a working token foundation. Triggers on "apply design token foundations", "set up our token implementation", "build the design token foundation for this project", "implement the token system", "create the light and dark themes", "set up semantic aliases for our components". Takes a derived token taxonomy (from `design-token-taxonomy`) and produces the working foundation — lightweight mode covers semantic color roles, typography, spacing, radius, focus styles, key statuses, responsive breakpoints, and core component tokens; full mode adds DTCG 2025.10-compatible token source, light/dark theme switching, semantic alias layer, and full component anatomy. Near-misses — do not use to derive the taxonomy (use `design-token-taxonomy`), name felt direction (use `creative-direction`), evaluate an existing surface (use `design-review`), or structure hierarchy and reading flow (use `information-architecture`).
 ---
 
 # Skill: design-system-foundations
@@ -59,7 +59,7 @@ Full mode extends lightweight with four additional layers:
 1. **DTCG 2025.10-compatible token source.** A token source file (JSON or YAML)
    conforming to the Design Tokens Community Group (DTCG) 2025.10 specification
    (W3C Community Group deliverable), where practical. Generated platform
-   outputs (Figma variables, iOS SwiftUI tokens, Android Material tokens) are
+   outputs (design tool variables, mobile platform tokens) are
    deferred to a follow-on step outside this skill.
 2. **Light/dark theme switching.** Both a light theme and a dark theme defined
    as token overrides: each semantic role maps to distinct primitive values for
