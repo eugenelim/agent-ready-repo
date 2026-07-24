@@ -1,30 +1,29 @@
 ---
 name: jira-team-status
-description: "Use this skill to get your team's Jira sprint or backlog scored for agent-readiness and to pick up a story to deliver or shape. Shows a scored snapshot grouped by complexity, then offers a pick-up hand-off. Triggers on \"show team backlog\", \"team sprint status\", \"what can we ship this sprint\", \"plan the sprint backlog\", \"which stories are agent-ready for the team\", \"team backlog health check\", \"score our sprint and pick one up\", \"what should we start this sprint\". Do NOT use for: local workspace queue or session orientation (use workspace-status), a bulk backlog audit without hand-off (use jira-story-triage), creating or updating issues without the shaping flow (use jira), or fixing a specific defect (use jira-defect-flow)."
+description: "Summarize a Jira team's work and backlog for sprint, stand-up, and team-status views — what the team can pick up next, and what is ready, blocked, in progress, unassigned, stale, recently changed, or needs product attention. Triggers on \"show me the entire backlog\", \"what can the team pick up next\", \"what is blocked\", \"what is sitting unassigned\", \"what changed in this sprint\", \"give me a team status for stand-up\", \"which items need product attention\", \"team sprint status\". Ask only for missing team or time scope; read-only unless the user explicitly asks to update an item; disclose coverage or truncation. Do NOT use to judge readiness in depth or improve weak stories / draft acceptance criteria (use jira-story-triage), to create an issue (use jira), to turn an epic into specs (use jira-brief-intake), to fix a defect (use jira-defect-flow), or for the local workspace queue (use workspace-status)."
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Skill: jira-team-status
 
-A session-entry-point tool for sprint planning and daily team coordination.
-Modelled on the `workspace-status` session-entry-point pattern: it displays
-a scored Jira snapshot, then offers a pick-up hand-off so a team member can
-immediately start delivery on a ready story or shape a blocked one.
+A read-only status view of a team's Jira work. It answers *where the team's work
+stands* and *what to pick up next* — organized by the dimensions people actually ask
+about: **Ready to pull, In progress, Blocked, Unassigned, and Needs detail**, plus a
+recently-changed note. Then it offers a pick-up hand-off so a team member can start
+delivery on a ready item.
 
-**Read path:** reads from Jira via the `jira` skill (read-only for the snapshot).
-**Write path:** with explicit user consent in the shaping hand-off, calls
-`update-issue` once on the story the user chose to rewrite. The write is always
-confirmed before it executes.
-
-This skill complements `jira-story-triage` (which is a bulk audit tool without
-hand-off). Use `jira-team-status` at sprint-cadence for the "what's our status
-and what should I pick up?" moment.
+Read-only by default. This skill does not judge item quality in depth or rewrite weak
+stories — that is `jira-story-triage`. When the user wants to fix a weak item (draft
+acceptance criteria, clarify the outcome), this skill routes them to
+`jira-story-triage` by name. Its only write is a bare pass-through to the `jira`
+skill's `update-issue` when the user explicitly asks to set a field, with the payload
+confirmed first.
 
 ## Cross-skill invocation — name, not path
 
 Sibling and host skills are named **by their `name:` field, never by path**.
-When this skill says *"route to `jira-defect-flow`"*, the agent dispatches the
+When this skill says *"route to `jira-story-triage`"*, the agent dispatches the
 skill registered under that name. If the skill is absent, the agent surfaces an
 install hint rather than stopping.
 
@@ -35,7 +34,28 @@ Invoke: `jira: check`.
 - Exit 0 → proceed.
 - Exit 2 → tell the user to run `credential-setup` themselves and stop.
 
-## The five-question actionability bar
+## The "ready to pull" rule
+
+"Ready to pull" is a defined rule, not a silent `status = "To Do"`. An item is
+**ready to pull** when **all four** hold:
+
+1. **In the selected team scope** — the project(s), board, sprint, or team field the
+   user asked about.
+2. **In an eligible backlog state** — default: Jira `statusCategory = "To Do"` (the
+   stable category that spans Backlog / To Do / Selected for Development / Open across
+   any instance). This deliberately excludes work already `In Progress` or `Done`.
+   **Teams override the eligible statuses/fields** — name explicit statuses (e.g.
+   "Ready for Dev") and this rule uses them instead of the default.
+3. **No known unresolved blocker** — see [the blocker signal](#the-blocker-signal).
+4. **Meets the team's story-readiness bar** — the [five-question readiness
+   bar](#the-five-question-readiness-bar) below.
+
+**When any clause cannot be determined** for an item — the status doesn't map cleanly,
+the blocker state is unreadable, or readiness is ambiguous — the item is labelled
+**needs confirmation**. The skill never asserts an item is ready (or not ready) on a
+signal it could not read.
+
+## The five-question readiness bar
 
 > A story is actionable when all five are true:
 > (Q1) it is a **self-contained code/config/doc change** — not discovery, design, or coordination work;
@@ -44,22 +64,19 @@ Invoke: `jira: check`.
 > (Q4) **no human decision is needed mid-flight** — no open design question, no external approval gate that cannot be confirmed before work starts;
 > (Q5) it is **right-sized for one PR** — the scope is an enumerable set of files or PRs a single person or agent can produce without decomposing into sub-stories.
 
-Q5 exists because Jira stories are an old delivery-capacity allocation mechanism:
+Q5 exists because Jira stories are a legacy delivery-capacity allocation mechanism:
 a story sized for a full sprint passes Q1–Q4 but cannot be handed to a single
 agent or engineer without decomposition.
 
-## Tier rubric — total function
+## The blocker signal
 
-**Pre-check (runs before scoring; triggers → Blocked, skip scoring):**
-A story is **Blocked** when its description is empty, image-only (`!image-…!` Jira wiki markup), or its `issuetype` is a discovery artifact (Solution Design, Discovery, Spike without acceptance criteria, or equivalent). Blocked stories cannot be scored meaningfully because the minimum content for evaluation is absent.
+An item counts as **Blocked** when any of these is true:
+- its **Flagged** / impediment field is set;
+- it has an unresolved outward **"is blocked by"** issuelink;
+- its status is in a **team-declared blocked set** (none by default).
 
-**Scored tiers (apply only after the pre-check passes):**
-
-| Tier | Condition |
-|---|---|
-| **A — Turnkey** | All five bar questions pass. The story can be started immediately. |
-| **B — Gated** | Exactly one bar question fails, AND that failure is an **external gate**: a specific named decision pending from a named person, credentials not yet provisioned but provisioning is confirmed, or an external dependency available on a specific future date. Content failures (missing repo scope, missing ACs, missing right-sizing) are **never** Tier B regardless of how many other questions pass. |
-| **C — Needs shaping** | Any other outcome: any content dimension fails (Q1, Q2, Q3 missing/wrong), or Q4 fails with an open design question rather than a named external gate, or Q5 fails (story is too large and needs decomposition). |
+When none of the three can be read from the fetched fields, the blocker state is
+undeterminable → the item is **needs confirmation**, not asserted blocked or unblocked.
 
 ## Lifecycle
 
@@ -76,23 +93,59 @@ Proceed with "Invocation repo: unknown" if the user declines.
 
 ### Stage 2 — Intake
 
-Accept:
-- A Jira project key + optional sprint (default: `sprint in openSprints()`)
-- An optional team name or JQL filter for scope narrowing
+Ask only for what's missing to set scope; don't over-elicit. Accept:
+- A Jira project key (or several, across projects).
+- An optional **sprint** (default: `sprint in openSprints()`), a **team name**, or a
+  **JQL filter** to narrow.
+- **Whole-backlog scope:** when the user asks for the entire backlog ("show me the
+  entire ATLAS backlog"), drop the `sprint in openSprints()` default and query the
+  project's open backlog (`statusCategory != Done`), not just the current sprint.
 
-Fetch open/in-progress/backlog issues not yet Done or Closed:
+Fetch the fields the status dimensions need — status (and its category), assignee,
+last-updated, blocker signals — in one call:
 ```
 jira: search "project = PROJ AND sprint in openSprints() AND statusCategory != Done"
-      --fields "summary,description,issuetype,status,priority,labels,customfield_*"
+      --fields "summary,description,issuetype,status,statusCategory,assignee,updated,priority,labels,issuelinks,customfield_*"
       --limit 100
 ```
+`customfield_*` captures story points and the Flagged/impediment field (names vary by
+instance). **Disclose coverage:** if the result is truncated at `--limit`, say so and
+report the total.
 
-### Stage 3 — Pre-check and scoring
+### Stage 3 — Classify each item into a status dimension
 
-Apply the same pre-check and Q1–Q5 scoring as `jira-story-triage` (same five-question
-bar, same tier rubric, same word-boundary matching, same Q5 right-sizing signals).
+Assign each item to exactly one **primary** dimension, by this precedence:
+1. **Blocked** — the blocker signal is present.
+2. **In progress** — `statusCategory = "In Progress"` (and not blocked).
+3. **Needs detail** — in an eligible backlog state but either unscoreable (empty /
+   image-only / discovery issuetype) **or** it fails the readiness bar on content
+   (Q1/Q2/Q3, or Q5 too-large, or Q4 open design question). This is the coarse
+   "needs product attention" bucket; `jira-story-triage` is the tool that breaks down
+   *why* per item and fixes it.
+4. **Ready to pull** — satisfies [the ready-to-pull rule](#the-ready-to-pull-rule)
+   (eligible state + no blocker + passes the bar).
 
-### Stage 4 — Complexity scoring (Tier A stories only)
+**Undeterminable clauses never default an item into Ready to pull.** Route explicitly:
+- **Blocker clause undeterminable** (Flagged field / issuelinks not readable) → surface
+  in **§3 Blocked**, tagged `needs confirmation`.
+- **A readiness-bar clause undeterminable** (content ambiguous) → surface in **§5 Needs
+  detail**, tagged `needs confirmation`.
+- **Status doesn't map to a known category** → surface in **§5 Needs detail**, tagged
+  `needs confirmation`.
+
+An item reaches §1 Ready to pull only when all four ready-to-pull clauses are
+affirmatively true — never when one is merely *not known to be false*.
+
+**Cross-cutting views** (an item may appear here *and* in its primary dimension):
+- **Unassigned** — every in-scope item with no `assignee`. (Ready-to-pull items are
+  expected to be unassigned; the value is spotting *in-progress* or stuck items nobody
+  owns.)
+- **Recently changed** — items whose `updated` falls within the window (sprint start,
+  or the last 7 days for a backlog scope), most-recent first — answers "what changed?".
+- **Stale** — a `⚠ stale` marker on any In-progress or Ready item whose `updated` is
+  older than the staleness threshold (default 14 days; team-overridable).
+
+### Stage 4 — Complexity (Ready-to-pull items only)
 
 | Signal | Quick | Standard | Involved |
 |---|---|---|---|
@@ -100,120 +153,131 @@ bar, same tier rubric, same word-boundary matching, same Q5 right-sizing signals
 | Description length (fallback) | ≤ 100 words | 101–200 words | > 200 words |
 | AC count (secondary fallback) | ≤ 2 ACs | 3–5 ACs | > 5 ACs |
 
-### Stage 5 — Output: four sections
+### Stage 5 — Output: the status snapshot
 
-Emit the following sections in this order, always. If a section has no stories,
-include its header with "None in this scope."
+Emit these sections in order, always. If a section has no items, include its header
+with "None in this scope."
 
 ---
 
-**§1 — Agent-ready (Tier A)** — grouped by complexity
+**§1 — Ready to pull** — grouped by complexity
 
-Stories that can be handed to an agent or engineer with no meeting or follow-up.
-Grouped: **Quick** first, then **Standard**, then **Involved**. Team members
-self-select by available bandwidth.
+Items that satisfy the ready-to-pull rule. Grouped **Quick**, then **Standard**, then
+**Involved**, so team members self-select by bandwidth.
 
-Table columns: `Key | Summary | Priority | Complexity | Invocation repo match?`
+Table columns: `Key | Summary | Priority | Complexity | Updated (⚠ if stale) | Invocation repo match?`
 
 "Invocation repo match?" is Yes if Q2 found the invocation repo URL or name in the
-story's description, Unknown otherwise.
+item's description, Unknown otherwise. The `Updated` column carries the `⚠ stale`
+marker for a ready item untouched past the staleness threshold. Mark any
+`needs confirmation` items explicitly.
+
+Batching note (optional): if two or more ready items have distinct repo scopes and no
+stated dependency between them, add: "Can run concurrently: PROJ-101, PROJ-103."
 
 ---
 
-**§2 — Parallel batching candidates**
+**§2 — In progress**
 
-Tier A stories with mutually distinct repo scopes (no explicit dependency language
-between them) that can run concurrently. Format:
-
-> "Can run concurrently: PROJ-101, PROJ-103, PROJ-107 (distinct scopes; no stated
-> dependency between them)."
-
-If no independent pairs are found, omit §2.
+Table columns: `Key | Summary | Assignee | Updated (⚠ if stale)`
 
 ---
 
-**§3 — Gated (Tier B)**
+**§3 — Blocked**
 
-Table columns: `Key | Summary | Gate (what must resolve first) | Owner hint`
+Table columns: `Key | Summary | Blocker (which signal) | Owner hint`
+
+---
+
+**§4 — Unassigned**
+
+Every in-scope item with no assignee. Table columns:
+`Key | Summary | Primary dimension | Status`
 
 ---
 
-**§4 — Needs shaping (Tier C + Blocked)**
+**§5 — Needs detail (product attention)**
 
-Table columns: `Key | Summary | Tier | Specific gap (which Q failed or why Blocked)`
+Backlog items that are not ready — unscoreable or failing the bar on content.
+Table columns: `Key | Summary | What's missing (coarse) | Fix with`
 
-Footer: "These <n> stories need shaping before they can be executed."
+The "Fix with" cell points to `jira-story-triage` for the item-by-item reasons and a
+draft fix.
 
 ---
+
+**Recently changed:** a compact list — `PROJ-108 (2h ago), PROJ-101 (yesterday), …` —
+top items by `updated`. Omit if the scope has no recent changes.
 
 **Summary line:**
 ```
-Sprint snapshot: <total> total.  Agent-ready: <a> (Quick: <q>, Std: <s>, Inv: <i>).
-Gated: <g>.  Need shaping: <c+b>.  Invocation repo: <URL or unknown>.
+Team status: <total> items.  Ready to pull: <r> (Quick <q> / Std <s> / Inv <i>).
+In progress: <p>.  Blocked: <b>.  Unassigned: <u>.  Needs detail: <d>.  Stale: <st>.
+Scope: <JQL>.  Coverage: <all N | truncated at limit — total M>.  Invocation repo: <URL or unknown>.
 ```
 
-### Stage 6 — Pick-up hand-off
+### Stage 6 — Pick-up hand-off (read-only)
 
-After the snapshot, always offer a pick-up. Two options simultaneously:
+After the snapshot, offer a pick-up. Read-only routing — this skill starts no rewrite
+of its own.
 
-**Option A — Start delivery:**
-If §1 has stories:
-> "Ready to start delivery? Suggested: **`<highest-priority Quick story>`** — `<one-line summary>`.
+**Option A — Start delivery** (if §1 has items):
+> "Ready to start delivery? Suggested: **`<highest-priority Quick item>`** — `<one-line summary>`.
 > [yes / pick another / skip]"
 
-- `yes` → issuetype is Bug/Defect? Route to `jira-defect-flow` by name (surface
-  an install hint if absent). Otherwise: offer to open a `new-spec` session scoped
-  to this story (surface an install hint if `new-spec` is absent).
-- `pick another` → list §1 stories by complexity group; user picks.
-- `skip` → end the hand-off gracefully.
+- `yes` → issuetype is Bug/Defect? Route to `jira-defect-flow` by name. Otherwise offer
+  to open a `new-spec` session scoped to this item. (Surface an install hint if the
+  target skill is absent.)
+- `pick another` → list §1 items by complexity group; user picks.
+- `skip` → end gracefully.
 
-**Option B — Shape a story:**
-If §4 has stories:
-> "Want to shape a story into something executable? Suggested: **`<highest-priority Tier C story>`**.
-> [yes / pick another / skip]"
+**Option B — Improve an item that needs detail** (if §5 has items):
+> "Want to make a not-ready item actionable — draft acceptance criteria, clarify the
+> outcome? Suggested: **`<highest-priority §5 item>`**. [yes / pick another / skip]"
 
-- `yes` → begin the shaping flow:
-  1. Read the story's current content aloud (`Key`, `Summary`, `Description`, `ACs`).
-  2. Walk through each failed bar question with the user, rewriting each field
-     collaboratively. The five-question bar is the acceptance criterion for the rewrite.
-  3. After all failed questions are addressed, present the **complete rewritten payload**:
-     `Summary`, `Description`, `Acceptance Criteria` (and `issuetype` if changed).
-  4. Ask: "Update this story in Jira with the rewritten content? [yes / no]"
-  5. `yes` → call `jira: update-issue <KEY> --field summary="..." --field description="..." ...`.
-     **Never call `update-issue` before step 4 confirms.** Relay the success message.
-  6. `no` → offer to copy the rewritten text to clipboard or display it for manual
-     paste; do not call `update-issue`.
+- `yes` → route to `jira-story-triage` by name, scoped to that item (it explains the
+  reason and drafts the fix with write-after-approval). Surface an install hint if
+  `jira-story-triage` is absent; in the meantime give the item key.
 - `pick another` / `skip` → behave as above.
 
-If the user declines both options, end gracefully with a session note of what
-they could do next session.
+**Explicit update escape hatch.** If the user explicitly asks to set a specific field
+on a specific item ("set PROJ-101's priority to High"), this skill may make a **bare
+pass-through** to `jira: update-issue` — show the exact payload, get a yes, then write.
+It never runs a multi-step collaborative rewrite; that is `jira-story-triage`'s job.
+
+If the user declines both options, end gracefully with a note of what they could do
+next.
 
 ## Don't
 
-- Don't conflate this skill with the session-orientation skill for local repo queues.
-  This skill is Jira-only; it reads external Jira project data. Trigger phrases,
-  domains, and outputs are mutually exclusive from local-queue skills.
-- Don't call `update-issue` without the full rewritten payload being confirmed
-  by the user in stage 6 step 4. There is no undo.
+- Don't rewrite or improve a story's content here — route improvement to
+  `jira-story-triage`. This skill is a read-only status view plus routing.
+- Don't run a multi-step collaborative rewrite or draft acceptance criteria yourself;
+  the only write is the confirmed bare pass-through `update-issue` in stage 6.
+- Don't assert an item is ready, blocked, or not — or hide uncertainty — when the
+  signal can't be read. Label it **needs confirmation**.
+- Don't conflate this skill with the local workspace-queue / session-orientation
+  skill. This skill is Jira-only; it reads external Jira project data.
 - Don't read or write any local project state; this skill is Jira-only.
-- Don't invoke `jira-defect-flow` or `new-spec` without checking whether they are
-  installed (by-name dispatch probe); surface an install hint if absent.
-- Don't rewrite a story's content without the user explicitly choosing the shaping
-  option. Read-only outside the shaping hand-off.
+- Don't invoke `jira-story-triage`, `jira-defect-flow`, or `new-spec` without checking
+  whether they are installed (by-name dispatch probe); surface an install hint if absent.
 - Don't hardcode a sibling skill by path; invoke by name.
 
 ## Edge cases
 
-- **No Tier A stories (§1 empty).** Still emit §2 (omit if no pairs), §3, §4.
-  Pick-up offers only Option B (shape a story). Note: "No agent-ready stories in
-  this scope — shaping §4 stories is the fastest path to Tier A."
-- **All stories are Tier A.** Emit §1 with full complexity grouping, then offer
-  the delivery pick-up directly. §3 and §4 show "None in this scope."
-- **Shaping hand-off with `update-issue` rejected.** Display the rewritten fields
-  as plain text; offer to copy them. Do not retry the write.
-- **`jira-defect-flow` or `new-spec` absent.** Route to the missing skill by name;
-  harness reports it as absent; surface: "Install the `<pack>` pack to enable
-  this hand-off. In the meantime, here is the story key: `<KEY>`."
+- **No ready-to-pull items (§1 empty).** Still emit §2–§5. Pick-up offers only Option B
+  (improve a §5 item). Note: "No items ready to pull in this scope — the fastest path is
+  to make a §5 item actionable (`jira-story-triage`)."
+- **Everything is ready to pull.** Emit §1 with full complexity grouping and offer the
+  delivery pick-up directly; other sections show "None in this scope."
+- **Blocker signal unreadable.** If the Flagged field and issuelinks aren't in the
+  response, note "blocker state unverified for this scope" and mark affected items
+  **needs confirmation** rather than assuming unblocked.
+- **`jira-story-triage` / `jira-defect-flow` / `new-spec` absent.** Route by name;
+  harness reports it absent; surface: "Install the `<pack>` pack to enable this
+  hand-off. In the meantime, here is the item key: `<KEY>`."
+- **Truncated result.** Always disclose in the summary's Coverage field; offer to
+  narrow scope or paginate.
 
 ## Examples
 
