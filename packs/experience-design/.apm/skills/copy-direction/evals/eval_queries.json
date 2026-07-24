@@ -1,0 +1,82 @@
+[
+  {
+    "query": "What should our marketing copy sound like? We're a developer tool and we sound too corporate",
+    "should_trigger": true
+  },
+  {
+    "query": "We need copy direction for our landing page \u2014 we know the vibe but can't name it",
+    "should_trigger": true
+  },
+  {
+    "query": "How does our headline copy differ from our competitors? Help us name a distinctive direction",
+    "should_trigger": true
+  },
+  {
+    "query": "What should our positioning copy feel like? We want authority without sounding cold",
+    "should_trigger": true
+  },
+  {
+    "query": "Before we write the above-fold hero copy, we need to name the copy direction",
+    "should_trigger": true
+  },
+  {
+    "query": "What copy goals should drive our product launch announcement page?",
+    "should_trigger": true
+  },
+  {
+    "query": "Our acquisition landing page copy sounds like everyone else's \u2014 help us name a distinctive register",
+    "should_trigger": true
+  },
+  {
+    "query": "Name the copy direction for our pricing page hero \u2014 we want to convert evaluators without being pushy",
+    "should_trigger": true
+  },
+  {
+    "query": "What's the copy voice for our above-fold section? We need to name it before we brief the writer",
+    "should_trigger": true
+  },
+  {
+    "query": "What copy arbitration rule should win when urgency and warmth conflict on our CTA?",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the error message for when login fails",
+    "should_trigger": false
+  },
+  {
+    "query": "What should the empty state say when there are no projects yet?",
+    "should_trigger": false
+  },
+  {
+    "query": "What's the visual aesthetic direction for the landing page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the button labels for the onboarding flow",
+    "should_trigger": false
+  },
+  {
+    "query": "What SEO keywords should we target for our homepage?",
+    "should_trigger": false
+  },
+  {
+    "query": "What should this landing page say \u2014 give me the full above-fold structure and scroll narrative",
+    "should_trigger": false
+  },
+  {
+    "query": "Map the customer journey for a new user signing up",
+    "should_trigger": false
+  },
+  {
+    "query": "Write the CTA button copy for the pricing page",
+    "should_trigger": false
+  },
+  {
+    "query": "What's our general brand tone and voice? We want a document covering all our surfaces",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this design and give me feedback on the layout",
+    "should_trigger": false
+  }
+]
