@@ -1,14 +1,13 @@
 [
-  {"query": "Run Porter's Five Forces on the HR software market", "should_trigger": true},
-  {"query": "I need to understand the competitive landscape before market entry", "should_trigger": true},
-  {"query": "Analyze industry attractiveness using Five Forces", "should_trigger": true},
-  {"query": "What is the supplier and buyer power in the cloud infrastructure market?", "should_trigger": true},
-  {"query": "How competitive is the B2B payments space?", "should_trigger": true},
-  {"query": "Map the competitive dynamics of the edtech industry", "should_trigger": true},
+  {"query": "Run Porter's Five Forces for our industry", "should_trigger": true},
+  {"query": "I need to understand how competitive this industry is before we enter", "should_trigger": true},
+  {"query": "Map the competitive structure of our market using the five forces", "should_trigger": true},
+  {"query": "How much leverage do our buyers and suppliers have", "should_trigger": true},
+  {"query": "Assess the structural forces that determine who wins in this industry", "should_trigger": true},
 
-  {"query": "Run a SWOT analysis on our company", "should_trigger": false},
-  {"query": "I need to understand the macro environment — run PESTLE", "should_trigger": false},
-  {"query": "Cascade our OKRs to team level", "should_trigger": false},
-  {"query": "Map the customer journey for checkout", "should_trigger": false},
-  {"query": "Synthesize the stakeholder research into strategy", "should_trigger": false}
+  {"query": "Profile our top three competitors", "should_trigger": false},
+  {"query": "Run a SWOT analysis", "should_trigger": false},
+  {"query": "Run a PESTLE on our market", "should_trigger": false},
+  {"query": "Write our go-to-market strategy", "should_trigger": false},
+  {"query": "Analyze the competitive structure but skip deriving a strategic implication — just show the force ratings", "should_trigger": false}
 ]

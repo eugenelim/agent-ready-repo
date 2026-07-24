@@ -1,86 +1,89 @@
 ---
 pack: product-strategy
 scope: user
-tagline: "Market, UX, and content strategy — committed artifacts upstream of every initiative."
+tagline: "Market context, adoption hypothesis, and causal metric tree — committed upstream of every initiative."
 prerequisitePacks:
   - product-engineering
 contract:
-  useItWhen: "You're building the committed strategy layer — market analysis, altitude-0 direction, and OKR-derived gap routing — upstream of any product initiative."
+  useItWhen: "You're building the committed strategy layer — market analysis, adoption path, and OKR-derived gap routing — upstream of any product initiative."
   youProvide: "Company OKRs, any prior desk-research outputs, and the scope of the initiative or strategic question to address."
-  youReceive: "Committed SWOT, PRFAQ, OKR-derived gap entries in workspace.toml, ux-strategy.md, and content-strategy.md."
+  youReceive: "Committed SWOT, PRFAQ with adoption hypothesis, OKR cascade with Metric Tree, workspace.toml gap entries, ux-strategy.md, and content-strategy.md. Together these fill the 7 Strategy fields of the Digital Experience Contract."
   yourDecisions:
-    - "Approve the market situation picture"
-    - "Approve the PRFAQ"
-    - "Approve the OKR cascade and gap routing"
-whatChanges: "After installing product-strategy, the altitude-0 work above every initiative has a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market context (PESTLE, Porter's Five Forces), portfolio position (BCG Matrix, SWOT), altitude-0 forcing function (PRFAQ), OKR cascade with direct routing to the PE pack's shaping queue, and the experience and content direction that the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` where downstream packs — product-engineering and experience-design (including its content-design skill) — can reference it by path. Strategy skills fill the Strategy section of the Digital Experience Contract — the shared schema that connects strategy outcomes to experience design and frontend implementation."
+    - "Approve the market situation picture and differentiation mechanism"
+    - "Approve the PRFAQ, first-success event, and adoption hypothesis"
+    - "Approve the OKR cascade, causal metric tree, and gap routing"
+whatChanges: "After installing product-strategy (v0.2.0), the strategy layer above every initiative produces a 14-point output structure: situation analysis (macro environment, competitive landscape, portfolio position, stakeholder perspectives) → diagnosis (SWOT with differentiation mechanism) → strategic choices → adoption hypothesis → first-success event → repeat-value behavior → value loop → causal metric tree (north-star + leading indicators) → strategy-to-experience handoff. The strategy-to-experience handoff maps directly to the 7 Strategy h3 headers of the Digital Experience Contract: Target User and Context, Diagnosis and Strategic Choices, Adoption Hypothesis, Value Loop, Metric Tree, Differentiation, Assumptions and Kill Criteria. Every artifact commits to `docs/product/shaping/` where downstream packs — product-engineering and experience-design (including its content-design skill) — can reference it by path."
 skills:
   - name: synthesize-stakeholder-research
-    description: "Converts desk-research project outputs into a strategic narrative by theme — committed as stakeholder-synthesis.md. Surfaces a 'run desk-research project first' prompt if no research inputs are found."
+    description: "Turns existing stakeholder research into a strategic narrative organized by theme — and flags when adoption signal is absent from the research. Committed as stakeholder-synthesis.md. Surfaces a 'run desk-research project first' prompt if no research inputs are found."
     humanTouches: 0
   - name: run-pestle-analysis
-    description: "Scans the macro environment through six lenses (Political, Economic, Social, Technological, Legal, Environmental) and commits the analysis to docs/product/shaping/ as macro-environment.md."
+    description: "Scans the macro environment through six lenses (Political, Economic, Social, Technological, Legal, Environmental) and names the top forces by strategic materiality. Does not claim moat — names the forces that feed SWOT. Committed as macro-environment.md."
     humanTouches: 0
   - name: run-porters-five-forces
-    description: "Maps the competitive landscape using Porter's Five Forces (Supplier Power, Buyer Power, New Entrants, Substitutes, Rivalry) and commits the analysis as competitive-landscape.md."
+    description: "Maps the competitive landscape and derives the structural mechanism that protects this player's position. Committed as competitive-landscape.md."
     humanTouches: 0
   - name: run-bcg-matrix
-    description: "Positions each initiative in the BCG portfolio matrix (Stars, Cash Cows, Question Marks, Dogs) to surface portfolio priority and resource urgency, committed as portfolio-position.md."
+    description: "Positions each product in the portfolio matrix and names the reallocation decisions and investment implications per quadrant. Committed as portfolio-position.md."
     humanTouches: 0
   - name: run-swot
-    description: "Synthesizes the macro environment, competitive landscape, and portfolio position into a single SWOT analysis — the capstone situation picture committed as swot-analysis.md."
+    description: "Synthesizes the situation picture into a SWOT and names the adoption hypothesis (which SO pair produces a first-success event) and the differentiation mechanism (the structural advantage that makes the position defensible). Committed as swot-analysis.md."
     humanTouches: 1
   - name: write-prfaq
-    description: "Authors a press release + FAQ as the altitude-0 forcing function — the imagined future press release that anchors initiative briefs and lets the team trace every shaping decision back to the original vision."
+    description: "Authors the altitude-0 forcing function: press release + adoption hypothesis (first-success event + repeat-value behavior) + internal FAQ with a success metric traceable to the first-success event. Committed as prfaq.md."
     humanTouches: 1
   - name: run-okr-cascade
-    description: "Cascades company OKRs to team level, identifies gaps between current state and OKR targets, and routes each gap as a strategy-type entry into workspace.toml for the PE pack's frame-situation to pick up."
+    description: "Cascades company OKRs to team level, identifies gaps, derives the Metric Tree (north-star + leading indicators), and routes each gap as a strategy-type entry into workspace.toml. Committed as okr-cascade.md."
     humanTouches: 1
   - name: define-ux-strategy
-    description: "Produces a committed ux-strategy.md (vision → goals+measures → plan) using the NN/g three-layer model and Gothelf/Seiden OKR-linked UX framing — the experience anchor that journey-mapping and user-flow read from."
+    description: "Produces ux-strategy.md — vision, goals+measures with value loop and adoption hypothesis, and plan. The adoption hypothesis names the UX-level first-success event. Upstream of journey-mapping."
     humanTouches: 0
   - name: define-content-strategy
-    description: "Produces a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance) — the organizational governance layer that the experience-design pack's content-design skill consumes."
+    description: "Produces content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance) — the organizational governance layer above per-surface content-design."
     humanTouches: 0
 humanGates:
   - id: G-situation
     globalGate: null
-    label: "Approve the market situation picture"
+    label: "Approve the market situation picture and differentiation mechanism"
     trigger: "After run-swot synthesizes the macro environment, competitive landscape, and portfolio inputs"
     duration: "10–15 minutes"
     whatToCheck:
       - "Does the SWOT read as a synthesis of the PESTLE, Porter's, and BCG analyses — or does it introduce claims not grounded in those artifacts?"
-      - "Are Strengths and Weaknesses grounded in the organization, not in the market? (Market position belongs in Opportunities/Threats.)"
+      - "Are Strengths and Weaknesses grounded in the organization, not in the market?"
+      - "Is the adoption hypothesis named? Which SO pair produces a first-success event, and what is that event specifically?"
+      - "Is the differentiation mechanism named? What structural advantage makes this position defensible — network effect, switching cost, data advantage, proprietary capability?"
       - "Is the most acute Threat named — the thing that could invalidate the strategy if it materializes?"
-      - "Does the Opportunities list reflect addressable gaps, not aspirational wishes?"
-    whatGoodLooksLike: "A SWOT that reads as a compressed situation summary — each quadrant traceable to a specific finding from PESTLE, Porter's, or the portfolio analysis, with the most critical items named explicitly."
-    whatBadLooksLike: "A SWOT that could apply to any company in any market — generic strengths like 'talented team' and generic threats like 'competition'. This means the market analysis didn't surface specific signal."
-    consequence: "The SWOT is the situation anchor for the PRFAQ and OKR cascade that follow. A vague SWOT means the altitude-0 artifacts build on an ungrounded situation picture — and the OKR cascade will identify the wrong gaps."
+    whatGoodLooksLike: "A SWOT that reads as a compressed situation summary — each quadrant traceable to a specific finding from PESTLE, Porter's, or the portfolio analysis, with an adoption hypothesis and a named differentiation mechanism."
+    whatBadLooksLike: "A SWOT with generic strengths like 'talented team', no adoption hypothesis, and a moat claim without a mechanism. This means the situation analysis didn't surface specific signal."
+    consequence: "The SWOT is the situation anchor for the PRFAQ and OKR cascade that follow. A SWOT without an adoption hypothesis means first-success goes unspecified; a SWOT without a differentiation mechanism means the moat is assumed, not named."
   - id: G-prfaq
     globalGate: null
-    label: "Approve the PRFAQ"
-    trigger: "After write-prfaq produces the press release and FAQ draft"
+    label: "Approve the PRFAQ, first-success event, and adoption hypothesis"
+    trigger: "After write-prfaq produces the press release, adoption hypothesis, and FAQ draft"
     duration: "10–20 minutes"
     whatToCheck:
-      - "Does the press release name the specific person it's written for — not 'customers' but a named persona with a specific pain?"
-      - "Is the benefit concrete enough to measure — can you determine after shipping whether you delivered it?"
-      - "Does the FAQ address the hardest objection a skeptical stakeholder would raise, not the easiest?"
-      - "Is the press release grounded in the market situation from Stage 1, or does it describe a product that belongs in a different market?"
-    whatGoodLooksLike: "A press release that names a specific person, delivers a measurable benefit, and a FAQ that addresses real objections — readable without the prior market context and still fully specific."
-    whatBadLooksLike: "A press release in corporate voice that names no specific person and delivers no measurable benefit. Or a FAQ that only addresses questions the team already knows the answers to."
-    consequence: "The PRFAQ is the altitude-0 forcing function — the artifact that initiative briefs trace back to. An unspecific PRFAQ means teams shape initiatives without a shared vision of success. Every product engineer and designer will form their own theory of what 'done' means."
+      - "Does the press release name a specific person with a specific pain?"
+      - "Is the first-success event named — a specific observable behavior, not 'user signs up' or 'user completes onboarding'?"
+      - "Does the internal FAQ success metric trace back to the first-success event — or is it a vanity metric?"
+      - "Does the FAQ address the hardest objection a skeptical stakeholder would raise?"
+      - "Is the PRFAQ grounded in the situation from Stage 1, or does it describe a product in a different market?"
+    whatGoodLooksLike: "A press release that names a specific person and first-success event, with an internal FAQ success metric that traces to that first-success event. Readable without the prior market context and still fully specific."
+    whatBadLooksLike: "A press release in corporate voice with no specific person, no named first-success event, and a success metric of 'grow user base'. Or an internal FAQ where the success metric is 'ship the product'."
+    consequence: "The PRFAQ is the altitude-0 forcing function. An unspecific first-success event means every engineer and designer forms their own theory of what adoption looks like. The adoption hypothesis must be named here so it can be operationalized in PE framing."
   - id: G-cascade
     globalGate: null
-    label: "Approve the OKR cascade and gap routing"
-    trigger: "After run-okr-cascade identifies gaps and before writing strategy-type entries to workspace.toml"
+    label: "Approve the OKR cascade, Metric Tree, and gap routing"
+    trigger: "After run-okr-cascade identifies gaps and derives the causal metric tree"
     duration: "10–15 minutes"
     whatToCheck:
-      - "Does each gap entry reflect an actual gap between current state and an OKR target — not a feature the team wants to build regardless?"
-      - "Are the gaps ranked — does the highest-weight OKR produce the highest-priority gap entries?"
-      - "Is each gap specific enough for frame-situation to scope into a shaping brief, or is it too vague to act on?"
-      - "Are there OKR targets vague enough that the cascade missed important gaps — should any OKRs be tightened before the cascade completes?"
-    whatGoodLooksLike: "A set of 3–7 gap entries that a product engineer could pick up from workspace-status and route directly into frame-situation — specific, ranked by OKR weight, and traceable to a named target."
-    whatBadLooksLike: "More than 10 gap entries without priority ranking. Or gaps so broad that frame-situation would need to re-scope them from scratch before shaping could begin — a sign the OKR targets aren't specific enough."
-    consequence: "The cascade write is a shared state change — gap entries appear in workspace-status and signal to product engineers what strategy-driven work to shape next. Approving vague or unranked gaps means the shaping queue fills with work of unclear strategic priority."
+      - "Is the north-star metric a user-behavioral outcome metric — not an output like 'features shipped' or a vanity metric like 'page views'?"
+      - "Does each leading indicator trace causally to the north-star — and is that causal connection named explicitly?"
+      - "Does each gap entry reflect an actual gap between current state and an OKR target?"
+      - "Are the gaps ranked by OKR weight — does the most strategically important gap come first?"
+      - "Is each gap specific enough for frame-situation to scope into a shaping brief?"
+    whatGoodLooksLike: "A causal metric tree where north-star and leading indicators are explicit, each leading indicator traces to a gap, and gaps are ranked. A set of 3–7 gap entries that a product engineer could pick up from workspace-status directly."
+    whatBadLooksLike: "A metric list of 10 metrics with no causal chain named. Gaps without priority ranking. Or a 'north-star' that is actually an output metric (revenue, features shipped) rather than a user-behavioral outcome."
+    consequence: "The causal metric tree is the measurement contract for the initiative. A metric list without causal chain produces measurement theater — dashboards that don't predict outcomes. Approving it means the team will instrument what's easy to count, not what causally predicts success."
 typicalSession:
   agentTurns: "8–20"
   humanTouches: 3
@@ -96,33 +99,33 @@ relatedJourneys:
 ### 1. Build and gate the market situation
 
 - **You provide:** the market and organizational context — company OKRs, any prior desk-research project outputs, and the scope of the initiative or strategic question to address.
-- **Agent does:** runs synthesize-stakeholder-research if prior desk-research outputs exist; then runs run-pestle-analysis, run-porters-five-forces, and run-bcg-matrix; synthesizes all inputs into a committed SWOT as the capstone situation picture; commits each artifact to docs/product/shaping/.
-- **You do:** before moving forward, confirm the SWOT reads as a synthesis of the prior analyses — redirect if it introduces claims you can't trace back to PESTLE, Porter's, or BCG.
-- **You decide:** approve the market situation picture.
-- **Output:** committed PESTLE, Porter's Five Forces, BCG matrix, and SWOT — the grounded situation picture all downstream artifacts build on.
+- **Agent does:** runs synthesize-stakeholder-research if prior desk-research outputs exist (and flags if adoption signal is absent from the research); then runs run-pestle-analysis, run-porters-five-forces, and run-bcg-matrix; synthesizes all inputs into a committed SWOT as the capstone situation picture — including the adoption hypothesis (which SO pair produces a first-success event) and the differentiation mechanism (the structural advantage that makes the position defensible); commits each artifact to docs/product/shaping/.
+- **You do:** before moving forward, confirm the SWOT names an adoption hypothesis and a differentiation mechanism — not just four quadrants. Redirect if the strategic implications section makes no choices.
+- **You decide:** approve the market situation picture and differentiation mechanism.
+- **Output:** committed PESTLE, Porter's Five Forces, BCG matrix, and SWOT — the grounded situation picture all downstream artifacts build on, including the adoption hypothesis that feeds the PRFAQ.
 
 ---
 
-### 2. Commit the altitude-0 direction
+### 2. Commit the altitude-0 direction and adoption hypothesis
 
-- **Agent does:** runs write-prfaq to draft the press release + FAQ — naming the specific person, the measurable benefit, and the hardest objection a skeptical stakeholder would raise; commits to docs/product/shaping/prfaq.md.
-- **You do:** read the PRFAQ; if the press release doesn't name a specific person or deliver a measurable benefit, or doesn't connect to the approved situation picture, redirect before the cascade and experience direction are set against an unspecific vision.
-- **You decide:** approve the PRFAQ.
-- **Output:** committed prfaq.md — the altitude-0 forcing function that initiative briefs trace back to as their strategic rationale.
-
----
-
-### 3. Cascade strategy gaps to the shaping queue
-
-- **Agent does:** runs run-okr-cascade to derive team-level OKRs from company targets, identify gaps between current state and each target, and prepare strategy-type entries for workspace.toml; each gap becomes a {type = "strategy"} entry ranked by OKR weight.
-- **You do:** review the gap list; confirm each gap reflects an actual gap (not a feature the team wants regardless of OKRs), is ranked by OKR weight, and is specific enough for frame-situation to scope into a shaping brief without re-scoping from scratch.
-- **You decide:** approve the OKR cascade and gap routing.
-- **Output:** strategy-type gap entries written to workspace.toml — signaling strategy-driven shaping items to product engineers via workspace-status.
+- **Agent does:** runs write-prfaq to draft the press release + adoption hypothesis — naming the specific person, the first-success event (the one action that proves first value), the repeat-value behavior, and the internal FAQ with a success metric traceable to the first-success event; commits to docs/product/shaping/prfaq.md.
+- **You do:** read the PRFAQ; if the first-success event is not a specific observable behavior (not "user signs up" or "user completes onboarding"), redirect before the cascade sets metrics against an unspecific adoption target.
+- **You decide:** approve the PRFAQ, first-success event, and adoption hypothesis.
+- **Output:** committed prfaq.md — the altitude-0 forcing function with a named first-success event that the OKR cascade and PE pack's first-success operationalization will trace back to.
 
 ---
 
-### 4. Set experience and content direction
+### 3. Cascade strategy gaps and causal metric tree to the shaping queue
 
-- **Agent does:** runs define-ux-strategy to produce a committed ux-strategy.md — experience vision, goals with measures, and plan, grounded in the approved market situation and PRFAQ; runs define-content-strategy to produce a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance).
-- **You do:** review both artifacts before sharing with design and content teams; confirm ux-strategy.md connects to the approved PRFAQ; confirm content-strategy.md names specific decisions — channel priority, ownership model, update cadence — not aspirational intent.
-- **Output:** committed ux-strategy.md and content-strategy.md — the anchors the experience-design pack reads from when journey-mapping and content-design run.
+- **Agent does:** runs run-okr-cascade to derive team-level OKRs from company targets; derives the causal metric tree (north-star metric + 2–4 leading indicators, each connected to a specific OKR gap); ranks gaps by OKR weight; prepares strategy-type entries for workspace.toml.
+- **You do:** review the causal metric tree — confirm the north-star is a user-behavioral outcome (not an output metric), that each leading indicator traces causally to the north-star, and that gaps are ranked. A metric list without a causal chain is not a metric tree.
+- **You decide:** approve the OKR cascade, causal metric tree, and gap routing.
+- **Output:** strategy-type gap entries written to workspace.toml; okr-cascade.md with causal metric tree — the measurement contract that PE framing will operationalize into its first-success operationalization field.
+
+---
+
+### 4. Set experience direction and strategy-to-experience handoff
+
+- **Agent does:** runs define-ux-strategy to produce ux-strategy.md — experience vision, goals+measures with value loop and adoption hypothesis (UX-level first-success event), and plan; runs define-content-strategy to produce content-strategy.md using the Halvorson quad. Together these complete the strategy-to-experience handoff: the seven Strategy h3 headers of the Digital Experience Contract (Target User and Context, Diagnosis and Strategic Choices, Adoption Hypothesis, Value Loop, Metric Tree, Differentiation, Assumptions and Kill Criteria) are now populated.
+- **You do:** review both artifacts before sharing with design and content teams. Confirm ux-strategy.md names a value loop (not just a vision) and an adoption hypothesis (not just goals). Confirm the strategy-to-experience handoff is ready for the Digital Experience Contract.
+- **Output:** committed ux-strategy.md and content-strategy.md; the Strategy section of the Digital Experience Contract is populated for downstream packs (product-engineering, experience-design, core) to read from.
