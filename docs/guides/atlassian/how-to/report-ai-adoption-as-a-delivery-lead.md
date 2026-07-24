@@ -35,7 +35,7 @@ For program-level reports that join Jira Align for team structure, you also need
 
 The agent runs a credential check. Exit 0 means you're ready. If it fails, the agent will prompt you to re-run credential setup — it will not retry automatically.
 
-For the technical credential model, see [The `atlassian` pack as a system](../explanation/atlassian-pack.md#the-auth-model).
+For the technical credential model, see [Credentialed skills](../../credential-brokers/explanation/credentialed-skills.md).
 
 ## Set up the labeling convention with your teams
 
