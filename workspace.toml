@@ -335,3 +335,41 @@ open = [
   {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
   {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+["ini-005"]
+name      = "AgentBundle Portable Catalogue Tooling"
+status    = "active"
+milestone = "M1 · Portable Engine + Public CLI"
+# Brief: establish agentbundle/catalogue_tooling/ as the portable catalogue
+# engine, publish the agentbundle catalogue * and agentbundle lint packs CLI
+# surface, introduce catalogue.toml as the configuration layer, and rewire
+# the home repository to use the new public commands.
+# 16-bucket brief: .context/attachments/PB6fwW/pasted_text_2026-07-24_16-11-28.txt
+
+["ini-005".shaping_queue]
+active  = []
+backlog = []
+
+["ini-005".work]
+active  = [
+  "spec/catalogue-tooling-foundation",
+]
+queue   = [
+  # Wave 2 — parallel after foundation ships
+  "spec/catalogue-tooling-lint",
+  "spec/catalogue-tooling-sync-defaults",
+  "spec/catalogue-tooling-build-self",
+  # Wave 3 — after all Wave 2 ship
+  {path = "spec/catalogue-tooling-verify", needs = "work:spec/catalogue-tooling-lint,work:spec/catalogue-tooling-sync-defaults,work:spec/catalogue-tooling-build-self"},
+  # Wave 4 — after verify ships
+  {path = "spec/catalogue-tooling-package-enhanced", needs = "work:spec/catalogue-tooling-verify"},
+  # Wave 5 — parallel after package-enhanced ships
+  {path = "spec/catalogue-tooling-rewire", needs = "work:spec/catalogue-tooling-package-enhanced"},
+  # docs needs verify (Flow E, command names), package-enhanced (allowlist + output paths), and rewire (make build-check wording)
+  {path = "spec/catalogue-tooling-docs", needs = "work:spec/catalogue-tooling-verify,work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
+  # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
+  {path = "spec/catalogue-tooling-ci-gates", needs = "work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
+]
+shipped = []
