@@ -11,13 +11,16 @@ contract:
     - "Approve the customer journey and derived screen list"
     - "Approve the aesthetic direction and token set"
     - "Review the designs after the independent experience-reviewer pass"
-whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` maps the journey; `content-design` and `tone-of-voice` name what the surface says and how it sounds. `design-principles` records the decision rules that hold screens to a shared standard. `user-flow` derives the screen list. `creative-direction` and `design-system` set the visual constraints. Genre-specific Direct skills (`analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`) produce surface-appropriate IA before `interaction-design` and `design-review` craft and critique each screen. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion. `experience-status` orients to the design thread at a glance — what artifacts exist, what's missing, and which skill to run next. Experience design skills fill the Experience Design section of the Digital Experience Contract — the shared schema that connects strategy intent to rendered evidence."
+whatChanges: "After installing experience-design, product-engineering work has a full design thread from outcome to realization. `journey-mapping` maps the journey; `content-design` names what the surface says, `copy-direction` sets the copy voice goals and arbitration rules for marketing surfaces, and `tone-of-voice` records the general brand register. `design-principles` records the decision rules that hold screens to a shared standard. `user-flow` derives the screen list. `creative-direction` and `design-system` set the visual constraints. Genre-specific Direct skills (`analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`) produce surface-appropriate IA before `interaction-design` and `design-review` craft and critique each screen. The forked-context `experience-reviewer` gives every design an independent pass — handle-all-states, WCAG 2.2 AA, reduced-motion. `experience-status` orients to the design thread at a glance — what artifacts exist, what's missing, and which skill to run next. Experience design skills fill the Experience Design section of the Digital Experience Contract — the shared schema that connects strategy intent to rendered evidence."
 skills:
   - name: journey-mapping
     description: "Maps the current and desired customer journey to derive the key touchpoints and failure modes a product must address."
     humanTouches: 1
   - name: content-design
     description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
+    humanTouches: 0
+  - name: copy-direction
+    description: "Names the copy voice goals and arbitration rules for a marketing or acquisition surface — what the copy should sound like and which goal wins when goals conflict."
     humanTouches: 0
   - name: tone-of-voice
     description: "Turns a vague copy vibe into named, ranked copy goals grounded in stable referents, and records copy arbitration rules the rest of the build references."
@@ -124,10 +127,10 @@ relatedJourneys:
 ### 1. Map the customer journey
 
 - **You provide:** the feature, user, and intended outcome.
-- **Agent does:** runs `journey-mapping` to produce the current-state and desired-state journey map with key failure modes; then runs `content-design` and `tone-of-voice` to set content intent and register before screens are sequenced.
+- **Agent does:** runs `journey-mapping` to produce the current-state and desired-state journey map with key failure modes; then runs `content-design` to set content intent and `copy-direction` to name copy voice goals for marketing surfaces, and `tone-of-voice` to set the general register — all before screens are sequenced.
 - **You do:** read the journey map and content brief informally; if the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived — a one-sentence correction here saves a full design cycle.
 - **You decide:** approve the customer journey and derived screen list at G-journey — the screen list flows directly from it.
-- **Output:** an approved journey map with content brief and copy direction.
+- **Output:** an approved journey map with content brief, copy direction doc, and copy register.
 
 ---
 
