@@ -865,11 +865,7 @@ open = [
   # Unblocks when: a test fixture can register a stub MCP retrieval tool.
   {slug = "live-mock-mcp-detection-qa"},
 
-  # ini-003 M5 deferred: wire check-xd-chain.py --gate into CI once calibration confirms
-  # the deterministic checks are stable. The --gate flag is the hook point; the check
-  # already runs in report-only mode. Unblocks when: calibration period (a few ini-003 PRs)
-  # shows no false positives.
-  {slug = "cross-pack-eval-ci-gate", source = "spec/cross-pack-experience-eval"},
+
 
   # ini-003 M5 deferred: the golden-path fixtures describe scenarios in structured form
   # but carry no evals.json-style LLM judge rubric. Separate concern from the deterministic

@@ -26,3 +26,4 @@ rules:
       - publish-claude-plugins.yml
       - release-agentbundle.yml
       - release-credbroker.yml
+      - xd-chain-gate.yml
