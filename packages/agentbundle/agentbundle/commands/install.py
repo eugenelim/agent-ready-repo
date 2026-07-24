@@ -90,6 +90,7 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle.config import (
         ConfigError,
         PackState,
+        canonicalize_source,
         dump_state,
         load_pack_toml,
         load_state,
@@ -1040,7 +1041,7 @@ def run(args: "argparse.Namespace") -> int:
         prior = plan.state.row(pack_name, scope_adapter)
         new_pack_state = PackState(
             installed_version=pack_version,
-            source="agent-ready-repo",
+            source=canonicalize_source(getattr(args, "_source_uri", None) or catalogue_uri),
             # pack-profiles AC13: a profile install records "profile"; the
             # orchestrator sets `args._install_route`. Default "cli" keeps
             # single-pack callers unchanged.
@@ -4249,6 +4250,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
         ns.pack = name
         ns.profile = None  # so run()'s dispatch does not recurse
         ns.catalogue = str(catalogue_dir)
+        ns._source_uri = catalogue_uri
         ns.output = args.output
         ns.scope = scope_value  # pin the declared scope for every pack
         ns.adapter = batch_adapter  # pin the one resolved adapter

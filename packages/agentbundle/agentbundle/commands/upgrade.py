@@ -84,6 +84,7 @@ def run(args: "argparse.Namespace") -> int:
     )
     from agentbundle.config import (
         ConfigError,
+        canonicalize_source,
         dump_state,
         load_pack_toml,
         load_state,
@@ -717,6 +718,9 @@ def run(args: "argparse.Namespace") -> int:
         pack_state.primitive_versions[ptype][prim_name] = to_version
     else:
         pack_state.installed_version = to_version
+        canonical = canonicalize_source(catalogue_uri)
+        if canonical is not None:
+            pack_state.source = canonical
 
     state_toml_content = dump_state(state)
     state_relpath = state_path.relative_to(root).as_posix()
