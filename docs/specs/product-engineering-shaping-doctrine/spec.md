@@ -49,14 +49,16 @@ This spec delivers:
 
 5. **PE pack version bump 0.12.2 → 0.13.0** — doctrine additions + rename = minor bump.
 
-6. **Updated evals with weak fixtures** — ux-writing `eval_queries.json` gains
+6. **Updated evals with weak fixtures (ux-writing only)** — ux-writing `eval_queries.json` gains
    weak fixtures for two copy-boundary cases: handoffs that say "make it
    intuitive" (a direction, not copy) and structural layout requests without
-   copy states. `diverge-solutions` `eval_queries.json` gains weak fixtures for
-   trivial-variation option sets and component-layer input. AC5/AC6
-   (thin-slice, evidence ladder) are prompt-only presence checks; place-bet
-   doctrine coverage requires adding place-bet to `[pack.evals]` which is
-   deferred (see Ask first).
+   copy states. AC5/AC6 (thin-slice, evidence ladder) are prompt-only presence
+   checks; place-bet doctrine coverage requires adding place-bet to
+   `[pack.evals]` which is deferred (see Ask first). `diverge-solutions` weak
+   fixtures were not added: `diverge-solutions` has no `evals/` directory and
+   adding one requires an Ask-first review (spec Boundary: adding a pack to
+   `[pack.evals]` must be confirmed). Deferred to a follow-on spec or the next
+   PE pack release.
 
 7. **New PE journey page** — `web/src/content/journeys/product-engineering.md`
    formatted like `product-strategy.md`. Thin-slice and learning-contract steps
@@ -149,7 +151,8 @@ This spec delivers:
   user-flow/references/screen-flow.md (1), design-review/references/quality-floor.md
   (1), content-design SKILL.md (2), experience-design README.md (2)
 - Technical: `place-bet` has no evals directory and is not in `[pack.evals]` —
-  new weak fixtures go to ux-writing and diverge-solutions evals only
+  new weak fixtures go to ux-writing only; `diverge-solutions` has no evals directory
+  either — diverge-solutions fixtures deferred (adding evals directory is Ask-first)
 - Technical: `web/src/components/marketing/PackCatalogue.astro` line 22 hard-codes
   `voice-and-microcopy` in the desc string — must be updated
 - Technical: `web/src/content/journeys/discovery.md` line 56 has

@@ -117,7 +117,7 @@ The `thin-slice` field is required in `bet.md`. It is the minimum shippable
 proof that the bet can be validated end-to-end — not a product tour, and not
 "the happy path."
 
-A valid thin slice has four components:
+A valid thin slice has five components:
 
 1. **One user** — a single, specific persona (not "users in general"). The
    more specific, the sharper the slice: "a first-time user on mobile" is
