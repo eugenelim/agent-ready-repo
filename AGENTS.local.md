@@ -192,101 +192,30 @@ This repo is self-hosted from `packs/`. Many files at `<repo>/...` paths
 are **rendered outputs**, not the source-of-truth. Editing them directly
 trips `make build-check` and blocks every PR.
 
-**Always-projected paths** (drift-prone — edit the seed, not the projection):
+Full projection map, build-self workflow, and how to diagnose drift:
+**[`packs/AGENTS.md` § Self-hosting projection](packs/AGENTS.md#self-hosting-projection)**.
 
-| Projected path                       | Source of truth (seed)                                       |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `AGENTS.md`, `CLAUDE.md`             | `packs/core/seeds/AGENTS.md` (symlinked at the projection)   |
-| `docs/CONVENTIONS.md`                | `packs/core/seeds/docs/CONVENTIONS.md`                       |
+**Always-projected paths** (key summary — edit the source, not the target):
 
-After the 2026-05-25 amendment to RFC-0002, the following paths are
-**Manual** (filled-in on disk; pack seed is placeholder template
-adopters receive on first install via brownfield rules):
+| Target (do not edit) | Source |
+|----------------------|--------|
+| `AGENTS.md`, `CLAUDE.md` | `packs/core/seeds/AGENTS.md` |
+| `docs/CONVENTIONS.md` | `packs/core/seeds/docs/CONVENTIONS.md` |
+| All adapter skill projections | `packs/<pack>/.apm/skills/<name>/**` |
+| All adapter agent projections | `packs/<pack>/.apm/agents/<name>.md` |
+| All adapter command / hook projections | `packs/<pack>/.apm/{commands,hooks}/...` |
 
-| Manual path (this repo's living instance) | Pack seed (placeholder)                                      |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| `docs/CHARTER.md`                         | `packs/core/seeds/docs/CHARTER.md` (placeholder template)    |
-| `docs/architecture/overview.md`           | `packs/core/seeds/docs/architecture/overview.md`             |
-| `docs/specs/README.md`                    | `packs/core/seeds/docs/specs/README.md`                      |
-| `docs/knowledge/patterns.jsonl`           | `packs/core/seeds/docs/knowledge/patterns.jsonl` (empty)     |
-| `docs/rfc/README.md`                      | `packs/governance-extras/seeds/docs/rfc/README.md`           |
-| `docs/adr/README.md`                      | `packs/governance-extras/seeds/docs/adr/README.md`           |
-| `docs/guides/**/README.md`                | `packs/user-guide-diataxis/seeds/docs/guides/**/README.md`   |
-| `.claude/skills/<name>/**`           | `packs/<pack>/.apm/skills/<name>/**` (e.g. `packs/core/.apm/skills/new-spec/SKILL.md`) |
-| `.claude/agents/<name>.md`           | `packs/<pack>/.apm/agents/<name>.md`                         |
-| `.claude/commands/<name>.md`         | `packs/<pack>/.apm/commands/<name>.md`                       |
-| `.claude/hooks/...`                  | `packs/<pack>/.apm/hooks/...`                                |
-| `.agents/skills/<name>/**`           | `packs/<pack>/.apm/skills/<name>/**`                         |
-| `.codex/agents/<name>.toml`          | `packs/<pack>/.apm/agents/<name>.md`                         |
-| `.codex/hooks.json`                  | `packs/<pack>/.apm/hook-wiring/*.toml`                       |
+**Manual paths** (filled-in on disk; pack seed is a placeholder template):
+`docs/CHARTER.md`, `docs/architecture/overview.md`, `docs/specs/README.md`,
+`docs/knowledge/patterns.jsonl`, `docs/rfc/README.md`, `docs/adr/README.md`,
+`docs/guides/**/README.md` — edit these directly, no build-self needed.
 
-> **Skills project to BOTH targets simultaneously.** `make build-self` writes
-> `.claude/skills/<name>/SKILL.md` **and** `.agents/skills/<name>/SKILL.md`
-> in one pass from the single pack source (`packs/<pack>/.apm/skills/<name>/SKILL.md`).
-> Never edit either projection target directly — edit the pack source, then run
-> `make build-self` (or `FORCE=1 make build-self` when the tree is intentionally
-> dirty). **Exception:** `.claude/skills/README.md` is canonical (not projected)
-> — edit it directly.
+**Exception: `.claude/skills/README.md` is canonical (not projected) — edit directly.**
 
-**The workflow when you touch any of the above:**
-
-1. Edit the seed file (under `packs/<pack>/seeds/...`), *not* the
-   projected output.
-2. Run `make build-self` to regenerate every projected path from its seed.
-   **Gotcha:** `build-self` refuses on a dirty working tree (`is_dirty_tree`
-   is true for *any* non-empty `git status --porcelain`), so editing a seed in
-   step 1 always trips it. Either commit the seed edits first, or run
-   `FORCE=1 make build-self` — `FORCE=1` overrides the dirty-tree check only,
-   and is the right call when the tree is dirty *because* you just edited seeds.
-   Direct equivalent (when Make is unavailable):
-   ```bash
-   python3 tools/build_gate_chain.py build-self --force --packs-dir packs
-   ```
-   **Critical ordering for mixed-edit sessions (seed + non-seed pack source):**
-   When a session edits both seeds *and* non-seed pack source files (e.g.,
-   `.apm/**` files, `pack.toml`, user-libs) in the same working tree, run
-   `build-self --force` AFTER all edits are applied — not between them. Build-self
-   is a full pack-build pipeline that can regenerate files in `packs/` from
-   cached or templated sources, silently reverting edits made before it ran. The
-   safe pattern: apply all edits → `FORCE=1 make build-self` → verify with
-   `git status` that the edits survived → `make build-check` → commit.
-   **Vendored copies and canonical sources (credbroker example):**
-   `packs/credential-brokers/.apm/user-libs/credbroker/` is byte-synced from
-   `packages/credbroker/credbroker/` (the canonical pip package source) by
-   build-self; `build-check` hard-fails on any divergence. To edit these files,
-   always edit `packages/credbroker/credbroker/*.py` (the canonical source) and
-   let `build-self --force` propagate to the vendored copy — never edit the
-   `.apm/user-libs/` copy directly.
-3. Run `make build-check` to confirm zero drift before committing.
-
-**How to discover the seed for a path you're unsure about:**
-
-```bash
-# If you're not sure whether a path is projected:
-find packs -path "*/seeds/<projected-path>" 2>/dev/null
-
-# Or just edit the projected path and let make build-check tell you:
-make build-check    # exits non-zero with "edit <seed-path>; run: make build-self"
-```
-
-The `make build-check` error message names the seed path you should
-have edited — so if you do trip it, the fix is mechanical (edit the
-seed it names, re-run `make build-self`, re-commit).
-
-**Drift fixed three times already** (each time a CI cycle wasted):
-- RFC-0007 PR (#53) added a row to `docs/rfc/README.md`; fixed by
-  propagating to `packs/governance-extras/seeds/docs/rfc/README.md`.
-- converters-pack spec PR (#57) added a row to `docs/specs/README.md`;
-  fixed by propagating to `packs/core/seeds/docs/specs/README.md`.
-- new-spec subagent-matching PR (#67) edited `.claude/skills/new-spec/SKILL.md`
-  directly; fixed by propagating to `packs/core/.apm/skills/new-spec/SKILL.md`.
-  Note: `.claude/skills/`, `.agents/skills/`, and `.claude/agents/` project from
-  `packs/<pack>/.apm/...`, **not** from `packs/<pack>/seeds/...`.
-  `build-self` projects skills to **both** `.claude/skills/` and `.agents/skills/`
-  simultaneously. Exception: `.claude/skills/README.md` is canonical (edit directly).
-
-If you edit any README, table, or doc under the projected paths above,
-**check the seed first**.
+Drift fixed three times already (each time a CI cycle wasted):
+- PR #53 — added a row to `docs/rfc/README.md` directly; should have edited the seed.
+- PR #57 — added a row to `docs/specs/README.md` directly; same fix.
+- PR #67 — edited `.claude/skills/new-spec/SKILL.md` directly; should have edited `packs/core/.apm/skills/new-spec/SKILL.md` then run `make build-self`.
 
 ## `docs/guides/` is organized by pack in this repo (not by quadrant)
 
@@ -315,34 +244,10 @@ of it:
   organized that way, by-quadrant otherwise), which is the part of ADR-0020's
   §5c/skill instruction that *was* carried out.
 
-## Pack versioning — non-cosmetic pack changes bump the pack version
+## Pack versioning, skill authoring, eval coverage, and plugin format
 
-A **non-cosmetic** update to any `packs/<pack>/` content must bump that
-pack's version in **both** `packs/<pack>/pack.toml` (`[pack]` `version`, not
-the separate `[pack.adapter-contract]` `version`) and
-`packs/<pack>/.claude-plugin/plugin.json` (`version`), so adopters pulling
-the catalogue see the change reflected. After bumping, `make build-self`
-re-aggregates `marketplace.json`. *Non-cosmetic* = any change to behavior,
-doctrine, or shipped prose an adopter reads (a sharpened reviewer, a new
-skill step, a reworded convention). **Cosmetic-only** changes — typos,
-whitespace/formatting, comment reflow with no semantic change — need no bump.
-When in doubt, bump: a spurious patch bump is cheaper than a silently-stale
-version.
-
-**Bump-per-PR: take the *next* version, never ride an unreleased one.** The
-version is assigned at merge, not accumulated — `pack.toml` holds the last
-merged change's version, and `docs/product/changelog.md`'s single `[Unreleased]`
-heading is not an accumulate-then-cut pool (each entry cites its own target
-version inline). So read the current `pack.toml` version and take the next
-SemVer increment; two features never share one. (PE: `0.5.1`→`0.6.0` for
-product-rungs #379, then `0.6.0`→`0.7.0` for `frame-domain` — not a ride-along.)
-
-**A user-scope pack** (anything outside `_DEFAULT_SELF_HOST_PACKS` = `core` /
-`governance-extras` / `user-guide-diataxis`) bumps the same three surfaces —
-`pack.toml`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` —
-even though its skills don't project into `.claude/`. `marketplace.json`
-aggregates the version from `plugin.json`, so run `make build-self FORCE=1` after
-the bump to re-aggregate it, or `build-check` red-fails on stale drift.
+All of these live in [`packs/AGENTS.md`](packs/AGENTS.md), which loads
+automatically when the working path is under `packs/`.
 
 > **Governance note (2026-06-12).** The `work-loop` light/full-mode
 > *mechanics summary* was thinned out of the CONVENTIONS seed
@@ -352,80 +257,7 @@ the bump to re-aggregate it, or `build-check` red-fails on stale drift.
 > separate `update-conventions` RFC** — recorded here per the repo's
 > convention that substantive CONVENTIONS edits leave a governance trace.
 > Full retirement of mode mechanics from CONVENTIONS is deferred to its own
-> future RFC. (Provenance lives here, repo-internal, rather than in the seed
-> itself, which ships to adopters who receive none of the governance it was
-> written under.)
-
-## Eval coverage is part of pack work — build or update the harness
-
-A new pack, or a **non-cosmetic** update to an existing one, must also build
-or update that pack's **eval harness**. This is the standing default the
-`pack-eval-coverage-rollout` backlog item (see `workspace.toml [backlog]`) is rolling across
-the catalogue, made a rule here so it stops being a one-off. Per the
-[`pack-activation-evals` spec](docs/specs/pack-activation-evals/spec.md):
-
-- **Tier-A activation** — `evals/eval_queries.json` (~8–10 should-trigger +
-  ~8–10 near-miss should-NOT-trigger queries) plus a `[pack.evals]` block
-  listing **every user-triggered skill**. Exclude only reviewer-internal /
-  non-prompt skills (`security-checklists`, `work-loop`), as `core` does.
-- **Tier-4 LLM-judge rubric** — `evals/evals.json` (`expected_output` +
-  `assertions`) for **each judgment/authoring skill** — one that produces a
-  spec, diagram, critique, guide, or intent by judgment, with no deterministic
-  artifact.
-- **Tier-B-lite** — additionally an `expect` block + an `evals/files/` fixture
-  **where the skill is deterministic** (it runs a script and emits a checkable
-  artifact, as the `converters` skills do).
-
-Then **verify the harness actually works** by running it in Tier-B light mode:
-
-```bash
-python tools/run-pack-evals.py --pack <pack> --mode judge \
-  --judge-adapter claude-code --artifacts <file>
-```
-
-This points the LLM-judge — a different lens (the rubric) on the same model
-running the session — at a good and a weak artifact. It is a lightweight
-smoke-check that the rubric loads and discriminates (good artifact PASS, weak
-artifact FAIL), **not** a calibration gate: report-only, like the rest of the
-harness. The full per-pack sweep, the calibration baseline, and any
-report-only→gating promotion stay the scheduled `pack-evals.yml` workflow's
-job — that detail lives in the spec and the backlog item, not here.
-
-## Authoring or editing a skill
-
-Skills live under `packs/<pack>/.apm/skills/<name>/SKILL.md` (the seed)
-and project to `.claude/skills/<name>/SKILL.md` and
-`.agents/skills/<name>/SKILL.md`. Edit the seed, not the projection.
-After any edit, run `make build-self` to regenerate the
-projections, then `python3 tools/lint-skill-spec.py` to confirm the
-[agentskills.io spec](https://agentskills.io/specification) checks pass.
-
-The linter walks both roots, so a seed/projection drift surfaces as
-either an error or a `make build-check` failure — whichever fires
-first. The path rules (skill-relative for own files, name-only for
-other skills, no `.claude/skills/<...>/` or
-`packs/.../.apm/skills/<...>/` prefixes in bodies) are the most common
-authoring mistake; the linter catches them, but it's faster to write
-them right the first time. See
-[`.claude/skills/README.md`](.claude/skills/README.md#spec-compliance)
-for the full ruleset.
-
-The mechanics above are linted; the **craft** is not, so hold it in your
-head while authoring — the canonical rules live in
-[`.claude/skills/README.md` § Authoring skills](.claude/skills/README.md#authoring-skills):
-
-- **The frontmatter `description` is the activation trigger surface.** It
-  alone decides whether the right skill fires (and the wrong ones don't) —
-  write it as a sharp, differentiable trigger, not a summary.
-- **Keep the body terse — the token budget is real.** A skill loads into
-  context when triggered; bloat crowds out the user's actual task. Push
-  depth into `references/` the body links on demand, not the body itself.
-- **Keep the body disjoint from the trigger.** It answers *what to do once
-  invoked* (preconditions, judgment, procedure); it must not restate *when*
-  to invoke — that is the `description`'s job.
-- **No internal-governance citations** — per *Shipped pack content carries
-  no internal-governance citations* above; that rule applies to every
-  SKILL.md body and its `references/`, `scripts/`, and `assets/`.
+> future RFC.
 
 ## Install-test coverage rule
 
