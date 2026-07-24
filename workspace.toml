@@ -127,6 +127,7 @@ shipped = [
   "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
   "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
   "spec/new-guide-conversation-first",         # PR #639 — user-guide-diataxis 0.2.0 conversation-first doctrine
+  "spec/work-loop-step0-observability",         # consumes work-loop-step0-{branch1-echo,layout} backlog items
 ]
 queue   = [
   # ==================================================================
@@ -230,11 +231,6 @@ queue   = [
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
   "spec/site-design-system-spec",                        # site token spec + zone-violation lint
   "spec/atlassian-sso-cookie-selector-integration-test", # end-to-end test for the auth selector branch
-  # work-loop-step0-observability: AC1 echo already landed ad-hoc in main (commit
-  # fb7435e9); remaining work is AC3/AC4/AC6 — trim the "Active spec" bullet's
-  # duplicated branch-outcome text and relocate Branch 2's verbatim message to the
-  # closing paragraph (single source of truth). Do not re-add the echo.
-  "spec/work-loop-step0-observability",                  # consumes work-loop-step0-{branch1-echo,layout} backlog items
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
 ]
 
