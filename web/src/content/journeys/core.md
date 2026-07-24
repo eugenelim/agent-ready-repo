@@ -22,7 +22,7 @@ skills:
     description: "Diagnoses and fixes a bug with a targeted root-cause analysis before writing a line of code."
     humanTouches: 1
   - name: frontend-engineering
-    description: "Establishes design intent and craft rules before writing HTML/CSS — pre-flight before any frontend surface change."
+    description: "Four modes: create (new surface — requires a page/screen contract before significant UI code), retrofit (improving an existing surface), audit (reviewing without writing code), verify (running the full gate suite and producing an evidence manifest). CWV targets (LCP ≤2.5s / INP ≤200ms / CLS ≤0.1 at p75) and asset budgets are declared gates."
     humanTouches: 0
   - name: contract-acquisition
     description: "Grounds agent code against an unfamiliar API or library contract before implementation — prevents guessed signatures."

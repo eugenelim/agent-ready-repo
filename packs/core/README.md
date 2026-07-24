@@ -3,7 +3,10 @@
 The core pack ships the agent-ready-repo skills (work-loop, new-spec,
 new-rfc, …) — including `frontend-engineering`, the depth skill the
 work-loop loads inline whenever a task's primary output is HTML, CSS,
-or JS — the four specialist subagents (adversarial-reviewer,
+or JS (four modes: **create** for new surfaces, **retrofit** for
+improving existing ones, **audit** for reviewing without writing code,
+and **verify** for running the full gate suite and producing an
+evidence manifest) — the four specialist subagents (adversarial-reviewer,
 security-reviewer, quality-engineer, implementer), the canonical
 session-start and work-loop-check hooks, and the `/adapt-to-project`
 command.

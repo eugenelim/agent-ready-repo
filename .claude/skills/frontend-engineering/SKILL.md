@@ -1,6 +1,6 @@
 ---
 name: frontend-engineering
-description: Load when a task's primary output is HTML, CSS, or JS. Provides design pre-flight, codified craft rules, and GATES verification commands for that surface.
+description: Load when a task's primary output is HTML, CSS, or JS. Provides design pre-flight, codified craft rules, GATES verification commands, and an evidence manifest for that surface. Four modes — create (new surface), retrofit (improving existing), audit (review only), verify (run gates and manifest).
 ---
 
 # Skill: frontend-engineering
@@ -12,10 +12,24 @@ token block, state matrix), the craft rules that govern EXECUTE, and the GATES
 verification commands. It is not needed for incidental HTML edits to an existing
 surface already covered by a grounded aesthetic reference.
 
-## PLAN phase — Design Pre-flight
+## Mode selection
 
-Complete all four steps before writing any code. These are not suggestions;
-they are the contract for greenfield frontend work.
+Before starting, select the mode that matches the work:
+
+| Mode | When to use | Required outputs |
+|---|---|---|
+| **create** | Building a new surface or significant new component | Page/screen contract (proportional to risk), evidence manifest |
+| **retrofit** | Improving or extending an existing surface | Brownfield inspection, evidence manifest |
+| **audit** | Reviewing an existing surface without writing code | Audit report |
+| **verify** | Running the full gate suite on a completed surface | Evidence manifest |
+
+Proceed to the shared pre-flight (PLAN phase) regardless of mode. Mode-specific steps follow the shared pre-flight and the state matrix.
+
+---
+
+## PLAN phase — Shared Pre-flight (all modes)
+
+Complete all four steps before writing any code (create/retrofit) or running any gates (audit/verify). These are the shared foundation for all modes.
 
 ### 1. Named aesthetic reference
 
@@ -180,19 +194,139 @@ missing-state branches without explicit enumeration. A 2025 study of
 50 AI-generated dashboards found 92% had no empty state and 78% had no
 error state.
 
-| State | Wrong | Right |
-|---|---|---|
-| **Loading** | Generic spinner | Skeleton screen matching the final layout (use spinner only when shape is unknown); add `aria-busy="true"` and `aria-label="Loading <thing>"` to the skeleton container |
-| **Empty** | Blank space | Illustration or icon + label describing the empty condition + primary CTA |
-| **Error** | Clear prior content; show only the error | Preserve prior content; show inline error message + retry affordance |
-| **Partial** | No indication more data exists | Pagination or load-more with a record count |
-| **Disabled** | Hide the element | Render it disabled with `aria-disabled="true"` and a tooltip or label explaining why |
-| **Content** | — | The normal loaded state — spec this too so the skeleton shape is known |
+The canonical 18-state set for this skill, aligned with the XD quality-floor:
+
+| State | Treatment |
+|---|---|
+| loading | Skeleton screen matching the final layout (use spinner only when shape is unknown); add `aria-busy="true"` and `aria-label="Loading <thing>"` to the skeleton container |
+| empty | Illustration or icon + label describing the empty condition + primary CTA |
+| error | Preserve prior content; show inline error message + retry affordance |
+| partial | Pagination or load-more with a record count; mark missing segments clearly |
+| disabled | Render it disabled with `aria-disabled="true"` and a tooltip or label explaining why |
+| content | The normal loaded state — spec this too so the skeleton shape is known |
+| success | Action completed: confirm visibly and proportionately (subtle toast for low-stakes; prominent banner for high-stakes) |
+| first-run | Never had data — orient the user and invite the first meaningful action; do not show the generic empty state |
+| no-results | A filter or search emptied the set — show what query was applied and how to recover |
+| permission/denied | Unauthorized or locked view: show a read-only or locked state with a recoverable note (who can act, how to request access); never a blank screen |
+| offline | Network unavailable — show cached content where possible; provide a manual retry; indicate stale status |
+| blocked | Action cannot proceed due to an external dependency or policy — name the blocker and the resolution path |
+| destructive-confirmation | Action has irreversible consequences — require explicit confirmation with a clear statement of what will be destroyed; provide a safe default (cancel) |
+| long-content | Content significantly longer than typical — offer progressive disclosure, a table of contents, or pagination |
+| large-data-set | Query returns more records than the UI can show — implement virtual scrolling, pagination, or sampling; never slice silently |
+| high-zoom | Surface used at 200–400% zoom — test that text reflows, controls remain operable, and no horizontal scrolling is required |
+| reduced-motion | User has requested reduced motion — all animations replaced with instant or cross-fade transitions; no sliding, scaling, or spinning |
+| keyboard-only | All interactions reachable and completable via keyboard alone — no pointer dependency; logical tab order; visible focus indicators at all times |
 
 **Skeleton vs spinner rule:** use a skeleton when the content shape is
 predictable (table rows, card grids, profile cards). The skeleton must
 match the final layout so there is no layout shift on load. Use a spinner
 only when shape is genuinely unknown.
+
+Not all states apply to every surface — omit states that are genuinely inapplicable and note why in the spec.
+
+---
+
+### Mode: create
+
+Use when building a new surface or significant new component.
+
+#### Step 0. Page/screen contract (required before significant UI code)
+
+Before writing HTML for a new page or significant surface, fill the
+page/screen contract. This contract is proportional to risk and scope — a
+new route, a key onboarding surface, or a feature-gating screen warrants
+the full 12-field contract. A single new form field, a tooltip, or a minor
+component variant does not.
+
+**Page/screen contract template (12 fields):**
+
+| Field | What to specify |
+|---|---|
+| target user | The specific user type or persona this surface serves |
+| primary job | The one job the user comes here to complete |
+| primary action | The single most important action available on this surface |
+| expected result | What the user sees/has after completing the primary action |
+| next action | What the user does after the primary action is complete |
+| first-screen content | What must be visible above the fold without scrolling |
+| product proof | The value signal (stat, social proof, outcome indicator) present above the fold |
+| read/write consequence | Whether the primary action reads or mutates data; what happens on error |
+| critical states | Which of the 18 states this surface must handle (minimum: loading, empty or first-run, error, content) |
+| responsive behavior | How layout adapts across breakpoints; what collapses, reorders, or hides |
+| a11y requirements | WCAG 2.2 AA — note any state-specific requirements (focus management, live regions) |
+| measurement event | The analytics event that fires on primary action completion |
+
+Record the completed contract in the spec before writing HTML.
+
+#### Steps 1–3. Proceed through the shared PLAN phase pre-flight
+
+Run steps 1, 1b, 2, and 3 from the shared pre-flight above (aesthetic reference, genre routing, seed tokens, state matrix).
+
+#### EXECUTE and GATES
+
+Proceed to the EXECUTE phase (Craft Rules) and GATES phase below. Produce an evidence manifest at completion.
+
+---
+
+### Mode: retrofit
+
+Use when improving or extending an existing surface without building from scratch.
+
+#### Step 1. Brownfield inspection checklist
+
+Before touching any code, run this inspection against the existing surface. Record findings for each item:
+
+| Item | What to inspect |
+|---|---|
+| what-to-preserve | What currently works well and must not regress — visual patterns users rely on, established keyboard flows, screen-reader compatibility |
+| duplicated-systems | Parallel implementations of the same component, token, or logic that this change could consolidate or that it must not fork further |
+| hard-coded values | CSS values that should be design tokens (`#5e6ad2`, `margin: 13px`) — note them for opportunistic migration |
+| a11y-debt | Accessibility failures already present — note which ones this change must not worsen, and which it can address as a ride-along |
+| responsive-debt | Viewport breakpoints that fail at current state — note which this change must not worsen |
+| visual-regression-risk | Downstream components or pages that share styling with the modified surface and could be visually affected |
+
+#### Step 2. Proceed through the shared PLAN phase pre-flight
+
+Run steps 1, 1b, 2, and 3 from the shared pre-flight (aesthetic reference, genre routing, seed tokens, state matrix). For retrofit work, focus the state matrix on states that are absent or broken — not a full re-enumeration unless the surface is substantially rebuilt.
+
+#### EXECUTE and GATES
+
+Proceed to the EXECUTE phase (Craft Rules) and GATES phase below. Produce an evidence manifest at completion.
+
+---
+
+### Mode: audit
+
+Use when reviewing an existing surface without writing code. The output is a structured audit report, not code.
+
+#### Audit procedure
+
+1. **Run the state matrix audit.** Compare the surface against all 18 states in the state matrix. For each applicable state, mark: Covered / Absent / Broken. Note the specific issue for Absent and Broken.
+2. **Run the accessibility audit.** Check against WCAG 2.2 AA. Use the GATES accessibility tools (pa11y or axe-core). Note which WCAG 2.2 success criteria require manual verification because tooling caps at wcag21aa.
+3. **Check the CWV targets.** Measure or estimate LCP ≤2.5s / INP ≤200ms / CLS ≤0.1 at p75 (mobile and desktop separately where field data exists). Note any category over budget.
+4. **Run the brownfield inspection checklist.** Use the same 6-item checklist from retrofit mode.
+
+#### Audit report format
+
+Return findings as a prioritised list with severity (Blocker / Major / Minor / Note). Each finding maps to the state, criterion, or checklist item it violates, with one concrete recommendation.
+
+Record findings in the evidence manifest under `known exceptions` and `unverified items`.
+
+---
+
+### Mode: verify
+
+Use when a completed surface needs gates run and an evidence manifest generated.
+
+#### Verification procedure
+
+Run the full GATES suite in order:
+
+1. **Structural HTML validation** (GATES phase step 1)
+2. **Accessibility audit** (GATES phase step 2) — note that WCAG 2.2 AA is our declared baseline; the tooling caps at wcag21aa; two success criteria require manual verification: 2.4.11 Focus Appearance and 2.5.8 Target Size Minimum
+3. **CSS token enforcement** (GATES phase step 3, if stylelint is configured)
+4. **Visual QA checklist** (GATES phase step 4) — confirm all 18 applicable states are present
+
+After running all four gates, generate the evidence manifest (see Evidence manifest section below) with the results.
 
 ---
 
@@ -263,6 +397,10 @@ the specific forms below are.
 - WRONG: `outline: none` / RIGHT: replace with a visible alternative — `outline: 2px solid var(--ds-color-primary); outline-offset: 2px` or a `box-shadow` equivalent
 
 ### Accessibility rules
+
+**Default baseline: WCAG 2.2 AA.** WCAG 2.2 AA is our baseline — it exceeds the WCAG 2.1 minimum currently cited by EU EAA, ADA, and AODA. Two success criteria are new in 2.2 and require manual verification because automated tooling (pa11y/axe-core) caps at wcag21aa: **2.4.11 Focus Appearance** (visible focus indicator with sufficient size and contrast) and **2.5.8 Target Size Minimum** (interactive targets ≥24×24 CSS pixels). Mark these explicitly in the evidence manifest under `a11y result`.
+
+**Browser policy: Baseline Widely Available.** Target only features in the Baseline Widely Available set (features shipping in all major browsers for at least 30 months). Check baseline status at web.dev/baseline before using any feature not in the baseline set.
 
 #### ARIA discipline
 
@@ -380,9 +518,7 @@ npx axe "file:///$(pwd)/file.html" \
   --chrome-options="no-sandbox,disable-setuid-sandbox,disable-dev-shm-usage"
 ```
 
-Note: neither tool currently supports WCAG 2.2 tags — `wcag21aa` is the
-current ceiling. Chromium runs fully headless; no `DISPLAY` environment
-variable is required.
+Note: tooling currently caps at `wcag21aa` — WCAG 2.2 AA is our declared baseline (it exceeds the wcag21aa minimum). Two WCAG 2.2-only success criteria require **manual verification**: **2.4.11 Focus Appearance** and **2.5.8 Target Size Minimum**. Record the manual-check outcome in the evidence manifest under `a11y result`.
 
 ### 3. CSS token enforcement (optional — run if stylelint is already configured)
 
@@ -405,10 +541,88 @@ Install: `npm install --save-dev stylelint stylelint-declaration-strict-value`
 
 ### 4. Visual QA checklist (agent-executable, no tooling)
 
-- [ ] All state variants present in the HTML (loading / empty / error / partial / content / disabled) — not just the happy path
+- [ ] All applicable states from the 18-state matrix are present in the HTML — not just the happy path; check each applicable state by reading the HTML
 - [ ] No hardcoded colour or spacing values outside the token-definition block — grep: `grep -E "#[0-9a-fA-F]{3,6}|rgba?\(|hsl\(|[0-9]+px" <file.css>` should return only the `:root` / primitive token-definition block, no other hex, rgb, or px values
 - [ ] Print output correct: if PPT/PDF context, open in browser and trigger print preview — check slide boundaries, colour preservation, no overflow
 - [ ] Screenshot taken and observed: Playwright headless (`page.screenshot()`) or browser devtools screenshot — assert on what you see, not on internal state
+
+---
+
+## Performance targets
+
+### Core Web Vitals (CWV)
+
+Targets at p75, evaluated separately for mobile and desktop where field data exists:
+
+| Metric | Target | What it measures |
+|---|---|---|
+| LCP (Largest Contentful Paint) | ≤2.5s | Perceived load speed — when the main content appears |
+| INP (Interaction to Next Paint) | ≤200ms | Responsiveness — how fast the page responds to interactions |
+| CLS (Cumulative Layout Shift) | ≤0.1 | Visual stability — how much content moves unexpectedly |
+
+Measure using Lighthouse, Chrome DevTools Performance panel, or WebPageTest.
+
+### Asset budgets
+
+Enforce these per route. The seven asset budget categories to track are: JS budget (JavaScript parse+execute per route), images budget (total image payload per route), fonts (web font files transferred), third-party scripts (analytics, tags, widgets), hydration (client-side hydration cost for SSR/islands), route-level loading (per-route code-split chunks), and long tasks (main-thread tasks blocking >50ms).
+
+| Budget category | What to measure | Notes |
+|---|---|---|
+| JS (JavaScript) | Total JavaScript transferred and parsed per route | Prioritise code-splitting; defer non-critical bundles |
+| images | Total image payload per route | Use modern formats (WebP/AVIF); serve appropriate sizes via `srcset` |
+| fonts | Web font files transferred | Self-host; `font-display: swap` or `optional`; subset aggressively |
+| third-party scripts | Analytics, tag managers, widgets | Audit regularly; defer or facade heavy embeds |
+| hydration | Client-side hydration cost (SSR / islands) | Islands architecture preferred; measure Time to Interactive delta |
+| route-level loading | Per-route code-split chunk sizes | Each route chunk should be independently cacheable |
+| long tasks | Main-thread tasks > 50ms | Use `scheduler.yield()` or `setTimeout` chunking to break up long tasks |
+
+---
+
+## Evidence manifest
+
+FE cannot claim completion (create or retrofit) or a passing gate run (verify) without an evidence manifest. The manifest is a structured record of what was tested and what was found.
+
+**Required fields (all 11 must be present):**
+
+| Field | What to record |
+|---|---|
+| routes | List of routes/URLs or file paths tested |
+| viewports | Viewport widths tested (e.g. 375px mobile, 768px tablet, 1280px desktop) |
+| browsers | Browsers or rendering engines tested (per Baseline Widely Available policy) |
+| states | Which of the 18 states were exercised during testing |
+| screenshots | Evidence of rendered states — filenames, Playwright capture, or devtools screenshots |
+| a11y result | Output of the accessibility gate (pa11y/axe-core); include manual-check outcome for WCAG 2.4.11 and 2.5.8 |
+| perf result | CWV measurement or Lighthouse score; include mobile and desktop values where available |
+| console/network result | No console errors; network requests match expected; no unexpected third-party calls |
+| analytics events | Confirmation of measurement events firing on primary action completion |
+| known exceptions | Documented, accepted gaps with rationale and owner — not a place to hide problems |
+| unverified items | Items that could not be verified in this session with reason (no Chromium, no network, etc.) |
+
+---
+
+## Conditional public-surface guidance
+
+*Applies only when the surface will be publicly indexed (marketing pages, documentation, product landing pages). Skip for internal tools, authenticated dashboards, and surfaces behind login.*
+
+For publicly indexed surfaces, add these items to the spec and verify them before merge:
+
+- **Metadata**: `<title>` (60 chars max), `<meta name="description">` (155 chars max), Open Graph tags (`og:title`, `og:description`, `og:image`) for link previews
+- **Canonical URLs**: `<link rel="canonical" href="…">` on every public page; avoid duplicate content from trailing slashes, `www` vs non-`www`, or protocol variants
+- **Sitemaps**: ensure the route is included in the sitemap or explicitly excluded; no orphaned pages
+- **Structured data**: appropriate schema.org type for the surface (`Article`, `Product`, `FAQPage`, `HowTo`) implemented as JSON-LD; validate at schema.org/validator
+- **Search indexing intent**: confirm `robots` meta or `X-Robots-Tag` header is set correctly — `index, follow` for pages that should rank; `noindex` for pagination, internal search results, thin pages
+
+---
+
+## Multi-surface shell contract
+
+*Applies when building or reviewing a product with multiple web surfaces (e.g. marketing site + web app + documentation site).*
+
+Multi-surface products must maintain coherence across surfaces. Apply these constraints regardless of which surface you are currently building:
+
+- **Shared tokens**: all surfaces draw from the same design token contract (same `--ds-*` custom property names, same primitive values, same semantic assignments). A surface that redefines shared tokens independently forks the product's visual identity.
+- **Navigation patterns**: primary navigation, breadcrumb, and footer patterns must be consistent across surfaces — same structure, same interaction model, same terminology for shared destinations.
+- **Consistent product terminology**: the names of features, entities, and actions must be the same across surfaces. Maintain a terminology list in the project and use it before naming anything.
 
 ---
 
@@ -416,7 +630,7 @@ Install: `npm install --save-dev stylelint stylelint-declaration-strict-value`
 
 | Rationalisation | Reality |
 |---|---|
-| "Accessibility is a nice-to-have for now" | It is a legal requirement in many jurisdictions (WCAG 2.1 AA is the baseline for EU EAA, ADA, and AODA compliance) and an engineering quality standard — not a feature |
+| "Accessibility is a nice-to-have for now" | WCAG 2.2 AA is our baseline — it exceeds the WCAG 2.1 minimum currently cited by EU EAA, ADA, and AODA — and it is an engineering quality standard, not a feature |
 | "We'll make it responsive later" | Retrofitting responsive design is 3× harder than building it from the start; skip this step only if the output is explicitly fixed-dimension (PPT/PDF) |
 | "This is just a prototype" | Prototypes become production code; the AI aesthetic baked in at prototype stage is the AI aesthetic shipped |
 | "The AI aesthetic is fine for now" | It signals low quality to every reviewer who sees it and anchors the design in a direction that is expensive to undo |
@@ -431,9 +645,11 @@ Install: `npm install --save-dev stylelint stylelint-declaration-strict-value`
 A reviewer should treat any of these as a blocker:
 
 - Inline `style="…"` attributes or arbitrary pixel values not on the spacing scale
-- Any state variant missing (empty, error, loading, partial) — check by reading the HTML, not by reasoning about the code
+- Any state from the applicable 18-state matrix missing from the implementation — check by reading the HTML, not by reasoning about the code
 - `outline: none` or `outline: 0` with no visible replacement focus style
 - Color used as the sole state indicator (red/green without accompanying text, icon, or pattern)
 - Generic AI aesthetic visible in the output (purple gradients, equal oversized padding, `border-radius: 16px` on every element, shadow on every card)
 - `aria-expanded`, `aria-selected`, or `aria-sort` set once and never updated
 - A `<div onclick>` where a `<button>` would serve
+- FE completion claimed without an evidence manifest
+- Multi-surface product with inconsistent shared tokens, navigation patterns, or product terminology across surfaces
