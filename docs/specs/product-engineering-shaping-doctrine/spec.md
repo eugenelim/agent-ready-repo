@@ -160,38 +160,38 @@ This spec delivers:
 
 ## Acceptance Criteria
 
-- [ ] AC1: `packs/product-engineering/.apm/skills/ux-writing/SKILL.md` exists;
+- [x] AC1: `packs/product-engineering/.apm/skills/ux-writing/SKILL.md` exists;
   `name: ux-writing` in frontmatter; old path `voice-and-microcopy/` does not exist
-- [ ] AC2: `packs/product-engineering/.apm/skills/ux-writing/evals/evals.json`
+- [x] AC2: `packs/product-engineering/.apm/skills/ux-writing/evals/evals.json`
   has `"skill_name": "ux-writing"`; `eval_queries.json` total `"should_trigger": false`
   count ≥ 14 (9 existing + ≥5 new weak fixtures)
-- [ ] AC3: `packs/product-engineering/pack.toml` version = `"0.13.0"`; evals
+- [x] AC3: `packs/product-engineering/pack.toml` version = `"0.13.0"`; evals
   list contains `"ux-writing"` not `"voice-and-microcopy"`; description updated
-- [ ] AC4: `grep -r "voice-and-microcopy" packs/ web/ docs/guides/ --include="*.md" --include="*.toml" --include="*.json" --include="*.astro" 2>/dev/null` returns 0 matches
-- [ ] AC5: `place-bet/SKILL.md` betting table includes all four new required
+- [x] AC4: `grep -r "voice-and-microcopy" packs/ web/ docs/guides/ --include="*.md" --include="*.toml" --include="*.json" --include="*.astro" 2>/dev/null` returns 0 matches
+- [x] AC5: `place-bet/SKILL.md` betting table includes all four new required
   fields: `thin-slice` (four-criterion definition), `first-success-event`
   (30-day operationalization), `specialist-lenses` (default set named),
   `learning-contract` (three components: measure/cadence/pivot-trigger)
-- [ ] AC6: `de-risk-intent/SKILL.md` validation-hook format includes
+- [x] AC6: `de-risk-intent/SKILL.md` validation-hook format includes
   `evidence_level: observed | supported | inferred | assumed | unknown`; the
   riskiest-assumption selection criterion references "lowest evidence level"
-- [ ] AC7: `place-bet/SKILL.md` Anti-patterns section names gate failures by
+- [x] AC7: `place-bet/SKILL.md` Anti-patterns section names gate failures by
   outcome (thin-slice, first-success, learning-contract); `grep -c "step [0-9]" packs/product-engineering/.apm/skills/place-bet/SKILL.md` = 0 in the Anti-patterns and gate language sections
-- [ ] AC8: `web/src/content/journeys/product-engineering.md` exists; follows
+- [x] AC8: `web/src/content/journeys/product-engineering.md` exists; follows
   `product-strategy.md` frontmatter format; thin-slice and learning-contract
   steps visible in body; `whatChanges` field references the Digital Experience
   Contract
-- [ ] AC9: `web/src/content/packs/product-engineering.md` lists `ux-writing` in
+- [x] AC9: `web/src/content/packs/product-engineering.md` lists `ux-writing` in
   the skills array; description updated to jobs-first prose
-- [ ] AC10: `docs/guides/product-engineering/how-to/place-a-bet.md` has a
+- [x] AC10: `docs/guides/product-engineering/how-to/place-a-bet.md` has a
   `## How to define a thin slice` section with the four-criterion test
-- [ ] AC11: `docs/guides/product-engineering/how-to/write-a-post-launch-learning-contract.md`
+- [x] AC11: `docs/guides/product-engineering/how-to/write-a-post-launch-learning-contract.md`
   exists; covers what to measure, cadence, and pivot triggers
-- [ ] AC12: `make build-check` exits 0
-- [ ] AC13: `python3 tools/check-contract-drift.py --root .` exits 0
-- [ ] AC14: `docs/product/changelog.md` `[Unreleased]` section has an entry for
+- [x] AC12: `make build-check` exits 0
+- [x] AC13: `python3 tools/check-contract-drift.py --root .` exits 0
+- [x] AC14: `docs/product/changelog.md` `[Unreleased]` section has an entry for
   PE pack 0.13.0 covering the ux-writing rename and doctrine additions
-- [ ] AC15: `workspace.toml` has `"spec/product-engineering-shaping-doctrine"` in
+- [x] AC15: `workspace.toml` has `"spec/product-engineering-shaping-doctrine"` in
   the shipped list; `digital-experience-contract-pe-journey-xref` entry is removed
   from `[backlog].open` (closing the deferred AC from spec/digital-experience-contract)
 

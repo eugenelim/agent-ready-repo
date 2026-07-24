@@ -25,7 +25,7 @@ The deliverable is:
 
 4. An **explanation guide** (`docs/guides/core/explanation/digital-experience-contract.md`) — a Diátaxis explanation page describing the contract, its three risk tiers, and the ownership map.
 
-5. **Cross-reference notes** added to the `whatChanges` field of the three existing affected journey pages (`web/src/content/journeys/product-strategy.md`, `experience-design.md`, `core.md`). The PE journey page (`product-engineering.md`) does not exist; its cross-reference is deferred to `spec/product-engineering-shaping-doctrine` (deferred: digital-experience-contract-pe-journey-xref).
+5. **Cross-reference notes** added to the `whatChanges` field of the three existing affected journey pages (`web/src/content/journeys/product-strategy.md`, `experience-design.md`, `core.md`). The PE journey page (`product-engineering.md`) did not exist when this spec shipped; its cross-reference was deferred to `spec/product-engineering-shaping-doctrine` — now shipped.
 
 6. **`make build-self FORCE=1`** — after placing the core pack's template, the new `packs/core/.apm/skills/frontend-engineering/references/digital-experience-contract.md` projects to `.claude/skills/frontend-engineering/references/digital-experience-contract.md`. The projected artifact is committed in this PR.
 
@@ -195,7 +195,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 - [x] `web/src/content/journeys/core.md` `whatChanges` field contains the phrase "Digital Experience Contract".
 - [x] No SKILL.md, pack.toml, or eval file is modified.
 - [x] `workspace.toml` passes `python3 -c "import tomllib; tomllib.load(open('workspace.toml','rb'))"` after any workspace.toml edit.
-- [ ] (deferred: digital-experience-contract-pe-journey-xref) PE journey page cross-reference — deferred to `spec/product-engineering-shaping-doctrine` where the PE journey page will be authored.
+- [x] (fulfilled: digital-experience-contract-pe-journey-xref) PE journey page cross-reference — fulfilled by `spec/product-engineering-shaping-doctrine` (Shipped 2026-07-23).
 - [ ] (deferred: contract-drift-check-gate-promotion) Promotion of drift check to a build-check gate — deferred pending calibration evidence from at least two passes on the live repo.
 
 ## Assumptions
@@ -212,4 +212,4 @@ Per ini-003 phase-slice doctrine, this spec ships its own guide and journey upda
 - **Guide:** `docs/guides/core/explanation/digital-experience-contract.md` — Diátaxis explanation of what the contract is, its three tiers, and the ownership map. Cross-links use absolute `/docs/guides/core/explanation/digital-experience-contract/` form. Does not duplicate RFC-0071 — one paragraph summary with a pointer to the RFC for governance detail.
 - **Journey pages:** brief cross-reference sentence appended at end of the `whatChanges` YAML field value in three existing journey pages (product-strategy, experience-design, core). Not a rewrite of the `whatChanges` prose.
 - **Site (site/ — MkDocs docs site):** no change in this spec — explanation guides project to the docs site naturally; no explicit docs-site config change needed.
-- **PE journey page:** deferred to `spec/product-engineering-shaping-doctrine` (deferred: digital-experience-contract-pe-journey-xref).
+- **PE journey page:** fulfilled by `spec/product-engineering-shaping-doctrine` (Shipped 2026-07-23).
