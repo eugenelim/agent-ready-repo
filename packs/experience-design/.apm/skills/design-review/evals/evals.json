@@ -4,14 +4,43 @@
     {
       "id": 1,
       "prompt": "Run a design critique on the screen or flow the user provided.",
-      "expected_output": "A prioritized, severity-rated findings list. It first frames the surface — the user, the primary task, and the steps under review — so every severity call is anchored. It runs the shared quality-floor pass (all states, the accessibility floor, the reduced-motion principle) AND a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding maps to the single best-fit usability principle (or floor commitment), with accessibility misses starting at major; each carries a 0–4 severity naming the frequency × impact × persistence factors behind it. Findings are sorted worst-first under a count-by-severity headline, and each has one concrete recommendation expressed as DESIGN INTENT — never a stack-specific implementation (no framework, property, or value).",
+      "expected_output": "A prioritized, severity-rated findings list using the three-pass structure. Pass 1 (cold-read) names the audience and job derivable from the rendered surface alone and records a first-impression finding. Pass 2 (primary task and one unhappy path) walks the task across desktop/tablet/mobile and checks keyboard navigation, focus management, zoom, and reduced-motion. Pass 3 (contract review) runs the full quality-floor pass — all 18 states, accessibility floor, reduced-motion principle — and a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding is labelled with its severity tier (Blocker / Concern / Suggestion), its source pass (pass-1 / pass-2 / pass-3), and its source mode (floor / heuristic / marketing / taste). Accessibility failures are Blockers, never softened. Findings are sorted Blockers → Concerns → Suggestions under a count-by-severity headline; each carries one concrete recommendation expressed as design intent — never a stack-specific implementation.",
       "assertions": [
-        "Frames the user, primary task, and steps under review before judging",
-        "Runs the quality-floor pass (states, accessibility floor, reduced-motion) in addition to the heuristics, with accessibility misses starting at major",
-        "Maps every finding to a single named usability principle or floor commitment",
-        "Assigns a 0–4 severity to each finding and names the factors that set it",
-        "Sorts findings worst-first and leads with a count-by-severity headline",
-        "Recommendations are design intent, not stack-specific — no framework, CSS property, or literal value is prescribed"
+        "Runs three passes in order: cold-read (Pass 1), primary-task-and-unhappy-path (Pass 2), contract review (Pass 3)",
+        "Pass 1 names the audience and primary job from the rendered surface alone, before consulting the brief",
+        "Pass 2 checks the primary task and one unhappy path across at least desktop and mobile viewports, and checks keyboard navigation and reduced-motion",
+        "Pass 3 runs the quality-floor pass (all applicable states from the 18-state set, accessibility floor, reduced-motion) in addition to the heuristics",
+        "Severity tiers used: Blocker, Concern, or Suggestion — accessibility failures are always Blockers, never softened",
+        "No finding is presented as a Blocker or Concern solely on aesthetic preference grounds — aesthetic findings without a grounded reference warrant go in Director's notes",
+        "When a rendered surface exists, findings on that surface include a rendered evidence observation, or the finding is marked ⚠ unverified",
+        "Maps every finding to a single named usability principle, floor commitment, or severity-tier criterion",
+        "Sorts findings Blockers → Concerns → Suggestions and leads with a count-by-severity headline",
+        "Recommendations are design intent, not stack-specific — no framework, literal value, or platform-specific property is prescribed"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "This hero section leads with our company history and product line before saying what the product does. What is wrong with it from a conversion standpoint?",
+      "fixture": "architecture-first-hero",
+      "expected_output": "Identifies the architecture-first hero as a conversion failure: the hero communicates organizational structure rather than the reader's problem or desired outcome. Rates this as at minimum a Concern (missed painkiller-first structure) or a Blocker (if the five-second scan cannot answer 'what is this / who is it for / should I care?'). Recommends leading with the reader's problem or outcome before naming the product or the organization.",
+      "assertions": [
+        "Identifies the hero approach as architecture-first (product/company-first rather than reader-problem-first)",
+        "Maps the finding to the painkiller-first criterion or the hero approach-fit genre rubric item",
+        "Rates the finding at Concern or Blocker (not Suggestion)",
+        "Recommends leading with the reader's recognized need or desired outcome"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The UI looks polished and attractive but the primary action permanently deletes all data in the current project without any confirmation step. Is there a problem?",
+      "fixture": "attractive-ui-unclear-write-consequences",
+      "expected_output": "Identifies the missing destructive-confirmation state as a Blocker regardless of visual polish. States that attractiveness does not substitute for the write-consequence contract. Names the destructive-confirmation state from the quality-floor as the violated commitment. Recommends requiring explicit confirmation with a clear statement of what will be destroyed and a safe default (cancel).",
+      "assertions": [
+        "Identifies the missing destructive-confirmation state as a Blocker",
+        "Explicitly notes that visual polish does not substitute for the quality-floor state requirement",
+        "Maps the finding to the destructive-confirmation state in the quality-floor",
+        "Does not downgrade the finding to Concern or Suggestion based on aesthetic quality",
+        "Recommends explicit confirmation with a clear statement of consequences and a safe default"
       ]
     }
   ]
