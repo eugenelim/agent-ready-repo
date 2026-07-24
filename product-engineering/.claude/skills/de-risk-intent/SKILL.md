@@ -44,8 +44,13 @@ Before de-risking, confirm:
 
 2. **Name the riskiest assumption — "what would have to be true".** From the
    intent's assumptions, pick the one with the highest risk × least evidence.
-   Front it with *what would have to be true* for the bet to pay off, then
-   restate the single riskiest condition as the test target.
+   Classify each assumption on the evidence ladder (`observed` — confirmed by
+   direct measurement; `supported` — backed by analogous data or research;
+   `inferred` — derived from adjacent signals; `assumed` — team consensus without
+   external data; `unknown` — no signal exists yet). The riskiest assumption to
+   test is the one at the lowest evidence level — `unknown` before `assumed`,
+   `assumed` before `inferred`. Front it with *what would have to be true* for
+   the bet to pay off, then restate the single riskiest condition as the test target.
 
 3. **Predeclare the kill condition — in the test's own currency.** Write down,
    **before** running anything, what result would kill the bet — a number where
@@ -81,6 +86,7 @@ validation_hook:
   assumption: <the riskiest assumption, restated>
   kill_condition: <the predeclared line, in the test's own currency>
   activity: <the real-world activity that confirms or enriches it>
+  evidence_level: observed | supported | inferred | assumed | unknown
 ```
 
 This is the field `plan-validation` consumes to build the validation plan, and the

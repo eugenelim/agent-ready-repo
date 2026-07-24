@@ -110,7 +110,7 @@ contract). The phase→skill→artifact roster:
 The **convergence loop** runs the lens skills as **parallel writers, bouncing off
 each other only through the open-questions queue — never chat**: *product*
 (`decompose-intent`), *UX/experience* (`journey-mapping`, `service-blueprint`,
-`user-flow`, `voice-and-microcopy` — if installed), *tech*
+`user-flow`, `ux-writing` — if installed), *tech*
 (`architect-design`/`architect-diagram`, contracts — if installed), and *reconcile*
 (the discovery reviewer roster + the self-coverage gate + the traceability lint).
 
