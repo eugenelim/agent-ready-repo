@@ -46,6 +46,8 @@ agentbundle show core --format json          # stable object for scripts/agents
 agentbundle list-installed
 agentbundle list-installed --no-check       # skip the catalogue check (offline, fast)
 agentbundle list-installed --check-drift    # also count locally edited files
+agentbundle list-installed --format json    # machine-readable JSON (schema_version 1)
+agentbundle list-installed --updates-only   # show only rows needing attention
 
 # Install a whole curated profile — a single-scope set of packs — in one command
 agentbundle install --profile inception
@@ -62,7 +64,7 @@ agentbundle uninstall --pack core --dry-run
 agentbundle uninstall --pack core --yes
 ```
 
-**`list-installed`** reads your state files (not the catalogue) and reports every installed `(pack, adapter)` at each scope with its version and an `up-to-date` / `upgrade-available` / `unknown` status; it degrades to `unknown` (never an error) when the catalogue can't be resolved, and `--no-check` skips the check entirely.
+**`list-installed`** reads your state files (not the catalogue) and reports every installed `(pack, adapter)` at each scope with its version and a four-value status — `up-to-date`, `upgrade-available`, `ahead` (installed version is newer than catalogue), or `unknown`; it degrades to `unknown` (never an error) when the catalogue can't be resolved, and `--no-check` skips the check entirely. `--format json` emits a stable JSON contract (`schema_version: 1`) to stdout — useful for CI automation of upgrade decisions. `--updates-only` hides `up-to-date` rows.
 
 **`show <pack>`** answers "what skills and agents does this pack contain?" by walking the pack's source tree live on each call — so the answer can't drift, and nothing is persisted. `--format json` emits a stable object (`name`, `version`, `description`, `skills`, `agents`, `source`) for scripts and agents. When the catalogue can't be resolved, an *installed* pack still reports its inventory from your state files (marked `source: installed-state`); a not-installed pack errors.
 
