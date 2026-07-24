@@ -90,6 +90,7 @@ relatedJourneys:
   - desk-research
   - product-strategy
   - experience-design
+  - product-engineering
   - core
 ---
 

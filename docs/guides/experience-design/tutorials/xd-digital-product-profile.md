@@ -34,7 +34,7 @@ This installs four packs at user scope, in deps-first order:
 Verify installation:
 
 ```bash
-agentbundle list <catalogue>
+agentbundle list-installed
 ```
 
 All four packs should appear at `scope: user`.
@@ -110,7 +110,30 @@ Metric Tree, Differentiation, Assumptions and Kill Criteria.
 
 ---
 
-## Step 4. Run experience-design to design the screens
+## Step 4. Shape the initiative with product-engineering
+
+Before designing screens, the product-engineering pack grounds the work in a shaping brief
+that names what you're building, the first-success operationalization, and the thin-slice scope.
+
+1. Activate the shaping skills:
+
+   > "Shape the [initiative name] initiative using the committed strategy from docs/product/shaping/.
+   > Produce a shaping brief with the first-success event operationalized."
+
+2. The agent runs the shaping and first-success operationalization skills to produce:
+   - A shaping brief with: the problem, the first-success event named as a specific observable
+     behavior + system response + measurement event, and the thin-slice scope
+   - A workspace.toml `strategy`-type entry ready for the build loop to pick up
+
+3. Confirm the first-success event in the shaping brief matches the one in the PRFAQ exactly.
+   If they diverge, the measurement contract is broken before build begins — redirect and re-run.
+
+4. Output: committed shaping brief with first-success operationalization; the PE shaping link
+   in the traceability chain is now complete.
+
+---
+
+## Step 5. Run experience-design to design the screens
 
 ### 4a. Map the customer journey and derive the screen list
 
@@ -169,7 +192,7 @@ happy-path state but has no designed error recovery is the canonical blocker.
 
 ---
 
-## Step 5. Hand off to the build repo's core pack
+## Step 6. Hand off to the build repo's core pack
 
 The Digital Experience Contract — now populated with strategy, shaping, and experience
 fields — is the hand-off artifact.
@@ -182,7 +205,7 @@ agentbundle install --pack core <catalogue>
 
 Point the build loop to the contract:
 
-> "The Digital Experience Contract is at docs/design/digital-experience-contract.md.
+> "The Digital Experience Contract is at docs/guides/core/explanation/digital-experience-contract.md.
 > Use it to ground the build — confirm the first-success event matches what we'll instrument."
 
 The `core` pack's `work-loop` and `frontend-engineering` skill read the contract fields to
