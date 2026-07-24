@@ -72,6 +72,53 @@ class _ScopePlan:
     new_companions: list[str] = field(default_factory=list)
 
 
+
+def _check_source_conflict(
+    pack_name: str, scope: str, state: "State | None", source_uri: str
+) -> str | None:
+    """Return an error message string if a source conflict is detected, else None.
+
+    Implements RFC-0072 D3: refuse an install at ``scope`` when existing
+    (pack, adapter) rows at that scope have a different canonical source from
+    ``source_uri``. ``--force`` is NOT a parameter — callers must not gate
+    this check on ``force``. ``source_uri`` is the logical catalogue URI
+    (derived at the call site via ``getattr(args, "_source_uri", None) or
+    catalogue_uri``); do not pass ``catalogue_uri`` directly.
+    """
+    if state is None:
+        return None
+    existing_rows = state.rows_for_pack(pack_name)
+    if not existing_rows:
+        return None
+    from agentbundle.config import canonicalize_source
+    incoming_canonical = canonicalize_source(source_uri)
+    conflicts: list[tuple[str, str]] = []
+    for adapter, ps in sorted(existing_rows.items()):
+        existing_canonical = canonicalize_source(ps.source)
+        if (
+            incoming_canonical is None
+            or existing_canonical is None
+            or existing_canonical != incoming_canonical
+        ):
+            display = existing_canonical if existing_canonical is not None else "unknown/legacy source"
+            conflicts.append((adapter, display))
+    if not conflicts:
+        return None
+    incoming_display = incoming_canonical if incoming_canonical is not None else "unknown/legacy source"
+    lines = [
+        f"{pack_name}: source conflict at {scope} scope \u2014 "
+        f"incoming source {incoming_display!r} differs from existing installation(s):",
+    ]
+    for adapter, display in conflicts:
+        lines.append(f"  {adapter}: {display!r}")
+    lines.append("--force does not override source conflicts.")
+    lines.append(
+        f"Recovery: run 'agentbundle upgrade --pack {pack_name}' from a concrete source "
+        f"to migrate a legacy row, or uninstall all existing adapters first "
+        f"('agentbundle uninstall --pack {pack_name}') then reinstall."
+    )
+    return "\n".join(lines)
+
 def run(args: "argparse.Namespace") -> int:
     """Entry point for ``agentbundle install``.
 
@@ -378,6 +425,24 @@ def run(args: "argparse.Namespace") -> int:
         )
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
+        return 1
+
+    # ── Source conflict guard (RFC-0072 D3) ────────────────────────────────────────────
+    # Must fire before Step-3c --force cleanup (the earliest mutation point).
+    # --force does NOT bypass; this call has no conditional on `force`.
+    # Derive the logical source URI (AC11): profile sub-installs set
+    # `args._source_uri` to the logical catalogue URI; `catalogue_uri` is the
+    # resolved temp dir in that case. `or catalogue_uri` also handles the
+    # `_source_uri = None` case (attribute present but None).
+    _guard_source_uri = getattr(args, "_source_uri", None) or catalogue_uri
+    _src_conflict = _check_source_conflict(
+        pack_name,
+        requested_scope,
+        repo_state if requested_scope == "repo" else user_state,
+        _guard_source_uri,
+    )
+    if _src_conflict is not None:
+        print(f"install: {_src_conflict}", file=sys.stderr)
         return 1
 
     # ── Step 3c: RFC-0012 AC24 in-band detection (repo scope, per-IDE) ──
