@@ -86,6 +86,10 @@ pre {
   line-height: var(--ds-lead-mono);
 }
 
+pre {
+  overflow-x: auto;
+}
+
 img,
 picture,
 svg {
