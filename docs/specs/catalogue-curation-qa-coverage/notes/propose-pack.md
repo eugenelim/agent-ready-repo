@@ -80,27 +80,30 @@ descriptions. Covers: `diagram-architecture`, `diagram-sequence`, `diagram-erd`,
 
 ### Gate 2 — Fit check (four CHARTER principles)
 
-The four principles tested (from CHARTER):
+The four principles tested (from `docs/CHARTER.md § Principles`):
 
-1. **Single authoritative source** — Does the proposed pack own one well-defined
-   concern, with no duplication of existing ownership?
-   Result: PASS — diagramming from descriptions is unowned.
+1. **Universal across tech stacks.** Does the pack work for any adopter, regardless
+   of framework or language? (Opt-in accelerator packs are allowed to be tech-
+   stack-specific — they clear the remaining three instead of this one.)
+   Result: PASS — diagramming from text descriptions is not tied to any language or
+   framework. The output is Mermaid syntax (text), renderable anywhere.
 
-2. **Operator-centric value** — Does the pack deliver value to the catalogue
-   operator's primary job (building, curating, documenting a capability catalogue)?
-   Result: PASS — architecture and system design documentation is core operator work.
+2. **Substantive, not duplicative.** Does it add what no existing pack already covers?
+   (This is also the additivity gate — the two checks are the same question.)
+   Result: PASS — no existing pack produces architecture, sequence, ER, or state
+   machine diagrams from structured descriptions. Confirmed in Gate 1 above.
 
-3. **Adoptable independently** — Can the pack be installed without requiring other
-   non-core packs?
-   Result: PASS — diagramming from descriptions requires only `core` (no credential
-   broker, no external API).
+3. **A habit, not a tool.** Does it capture a way of working, not a piece of
+   infrastructure?
+   Result: PASS — diagramming during architecture and design work is a recurring
+   professional habit, not a one-off tooling script.
 
-4. **Testable** — Can the pack's primary skills be exercised in a QA session without
-   live infrastructure?
-   Result: PASS — diagram output is a text artifact (Mermaid/PlantUML syntax);
-   verifiable without a live render service.
+4. **Used often enough to stick.** Is it reached for regularly, not once a year?
+   Result: PASS — teams routinely produce diagrams during system design, API design,
+   incident post-mortems, and onboarding. Diagram generation is a frequent enough
+   act to be worth a repeatable skill surface.
 
-**Fit check: PASS.** All four principles satisfied.
+**Fit check: PASS.** All four canonical CHARTER principles satisfied.
 
 ---
 
