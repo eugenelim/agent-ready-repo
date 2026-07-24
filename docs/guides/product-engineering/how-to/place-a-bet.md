@@ -108,7 +108,80 @@ You can decline and proceed with a free-form description of the options you
 considered. The resulting `bet.md` will record `option-source: free-form` so
 the absence of a structured artifact is visible in the audit trail.
 
+
 ---
+
+## How to define a thin slice
+
+The `thin-slice` field is required in `bet.md`. It is the minimum shippable
+proof that the bet can be validated end-to-end — not a product tour, and not
+"the happy path."
+
+A valid thin slice has four components:
+
+1. **One user** — a single, specific persona (not "users in general"). The
+   more specific, the sharper the slice: "a first-time user on mobile" is
+   better than "users."
+
+2. **One real task** — a task the user genuinely needs to do, not a demo flow.
+   "Complete a payment for the first time" is a real task; "explore the
+   dashboard" is a tour.
+
+3. **One meaningful result** — the outcome the user can see or has when the
+   task succeeds. "A confirmation email arrives and the balance updates" is
+   observable; "the user is happy with the experience" is not.
+
+4. **One material failure + recovery** — name the failure that matters most
+   (the one that happens most often or costs the most when it does) and how
+   the user recovers from it. A thin slice with no failure path is incomplete.
+
+5. **Instrumentation** — one named event that fires when the success condition
+   is met. Not "we'll add analytics later" — name the event now.
+
+### Example: weak thin slice
+
+> "Users can create an account and see the dashboard."
+
+This fails: it describes a product tour (create account → see dashboard),
+names no failure scenario, and has no instrumentation event.
+
+### Example: strong thin slice
+
+> **User:** First-time user on mobile (iOS Safari).
+> **Task:** Joins a workspace by accepting an email invite.
+> **Result:** Lands on a workspace home screen with at least one channel visible.
+> **Failure + recovery:** Invite link expired → lands on the "request a new invite" screen and can send the request without signing in first.
+> **Instrumentation:** `workspace_joined` event fires on successful acceptance.
+
+This passes: it names a specific user, a real task with a clear result, a
+realistic failure scenario with a recovery path, and a named event.
+
+---
+
+## How to fill the new required fields
+
+**thin-slice** — use the five-component format above. Name the user, the task,
+the result, the failure + recovery, and the instrumentation event. If you can't
+name the instrumentation event, the slice isn't ready.
+
+**first-success-event** — the specific behavior you would accept as proof that
+one user "got value" from the bet, 30 days out. Not "user engagement increases";
+name the observable action: "completes a second session without a support
+touchpoint" or "shares the feature with a colleague." Two people reading this
+should agree whether it happened.
+
+**specialist-lenses** — the team disciplines that will review the bet before
+it commits. Default: `product, experience, architecture, safety`. Add `security`
+for auth or data surfaces; `data` for instrumentation-first bets; `compliance`
+for regulated markets. Don't skip the default set without naming why.
+
+**learning-contract** — three things:
+1. The signals that confirm or refute the bet (named metrics or behavioral
+   markers, not "we'll look at analytics").
+2. The review date or milestone.
+3. The specific condition that would change the direction ("pivot if fewer than
+   30% of first-week users complete the thin-slice task").
+
 
 ## See also
 
