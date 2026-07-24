@@ -773,6 +773,13 @@ mode below, then evaluate the terminal-state bullet last.
     targeted insertion; never `tomllib`+`tomli_w`). **Commit before `git push`
     / `gh pr create` — must be in the PR branch, not a follow-up after merge.**
     Not found, or absent: skip — no error.
+  - **Initiative closeout:** if that move emptied the initiative — its
+    `["<slug>".work].queue` and `.active` are now both empty and `.shipped` is
+    non-empty — that was the last spec. Elicit: "`<slug>` — that was the last spec;
+    mark the initiative completed (`status = "closed"`)?" On confirmation, set the
+    initiative's `status = "closed"` in the same comment-preserving edit and commit it
+    in this PR. Skip silently when queued or active work remains, or when
+    `workspace.toml` is absent.
   - **Reminder:** update `docs/product/roadmap.md` to reflect the shipped
     spec (one line; the roadmap is the human-readable companion to the queue).
     If `workspace.toml` is absent, skip this reminder.
