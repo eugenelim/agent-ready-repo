@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catalogue.schema.json",
+  "title": "CatalogueConfig",
+  "description": "JSON Schema for catalogue.toml — ini-005 Bucket 3 configuration layer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "catalogue", "distribution"],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "description": "Schema version — must be 1.",
+      "enum": [1]
+    },
+    "catalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "display-name",
+        "description",
+        "minimum-agentbundle-version",
+        "paths",
+        "build",
+        "package"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Safe identifier — [A-Za-z0-9][A-Za-z0-9_-]*.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_\\-]*$"
+        },
+        "display-name": {
+          "type": "string",
+          "description": "Human-readable catalogue name."
+        },
+        "description": {
+          "type": "string",
+          "description": "One-line description of the catalogue."
+        },
+        "minimum-agentbundle-version": {
+          "type": "string",
+          "description": "Minimum agentbundle version required to use this catalogue."
+        },
+        "paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["packs", "profiles", "contracts", "marketplace", "build-output"],
+          "properties": {
+            "packs": {
+              "type": "string",
+              "description": "Relative path to the packs directory."
+            },
+            "profiles": {
+              "type": "string",
+              "description": "Relative path to the profiles directory."
+            },
+            "contracts": {
+              "type": "string",
+              "description": "Relative path to the contracts directory."
+            },
+            "marketplace": {
+              "type": "string",
+              "description": "Relative path to the marketplace.json file."
+            },
+            "build-output": {
+              "type": "string",
+              "description": "Relative path for build output."
+            }
+          }
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recipes", "self-host", "claude-plugin-branch", "marketplace-description"],
+          "properties": {
+            "recipes": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Build recipe IDs or relative .toml paths."
+            },
+            "self-host": {
+              "type": "boolean",
+              "description": "Whether to generate self-host install-defaults.toml."
+            },
+            "claude-plugin-branch": {
+              "type": "string",
+              "description": "Branch name for claude-plugin publishing."
+            },
+            "marketplace-description": {
+              "type": "string",
+              "description": "Description for marketplace.json."
+            }
+          }
+        },
+        "package": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["include", "required"],
+          "properties": {
+            "include": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Pack paths to include in a packaged archive."
+            },
+            "required": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Pack paths that must be present (subset of include)."
+            }
+          }
+        }
+      }
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agentbundle"],
+      "properties": {
+        "agentbundle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "install-defaults-output",
+            "preferred-adapter",
+            "default-source",
+            "artifactory"
+          ],
+          "properties": {
+            "install-defaults-output": {
+              "type": "string",
+              "description": "Relative path for generated install-defaults.toml."
+            },
+            "preferred-adapter": {
+              "type": "string",
+              "description": "Default adapter hint written to install-defaults.toml."
+            },
+            "default-source": {
+              "type": "string",
+              "description": "Default catalogue source URI (git+https:// or local path)."
+            },
+            "artifactory": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["enabled"],
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Whether the Artifactory bootstrap is active."
+                },
+                "base-url": {
+                  "type": "string",
+                  "description": "Artifactory base URL (https:// only, required when enabled)."
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "Artifactory repository name (required when enabled)."
+                },
+                "bundle": {
+                  "type": "string",
+                  "description": "Catalogue bundle name (required when enabled)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
