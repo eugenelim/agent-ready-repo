@@ -11,7 +11,7 @@ interface Props {
   skillCount: number;
   humanTouches: number;
   wallClockMinutes: string;
-  packUrl: string;
+  packUrl?: string;
   docsUrl: string;
 }
 
@@ -33,7 +33,7 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
       <span class="stat"><strong>{wallClockMinutes}</strong> min/session</span>
     </div>
     <div class="journey-hero__actions">
-      <a class="btn-primary" href={withBase(packUrl)}>Install this pack <span aria-hidden="true">→</span></a>
+      {packUrl && <a class="btn-primary" href={withBase(packUrl)}>Install this pack <span aria-hidden="true">→</span></a>}
       <a class="btn-ghost" href={withBase(docsUrl)}>Read the reference <span aria-hidden="true">↗</span></a>
     </div>
   </div>

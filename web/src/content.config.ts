@@ -57,7 +57,7 @@ const journeys = defineCollection({
       wallClockMinutes: z.string(),
     }),
     docsUrl: z.string(),
-    packUrl: z.string(),
+    packUrl: z.string().optional(),
     relatedJourneys: z.array(z.string()).default([]),
     goodOutputDescription: z.string().optional(),
   }),
