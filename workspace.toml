@@ -127,6 +127,7 @@ shipped = [
   "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
   "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
   "spec/new-guide-conversation-first",         # PR #639 — user-guide-diataxis 0.2.0 conversation-first doctrine
+  "spec/credbroker-security-hardening",                # credbroker test-suite security hardening (D3 AST walk, shim path anchor, parametrised integration tests)
   "spec/work-loop-step0-observability",         # consumes work-loop-step0-{branch1-echo,layout} backlog items
 ]
 queue   = [
@@ -155,7 +156,6 @@ queue   = [
   # ---- Backlog-graduated specs (reconciled from [backlog]; Approved, evidence in #627) ----
   # These were authored from [backlog] items and are Approved-not-shipped; their origin
   # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
-  "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
   "spec/catalogue-curation-qa-coverage",                 # AC1-AC3 done (fixtures + transcripts); AC4-AC9 pending human QA
 ]
 
@@ -1204,6 +1204,14 @@ open = [
   #   a captured defect. Does not reopen manifest repair; does not duplicate
   #   adapt-to-project behavior/parity rows.
   {slug = "claude-clean-room-plugin-smoke"},
+  # spec/credbroker-security-hardening AC11 follow-on. The projected-path variant
+  # of the sso_broker verb test (AC11) only exercises the source-install path. The
+  # projected-path variant (adapter installs the broker into a worktree) is not yet
+  # covered by CI — needs a test fixture that installs via projection.
+  # Fix: add a pytest fixture that projects credbroker into a temp dir and runs
+  #   test_sso_broker_verbs against that path; wire into the same parametrised suite.
+  # File: packages/agentbundle/tests/unit/test_sso_broker_verbs.py
+  {slug = "credbroker-projected-variant-ci-coverage", source = "spec/credbroker-security-hardening AC11"},,
 
   # RFC-0068 D4 (deferred follow-on). After linear-brief-intake ships, PE
   # manually pastes spec ACs back into the Linear Issue for a review round.

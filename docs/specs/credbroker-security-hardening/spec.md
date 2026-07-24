@@ -1,6 +1,6 @@
 # Spec: credbroker-security-hardening
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** `credential-broker-contract` spec (round-4 security review, Concerns 1 and 4 deferred)
@@ -23,56 +23,56 @@ Close three deferred security-hardening items recorded in the `credential-broker
 
 ### D3: AST walk for dotfile-read detection
 
-- [ ] **AC1 (D3 — implementation):** The dotfile-read check in `tools/lint_credentialed_skills.py` is rewritten from a line-by-line substring scan to an AST walk implemented as a helper `_check_dotfile_read(py_path) -> list[tuple[int, str]]`. The walk visits every `ast.Call` node and raises a finding when: (a) the call is `open(<arg>)` (i.e. `func` is `ast.Name` with `id == "open"`) and the first positional argument resolves to the dotfile path; OR (b) the call is `<expr>.read_text(...)` or `<expr>.read_bytes(...)` (i.e. `func` is `ast.Attribute` with `attr` in `{"read_text", "read_bytes"}`) and the object expression `func.value` resolves to the dotfile path. Path resolution uses the existing `_path_chain_components()` helper; a finding is raised when the resolved components' last two entries match `(DOTFILE_PARENT, DOTFILE_BASENAME)` in order. The opt-out marker check is applied by reading the corresponding source line at the reported `lineno` and suppressing the finding when `OPTOUT_MARKER` appears on that line.
+- [x] **AC1 (D3 — implementation):** The dotfile-read check in `tools/lint_credentialed_skills.py` is rewritten from a line-by-line substring scan to an AST walk implemented as a helper `_check_dotfile_read(py_path) -> list[tuple[int, str]]`. The walk visits every `ast.Call` node and raises a finding when: (a) the call is `open(<arg>)` (i.e. `func` is `ast.Name` with `id == "open"`) and the first positional argument resolves to the dotfile path; OR (b) the call is `<expr>.read_text(...)` or `<expr>.read_bytes(...)` (i.e. `func` is `ast.Attribute` with `attr` in `{"read_text", "read_bytes"}`) and the object expression `func.value` resolves to the dotfile path. Path resolution uses the existing `_path_chain_components()` helper; a finding is raised when the resolved components' last two entries match `(DOTFILE_PARENT, DOTFILE_BASENAME)` in order. The opt-out marker check is applied by reading the corresponding source line at the reported `lineno` and suppressing the finding when `OPTOUT_MARKER` appears on that line.
 
-- [ ] **AC2 (D3 — part-composition bypass caught):** A new test case in `tools/test-lint-credentialed-skills.py` supplies a fixture script that uses inline part-composition (fully inline in the method call, so `_path_chain_components()` can resolve it):
+- [x] **AC2 (D3 — part-composition bypass caught):** A new test case in `tools/test-lint-credentialed-skills.py` supplies a fixture script that uses inline part-composition (fully inline in the method call, so `_path_chain_components()` can resolve it):
   ```python
   (Path.home() / ("." + "agentbundle") / ("credentials" + ".env")).read_text()
   ```
   The fixture verifies: (a) that no line in the fixture source contains `.agentbundle/credentials.env` as a contiguous substring (proving the old substring scan would miss it); and (b) the new AST walk catches the `.read_text()` call and reports a finding with the call's lineno. Note: `_path_chain_components()` resolves inline `BinOp(Add)` string concatenation within `BinOp(Div)` path chains, but cannot resolve identifiers bound to intermediate variables — the fixture must use the fully-inline form.
 
-- [ ] **AC3 (D3 — `Path.read_bytes()` form caught):** A second test case supplies a fixture script using the inline `.read_bytes()` form:
+- [x] **AC3 (D3 — `Path.read_bytes()` form caught):** A second test case supplies a fixture script using the inline `.read_bytes()` form:
   ```python
   (Path.home() / ".agentbundle" / "credentials.env").read_bytes()
   ```
   The AST walk catches the `.read_bytes()` call on the inline-constructed path and reports a finding. (The cross-variable-assignment form — binding the path to a name then calling `.read_bytes()` on the name — is explicitly Declined; this AC covers the inline form only.)
 
-- [ ] **AC4 (D3 — opt-out still works):** The existing test case `dotfile-read-with-opt-out-allowed` continues to pass under the rewritten D3 check: a skill whose dotfile-read call is on the same line as `# credentialed-primitive: reads-creds-directly` exits the lint clean.
+- [x] **AC4 (D3 — opt-out still works):** The existing test case `dotfile-read-with-opt-out-allowed` continues to pass under the rewritten D3 check: a skill whose dotfile-read call is on the same line as `# credentialed-primitive: reads-creds-directly` exits the lint clean.
 
-- [ ] **AC5 (D3 — existing `dotfile-read-refused` test still passes):** The existing `dotfile-read-refused` case (a bare `open('.agentbundle/credentials.env').read()` call on one line) continues to be caught by the AST walk and exits non-zero.
+- [x] **AC5 (D3 — existing `dotfile-read-refused` test still passes):** The existing `dotfile-read-refused` case (a bare `open('.agentbundle/credentials.env').read()` call on one line) continues to be caught by the AST walk and exits non-zero.
 
 ### `_is_canonical_shim`: path-anchor
 
-- [ ] **AC6 (`_is_canonical_shim` — path anchor added):** `_is_canonical_shim(py: pathlib.Path) -> bool` adds a path-anchor check before the byte-equality comparison: the function returns `False` immediately when `py.parent.name` is not in `{"scripts", "shared-libs"}`, even if the file's bytes match the canonical source. The anchor uses `py.parent.name` (a single path segment, not a substring match) per `feedback_credentialed_lint_substring_trap`. Note: `credentials_shim.py` also ships tracked at `.agentbundle/bin/credentials_shim.py` (parent `bin`), but the lint's scan roots (`packs/*/.apm/skills/*`, `.claude/skills/*`, `skills/*`) never reach `.agentbundle/bin/`, so `bin`-projected shims are intentionally outside the scanned set and are not affected by this anchor.
+- [x] **AC6 (`_is_canonical_shim` — path anchor added):** `_is_canonical_shim(py: pathlib.Path) -> bool` adds a path-anchor check before the byte-equality comparison: the function returns `False` immediately when `py.parent.name` is not in `{"scripts", "shared-libs"}`, even if the file's bytes match the canonical source. The anchor uses `py.parent.name` (a single path segment, not a substring match) per `feedback_credentialed_lint_substring_trap`. Note: `credentials_shim.py` also ships tracked at `.agentbundle/bin/credentials_shim.py` (parent `bin`), but the lint's scan roots (`packs/*/.apm/skills/*`, `.claude/skills/*`, `skills/*`) never reach `.agentbundle/bin/`, so `bin`-projected shims are intentionally outside the scanned set and are not affected by this anchor.
 
-- [ ] **AC7 (`_is_canonical_shim` — non-canonical path not exempt):** A unit test asserts that a copy of `credentials_shim.py` placed at a non-canonical parent directory (e.g. `some-pack/arbitrary/credentials_shim.py` where `parent.name == "arbitrary"`) returns `False` from `_is_canonical_shim` even when its bytes match the canonical source byte-for-byte.
+- [x] **AC7 (`_is_canonical_shim` — non-canonical path not exempt):** A unit test asserts that a copy of `credentials_shim.py` placed at a non-canonical parent directory (e.g. `some-pack/arbitrary/credentials_shim.py` where `parent.name == "arbitrary"`) returns `False` from `_is_canonical_shim` even when its bytes match the canonical source byte-for-byte.
 
-- [ ] **AC8 (`_is_canonical_shim` — canonical paths remain exempt):** A unit test asserts that `credentials_shim.py` under a `scripts/` parent and under a `shared-libs/` parent (with matching canonical bytes) each return `True`.
+- [x] **AC8 (`_is_canonical_shim` — canonical paths remain exempt):** A unit test asserts that `credentials_shim.py` under a `scripts/` parent and under a `shared-libs/` parent (with matching canonical bytes) each return `True`.
 
 ### `_load_cli_module()`: parametrised integration tests
 
-- [ ] **AC9 (`_load_cli_module` helper added):** A helper `_load_cli_module(py_path: pathlib.Path) -> types.ModuleType` is added to the credbroker test suite (either as a module-level function in a new `packages/agentbundle/tests/unit/test_credbroker_lint_hardening.py` or as a shared helper imported from a new `packages/agentbundle/tests/_credbroker_helpers.py`). The implementation loads the file via `importlib.util.spec_from_file_location` with the file's directory prepended to `sys.path` for the duration of the load (the same pattern as the existing `_load_broker_module()` in `test_sso_broker_verbs.py`).
+- [x] **AC9 (`_load_cli_module` helper added):** A helper `_load_cli_module(py_path: pathlib.Path) -> types.ModuleType` is added to the credbroker test suite (either as a module-level function in a new `packages/agentbundle/tests/unit/test_credbroker_lint_hardening.py` or as a shared helper imported from a new `packages/agentbundle/tests/_credbroker_helpers.py`). The implementation loads the file via `importlib.util.spec_from_file_location` with the file's directory prepended to `sys.path` for the duration of the load (the same pattern as the existing `_load_broker_module()` in `test_sso_broker_verbs.py`).
 
-- [ ] **AC10 (SSO broker verb tests — source + projected parametrisation):** The `broker` fixture in `packages/agentbundle/tests/unit/test_sso_broker_verbs.py` is parametrised over two paths:
+- [x] **AC10 (SSO broker verb tests — source + projected parametrisation):** The `broker` fixture in `packages/agentbundle/tests/unit/test_sso_broker_verbs.py` is parametrised over two paths:
   - **source**: `packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py` (existing behavior)
   - **projected**: `REPO_ROOT / ".agentbundle" / "bin" / "sso-broker.py"` (the `make build-self` output in this checkout)
 
   The projected variant uses `pytest.skip(f"{path} not present — run make build-self")` when the file is absent. Both variants must pass when the projected file exists.
 
-- [ ] **AC11 (user-scope invocation tests — source + projected parametrisation):** The `test_entry_point_imports_resolve_under_user_scope_layout` parametrisation in `packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py` gains a second staging variant for each consumer skill:
+- [x] **AC11 (user-scope invocation tests — source + projected parametrisation):** The `test_entry_point_imports_resolve_under_user_scope_layout` parametrisation in `packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py` gains a second staging variant for each consumer skill:
   - **source**: `packs/<pack>/.apm/skills/<skill>/scripts/` (existing `PACKS / skill_relpath` staging — unchanged)
   - **projected**: `dist/apm/<pack>/.apm/skills/<skill>/scripts/` (the `make build-self` output)
 
   The projected variant uses `pytest.skip` when `dist/apm/` is absent or the specific skill path does not exist. Both variants must pass when built. Note: `dist/` is gitignored, so the projected variant always skips in CI unless `make build-self` runs first; AC13 (`make build-self FORCE=1`) must be run before AC15 (`pytest`) in the same gate pass to give the projected variant a non-absent `dist/apm/` to test against (see `plan.md` T4 ordering).
 
-- [ ] **AC12 (all existing tests pass):** All test cases that existed before this PR continue to pass. No existing test may be deleted or have its assertions weakened to satisfy this spec.
+- [x] **AC12 (all existing tests pass):** All test cases that existed before this PR continue to pass. No existing test may be deleted or have its assertions weakened to satisfy this spec.
 
 ### Gates
 
-- [ ] **AC13:** `make build-self FORCE=1 && git status --short` shows no changes on the merged tree.
-- [ ] **AC14:** `python3 tools/hooks/pre-pr.py` exits 0.
-- [ ] **AC15:** `pytest packages/agentbundle/tests/ -x` exits 0 on the merged tree.
-- [ ] **AC16:** `python3 tools/test-lint-credentialed-skills.py` exits 0 on the merged tree.
+- [x] **AC13:** `make build-self FORCE=1 && git status --short` shows no changes on the merged tree.
+- [x] **AC14:** `python3 tools/hooks/pre-pr.py` exits 0.
+- [x] **AC15:** `pytest packages/agentbundle/tests/ -x` exits 0 on the merged tree.
+- [x] **AC16:** `python3 tools/test-lint-credentialed-skills.py` exits 0 on the merged tree.
 
 ## Boundaries
 
@@ -144,6 +144,8 @@ Close three deferred security-hardening items recorded in the `credential-broker
 - **Cross-variable assignment tracking in D3.** The bypass `dotfile = Path.home() / ".agentbundle" / "credentials.env"; dotfile.read_text()` is not caught by the AST walk. Tracking assignments across statements would require dataflow analysis. Deferred until a concrete false-negative surfaces.
 
 - **Keyword-arg `open(file=...)` form in D3.** `open(file=".agentbundle/credentials.env").read()` uses a keyword argument rather than a positional argument, so `node.args` is empty and the AST walk's `open()` branch (which reads `node.args[0]`) does not flag it. This form is out of scope — it is a second bypass pattern strictly simpler than the part-composition case this spec addresses. Deferred until a concrete false-negative surfaces.
+
+- **Non-read sinks in D3 (shutil, subprocess).** The AST walk detects `open()` (builtin and pathlib), `.read_text()`, `.read_bytes()`, and `.open()` — the read family. A fallback substring scan inside `_check_dotfile_read` preserves old coverage for literal-path forms (`Path("~/.agentbundle/credentials.env").read_text()`, `open(os.path.expanduser("~/.agentbundle/credentials.env"))`) that `_path_chain_components` cannot resolve from the AST. Non-read sinks such as `shutil.copy(".agentbundle/credentials.env", ...)` or `subprocess.run(["cat", ".agentbundle/credentials.env"])` are categorically different; deferred until a concrete false-negative surfaces.
 
 - **Sign-and-verify at build time for `_is_canonical_shim`.** Requires key-management infrastructure that doesn't exist in this repo. Path-anchoring (AC6) closes the immediate concern without new infrastructure.
 
