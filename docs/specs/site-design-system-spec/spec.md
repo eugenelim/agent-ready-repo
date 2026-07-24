@@ -1,6 +1,6 @@
 # Spec: site-design-system-spec
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
 - **Constrained by:** [design-system-foundations.md](../platform-site/design-system-foundations.md), [platform-site/spec.md](../platform-site/spec.md)

@@ -141,31 +141,6 @@ queue   = [
   # Independent (non-RFC-0064) work is grouped at the bottom.
   # ==================================================================
 
-  # ---------------- P1 · Orient + Capture ----------------
-  # P1 guides + plan-by-phase doctrine (Amendment #3 e/f). Guides (docs/guides/core/):
-  # ---------------- P2 · Shape (M2 PE skills) ----------------
-  # GATE: open + accept RFC-00XX pe-pack-strategic-shaping FIRST — it resolves skill
-  # boundaries (RFC-0064 M2 ACs + Known Unknowns). Each skill spec is authored after
-  # that sub-RFC and ships WITH its guide (phase-slice doctrine — not all-skills-then-
-  # all-guides). frame-situation + map-capabilities unblock the shaping_queue items
-  # opp-assessment-pe-pack + capability-map-ini-002 (their `needs` already point here).
-  # "spec/m2-diverge-solutions" — shipped; moved to ["ini-002".work].shipped
-  # "spec/m2-place-bet" — shipped; moved to ["ini-002".work].shipped
-  # "spec/m2-map-capabilities" — shipped; moved to ["ini-002".work].shipped
-  # "spec/m2-frame-intent-jtbd" — shipped; moved to ["ini-002".work].shipped
-
-  # ---------------- P3 · Brief → Build ----------------
-  # Tooling already shipped (receive-brief, work-loop, brief queue). Docs only.
-  # spec/author-brief-docs shipped — moved to work.shipped above.
-
-  # ---------------- P4 · Intake edges (M5 trackers) ----------------
-  # github-brief-intake first (independent, builds pattern confidence). GATE for the
-  # rest: open + accept RFC-0068 linear-pack (delta diff format, AC-export scope).
-  # Field mapping and protected-field convention resolved in the m5 spec. Each ships
-  # with its guide slice.
-  # "spec/m5-github-brief-intake" — shipped; moved to ["ini-002".work].shipped
-  # "spec/m5-linear-brief-intake-and-sync" — shipped; moved to ["ini-002".work].shipped
-  # "spec/m5-jira-align-brief-intake" — shipped; moved to ["ini-002".work].shipped
 
   # ---------------- P5 · Adopt — DESCOPED (RFC-0064 Amendment #5, 2026-07-24) ----------------
   # The former P5 Adopt program (adopter-persona study → m6-astro-project-index,
@@ -176,60 +151,11 @@ queue   = [
   # rollout playbook, live-demo guide, or standalone Astro project index in this
   # initiative. See RFC-0064 Amendment #5 for the rationale.
 
-  # ---- RFC-0064 Amendment #4: Cross-pack first-value overlay ----
-  # Complements P1–P5 phases; may progress in parallel where dependencies allow;
-  # feeds P5 adoption evidence. Group order = priority; `needs` encodes only the
-  # hard "cannot start until" edges stated in Amendment #4.
-
-  # Problem: pack audience, surface, install, verification, recovery, first-task,
-  # artifact, tutorial, and next-action facts are distributed across pack metadata,
-  # guides, journeys, README prose, and generated manifests without one maintained
-  # ownership contract.
-  # Deliver: ratified Level A/Level B obligations and membership; smallest
-  # authoritative semantic record; all seventeen current packs migrated; schema/
-  # parity validation; one real consumer and one independent parity proof.
-  # Done: inventory reconciles; required fields and negative fixtures pass; one
-  # source change propagates or fails every governed consumer; manifest validation
-  # green.
-  # spec/portfolio-pack-first-value-contract — moved to active
-
-  # Problem: Architect is explicitly non-technical by setup posture, but portfolio
-  # readiness is not proven by its existing tutorial or manifest alone
-  # (local/no-credential archetype — simplest pilot risk profile).
-  # Deliver: no-terminal, supported-surface path from architecture outcome to one
-  # bounded concept/diagram/review artifact; install verification, exact starter
-  # prompt, visible result, recovery, next action, cold-start transcript; only
-  # evidence-led skill changes.
-  # Done: fresh evaluator completes path without undocumented terminal/repo knowledge;
-  # tutorial/contract/eval stay in parity.
-  # "spec/portfolio-first-run-pilot-architect" — shipped; moved to ["ini-002".work].shipped
-  # "spec/portfolio-first-run-pilot-figma" — shipped; moved to ["ini-002".work].shipped
-
-  # Problem: repository-writing packs need a non-technical first run that explains
-  # the decision and prevents an unexpected shared-state write (preview-confirm write
-  # archetype).
-  # Deliver: preview-confirm path to one bounded ADR/RFC artifact in a user-owned
-  # repo; plain-language decision framing, target path/effect preview, confirmation,
-  # recovery/resume, next action, cold-start evidence.
-  # Done: evaluator can explain what will be written, where, why, and how to stop
-  # or revise before confirmation.
-  # spec/portfolio-first-run-pilot-governance-extras — shipped; moved to ["ini-002".work].shipped
-
-  # Problem: successful terminal installation can end in dense file-operation output
-  # without pack-specific verification, expected first result, or a copy-ready next
-  # prompt.
-  # Deliver: consume the accepted contract in concise human-default install completion
-  # output while preserving dry-run, detailed, and structured automation behavior.
-  # Done: a successful install ends with pack-specific verification, expected first
-  # result, and next prompt; automation snapshots and advanced modes remain compatible.
-  # Graphical onboarding remains the Level B default.
-  # "spec/agentbundle-first-value-handoff" — moved to active (spec + plan authored)
 
   # ---- Backlog-graduated specs (reconciled from [backlog]; Approved, evidence in #627) ----
   # These were authored from [backlog] items and are Approved-not-shipped; their origin
   # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
-  "spec/site-design-system-spec",                        # site token spec + zone-violation lint
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
 ]
 
@@ -301,7 +227,6 @@ queue   = [
   # Done: PS skills explicitly own adoption hypothesis + causal metric tree;
   #   weak fixtures fail; pack page + journey page + adoption-hypothesis how-to
   #   guide published.
-
 
 
   # M3a · XD Skill Boundaries
