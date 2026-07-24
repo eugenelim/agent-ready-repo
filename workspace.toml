@@ -390,7 +390,7 @@ queue   = [
   #   "work:spec/frontend-engineering-doctrine-update",
   # ]},
 
-  # M6 · Cross-Pack Integrative Guides — shipped 2026-07-24; deferred item (xd-cross-pack-tutorial) → [backlog].open below.
+  # M6 · Cross-Pack Integrative Guides — shipped 2026-07-24; xd-cross-pack-tutorial + xd-cross-pack-intent-index shipped 2026-07-24.
 ]
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
@@ -408,6 +408,7 @@ shipped = [
   "xd-pack-page-trigger-language-update",            # Shipped 2026-07-24 — Wave 3D: pack + journey page near-miss guards for design-token-taxonomy, design-system-foundations, copy-direction
   "xd-reference-guide-description-sync",             # Shipped 2026-07-24 — synced 21-skill descriptions to SKILL.md frontmatter; added copy-direction, design-token-taxonomy, design-system-foundations, experience-status; removed design-system
   "spec/xd-cross-pack-intent-index",               # Shipped 2026-07-24 — cross-pack "I want to…" intent index: adopter jobs → pack + skill + guide
+  "spec/xd-cross-pack-tutorial",                    # Shipped 2026-07-24 — cross-pack tutorial: full XD chain on SaaS onboarding surface
 ]
 
 ["ini-003".shaping_queue]
@@ -650,10 +651,6 @@ queue   = [
 [backlog]
 open = [
   # ── Deferred from ini-003 M6 ────────────────────────────────────────────────
-  # Cross-pack tutorial deferred from ini-003 M6. End-to-end tutorial showing the
-  # full strategy→PE→XD→FE→review→measurement arc using a realistic digital product
-  # example (marketing site or SaaS onboarding). Unblocks when all M1–M6 specs ship.
-  {slug = "xd-cross-pack-tutorial", source = "spec/digital-product-guides-update AC10"},
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
