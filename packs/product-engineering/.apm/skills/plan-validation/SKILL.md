@@ -15,6 +15,10 @@ It is **prompt-only** (CHARTER Principle 3): no engine, no survey tool, no
 transcript pipeline — the agent writes the plan and the instrument scaffolds. **No
 new agent, no new reviewer.**
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## The charter boundary (read this first)
 
 `plan-validation` **scaffolds and synthesizes**; **a human runs the sessions.**

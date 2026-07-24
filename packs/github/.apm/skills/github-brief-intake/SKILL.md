@@ -30,6 +30,10 @@ The one thing this skill owns is the **GitHub Milestone → brief mapping** that
 neither side can do alone: `receive-brief` knows nothing about GitHub, and the
 `gh` CLI knows nothing about briefs.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Cross-skill invocation — name, not path
 
 This skill names `receive-brief` and `new-spec` **by their `name:` field, never

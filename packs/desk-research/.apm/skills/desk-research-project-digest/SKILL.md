@@ -11,6 +11,10 @@ digest: a **synthesis matrix** plus **analytic memos**. This is the capability
 episodic `/research` never had a home for; a multi-week project needs a durable
 place to see what the corpus is actually saying.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Inside an existing project folder (one scaffolded by

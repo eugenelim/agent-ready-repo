@@ -27,6 +27,11 @@ output rendering, caching) lives in `scripts/flow_metrics/`. This SKILL.md
 tells the agent how to **invoke** the CLI for common flows; for design
 details, read the inline module docstrings.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Cross-skill invocation — name, not path
 
 This skill names sibling skills (`jira`, `jira-align`) by their `name:`

@@ -22,6 +22,10 @@ multiple inputs in one call — loop the command.
 | PDF, DOCX, XLSX, PPTX, HTML, EPUB, CSV/TSV, ODT/ODS/ODP, `.eml`, `.xls`, images | document | `scripts/convert.py` |
 | PNG, JPG, JPEG, TIFF, BMP, WEBP, GIF (diagram extraction) | image | `scripts/split_image.py` + agent vision + `scripts/reconcile.py` |
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Tiers — no ML first (progressive disclosure)
 
 `convert.py` routes each input to the lowest tier that can handle it. You do

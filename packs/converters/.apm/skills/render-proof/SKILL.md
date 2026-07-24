@@ -14,6 +14,10 @@ the A2UI Basic Catalog SSR pipeline (`MessageProcessor` → `A2uiSurface` →
 `renderToStaticMarkup`), and stamps it into a self-contained HTML file with the muted
 proof stylesheet. The output embeds all CSS inline and contains no JavaScript.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Instructions
 
 You are not the renderer. The script is. Invoke it and report the output path.

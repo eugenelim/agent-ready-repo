@@ -16,6 +16,10 @@ Four modes, always run in this order:
 
 > **Authoring-time self-review.** This skill is an **interactive, authoring-time** tool — it runs in the session, with the author. It is **not** a fresh-context pass and **not** an adversarial reviewer; a same-session critique marks its own homework. The genuine fresh-context UX review is the forked-context **`experience-reviewer`** agent — invoke it for an independent pass after the authoring session.
 
+## Output rendering
+
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+
 ## When to invoke
 
 Confirm all three before drafting; if any fails, resolve it first.

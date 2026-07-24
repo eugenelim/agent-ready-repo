@@ -14,6 +14,10 @@ Tables** — via [`openpyxl`](https://pypi.org/project/openpyxl/), rather than
 building a workbook from scratch. The template's formatting, formulas, and any
 chart that reads those ranges survive.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Prerequisites
 
 This skill is **Tier-1** on `openpyxl` (the exact canonical PyPI package).
