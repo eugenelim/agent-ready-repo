@@ -1,41 +1,111 @@
-# The `atlassian` pack as a system
+# The Atlassian pack as a system
 
-The `atlassian` pack is a thin, uniform layer over the Atlassian REST APIs. Each skill wraps one surface — issues, portfolio, wiki — behind a CLI the agent drives with subcommands. The agent never writes raw REST calls; it picks a subcommand and relays the result.
+The Atlassian pack is one conversational layer over several focused workflows.
 
-## The four API surfaces
+You ask in team language. The agent selects the smallest workflow that can answer
+safely: orient first, improve unclear work when needed, and write only after the
+requested change is explicit.
 
-The pack covers three Atlassian products across four direct-API skills:
+---
 
-- **[`jira`](../../../../packs/atlassian/.apm/skills/jira/)** — the issue tracker. JQL search with auto-pagination, fetch and mutate issues, apply transitions, comment, attach. Handles Cloud (REST v3, ADF) and Server / Data Center (REST v2, plain text) differences automatically.
-- **[`jira-align`](../../../../packs/atlassian/.apm/skills/jira-align/)** — the portfolio product. Epics, features, stories, capabilities, portfolios, programs, teams over REST API 2.0 with OData-style filters. A separate product from Jira, with separate credentials.
-- **[`confluence-crawler`](../../../../packs/atlassian/.apm/skills/confluence-crawler/)** — a space's page hierarchy out to Markdown with YAML frontmatter.
-- **[`confluence-publisher`](../../../../packs/atlassian/.apm/skills/confluence-publisher/)** — Markdown, storage XHTML, or plain text into a new or updated page. The crawler's opposite direction, sharing its credentials.
+## The mental model
 
-## The skills that build on top
+```
+USER INTENT
+"What can the team do next?"
+        ↓
+ORIENT
+jira-team-status
+Read-only
+        ↓
+IMPROVE
+jira-story-triage
+Draft first — no Jira write
+        ↓
+ACT
+jira (update-issue)
+Explicit approved writes only
+        ↓
+MEASURE OR SHARE
+flow-metrics · ai-adoption-report · confluence-publisher
+Reporting and publishing
+```
 
-Several skills compose the surfaces above instead of touching the API directly:
+Each stage produces an artifact the next stage can consume. You can stop at any
+point. The earlier stages are always safe to run.
 
-- **[`flow-metrics`](../../../../packs/atlassian/.apm/skills/flow-metrics/)** computes DORA / Flow Framework metrics over a Jira scope. It reads through the `jira` skill, joins `jira-align` for program and portfolio scope, and emits canonical JSON / CSV. It is read-only — it never transitions, comments, or mutates.
-- **[`ai-adoption-report`](../../../../packs/atlassian/.apm/skills/ai-adoption-report/)** pairs `flow-metrics` JSON outputs and renders a Markdown comparison report. It makes no upstream calls; its only inputs are local JSON files.
-- **[`jira-defect-flow`](../../../../packs/atlassian/.apm/skills/jira-defect-flow/)** handles a Jira defect end-to-end: pulls the ticket via `jira`, hands the fix to the `bug-fix` skill, opens a PR, then comments and transitions the ticket.
-- **[`jira-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-brief-intake/)** turns a Jira epic (or a board / JQL selection) into shippable specs: pulls the epic and its children via `jira`, maps them onto a Shape B product brief, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira; degrades gracefully when `receive-brief` is absent.
-- **[`jira-align-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-align-brief-intake/)** turns a Jira Align Feature into shippable specs: fetches the Feature and its child stories, tasks, and defects via `jira-align`, maps them onto a Shape B product brief using a configuration-guided field mapping reference (customised for org-specific workflow states and PI cadences), and hands off to `receive-brief`. 1-way intake only — never writes to Jira Align. Degrades gracefully when `receive-brief` is absent.
+---
 
-## The auth model
+## Why the workflows are separate
 
-The four direct-API skills are credentialed. A credentialed skill holds no secret. It invokes a CLI that resolves the credential in-process through a three-tier ladder — environment variable, then OS keyring, then a `~/.agentbundle/credentials.env` dotfile — and makes the API call itself. Cleartext never reaches the model.
+**Orientation can remain read-only.** A backlog summary, a sprint status, and a
+stand-up view don't need write access. `jira-team-status` never modifies Jira — this
+is structural, not configurable.
 
-This is enforced, not asked for. Each CLI refuses token-shaped flags (`--token`, `--api-token`, `--bearer`, `--pat`, `--password`) and exits. The skill body never reads the dotfile or echoes the token. When a credential is missing or expired, the CLI exits with a user-action code and the agent tells you to run `credential-setup` yourself — it's interactive, and the agent does not run it for you.
+**Story review has a dedicated quality contract.** The five-question readiness bar is
+a fixed, team-independent standard. `jira-story-triage` applies it consistently and
+explains *why* each item fails — which question and which gap — rather than returning
+a tier label. Keeping this separate from `jira-team-status` means the team-status
+view is always fast and read-only, while the quality review is thorough.
 
-`jira` and `jira-align` carry separate credentials. `confluence-crawler` and `confluence-publisher` share one `confluence` namespace — configure either and both work.
+**Jira writes need a distinct approval boundary.** No workflow in this pack writes to
+Jira without showing the user the exact issues and fields first. The write path is
+always: draft → confirm payload → apply. Mixing read and write in one workflow makes
+that boundary invisible.
 
-The full two-layer model, and how it differs by install route, lives in [Credentialed skills](../../credential-brokers/explanation/credentialed-skills.md).
+**Reporting and publishing require different aggregation.** `flow-metrics` computes
+metrics from Jira changelogs — it doesn't read the same issue fields as the team
+status or triage skills. `ai-adoption-report` works entirely from local JSON files.
+`confluence-publisher` handles Confluence's versioning and optimistic-lock conflict
+model separately from any Jira operation.
 
-The composed skills inherit auth by composition. `flow-metrics` reads credentials through the `jira` and `jira-align` skills it invokes by name; it never reads a secret file itself. `ai-adoption-report` needs no credentials — it only reads local files.
+**Users don't need to select the implementation skill manually.** Natural language
+requests route automatically — "show me the team backlog" activates `jira-team-status`,
+"make these tickets actionable" activates `jira-story-triage`. The skill name is
+secondary metadata, not a prerequisite for using the pack.
 
-- **[`jira-story-triage`](../../../../packs/atlassian/.apm/skills/jira-story-triage/)** reviews a Jira backlog, sprint, or JQL-scoped set of work items for readiness to hand to engineering and improves the weak ones. For every not-ready item it explains *why* — which of the five-question bar's questions failed and the specific gap — not a bare tier label; on request it drafts the fix (acceptance criteria, a clearer outcome) and writes it back only after the user approves the exact payload. Read-only until an approval.
-- **[`jira-team-status`](../../../../packs/atlassian/.apm/skills/jira-team-status/)** is a read-only status view of a team's work, organized by the dimensions people ask about — Ready to pull, In progress, Blocked, Unassigned, Needs detail — with a documented, team-overridable "ready to pull" rule and a "needs confirmation" fallback for signals it can't read. It ends in a read-only pick-up hand-off: start delivery on a ready item (routing to `jira-defect-flow` or `new-spec`) or route an item that needs detail to `jira-story-triage`. The two split cleanly: team-status *surfaces state and what to pick up*; story-triage *judges readiness and fixes weak items*.
+---
 
-## How they fit together
+## What each workflow owns
 
-A common arc: `flow-metrics` runs twice over a project — one pre-AI window, one current — and writes two JSON files. `ai-adoption-report` pairs them and renders the deltas. The crawler mirrors a space to Markdown, you edit, and the publisher pushes it back via the frontmatter the crawler left behind. Each skill does one job and hands its output to the next.
+| Workflow | Reads | Writes | When to use |
+| --- | --- | --- | --- |
+| `jira-team-status` | Jira issue fields, status, blockers, team scope | Nothing (by default) | Team backlog state, stand-up, sprint review |
+| `jira-story-triage` | Issue description, ACs, type, size | Description / ACs after approval | Story quality, readiness judging, draft improvements |
+| `jira` | Any Jira field | Any field, status, comment, attachment | Targeted single-issue operations |
+| `jira-defect-flow` | One Jira defect | Comment + transition after PR | Defect end-to-end |
+| `jira-brief-intake` | Epic and children | Brief file (local only) | Epic-to-spec conversion |
+| `flow-metrics` | Jira changelogs | Nothing | Delivery metrics, DORA |
+| `ai-adoption-report` | Local JSON files | Report file (local only) | AI adoption comparison |
+| `confluence-crawler` | Confluence page tree | Nothing | Mirror space to Markdown |
+| `confluence-publisher` | Confluence page version | Confluence page | Publish report or weekly update |
+
+---
+
+## The read / draft / write / publish boundary
+
+The pack makes four states explicit:
+
+**Read-only** — `jira-team-status` and `flow-metrics`. No Jira change possible by design.
+
+**Draft** — `jira-story-triage` before approval. The proposed improvement exists in
+the conversation, not in Jira.
+
+**Proposed write** — `jira-story-triage` after drafting, before the user confirms. The
+write-confirmation panel shows the exact issues and fields. No write has occurred.
+
+**Confirmed write** — after the user says apply. `jira: update-issue` fires for each
+named issue. Nothing outside the named list changes.
+
+The same four states apply in the Confluence path: the crawler and `ai-adoption-report`
+are read-only; the publisher shows a `--dry-run` preview; and the user confirms before
+publishing.
+
+---
+
+## Learn more
+
+- [Tutorial: Review your team's backlog from start to finish](../tutorials/review-your-team-backlog.md) — walk the full journey once
+- [Work with Jira from a conversation](../how-to/work-with-jira.md) — common tasks and quick reference
+- [Atlassian skills reference](../reference/atlassian-skills.md) — exact contracts, limits, and approval behavior
+- [Pack page](../../../../packs/atlassian/) — installation and capability overview
