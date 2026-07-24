@@ -36,6 +36,8 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 PACKS = REPO_ROOT / "packs"
 SHIM_SOURCE = PACKS / "credential-brokers" / ".apm" / "shared-libs"
+# AC11: projected copies that `make build-self` places under dist/apm/
+DIST_APM = REPO_ROOT / "dist" / "apm"
 
 
 def _stage_user_scope_skill(
@@ -137,6 +139,7 @@ def _assert_no_relative_import_error(result: subprocess.CompletedProcess, entry:
 
 # ─────────────────────────── per-entry-point ───────────────────────────
 
+@pytest.mark.parametrize("variant", ["source", "projected"])
 @pytest.mark.parametrize(
     "skill_relpath,entry_name",
     [
@@ -149,16 +152,29 @@ def _assert_no_relative_import_error(result: subprocess.CompletedProcess, entry:
     ],
 )
 def test_entry_point_imports_resolve_under_user_scope_layout(
-    tmp_path: pathlib.Path, skill_relpath: str, entry_name: str,
+    tmp_path: pathlib.Path, skill_relpath: str, entry_name: str, variant: str,
 ) -> None:
     """Each shipped credentialed-skill entry-point loads cleanly when
     invoked as ``python scripts/<entry>.py --help`` from a flat
     user-scope layout. This is the exact invocation the SKILL.md docs
-    instruct adopters to use."""
-    src = PACKS / skill_relpath
-    if not (src / entry_name).is_file():
-        pytest.skip(f"{src / entry_name} not present in this checkout")
-    staged = _stage_user_scope_skill(tmp_path, src)
+    instruct adopters to use.
+
+    AC11: parametrised over two staging variants:
+      - "source"   — from ``packs/<pack>/.apm/skills/<skill>/scripts/``
+      - "projected" — from ``dist/apm/<pack>/.apm/skills/<skill>/scripts/``
+        (the ``make build-self`` output); skips when ``dist/apm/`` is absent.
+    """
+    if variant == "projected":
+        if not DIST_APM.is_dir():
+            pytest.skip("dist/apm/ absent — run make build-self")
+        scripts_src = DIST_APM / skill_relpath
+        if not (scripts_src / entry_name).is_file():
+            pytest.skip(f"{scripts_src / entry_name} not present in dist/apm/")
+    else:
+        scripts_src = PACKS / skill_relpath
+        if not (scripts_src / entry_name).is_file():
+            pytest.skip(f"{scripts_src / entry_name} not present in this checkout")
+    staged = _stage_user_scope_skill(tmp_path, scripts_src)
     result = _invoke_help(staged, entry_name)
     _assert_no_relative_import_error(result, f"{skill_relpath}/{entry_name}")
 

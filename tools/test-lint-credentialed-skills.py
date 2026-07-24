@@ -614,6 +614,88 @@ def _(root: Path) -> None:
     )
 
 
+@case(
+    "dotfile-read-part-composition-bypass-caught",
+    expect_exit=1,
+    expect_substrings=["architectural violation"],
+)
+def _(root: Path) -> None:
+    """AC2: inline part-composition bypass is caught by the AST walk.
+
+    The fixture uses fully-inline string concatenation inside the path chain
+    so _path_chain_components() can resolve it.  No line in the script
+    contains '.agentbundle/credentials.env' as a contiguous substring —
+    proving the old substring scan would have missed it.
+    """
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    fixture_src = (
+        "from pathlib import Path\n"
+        "from .credentials_shim import load_credentials\n"
+        # The bypass: path assembled from parts — no literal .agentbundle/credentials.env
+        "(Path.home() / (\".\" + \"agentbundle\") / (\"credentials\" + \".env\")).read_text()\n"
+    )
+    # Verify the fixture does NOT contain the literal substring the old scan checked for
+    assert ".agentbundle/credentials.env" not in fixture_src, (
+        "AC2(a): fixture must not contain the literal dotfile substring"
+    )
+    write(sk / "scripts" / "cli.py", fixture_src)
+
+
+@case(
+    "dotfile-read-bytes-inline-path-caught",
+    expect_exit=1,
+    expect_substrings=["architectural violation"],
+)
+def _(root: Path) -> None:
+    """AC3: inline .read_bytes() form on an inline-constructed path is caught."""
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    write(
+        sk / "scripts" / "cli.py",
+        "from pathlib import Path\n"
+        "from .credentials_shim import load_credentials\n"
+        '(Path.home() / ".agentbundle" / "credentials.env").read_bytes()\n',
+    )
+
+
+@case(
+    "dotfile-read-path-constructor-literal-caught",
+    expect_exit=1,
+    expect_substrings=["architectural violation"],
+)
+def _(root: Path) -> None:
+    """Fallback coverage: Path("~/.agentbundle/credentials.env").read_text()
+    uses a literal that _path_chain_components cannot resolve; the substring
+    fallback inside _check_dotfile_read catches it."""
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    write(
+        sk / "scripts" / "cli.py",
+        "from pathlib import Path\n"
+        "from .credentials_shim import load_credentials\n"
+        'Path("~/.agentbundle/credentials.env").read_text()\n',
+    )
+
+
+@case(
+    "dotfile-read-expanduser-full-path-caught",
+    expect_exit=1,
+    expect_substrings=["architectural violation"],
+)
+def _(root: Path) -> None:
+    """Fallback coverage: open(os.path.expanduser("~/.agentbundle/credentials.env"))
+    contains the literal dotfile path and is caught by the substring fallback."""
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    write(
+        sk / "scripts" / "cli.py",
+        "import os\n"
+        "from .credentials_shim import load_credentials\n"
+        'open(os.path.expanduser("~/.agentbundle/credentials.env")).read()\n',
+    )
+
+
 # ── Don't-block presence: per-broker phrase set
 
 @case(

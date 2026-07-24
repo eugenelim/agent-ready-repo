@@ -135,6 +135,13 @@ def _shim_source_bytes(basename: str) -> bytes | None:
 def _is_canonical_shim(py: pathlib.Path) -> bool:
     if py.name not in SHIM_BASENAMES:
         return False
+    # Path-anchor: the exemption applies only when the file lives inside a
+    # directory named "scripts" (consumer skill projection target) or
+    # "shared-libs" (canonical source directory).  A file at an arbitrary
+    # location — even with canonical bytes — is NOT granted bypass treatment.
+    # Uses ``py.parent.name`` (single segment) per feedback_credentialed_lint_substring_trap.
+    if py.parent.name not in {"scripts", "shared-libs"}:
+        return False
     expected = _shim_source_bytes(py.name)
     if expected is None:
         return False
@@ -588,6 +595,89 @@ def _path_chain_components(node):
     return None, []
 
 
+def _is_dotfile_chain(result) -> bool:
+    """Return True when *result*'s components end with
+    ``(DOTFILE_PARENT, DOTFILE_BASENAME)`` in order.
+
+    *result* is the ``(seed_kind, components)`` tuple returned by
+    ``_path_chain_components``.  Returns ``False`` for the failure
+    tuple ``(None, [])``.
+    """
+    _, components = result
+    return (
+        len(components) >= 2
+        and components[-2] == DOTFILE_PARENT
+        and components[-1] == DOTFILE_BASENAME
+    )
+
+
+def _check_dotfile_read(py_path: pathlib.Path) -> list[tuple[int, str]]:
+    """Walk the AST of *py_path*, returning ``(lineno, description)`` for
+    each call site that reads the credentials dotfile.
+
+    Detects two forms:
+    - ``open(<dotfile-path>)`` where the first positional argument resolves
+      via ``_path_chain_components`` to the dotfile path.
+    - ``<expr>.read_text(...)`` / ``<expr>.read_bytes(...)`` where the
+      receiver expression resolves to the dotfile path.
+
+    Part-composition bypasses — e.g.
+    ``(Path.home() / ("." + "agentbundle") / ("credentials" + ".env"))
+    .read_text()`` — are caught because ``_path_chain_components`` handles
+    ``BinOp(Add)`` inside ``BinOp(Div)`` chains.
+
+    Each finding is suppressed when ``OPTOUT_MARKER`` appears on the same
+    source line as the call.
+    """
+    try:
+        source = py_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    lines = source.splitlines()
+    results: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name) and node.func.id == "open":
+            if node.args:
+                chain = _path_chain_components(node.args[0])
+                if _is_dotfile_chain(chain):
+                    lineno = node.lineno
+                    if OPTOUT_MARKER not in lines[lineno - 1]:
+                        results.append(
+                            (lineno, "open() reads dotfile credentials")
+                        )
+        elif (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"read_text", "read_bytes", "open"}
+        ):
+            chain = _path_chain_components(node.func.value)
+            if _is_dotfile_chain(chain):
+                lineno = node.lineno
+                if OPTOUT_MARKER not in lines[lineno - 1]:
+                    results.append(
+                        (lineno, f".{node.func.attr}() reads dotfile credentials")
+                    )
+    # Fallback: preserve substring-scan coverage for literal-path forms that
+    # _path_chain_components cannot resolve (e.g. ``Path("~/.agentbundle/…")``
+    # constructors, ``os.path.expanduser("~/.agentbundle/…")`` with a full path
+    # literal, ``Path("~/…").expanduser()``). These contain DOTFILE_SUBSTRING
+    # verbatim on the source line and are caught here rather than by the AST walk.
+    # Deduplication by lineno ensures no double-reporting when the AST walk already
+    # flagged the line.
+    flagged_linenos = {lineno for lineno, _ in results}
+    for i, line in enumerate(lines, start=1):
+        if i in flagged_linenos:
+            continue
+        if DOTFILE_SUBSTRING in line and OPTOUT_MARKER not in line.rstrip():
+            results.append((i, f"skill reads {DOTFILE_SUBSTRING} directly"))
+    return results
+
+
 def sso_broker_call_targets(py_path):
     """Yield `(seed_kind, components, lineno)` for every path-chain
     expression in *py_path* — i.e. every `Path.home() / "x" / "y"`
@@ -905,22 +995,18 @@ for skill_md in skill_md_files:
                     "value echoed verbatim by argparse's error message",
                 )
 
-    # --- Broker-agnostic D3: dotfile read ----------------------
+    # --- Broker-agnostic D3: dotfile read (AST walk) -------------------
+    # Replaced from substring scan to AST walk so part-composition bypasses
+    # (e.g. Path.home() / ("." + "agentbundle") / ("credentials" + ".env"))
+    # are caught.  _check_dotfile_read() uses _path_chain_components() to
+    # resolve BinOp(Add) inside BinOp(Div) path chains.
     for py in py_files:
         if _is_canonical_shim(py):
             continue
-        try:
-            content = py.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        for lineno, line in enumerate(content.splitlines(), start=1):
-            if DOTFILE_SUBSTRING not in line:
-                continue
-            if OPTOUT_MARKER in line.rstrip():
-                continue
+        for lineno, desc in _check_dotfile_read(py):
             report(
                 py,
-                f"line {lineno}: skill reads {DOTFILE_SUBSTRING} directly "
+                f"line {lineno}: {desc} "
                 f"(architectural violation — opt-out marker absent)",
             )
 
