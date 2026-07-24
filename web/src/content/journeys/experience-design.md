@@ -168,3 +168,4 @@ relatedJourneys:
 - **You do:** read the findings; apply Blockers before design intent feeds the build loop — they are the floor every screen must clear; handle-all-states violations are the most common finding.
 - **You decide:** review the designs after the independent experience-reviewer pass.
 - **Output:** a review-clean design set ready to feed the build loop.
+- **Cross-pack chain validation:** to validate the full cross-pack chain — strategy through rendered evidence — run the cross-pack experience eval after the independent review is clean.

@@ -488,7 +488,6 @@ queue   = [
   # Done: adopter can follow tutorial cold without repo knowledge; cross-pack
   #   intent indexes route any common starting job to the right skill; web/ and
   #   site/ journey pages are consistent with the full updated doctrine.
-  {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
 ]
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
@@ -502,6 +501,7 @@ shipped = [
   "spec/xd-design-system-foundations",               # Shipped 2026-07-24 — design-token-taxonomy rename + design-system-foundations skill (1.4.0)
   "spec/xd-state-reviewer-doctrine",                # Shipped 2026-07-24 — 18-state quality floor + three-pass design-review + severity tiers (1.5.0)
   "spec/cross-pack-experience-eval",               # Shipped 2026-07-24 — XD chain deterministic checker + cross-pack fixtures + how-to guide (1.6.0)
+  "spec/digital-product-guides-update",             # Shipped 2026-07-24 — M6 integrative XD guides: README index, Start here walkthrough, cross-links, web/ skill inventory
 ]
 
 ["ini-003".shaping_queue]
@@ -763,6 +763,15 @@ queue   = [
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # ── Deferred from ini-003 M6 ────────────────────────────────────────────────
+  # Cross-pack tutorial deferred from ini-003 M6. End-to-end tutorial showing the
+  # full strategy→PE→XD→FE→review→measurement arc using a realistic digital product
+  # example (marketing site or SaaS onboarding). Unblocks when all M1–M6 specs ship.
+  {slug = "xd-cross-pack-tutorial", source = "spec/digital-product-guides-update AC10"},
+  # Cross-pack intent index deferred from ini-003 M6. "I want to…" → which pack +
+  # skill + guide for each common adopter starting job. Unblocks when all M1–M6 specs ship.
+  {slug = "xd-cross-pack-intent-index", source = "spec/digital-product-guides-update AC11"},
+
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
