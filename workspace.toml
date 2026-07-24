@@ -406,6 +406,7 @@ shipped = [
   "spec/cross-pack-experience-eval",               # Shipped 2026-07-24 — XD chain deterministic checker + cross-pack fixtures + how-to guide (1.6.0)
   "spec/digital-product-guides-update",             # Shipped 2026-07-24 — M6 integrative XD guides: README index, Start here walkthrough, cross-links, web/ skill inventory
   "xd-pack-page-trigger-language-update",            # Shipped 2026-07-24 — Wave 3D: pack + journey page near-miss guards for design-token-taxonomy, design-system-foundations, copy-direction
+  "xd-reference-guide-description-sync",             # Shipped 2026-07-24 — synced 21-skill descriptions to SKILL.md frontmatter; added copy-direction, design-token-taxonomy, design-system-foundations, experience-status; removed design-system
 ]
 
 ["ini-003".shaping_queue]
@@ -887,12 +888,7 @@ open = [
   {slug = "cross-pack-eval-llm-judge", source = "spec/cross-pack-experience-eval"},
 
 
-  # spec/xd-skill-boundaries deferred: reference guide sync obligation.
-  # docs/guides/experience-design/reference/experience-design.md carries a same-PR-sync
-  # contract; 17 skill descriptions were updated but the guide was not (pre-existing
-  # debt in the guide — copy-direction unlisted, M3a guards absent — would entangle).
-  # Fix: sync the 17 copy-direction guards into the guide + clear pre-existing debt.
-  {slug = "xd-reference-guide-description-sync", source = "spec/xd-skill-boundaries"},
+
 
   # RFC-0062 OQ1. Extend experience-reviewer's scope to include content briefs
   # (type: content-brief) as a reviewable artifact type. The content-design skill
