@@ -1,6 +1,6 @@
 ---
 name: marketplace-design
-description: "Use when designing a marketplace surface — a catalogue, a listing grid, a product detail page, or a buying/transaction flow that connects buyers and sellers or producers and consumers. Triggers on 'design the marketplace', 'structure the listing page', 'how should the catalogue work', 'design the search and filter', 'buyer journey on the marketplace', 'product card design'. Produces IA specifications for catalogue, filter, comparison, and transaction bridge surfaces. Do NOT use for single-product marketing surfaces (use conversion-design) or workspace tool surfaces (use workspace-design). Surface genre: marketplace."
+description: "Use when designing a marketplace surface — a catalogue, a listing grid, a product detail page, or a buying/transaction flow that connects buyers and sellers or producers and consumers. Triggers on 'design the marketplace', 'structure the listing page', 'how should the catalogue work', 'design the search and filter', 'buyer journey on the marketplace', 'product card design'. Produces IA specifications for catalogue, filter, comparison, and transaction bridge surfaces. Do NOT use for single-product marketing surfaces (use conversion-design) or workspace tool surfaces (use workspace-design). Surface genre: marketplace. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
 ---
 
 # Skill: marketplace-design
