@@ -148,12 +148,19 @@ Pick the grouping shape by how tightly the items are coupled:
   appetite and an initiative fits, *suggest* `author-brief` instead of flat
   entries; the brief becomes the group container.
 
-### 8. Compose comments
+### 8. Compose the summary and comment
 
-Each appended entry carries a comment block sufficient for a cold-start session
-to write the full spec: **the problem, the fix, the affected file or skill, and
-any key decisions already taken.** One-liners are not enough — write what a fresh
-session would otherwise have to reconstruct.
+Each appended entry carries a **`summary` field** — one short line (a readable
+label, not a paragraph) written as `summary = "…"` on the entry object.
+`workspace-status` renders it as the item's title, so it is the scannable label
+that has to make sense on its own in a list.
+
+Below the entry, a comment block carries the cold-start detail sufficient for a
+fresh session to write the full spec: **the problem, the fix, the affected file or
+skill, and any key decisions already taken.** The summary is the label; the comment
+is the pickup brief — do not fold the whole comment into the summary, and do not
+shrink the comment to a one-liner. Write what a fresh session would otherwise have
+to reconstruct.
 
 For a `[backlog]` entry, also state the **unblock condition** — what must become
 true before the item is workable ("Unblocks when: …"). Then cross-check it against
@@ -168,8 +175,8 @@ takes the PR"). Those stay prose-only.
 ### 9. Confirm
 
 Present the complete proposed change — entries (with their classification),
-comments, order, inferred `needs`, and any escalation suggestions — and wait for
-the user to approve before writing.
+summaries, comments, order, inferred `needs`, and any escalation suggestions — and
+wait for the user to approve before writing.
 
 ### 10. Write
 
@@ -240,8 +247,10 @@ now, and at what scale?*
   edge (step 8) — not just an "Unblocks when" line. (Disjunctive, untracked, or
   external unblocks stay prose.)
 - **Encoding a priority preference as a `needs`.** Preference is order + comment.
-- **Writing a numeric priority or a new schema field.** Priority is order +
-  comment; the schema is not extended beyond the `type` field for shaping entries.
+- **Inventing a schema field.** The entry schema is `slug`/`path`, `needs`,
+  `source`, `summary`, and — shaping only — `type`. Do not add fields beyond these:
+  no numeric priority, no status, no dates. Priority is order + comment; status is
+  list membership.
 - **Writing a `type` field on build entries.** `type` is shaping-only.
 - **A full `tomllib` round-trip** that strips the file's comments.
 - **One-liner comments** that a cold-start session cannot act on.

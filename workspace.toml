@@ -5,8 +5,10 @@
 # start to orient to the current queue state — run `workspace-status` to surface
 # ready items, blocked items, and active signals.
 #
-# Queue entries are strings (no dependencies) or inline objects {path/slug, needs}
-# (with dependencies). `needs` uses queue-prefix notation:
+# Queue entries are strings (no dependencies) or inline objects
+# {path/slug, needs?, source?, summary?, type?}. `summary` is a short one-line
+# label that workspace-status renders as the item's title; the fuller `#` comment
+# below an entry carries cold-start detail. `needs` uses queue-prefix notation:
 #   "work:<path>"      — depends on a work queue entry
 #   "shape:<slug>"     — depends on a shaping queue entry
 #   "research:<slug>"  — depends on a research entry
@@ -44,11 +46,11 @@ parent    = "INI-001"
 # own sites; the three m6-* build specs it gated are dropped).
 # Project (personal vault): efforts/research/2026-07-24-experience-design-for-our-sites.
 active  = [
-  {slug = "experience-design-for-our-sites", type = "research"},
+  {slug = "experience-design-for-our-sites", summary = "Apply ini-003 XD doctrine to our marketing + docs sites", type = "research"},
 ]
 backlog = [
   # Signal items — hand-authored by strategist; ongoing, non-graduating
-  {slug = "ai-native-regulatory-watch", type = "signal"},
+  {slug = "ai-native-regulatory-watch", summary = "Signal: AI-native regulatory watch (ongoing)", type = "signal"},
   # Research items — any user with the desk-research pack can pick these up
   # Research (RFC-0064 M3 AC): should rfc-candidates.md graduate into the
   # shaping_queue (as research/strategy entries) rather than remain a separate
@@ -57,13 +59,13 @@ backlog = [
   # shaping_queue. Owner intuition: rfc-candidates are "things we should work
   # through" and belong in shaping. Deliverable: a recommendation (keep separate
   # / fold / hybrid) feeding a possible RFC-0064 follow-on. Requires desk-research.
-  {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research"},
+  {slug = "intake-taxonomy-rfc-candidates-to-shaping", summary = "Research: should rfc-candidates graduate into the shaping queue?", type = "research"},
   # Shaping items — PE picks up when upstream research is done
   "ini-002-initiative-brief",
   # Ready to shape (2026-07-24): their upstream (m2-frame-situation, m2-map-capabilities)
   # has shipped, so the dependency edges were dropped — these are unconditional now.
-  {slug = "opp-assessment-pe-pack"},
-  {slug = "capability-map-ini-002"},
+  {slug = "opp-assessment-pe-pack", summary = "Opportunity assessment for the PE pack"},
+  {slug = "capability-map-ini-002", summary = "Capability map for ini-002"},
   # Post-pilot rollout shaping — RFC-0064 Amendment #4 cross-pack overlay.
   # Deliverable after shaping: one appetite-bounded formal brief whose independently
   # shippable slices cover the remaining ratified Level B packs (beyond the three
@@ -71,7 +73,7 @@ backlog = [
   # recovery, eval, and only necessary skill change. Must audit P2/P3/P4 guides and
   # existing tutorials before proposing work. No longer blocked (2026-07-24): all
   # three pilots have shipped (evidence base complete) — ready to shape.
-  {slug = "nontechnical-pack-first-value-rollout", type = "shape"},
+  {slug = "nontechnical-pack-first-value-rollout", summary = "Shape the non-technical pack first-value rollout", type = "shape"},
   # Portfolio outcome entry-surfaces — design (RFC-0064 Amendment #4). Deliverable
   # after shaping: a surface/flow brief for homepage, catalogue, pack pages, READMEs,
   # journeys, and docs routing that consumes the contract and routes by plain-language
@@ -79,7 +81,7 @@ backlog = [
   # site-design-system-spec, and P5's Astro project index; reference those owners.
   # No longer blocked (2026-07-24): the contract is ratified and all three pilots
   # have shipped — ready to shape.
-  {slug = "portfolio-outcome-entry-surfaces", type = "design"},
+  {slug = "portfolio-outcome-entry-surfaces", summary = "Design the portfolio outcome entry-surfaces", type = "design"},
 ]
 
 ["ini-002".brief_queue]
@@ -188,210 +190,7 @@ milestone = "M1 · Contract + Governance"
 
 ["ini-003".work]
 active  = []
-queue   = [
-
-  # M1 · Digital Experience Contract
-  # Problem: no shared artifact connects strategy → PE → XD → FE. Each
-  #   discipline outputs isolated artifacts with no continuity check across
-  #   outcomes, terminology, first-success events, or journey.
-  # Deliver: canonical contract schema (markdown template, schema-version: "1.0")
-  #   in each pack's references/ with deterministic drift check; ownership map;
-  #   risk modes (explore/pilot/production field sets); graceful capability-detection
-  #   rules (safe fallback + provisional label when a skill is absent).
-  #   Site/guide: short explanation guide in docs/guides/core/explanation/ describing
-  #   the contract, its three risk modes, and which skills read/write which fields;
-  #   a brief cross-reference note added to each affected pack's journey page (web/
-  #   and site/) pointing to the contract explanation.
-  # Done: all four packs reference the same field set; drift check green;
-  #   explanation guide published; pack journey pages reference the contract.
-  # spec/digital-experience-contract — Shipped 2026-07-23; moved to shipped below.
-  # {path = "spec/digital-experience-contract", needs = "work:spec/rfc-digital-product-experience-doctrine"},
-
-  # M2a · Product Strategy Adoption Doctrine
-  # Problem: product-strategy pack doesn't explicitly own adoption hypothesis,
-  #   first-success event, value loop, or causal metric tree. A strategy can
-  #   ship polished and choice-free, leaving first-success ownerless until a
-  #   growth pack exists.
-  # Deliver: 14-point strategy output structure (situation+diagnosis through
-  #   strategy-to-experience implications); strategy-to-experience section with
-  #   8 named fields; anti-pattern review (vision-without-choices, launch-as-
-  #   adoption, moat-without-mechanism, etc.); updated triggers + near-misses
-  #   across all PS skills; updated evals with weak fixtures (polished-but-
-  #   choice-free strategy, metric list without causal tree, unsupported moat
-  #   claim, etc.); define-content-strategy / XD content-hierarchy boundary
-  #   clarified in frontmatter.
-  #   Site/guide: update product-strategy pack page (web/ + site/) — jobs-first
-  #   layout; add how-to guide for authoring an adoption hypothesis + causal
-  #   metric tree; update product-strategy journey page to reflect the new
-  #   14-point output and strategy-to-experience handoff.
-  # Done: PS skills explicitly own adoption hypothesis + causal metric tree;
-  #   weak fixtures fail; pack page + journey page + adoption-hypothesis how-to
-  #   guide published.
-
-
-  # M3a · XD Skill Boundaries
-  # Problem: XD skill frontmatter descriptions are artifact-named not natural-
-  #   language-triggered; near-misses don't guard adjacent disciplines. 20
-  #   skills (19 + new copy-direction) need consistent boundary language. The
-  #   three-way copy boundary (copy-direction / ux-writing / content-design)
-  #   is settled by spec/xd-copy-direction before this spec runs.
-  # Deliver: updated trigger descriptions + near-misses across all 20 XD skills
-  #   using natural requests (redesign this experience / make this onboarding
-  #   understandable / etc.); explicit near-miss guards for strategy, PE shaping,
-  #   and routine FE; tone-of-voice frontmatter updated to note its upstream
-  #   (copy-direction) and downstream (ux-writing) neighbors; all three copy-
-  #   layer boundaries explicit in frontmatter not buried prose.
-  #   Site/guide: update experience-design pack page (web/ + site/) — trigger
-  #   language and near-miss guards visible to adopters; ensure all 20 skill
-  #   listings on pack page use the new natural-language descriptions.
-  # Done: natural requests route correctly; near-misses prevent discipline bleed;
-  #   full three-way copy boundary is explicit in frontmatter; pack page updated.
-  # spec/xd-skill-boundaries — Shipped 2026-07-23; moved to shipped below.
-  # {path = "spec/xd-skill-boundaries", needs = ["work:spec/digital-experience-contract", "work:spec/xd-copy-direction"]},
-
-  # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
-  # Problem: design-system produces a token taxonomy (method only; explicitly
-  #   refuses values). No skill bridges "derived taxonomy" → "set up this project's
-  #   token foundation" — phantom handoff. design-system's trigger "set up design
-  #   tokens" would clash with the new design-system-foundations skill. design-system
-  #   also misdescribes DTCG as "the W3C Design Tokens interchange shape."
-  # Deliver: rename design-system → design-token-taxonomy (ADR-0038 alias-free;
-  #   grep-verified sweep required; updated triggers: "derive a token taxonomy /
-  #   name our tokens by semantic role / derive our spacing and type scale"; near-miss
-  #   added: "set up / implement design tokens → design-system-foundations"); corrected
-  #   DTCG description; new design-system-foundations skill (lightweight mode: semantic
-  #   colors, typography, spacing, radius, focus, key statuses, responsive rules, core
-  #   components; full mode: DTCG 2025.10-compatible token source, light/dark themes,
-  #   semantic aliases, full component anatomy, generated platform outputs);
-  #   FE genre routing updated; XD pack version bump + evals.
-  #   Site/guide: update experience-design pack page to list design-system-foundations
-  #   and show the renamed design-token-taxonomy; update design journey page to show
-  #   the two-step design system chain (derive taxonomy → apply foundations); add
-  #   how-to guide covering when to use lightweight vs. full mode; update FE genre
-  #   routing how-to to reference design-system-foundations by name.
-  # Done: phantom handoff eliminated; design-token-taxonomy and design-system-foundations
-  #   have non-overlapping activation triggers; DTCG description accurate; pack page
-  #   + journey + how-to guides updated.
-  # spec/xd-design-system-foundations — Shipped 2026-07-24; moved to shipped below.
-  # {path = "spec/xd-design-system-foundations", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
-
-  # M3c · XD Information Architecture, Page Archetypes, Product Objects
-  # Problem: XD has no page archetype references for key surface types (12+
-  #   types). No product-object mapping guidance. Card-use test not formalized.
-  #   Attention contract and read/write permission contract undefined.
-  # Deliver: references/page-archetypes.md covering ≥12 surface types (marketing
-  #   landing, onboarding, product workspace, dashboard/admin, transactional
-  #   flow, pack/catalogue, journey, tutorial, task how-to, reference index,
-  #   explanation, multi-surface) each with primary user, job, first-screen
-  #   contract, primary action, expected result, next action, proof, read/write
-  #   consequence, critical states, navigation behavior; product-object mapping
-  #   guidance (object the user creates / receives / inspects / changes / approves;
-  #   visual weight requirement); card-use test and non-card alternatives; attention
-  #   contract (no-action / optional-progress / decision-required / blocked-pending);
-  #   read/write permission contract (read-only / draft / proposed-write /
-  #   confirmed-write / destructive / undo-recovery).
-  #   Site/guide: add IA how-to guide (page archetypes — when to use which, with
-  #   the 12+ archetype quick-reference); update marketing site and docs site
-  #   pages that are the strongest examples of each archetype to link to the
-  #   relevant archetype spec; update design journey page to show IA + product-
-  #   object mapping as named steps.
-  # Done: IA skill references archetypes; product-object mapping is a required
-  #   workflow step; card-use test documented; IA how-to guide + archetype
-  #   reference published; design journey page updated.
-  # spec/xd-ia-archetypes-objects — Shipped 2026-07-23; moved to shipped below.
-  # {path = "spec/xd-ia-archetypes-objects", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
-
-  # M3d · XD State Coverage, Experience Reviewer Three Passes, Evals
-  # Problem: quality-floor.md state set is incomplete (missing offline, blocked,
-  #   destructive-confirmation, long-content, large-data-set, high-zoom, reduced-
-  #   motion, keyboard-only). design-review skill does a single-pass review.
-  #   Weak eval fixtures don't reflect current failure modes.
-  # Deliver: complete state set (18 states) in quality-floor.md; three-pass
-  #   experience-reviewer (pass 1: cold-read with audience+job+rendered only;
-  #   pass 2: primary task + one unhappy path, desktop/tablet/mobile, keyboard
-  #   + focus + zoom + reduced-motion; pass 3: contract review across all
-  #   disciplines); severity tiers (blocker / concern / suggestion) with rules
-  #   (don't soften a11y failure to suggestion; don't present aesthetic preference
-  #   as usability defect); rendered evidence required when rendered surface exists;
-  #   updated evals with weak fixtures (architecture-first hero, inventory-first
-  #   pack page, every-section-as-cards, desktop-only, missing permission states,
-  #   attractive-UI-with-unclear-write-consequences).
-  #   Site/guide: update design-review how-to guide to show the three-pass
-  #   structure and severity rubric; update state coverage reference in docs
-  #   (expand state table to 18 states with example treatment per state);
-  #   update design journey page to show design-review three-pass as the
-  #   explicit gate before handoff to FE.
-  # Done: all 18 states covered; reviewer three passes enforced; rendered
-  #   evidence required; weak fixtures fail; design-review how-to + state
-  #   reference + journey page updated.
-  # spec/xd-state-reviewer-doctrine — Shipped 2026-07-24; moved to shipped below.
-  # {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
-
-  # M4 · Frontend Engineering Doctrine Update
-  # Problem: frontend-engineering lacks four explicit modes (create/retrofit/
-  #   audit/verify), a required page/screen contract before significant UI code,
-  #   explicit WCAG 2.2 AA baseline, browser policy, CWV performance targets,
-  #   a card-use check, complete state coverage, brownfield inspection, multi-
-  #   surface shell contract, and an evidence manifest as a required output.
-  # Deliver: four-mode structure (conditional sections in one SKILL.md, not
-  #   separate skills) for create/retrofit/audit/verify; page/screen contract
-  #   (12 fields: target user, primary job, primary action, expected result, next
-  #   action, first-screen content, product proof, read/write consequence, critical
-  #   states, responsive behavior, a11y requirements, measurement event —
-  #   proportional to risk and scope, not a ritual for trivial components); 18-
-  #   state coverage; WCAG 2.2 AA default; Baseline Widely Available browser
-  #   policy; CWV targets (LCP ≤2.5s / INP ≤200ms / CLS ≤0.1 at p75) with
-  #   asset budgets (JS, images, fonts, third-party, hydration, route-level,
-  #   long tasks); brownfield inspection checklist (what-to-preserve, duplicated-
-  #   systems, hard-coded values, a11y-debt, responsive-debt, visual-regression-
-  #   risk); evidence manifest (routes, viewports, browsers, states, screenshots,
-  #   a11y result, perf result, console/network result, analytics events, known
-  #   exceptions, unverified items); conditional public-surface guidance (metadata,
-  #   canonical URLs, sitemaps, structured data, search indexing intent).
-  #   Site/guide: update core/FE pack page (web/ + site/) with four-mode
-  #   description + jobs-first layout; update FE journey page to show page/
-  #   screen contract, evidence manifest, and CWV gate as named steps; add
-  #   how-to guide for filling the page/screen contract (when is it required,
-  #   what each field means, proportional application examples); add performance
-  #   targets quick-reference (CWV values + asset budgets by surface type).
-  # Done: FE can't claim completion without evidence manifest; page contract gates
-  #   significant UI code; performance and accessibility explicit; pack page +
-  #   FE journey + page-contract how-to + performance reference updated.
-
-  # M5 · Cross-Pack Experience Eval
-  # Problem: no cross-pack golden-path eval tests continuity from raw opportunity
-  #   through strategy → PE → XD → FE → rendered evidence → measurement. No
-  #   multi-intent routing examples. No deterministic checks for phantom handoffs,
-  #   contract field presence, or pack-copy drift.
-  # Deliver: golden-path eval (≥4 fixture types: public marketing+docs, SaaS
-  #   onboarding+workspace, internal dashboard, transactional service) evaluating
-  #   contract continuity, first-success continuity, strategy traceability, journey
-  #   continuity, product-object visibility, state coverage, responsive behavior,
-  #   accessibility, performance, instrumentation, uncertainty, reviewer findings;
-  #   multi-intent routing examples (audit-and-rebuild / full-stack-from-opportunity /
-  #   unify-marketing-docs-onboarding) that route across disciplines; weak
-  #   regression fixtures generalized from current failure modes; deterministic
-  #   checks (referenced skill exists, no phantom handoff, contract fields present
-  #   for risk mode, pack-copy drift ≤0, evidence manifest entries present);
-  #   all new evals start report-only (calibrate before promoting to gates).
-  #   Site/guide: add a brief how-to guide explaining how to run the cross-pack
-  #   eval, interpret the report-only output, and promote a fixture to a gate.
-  # Done: one cross-pack eval discriminates coherent from locally-polished-but-
-  #   globally-weak; deterministic checks pass; report-only mode green; eval
-  #   how-to guide published.
-  # spec/cross-pack-experience-eval — Shipped 2026-07-24; moved to shipped below.
-  # {path = "spec/cross-pack-experience-eval", needs = [
-  #   "work:spec/product-strategy-adoption-doctrine",
-  #   "work:spec/product-engineering-shaping-doctrine",
-  #   "work:spec/xd-skill-boundaries",
-  #   "work:spec/xd-design-system-foundations",
-  #   "work:spec/xd-ia-archetypes-objects",
-  #   "work:spec/xd-state-reviewer-doctrine",
-  #   "work:spec/frontend-engineering-doctrine-update",
-  # ]},
-
-  # M6 · Cross-Pack Integrative Guides — shipped 2026-07-24; xd-cross-pack-tutorial + xd-cross-pack-intent-index shipped 2026-07-24.
-]
+queue   = []
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
@@ -473,179 +272,17 @@ shipped = [
   "spec/corporate-update-documentation",                 # spec + plan authored; adversarial review Clean 2026-07-24 (8 passes)
   "spec/agentbundle-enterprise-distribution-release",    # spec + plan authored; adversarial review Clean 2026-07-24
 ]
-queue   = [
-
-  # ── RFC gate ─────────────────────────────────────────────────────────────────
-  # "spec/rfc-agentbundle-enterprise-distribution" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M1a · PackState Source Provenance ────────────────────────────────────────
-  # "spec/packstate-source-provenance" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M1b · Source Conflict Install Guard ──────────────────────────────────────
-  # Problem: the same pack name can be installed at one scope from multiple sources
-  #   across different adapter rows, creating unresolvable provenance ambiguity that
-  #   silently corrupts upgrade routing and status reporting.
-  # Deliver: pre-install scan of all adapter rows for the same pack name at the target
-  #   scope; refusal when canonical sources differ (concrete vs. concrete, or concrete
-  #   vs. legacy/unknown); --force does not bypass a source mismatch; refusal fires before
-  #   any projection write, hook, state write, or other mutation; error message identifies
-  #   existing adapters and their sources; same-scope, same-source, multi-adapter install
-  #   remains allowed; cross-scope (repo vs. user) same-pack from different sources is not
-  #   blocked (status may warn).
-  # Done: second-source install is refused before any mutation; same-source multi-adapter
-  #   install is not falsely rejected; --force bypass is confirmed non-functional.
-  # "spec/source-conflict-install-guard" — active; moved to ["ini-004".work].active
-
-  # ── M2 · Update Status + JSON Output ─────────────────────────────────────────
-  # Problem: list-installed produces a human table only, with no machine-readable
-  #   output and no accurate update-status semantics. It does not distinguish "ahead"
-  #   from "up-to-date," gives no actionable reason for "unknown" rows, and assumes
-  #   every installed pack comes from one source.
-  # Deliver: --format table|json flag (table default); status values up-to-date /
-  #   upgrade-available / ahead / unknown; unknown with machine-readable reason codes
-  #   (source-unavailable, source-unknown, pack-not-found, unparseable-*-version,
-  #   incompatible-contract, adapter-no-longer-supported, malformed-catalogue);
-  #   --updates-only filter (includes upgrade-available, ahead, unknown; excludes
-  #   up-to-date only); multiple-source grouping (resolve each source once per
-  #   invocation; one source failure does not hide rows from other sources); stable
-  #   JSON contract (schema_version 1, sources array, rows with status_reason, summary);
-  #   credential-redacted source strings; diagnostics to stderr; no state mutation.
-  # Done: JSON stdout parses cleanly; ahead is never misreported as up-to-date; all
-  #   unknown reasons are covered by tests; adapter-specific installed versions remain
-  #   independent.
-  # "spec/list-installed-update-status" — active; moved to ["ini-004".work].active
-
-  # ── M3 · Bulk Upgrade (--all) ─────────────────────────────────────────────────
-  # Problem: upgrade requires a single named pack; there is no way to upgrade all
-  #   installed packs in one scoped operation, and multiple adapter rows for one pack
-  #   do not independently track their upgrade state.
-  # Deliver: --pack <name> | --all (mutually exclusive, one required); --scope required
-  #   for --all (no --scope all, no inferred dual scope); adapter-row model (each (pack,
-  #   adapter) pair is an independent upgrade row); preflight before all writes (resolve
-  #   sources, compare versions, check manifests, render projections, path-jail, classify
-  #   all rows); blocked rows (unknown / source error / manifest error) prevent all writes;
-  #   deterministic apply order (canonical source → pack → adapter); stop-on-first-failure
-  #   with completed/failed/not-attempted outcome tracking; --yes required for noninteractive
-  #   JSON mutation; combined JSON contract (schema_version 1, rows with outcome field,
-  #   summary); co-owned adapter paths retain existing safety classification.
-  #   Explicitly out-of-scope: multi-adapter-state-lock-uninstall-upgrade concurrency gap
-  #   (stays separate backlog item); upgrade-orphan-removal (stays separate backlog item).
-  # Done: no silent downgrade of ahead rows; blocked plan writes nothing; partial failure
-  #   is honestly reported and not described as rolled back; JSON output is valid on success,
-  #   blocked preflight, and partial failure.
-  # "spec/upgrade-bulk-all" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M4a · HTTPS Catalogue Channels ───────────────────────────────────────────
-  # Problem: agentbundle only resolves catalogues from local directories or git+https
-  #   archives. Enterprise environments need a channel-descriptor pattern (mutable
-  #   stable.json → immutable versioned archive) with SHA-256 verification, bearer token
-  #   auth, and safety limits on download and extraction. The mechanism must be vendor-
-  #   neutral, not Artifactory-specific.
-  # Deliver: catalogue+https and archive+https source schemes; channel descriptor schema
-  #   v1 (schema, kind, bundle, channel, release, artifact, sha256 required; published_at,
-  #   source_revision, minimum_agentbundle_version optional); SHA-256 verified before
-  #   extraction; bearer token via AGENTBUNDLE_HTTP_BEARER_TOKEN (not persisted, not
-  #   printed, not forwarded across host redirects); named safety limits (descriptor 1 MiB,
-  #   archive 256 MiB, members 20k, expanded 1 GiB, finite HTTP timeout); path-traversal,
-  #   absolute-path, symlink/hard-link, and special-file rejection; logical source identity
-  #   (channel URI, not temporary extraction path); cross-origin and HTTP artifact URLs
-  #   refused; local in-process HTTP server fixture for tests (no external network calls).
-  # Done: digest mismatch fails before any install mutation; temp files cleaned on failure;
-  #   client version checked against minimum_agentbundle_version before archive download.
-  # "spec/https-catalogue-channels" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M4b · Organization Artifactory Bootstrap ──────────────────────────────────
-  # Problem: there is no way for an organization's AgentBundle fork to ship a default
-  #   internal catalogue source so developers receive the correct channel without manual
-  #   configuration — and without the configuration being stored outside the vetted fork.
-  # Deliver: optional [organization.artifactory] block in agentbundle/_data/install-
-  #   defaults.toml (enabled, base-url, repository, bundle, channel); constructed source
-  #   catalogue+<base-url>/<repository>/catalogues/<bundle>/channels/<channel>.json;
-  #   documented five-level source precedence (explicit arg → user-configured → org
-  #   bootstrap → editable-clone → packaged fallback); HTTPS-only, no-credentials
-  #   validation; safe path-segment grammar for repository/bundle/channel; fail-closed
-  #   on a malformed enabled config (no silent fallback to public source); public default
-  #   ships enabled = false; all tests and docs use example.test placeholders only.
-  # Done: a fork with enabled = true routes to the configured Artifactory channel after
-  #   user config but before editable-clone; a malformed enabled config fails with a
-  #   clear diagnostic and no fallback; no real org endpoints appear in the public repo.
-  # "spec/organization-artifactory-bootstrap" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M5a · Package-Catalogue Command ──────────────────────────────────────────
-  # Problem: there is no tooling to produce the expected Artifactory artifact layout
-  #   (immutable release archive + mutable channel descriptor JSON) from the catalogue
-  #   repository, making CI publishing a manual multi-step operation prone to layout
-  #   errors and non-deterministic archives.
-  # Deliver: agentbundle package-catalogue CLI (--root, --bundle, --release, --channel,
-  #   --output required; --source-revision, --minimum-agentbundle-version, --published-at,
-  #   SOURCE_DATE_EPOCH honored as optional); dist/artifactory layout (releases/<release>/
-  #   + channels/); catalogue content allowlist (packs/, profiles/, docs/contracts/,
-  #   README, LICENSE, catalogue-manifest.json — no .git/, build/, credentials, or
-  #   untracked files); deterministic archive (sorted paths, normalized uid/gid/timestamps/
-  #   modes, reproducible gzip, digest generated after final bytes); catalogue-manifest.json
-  #   (schema, bundle, release, source_revision, generated_at, included files + SHA-256
-  #   digests, pack names + versions); refuse overwrite of existing release archive by
-  #   default; pre-package validation (valid packs/profiles, no unsafe symlinks,
-  #   included paths remain inside catalogue root); no git shell-out.
-  # Done: identical inputs + SOURCE_DATE_EPOCH produce byte-identical archives; archive
-  #   is resolvable by existing list/install logic; overwrite refused without explicit
-  #   flag (none added in this version).
-  # "spec/package-catalogue-command" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M5b · Artifactory Publishing Workflow ────────────────────────────────────
-  # Problem: no canonical CI reference or GitHub Actions template documents the correct
-  #   upload sequence (immutable archive must be uploaded and verified before the mutable
-  #   channel descriptor is replaced — reversing this order serves stale content).
-  # Deliver: docs/guides/_shared/how-to/publish-to-artifactory.md covering the five-step
-  #   publish sequence (validate → package-catalogue → upload archive → upload checksum →
-  #   verify upload → upload channel JSON last); disabled/template GitHub Actions workflow
-  #   using JFrog CLI with current official syntax; explicit statement that Artifactory
-  #   stores/serves but does not parse AgentBundle's pack layout; upload-credentials
-  #   guidance (environment secrets only, not in workflow YAML values).
-  # Done: publish sequence is canonically documented; channel JSON update is always last;
-  #   template contains no real credentials or org endpoints.
-  # "spec/artifactory-publishing-workflow" — shipped; moved to ["ini-004".work].shipped
-
-  # ── M6 · Corporate Update Documentation ──────────────────────────────────────
-  # Problem: no documentation covers the end-to-end enterprise adoption flows:
-  #   organization bootstrap, repo-scope CI upgrade, user-scope MDM upgrade,
-  #   source-conflict remediation, fully disconnected hosts, or security controls.
-  #   Existing guides assume public catalogue access.
-  # Deliver: docs/guides/_shared/how-to/use-an-artifactory-catalogue.md; updates to
-  #   clone-install guide, getting-started page, configuration reference, list-installed
-  #   reference, upgrade guide, dry-run guide, and constrained-network guidance; six
-  #   documented flows (A: org bootstrap from fork, B: repo-scope CI update via JSON
-  #   output + PR annotation, C: user-scope MDM update, D: source-conflict remediation,
-  #   E: fully disconnected hosts via local catalogue directory, F: security controls);
-  #   all flows use example.test placeholders; explicit statements: no background daemon,
-  #   --all requires explicit scope, partial-failure is not a rollback, no automatic
-  #   fallback to public source on malformed corporate config or integrity failure.
-  # Done: an enterprise adopter can configure, install, upgrade, and troubleshoot
-  #   without undocumented steps; security controls are explicitly stated; no real
-  #   credentials or org endpoints appear anywhere in the delivered content.
-  # "spec/corporate-update-documentation" — shipped; moved to ["ini-004".work].shipped
-
-  # ── Release ───────────────────────────────────────────────────────────────────
-  # Problem: all M1–M6 work ships across multiple PRs; without a coordinated release
-  #   step the new enterprise distribution features are not represented in the published
-  #   agentbundle version or its PyPI listing.
-  # Deliver: agentbundle version bump (semver minor — new CLI surface: --format, --all,
-  #   package-catalogue command); [Unreleased] → new version in CHANGELOG; PyPI README
-  #   (readme= in pyproject.toml) updated to describe the new enterprise distribution
-  #   capabilities; git tag agentbundle-vX.Y.0; PyPI publish.
-  # Done: agentbundle --version reflects the new version; PyPI package page describes
-  #   enterprise distribution; all M1–M6 PRs are merged and the tag points to a clean
-  #   main.
-  # "spec/agentbundle-enterprise-distribution-release" — shipped; moved to ["ini-004".work].shipped
-]
+queue   = []
 
 # Repo-level backlog — open work not scoped to any active initiative.
 # Populated by the m3-backlog-absorption migration (docs/specs/m3-backlog-absorption/).
-# Entries are inline objects: {slug, needs?, source?} where:
-#   slug   — unique identifier; matches any (deferred: <slug>) marker in specs
-#   source — deferred-AC provenance, e.g. "spec/foo AC3"
-#   needs  — same prefix notation as queue entries ("backlog:<slug>", "work:spec/...")
-# Per-entry TOML comments must be cold-start-sufficient: problem, fix, file/skill, unblock.
+# Entries are inline objects: {slug, needs?, source?, summary?} where:
+#   slug    — unique identifier; matches any (deferred: <slug>) marker in specs
+#   summary — short one-line label workspace-status renders as the item's title
+#   source  — deferred-AC provenance, e.g. "spec/foo AC3"
+#   needs   — same prefix notation as queue entries ("backlog:<slug>", "work:spec/...")
+# The `summary` is the label; the per-entry TOML comment carries the cold-start
+# detail (problem, fix, file/skill, unblock) — do not duplicate one into the other.
 # When the unblock condition is another tracked item (a hard AND dependency), also
 # add a `needs` edge — not prose alone. Disjunctive/untracked/external unblocks stay prose.
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
@@ -660,7 +297,7 @@ open = [
   # Fix: ship spec/https-catalogue-channels (AC1 extends _is_valid_source), then
   #   remove the xfail marker from test_org_bootstrap_is_valid_source_accepts_constructed_url.
   # Unblocks when: spec/https-catalogue-channels is Shipped.
-  {slug = "https-catalogue-channels-ac17-gate", source = "spec/organization-artifactory-bootstrap"},
+  {slug = "https-catalogue-channels-ac17-gate", summary = "Remove xfail once https-catalogue-channels ships (accepts catalogue+https)", source = "spec/organization-artifactory-bootstrap"},
 
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
@@ -669,7 +306,7 @@ open = [
   # Fix: a focused comment-only PR with explicit RFC-0013 approver sign-off, or fold
   #   into apm-leak-lint-rfc when that RFC lands.
   # Unblocks when: apm-leak-lint-rfc RFC is approved, or explicit approval obtained.
-  {slug = "credbroker-frozen-pack-ref-sweep", source = "spec/apm-internal-ref-sweep"},
+  {slug = "credbroker-frozen-pack-ref-sweep", summary = "Comment-only RFC-ref sweep of the frozen credential-brokers pack", source = "spec/apm-internal-ref-sweep"},
 
   # RFC-0065 D5 (source-author review 2026-07-18). Azure shipped contract-complete
   # in iac-terraform v1 (four provider files + providers/azure.md) but no worked
@@ -680,7 +317,7 @@ open = [
   #   providers/azure.md; bump the provider index entry to validated.
   # File: packs/core/.apm/skills/iac-terraform/ (examples/azure/ + providers/azure.md).
   # Unblocks when: Azure worked example is authored and passes the three-command gate.
-  {slug = "iac-terraform-azure-validation"},
+  {slug = "iac-terraform-azure-validation", summary = "Author + validate the iac-terraform Azure worked example"},
 
   # Platform site (web/). The site ships zero social proof or credibility signal —
   # no version/recency badge, no install count, no adopter logos, no dogfooding claim.
@@ -689,7 +326,7 @@ open = [
   # Fix: add a proof-band section between the hero and loops sections in
   #   web/src/pages/index.astro; no formal spec needed — normal PR + experience-reviewer.
   # Unblocks when: someone decides what signal is available and honest to publish.
-  {slug = "site-social-proof-band"},
+  {slug = "site-social-proof-band", summary = "Add an honest social-proof band to the platform site hero"},
 
   # Platform site mobile CSS covers the hero section only. Needs a full mobile audit:
   # cards grid on narrow viewports, navigation, code block overflow, table horizontal
@@ -697,7 +334,7 @@ open = [
   # (375/390/430px) and a physical device. Dev server: make site-serve.
   # Fix: run the mobile audit; open a mobile-CSS PR.
   # Unblocks when: screened on actual mobile viewport + physical device.
-  {slug = "site-mobile-responsiveness"},
+  {slug = "site-mobile-responsiveness", summary = "Full mobile-responsiveness audit + CSS for the platform site"},
 
   # docs/guides/desk-research/tutorials/desk-research-first-session.md line 15 says
   # `agentbundle install research --scope user` but the pack id is `desk-research`
@@ -707,7 +344,7 @@ open = [
   # File: docs/guides/desk-research/tutorials/desk-research-first-session.md:15.
   # Done: active content uses `desk-research`; the stale id fails the owning check.
   # Do not expand this item into a tutorial redesign.
-  {slug = "desk-research-install-name-drift"},
+  {slug = "desk-research-install-name-drift", summary = "Fix stale `research` pack id -> `desk-research` in a tutorial"},
 
   # ── High severity ────────────────────────────────────────────────────────────
   # (security findings or concretely broken behavior with a known internal fix path)
@@ -724,7 +361,7 @@ open = [
   #   os.walk(followlinks=False) across all four adapters.
   # File: packages/agentbundle/agentbundle/render.py + install.py + adapter files.
   # Unblocks when: someone takes a spec scoping the cross-adapter hardening.
-  {slug = "untrusted-catalogue-symlink-exfiltration"},
+  {slug = "untrusted-catalogue-symlink-exfiltration", summary = "HIGH: block symlink exfiltration on install across four adapters"},
 
   # Security. cursor.py's _project_direct_directory was hardened to drop nested
   # symlinks (ignore=_ignore_symlinks), but kiro.py, codex, copilot, and claude-code
@@ -734,7 +371,7 @@ open = [
   #   packages/agentbundle/agentbundle/projections/direct_directory.py and adopt it
   #   in all four remaining adapters.
   # Unblocks when: someone takes a focused cross-adapter hardening PR.
-  {slug = "nested-symlink-install-hardening"},
+  {slug = "nested-symlink-install-hardening", summary = "Adopt cursor's symlink-skipping copy in four remaining adapters"},
 
   # CI security. spec/pack-activation-evals introduces the repo's first long-lived
   # API-key workflow secret (ANTHROPIC_API_KEY for pack-evals.yml). No secret scanner
@@ -747,7 +384,7 @@ open = [
   #   approach; if not, vendor the tarball or use an alternative install path.
   # File: .github/workflows/pack-evals.yml
   # Unblocks when: a concrete path to npm global-install integrity verification is found.
-  {slug = "pack-evals-npm-lockfile-integrity", source = "spec/secret-scanner-for-api-key-workflows AC Assumption 5"},
+  {slug = "pack-evals-npm-lockfile-integrity", summary = "Add integrity pinning for the pack-evals npm install", source = "spec/secret-scanner-for-api-key-workflows AC Assumption 5"},
 
   # Security. All .github/workflows/*.yml use @vN tag pinning (e.g. actions/checkout@v4).
   # Tag pinning is a TOFU posture — a re-tagged release is not detected.
@@ -757,7 +394,7 @@ open = [
   # Fix: pin each action to a commit SHA in each .github/workflows/*.yml;
   #   update zizmor.yml to remove per-file ignore once all actions are SHA-pinned.
   # Unblocks when: someone takes a SHA-pin sweep PR for all existing workflows.
-  {slug = "github-actions-sha-pin", source = "spec/secret-scanner-for-api-key-workflows zizmor.yml Concern"},
+  {slug = "github-actions-sha-pin", summary = "SHA-pin all GitHub Actions and retire the zizmor suppression", source = "spec/secret-scanner-for-api-key-workflows zizmor.yml Concern"},
 
   # spec/shared-prefix-aware-multi-adapter-install follow-on (reviewer Concern).
   # install routes state RMW through statelock.persist_state_locked (concurrency AC).
@@ -768,7 +405,7 @@ open = [
   #   state; add a multi-process stress test for statelock's stale-reclaim collision.
   # File: packages/agentbundle/agentbundle/commands/{uninstall,upgrade}.py + statelock.py.
   # Unblocks when: someone takes a concurrency hardening PR for uninstall/upgrade.
-  {slug = "multi-adapter-state-lock-uninstall-upgrade"},
+  {slug = "multi-adapter-state-lock-uninstall-upgrade", summary = "Route uninstall/upgrade state writes through statelock"},
 
   # agentbundle upgrade re-renders the new projection and writes it, but has no
   # orphan-removal step: a file in old state.files but absent from the new projection
@@ -779,7 +416,7 @@ open = [
   # Fix: upgrade grows a Tier-1 orphan-removal pass (old state.files ∖ new
   #   projection) ordered against hook-wiring unproject, gated to whole-pack upgrades.
   # Unblocks when: someone picks up the upgrade command refactor.
-  {slug = "upgrade-orphan-removal-on-projection-shape-change", source = "spec/kiro-install-alias-parity AC8"},
+  {slug = "upgrade-orphan-removal-on-projection-shape-change", summary = "Add an orphan-removal pass to upgrade", source = "spec/kiro-install-alias-parity AC8"},
 
   # Security (AST09). No auditable inventory records per-skill version + content hash
   # + scan status for the installed set; no logged-execution trail ties an agent
@@ -790,7 +427,7 @@ open = [
   #   skill, OR document that the install marker IS the sanctioned governance surface
   #   and flag the missing hash field as the AST09 closure condition in agentic-skills.md.
   # Unblocks when: a governance RFC or install-marker schema extension closes the gap.
-  {slug = "skill-governance-inventory-gap"},
+  {slug = "skill-governance-inventory-gap", summary = "AST09: per-skill version+hash+scan inventory"},
 
   # Security (AST07). The agentic-skills module's AST07 check (version drift)
   # delegates to a wired SCA scanner. Whether pip-audit or Dependabot is wired in CI
@@ -800,7 +437,7 @@ open = [
   #   wire it if not.
   # File: .github/workflows/ (CI config for packages/agentbundle).
   # Unblocks when: CI config confirms a wired SCA scanner for packages/agentbundle.
-  {slug = "ast07-sca-scanner-agentbundle"},
+  {slug = "ast07-sca-scanner-agentbundle", summary = "AST07: confirm/wire an SCA scanner for packages/agentbundle"},
 
   # ── Medium effort, internal ──────────────────────────────────────────────────
   # (no external environment; needs a focused session or an RFC decision)
@@ -821,7 +458,7 @@ open = [
   #   framework or duplicate slug.
   # Fix: take pack-by-pack (Tier 2 first — highest value, lowest cost).
   # Unblocks when: ANTHROPIC_API_KEY secret is configured in GitHub (Tier 5 activation).
-  {slug = "pack-eval-coverage-rollout"},
+  {slug = "pack-eval-coverage-rollout", summary = "pack-activation-evals Tier 2-5 rollout"},
 
   # spec/pack-activation-evals plan T8 (non-blocking follow-on). The converters
   # evals.json carry-over gate in build-check.yml enumerates covered skills by hand.
@@ -831,7 +468,7 @@ open = [
   # Fix: after pack-eval-coverage-rollout Tier 2 is stable, take the consolidation
   #   as its own PR; reconcile the mermaid-renderer coverage gap in that PR.
   # Unblocks when: pack-eval-coverage-rollout Tier 2 ships.
-  {slug = "pack-evals-converters-gate-consolidation", needs = "backlog:pack-eval-coverage-rollout"},
+  {slug = "pack-evals-converters-gate-consolidation", summary = "Converters build-check gate reads [pack.evals].skills", needs = "backlog:pack-eval-coverage-rollout"},
 
   # The traceability lint's sidecar cross-check (_state/traceability.json ↔ on-disk
   # edge set) ships warn-only (exit 0) because the sidecar matrix schema is RFC-0048
@@ -841,7 +478,7 @@ open = [
   #   packs/core/.apm/skills/work-loop/scripts/lint-traceability.py once the RFC-0048
   #   Decision-7 spike pins the traceability.json schema.
   # Unblocks when: the sidecar schema is pinned (RFC-0048 Decision-7 spike lands).
-  {slug = "sidecar-drift-hard-fail"},
+  {slug = "sidecar-drift-hard-fail", summary = "Promote traceability sidecar-drift lint from warn to hard-fail"},
 
   # Monitoring. semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both with
   # published CVEs. These are transitive SAST-tooling deps only — never shipped to
@@ -851,7 +488,7 @@ open = [
   # Fix: remove the --ignore-vuln flags from the Makefile sast target once semgrep
   #   ships mcp>=1.28.1 and click>=8.3.3. Check via `pip show semgrep | grep Requires`.
   # Unblocks when: semgrep releases with updated mcp + click transitive dep pins.
-  {slug = "semgrep-mcp-cve-allowlist"},
+  {slug = "semgrep-mcp-cve-allowlist", summary = "Drop Makefile sast --ignore-vuln once semgrep updates mcp+click"},
 
   # Four skills need a live-mock MCP knowledge-tool test to fully verify the
   # knowledge-surface detection path: architect-design, architect-review,
@@ -863,8 +500,7 @@ open = [
   # Fix: when a harness/test fixture can register a stub MCP retrieval tool, run each
   #   skill's detection scenarios and record transcripts.
   # Unblocks when: a test fixture can register a stub MCP retrieval tool.
-  {slug = "live-mock-mcp-detection-qa"},
-
+  {slug = "live-mock-mcp-detection-qa", summary = "Live-mock MCP knowledge-tool test for four skills"},
 
 
 
@@ -874,7 +510,7 @@ open = [
   # Fix: open a follow-on RFC extending RFC-0062 to add content-brief to
   #   experience-reviewer's reviewable artifact set.
   # Ready — RFC-0062 content-design-skill spec is Shipped; this item is now actionable.
-  {slug = "experience-reviewer-content-brief-scope"},
+  {slug = "experience-reviewer-content-brief-scope", summary = "Extend experience-reviewer to review content briefs"},
 
 
   # spec/digital-experience-contract deferred AC. The drift check
@@ -884,7 +520,7 @@ open = [
   # Fix: after two clean passes on origin/main, wire the check into build-check.yml
   #   and remove the deferred marker from spec/digital-experience-contract AC16.
   # Unblocks when: two clean drift-check passes are recorded (manual or CI).
-  {slug = "contract-drift-check-gate-promotion", source = "spec/digital-experience-contract AC16"},
+  {slug = "contract-drift-check-gate-promotion", summary = "Promote the contract-drift check to a build-check gate", source = "spec/digital-experience-contract AC16"},
 
   # ini-003 follow-on. After the Digital Experience Doctrine initiative ships, the four
   # packs (product-strategy, product-engineering, experience-design, core) form a coherent
@@ -946,7 +582,7 @@ open = [
   # Fix: when the gate fires — open an RFC for the pack; scope it to the nine FE-section
   #   fields in the contract + the migration of the anchor path.
   # Unblocks when: `digital-product-profile` spec explicitly decides in-scope or deferred.
-  {slug = "frontend-engineering-pack-split"},
+  {slug = "frontend-engineering-pack-split", summary = "Split frontend-engineering into its own pack once adoption confirms"},
 
   # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
   # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
@@ -954,7 +590,7 @@ open = [
   # Fix: author a retire/deprecate skill in the catalogue-curation pack when a real
   #   retirement need arises.
   # Unblocks when: a real pack or skill retirement need arises.
-  {slug = "catalogue-curation-retire-primitive"},
+  {slug = "catalogue-curation-retire-primitive", summary = "Author a retire/deprecate skill in catalogue-curation"},
 
   # Integrity-pinning for the layer-4 git+https catalogue fetch is deferred from
   # spec/convenient-install-defaults. Today agentbundle install pulls an
@@ -964,7 +600,7 @@ open = [
   # Fix: open RFC-0046 + ADR-0036 for the integrity-pinning design; lean on existing
   #   SCA/lockfile-hash infrastructure rather than hand-rolling verification.
   # Unblocks when: someone opens the integrity-pinning RFC.
-  {slug = "convenient-install-defaults-followons", source = "spec/convenient-install-defaults"},
+  {slug = "convenient-install-defaults-followons", summary = "Integrity-pinning RFC for the git+https catalogue fetch", source = "spec/convenient-install-defaults"},
 
   # Live-install transcripts for apm install of core (project scope), converters
   # (user scope), and per-target characterisation at Copilot/Cursor/Gemini are
@@ -973,7 +609,7 @@ open = [
   # Fix: run the three installs; record transcripts under
   #   docs/specs/apm-install-route-parity/notes/manual-qa-matrix.md.
   # Unblocks when: a dev environment with all three adapters is available for QA.
-  {slug = "apm-install-route-parity", source = "spec/apm-install-route-parity AC17"},
+  {slug = "apm-install-route-parity", summary = "Live-install transcripts for the apm install route", source = "spec/apm-install-route-parity AC17"},
 
   # The shipped core pack's .apm/** still carries ~10 internal-governance citations
   # (RFC numbers, make commands, docs/ paths) that should not appear in adopter-
@@ -983,7 +619,7 @@ open = [
   # Fix: open an RFC for a lint-catalogue-seeds-analogue for packs/*/.apm/**; then
   #   drive the sweep under it. File: tools/lint-agent-artifacts.py (extend scope).
   # Unblocks when: RFC is opened and approved.
-  {slug = "apm-leak-lint-rfc", source = "spec/house-voice-writing-craft"},
+  {slug = "apm-leak-lint-rfc", summary = "RFC + lint to sweep internal-governance citations from packs/*/.apm/**", source = "spec/house-voice-writing-craft"},
 
   # Boundary deferred from spec/architect-knowledge-surfaces (Shipped). Extending
   # the consult-grounding step to architect-review or architect-diagram requires a
@@ -993,7 +629,7 @@ open = [
   # Fix: open an RFC explicitly scoping the architect-review/architect-diagram
   #   grounding extension when the need arises.
   # Unblocks when: a new RFC scopes the extension.
-  {slug = "architect-review-diagram-knowledge-surfaces", source = "spec/architect-knowledge-surfaces"},
+  {slug = "architect-review-diagram-knowledge-surfaces", summary = "Extend consult-grounding to architect-review/diagram (RFC)", source = "spec/architect-knowledge-surfaces"},
 
   # packs/architect/.apm/skills/architect-review/references/rubric-well-architected.md
   # names four workload-class lenses: ML, GenAI/agentic, SaaS, serverless. GenAI/
@@ -1002,7 +638,7 @@ open = [
   # Fix: a future RFC backs ML with lens-ml.md and SaaS with lens-saas.md, or removes
   #   the named-but-unbacked entries from the rubric.
   # Unblocks when: someone opens an RFC to add or remove the ML/SaaS lens.
-  {slug = "ml-saas-serverless-workload-class-lenses", source = "spec/agentic-well-architected-overlay"},
+  {slug = "ml-saas-serverless-workload-class-lenses", summary = "Back or remove the ML/SaaS workload-class review lenses", source = "spec/agentic-well-architected-overlay"},
 
   # RFC-0063 OQ1 (ADR-0053 D4). Growth strategy (AARRR, PLG loops, PMF testing,
   # conversion architecture, SEO keyword-intent) was explicitly scoped out of the
@@ -1011,7 +647,7 @@ open = [
   # Also collects: content-strategy-and-marketing-copy-lens item 2 (Conversion + SEO).
   # Fix: confirm charter scoping, then open an RFC for the growth pack.
   # Unblocks when: charter scoping decision is made.
-  {slug = "growth-strategy-pack"},
+  {slug = "growth-strategy-pack", summary = "Charter-scope decision, then a growth-strategy pack RFC"},
 
   # spec/user-scope-hooks is Shipped; the "first user-scope hook-bearing consumer
   # pack" remains deferred (RFC-0005 § First consumer). Correctness is measured via
@@ -1020,7 +656,7 @@ open = [
   # Fix: author or designate a consumer pack declaring allowed-scopes = ["user"] and
   #   wire a hook at user scope; confirm hook fires via a live install transcript.
   # Unblocks when: a pack maintainer wants to ship a user-scope hook.
-  {slug = "user-scope-hooks-first-consumer"},
+  {slug = "user-scope-hooks-first-consumer", summary = "Designate the first user-scope hook-bearing consumer pack"},
 
   # spec/adapt-to-project is Shipped. APM-install-route and Claude-plugins-install-
   # route adopters never hit the install-marker write, the session-start nudge, or
@@ -1029,7 +665,7 @@ open = [
   # Fix: open a parity RFC for APM/Claude-plugins install-route (modeled on RFC-0004
   #   claude-plugins precedent).
   # Unblocks when: APM/Claude-plugins adapter parity work is prioritised.
-  {slug = "adapt-to-project-apm-install-parity"},
+  {slug = "adapt-to-project-apm-install-parity", summary = "APM/Claude-plugins install-route parity RFC for adapt-to-project"},
 
   # spec/extraction-higher-tiers follow-on (RFC-0058 D5 / Open-Q3). D5 decides
   # pre-egress redaction is out of scope for Tier-3 — documents sent to the managed
@@ -1039,7 +675,7 @@ open = [
   # Fix: if an adopter need surfaces, open a new slice with a fresh security review
   #   (it changes the egress-boundary security-reviewer gates).
   # Unblocks when: a concrete adopter need for in-skill redaction surfaces.
-  {slug = "extraction-tier3-pre-egress-redaction-hook"},
+  {slug = "extraction-tier3-pre-egress-redaction-hook", summary = "Optional pre-egress redaction hook for Tier-3 extraction"},
 
   # ── External dependency / high effort ────────────────────────────────────────
   # (blocked on real hardware, credentials, live environments, or real-adopter sessions)
@@ -1051,7 +687,7 @@ open = [
   # Transcript: docs/specs/atlassian-sso-cookie/notes/. Blocked: no corporate-SSO
   # DC deployment in CI. Same gap RFC-0013 §9 reason (b) named.
   # Unblocks when: a real DC instance is available for a read flow.
-  {slug = "atlassian-sso-cookie-live-dc-read-transcript", source = "spec/atlassian-sso-cookie AC19"},
+  {slug = "atlassian-sso-cookie-live-dc-read-transcript", summary = "Live Data-Center SSO read transcript for atlassian-sso-cookie (AC19)", source = "spec/atlassian-sso-cookie AC19"},
 
   # spec/atlassian-sso-cookie security follow-on (security-reviewer Concern). The
   # consumer validates success_url_pattern for https scheme (AC3) but does not confine
@@ -1062,7 +698,7 @@ open = [
   # Fix: after the live-DC transcript, decide whether to tighten pattern-host
   #   validation at the broker (capture-time) layer.
   # Unblocks when: atlassian-sso-cookie-live-dc-read-transcript is complete.
-  {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
+  {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", summary = "Decide broker-side pattern-host confinement after the live-DC transcript", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
 
   # spec/credential-broker-contract manual-QA matrix: six platform × mode transcripts
   # are pending under docs/specs/credential-broker-contract/notes/:
@@ -1071,7 +707,7 @@ open = [
   #   `sso-cookie` × Windows; `sso-cookie` × Linux (file-floor).
   # Each row: consuming skill resolves PAT / sso-broker test exits 0.
   # Unblocks when: real corporate-SSO and per-platform environments are available.
-  {slug = "credential-broker-contract-manual-qa"},
+  {slug = "credential-broker-contract-manual-qa", summary = "Six platform x mode credential-broker QA transcripts"},
 
   # AC14 of spec/agentbundle-wheel-release. The release-agentbundle.yml publish-
   # artifactory job has never fired because the three secrets (ARTIFACTORY_URL /
@@ -1079,7 +715,7 @@ open = [
   # real upload claims the corp Artifactory package name.
   # Fix: configure the three Artifactory secrets as GitHub repo secrets; push a tag.
   # Unblocks when: corp Artifactory credentials are available and configured.
-  {slug = "artifactory-first-publish-gesture", source = "spec/agentbundle-wheel-release AC14"},
+  {slug = "artifactory-first-publish-gesture", summary = "First real Artifactory upload once secrets are configured", source = "spec/agentbundle-wheel-release AC14"},
 
   # AC3 of spec/extraction-msg-to-markdown-python-contract. A numbered real-world
   # .msg + .eml sample with a manual-verification artifact is the absolute-fidelity
@@ -1090,7 +726,7 @@ open = [
   # Fix: obtain a PII-free real-world .msg/.eml; run through the shipped converter;
   #   record results under docs/specs/extraction-msg-to-markdown-python-contract/notes/.
   # Unblocks when: a PII-free real-world .msg sample is obtainable.
-  {slug = "extraction-msg-realworld-sample", source = "spec/extraction-msg-to-markdown-python-contract AC3"},
+  {slug = "extraction-msg-realworld-sample", summary = "Verify the msg-to-markdown converter on a real-world .msg/.eml", source = "spec/extraction-msg-to-markdown-python-contract AC3"},
 
   # spec/kiro-ide-hook is Shipped, but T-CONTRACT (v0.4 contract bump) is probe-
   # gated. Requires two probes against a real Kiro install:
@@ -1101,7 +737,7 @@ open = [
   # Fix: run Q6 + Q11 probes against a live Kiro install; record results; then author
   #   the T-CONTRACT bump + T-F ADR.
   # Unblocks when: a Kiro IDE install is available for probe runs.
-  {slug = "kiro-ide-hook-contract-probe"},
+  {slug = "kiro-ide-hook-contract-probe", summary = "Run Q6/Q11 Kiro probes, then the v0.4 contract bump"},
 
   # spec/cursor-full-parity follow-on. RFC-0026 verified .cursor/* paths and
   # vocabularies against docs but no test loaded generated artifacts on the real Cursor
@@ -1111,7 +747,7 @@ open = [
   # (Mirrors the copilot AC23 smoke.)
   # Fix: run the live smoke on Cursor IDE/CLI; record under docs/specs/cursor-full-parity/notes/.
   # Unblocks when: Cursor IDE/CLI available for a live test session.
-  {slug = "cursor-live-smoke"},
+  {slug = "cursor-live-smoke", summary = "Live smoke of generated .cursor/ artifacts on real Cursor"},
 
   # spec/pack-activation-evals Phase 2 (RFC-0037 Errata E2). Optional ergonomic
   # follow-on: a .kiro/ command or hook so a Kiro user invokes the pack-evals dispatch
@@ -1119,7 +755,7 @@ open = [
   # procedure already works without it (harness-agnostic; Claude Code validated).
   # Fix: add a catalogue-internal .kiro/commands/run-pack-evals or hook.
   # Unblocks when: someone wants the one-click Kiro ergonomics.
-  {slug = "kiro-native-in-harness-driver"},
+  {slug = "kiro-native-in-harness-driver", summary = "Optional .kiro command/hook for the pack-evals dispatch loop"},
 
   # spec/credbroker-user-scope deferred (spec Boundaries → Ask first). An
   # agentbundle install … --with-credbroker flag that auto-runs
@@ -1130,7 +766,7 @@ open = [
   # where the skill can't import it.
   # Unblocks when: a concrete adopter need surfaces AND the interpreter/venv-resolution
   #   question is settled.
-  {slug = "active-with-credbroker-pip"},
+  {slug = "active-with-credbroker-pip", summary = "`install --with-credbroker` auto-pip (deferred on venv-targeting risk)"},
 
   # spec/pack-activation-evals Phase 3 (RFC-0037 Errata E3). atlassian (8 skills) and
   # figma (1 skill) have Tier-A activation coverage but no behavior test. Running them
@@ -1140,7 +776,7 @@ open = [
   # Fix: open a Tier-B grading RFC (LLM-judge / deltas) or a dedicated cassette harness
   #   spec.
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
-  {slug = "behavior-check-for-backend-skills"},
+  {slug = "behavior-check-for-backend-skills", summary = "Behavior tests for atlassian/figma via cassettes or a test backend"},
 
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
   # docs/guides/core/explanation/role-journeys.md covers headless AI execution
@@ -1151,7 +787,7 @@ open = [
   #   CLI swarm patterns; update docs/guides/core/explanation/role-journeys.md.
   # File: docs/guides/core/explanation/role-journeys.md (Agent section).
   # Unblocks when: engineer-scales-to-swarm journey is shaped (status moves from shaping).
-  {slug = "role-journey-agent-swarm-section", source = "spec/m6-role-journey-guides AC6"},
+  {slug = "role-journey-agent-swarm-section", summary = "Add the coordinated-swarm section to the Agent role-journey guide", source = "spec/m6-role-journey-guides AC6"},
 
   # spec/adapt-to-project AC4b — deferred manual-QA rows (tombstone anchor for
   # RFC-0007 links). Repo-scope class-2/3/4 transcripts (rows 8–16): Claude-simulated
@@ -1161,7 +797,7 @@ open = [
   # Fix: real-adopter sessions for each row; record under
   #   docs/specs/adapt-to-project/notes/manual-qa-matrix.md.
   # Unblocks when: adapt-to-project-apm-install-parity + real adopter sessions land.
-  {slug = "adapt-to-project-ac4b-transcripts", needs = "backlog:adapt-to-project-apm-install-parity"},
+  {slug = "adapt-to-project-ac4b-transcripts", summary = "Real-adopter transcripts for adapt-to-project manual-QA rows", needs = "backlog:adapt-to-project-apm-install-parity"},
 
   # Strict and hermetic manifest validation is green, but a fresh user profile has
   # not proved the real add-marketplace → install → enable → discover →
@@ -1173,7 +809,7 @@ open = [
   # Done: every sampled route passes or names a reproducible client limitation with
   #   a captured defect. Does not reopen manifest repair; does not duplicate
   #   adapt-to-project behavior/parity rows.
-  {slug = "claude-clean-room-plugin-smoke"},
+  {slug = "claude-clean-room-plugin-smoke", summary = "Clean-room marketplace lifecycle smoke on the graphical Claude client"},
   # spec/credbroker-security-hardening AC11 follow-on. The projected-path variant
   # of the sso_broker verb test (AC11) only exercises the source-install path. The
   # projected-path variant (adapter installs the broker into a worktree) is not yet
@@ -1181,7 +817,7 @@ open = [
   # Fix: add a pytest fixture that projects credbroker into a temp dir and runs
   #   test_sso_broker_verbs against that path; wire into the same parametrised suite.
   # File: packages/agentbundle/tests/unit/test_sso_broker_verbs.py
-  {slug = "credbroker-projected-variant-ci-coverage", source = "spec/credbroker-security-hardening AC11"},
+  {slug = "credbroker-projected-variant-ci-coverage", summary = "CI coverage for the projected-path sso_broker verb test", source = "spec/credbroker-security-hardening AC11"},
 
   # RFC-0068 D4 (deferred follow-on). After linear-brief-intake ships, PE
   # manually pastes spec ACs back into the Linear Issue for a review round.
@@ -1193,7 +829,7 @@ open = [
   # Fix: add a fourth skill to packs/linear/.apm/skills/push-acs-to-linear/
   #   using the linear primitive's create-comment subcommand.
   # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
-  {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
+  {slug = "push-acs-to-linear", summary = "Add a push-acs-to-linear skill (comment-only write-back)", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 
   # Deferred-AC anchors for docs/specs/catalogue-curation/spec.md (four (deferred: <slug>)
   # markers, lint-spec-status invariant iv). The shaped work that closes them is
@@ -1202,18 +838,18 @@ open = [
   # then so the deferred-marker lint resolves.
   # catalogue-curation resync RFC routing: re-synced source-RFC routes to Amendment
   #   (Open), Erratum (Frozen+correction), or new RFC (Frozen+new). Not exercised in QA.
-  {slug = "catalogue-curation-resync-rfc-routing", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-resync-rfc-routing", summary = "QA the catalogue-curation resync RFC-routing path", source = "spec/catalogue-curation"},
   # catalogue-curation anti-pattern detection: assimilation detects known misuse
   #   (scripts triggering skills, agents reviewing own output, flooding prompts) and
   #   reshapes or rejects, citing the repo rule. Not exercised in QA.
-  {slug = "catalogue-curation-antipattern-steering", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-antipattern-steering", summary = "QA catalogue-curation anti-pattern detection/reshaping", source = "spec/catalogue-curation"},
   # catalogue-curation propose-catalogue-pack: tests additivity + fit against local
   #   CHARTER + four principles; on pass scaffolds a pack shell and emits an RFC. No QA yet.
-  {slug = "catalogue-curation-propose-pack", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-propose-pack", summary = "QA propose-catalogue-pack additivity/fit + RFC scaffold", source = "spec/catalogue-curation"},
   # catalogue-curation hook-confirm: an ingested hook/script (executable code) is flagged
   #   distinctly and requires explicit human confirm before landing. Hook-ingest path not
   #   exercised (QA covered skill ingest only).
-  {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
+  {slug = "catalogue-curation-hook-confirm", summary = "QA the catalogue-curation hook-ingest confirm path", source = "spec/catalogue-curation"},
 
   # ── journey-template-revamp follow-ups (experience-reviewer, deferred) ─────────
   # The revamp landed the contract + fixed stage cards; these are experience polish
@@ -1223,15 +859,15 @@ open = [
   #   "what do I get?" proof is absent site-wide. Fix: author a real transcript/
   #   artifact snippet for the P1 journeys (core, discovery, release) in their
   #   goodOutputDescription frontmatter. File: web/src/content/journeys/*.md.
-  {slug = "journey-good-output-transcripts", source = "spec/journey-template-revamp experience-review Minor-3"},
+  {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
   # Journey hero h1 is a bare pack slug ("core"), meaningless when deep-linked cold;
   #   the five-second scan rests entirely on the tagline. Fix: pair the slug with a
   #   short descriptive eyebrow/qualifier in JourneyHero.astro.
-  {slug = "journey-hero-descriptive-eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
+  {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
   # Contract "Your decisions" chips look interactive (share chip styling) but aren't,
   #   and duplicate the gate labels below. Fix: anchor each chip to its GateDetail
   #   card (turn duplication into wayfinding). Files: JourneyContract.astro + GateDetail.astro.
-  {slug = "journey-decision-chip-gate-anchors", source = "spec/journey-template-revamp experience-review Nit-5"},
+  {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
 
   # agentbundle PyPI README + extended user docs update (ini-004 follow-on). After the
   # enterprise distribution release ships, the PyPI package page (readme= in pyproject.toml)
@@ -1244,5 +880,5 @@ open = [
   #   (b) CLI --help text for all new flags/commands, (c) docs/guides/ cross-references
   #   between public and Artifactory paths (e.g., use-an-artifactory-catalogue.md links).
   # Unblocks when: spec/agentbundle-enterprise-distribution-release is Shipped.
-  {slug = "agentbundle-enterprise-pypi-readme-and-user-docs-audit", needs = "ini-004:work:spec/agentbundle-enterprise-distribution-release"},
+  {slug = "agentbundle-enterprise-pypi-readme-and-user-docs-audit", summary = "Post-release PyPI README + user-docs audit for enterprise distribution", needs = "ini-004:work:spec/agentbundle-enterprise-distribution-release"},
 ]
