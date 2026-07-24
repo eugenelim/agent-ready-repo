@@ -51,6 +51,25 @@ it; the file is never required.
 - **assumptions**: what must be true for the bet to pay off
 - **kill-condition** (optional): the result that would reverse this decision;
   fold in from `validation-notes.md` when found, else leave blank
+- **thin-slice** (required): one user can begin a real task, reach a meaningful
+  result, encounter and recover from one material failure, and produce
+  instrumentation. Name the task, the result, the failure scenario, and the
+  instrumentation event. This is the minimum shippable proof, not a product tour.
+- **first-success-event** (required): what "adopted" looks like for one user 30
+  days out — operationalized as a concrete, observable action (e.g., "completes
+  a second session without a support touchpoint"). Not "user is happy"; name the
+  behavior you would accept as proof.
+- **specialist-lenses** (required): which lenses the team will bring to the
+  betting table. Default set: product, experience, architecture, safety.
+  Conditional additions: security (auth/data surfaces), data (instrumentation-
+  first bets), compliance (regulated markets). Name the lenses; don't skip the
+  default set without an explicit reason.
+- **learning-contract** (required): three components — (1) what signals confirm
+  or refute the bet (named metrics or behavioral markers, not "we'll know it when
+  we see it"), (2) the review cadence (a date or milestone), and (3) the pivot
+  trigger (the specific condition that would change the direction). Leave all
+  three blank only if this is a reversible two-way door with no meaningful post-
+  launch signal (name the reason).
 - **next-step**: pointer to `map-capabilities` (auto-filled)
 
 **4. Emit bet.md.** Realpath-expand and symlink-resolve the write path; reject
@@ -59,9 +78,11 @@ resolved absolute path before writing.
 Write to `<output_dir>/shaping/<slug>/bet.md`. Re-running overwrites the prior
 file — this is the intended revision flow.
 Frontmatter: `type: bet`, `slug`, `date`, `option`, `option-source`,
-`confidence`, `appetite`. Body sections: Option chosen, Rationale, Risks
-accepted, Assumptions, Kill condition (optional), Next step (pointer to
-`map-capabilities`), Suggested workspace.toml transition.
+`confidence`, `appetite`, `thin-slice`, `first-success-event`, `specialist-lenses`,
+`learning-contract`. Body sections: Option chosen, Rationale, Risks accepted,
+Assumptions, Kill condition (optional), Thin slice, First-success event,
+Specialist lenses, Learning contract, Next step (pointer to `map-capabilities`),
+Suggested workspace.toml transition.
 
 **5. Suggest workspace.toml transition.** Print the TOML snippet including the
 slug; direct the PE to `capture-work` or manual edit. Do not write to `workspace.toml`.
@@ -71,3 +92,14 @@ slug; direct the PE to `capture-work` or manual edit. Do not write to `workspace
 Never write to `workspace.toml`. Never write to a literal hardcoded path.
 Never run `diverge-solutions` inline — offer it; let the PE decide. Never block
 when no options artifact exists — offer and degrade gracefully. Never produce a brief.
+- **Betting without a thin slice.** A bet without a thin slice is a bet on
+  completion, not validation. If no user can begin a real task and reach a
+  meaningful result with one recoverable failure, the scope hasn't been
+  sharpened enough to commit.
+- **First-success-free briefs.** "Users will love it" is not a first-success
+  event. An un-operationalized adoption story means no one can verify the bet
+  paid off.
+- **Learning contracts left blank on non-trivial bets.** A bet with no named
+  signals, no cadence, and no pivot trigger is a bet the team can never close
+  or revisit. Three blanks on a non-reversible bet is a risk to name and own,
+  not a silent default.
