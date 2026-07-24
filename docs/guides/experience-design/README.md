@@ -34,6 +34,13 @@ New here? The XD chain runs in this order:
 7. **Quality floor** — all 18 states required across every screen
    → [State coverage reference — the 18-state set](reference/state-coverage.md)
 
+## Tutorials
+
+- [Walk the full XD chain: SaaS onboarding from research to reviewed screens](tutorials/xd-cross-pack-tutorial.md) —
+  follow the complete chain end to end across four packs (`desk-research` →
+  `product-strategy` → `experience-design`) on a realistic SaaS onboarding
+  surface, with all four handoff points shown explicitly.
+
 ## Explanation
 
 - [The experience thread](explanation/the-experience-thread.md) — the connective
