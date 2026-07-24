@@ -3,9 +3,9 @@
 Subcommand order on the parser matches the canonical install-workflow order
 from the spec (discovery-first): `list-packs`, `list-profiles`, `list-targets`,
 `scaffold`, `install`, `validate`, `render`, `adapt`, `diff`, `upgrade`,
-`uninstall`, `init-state`, `config`, `reconcile`. `list-profiles` (RFC-0034)
-lists the catalogue's curated single-scope install profiles; `install
---profile <name>` installs one.
+`uninstall`, `init-state`, `config`, `reconcile`, `package-catalogue`.
+`list-profiles` (RFC-0034) lists the catalogue's curated single-scope install
+profiles; `install --profile <name>` installs one.
 
 Each subcommand's `run(args) -> int` lives under `agentbundle.commands.*`;
 this module wires `argparse` and prints `--version`. No business logic here.
@@ -650,6 +650,33 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     sp.set_defaults(func=_lazy("reconcile"))
+
+    # --- package-catalogue --- (maintainer/CI only; RFC-0072 D1/D5)
+    sp = subparsers.add_parser(
+        "package-catalogue",
+        help="Package a catalogue repository into an Artifactory artifact layout (maintainer/CI only).",
+    )
+    sp.add_argument("--root", required=True, help="Catalogue repository root directory.")
+    sp.add_argument("--bundle", required=True, help="Bundle name (e.g. engineering).")
+    sp.add_argument("--release", required=True, help="Release tag (e.g. 0.13.0).")
+    sp.add_argument("--channel", required=True, help="Channel name (e.g. stable).")
+    sp.add_argument("--output", required=True, help="Output root directory.")
+    sp.add_argument(
+        "--source-revision",
+        default=None,
+        help="Git commit or tag (CI supplies this; no git shell-out).",
+    )
+    sp.add_argument(
+        "--minimum-agentbundle-version",
+        default=None,
+        help="Minimum agentbundle version for the channel descriptor.",
+    )
+    sp.add_argument(
+        "--published-at",
+        default=None,
+        help="Publication timestamp for the channel descriptor (ISO-8601).",
+    )
+    sp.set_defaults(func=_lazy("package_catalogue"))
 
     return parser
 
