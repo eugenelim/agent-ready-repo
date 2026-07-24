@@ -1,6 +1,6 @@
 ---
 name: run-bcg-matrix
-description: Use when a strategist needs to assess portfolio position and derive investment priorities across multiple products or business units. Triggers on "run a BCG matrix", "I need to assess portfolio position", "portfolio growth-share analysis", "which products should we invest in or cut", "star cash cow dog question mark". Produces a committed portfolio-position artifact. Do NOT use for single-product strategy — BCG requires at least two offerings to compare relative market share.
+description: Use when a strategist needs to assess portfolio position and decide where to invest, harvest, or divest across multiple products or business units. Triggers on "run a BCG matrix", "I need to assess our portfolio before allocating resources", "which of our products should we invest in versus harvest", "portfolio growth-share analysis", "classify our products as stars cash cows question marks dogs". Produces a committed portfolio-position artifact. Do NOT use for single-product strategy — BCG requires at least two offerings to compare relative market share.
 ---
 
 # Skill: run-bcg-matrix
@@ -28,3 +28,4 @@ Produces a **portfolio position analysis** using the BCG Growth-Share Matrix —
 - **Mandating precise market share data.** BCG is a directional framework; proceed with proxy data and surfaced caveats rather than blocking on unavailable metrics.
 - **Treating quadrant labels as verdicts.** A Dog is not automatically divest-worthy — strategic fit, competitive moat, and customer relationships matter. The quadrant is an input to the decision, not the decision.
 - **Applying BCG to a single product.** Without at least two offerings, there is no relative share comparison and no portfolio decision to make.
+- **Quadrant as strategy substitute.** BCG positions products in a portfolio; it does not name the mechanism that defends a Star's position or moves a Question Mark to Star. A BCG analysis without investment implications per quadrant, without naming the specific capability investment that would move a Question Mark or protect a Star, is a labeling exercise. The investment implications (step 5) and the top strategic decision (step 6) are the deliverable, not the quadrant map.

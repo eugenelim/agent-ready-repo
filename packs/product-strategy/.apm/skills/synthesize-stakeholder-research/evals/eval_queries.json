@@ -1,14 +1,14 @@
 [
-  {"query": "Synthesize our stakeholder research into strategic direction", "should_trigger": true},
-  {"query": "I need to turn the research we have into strategy", "should_trigger": true},
-  {"query": "Consolidate insights from executive, user, and regulator interviews", "should_trigger": true},
-  {"query": "What does our stakeholder research tell us strategically?", "should_trigger": true},
-  {"query": "We have desk-research outputs — synthesize them for the strategy session", "should_trigger": true},
-  {"query": "Organize cross-stakeholder themes from our research", "should_trigger": true},
+  {"query": "Synthesize stakeholder research into strategic direction", "should_trigger": true},
+  {"query": "I need to turn research into strategic direction organized by theme", "should_trigger": true},
+  {"query": "What does the research tell us strategically", "should_trigger": true},
+  {"query": "Consolidate stakeholder perspectives into cross-cutting themes", "should_trigger": true},
+  {"query": "What are the convergent signals from the research across stakeholder groups", "should_trigger": true},
+  {"query": "What does the research tell us about whether people will adopt this", "should_trigger": true},
 
-  {"query": "Run user interviews and summarize the findings", "should_trigger": false},
-  {"query": "Write a discussion guide for stakeholder interviews", "should_trigger": false},
-  {"query": "Run a SWOT analysis on our position", "should_trigger": false},
-  {"query": "Map the customer journey for the onboarding experience", "should_trigger": false},
-  {"query": "Run a PESTLE analysis for market entry", "should_trigger": false}
+  {"query": "Conduct stakeholder interviews for our product", "should_trigger": false},
+  {"query": "Run a desk research project on our market", "should_trigger": false},
+  {"query": "Write a survey for our users", "should_trigger": false},
+  {"query": "Summarize what each stakeholder said in a per-person report", "should_trigger": false},
+  {"query": "Give me a polished summary of each stakeholder's views without identifying what any of them disagree on", "should_trigger": false}
 ]

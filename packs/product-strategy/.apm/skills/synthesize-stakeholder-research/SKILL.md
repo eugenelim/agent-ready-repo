@@ -1,6 +1,6 @@
 ---
 name: synthesize-stakeholder-research
-description: Use when a strategist needs to turn existing stakeholder research into a strategic narrative organized by theme. Triggers on "synthesize stakeholder research", "I need to turn research into strategic direction", "what does the research tell us strategically", "consolidate stakeholder perspectives", "research synthesis for strategy". Requires existing research inputs — surfaces a diagnostic when none are found. Do NOT use to conduct research — this skill synthesizes; it does not interview, survey, or produce primary research.
+description: Use when a strategist needs to turn existing stakeholder research into a strategic narrative organized by theme — including adoption signals and first-success evidence. Triggers on "synthesize stakeholder research", "I need to turn research into strategic direction", "what does the research tell us about whether people will adopt this", "consolidate stakeholder perspectives into themes", "what are the cross-cutting signals from the research". Requires existing research inputs — surfaces a diagnostic when none are found. Do NOT use to conduct research — this skill synthesizes; it does not interview, survey, or produce primary research.
 ---
 
 # Skill: synthesize-stakeholder-research
@@ -20,10 +20,12 @@ Produces a **stakeholder synthesis** — a strategic narrative that organizes st
 3. **Extract raw themes per group.** For each research input, extract the top three to five strategic signals the group expressed: what they want, what they fear, what they judge success by, what trade-offs they would accept.
 4. **Cross-map for convergent signals.** Find themes that appear across two or more stakeholder groups — these are the highest-confidence strategic signals. Name each convergent signal explicitly ("Both executives and regulators prioritize X").
 5. **Author the synthesis narrative.** Organize by strategic theme, not by stakeholder. Each section: (a) theme name; (b) which stakeholder groups hold this view and with what intensity; (c) strategic implication — what the organization must do or decide in response. Use direct, non-hedged language.
-6. **Resolve the artifact path** following `references/agentbundle-layout.md`. Surface the path, then commit `stakeholder-synthesis.md` with frontmatter `type: stakeholder-synthesis`.
+6. **Flag adoption signal absence.** Scan the themes for evidence of adoption readiness: does any stakeholder group name a behavior that constitutes first success? Does any group describe why they would return after first use? If neither appears in the research, surface: "Adoption signal absent — the research covers intent and awareness but no stakeholder group names a first-success event or a reason to return. Recommend a targeted research round focused on adoption behavior before committing strategy."
+7. **Resolve the artifact path** following `references/agentbundle-layout.md`. Surface the path, then commit `stakeholder-synthesis.md` with frontmatter `type: stakeholder-synthesis`.
 
 ## Anti-patterns
 
 - **Conducting research in this skill.** `synthesize-stakeholder-research` does not write interview guides, run surveys, or produce raw research artifacts — that is the desk-research pack's domain. If no research exists, surface the diagnostic and redirect.
 - **Organizing by stakeholder instead of by theme.** A section per stakeholder group reproduces the research structure; a section per theme produces the strategic signal. The synthesis step is the transformation.
 - **Treating all themes equally.** Cross-stakeholder convergence is the signal-strength indicator — themes held by one group are inputs; themes held by three groups are strategic imperatives.
+- **Vision-without-adoption-path.** A synthesis that names strategic themes and organizational priorities but contains no adoption signal is incomplete. If no stakeholder group expressed what first success looks like or why they would return, that absence is itself a strategic finding — surface it, don't omit it.

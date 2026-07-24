@@ -306,7 +306,6 @@ queue   = [
   # Done: PS skills explicitly own adoption hypothesis + causal metric tree;
   #   weak fixtures fail; pack page + journey page + adoption-hypothesis how-to
   #   guide published.
-  {path = "spec/product-strategy-adoption-doctrine", needs = "work:spec/digital-experience-contract"},
 
 
 
@@ -492,6 +491,7 @@ shipped = [
   "spec/xd-copy-direction",                        # Shipped 2026-07-23 — copy-direction skill + three-way copy boundary
   "spec/product-engineering-shaping-doctrine",     # Shipped 2026-07-23 — PE shaping doctrine; ux-writing rename; thin-slice + learning contract
   "spec/frontend-engineering-doctrine-update",     # Shipped 2026-07-23 — FE doctrine: four modes, 18 states, WCAG 2.2 AA, CWV targets (core 0.14.0)
+  "spec/product-strategy-adoption-doctrine",       # Shipped 2026-07-23 — M2a Product Strategy Adoption Doctrine
 ]
 
 ["ini-003".shaping_queue]
