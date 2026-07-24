@@ -53,16 +53,13 @@ Example:
 
 ```
 Scope: APP and API · Sprint 24 + open backlog · 12 issues (complete result)
-─────────────────────────────────────────────────────
 Ready to pull: 3 · Needs story work: 3 · Blocked: 2 · In progress: 2
-─────────────────────────────────────────────────────
 Top 5 to discuss:
 1. APP-203  Add rate limiting to API gateway       Ready to pull · Standard
 2. API-98   Paginate GET /users endpoint            Ready to pull · Quick
 3. APP-206  Improve performance                     Needs story work
 4. APP-215  Migrate auth service                    Blocked — security review
 5. API-104  Fix search results                      Needs story work
-─────────────────────────────────────────────────────
 APP-220, API-107 unassigned — no sprint assigned.
 Jira was not changed.
 ```
@@ -216,7 +213,6 @@ Issues to update:  APP-206, APP-219, API-104
 Field to change:   description
 Protected fields:  status, assignee, priority, sprint, labels
 Total writes:      3
-─────────────────────────────────────────────────────
 [Cancel]   [Apply all three]
 ```
 
