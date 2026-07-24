@@ -1,6 +1,6 @@
 ---
 name: define-content-strategy
-description: Use when a strategist needs to set the organizational content direction before content design begins — the governance and structural layer above per-surface content execution. Triggers on "define the content strategy", "I need to set the content strategy before content design", "content governance framework", "Halvorson content strategy", "Purpose Process Structure Governance". Produces a committed content-strategy.md. Do NOT use to write per-surface content or microcopy — that belongs to the content-design skill in the experience-design pack.
+description: Use when a strategist needs to set the organizational content direction before content design begins — the governance and structural layer above per-surface content execution. Triggers on "define the content strategy", "I need to set the content strategy before content design begins", "content governance framework for our organization", "how should we structure and govern our content", "Halvorson content strategy quad". Produces a committed content-strategy.md. Do NOT use to write per-surface content or microcopy — that belongs to content-design (experience-design pack). Do NOT use for per-surface copy briefs — that belongs to copy-direction (experience-design pack).
 ---
 
 # Skill: define-content-strategy

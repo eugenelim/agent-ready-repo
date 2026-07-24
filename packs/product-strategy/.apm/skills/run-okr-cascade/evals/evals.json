@@ -3,17 +3,18 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Cascade the following company OKRs to team level and identify gaps. Company OKR: Objective — 'Become the market leader in SMB payroll software'; KR1 — 'Reach 40% NPS by Q4'; KR2 — 'Reduce churn to <5% annually'; KR3 — 'Launch in 3 new geographies by Q3'. workspace.toml has one active initiative: ini-002 with status=active.",
-      "expected_output": "An okr-cascade.md artifact committed to the resolved layout path with frontmatter type: okr-cascade. The artifact contains the company Objective and three KRs verbatim. Derived team-level OKRs are provided for each company KR, each measurable at the team scope. At least two strategic gaps are identified — areas where no current team capability covers a KR target. Each gap has a kebab-case slug. Gap entries are appended to workspace.toml under [\"ini-002\".shaping_queue].backlog as {slug = \"<gap-slug>\", type = \"strategy\"} (no needs field). If frame-situation is absent, the diagnostic 'frame-situation not found — install PE pack to route OKR gaps into the shaping sequence' appears. The artifact path is surfaced before writing.",
+      "prompt": "Run an OKR cascade for a B2B analytics SaaS company. Company objectives: (1) Increase enterprise revenue by 40% this year (KR: close 5 new enterprise contracts; KR: expand 3 existing accounts by 50%). (2) Become the trusted analytics partner for mid-market finance teams (KR: NPS from finance users > 50; KR: 80% of users complete key workflow in under 10 minutes). No current OKR cascade exists.",
+      "expected_output": "An okr-cascade.md artifact committed to the resolved layout path with frontmatter type: okr-cascade. The artifact covers: company OKRs (verbatim), team-level OKRs derived from each company objective (measurable at team scope), a gap registry naming each unowned or under-resourced gap with a kebab-case slug. The causal metric tree is derived: a north-star metric (user-behavioral, outcome-oriented — not 'features shipped'), 2–4 leading indicators that causally predict the north-star (each connected to a specific gap or KR), and the causal chain named explicitly. Gap entries are ranked by OKR weight. Workspace.toml shaping-queue entries are prepared for the highest-priority gaps. The resolved path is surfaced before writing.",
       "assertions": [
-        "Company OKRs are captured verbatim — not interpreted or rewritten without the strategist's confirmation",
-        "Team-level OKRs are derived for each company KR; each team KR is measurable at the team's scope",
-        "At least two gaps are identified with kebab-case slugs and brief descriptions",
-        "okr-cascade.md is committed with frontmatter type: okr-cascade at the resolved path",
-        "Gap entries are written as {slug = \"<gap-slug>\", type = \"strategy\"} with no needs field",
-        "Entries target [\"ini-002\".shaping_queue].backlog — the per-initiative nested form, not a top-level [shaping_queue] table",
-        "The absent frame-situation diagnostic appears (or frame-situation is found and named)",
-        "OKR cascade is used for org-wide alignment; no feature-level backlog items appear in the output"
+        "Company OKRs appear verbatim — not interpreted or reworded",
+        "Team-level OKRs are derived for each company Objective and are measurable at team scope",
+        "Gap registry names at least two gaps with kebab-case slugs; each gap names which KR it is blocking",
+        "North-star metric is named: a user-behavioral outcome metric (not an output metric like 'features shipped' or 'MRR')",
+        "2–4 leading indicators are named, each with an explicit causal connection to the north-star",
+        "Each leading indicator is connected to a specific gap or KR — not a free-floating metric",
+        "Gap entries are ranked by OKR weight or strategic priority — not a flat unordered list",
+        "Workspace.toml shaping-queue entries are prepared for the highest-priority gaps",
+        "The artifact is committed to the resolved path with frontmatter type: okr-cascade; path is surfaced before writing"
       ]
     }
   ]
