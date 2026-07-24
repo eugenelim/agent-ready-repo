@@ -686,20 +686,22 @@ composites that have no single token equivalent — each annotated with a commen
 | Announcement bar | `.md-banner` | Dark background |
 | Platform back-link | `.platform-back-link` | Amber mono link |
 
-### Four known value deviations from the token spec
+### Four known default values from Material for MkDocs (≥9.5, <10)
 
-Material for MkDocs's internal CSS uses several color values that differ from
-the `--ds-*` / `--prim-*` token spec. These represent places where Material's
-own defaults and our token palette do not align:
+Material for MkDocs ships its own bundled CSS with several color defaults
+that differ from the `--ds-*` / `--prim-*` token spec. These are **not in
+`extra.css`** — they are Material's bundled defaults that our overrides only
+partially displace. Where `extra.css` does override them, it uses `var(--ds-*)`
+/ `var(--prim-*)` token references.
 
-| Raw value | Material context | Token-spec equivalent |
+| Material default value | Material CSS context | Token-spec closest equivalent |
 |---|---|---|
-| `#f8fafc` | Primary text on dark (Material default) | `--ds-hero-fg: #ffffff` |
-| `#141516` | Dark code background (Material slate default) | `--prim-dark-900: #111520` |
-| `#1a202c` | Table header text (Material default) | `--prim-neutral-900: #1c1b18` |
-| `#e2e8f0` | Table border (Material default) | No primitive-scale equivalent |
+| `#f8fafc` | Primary text on dark (slate scheme default) | `--ds-hero-fg: #ffffff` |
+| `#141516` | Code block bg (slate scheme default, overridden by `extra.css` to `var(--prim-dark-900)` = `#111520`) | `--prim-dark-900: #111520` |
+| `#1a202c` | Table header text (slate scheme default) | `--prim-neutral-900: #1c1b18` |
+| `#e2e8f0` | Table border (slate scheme default) | No primitive-scale equivalent |
 
-These deviations exist in Material's CSS layer, not in `extra.css` (which
-overrides with token references where possible). Fixing them would require
-changes to `tokens.css` to close the gap, or accepting the deviation as a
-known difference between the Astro and MkDocs visual systems.
+These values live in Material's bundled theme CSS (`pip install mkdocs-material`),
+not in the tracked `site/` tree. Verifying or fixing them requires inspecting the
+installed package. Fixing the deviation from `--ds-*` tokens would require
+replacing Material's defaults with `extra.css` overrides or adding new token steps.

@@ -12,9 +12,12 @@ Exclusions:
   (b) Line-leading // comments (JS/TS comments in Astro frontmatter are always
       line-leading, so a line-leading test is sufficient and avoids per-file
       fence-state tracking)
-  (c) :root {} token-definition blocks — boolean toggle, not a depth counter;
-      assumes flat, single-line-brace :root blocks (current tokens.css shape:
-      two single-line { openings, no nested braces)
+  (c) :root {} token-definition blocks in tokens.css only — boolean toggle,
+      not a depth counter; assumes flat, single-line-brace :root blocks (current
+      tokens.css shape: two single-line { openings, no nested braces).
+      Limitation: trailing inline CSS comments containing hex (e.g.
+      `background: var(--x); /* #abc */`) are not stripped — the hex in the
+      comment is flagged as a violation. No such pattern exists in web/src/ today.
   (d) SVG attribute lines (fill=, stroke=, xmlns=, viewBox=, etc.)
 
 Exit 0 = clean, 1 = violations found; prints file:line: <value> per hit.
@@ -66,8 +69,8 @@ def lint_file(path: str) -> list[tuple[int, str]]:
             if stripped.startswith('//'):
                 continue
 
-            # :root { — enters token-definition block (flat-brace assumption)
-            if ':root' in line and '{' in line:
+            # :root { — enters token-definition block (tokens.css only, flat-brace assumption)
+            if os.path.basename(path) == 'tokens.css' and ':root' in line and '{' in line:
                 inside_root = True
                 continue
 
