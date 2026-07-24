@@ -19,30 +19,34 @@ it points at the recognized standards and names the principle, never the numbers
 A surface is not designed until every state it can be in is designed. The
 happy path is one state among several; the others are where products feel
 broken. For each interactive surface, decide what the user sees and can do
-in each of:
+in each of the 18 canonical states. The full set is aligned with the
+`frontend-engineering` build-time state matrix so that design time and build
+time share the same vocabulary; the treatments here are design-intent
+descriptions, not build-time implementation prescriptions.
 
-- **Empty** — nothing yet, or nothing matches. Distinguish *first-run*
-  (never had data — orient and invite the first action) from *no-results*
-  (a filter or search emptied it — show how to recover).
-- **Loading** — work is in flight. Communicate that something is happening
-  and, where you can, roughly how much is left; preserve layout so the
-  surface doesn't jump when content arrives.
-- **Error** — something failed. Say what happened in the user's terms, what
-  it means for them, and the next action. Never a dead end.
-- **Success** — the action completed. Confirm it visibly enough to be
-  believed, proportionate to the action's weight.
-- **Partial** — some data, some missing; some succeeded, some failed. Show
-  what you have and mark what you don't, rather than hiding the whole.
-- **Disabled / unavailable** — an action can't be taken right now. Make the
-  *why* recoverable (what would re-enable it), not just the *that*.
+Not all states apply to every surface — explicitly note states that are
+genuinely inapplicable and record why in the design brief.
 
-**Additional gated-screen state — `permission/denied`.** For a surface behind
-authorization, design what an *unauthorized* or *locked* viewer sees: a
-read-only or locked view with a recoverable note (who can act, how to request
-access), never a blank screen or a dead end. This **extends** the state set
-above for gated screens; it does not replace it — a gated screen still handles
-empty / loading / error / success / partial / disabled *and* permission/denied.
-(The per-screen brief carries it as `permission/denied (if gated)`.)
+| State | When it applies | Design treatment |
+|---|---|---|
+| **loading** | Any async operation is in flight | Show a placeholder matching the final layout shape; communicate that something is happening and, where predictable, approximately how much remains; preserve layout so content arrival causes no jarring shift |
+| **empty** | Nothing exists yet, or nothing matches; surface has never been populated | Distinguish *first-run* (below) from *no-results* (below); for a generic empty, orient the user to what belongs here and invite the first meaningful action |
+| **first-run** | The surface has never had data — the user's first encounter | Orient and invite the first meaningful action; do not show the generic empty state; make the starting action visible and low-risk |
+| **no-results** | A search or filter emptied the result set | Show what query was applied; show how to recover (clear filter, broaden search, start fresh); never a dead end |
+| **error** | An operation failed | Say what happened in the user's terms; say what it means for them; name the next action; preserve prior content where possible; never a dead end |
+| **partial** | Some data is present, some missing; some operations succeeded, some failed | Show what you have and mark what you don't rather than hiding the whole; make the missing portions recoverable |
+| **disabled** | An action cannot be taken right now | Make the *why* recoverable — what would re-enable it — not just the *that*; render it visibly disabled, not invisible |
+| **content** | The surface is in its normal loaded state | Spec this state too — it defines the layout shape every other state is measured against; its skeleton is the loading placeholder |
+| **success** | An action completed | Confirm completion visibly and proportionately to the action's weight: subtle for low-stakes, prominent for high-stakes; never silent |
+| **permission/denied** | The viewer is unauthorized or locked out of this surface | Show a read-only or locked view with a recoverable note — who can act, how to request access; never a blank screen or a dead end; this *extends* the state set for gated screens, it does not replace the other states — a gated screen still handles all applicable states *and* permission/denied |
+| **offline** | The network is unavailable | Show cached content where possible; provide a manual retry; indicate that the content shown may be stale; never a silent failure |
+| **blocked** | An action cannot proceed because of an external dependency or policy | Name the specific blocker and the resolution path; never leave the user with no next step |
+| **destructive-confirmation** | The user is about to take an irreversible action | Require explicit confirmation with a clear statement of what will be destroyed; provide a safe default (cancel or back); never an ambiguous or dismissible confirmation for high-consequence actions |
+| **long-content** | Content is significantly longer than typical for this surface | Offer progressive disclosure, a table of contents, or pagination; do not silently show only the first segment |
+| **large-data-set** | A query returns more records than the surface can reasonably show at once | Design for virtual scrolling, pagination, or sampling; never slice the data silently — show the user that more exists |
+| **high-zoom** | The surface is used at 200–400% zoom | Design so text reflows, controls remain operable, and no horizontal scrolling is required; test at the design stage by examining the layout at extreme zoom |
+| **reduced-motion** | The user has requested reduced motion | All animation is replaced with an instant or cross-fade transition that preserves the information the motion carried; no sliding, scaling, or spinning remains |
+| **keyboard-only** | All interactions are navigated via keyboard alone, with no pointer | Every action is reachable and completable via keyboard; the tab order is logical; focus indicators are always visible; no pointer-only affordances exist |
 
 ## 2. Accessibility floor
 
