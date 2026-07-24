@@ -51,6 +51,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   not anything in `pack.toml`.
 - Sort all tabular output deterministically (by pack, then adapter, then scope)
   so runs are stable and diff-able.
+  *(Erratum 2026-07-24, pending implementation of `spec/list-installed-update-status`: that spec supersedes this boundary — the `list-installed` default table sort order changes from `(pack, adapter, scope)` to `(scope, pack, adapter)` per RFC-0072 D5. This applies to the existing default table mode and all new output modes introduced by that spec. Additionally: STATUS gains a fourth value (`ahead`); a conditional SOURCE column is added when 2+ distinct sources are present. The fixed six-column set defined in this spec's AC and the three-value STATUS enumeration are both superseded by that spec. This erratum note is written at spec time; the code change lands in the implementing PR for `spec/list-installed-update-status`.)*
 
 ### Ask first
 

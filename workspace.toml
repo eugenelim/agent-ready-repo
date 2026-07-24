@@ -535,39 +535,26 @@ backlog = []
 
 ["ini-004".work]
 active  = []
-shipped = []
+shipped = [
+  "spec/rfc-agentbundle-enterprise-distribution",        # RFC-0072 Accepted; unlocks all downstream ini-004 specs
+  "spec/packstate-source-provenance",                    # spec + plan authored; adversarial review Clean 2026-07-23
+  "spec/https-catalogue-channels",                       # spec + plan authored; adversarial review Clean 2026-07-23
+  "spec/source-conflict-install-guard",                  # spec + plan authored; adversarial review Clean 2026-07-24 (8 passes)
+  "spec/list-installed-update-status",                   # spec + plan authored; adversarial review Clean 2026-07-24 (15 passes)
+  "spec/upgrade-bulk-all",                               # spec + plan authored; adversarial review Clean 2026-07-24 (32 passes)
+  "spec/organization-artifactory-bootstrap",             # spec + plan authored; adversarial review Clean 2026-07-24 (9 passes)
+  "spec/package-catalogue-command",                      # spec + plan authored; adversarial review Clean 2026-07-24 (12 passes)
+  "spec/artifactory-publishing-workflow",                # spec + plan authored; adversarial review Clean 2026-07-24 (4 passes)
+  "spec/corporate-update-documentation",                 # spec + plan authored; adversarial review Clean 2026-07-24 (8 passes)
+  "spec/agentbundle-enterprise-distribution-release",    # spec + plan authored; adversarial review Clean 2026-07-24
+]
 queue   = [
 
   # ── RFC gate ─────────────────────────────────────────────────────────────────
-  # Problem: four architecture decisions (mutable channel → immutable archive,
-  #   package-shipped org bootstrap, source identity as pack ownership, bulk upgrade
-  #   preflighted not atomic) plus three new public CLI surfaces (--format flag on
-  #   list-installed/upgrade, --all bulk upgrade mode, agentbundle package-catalogue
-  #   command) all need coordinated ratification before implementation begins.
-  # Deliver: RFC formally proposing the CLI surface additions and the new source-scheme
-  #   introduction (catalogue+https / archive+https); four ADR stubs resolving the
-  #   design decisions; acceptance unlocks all M1–M6 implementation specs.
-  # Done: RFC accepted; four ADR decisions ratified; downstream specs reference a
-  #   stable, agreed design.
-  "spec/rfc-agentbundle-enterprise-distribution",
+  # "spec/rfc-agentbundle-enterprise-distribution" — shipped; moved to ["ini-004".work].shipped
 
   # ── M1a · PackState Source Provenance ────────────────────────────────────────
-  # Problem: PackState hard-codes source = "agent-ready-repo" regardless of actual
-  #   install origin. The historical literal is indistinguishable from a real record,
-  #   making all source-based operations — conflict detection, upgrade routing, status
-  #   reporting — unreliable.
-  # Deliver: source: str | None = None with no default; single canonicalization function
-  #   used by install, upgrade, status, and conflict checks (local: absolute normalized
-  #   path; remote: logical channel URI, normalized scheme/host, no credentials, no
-  #   temporary extraction paths); legacy-unknown semantics for None and the historical
-  #   "agent-ready-repo" literal (neither proves public-repo origin); explicit source
-  #   write in all install/upgrade paths; tested migration contract (legacy rows
-  #   preserved on read, provenance not invented); upgrade source selection order
-  #   documented (explicit arg → row source → configured default for legacy-only rows).
-  # Done: new installs never write a hard-coded source; all paths use the
-  #   canonicalization function consistently; legacy rows parse cleanly without mutation;
-  #   all existing tests pass.
-  {path = "spec/packstate-source-provenance", needs = "work:spec/rfc-agentbundle-enterprise-distribution"},
+  # "spec/packstate-source-provenance" — shipped; moved to ["ini-004".work].shipped
 
   # ── M1b · Source Conflict Install Guard ──────────────────────────────────────
   # Problem: the same pack name can be installed at one scope from multiple sources
@@ -582,7 +569,7 @@ queue   = [
   #   blocked (status may warn).
   # Done: second-source install is refused before any mutation; same-source multi-adapter
   #   install is not falsely rejected; --force bypass is confirmed non-functional.
-  {path = "spec/source-conflict-install-guard", needs = "work:spec/packstate-source-provenance"},
+  # "spec/source-conflict-install-guard" — active; moved to ["ini-004".work].active
 
   # ── M2 · Update Status + JSON Output ─────────────────────────────────────────
   # Problem: list-installed produces a human table only, with no machine-readable
@@ -601,7 +588,7 @@ queue   = [
   # Done: JSON stdout parses cleanly; ahead is never misreported as up-to-date; all
   #   unknown reasons are covered by tests; adapter-specific installed versions remain
   #   independent.
-  {path = "spec/list-installed-update-status", needs = "work:spec/packstate-source-provenance"},
+  # "spec/list-installed-update-status" — active; moved to ["ini-004".work].active
 
   # ── M3 · Bulk Upgrade (--all) ─────────────────────────────────────────────────
   # Problem: upgrade requires a single named pack; there is no way to upgrade all
@@ -621,7 +608,7 @@ queue   = [
   # Done: no silent downgrade of ahead rows; blocked plan writes nothing; partial failure
   #   is honestly reported and not described as rolled back; JSON output is valid on success,
   #   blocked preflight, and partial failure.
-  {path = "spec/upgrade-bulk-all", needs = ["work:spec/packstate-source-provenance", "work:spec/list-installed-update-status"]},
+  # "spec/upgrade-bulk-all" — shipped; moved to ["ini-004".work].shipped
 
   # ── M4a · HTTPS Catalogue Channels ───────────────────────────────────────────
   # Problem: agentbundle only resolves catalogues from local directories or git+https
@@ -640,7 +627,7 @@ queue   = [
   #   refused; local in-process HTTP server fixture for tests (no external network calls).
   # Done: digest mismatch fails before any install mutation; temp files cleaned on failure;
   #   client version checked against minimum_agentbundle_version before archive download.
-  {path = "spec/https-catalogue-channels", needs = "work:spec/rfc-agentbundle-enterprise-distribution"},
+  # "spec/https-catalogue-channels" — shipped; moved to ["ini-004".work].shipped
 
   # ── M4b · Organization Artifactory Bootstrap ──────────────────────────────────
   # Problem: there is no way for an organization's AgentBundle fork to ship a default
@@ -657,7 +644,7 @@ queue   = [
   # Done: a fork with enabled = true routes to the configured Artifactory channel after
   #   user config but before editable-clone; a malformed enabled config fails with a
   #   clear diagnostic and no fallback; no real org endpoints appear in the public repo.
-  {path = "spec/organization-artifactory-bootstrap", needs = ["work:spec/packstate-source-provenance", "work:spec/https-catalogue-channels"]},
+  # "spec/organization-artifactory-bootstrap" — shipped; moved to ["ini-004".work].shipped
 
   # ── M5a · Package-Catalogue Command ──────────────────────────────────────────
   # Problem: there is no tooling to produce the expected Artifactory artifact layout
@@ -678,7 +665,7 @@ queue   = [
   # Done: identical inputs + SOURCE_DATE_EPOCH produce byte-identical archives; archive
   #   is resolvable by existing list/install logic; overwrite refused without explicit
   #   flag (none added in this version).
-  {path = "spec/package-catalogue-command", needs = "work:spec/https-catalogue-channels"},
+  # "spec/package-catalogue-command" — shipped; moved to ["ini-004".work].shipped
 
   # ── M5b · Artifactory Publishing Workflow ────────────────────────────────────
   # Problem: no canonical CI reference or GitHub Actions template documents the correct
@@ -692,7 +679,7 @@ queue   = [
   #   guidance (environment secrets only, not in workflow YAML values).
   # Done: publish sequence is canonically documented; channel JSON update is always last;
   #   template contains no real credentials or org endpoints.
-  {path = "spec/artifactory-publishing-workflow", needs = "work:spec/package-catalogue-command"},
+  # "spec/artifactory-publishing-workflow" — shipped; moved to ["ini-004".work].shipped
 
   # ── M6 · Corporate Update Documentation ──────────────────────────────────────
   # Problem: no documentation covers the end-to-end enterprise adoption flows:
@@ -711,14 +698,7 @@ queue   = [
   # Done: an enterprise adopter can configure, install, upgrade, and troubleshoot
   #   without undocumented steps; security controls are explicitly stated; no real
   #   credentials or org endpoints appear anywhere in the delivered content.
-  {path = "spec/corporate-update-documentation", needs = [
-    "work:spec/list-installed-update-status",
-    "work:spec/upgrade-bulk-all",
-    "work:spec/source-conflict-install-guard",
-    "work:spec/organization-artifactory-bootstrap",
-    "work:spec/package-catalogue-command",
-    "work:spec/artifactory-publishing-workflow",
-  ]},
+  # "spec/corporate-update-documentation" — shipped; moved to ["ini-004".work].shipped
 
   # ── Release ───────────────────────────────────────────────────────────────────
   # Problem: all M1–M6 work ships across multiple PRs; without a coordinated release
@@ -731,7 +711,7 @@ queue   = [
   # Done: agentbundle --version reflects the new version; PyPI package page describes
   #   enterprise distribution; all M1–M6 PRs are merged and the tag points to a clean
   #   main.
-  {path = "spec/agentbundle-enterprise-distribution-release", needs = "work:spec/corporate-update-documentation"},
+  # "spec/agentbundle-enterprise-distribution-release" — shipped; moved to ["ini-004".work].shipped
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.
@@ -757,6 +737,13 @@ open = [
 
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
+
+  # spec/organization-artifactory-bootstrap AC17: _is_valid_source must accept
+  # catalogue+https:// URLs before the xfail(strict=True) test can pass.
+  # Fix: ship spec/https-catalogue-channels (AC1 extends _is_valid_source), then
+  #   remove the xfail marker from test_org_bootstrap_is_valid_source_accepts_constructed_url.
+  # Unblocks when: spec/https-catalogue-channels is Shipped.
+  {slug = "https-catalogue-channels-ac17-gate", source = "spec/organization-artifactory-bootstrap"},
 
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
