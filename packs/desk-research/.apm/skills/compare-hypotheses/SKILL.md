@@ -9,6 +9,10 @@ The decision-support skill. Takes the camps and sources from upstream
 and produces a matrix that says which hypothesis the evidence
 actually favors.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 - **Decision pipeline** — after `/identify-perspectives` and

@@ -25,6 +25,11 @@ upstream artifact is present.
 decomposition + service contracts); the spec LLD (the support row names the
 internal systems the spec must account for).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## When to invoke
 
 Confirm all three before proceeding; if any fails, resolve it first.

@@ -38,16 +38,30 @@ Do not change Jira.
 
 What you'll get:
 
+**§1 — Ready to pull**
+
+| Key | Summary | Priority | Complexity | Updated |
+|---|---|---|---|---|
+| APP-203 | Add rate limiting to API gateway | High | Standard | 2d ago |
+| APP-211 | Refactor auth token refresh | Medium | Standard | 4d ago |
+| API-98 | Paginate GET /users endpoint | Medium | Quick | 3d ago |
+
+**§3 — Blocked**
+
+| Key | Summary | Blocker | Owner hint |
+|---|---|---|---|
+| APP-215 | Migrate auth service | Security review pending | Security team |
+
+**§5 — Needs detail**
+
+| Key | Summary | What's missing | Fix with |
+|---|---|---|---|
+| APP-206 | Improve performance | No acceptance criteria | jira-story-triage |
+| API-104 | Fix search results | Scope too broad | jira-story-triage |
+
 ```
-Scope: APP and API · Sprint 24 + open backlog · 12 issues (complete)
-Ready to pull: 3  ·  Needs story work: 3  ·  Blocked: 2  ·  In progress: 2
-Top 5 to discuss:
- APP-203  Add rate limiting to API gateway       Ready · Standard
- API-98   Paginate GET /users endpoint            Ready · Quick
- APP-206  Improve performance                     Needs story work
- APP-215  Migrate auth service                    Blocked — security review
- API-104  Fix search results                      Needs story work
-Jira was not changed.
+Team status: 12 items.  Ready to pull: 3 (Quick 1 / Std 2).  In progress: 2.
+Blocked: 1.  Needs detail: 3.  Scope: APP, API · Sprint 24.  Jira was not changed.
 ```
 
 ---

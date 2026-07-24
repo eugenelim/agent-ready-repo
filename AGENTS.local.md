@@ -220,6 +220,14 @@ adopters receive on first install via brownfield rules):
 | `.codex/agents/<name>.toml`          | `packs/<pack>/.apm/agents/<name>.md`                         |
 | `.codex/hooks.json`                  | `packs/<pack>/.apm/hook-wiring/*.toml`                       |
 
+> **Skills project to BOTH targets simultaneously.** `make build-self` writes
+> `.claude/skills/<name>/SKILL.md` **and** `.agents/skills/<name>/SKILL.md`
+> in one pass from the single pack source (`packs/<pack>/.apm/skills/<name>/SKILL.md`).
+> Never edit either projection target directly — edit the pack source, then run
+> `make build-self` (or `FORCE=1 make build-self` when the tree is intentionally
+> dirty). **Exception:** `.claude/skills/README.md` is canonical (not projected)
+> — edit it directly.
+
 **The workflow when you touch any of the above:**
 
 1. Edit the seed file (under `packs/<pack>/seeds/...`), *not* the
@@ -272,8 +280,10 @@ seed it names, re-run `make build-self`, re-commit).
   fixed by propagating to `packs/core/seeds/docs/specs/README.md`.
 - new-spec subagent-matching PR (#67) edited `.claude/skills/new-spec/SKILL.md`
   directly; fixed by propagating to `packs/core/.apm/skills/new-spec/SKILL.md`.
-  Note: `.claude/skills/` and `.claude/agents/` project from
+  Note: `.claude/skills/`, `.agents/skills/`, and `.claude/agents/` project from
   `packs/<pack>/.apm/...`, **not** from `packs/<pack>/seeds/...`.
+  `build-self` projects skills to **both** `.claude/skills/` and `.agents/skills/`
+  simultaneously. Exception: `.claude/skills/README.md` is canonical (edit directly).
 
 If you edit any README, table, or doc under the projected paths above,
 **check the seed first**.

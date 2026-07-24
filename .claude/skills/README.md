@@ -54,6 +54,14 @@ Each `SKILL.md` should:
    `AGENTS.md` / `docs/CONVENTIONS.md` / `docs/CHARTER.md` rather than
    our copy. The contract is that an `AGENTS.md` exists, not that
    ours does.
+5. **Declare output rendering directives inline.** If the skill surfaces
+   structured output in chat — tables, status lists, diagrams, diffs, key-value
+   receipts — add an `## Output rendering` section before the first procedural
+   `##` in the body. Paste only the directive line(s) that match what this skill
+   actually emits; don't load the full catalog into every skill. Full catalog:
+   [`docs/guides/core/reference/output-rendering.md`](../../docs/guides/core/reference/output-rendering.md).
+   Skills that write files and receipt them, interact conversationally, or emit
+   raw data streams for machine consumption need no directive.
 
 ## Spec compliance
 

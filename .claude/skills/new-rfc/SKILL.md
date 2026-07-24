@@ -13,6 +13,10 @@ backed by research — not a pile of un-researched questions to rescue. Modeled
 on `new-spec`'s assumption checkpoint, plus the per-decision recommendation
 pass RFCs need and specs don't.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before invoking, confirm one of:

@@ -28,6 +28,10 @@ nothing about briefs. If you find yourself writing a Jira REST call, or
 interrogating the user for a missing Outcome, stop — the first belongs in
 `jira`, the second in `receive-brief`.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Cross-skill invocation — name, not path
 
 This skill names sibling skills (`jira`, `receive-brief`, `new-spec`) **by

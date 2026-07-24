@@ -12,6 +12,10 @@ token block, state matrix), the craft rules that govern EXECUTE, and the GATES
 verification commands. It is not needed for incidental HTML edits to an existing
 surface already covered by a grounded aesthetic reference.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Mode selection
 
 Before starting, select the mode that matches the work:

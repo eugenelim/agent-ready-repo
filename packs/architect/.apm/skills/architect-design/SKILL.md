@@ -9,6 +9,12 @@ Produce a Google-style design doc that names the problem, proposes a solution,
 considers alternatives honestly, and surfaces the risks the proposer least wants
 to write down — well-architected by construction, then converged against review.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before drafting, confirm:

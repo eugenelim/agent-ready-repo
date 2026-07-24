@@ -7,6 +7,10 @@ description: Use when a strategist needs to cascade company OKRs to team level, 
 
 Produces an **OKR cascade** — company Objectives and Key Results aligned to team-level OKRs, with strategic gaps identified, a causal metric tree derived, and gap entries routed to the PE pack's shaping queue via `workspace.toml`. The cross-pack routing contract is documented in `references/cross-pack-routing.md`. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 1. **Company OKRs exist or can be elicited** — either as an existing artifact in `docs/product/shaping/` or supplied by the strategist inline.

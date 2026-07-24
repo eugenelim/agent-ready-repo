@@ -14,6 +14,11 @@ engine. The skill is deliberately boring: pair files, subtract numbers,
 render a table. It encodes no judgment about what the deltas mean and
 emits no flags; interpretation belongs to the reader.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to use
 
 - **`baseline`** — compare a single scope across two windows (pre-AI
