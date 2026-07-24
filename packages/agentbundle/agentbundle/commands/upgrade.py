@@ -31,7 +31,9 @@ Writes go through ``safety.write_jailed`` — path-jail is non-optional.
 
 from __future__ import annotations
 
+import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -39,6 +41,29 @@ if TYPE_CHECKING:
     import argparse
 
     from agentbundle.user_config import UserConfig
+
+from agentbundle.catalogue import CatalogueError, resolve_catalogue
+from agentbundle.commands._common import (
+    _major,
+    check_spec_version_gate,
+    confirm_or_refuse,
+    format_plan_line,
+    plan_action,
+    resolve_catalogue_uri,
+    resolve_state_path,
+    summarize_plan,
+)
+from agentbundle.config import (
+    ConfigError,
+    canonicalize_source,
+    dump_state,
+    load_pack_toml,
+    load_state,
+    pack_spec_version,
+)
+from agentbundle.commands.list_installed import _version_key
+from agentbundle.version import SPEC_VERSION
+from agentbundle import safety
 
 
 # Mapping from CLI flag attribute name → (primitive-type key, source-dir segment).
@@ -51,6 +76,781 @@ _PRIMITIVE_FLAG_MAP: dict[str, tuple[str, str]] = {
     "seed":    ("seed",         "seeds"),
     "command": ("command",      "commands"),
 }
+
+
+def _was_dist_tree_install(pack_state: "object") -> bool:
+    """True when the pack was installed via the dist-tree (catalogue-publishing) path."""
+    return any(
+        rp.startswith(("apm/", "claude-plugins/")) or rp == "marketplace.json"
+        for rp in pack_state.files  # type: ignore[attr-defined]
+    )
+
+
+@dataclass
+class _BulkRow:
+    """One (pack, adapter) row in a bulk upgrade operation."""
+
+    pack: str
+    adapter: str
+    scope: str
+    pack_state: "object"  # PackState
+
+    # set during preflight (source/version phase)
+    canonical_source: "str | None" = None
+    catalogue_dir: "object | None" = None  # Path | None
+    pack_dir: "object | None" = None       # Path | None
+    status: str = "unknown"
+    status_reason: "str | None" = None
+    installed_version: "str | None" = None
+    available_version: "str | None" = None
+    pack_toml: "dict | None" = None
+
+    # set during preflight (render/path-jail phase)
+    _projection: "dict | None" = None      # dict[str, bytes] | None
+    allowed_prefixes: "list | None" = None  # list[str] | None
+    resolved_adapter: "str | None" = None  # repo scope only
+
+    # set during apply
+    outcome: str = "planned"
+
+
+def _classify_row(
+    row: "_BulkRow",
+    pack_toml: "dict | None",
+) -> "tuple[str, str | None, str | None]":
+    """Pure classification.  Returns (status, status_reason, available_version).
+
+    ``pack_toml`` is ``None`` when the pack was not found in the catalogue.
+    """
+    # 1. Pack presence
+    if pack_toml is None:
+        return "unknown", "pack-not-found", None
+
+    # 2. Contract compatibility — inline major comparison, NOT check_spec_version_gate()
+    raw_spec_version = pack_spec_version(pack_toml)
+    if raw_spec_version is not None and _major(raw_spec_version) != _major(SPEC_VERSION):
+        return "unknown", "incompatible-contract", None
+
+    # 3. Adapter allowed
+    allowed = pack_toml.get("pack", {}).get("install", {}).get("allowed-adapters")
+    if allowed is not None and row.adapter not in allowed:
+        return "unknown", "adapter-no-longer-supported", None
+
+    # 4. Parse catalogue version
+    available_str = pack_toml.get("pack", {}).get("version", "")
+    av_key = _version_key(available_str)
+    if av_key is None:
+        return "unknown", "unparseable-catalogue-version", None
+
+    # 5. Parse installed version
+    iv_key = _version_key(row.pack_state.installed_version or "")  # type: ignore[attr-defined]
+    if iv_key is None:
+        return "unknown", "unparseable-installed-version", None
+
+    # 6. Zero-pad both tuples to equal length before comparison
+    max_len = max(len(iv_key), len(av_key))
+    iv_padded = iv_key + (0,) * (max_len - len(iv_key))
+    av_padded = av_key + (0,) * (max_len - len(av_key))
+
+    if iv_padded == av_padded:
+        return "up-to-date", None, available_str
+    elif iv_padded < av_padded:
+        return "upgrade-available", None, available_str
+    else:
+        return "ahead", None, available_str
+
+
+def _redact_credentials(text: str) -> str:
+    """Sanitize text for output — remove URL user-info, credential query params, bearer tokens."""
+    import re
+    # 1. URL user-info: scheme://user:pass@host -> scheme://host
+    text = re.sub(r"((?:https?|git\+https?|ssh)://)[^@/]*:[^@/]*@", r"\1", text)
+    # 2. Query-string credential params
+    text = re.sub(
+        r"(?i)([?&])(access_token|token|api_key|private_token|auth)=[^&\s#]*",
+        r"\1\2=[REDACTED]",
+        text,
+    )
+    # 3. Bearer tokens
+    text = re.sub(r"(?i)(Bearer\s+)\S+", r"\1[REDACTED]", text)
+    return text
+
+
+def _print_err(msg: str) -> None:
+    """Print *msg* to stderr."""
+    print(msg, file=sys.stderr)
+
+
+def _run_source_version_preflight(
+    state: "object",
+    scope: str,
+    root: "Path",
+) -> "tuple[list, dict]":
+    """Phase 1 preflight: source resolution and version classification.
+
+    Returns ``(rows, source_resolution_map)`` where ``rows`` is a list of
+    :class:`_BulkRow` with ``status``/``status_reason``/``available_version``
+    populated, and ``source_resolution_map`` maps canonical-source →
+    ``(catalogue_dir, error_code, error_message)``.
+    """
+    rows = [
+        _BulkRow(
+            pack=pack_name,
+            adapter=adapter,
+            scope=scope,
+            pack_state=ps,
+            installed_version=ps.installed_version,
+        )
+        for (pack_name, adapter), ps in state.packs.items()  # type: ignore[attr-defined]
+    ]
+
+    source_resolution_map: dict = {}
+
+    for row in rows:
+        cs = canonicalize_source(row.pack_state.source)  # type: ignore[attr-defined]
+        row.canonical_source = cs
+        if cs is None:
+            row.status = "unknown"
+            row.status_reason = "source-unknown"
+            continue
+
+        if cs not in source_resolution_map:
+            try:
+                cat_dir = resolve_catalogue(cs)
+                source_resolution_map[cs] = (cat_dir, None, None)
+            except CatalogueError as exc:
+                source_resolution_map[cs] = (None, "catalogue-error", _redact_credentials(str(exc)))
+
+        cat_dir, _err_code, _err_msg = source_resolution_map[cs]
+        if cat_dir is None:
+            row.status = "unknown"
+            row.status_reason = "source-unavailable"
+            continue
+
+        pack_dir = _locate_pack(cat_dir, row.pack)
+        if pack_dir is None:
+            row.status = "unknown"
+            row.status_reason = "pack-not-found"
+            continue
+        row.pack_dir = pack_dir
+        row.catalogue_dir = cat_dir
+
+        try:
+            pack_toml = load_pack_toml(pack_dir / "pack.toml")
+        except ConfigError:
+            row.status = "unknown"
+            row.status_reason = "malformed-catalogue"
+            continue
+
+        row.pack_toml = pack_toml
+        row.status, row.status_reason, row.available_version = _classify_row(row, pack_toml)
+
+    return rows, source_resolution_map
+
+
+def _preflight_render_and_jail(
+    row: "_BulkRow",
+    root: "Path",
+    user_config: "object",
+) -> "tuple[dict | None, str | None]":
+    """Render and path-jail check for one upgrade-available row.
+
+    Sets ``row._projection``, ``row.allowed_prefixes``, and (repo scope)
+    ``row.resolved_adapter`` on success.  Returns ``(projection, None)`` on
+    success, ``(None, error_reason)`` on failure.
+    """
+    from agentbundle.commands.install import (
+        _AdapterResolutionRefused,
+        _adapter_allowed_prefixes_repo,
+        _adapter_allowed_prefixes_user,
+        _render_for_repo_scope,
+        _render_for_user_scope,
+        _resolve_target_adapter,
+        _rewrite_user_scope_hook_paths,
+    )
+
+    # Dist-tree guard — bulk upgrade does not support dist-tree render path
+    if _was_dist_tree_install(row.pack_state):
+        return None, "render-failed"
+
+    pack_dir = row.pack_dir
+    pack_toml = row.pack_toml
+    pack_name = row.pack
+    adapter = row.pack_state.adapter  # type: ignore[attr-defined]
+
+    _pack_install_table = (pack_toml or {}).get("pack", {}).get("install")
+    _pack_allowed_adapters = None
+    if isinstance(_pack_install_table, dict):
+        _raw_aa = _pack_install_table.get("allowed-adapters")
+        if isinstance(_raw_aa, list):
+            _pack_allowed_adapters = [s for s in _raw_aa if isinstance(s, str)]
+    _pack_contract_version = (
+        (pack_toml or {}).get("pack", {}).get("adapter-contract", {}).get("version")
+        if isinstance((pack_toml or {}).get("pack", {}).get("adapter-contract"), dict)
+        else None
+    )
+
+    try:
+        if row.scope == "user":
+            try:
+                projection = _render_for_user_scope(
+                    pack_dir,
+                    adapter=None,
+                    allowed_adapters=_pack_allowed_adapters,
+                    contract_version=_pack_contract_version,
+                    state_adapter=adapter,
+                    command_name="upgrade",
+                    user_config=user_config,
+                )
+            except _AdapterResolutionRefused:
+                return None, "render-failed"
+            try:
+                target_adapter = _resolve_target_adapter(
+                    pack_dir,
+                    scope="user",
+                    adapter=None,
+                    allowed_adapters=_pack_allowed_adapters,
+                    contract_version=_pack_contract_version,
+                    state_adapter=adapter,
+                    command_name="upgrade",
+                    user_config=user_config,
+                )
+            except _AdapterResolutionRefused:
+                return None, "render-failed"
+            projection = _rewrite_user_scope_hook_paths(
+                projection,
+                pack_name=pack_name,
+                target_adapter=target_adapter,
+            )
+            allowed_prefixes = _adapter_allowed_prefixes_user(adapter or "claude-code")
+            try:
+                safety.assert_projection_jailed(
+                    root, sorted(projection.keys()), allowed_prefixes, command="upgrade"
+                )
+            except safety.PathJailError:
+                return None, "path-jail-violation"
+            row._projection = projection
+            row.allowed_prefixes = allowed_prefixes
+            return projection, None
+        else:
+            # Repo scope
+            try:
+                resolved_adapter, projection = _render_for_repo_scope(
+                    pack_dir,
+                    adapter=None,
+                    allowed_adapters=_pack_allowed_adapters,
+                    contract_version=_pack_contract_version,
+                    state_adapter=adapter,
+                    command_name="upgrade",
+                    user_config=user_config,
+                )
+            except _AdapterResolutionRefused:
+                return None, "render-failed"
+            allowed_prefixes = _adapter_allowed_prefixes_repo(resolved_adapter)
+            try:
+                safety.assert_projection_jailed(
+                    root, sorted(projection.keys()), allowed_prefixes, command="upgrade"
+                )
+            except safety.PathJailError:
+                return None, "path-jail-violation"
+            row._projection = projection
+            row.allowed_prefixes = allowed_prefixes
+            row.resolved_adapter = resolved_adapter
+            return projection, None
+    except Exception:
+        return None, "render-failed"
+
+
+def _run_preflight(
+    state: "object",
+    scope: str,
+    root: "Path",
+    user_config: "object",
+) -> "tuple[list, dict]":
+    """Full two-phase preflight: source/version + render/path-jail.
+
+    Returns ``(rows, source_resolution_map)``.
+    """
+    rows, source_resolution_map = _run_source_version_preflight(state, scope, root)
+
+    for row in rows:
+        if row.status != "upgrade-available":
+            continue
+        _, error_reason = _preflight_render_and_jail(row, root, user_config)
+        if error_reason is not None:
+            row.status = "unknown"
+            row.status_reason = error_reason
+            row._projection = None
+
+    return rows, source_resolution_map
+
+
+def _apply_single_row(
+    row: "_BulkRow",
+    state: "object",
+    state_path: "Path",
+    root: "Path",
+    args: "object",
+) -> "tuple[bool, list[str]]":
+    """Apply one upgrade row.  Returns ``(success, companions)``.
+
+    Never re-renders — uses ``row._projection`` (pre-populated by preflight or
+    by the single-pack render in ``run()``).  Does NOT emit to stdout; stdout
+    in bulk mode is owned by ``_print_plan_table``/``_finalize``, and in
+    single-pack mode the recap at the end of ``run()`` is emitted after reading
+    the returned ``companions``.
+    """
+    work_projection = row._projection
+    pack_state = row.pack_state
+    effective_scope = row.scope
+    allowed_prefixes = row.allowed_prefixes
+    pack_name = row.pack
+    to_version = row.available_version
+    pack_dir = row.pack_dir
+    pack_toml = row.pack_toml
+
+    # Per-primitive flags — read from args so single-pack mode works unchanged.
+    # In bulk mode args.skill etc. are all None → is_per_primitive is False.
+    is_per_primitive = False
+    prim_flag: "str | None" = None
+    prim_name: "str | None" = None
+    for flag_attr in _PRIMITIVE_FLAG_MAP:
+        val = getattr(args, flag_attr, None)
+        if val:
+            prim_flag = flag_attr
+            prim_name = val
+            is_per_primitive = True
+            break
+
+    _pack_install_table = (pack_toml or {}).get("pack", {}).get("install")
+    _pack_allowed_adapters = None
+    if isinstance(_pack_install_table, dict):
+        _raw_aa = _pack_install_table.get("allowed-adapters")
+        if isinstance(_raw_aa, list):
+            _pack_allowed_adapters = [s for s in _raw_aa if isinstance(s, str)]
+    _pack_contract_version = (
+        (pack_toml or {}).get("pack", {}).get("adapter-contract", {}).get("version")
+        if isinstance((pack_toml or {}).get("pack", {}).get("adapter-contract"), dict)
+        else None
+    )
+
+    user_config = getattr(args, "_user_config", None)
+
+    # ── Path-jail pre-flight (AC4) ──────────────────────────────────────────────
+    try:
+        safety.assert_projection_jailed(
+            root, sorted(work_projection), allowed_prefixes, command="upgrade"
+        )
+    except safety.PathJailError as exc:
+        _print_err(f"upgrade: {exc}")
+        return False, []
+
+    # ── Walk projection; apply Tier contract ─────────────────────────────────────
+    companions: list[str] = []
+    for relpath, content in sorted(work_projection.items()):
+        tier = safety.classify(relpath, root, state)
+
+        if tier is safety.Tier.TIER_3:
+            tier = safety.Tier.TIER_1
+
+        if tier is safety.Tier.TIER_2:
+            try:
+                safety.write_companion(root, relpath, content)
+            except safety.PathJailError as exc:
+                _print_err(f"upgrade: {exc}")
+                return False, companions
+            companions.append(safety.companion_path(Path(relpath)).as_posix())
+            pack_state.files[relpath] = {  # type: ignore[attr-defined]
+                "sha": safety.sha256_bytes(content),
+                "from-pack-version": to_version,
+            }
+        else:
+            try:
+                safety.write_jailed(
+                    root, relpath, content,
+                    scope=effective_scope,
+                    allowed_prefixes=allowed_prefixes,
+                )
+            except safety.PathJailError as exc:
+                _print_err(f"upgrade: {exc}")
+                return False, companions
+            pack_state.files[relpath] = {  # type: ignore[attr-defined]
+                "sha": safety.sha256_bytes(content),
+                "from-pack-version": to_version,
+            }
+
+    # ── Hook-wiring reconciliation (user-scope, whole-pack only) ─────────────────
+    if effective_scope == "user" and not is_per_primitive:
+        from agentbundle.commands.install import (
+            _AdapterResolutionRefused,
+            _merge_user_scope_hook_wiring,
+            _refresh_merge_target_shas,
+            _resolve_target_adapter,
+        )
+
+        try:
+            new_target_adapter = _resolve_target_adapter(
+                pack_dir,
+                scope="user",
+                adapter=None,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=pack_state.adapter,  # type: ignore[attr-defined]
+                command_name="upgrade",
+                user_config=user_config,
+            )
+        except _AdapterResolutionRefused as exc:
+            _print_err(str(exc))
+            return False, companions
+        old_adapter_recorded = pack_state.adapter or "claude-code"  # type: ignore[attr-defined]
+
+        if old_adapter_recorded != new_target_adapter:
+            _print_err(
+                f"upgrade: pack adapter changed from "
+                f"{old_adapter_recorded!r} → {new_target_adapter!r} "
+                f"between versions; run uninstall + install instead "
+                f"(cross-adapter upgrade is not supported)"
+            )
+            return False, companions
+
+        try:
+            new_owned = _compute_new_wiring_rows(pack_dir, pack_name, new_target_adapter)
+            old_owned = list(pack_state.hook_wiring_owned)  # type: ignore[attr-defined]
+            _unproject_removed_rows(
+                root=root,
+                old_owned=old_owned,
+                new_owned=new_owned,
+                old_adapter=old_adapter_recorded,
+            )
+            new_rows = _merge_user_scope_hook_wiring(
+                pack_dir=pack_dir,
+                pack_name=pack_name,
+                target_adapter=new_target_adapter,
+                install_root=root,
+                force_merge=False,
+            )
+            pack_state.hook_wiring_owned = new_rows  # type: ignore[attr-defined]
+            pack_state.adapter = new_target_adapter  # type: ignore[attr-defined]
+            _refresh_merge_target_shas(
+                pack_state=pack_state,
+                owned_rows=new_rows,
+                root=root,
+            )
+        except Exception as exc:
+            _print_err(f"upgrade: hook-wiring reconciliation failed: {exc}")
+            return False, companions
+
+    # ── Update state ─────────────────────────────────────────────────────────────
+    if is_per_primitive:
+        ptype, _src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]  # type: ignore[index]
+        if ptype not in pack_state.primitive_versions:  # type: ignore[attr-defined]
+            pack_state.primitive_versions[ptype] = {}  # type: ignore[attr-defined]
+        pack_state.primitive_versions[ptype][prim_name] = to_version  # type: ignore[attr-defined,index]
+    else:
+        pack_state.installed_version = to_version  # type: ignore[attr-defined]
+        if row.canonical_source is not None:
+            pack_state.source = row.canonical_source  # type: ignore[attr-defined]
+
+    state_toml_content = dump_state(state)
+    state_relpath = state_path.relative_to(root).as_posix()
+    state_prefixes = allowed_prefixes
+    if effective_scope == "repo" and state_relpath == ".agentbundle-state.toml":
+        state_prefixes = None
+    try:
+        safety.write_jailed(
+            root, state_relpath, state_toml_content,
+            scope=effective_scope,
+            allowed_prefixes=state_prefixes,
+        )
+    except safety.PathJailError as exc:
+        _print_err(f"upgrade: {exc}")
+        return False, companions
+
+    return True, companions
+
+
+# ---------------------------------------------------------------------------
+# Bulk-upgrade orchestration helpers
+# ---------------------------------------------------------------------------
+
+
+def _assign_pre_apply_outcomes(rows: "list", *, dry_run: bool) -> None:
+    """Set initial ``outcome`` on each row before confirmation."""
+    has_unknown = any(r.status == "unknown" for r in rows)
+    for row in rows:
+        if has_unknown:
+            row.outcome = "blocked"
+        elif row.status in ("up-to-date", "ahead"):
+            row.outcome = "skipped"
+        else:
+            row.outcome = "planned"
+
+
+def _apply_order(rows: "list") -> "list":
+    """Sort rows by (canonical_source, pack, adapter) ascending."""
+    return sorted(rows, key=lambda r: (r.canonical_source or "", r.pack, r.adapter))
+
+
+def _build_json_doc(
+    rows: "list",
+    scope: str,
+    dry_run: bool,
+    source_resolution_map: dict,
+) -> dict:
+    """Build the JSON output document."""
+    sources_seen: dict = {}
+    for row in rows:
+        cs = row.canonical_source
+        if cs is None:
+            continue
+        if cs not in sources_seen:
+            cat_dir, error_code, error_message = source_resolution_map.get(cs, (None, None, None))
+            sources_seen[cs] = {
+                "source": cs,
+                "resolved": cat_dir is not None,
+                "error_code": error_code,
+                "error_message": error_message,
+            }
+    sources = sorted(sources_seen.values(), key=lambda s: s["source"])
+
+    rows_out = []
+    for row in sorted(rows, key=lambda r: (r.canonical_source or "", r.pack, r.adapter)):
+        rows_out.append({
+            "pack": row.pack,
+            "adapter": row.adapter,
+            "scope": row.scope,
+            "source": row.canonical_source,
+            "installed_version": row.pack_state.installed_version,  # type: ignore[attr-defined]
+            "available_version": row.available_version,
+            "status": row.status,
+            "status_reason": row.status_reason,
+            "outcome": row.outcome,
+        })
+
+    total = len(rows)
+    upgrade_available = sum(1 for r in rows if r.status == "upgrade-available")
+    up_to_date = sum(1 for r in rows if r.status == "up-to-date")
+    ahead = sum(1 for r in rows if r.status == "ahead")
+    unknown = sum(1 for r in rows if r.status == "unknown")
+    planned = sum(1 for r in rows if r.outcome == "planned")
+    completed = sum(1 for r in rows if r.outcome == "completed")
+    skipped = sum(1 for r in rows if r.outcome == "skipped")
+    blocked = sum(1 for r in rows if r.outcome == "blocked")
+    failed = sum(1 for r in rows if r.outcome == "failed")
+    not_attempted = sum(1 for r in rows if r.outcome == "not-attempted")
+
+    return {
+        "schema_version": 1,
+        "command": "upgrade",
+        "mode": "all",
+        "scope": scope,
+        "dry_run": dry_run,
+        "sources": sources,
+        "rows": rows_out,
+        "summary": {
+            "total": total,
+            "upgrade_available": upgrade_available,
+            "up_to_date": up_to_date,
+            "ahead": ahead,
+            "unknown": unknown,
+            "planned": planned,
+            "completed": completed,
+            "skipped": skipped,
+            "blocked": blocked,
+            "failed": failed,
+            "not_attempted": not_attempted,
+        },
+    }
+
+
+def _print_plan_table(
+    rows: "list",
+    fmt: str,
+    args: "object",
+    source_resolution_map: dict,
+) -> None:
+    """Render the plan.  JSON mode: emit JSON to stdout.  Table mode: print table."""
+    scope = getattr(args, "scope", "repo") or "repo"
+    dry_run = getattr(args, "dry_run", False)
+
+    if fmt == "json":
+        doc = _build_json_doc(rows, scope, dry_run, source_resolution_map)
+        print(json.dumps(doc, indent=2))
+        return
+
+    if not rows:
+        return
+
+    header = (
+        f"{'PACK':<20} {'ADAPTER':<16} {'STATUS':<22} {'OUTCOME':<14}"
+        f" {'INSTALLED':<12} {'AVAILABLE':<12} SOURCE"
+    )
+    sep = "-" * len(header)
+    print(header)
+    print(sep)
+    for row in rows:
+        source_display = row.canonical_source or "(unknown)"
+        max_src = 40
+        if len(source_display) > max_src:
+            source_display = source_display[:max_src - 3] + "..."
+        av = row.available_version or "-"
+        inst = row.pack_state.installed_version or "-"  # type: ignore[attr-defined]
+        print(
+            f"{row.pack:<20} {row.adapter:<16} {row.status:<22} {row.outcome:<14}"
+            f" {inst:<12} {av:<12} {source_display}"
+        )
+
+
+def _confirm_or_abort(rows: "list") -> None:
+    """Show a confirmation prompt; raise ``SystemExit`` if user declines."""
+    try:
+        answer = input("Apply these upgrades? [y/N] ")
+    except EOFError:
+        answer = ""
+    if answer.strip().lower() not in ("y", "yes"):
+        print("upgrade: aborted; no changes made", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def _finalize(
+    rows_sorted: "list",
+    args: "object",
+    source_resolution_map: dict,
+) -> int:
+    """Emit final results table/JSON and return exit code."""
+    fmt = getattr(args, "format", "table")
+    _print_plan_table(rows_sorted, fmt, args, source_resolution_map)
+    candidates = [r for r in rows_sorted if r.status == "upgrade-available"]
+    if not candidates:
+        return 0
+    if all(r.outcome == "completed" for r in candidates):
+        return 0
+    return 1
+
+
+def _apply_all(
+    rows_sorted: "list",
+    state: "object",
+    state_path: "Path",
+    root: "Path",
+    args: "object",
+    source_resolution_map: dict,
+) -> int:
+    """Apply upgrades in order; stop on first failure."""
+    candidates = [r for r in rows_sorted if r.status == "upgrade-available"]
+    for i, row in enumerate(candidates):
+        success, _ = _apply_single_row(row, state, state_path, root, args)
+        if success:
+            row.outcome = "completed"
+        else:
+            row.outcome = "failed"
+            for remaining in candidates[i + 1:]:
+                remaining.outcome = "not-attempted"
+            break
+    for row in rows_sorted:
+        if row.status in ("up-to-date", "ahead"):
+            row.outcome = "skipped"
+        elif row.status == "unknown":
+            row.outcome = "blocked"
+    return _finalize(rows_sorted, args, source_resolution_map)
+
+
+def _run_all(args: "object", root: "Path", *, _rows_out: "list | None" = None) -> int:
+    """Main bulk-upgrade dispatcher.  Returns int exit code.
+
+    ``_rows_out``: optional test-only side channel.  If provided, ``_run_all``
+    appends the final ``rows_sorted`` list to it before returning.
+    """
+
+    def _return(code: int, rows: "list | None" = None) -> int:
+        if _rows_out is not None and rows is not None:
+            _rows_out.extend(rows)
+        return code
+
+    # Gate: --adapter rejected with --all
+    if getattr(args, "adapter", None):
+        _print_err("--adapter is not compatible with --all")
+        return _return(2)
+
+    # Gate: positional catalogue rejected with --all
+    if getattr(args, "catalogue", None):
+        _print_err("positional <catalogue> is not compatible with --all")
+        return _return(2)
+
+    # Gate: --scope required with --all
+    if not getattr(args, "scope", None):
+        _print_err("--scope repo|user is required with --all")
+        return _return(2)
+
+    stdin_is_tty = sys.stdin.isatty()
+
+    # Gate: --format json without --yes (non-dry-run) — AC6
+    fmt = getattr(args, "format", "table")
+    if (
+        fmt == "json"
+        and not getattr(args, "yes", False)
+        and not getattr(args, "dry_run", False)
+    ):
+        _print_err("--yes is required for --format json (use --dry-run to preview)")
+        return _return(2)
+
+    # User-scope root resolution
+    if args.scope == "user":  # type: ignore[attr-defined]
+        from agentbundle import scope as scope_mod
+        try:
+            root = scope_mod.resolve_user_root()
+        except scope_mod.UserScopeUnresolvable:
+            _print_err("Cannot resolve user home directory; --scope user unavailable")
+            return _return(2)
+
+    state_path = resolve_state_path(args.scope, root)  # type: ignore[attr-defined]
+    try:
+        state = load_state(state_path, for_write=True)
+    except ConfigError as exc:
+        _print_err(f"upgrade: {exc}")
+        return _return(1)
+
+    source_resolution_map: dict = {}
+
+    if not state.packs:
+        if fmt == "json":
+            _print_plan_table([], fmt, args, source_resolution_map)
+        else:
+            print(f"Nothing installed at {args.scope} scope.")  # type: ignore[attr-defined]
+        return _return(0, [])
+
+    user_config = getattr(args, "_user_config", None)
+    rows, source_resolution_map = _run_preflight(state, args.scope, root, user_config)  # type: ignore[attr-defined]
+
+    rows_sorted = sorted(rows, key=lambda r: (r.canonical_source or "", r.pack, r.adapter))
+    _assign_pre_apply_outcomes(rows_sorted, dry_run=getattr(args, "dry_run", False))
+
+    blocked = [r for r in rows_sorted if r.status == "unknown"]
+    candidates = [r for r in rows_sorted if r.status == "upgrade-available"]
+
+    if getattr(args, "dry_run", False):
+        _print_plan_table(rows_sorted, fmt, args, source_resolution_map)
+        return _return(1 if blocked else 0, rows_sorted)
+
+    if blocked:
+        _print_plan_table(rows_sorted, fmt, args, source_resolution_map)
+        return _return(1, rows_sorted)
+
+    if not candidates:
+        if fmt == "json":
+            _print_plan_table(rows_sorted, fmt, args, source_resolution_map)
+        else:
+            print("Nothing to upgrade.")
+        return _return(0, rows_sorted)
+
+    # Table mode only: show pre-apply plan and prompt
+    if fmt == "table":
+        _print_plan_table(rows_sorted, "table", args, source_resolution_map)
+        if not getattr(args, "yes", False) and stdin_is_tty:
+            _confirm_or_abort(rows_sorted)
+
+    rc = _apply_all(rows_sorted, state, state_path, root, args, source_resolution_map)
+    return _return(rc, rows_sorted)
 
 
 def run(args: "argparse.Namespace") -> int:
@@ -72,25 +872,18 @@ def run(args: "argparse.Namespace") -> int:
 
     Returns 0 on success, non-zero on any failure.
     """
-    from agentbundle.catalogue import CatalogueError, resolve_catalogue
-    from agentbundle.commands._common import (
-        check_spec_version_gate,
-        confirm_or_refuse,
-        format_plan_line,
-        plan_action,
-        resolve_catalogue_uri,
-        resolve_state_path,
-        summarize_plan,
-    )
-    from agentbundle.config import (
-        ConfigError,
-        canonicalize_source,
-        dump_state,
-        load_pack_toml,
-        load_state,
-    )
-    from agentbundle.render import render_pack
-    from agentbundle import safety
+    # --format json with --pack is not yet supported (AC5)
+    if getattr(args, "format", "table") == "json" and not getattr(args, "all", False):
+        _print_err(
+            "upgrade: --format json is not yet supported with --pack; "
+            "use --format table or use --all"
+        )
+        return 1
+
+    # Dispatch to bulk mode
+    if getattr(args, "all", False):
+        root = Path(args.root).resolve()
+        return _run_all(args, root)
 
     pack_name: str = args.pack
     # RFC-0046: resolve the default source when the `catalogue` positional was
@@ -467,12 +1260,8 @@ def run(args: "argparse.Namespace") -> int:
             # catalogue-publishing install — keep rendering the legacy
             # shape so we don't accrete a parallel per-IDE subtree on
             # top.
-            _was_dist_tree_install = any(
-                rp.startswith(("apm/", "claude-plugins/"))
-                or rp == "marketplace.json"
-                for rp in pack_state.files
-            )
-            if _was_dist_tree_install:
+            if _was_dist_tree_install(pack_state):
+                from agentbundle.render import render_pack  # lazy: preserves mock.patch contract
                 projection = render_pack(pack_dir)
             else:
                 from agentbundle.commands.install import (
@@ -566,179 +1355,24 @@ def run(args: "argparse.Namespace") -> int:
         print(summarize_plan(actions))
         return 0
 
-    # ── Path-jail pre-flight (AC4) — probe all before any write ──────────────
-    # Mirror the dry-run probe: refuse if any projected path escapes root or
-    # violates allowed_prefixes, before touching disk. Without this gate a
-    # prefix violation surfaces mid-loop via write_jailed, after earlier files
-    # have already been written — the probe-all-before-write contract means a
-    # violation is always a clean abort.
-    try:
-        safety.assert_projection_jailed(
-            root, sorted(work_projection), allowed_prefixes, command="upgrade"
-        )
-    except safety.PathJailError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-
-    # ── Walk projection; apply Tier contract ──────────────────────────────────
-    # Collect `.upstream.<ext>` companions dropped this run so we can surface
-    # them after the walk. Without this notice the upgrade is silent on a
-    # Tier-2 collision — the adopter never learns their edit was kept (and the
-    # upstream parked in a companion) or where to find it. Parity with
-    # install's seed-companion notice (install.py:891-904), extended to name
-    # the path since upgrade has no install-state marker to record it in.
-    companions: list[str] = []
-    for relpath, content in sorted(work_projection.items()):
-        tier = safety.classify(relpath, root, state)
-
-        if tier is safety.Tier.TIER_3:
-            # Path is in the new pack but not yet in state (first upgrade to a
-            # newly-added file). Treat as Tier-1 — the upgrade contract is the
-            # same as install for new paths.
-            tier = safety.Tier.TIER_1
-
-        if tier is safety.Tier.TIER_2:
-            try:
-                safety.write_companion(root, relpath, content)
-            except safety.PathJailError as exc:
-                print(f"upgrade: {exc}", file=sys.stderr)
-                return 1
-            companions.append(safety.companion_path(Path(relpath)).as_posix())
-            pack_state.files[relpath] = {
-                "sha": safety.sha256_bytes(content),
-                "from-pack-version": to_version,
-            }
-        else:
-            try:
-                safety.write_jailed(
-                    root, relpath, content,
-                    scope=effective_scope,
-                    allowed_prefixes=allowed_prefixes,
-                )
-            except safety.PathJailError as exc:
-                print(f"upgrade: {exc}", file=sys.stderr)
-                return 1
-            pack_state.files[relpath] = {
-                "sha": safety.sha256_bytes(content),
-                "from-pack-version": to_version,
-            }
-
-    # ── Hook-wiring reconciliation (RFC-0005 T8c, user-scope only) ───────────
-    # Compute the symmetric difference between old state's
-    # ``hook_wiring_owned`` and the new pack's wiring TOMLs. The
-    # ``attach-to-agent`` rename case (Kiro) lands here: rows whose
-    # target-file changes between versions get dropped from the OLD
-    # target file and added to the NEW one. In-place upgrades
-    # (identical wiring) are a no-op; adds and removes shift state
-    # rows accordingly.
-    if effective_scope == "user" and not is_per_primitive:
-        from agentbundle.commands.install import (
-            _AdapterResolutionRefused,
-            _merge_user_scope_hook_wiring,
-            _refresh_merge_target_shas,
-            _resolve_target_adapter,
-        )
-
-        try:
-            new_target_adapter = _resolve_target_adapter(
-                pack_dir,
-                scope="user",
-                adapter=None,
-                allowed_adapters=_pack_allowed_adapters,
-                contract_version=_pack_contract_version,
-                state_adapter=pack_state.adapter,
-                command_name="upgrade",
-                user_config=user_config,
-            )
-        except _AdapterResolutionRefused as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-        old_adapter_recorded = pack_state.adapter or "claude-code"
-
-        # Concern #3: cross-adapter upgrades are out of scope. AC19b
-        # covers attach-to-agent renames *within Kiro*, not Kiro→CC
-        # or CC→Kiro. Refuse with a refuse-and-explain shape; the
-        # operator uninstalls + reinstalls instead.
-        if old_adapter_recorded != new_target_adapter:
-            print(
-                f"upgrade: pack adapter changed from "
-                f"{old_adapter_recorded!r} → {new_target_adapter!r} "
-                f"between versions; run uninstall + install instead "
-                f"(cross-adapter upgrade is not supported)",
-                file=sys.stderr,
-            )
-            return 1
-
-        try:
-            new_owned = _compute_new_wiring_rows(pack_dir, pack_name, new_target_adapter)
-            old_owned = list(pack_state.hook_wiring_owned)
-            # Step A: unproject rows in old that aren't in new.
-            _unproject_removed_rows(
-                root=root,
-                old_owned=old_owned,
-                new_owned=new_owned,
-                old_adapter=old_adapter_recorded,
-            )
-            # Step B: project the new pack's wiring against new targets.
-            # The merger is idempotent for unchanged rows (replace-in-
-            # place by id); for added rows it appends.
-            new_rows = _merge_user_scope_hook_wiring(
-                pack_dir=pack_dir,
-                pack_name=pack_name,
-                target_adapter=new_target_adapter,
-                install_root=root,
-                force_merge=False,
-            )
-            pack_state.hook_wiring_owned = new_rows
-            # Record the resolved adapter faithfully (mirrors install's
-            # `new_pack_state.adapter = user_target_adapter`). The old
-            # `kiro`-or-`claude-code` collapse mis-recorded `kiro-cli`
-            # (the merging adapter) as `claude-code`, which then routed
-            # uninstall's unproject to the wrong engine and orphaned the
-            # agent JSON.
-            pack_state.adapter = new_target_adapter
-            # Blocker #1: refresh state.files SHA for the agent JSON the
-            # merge phase rewrote. Without this, post-upgrade uninstall
-            # would misclassify it as Tier-2 and refuse to remove it.
-            _refresh_merge_target_shas(
-                pack_state=pack_state,
-                owned_rows=new_rows,
-                root=root,
-            )
-        except Exception as exc:
-            print(f"upgrade: hook-wiring reconciliation failed: {exc}", file=sys.stderr)
-            return 1
-
-    # ── Update state ──────────────────────────────────────────────────────────
-    if is_per_primitive:
-        # Record per-primitive version override; leave installed_version alone.
-        ptype, _src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
-        if ptype not in pack_state.primitive_versions:
-            pack_state.primitive_versions[ptype] = {}
-        pack_state.primitive_versions[ptype][prim_name] = to_version
-    else:
-        pack_state.installed_version = to_version
-        canonical = canonicalize_source(catalogue_uri)
-        if canonical is not None:
-            pack_state.source = canonical
-
-    state_toml_content = dump_state(state)
-    state_relpath = state_path.relative_to(root).as_posix()
-    # Mirror install.py:858-861 — the repo-scope state file lives at
-    # `<root>/.agentbundle-state.toml`, a top-level path that won't
-    # match the per-IDE `allowed-prefixes.repo` list. Skip the prefix
-    # check for that one file so the state write isn't blocked.
-    state_prefixes = allowed_prefixes
-    if effective_scope == "repo" and state_relpath == ".agentbundle-state.toml":
-        state_prefixes = None
-    try:
-        safety.write_jailed(
-            root, state_relpath, state_toml_content,
-            scope=effective_scope,
-            allowed_prefixes=state_prefixes,
-        )
-    except safety.PathJailError as exc:
-        print(f"upgrade: {exc}", file=sys.stderr)
+    # ── Apply via shared helper ───────────────────────────────────────────────
+    # Create a _BulkRow for the single-pack path and delegate to the shared
+    # _apply_single_row helper. canonical_source substitutes for the old
+    # `canonicalize_source(catalogue_uri)` in the state update.
+    _single_row = _BulkRow(
+        pack=pack_name,
+        adapter=target_adapter,
+        scope=effective_scope,
+        pack_state=pack_state,
+        canonical_source=canonicalize_source(catalogue_uri),
+        pack_dir=pack_dir,
+        pack_toml=pack_toml,
+        available_version=to_version,
+        _projection=work_projection,
+        allowed_prefixes=allowed_prefixes,
+    )
+    _success, companions = _apply_single_row(_single_row, state, state_path, root, args)
+    if not _success:
         return 1
 
     # ── Surface Tier-2 companion-drops ────────────────────────────────────────

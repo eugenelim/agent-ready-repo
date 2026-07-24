@@ -506,7 +506,24 @@ def _build_parser() -> argparse.ArgumentParser:
         "upgrade",
         help="Upgrade a pack or a single primitive within a pack.",
     )
-    sp.add_argument("--pack", required=True)
+    # --pack and --all are mutually exclusive; exactly one is required (AC1).
+    mode_group = sp.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument(
+        "--pack",
+        help="Upgrade a single named pack (whole-pack or per-primitive).",
+    )
+    mode_group.add_argument(
+        "--all",
+        action="store_true",
+        dest="all",
+        default=False,
+        help=(
+            "Upgrade all installed packs at the given --scope. "
+            "Requires --scope repo|user. Rejects --adapter and positional "
+            "<catalogue>. Uses each row's recorded provenance for source "
+            "resolution."
+        ),
+    )
     # The five per-primitive flags are mutually exclusive: a pack-version
     # upgrade is for the whole pack or exactly one named primitive, never two
     # at once. Grouping them lets argparse reject `--skill a --agent b` rather
@@ -524,7 +541,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Catalogue URI to fetch the new version from. Optional: when "
             "omitted, the source is resolved from your config, an editable "
-            "clone, or the packaged default (RFC-0046)."
+            "clone, or the packaged default (RFC-0046). Rejected with --all."
         ),
     )
     sp.add_argument("--root", default=".")
@@ -535,7 +552,18 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Disambiguate when the pack is installed for multiple adapters at "
             "the resolved scope (RFC-0052). Inferred when the pack has a single "
-            "adapter row; required when it has more than one."
+            "adapter row; required when it has more than one. Rejected with --all."
+        ),
+    )
+    sp.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help=(
+            "Output format. 'table' (default) prints a human-readable plan "
+            "table. 'json' emits a machine-readable JSON document to stdout "
+            "(requires --yes for non-dry-run applies; not yet supported with "
+            "--pack)."
         ),
     )
     sp.add_argument(
@@ -544,7 +572,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Skip the upgrade confirmation prompt. Required for non-interactive "
             "use (CI, pipes); without it the upgrade asks before writing, and "
-            "refuses rather than blocking when stdin is not a TTY."
+            "refuses rather than blocking when stdin is not a TTY. Required for "
+            "--format json with --all (non-dry-run)."
         ),
     )
     sp.add_argument(
