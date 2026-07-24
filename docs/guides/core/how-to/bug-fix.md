@@ -12,7 +12,7 @@ For the *why* behind the loop discipline the skill runs under the hood, read [th
 
 - The `core` pack installed in your target repo.
 - A working directory where you can edit, commit, and run gates (lint / typecheck / test).
-- Either a reproducer in hand, or enough signal (stack trace, log line, user report) to drive toward one. The skill won't let you skip the reproducer step — see [Step 1](#step-1--reproduce-the-bug).
+- Either a reproducer in hand, or enough signal (stack trace, log line, user report) to drive toward one. The skill won't let you skip the reproducer step — see [Step 1](#step-1-reproduce-the-bug).
 
 ## Is `bug-fix` the right entry point?
 

@@ -61,7 +61,7 @@ A skill is a directory with `SKILL.md` plus four optional subdirectories — and
 - `scripts/` — helper code the skill invokes (`python scripts/foo.py`). The skill body drives the script; it is not the script.
 - `references/` — detailed material the agent loads **on demand**, not every time (schemas, per-branch strategies, long tables).
 - `assets/` — templates and fixtures the skill copies or fills in (`assets/template.html`, `assets/state.json`).
-- `evals/` — evaluation fixtures. Two files serve two tiers: `evals/eval_queries.json` (Tier-A **activation** evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B **output-quality** evals). See [Evals](#evals--does-the-skill-activate-and-does-it-do-the-job) below.
+- `evals/` — evaluation fixtures. Two files serve two tiers: `evals/eval_queries.json` (Tier-A **activation** evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B **output-quality** evals). See [Evals](#evals-does-the-skill-activate-and-does-it-do-the-job) below.
 
 Two rules the linter enforces, worth getting right the first time:
 
