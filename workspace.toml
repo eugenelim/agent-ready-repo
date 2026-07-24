@@ -308,33 +308,6 @@ queue   = [
   #   guide published.
   {path = "spec/product-strategy-adoption-doctrine", needs = "work:spec/digital-experience-contract"},
 
-  # M2b · Product Engineering Shaping Doctrine
-  # Problem: PE shaping flow produces a complete brief but doesn't require a
-  #   thin end-to-end slice, first-success operationalization, or post-launch
-  #   learning contract. Gate language uses internal IDs. Options divergence is
-  #   a fixed-number ritual, not a decision-exposing minimum. voice-and-microcopy
-  #   rename to ux-writing (RFC-0066 D7, deferred) is included here since this
-  #   spec touches all PE skill boundary labels.
-  # Deliver: 19-field shaping output structure including thin-slice required
-  #   field and post-launch learning contract; thin-slice requirement in
-  #   place-bet (one user can begin a real task, reach a meaningful result,
-  #   encounter/recover from one material failure, and produce instrumentation);
-  #   evidence ladder (observed/supported/inferred/assumed/unknown); risk-selected
-  #   specialist lenses (product/experience/architecture/safety default + conditional
-  #   additions); plain-English gate language; voice-and-microcopy → ux-writing
-  #   rename per ADR-0038 alias-free precedent (grep-verified count required before
-  #   rename ships — mirrors RFC-0066 D7 verification requirement); updated evals
-  #   with weak fixtures (five fake alternatives, no first success, component-layer
-  #   slice, bet with no instrumentation, handoff saying "make it intuitive").
-  #   Site/guide: update product-engineering pack page (web/ + site/) — jobs-first;
-  #   update PE journey page (thin-slice + learning-contract steps visible); update
-  #   place-bet how-to guide to show what a good thin-slice definition looks like;
-  #   add how-to guide for writing a post-launch learning contract.
-  # Done: PE output always includes first-success + thin slice + learning contract;
-  #   gate language is human-readable; voice-and-microcopy → ux-writing complete
-  #   in PE pack + XD pack cross-references; weak fixtures fail; pack page + journey
-  #   + relevant how-to guides updated.
-  {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
 
 
   # M3a · XD Skill Boundaries
@@ -518,6 +491,7 @@ shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
   "spec/xd-copy-direction",                        # Shipped 2026-07-23 — copy-direction skill + three-way copy boundary
+  "spec/product-engineering-shaping-doctrine",     # Shipped 2026-07-23 — PE shaping doctrine; ux-writing rename; thin-slice + learning contract
 ]
 
 ["ini-003".shaping_queue]
@@ -756,13 +730,6 @@ open = [
   # Ready — RFC-0062 content-design-skill spec is Shipped; this item is now actionable.
   {slug = "experience-reviewer-content-brief-scope"},
 
-  # spec/digital-experience-contract deferred AC. No product-engineering journey page
-  # exists in web/src/content/journeys/; the PE journey page is authored by
-  # spec/product-engineering-shaping-doctrine. Once that page ships, add a sentence
-  # referencing the Digital Experience Contract to its whatChanges field.
-  # File: web/src/content/journeys/product-engineering.md (new, in that spec).
-  # Unblocks when: spec/product-engineering-shaping-doctrine is Shipped.
-  {slug = "digital-experience-contract-pe-journey-xref", source = "spec/digital-experience-contract AC15", needs = "ini-003:work:spec/product-engineering-shaping-doctrine"},
 
   # spec/digital-experience-contract deferred AC. The drift check
   # (tools/check-contract-drift.py) ships as an on-demand tool. Promoting it to a
