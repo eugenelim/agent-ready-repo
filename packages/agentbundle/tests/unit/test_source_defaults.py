@@ -407,6 +407,130 @@ def test_resolution_writes_nothing(tmp_path, monkeypatch):
     assert cfg.read_bytes() == before
 
 
+# ---------------------------------------------------------------------------
+# _preferred_adapter_from_install_defaults — parse function
+# ---------------------------------------------------------------------------
+
+
+from agentbundle.source_defaults import (  # noqa: E402
+    _preferred_adapter_from_install_defaults,
+    read_packaged_preferred_adapter,
+)
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ('[organization]\npreferred_adapter = "cursor"\n', "cursor"),
+        ('[organization]\npreferred_adapter = "claude-code"\n', "claude-code"),
+    ],
+)
+def test_preferred_adapter_returns_value_for_valid_present_key(text, expected):
+    assert _preferred_adapter_from_install_defaults(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '[defaults]\nsource = "git+https://example.com/repo"\n',  # no [organization]
+        "[organization]\n",  # no preferred_adapter key
+        '[organization]\npreferred_adapter = ""\n',  # blank value
+        '[organization]\npreferred_adapter = "   "\n',  # whitespace-only
+        "[[[[invalid\n",  # malformed TOML
+        "[organization]\npreferred_adapter = 42\n",  # non-string
+    ],
+)
+def test_preferred_adapter_returns_none_for_absent_or_invalid(text):
+    assert _preferred_adapter_from_install_defaults(text) is None
+
+
+def test_preferred_adapter_coexists_with_defaults_table():
+    """[defaults].source and [organization].preferred_adapter can coexist."""
+    text = '[defaults]\nsource = "git+https://example.com/x"\n[organization]\npreferred_adapter = "cursor"\n'
+    assert _preferred_adapter_from_install_defaults(text) == "cursor"
+
+
+def test_preferred_adapter_compatible_with_organization_subtable():
+    """[organization] key and [organization.artifactory] subtable coexist (RFC-0072 compat)."""
+    text = (
+        "[organization]\n"
+        'preferred_adapter = "cursor"\n'
+        "[organization.artifactory]\n"
+        'url = "https://example.artifactory.com"\n'
+    )
+    assert _preferred_adapter_from_install_defaults(text) == "cursor"
+
+
+# ---------------------------------------------------------------------------
+# read_packaged_preferred_adapter — read+validate function
+# ---------------------------------------------------------------------------
+
+
+def test_read_packaged_preferred_adapter_absent_returns_none(monkeypatch):
+    """Absent [organization].preferred_adapter → None (private-fork pattern).
+
+    Patches the parse function so the test is independent of the real
+    install-defaults.toml content; the file-read path still hits the real file.
+    """
+    monkeypatch.setattr(
+        source_defaults,
+        "_preferred_adapter_from_install_defaults",
+        lambda _t: None,
+    )
+    assert read_packaged_preferred_adapter() is None
+
+
+def test_read_packaged_preferred_adapter_valid_returns_value(monkeypatch):
+    """A valid adapter in [organization].preferred_adapter is returned."""
+    monkeypatch.setattr(
+        source_defaults,
+        "_preferred_adapter_from_install_defaults",
+        lambda _t: "cursor",
+    )
+    from agentbundle import scope as _scope
+    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))
+    result = read_packaged_preferred_adapter()
+    assert result == "cursor"
+
+
+def test_read_packaged_preferred_adapter_invalid_raises(monkeypatch):
+    """A non-blank value not in the shipped contract raises CatalogueError."""
+    monkeypatch.setattr(
+        source_defaults,
+        "_preferred_adapter_from_install_defaults",
+        lambda _t: "not-an-adapter",
+    )
+    from agentbundle import scope as _scope
+    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))
+    with pytest.raises(CatalogueError, match="not-an-adapter"):
+        read_packaged_preferred_adapter()
+
+
+def test_read_packaged_preferred_adapter_missing_file_returns_none(monkeypatch):
+    """A missing packaged file yields None (the private-fork pattern).
+
+    Does not reach the parse or validation steps, so shipping no other patches
+    is safe here.
+    """
+    import importlib.resources as _res
+
+    class _FakeResource:
+        def is_file(self):
+            return False
+
+    class _FakeFiles:
+        def joinpath(self, _path):
+            return _FakeResource()
+
+    monkeypatch.setattr(_res, "files", lambda _pkg: _FakeFiles())
+    assert read_packaged_preferred_adapter() is None
+
+
+# ---------------------------------------------------------------------------
+# _load_distribution — existing test, kept below new tests
+# ---------------------------------------------------------------------------
+
+
 def test_load_distribution_prefers_record_bearing_dist(monkeypatch):
     # _load_distribution must prefer the dist carrying direct_url.json over a
     # shadowing egg-info — regardless of iteration order (the gateway-fork case).
