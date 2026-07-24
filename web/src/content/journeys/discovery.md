@@ -53,7 +53,7 @@ skills:
   - name: plan-validation
     description: "Validates a plan against the discovery sidecar — checks that the build plan addresses the grounded hypothesis."
     humanTouches: 0
-  - name: voice-and-microcopy
+  - name: ux-writing
     description: "Characterizes a product's voice and writes blame-free, actionable UI copy."
     humanTouches: 1
   - name: align-value-stream

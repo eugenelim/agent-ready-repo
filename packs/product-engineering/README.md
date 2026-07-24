@@ -19,7 +19,7 @@ stamps one. Intents form a recursive tree whose leaf is a shippable spec.
 | `de-risk-intent` | Name the riskiest assumption, predeclare the **kill condition** in the test's own currency, and run it under a **choosable prototype-approach** — `validate-first` (predeclare, then test) or `prototype-led` (build to learn; the build *is* the test) — to a survive/kill verdict. |
 | `decompose-intent` | Break an intent into the next level down — child intents, or a spec/slice at the leaf — and project the tree **one-way** onto your tracker (`none` / Linear / Jira Align). At app scale the leaf *is* an ordinary `core` brief; at business-unit scale it **slices the feature intent per component** into one brief per repo (each carrying `parent-intent:` + a version-pinned contract reference). |
 | `align-value-stream` | Stand up and keep current a **value-stream meta-repo** — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put: the Backstage **federated catalog**, the shared-contract authority (referenced by version, never forked), the C4/bounded-context architecture, and the **cross-component delivery rollup**. Business-unit scale only. |
-| `voice-and-microcopy` | Shape the **words a user reads** in the UI. Characterize the product's **voice** along a few axes (humor / formality / respect / enthusiasm), write the recurring UI states — **error, empty, button, label** — from blame-free, actionable formulas, and run a **content checklist** before copy ships. The content layer of the pack; a method, not a word bank. |
+| `ux-writing` | Shape the **words a user reads** in the UI. Characterize the product's **voice** along a few axes (humor / formality / respect / enthusiasm), write the recurring UI states — **error, empty, button, label** — from blame-free, actionable formulas, and run a **content checklist** before copy ships. The content layer of the pack; a method, not a word bank. |
 
 ## Install
 
@@ -103,7 +103,7 @@ packs/product-engineering/
     ├── de-risk-intent/      (SKILL.md + references/)
     ├── decompose-intent/    (SKILL.md + references/)
     ├── align-value-stream/  (SKILL.md + references/ + assets/rollup-template.md)  ← business-unit scale
-    └── voice-and-microcopy/ (SKILL.md + references/ + assets/voice-chart-template.md)  ← content layer
+    └── ux-writing/ (SKILL.md + references/ + assets/voice-chart-template.md)  ← content layer
 ```
 
 The intent, rollup, and voice-chart **templates travel with their skills** (in
@@ -119,7 +119,7 @@ Ask your agent, for example:
 - "De-risk the riskiest assumption in this intent with a prototype." (`de-risk-intent`)
 - "Decompose this intent into shippable specs." (`decompose-intent`)
 - "Stand up a value-stream meta-repo to coordinate these components." (`align-value-stream`)
-- "Characterize our product voice, then write the empty-state and error copy." (`voice-and-microcopy`)
+- "Characterize our product voice, then write the empty-state and error copy." (`ux-writing`)
 
 ## Cross-pack: `product-strategy`
 
@@ -133,15 +133,15 @@ The `product-strategy` pack is the **upstream provider** of the strategic contex
 
 ## Cross-pack: `experience-design`
 
-`voice-and-microcopy` is the **content layer of the design seat** — the words
+`ux-writing` is the **content layer of the design seat** — the words
 live here, in `product-engineering`, while the design methods, screen flow, and
 per-screen briefs live in the `experience-design` pack. The two packs read as one seat:
 
 - **`experience-design`'s `user-flow`** produces the per-screen state matrix
   (one row per screen × state: empty / loading / error / success / partial /
-  disabled / permission-denied). Pass that matrix to `voice-and-microcopy` and
+  disabled / permission-denied). Pass that matrix to `ux-writing` and
   it writes copy keyed to every cell.
-- **Without a screen flow**, `voice-and-microcopy` is still fully useful —
+- **Without a screen flow**, `ux-writing` is still fully useful —
   it degrades to naming the states inline. The pairing is additive, not required.
 
 Install both packs to run the full design-to-copy thread:

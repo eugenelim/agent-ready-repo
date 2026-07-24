@@ -21,7 +21,7 @@ this skill is standalone-useful without an upstream artifact) and the backing
 services (from `service-blueprint`, or named textually when it is absent).
 **Consumed by:** `creative-direction` / `design-system` /
 `information-architecture` / `interaction-design` (each enriches a
-per-screen brief), `product-engineering`'s `voice-and-microcopy` (writes copy per
+per-screen brief), `product-engineering`'s `ux-writing` (writes copy per
 screen × state, keyed to the state matrix), the `experience-reviewer` agent
 (reviews the flow + briefs), and — through the optional handover — a generative
 design tool (realization).
@@ -127,7 +127,7 @@ Confirm all four before drafting; if any fails, resolve it first.
    never pixels or values; it names tool *categories*, endorses none.
 10. **Hand off.** Point the craft skills (`creative-direction`,
     `design-system`, `information-architecture`,
-    `interaction-design`) at the briefs to enrich, `voice-and-microcopy` at the
+    `interaction-design`) at the briefs to enrich, `ux-writing` at the
     state matrix for copy, and the `experience-reviewer` for the independent review.
 
 ## Anti-patterns to refuse

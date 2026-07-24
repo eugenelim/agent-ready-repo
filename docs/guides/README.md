@@ -50,7 +50,7 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | Pack | Home | What it ships |
 | --- | --- | --- |
 | [`core`](core/) | **The flagship.** | The build loop — `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, governance seeds. Install this even if you install nothing else. |
-| [`product-engineering`](product-engineering/) | [home](product-engineering/) | The discovery loop and intent shaping — `discovery-loop`, `frame-intent`, `de-risk-intent`, `decompose-intent`, `voice-and-microcopy`, `align-value-stream`. |
+| [`product-engineering`](product-engineering/) | [home](product-engineering/) | The discovery loop and intent shaping — `discovery-loop`, `frame-intent`, `de-risk-intent`, `decompose-intent`, `ux-writing`, `align-value-stream`. |
 | [`release-engineering`](release-engineering/) | [home](release-engineering/) | The release loop — `release-loop`, `release-lead`; autonomous e2e convergence on ephemeral envs; inner↔outer feedback seam; release-readiness record at G5. |
 | [`architect`](architect/) | [home](architect/) | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, and the read-only `design-reviewer` subagent. |
 | [`desk-research`](desk-research/) | [home](desk-research/) | Evidence-grounded research — `desk-research` with selectable depth, plus `source-map`, `compare-hypotheses`, `devils-advocate`, and retrieval subagents. |

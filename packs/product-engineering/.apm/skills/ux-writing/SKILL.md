@@ -1,9 +1,9 @@
 ---
-name: voice-and-microcopy
+name: ux-writing
 description: Use when shaping the actual words a user reads in a product's UI — characterizing the product's voice, writing the recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a screen flow and per-screen state matrix are present (from `experience-design`'s `user-flow`), writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `frame-intent`), to make visual or layout design decisions (this is words only), or to write documentation prose (that is `new-guide`'s clear-prose craft).
 ---
 
-# Skill: voice-and-microcopy
+# Skill: ux-writing
 
 Shape product intent into the **words a user reads** in the UI. The pack frames,
 de-risks, and decomposes intent into shippable features; this skill writes the
@@ -29,7 +29,7 @@ skill is still fully useful: it writes copy for the states you name directly
 > the `experience-design` pack's `user-flow` skill for the per-screen state matrix
 > this skill can consume.
 
-> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience-design` pack's `tone-of-voice` skill; `voice-and-microcopy` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience-design pack); onboarding copy voice and register → `tone-of-voice` (experience-design pack); onboarding UI-state strings (loading, error, empty) → `voice-and-microcopy` (this skill).
+> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience-design` pack's `tone-of-voice` skill; `ux-writing` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience-design pack); onboarding copy voice and register → `tone-of-voice` (experience-design pack); onboarding UI-state strings (loading, error, empty) → `ux-writing` (this skill).
 
 ## When to invoke
 

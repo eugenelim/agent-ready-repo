@@ -1,6 +1,6 @@
 ---
 name: copy-direction
-description: "Use when the surface needs a defined copy voice — turning a vague 'how we sound' into named, ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and recording copy arbitration rules the rest of the build references. Triggers on 'what should our marketing copy sound like', 'copy voice for our landing page', 'how does our headline differ from competitors', 'what should our positioning copy feel like', 'before we write the hero copy we need to name the direction'. Do NOT use for product UI strings (error messages, empty states, button labels) — use `voice-and-microcopy` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting or full brand identity documentation. Do NOT use for content structure or section jobs — use `content-design`. Do NOT use for general brand tone — use `tone-of-voice`."
+description: "Use when the surface needs a defined copy voice — turning a vague 'how we sound' into named, ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and recording copy arbitration rules the rest of the build references. Triggers on 'what should our marketing copy sound like', 'copy voice for our landing page', 'how does our headline differ from competitors', 'what should our positioning copy feel like', 'before we write the hero copy we need to name the direction'. Do NOT use for product UI strings (error messages, empty states, button labels) — use `ux-writing` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting or full brand identity documentation. Do NOT use for content structure or section jobs — use `content-design`. Do NOT use for general brand tone — use `tone-of-voice`."
 ---
 
 # Skill: copy-direction
@@ -13,7 +13,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real copy vibe to name for a specific surface** — the user can describe a register, an audience, or examples to react to for a marketing page, landing page, or acquisition surface. A blank "make it sound good" is not yet a brief; draw out a first felt word before proceeding.
 2. **The direction isn't already named for this surface** — no current copy-direction doc owns this surface. If one exists, you are amending it, not starting fresh.
-3. **You are naming direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job. Hand off: `voice-and-microcopy` for product UI strings; `content-design` output as upstream structural context.
+3. **You are naming direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job. Hand off: `ux-writing` for product UI strings; `content-design` output as upstream structural context.
 4. **You know the target surface or can elicit it** — marketing/acquisition copy, above-fold narrative, positioned copy for hero headlines, taglines, announcement copy. If absent, elicit before grounding the goals; surface type is a referent for every goal.
 
 ## Procedure
@@ -32,7 +32,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 7. **Hold the plain-language floor.** Verify the direction against three checks before closing: no jargon the reader did not bring to this surface, no idioms that do not translate across the likely reader population, and no assumptions about who the reader is (identity, background, level of familiarity). If a named goal pulls against the floor, record it as an open question — the floor is not a trade-off. Load `references/plain-language-floor.md` for the governing standards and the three specific checks.
 
-8. **Hand off.** Name `voice-and-microcopy` (in the `product-engineering` pack) as the downstream skill for per-surface product UI copy states. Name `content-design` output as upstream structural context — if a content brief exists for this surface, the copy-direction goals must be consistent with the brief's section jobs and narrative arc. Note: `tone-of-voice` handles general brand-level voice; this doc handles surface-specific copy direction.
+8. **Hand off.** Name `ux-writing` (in the `product-engineering` pack) as the downstream skill for per-surface product UI copy states. Name `content-design` output as upstream structural context — if a content brief exists for this surface, the copy-direction goals must be consistent with the brief's section jobs and narrative arc. Note: `tone-of-voice` handles general brand-level voice; this doc handles surface-specific copy direction.
 
 ## Anti-patterns to refuse
 

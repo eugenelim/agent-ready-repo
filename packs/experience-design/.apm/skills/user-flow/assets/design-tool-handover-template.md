@@ -41,7 +41,7 @@ regions, reading order — described, not pixel-specified>
 <where this screen sits in the shared nav model; entry/exit; persistent chrome>
 
 ## Copy pointer
-<pointer to the per-state copy from voice-and-microcopy — not restated here>
+<pointer to the per-state copy from ux-writing — not restated here>
 
 ## Platform surface
 <the surface and the platform conventions to honor — point to Apple HIG /

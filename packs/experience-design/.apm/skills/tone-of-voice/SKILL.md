@@ -1,6 +1,6 @@
 ---
 name: tone-of-voice
-description: Use when a designer, copywriter, or builder has a felt "copy vibe" but no named direction — turning a vague register sense into ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and recording copy arbitration rules the rest of the build references. Triggers on "what voice should our copy have", "write a tone-of-voice doc", "what is our brand register", "how should our brand sound across channels", "copy vibe check". Do NOT use for product UI copy states (error messages, empty states, button labels, form labels) — use `voice-and-microcopy` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting, advertising copy templates, or brand identity documentation. Do NOT use if you need copy direction for a specific marketing or acquisition surface (landing page, above-fold hero, announcement) — use `copy-direction` for that surface-specific scope.
+description: Use when a designer, copywriter, or builder has a felt "copy vibe" but no named direction — turning a vague register sense into ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and recording copy arbitration rules the rest of the build references. Triggers on "what voice should our copy have", "write a tone-of-voice doc", "what is our brand register", "how should our brand sound across channels", "copy vibe check". Do NOT use for product UI copy states (error messages, empty states, button labels, form labels) — use `ux-writing` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting, advertising copy templates, or brand identity documentation. Do NOT use if you need copy direction for a specific marketing or acquisition surface (landing page, above-fold hero, announcement) — use `copy-direction` for that surface-specific scope.
 ---
 
 # Skill: tone-of-voice
@@ -13,7 +13,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real copy vibe to name** — the user can describe a register, an audience, or examples to react to. A blank "make it sound good" is not yet a brief; draw out a first felt word before proceeding.
 2. **The direction isn't already named** — no current tone-of-voice doc owns this surface. If one exists, you are amending it, not starting fresh.
-3. **You are naming direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job. Hand off: `voice-and-microcopy` for product UI strings; `content-design` output as upstream structural context.
+3. **You are naming direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job. Hand off: `ux-writing` for product UI strings; `content-design` output as upstream structural context.
 4. **You know the target surface or can elicit it** — marketing/acquisition copy, above-fold narrative, onboarding copy voice, taglines, announcement copy. If absent, elicit before grounding the goals; surface type is a referent for every goal.
 
 ## Procedure
@@ -32,7 +32,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 7. **Hold the plain-language floor.** Verify the direction against three checks before closing: no jargon the reader did not bring to this surface, no idioms that do not translate across the likely reader population, and no assumptions about who the reader is (identity, background, level of familiarity). If a named goal pulls against the floor, record it as an open question — the floor is not a trade-off. Load `references/plain-language-floor.md` for the governing standards and the three specific checks.
 
-8. **Hand off.** Name `voice-and-microcopy` (in the `product-engineering` pack) as the downstream skill for per-surface product UI copy states. Name `content-design` output as upstream structural context — if a content brief exists for this surface, the tone-of-voice goals must be consistent with the brief's section jobs and narrative arc. Note: experience-reviewer scope extension to include tone-of-voice docs as a reviewable artifact type is deferred to a follow-on RFC (RFC-0062 OQ1).
+8. **Hand off.** Name `ux-writing` (in the `product-engineering` pack) as the downstream skill for per-surface product UI copy states. Name `content-design` output as upstream structural context — if a content brief exists for this surface, the tone-of-voice goals must be consistent with the brief's section jobs and narrative arc. Note: experience-reviewer scope extension to include tone-of-voice docs as a reviewable artifact type is deferred to a follow-on RFC (RFC-0062 OQ1).
 
 ## Anti-patterns to refuse
 
