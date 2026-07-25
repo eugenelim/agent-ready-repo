@@ -65,13 +65,13 @@ def main() -> int:
         step
         for job in jobs.values()
         for step in job.get("steps", [])
-        if "run-pack-evals.py" in str(step.get("run", ""))
+        if "agentbundle pack evals run" in str(step.get("run", ""))
     ]
     if not eval_steps:
-        fail("no step invokes tools/run-pack-evals.py")
+        fail("no step invokes agentbundle pack evals run")
     for step in eval_steps:
         if step.get("continue-on-error") is not True:
-            fail("the run-pack-evals.py step must be continue-on-error (report-only)")
+            fail("the pack evals run step must be continue-on-error (report-only)")
 
     # Artifact upload is the bounded summary.json only — never the per-run
     # outputs/ captures (AC10).

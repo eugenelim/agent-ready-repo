@@ -91,7 +91,7 @@ Each pack's `.claude-plugin/plugin.json` is validated against `docs/contracts/pl
 
 ## Authoring or editing a skill
 
-Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `python3 tools/lint-skill-spec.py` to confirm [agentskills.io spec](https://agentskills.io/specification) compliance.
+Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `agentbundle catalogue lint --root . --deep` to confirm [agentskills.io spec](https://agentskills.io/specification) compliance (requires `pip install 'agentbundle[lint]'` for the full deep pass; shallow structural checks run without it).
 
 **Spec compliance (enforced by linter):**
 - Each skill is a **self-contained folder** — `SKILL.md` + optional `scripts/`, `references/`, `assets/`, `evals/`. Never import from another skill's folder or assume files outside its directory.
@@ -100,7 +100,7 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `pytho
 - **Path rules in body:** self-references use skill-relative paths (`scripts/foo.py`); cross-skill references use the skill name only — never `.claude/skills/<...>/` or `packs/.../skills/<...>/` prefixes.
 
 **Craft rules (not linted — hold in head):**
-- **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `lint-skill-spec.py` enforces this).
+- **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `agentbundle catalogue lint --deep` enforces this).
 - **Body answers what to do once invoked** — preconditions, judgment, procedure. Keep it terse.
 - **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `docs/guides/core/reference/output-rendering.md`.
 - **No internal-governance citations** — no RFC/ADR numbers or internal spec paths in any `.apm/**` content.
@@ -117,7 +117,26 @@ A non-cosmetic pack update must also update the pack's eval harness:
 - **Tier-4 LLM-judge rubric** — `evals/evals.json` for judgment/authoring skills.
 - **Tier-B-lite** — additionally an `expect` block + `evals/files/` fixture for deterministic skills.
 
-Verify locally with `python tools/run-pack-evals.py --pack <pack> --mode judge --judge-adapter claude-code --artifacts <file>`.
+Verify locally with `agentbundle pack evals run --pack <pack> --mode judge --judge-adapter claude-code --artifacts <file> --catalogue-root .`.
+
+## Agents project to multiple adapters
+
+The `agent` primitive (e.g. `adversarial-reviewer`, `quality-engineer`) projects to claude-code, kiro, and codex today; copilot support is addable. Check `docs/contracts/adapter.toml` for the current map.
+
+When reasoning about reviewer/agent reach, the default is "agents reach claude-code + kiro + codex today (copilot addable)."
+
+`AGENTS.md` is a **Manual** file — `build-self` won't regenerate it once it exists. A fix to the agent-support statement must edit **both** `packs/core/seeds/AGENTS.md` (the seed) and the working-tree `AGENTS.md` directly.
+
+## Shipped pack content carries no internal-governance citations
+
+When authoring anything under `.apm/**` (skills, agents, commands, hooks, `scripts/`, `references/`, `shared-libs/`, `adapter-root-bins/`), never cite this catalogue's own governance. The four types to keep out:
+
+1. **RFC numbers** — `RFC-0001`…`RFC-00NN`.
+2. **ADR numbers** — `ADR-0001`…`ADR-00NN`.
+3. **Spec/plan citations** — `spec § AC15`, `plan §T5 lines 357-362`, `docs/specs/<feature>.md § "Outputs"`.
+4. **Internal doc paths** — `docs/specs/…`, `docs/adr/…`, `docs/rfc/…`, `.github/workflows/…`.
+
+Drop the citation, keep the rule: *"Markers are repo-only per RFC-0004"* → *"Markers are repo-only"*.
 
 ## Windows-safe Python scripts
 

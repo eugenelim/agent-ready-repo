@@ -500,12 +500,17 @@ def _translate_legacy_finding(pack_name: str, finding: str) -> Diagnostic:
 # ---------------------------------------------------------------------------
 
 
-def lint_catalogue(root: Path, pack: str | None = None) -> LintResult:
+def lint_catalogue(root: Path, pack: str | None = None, *, deep: bool = False) -> LintResult:
     """Run all portable catalogue lint rules against *root*.
 
     When *pack* is given, pack-level diagnostics are filtered to that pack.
     Catalogue-level rules (CAT-L001, CAT-L002) always run against the full
     catalogue. Read-only; raises no exceptions (all errors become diagnostics).
+
+    When *deep* is ``True``, runs the full agentskills.io spec-compliance lint
+    via :mod:`agentbundle.catalogue_tooling.skill_spec_lint`.  Requires the
+    ``pyyaml`` optional extra (``pip install 'agentbundle[lint]'``); raises
+    ``ImportError`` when PyYAML is absent so the CLI can exit 2.
     """
     from agentbundle.build.lint_packs import lint_pack as _lint_pack
 
@@ -560,6 +565,12 @@ def lint_catalogue(root: Path, pack: str | None = None) -> LintResult:
             legacy_findings = _lint_pack(pack_dir)
             for finding in legacy_findings:
                 diagnostics.append(_translate_legacy_finding(pack_name, finding))
+
+    # Deep spec-compliance pass
+    if deep:
+        from agentbundle.catalogue_tooling.skill_spec_lint import lint_skill_spec
+        deep_diags = lint_skill_spec(root, pack=pack)
+        diagnostics.extend(deep_diags)
 
     diagnostics.sort(key=_sort_key)
     ok = not any(d.severity == Severity.ERROR for d in diagnostics)

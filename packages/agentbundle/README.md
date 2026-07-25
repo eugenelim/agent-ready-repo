@@ -197,6 +197,25 @@ preferred_adapter = "cursor"
 
 The org hint fires after the user-config but before the on-disk IDE probe — so `--adapter`, user-config, and upgrade state-hints all take priority. An invalid value exits 1 before writing anything. See the [`agentbundle` reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/reference/agentbundle.md#org-adapter-default) for the full cascade.
 
+**Lint your catalogue** — shallow structural checks run without extra dependencies:
+
+```bash
+agentbundle catalogue lint --root .
+```
+
+For full [agentskills.io spec](https://agentskills.io/specification) compliance (frontmatter key set, description policy, encoding, evals schema), install the `lint` extra and run with `--deep`:
+
+```bash
+pip install 'agentbundle[lint]'
+agentbundle catalogue lint --root . --deep
+```
+
+**Run Tier-A activation evals** to measure whether each covered skill fires on the prompts it should:
+
+```bash
+agentbundle pack evals run --pack <pack-name> --catalogue-root .
+```
+
 See the [pack layout reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/architecture/pack-layout.md) and [authoring a skill](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/how-to/author-a-skill.md).
 
 ## Credentials

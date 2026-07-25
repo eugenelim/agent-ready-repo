@@ -16,8 +16,14 @@ def run(args: "argparse.Namespace") -> int:
     root = Path(getattr(args, "root", ".")).resolve()
     pack = getattr(args, "pack", None)
     fmt = getattr(args, "format", "table")
+    deep = getattr(args, "deep", False)
 
-    result = lint_catalogue(root, pack=pack)
+    try:
+        result = lint_catalogue(root, pack=pack, deep=deep)
+    except ImportError as exc:
+        # PyYAML absent; --deep requires it
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     if fmt == "json":
         print(render_json(result))

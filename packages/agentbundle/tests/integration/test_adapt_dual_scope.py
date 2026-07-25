@@ -35,15 +35,14 @@ from agentbundle.config import PackState, State, dump_state
 def _set_home(monkeypatch: pytest.MonkeyPatch, path: Path) -> None:
     """Pin the user-scope root to *path* for this test.
 
-    Sets HOME + USERPROFILE so Path.expanduser resolves correctly, and also
-    patches agentbundle.scope.resolve_user_root directly — on some Windows CI
-    runners monkeypatching env-vars alone does not propagate into expanduser.
+    Sets HOME, USERPROFILE, and AGENTBUNDLE_USER_ROOT so resolve_user_root
+    returns the temp path on all platforms, including Windows CI runners where
+    Path.expanduser() ignores monkeypatched HOME/USERPROFILE env vars.
     """
     monkeypatch.setenv("HOME", str(path))
     if sys.platform == "win32":
         monkeypatch.setenv("USERPROFILE", str(path))
-    import agentbundle.scope as _scope_mod
-    monkeypatch.setattr(_scope_mod, "resolve_user_root", lambda: path)
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(path))
 
 
 def _write_state(path: Path, files: dict[str, str], scope: str = "repo") -> None:

@@ -129,6 +129,7 @@ def test_cross_scope_conflict_refused_without_force(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     # Install at repo first.
     rc1, _, _ = _install(
@@ -152,6 +153,7 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
 
@@ -199,6 +201,7 @@ def test_force_no_op_when_pack_not_already_other_scope(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, out, _ = _install(
         dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=True)
@@ -248,6 +251,7 @@ def test_uninstall_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True))
@@ -269,6 +273,7 @@ def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True))
@@ -308,6 +313,7 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     # Install at user scope, then uninstall at user scope.
     rc, _, _ = _install(
@@ -350,6 +356,7 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     # Install at user scope.
     rc, _, _ = _install(
@@ -428,6 +435,7 @@ def test_diff_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
     _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True))

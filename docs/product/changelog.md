@@ -12,6 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/).
 
 
+## [agentbundle][0.17.0] — 2026-07-25
+
+### Added
+
+- **`agentbundle catalogue lint --deep`** — full agentskills.io spec-compliance lint, ported from the internal `tools/lint-skill-spec.py` script so it is portable with any agentbundle-managed catalogue. Checks frontmatter key set, name/description/compatibility length limits, `allowed-tools` string shape, duplicate key detection, UTF-8/BOM encoding, folded/literal description blocks (cross-IDE portability), unquoted `: ` in `description` (Kiro#8329 silent truncation), body path rules, and `evals/` JSON schema. Requires `pip install 'agentbundle[lint]'`; exits 2 when PyYAML is absent.
+- **`agentbundle pack evals run`** — Tier-A activation eval runner, ported from `tools/run-pack-evals.py`. Accepts `--catalogue-root` in place of the old hardcoded repo path, making it portable for any catalogue.
+- **`pyyaml>=6.0` optional extra** (`pip install 'agentbundle[lint]'`) for deep SKILL.md spec-compliance lint.
+- **`AGENTBUNDLE_USER_ROOT` env var** in `scope.resolve_user_root()`: when set, its value is used as the user-scope root, bypassing `Path.expanduser()`. Enables reliable test isolation on Windows CI runners where `expanduser()` ignores monkeypatched `HOME`/`USERPROFILE`.
+
+### Fixed
+
+- **`adapt` pending report used backslashes on Windows** when building the companion-file path. The report now always uses forward slashes (`.as_posix()`), so CI assertions pass on Windows runners without platform-branching.
+
+---
+
 ## [agentbundle][0.16.2] — 2026-07-25
 
 ### Fixed

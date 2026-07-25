@@ -14,7 +14,7 @@ import tomllib
 from importlib.resources import files
 from pathlib import Path
 
-CLI_VERSION = "0.16.2"
+CLI_VERSION = "0.17.0"
 
 _HERE = Path(__file__).resolve().parent
 

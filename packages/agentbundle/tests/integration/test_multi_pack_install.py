@@ -172,6 +172,7 @@ def _isolate_home_and_caches(tmp_path, monkeypatch):
     home = tmp_path / "iso_home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(home))
 
     install._clear_inband_detection_seen()
     install._clear_dropped_warning_seen()
@@ -524,6 +525,7 @@ def test_user_scope_multi_pack_accumulates_state(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc1, _, err1 = _install_argv(
         ["--pack", "architect", "--scope", "user",
@@ -555,6 +557,7 @@ def test_user_scope_reinstall_same_pack_refused(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc1, _, err1 = _install_argv(
         ["--pack", "architect", "--scope", "user",

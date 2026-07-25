@@ -173,12 +173,22 @@ def resolve_user_root(home: Path | None = None) -> Path:
     tests) and refuses when the result is the literal ``"~"`` (no
     home directory) or ``"/"`` ($HOME=/ — corporate sandbox).
 
+    When the env var ``AGENTBUNDLE_USER_ROOT`` is set its value is used
+    directly (after normalisation), bypassing ``expanduser``.  Tests and
+    CI environments set this to pin the user-scope root to a temp directory
+    without relying on ``$HOME`` / ``$USERPROFILE`` propagation, which is
+    unreliable on Windows.
+
     Returns:
         The resolved absolute :class:`Path` for ``~``.
 
     Raises:
         :class:`UserScopeUnresolvable` on either documented failure.
     """
+    import os as _os
+    _env_root = _os.environ.get("AGENTBUNDLE_USER_ROOT")
+    if _env_root:
+        home = Path(_env_root)
     if home is None:
         try:
             expanded = Path("~").expanduser()

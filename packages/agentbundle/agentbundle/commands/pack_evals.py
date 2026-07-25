@@ -49,7 +49,6 @@ import tempfile
 import tomllib
 from dataclasses import dataclass, field
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Repo-relative, gitignored. Distinct from the ephemeral temp dir a pack is
 # *projected* into for discovery — the eval-workspace persists across passes.
 EVAL_WORKSPACE = ".eval-workspace"
@@ -159,13 +158,14 @@ class ClaudeCodeDetector:
 
     adapter = "claude-code"
 
-    def project(self, pack_path: pathlib.Path, output_root: pathlib.Path) -> None:
+    def project(self, pack_path: pathlib.Path, output_root: pathlib.Path, catalogue_root: pathlib.Path | None = None) -> None:
         # Lazy import so the pure functions above (and their unit tests) do
         # not require agentbundle to be importable.
         from agentbundle.build.adapters.claude_code import project
         from agentbundle.build.contract import load as load_contract
 
-        contract = load_contract(REPO_ROOT / "docs" / "contracts" / "adapter.toml")
+        root = catalogue_root or pathlib.Path(".")
+        contract = load_contract(root / "docs" / "contracts" / "adapter.toml")
         project(pack_path, contract, output_root)
 
     def run_and_parse(
@@ -526,7 +526,7 @@ def run_eval(
     runs: int = DEFAULT_RUNS,
     detector=None,
     timeout: int = DEFAULT_TIMEOUT_S,
-    repo_root: pathlib.Path = REPO_ROOT,
+    repo_root: pathlib.Path | None = None,
     project_root: pathlib.Path | None = None,
 ) -> dict:
     """Run the activation eval for one pack and write one `iteration-<N>/`.
@@ -536,6 +536,8 @@ def run_eval(
     model; `project_root` lets a test point the projected pack at a prepared
     directory instead of invoking agentbundle.
     """
+    if repo_root is None:
+        repo_root = pathlib.Path(".")
     if detector is None:
         detector = get_detector(ClaudeCodeDetector.adapter)
     _safe_segment("pack name", pack_name)
@@ -552,7 +554,7 @@ def run_eval(
     # Project the pack into an isolated dir so only its skills are discoverable.
     if project_root is None:
         proj = iter_dir / ".projection"
-        detector.project(pack_dir, proj)
+        detector.project(pack_dir, proj, catalogue_root=repo_root)
         run_cwd = proj
     else:
         run_cwd = project_root
@@ -633,7 +635,7 @@ def grade_reports(
     pack_name: str,
     reports: dict,
     *,
-    repo_root: pathlib.Path = REPO_ROOT,
+    repo_root: pathlib.Path | None = None,
 ) -> dict:
     """Grade **in-harness** (Phase 2, RFC-0037 § Errata E2) activation reports.
 
@@ -646,6 +648,8 @@ def grade_reports(
     so it is never conflated with the headless `observed` baseline. No model is
     invoked here — the dispatch is the driver's job; this is pure grading.
     """
+    if repo_root is None:
+        repo_root = pathlib.Path(".")
     _validate_reports(reports)
     _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
@@ -773,7 +777,7 @@ def grade_behavior(
     results: dict,
     *,
     workspaces: dict,
-    repo_root: pathlib.Path = REPO_ROOT,
+    repo_root: pathlib.Path | None = None,
 ) -> dict:
     """Grade the **lightweight behavior/output check** (Phase 3, RFC-0037 §
     Errata E3). For each eval in a covered skill's `evals/evals.json`, the driver
@@ -791,6 +795,8 @@ def grade_behavior(
     `workspaces`: `{f"{skill}/{eval_id}": <working-dir path>}`. A missing
     workspace or malformed entry **fails closed** (graded errored, never a pass).
     """
+    if repo_root is None:
+        repo_root = pathlib.Path(".")
     if not isinstance(results, dict):
         raise ValueError("results must be a JSON object {skill: {eval_id: {...}}}")
     _safe_segment("pack name", pack_name)
@@ -908,7 +914,7 @@ def grade_judge(
     artifacts: dict,
     *,
     judge,
-    repo_root: pathlib.Path = REPO_ROOT,
+    repo_root: pathlib.Path | None = None,
     timeout: int = DEFAULT_TIMEOUT_S,
 ) -> dict:
     """LLM-judge the **quality layer** (RFC-0037 § Errata E4). For each eval, run
@@ -918,6 +924,8 @@ def grade_judge(
     `mode: judge`, `fidelity: model-judged`, `judge_adapter` recorded. An
     unparseable verdict / missing artifact **fails closed** (errored, not PASS).
     `judge` is injectable so the parse/grade is testable without a live model."""
+    if repo_root is None:
+        repo_root = pathlib.Path(".")
     _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
     pack_workspace = repo_root / EVAL_WORKSPACE / pack_name
@@ -1045,9 +1053,17 @@ def _print_report(summary: dict) -> None:
             )
 
 
+def run(args) -> int:
+    """Entry point for 'agentbundle pack evals run' subcommand."""
+    import pathlib as _pl
+    if not hasattr(args, "catalogue_root"):
+        args.catalogue_root = "."
+    return _run_from_args(args)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="run-pack-evals.py",
+        prog="agentbundle pack evals run",
         description="Measure skill activation for a pack (Tier A, report-only).",
     )
     parser.add_argument("--pack", required=True, help="pack name under packs/")
@@ -1114,16 +1130,28 @@ def main(argv: list[str] | None = None) -> int:
              "--check behavior: {skill: {eval_id: {assertions:[bool], errored, "
              "workspace}}}. Required with --mode in-harness",
     )
+    parser.add_argument(
+        "--catalogue-root",
+        default=".",
+        dest="catalogue_root",
+        help="Catalogue repository root (default: current directory).",
+    )
     args = parser.parse_args(argv)
+    return _run_from_args(args)
 
-    if args.prepare_workspace:
+
+def _run_from_args(args) -> int:
+    """Shared execution logic (CLI-parsed args or run(args) from agentbundle)."""
+    catalogue_root = pathlib.Path(getattr(args, "catalogue_root", ".")).resolve()
+
+    if getattr(args, "prepare_workspace", None):
         # Seed a confined per-eval working dir and print its path (the behavior
         # driver runs the skill there). Puts the fixture path-confinement on the
         # live path rather than leaving it a helper nothing calls.
         try:
             skill, _, eval_id = args.prepare_workspace.partition("/")
             _safe_segment("skill name", skill)
-            pack_dir = REPO_ROOT / "packs" / _safe_segment("pack name", args.pack)
+            pack_dir = catalogue_root / "packs" / _safe_segment("pack name", args.pack)
             evals = read_output_evals(pack_dir, skill)
             ev = next((e for e in evals if str(e.get("id")) == eval_id), None)
             if ev is None:
@@ -1156,7 +1184,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
-        summary = grade_judge(args.pack, artifacts, judge=judge, timeout=args.timeout)
+        summary = grade_judge(args.pack, artifacts, judge=judge, timeout=args.timeout, repo_root=catalogue_root)
         _print_report(summary)
         return 0
 
@@ -1185,9 +1213,9 @@ def main(argv: list[str] | None = None) -> int:
                     if ws is not None:
                         workspaces[f"{skill}/{eid}"] = ws
                     results[skill][eid] = entry
-            summary = grade_behavior(args.pack, results, workspaces=workspaces)
+            summary = grade_behavior(args.pack, results, workspaces=workspaces, repo_root=catalogue_root)
         else:
-            summary = grade_reports(args.pack, payload)
+            summary = grade_reports(args.pack, payload, repo_root=catalogue_root)
         _print_report(summary)
         return 0
 
@@ -1203,7 +1231,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     summary = run_eval(
-        args.pack, runs=args.runs, detector=detector, timeout=args.timeout
+        args.pack, runs=args.runs, detector=detector, timeout=args.timeout,
+        repo_root=catalogue_root
     )
     _print_report(summary)
     return 0  # report-only: an eval miss is never a non-zero exit
