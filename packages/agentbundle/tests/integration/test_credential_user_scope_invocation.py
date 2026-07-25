@@ -129,7 +129,13 @@ def _assert_no_relative_import_error(result: subprocess.CompletedProcess, entry:
         "ModuleNotFoundError: No module named" in stderr
         and not any(mod in stderr for mod in credential_area_modules)
     )
-    if bare_module_not_found:
+    # Scripts with custom dependency guards emit "error: missing dependency '<pkg>'"
+    # instead of ModuleNotFoundError — same out-of-scope category.
+    custom_dep_guard = (
+        "error: missing dependency" in stderr
+        and "pip install" in stderr
+    )
+    if bare_module_not_found or custom_dep_guard:
         return  # Out-of-scope dep failure; bug-of-interest is absent.
     raise AssertionError(
         f"{entry}: unexpected non-zero exit from --help.\n"

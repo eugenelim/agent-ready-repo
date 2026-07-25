@@ -79,6 +79,12 @@ jobs:
         run: |
           mkdir -p /tmp/ext-cat/packs/sample-pack/.apm/skills/hello
           mkdir -p /tmp/ext-cat/packs/sample-pack/.claude-plugin
+          mkdir -p /tmp/ext-cat/profiles
+          mkdir -p /tmp/ext-cat/contracts
+          # AGENTS.md doubles as a catalogue marker in the archive (catalogue.toml
+          # is excluded from archives by design; the archive verifier requires one of:
+          # catalogue.toml, AGENTS.md, or .agentbundle).
+          touch /tmp/ext-cat/AGENTS.md
 
           cat > /tmp/ext-cat/catalogue.toml <<'TOML'
           [catalogue]
