@@ -1,18 +1,34 @@
 ---
 // Section 5 — HUMAN CONTROL POINTS. LIGHT zone (surface) — NOT dark. Emphasis
-// comes from amber-bordered gate cards, not a dark band (creative-direction.md:
+// comes from amber-bordered gate markers, not a dark band (creative-direction.md:
 // one dark zone only; a light interruption between two dark bands disorients).
+// Enriched: flat 7-card grid → phase-grouped timeline. spec/marketing-enrichment AC2.
 import Section from '../layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
-const gates = [
-  { id: 'G0', name: 'Go / No-go', loop: 'Discovery', decide: 'Is this idea worth exploring?' },
-  { id: 'G1.5', name: 'Shape sign-off', loop: 'Discovery', decide: 'Does the chosen shape fit the product strategy?' },
-  { id: 'G2', name: 'Brief ratification', loop: 'Discovery', decide: 'Is the decision brief complete enough to build from?' },
-  { id: 'G3', name: 'Handoff to build', loop: 'Discovery → Build', decide: 'Is this brief specific enough to spec?' },
-  { id: 'Plan', name: 'Plan approval', loop: 'Build', decide: "Is the plan's trio correct? Do the risk triggers fire?" },
-  { id: 'G4', name: 'PR merge', loop: 'Build', decide: 'Is adversarial review clean? Does the spec match the implementation?' },
-  { id: 'G5', name: 'Prod ship', loop: 'Release', decide: 'Is this safe to put in front of users?' },
+const phases = [
+  {
+    label: 'Discovery',
+    gates: [
+      { id: 'G0',   name: 'Go / No-go',          decide: 'Is this idea worth exploring?' },
+      { id: 'G1.5', name: 'Shape sign-off',       decide: 'Does the chosen shape fit the product strategy?' },
+      { id: 'G2',   name: 'Brief ratification',   decide: 'Is the decision brief complete enough to build from?' },
+      { id: 'G3',   name: 'Handoff to build',     decide: 'Is this brief specific enough to spec?' },
+    ],
+  },
+  {
+    label: 'Build',
+    gates: [
+      { id: 'Plan', name: 'Plan approval', decide: "Is the plan's trio correct? Do the risk triggers fire?" },
+      { id: 'G4',   name: 'PR merge',     decide: 'Is adversarial review clean? Does the spec match the implementation?' },
+    ],
+  },
+  {
+    label: 'Release',
+    gates: [
+      { id: 'G5', name: 'Prod ship', decide: 'Is this safe to put in front of users?' },
+    ],
+  },
 ];
 ---
 
@@ -25,18 +41,39 @@ const gates = [
     the gates. Here is what each handoff asks of you.
   </p>
 
-  <ul class="gates__grid">
-    {gates.map((g) => (
-      <li class="gate-card">
-        <div class="gate-card__top">
-          <span class="gate-card__id">{g.id}</span>
-          <span class="gate-card__loop">{g.loop}</span>
+  <!-- Phase timeline — horizontal on desktop, stacked on mobile -->
+  <div class="timeline">
+    {phases.map((phase, phaseIndex) => (
+      <>
+        <div class="timeline__phase">
+          <h3 class="timeline__phase-label">{phase.label}</h3>
+          <ol class="timeline__gates">
+            {phase.gates.map((gate) => (
+              <li class="timeline__gate">
+                <!-- Left: pill marker + vertical connector line -->
+                <div class="timeline__gate-left">
+                  <div class="timeline__marker">
+                    <span class="timeline__gate-id">{gate.id}</span>
+                  </div>
+                  <div class="timeline__gate-line" aria-hidden="true"></div>
+                </div>
+                <!-- Right: name + question -->
+                <div class="timeline__content">
+                  <h4 class="timeline__gate-name">{gate.name}</h4>
+                  <p class="timeline__gate-decide">{gate.decide}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
-        <h3 class="gate-card__name">{g.name}</h3>
-        <p class="gate-card__decide">{g.decide}</p>
-      </li>
+        {phaseIndex < phases.length - 1 && (
+          <div class="timeline__connector" aria-hidden="true">
+            <span class="timeline__arrow">→</span>
+          </div>
+        )}
+      </>
     ))}
-  </ul>
+  </div>
 
   <a class="gates__cta" href={withBase('/journeys/core/')}>Explore a full journey <span aria-hidden="true">→</span></a>
 </Section>
@@ -57,55 +94,143 @@ const gates = [
     margin-bottom: var(--ds-space-7);
   }
 
-  .gates__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* ── Timeline shell ────────────────────────────────────────────────── */
+  .timeline {
+    display: flex;
     gap: var(--ds-space-4);
+    align-items: flex-start;
     margin-bottom: var(--ds-space-6);
   }
 
-  .gate-card {
-    background-color: var(--ds-surface-alt);
-    border: 1px solid var(--ds-border);
-    border-left: 4px solid var(--ds-accent);
-    border-radius: var(--ds-radius-md);
-    padding: var(--ds-space-5);
+  /* ── Phase column ──────────────────────────────────────────────────── */
+  .timeline__phase {
+    flex: 1;
+    min-width: 0;
   }
 
-  .gate-card__top {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--ds-space-3);
-    margin-bottom: var(--ds-space-3);
-  }
-
-  .gate-card__id {
-    font-family: var(--ds-font-mono);
-    font-weight: var(--ds-weight-heavy);
-    color: var(--ds-accent-deep);
-    font-size: var(--ds-type-body-lg);
-  }
-
-  .gate-card__loop {
+  .timeline__phase-label {
     font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
     text-transform: uppercase;
     letter-spacing: var(--ds-track-label);
     color: var(--ds-on-surface-muted);
+    margin-bottom: var(--ds-space-4);
+    padding-bottom: var(--ds-space-2);
+    border-bottom: 1px solid var(--ds-border);
   }
 
-  .gate-card__name {
-    font-size: var(--ds-type-h3);
-    margin-bottom: var(--ds-space-2);
+  .timeline__gates {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
-  .gate-card__decide {
-    color: var(--ds-on-surface-2);
-    font-size: var(--ds-type-body);
+  /* ── Individual gate ───────────────────────────────────────────────── */
+  .timeline__gate {
+    display: flex;
+    gap: var(--ds-space-3);
+    align-items: flex-start;
   }
 
+  /* ── Marker + connector ────────────────────────────────────────────── */
+  .timeline__gate-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .timeline__marker {
+    min-width: var(--ds-space-7);
+    height: var(--ds-space-6);
+    padding: 0 var(--ds-space-2);
+    border-radius: var(--ds-radius-pill);
+    background-color: var(--ds-accent-subtle);
+    border: 1px solid var(--ds-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .timeline__gate-id {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-accent-deep);
+    letter-spacing: var(--ds-track-label);
+    white-space: nowrap;
+  }
+
+  /* Vertical connector line between gates; hidden after the last gate in the group */
+  .timeline__gate-line {
+    width: 1px;
+    flex: 1;
+    min-height: var(--ds-space-4);
+    background-color: var(--ds-border);
+  }
+
+  .timeline__gate:last-child .timeline__gate-line {
+    display: none;
+  }
+
+  /* ── Gate content ──────────────────────────────────────────────────── */
+  .timeline__content {
+    padding-top: var(--ds-space-1);
+    padding-bottom: var(--ds-space-4);
+  }
+
+  .timeline__gate:last-child .timeline__content {
+    padding-bottom: 0;
+  }
+
+  .timeline__gate-name {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-1);
+    line-height: var(--ds-lead-heading);
+  }
+
+  .timeline__gate-decide {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    line-height: var(--ds-lead-body);
+  }
+
+  /* ── Phase connectors (desktop only) ──────────────────────────────── */
+  .timeline__connector {
+    display: flex;
+    align-items: flex-start;
+    padding-top: var(--ds-space-7);
+    color: var(--ds-accent-deep);
+    flex-shrink: 0;
+  }
+
+  .timeline__arrow {
+    font-size: var(--ds-type-body-lg);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  /* ── CTA link ──────────────────────────────────────────────────────── */
   .gates__cta {
     font-weight: var(--ds-weight-semibold);
     font-size: var(--ds-type-body-lg);
+  }
+
+  /* ── Responsive: stack on mobile ───────────────────────────────────── */
+  @media (max-width: 767px) {
+    .timeline {
+      flex-direction: column;
+      gap: var(--ds-space-6);
+    }
+
+    .timeline__connector {
+      display: none;
+    }
+
+    .timeline__phase {
+      width: 100%;
+    }
   }
 </style>

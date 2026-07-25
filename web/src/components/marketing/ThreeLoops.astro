@@ -1,6 +1,7 @@
 ---
 // Section 4 — HOW IT WORKS (Three supervised loops). Light zone (surface-alt).
-// Staged, not a grid — one loop per moment, showing the handoff chain.
+// Enriched: 3-column icon card grid replacing the vertical numbered list.
+// spec/marketing-enrichment AC1.
 import Section from '../layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
@@ -9,28 +10,43 @@ const loops = [
     n: '01',
     name: 'Discovery Loop',
     pack: 'product-engineering · discovery-lead',
-    desc: 'Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses.',
+    caps: [
+      'Raw idea → ratified brief',
+      'Five candidate shapes, four specialist lenses',
+      'Product, UX, architecture, safety',
+    ],
     gate: 'G3 — you approve a ratified decision brief, not a validated solution.',
     href: '/journeys/discovery/',
     linkLabel: 'Read the discovery journey',
+    icon: 'discovery',
   },
   {
     n: '02',
     name: 'Build Loop',
     pack: 'core · work-loop',
-    desc: 'Spec → shipped code. Lint, typecheck, and tests must pass. Three specialist reviewers each read the diff cold, in a fresh session — adversarial by design.',
+    caps: [
+      'Spec → shipped code',
+      'Lint, typecheck, and tests must pass',
+      'Three specialist reviewers, each cold',
+    ],
     gate: 'G4 — you merge only when adversarial review is clean and all gates pass.',
     href: '/journeys/core/',
     linkLabel: 'Read the build journey',
+    icon: 'build',
   },
   {
     n: '03',
     name: 'Release Loop',
     pack: 'release-engineering · release-lead',
-    desc: 'Built → production. Autonomous e2e convergence on ephemeral environments. Deployed findings feed back to the build loop automatically.',
+    caps: [
+      'Built → production',
+      'Autonomous e2e on ephemeral environments',
+      'Deployed findings feed back automatically',
+    ],
     gate: 'G5 — prod ship always surfaces to a human. Always.',
     href: '/journeys/release/',
     linkLabel: 'Read the release journey',
+    icon: 'release',
   },
 ];
 
@@ -63,15 +79,56 @@ const pipelineGates = ['G3', 'G4'];
 
   <ol class="loops">
     {loops.map((l) => (
-      <li class="loop">
-        <span class="loop__n" aria-hidden="true">{l.n}</span>
-        <div class="loop__body">
-          <h3 class="loop__name">{l.name}</h3>
-          <p class="loop__pack"><code>{l.pack}</code></p>
-          <p class="loop__desc">{l.desc}</p>
-          <p class="loop__gate"><strong>Human gate.</strong> {l.gate}</p>
-          <a class="loop__link" href={withBase(l.href)}>{l.linkLabel} <span aria-hidden="true">→</span></a>
+      <li class="loop-card">
+        <!-- Icon -->
+        <div class="loop-card__icon" aria-hidden="true">
+          {l.icon === 'discovery' && (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.75"/>
+              <path d="M14.5 14.5L20 20" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            </svg>
+          )}
+          {l.icon === 'build' && (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 6L3 12L8 18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 6L21 12L16 18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 4L11 20" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            </svg>
+          )}
+          {l.icon === 'release' && (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 20V4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+              <path d="M5 11L12 4L19 11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 20H20" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            </svg>
+          )}
         </div>
+
+        <!-- Meta: number + pack badge -->
+        <div class="loop-card__meta">
+          <span class="loop-card__n" aria-hidden="true">{l.n}</span>
+          <code class="loop-card__pack">{l.pack}</code>
+        </div>
+
+        <!-- Name -->
+        <h3 class="loop-card__name">{l.name}</h3>
+
+        <!-- Capabilities list -->
+        <ul class="loop-card__caps" aria-label={`${l.name} capabilities`}>
+          {l.caps.map((cap) => (
+            <li class="loop-card__cap">{cap}</li>
+          ))}
+        </ul>
+
+        <!-- Gate callout -->
+        <p class="loop-card__gate">
+          <strong>Human gate.</strong> {l.gate}
+        </p>
+
+        <!-- Journey link -->
+        <a class="loop-card__link" href={withBase(l.href)}>
+          {l.linkLabel} <span aria-hidden="true">→</span>
+        </a>
       </li>
     ))}
   </ol>
@@ -120,71 +177,130 @@ const pipelineGates = ['G3', 'G4'];
     font-size: var(--ds-type-body-lg);
   }
 
-  /* ── Loop list ─────────────────────────────────────────────────────── */
+  /* ── Icon card grid ────────────────────────────────────────────────── */
   .loops {
     display: grid;
-    gap: var(--ds-space-7);
-    counter-reset: loop;
-  }
-
-  .loop {
-    display: flex;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--ds-space-5);
-    align-items: flex-start;
   }
 
-  .loop__n {
+  .loop-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-top: 3px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+  }
+
+  /* ── Icon ──────────────────────────────────────────────────────────── */
+  .loop-card__icon {
+    width: var(--ds-space-7);
+    height: var(--ds-space-7);
+    border-radius: var(--ds-radius-sm);
+    background-color: var(--ds-accent-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ds-accent-deep);
+    flex-shrink: 0;
+  }
+
+  /* ── Meta ──────────────────────────────────────────────────────────── */
+  .loop-card__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    flex-wrap: wrap;
+  }
+
+  .loop-card__n {
     font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-h3);
+    font-size: var(--ds-type-xs);
     font-weight: var(--ds-weight-heavy);
     color: var(--ds-accent-deep);
-    line-height: 1.2;
-  }
-
-  .loop__body {
-    max-width: 64ch;
-  }
-
-  .loop__name {
-    margin-bottom: var(--ds-space-2);
-  }
-
-  .loop__pack {
-    margin-bottom: var(--ds-space-3);
-  }
-
-  .loop__pack code {
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.15rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
     letter-spacing: var(--ds-track-label);
   }
 
-  .loop__desc {
-    margin-bottom: var(--ds-space-4);
-  }
-
-  .loop__gate {
-    border-left: 4px solid var(--ds-accent);
-    padding: var(--ds-space-2) 0 var(--ds-space-2) var(--ds-space-4);
-    margin-bottom: var(--ds-space-4);
-    color: var(--ds-on-surface);
+  .loop-card__pack {
     background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ds-radius-sm);
+    font-size: var(--ds-type-xs);
+    letter-spacing: var(--ds-track-label);
   }
 
-  .loop__gate strong {
+  /* ── Name ──────────────────────────────────────────────────────────── */
+  .loop-card__name {
+    font-size: var(--ds-type-h3);
+    margin: 0;
+  }
+
+  /* ── Capabilities ──────────────────────────────────────────────────── */
+  .loop-card__caps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+    flex: 1;
+  }
+
+  .loop-card__cap {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-space-2);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+  }
+
+  .loop-card__cap::before {
+    content: '→';
+    color: var(--ds-accent-deep);
+    flex-shrink: 0;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    line-height: var(--ds-lead-body);
+  }
+
+  /* ── Gate callout ──────────────────────────────────────────────────── */
+  .loop-card__gate {
+    border-left: 3px solid var(--ds-accent);
+    padding: var(--ds-space-2) 0 var(--ds-space-2) var(--ds-space-3);
+    background-color: var(--ds-accent-subtle);
+    border-radius: 0 var(--ds-radius-sm) var(--ds-radius-sm) 0;
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface);
+    margin: 0;
+  }
+
+  .loop-card__gate strong {
     color: var(--ds-accent-deep);
   }
 
-  .loop__link {
+  /* ── Link ──────────────────────────────────────────────────────────── */
+  .loop-card__link {
     font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-sm);
+    margin-top: auto;
   }
 
-  @media (max-width: 640px) {
-    .loop {
-      flex-direction: column;
-      gap: var(--ds-space-2);
+  /* ── Hover: amber border glow ──────────────────────────────────────── */
+  @media (prefers-reduced-motion: no-preference) {
+    .loop-card {
+      transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
+    }
+
+    .loop-card:hover {
+      border-color: var(--ds-accent);
+    }
+  }
+
+  /* ── Responsive ────────────────────────────────────────────────────── */
+  @media (max-width: 767px) {
+    .loops {
+      grid-template-columns: 1fr;
     }
   }
 </style>

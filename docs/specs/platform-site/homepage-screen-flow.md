@@ -157,19 +157,18 @@ Three nodes connected by arrows with gate labels between them. Amber highlight o
 **Headline (h3, not h2 — this is a trust checkpoint, not a major section):**
 > One install. Every major agent.
 
-**Table:** (existing adapter table from index.md — same data, new visual treatment)
+**Table:** Capability columns sourced from `packages/agentbundle/agentbundle/_data/adapter.toml` — `command` primitive `mode != "dropped"` → Tool Use; skill/hook-body+hook-wiring/agent primitives for the rest. Kiro IDE + Kiro CLI consolidated to "Kiro" (using kiro-ide capabilities). Amended by spec/marketing-enrichment.
 
-| Agent | Skills | Subagents | Hooks | Commands |
-|---|---|---|---|---|
-| Claude Code | ✓ | ✓ | ✓ | ✓ |
-| Codex | ✓ | ✓ | ✓ | — |
-| Cursor | ✓ | ✓ | ✓ | — |
-| Copilot | ✓ | ✓ | ✓ | — |
-| Gemini CLI | ✓ | ✓ | ✓ | — |
-| Kiro IDE | ✓ | ✓ | ✓ | — |
-| Kiro CLI | ✓ | ✓ | ✓ | — |
+| Agent | Tool Use | Context Files | Skills | Hooks | Multi-Agent |
+|---|---|---|---|---|---|
+| Claude Code | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Cursor | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Gemini CLI | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Kiro | — | ✓ | ✓ | ✓ | ✓ |
+| Copilot | — | ✓ | ✓ | ✓ | ✓ |
+| Codex | — | ✓ | ✓ | ✓ | ✓ |
 
-**Note below table:** "Switch adapters with one flag. Your skills, subagents, and hooks project into the layout each agent expects."
+**Note below table:** "Switch adapters with one flag. Your skills, multi-agent dispatch, and hooks project into the layout each agent expects."
 
 ---
 

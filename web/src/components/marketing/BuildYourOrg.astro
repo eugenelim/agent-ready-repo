@@ -3,13 +3,59 @@
 // immediately above the dark SiteFooter, so the two merge into one continuous
 // dark band — the only second dark band, reading as closure not interruption
 // (creative-direction.md / homepage-screen-flow.md §9).
+// Enriched: 3-step visual sequence added before the body text. spec/marketing-enrichment AC4.
 import Section from '../layout/Section.astro';
 import { withBase } from '../../lib/paths';
+
+const steps = [
+  {
+    n: '1',
+    label: 'Install core',
+    desc: null,
+    code: 'agentbundle install --pack core',
+  },
+  {
+    n: '2',
+    label: 'Add packs',
+    desc: 'Extend with skills for your stack',
+    code: null,
+  },
+  {
+    n: '3',
+    label: 'Ship',
+    desc: 'Loop runs. Human gates. CI passes.',
+    code: null,
+  },
+];
 ---
 
 <Section tone="dark" labelledby="org-heading">
   <div class="org">
     <h2 id="org-heading" class="org__headline">Make it your team's operating model.</h2>
+
+    <!-- 3-step visual sequence -->
+    <ol class="org__steps" aria-label="Three steps to get started">
+      {steps.map((step, i) => (
+        <>
+          <li class="org__step">
+            <div class="org__step-n" aria-hidden="true">{step.n}</div>
+            <div class="org__step-body">
+              <h3 class="org__step-label">{step.label}</h3>
+              {step.code && (
+                <code class="org__step-code">{step.code}</code>
+              )}
+              {step.desc && (
+                <p class="org__step-desc">{step.desc}</p>
+              )}
+            </div>
+          </li>
+          {i < steps.length - 1 && (
+            <li class="org__step-arrow" aria-hidden="true">→</li>
+          )}
+        </>
+      ))}
+    </ol>
+
     <p class="org__body">
       Adopt the catalogue as-is, or fork it as your own. Write your house conventions
       and review standards into <code>core</code>, add skills for your stack, and ship
@@ -33,9 +79,79 @@ import { withBase } from '../../lib/paths';
     font-weight: var(--ds-weight-heavy);
     line-height: var(--ds-lead-display);
     letter-spacing: var(--ds-track-display);
-    margin-bottom: var(--ds-space-5);
+    margin-bottom: var(--ds-space-7);
   }
 
+  /* ── 3-step sequence ───────────────────────────────────────────────── */
+  .org__steps {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .org__step {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-space-3);
+  }
+
+  .org__step-n {
+    flex-shrink: 0;
+    width: var(--ds-space-6);
+    height: var(--ds-space-6);
+    border-radius: var(--ds-radius-pill);
+    background-color: var(--ds-accent);
+    color: var(--ds-cta-primary-fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-heavy);
+  }
+
+  .org__step-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-1);
+    padding-top: var(--ds-space-1);
+  }
+
+  .org__step-label {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-hero-fg);
+    line-height: var(--ds-lead-heading);
+    margin: 0;
+  }
+
+  .org__step-code {
+    display: block;
+    background-color: var(--ds-accent-subtle-dk);
+    color: var(--ds-accent);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ds-radius-sm);
+    font-size: var(--ds-type-xs);
+    white-space: nowrap;
+  }
+
+  .org__step-desc {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-hero-fg-2);
+    margin: 0;
+  }
+
+  .org__step-arrow {
+    color: var(--ds-accent);
+    font-size: var(--ds-type-body-lg);
+    font-weight: var(--ds-weight-bold);
+    padding-top: var(--ds-space-1);
+    flex-shrink: 0;
+  }
+
+  /* ── Body + CTA (existing, unchanged) ─────────────────────────────── */
   .org__body {
     color: var(--ds-hero-fg-2);
     font-size: var(--ds-type-body-lg);
@@ -62,5 +178,17 @@ import { withBase } from '../../lib/paths';
   .org__cta:hover {
     background-color: var(--ds-cta-primary-bg-hover);
     text-decoration: none;
+  }
+
+  /* ── Responsive ────────────────────────────────────────────────────── */
+  @media (max-width: 767px) {
+    .org__steps {
+      flex-direction: column;
+      gap: var(--ds-space-4);
+    }
+
+    .org__step-arrow {
+      display: none;
+    }
   }
 </style>

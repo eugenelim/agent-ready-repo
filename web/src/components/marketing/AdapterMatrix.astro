@@ -1,17 +1,22 @@
 ---
 // Section 6 — WORKS WITH YOUR AGENT. Light zone. h3, not h2 — this is a trust
-// checkpoint, not a major section. Data from index.md adapter table.
+// checkpoint, not a major section. Capability data from adapter.toml.
+// Columns updated: Skills/Subagents/Hooks/Commands → Tool Use/Context Files/Skills/Hooks/Multi-Agent.
+// Kiro IDE + Kiro CLI consolidated to Kiro (kiro-ide capabilities).
+// spec/marketing-enrichment AC3.
 import Section from '../layout/Section.astro';
 
-const capabilities = ['Skills', 'Subagents', 'Hooks', 'Commands'];
+// Source: packages/agentbundle/agentbundle/_data/adapter.toml
+// Tool Use = command primitive mode != "dropped"
+// Context Files, Skills, Hooks, Multi-Agent = all adapters fully supported
+const capabilities = ['Tool Use', 'Context Files', 'Skills', 'Hooks', 'Multi-Agent'];
 const agents = [
-  { name: 'Claude Code', caps: [true, true, true, true] },
-  { name: 'Codex', caps: [true, true, true, false] },
-  { name: 'Cursor', caps: [true, true, true, false] },
-  { name: 'Copilot', caps: [true, true, true, false] },
-  { name: 'Gemini CLI', caps: [true, true, true, false] },
-  { name: 'Kiro IDE', caps: [true, true, true, false] },
-  { name: 'Kiro CLI', caps: [true, true, true, false] },
+  { name: 'Claude Code', caps: [true,  true, true, true, true] },
+  { name: 'Cursor',      caps: [true,  true, true, true, true] },
+  { name: 'Gemini CLI',  caps: [true,  true, true, true, true] },
+  { name: 'Kiro',        caps: [false, true, true, true, true] },
+  { name: 'Copilot',     caps: [false, true, true, true, true] },
+  { name: 'Codex',       caps: [false, true, true, true, true] },
 ];
 ---
 
@@ -46,7 +51,7 @@ const agents = [
   </div>
 
   <p class="adapters__note">
-    Switch adapters with one flag. Your skills, subagents, and hooks project into the
+    Switch adapters with one flag. Your skills, multi-agent dispatch, and hooks project into the
     layout each agent expects.
   </p>
 </Section>
@@ -64,7 +69,7 @@ const agents = [
     border: 1px solid var(--ds-border);
     border-radius: var(--ds-radius-md);
     overflow: hidden;
-    min-width: 520px;
+    min-width: 560px;
   }
 
   .adapters__table th,
