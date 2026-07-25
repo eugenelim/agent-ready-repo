@@ -88,14 +88,24 @@ def test_result_types_structure():
 
 
 def test_stub_raises_not_implemented():
-    """AC2: unimplemented stubs raise NotImplementedError.
-    lint/build/self_host/sync_defaults are Wave 2 real implementations.
-    verify is a Wave 3 real implementation. Only package remains a stub.
+    """AC2: all catalogue_tooling modules are now implemented (Waves 2-4).
+
+    No stubs remain — this test verifies package_catalogue is callable
+    (accepts required args) without raising NotImplementedError.
     """
     from agentbundle.catalogue_tooling.package import package_catalogue
 
-    with pytest.raises(NotImplementedError):
-        package_catalogue(Path("."))
+    # Wave 4: package_catalogue is implemented; calling with missing required
+    # args returns a PackageResult error rather than raising NotImplementedError.
+    result = package_catalogue(
+        root=Path("."),
+        bundle="test",
+        release="0.0.0",
+        channel="stable",
+        output=Path("/tmp/nonexistent-test-output"),
+    )
+    # Should return a PackageResult (ok=False) rather than raising
+    assert hasattr(result, "ok")
 
 
 # ---------------------------------------------------------------------------
