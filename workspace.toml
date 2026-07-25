@@ -358,12 +358,11 @@ backlog = []
 active  = []
 shipped = [
   "spec/catalogue-tooling-foundation",
-]
-queue   = [
-  # Wave 2 — parallel after foundation ships
   "spec/catalogue-tooling-lint",
   "spec/catalogue-tooling-sync-defaults",
   "spec/catalogue-tooling-build-self",
+]
+queue   = [
   # Wave 3 — after all Wave 2 ship
   {path = "spec/catalogue-tooling-verify", needs = "work:spec/catalogue-tooling-lint,work:spec/catalogue-tooling-sync-defaults,work:spec/catalogue-tooling-build-self"},
   # Wave 4 — after verify ships
@@ -375,4 +374,3 @@ queue   = [
   # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
   {path = "spec/catalogue-tooling-ci-gates", needs = "work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
 ]
-shipped = []

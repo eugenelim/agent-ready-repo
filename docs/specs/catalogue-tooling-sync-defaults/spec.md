@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Sync-Defaults
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)

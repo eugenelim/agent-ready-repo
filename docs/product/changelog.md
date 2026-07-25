@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Claude plugin marketplace manifest now passes `claude plugin validate` (Claude Code 2.1.209).** Three generator defects caused 35 errors: (1) marketplace missing top-level `name` field, (2) plugin `author` emitted as a plain string instead of a `{name, email}` object, (3) plugin `source` field absent entirely. All three are fixed in the build pipeline (`derive_projectable_subset`, `_run_aggregate`, `_aggregate_marketplace`). The `.claude-plugin/marketplace.json` in the working tree now validates with 0 errors.
 
 
+## [agentbundle][0.14.0] — 2026-07-24
+
+
+### Added
+
+- **`agentbundle catalogue lint`, `catalogue build`, `catalogue self-host`, and `catalogue sync-defaults` are now real commands (agentbundle 0.14.0, ini-005 Wave 2).** The Wave 1 stubs (`agentbundle.catalogue_tooling`) are replaced by full implementations: `catalogue lint` runs 27 portability and schema rules (CAT-L001–L027) across the catalogue and individual packs, emitting `--format table` (stderr) or `--format json` (stdout); `catalogue sync-defaults` generates or drift-checks `install-defaults.toml` from `catalogue.toml` (atomic write, path-jail, symlink guard); `catalogue build` wraps the existing build pipeline with catalogue.toml defaults for output path, recipe, and marketplace metadata; `catalogue self-host` exposes `--check` / `--write` modes over the existing self-host engine, reading packs_dir from `catalogue.toml`. Legacy `agentbundle.build lint-packs`, `build`, `self`, and `check` subcommands now print a deprecation notice to stderr and delegate to the new catalogue commands. `agentbundle upgrade --all` no longer blocks packs installed before source recording was introduced: when `pack_state.source` is `None`, the command infers the source from the 5-layer default resolution chain (explicit › user config › org Artifactory › editable detection › packaged default) rather than immediately marking the row as `source-unknown`. ([spec: lint](../specs/catalogue-tooling-lint/spec.md), [spec: sync-defaults](../specs/catalogue-tooling-sync-defaults/spec.md), [spec: build-self](../specs/catalogue-tooling-build-self/spec.md))
+
+
 ## [agentbundle][0.13.0] — 2026-07-24
 
 
