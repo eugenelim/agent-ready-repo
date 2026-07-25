@@ -319,7 +319,7 @@ def _build_archive(file_bytes: dict[str, bytes], manifest_bytes: bytes) -> bytes
 
     buf = io.BytesIO()
     gz = gzip.GzipFile(fileobj=buf, mode="wb", mtime=0)
-    tar = tarfile.open(fileobj=gz, mode="w", format=tarfile.GNU_FORMAT)  # type: ignore[arg-type]
+    tar = tarfile.TarFile(fileobj=gz, mode="w", format=tarfile.GNU_FORMAT)  # type: ignore[arg-type]
 
     for member_name, data in members:
         if member_name.startswith("/"):
@@ -377,7 +377,7 @@ def _write_channel_descriptor(
         descriptor["minimum_agentbundle_version"] = minimum_agentbundle_version
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(descriptor, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(descriptor, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
 
 
 # ---------------------------------------------------------------------------
@@ -579,7 +579,7 @@ def package_catalogue(
         staged_archive.write_bytes(archive_bytes)
 
         # --- Step 4: Write staged sidecar ---
-        staged_sidecar.write_text(sha256_hex + "\n", encoding="utf-8")
+        staged_sidecar.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
 
         # --- Step 5: Self-verify staged archive + sidecar ---
         if _verify_archive_fn is None:

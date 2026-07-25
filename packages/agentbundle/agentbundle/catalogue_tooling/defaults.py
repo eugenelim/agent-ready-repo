@@ -190,7 +190,7 @@ def write_defaults(root: Path) -> SyncDefaultsResult:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = output_path.with_suffix(".tmp")
     try:
-        tmp.write_text(content, encoding="utf-8")
+        tmp.write_text(content, encoding="utf-8", newline="\n")
         tmp.rename(output_path)
     except Exception:
         tmp.unlink(missing_ok=True)

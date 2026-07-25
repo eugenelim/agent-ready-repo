@@ -75,7 +75,9 @@ class InstallMessageRailTests(unittest.TestCase):
     def test_user_scope_install_emits_via_clause(self) -> None:
         """AC14: user-scope install stdout contains `via <adapter>`."""
         (self.home / ".kiro").mkdir()
-        rc, stdout, _ = self._install(scope="user")
+        # Pass adapter explicitly: org preferred_adapter (claude-code) takes priority
+        # over probe-based auto-detection; explicit --adapter overrides it (step 1).
+        rc, stdout, _ = self._install(scope="user", adapter="kiro-ide")
         self.assertEqual(rc, 0)
         self.assertIn("installed: converters @ user via kiro-ide", stdout)
 

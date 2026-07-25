@@ -44,6 +44,7 @@ V08_PACKS = (
     "contracts",
     "converters",
     "figma",
+    "github",
     "governance-extras",
     "linear",
     "monorepo-extras",

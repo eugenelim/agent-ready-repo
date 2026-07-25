@@ -107,17 +107,6 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
             raise ValueError(f"claude-code: unhandled mode {mode!r} for {primitive_name}")
 
 
-def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member.
-
-    Drops nested symlinks so they are never reproduced in the output
-    tree. The top-level `is_symlink()` skip in `_project_direct_directory`
-    covers the skill root; this covers the subtree.
-    """
-    base = Path(directory)
-    return {name for name in names if (base / name).is_symlink()}
-
-
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
         # Defense-in-depth — `lint-packs` rejects packs that ship
@@ -136,10 +125,9 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            # `ignore=_ignore_symlinks` drops nested symlinks so they are
-            # never reproduced in the output tree. A malicious pack with a
-            # symlink to /etc/passwd cannot exfiltrate the target.
-            shutil.copytree(entry, destination, ignore=_ignore_symlinks)
+            # symlinks=True preserves nested symlinks as symlinks in the
+            # output — their targets are not dereferenced/copied.
+            shutil.copytree(entry, destination, symlinks=True)
 
 
 def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:
