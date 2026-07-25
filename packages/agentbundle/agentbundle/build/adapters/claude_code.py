@@ -14,6 +14,7 @@ deep-merging the incoming TOML payload.
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 from typing import Iterator
@@ -107,6 +108,19 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
             raise ValueError(f"claude-code: unhandled mode {mode!r} for {primitive_name}")
 
 
+def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: drop symlinks with absolute targets.
+
+    Relative symlinks (intra-skill cross-references) are preserved as
+    symlinks. Absolute symlinks always escape the tree and are a path-escape vector.
+    """
+    base = Path(directory)
+    return {
+        name for name in names
+        if (base / name).is_symlink() and os.path.isabs(os.readlink(base / name))
+    }
+
+
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
         # Defense-in-depth — `lint-packs` rejects packs that ship
@@ -125,9 +139,13 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            # symlinks=True preserves nested symlinks as symlinks in the
-            # output — their targets are not dereferenced/copied.
-            shutil.copytree(entry, destination, symlinks=True)
+            # symlinks=True preserves relative nested symlinks; absolute
+            # targets are filtered out by _ignore_absolute_symlinks.
+            shutil.copytree(
+                entry, destination,
+                symlinks=True,
+                ignore=_ignore_absolute_symlinks,
+            )
 
 
 def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:

@@ -33,7 +33,7 @@ where = ["."]
 include = ["agentbundle*"]
 
 [tool.setuptools.package-data]
-agentbundle = ["_data/*"]
+agentbundle = ["_data/*", "build/recipes/*.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "agentbundle/build/tests"]

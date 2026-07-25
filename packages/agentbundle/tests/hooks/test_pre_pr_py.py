@@ -33,7 +33,7 @@ def _load_hook():
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "pre-pr.py"
-CATALOGUE_HOOK = REPO_ROOT / "tools" / "pre-pr-catalogue.py"
+CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
 
 def test_catalogue_hook_runs_all_8_checks_and_delegates() -> None:

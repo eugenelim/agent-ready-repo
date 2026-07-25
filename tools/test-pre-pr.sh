@@ -94,10 +94,12 @@ run_corruption "agents-md-fail" \
   'rm AGENTS.md' \
   'pre-pr: ✖ agents-md hygiene failed'
 
-# 2. agent-artifact lint — corrupt an agent file's frontmatter.
-#    Strip the model: line; the linter requires it.
+# 2. agent-artifact lint — add a new agent file missing the required model: field.
+#    Creating a new file avoids triggering the self-host drift check (which runs
+#    before agent-artifact lint and compares projected output vs pack source;
+#    modifying an existing committed output file would trip that check first).
 run_corruption "agent-artifact-fail" \
-  "sed -i.bak '/^model:/d' .claude/agents/adversarial-reviewer.md && rm .claude/agents/adversarial-reviewer.md.bak" \
+  "printf -- '---\nname: bad-agent\ndescription: Agent missing model field.\n---\n\nBody text.\n' > .claude/agents/bad-agent.md" \
   'pre-pr: ✖ agent-artifact lint failed'
 
 # 3. skill-spec lint — plant an install-path reference in a SKILL.md body,
