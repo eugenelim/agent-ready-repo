@@ -36,7 +36,7 @@ import { withBase } from '../../lib/paths';
       -->
       <svg role="img" aria-labelledby="loops-diagram-title"
         viewBox="0 0 440 380" xmlns="http://www.w3.org/2000/svg">
-        <title id="loops-diagram-title">Three supervised loops in a cycle: BUILD (spec → plan → implement → review), DISCOVER (intent → hypothesis → validate), RELEASE (readiness → publish → changelog).</title>
+        <title id="loops-diagram-title">Three supervised loops in a cycle: DISCOVER (intent → hypothesis → validate), BUILD (spec → plan → implement → review), RELEASE (readiness → publish → changelog).</title>
         <defs>
           <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="5" markerHeight="5" orient="auto">
@@ -46,40 +46,40 @@ import { withBase } from '../../lib/paths';
 
         <!-- Connecting arrows (drawn first, behind cards) -->
 
-        <!-- BUILD → DISCOVER (arcs upward between top two cards) -->
+        <!-- DISCOVER → BUILD (arcs upward between top two cards) -->
         <path d="M 190 88 Q 220 62 250 88"
           style="stroke: var(--ds-accent); stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; opacity: 0.65;"
           marker-end="url(#loop-arrow)" />
 
-        <!-- DISCOVER → RELEASE (curves right then sweeps down-left to bottom card) -->
+        <!-- BUILD → RELEASE (curves right then sweeps down-left to bottom card) -->
         <path d="M 330 136 Q 356 198 272 254"
           style="stroke: var(--ds-accent); stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; opacity: 0.65;"
           marker-end="url(#loop-arrow)" />
 
-        <!-- RELEASE → BUILD (arcs left to close the cycle) -->
+        <!-- RELEASE → DISCOVER (arcs left to close the cycle) -->
         <path d="M 140 302 Q 48 222 110 136"
           style="stroke: var(--ds-accent); stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; opacity: 0.65;"
           marker-end="url(#loop-arrow)" />
 
-        <!-- BUILD loop card (top-left: x=30, y=40, 160×96) -->
+        <!-- DISCOVER loop card (top-left: x=30, y=40, 160×96) -->
         <rect x="30" y="40" width="160" height="96" rx="10"
           style="fill: var(--ds-hero-surface); stroke: var(--ds-hero-border-card); stroke-width: 1;" />
         <text x="110" y="77" text-anchor="middle"
-          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">BUILD</text>
+          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">DISCOVER</text>
         <text x="110" y="93" text-anchor="middle"
-          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">spec → plan → implement</text>
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">intent → hypothesis</text>
         <text x="110" y="107" text-anchor="middle"
-          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ review</text>
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ validate</text>
 
-        <!-- DISCOVER loop card (top-right: x=250, y=40, 160×96) -->
+        <!-- BUILD loop card (top-right: x=250, y=40, 160×96) -->
         <rect x="250" y="40" width="160" height="96" rx="10"
           style="fill: var(--ds-hero-surface); stroke: var(--ds-hero-border-card); stroke-width: 1;" />
         <text x="330" y="77" text-anchor="middle"
-          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">DISCOVER</text>
+          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">BUILD</text>
         <text x="330" y="93" text-anchor="middle"
-          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">intent → hypothesis</text>
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">spec → plan → implement</text>
         <text x="330" y="107" text-anchor="middle"
-          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ validate</text>
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ review</text>
 
         <!-- RELEASE loop card (bottom-center: x=140, y=254, 160×96) -->
         <rect x="140" y="254" width="160" height="96" rx="10"
