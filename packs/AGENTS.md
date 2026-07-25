@@ -98,7 +98,7 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `pytho
 - **Path rules in body:** self-references use skill-relative paths (`scripts/foo.py`); cross-skill references use the skill name only — never `.claude/skills/<...>/` or `packs/.../skills/<...>/` prefixes.
 
 **Craft rules (not linted — hold in head):**
-- **`description` is the trigger surface** — body must not restate when to invoke.
+- **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `lint-skill-spec.py` enforces this).
 - **Body answers what to do once invoked** — preconditions, judgment, procedure. Keep it terse.
 - **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `docs/guides/core/reference/output-rendering.md`.
 - **No internal-governance citations** — no RFC/ADR numbers or internal spec paths in any `.apm/**` content.

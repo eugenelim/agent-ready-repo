@@ -34,12 +34,12 @@ import subprocess
 import sys
 import tomllib
 
-try:
-    import yaml
-
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
+try:
+    import yaml
 except ImportError as exc:  # pragma: no cover — env-setup failure path
     print(
         "✖ This linter requires PyYAML. Install with: "
