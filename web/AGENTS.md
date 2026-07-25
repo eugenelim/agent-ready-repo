@@ -27,8 +27,9 @@ No CSS framework (Tailwind, Bootstrap, UnoCSS): the `--ds-*` token system in
 
 - `npm run build` emits into `../build/` (repo root), NOT `web/dist/`
   (`astro.config.ts` `outDir`).
-- `astro build` cleans `outDir` on every run — Astro MUST build before MkDocs
-  writes into `build/docs/`. See `.github/workflows/pages.yml`.
+- `astro build` cleans `outDir` on every run — this `web/` build MUST run before
+  the `docs-site/` Starlight build writes into `build/docs/`. See
+  `.github/workflows/pages.yml`.
 
 ## Development
 
@@ -61,15 +62,14 @@ Links inside markdown files rendered via `<Content />` (pack and journey bodies)
 - The `docsUrl` and `journeyUrl` frontmatter fields are the canonical navigation
   entry points and are already processed through `withBase()` by the template.
 
-## Broken links in MkDocs docs
+## Broken links in docs
 
-Both the Astro marketing site and the MkDocs docs site are built in the same
-`pages.yml` job with `mkdocs build --strict`. Broken anchors in `docs/guides/**`
-fail the entire build.
+Both the Astro marketing site and the Starlight docs site are built in the same
+`pages.yml` job. Unlike the previous MkDocs `--strict` mode, Starlight does not
+fail the build on broken internal links. Broken anchors and cross-page links
+in `docs/guides/**` must be caught by manual review or a link-checker tool.
 
-Run `mkdocs build --strict --config-file site/mkdocs.yml` before committing any
-doc change. Anchor slugging rules (em dash, slash, backtick stripping) are in
-[`site/AGENTS.md § Broken links`](../site/AGENTS.md#broken-links).
+To check for broken links locally: build the docs site (`python tools/build-site.py && npm run build --prefix docs-site`) and inspect the output.
 
 ## Navigation cohesion
 

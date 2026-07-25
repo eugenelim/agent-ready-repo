@@ -1,0 +1,40 @@
+---
+// Starlight Footer override — matches site/overrides/partials/footer.html
+// Renders the prev/next navigation (via Starlight's default) plus the brand footer.
+import type { Props } from '@astrojs/starlight/props';
+
+const { entry, pagination } = Astro.props;
+---
+
+{
+  pagination && (pagination.prev || pagination.next) && (
+    <nav class="sl-prev-next" aria-label="Previous and next pages">
+      {pagination.prev && (
+        <a href={pagination.prev.href} rel="prev" class="sl-prev-next__link sl-prev-next__link--prev">
+          <span class="sl-prev-next__direction">Previous</span>
+          <span class="sl-prev-next__label">{pagination.prev.label}</span>
+        </a>
+      )}
+      {pagination.next && (
+        <a href={pagination.next.href} rel="next" class="sl-prev-next__link sl-prev-next__link--next">
+          <span class="sl-prev-next__direction">Next</span>
+          <span class="sl-prev-next__label">{pagination.next.label}</span>
+        </a>
+      )}
+    </nav>
+  )
+}
+
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <p class="site-footer__brand">agent-ready-repo</p>
+    <nav class="site-footer__links" aria-label="Site footer">
+      <ul>
+        <li><a href="https://eugenelim.github.io/agent-ready-repo/" rel="noopener">Platform</a></li>
+        <li><a href="https://github.com/eugenelim/agent-ready-repo" rel="noopener">GitHub</a></li>
+        <li><a href="https://pypi.org/project/agentbundle/" rel="noopener">PyPI</a></li>
+      </ul>
+    </nav>
+    <p class="site-footer__copy">© 2026 · The supervised AI operating model for software teams.</p>
+  </div>
+</footer>

@@ -1,0 +1,80 @@
+---
+title: Reference documentation
+description: Pack reference, getting-started guides, and the full skill catalogue.
+hero:
+  tagline: Pack reference, getting-started guides, and the full skill catalogue. For an overview of the supervised loops and the pack catalogue, see the platform site.
+  actions:
+    - text: Getting started
+      link: /agent-ready-repo/docs/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Browse packs
+      link: /agent-ready-repo/docs/packs/
+      icon: right-arrow
+---
+
+import { Tabs, TabItem, CardGrid, Card } from '@astrojs/starlight/components';
+
+## Quick install
+
+<Tabs>
+  <TabItem label="Flagship loop">
+    ```bash
+    pip install agentbundle
+    agentbundle install --pack core
+    ```
+  </TabItem>
+  <TabItem label="With discovery">
+    ```bash
+    agentbundle install --pack core
+    agentbundle install --pack product-engineering --scope user
+    ```
+  </TabItem>
+  <TabItem label="Full inception profile">
+    ```bash
+    agentbundle install --profile inception
+    ```
+  </TabItem>
+  <TabItem label="Solution architect">
+    ```bash
+    agentbundle install --profile solution-architect
+    ```
+  </TabItem>
+</Tabs>
+
+## Packs
+
+**Supervised loops (start here):**
+
+| Pack | Scope | What it installs |
+|---|---|---|
+| [Core](packs/core/) | `repo` | `work-loop`, `new-spec`, `bug-fix`, specialist reviewers, hooks |
+| [Product Engineering](packs/product-engineering/) | `user` | `discovery-loop`, `frame-intent`, `de-risk-intent`, `decompose-intent` |
+| [Release Engineering](packs/release-engineering/) | `repo` | `release-loop`, `release-lead` |
+
+**User-scope packs (follow you across repos):**
+
+| Pack | What it installs |
+|---|---|
+| [Desk Research](packs/desk-research/) | `desk-research`, `source-map`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` |
+| [Architect](packs/architect/) | `architect-design`, `architect-diagram`, `architect-review`, `design-reviewer` subagent |
+| [Experience Design](packs/experience-design/) | Journey mapping, screen flows, creative direction, experience reviewers |
+| [Contracts](packs/contracts/) | `api-contract` (OpenAPI 3.1), `event-contract` (AsyncAPI) |
+| [Converters](packs/converters/) | PDF/DOCX/PPTX → Markdown, Markdown → HTML/Word/PowerPoint/Excel |
+| [Atlassian](packs/atlassian/) | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher`, `flow-metrics` |
+| [Figma](packs/figma/) | Figma REST API — files, frames, variables, FigJam → Mermaid |
+| [Credential Brokers](packs/credential-brokers/) | `credbroker`, `sso-broker`, `credential-setup` |
+
+**Repo-scope packs (per-project conventions):**
+
+| Pack | What it installs |
+|---|---|
+| [Governance Extras](packs/governance-extras/) | `new-rfc`, `new-adr`, `update-conventions` |
+| [User Guide (Diátaxis)](packs/user-guide-diataxis/) | `new-guide`, Diátaxis `guides/` skeleton |
+| [Monorepo Extras](packs/monorepo-extras/) | `new-package`, `packages/_example/` template |
+
+## A foundation to build on
+
+Adopt the catalogue as-is, or fork it as your own org's catalogue.
+
+[How to build your org's catalogue](guides/_shared/how-to/build-an-org-stack-pack/)

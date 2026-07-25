@@ -1,4 +1,7 @@
-# The Three Loops
+---
+title: The Three Loops
+description: How discovery, build, and release compose into a complete AI operating model.
+---
 
 The three loops form the **company operating model** — peer supervisors spanning the full software lifecycle. No loop is a mode of another; each is independent with its own agent, skill doctrine, and consent gates.
 
@@ -28,7 +31,7 @@ The result isn't a validated solution — it's a **connected hypothesis with val
 
 **Three human consent gates:** G0 (ratify the value seed), G1.5 (ratify the MVP boundary), G2 (ratify the decision). The loop never auto-advances past an irreversible gate.
 
-→ [Discovery loop deep dive](../guides/product-engineering/explanation/the-discovery-loop.md)
+[Discovery loop deep dive](../guides/product-engineering/explanation/the-discovery-loop/)
 
 ---
 
@@ -56,7 +59,7 @@ The loop scales by risk: **light mode** for low-risk work (lean inline spec, sin
 
 The security lens **shifts left**: on security-boundary work it also runs at spec stage, catching a missing control as a one-sentence acceptance criterion instead of a post-implementation round-trip.
 
-→ [Core pack deep dive](../guides/core/explanation/core-pack.md)
+[Core pack deep dive](../guides/core/explanation/core-pack/)
 
 ---
 
@@ -79,7 +82,7 @@ The security lens **shifts left**: on security-boundary work it also runs at spe
 
 Deploy credentials are broker-mediated and scoped to the ephemeral tier only. No credential can reach prod.
 
-→ [Release loop deep dive](../guides/release-engineering/explanation/the-release-loop.md)
+[Release loop deep dive](../guides/release-engineering/explanation/the-release-loop/)
 
 ---
 
@@ -92,4 +95,4 @@ The inner/outer split:
 - **Outer loops** (discovery, release) — run per feature or release cycle
 - **Feedback flows inward** — released findings return as build tasks; discovered constraints shape specs
 
-→ [The three loops as a system](../guides/_shared/explanation/the-three-loops.md)
+[The three loops as a system](../guides/_shared/explanation/the-three-loops/)
