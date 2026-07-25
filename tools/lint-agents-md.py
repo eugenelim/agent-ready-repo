@@ -24,6 +24,10 @@ import time
 import tomllib
 from pathlib import Path
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 MAX_ROOT_LINES = 250
 MAX_SUB_LINES = 150
 STALE_DAYS = 180  # warn-only threshold

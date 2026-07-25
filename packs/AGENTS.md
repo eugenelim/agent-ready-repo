@@ -116,3 +116,15 @@ A non-cosmetic pack update must also update the pack's eval harness:
 - **Tier-B-lite** — additionally an `expect` block + `evals/files/` fixture for deterministic skills.
 
 Verify locally with `python tools/run-pack-evals.py --pack <pack> --mode judge --judge-adapter claude-code --artifacts <file>`.
+
+## Windows-safe Python scripts
+
+Any script under `.apm/` that prints to stdout or stderr must include the UTF-8 reconfigure guard immediately after `import sys`, before any `print()` call:
+
+```python
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+```
+
+Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character — including ✓, ✗, →, — — without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic messages from being lost.

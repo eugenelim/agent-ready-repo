@@ -49,6 +49,10 @@ from typing import Any
 
 try:
     from PIL import Image
+
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 except ImportError:
     print(
         "ERROR: Pillow is required. Install with:\n"

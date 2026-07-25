@@ -27,6 +27,10 @@ sys.path.insert(0, str(REPO_ROOT / "packages" / "agentbundle"))
 from agentbundle.build.main import _read_bundled  # noqa: E402
 from agentbundle.build.validate import validate as validate_instance  # noqa: E402
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 
 def _load_derived_schema() -> dict:
     return json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
