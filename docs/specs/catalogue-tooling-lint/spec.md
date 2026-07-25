@@ -88,11 +88,11 @@ from the foundation spec, and adds a deprecation shim for the legacy
 
 ## Acceptance Criteria
 
-- [ ] AC1: `lint_catalogue(root)` returns a `LintResult` with `ok=True` and
+- [x] AC1: `lint_catalogue(root)` returns a `LintResult` with `ok=True` and
   no diagnostics for a clean fixture catalogue.
-- [ ] AC2: `lint_catalogue(root, pack="foo")` filters diagnostics to only the
+- [x] AC2: `lint_catalogue(root, pack="foo")` filters diagnostics to only the
   named pack; diagnostics for other packs are not included.
-- [ ] AC3: Catalogue-level rules produce diagnostics with the following stable
+- [x] AC3: Catalogue-level rules produce diagnostics with the following stable
   codes (all severity ERROR unless noted):
 
   | Code     | Rule                                                         |
@@ -125,28 +125,28 @@ from the foundation spec, and adds a deprecation shim for the legacy
   | CAT-L026 | Primitive description exceeds max length                     |
   | CAT-L027 | Multiline metadata form not supported                        |
 
-- [ ] AC4: `render_json(result)` returns a string that is a valid JSON object
+- [x] AC4: `render_json(result)` returns a string that is a valid JSON object
   containing: `schema_version`, `command`, `operation`, `agentbundle_version`,
   `catalogue_schema_version`, `ok`, `diagnostics` (array). Each diagnostic
   object contains: `code`, `severity`, `pack`, `path`, `line`, `col`,
   `message`, `remediation`. Output is deterministic across identical inputs.
-- [ ] AC5: `render_table(result)` groups diagnostics by pack, emits a header
+- [x] AC5: `render_table(result)` groups diagnostics by pack, emits a header
   row per pack, and is human-readable plain text.
-- [ ] AC6: `agentbundle catalogue lint --root <clean>` exits 0 and emits no
+- [x] AC6: `agentbundle catalogue lint --root <clean>` exits 0 and emits no
   diagnostics. `agentbundle catalogue lint --root <dirty>` exits 1 and emits
   at least one diagnostic to stderr (table mode default).
-- [ ] AC7: `agentbundle catalogue lint --root <dir> --format json` emits one
+- [x] AC7: `agentbundle catalogue lint --root <dir> --format json` emits one
   valid JSON document to stdout and nothing to stdout in non-json mode; all
   warnings and progress go to stderr in both modes.
-- [ ] AC8: `agentbundle lint packs --root <dir>` produces identical exit code
+- [x] AC8: `agentbundle lint packs --root <dir>` produces identical exit code
   and diagnostics to `agentbundle catalogue lint --root <dir>` on the same
   input. Both call `lint_catalogue` with no intervening validation.
-- [ ] AC9: `python -m agentbundle.build lint-packs --packs-dir <dir>` prints
+- [x] AC9: `python -m agentbundle.build lint-packs --packs-dir <dir>` prints
   the deprecation string to stderr and exits with the same code as
   `agentbundle catalogue lint --root <parent-of-packs-dir>`.
-- [ ] AC10: Diagnostics are sorted by (pack, path, line, col, code) in all
+- [x] AC10: Diagnostics are sorted by (pack, path, line, col, code) in all
   output modes. Identical inputs always produce identical output.
-- [ ] AC11: All existing `agentbundle/build/lint_packs` tests pass unmodified.
+- [x] AC11: All existing `agentbundle/build/lint_packs` tests pass unmodified.
 
 ## Assumptions
 
