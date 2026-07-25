@@ -165,3 +165,26 @@ Applies to all new code. Production code (`packages/agentbundle/agentbundle/`) i
   `os.environ["HOME"]`, no hardcoded `/tmp`.
 - **Subprocess:** list form only, never `shell=True`. Do not invoke `which`, `grep`, `find`, `sed`,
   `awk`, `make`, `sh`, or `bash` via subprocess in portable code.
+
+## Release Coupling
+
+Changes to `packages/agentbundle/` that alter a public CLI verb, add or remove a `catalogue` sub-command,
+or change an output format visible to callers require a version bump and a PyPI release before downstream
+repos can consume them. Changes that stay inside internal helpers, test utilities, or schema-validation
+details do not — bump only when a caller would break or need to change.
+
+**What always requires an AgentBundle release:**
+- Adding, removing, or renaming a `agentbundle catalogue <sub>` command.
+- Changing required CLI flags or their semantics for any published command.
+- Changing the output layout of `dist/` or archive/sidecar file names.
+- Changing `catalogue.toml` or `pack.toml` schema in a way that invalidates existing valid files.
+
+**What does not require a release:**
+- Internal refactors to `agentbundle/catalogue/` that preserve observable CLI behaviour.
+- Adding optional flags with backward-compatible defaults.
+- Updating `docs/guides/` or `tools/` without touching the package.
+- Adding tests or improving error messages in ways that don't change exit codes.
+
+**Portable mechanics belong in `packages/agentbundle/`; repo-internal policy belongs in `tools/`.**
+The boundary is the public `agentbundle catalogue *` interface. Anything that lives exclusively in
+`tools/` or `Makefile` is not a release boundary — it is repo governance and can be changed freely.
