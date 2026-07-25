@@ -44,6 +44,8 @@ jobs:
         run: pip install 'httpx>=0.27'
       - name: Install credbroker for credential-skill test suites
         run: pip install -e packages/credbroker
+      - name: Install pyyaml for lint-agent-artifacts and credentialed-skill tests
+        run: pip install 'pyyaml>=6.0'
       - name: Run full agentbundle test suite
         working-directory: packages/agentbundle
         run: python -m pytest tests/ agentbundle/build/tests/ -q
