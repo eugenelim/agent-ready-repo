@@ -22,7 +22,7 @@ Every **non-cosmetic** change to pack content requires a version bump in both:
 
 Which increment: **patch** for changed bodies/directives/conventions; **minor** for new primitives; **major** for removals. Never ride an unreleased version from another in-flight PR — two features never share one version number.
 
-After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), then add a changelog entry in `docs/product/changelog.md`.
+After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), then add a `## [pack-name][version] — YYYY-MM-DD` section in `docs/product/changelog.md` with the version you are bumping to.
 
 ## Self-hosting projection
 
