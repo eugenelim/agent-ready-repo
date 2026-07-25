@@ -16,7 +16,6 @@ PAT is never accepted on the command line.
 from __future__ import annotations
 
 import argparse
-import asyncio
 import logging
 import re
 import sys
@@ -388,6 +387,7 @@ async def _run_check(client: ConfluenceClient, flavor: str) -> int:
 
 
 async def main_async(args: argparse.Namespace) -> int:
+    import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
     # Auth selector: sso-config.toml with auth_default = "sso-cookie"
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
@@ -500,6 +500,7 @@ def main() -> int:
     # Exception` deliberately does NOT catch KeyboardInterrupt (130 below) or
     # SystemExit (BaseException) — those pass through.
     try:
+        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         return asyncio.run(main_async(args))
     except KeyboardInterrupt:
         log.warning("interrupted")

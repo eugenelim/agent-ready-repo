@@ -26,6 +26,10 @@ import sys
 import types
 import unittest.mock as mock
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 TOOL = REPO_ROOT / "tools" / "llm-judge-cross-pack-eval.py"
 FIXTURES_PATH = (

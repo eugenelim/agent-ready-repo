@@ -14,6 +14,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Paths whose changes imply a public interface change → a release is required.

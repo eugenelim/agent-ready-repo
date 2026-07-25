@@ -40,6 +40,8 @@ intent → user journey → stage → capability → output
 
 ## Primary workflow (any catalogue)
 
+Run after any pack change. If `agentbundle` is not installed: `pip install agentbundle`.
+
 ```bash
 agentbundle catalogue lint --root .
 agentbundle catalogue verify --root .
@@ -98,7 +100,7 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `pytho
 - **Path rules in body:** self-references use skill-relative paths (`scripts/foo.py`); cross-skill references use the skill name only — never `.claude/skills/<...>/` or `packs/.../skills/<...>/` prefixes.
 
 **Craft rules (not linted — hold in head):**
-- **`description` is the trigger surface** — body must not restate when to invoke.
+- **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `lint-skill-spec.py` enforces this).
 - **Body answers what to do once invoked** — preconditions, judgment, procedure. Keep it terse.
 - **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `docs/guides/core/reference/output-rendering.md`.
 - **No internal-governance citations** — no RFC/ADR numbers or internal spec paths in any `.apm/**` content.
@@ -116,3 +118,17 @@ A non-cosmetic pack update must also update the pack's eval harness:
 - **Tier-B-lite** — additionally an `expect` block + `evals/files/` fixture for deterministic skills.
 
 Verify locally with `python tools/run-pack-evals.py --pack <pack> --mode judge --judge-adapter claude-code --artifacts <file>`.
+
+## Windows-safe Python scripts
+
+Any script under `.apm/` that prints to stdout or stderr must include the UTF-8 reconfigure guard immediately after `import sys`, before any `print()` call:
+
+```python
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+```
+
+Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character — including ✓, ✗, →, — — without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic messages from being lost.
+
+Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252, which corrupts the parent's decoded output.

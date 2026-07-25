@@ -20,6 +20,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 # tools/catalogue/ → tools/ → repo root
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _AGENTBUNDLE_PATH = str(_REPO_ROOT / "packages" / "agentbundle")
@@ -56,7 +60,7 @@ def _run(label: str, argv: list[str]) -> None:
     ``_run`` does **not** skip on a missing tool — a deleted catalogue linter
     must fail loud, not silently pass. Do not "unify" the two `_run`s: that
     would make a dropped catalogue check go green (a real regression)."""
-    result = subprocess.run(argv, capture_output=True, text=True, check=False)
+    result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False)
     if result.returncode != 0:
         if result.stdout:
             sys.stdout.write(result.stdout)
