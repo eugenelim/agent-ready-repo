@@ -46,7 +46,7 @@ def _copy_fixture(src: Path, dst: Path) -> None:
         entry.chmod(0o755)
 
 
-def _install_args(pack: str, catalogue: str, output: str, scope: str | None = None):
+def _install_args(pack: str, catalogue: str, output: str, scope: str | None = None, adapter: str | None = None):
     return argparse.Namespace(
         pack=pack,
         catalogue=catalogue,
@@ -54,6 +54,7 @@ def _install_args(pack: str, catalogue: str, output: str, scope: str | None = No
         scope=scope,
         force=False,
         force_merge=False,
+        adapter=adapter,
     )
 
 
@@ -200,6 +201,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro-cli",
         ))
         self.assertEqual(rc, 0, "setup install failed")
 
@@ -234,6 +236,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro-cli",
         ))
         self.assertEqual(rc, 0, "setup install failed")
 
@@ -283,6 +286,7 @@ class LegacyKiroJsonUninstallMigrationTests(_UninstallBase):
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro-cli",
         ))
         self.assertEqual(rc, 0, "setup install failed")
 

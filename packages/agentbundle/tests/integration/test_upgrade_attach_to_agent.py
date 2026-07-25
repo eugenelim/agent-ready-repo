@@ -69,7 +69,7 @@ class AttachToAgentRenameTests(unittest.TestCase):
         _copy_fixture(FIXTURES / "kiro-user-hooks", self.cat / "packs" / "kiro-user-hooks")
         self.assertEqual(_run_install(argparse.Namespace(
             pack="kiro-user-hooks", catalogue=str(self.cat), output=str(self.repo),
-            scope="user", force=False, force_merge=False,
+            scope="user", force=False, force_merge=False, adapter="kiro-cli",
         )), 0)
 
         old_agent = self.home / ".kiro" / "agents" / "reviewer.json"

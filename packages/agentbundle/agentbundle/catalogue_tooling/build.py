@@ -65,7 +65,11 @@ def build_catalogue(
     arguments are None. When catalogue.toml is absent, existing hardcoded
     values in build/main.py are used unchanged.
     """
-    import agentbundle.build.main as _build_main
+    import importlib
+    # importlib.import_module uses sys.modules directly, bypassing the attribute
+    # lookup that `import agentbundle.build.main as x` would do — which would
+    # resolve to the `main()` function in build/__init__.py instead of the submodule.
+    _build_main = importlib.import_module("agentbundle.build.main")
     from agentbundle.build.main import cmd_build
 
     config = load_catalogue_config(root)
@@ -76,6 +80,13 @@ def build_catalogue(
 
     if recipe is None and config and config.build.recipes:
         recipe = config.build.recipes[0]
+
+    # "default" is a sentinel recognised by the config layer (see _BUNDLED_RECIPES)
+    # meaning "run the default build (DEFAULT_RECIPES)".  Pass None so cmd_build
+    # triggers its default-build path rather than trying to load a non-existent
+    # default.toml recipe file.
+    if recipe == "default":
+        recipe = None
 
     _validate_recipe_path(root, recipe)
 

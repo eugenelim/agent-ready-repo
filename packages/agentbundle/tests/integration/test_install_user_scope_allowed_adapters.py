@@ -99,8 +99,10 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
 
     def test_kiro_only_home_lands_at_kiro_skills(self) -> None:
         (self.home / ".kiro").mkdir()
+        # Pass adapter explicitly: org preferred_adapter (claude-code) takes priority
+        # over probe-based auto-detection; explicit --adapter overrides it (step 1).
         rc, stdout, stderr = _run_install(
-            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
+            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user", adapter="kiro-ide")
         )
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
         self._assert_pack_landed(".kiro/skills", "kiro-ide")
@@ -108,8 +110,10 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
 
     def test_codex_only_home_lands_at_agents_skills(self) -> None:
         (self.home / ".codex").mkdir()
+        # Pass adapter explicitly: org preferred_adapter (claude-code) takes priority
+        # over probe-based auto-detection; explicit --adapter overrides it (step 1).
         rc, stdout, stderr = _run_install(
-            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
+            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user", adapter="codex")
         )
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
         self._assert_pack_landed(".agents/skills", "codex")

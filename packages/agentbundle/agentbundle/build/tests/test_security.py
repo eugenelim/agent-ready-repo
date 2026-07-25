@@ -45,10 +45,13 @@ class SymlinkProjectionTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_symlink_in_pack_skill_is_preserved_not_dereferenced(self) -> None:
-        """A pack with a symlink to /etc/passwd should not exfiltrate
-        the target into the projection — symlinks=True preserves them
-        as symlinks rather than copying the target's contents.
+    def test_absolute_symlink_in_pack_skill_is_dropped(self) -> None:
+        """A pack skill with an absolute symlink must not reproduce it
+        in the projection — not as a symlink, not as copied content.
+
+        Absolute symlinks escape the skill tree and are a path-escape
+        vector. _ignore_absolute_symlinks drops them before copytree
+        writes them to the output.
 
         Test-only symlink creation: Windows-portability lint
         (`lint_packs.py`) rejects symlinks in shipped pack content, so
@@ -66,9 +69,9 @@ class SymlinkProjectionTests(unittest.TestCase):
             out = tmp_path / "out"
             project_claude_code(pack, self.contract, out)
             projected = out / ".claude" / "skills" / "foo" / "leak.txt"
-            self.assertTrue(projected.is_symlink())
-            # The link target is preserved as a symlink, not dereferenced.
-            self.assertEqual(os.readlink(projected), "/etc/passwd")
+            # Absolute symlink is dropped entirely — not reproduced, not dereferenced.
+            self.assertFalse(projected.exists())
+            self.assertFalse(projected.is_symlink())
 
 
 class PluginManifestValidationTests(unittest.TestCase):

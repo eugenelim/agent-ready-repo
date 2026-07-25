@@ -3,16 +3,54 @@
 Context for working inside any pack directory. **Max 150 lines** (AGENTS.md hygiene gate enforces it).
 See `AGENTS.local.md` for broader self-host context.
 
-## Pack anatomy
+## Pack layout
 
 | Path | Purpose |
 |------|---------|
-| `pack.toml` | Pack metadata — version, description, categories, keywords |
+| `pack.toml` | Pack metadata — version, description, adapter-contract, categories |
 | `.claude-plugin/plugin.json` | Claude plugin manifest source (must match `pack.toml` version, stay schema-valid) |
-| `.apm/skills/<name>/SKILL.md` | Skill source of truth — projected per adapter by `make build-self` |
-| `.apm/agents/<name>.md` | Agent source of truth — projected per adapter |
-| `.apm/commands/<name>.md` and `.apm/hooks/` | Command and hook sources — projected per adapter |
 | `seeds/` | Adopter scaffold templates (brownfield install) |
+| `.apm/skills/` | Skill sources → projected per adapter |
+| `.apm/agents/` | Agent sources → projected per adapter |
+| `.apm/hooks/` | Hook-body sources → projected per adapter |
+| `.apm/hook-wiring/` | Hook-wiring sources → projected per adapter |
+| `.apm/commands/` | Command sources → projected per adapter |
+| `.apm/kiro-ide-hooks/` | Kiro IDE hook sources → projected per adapter |
+| `.apm/shared-libs/` | Shared library sources → projected per adapter |
+| `.apm/adapter-root-bins/` | Adapter root binary sources → projected per adapter |
+| `.apm/user-libs/` | User library sources → projected per adapter |
+
+Primitive source paths are authoritative in `docs/contracts/adapter.toml`.
+
+## pack.toml schema map
+
+| Table | Required fields | Notable optional fields |
+|-------|----------------|------------------------|
+| `[pack]` | `name`, `version`, `description`, `adapter-contract` | `display-name`, `categories`, `keywords`, `maintainers`, `links`, `readme` |
+| `[pack.recipes.*]` | `description` | `steps`, `adapter` |
+| `[pack.dependencies]` | — | Pack dependency declarations |
+| `[pack.seeds]` | — | Seed path configuration |
+| `[pack.layout]` | — | Per-scope layout overrides |
+| `[pack.first-value]` | — | First-value install metadata |
+| `[pack.adaptation]` | — | Adaptation inference rules |
+
+## Pack design model
+
+intent → user journey → stage → capability → output
+
+## Primary workflow (any catalogue)
+
+```bash
+agentbundle catalogue lint --root .
+agentbundle catalogue verify --root .
+agentbundle catalogue self-host --root . --write
+```
+
+Home-repository additional gate (not required for external catalogues):
+
+```bash
+make build-check   # agentbundle catalogue verify + repo governance + SAST
+```
 
 ## Version bump rule
 
@@ -20,9 +58,9 @@ Every **non-cosmetic** change to pack content requires a version bump in both:
 1. `pack.toml` → `[pack] version`
 2. `.claude-plugin/plugin.json` → `"version"`
 
-Which increment: **patch** for changed bodies/directives/conventions; **minor** for new primitives; **major** for removals. Never ride an unreleased version from another in-flight PR — two features never share one version number.
+Which increment: **patch** for changed bodies/directives/conventions; **minor** for new primitives; **major** for removals. Never ride an unreleased version from another in-flight PR.
 
-After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), then add a `## [pack-name][version] — YYYY-MM-DD` section in `docs/product/changelog.md` with the version you are bumping to.
+After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), then add a `## [pack-name][version] — YYYY-MM-DD` section in `docs/product/changelog.md`.
 
 ## Self-hosting projection
 
@@ -32,10 +70,10 @@ All `.apm/` primitives are the **source of truth**. `make build-self` projects t
 
 Use `FORCE=1 make build-self` when the working tree is intentionally dirty. Direct equivalent:
 ```bash
-python3 tools/build_gate_chain.py build-self --force --packs-dir packs
+agentbundle catalogue self-host --root . --write --force
 ```
 
-**Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`, `pack.toml`), run `build-self --force` AFTER all edits — not between them. Build-self can silently revert edits made before it ran. Safe pattern: all edits → `FORCE=1 make build-self` → `git status` → `make build-check` → commit.
+**Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`, `pack.toml`), run `build-self --force` AFTER all edits — not between them. Safe pattern: all edits → `FORCE=1 make build-self` → `git status` → `make build-check` → commit.
 
 **Vendored copy:** `packs/credential-brokers/.apm/user-libs/credbroker/` is byte-synced from `packages/credbroker/credbroker/`. Edit the `packages/` source; never the `.apm/user-libs/` copy.
 
@@ -64,6 +102,10 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `pytho
 - **Body answers what to do once invoked** — preconditions, judgment, procedure. Keep it terse.
 - **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `docs/guides/core/reference/output-rendering.md`.
 - **No internal-governance citations** — no RFC/ADR numbers or internal spec paths in any `.apm/**` content.
+
+## Personal information
+
+**Never include personal information in pack content.** This means no real names, email addresses, usernames, account IDs, phone numbers, or any other PII in `.apm/**`, `seeds/**`, `pack.toml`, or any other in-tree file. Use placeholder values (e.g. `example@example.com`, `<your-org>`) in templates and example config. The CI credential scan (`Gate C`) blocks real bearer tokens; the same discipline applies to all personal data.
 
 ## Eval coverage
 

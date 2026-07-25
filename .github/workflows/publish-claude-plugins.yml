@@ -59,4 +59,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Publish to claude-plugins-dist branch
-        run: python3 tools/publish-claude-plugins.py
+        run: python3 tools/catalogue/publish_claude_plugins.py

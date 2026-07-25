@@ -1,9 +1,8 @@
-"""Tests for the make-free self-host gate chains (`tools/build_gate_chain.py`).
+"""Tests for the make-free self-host gate chains (`tools/repo/build_gate_chain.py`).
 
 The load-bearing invariant is "run these steps, in this order, stop at the first
 failure, return its code" — verified against stubbed step outcomes — plus the
-step assembly (which handler/script, in what order, with which namespace
-attributes) and Windows-cleanliness of the spawned argv.
+step assembly (which command, in what order) and Windows-cleanliness of spawned argv.
 """
 
 from __future__ import annotations
@@ -18,7 +17,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Import from tools/repo/ (the real implementation, not the shim at tools/).
+sys.path.insert(0, str(Path(__file__).resolve().parent / "repo"))
 import build_gate_chain as gc  # noqa: E402
 
 
@@ -47,8 +47,7 @@ class RunChainTest(unittest.TestCase):
         with contextlib.redirect_stderr(stderr):
             rc = gc._run_chain(steps)
         self.assertEqual(rc, 3)
-        self.assertEqual(calls, ["a", "b"])  # "c" never ran
-        # The failure-legibility signal: names the failing label and its code.
+        self.assertEqual(calls, ["a", "b"])
         line = stderr.getvalue()
         self.assertIn("✖", line)
         self.assertIn("b", line)
@@ -56,93 +55,143 @@ class RunChainTest(unittest.TestCase):
 
 
 class BuildSelfChainTest(unittest.TestCase):
-    """`build_self` assembles lint-packs → self with the right namespaces."""
+    """`build_self` uses agentbundle catalogue self-host via subprocess."""
 
-    def test_steps_order_and_namespaces(self):
-        recorded: list[tuple[str, argparse.Namespace]] = []
+    def _run_with_fake_subprocess(self, args: argparse.Namespace) -> tuple[int, list[list[str]]]:
+        seen: list[list[str]] = []
 
-        def rec(label):
-            def _f(ns):
-                recorded.append((label, ns))
-                return 0
-            return _f
+        def fake_run(argv, check, env=None):
+            seen.append(argv)
+            return mock.Mock(returncode=0)
 
-        with mock.patch.object(gc, "cmd_lint_packs", rec("lint-packs")), \
-             mock.patch.object(gc, "cmd_self", rec("self")):
-            args = argparse.Namespace(
-                packs_dir="packs", dry_run=True, force=False, no_symlink=True
-            )
+        with mock.patch.object(gc.subprocess, "run", fake_run):
             rc = gc.build_self(args)
+        return rc, seen
 
+    def test_write_mode_calls_self_host_write(self):
+        args = argparse.Namespace(dry_run=False, force=False, packs_dir="packs", no_symlink=False)
+        rc, seen = self._run_with_fake_subprocess(args)
         self.assertEqual(rc, 0)
-        self.assertEqual([label for label, _ in recorded], ["lint-packs", "self"])
+        self.assertEqual(len(seen), 1)
+        argv = seen[0]
+        self.assertIn("-m", argv)
+        self.assertIn("agentbundle", argv)
+        self.assertIn("catalogue", argv)
+        self.assertIn("self-host", argv)
+        self.assertIn("--write", argv)
+        self.assertNotIn("--check", argv)
+        self.assertNotIn("--force", argv)
 
-        lint_ns = recorded[0][1]
-        self.assertEqual(lint_ns.packs_dir, "packs")
+    def test_write_force_mode_passes_force(self):
+        args = argparse.Namespace(dry_run=False, force=True, packs_dir="packs", no_symlink=False)
+        rc, seen = self._run_with_fake_subprocess(args)
+        self.assertEqual(rc, 0)
+        argv = seen[0]
+        self.assertIn("--write", argv)
+        self.assertIn("--force", argv)
 
-        self_ns = recorded[1][1]
-        # Every attribute cmd_self reads must be present (AttributeError guard).
-        self.assertEqual(self_ns.packs_dir, "packs")
-        self.assertEqual(self_ns.output_dir, ".")
-        self.assertEqual(self_ns.dry_run, True)
-        self.assertEqual(self_ns.force, False)
-        self.assertEqual(self_ns.no_symlink, True)
+    def test_dry_run_mode_calls_self_host_check(self):
+        args = argparse.Namespace(dry_run=True, force=False, packs_dir="packs", no_symlink=False)
+        rc, seen = self._run_with_fake_subprocess(args)
+        self.assertEqual(rc, 0)
+        argv = seen[0]
+        self.assertIn("--check", argv)
+        self.assertNotIn("--write", argv)
 
 
 class BuildCheckChainTest(unittest.TestCase):
     """`build_check` assembles every Windows-clean step, in order, no SAST."""
 
-    def test_full_step_sequence_and_namespaces(self):
+    def test_full_step_sequence(self):
         order: list[str] = []
-        ns_by_label: dict[str, argparse.Namespace] = {}
 
-        def rec(label):
-            def _f(ns):
-                order.append(label)
-                ns_by_label[label] = ns
-                return 0
-            return _f
-
-        script_argvs: list[list[str]] = []
-
-        def fake_run(argv, check):
-            order.append("script")
-            script_argvs.append(argv)
-            self.assertFalse(check)  # check=False — never raises on script failure
+        def fake_run(argv, check, env=None):
+            order.append("subprocess")
             return mock.Mock(returncode=0)
 
-        with mock.patch.object(gc, "cmd_lint_packs", rec("lint-packs")), \
-             mock.patch.object(gc, "cmd_build", rec("build")), \
-             mock.patch.object(gc, "cmd_check", rec("check")), \
-             mock.patch.object(gc.subprocess, "run", fake_run):
+        with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # Handlers: lint-packs, build, check; one spawned script between build and
-        # check (validate-claude-plugin-manifests); nine more after check — ten total.
-        self.assertEqual(
-            order,
-            ["lint-packs", "build", "script", "check"] + ["script"] * 9,
-        )
+        # 1 module step (catalogue build) + 10 script steps = 11 total subprocess calls.
+        self.assertEqual(len(order), 11)
 
-        self.assertEqual(ns_by_label["lint-packs"].packs_dir, "packs")
-        build_ns = ns_by_label["build"]
-        self.assertEqual(build_ns.packs_dir, "packs")
-        self.assertEqual(build_ns.output_dir, "dist")  # from args.output_dir
-        self.assertIsNone(build_ns.recipe)
-        self.assertIsNone(build_ns.pack)
-        check_ns = ns_by_label["check"]
-        self.assertEqual(check_ns.packs_dir, "packs")
-        self.assertEqual(check_ns.output_dir, ".")  # working tree, not dist
+    def test_first_step_is_catalogue_build(self):
+        """The first step must invoke agentbundle catalogue build."""
+        seen: list[list[str]] = []
 
-        # The ten spawned scripts, in Makefile order.
-        spawned = [Path(argv[1]).as_posix() for argv in script_argvs]
+        def fake_run(argv, check, env=None):
+            seen.append(list(argv))
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            args = argparse.Namespace(packs_dir="packs", output_dir="dist")
+            gc.build_check(args)
+
+        first = seen[0]
+        self.assertIn("-m", first)
+        self.assertIn("agentbundle", first)
+        self.assertIn("catalogue", first)
+        self.assertIn("build", first)
+        self.assertIn("--output", first)
+        self.assertIn("dist", first)
+
+    def test_pre_pr_step_uses_new_path(self):
+        """pre-pr-catalogue must call tools/catalogue/pre_pr_catalogue.py."""
+        seen: list[list[str]] = []
+
+        def fake_run(argv, check, env=None):
+            seen.append(list(argv))
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            args = argparse.Namespace(packs_dir="packs", output_dir="dist")
+            gc.build_check(args)
+
+        # Find the pre-pr-catalogue step (index 2 = third call).
+        pre_pr_argv = seen[2]
+        # Path should contain tools/catalogue/pre_pr_catalogue.py
+        script_path = Path(pre_pr_argv[1]).as_posix()
+        self.assertIn("tools/catalogue/pre_pr_catalogue.py", script_path)
+
+    def test_script_steps_are_windows_clean(self):
+        """Every spawned argv is [sys.executable, path] with no shell token."""
+        seen: list[list[str]] = []
+
+        def fake_run(argv, check, env=None):
+            seen.append(list(argv))
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+
+        # All script steps (indices 1-10) must be [sys.executable, script_path].
+        for argv in seen[1:]:  # skip first (module step has extra args)
+            self.assertEqual(argv[0], sys.executable)
+            self.assertEqual(len(argv), 2)
+            for token in argv:
+                self.assertNotIn(token, ("bash", "sh", "-c"))
+                self.assertFalse(token.endswith(".sh"))
+
+    def test_spawned_script_paths_in_order(self):
+        """The ten spawned script paths match the expected gate order."""
+        seen: list[list[str]] = []
+
+        def fake_run(argv, check, env=None):
+            seen.append(list(argv))
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+
+        # seen[0] = module step (catalogue build); seen[1:] = 10 script steps.
+        spawned = [Path(argv[1]).as_posix() for argv in seen[1:]]
         self.assertEqual(
             spawned,
             [
                 "tools/validate-claude-plugin-manifests.py",
-                "tools/pre-pr-catalogue.py",
+                "tools/catalogue/pre_pr_catalogue.py",
                 ".claude/skills/work-loop/scripts/test-lint-spec-status.py",
                 ".claude/skills/work-loop/scripts/lint-spec-status.py",
                 ".claude/skills/receive-brief/scripts/test-lint-brief-coverage.py",
@@ -153,28 +202,6 @@ class BuildCheckChainTest(unittest.TestCase):
                 "tools/lint-first-value-contract.py",
             ],
         )
-
-    def test_spawned_argv_is_windows_clean(self):
-        """Every spawned argv is [sys.executable, path] — no shell token."""
-        seen: list[list[str]] = []
-
-        def fake_run(argv, check):
-            seen.append(argv)
-            return mock.Mock(returncode=0)
-
-        with mock.patch.object(gc, "cmd_lint_packs", lambda ns: 0), \
-             mock.patch.object(gc, "cmd_build", lambda ns: 0), \
-             mock.patch.object(gc, "cmd_check", lambda ns: 0), \
-             mock.patch.object(gc.subprocess, "run", fake_run):
-            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
-
-        self.assertTrue(seen)
-        for argv in seen:
-            self.assertEqual(argv[0], sys.executable)
-            self.assertEqual(len(argv), 2)
-            for token in argv:
-                self.assertNotIn(token, ("bash", "sh", "-c"))
-                self.assertFalse(token.endswith(".sh"))
 
 
 class ParserWiringTest(unittest.TestCase):
@@ -203,10 +230,8 @@ class MissingScriptTest(unittest.TestCase):
                 ("after", lambda: (ran_after.append("after"), 0)[1]),
             ]
             rc = gc._run_chain(steps)
-        # The interpreter exits 2 ("can't open file") — pin the propagated value,
-        # not just "non-zero", so we prove the missing step's code surfaced.
         self.assertEqual(rc, 2)
-        self.assertEqual(ran_after, [])   # later step never ran
+        self.assertEqual(ran_after, [])
 
 
 if __name__ == "__main__":
