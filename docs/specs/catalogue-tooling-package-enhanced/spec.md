@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Enhanced Packaging
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -102,30 +102,30 @@ a deprecation warning.
 
 ## Acceptance Criteria
 
-- [ ] AC1: `agentbundle catalogue package --root . --bundle eng --release
+- [x] AC1: `agentbundle catalogue package --root . --bundle eng --release
   2026.07.24.1 --channel stable --output /tmp/out` produces the three-file
   Artifactory layout: archive, sidecar, channel descriptor.
-- [ ] AC2: Archive contains `.claude-plugin/marketplace.json`, `LICENSE-APACHE`,
+- [x] AC2: Archive contains `.claude-plugin/marketplace.json`, `LICENSE-APACHE`,
   `LICENSE-MIT`. Missing any required file causes exit non-zero before output.
-- [ ] AC3: Generic `LICENSE` file (not `-APACHE`/`-MIT`) is not required.
-- [ ] AC4: `catalogue.toml` is NOT present in the archive.
-- [ ] AC5: Channel descriptor is written AFTER the archive and sidecar are
+- [x] AC3: Generic `LICENSE` file (not `-APACHE`/`-MIT`) is not required.
+- [x] AC4: `catalogue.toml` is NOT present in the archive.
+- [x] AC5: Channel descriptor is written AFTER the archive and sidecar are
   staged and self-verified.
-- [ ] AC6: Building twice with identical inputs and `SOURCE_DATE_EPOCH` fixed
+- [x] AC6: Building twice with identical inputs and `SOURCE_DATE_EPOCH` fixed
   produces byte-identical archives.
-- [ ] AC7: Existing release archive path → exit non-zero, no files written.
-- [ ] AC8: If verify_archive fails on staged output, all staged files are
+- [x] AC7: Existing release archive path → exit non-zero, no files written.
+- [x] AC8: If verify_archive fails on staged output, all staged files are
   removed and exit is non-zero.
-- [ ] AC9: `catalogue-manifest.json` has all required Bucket 8 fields.
-- [ ] AC10: `agentbundle package-catalogue <args>` prints deprecation warning
+- [x] AC9: `catalogue-manifest.json` has all required Bucket 8 fields.
+- [x] AC10: `agentbundle package-catalogue <args>` prints deprecation warning
   to stderr and produces equivalent output.
-- [ ] AC11: Extracted archive passes `verify_catalogue` (local catalogue).
-- [ ] AC12: `agentbundle list-packs --catalogue <extracted-root>` succeeds.
-- [ ] AC13: All existing `test_package_catalogue_*.py` tests pass unmodified
+- [x] AC11: Extracted archive passes `verify_catalogue` (local catalogue).
+- [x] AC12: `agentbundle list-packs --catalogue <extracted-root>` succeeds.
+- [x] AC13: All existing `test_package_catalogue_*.py` tests pass unmodified
   or with only the deprecation-warning adaptation.
-- [ ] AC14: The archive layout has no artificial wrapper directory; `packs/` is
+- [x] AC14: The archive layout has no artificial wrapper directory; `packs/` is
   at archive root.
-- [ ] AC15: The packaged archive contains no member whose path starts with
+- [x] AC15: The packaged archive contains no member whose path starts with
   `.git/`, `tools/`, `packages/agentbundle/`, or `dist/`. A test asserts
   this against an archive produced from a fixture that includes stub files at
   those paths; none should appear in the extracted archive members.

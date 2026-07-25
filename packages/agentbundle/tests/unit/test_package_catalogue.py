@@ -1,7 +1,12 @@
-"""Tests for the package-catalogue subcommand.
+"""Tests for the package-catalogue subcommand (compat shim) and helpers.
 
 Covers all ACs from spec/package-catalogue-command/spec.md.
 Uses example.test placeholders only — no real credentials or external URIs.
+
+Wave 4 note: helpers are now in agentbundle.catalogue_tooling.package but
+re-exported from agentbundle.commands.package_catalogue for backward compat.
+Fixtures now include LICENSE-APACHE, LICENSE-MIT, and .claude-plugin/marketplace.json
+per the updated Wave 4 allowlist.
 """
 
 from __future__ import annotations
@@ -41,8 +46,21 @@ from agentbundle.commands.package_catalogue import (
 # ---------------------------------------------------------------------------
 
 
-def _make_fixture_catalogue(tmp_path: Path, *, with_profiles: bool = True, with_contracts: bool = True, with_readme: bool = True, with_license: bool = True, extra_dirs: list[str] | None = None) -> Path:
-    """Create a minimal valid catalogue root under tmp_path."""
+def _make_fixture_catalogue(
+    tmp_path: Path,
+    *,
+    with_profiles: bool = True,
+    with_contracts: bool = True,
+    with_readme: bool = True,
+    with_license: bool = True,
+    with_marketplace: bool = True,
+    extra_dirs: list[str] | None = None,
+) -> Path:
+    """Create a minimal valid catalogue root under tmp_path.
+
+    Wave 4: creates LICENSE-APACHE and LICENSE-MIT (not generic LICENSE),
+    and .claude-plugin/marketplace.json per the updated allowlist.
+    """
     root = tmp_path / "catalogue"
     root.mkdir()
 
@@ -64,11 +82,21 @@ def _make_fixture_catalogue(tmp_path: Path, *, with_profiles: bool = True, with_
         contracts_dir.mkdir(parents=True)
         (contracts_dir / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8")
 
+    (root / "AGENTS.md").write_text("# Test Catalogue Agent Context\n", encoding="utf-8")
+
     if with_readme:
         (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8")
 
     if with_license:
-        (root / "LICENSE").write_text("MIT\n", encoding="utf-8")
+        (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
+        (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+
+    if with_marketplace:
+        claude_plugin_dir = root / ".claude-plugin"
+        claude_plugin_dir.mkdir()
+        (claude_plugin_dir / "marketplace.json").write_text(
+            '{"packs": ["core"]}\n', encoding="utf-8"
+        )
 
     for extra in extra_dirs or []:
         extra_dir = root / extra
@@ -116,13 +144,18 @@ def test_scan_content_includes_allowlisted_files(tmp_path: Path) -> None:
     )
     paths = _scan_content(root)
     posix = [p.relative_to(root).as_posix() for p in paths]
-    # Allowlisted entries present
+    # Allowlisted entries present (Wave 4 allowlist)
     assert "packs/core/pack.toml" in posix
     assert "packs/core/SKILL.md" in posix
     assert "profiles/default.toml" in posix
     assert "docs/contracts/adapter.toml" in posix
+    assert "AGENTS.md" in posix
     assert "README.md" in posix
-    assert "LICENSE" in posix
+    assert "LICENSE-APACHE" in posix
+    assert "LICENSE-MIT" in posix
+    assert ".claude-plugin/marketplace.json" in posix
+    # Generic LICENSE not in new allowlist
+    assert "LICENSE" not in posix
     # Excluded directories absent
     for p in posix:
         assert not p.startswith("build/")
@@ -153,7 +186,8 @@ def test_scan_content_returns_sorted_paths(tmp_path: Path) -> None:
 
 def test_scan_content_absent_optional_dir(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(
-        tmp_path, with_profiles=False, with_contracts=False, with_readme=False, with_license=False
+        tmp_path, with_profiles=False, with_contracts=False, with_readme=False,
+        with_license=False, with_marketplace=False,
     )
     paths = _scan_content(root)
     posix = [p.relative_to(root).as_posix() for p in paths]
@@ -372,13 +406,17 @@ def test_generate_manifest_required_fields() -> None:
         packs_metadata=[{"name": "core", "version": "0.1.0"}],
     )
     manifest = json.loads(manifest_bytes)
-    assert manifest["schema"] == 1
+    assert manifest["schema"] == 2  # Wave 4: schema bumped to 2
     assert manifest["bundle"] == "engineering"
     assert manifest["release"] == "0.1.0"
     assert "source_revision" in manifest
     assert "generated_at" in manifest
     assert "files" in manifest
     assert "packs" in manifest
+    # Bucket 8 extended fields present in schema 2
+    assert "adapter_contract_version" in manifest
+    assert "pack_schema_version" in manifest
+    assert "profiles" in manifest
 
 
 def test_generate_manifest_source_revision_null() -> None:
@@ -488,7 +526,7 @@ def test_build_archive_contains_manifest() -> None:
         f = tf.extractfile("catalogue-manifest.json")
         assert f is not None
         data = json.loads(f.read())
-        assert data["schema"] == 1
+        assert data["schema"] == 1  # build_archive stores bytes as-is; schema in bytes is 1
 
 
 def test_build_archive_rejects_traversal_member_name() -> None:
@@ -646,7 +684,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     all_files = [p for p in output.rglob("*") if p.is_file()]
     assert len(all_files) == 3
 
-    # AC4: only allowlisted entries in archive
+    # AC4: only allowlisted entries in archive (Wave 4 allowlist)
     archive_bytes = archive_path.read_bytes()
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
         names = set(tf.getnames())
@@ -654,26 +692,31 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     assert "packs/core/SKILL.md" in names
     assert "profiles/default.toml" in names
     assert "docs/contracts/adapter.toml" in names
+    assert "AGENTS.md" in names
     assert "README.md" in names
-    assert "LICENSE" in names
+    assert "LICENSE-APACHE" in names
+    assert "LICENSE-MIT" in names
+    assert ".claude-plugin/marketplace.json" in names
     assert "catalogue-manifest.json" in names
     for n in names:
         assert not n.startswith("build/")
         assert not n.startswith("tests/")
         assert not n.startswith(".git/")
 
-    # AC11: catalogue-manifest.json schema
+    # AC11: catalogue-manifest.json schema (Wave 4: schema 2)
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None
         manifest = json.loads(mf.read())
-    assert manifest["schema"] == 1
+    assert manifest["schema"] == 2
     assert manifest["bundle"] == "engineering"
     assert manifest["release"] == "0.1.0"
     assert manifest["source_revision"] == "deadbeef"
     assert "generated_at" in manifest
     assert "files" in manifest
     assert "packs" in manifest
+    assert "adapter_contract_version" in manifest
+    assert "profiles" in manifest
 
     # AC19/AC20: channel descriptor
     descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))

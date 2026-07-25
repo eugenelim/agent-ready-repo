@@ -772,12 +772,17 @@ def _build_parser() -> argparse.ArgumentParser:
     _sh_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
     _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
 
-    # catalogue package (stub)
-    _pkg_p = cat_subs.add_parser("package", help="Package catalogue into an archive (stub).")
+    # catalogue package
+    _pkg_p = cat_subs.add_parser("package", help="Package catalogue into a distributable archive.")
     _pkg_p.add_argument("--root", default=".", help="Catalogue root directory.")
-    _pkg_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
-    _pkg_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
-    _pkg_p.set_defaults(func=_lazy("catalogue_tooling_stub"))
+    _pkg_p.add_argument("--bundle", required=True, help="Bundle/product identifier.")
+    _pkg_p.add_argument("--release", required=True, help="Release version string.")
+    _pkg_p.add_argument("--channel", required=True, help="Channel name (e.g. 'stable').")
+    _pkg_p.add_argument("--output", required=True, help="Output directory for Artifactory layout.")
+    _pkg_p.add_argument("--source-revision", default=None, dest="source_revision", help="VCS revision.")
+    _pkg_p.add_argument("--minimum-agentbundle-version", default=None, dest="minimum_agentbundle_version", help="Minimum agentbundle version required.")
+    _pkg_p.add_argument("--published-at", default=None, dest="published_at", help="Published-at timestamp (ISO-8601).")
+    _pkg_p.set_defaults(func=_lazy("catalogue_package"))
 
     # catalogue sync-defaults
     _sd_p = cat_subs.add_parser("sync-defaults", help="Sync install-defaults from catalogue.toml.")

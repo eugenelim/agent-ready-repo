@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Claude plugin marketplace manifest now passes `claude plugin validate` (Claude Code 2.1.209).** Three generator defects caused 35 errors: (1) marketplace missing top-level `name` field, (2) plugin `author` emitted as a plain string instead of a `{name, email}` object, (3) plugin `source` field absent entirely. All three are fixed in the build pipeline (`derive_projectable_subset`, `_run_aggregate`, `_aggregate_marketplace`). The `.claude-plugin/marketplace.json` in the working tree now validates with 0 errors.
 
 
+## [agentbundle][0.16.0] — 2026-07-25
+
+
+### Added
+
+- **`agentbundle catalogue package` is now the canonical packaging command with staging, atomic placement, and self-verification (agentbundle 0.16.0, ini-005 Wave 4).** `catalogue package --root . --bundle eng --release 2026.07.25.1 --channel stable --output /tmp/out` packages a catalogue into a three-file Artifactory layout. The command integrates the full 18-step `verify_catalogue` pre-check, then writes the archive to a staged `.tmp` path, computes the sha256 sidecar, runs `verify_archive` self-verification, and only then atomically renames archive + sidecar to their final paths. The channel descriptor JSON is written LAST so it only exists when the archive is safe to consume. Required allowlist updated: `LICENSE-APACHE`, `LICENSE-MIT`, and `.claude-plugin/marketplace.json` are now required; the generic `LICENSE` assumption is removed. `catalogue-manifest.json` schema bumped to 2 with Bucket 8 extended fields: `adapter_contract_version`, `pack_schema_version`, `marketplace_digest`, `profiles`. `agentbundle package-catalogue` is now a compat shim that prints a deprecation warning and delegates. ([spec](../specs/catalogue-tooling-package-enhanced/spec.md))
+
+
 ## [agentbundle][0.15.0] — 2026-07-25
 
 
