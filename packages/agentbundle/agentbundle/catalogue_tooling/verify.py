@@ -74,7 +74,7 @@ def _step_lint(
 def _step_pack_schema(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 3: validate each pack's pack.toml against adapter schema."""
+    """Step 3: validate each pack's pack.toml against pack schema."""
     if config is None:
         return []
     try:
@@ -87,10 +87,8 @@ def _step_pack_schema(
     if not packs_dir.is_dir():
         return []
 
-    schema_path = (
-        Path(__file__).resolve().parent.parent.parent.parent.parent
-        / "docs" / "contracts" / "adapter.schema.json"
-    )
+    # Use the bundled pack.schema.json so validation works both editable and wheel.
+    schema_path = Path(__file__).resolve().parent.parent / "_data" / "pack.schema.json"
     if not schema_path.exists():
         return []
 

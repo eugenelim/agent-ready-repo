@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/).
 
 
+## [agentbundle][0.16.1] — 2026-07-25
+
+### Fixed
+
+- **`agentbundle catalogue verify` no longer fails with `CAT-V-003` (wrong schema) or `CAT-V-010` (`'function' object has no attribute '_DIST_BRANCH'`) on source-checkout runs (agentbundle 0.16.1).** Step 3 was loading `adapter.schema.json` (the adapter-contract format schema) instead of `pack.schema.json` when validating pack.toml files, causing every pack to fail with "missing required property 'contract'". Step 10 was resolving `import agentbundle.build.main as _build_main` to the `main()` function defined in `agentbundle/build/__init__.py` rather than the `main.py` submodule, because Python's dotted-import attribute walk hit the `__init__.py` function instead of the submodule; fixed by using `importlib.import_module('agentbundle.build.main')` which goes through `sys.modules` directly. The `"default"` recipe sentinel in `catalogue.toml` now correctly maps to the default build pipeline (per-pack-claude-plugin + per-pack-apm-package + marketplace) rather than trying to load a non-existent `default.toml` file.
+
+---
+
+
 ## [repo][wave-5-rewire] — 2026-07-24
 
 
