@@ -288,8 +288,12 @@ def _step_output_drift(
 def _step_selfhost_drift(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 15: self-host drift check via check_self_host. Skips when no catalogue.toml."""
+    """Step 15: self-host drift check via check_self_host. Skips when no catalogue.toml or no self-host projection."""
     if config is None:
+        return []
+    # .adapt-discovery.toml is required by run_self_host (AC14 fail-fast). Its
+    # absence means this catalogue has no self-host projection to drift-check.
+    if not (root / ".adapt-discovery.toml").exists():
         return []
     from agentbundle.catalogue_tooling.self_host import check_self_host
     try:

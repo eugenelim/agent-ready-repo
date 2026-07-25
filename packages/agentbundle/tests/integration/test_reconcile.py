@@ -43,10 +43,10 @@ def _run_install(args: argparse.Namespace) -> int:
         return install.run(args)
 
 
-def _install_args(pack: str, catalogue: str, output: str, scope: str = "user"):
+def _install_args(pack: str, catalogue: str, output: str, scope: str = "user", adapter: str | None = None):
     return argparse.Namespace(
         pack=pack, catalogue=catalogue, output=output,
-        scope=scope, force=False, force_merge=False,
+        scope=scope, force=False, force_merge=False, adapter=adapter,
     )
 
 
@@ -156,7 +156,10 @@ class GroupedByAdapterTests(_ReconcileBase):
         _copy_fixture(FIXTURES / "cc-user-hooks", self.cat / "packs" / "cc-user-hooks")
         _copy_fixture(FIXTURES / "kiro-user-hooks", self.cat / "packs" / "kiro-user-hooks")
         for pack in ("cc-user-hooks", "kiro-user-hooks"):
-            rc = _run_install(_install_args(pack, str(self.cat), str(self.repo)))
+            # kiro-user-hooks allows only kiro-cli; pass adapter explicitly so the
+            # org preferred_adapter (claude-code) doesn't block the install.
+            adapter = "kiro-cli" if pack == "kiro-user-hooks" else None
+            rc = _run_install(_install_args(pack, str(self.cat), str(self.repo), adapter=adapter))
             self.assertEqual(rc, 0, f"install of {pack} failed")
 
         # Inject orphans into each adapter's target file.

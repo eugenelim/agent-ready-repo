@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/).
 
 
+## [agentbundle][0.16.2] — 2026-07-25
+
+### Fixed
+
+- **`agentbundle catalogue verify` no longer runs the self-host drift check (CAT-V-015) when `self-host = false` in `catalogue.toml`.** External catalogues that opt out of self-hosting were always failing step 15 with "self-host projection is out of date", even though they have no projection to check.
+
+---
+
 ## [agentbundle][0.16.1] — 2026-07-25
 
 ### Fixed
@@ -20,6 +28,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [repo][wave-5c-ci-gates] — 2026-07-25
+
+### Added
+
+- **Wave 5c (ini-005): nine CI gates (A-I) for catalogue tooling.** Gates A-G added as jobs in a new `.github/workflows/catalogue-tooling-ci-gates.yml`: full agentbundle test matrix (Ubuntu 3.11/3.12, Windows 3.11), external-catalogue portability smoke, enterprise distribution credential scan, catalogue artifact round-trip, disconnected offline flow, repository rewiring correctness, and release-impact path-sensitivity check. Gate H wires pre-release gates into `release-agentbundle.yml`. Gate I documents the six-step Artifactory publication sequence in `docs/guides/how-to/artifactory-publication-template.md`. `tools/repo/check_release_impact.py` implements the Gate G path-sensitivity logic. ([spec](../specs/catalogue-tooling-ci-gates/spec.md))
+
+---
+
+## [repo][wave-5b-docs] — 2026-07-25
+
+### Changed
+
+- **Wave 5b (ini-005): `packs/AGENTS.md` now lists all primitive source paths from `docs/contracts/adapter.toml`, adds a `pack.toml` schema map, adds the pack design model, and uses canonical `agentbundle catalogue *` commands as the primary workflow.** `AGENTS.local.md` gains a "Release Coupling" section explaining what does and doesn't require an AgentBundle release. ([spec](../specs/catalogue-tooling-docs/spec.md))
+
+### Added
+
+- **Eight guide docs for catalogue tooling** — `docs/guides/reference/catalogue-toml.md`, `catalogue-commands.md`, `catalogue-migration.md`, `catalogue-archive.md`; `docs/guides/how-to/create-external-catalogue.md`, `enterprise-app-store.md`, `flow-e-disconnected.md`; `docs/guides/explanation/release-coupling.md`.
+
+---
 
 ## [repo][wave-5-rewire] — 2026-07-24
 
