@@ -18,6 +18,7 @@ platform.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import tomllib
@@ -587,8 +588,33 @@ def lint_skill_spec(root: Path, pack: str | None = None) -> list[Diagnostic]:
 
     # ── Walk skills ───────────────────────────────────────────────────────
 
+    def _skill_mds(walk_dir: Path) -> list[Path]:
+        """Return all SKILL.md paths under walk_dir, including broken/circular symlinks.
+
+        Path.glob("*/SKILL.md") silently skips broken/circular symlinks on
+        Python 3.11 Linux (it checks is_file() internally). Using os.scandir
+        with lstat ensures every SKILL.md — even a dangling or looped symlink —
+        is visited so the linter can emit a diagnostic.
+        """
+        result: list[Path] = []
+        try:
+            with os.scandir(walk_dir) as it:
+                for entry in it:
+                    if not (entry.is_dir(follow_symlinks=True) or
+                            entry.is_dir(follow_symlinks=False)):
+                        continue
+                    skill_md = Path(entry.path) / "SKILL.md"
+                    try:
+                        skill_md.lstat()  # succeeds for real files and any symlink
+                        result.append(skill_md)
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+        return sorted(result)
+
     for walk_dir, pack_name in walk_roots:
-        for skill_md in sorted(walk_dir.glob("*/SKILL.md")):
+        for skill_md in _skill_mds(walk_dir):
             try:
                 _check_skill(skill_md, pack_name)
             except (OSError, RuntimeError) as exc:

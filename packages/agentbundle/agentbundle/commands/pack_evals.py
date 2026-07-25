@@ -613,7 +613,7 @@ def run_eval(
                 )
                 out_dir.mkdir(parents=True, exist_ok=True)
                 (out_dir / "result.txt").write_text(
-                    result.result or "", encoding="utf-8"
+                    result.result or "", encoding="utf-8", newline="\n"
                 )
             record, passed = _query_summary(
                 query_id, query, should_trigger, target_fired, exclusivity, errored
@@ -626,7 +626,7 @@ def run_eval(
 
     iter_dir.mkdir(parents=True, exist_ok=True)
     (iter_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     return summary
 
@@ -715,13 +715,13 @@ def grade_reports(
             cap = iter_dir / skill / query_id / "in_harness"
             cap.mkdir(parents=True, exist_ok=True)
             (cap / "reports.json").write_text(
-                json.dumps(run_reports) + "\n", encoding="utf-8"
+                json.dumps(run_reports) + "\n", encoding="utf-8", newline="\n"
             )
         summary["skills"][skill] = skill_summary
 
     iter_dir.mkdir(parents=True, exist_ok=True)
     (iter_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     return summary
 
@@ -904,7 +904,7 @@ def grade_behavior(
 
     iter_dir.mkdir(parents=True, exist_ok=True)
     (iter_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     return summary
 
@@ -980,13 +980,13 @@ def grade_judge(
             cap = iter_dir / skill / str(eid) / "judge"
             cap.mkdir(parents=True, exist_ok=True)
             (cap / "verdict.json").write_text(
-                json.dumps(verdict, indent=2) + "\n", encoding="utf-8"
+                json.dumps(verdict, indent=2) + "\n", encoding="utf-8", newline="\n"
             )
         summary["skills"][skill] = skill_summary
 
     iter_dir.mkdir(parents=True, exist_ok=True)
     (iter_dir / "summary.json").write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     return summary
 
