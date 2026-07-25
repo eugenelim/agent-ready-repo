@@ -319,6 +319,7 @@ export default defineConfig({
                   items: [
                     { label: 'Author Design Intent', slug: 'guides/experience-design/how-to/author-design-intent' },
                     { label: 'Three-Way Copy Boundary', slug: 'guides/experience-design/how-to/copy-layer-boundary' },
+                    { label: 'Content Design vs UX Writing', slug: 'guides/experience-design/how-to/content-design-vs-ux-writing' },
                   ],
                 },
                 {
