@@ -185,6 +185,7 @@ def _run_source_version_preflight(
     state: "object",
     scope: str,
     root: "Path",
+    user_config: "object | None" = None,
 ) -> "tuple[list, dict]":
     """Phase 1 preflight: source resolution and version classification.
 
@@ -192,7 +193,14 @@ def _run_source_version_preflight(
     :class:`_BulkRow` with ``status``/``status_reason``/``available_version``
     populated, and ``source_resolution_map`` maps canonical-source →
     ``(catalogue_dir, error_code, error_message)``.
+
+    When ``pack_state.source`` is ``None`` (old installs before source
+    recording was added), the function falls back to the 5-layer default
+    source resolution chain rather than immediately marking the row as
+    ``source-unknown``/blocked.
     """
+    from agentbundle.source_defaults import resolve_default_source
+
     rows = [
         _BulkRow(
             pack=pack_name,
@@ -207,7 +215,18 @@ def _run_source_version_preflight(
     source_resolution_map: dict = {}
 
     for row in rows:
-        cs = canonicalize_source(row.pack_state.source)  # type: ignore[attr-defined]
+        raw_source = row.pack_state.source  # type: ignore[attr-defined]
+        cs = canonicalize_source(raw_source)
+        if cs is None and raw_source is None:
+            # Old install: source was never recorded. Fall back to the 5-layer
+            # default chain — same resolution used by fresh installs — so pre-
+            # source-recording packs can still be upgraded.
+            config_source = getattr(user_config, "source", None) if user_config else None
+            try:
+                inferred = resolve_default_source(explicit=None, config_source=config_source)
+                cs = canonicalize_source(inferred)
+            except CatalogueError:
+                cs = None
         row.canonical_source = cs
         if cs is None:
             row.status = "unknown"
@@ -371,7 +390,7 @@ def _run_preflight(
 
     Returns ``(rows, source_resolution_map)``.
     """
-    rows, source_resolution_map = _run_source_version_preflight(state, scope, root)
+    rows, source_resolution_map = _run_source_version_preflight(state, scope, root, user_config)
 
     for row in rows:
         if row.status != "upgrade-available":

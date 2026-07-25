@@ -1,7 +1,7 @@
 # Plan: Catalogue Tooling — Build and Self-Host
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Shipped
 
 ## Approach
 

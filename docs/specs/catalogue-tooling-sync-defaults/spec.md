@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Sync-Defaults
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -103,31 +103,31 @@ in environment variables.
 
 ## Acceptance Criteria
 
-- [ ] AC1: `compile_defaults(config)` returns a TOML string beginning with the
+- [x] AC1: `compile_defaults(config)` returns a TOML string beginning with the
   generated-file header comment, containing `[organization]`, `[organization.artifactory]`,
   and `[defaults]` in that order.
-- [ ] AC2: `compile_defaults` is deterministic: calling it twice with the same
+- [x] AC2: `compile_defaults` is deterministic: calling it twice with the same
   `CatalogueConfig` produces byte-identical output.
-- [ ] AC3: `compile_defaults` with `artifactory.enabled = true` includes `base-url`,
+- [x] AC3: `compile_defaults` with `artifactory.enabled = true` includes `base-url`,
   `repository`, `bundle`, `channel` under `[organization.artifactory]`.
-- [ ] AC4: `compile_defaults` never emits a credential-bearing key regardless of
+- [x] AC4: `compile_defaults` never emits a credential-bearing key regardless of
   config content.
-- [ ] AC5: `check_defaults(root)` returns `SyncDefaultsResult(ok=True)` when the
+- [x] AC5: `check_defaults(root)` returns `SyncDefaultsResult(ok=True)` when the
   current `install-defaults-output` file byte-matches expected.
-- [ ] AC6: `check_defaults(root)` returns `SyncDefaultsResult(ok=False)` when
+- [x] AC6: `check_defaults(root)` returns `SyncDefaultsResult(ok=False)` when
   file differs or is absent.
-- [ ] AC7: `write_defaults(root)` writes the output atomically: a `.tmp` file is
+- [x] AC7: `write_defaults(root)` writes the output atomically: a `.tmp` file is
   created and renamed; no partial write left on failure.
-- [ ] AC8: `write_defaults(root)` raises `CatalogueConfigError` when `output_path`
+- [x] AC8: `write_defaults(root)` raises `CatalogueConfigError` when `output_path`
   resolves outside `root`.
-- [ ] AC9: `write_defaults(root)` raises `CatalogueConfigError` when `output_path`
+- [x] AC9: `write_defaults(root)` raises `CatalogueConfigError` when `output_path`
   is a symlink.
-- [ ] AC10: `agentbundle catalogue sync-defaults --root . --check` exits 0 on a
+- [x] AC10: `agentbundle catalogue sync-defaults --root . --check` exits 0 on a
   clean tree and 1 on drift.
-- [ ] AC11: `agentbundle catalogue sync-defaults --root . --write` exits 0 and the
+- [x] AC11: `agentbundle catalogue sync-defaults --root . --write` exits 0 and the
   output file matches `compile_defaults` output.
-- [ ] AC12: Both commands emit valid `SyncDefaultsResult` JSON to stdout.
-- [ ] AC13: All existing AgentBundle tests pass unmodified.
+- [x] AC12: Both commands emit valid `SyncDefaultsResult` JSON to stdout.
+- [x] AC13: All existing AgentBundle tests pass unmodified.
 
 > **Note:** `catalogue verify` integration (surfacing a drift diagnostic when
 > `install-defaults-output` is configured) is owned by spec/catalogue-tooling-verify

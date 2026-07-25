@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Build and Self-Host
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -103,32 +103,32 @@ subcommands, move two hard-coded constants to be config-driven via
 
 ## Acceptance Criteria
 
-- [ ] AC1: `build_catalogue(root, output)` calls through to `cmd_build` and
+- [x] AC1: `build_catalogue(root, output)` calls through to `cmd_build` and
   returns a `BuildResult` with `ok=True` for a valid fixture catalogue.
-- [ ] AC2: When `catalogue.toml` contains `claude-plugin-branch = "custom-branch"`,
+- [x] AC2: When `catalogue.toml` contains `claude-plugin-branch = "custom-branch"`,
   generated artefacts reference `"custom-branch"` not `"claude-plugins-dist"`.
-- [ ] AC3: When `catalogue.toml` is absent, `_DIST_BRANCH` and
+- [x] AC3: When `catalogue.toml` is absent, `_DIST_BRANCH` and
   `_MARKETPLACE_DESCRIPTION` default to existing hardcoded values; all
   existing build tests pass unmodified.
-- [ ] AC4: `check_self_host(root)` returns a `SelfHostResult`; `ok` is
+- [x] AC4: `check_self_host(root)` returns a `SelfHostResult`; `ok` is
   `False` on drift, `True` on clean working tree.
-- [ ] AC5: `write_self_host(root)` returns a `SelfHostResult`; subsequent
+- [x] AC5: `write_self_host(root)` returns a `SelfHostResult`; subsequent
   `check_self_host` returns `ok=True`.
-- [ ] AC6: `agentbundle catalogue build --root . --output dist/` produces the
+- [x] AC6: `agentbundle catalogue build --root . --output dist/` produces the
   same artefacts as the existing `make build` pipeline for the same inputs.
-- [ ] AC7: `agentbundle catalogue self-host --check` exits non-zero on a
+- [x] AC7: `agentbundle catalogue self-host --check` exits non-zero on a
   drifted tree; `--write` exits 0 after projection; re-running `--check`
   exits 0.
-- [ ] AC8: `--format json` outputs a single valid JSON document to stdout;
+- [x] AC8: `--format json` outputs a single valid JSON document to stdout;
   all progress lines go to stderr only.
-- [ ] AC9: `python -m agentbundle.build check` prints a deprecation warning to
+- [x] AC9: `python -m agentbundle.build check` prints a deprecation warning to
   stderr, delegates to `check_self_host` (NOT `catalogue verify`), and exits
   with the same code as the direct call.
-- [ ] AC10: `python -m agentbundle.build self` and `python -m agentbundle.build
+- [x] AC10: `python -m agentbundle.build self` and `python -m agentbundle.build
   build` each print a deprecation warning to stderr and delegate correctly.
-- [ ] AC11: Absolute recipe paths, `../` traversal, and recipe files outside
+- [x] AC11: Absolute recipe paths, `../` traversal, and recipe files outside
   the catalogue root are rejected with a clear error message and non-zero exit.
-- [ ] AC12: All existing AgentBundle tests pass unmodified.
+- [x] AC12: All existing AgentBundle tests pass unmodified.
 
 ## Assumptions
 

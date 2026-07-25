@@ -1,7 +1,7 @@
 # Plan: Catalogue Tooling — Lint
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Shipped
 
 ## Approach
 

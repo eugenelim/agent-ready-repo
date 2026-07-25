@@ -1,33 +1,73 @@
-"""Catalogue self-host tooling stub.
+"""Catalogue self-host wrappers.
 
-Wave 2 (catalogue-tooling-build-self spec) fills this module.
+Spec: docs/specs/catalogue-tooling-build-self/spec.md (ini-005 Bucket 7).
+
+Thin wrappers over agentbundle.build.self_host.{cmd_check, cmd_self} that
+expose structured SelfHostResult types. check uses dry_run=True (read-only);
+write uses dry_run=False.
 """
 
 from __future__ import annotations
 
+from argparse import Namespace
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from agentbundle.catalogue_tooling.results import SelfHostResult
+from agentbundle.catalogue_tooling.config import load_catalogue_config
+from agentbundle.catalogue_tooling.results import SelfHostResult
+
+_AGENTBUNDLE_VERSION: str | None = None
 
 
-def check_self_host(root: Path) -> "SelfHostResult":
-    """Check self-host configuration at *root*.
+def _get_agentbundle_version() -> str:
+    global _AGENTBUNDLE_VERSION
+    if _AGENTBUNDLE_VERSION is None:
+        try:
+            from agentbundle import __version__
+            _AGENTBUNDLE_VERSION = __version__
+        except Exception:
+            _AGENTBUNDLE_VERSION = "unknown"
+    return _AGENTBUNDLE_VERSION
 
-    Wave 2 implementation: validates install-defaults.toml shape and
-    preferred-adapter setting.
-    """
-    raise NotImplementedError(
-        "check_self_host is not yet implemented — see catalogue-tooling-build-self spec"
+
+def _make_result(ok: bool, operation: str, config: object | None) -> SelfHostResult:
+    return SelfHostResult(
+        ok=ok,
+        diagnostics=[],
+        schema_version=1,
+        command="catalogue self-host",
+        operation=operation,
+        agentbundle_version=_get_agentbundle_version(),
+        catalogue_schema_version=getattr(config, "schema", 1) if config else 1,
     )
 
 
-def write_self_host(root: Path) -> "SelfHostResult":
-    """Write self-host configuration at *root*.
+def check_self_host(root: Path) -> SelfHostResult:
+    """Dry-run self-host check (read-only). Returns SelfHostResult with ok=True on clean."""
+    from agentbundle.build.self_host import run_self_host
 
-    Wave 2 implementation: generates install-defaults.toml from catalogue.toml.
-    """
-    raise NotImplementedError(
-        "write_self_host is not yet implemented — see catalogue-tooling-build-self spec"
+    config = load_catalogue_config(root)
+    packs_dir = root / (config.paths.packs if config else "packs")
+
+    rc = run_self_host(
+        working_tree=root,
+        packs_dir=packs_dir,
+        dry_run=True,
+        force=False,
     )
+    return _make_result(ok=(rc == 0), operation="check", config=config)
+
+
+def write_self_host(root: Path, force: bool = False) -> SelfHostResult:
+    """Write self-host projection. Returns SelfHostResult with ok=True on success."""
+    from agentbundle.build.self_host import run_self_host
+
+    config = load_catalogue_config(root)
+    packs_dir = root / (config.paths.packs if config else "packs")
+
+    rc = run_self_host(
+        working_tree=root,
+        packs_dir=packs_dir,
+        dry_run=False,
+        force=force,
+    )
+    return _make_result(ok=(rc == 0), operation="write", config=config)

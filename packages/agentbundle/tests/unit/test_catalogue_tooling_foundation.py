@@ -88,18 +88,13 @@ def test_result_types_structure():
 
 
 def test_stub_raises_not_implemented():
-    """AC2: stub functions raise NotImplementedError."""
-    from agentbundle.catalogue_tooling.lint import lint_catalogue
+    """AC2: unimplemented stubs raise NotImplementedError. lint/build/self_host/sync_defaults
+    are now real implementations (Wave 2); only verify and package remain stubs."""
     from agentbundle.catalogue_tooling.verify import verify_catalogue
-    from agentbundle.catalogue_tooling.build import build_catalogue
     from agentbundle.catalogue_tooling.package import package_catalogue
 
     with pytest.raises(NotImplementedError):
-        lint_catalogue(Path("."))
-    with pytest.raises(NotImplementedError):
         verify_catalogue(Path("."))
-    with pytest.raises(NotImplementedError):
-        build_catalogue(Path("."), Path("."))
     with pytest.raises(NotImplementedError):
         package_catalogue(Path("."))
 
@@ -532,8 +527,8 @@ def test_cli_catalogue_group_help():
 
 
 def test_cli_lint_packs_help():
-    """AC10: agentbundle lint packs --help exits non-zero and shows --root."""
+    """AC10: agentbundle lint packs --help exits 0 and shows --root (now real impl)."""
     rc, stdout, stderr = _run_agentbundle("lint", "packs", "--help")
     combined = stdout + stderr
-    assert rc != 0, f"Expected non-zero exit for lint packs stub, got {rc}"
+    assert rc == 0, f"Expected zero exit for lint packs --help, got {rc}: {combined}"
     assert "--root" in combined, "--root not found in lint packs --help output"

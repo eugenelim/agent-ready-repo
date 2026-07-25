@@ -721,10 +721,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("package_catalogue"))
 
-    # --- catalogue <sub> --- (Wave 2-4 stubs; all exit 1 until implemented)
+    # --- catalogue <sub> --- (Wave 2-4; lint/sync-defaults/build/self-host implemented)
     cat_parser = subparsers.add_parser(
         "catalogue",
-        help="Portable catalogue engine commands (Wave 2-4 — not yet implemented).",
+        help="Portable catalogue engine commands.",
         add_help=False,
     )
     cat_parser.add_argument(
@@ -736,45 +736,69 @@ def _build_parser() -> argparse.ArgumentParser:
         help="show this help message and exit",
     )
     cat_subs = cat_parser.add_subparsers(dest="catalogue_sub", metavar="<sub>")
-    for _cat_sub, _cat_help in (
-        ("lint", "Lint catalogue packs (stub)."),
-        ("verify", "Verify catalogue against contracts (stub)."),
-        ("build", "Build catalogue dist tree (stub)."),
-        ("self-host", "Write self-host install-defaults (stub)."),
-        ("package", "Package catalogue into an archive (stub)."),
-        ("sync-defaults", "Sync install-defaults from catalogue.toml (stub)."),
-    ):
-        _p = cat_subs.add_parser(_cat_sub, help=_cat_help)
-        _p.add_argument("--root", default=".", help="Catalogue root directory.")
-        if _cat_sub in ("lint", "verify", "build", "package"):
-            _p.add_argument("--pack", default=None, help="Limit to a single pack name.")
-        if _cat_sub in ("lint", "verify", "package"):
-            _p.add_argument(
-                "--format", choices=("table", "json"), default="table", help="Output format."
-            )
-        _p.set_defaults(func=_lazy("catalogue_tooling_stub"))
 
-    # --- lint packs --- (Wave 2 stub; exits 1 until implemented)
+    # catalogue lint
+    _lint_p = cat_subs.add_parser("lint", help="Lint catalogue packs.")
+    _lint_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _lint_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _lint_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _lint_p.set_defaults(func=_lazy("catalogue_lint"))
+
+    # catalogue verify (stub)
+    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (stub).")
+    _ver_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _ver_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _ver_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _ver_p.set_defaults(func=_lazy("catalogue_tooling_stub"))
+
+    # catalogue build
+    _build_p = cat_subs.add_parser("build", help="Build catalogue dist tree.")
+    _build_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _build_p.add_argument("--output", default=None, help="Output directory (overrides catalogue.toml).")
+    _build_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _build_p.add_argument("--recipe", default=None, help="Recipe name or .toml path.")
+    _build_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _build_p.set_defaults(func=_lazy("catalogue_build"))
+
+    # catalogue self-host
+    _sh_p = cat_subs.add_parser("self-host", help="Manage self-host projection.")
+    _sh_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _sh_excl = _sh_p.add_mutually_exclusive_group()
+    _sh_excl.add_argument("--check", action="store_true", default=False, help="Dry-run check (read-only).")
+    _sh_excl.add_argument("--write", action="store_true", default=False, help="Write self-host projection.")
+    _sh_p.add_argument("--force", action="store_true", default=False, help="Force write even on dirty tree.")
+    _sh_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
+
+    # catalogue package (stub)
+    _pkg_p = cat_subs.add_parser("package", help="Package catalogue into an archive (stub).")
+    _pkg_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _pkg_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _pkg_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _pkg_p.set_defaults(func=_lazy("catalogue_tooling_stub"))
+
+    # catalogue sync-defaults
+    _sd_p = cat_subs.add_parser("sync-defaults", help="Sync install-defaults from catalogue.toml.")
+    _sd_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _sd_excl = _sd_p.add_mutually_exclusive_group()
+    _sd_excl.add_argument("--check", action="store_true", default=False, help="Check for drift (read-only).")
+    _sd_excl.add_argument("--write", action="store_true", default=False, help="Regenerate install-defaults.toml.")
+    _sd_p.set_defaults(func=_lazy("catalogue_sync_defaults"))
+
+    # --- lint packs --- (Wave 2; implemented)
     lint_parser = subparsers.add_parser(
         "lint",
-        help="Lint commands (Wave 2 — not yet implemented).",
+        help="Lint commands.",
     )
     lint_subs = lint_parser.add_subparsers(dest="lint_sub", metavar="<sub>")
     packs_p = lint_subs.add_parser(
         "packs",
-        help="Lint catalogue packs (stub — use 'agentbundle catalogue lint' instead).",
-        add_help=False,
-    )
-    packs_p.add_argument(
-        "-h",
-        "--help",
-        action=_StubHelpAction,
-        default=argparse.SUPPRESS,
-        nargs=0,
-        help="show this help message and exit",
+        help="Lint catalogue packs (alias for 'agentbundle catalogue lint').",
     )
     packs_p.add_argument("--root", default=".", help="Catalogue root directory.")
-    packs_p.set_defaults(func=_lazy("catalogue_tooling_stub"))
+    packs_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    packs_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    packs_p.set_defaults(func=_lazy("catalogue_lint"))
 
     return parser
 
