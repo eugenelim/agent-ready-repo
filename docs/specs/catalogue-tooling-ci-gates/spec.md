@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — CI Gates
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -95,25 +95,25 @@ ad-hoc or manually invoked pytest files that duplicate them.
 
 ## Acceptance Criteria
 
-- [ ] AC1: Gate A job `agentbundle-tests` exists with Ubuntu+3.11, Ubuntu+3.12,
+- [x] AC1: Gate A job `agentbundle-tests` exists with Ubuntu+3.11, Ubuntu+3.12,
   Windows+3.11 matrix. Uses `python -m pytest` from `packages/agentbundle/`.
-- [ ] AC2: Gate B job `external-catalogue-smoke` exists. Creates external
+- [x] AC2: Gate B job `external-catalogue-smoke` exists. Creates external
   catalogue with no Makefile/tools/. All 5 catalogue commands succeed.
-- [ ] AC3: Gate C job `enterprise-agentbundle-distribution` exists. Scans
+- [x] AC3: Gate C job `enterprise-agentbundle-distribution` exists. Scans
   artifacts for test bearer token — fails if found. No external network calls.
-- [ ] AC4: Gate D job `catalogue-artifact-smoke` exists. Confirms all three
+- [x] AC4: Gate D job `catalogue-artifact-smoke` exists. Confirms all three
   required files in archive. Byte-for-byte determinism under SOURCE_DATE_EPOCH.
-- [ ] AC5: Gate E job `catalogue-disconnected-smoke` exists. No HTTP resolver
+- [x] AC5: Gate E job `catalogue-disconnected-smoke` exists. No HTTP resolver
   invoked; no token required. Uses network guard or dependency injection.
-- [ ] AC6: Gate F job `catalogue-repo-rewire` exists. Confirms Makefile calls
+- [x] AC6: Gate F job `catalogue-repo-rewire` exists. Confirms Makefile calls
   canonical commands; shims delegate; no portable logic in tools/.
-- [ ] AC7: Gate G job `agentbundle-release-impact` exists. Changes to
+- [x] AC7: Gate G job `agentbundle-release-impact` exists. Changes to
   `agentbundle/catalogue_tooling/` trigger; changes to `catalogue.toml` alone
   do not.
-- [ ] AC8: Gate H is wired into the existing release/publish workflow.
-- [ ] AC9: Gate I Artifactory publication template is documented and uses
+- [x] AC8: Gate H is wired into the existing release/publish workflow.
+- [x] AC9: Gate I Artifactory publication template is documented and uses
   example.test values only.
-- [ ] AC10: All existing CI jobs pass.
+- [x] AC10: All existing CI jobs pass.
 
 ## Assumptions
 

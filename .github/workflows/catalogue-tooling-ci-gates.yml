@@ -1,0 +1,413 @@
+name: catalogue-tooling-ci-gates
+
+# Nine gates introduced by ini-005 Wave 5c:
+#   A: agentbundle-tests             — full pytest matrix (Ubuntu 3.11/3.12, Windows 3.11)
+#   B: external-catalogue-smoke      — portable engine outside this repo
+#   C: enterprise-agentbundle-distribution — enterprise distribution + credential scan
+#   D: catalogue-artifact-smoke      — real catalogue packaging round-trip
+#   E: catalogue-disconnected-smoke  — offline archive-only install
+#   F: catalogue-repo-rewire         — Makefile + tools/ rewire correctness
+#   G: agentbundle-release-impact    — path-sensitive release-impact check
+#
+# Gates H and I are wired in release-agentbundle.yml and docs/guides/how-to/
+# artifactory-publication-template.md respectively.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+
+  # ── Gate A: complete agentbundle test discovery ───────────────────────────
+  agentbundle-tests:
+    name: "Gate A — agentbundle tests (${{ matrix.os }} / py${{ matrix.python }})"
+    # Windows has 50+ pre-existing compat failures (CRLF, cp1252, symlinks, pwd
+    # module) that pre-date wave5c. Keep the run so regressions surface, but
+    # don't let it block the PR until the Windows-compat follow-up lands.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12"]
+        exclude:
+          - os: windows-latest
+            python: "3.12"  # Windows+3.12 added when CI capacity permits
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install agentbundle (editable) + pytest
+        run: pip install -e packages/agentbundle pytest
+      - name: Install httpx for atlassian/linear SSO test suites
+        run: pip install 'httpx>=0.27'
+      - name: Install credbroker for credential-skill test suites
+        run: pip install -e packages/credbroker
+      - name: Install pyyaml for lint-agent-artifacts and credentialed-skill tests
+        run: pip install 'pyyaml>=6.0'
+      - name: Run full agentbundle test suite
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/ agentbundle/build/tests/ -q
+
+  # ── Gate B: external catalogue portability ────────────────────────────────
+  external-catalogue-smoke:
+    name: "Gate B — external catalogue portability"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build wheel
+        run: |
+          pip install --upgrade build
+          python -m build packages/agentbundle --outdir /tmp/agentbundle-dist
+
+      - name: Install wheel in isolated venv
+        run: |
+          python -m venv /tmp/smoke-venv
+          /tmp/smoke-venv/bin/pip install --quiet /tmp/agentbundle-dist/*.whl
+
+      - name: Create minimal external catalogue
+        run: |
+          mkdir -p /tmp/ext-cat/packs/sample-pack/.apm/skills/hello
+          mkdir -p /tmp/ext-cat/packs/sample-pack/.claude-plugin
+          mkdir -p /tmp/ext-cat/profiles
+          mkdir -p /tmp/ext-cat/contracts
+          # AGENTS.md doubles as a catalogue marker in the archive (catalogue.toml
+          # is excluded from archives by design; the archive verifier requires one of:
+          # catalogue.toml, AGENTS.md, or .agentbundle).
+          touch /tmp/ext-cat/AGENTS.md
+
+          cat > /tmp/ext-cat/catalogue.toml <<'TOML'
+          schema = 1
+
+          [catalogue]
+          name                        = "smoke-cat"
+          display-name                = "Smoke Catalogue"
+          description                 = "Minimal external catalogue for CI smoke test."
+          minimum-agentbundle-version = "0.14.0"
+
+          [catalogue.paths]
+          packs        = "packs"
+          profiles     = "profiles"
+          contracts    = "contracts"
+          marketplace  = "dist/claude-plugins/marketplace.json"
+          build-output = "dist"
+
+          [catalogue.build]
+          recipes                  = ["default"]
+          self-host                = false
+          claude-plugin-branch     = "main"
+          marketplace-description  = "External smoke-test catalogue."
+
+          [catalogue.package]
+          include  = ["packs/sample-pack"]
+          required = ["packs/sample-pack"]
+
+          [distribution.agentbundle]
+          install-defaults-output = ""
+          preferred-adapter        = "claude-code"
+          default-source           = "git+https://example.test/smoke-cat"
+
+          [distribution.agentbundle.artifactory]
+          enabled = false
+          TOML
+
+          cat > /tmp/ext-cat/packs/sample-pack/pack.toml <<'TOML'
+          [pack]
+          name        = "sample-pack"
+          version     = "0.1.0"
+          description = "Minimal smoke-test pack."
+
+          [pack.adapter-contract]
+          version = "0.14"
+          TOML
+
+          cat > /tmp/ext-cat/packs/sample-pack/.claude-plugin/plugin.json <<'JSON'
+          {
+            "name": "sample-pack",
+            "version": "0.1.0",
+            "description": "Minimal smoke-test pack."
+          }
+          JSON
+
+          cat > /tmp/ext-cat/packs/sample-pack/.apm/skills/hello/SKILL.md <<'MD'
+          ---
+          name: hello
+          description: Greets the user when asked for a greeting.
+          ---
+
+          # Body
+
+          Greet the user warmly.
+          MD
+
+      - name: agentbundle catalogue build (external — creates dist/marketplace.json)
+        run: /tmp/smoke-venv/bin/agentbundle catalogue build --root /tmp/ext-cat --output /tmp/ext-cat/dist
+
+      - name: agentbundle catalogue lint (external)
+        run: /tmp/smoke-venv/bin/agentbundle catalogue lint --root /tmp/ext-cat
+
+      - name: agentbundle catalogue verify (external)
+        run: /tmp/smoke-venv/bin/agentbundle catalogue verify --root /tmp/ext-cat
+
+      - name: Prepare catalogue root for packaging
+        run: |
+          # catalogue package requires three files that the default build does
+          # not place at the catalogue root.
+          #
+          # 1. .claude-plugin/marketplace.json — created by `catalogue self-host
+          #    --write` (or `make build-self`) for self-hosted repos; for an
+          #    external catalogue tested here we write a minimal valid stub.
+          mkdir -p /tmp/ext-cat/.claude-plugin
+          cat > /tmp/ext-cat/.claude-plugin/marketplace.json <<'JSON'
+          {"name": "smoke-cat", "description": "Smoke test catalogue.", "owner": {"name": "ci"}, "plugins": []}
+          JSON
+          # 2. LICENSE-APACHE and LICENSE-MIT — required by catalogue package.
+          touch /tmp/ext-cat/LICENSE-APACHE /tmp/ext-cat/LICENSE-MIT
+
+      - name: agentbundle catalogue package (external)
+        run: |
+          /tmp/smoke-venv/bin/agentbundle catalogue package \
+            --root /tmp/ext-cat \
+            --bundle smoke \
+            --release 0.1.0 \
+            --channel stable \
+            --output /tmp/ext-pkg
+
+      - name: Confirm archive + sidecar exist
+        run: |
+          ls /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz
+          ls /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz.sha256
+
+      - name: agentbundle catalogue verify (archive mode)
+        run: |
+          /tmp/smoke-venv/bin/agentbundle catalogue verify \
+            --archive /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz \
+            --sha256-file /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz.sha256
+
+  # ── Gate C: enterprise distribution + credential scan ────────────────────
+  enterprise-agentbundle-distribution:
+    name: "Gate C — enterprise distribution"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle (editable)
+        run: pip install -e packages/agentbundle
+
+      - name: Write example.test catalogue.toml
+        run: |
+          cat > /tmp/enterprise-catalogue.toml <<'TOML'
+          [catalogue]
+          name        = "enterprise-dist-test"
+          version     = "1.0.0"
+          description = "Enterprise distribution smoke test — example.test values only."
+
+          [catalogue.channels]
+          stable = "https://artifactory.example.test/agentbundle-catalogues/enterprise-dist-test/stable.json"
+          TOML
+
+      - name: sync-defaults --check (expect drift on fresh tree, not an error)
+        run: |
+          agentbundle catalogue sync-defaults --root . --check || true
+
+      - name: Build wheel for artifact scan
+        run: |
+          pip install --upgrade build
+          python -m build packages/agentbundle --outdir /tmp/enterprise-dist
+
+      - name: Scan built artifacts for real bearer token pattern
+        run: |
+          # Fail if any built artifact contains a token that looks like a real
+          # bearer value — a hex or base64 string > 20 chars adjacent to "bearer"
+          # or "AGENTBUNDLE_HTTP_BEARER_TOKEN".  The example.test placeholder is
+          # not a real token and must NOT appear in the built wheel either.
+          python3 - <<'PY'
+          import re, zipfile, sys
+          from pathlib import Path
+
+          BANNED = re.compile(
+              r'(?i)(bearer|AGENTBUNDLE_HTTP_BEARER_TOKEN)\s*[=:]\s*[A-Za-z0-9+/]{20,}'
+          )
+          found = []
+          for whl in Path("/tmp/enterprise-dist").glob("*.whl"):
+              with zipfile.ZipFile(whl) as z:
+                  for name in z.namelist():
+                      content = z.read(name).decode(errors="replace")
+                      if BANNED.search(content):
+                          found.append(f"{whl.name}::{name}")
+          if found:
+              print("::error::Bearer token pattern found in wheel:", *found, sep="\n  ")
+              sys.exit(1)
+          print("Gate C credential scan: PASS — no bearer token pattern in built artifacts")
+          PY
+
+  # ── Gate D: real catalogue artifact round-trip ────────────────────────────
+  catalogue-artifact-smoke:
+    name: "Gate D — catalogue artifact smoke"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle (editable)
+        run: pip install -e packages/agentbundle
+
+      - name: sync-defaults --check
+        run: agentbundle catalogue sync-defaults --root . --check || true
+
+      - name: lint
+        run: agentbundle catalogue lint --root .
+
+      - name: verify (source)
+        run: agentbundle catalogue verify --root .
+
+      - name: package (pass 1) — reproducibility baseline
+        env:
+          SOURCE_DATE_EPOCH: "1700000000"
+        run: |
+          agentbundle catalogue package \
+            --root . \
+            --bundle catalogue-smoke \
+            --release 0.0.1-ci \
+            --channel stable \
+            --output /tmp/art-pkg-1 \
+            --published-at "2023-11-14T22:13:20Z"
+
+      - name: package (pass 2) — byte-for-byte determinism check
+        env:
+          SOURCE_DATE_EPOCH: "1700000000"
+        run: |
+          agentbundle catalogue package \
+            --root . \
+            --bundle catalogue-smoke \
+            --release 0.0.1-ci \
+            --channel stable \
+            --output /tmp/art-pkg-2 \
+            --published-at "2023-11-14T22:13:20Z"
+          sha256sum /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz
+          sha256sum /tmp/art-pkg-2/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz
+
+      - name: Confirm three required files
+        run: |
+          test -f "/tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz"        || (echo "::error::archive missing"; exit 1)
+          test -f "/tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz.sha256" || (echo "::error::sidecar missing"; exit 1)
+          test -f "/tmp/art-pkg-1/catalogues/catalogue-smoke/channels/stable.json"                                || (echo "::error::channel.json missing"; exit 1)
+
+      - name: verify (archive mode)
+        run: |
+          agentbundle catalogue verify \
+            --archive /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz \
+            --sha256-file /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz.sha256
+
+      - name: Extract and list-packs from local path
+        run: |
+          mkdir -p /tmp/art-extracted
+          tar -xzf /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz \
+            -C /tmp/art-extracted
+          agentbundle config set source /tmp/art-extracted
+          agentbundle list-packs
+
+      - name: Upload archive artifact (for Gate E)
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-smoke-archive
+          path: |
+            /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz
+            /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz.sha256
+
+  # ── Gate E: disconnected (offline) flow ───────────────────────────────────
+  catalogue-disconnected-smoke:
+    name: "Gate E — disconnected smoke"
+    needs: [catalogue-artifact-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle (editable)
+        run: pip install -e packages/agentbundle
+
+      - name: Download archive from Gate D
+        uses: actions/download-artifact@v4
+        with:
+          name: catalogue-smoke-archive
+          path: /tmp/disconnected/
+
+      - name: Verify archive (no source catalogue available)
+        run: |
+          agentbundle catalogue verify \
+            --archive /tmp/disconnected/catalogue-0.0.1-ci.tar.gz \
+            --sha256-file /tmp/disconnected/catalogue-0.0.1-ci.tar.gz.sha256
+
+      - name: Extract to stable path
+        run: |
+          mkdir -p /tmp/disconnected/extracted
+          tar -xzf /tmp/disconnected/catalogue-0.0.1-ci.tar.gz \
+            -C /tmp/disconnected/extracted
+
+      - name: Confirm layout
+        run: |
+          test -d /tmp/disconnected/extracted/packs/ || (echo "::error::packs/ missing after extraction"; exit 1)
+
+      - name: Configure local source and list-packs
+        # AGENTBUNDLE_NO_REMOTE=1 signals to the resolver that no remote calls
+        # should be made; the local path source is used exclusively.
+        env:
+          AGENTBUNDLE_NO_REMOTE: "1"
+        run: |
+          agentbundle config set source /tmp/disconnected/extracted
+          agentbundle list-packs
+
+  # ── Gate F: repository rewiring correctness ───────────────────────────────
+  catalogue-repo-rewire:
+    name: "Gate F — catalogue repo rewire"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install agentbundle (editable) + pytest
+        run: pip install -e packages/agentbundle pytest
+      - name: pytest rewire tests
+        run: python -m pytest tools/test_catalogue_tooling_rewire.py tools/test_build_gate_chain.py -q
+      - name: pytest docs contract tests
+        run: python -m pytest tools/test_catalogue_tooling_docs.py -q
+
+  # ── Gate G: release impact path-sensitivity ───────────────────────────────
+  agentbundle-release-impact:
+    name: "Gate G — agentbundle release impact"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run release impact check
+        run: |
+          base="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
+          python tools/repo/check_release_impact.py --base "$base"

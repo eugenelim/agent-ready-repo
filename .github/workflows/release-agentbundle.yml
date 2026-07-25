@@ -98,8 +98,37 @@ jobs:
           path: packages/agentbundle/dist/
           if-no-files-found: error
 
-  publish-pypi:
+  # Gate H — pre-release checks (ini-005 Wave 5c):
+  # Requires full test suite + install-defaults staleness check before PyPI
+  # publication.  Runs on tags only; wired as a dependency of publish-pypi.
+  pre-release-gates:
+    name: "Gate H — pre-release gates"
     needs: [build-and-smoke]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle (editable) + pytest
+        run: pip install -e packages/agentbundle pytest
+
+      - name: Full agentbundle test suite (Gate H pre-publish)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/ agentbundle/build/tests/ -q
+
+      - name: install-defaults staleness check
+        # Fail if install-defaults.toml has drifted from catalogue.toml —
+        # a stale defaults file means the released wheel would install the
+        # wrong packs by default.
+        run: agentbundle catalogue sync-defaults --root . --check
+
+  publish-pypi:
+    needs: [build-and-smoke, pre-release-gates]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     environment: pypi

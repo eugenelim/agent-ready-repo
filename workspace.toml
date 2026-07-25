@@ -347,7 +347,7 @@ open = [
 
 ["ini-005"]
 name      = "AgentBundle Portable Catalogue Tooling"
-status    = "active"
+status    = "shipped"
 milestone = "M1 · Portable Engine + Public CLI"
 # Brief: establish agentbundle/catalogue_tooling/ as the portable catalogue
 # engine, publish the agentbundle catalogue * and agentbundle lint packs CLI
@@ -370,8 +370,6 @@ shipped = [
   "spec/catalogue-tooling-package-enhanced",
   "spec/catalogue-tooling-rewire",
   "spec/catalogue-tooling-docs",
+  "spec/catalogue-tooling-ci-gates",
 ]
-queue   = [
-  # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
-  {path = "spec/catalogue-tooling-ci-gates", needs = "work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
-]
+queue   = []
