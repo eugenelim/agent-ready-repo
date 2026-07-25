@@ -87,18 +87,48 @@ jobs:
           touch /tmp/ext-cat/AGENTS.md
 
           cat > /tmp/ext-cat/catalogue.toml <<'TOML'
+          schema = 1
+
           [catalogue]
-          name        = "smoke-cat"
-          version     = "0.1.0"
-          description = "Minimal smoke-test external catalogue."
+          name                        = "smoke-cat"
+          display-name                = "Smoke Catalogue"
+          description                 = "Minimal external catalogue for CI smoke test."
+          minimum-agentbundle-version = "0.14.0"
+
+          [catalogue.paths]
+          packs        = "packs"
+          profiles     = "profiles"
+          contracts    = "contracts"
+          marketplace  = "dist/claude-plugins/marketplace.json"
+          build-output = "dist"
+
+          [catalogue.build]
+          recipes                  = ["default"]
+          self-host                = false
+          claude-plugin-branch     = "main"
+          marketplace-description  = "External smoke-test catalogue."
+
+          [catalogue.package]
+          include  = ["packs/sample-pack"]
+          required = ["packs/sample-pack"]
+
+          [distribution.agentbundle]
+          install-defaults-output = ""
+          preferred-adapter        = "claude-code"
+          default-source           = "git+https://example.test/smoke-cat"
+
+          [distribution.agentbundle.artifactory]
+          enabled = false
           TOML
 
           cat > /tmp/ext-cat/packs/sample-pack/pack.toml <<'TOML'
           [pack]
-          name             = "sample-pack"
-          version          = "0.1.0"
-          description      = "Minimal smoke-test pack."
-          adapter-contract = "0.14"
+          name        = "sample-pack"
+          version     = "0.1.0"
+          description = "Minimal smoke-test pack."
+
+          [pack.adapter-contract]
+          version = "0.14"
           TOML
 
           cat > /tmp/ext-cat/packs/sample-pack/.claude-plugin/plugin.json <<'JSON'
@@ -119,6 +149,9 @@ jobs:
 
           Greet the user warmly.
           MD
+
+      - name: agentbundle catalogue build (external — creates dist/marketplace.json)
+        run: /tmp/smoke-venv/bin/agentbundle catalogue build --root /tmp/ext-cat --output /tmp/ext-cat/dist
 
       - name: agentbundle catalogue lint (external)
         run: /tmp/smoke-venv/bin/agentbundle catalogue lint --root /tmp/ext-cat
