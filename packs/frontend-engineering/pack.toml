@@ -6,7 +6,7 @@ readme = "README.md"
 display_name = "Frontend Engineering"
 license = "Apache-2.0 OR MIT"
 categories = ["engineering", "frontend"]
-keywords = ["wcag", "core-web-vitals", "css-tokens", "components", "accessibility", "html", "css", "javascript"]
+keywords = ["wcag", "core-web-vitals", "css-tokens", "accessibility", "html"]
 
 [pack.adapter-contract]
 version = "0.12"
@@ -29,7 +29,7 @@ name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
 
 [pack.first-value]
-audience-posture = "engineering"
+audience-posture = "technical"
 surfaces         = ["claude-code"]
 prerequisites    = []
 verification     = "Run frontend-engineering in create mode on a new surface and confirm an evidence manifest is produced."
