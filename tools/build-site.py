@@ -38,6 +38,7 @@ PACKS: list[tuple[str, str, str, str]] = [
     ("desk-research",      "Desk Research",         "user", "Evidence-grounded research with typed artifacts, seven skills, and two retrieval subagents."),
     ("architect",          "Architect",            "user", "System design, diagramming, and independent architecture review from a forked-context subagent."),
     ("experience-design",  "Experience Design",    "user", "The full design thread: journey mapping, screen flows, creative direction, surface-genre design (6 types), and the shared quality floor."),
+    ("frontend-engineering","Frontend Engineering", "user", "The implementation layer for product web surfaces — 9 skills from design handoff to shipped component, plus a diff-level `frontend-reviewer` agent."),
     ("contracts",          "Contracts",            "user", "API-first design — OpenAPI 3.1 for HTTP, AsyncAPI for event streams."),
     ("iac-terraform",      "IaC (Terraform)",       "repo", "Plain-language intent → governed, cloud-agnostic Terraform and a human-gated pipeline; decision-record-gated, stops at `terraform plan`."),
     ("converters",         "Converters",           "user", "Document conversion: PDF/DOCX/PPTX/email → Markdown, Markdown → HTML/Word/PowerPoint/Excel."),
