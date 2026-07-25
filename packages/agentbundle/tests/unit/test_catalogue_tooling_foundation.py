@@ -88,13 +88,12 @@ def test_result_types_structure():
 
 
 def test_stub_raises_not_implemented():
-    """AC2: unimplemented stubs raise NotImplementedError. lint/build/self_host/sync_defaults
-    are now real implementations (Wave 2); only verify and package remain stubs."""
-    from agentbundle.catalogue_tooling.verify import verify_catalogue
+    """AC2: unimplemented stubs raise NotImplementedError.
+    lint/build/self_host/sync_defaults are Wave 2 real implementations.
+    verify is a Wave 3 real implementation. Only package remains a stub.
+    """
     from agentbundle.catalogue_tooling.package import package_catalogue
 
-    with pytest.raises(NotImplementedError):
-        verify_catalogue(Path("."))
     with pytest.raises(NotImplementedError):
         package_catalogue(Path("."))
 

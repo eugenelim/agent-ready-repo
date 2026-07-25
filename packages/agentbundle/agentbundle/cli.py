@@ -744,12 +744,14 @@ def _build_parser() -> argparse.ArgumentParser:
     _lint_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
     _lint_p.set_defaults(func=_lazy("catalogue_lint"))
 
-    # catalogue verify (stub)
-    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (stub).")
+    # catalogue verify
+    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (18-step pipeline).")
     _ver_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _ver_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _ver_p.add_argument("--archive", default=None, help="Verify a packaged .tar.gz archive instead of source tree.")
+    _ver_p.add_argument("--sha256-file", default=None, dest="sha256_file", help="SHA-256 sidecar file for archive verification.")
     _ver_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
-    _ver_p.set_defaults(func=_lazy("catalogue_tooling_stub"))
+    _ver_p.set_defaults(func=_lazy("catalogue_verify"))
 
     # catalogue build
     _build_p = cat_subs.add_parser("build", help="Build catalogue dist tree.")

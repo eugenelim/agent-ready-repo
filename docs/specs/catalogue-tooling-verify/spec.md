@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Verify
 
-- **Status:** Draft
+**Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -100,41 +100,41 @@ semantics) — NOT to this comprehensive verify. See design notes.
 
 ## Acceptance Criteria
 
-- [ ] AC0: `agentbundle validate <pack-path>` continues to work unchanged; its
+- [x] AC0: `agentbundle validate <pack-path>` continues to work unchanged; its
   underlying validation function (`agentbundle.build.validate.validate`) is the
   same function step 3 (`_step_pack_schema`) calls — no duplication. A test
   asserts that `validate` passes on a pack that also passes `verify_catalogue`.
-- [ ] AC1: `agentbundle catalogue verify --root <valid-catalogue>` exits 0 and
+- [x] AC1: `agentbundle catalogue verify --root <valid-catalogue>` exits 0 and
   prints no errors.
-- [ ] AC2: `agentbundle catalogue verify --root <catalogue-with-bad-pack>` exits
+- [x] AC2: `agentbundle catalogue verify --root <catalogue-with-bad-pack>` exits
   non-zero and names the failing pack and step.
-- [ ] AC3: `agentbundle catalogue verify --archive <valid.tar.gz>` exits 0.
-- [ ] AC4: `agentbundle catalogue verify --archive <tampered.tar.gz>` exits
+- [x] AC3: `agentbundle catalogue verify --archive <valid.tar.gz>` exits 0.
+- [x] AC4: `agentbundle catalogue verify --archive <tampered.tar.gz>` exits
   non-zero with a clear digest mismatch error.
-- [ ] AC5: `agentbundle catalogue verify --archive <archive>
+- [x] AC5: `agentbundle catalogue verify --archive <archive>
   --sha256-file <sidecar>` validates the sidecar checksum before inspecting
   archive contents; a wrong sidecar causes early exit.
-- [ ] AC6: Verification builds into a temp directory; the catalogue root has
+- [x] AC6: Verification builds into a temp directory; the catalogue root has
   zero new or modified files after verify completes.
-- [ ] AC7: Step 16 (sync-defaults check) runs automatically when
+- [x] AC7: Step 16 (sync-defaults check) runs automatically when
   `install-defaults-output` is set in `catalogue.toml`; stale defaults
   produce a verification failure.
-- [ ] AC8: `--format json` emits one valid JSON document to stdout; all
+- [x] AC8: `--format json` emits one valid JSON document to stdout; all
   diagnostic and progress output goes to stderr.
-- [ ] AC9: JSON output includes schema_version, command (`"catalogue verify"`),
+- [x] AC9: JSON output includes schema_version, command (`"catalogue verify"`),
   operation, agentbundle_version, catalogue_schema_version, ok (bool),
   diagnostics list (each with code, severity, pack, path, line, message).
-- [ ] AC10: Archive verification rejects absolute member paths.
-- [ ] AC11: Archive verification rejects traversal paths (`../`).
-- [ ] AC12: Archive verification rejects symlinks and hard links in the archive.
-- [ ] AC13: Archive verification rejects duplicate member names.
-- [ ] AC14: Archive verification rejects case-insensitive path collisions.
-- [ ] AC15: Archive verification rejects undeclared archive members (not in
+- [x] AC10: Archive verification rejects absolute member paths.
+- [x] AC11: Archive verification rejects traversal paths (`../`).
+- [x] AC12: Archive verification rejects symlinks and hard links in the archive.
+- [x] AC13: Archive verification rejects duplicate member names.
+- [x] AC14: Archive verification rejects case-insensitive path collisions.
+- [x] AC15: Archive verification rejects undeclared archive members (not in
   `catalogue-manifest.json` and not the manifest itself).
-- [ ] AC16: Archive verification validates every declared manifest file digest.
-- [ ] AC17: An extracted archive is accepted as a valid local catalogue
+- [x] AC16: Archive verification validates every declared manifest file digest.
+- [x] AC17: An extracted archive is accepted as a valid local catalogue
   (passes `verify_catalogue` on the extracted root).
-- [ ] AC18: All existing tests pass.
+- [x] AC18: All existing tests pass.
 
 ## `catalogue-manifest.json` contract (authoritative for this spec)
 

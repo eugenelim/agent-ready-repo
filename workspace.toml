@@ -361,10 +361,9 @@ shipped = [
   "spec/catalogue-tooling-lint",
   "spec/catalogue-tooling-sync-defaults",
   "spec/catalogue-tooling-build-self",
+  "spec/catalogue-tooling-verify",
 ]
 queue   = [
-  # Wave 3 — after all Wave 2 ship
-  {path = "spec/catalogue-tooling-verify", needs = "work:spec/catalogue-tooling-lint,work:spec/catalogue-tooling-sync-defaults,work:spec/catalogue-tooling-build-self"},
   # Wave 4 — after verify ships
   {path = "spec/catalogue-tooling-package-enhanced", needs = "work:spec/catalogue-tooling-verify"},
   # Wave 5 — parallel after package-enhanced ships
