@@ -1,0 +1,66 @@
+[
+  {
+    "query": "Design the token system for our new design system",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up a three-tier CSS custom property architecture for our product",
+    "should_trigger": true
+  },
+  {
+    "query": "Audit our tokens for hierarchy violations \u2014 any component reading a primitive directly?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the semantic alias layer for our brand colour palette",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up light and dark theme switching using our token system",
+    "should_trigger": true
+  },
+  {
+    "query": "Generate a DTCG-compatible token source file from our taxonomy",
+    "should_trigger": true
+  },
+  {
+    "query": "Our tokens are inconsistent across surfaces \u2014 help us govern them",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the token naming system for our multi-brand platform",
+    "should_trigger": true
+  },
+  {
+    "query": "Map our existing hardcoded hex values to semantic token roles",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a new web page with a token seed block",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit the accessibility of this surface",
+    "should_trigger": false
+  },
+  {
+    "query": "Diagnose the LCP regression on our homepage",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we server-render or statically generate this page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the props API for our button component",
+    "should_trigger": false
+  },
+  {
+    "query": "Make this layout responsive at three breakpoints",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current state of the frontend surface?",
+    "should_trigger": false
+  }
+]

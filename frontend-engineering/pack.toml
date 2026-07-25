@@ -1,0 +1,41 @@
+[pack]
+name = "frontend-engineering"
+version = "0.1.0"
+description = "The implementation layer for product web surfaces — HTML, CSS, and JS. Nine skills covering the build journey from design handoff to shipped component: the full create/retrofit/audit/verify workflow, CSS token system architecture, deep accessibility engineering (WCAG 2.2 AA, focus management, ARIA role correctness), Core Web Vitals measurement and remediation, rendering strategy selection (SSR/SSG/RSC/CSR), component API design, responsive layout craft, CSS architecture at scale, and a surface-orient skill. A forked-context `frontend-reviewer` provides a diff-level review for HTML/CSS/JS diffs, covering token drift, ARIA mutation completeness, state coverage regression, and CWV regression signals. Co-installs with `experience-design` for full genre routing in the frontend pre-flight."
+readme = "README.md"
+display_name = "Frontend Engineering"
+license = "Apache-2.0 OR MIT"
+categories = ["engineering", "frontend"]
+keywords = ["wcag", "core-web-vitals", "css-tokens", "accessibility", "html"]
+
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+[pack.evals]
+skills = ["frontend-engineering", "token-architecture", "a11y-engineering", "fe-performance", "rendering-strategy", "component-contract", "responsive-layout", "css-architecture", "fe-status"]
+
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/frontend-engineering/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
+
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Run frontend-engineering in create mode on a new surface and confirm an evidence manifest is produced."
+recovery         = "If the skill does not produce output, confirm the pack is installed and run adapt-to-project to refresh the skill index."
+level-b          = true
+starter-task     = "Build a new web surface from a design brief"
+starter-prompt   = "I have a screen brief for [describe surface]. Set up the pre-flight: name the aesthetic reference, seed token block, and enumerate the applicable states from the 18-state matrix."
+expected-result  = "A page/screen contract in the spec with aesthetic reference, token seed block, and state matrix."
+next-action      = "Use the page contract and state matrix to write the HTML with all required states implemented."
