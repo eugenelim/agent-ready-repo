@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Claude plugin marketplace manifest now passes `claude plugin validate` (Claude Code 2.1.209).** Three generator defects caused 35 errors: (1) marketplace missing top-level `name` field, (2) plugin `author` emitted as a plain string instead of a `{name, email}` object, (3) plugin `source` field absent entirely. All three are fixed in the build pipeline (`derive_projectable_subset`, `_run_aggregate`, `_aggregate_marketplace`). The `.claude-plugin/marketplace.json` in the working tree now validates with 0 errors.
 
 
+## [agentbundle][0.15.0] — 2026-07-25
+
+
+### Added
+
+- **`agentbundle catalogue verify` is now a real command with an 18-step verification pipeline and archive support (agentbundle 0.15.0, ini-005 Wave 3).** `catalogue verify --root <dir>` runs the full 18-step source-checkout pipeline: config validation, lint, pack schema, plugin manifest, version parity, profiles, dependencies, adapter compat, primitive layout, build output (into a temp directory — never the catalogue root), generated schema, marketplace, marketplace parity, output drift, self-host drift, sync-defaults, package preflight, and fixture checks. Steps 1–18 stop on first error by default. `--format json` emits one JSON document to stdout; diagnostics go to stderr. `catalogue verify --archive <file.tar.gz>` runs the 25-check archive pipeline: sha256 sidecar early exit, gzip parseable, size limits, member-level safety (absolute paths, traversal, symlinks, hard links, device files, duplicates, case collisions), manifest schema, per-file digest verification, undeclared members, catalogue markers, minimum-agentbundle-version compat, and local discoverability (AC17: extracted archive passes `verify_catalogue`). `--sha256-file <sidecar>` validates the archive checksum before any content inspection. All non-None `catalogue.toml`-dependent steps skip gracefully when the file is absent (external catalogue portability). ([spec](../specs/catalogue-tooling-verify/spec.md))
+
+
 ## [agentbundle][0.14.0] — 2026-07-24
 
 
