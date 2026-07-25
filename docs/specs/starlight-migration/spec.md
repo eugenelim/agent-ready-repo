@@ -4,6 +4,10 @@ title: Migrate docs site from MkDocs Material to Starlight
 status: Shipped
 ---
 
+- **Status:** Shipped <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
+- **Owner:** eugenelim
+- **Plan:** [plan.md](plan.md)
+
 Mode: full (new dependency, structural change, destructive operation)
 
 **Objective**: Replace the MkDocs Material Python docs build (`site/`) with a standalone Astro + Starlight project (`docs-site/`), preserving all content, URLs, and the amber brand theme. Remove all MkDocs Python tooling.
