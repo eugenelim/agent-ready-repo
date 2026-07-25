@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 _ACTIVE_DOCS = [
     REPO_ROOT / "packs" / "product-engineering" / "README.md",
     REPO_ROOT / "packs" / "architect" / "README.md",
-    REPO_ROOT / "site" / "docs" / "getting-started" / "install.md",
+    REPO_ROOT / "docs-site" / "src" / "content" / "docs" / "getting-started" / "install.md",
     REPO_ROOT / "README.md",
 ]
 
@@ -76,10 +76,12 @@ def test_architect_readme_uses_marketplace_qualifier():
 
 
 def test_site_install_md_uses_marketplace_qualifier():
-    text = _read(REPO_ROOT / "site" / "docs" / "getting-started" / "install.md")
+    text = _read(
+        REPO_ROOT / "docs-site" / "src" / "content" / "docs" / "getting-started" / "install.md"
+    )
     stale = _find_stale_installs(text)
     assert not stale, (
-        "site/docs/getting-started/install.md contains stale plugin install forms "
+        "docs-site/src/content/docs/getting-started/install.md contains stale plugin install forms "
         f"without @marketplace qualifier: {stale!r}. "
         "Use: claude plugin install <pack>@agent-ready-repo"
     )

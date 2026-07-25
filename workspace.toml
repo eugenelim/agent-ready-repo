@@ -336,6 +336,11 @@ open = [
   {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
   {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
   {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
+
+  # ── Starlight migration follow-ons ─────────────────────────────────────────
+  # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
+  # Mirrors RFC-0061 (web/) precedent.
+  {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
