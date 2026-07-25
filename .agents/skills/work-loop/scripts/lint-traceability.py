@@ -88,12 +88,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-try:  # py311+ stdlib; degrade where a layout config exists but tomllib doesn't.
-    import tomllib
-
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
+try:  # py311+ stdlib; degrade where a layout config exists but tomllib doesn't.
+    import tomllib
 except ModuleNotFoundError:  # pragma: no cover - py<3.11
     tomllib = None  # type: ignore[assignment]
 
