@@ -369,10 +369,9 @@ shipped = [
   "spec/catalogue-tooling-verify",
   "spec/catalogue-tooling-package-enhanced",
   "spec/catalogue-tooling-rewire",
+  "spec/catalogue-tooling-docs",
 ]
 queue   = [
-  # docs needs verify (Flow E, command names), package-enhanced (allowlist + output paths), and rewire (make build-check wording)
-  {path = "spec/catalogue-tooling-docs", needs = "work:spec/catalogue-tooling-verify,work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
   # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
   {path = "spec/catalogue-tooling-ci-gates", needs = "work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
 ]

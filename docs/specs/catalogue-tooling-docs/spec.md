@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Documentation
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -95,32 +95,32 @@ corrected Flow E for fully-disconnected hosts.
 
 ## Acceptance Criteria
 
-- [ ] AC1: `packs/AGENTS.md` is ≤ 150 lines.
-- [ ] AC2: `packs/AGENTS.md` lists all primitive directories from the adapter
+- [x] AC1: `packs/AGENTS.md` is ≤ 150 lines.
+- [x] AC2: `packs/AGENTS.md` lists all primitive directories from the adapter
   contract (`docs/contracts/adapter.toml`) — no hardcoded list that can drift.
-- [ ] AC3: `packs/AGENTS.md` contains a pack.toml schema map covering all major
+- [x] AC3: `packs/AGENTS.md` contains a pack.toml schema map covering all major
   tables: `[pack]`, `[pack.adapter-contract]`, recipes, dependencies, conflicts,
   seeds, per-scope layout, first-value metadata, adaptation inference,
   substitutions, augmentation points.
-- [ ] AC4: `packs/AGENTS.md` primary workflow references `agentbundle catalogue
+- [x] AC4: `packs/AGENTS.md` primary workflow references `agentbundle catalogue
   lint`, `agentbundle catalogue verify`, `agentbundle catalogue self-host --write`.
-- [ ] AC5: `packs/AGENTS.md` contains the pack design model (intent → journey
+- [x] AC5: `packs/AGENTS.md` contains the pack design model (intent → journey
   → stage → capability → output).
-- [ ] AC6: `AGENTS.local.md` contains a section titled "Release Coupling"
+- [x] AC6: `AGENTS.local.md` contains a section titled "Release Coupling"
   (or equivalent) explaining what does/doesn't require an AgentBundle release.
-- [ ] AC7: `packs/core/seeds/AGENTS.md` and `AGENTS.md` do NOT contain the
+- [x] AC7: `packs/core/seeds/AGENTS.md` and `AGENTS.md` do NOT contain the
   release-coupling section (test: grep both files for the section heading).
-- [ ] AC8: A `docs/guides/` migration page exists documenting the old → new
+- [x] AC8: A `docs/guides/` migration page exists documenting the old → new
   command mapping in a table.
-- [ ] AC9: A Flow E guide exists and correctly states: (a) channel-descriptor
+- [x] AC9: A Flow E guide exists and correctly states: (a) channel-descriptor
   resolution from a local directory is NOT supported; (b) transfer archive +
   sidecar only; (c) verify before extraction; (d) configure local catalogue path.
-- [ ] AC10: CLI examples in guide docs use `agentbundle catalogue lint/verify/build/
+- [x] AC10: CLI examples in guide docs use `agentbundle catalogue lint/verify/build/
   self-host/package` (not old `python -m agentbundle.build` forms, except in the
   migration table).
-- [ ] AC11: The Bucket 14 contract tests pass (a new test file asserts all
+- [x] AC11: The Bucket 14 contract tests pass (a new test file asserts all
   structural invariants programmatically).
-- [ ] AC12: All existing tests pass.
+- [x] AC12: All existing tests pass.
 
 ## Assumptions
 
