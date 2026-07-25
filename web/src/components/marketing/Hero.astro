@@ -25,16 +25,18 @@ import { withBase } from '../../lib/paths';
       </div>
       <p class="hero__friction">Reversible. One command to try, one to remove.</p>
     </div>
-    <div class="hero__visual" aria-hidden="true">
+    <div class="hero__visual">
       <!--
-        Decorative triad diagram — BUILD · DISCOVER · RELEASE cycle.
+        Informational triad diagram — BUILD · DISCOVER · RELEASE cycle.
         All fills/strokes reference CSS custom properties inherited from the
         document (inline SVG participates in the CSS cascade). The marker
         arrowhead uses a hardcoded hex (#e8952b = --prim-amber-400 = --ds-accent)
         because SVG <marker> content does not reliably inherit custom properties
         across all Baseline Widely Available browsers.
       -->
-      <svg viewBox="0 0 440 380" xmlns="http://www.w3.org/2000/svg">
+      <svg role="img" aria-labelledby="loops-diagram-title"
+        viewBox="0 0 440 380" xmlns="http://www.w3.org/2000/svg">
+        <title id="loops-diagram-title">Three supervised loops in a cycle: BUILD (spec → plan → implement → review), DISCOVER (intent → hypothesis → validate), RELEASE (readiness → publish → changelog).</title>
         <defs>
           <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="5" markerHeight="5" orient="auto">
@@ -117,6 +119,7 @@ import { withBase } from '../../lib/paths';
   @media (max-width: 768px) {
     .hero__inner {
       grid-template-columns: 1fr;
+      gap: var(--ds-space-6);
     }
 
     .hero__visual {
