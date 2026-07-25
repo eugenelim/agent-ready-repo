@@ -1,4 +1,9 @@
-# Get Started
+---
+title: Get Started
+description: From zero to your first loop in under five minutes.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 agent-ready-repo ships the complete AI operating model for software teams. This guide gets you from zero to your first loop in under five minutes.
 
@@ -23,8 +28,8 @@ The `agentbundle` CLI manages pack installation, upgrade, and discovery. One-tim
 
 ## Step 2: Pick your starting point
 
-=== "Just the build loop"
-
+<Tabs>
+  <TabItem label="Just the build loop">
     The flagship pack. Works in any repo, any stack.
 
     ```bash
@@ -32,9 +37,8 @@ The `agentbundle` CLI manages pack installation, upgrade, and discovery. One-tim
     ```
 
     You get: `work-loop`, `new-spec`, `bug-fix`, four reviewer subagents, session-start and pre-PR hooks.
-
-=== "Full company OS"
-
+  </TabItem>
+  <TabItem label="Full company OS">
     All three loops — discovery, build, release.
 
     ```bash
@@ -42,9 +46,8 @@ The `agentbundle` CLI manages pack installation, upgrade, and discovery. One-tim
     agentbundle install --pack product-engineering --scope user
     agentbundle install --pack release-engineering
     ```
-
-=== "Inception profile"
-
+  </TabItem>
+  <TabItem label="Inception profile">
     For taking a raw idea from zero to a buildable repo.
 
     ```bash
@@ -52,9 +55,8 @@ The `agentbundle` CLI manages pack installation, upgrade, and discovery. One-tim
     ```
 
     Lands: `research` + `product-engineering` + `architect`
-
-=== "Solution architect"
-
+  </TabItem>
+  <TabItem label="Solution architect">
     Design, research, and API contracts.
 
     ```bash
@@ -62,6 +64,8 @@ The `agentbundle` CLI manages pack installation, upgrade, and discovery. One-tim
     ```
 
     Lands: `architect` + `research` + `contracts`
+  </TabItem>
+</Tabs>
 
 ## Step 3: Adapt to your repo
 
@@ -93,7 +97,7 @@ The build loop will:
 
 ## What's next
 
-- [Install routes](install.md) — CLI, Claude Plugins, APM, and local clone
-- [The three loops explained](three-loops.md) — how discovery, build, and release compose
-- [Choose your packs](../packs/index.md) — the full catalogue with one-liner descriptions
-- [Adapter support matrix](../guides/_shared/reference/adapter-support.md) — what works in your agent
+- [Install routes](install/) — CLI, Claude Plugins, APM, and local clone
+- [The three loops explained](three-loops/) — how discovery, build, and release compose
+- [Choose your packs](../packs/) — the full catalogue with one-liner descriptions
+- [Adapter support matrix](../guides/_shared/reference/adapter-support/) — what works in your agent

@@ -27,8 +27,9 @@ No CSS framework (Tailwind, Bootstrap, UnoCSS): the `--ds-*` token system in
 
 - `npm run build` emits into `../build/` (repo root), NOT `web/dist/`
   (`astro.config.ts` `outDir`).
-- `astro build` cleans `outDir` on every run — Astro MUST build before MkDocs
-  writes into `build/docs/`. See `.github/workflows/pages.yml`.
+- `astro build` cleans `outDir` on every run — this `web/` build MUST run before
+  the `docs-site/` Starlight build writes into `build/docs/`. See
+  `.github/workflows/pages.yml`.
 
 ## Development
 
@@ -39,6 +40,43 @@ astro dev --background
 ```
 
 Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
+
+
+## Mobile viewport
+
+The viewport meta tag (`width=device-width, initial-scale=1`) is set in
+`src/components/layout/SiteLayout.astro`. Do not add it elsewhere or duplicate it.
+
+**What to verify on every change:** check that no element causes horizontal
+scroll of the page body at 375 px width. Code blocks inside `<Content />`
+rendered markdown use the base `pre { overflow-x: auto }` rule — they scroll
+internally, not the page.
+
+## Links in markdown content
+
+Links inside markdown files rendered via `<Content />` (pack and journey bodies)
+**cannot** use Astro's `withBase()` — they are plain HTML after rendering.
+
+- Use **relative paths** for cross-site links (e.g., `../../docs/guides/atlassian/`).
+- Absolute paths starting with `/` are resolved against the origin root, not the
+  subpath base (`/agent-ready-repo`), and will 404 on GitHub Pages.
+- The `docsUrl` and `journeyUrl` frontmatter fields are the canonical navigation
+  entry points and are already processed through `withBase()` by the template.
+
+## Broken links in docs
+
+Both the Astro marketing site and the Starlight docs site are built in the same
+`pages.yml` job. Unlike the previous MkDocs `--strict` mode, Starlight does not
+fail the build on broken internal links. Broken anchors and cross-page links
+in `guides/**` must be caught by manual review or a link-checker tool.
+
+To check for broken links locally: build the docs site (`python tools/build-site.py && npm run build --prefix docs-site`) and inspect the output.
+
+## Navigation cohesion
+
+Every pack that has documentation must set `docsUrl` in its frontmatter. Every
+pack with a journey narrative must set `journeyUrl`. These are the two navigation
+entry points the pack template exposes; leave neither empty if the content exists.
 
 ## Documentation
 

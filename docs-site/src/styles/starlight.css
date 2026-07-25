@@ -1,0 +1,141 @@
+/*
+ * Starlight brand-theme overrides for agent-ready-repo docs site.
+ *
+ * tokens.css (imported below) is the canonical design-token source from
+ * web/src/styles/tokens.css, copied here by tools/build-site.py at
+ * build time (gitignored). Run `python tools/build-site.py` before
+ * `astro dev` — the import resolves at Vite build time, not at import
+ * resolution in the source tree.
+ *
+ * All colour values reference --ds-* or --prim-* tokens from tokens.css.
+ * Raw hex is only used for --sl-color-* assignments where the token
+ * variable hasn't been loaded yet (bootstrap context).
+ */
+
+@import './tokens.css';
+
+/* ── Starlight colour overrides — light mode ─────────────────────────────── */
+
+:root,
+[data-theme='light'] {
+  /* Accent — amber-gold */
+  --sl-color-accent-low:  var(--prim-amber-10);     /* subtle tint */
+  --sl-color-accent:      var(--ds-accent);          /* #e8952b — primary accent */
+  --sl-color-accent-high: var(--ds-accent-deep);     /* #8b5e0a — text-safe on light */
+
+  /* Surface */
+  --sl-color-bg:           var(--ds-surface);        /* warm near-white */
+  --sl-color-bg-sidebar:   var(--ds-surface);
+  --sl-color-bg-nav:       var(--prim-dark-950);     /* dark header zone */
+  --sl-color-bg-inline-code: var(--ds-accent-subtle);
+
+  /* Text */
+  --sl-color-text:          var(--ds-on-surface-2);
+  --sl-color-text-accent:   var(--ds-accent-deep);
+  --sl-color-text-invert:   #ffffff;
+
+  /* Hairlines */
+  --sl-color-hairline:      var(--ds-border);
+  --sl-color-hairline-light: var(--ds-border-subtle);
+
+  /* Typography */
+  --sl-font: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Starlight colour overrides — dark mode ──────────────────────────────── */
+
+[data-theme='dark'] {
+  /* Accent */
+  --sl-color-accent-low:  var(--prim-amber-15);
+  --sl-color-accent:      var(--ds-accent);          /* #e8952b */
+  --sl-color-accent-high: var(--prim-amber-300);     /* #f5bc6a — lighter on dark */
+
+  /* Surface */
+  --sl-color-bg:           var(--prim-dark-950);
+  --sl-color-bg-sidebar:   var(--prim-dark-900);
+  --sl-color-bg-nav:       var(--prim-dark-950);
+  --sl-color-bg-inline-code: var(--ds-accent-subtle-dk);
+
+  /* Text */
+  --sl-color-text:          var(--prim-white-80);
+  --sl-color-text-accent:   var(--prim-amber-300);
+  --sl-color-text-invert:   var(--prim-dark-950);
+
+  /* Hairlines */
+  --sl-color-hairline:      var(--prim-white-10);
+  --sl-color-hairline-light: var(--prim-white-06);
+}
+
+/* ── Header: dark unified zone matching hero ─────────────────────────────── */
+
+header.header {
+  background-color: var(--prim-dark-950);
+  border-bottom: 1px solid var(--prim-white-06);
+}
+
+/* ── Mermaid diagram sizing ──────────────────────────────────────────────── */
+
+.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Code block sizing ───────────────────────────────────────────────────── */
+
+.sl-markdown-content pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Site footer custom styles ───────────────────────────────────────────── */
+
+.site-footer {
+  border-top: 1px solid var(--prim-white-06);
+  background-color: var(--prim-dark-950);
+  color: var(--prim-white-60);
+  padding: 2rem 1.5rem;
+}
+
+.site-footer__inner {
+  max-width: 80rem;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+}
+
+.site-footer__brand {
+  font-family: var(--sl-font-mono);
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.site-footer__links {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-footer__links a {
+  color: var(--prim-white-80);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.site-footer__links a:hover {
+  color: var(--ds-accent);
+}
+
+.site-footer__copy {
+  flex-basis: 100%;
+  font-size: 0.8125rem;
+  color: var(--prim-white-60);
+  margin: 0;
+}
