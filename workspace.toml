@@ -280,7 +280,9 @@ open = [
   # After live-DC transcript: decide broker-side pattern-host confinement for success_url_pattern.
   {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", summary = "Decide broker-side pattern-host confinement after the live-DC transcript", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
 
-  # Six platform × mode credential-broker QA transcripts (macOS/Windows/Linux × creds/sso-cookie).
+  # Six platform × mode credential-broker QA transcripts:
+  # `creds` × macOS, `creds` × Windows, `creds` × Linux,
+  # `sso-cookie` × macOS, `sso-cookie` × Windows, `sso-cookie` × Linux.
   {slug = "credential-broker-contract-manual-qa", summary = "Six platform x mode credential-broker QA transcripts"},
 
   # First real Artifactory upload: configure three GitHub secrets then push a tag. Blocked on credentials.
@@ -353,7 +355,8 @@ active  = []
 backlog = []
 
 ["ini-005".work]
-active  = [
+active  = []
+shipped = [
   "spec/catalogue-tooling-foundation",
 ]
 queue   = [
