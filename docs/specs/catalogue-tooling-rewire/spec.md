@@ -1,6 +1,6 @@
 # Spec: Catalogue Tooling — Repository Rewiring
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Initiative:** ini-005 AgentBundle Portable Catalogue Tooling
 - **Plan:** [`plan.md`](plan.md)
@@ -84,26 +84,26 @@ first, then repo-only policy gates.
 
 ## Acceptance Criteria
 
-- [ ] AC1: `make lint-packs` calls `agentbundle catalogue lint --root .`.
-- [ ] AC2: `make build-self` calls `agentbundle catalogue self-host --root . --write`.
-- [ ] AC3: `make build-self-dry-run` calls `agentbundle catalogue self-host --root . --check`.
-- [ ] AC4: The full `make build-check` sequence first runs `agentbundle catalogue verify`
+- [x] AC1: `make lint-packs` calls `agentbundle catalogue lint --root .`.
+- [x] AC2: `make build-self` calls `agentbundle catalogue self-host --root . --write`.
+- [x] AC3: `make build-self-dry-run` calls `agentbundle catalogue self-host --root . --check`.
+- [x] AC4: The full `make build-check` sequence first runs `agentbundle catalogue verify`
   then runs repo-only gates from `tools/repo/build_gate_chain.py`.
-- [ ] AC5: `tools/publish-claude-plugins.py` redirects (shim) to
+- [x] AC5: `tools/publish-claude-plugins.py` redirects (shim) to
   `tools/catalogue/publish_claude_plugins.py`.
-- [ ] AC6: `tools/pre-pr-catalogue.py` is thinned to call `agentbundle catalogue verify`
+- [x] AC6: `tools/pre-pr-catalogue.py` is thinned to call `agentbundle catalogue verify`
   and then repo-specific checks; shim at old path delegates.
-- [ ] AC7: `tools/build_gate_chain.py` is a shim delegating to
+- [x] AC7: `tools/build_gate_chain.py` is a shim delegating to
   `tools/repo/build_gate_chain.py`; all existing CI workflow paths work.
-- [ ] AC8: `hooks.json` and `settings.json` hook wiring paths are updated to
+- [x] AC8: `hooks.json` and `settings.json` hook wiring paths are updated to
   new locations before shims are added (so hooks run the real scripts).
-- [ ] AC9: No portable catalogue logic (linting, building, verification,
+- [x] AC9: No portable catalogue logic (linting, building, verification,
   packaging) remains implemented only inside `tools/`.
-- [ ] AC10: An external catalogue can use `agentbundle catalogue lint`,
+- [x] AC10: An external catalogue can use `agentbundle catalogue lint`,
   `agentbundle catalogue verify`, `agentbundle catalogue build`,
   `agentbundle catalogue package` without copying the Makefile or tools/.
-- [ ] AC11: All existing CI jobs pass.
-- [ ] AC12: All existing tests pass.
+- [x] AC11: All existing CI jobs pass.
+- [x] AC12: All existing tests pass.
 
 ## Assumptions
 

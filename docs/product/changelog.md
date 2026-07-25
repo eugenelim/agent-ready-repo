@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/).
 
 
+## [repo][wave-5-rewire] — 2026-07-24
+
+
+### Changed
+
+- **Wave 5a (ini-005): `Makefile` targets now call canonical `agentbundle catalogue *` commands and `tools/` is reorganised into `tools/catalogue/` and `tools/repo/`.** `make lint-packs` → `agentbundle catalogue lint --root .`; `make build` → `agentbundle catalogue build`; `make build-self` → `agentbundle catalogue self-host --write`; `make build-self-dry-run` → `agentbundle catalogue self-host --check`; `make build-check` runs `agentbundle catalogue verify` first then the repo-only gate chain. A new `make package` target wires to `agentbundle catalogue package`. `tools/publish-claude-plugins.py`, `tools/pre-pr-catalogue.py`, `tools/build_gate_chain.py`, `tools/check-contract-drift.py`, and `tools/release-check.sh` are shims at their old paths; real implementations live under `tools/catalogue/` and `tools/repo/`. CI workflows updated to call canonical paths directly. ([spec](../specs/catalogue-tooling-rewire/spec.md))
+
+
 ## [experience-design][1.3.0] — 2026-07-24
 
 

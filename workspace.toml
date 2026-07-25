@@ -368,10 +368,9 @@ shipped = [
   "spec/catalogue-tooling-build-self",
   "spec/catalogue-tooling-verify",
   "spec/catalogue-tooling-package-enhanced",
+  "spec/catalogue-tooling-rewire",
 ]
 queue   = [
-  # Wave 5 — parallel after package-enhanced ships
-  {path = "spec/catalogue-tooling-rewire", needs = "work:spec/catalogue-tooling-package-enhanced"},
   # docs needs verify (Flow E, command names), package-enhanced (allowlist + output paths), and rewire (make build-check wording)
   {path = "spec/catalogue-tooling-docs", needs = "work:spec/catalogue-tooling-verify,work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
   # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
