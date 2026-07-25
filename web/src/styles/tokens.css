@@ -140,8 +140,8 @@
   --ds-space-10: 128px;
 
   /* Section rhythm — responsive */
-  --ds-section-gap:    clamp(5rem, 10vw, 8rem);   /* between major sections */
-  --ds-section-pad-y:  clamp(4rem, 8vw, 6rem);    /* internal section padding */
+  --ds-section-gap:    clamp(3.5rem, 7vw, 5.5rem); /* between major sections */
+  --ds-section-pad-y:  clamp(3rem, 6vw, 4.5rem);  /* internal section padding */
   --ds-content-max:    1140px;                     /* max content width */
   --ds-content-pad-x:  clamp(1.25rem, 5vw, 2.5rem); /* horizontal margin */
 
