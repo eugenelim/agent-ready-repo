@@ -143,11 +143,8 @@ Drop the citation, keep the rule: *"Markers are repo-only per RFC-0004"* → *"M
 Any script under `.apm/` that prints to stdout or stderr must include the UTF-8 reconfigure guard immediately after `import sys`, before any `print()` call:
 
 ```python
-# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 ```
-
-Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character — including ✓, ✗, →, — — without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic messages from being lost.
-
-Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252, which corrupts the parent's decoded output.
+Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic loss.
+Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252.
