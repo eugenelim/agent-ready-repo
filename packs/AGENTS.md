@@ -40,6 +40,8 @@ intent → user journey → stage → capability → output
 
 ## Primary workflow (any catalogue)
 
+Run after any pack change. If `agentbundle` is not installed: `pip install agentbundle`.
+
 ```bash
 agentbundle catalogue lint --root .
 agentbundle catalogue verify --root .
@@ -128,3 +130,5 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 ```
 
 Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character — including ✓, ✗, →, — — without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic messages from being lost.
+
+Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252, which corrupts the parent's decoded output.

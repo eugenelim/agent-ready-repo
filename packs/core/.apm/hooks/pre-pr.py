@@ -80,7 +80,7 @@ def _run(label: str, argv: list[str]) -> None:
     fresh adopter tree that hasn't wired a given gate yet doesn't hard-crash.
     """
     try:
-        result = subprocess.run(argv, capture_output=True, text=True, check=False)
+        result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False)
     except FileNotFoundError:
         # To stderr (not stdout) so a *wired-but-mistyped* tool is visually
         # distinct from a passing check and doesn't scroll past as a ✓.
@@ -115,7 +115,7 @@ def main() -> int:
             for phase in ("implement", "review"):
                 result = subprocess.run(
                     [py, str(loop_cohort), "check", str(spec_dir), "--phase", phase],
-                    capture_output=True, text=True, check=False,
+                    capture_output=True, text=True, encoding="utf-8", check=False,
                 )
                 if result.returncode != 0:
                     if result.stdout:

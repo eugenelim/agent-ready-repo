@@ -93,7 +93,7 @@ def sandbox(tmp_path: Path) -> Path:
 def _run(cwd: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(cwd / "packs/core/.apm/hooks/pre-pr.py")],
-        cwd=cwd, capture_output=True, text=True,
+        cwd=cwd, capture_output=True, text=True, encoding="utf-8",
     )
 
 
@@ -130,7 +130,7 @@ def test_pre_pr_adopter_tree_no_tooling_is_graceful(tmp_path: Path) -> None:
     repo = tmp_path / "adopter"
     repo.mkdir()
     result = subprocess.run(
-        [sys.executable, str(HOOK)], cwd=repo, capture_output=True, text=True,
+        [sys.executable, str(HOOK)], cwd=repo, capture_output=True, text=True, encoding="utf-8",
     )
     assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
     assert "pre-pr: all checks passed" in result.stdout

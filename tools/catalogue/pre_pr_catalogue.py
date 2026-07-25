@@ -60,7 +60,7 @@ def _run(label: str, argv: list[str]) -> None:
     ``_run`` does **not** skip on a missing tool — a deleted catalogue linter
     must fail loud, not silently pass. Do not "unify" the two `_run`s: that
     would make a dropped catalogue check go green (a real regression)."""
-    result = subprocess.run(argv, capture_output=True, text=True, check=False)
+    result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False)
     if result.returncode != 0:
         if result.stdout:
             sys.stdout.write(result.stdout)
