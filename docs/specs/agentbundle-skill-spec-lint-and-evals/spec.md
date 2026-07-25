@@ -4,6 +4,8 @@ status: Shipped
 type: feature
 ---
 
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+
 Mode: full (multi-feature + dependent tasks + structural/public-interface change + new optional dependency)
 
 ## Objective
@@ -50,19 +52,19 @@ Not changing:
 ## Acceptance Criteria
 
 - [x] `agentbundle catalogue lint --root . --deep` exits 0 on the repo's clean catalogue
-- [ ] `agentbundle catalogue lint --root . --deep` exits 1 when a SKILL.md violates any check ported from `tools/lint-skill-spec.py`
-- [ ] `agentbundle catalogue lint --root .` (no `--deep`) continues to work without PyYAML installed
-- [ ] `agentbundle catalogue lint --root . --deep` exits 2 with a clear message when PyYAML is not installed
-- [ ] `agentbundle pack evals run --pack core` runs without error (graceful exit when `claude` not on PATH)
-- [ ] `tools/lint-skill-spec.py` and `tools/run-pack-evals.py` removed from the repo
-- [ ] CI `agentskills.io spec` job uses `agentbundle catalogue lint --deep`
-- [ ] CI `pack-evals` workflow uses `agentbundle pack evals run`
-- [ ] `packs/AGENTS.md` guidance references `agentbundle catalogue lint --deep`
-- [ ] Windows: `adapt` pending report uses forward slashes on all platforms
-- [ ] Windows: `resolve_user_root` respects `AGENTBUNDLE_USER_ROOT` env var override
-- [ ] Windows Gate A test failures from HOME patching reduced to only the pre-existing bash-not-found failure
-- [ ] `agentbundle --version` shows `0.17.0`
-- [ ] PyPI README updated
+- [x] `agentbundle catalogue lint --root . --deep` exits 1 when a SKILL.md violates any check ported from `tools/lint-skill-spec.py`
+- [x] `agentbundle catalogue lint --root .` (no `--deep`) continues to work without PyYAML installed
+- [x] `agentbundle catalogue lint --root . --deep` exits 2 with a clear message when PyYAML is not installed
+- [x] `agentbundle pack evals run --pack core` runs without error (graceful exit when `claude` not on PATH)
+- [x] `tools/lint-skill-spec.py` and `tools/run-pack-evals.py` removed from the repo
+- [x] CI `agentskills.io spec` job uses `agentbundle catalogue lint --deep`
+- [x] CI `pack-evals` workflow uses `agentbundle pack evals run`
+- [x] `packs/AGENTS.md` guidance references `agentbundle catalogue lint --deep`
+- [x] Windows: `adapt` pending report uses forward slashes on all platforms
+- [x] Windows: `resolve_user_root` respects `AGENTBUNDLE_USER_ROOT` env var override
+- [x] Windows Gate A test failures from HOME patching reduced to only the pre-existing bash-not-found failure
+- [x] `agentbundle --version` shows `0.17.0`
+- [x] PyPI README updated
 
 ## Testing Strategy
 

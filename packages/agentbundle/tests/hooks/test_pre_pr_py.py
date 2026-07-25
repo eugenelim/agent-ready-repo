@@ -43,7 +43,7 @@ def test_catalogue_hook_runs_all_8_checks_and_delegates() -> None:
     for tool in (
         "tools/lint-agents-md.py",
         "tools/lint-agent-artifacts.py",
-        "tools/lint-skill-spec.py",
+        # skill-spec lint now invokes agentbundle catalogue lint --deep (not a tools/ script)
         "tools/lint-knowledge.py",
         "tools/lint-build.py",
         "tools/lint-catalogue-seeds.py",
@@ -51,6 +51,8 @@ def test_catalogue_hook_runs_all_8_checks_and_delegates() -> None:
         "tools/test-lint-credentialed-skills.py",
     ):
         assert tool in src, f"catalogue hook must run {tool}"
+    # skill-spec lint step now delegates to agentbundle package instead of tools/ script
+    assert '"--deep"' in src, "catalogue hook must run agentbundle catalogue lint --deep"
     assert "tools/hooks/pre-pr.py" in src, (
         "catalogue hook must delegate to the shipped pre-pr.py"
     )
