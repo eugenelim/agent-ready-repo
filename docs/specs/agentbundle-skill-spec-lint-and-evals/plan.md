@@ -168,3 +168,5 @@ lint = ["pyyaml>=6.0"]
 - `packages/agentbundle/README.md`: document `catalogue lint --deep` and `pack evals run`
 - `docs/product/changelog.md`: add `[agentbundle][0.17.0]` section
 - Run `FORCE=1 make build-self` (CAT-V-015 drift check)
+
+**Status: done.**
