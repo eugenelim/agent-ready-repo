@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Build a new marketing page with a full token setup and state coverage",
+    "should_trigger": true
+  },
+  {
+    "query": "Create the HTML and CSS for a new dashboard component",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up the frontend scaffold for our onboarding flow",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the component for the user profile card with all states",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a responsive multi-column form with validation states",
+    "should_trigger": true
+  },
+  {
+    "query": "Create a new web surface from this screen brief",
+    "should_trigger": true
+  },
+  {
+    "query": "Implement the empty, loading, and error states for this data table",
+    "should_trigger": true
+  },
+  {
+    "query": "Run the full gate suite on this existing surface and produce an evidence manifest",
+    "should_trigger": true
+  },
+  {
+    "query": "Audit the CSS on this page for token violations and missing states",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the token taxonomy for our design system",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit the accessibility of this surface for WCAG 2.2 AA",
+    "should_trigger": false
+  },
+  {
+    "query": "Diagnose the Core Web Vitals issue on our landing page",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we use SSR or SSG for this marketing page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the component API for our dropdown",
+    "should_trigger": false
+  },
+  {
+    "query": "How should we structure breakpoints for this component?",
+    "should_trigger": false
+  },
+  {
+    "query": "Set up cascade layers for our CSS codebase",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current accessibility status of this surface?",
+    "should_trigger": false
+  }
+]

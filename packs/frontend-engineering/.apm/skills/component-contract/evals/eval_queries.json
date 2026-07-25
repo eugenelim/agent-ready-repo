@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Design the API for our new dropdown component before we write any code",
+    "should_trigger": true
+  },
+  {
+    "query": "Should this component be controlled or uncontrolled by default?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the props interface for our data table \u2014 it needs sorting and selection",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the usage documentation contract for our modal component",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the slots interface for our card component",
+    "should_trigger": true
+  },
+  {
+    "query": "Define the events contract for our form input component",
+    "should_trigger": true
+  },
+  {
+    "query": "Our component has 12 boolean props \u2014 help us refactor its API",
+    "should_trigger": true
+  },
+  {
+    "query": "Design a composable API for our navigation component",
+    "should_trigger": true
+  },
+  {
+    "query": "Write the lifecycle contract for our infinite scroll component",
+    "should_trigger": true
+  },
+  {
+    "query": "Build the dropdown component with all its interaction states",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the semantic token layer for our colours",
+    "should_trigger": false
+  },
+  {
+    "query": "Run a full WCAG audit on this component",
+    "should_trigger": false
+  },
+  {
+    "query": "Diagnose the layout shift when this card grid loads",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we SSR this component list?",
+    "should_trigger": false
+  },
+  {
+    "query": "Make this component responsive at mobile breakpoints",
+    "should_trigger": false
+  },
+  {
+    "query": "Set up cascade layers for the component library CSS",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current state of this component's quality gates?",
+    "should_trigger": false
+  }
+]
