@@ -320,6 +320,14 @@ export default defineConfig({
                     { label: 'Author Design Intent', slug: 'guides/experience-design/how-to/author-design-intent' },
                     { label: 'Three-Way Copy Boundary', slug: 'guides/experience-design/how-to/copy-layer-boundary' },
                     { label: 'Content Design vs UX Writing', slug: 'guides/experience-design/how-to/content-design-vs-ux-writing' },
+                    { label: 'Workspace Design', slug: 'guides/experience-design/how-to/workspace-design' },
+                    { label: 'Analytical vs Interaction Design', slug: 'guides/experience-design/how-to/analytical-vs-interaction-design' },
+                  ],
+                },
+                {
+                  label: 'Tutorials',
+                  items: [
+                    { label: 'Design Token Chain', slug: 'guides/experience-design/tutorials/design-token-chain-worked-example' },
                   ],
                 },
                 {
