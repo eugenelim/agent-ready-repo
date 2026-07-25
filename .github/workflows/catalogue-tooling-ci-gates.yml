@@ -40,6 +40,10 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install agentbundle (editable) + pytest
         run: pip install -e packages/agentbundle pytest
+      - name: Install httpx for atlassian/linear SSO test suites
+        run: pip install 'httpx>=0.27'
+      - name: Install credbroker for credential-skill test suites
+        run: pip install -e packages/credbroker
       - name: Run full agentbundle test suite
         working-directory: packages/agentbundle
         run: python -m pytest tests/ agentbundle/build/tests/ -q
