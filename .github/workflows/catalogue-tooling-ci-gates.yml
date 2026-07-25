@@ -152,14 +152,14 @@ jobs:
 
       - name: Confirm archive + sidecar exist
         run: |
-          ls /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/stable/smoke-0.1.0.tar.gz
-          ls /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/stable/smoke-0.1.0.tar.gz.sha256
+          ls /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz
+          ls /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz.sha256
 
       - name: agentbundle catalogue verify (archive mode)
         run: |
           /tmp/smoke-venv/bin/agentbundle catalogue verify \
-            --archive /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/stable/smoke-0.1.0.tar.gz \
-            --sha256-file /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/stable/smoke-0.1.0.tar.gz.sha256
+            --archive /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz \
+            --sha256-file /tmp/ext-pkg/catalogues/smoke/releases/0.1.0/catalogue-0.1.0.tar.gz.sha256
 
   # ── Gate C: enterprise distribution + credential scan ────────────────────
   enterprise-agentbundle-distribution:
@@ -268,26 +268,25 @@ jobs:
             --channel stable \
             --output /tmp/art-pkg-2 \
             --published-at "2023-11-14T22:13:20Z"
-          sha256sum /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz
-          sha256sum /tmp/art-pkg-2/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz
+          sha256sum /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz
+          sha256sum /tmp/art-pkg-2/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz
 
       - name: Confirm three required files
         run: |
-          DIR=/tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable
-          test -f "$DIR/catalogue-smoke-0.0.1-ci.tar.gz"        || (echo "::error::archive missing"; exit 1)
-          test -f "$DIR/catalogue-smoke-0.0.1-ci.tar.gz.sha256" || (echo "::error::sidecar missing"; exit 1)
-          test -f "$DIR/channel.json"                            || (echo "::error::channel.json missing"; exit 1)
+          test -f "/tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz"        || (echo "::error::archive missing"; exit 1)
+          test -f "/tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz.sha256" || (echo "::error::sidecar missing"; exit 1)
+          test -f "/tmp/art-pkg-1/catalogues/catalogue-smoke/channels/stable.json"                                || (echo "::error::channel.json missing"; exit 1)
 
       - name: verify (archive mode)
         run: |
           agentbundle catalogue verify \
-            --archive /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz \
-            --sha256-file /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz.sha256
+            --archive /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz \
+            --sha256-file /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz.sha256
 
       - name: Extract and list-packs from local path
         run: |
           mkdir -p /tmp/art-extracted
-          tar -xzf /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz \
+          tar -xzf /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz \
             -C /tmp/art-extracted
           agentbundle config set source /tmp/art-extracted
           agentbundle list-packs
@@ -297,8 +296,8 @@ jobs:
         with:
           name: catalogue-smoke-archive
           path: |
-            /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz
-            /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/stable/catalogue-smoke-0.0.1-ci.tar.gz.sha256
+            /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz
+            /tmp/art-pkg-1/catalogues/catalogue-smoke/releases/0.0.1-ci/catalogue-0.0.1-ci.tar.gz.sha256
 
   # ── Gate E: disconnected (offline) flow ───────────────────────────────────
   catalogue-disconnected-smoke:
@@ -324,13 +323,13 @@ jobs:
       - name: Verify archive (no source catalogue available)
         run: |
           agentbundle catalogue verify \
-            --archive /tmp/disconnected/catalogue-smoke-0.0.1-ci.tar.gz \
-            --sha256-file /tmp/disconnected/catalogue-smoke-0.0.1-ci.tar.gz.sha256
+            --archive /tmp/disconnected/catalogue-0.0.1-ci.tar.gz \
+            --sha256-file /tmp/disconnected/catalogue-0.0.1-ci.tar.gz.sha256
 
       - name: Extract to stable path
         run: |
           mkdir -p /tmp/disconnected/extracted
-          tar -xzf /tmp/disconnected/catalogue-smoke-0.0.1-ci.tar.gz \
+          tar -xzf /tmp/disconnected/catalogue-0.0.1-ci.tar.gz \
             -C /tmp/disconnected/extracted
 
       - name: Confirm layout
