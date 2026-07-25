@@ -8,21 +8,90 @@ import { withBase } from '../../lib/paths';
 
 <section class="hero">
   <div class="hero__inner">
-    <h1 class="hero__headline">The supervised AI operating model for software teams.</h1>
-    <p class="hero__subhead">
-      Three supervised peer loops across the full SDLC — mechanical gates the agent
-      cannot bypass, cold-read specialist reviewers, and human checkpoints it cannot
-      self-certify past.
-    </p>
-    <div class="hero__actions">
-      <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
-        Install the core loop <span aria-hidden="true">→</span>
-      </a>
-      <a class="hero__cta hero__cta--ghost" href={withBase('/catalogue/')}>
-        Browse the catalogue <span aria-hidden="true">→</span>
-      </a>
+    <div class="hero__text">
+      <h1 class="hero__headline">The supervised AI operating model for software teams.</h1>
+      <p class="hero__subhead">
+        Three supervised peer loops across the full SDLC — mechanical gates the agent
+        cannot bypass, cold-read specialist reviewers, and human checkpoints it cannot
+        self-certify past.
+      </p>
+      <div class="hero__actions">
+        <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
+          Install the core loop <span aria-hidden="true">→</span>
+        </a>
+        <a class="hero__cta hero__cta--ghost" href={withBase('/catalogue/')}>
+          Browse the catalogue <span aria-hidden="true">→</span>
+        </a>
+      </div>
+      <p class="hero__friction">Reversible. One command to try, one to remove.</p>
     </div>
-    <p class="hero__friction">Reversible. One command to try, one to remove.</p>
+    <div class="hero__visual">
+      <!--
+        Informational triad diagram — BUILD · DISCOVER · RELEASE cycle.
+        All fills/strokes reference CSS custom properties inherited from the
+        document (inline SVG participates in the CSS cascade). The marker
+        arrowhead uses a hardcoded hex (#e8952b = --prim-amber-400 = --ds-accent)
+        because SVG <marker> content does not reliably inherit custom properties
+        across all Baseline Widely Available browsers.
+      -->
+      <svg role="img" aria-labelledby="loops-diagram-title"
+        viewBox="0 0 440 380" xmlns="http://www.w3.org/2000/svg">
+        <title id="loops-diagram-title">Three supervised loops in a cycle: BUILD (spec → plan → implement → review), DISCOVER (intent → hypothesis → validate), RELEASE (readiness → publish → changelog).</title>
+        <defs>
+          <marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#e8952b" />
+          </marker>
+        </defs>
+
+        <!-- Connecting arrows (drawn first, behind cards) -->
+
+        <!-- BUILD → DISCOVER (arcs upward between top two cards) -->
+        <path d="M 190 88 Q 220 62 250 88"
+          style="stroke: var(--ds-accent); stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; opacity: 0.65;"
+          marker-end="url(#loop-arrow)" />
+
+        <!-- DISCOVER → RELEASE (curves right then sweeps down-left to bottom card) -->
+        <path d="M 330 136 Q 356 198 272 254"
+          style="stroke: var(--ds-accent); stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; opacity: 0.65;"
+          marker-end="url(#loop-arrow)" />
+
+        <!-- RELEASE → BUILD (arcs left to close the cycle) -->
+        <path d="M 140 302 Q 48 222 110 136"
+          style="stroke: var(--ds-accent); stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; opacity: 0.65;"
+          marker-end="url(#loop-arrow)" />
+
+        <!-- BUILD loop card (top-left: x=30, y=40, 160×96) -->
+        <rect x="30" y="40" width="160" height="96" rx="10"
+          style="fill: var(--ds-hero-surface); stroke: var(--ds-hero-border-card); stroke-width: 1;" />
+        <text x="110" y="77" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">BUILD</text>
+        <text x="110" y="93" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">spec → plan → implement</text>
+        <text x="110" y="107" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ review</text>
+
+        <!-- DISCOVER loop card (top-right: x=250, y=40, 160×96) -->
+        <rect x="250" y="40" width="160" height="96" rx="10"
+          style="fill: var(--ds-hero-surface); stroke: var(--ds-hero-border-card); stroke-width: 1;" />
+        <text x="330" y="77" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">DISCOVER</text>
+        <text x="330" y="93" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">intent → hypothesis</text>
+        <text x="330" y="107" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ validate</text>
+
+        <!-- RELEASE loop card (bottom-center: x=140, y=254, 160×96) -->
+        <rect x="140" y="254" width="160" height="96" rx="10"
+          style="fill: var(--ds-hero-surface); stroke: var(--ds-hero-border-card); stroke-width: 1;" />
+        <text x="220" y="291" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--ds-accent);">RELEASE</text>
+        <text x="220" y="307" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">readiness → publish</text>
+        <text x="220" y="321" text-anchor="middle"
+          style="font-family: var(--ds-font-sans); font-size: 10px; fill: var(--ds-hero-fg-2);">→ changelog</text>
+      </svg>
+    </div>
   </div>
 </section>
 
@@ -41,6 +110,28 @@ import { withBase } from '../../lib/paths';
     max-width: var(--ds-content-max);
     margin-inline: auto;
     padding: clamp(3.5rem, 8vw, 6rem) var(--ds-content-pad-x) var(--ds-space-8);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ds-space-8);
+    align-items: center;
+  }
+
+  @media (max-width: 768px) {
+    .hero__inner {
+      grid-template-columns: 1fr;
+      gap: var(--ds-space-6);
+    }
+
+    .hero__visual {
+      max-width: 440px;
+      margin-inline: auto;
+    }
+  }
+
+  .hero__visual svg {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .hero__headline {
