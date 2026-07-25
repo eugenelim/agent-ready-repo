@@ -1,0 +1,70 @@
+[
+  {
+    "query": "What is the current state of the frontend surface against our quality floor?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the evidence manifest for this component",
+    "should_trigger": true
+  },
+  {
+    "query": "Where are we on accessibility for this page \u2014 what's been verified and what's open?",
+    "should_trigger": true
+  },
+  {
+    "query": "Orient me to the current frontend quality state before I start work",
+    "should_trigger": true
+  },
+  {
+    "query": "What states from the 18-state matrix are still missing from this surface?",
+    "should_trigger": true
+  },
+  {
+    "query": "What CWV results do we have for this route?",
+    "should_trigger": true
+  },
+  {
+    "query": "Are there any known exceptions I should know about before touching this surface?",
+    "should_trigger": true
+  },
+  {
+    "query": "What was the last gate run result for this component?",
+    "should_trigger": true
+  },
+  {
+    "query": "Summarise the frontend quality state of the onboarding flow",
+    "should_trigger": true
+  },
+  {
+    "query": "Build the new notification component with all states",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the token system for our design system",
+    "should_trigger": false
+  },
+  {
+    "query": "Fix the focus management on our modal",
+    "should_trigger": false
+  },
+  {
+    "query": "Diagnose the INP regression on our search page",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we use SSR for this authenticated dashboard?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the props contract for our data table",
+    "should_trigger": false
+  },
+  {
+    "query": "Make the header responsive at mobile",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit our CSS specificity and reorganise with cascade layers",
+    "should_trigger": false
+  }
+]

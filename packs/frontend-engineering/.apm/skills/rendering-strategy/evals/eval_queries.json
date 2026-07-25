@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Should we use SSR or SSG for our marketing pages?",
+    "should_trigger": true
+  },
+  {
+    "query": "Decide the rendering strategy for our authenticated dashboard",
+    "should_trigger": true
+  },
+  {
+    "query": "We're considering RSC for our product listing page \u2014 is that right?",
+    "should_trigger": true
+  },
+  {
+    "query": "Our documentation site is currently CSR \u2014 should we move to SSG?",
+    "should_trigger": true
+  },
+  {
+    "query": "What rendering model should we use for our real-time feed?",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the hydration strategy for our product pages to minimise INP",
+    "should_trigger": true
+  },
+  {
+    "query": "Our ISR cache is going stale too quickly \u2014 what TTL should we use?",
+    "should_trigger": true
+  },
+  {
+    "query": "Should we render the above-the-fold section statically and hydrate the rest?",
+    "should_trigger": true
+  },
+  {
+    "query": "Audit our current rendering architecture for LCP and INP impact",
+    "should_trigger": true
+  },
+  {
+    "query": "Build the new product page with full token and state coverage",
+    "should_trigger": false
+  },
+  {
+    "query": "Design our CSS token hierarchy",
+    "should_trigger": false
+  },
+  {
+    "query": "Fix the focus management on the modal",
+    "should_trigger": false
+  },
+  {
+    "query": "Diagnose why our LCP is 4 seconds",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the props API for our product card component",
+    "should_trigger": false
+  },
+  {
+    "query": "Make our navigation responsive across three breakpoints",
+    "should_trigger": false
+  },
+  {
+    "query": "Organise our CSS with cascade layers",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current accessibility state of this surface?",
+    "should_trigger": false
+  }
+]
