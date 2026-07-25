@@ -116,8 +116,20 @@ jobs:
       - name: agentbundle catalogue verify (external)
         run: /tmp/smoke-venv/bin/agentbundle catalogue verify --root /tmp/ext-cat
 
-      - name: agentbundle catalogue build (external)
-        run: /tmp/smoke-venv/bin/agentbundle catalogue build --root /tmp/ext-cat --output /tmp/ext-dist
+      - name: Prepare catalogue root for packaging
+        run: |
+          # catalogue package requires three files that the default build does
+          # not place at the catalogue root.
+          #
+          # 1. .claude-plugin/marketplace.json — created by `catalogue self-host
+          #    --write` (or `make build-self`) for self-hosted repos; for an
+          #    external catalogue tested here we write a minimal valid stub.
+          mkdir -p /tmp/ext-cat/.claude-plugin
+          cat > /tmp/ext-cat/.claude-plugin/marketplace.json <<'JSON'
+          {"name": "smoke-cat", "description": "Smoke test catalogue.", "owner": {"name": "ci"}, "plugins": []}
+          JSON
+          # 2. LICENSE-APACHE and LICENSE-MIT — required by catalogue package.
+          touch /tmp/ext-cat/LICENSE-APACHE /tmp/ext-cat/LICENSE-MIT
 
       - name: agentbundle catalogue package (external)
         run: |
