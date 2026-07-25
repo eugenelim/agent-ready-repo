@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for tools/run-pack-evals.py (pack-activation-evals, Tier A).
+"""Self-test for agentbundle.commands.pack_evals (pack-activation-evals, Tier A).
 
 Pure-stdlib so it runs on Windows. The deterministic core — parse the
 stream-json payload, compute trigger_rate, grade against 0.5, detect
@@ -26,11 +26,16 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-RUNNER = REPO_ROOT / "tools" / "run-pack-evals.py"
+# Module now lives in the agentbundle package.
+RUNNER = REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "commands" / "pack_evals.py"
 
 
 def _load_runner():
-    spec = importlib.util.spec_from_file_location("run_pack_evals", RUNNER)
+    # Ensure agentbundle package is importable (needed by pack_evals imports).
+    _ab_path = str(REPO_ROOT / "packages" / "agentbundle")
+    if _ab_path not in sys.path:
+        sys.path.insert(0, _ab_path)
+    spec = importlib.util.spec_from_file_location("pack_evals", RUNNER)
     mod = importlib.util.module_from_spec(spec)
     # Register before exec so the @dataclass annotation lookup (string
     # annotations under `from __future__ import annotations`) can resolve
@@ -677,8 +682,15 @@ def test_gitignored_control() -> None:
 
 
 def test_help_smoke() -> None:
+    _ab_path = str(REPO_ROOT / "packages" / "agentbundle")
+    env = os.environ.copy()
+    pp = env.get("PYTHONPATH", "")
+    parts = [p for p in pp.split(os.pathsep) if p]
+    if _ab_path not in parts:
+        env["PYTHONPATH"] = os.pathsep.join([_ab_path] + parts)
     proc = subprocess.run(
-        [sys.executable, str(RUNNER), "--help"], capture_output=True, text=True
+        [sys.executable, "-m", "agentbundle", "pack", "evals", "run", "--help"],
+        capture_output=True, text=True, encoding="utf-8", env=env,
     )
     check("help", proc.returncode == 0, f"--help exited {proc.returncode}")
     check("help", "--pack" in proc.stdout, "--help missing --pack")
