@@ -19,7 +19,6 @@ Tier 2 OS keyring → Tier 3 dotfile); run ``credential-setup`` skill to populat
 from __future__ import annotations
 
 import argparse
-import asyncio
 import csv
 import json
 import logging
@@ -607,6 +606,7 @@ def main(argv: list[str] | None = None) -> int:
     # Top-level catch-all: no exception escapes as a traceback. `except
     # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt.
     try:
+        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         return asyncio.run(_run(args))
     except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
         name = type(exc).__name__
