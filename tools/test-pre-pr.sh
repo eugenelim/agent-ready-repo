@@ -102,11 +102,11 @@ run_corruption "agent-artifact-fail" \
   "printf -- '---\nname: bad-agent\ndescription: Agent missing model field.\n---\n\nBody text.\n' > .claude/agents/bad-agent.md" \
   'pre-pr: ✖ agent-artifact lint failed'
 
-# 3. skill-spec lint — plant an install-path reference in a SKILL.md body,
-#    which the spec linter refuses (skill bodies must use skill-relative
-#    paths for own files and name-only references for other skills).
+# 3. skill-spec lint — add a new projected SKILL.md that contains an install-path
+#    reference (.claude/skills/…), which the spec linter refuses.  Writing a new
+#    file avoids mutating a source pack file (which would trip self-host drift).
 run_corruption "skill-spec-fail" \
-  "printf '\nSee \`.claude/skills/work-loop/SKILL.md\` for the loop.\n' >> packs/core/.apm/skills/bug-fix/SKILL.md" \
+  "mkdir -p .claude/skills/test-bad && printf -- '---\nname: test-bad\ndescription: Test bad skill.\n---\n\nSee \`.claude/skills/work-loop/SKILL.md\` for the loop.\n' > .claude/skills/test-bad/SKILL.md" \
   'pre-pr: ✖ skill-spec lint failed'
 
 # 4. knowledge lint — plant a malformed JSONL line.
