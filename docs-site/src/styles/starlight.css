@@ -139,3 +139,156 @@ header.header {
   color: var(--prim-white-60);
   margin: 0;
 }
+
+/* ── Sidebar: distinct background in light mode ──────────────────────────── */
+:root,
+[data-theme='light'] {
+  --sl-color-bg-sidebar: var(--prim-neutral-100);
+}
+
+/* ── Sidebar: section group label (uppercase, muted, spaced) ─────────────── */
+.group-label span {
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ds-on-surface-muted);
+}
+
+/* ── Sidebar: active page indicator — amber left border + tint ───────────── */
+a[aria-current='page'],
+a[aria-current='page']:hover {
+  border-inline-start: 2px solid var(--ds-accent);
+  padding-inline-start: calc(var(--sl-sidebar-item-padding-inline, 0.5rem) - 2px);
+  background: var(--ds-accent-subtle);
+  color: var(--ds-accent-deep);
+  font-weight: 600;
+}
+
+/* ── Sidebar: hover tint ─────────────────────────────────────────────────── */
+nav.sidebar a:not([aria-current='page']):hover {
+  background: var(--ds-accent-subtle);
+}
+
+/* ── Content: page h1 — tighter, heavier ─────────────────────────────────── */
+.sl-markdown-content h1:first-child {
+  font-size: clamp(1.875rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* ── Content: h2 — bottom separator ─────────────────────────────────────── */
+.sl-markdown-content h2 {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Content: links ──────────────────────────────────────────────────────── */
+.sl-markdown-content a:not(.not-content *) {
+  color: var(--sl-color-text-accent);
+  text-underline-offset: 0.2em;
+}
+.sl-markdown-content a:not(.not-content *):hover {
+  color: var(--sl-color-accent);
+}
+
+/* ── Content: tables ─────────────────────────────────────────────────────── */
+.sl-markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 8px;
+  overflow: hidden;
+  display: block;
+  overflow-x: auto;
+}
+.sl-markdown-content thead tr {
+  background: var(--sl-color-bg-sidebar);
+}
+.sl-markdown-content th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content td {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--sl-color-hairline-light);
+}
+.sl-markdown-content tr:last-child td {
+  border-bottom: none;
+}
+.sl-markdown-content tbody tr:hover {
+  background: var(--ds-accent-subtle);
+}
+
+/* ── Aside: note (amber — matches brand) ─────────────────────────────────── */
+.starlight-aside--note {
+  --sl-color-asides-text-accent: var(--ds-accent-deep);
+  --sl-color-asides-border:      var(--ds-accent);
+  background: var(--ds-accent-subtle);
+}
+
+/* ── Aside: caution (orange-amber) ──────────────────────────────────────── */
+.starlight-aside--caution {
+  --sl-color-asides-text-accent: #b45309;
+  --sl-color-asides-border:      #f59e0b;
+  background: #fef3c740;
+}
+[data-theme='dark'] .starlight-aside--caution {
+  --sl-color-asides-text-accent: #fbbf24;
+  background: #78350f30;
+}
+
+/* ── Aside: danger (red) ─────────────────────────────────────────────────── */
+.starlight-aside--danger {
+  --sl-color-asides-text-accent: #991b1b;
+  --sl-color-asides-border:      #ef4444;
+  background: #fee2e240;
+}
+[data-theme='dark'] .starlight-aside--danger {
+  --sl-color-asides-text-accent: #fca5a5;
+  background: #7f1d1d30;
+}
+
+/* ── Aside: tip (green) ──────────────────────────────────────────────────── */
+.starlight-aside--tip {
+  --sl-color-asides-text-accent: #166534;
+  --sl-color-asides-border:      #22c55e;
+  background: #dcfce740;
+}
+[data-theme='dark'] .starlight-aside--tip {
+  --sl-color-asides-text-accent: #86efac;
+  background: #14532d30;
+}
+
+/* ── Right TOC: active item indicator ───────────────────────────────────── */
+starlight-toc a[aria-current='true'] {
+  color: var(--sl-color-text-accent);
+  border-inline-start: 2px solid var(--ds-accent);
+  padding-inline-start: 0.75rem;
+}
+
+/* ── Prev / Next nav: card tile style ────────────────────────────────────── */
+.pagination-links a {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.pagination-links a:hover {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent-subtle);
+  text-decoration: none;
+}
+
+/* ── PageFind search: amber primary ─────────────────────────────────────── */
+:root {
+  --pagefind-ui-primary:    #e8952b;
+  --pagefind-ui-text:       var(--ds-on-surface-2);
+  --pagefind-ui-background: var(--ds-surface);
+  --pagefind-ui-border:     var(--ds-border);
+  --pagefind-ui-tag:        var(--ds-surface-alt);
+}
