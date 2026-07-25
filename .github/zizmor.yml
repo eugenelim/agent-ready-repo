@@ -16,6 +16,7 @@ rules:
     ignore:
       - build-check-windows.yml
       - build-check.yml
+      - catalogue-tooling-ci-gates.yml
       - ci-security.yml
       - codeql.yml
       - docs.yml
