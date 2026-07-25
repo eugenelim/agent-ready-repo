@@ -347,7 +347,7 @@ open = [
 
 ["ini-005"]
 name      = "AgentBundle Portable Catalogue Tooling"
-status    = "active"
+status    = "shipped"
 milestone = "M1 · Portable Engine + Public CLI"
 # Brief: establish agentbundle/catalogue_tooling/ as the portable catalogue
 # engine, publish the agentbundle catalogue * and agentbundle lint packs CLI
