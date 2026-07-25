@@ -114,7 +114,7 @@ REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/knowledge/README.md": (),
     "docs/product/README.md": (),
     "docs/product/roadmap.md": ("YYYY-MM-DD",),
-    "docs/product/changelog.md": ("Unreleased",),
+    "docs/product/changelog.md": ("pack-name][version",),
     "docs/product/briefs/_template.md": ("<slug>", "<one-line outcome>"),
     # product-engineering's intent + rollup templates moved from repo-scaffolding
     # seeds/ into the owning skills' assets/ (frame-intent, align-value-stream) so
