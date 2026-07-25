@@ -335,8 +335,14 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
                 try:
                     tf.extractall(tmpdir, filter="data")
                 except TypeError:
-                    # Python < 3.12 — filter kwarg not supported
-                    tf.extractall(tmpdir)  # type: ignore[call-arg]
+                    # Python < 3.12: extract member-by-member; paths pre-validated by check_members()
+                    for _m in tf.getmembers():
+                        _dest = tmpdir / _m.name
+                        _dest.parent.mkdir(parents=True, exist_ok=True)
+                        if _m.isreg():
+                            _fobj = tf.extractfile(_m)
+                            if _fobj is not None:
+                                _dest.write_bytes(_fobj.read())
                 catalogue_root = tmpdir / prefix.rstrip("/") if prefix else tmpdir
                 from agentbundle.catalogue_tooling.verify import verify_catalogue
                 inner = verify_catalogue(catalogue_root)
