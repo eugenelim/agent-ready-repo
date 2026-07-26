@@ -21,9 +21,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/eugenelim/agent-ready-repo"
-Source = "https://github.com/eugenelim/agent-ready-repo"
-Documentation = "https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/how-to/install-agentbundle-from-clone.md"
+Homepage           = "https://github.com/eugenelim/agent-ready-repo"
+Source             = "https://github.com/eugenelim/agent-ready-repo"
+Documentation      = "https://eugenelim.github.io/agent-ready-repo/docs/"
+"Catalogue Format" = "https://eugenelim.github.io/agent-ready-repo/docs/reference/catalogue-format"
+Changelog          = "https://eugenelim.github.io/agent-ready-repo/docs/changelog"
 
 [project.scripts]
 agentbundle = "agentbundle.cli:main"
