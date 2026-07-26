@@ -94,13 +94,14 @@ run_corruption "agents-md-fail" \
   'rm AGENTS.md' \
   'pre-pr: ✖ agents-md hygiene failed'
 
-# 2. agent-artifact lint — add a new agent file missing the required model: field.
-#    Creating a new file avoids triggering the self-host drift check (which runs
-#    before agent-artifact lint and compares projected output vs pack source;
-#    modifying an existing committed output file would trip that check first).
+# 2. agent-artifact lint (now in agentbundle catalogue verify step 11) — add a new
+#    agent file missing the required model: field. Creating a new file avoids
+#    triggering the self-host drift check (which runs before catalogue verify and
+#    compares projected output vs pack source; modifying an existing committed
+#    output file would trip that check first).
 run_corruption "agent-artifact-fail" \
   "printf -- '---\nname: bad-agent\ndescription: Agent missing model field.\n---\n\nBody text.\n' > .claude/agents/bad-agent.md" \
-  'pre-pr: ✖ agent-artifact lint failed'
+  'pre-pr: ✖ catalogue verify failed'
 
 # 3. skill-spec lint — add a new projected SKILL.md that contains an install-path
 #    reference (.claude/skills/…), which the spec linter refuses.  Writing a new

@@ -48,7 +48,7 @@ jobs:
         run: pip install 'httpx>=0.27'
       - name: Install credbroker for credential-skill test suites
         run: pip install -e packages/credbroker
-      - name: Install pyyaml for lint-agent-artifacts and credentialed-skill tests
+      - name: Install pyyaml for agent-artifact lint and credentialed-skill tests
         run: pip install 'pyyaml>=6.0'
       - name: Run full agentbundle test suite
         working-directory: packages/agentbundle
@@ -133,6 +133,13 @@ jobs:
           [pack.install]
           default-scope = "repo"
           allowed-scopes = ["repo"]
+
+          [pack.first-value]
+          audience-posture = "technical"
+          surfaces         = ["claude-code"]
+          prerequisites    = ["agentbundle installed"]
+          verification     = "Run the hello skill and confirm it greets the user."
+          recovery         = "Reinstall the pack if the skill is missing."
           TOML
 
           cat > /tmp/ext-cat/packs/sample-pack/.claude-plugin/plugin.json <<'JSON'

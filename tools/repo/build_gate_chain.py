@@ -129,12 +129,10 @@ def build_check(args: argparse.Namespace) -> int:
     is conditional) — it stays Makefile-appended after this chain.
     """
     steps: list[Step] = [
-        # Build dist/ so validate-claude-plugin-manifests has an artifact to check.
         _module_step(
             "catalogue-build",
             "catalogue", "build", "--root", ".", "--output", args.output_dir,
         ),
-        _script_step("validate-claude-plugin-manifests", "tools", "validate-claude-plugin-manifests.py"),
         _script_step("pre-pr-catalogue", "tools", "catalogue", "pre_pr_catalogue.py"),
         _script_step(
             "test-lint-spec-status",
@@ -160,8 +158,6 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-traceability",
             ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",
         ),
-        _script_step("test-lint-first-value-contract", "tools", "test-lint-first-value-contract.py"),
-        _script_step("lint-first-value-contract", "tools", "lint-first-value-contract.py"),
     ]
     return _run_chain(steps)
 

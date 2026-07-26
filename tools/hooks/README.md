@@ -72,12 +72,11 @@ catalogue's conventions on its own tree and don't apply to an adopter's repo.
 Exits non-zero on the first failure; a missing tool is skipped, not fatal.
 
 **This catalogue's own full gate** is the repo-native, never-projected
-`tools/pre-pr-catalogue.py`: it runs the 8 catalogue checks
-(`lint-agents-md`, `lint-agent-artifacts`, `agentbundle catalogue lint --deep`, `lint-knowledge`,
-`lint-build`, `lint-catalogue-seeds`, `lint_credentialed_skills`, and the
-`test-lint-credentialed-skills` self-test), then delegates to the shipped
-`pre-pr.py`. `make pre-pr` and `make build-check` run it. See
-[`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).
+`tools/catalogue/pre_pr_catalogue.py`: it runs `agentbundle catalogue verify`
+(which includes agent-artifact lint at step 11) plus `lint-agents-md`,
+`lint-knowledge`, `lint-build`, and `agentbundle catalogue lint --deep`,
+then delegates to the shipped `pre-pr.py`. `make pre-pr` and `make build-check`
+run it. See [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).
 
 ## Runtime
 

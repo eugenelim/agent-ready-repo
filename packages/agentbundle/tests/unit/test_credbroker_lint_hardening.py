@@ -1,8 +1,8 @@
 """credbroker test-suite hardening — AC7 / AC8 / AC9.
 
-AC7  — _is_canonical_shim returns False for canonical bytes at a
+AC7  — _cs_is_canonical_shim returns False for canonical bytes at a
         non-canonical parent directory.
-AC8  — _is_canonical_shim returns True for canonical bytes at "scripts/"
+AC8  — _cs_is_canonical_shim returns True for canonical bytes at "scripts/"
         and "shared-libs/" parent directories.
 AC9  — _load_cli_module helper is available in this test suite.
 """
@@ -12,14 +12,14 @@ from __future__ import annotations
 import importlib.util
 import pathlib
 import sys
-import tempfile
 import types
 
 import pytest
 
+from agentbundle.catalogue_tooling.lint import _cs_is_canonical_shim
+
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
-_LINT_PATH = REPO_ROOT / "tools" / "lint_credentialed_skills.py"
 _CANONICAL_SHIM_SRC = (
     REPO_ROOT
     / "packs"
@@ -28,6 +28,7 @@ _CANONICAL_SHIM_SRC = (
     / "shared-libs"
     / "credentials_shim.py"
 )
+_SHIM_SOURCE_DIR = _CANONICAL_SHIM_SRC.parent
 
 
 # ── AC9: _load_cli_module helper ─────────────────────────────────────────────
@@ -49,32 +50,6 @@ def _load_cli_module(py_path: pathlib.Path) -> types.ModuleType:
         sys.path.remove(str(py_path.parent))
     return module
 
-
-def _load_lint_module() -> types.ModuleType:
-    """Load lint_credentialed_skills.py in a controlled environment.
-
-    Controls sys.argv to point at an empty temp dir so the module's
-    top-level scan runs over nothing (finds 0 skills, exits 0) and does
-    not interfere with test execution.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        saved_argv = sys.argv[:]
-        sys.argv = ["lint_credentialed_skills.py", td]
-        try:
-            spec = importlib.util.spec_from_file_location(
-                "lint_credentialed_skills", _LINT_PATH
-            )
-            assert spec is not None and spec.loader is not None
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-        finally:
-            sys.argv = saved_argv
-    return mod
-
-
-# Load once at collection time; the module's main scan runs against the empty
-# tempdir and produces zero findings.
-_lint = _load_lint_module()
 
 _BROKER_PY = (
     REPO_ROOT
@@ -109,7 +84,7 @@ def test_load_cli_module_loads_broker():
 
 
 class TestIsCanonicalShimPathAnchor:
-    """Path-anchor requirement for _is_canonical_shim (AC6 / AC7 / AC8)."""
+    """Path-anchor requirement for _cs_is_canonical_shim (AC6 / AC7 / AC8)."""
 
     @pytest.fixture(autouse=True)
     def _canonical_bytes(self, tmp_path):
@@ -128,14 +103,14 @@ class TestIsCanonicalShimPathAnchor:
     def test_non_canonical_parent_returns_false(self):
         """AC7: canonical bytes at an arbitrary parent → False."""
         shim = self._write_shim("arbitrary")
-        assert _lint._is_canonical_shim(shim) is False
+        assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is False
 
     def test_scripts_parent_returns_true(self):
         """AC8a: canonical bytes at a scripts/ parent → True."""
         shim = self._write_shim("scripts")
-        assert _lint._is_canonical_shim(shim) is True
+        assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is True
 
     def test_shared_libs_parent_returns_true(self):
         """AC8b: canonical bytes at a shared-libs/ parent → True."""
         shim = self._write_shim("shared-libs")
-        assert _lint._is_canonical_shim(shim) is True
+        assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is True

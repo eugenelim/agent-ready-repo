@@ -11,6 +11,7 @@ Entry points:
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -35,6 +36,19 @@ def _err(code: str, message: str, pack: str | None = None, path: str | None = No
     return Diagnostic(
         code=code,
         severity=Severity.ERROR,
+        pack=pack,
+        path=path,
+        line=None,
+        col=None,
+        message=message,
+        remediation=None,
+    )
+
+
+def _warn(code: str, message: str, pack: str | None = None, path: str | None = None) -> Diagnostic:
+    return Diagnostic(
+        code=code,
+        severity=Severity.WARN,
         pack=pack,
         path=path,
         line=None,
@@ -244,11 +258,302 @@ def _step_build_output(
     return []
 
 
-def _step_generated_schema(
+def _step_agent_artifacts(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 11: generated output schema validation (pass-through; complex TBD)."""
-    return []
+    """Step 11: lint .claude/ agent artifact frontmatter and APM skill leak guard.
+
+    ALL yaml.* references live inside this function body — none at module scope.
+    """
+    try:
+        import yaml  # noqa: PLC0415
+    except ImportError:
+        return [_warn("CAT-V-011",
+                      "PyYAML required for agent-artifact lint — install agentbundle[lint]")]
+
+    # --- Duplicate-key detection (inside PyYAML fence) ---
+
+    class _DuplicateKeyError(Exception):
+        def __init__(self, key: object, line: int) -> None:
+            self.key = key
+            self.line = line
+
+    class _FrontmatterLoader(yaml.SafeLoader):
+        pass
+
+    def _construct_mapping_no_dups(loader: object, node: object, deep: bool = False) -> dict:
+        if not isinstance(node, yaml.MappingNode):
+            raise yaml.constructor.ConstructorError(
+                None, None,
+                f"expected a mapping node, got {node.id}",
+                node.start_mark,
+            )
+        mapping: dict = {}
+        for key_node, value_node in node.value:
+            key = loader.construct_object(key_node, deep=deep)
+            if key in mapping:
+                raise _DuplicateKeyError(key, key_node.start_mark.line + 1)
+            mapping[key] = loader.construct_object(value_node, deep=deep)
+        return mapping
+
+    _FrontmatterLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        _construct_mapping_no_dups,
+    )
+
+    # --- Constants ---
+
+    KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
+    LINK = re.compile(r"\]\(([^)]+)\)")
+    ALLOWED_SKILL_KEYS = {"name", "description", "license", "compatibility",
+                          "metadata", "allowed-tools"}
+    ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
+    ALLOWED_AUTH_BROKERS = ("env", "cli", "creds", "sso-cookie")
+    ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
+    ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
+    _APM_SKILL_BLOCKLIST: tuple[tuple[str, str], ...] = (
+        (r"agent-ready-repo", "catalogue name 'agent-ready-repo'"),
+        (r"RFC-00\d\d", "catalogue RFC reference (RFC-NNNN)"),
+        (r"K-00\d\d", "catalogue knowledge entry (K-NNNN)"),
+    )
+
+    diags: list[Diagnostic] = []
+
+    def _report(path: Path, msg: str) -> None:
+        try:
+            rel = path.relative_to(root)
+        except ValueError:
+            rel = path
+        diags.append(_err("CAT-V-011", msg, path=str(rel)))
+
+    def parse_frontmatter(path: Path):
+        text = path.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        if not lines or lines[0].strip() != "---":
+            return None, 0, text, None
+        end = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end = i
+                break
+        if end is None:
+            return None, 0, text, "frontmatter opened with --- but never closed"
+        fm_text = "\n".join(lines[1:end])
+        body_start_line = end + 2
+        body = "\n".join(lines[end + 1:])
+        try:
+            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)  # nosec B506
+        except _DuplicateKeyError as exc:
+            return None, 0, text, (
+                f"duplicate frontmatter key {exc.key!r} (line {exc.line + 1})"
+            )
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None)
+            problem = getattr(exc, "problem", None) or str(exc)
+            if mark is not None:
+                return None, 0, text, (
+                    f"malformed frontmatter (line {mark.line + 2}): {problem}"
+                )
+            return None, 0, text, f"malformed frontmatter: {problem}"
+        if fields is None:
+            fields = {}
+        if not isinstance(fields, dict):
+            return None, 0, text, (
+                "frontmatter must be a mapping at the top level "
+                f"(got {type(fields).__name__})"
+            )
+        return fields, body_start_line, body, None
+
+    def check_links(path: Path, body: str, body_start_line: int) -> None:
+        base = path.parent
+        for offset, line in enumerate(body.splitlines()):
+            for match in LINK.finditer(line):
+                target = match.group(1).split("#", 1)[0].strip()
+                if not target:
+                    continue
+                if re.match(r"^[a-z]+:", target):
+                    continue
+                resolved = (base / target).resolve()
+                if not resolved.exists():
+                    _report(path, f"broken link → {match.group(1)}")
+
+    def check_skill(path: Path) -> None:
+        fields, body_start, body, ferr = parse_frontmatter(path)
+        if ferr:
+            _report(path, ferr)
+            return
+        if fields is None:
+            _report(path, "missing YAML frontmatter (--- ... ---)")
+            return
+        name = fields.get("name")
+        if name is None or name == "":
+            _report(path, "frontmatter missing required key: name")
+        elif not isinstance(name, str):
+            _report(path, f"frontmatter key 'name' must be a string "
+                         f"(got {type(name).__name__}) — quote "
+                         f"Norway-style scalars like 'yes' / 'no' / 'on' / "
+                         f"'off' to keep them as text")
+        elif not KEBAB.match(name):
+            _report(path, f"name {name!r} must be kebab-case ([a-z][a-z0-9-]*)")
+        elif name != path.parent.name:
+            _report(path, f"name {name!r} does not match directory "
+                         f"{path.parent.name!r}")
+        desc = fields.get("description")
+        if desc is None or desc == "":
+            _report(path, "frontmatter missing required key: description")
+        elif not isinstance(desc, str):
+            _report(path, f"frontmatter key 'description' must be a string "
+                         f"(got {type(desc).__name__}) — "
+                         f"quote Norway-style scalars like 'yes' / 'no'")
+        unknown = set(fields) - ALLOWED_SKILL_KEYS
+        if unknown:
+            _report(path, f"unknown frontmatter keys: {sorted(unknown)} "
+                         f"(allowed: {sorted(ALLOWED_SKILL_KEYS)})")
+        metadata = fields.get("metadata")
+        if metadata is not None and metadata != "" and not isinstance(metadata, dict):
+            _report(path, f"frontmatter key 'metadata' must be a nested "
+                         f"mapping (got {type(metadata).__name__})")
+            metadata = None
+        meta = metadata if isinstance(metadata, dict) else {}
+        if "credentialed" in meta:
+            cval = meta["credentialed"]
+            if cval is not True and cval is not False:
+                _report(path, f"frontmatter key 'metadata.credentialed' must "
+                             f"be boolean (true|false), got {cval!r}")
+        if "primitive-class" in meta:
+            pval = meta["primitive-class"]
+            if pval not in ALLOWED_PRIMITIVE_CLASSES:
+                _report(path, f"frontmatter key 'metadata.primitive-class' "
+                             f"must be one of: "
+                             f"{', '.join(sorted(ALLOWED_PRIMITIVE_CLASSES))} "
+                             f"(got {pval!r})")
+        auth_present = "auth" in meta
+        if auth_present:
+            aval = meta["auth"]
+            if aval not in ALLOWED_AUTH_BROKERS:
+                _report(path, f"frontmatter key 'metadata.auth' must be one of "
+                             f"{{{', '.join(ALLOWED_AUTH_BROKERS)}}}; "
+                             f"got {aval!r}")
+        if meta.get("credentialed") is True and not auth_present:
+            _report(path, "frontmatter key 'metadata.auth' is required when "
+                         "metadata.credentialed: true "
+                         f"(declare one of {{{', '.join(ALLOWED_AUTH_BROKERS)}}})")
+        if not body.strip():
+            _report(path, "body is empty")
+        check_links(path, body, body_start)
+
+    def check_agent(path: Path) -> None:
+        fields, body_start, body, ferr = parse_frontmatter(path)
+        if ferr:
+            _report(path, ferr)
+            return
+        if fields is None:
+            _report(path, "missing YAML frontmatter (--- ... ---)")
+            return
+        expected_name = path.stem
+        name = fields.get("name")
+        if name is None or name == "":
+            _report(path, "frontmatter missing required key: name")
+        elif not isinstance(name, str):
+            _report(path, f"frontmatter key 'name' must be a string "
+                         f"(got {type(name).__name__}) — quote "
+                         f"Norway-style scalars like 'yes' / 'no' / 'on' / "
+                         f"'off' to keep them as text")
+        elif not KEBAB.match(name):
+            _report(path, f"name {name!r} must be kebab-case ([a-z][a-z0-9-]*)")
+        elif name != expected_name:
+            _report(path, f"name {name!r} does not match filename "
+                         f"{expected_name!r}")
+        desc = fields.get("description")
+        if desc is None or desc == "":
+            _report(path, "frontmatter missing required key: description")
+        elif not isinstance(desc, str):
+            _report(path, f"frontmatter key 'description' must be a string "
+                         f"(got {type(desc).__name__}) — "
+                         f"quote Norway-style scalars like 'yes' / 'no'")
+        model = fields.get("model")
+        if model is None or model == "":
+            _report(path, "frontmatter missing required key: model "
+                         "(see docs/CONVENTIONS.md#model-selection)")
+        elif not isinstance(model, str):
+            _report(path, f"frontmatter key 'model' must be a string "
+                         f"(got {type(model).__name__}) — "
+                         f"quote Norway-style scalars like 'on' / 'off'")
+        unknown = set(fields) - ALLOWED_AGENT_KEYS
+        if unknown:
+            _report(path, f"unknown frontmatter keys: {sorted(unknown)} "
+                         f"(allowed: {sorted(ALLOWED_AGENT_KEYS)})")
+        if not body.strip():
+            _report(path, "body is empty")
+        check_links(path, body, body_start)
+
+    def check_command(path: Path) -> None:
+        fields, body_start, body, ferr = parse_frontmatter(path)
+        if ferr:
+            _report(path, ferr)
+            return
+        if fields is not None:
+            desc = fields.get("description")
+            if desc is None or desc == "":
+                _report(path, "frontmatter missing required key: description")
+            elif not isinstance(desc, str):
+                _report(path, f"frontmatter key 'description' must be a string "
+                             f"(got {type(desc).__name__}) — "
+                             f"quote Norway-style scalars like 'yes' / 'no'")
+            unknown = set(fields) - ALLOWED_COMMAND_KEYS
+            if unknown:
+                _report(path, f"unknown frontmatter keys: {sorted(unknown)} "
+                             f"(allowed: {sorted(ALLOWED_COMMAND_KEYS)})")
+        if not body.strip():
+            _report(path, "body is empty")
+        check_links(path, body, body_start)
+
+    # --- APM leak guard (packs/core/.apm/skills/) — runs unconditionally ---
+
+    apm_skills_dir = root / "packs" / "core" / ".apm" / "skills"
+    if apm_skills_dir.exists():
+        for skill_dir_item in sorted(p for p in apm_skills_dir.iterdir() if p.is_dir()):
+            for target in sorted(skill_dir_item.rglob("*.md")):
+                text = target.read_text(encoding="utf-8")
+                for pat, label in _APM_SKILL_BLOCKLIST:
+                    for _lineno, line in enumerate(text.splitlines(), 1):
+                        if re.search(pat, line):
+                            _report(target, f"leaked {label} in shipped skill body")
+
+    # --- Scan .claude/ artifacts ---
+
+    claude_dir = root / ".claude"
+    if not claude_dir.exists():
+        return diags
+
+    skills_dir = claude_dir / "skills"
+    agents_dir = claude_dir / "agents"
+    commands_dir = claude_dir / "commands"
+
+    if skills_dir.exists():
+        for skill_md in sorted(skills_dir.glob("*/SKILL.md")):
+            check_skill(skill_md)
+        for stray in sorted(skills_dir.glob("*/*.md")):
+            if stray.name != "SKILL.md":
+                _report(stray,
+                        "unexpected file in skill dir; skill bodies must be named SKILL.md")
+        for skill_dir_path in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
+            if not (skill_dir_path / "SKILL.md").exists():
+                _report(skill_dir_path, "skill directory missing SKILL.md")
+
+    if agents_dir.exists():
+        for agent_md in sorted(agents_dir.glob("*.md")):
+            if agent_md.name.upper() == "README.MD":
+                continue
+            check_agent(agent_md)
+
+    if commands_dir.exists():
+        for cmd_md in sorted(commands_dir.glob("*.md")):
+            if cmd_md.name.upper() == "README.MD":
+                continue
+            check_command(cmd_md)
+
+    return diags
 
 
 def _step_marketplace(
@@ -271,11 +576,59 @@ def _step_marketplace(
     return []
 
 
-def _step_marketplace_parity(
+def _step_plugin_manifests(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 13: marketplace pack membership/version parity."""
-    return []
+    """Step 13: validate generated claude-plugin manifests against schema."""
+    dist_dir = tmpdir / "dist" / "claude-plugins"
+    if not dist_dir.exists():
+        return []
+
+    try:
+        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.validate import validate as _validate_manifest
+    except ImportError:
+        return []
+
+    try:
+        schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+    except Exception:
+        return []
+
+    diags: list[Diagnostic] = []
+
+    for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            diags.append(_err("CAT-V-013", f"plugin.json parse error: {exc}",
+                              path=str(manifest_path.relative_to(tmpdir))))
+            continue
+        errors = _validate_manifest(manifest, schema)
+        for error in errors:
+            diags.append(_err("CAT-V-013", f"plugin manifest schema: {error}",
+                               path=str(manifest_path.relative_to(tmpdir))))
+
+    marketplace_path = dist_dir / "marketplace.json"
+    if marketplace_path.exists():
+        try:
+            marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            diags.append(_err("CAT-V-013", f"marketplace.json parse error: {exc}",
+                              path=str(marketplace_path.relative_to(tmpdir))))
+        else:
+            for plugin_entry in marketplace.get("plugins", []):
+                if "hooks" in plugin_entry:
+                    name = plugin_entry.get("name", "unknown")
+                    diags.append(_err(
+                        "CAT-V-013",
+                        f"plugin '{name}' contains 'hooks' — "
+                        "hooks must not appear in marketplace entries",
+                        path=str(marketplace_path.relative_to(tmpdir)),
+                    ))
+                    break
+
+    return diags
 
 
 def _step_output_drift(
@@ -353,9 +706,9 @@ _VERIFY_STEPS = [
     (8,  "adapter contract compatibility",     _step_adapter_compat),
     (9,  "primitive layout validation",        _step_primitive_layout),
     (10, "build output validation (tmpdir)",   _step_build_output),
-    (11, "generated output schema",            _step_generated_schema),
+    (11, "agent artifact lint",                _step_agent_artifacts),
     (12, "marketplace aggregation",            _step_marketplace),
-    (13, "marketplace pack membership/version",_step_marketplace_parity),
+    (13, "plugin manifest schema validation",  _step_plugin_manifests),
     (14, "generated output drift checks",      _step_output_drift),
     (15, "self-host drift checks",             _step_selfhost_drift),
     (16, "sync-defaults check",                _step_sync_defaults),
@@ -398,7 +751,7 @@ def verify_catalogue(
                     f"step {_step_num} ({_step_name}) raised unexpected error: {exc}",
                 )]
             all_diags.extend(step_diags)
-            if step_diags and not continue_on_error:
+            if any(d.severity == Severity.ERROR for d in step_diags) and not continue_on_error:
                 break
 
     return VerifyResult(

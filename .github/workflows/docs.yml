@@ -13,18 +13,12 @@ on:
       - '.claude/**'
       - '.github/pull_request_template.md'
       - 'tools/lint-agents-md.py'
-      - 'tools/lint-agent-artifacts.py'
-      - 'tools/test-lint-agent-artifacts.sh'
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
       - 'packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py'
       - 'packs/**/.apm/skills/**'
       - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
-      - 'tools/lint-catalogue-seeds.py'
-      - 'tools/test-lint-catalogue-seeds.py'
       - 'profiles/**'
-      - 'tools/lint-profiles.py'
-      - 'tools/test-lint-profiles.py'
       - 'packs/**'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
@@ -45,18 +39,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run AGENTS.md linter
         run: python tools/lint-agents-md.py
-
-  lint-agent-artifacts:
-    name: Agent-artifact hygiene
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install tools dependencies
-        run: pip install -r tools/requirements.txt
-      - name: Run agent-artifact linter
-        run: python tools/lint-agent-artifacts.py
-      - name: Self-test the linter (asserts expected errors fire)
-        run: bash tools/test-lint-agent-artifacts.sh
 
   lint-skill-spec:
     name: agentskills.io spec
@@ -79,26 +61,6 @@ jobs:
         run: python tools/lint-knowledge.py
       - name: Self-test the linter (schema-drift + content guards)
         run: bash tools/test-lint-knowledge.sh
-
-  lint-catalogue-seeds:
-    name: Seed scaffolds
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run catalogue seed-content linter (RFC-0002 scaffold contract, opt-in per RFC-0047 D6)
-        run: python tools/lint-catalogue-seeds.py
-      - name: Self-test the linter (opt-in gate — flagged enforced, unflagged skipped)
-        run: python tools/test-lint-catalogue-seeds.py
-
-  lint-profiles:
-    name: Install profiles
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Self-test the linter (every failure mode + happy path)
-        run: python tools/test-lint-profiles.py
-      - name: Run profiles linter (scope/dep/order against the live packs/)
-        run: python tools/lint-profiles.py --root .
 
   loop-cohort:
     name: Caps enforcer self-test

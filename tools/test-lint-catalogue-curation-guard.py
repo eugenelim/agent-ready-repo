@@ -4,7 +4,7 @@
 Proves the guard's pure logic catches each crafted bad case and passes the good
 ones, without needing git or the real tree. Pure-stdlib; exit 0 = all pass,
 1 = a case failed. Paired with the lint in ``build-check.yml``, matching the
-``test-lint-profiles.py`` convention.
+the same pattern as other self-test scripts in tools/.
 """
 
 from __future__ import annotations
