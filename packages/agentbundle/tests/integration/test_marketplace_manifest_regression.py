@@ -31,10 +31,10 @@ _PACK_WITH_METADATA = {
         "version": "0.2.0",
         "description": "Research skills.",
         "maintainers": [
-            {"name": "Eugene Lim", "email": "eugenelim@users.noreply.github.com"}
+            {"name": "Example User", "email": "example@example.com"}
         ],
         "links": {
-            "repository": "https://github.com/eugenelim/agent-ready-repo",
+            "repository": "https://github.com/example-org/example-repo",
         },
     }
 }
@@ -45,9 +45,9 @@ _PACK_NAME_ONLY = {
         "name": "research",
         "version": "0.2.0",
         "description": "Research skills.",
-        "maintainers": [{"name": "Eugene Lim"}],
+        "maintainers": [{"name": "Example User"}],
         "links": {
-            "repository": "https://github.com/eugenelim/agent-ready-repo",
+            "repository": "https://github.com/example-org/example-repo",
         },
     }
 }
@@ -83,19 +83,19 @@ class TestDeriveProjectableSubsetAuthor:
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["author"]["name"] == "Eugene Lim"
+        assert result["author"]["name"] == "Example User"
 
     def test_author_contains_email_key_when_present(self):
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["author"]["email"] == "eugenelim@users.noreply.github.com"
+        assert result["author"]["email"] == "example@example.com"
 
     def test_author_omits_email_key_when_absent(self):
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_NAME_ONLY)
-        assert result["author"] == {"name": "Eugene Lim"}
+        assert result["author"] == {"name": "Example User"}
         assert "email" not in result["author"]
 
     def test_author_absent_when_no_maintainers(self):
@@ -127,7 +127,7 @@ class TestDeriveProjectableSubsetSource:
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["source"]["repo"] == "eugenelim/agent-ready-repo"
+        assert result["source"]["repo"] == "example-org/example-repo"
 
     def test_source_branch_is_dist_branch(self):
         from agentbundle.build.main import derive_projectable_subset

@@ -34,8 +34,8 @@ categories = ["research", "documentation"]
 keywords = ["osint", "synthesis", "citations"]
 
 [[pack.maintainers]]
-name = "Eugene Lim"
-email = "eugenelim@users.noreply.github.com"
+name = "Example User"
+email = "example@example.com"
 
 [pack.links]
 homepage = "https://example.com"
@@ -59,7 +59,7 @@ class DeriveProjectableSubsetTests(unittest.TestCase):
         self.assertEqual(
             subset,
             {
-                "author": {"name": "Eugene Lim", "email": "eugenelim@users.noreply.github.com"},
+                "author": {"name": "Example User", "email": "example@example.com"},
                 "license": "Apache-2.0",
                 "homepage": "https://example.com",
                 "repository": "https://github.com/example/repo",
