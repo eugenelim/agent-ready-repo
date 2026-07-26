@@ -45,6 +45,19 @@ def _err(code: str, message: str, pack: str | None = None, path: str | None = No
     )
 
 
+def _warn(code: str, message: str, pack: str | None = None, path: str | None = None) -> Diagnostic:
+    return Diagnostic(
+        code=code,
+        severity=Severity.WARN,
+        pack=pack,
+        path=path,
+        line=None,
+        col=None,
+        message=message,
+        remediation=None,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Step implementations
 # ---------------------------------------------------------------------------
@@ -255,8 +268,8 @@ def _step_agent_artifacts(
     try:
         import yaml  # noqa: PLC0415
     except ImportError:
-        return [_err("CAT-V-011",
-                     "PyYAML required for agent-artifact lint — install agentbundle[lint]")]
+        return [_warn("CAT-V-011",
+                      "PyYAML required for agent-artifact lint — install agentbundle[lint]")]
 
     # --- Duplicate-key detection (inside PyYAML fence) ---
 

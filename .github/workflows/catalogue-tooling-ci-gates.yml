@@ -133,6 +133,13 @@ jobs:
           [pack.install]
           default-scope = "repo"
           allowed-scopes = ["repo"]
+
+          [pack.first-value]
+          audience-posture = "technical"
+          surfaces         = ["claude-code"]
+          prerequisites    = ["agentbundle installed"]
+          verification     = "Run the hello skill and confirm it greets the user."
+          recovery         = "Reinstall the pack if the skill is missing."
           TOML
 
           cat > /tmp/ext-cat/packs/sample-pack/.claude-plugin/plugin.json <<'JSON'
