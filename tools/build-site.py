@@ -22,58 +22,59 @@ Usage:
   python tools/build-site.py --clean
 """
 import argparse
+import json
 import re
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 
-PACKS: list[tuple[str, str, str, str]] = [
-    ("core",               "Core",                "repo", "The build loop — `work-loop`, `new-spec`, `bug-fix`, four specialist reviewers, hooks. **Install this first.**"),
-    ("product-engineering","Product Engineering",  "user", "The discovery loop — raw idea to ratified brief with human consent at G0, G1.5, G2."),
-    ("release-engineering","Release Engineering",  "repo", "The release loop — autonomous e2e convergence on ephemeral environments; prod gate is always human."),
-    ("desk-research",      "Desk Research",         "user", "Evidence-grounded research with typed artifacts, seven skills, and two retrieval subagents."),
-    ("architect",          "Architect",            "user", "System design, diagramming, and independent architecture review from a forked-context subagent."),
-    ("experience-design",  "Experience Design",    "user", "The full design thread: journey mapping, screen flows, creative direction, surface-genre design (6 types), and the shared quality floor."),
-    ("contracts",          "Contracts",            "user", "API-first design — OpenAPI 3.1 for HTTP, AsyncAPI for event streams."),
-    ("iac-terraform",      "IaC (Terraform)",       "repo", "Plain-language intent → governed, cloud-agnostic Terraform and a human-gated pipeline; decision-record-gated, stops at `terraform plan`."),
-    ("converters",         "Converters",           "user", "Document conversion: PDF/DOCX/PPTX/email → Markdown, Markdown → HTML/Word/PowerPoint/Excel."),
-    ("atlassian",          "Atlassian",            "user", "Jira and Confluence from the agent — SSO-cookie authenticated, flow and DORA metrics built in."),
-    ("figma",              "Figma",                "user", "Read and render Figma designs — files, nodes, variables, frame renders, FigJam → Mermaid."),
-    ("governance-extras",  "Governance Extras",    "repo", "RFC/ADR ceremony for long-lived repos: `new-rfc`, `new-adr`, `update-conventions`."),
-    ("user-guide-diataxis","User Guide (Diataxis)", "repo", "Diátaxis docs scaffold — four content modes with the `new-guide` skill."),
-    ("monorepo-extras",    "Monorepo Extras",       "repo", "Package scaffolding — `new-package` skill with an example package template."),
-    ("catalogue-curation", "Catalogue Curation",    "repo", "Catalogue-operator toolkit — assimilate external primitives, survey repos, propose packs, and export white-label or attributed forks."),
-    ("credential-brokers", "Credential Brokers",    "user", "In-process credential resolution: environment → OS keyring → dotfile. Cleartext never reaches the model."),
-    ("product-strategy",   "Product Strategy",      "user", "The strategy seat upstream of product engineering — market analysis (SWOT, Porter, PESTLE, BCG), OKR cascade, PRD writing, stakeholder synthesis, UX strategy, and content strategy."),
-]
+def discover_packs(root: Path, site_toml: Path) -> list[dict]:
+    """Return packs ordered by site.toml groups, ungrouped packs appended alphabetically.
 
-# Starlight requires `title` frontmatter — inject it at the top of the
-# index header so the generated packs/index.md has a valid schema.
-PACK_INDEX_HEADER = f"""\
----
-title: "Pack Catalogue"
-description: "{len(PACKS)} curated packs for the AI operating model."
----
+    Each dict: {slug, display_name, version, scope, description, group}.
+    """
+    with site_toml.open("rb") as f:
+        site = tomllib.load(f)
+    groups = site.get("groups", [])
 
-# Pack Catalogue
+    packs_by_slug: dict[str, dict] = {}
+    for pack_toml in sorted((root / "packs").glob("*/pack.toml")):
+        slug = pack_toml.parent.name
+        with pack_toml.open("rb") as f:
+            data = tomllib.load(f)
+        p = data.get("pack", {})
+        name = p.get("name", slug)
+        display_name = p.get("display_name") or name.replace("-", " ").replace("_", " ").title()
+        packs_by_slug[slug] = {
+            "slug": slug,
+            "display_name": display_name,
+            "version": p.get("version", ""),
+            "scope": p.get("install", {}).get("default-scope", "repo"),
+            "description": p.get("description", ""),
+            "group": None,
+        }
 
-{len(PACKS)} curated packs — each distilled from the best practices of its discipline
-through practitioner research and RFC-and-ADR governance.
+    ordered: list[dict] = []
+    grouped: set[str] = set()
+    for group in groups:
+        label = group["label"]
+        for slug in group.get("packs", []):
+            if slug in packs_by_slug and slug not in grouped:
+                packs_by_slug[slug]["group"] = label
+                ordered.append(packs_by_slug[slug])
+                grouped.add(slug)
 
-Install any pack in one command:
+    for slug in sorted(packs_by_slug):
+        if slug not in grouped:
+            packs_by_slug[slug]["group"] = "Other"
+            ordered.append(packs_by_slug[slug])
 
-```bash
-agentbundle install --pack <name>               # repo scope (default)
-agentbundle install --pack <name> --scope user  # user scope
-```
-
-| Pack | Scope | Description |
-|---|---|---|
-"""
+    return ordered
 
 # ---------------------------------------------------------------------------
 # Frontmatter injection
@@ -334,11 +335,25 @@ def mirror_dir(src: Path, dst: Path, rewriter=None, dry_run: bool = False) -> in
     return count
 
 
-def build_pack_index(packs_dir: Path, out_dir: Path, dry_run: bool = False) -> None:
-    lines = [PACK_INDEX_HEADER]
-    for slug, display, scope, description in PACKS:
-        # Use clean URL (no .md suffix) — Starlight serves at /packs/<slug>/
-        lines.append(f"| [**{display}**]({slug}/) | `{scope}` | {description} |\n")
+def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
+    header = (
+        '---\ntitle: "Pack Catalogue"\n'
+        f'description: "{len(packs)} curated packs for the AI operating model."\n'
+        "---\n\n"
+        "# Pack Catalogue\n\n"
+        f"{len(packs)} curated packs — each distilled from the best practices of its discipline\n"
+        "through practitioner research and RFC-and-ADR governance.\n\n"
+        "Install any pack in one command:\n\n"
+        "```bash\n"
+        "agentbundle install --pack <name>               # repo scope (default)\n"
+        "agentbundle install --pack <name> --scope user  # user scope\n"
+        "```\n\n"
+        "| Pack | Scope | Description |\n"
+        "|---|---|---|\n"
+    )
+    lines = [header]
+    for p in packs:
+        lines.append(f"| [**{p['display_name']}**]({p['slug']}/) | `{p['scope']}` | {p['description']} |\n")
 
     content = "".join(lines)
     index_md = out_dir / "index.md"
@@ -346,6 +361,31 @@ def build_pack_index(packs_dir: Path, out_dir: Path, dry_run: bool = False) -> N
         print(f"  gen   docs-site/src/content/docs/packs/index.md ({len(content)} bytes)")
     else:
         index_md.write_text(content, encoding="utf-8")
+
+
+def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False) -> None:
+    """Write docs-site/src/sidebar-config.json — an array of Starlight sidebar groups."""
+    groups_seen: list[str] = []
+    groups_map: dict[str, list[dict]] = {}
+    for p in packs:
+        g = p["group"]
+        if g not in groups_map:
+            groups_seen.append(g)
+            groups_map[g] = []
+        groups_map[g].append({"label": p["display_name"], "slug": f"packs/{p['slug']}"})
+
+    sidebar: list[dict] = [
+        {"label": "Pack Catalogue", "items": [{"label": "All Packs", "slug": "packs"}]},
+    ]
+    for g in groups_seen:
+        sidebar.append({"label": g, "items": groups_map[g]})
+
+    payload = json.dumps(sidebar, indent=2)
+    if dry_run:
+        print(f"  gen   docs-site/src/sidebar-config.json ({len(payload)} bytes, {len(sidebar)} groups)")
+    else:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(payload + "\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -369,18 +409,25 @@ def main() -> None:
                 shutil.rmtree(d)
                 print(f"  clean {d.relative_to(REPO_ROOT)}/")
 
+    site_toml = REPO_ROOT / "site.toml"
+    packs = discover_packs(REPO_ROOT, site_toml)
+
     print("build-site: copying pack READMEs …")
     packs_out.mkdir(parents=True, exist_ok=True)
-    for slug, *_ in PACKS:
-        src = packs_dir / slug / "README.md"
-        dst = packs_out / f"{slug}.md"
+    for p in packs:
+        src = packs_dir / p["slug"] / "README.md"
+        dst = packs_out / f"{p['slug']}.md"
         if src.exists():
-            copy_file(src, dst, rewriter=lambda t, p=src: _rewrite_pack_readme(t, p), dry_run=args.dry_run)
+            copy_file(src, dst, rewriter=lambda t, s=src: _rewrite_pack_readme(t, s), dry_run=args.dry_run)
         else:
-            print(f"  warn  packs/{slug}/README.md missing", file=sys.stderr)
+            print(f"  warn  packs/{p['slug']}/README.md missing", file=sys.stderr)
 
     print("build-site: generating packs/index.md …")
-    build_pack_index(packs_dir, packs_out, dry_run=args.dry_run)
+    build_pack_index(packs, packs_out, dry_run=args.dry_run)
+
+    print("build-site: generating sidebar-config.json …")
+    sidebar_out = REPO_ROOT / "docs-site" / "src" / "sidebar-config.json"
+    generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run)
 
     print("build-site: mirroring guides …")
     n = mirror_dir(guides_src, guides_out, rewriter=_rewrite_guide, dry_run=args.dry_run)
