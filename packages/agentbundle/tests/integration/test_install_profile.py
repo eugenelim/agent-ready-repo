@@ -29,6 +29,7 @@ def _isolate_home_and_caches(tmp_path, monkeypatch):
     home = tmp_path / "iso_home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(home))
     install._clear_inband_detection_seen()
     install._clear_dropped_warning_seen()
     yield

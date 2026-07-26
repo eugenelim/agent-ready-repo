@@ -742,6 +742,8 @@ def _build_parser() -> argparse.ArgumentParser:
     _lint_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _lint_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
     _lint_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _lint_p.add_argument("--deep", action="store_true", default=False,
+                         help="Run full agentskills.io spec-compliance lint (requires PyYAML: pip install 'agentbundle[lint]').")
     _lint_p.set_defaults(func=_lazy("catalogue_lint"))
 
     # catalogue verify
@@ -805,7 +807,61 @@ def _build_parser() -> argparse.ArgumentParser:
     packs_p.add_argument("--root", default=".", help="Catalogue root directory.")
     packs_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
     packs_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    packs_p.add_argument("--deep", action="store_true", default=False,
+                         help="Run full agentskills.io spec-compliance lint (requires PyYAML: pip install 'agentbundle[lint]').")
     packs_p.set_defaults(func=_lazy("catalogue_lint"))
+
+    # --- pack <sub> --- (pack evals run)
+    pack_parser = subparsers.add_parser(
+        "pack",
+        help="Pack-level commands (evals, etc.).",
+    )
+    pack_subs = pack_parser.add_subparsers(dest="pack_sub", metavar="<sub>")
+
+    pack_evals_p = pack_subs.add_parser("evals", help="Pack evaluation commands.")
+    pack_evals_subs = pack_evals_p.add_subparsers(dest="pack_evals_sub", metavar="<sub>")
+
+    evals_run_p = pack_evals_subs.add_parser(
+        "run",
+        help="Run Tier-A activation evals for a pack (report-only).",
+    )
+    evals_run_p.add_argument("--pack", required=True, help="Pack name under packs/.")
+    evals_run_p.add_argument(
+        "--catalogue-root", default=".", dest="catalogue_root",
+        help="Catalogue repository root (default: current directory).",
+    )
+    evals_run_p.add_argument("--runs", type=int, default=3, help="Runs per query (default 3).")
+    evals_run_p.add_argument(
+        "--adapter", default="claude-code",
+        help="Detector adapter (only claude-code ships in the first cut).",
+    )
+    evals_run_p.add_argument(
+        "--timeout", type=int, default=180,
+        help="Per-run wall-clock timeout in seconds (default 180).",
+    )
+    evals_run_p.add_argument(
+        "--mode", choices=("headless", "in-harness", "judge"), default="headless",
+        help="Eval mode: headless (default), in-harness, or judge.",
+    )
+    evals_run_p.add_argument(
+        "--judge-adapter", default="claude-code", dest="judge_adapter",
+        help="Judge backend (claude-code or codex). Use with --mode judge.",
+    )
+    evals_run_p.add_argument("--model", default=None, help="Model the judge uses.")
+    evals_run_p.add_argument("--judge-config", default=None, dest="judge_config",
+                              help="TOML file with [judge.<name>] backend definitions.")
+    evals_run_p.add_argument("--artifacts", default=None,
+                              help="JSON path for --mode judge.")
+    evals_run_p.add_argument(
+        "--check", choices=("activation", "behavior"), default="activation",
+        help="In-harness check type: activation (default) or behavior.",
+    )
+    evals_run_p.add_argument("--prepare-workspace", default=None, dest="prepare_workspace",
+                              metavar="SKILL/EVAL_ID",
+                              help="Seed a per-eval working dir and print its path.")
+    evals_run_p.add_argument("--reports", default=None,
+                              help="JSON path for --mode in-harness.")
+    evals_run_p.set_defaults(func=_lazy("pack_evals"))
 
     return parser
 

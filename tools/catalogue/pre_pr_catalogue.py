@@ -52,7 +52,7 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
-def _run(label: str, argv: list[str]) -> None:
+def _run(label: str, argv: list[str], env: "dict | None" = None) -> None:
     """Run *argv*; on non-zero exit, surface its output, print the failure line,
     and ``sys.exit(1)``. On success, print the success line.
 
@@ -60,7 +60,7 @@ def _run(label: str, argv: list[str]) -> None:
     ``_run`` does **not** skip on a missing tool — a deleted catalogue linter
     must fail loud, not silently pass. Do not "unify" the two `_run`s: that
     would make a dropped catalogue check go green (a real regression)."""
-    result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False)
+    result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False, env=env)
     if result.returncode != 0:
         if result.stdout:
             sys.stdout.write(result.stdout)
@@ -92,7 +92,9 @@ def main() -> int:
     # Step 2: repo-specific gates (catalogue-internal checks + adopter-facing hook).
     _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
     _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
-    _run("skill-spec lint",     [py, "tools/lint-skill-spec.py"])
+    _run("skill-spec lint",
+         [py, "-m", "agentbundle", "catalogue", "lint", "--root", ".", "--deep"],
+         env=_agentbundle_env())
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
     _run("catalogue-seeds lint", [py, "tools/lint-catalogue-seeds.py"])

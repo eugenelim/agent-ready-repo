@@ -124,6 +124,7 @@ def test_disjoint_recommended_is_repo_only(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, _out, err = _run(
         dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="user", force=False)
@@ -145,6 +146,7 @@ def test_disjoint_recommended_is_user_only(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, _out, err = _run(
         dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="repo", force=False)
@@ -200,6 +202,7 @@ def test_dual_scope_force_emits_one_warning_per_scope(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     # Install A at repo first.
     _run(dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="repo", force=False))

@@ -15,8 +15,8 @@ on:
       - 'tools/lint-agents-md.py'
       - 'tools/lint-agent-artifacts.py'
       - 'tools/test-lint-agent-artifacts.sh'
-      - 'tools/lint-skill-spec.py'
-      - 'tools/test-lint-skill-spec.py'
+      - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
+      - 'packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py'
       - 'packs/**/.apm/skills/**'
       - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
@@ -63,12 +63,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools dependencies
-        run: pip install -r tools/requirements.txt
+      - name: Install agentbundle with lint extra
+        run: pip install -e 'packages/agentbundle/[lint]' pytest
       - name: Run skill-spec linter (projection + seeds)
-        run: python tools/lint-skill-spec.py
+        run: agentbundle catalogue lint --root . --deep
       - name: Self-test the linter (every failure mode + happy path)
-        run: python tools/test-lint-skill-spec.py
+        run: python -m pytest packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py -v
 
   lint-knowledge:
     name: Knowledge base

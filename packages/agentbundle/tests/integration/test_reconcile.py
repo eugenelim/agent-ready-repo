@@ -64,7 +64,10 @@ class _ReconcileBase(unittest.TestCase):
         self.home.mkdir()
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
-        self._env = patch.dict(os.environ, {"HOME": str(self.home)})
+        self._env = patch.dict(os.environ, {
+            "HOME": str(self.home),
+            "AGENTBUNDLE_USER_ROOT": str(self.home),
+        })
         self._env.start()
         self.addCleanup(self._env.stop)
         self.cat = self.tmp / "catalogue"
