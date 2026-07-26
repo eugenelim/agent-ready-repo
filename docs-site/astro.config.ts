@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { unified } from '@astrojs/markdown-remark';
+import sidebarConfig from './src/sidebar-config.json';
 import { visit } from 'unist-util-visit';
 
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
@@ -77,29 +78,7 @@ export default defineConfig({
             { label: 'The Three Loops', slug: 'getting-started/three-loops' },
           ],
         },
-        {
-          label: 'Packs',
-          items: [
-            { label: 'Pack Catalogue', slug: 'packs' },
-            { label: 'Core — Build Loop', slug: 'packs/core' },
-            { label: 'Product Engineering', slug: 'packs/product-engineering' },
-            { label: 'Release Engineering', slug: 'packs/release-engineering' },
-            { label: 'Desk Research', slug: 'packs/desk-research' },
-            { label: 'Architect', slug: 'packs/architect' },
-            { label: 'Experience Design', slug: 'packs/experience-design' },
-            { label: 'Contracts', slug: 'packs/contracts' },
-            { label: 'IaC (Terraform)', slug: 'packs/iac-terraform' },
-            { label: 'Converters', slug: 'packs/converters' },
-            { label: 'Atlassian', slug: 'packs/atlassian' },
-            { label: 'Figma', slug: 'packs/figma' },
-            { label: 'Governance Extras', slug: 'packs/governance-extras' },
-            { label: 'User Guide Diataxis', slug: 'packs/user-guide-diataxis' },
-            { label: 'Monorepo Extras', slug: 'packs/monorepo-extras' },
-            { label: 'Catalogue Curation', slug: 'packs/catalogue-curation' },
-            { label: 'Credential Brokers', slug: 'packs/credential-brokers' },
-            { label: 'Product Strategy', slug: 'packs/product-strategy' },
-          ],
-        },
+        ...(sidebarConfig as any[]),
         {
           label: 'Guides',
           items: [
@@ -318,7 +297,6 @@ export default defineConfig({
                   label: 'How-to',
                   items: [
                     { label: 'Author Design Intent', slug: 'guides/experience-design/how-to/author-design-intent' },
-                    { label: 'Three-Way Copy Boundary', slug: 'guides/experience-design/how-to/copy-layer-boundary' },
                   ],
                 },
                 {

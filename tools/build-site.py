@@ -62,15 +62,22 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
     ordered: list[dict] = []
     grouped: set[str] = set()
     for group in groups:
-        label = group["label"]
+        label = group.get("label")
+        if not label:
+            print(f"  warn  site.toml group missing 'label' — skipping", file=sys.stderr)
+            continue
         for slug in group.get("packs", []):
-            if slug in packs_by_slug and slug not in grouped:
+            if slug not in packs_by_slug:
+                print(f"  warn  site.toml slug '{slug}' in group '{label}' has no packs/{slug}/pack.toml", file=sys.stderr)
+                continue
+            if slug not in grouped:
                 packs_by_slug[slug]["group"] = label
                 ordered.append(packs_by_slug[slug])
                 grouped.add(slug)
 
     for slug in sorted(packs_by_slug):
         if slug not in grouped:
+            print(f"  warn  pack '{slug}' not in any site.toml group — placed in 'Other'", file=sys.stderr)
             packs_by_slug[slug]["group"] = "Other"
             ordered.append(packs_by_slug[slug])
 
