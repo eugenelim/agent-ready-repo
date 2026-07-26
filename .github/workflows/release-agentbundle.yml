@@ -114,8 +114,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install agentbundle (editable) + pytest
-        run: pip install -e packages/agentbundle pytest
+      - name: Install agentbundle (editable) + optional extras + pytest
+        run: pip install -e 'packages/agentbundle[lint]' -e packages/credbroker pytest
 
       - name: Full agentbundle test suite (Gate H pre-publish)
         working-directory: packages/agentbundle
