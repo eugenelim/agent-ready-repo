@@ -170,6 +170,26 @@
             "safety-gate": {"type": "string"}
           },
           "additionalProperties": false
+        },
+        "runtime-dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ecosystem", "package"],
+            "properties": {
+              "ecosystem": {
+                "type": "string",
+                "enum": ["pypi", "npm", "cargo", "go", "homebrew", "apt", "system"]
+              },
+              "package": {"type": "string"},
+              "version": {"type": "string"},
+              "optional": {"type": "boolean", "default": false},
+              "skills": {"type": "array", "items": {"type": "string"}},
+              "install": {"type": "string"},
+              "note": {"type": "string"}
+            }
+          }
         }
       },
       "if": {
