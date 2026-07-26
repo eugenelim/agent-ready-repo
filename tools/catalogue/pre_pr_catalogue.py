@@ -5,7 +5,7 @@ Portable verification (lint, build, schema, self-host drift) is delegated to:
   agentbundle catalogue verify --root .
 
 This script then runs the repo-specific policy gates that are never projected
-to adopters (spec state, traceability, brief coverage, and the eight
+to adopters (spec state, traceability, brief coverage, and the
 catalogue-internal linters).
 
 `make pre-pr` and `make build-check` run this (via the shim at
@@ -91,25 +91,16 @@ def main() -> int:
 
     # Step 2: repo-specific gates (catalogue-internal checks + adopter-facing hook).
     _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
-    _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
     _run("skill-spec lint",
          [py, "-m", "agentbundle", "catalogue", "lint", "--root", ".", "--deep"],
          env=_agentbundle_env())
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
-    _run("catalogue-seeds lint", [py, "tools/lint-catalogue-seeds.py"])
-    _run("catalogue-seeds lint self-test",
-         [py, "tools/test-lint-catalogue-seeds.py"])
-    _run("credentialed-skill lint", [py, "tools/lint_credentialed_skills.py"])
-    _run("credentialed-skill lint self-test",
-         [py, "tools/test-lint-credentialed-skills.py"])
     _run("sso-config lint", [py, "tools/lint-sso-config.py"])
     _run("sso-config lint self-test", [py, "tools/test-lint-sso-config.py"])
     _run("knowledge-surface parity", [py, "tools/lint-knowledge-surface-parity.py"])
     _run("knowledge-surface parity self-test",
          [py, "tools/test-lint-knowledge-surface-parity.py"])
-    _run("profiles lint", [py, "tools/lint-profiles.py", "--root", "."])
-    _run("profiles lint self-test", [py, "tools/test-lint-profiles.py"])
     _run("pack-evals runner self-test", [py, "tools/test-run-pack-evals.py"])
     _run("pack-evals workflow posture", [py, "tools/test-pack-evals-workflow.py"])
     _run("web-journey parity", [py, "tools/lint-web-journey-parity.py"])

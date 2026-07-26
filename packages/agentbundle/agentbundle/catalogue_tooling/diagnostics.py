@@ -36,3 +36,7 @@ class DiagnosticCode(str, enum.Enum):
     CAT_L025 = "CAT-L025"   # Primitive name exceeds max length
     CAT_L026 = "CAT-L026"   # Primitive description exceeds max length
     CAT_L027 = "CAT-L027"   # Multiline metadata form not supported
+    CAT_L028 = "CAT-L028"   # Install profile invariant violation (scope, deps, order)
+    CAT_L029 = "CAT-L029"   # Catalogue seeds lint failure (blocklist, placeholder, patterns.jsonl)
+    CAT_L030 = "CAT-L030"   # First-value contract violation (Level A/B fields, writes-to-repo, tutorial)
+    CAT_L031 = "CAT-L031"   # Credentialed-skill convention violation (D1/D2/D2b/D3/broker-specific)

@@ -114,8 +114,8 @@ class BuildCheckChainTest(unittest.TestCase):
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + 10 script steps = 11 total subprocess calls.
-        self.assertEqual(len(order), 11)
+        # 1 module step (catalogue build) + 7 script steps = 8 total subprocess calls.
+        self.assertEqual(len(order), 8)
 
     def test_first_step_is_catalogue_build(self):
         """The first step must invoke agentbundle catalogue build."""
@@ -149,8 +149,8 @@ class BuildCheckChainTest(unittest.TestCase):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
             gc.build_check(args)
 
-        # Find the pre-pr-catalogue step (index 2 = third call).
-        pre_pr_argv = seen[2]
+        # Find the pre-pr-catalogue step (index 1 = second call; first is catalogue build).
+        pre_pr_argv = seen[1]
         # Path should contain tools/catalogue/pre_pr_catalogue.py
         script_path = Path(pre_pr_argv[1]).as_posix()
         self.assertIn("tools/catalogue/pre_pr_catalogue.py", script_path)
@@ -175,7 +175,7 @@ class BuildCheckChainTest(unittest.TestCase):
                 self.assertFalse(token.endswith(".sh"))
 
     def test_spawned_script_paths_in_order(self):
-        """The ten spawned script paths match the expected gate order."""
+        """The spawned script paths match the expected gate order."""
         seen: list[list[str]] = []
 
         def fake_run(argv, check, env=None):
@@ -185,12 +185,11 @@ class BuildCheckChainTest(unittest.TestCase):
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        # seen[0] = module step (catalogue build); seen[1:] = 10 script steps.
+        # seen[0] = module step (catalogue build); seen[1:] = script steps.
         spawned = [Path(argv[1]).as_posix() for argv in seen[1:]]
         self.assertEqual(
             spawned,
             [
-                "tools/validate-claude-plugin-manifests.py",
                 "tools/catalogue/pre_pr_catalogue.py",
                 ".claude/skills/work-loop/scripts/test-lint-spec-status.py",
                 ".claude/skills/work-loop/scripts/lint-spec-status.py",
@@ -198,8 +197,6 @@ class BuildCheckChainTest(unittest.TestCase):
                 ".claude/skills/receive-brief/scripts/lint-brief-coverage.py",
                 ".claude/skills/work-loop/scripts/test-lint-traceability.py",
                 ".claude/skills/work-loop/scripts/lint-traceability.py",
-                "tools/test-lint-first-value-contract.py",
-                "tools/lint-first-value-contract.py",
             ],
         )
 

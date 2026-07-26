@@ -20,6 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [agentbundle][0.18.0] — 2026-07-25
+
+### Added
+
+- **`agentbundle catalogue lint` now covers profiles, seeds, first-value contract, and credentialed-skill conventions.** Four checks previously scattered across standalone `tools/` scripts are now built into the CLI: profile key validation and required-field checks; catalogue-seed blocklist enforcement (no `agent-ready-repo` strings, RFC/K-series identifiers, or internal-spec names in scaffolded adopter seeds); first-value contract completeness for Level-A and Level-B packs; and credentialed-skill AST inspection (argv-ban, canonical shim detection, dotfile guard, APM-skill presence). Requires `pip install 'agentbundle[lint]'` for the credentialed-skill AST pass.
+
+- **`agentbundle catalogue verify` now runs agent-artifact lint (step 11) and plugin-manifest schema validation (step 13).** Step 11 validates `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, and `.claude/commands/*.md` frontmatter and enforces the APM-skill leak guard. Step 13 validates every generated `*.claude-plugin/plugin.json` against the bundled schema. Both require `pip install 'agentbundle[lint]'`; absent PyYAML, step 11 returns a single advisory diagnostic.
+
+### Removed
+
+- **Six standalone `tools/` linter scripts deleted.** `lint-agent-artifacts.py`, `lint-catalogue-seeds.py`, `lint-profiles.py`, `lint-first-value-contract.py`, `lint_credentialed_skills.py`, and `validate-claude-plugin-manifests.py` — plus their self-tests — are removed. All functionality is in `catalogue lint` and `catalogue verify` with identical error codes and message strings.
+
+---
+
 ## [agentbundle][0.17.0] — 2026-07-25
 
 ### Added

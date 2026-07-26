@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.18.0] — 2026-07-25
+
+### Added
+
+- **`agentbundle catalogue lint` now covers profiles, seeds, first-value contract, and credentialed-skill conventions.** Four checks previously scattered across standalone `tools/` scripts are now built into the CLI: profile key validation and required-field checks (`_check_profiles`); catalogue-seed blocklist enforcement — no `agent-ready-repo` strings, RFC/K-series identifiers, or internal-spec names leak into scaffolded adopter seeds (`_check_seeds`); first-value contract completeness for Level-A and Level-B packs (`_check_first_value`); and credentialed-skill AST inspection — argv-ban, canonical shim detection, dotfile guard, and APM-skill presence (`_check_credentialed_skills`). Requires `pip install 'agentbundle[lint]'` for the credentialed-skill AST pass.
+
+- **`agentbundle catalogue verify` now runs agent-artifact lint (step 11) and plugin-manifest schema validation (step 13).** Step 11 (`_step_agent_artifacts`) validates `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, and `.claude/commands/*.md` frontmatter — key set, lengths, link format, auth broker — and enforces the APM-skill leak guard (no `.apm/` content leaks into `.claude/`). Step 13 (`_step_plugin_manifests`) validates every generated `*.claude-plugin/plugin.json` against the bundled `plugin-manifest.derived.schema.json` schema. Both require `pip install 'agentbundle[lint]'` (PyYAML) to produce diagnostics; absent PyYAML, step 11 returns a single advisory diagnostic and step 13 is a no-op.
+
+### Removed
+
+- **Six standalone `tools/` scripts deleted.** `tools/lint-agent-artifacts.py`, `tools/lint-catalogue-seeds.py`, `tools/lint-profiles.py`, `tools/lint-first-value-contract.py`, `tools/lint_credentialed_skills.py`, and `tools/validate-claude-plugin-manifests.py` — plus their self-tests and the `tools/lint-credentialed-skills.sh` wrapper — are removed. All functionality is preserved in `catalogue lint` and `catalogue verify` with identical error codes and message strings.
+
 ## [0.17.1] — 2026-07-25
 
 ### Fixed

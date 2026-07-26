@@ -4006,7 +4006,7 @@ def validate_dependencies_required(
     version range is enforced for real at write time — the profile orchestrator
     writes deps-first, so each dependent's per-pack gate re-runs against actual
     state with the dep's real version — and the profile lint
-    (``tools/lint-profiles.py``) independently checks in-batch version
+    (``lint.py (_check_profiles)``) independently checks in-batch version
     satisfiability at author-time. The version-range *grammar* is still
     validated even for an in-batch dep (a malformed range is a manifest bug).
     Default ``None`` → existing single-pack behavior, byte-for-byte.

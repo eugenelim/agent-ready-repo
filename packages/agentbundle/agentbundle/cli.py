@@ -738,7 +738,7 @@ def _build_parser() -> argparse.ArgumentParser:
     cat_subs = cat_parser.add_subparsers(dest="catalogue_sub", metavar="<sub>")
 
     # catalogue lint
-    _lint_p = cat_subs.add_parser("lint", help="Lint catalogue packs.")
+    _lint_p = cat_subs.add_parser("lint", help="Lint catalogue packs (profiles, seeds, first-value contract, credentialed-skill conventions).")
     _lint_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _lint_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
     _lint_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
@@ -747,7 +747,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _lint_p.set_defaults(func=_lazy("catalogue_lint"))
 
     # catalogue verify
-    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (18-step pipeline).")
+    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (18-step pipeline, including agent-artifact lint and plugin manifest validation).")
     _ver_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _ver_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
     _ver_p.add_argument("--archive", default=None, help="Verify a packaged .tar.gz archive instead of source tree.")

@@ -11,7 +11,7 @@
 # table; v0.7).
 # RFC-0013 / docs/specs/credential-broker-contract (governance bump, v0.7 —
 # admitted as a co-residing v0.7 contributor; the `metadata.auth` lint
-# surface lives in tools/lint-agent-artifacts.py, not in this file).
+# surface lives in verify.py (_step_agent_artifacts), not in this file).
 # docs/specs/dropped-primitives-coverage (v0.8): codex `agent` projects to
 # `.codex/agents/<name>.toml` via new `codex-agent-toml` mode; codex
 # `hook-wiring` projects to `.codex/hooks.json` via existing `merge-json`

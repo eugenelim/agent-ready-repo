@@ -36,21 +36,28 @@ HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "pre-pr.py"
 CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
 
-def test_catalogue_hook_runs_all_8_checks_and_delegates() -> None:
-    """AC3: the repo-native catalogue hook runs the exact 8-check set the old
-    pre-pr.py ran, then delegates to the shipped pre-pr.py."""
+def test_catalogue_hook_runs_core_checks_and_delegates() -> None:
+    """AC3: the repo-native catalogue hook runs the core check set, then delegates
+    to the shipped pre-pr.py. Agent-artifact, seeds, credentialed-skill, and
+    profiles checks are now covered by agentbundle catalogue verify/lint."""
     src = CATALOGUE_HOOK.read_text(encoding="utf-8")
     for tool in (
         "tools/lint-agents-md.py",
-        "tools/lint-agent-artifacts.py",
         # skill-spec lint now invokes agentbundle catalogue lint --deep (not a tools/ script)
         "tools/lint-knowledge.py",
         "tools/lint-build.py",
+    ):
+        assert tool in src, f"catalogue hook must run {tool}"
+    for removed_tool in (
+        "tools/lint-agent-artifacts.py",
         "tools/lint-catalogue-seeds.py",
         "tools/lint_credentialed_skills.py",
         "tools/test-lint-credentialed-skills.py",
+        "tools/lint-profiles.py",
     ):
-        assert tool in src, f"catalogue hook must run {tool}"
+        assert removed_tool not in src, (
+            f"catalogue hook must not reference deleted script {removed_tool}"
+        )
     # skill-spec lint step now delegates to agentbundle package instead of tools/ script
     assert '"--deep"' in src, "catalogue hook must run agentbundle catalogue lint --deep"
     assert "tools/hooks/pre-pr.py" in src, (

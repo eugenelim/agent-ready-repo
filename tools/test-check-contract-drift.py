@@ -3,7 +3,7 @@
 
 Pattern: build fixture trees in a tempdir, run the drift-check via subprocess
 against each tree (``--root <tmp>``), assert exit code and output substrings.
-Real invocation — not synthesised import. Follows tools/test-lint-profiles.py.
+Real invocation — not synthesised import. Follows the pattern in lint.py.
 
 Trees:
   A — four identical copies: exit 0

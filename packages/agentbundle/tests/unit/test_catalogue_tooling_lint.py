@@ -62,7 +62,15 @@ def _add_pack(
     return pack_dir
 
 
-_PACK_A_TOML = "[pack]\nname = \"pack-a\"\nversion = \"0.1.0\"\n"
+_PACK_A_TOML = (
+    '[pack]\nname = "pack-a"\nversion = "0.1.0"\n\n'
+    '[pack.first-value]\n'
+    'audience-posture = "technical"\n'
+    'surfaces = ["claude"]\n'
+    'prerequisites = []\n'
+    'verification = "run tests"\n'
+    'recovery = "revert"\n'
+)
 _PACK_A_JSON = '{"name": "pack-a", "version": "0.1.0"}'
 
 
@@ -373,3 +381,701 @@ def test_ok_false_on_any_error(tmp_path, monkeypatch):
     result = lint_catalogue(tmp_path)
     assert result.ok is False
     assert any(d.severity == Severity.ERROR for d in result.diagnostics)
+
+
+# ---------------------------------------------------------------------------
+# Task 2 — _CatalogueRules._check_profiles() (CAT-L028)
+# ---------------------------------------------------------------------------
+
+
+def _setup_profile(root: Path, name: str, content: str) -> Path:
+    """Write a profile TOML file under root/profiles/."""
+    (root / "profiles").mkdir(parents=True, exist_ok=True)
+    p = root / "profiles" / f"{name}.toml"
+    p.write_text(content, encoding="utf-8")
+    return p
+
+
+def _add_pack_full(
+    root: Path,
+    name: str,
+    *,
+    version: str = "0.1.0",
+    allowed_scopes: list[str] | None = None,
+    required_deps: list[dict] | None = None,
+) -> Path:
+    """Add a pack with full pack.toml for profiles tests."""
+    pack_dir = root / "packs" / name
+    pack_dir.mkdir(parents=True, exist_ok=True)
+    install_section = ""
+    if allowed_scopes is not None:
+        scopes_str = ", ".join(f'"{s}"' for s in allowed_scopes)
+        install_section = f'\n[pack.install]\nallowed-scopes = [{scopes_str}]'
+    deps_section = ""
+    if required_deps:
+        deps_lines = "\n".join(
+            f'  {{ pack = "{d["pack"]}", version = "{d["version"]}" }}'
+            for d in required_deps
+        )
+        deps_section = f"\n[pack.dependencies]\nrequired = [\n{deps_lines},\n]"
+    (pack_dir / "pack.toml").write_text(
+        f'[pack]\nname = "{name}"\nversion = "{version}"\n'
+        f'{install_section}{deps_section}\n',
+        encoding="utf-8",
+    )
+    return pack_dir
+
+
+def test_check_profiles_no_profiles_dir(tmp_path, monkeypatch):
+    """No profiles/ directory → no CAT-L028 diagnostics."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L028" for d in result.diagnostics)
+
+
+def test_check_profiles_invalid_scope_value(tmp_path, monkeypatch):
+    """Profile with invalid scope value → CAT-L028 mentioning 'invalid scope' or 'scope must be'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _setup_profile(tmp_path, "bad-scope", 'scope = "cluster"\npacks = []')
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for invalid scope value"
+    assert any("scope must be" in d.message for d in l028)
+
+
+def test_check_profiles_empty_packs_list(tmp_path, monkeypatch):
+    """Profile with empty packs list → CAT-L028 mentioning 'non-empty list'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _setup_profile(tmp_path, "empty-packs", 'scope = "repo"\npacks = []')
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for empty packs list"
+    assert any("non-empty list" in d.message for d in l028)
+
+
+def test_check_profiles_pack_not_found(tmp_path, monkeypatch):
+    """Profile references pack not in packs/ → CAT-L028 mentioning 'not found in packs/'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _setup_profile(
+        tmp_path, "missing-pack",
+        'scope = "repo"\n[[packs]]\npack = "nonexistent-pack"\n'
+    )
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for pack not found"
+    assert any("not found in packs/" in d.message for d in l028)
+
+
+def test_check_profiles_scope_homogeneity_violation(tmp_path, monkeypatch):
+    """Profile scope 'user' but pack only allows 'repo' → CAT-L028 mentioning 'does not allow scope'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(tmp_path, "repo-only", allowed_scopes=["repo"])
+    _setup_profile(
+        tmp_path, "scope-mismatch",
+        'scope = "user"\n[[packs]]\npack = "repo-only"\n'
+    )
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for scope homogeneity violation"
+    assert any("does not allow scope" in d.message for d in l028)
+
+
+def test_check_profiles_dependency_incomplete(tmp_path, monkeypatch):
+    """Pack has required dep not in profile → CAT-L028 mentioning 'dependency-incomplete'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(
+        tmp_path, "pack-a", allowed_scopes=["repo"],
+        required_deps=[{"pack": "pack-b", "version": "^0.1"}],
+    )
+    _setup_profile(
+        tmp_path, "missing-dep",
+        'scope = "repo"\n[[packs]]\npack = "pack-a"\n'
+    )
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for dependency-incomplete"
+    assert any("dependency-incomplete" in d.message for d in l028)
+
+
+def test_check_profiles_order_invalid(tmp_path, monkeypatch):
+    """Dep listed after dependent pack → CAT-L028 mentioning 'mis-ordered'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(tmp_path, "pack-base", allowed_scopes=["repo"])
+    _add_pack_full(
+        tmp_path, "pack-ext", allowed_scopes=["repo"],
+        required_deps=[{"pack": "pack-base", "version": "^0.1"}],
+    )
+    # pack-ext before pack-base (wrong order)
+    _setup_profile(
+        tmp_path, "wrong-order",
+        'scope = "repo"\n[[packs]]\npack = "pack-ext"\n[[packs]]\npack = "pack-base"\n'
+    )
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for mis-ordered deps"
+    assert any("mis-ordered" in d.message for d in l028)
+
+
+def test_check_profiles_unsupported_range_grammar(tmp_path, monkeypatch):
+    """Pack dep uses unsupported range grammar → CAT-L028 mentioning 'unsupported version range'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(tmp_path, "pack-base", allowed_scopes=["repo"])
+    _add_pack_full(
+        tmp_path, "pack-ext", allowed_scopes=["repo"],
+        required_deps=[{"pack": "pack-base", "version": "~=0.1"}],
+    )
+    _setup_profile(
+        tmp_path, "bad-range",
+        'scope = "repo"\n[[packs]]\npack = "pack-base"\n[[packs]]\npack = "pack-ext"\n'
+    )
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for unsupported range grammar"
+    assert any("unsupported version range" in d.message for d in l028)
+
+
+def test_check_profiles_parse_failure(tmp_path, monkeypatch):
+    """Malformed TOML profile → CAT-L028 mentioning 'cannot parse'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _setup_profile(tmp_path, "bad-toml", "this = [[ invalid toml")
+    result = lint_catalogue(tmp_path)
+    l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
+    assert l028, "expected CAT-L028 for parse failure"
+    assert any("cannot parse" in d.message for d in l028)
+
+
+def test_check_profiles_clean(tmp_path, monkeypatch):
+    """Valid profile → no CAT-L028 diagnostics."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(tmp_path, "pack-a", allowed_scopes=["repo"])
+    _setup_profile(
+        tmp_path, "clean",
+        'scope = "repo"\n[[packs]]\npack = "pack-a"\n'
+    )
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L028" for d in result.diagnostics)
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — _PackRules._check_seeds() (CAT-L029)
+# ---------------------------------------------------------------------------
+
+
+def _add_pack_with_seeds(
+    root: Path,
+    pack_name: str,
+    *,
+    lint_seeds: bool = True,
+    seeds: dict[str, str] | None = None,
+) -> Path:
+    """Create a pack with opt-in lint-seeds flag and optional seed files."""
+    pack_dir = root / "packs" / pack_name
+    (pack_dir / "seeds").mkdir(parents=True, exist_ok=True)
+    flag = "true" if lint_seeds else "false"
+    (pack_dir / "pack.toml").write_text(
+        f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\nlint-seeds = {flag}\n',
+        encoding="utf-8",
+    )
+    if seeds:
+        for rel, content in seeds.items():
+            seed_path = pack_dir / "seeds" / rel
+            seed_path.parent.mkdir(parents=True, exist_ok=True)
+            seed_path.write_text(content, encoding="utf-8")
+    return pack_dir
+
+
+def test_check_seeds_opt_out(tmp_path, monkeypatch):
+    """Pack without lint-seeds = true → no CAT-L029 even with unknown seed."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=False, seeds={"AGENTS.md": "<project-name>"})
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L029" for d in result.diagnostics)
+
+
+def test_check_seeds_unknown_seed(tmp_path, monkeypatch):
+    """Seed not in REQUIRED_PLACEHOLDERS → CAT-L029 fail-loud mentioning 'declare its expected'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_with_seeds(
+        tmp_path, "pack-a", lint_seeds=True,
+        seeds={"unknown-file.md": "some content"},
+    )
+    result = lint_catalogue(tmp_path)
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    assert l029, "expected CAT-L029 for unknown seed file"
+    assert any("declare its expected" in d.message for d in l029)
+
+
+def test_check_seeds_blocklist_hit(tmp_path, monkeypatch):
+    """Seed contains 'agent-ready-repo' → CAT-L029."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_with_seeds(
+        tmp_path, "pack-a", lint_seeds=True,
+        seeds={"AGENTS.md": "This is for agent-ready-repo\n<project-name>"},
+    )
+    result = lint_catalogue(tmp_path)
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    assert l029, "expected CAT-L029 for blocklist hit"
+
+
+def test_check_seeds_missing_placeholder(tmp_path, monkeypatch):
+    """Seed missing required placeholder token → CAT-L029."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    # AGENTS.md requires '<project-name>'
+    _add_pack_with_seeds(
+        tmp_path, "pack-a", lint_seeds=True,
+        seeds={"AGENTS.md": "No placeholder here\n"},
+    )
+    result = lint_catalogue(tmp_path)
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    assert l029, "expected CAT-L029 for missing placeholder"
+    assert any("required placeholder missing" in d.message for d in l029)
+
+
+def test_check_seeds_sentinel_exemption(tmp_path, monkeypatch):
+    """Seed with sentinel above blocklist hit → no CAT-L029."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    content = (
+        "<project-name>\n"
+        "<!-- seed-content-lint-ignore: intentional -->\n"
+        "agent-ready-repo\n"
+    )
+    _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True, seeds={"AGENTS.md": content})
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L029" for d in result.diagnostics)
+
+
+def test_check_seeds_stacked_sentinel(tmp_path, monkeypatch):
+    """Two back-to-back sentinels → CAT-L029 mentioning 'stacked sentinel'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    content = (
+        "<project-name>\n"
+        "<!-- seed-content-lint-ignore: first -->\n"
+        "<!-- seed-content-lint-ignore: second -->\n"
+        "some content\n"
+    )
+    _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True, seeds={"AGENTS.md": content})
+    result = lint_catalogue(tmp_path)
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    assert l029, "expected CAT-L029 for stacked sentinel"
+    assert any("stacked sentinel" in d.message for d in l029)
+
+
+def test_check_seeds_patterns_jsonl_nonempty(tmp_path, monkeypatch):
+    """patterns.jsonl with content → CAT-L029."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    seeds = {
+        "AGENTS.md": "<project-name>",
+        "docs/knowledge/patterns.jsonl": '{"pattern": "example"}\n',
+    }
+    pack_dir = tmp_path / "packs" / "pack-a"
+    (pack_dir / "seeds" / "docs" / "knowledge").mkdir(parents=True, exist_ok=True)
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "pack-a"\nversion = "0.1.0"\nlint-seeds = true\n',
+        encoding="utf-8",
+    )
+    for rel, content in seeds.items():
+        p = pack_dir / "seeds" / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+    result = lint_catalogue(tmp_path)
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    assert l029, "expected CAT-L029 for non-empty patterns.jsonl"
+    assert any("must be empty" in d.message for d in l029)
+
+
+def test_check_seeds_clean(tmp_path, monkeypatch):
+    """Opt-in pack with clean seeds → no CAT-L029."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_with_seeds(
+        tmp_path, "pack-a", lint_seeds=True,
+        seeds={"AGENTS.md": "<project-name>"},
+    )
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L029" for d in result.diagnostics)
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — _PackRules._check_first_value() (CAT-L030)
+# ---------------------------------------------------------------------------
+
+_FV_SECTION = """
+[pack.first-value]
+audience-posture = "technical"
+surfaces = ["claude"]
+prerequisites = []
+verification = "run tests"
+recovery = "revert the change"
+"""
+
+
+def _add_pack_fv(root: Path, name: str, *, pack_toml_extra: str = "") -> Path:
+    """Add a pack with allowed-adapters = [\"claude\"] and optional extra TOML."""
+    pack_dir = root / "packs" / name
+    pack_dir.mkdir(parents=True, exist_ok=True)
+    (pack_dir / "pack.toml").write_text(
+        f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        f'[pack.install]\nallowed-adapters = ["claude"]\n'
+        f'{pack_toml_extra}\n',
+        encoding="utf-8",
+    )
+    return pack_dir
+
+
+def test_check_first_value_missing_section(tmp_path, monkeypatch):
+    """Pack without [pack.first-value] → CAT-L030 mentioning 'section missing'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_fv(tmp_path, "pack-a")
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert l030, "expected CAT-L030 for missing first-value section"
+    assert any("section missing" in d.message for d in l030)
+
+
+def test_check_first_value_level_a_missing_field(tmp_path, monkeypatch):
+    """Pack with first-value but missing 'verification' → CAT-L030."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    # missing 'verification'
+    extra = (
+        "[pack.first-value]\n"
+        'audience-posture = "technical"\n'
+        'surfaces = ["claude"]\n'
+        "prerequisites = []\n"
+        'recovery = "revert"\n'
+    )
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert l030, "expected CAT-L030 for missing Level A field"
+    assert any("verification" in d.message for d in l030)
+
+
+def test_check_first_value_level_b_required_when_flagged(tmp_path, monkeypatch):
+    """Pack with level-b = true missing starter-task → CAT-L030."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = (
+        "[pack.first-value]\n"
+        'audience-posture = "technical"\n'
+        'surfaces = ["claude"]\n'
+        "prerequisites = []\n"
+        'verification = "run tests"\n'
+        'recovery = "revert"\n'
+        "level-b = true\n"
+        # missing starter-task, starter-prompt, expected-result, next-action
+    )
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert l030, "expected CAT-L030 for missing Level B fields"
+    assert any("starter-task" in d.message for d in l030)
+
+
+def test_check_first_value_writes_to_repo_gate(tmp_path, monkeypatch):
+    """Pack with writes-to-repo = true missing safety-gate → CAT-L030."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = (
+        "[pack.first-value]\n"
+        'audience-posture = "technical"\n'
+        'surfaces = ["claude"]\n'
+        "prerequisites = []\n"
+        'verification = "run tests"\n'
+        'recovery = "revert"\n'
+        "writes-to-repo = true\n"
+        # missing safety-gate
+    )
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert l030, "expected CAT-L030 for missing safety-gate"
+    assert any("safety-gate" in d.message for d in l030)
+
+
+def test_check_first_value_tutorial_missing_file(tmp_path, monkeypatch):
+    """Pack declares tutorial that doesn't exist → CAT-L030 mentioning 'does not exist'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = (
+        "[pack.first-value]\n"
+        'audience-posture = "technical"\n'
+        'surfaces = ["claude"]\n'
+        "prerequisites = []\n"
+        'verification = "run tests"\n'
+        'recovery = "revert"\n'
+        'tutorial = "docs/guides/tutorials/nonexistent.md"\n'
+    )
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert l030, "expected CAT-L030 for missing tutorial file"
+    assert any("does not exist" in d.message for d in l030)
+
+
+def test_check_first_value_clean(tmp_path, monkeypatch):
+    """Pack with complete valid first-value section → no CAT-L030."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = (
+        "[pack.first-value]\n"
+        'audience-posture = "technical"\n'
+        'surfaces = ["claude"]\n'
+        "prerequisites = []\n"
+        'verification = "run tests"\n'
+        'recovery = "revert the change"\n'
+    )
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L030" for d in result.diagnostics)
+
+
+# ---------------------------------------------------------------------------
+# Task 5 — _PackRules._check_credentialed_skills() (CAT-L031)
+# ---------------------------------------------------------------------------
+
+
+def _add_credentialed_skill(
+    pack_dir: Path,
+    skill_name: str,
+    *,
+    skill_md_content: str,
+    script_content: str | None = None,
+) -> None:
+    """Add a credentialed skill to pack_dir/.apm/skills/<skill_name>/."""
+    skill_dir = pack_dir / ".apm" / "skills" / skill_name
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
+    if script_content is not None:
+        scripts_dir = skill_dir / "scripts"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        (scripts_dir / "run.py").write_text(script_content, encoding="utf-8")
+
+
+_CLEAN_SKILL_MD = """\
+---
+name: my-skill
+description: Does something
+metadata:
+  credentialed: false
+---
+
+# My Skill
+"""
+
+# Flat frontmatter — auth: cli (matches actual skill format; no nested auth block)
+_CLI_SKILL_MD_TEMPLATE = """\
+---
+name: {name}
+description: A credentialed CLI skill
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
+  auth: cli
+---
+
+### Security rules (non-negotiable)
+
+**Never** read that store, print it, or echo the token
+**Never** put the token on the command line
+do not run it for them
+
+## Usage
+
+Call with: `my-tool --flag value`
+"""
+
+# Flat frontmatter — auth: env with namespace + keys as flat fields
+_ENV_SKILL_MD_TEMPLATE = """\
+---
+name: {name}
+description: A credentialed env skill
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
+  auth: env
+  namespace: MY_TOOL
+  keys: ["API_KEY"]
+---
+
+### Security rules (non-negotiable)
+
+**Never** print, log, or echo the value of MY_TOOL_API_KEY
+**Never** put the credential on the command line
+Do not write the value anywhere yourself
+
+## Usage
+
+Call with MY_TOOL_API_KEY set.
+"""
+
+
+def test_check_credentialed_skills_no_skills_dir(tmp_path, monkeypatch):
+    """Pack without .apm/skills/ → no CAT-L031."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L031" for d in result.diagnostics)
+
+
+def test_check_credentialed_skills_missing_security_heading(tmp_path, monkeypatch):
+    """Credentialed skill missing '### Security rules (non-negotiable)' heading → CAT-L031."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    # Flat frontmatter (required by parser), no security heading
+    skill_md = """\
+---
+name: cred-skill
+description: Credentialed
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
+  auth: cli
+---
+
+## Usage
+
+No security section here.
+"""
+    _add_credentialed_skill(pack_dir, "cred-skill", skill_md_content=skill_md)
+    result = lint_catalogue(tmp_path)
+    l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
+    assert l031, "expected CAT-L031 for missing security heading"
+    assert any("Security" in d.message or "security" in d.message for d in l031)
+
+
+def test_check_credentialed_skills_argv_ban(tmp_path, monkeypatch):
+    """Credentialed skill script uses banned argv flag → CAT-L031 mentioning 'argv-borne credential flag'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    _add_credentialed_skill(
+        pack_dir, "cred-skill",
+        skill_md_content=_CLI_SKILL_MD_TEMPLATE.format(name="cred-skill"),
+        script_content=(
+            "import argparse\n"
+            "parser = argparse.ArgumentParser()\n"
+            "parser.add_argument('--api-key')\n"
+        ),
+    )
+    result = lint_catalogue(tmp_path)
+    l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
+    assert l031, "expected CAT-L031 for argv-borne credential flag"
+    assert any("argv-borne credential flag" in d.message for d in l031)
+
+
+def test_check_credentialed_skills_env_missing_env_read(tmp_path, monkeypatch):
+    """Env broker skill missing expected os.environ read → CAT-L031."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    # namespace=MY_TOOL + keys=["API_KEY"] → expected env read is MY_TOOL_API_KEY
+    # script does NOT read MY_TOOL_API_KEY → CAT-L031
+    _add_credentialed_skill(
+        pack_dir, "env-skill",
+        skill_md_content=_ENV_SKILL_MD_TEMPLATE.format(name="env-skill"),
+        script_content="import os\nval = os.environ.get('SOME_OTHER_VAR')\nprint(val)\n",
+    )
+    result = lint_catalogue(tmp_path)
+    l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
+    assert l031, "expected CAT-L031 for missing env read"
+
+
+def test_check_credentialed_skills_denyset_incomplete(tmp_path, monkeypatch):
+    """D2b: deny-set with 2+ banned flags but missing others → CAT-L031 mentioning 'deny-set'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    # Flat frontmatter: auth: cli, primitive-class: credentialed-cli
+    skill_md = _CLI_SKILL_MD_TEMPLATE.format(name="cli-skill")
+    # deny-set has 2 banned flags (--token, --api-key) but is missing the other 4
+    # → denyset_flag_groups yields {'token', 'api_key'}, len >= 2 → D2b fires
+    script = (
+        "import argparse\n"
+        "_DENY_FLAGS = frozenset({'--token', '--api-key'})\n"
+    )
+    _add_credentialed_skill(pack_dir, "cli-skill", skill_md_content=skill_md, script_content=script)
+    result = lint_catalogue(tmp_path)
+    l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
+    assert l031, "expected CAT-L031 for deny-set incomplete"
+    assert any("deny-set" in d.message.lower() for d in l031)
+
+
+def test_check_credentialed_skills_dotfile_read(tmp_path, monkeypatch):
+    """D3: script reads .agentbundle/credentials.env via AST path chain → CAT-L031 mentioning 'dotfile'."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    # auth: cli avoids env-read enforcement (just D1 + D3 checks apply)
+    skill_md = _CLI_SKILL_MD_TEMPLATE.format(name="dotfile-skill")
+    # Script reads credentials dotfile inline (path chain must be on the same expression as read_text)
+    script = (
+        "from pathlib import Path\n"
+        "content = (Path.home() / '.agentbundle' / 'credentials.env').read_text()\n"
+    )
+    _add_credentialed_skill(pack_dir, "dotfile-skill", skill_md_content=skill_md, script_content=script)
+    result = lint_catalogue(tmp_path)
+    l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
+    assert l031, "expected CAT-L031 for dotfile read"
+    assert any("dotfile" in d.message.lower() for d in l031)
+
+
+def test_check_credentialed_skills_clean(tmp_path, monkeypatch):
+    """Pack with non-credentialed skill → no CAT-L031."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    _add_credentialed_skill(pack_dir, "my-skill", skill_md_content=_CLEAN_SKILL_MD)
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L031" for d in result.diagnostics)
