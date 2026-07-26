@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skill.schema.json",
+  "title": "SkillFrontmatter",
+  "description": "JSON Schema for SKILL.md frontmatter — the closed key set enforced by agentbundle catalogue lint --deep.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Kebab-case skill identifier (1–64 chars).",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "description": {
+      "type": "string",
+      "description": "Trigger surface shown to IDEs — hard cap 1024 chars (Kiro truncates at byte boundary).",
+      "maxLength": 1024
+    },
+    "license": {
+      "type": "string"
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "Open object — adapter-compatibility constraints declared by the skill."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Open extension table — any additional frontmatter keys must be nested here."
+    },
+    "allowed-tools": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Explicit tool allowlist for this skill."
+    }
+  }
+}

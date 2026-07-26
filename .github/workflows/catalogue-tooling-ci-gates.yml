@@ -129,6 +129,10 @@ jobs:
 
           [pack.adapter-contract]
           version = "0.14"
+
+          [pack.install]
+          default-scope = "repo"
+          allowed-scopes = ["repo"]
           TOML
 
           cat > /tmp/ext-cat/packs/sample-pack/.claude-plugin/plugin.json <<'JSON'

@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/).
 
 
+## [agentbundle][Unreleased]
+
+### Changed
+
+- **Bundled `pack.schema.json` tightened** — added `additionalProperties: false` throughout, `$schema`/`$id` headers, and missing tables (`evals`, `lint-seeds`, `display_name`, `output_dir`, `allowed-adapters`). Packs with `adapter-contract.version >= 0.2` now require `[pack.install]` to pass schema validation.
+
+---
+
 ## [agentbundle][0.17.0] — 2026-07-25
 
 ### Added

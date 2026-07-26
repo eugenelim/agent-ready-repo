@@ -1,9 +1,15 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pack.schema.json",
+  "title": "PackConfig",
+  "description": "JSON Schema for pack.toml — pack metadata and adapter-contract configuration.",
   "type": "object",
+  "additionalProperties": false,
   "required": ["pack"],
   "properties": {
     "pack": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["name", "version"],
       "properties": {
         "name": {"type": "string"},
@@ -13,6 +19,7 @@
         "display_name": {"type": "string"},
         "license": {"type": "string"},
         "catalogue": {"type": "string"},
+        "lint-seeds": {"type": "boolean"},
         "categories": {
           "type": "array",
           "items": {"type": "string"},
@@ -27,6 +34,7 @@
           "type": "array",
           "items": {
             "type": "object",
+            "additionalProperties": false,
             "required": ["name"],
             "properties": {
               "name": {"type": "string"},
@@ -37,6 +45,7 @@
         },
         "links": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "homepage": {"type": "string"},
             "repository": {"type": "string"},
@@ -46,24 +55,77 @@
             "icon": {"type": "string"}
           }
         },
-        "metadata": {"type": "object"},
+        "metadata": {
+          "type": "object",
+          "description": "Open extension table — additionalProperties intentionally unrestricted."
+        },
         "adapter-contract": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "version": {"type": "string"}
           }
         },
+        "install": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["default-scope"],
+          "properties": {
+            "default-scope": {"enum": ["repo", "user"]},
+            "allowed-scopes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"enum": ["repo", "user"]}
+            },
+            "user-scope-hooks": {"type": "boolean"},
+            "allowed-adapters": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string"}
+            }
+          },
+          "if": {
+            "properties": {"default-scope": {"enum": ["user"]}},
+            "required": ["default-scope"]
+          },
+          "then": {
+            "properties": {
+              "allowed-scopes": {"contains": {"enum": ["user"]}}
+            }
+          },
+          "else": {
+            "properties": {
+              "allowed-scopes": {"contains": {"enum": ["repo"]}}
+            }
+          }
+        },
+        "evals": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Tier-A activation eval coverage — lists every user-triggered skill that ships evals/eval_queries.json.",
+          "properties": {
+            "skills": {
+              "type": "array",
+              "items": {"type": "string"},
+              "uniqueItems": true
+            }
+          }
+        },
         "recipes": {
           "type": "array",
+          "description": "Named catalogue recipes this pack participates in.",
           "items": {"type": "string"}
         },
         "dependencies": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "required": {
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "required": ["catalogue", "pack", "version"],
                 "properties": {
                   "catalogue": {"type": "string"},
@@ -76,6 +138,7 @@
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "required": ["catalogue", "pack", "version"],
                 "properties": {
                   "catalogue": {"type": "string"},
@@ -88,6 +151,7 @@
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "required": ["catalogue", "pack", "version"],
                 "properties": {
                   "catalogue": {"type": "string"},
@@ -100,12 +164,14 @@
         },
         "adaptation": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "infer-from": {"type": "string"},
             "substitutions": {
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "properties": {
                   "marker": {"type": "string"},
                   "infer-from": {"type": "string"}
@@ -116,6 +182,7 @@
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "properties": {
                   "target": {"type": "string"},
                   "section-marker": {"type": "string"},
@@ -134,26 +201,31 @@
         },
         "layout": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "repo": {
               "type": "object",
+              "additionalProperties": false,
               "properties": {
                 "parent": {"type": "string"},
-                "template": {"type": "string"}
+                "template": {"type": "string"},
+                "output_dir": {"type": "string"}
               }
             },
             "user": {
               "type": "object",
+              "additionalProperties": false,
               "properties": {
                 "parent": {"type": "string"},
-                "template": {"type": "string"}
+                "template": {"type": "string"},
+                "output_dir": {"type": "string"}
               }
             }
           }
         },
         "first-value": {
           "type": "object",
-          "description": "Pack first-value contract (RFC-0064 Amendment #4). Level A required for all packs; Level B required when level-b = true.",
+          "additionalProperties": false,
           "properties": {
             "audience-posture": {"type": "string", "enum": ["non-technical", "mixed", "technical"]},
             "surfaces": {"type": "array", "items": {"type": "string"}},
@@ -168,61 +240,25 @@
             "tutorial": {"type": "string"},
             "writes-to-repo": {"type": "boolean"},
             "safety-gate": {"type": "string"}
-          },
-          "additionalProperties": false
+          }
         }
       },
       "if": {
+        "required": ["adapter-contract"],
         "properties": {
           "adapter-contract": {
             "type": "object",
-            "properties": {"version": {"enum": ["0.2", "0.3", "0.6"]}},
-            "required": ["version"]
-          }
-        },
-        "required": ["adapter-contract"]
-      },
-      "then": {
-        "required": ["install"],
-        "properties": {
-          "install": {
-            "type": "object",
-            "required": ["default-scope"],
+            "required": ["version"],
             "properties": {
-              "default-scope": {"enum": ["repo", "user"]},
-              "allowed-scopes": {
-                "type": "array",
-                "minItems": 1,
-                "items": {"enum": ["repo", "user"]}
-              },
-              "user-scope-hooks": {"type": "boolean"},
-              "allowed-adapters": {
-                "type": "array",
-                "minItems": 1,
-                "uniqueItems": true,
-                "items": {"type": "string"}
-              }
-            },
-            "if": {
-              "properties": {"default-scope": {"enum": ["user"]}},
-              "required": ["default-scope"]
-            },
-            "then": {
-              "properties": {
-                "allowed-scopes": {
-                  "contains": {"enum": ["user"]}
-                }
-              }
-            },
-            "else": {
-              "properties": {
-                "allowed-scopes": {
-                  "contains": {"enum": ["repo"]}
-                }
+              "version": {
+                "pattern": "^0\\.([2-9]|[1-9][0-9])|^[1-9]"
               }
             }
           }
         }
+      },
+      "then": {
+        "required": ["install"]
       }
     }
   }
