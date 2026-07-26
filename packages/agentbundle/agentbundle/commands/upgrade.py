@@ -217,8 +217,9 @@ def _run_source_version_preflight(
     for row in rows:
         raw_source = row.pack_state.source  # type: ignore[attr-defined]
         cs = canonicalize_source(raw_source)
-        if cs is None and raw_source is None:
-            # Old install: source was never recorded. Fall back to the 5-layer
+        if cs is None and (raw_source is None or raw_source == "agent-ready-repo"):
+            # Old install: source was never recorded (None) or was stored as the
+            # legacy "agent-ready-repo" sentinel. Fall back to the 5-layer
             # default chain — same resolution used by fresh installs — so pre-
             # source-recording packs can still be upgraded.
             config_source = getattr(user_config, "source", None) if user_config else None

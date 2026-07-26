@@ -38,6 +38,7 @@ from agentbundle.commands.upgrade import (
     _run_source_version_preflight,
     _was_dist_tree_install,
 )
+from agentbundle.catalogue import CatalogueError
 from agentbundle.config import ConfigError, PackState, State
 
 
@@ -285,9 +286,14 @@ def test_classify_row_cross_consistency_with_list_installed_semantics():
 
 
 def test_preflight_source_unknown(tmp_path):
-    """Row with source='agent-ready-repo' gets status=unknown, source-unknown."""
+    """Row with source='agent-ready-repo' gets status=unknown, source-unknown
+    when the default-chain fallback also fails."""
     state = _make_state([("core", "claude-code", "agent-ready-repo", "0.13.6")])
-    rows, _ = _run_source_version_preflight(state, scope="repo", root=tmp_path)
+    with patch(
+        "agentbundle.source_defaults.resolve_default_source",
+        side_effect=CatalogueError("no default configured"),
+    ):
+        rows, _ = _run_source_version_preflight(state, scope="repo", root=tmp_path)
     assert rows[0].status == "unknown"
     assert rows[0].status_reason == "source-unknown"
     assert rows[0]._projection is None
@@ -545,14 +551,24 @@ def test_blocked_preflight_all_outcomes_blocked(tmp_path):
     _setup_state(tmp_path, [
         ("core", "claude-code", "agent-ready-repo", "0.13.6"),  # unknown (source-unknown)
     ])
-    result = _run_all_capture(_make_args(scope="repo", yes=True), tmp_path)
+    # "agent-ready-repo" triggers the default-chain fallback; mock it to fail so
+    # the row is still source-unknown (no default configured in test env).
+    with patch(
+        "agentbundle.source_defaults.resolve_default_source",
+        side_effect=CatalogueError("no default configured"),
+    ):
+        result = _run_all_capture(_make_args(scope="repo", yes=True), tmp_path)
     assert result.exit_code != 0
     assert all(r.outcome == "blocked" for r in result.rows)
 
 
 def test_dry_run_blocked_returns_nonzero(tmp_path):
     _setup_state(tmp_path, [("core", "claude-code", "agent-ready-repo", "0.13.6")])
-    result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
+    with patch(
+        "agentbundle.source_defaults.resolve_default_source",
+        side_effect=CatalogueError("no default configured"),
+    ):
+        result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
     assert result.exit_code != 0
 
 
@@ -956,7 +972,11 @@ def test_redact_credentials_git_plus_https():
 def test_table_output_headers_present(tmp_path):
     """Table output must include PACK, ADAPTER, STATUS, OUTCOME columns (AC29)."""
     _setup_state(tmp_path, [("core", "claude-code", "agent-ready-repo", "0.13.6")])
-    result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
+    with patch(
+        "agentbundle.source_defaults.resolve_default_source",
+        side_effect=CatalogueError("no default configured"),
+    ):
+        result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
     output = result.stdout + result.stderr
     assert "PACK" in output or "core" in output
 
@@ -972,19 +992,29 @@ def test_table_unicode_identifier(tmp_path):
     # Create an empty state file so _run_all doesn't fail with FileNotFoundError
     state_path = tmp_path / ".agentbundle-state.toml"
     state_path.write_text('schema-version = "0.4"\n', encoding="utf-8")
-    with patch("agentbundle.commands.upgrade.load_state", return_value=state):
+    with (
+        patch("agentbundle.commands.upgrade.load_state", return_value=state),
+        patch(
+            "agentbundle.source_defaults.resolve_default_source",
+            side_effect=CatalogueError("no default configured"),
+        ),
+    ):
         result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
     assert "núcleo" in result.stdout or "núcleo" in result.stderr
 
 
 def test_table_long_source_truncated(tmp_path):
     """AC35: Long source URIs are truncated gracefully."""
-    long_source = "agent-ready-repo"  # canonicalize_source -> None, but test the table display
+    long_source = "agent-ready-repo"  # canonicalize_source -> None; triggers default-chain fallback
     state = _make_state([("core", "claude-code", long_source, "0.13.6")])
     _write_state_toml(tmp_path, state)
-    result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
+    with patch(
+        "agentbundle.source_defaults.resolve_default_source",
+        side_effect=CatalogueError("no default configured"),
+    ):
+        result = _run_all_capture(_make_args(scope="repo", dry_run=True), tmp_path)
     # Should not raise; output produced
-    assert result.exit_code != 0  # blocked (source-unknown)
+    assert result.exit_code != 0  # blocked (source-unknown — default chain failed)
 
 
 # ---------------------------------------------------------------------------
