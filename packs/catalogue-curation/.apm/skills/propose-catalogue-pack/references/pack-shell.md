@@ -27,6 +27,6 @@ it's a first for the catalogue.
 - The per-pack guide home and a changelog entry are follow-on artifacts.
 
 ## Register check
-`lint-packs` + the pack schema validate the shell; `lint-skill-spec` /
+`lint-packs` + the pack schema validate the shell; `agentbundle catalogue lint --deep` /
 `lint-agent-artifacts` validate its primitives. A green run means the shell
 registers.
