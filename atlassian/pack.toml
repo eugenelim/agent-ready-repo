@@ -39,7 +39,7 @@ skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/atlassian/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/atlassian/"
 
 [[pack.maintainers]]
 name = "eugenelim"

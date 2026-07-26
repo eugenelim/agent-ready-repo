@@ -186,4 +186,4 @@ Ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`architect` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/architect/).
+→ **Go deeper:** the [`architect` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/architect/).

@@ -73,4 +73,4 @@ changed on Figma.
 
 ---
 
-→ **Go deeper:** the [`figma` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/figma/).
+→ **Go deeper:** the [`figma` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/figma/).

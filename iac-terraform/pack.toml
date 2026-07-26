@@ -34,7 +34,7 @@ version = "^0.6"
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/iac-terraform/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/iac-terraform/"
 
 [[pack.maintainers]]
 name = "eugenelim"

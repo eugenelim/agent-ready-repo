@@ -52,7 +52,7 @@ skills = [
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-strategy/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-strategy/"
 
 [[pack.maintainers]]
 name = "eugenelim"

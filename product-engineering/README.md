@@ -127,7 +127,7 @@ The `product-strategy` pack is the **upstream provider** of the strategic contex
 
 ---
 
-→ **Go deeper:** the [`product-engineering` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/).
+→ **Go deeper:** the [`product-engineering` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-engineering/).
 
 ---
 

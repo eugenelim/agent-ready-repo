@@ -34,7 +34,7 @@ skills = ["markdown-to-docx", "markdown-to-pptx", "markdown-to-xlsx", "markdown-
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/converters/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/converters/"
 
 [[pack.maintainers]]
 name = "eugenelim"

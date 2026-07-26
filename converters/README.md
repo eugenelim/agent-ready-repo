@@ -42,4 +42,4 @@ skill detects it and stops with the exact `pip install` line if it's absent.
 
 ---
 
-→ **Go deeper:** the [`converters` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/converters/).
+→ **Go deeper:** the [`converters` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/converters/).

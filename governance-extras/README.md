@@ -50,4 +50,4 @@ the file or updating any index.
 
 ---
 
-→ **Go deeper:** the [`governance-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/governance-extras/).
+→ **Go deeper:** the [`governance-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/governance-extras/).

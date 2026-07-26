@@ -34,7 +34,7 @@ skills = ["figma"]
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/figma/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/figma/"
 
 [[pack.maintainers]]
 name = "eugenelim"
@@ -52,4 +52,4 @@ starter-task     = "Read the contents of a Figma file you have access to"
 starter-prompt   = "Read the file structure of my main design file in Figma and list the page names and top-level frame names."
 expected-result  = "A list of pages and top-level frames from your Figma file, showing the design's navigation structure."
 next-action      = "Ask the agent to export a specific frame as a Markdown description to use in a spec or doc."
-tutorial         = "docs/guides/figma/tutorials/figma-first-session.md"
+tutorial         = "guides/figma/tutorials/figma-first-session.md"

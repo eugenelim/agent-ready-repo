@@ -51,7 +51,7 @@ skills = ["architect-design", "architect-diagram", "architect-review"]
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/architect/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/architect/"
 
 [[pack.maintainers]]
 name = "eugenelim"
@@ -69,4 +69,4 @@ starter-task     = "Get a plain-language map of how this codebase is organized"
 starter-prompt   = "Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions."
 expected-result  = "A docs/architecture/reference.md file with the codebase's key components and structural decisions described in plain language."
 next-action      = "On your next design question, ask: 'Does this approach align with our reference architecture?'"
-tutorial         = "docs/guides/architect/tutorials/architect-first-session.md"
+tutorial         = "guides/architect/tutorials/architect-first-session.md"
