@@ -113,18 +113,9 @@
           }
         },
         "recipes": {
-          "type": "object",
-          "description": "Named recipe map — each key is a recipe identifier, value is the recipe config.",
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["description"],
-            "properties": {
-              "description": {"type": "string"},
-              "steps": {"type": "array", "items": {"type": "string"}},
-              "adapter": {"type": "string"}
-            }
-          }
+          "type": "array",
+          "description": "Named catalogue recipes this pack participates in.",
+          "items": {"type": "string"}
         },
         "dependencies": {
           "type": "object",
