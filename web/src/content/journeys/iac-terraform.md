@@ -80,7 +80,7 @@ typicalSession:
   agentTurns: "12–20"
   humanTouches: 3
   wallClockMinutes: "45–90"
-docsUrl: /docs/guides/iac-terraform/
+docsUrl: /guides/iac-terraform/
 packUrl: /packs/iac-terraform/
 relatedJourneys:
   - core

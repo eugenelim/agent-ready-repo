@@ -36,7 +36,7 @@ The key doctrine: **Diátaxis determines where information lives. User intent de
 
 - Write prose into any spec file that contradicts CONVENTIONS.md § 4.
 - Add product-behavioral rules to `clear-prose.md` (e.g., "state result-set coverage when the user asks for 'all'" — this is an Atlassian skill rule, not a documentation prose rule).
-- Touch `docs/guides/` content — this spec changes the skill, not the guides the skill has already produced.
+- Touch `guides/` content — this spec changes the skill, not the guides the skill has already produced.
 - Add new top-level directories to the pack.
 
 ## Testing Strategy

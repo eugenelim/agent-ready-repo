@@ -85,7 +85,7 @@ output_dir = ".context/desk-research"
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/desk-research/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/desk-research/"
 
 [[pack.maintainers]]
 name = "eugenelim"

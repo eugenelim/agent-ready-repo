@@ -52,8 +52,8 @@ lists + a gate. Full manifest:
    Write `docs/CHARTER.md` in the target, overwriting the seed template. This
    anchors all future `assimilate-repo` runs from within the fork.
 6. **Stage transportable guides.** For each pack in the include-set, copy
-   `docs/guides/<pack-name>/` into the target. Always include
-   `docs/guides/_shared/`. Guides for packs outside the include-set are
+   `guides/<pack-name>/` into the target. Always include
+   `guides/_shared/`. Guides for packs outside the include-set are
    omitted (omit-not-leak). The four-anchor substitution pass in step 7 covers
    any identity references inside staged guide content.
 7. **Substitute** the four identity anchors from *this* catalogue's own sources

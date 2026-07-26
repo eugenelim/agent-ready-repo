@@ -86,7 +86,7 @@ Tool-specific knobs (Claude `strict`, Codex `policy`/`interface` store-listing) 
 ### D4 — README + docs: three roles, each for its purpose
 
 - **`readme = "README.md"`** — a file pointer (Cargo auto-detects `README.md` if omitted). The README already exists at pack root; the projectors copy it into each dist route and reference it. It is the version-pinned, travels-with-the-pack long-form description, rendered on the catalogue/plugin page. The one-line `description` stays for dense UIs (the PyPI `summary`/`long_description` split).
-- **`seeds/docs/`** — unchanged; this is how a pack ships docs the *adopter owns and edits in their repo* (precedent: the `user-guide-diataxis` pack ships `seeds/docs/guides/{tutorials,how-to,reference,explanation}`).
+- **`seeds/docs/`** — unchanged; this is how a pack ships docs the *adopter owns and edits in their repo* (precedent: the `user-guide-diataxis` pack ships `seeds/guides/{tutorials,how-to,reference,explanation}`).
 - **`[pack.links].documentation`** — a URL to hosted deep docs that shouldn't bloat every install.
 
 We explicitly do **not** bundle multi-page guides into `.apm/` (the primitive payload) — that inflates every install.

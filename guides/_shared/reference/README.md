@@ -50,6 +50,6 @@ When a section is auto-generated, mark it clearly at the top of the file ("This 
 
 ## Maintenance
 
-For hand-written reference: review on every release, and at minimum quarterly. The discipline is "code change → reference update in same PR" — enforced by CI checking that public-interface changes touched `docs/guides/reference/`.
+For hand-written reference: review on every release, and at minimum quarterly. The discipline is "code change → reference update in same PR" — enforced by CI checking that public-interface changes touched `guides/reference/`.
 
 For generated reference: check the generator runs in CI on every change. If the generator is broken, the reference is wrong, full stop.

@@ -246,7 +246,7 @@ Filled in on acceptance:
 - Spec: `docs/specs/product-brief-intake/` — the `brief` template, the `receive-brief` skill, the `Brief:` / `Satisfies:` / `Epic:` fields, the example references file, and the auto-rollup lint.
 - Spec: `docs/specs/lld-aware-spec-plan/` — the `spec.md` `Shape:` field + AC guidance, the `plan.md` `## Design (LLD)` section + expanded `## Rollout`, and the shape/stack-derivation step in `new-spec` and `receive-brief`. (Touches the core templates — additive only.)
 - Convention change: `docs/CONVENTIONS.md` — amend the document-hierarchy diagram to add `briefs/` under `product/`; document the `roadmap → brief → spec → AC` altitude and the `Brief:` field on specs; document the spec/plan LLD enrichment (the `Shape:` field, the `## Design (LLD)` categories, stack-derivation) in §4 (Specs and Plans).
-- **User guides (in *this* catalogue repo, `docs/guides/`, authored via `new-guide`)** — the implementing spec/plan plans and writes them as part of "done", so the new capabilities ship documented for adopters:
+- **User guides (in *this* catalogue repo, `guides/`, authored via `new-guide`)** — the implementing spec/plan plans and writes them as part of "done", so the new capabilities ship documented for adopters:
   - *How-to* — "Receive a product brief and decompose it into specs" (the `receive-brief` flow, end to end).
   - *Reference* — the `brief` artifact fields (incl. `Epic:`, the spec map) and the spec/plan additions (`Brief:`, `Shape:`, the `## Design (LLD)` categories).
   - *Explanation* — "Why a brief layer": the `roadmap → brief → spec → AC` altitude and the product→engineering handoff this closes.

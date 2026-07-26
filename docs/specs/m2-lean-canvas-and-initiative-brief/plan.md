@@ -211,7 +211,7 @@ remains in the label column.
 ### T4: Author Diátaxis how-to guide
 
 **Depends on:** T2
-**Touches:** `docs/guides/product-engineering/how-to/create-a-lean-canvas.md`
+**Touches:** `guides/product-engineering/how-to/create-a-lean-canvas.md`
 
 **Tests:**
 - File exists at the path above.

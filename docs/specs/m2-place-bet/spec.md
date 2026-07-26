@@ -120,7 +120,7 @@ Verification is goal-based for structure, manual QA for judgment.
   `grep -F "validation-notes.md"` (present-case — file named);
   `grep -F "absent — continue"` (absent-case — graceful continuation stated).
 - **Diátaxis guide: goal-based for file existence, manual QA for accuracy.**
-  Guide at `docs/guides/product-engineering/how-to/place-a-bet.md`.
+  Guide at `guides/product-engineering/how-to/place-a-bet.md`.
 - **Path-resolution security: goal-based grep.** SKILL.md body must contain
   prose specifying `..` rejection and symlink-chain escape rejection.
   Pinned phrase: `grep -F "reject"` on the path-safety block.
@@ -192,7 +192,7 @@ Verification is goal-based for structure, manual QA for judgment.
   `bet.md` emitted. Adopter-clean (no RFC-NNNN, no `agent-ready-repo`).
 
 - [x] **AC11.** A Diátaxis how-to guide ships at
-  `docs/guides/product-engineering/how-to/place-a-bet.md` covering: when to run
+  `guides/product-engineering/how-to/place-a-bet.md` covering: when to run
   `place-bet` vs `de-risk-intent` (step 3.5 validates a riskiest assumption; step
   5 commits direction after validation); what makes a well-reasoned betting table
   (all common fields; `kill-condition` from `de-risk-intent` when available); and
@@ -227,7 +227,7 @@ Verification is goal-based for structure, manual QA for judgment.
 - **A6.** PE pack is user-scope, excluded from `_DEFAULT_SELF_HOST_PACKS`; lint
   gates are `lint-packs` + `validate` + `build`, not `build-self`.
   (source: docs/specs/m2-frame-situation/plan.md)
-- **A7.** `docs/guides/product-engineering/how-to/` exists; `place-a-bet.md`
+- **A7.** `guides/product-engineering/how-to/` exists; `place-a-bet.md`
   does not yet exist there. (source: filesystem check 2026-07-21)
 - **A8.** workspace.toml write-back is `capture-work`'s responsibility per
   RFC-0064 Amendment #3. (source: docs/specs/m2-frame-situation/spec.md A5)

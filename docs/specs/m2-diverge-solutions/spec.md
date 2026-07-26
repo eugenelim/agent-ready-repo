@@ -126,7 +126,7 @@ logic. Verification is goal-based for structure and manual QA for judgment.
   yet shipped. Only the "skill absent / explain what step 2 provides" path is
   walkable. The SKILL.md body must specify both paths; QA covers only the absent path.
 - **Diátaxis guide: goal-based for file existence, manual QA for accuracy.**
-  Guide at `docs/guides/product-engineering/how-to/generate-solution-options.md`;
+  Guide at `guides/product-engineering/how-to/generate-solution-options.md`;
   reads accurately against the shipped skill.
 - **Projection: goal-based.** `lint-packs`, `validate`, and `build` exit 0.
   Adopter-cleanliness verified by grep (no RFC-NNNN, no `agent-ready-repo` in
@@ -189,7 +189,7 @@ logic. Verification is goal-based for structure and manual QA for judgment.
   no `agent-ready-repo`).
 
 - [x] **AC10.** A how-to guide ships at
-  `docs/guides/product-engineering/how-to/generate-solution-options.md` covering:
+  `guides/product-engineering/how-to/generate-solution-options.md` covering:
   when to reach for `diverge-solutions` vs `explore-options` (scope/context
   decision); how to read a step-2 opportunity and generate spanning options; how
   to select one and what makes a sound rationale; what to do with the
@@ -229,7 +229,7 @@ logic. Verification is goal-based for structure and manual QA for judgment.
   (source: `docs/rfc/0064-ini-001-ai-native-ecosystem.md` § Known Unknowns resolved)
 - Product: Solution option schema: name, approach, key-bets (1–3), trade-offs,
   status (source: user confirmation 2026-07-21)
-- Product: Guide at `docs/guides/product-engineering/how-to/generate-solution-options.md`
+- Product: Guide at `guides/product-engineering/how-to/generate-solution-options.md`
   (source: user confirmation 2026-07-21)
 - Product: Degrade behavior — offer to run `identify-opportunities` first, degrade
   gracefully with impact note if user skips (source: user confirmation 2026-07-21)

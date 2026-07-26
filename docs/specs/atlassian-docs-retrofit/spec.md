@@ -36,12 +36,12 @@ writes, and communicate the result.
 
 ## Surfaces changed
 
-1. `docs/guides/atlassian/tutorials/review-your-team-backlog.md` — new
-2. `docs/guides/atlassian/how-to/work-with-jira.md` — rewrite
+1. `guides/atlassian/tutorials/review-your-team-backlog.md` — new
+2. `guides/atlassian/how-to/work-with-jira.md` — rewrite
 3. `web/src/content/packs/atlassian.md` — frontmatter + body rewrite
 4. `web/src/content/journeys/atlassian.md` — frontmatter + body rewrite
-5. `docs/guides/atlassian/reference/atlassian-skills.md` — major rewrite
-6. `docs/guides/atlassian/explanation/atlassian-pack.md` — major rewrite
+5. `guides/atlassian/reference/atlassian-skills.md` — major rewrite
+6. `guides/atlassian/explanation/atlassian-pack.md` — major rewrite
 7. `site/mkdocs.yml` — nav update (add tutorial)
 
 ## Shared example dataset

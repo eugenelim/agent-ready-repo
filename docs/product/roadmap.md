@@ -20,7 +20,7 @@ file as stale and ask before relying on it.
 
 **M1 fix — work-loop done-step lifecycle.** Extended done-step to find the current spec in `queue` (not just `active`), add Step 0 stale-queue warning, and fix the `spec/` prefix path-resolution bug. [spec/work-loop-queue-shipped-fix]
 
-**M1 · Session-arc conventions (RFC-0067, Change D).** Pack workflow design guide (`docs/guides/_shared/explanation/pack-workflow-design.md`) — five-step framework for pack authors: workflow-type classification, arc-stage mapping, skill naming, vault-path shape, workspace-status registration. CONTRIBUTING.md step 0 added. [spec/spec-D-pack-workflow-guide — Shipped; Changes A/B/C in queue]
+**M1 · Session-arc conventions (RFC-0067, Change D).** Pack workflow design guide (`guides/_shared/explanation/pack-workflow-design.md`) — five-step framework for pack authors: workflow-type classification, arc-stage mapping, skill naming, vault-path shape, workspace-status registration. CONTRIBUTING.md step 0 added. [spec/spec-D-pack-workflow-guide — Shipped; Changes A/B/C in queue]
 
 **RFC-0067 Change B — Pack status skills.** Two new read-only cold-start orient skills: `desk-research-project-status` (desk-research pack) and `experience-status` (experience-design pack). Added `design` as a valid `shaping_queue` type; `workspace-status` routes `{type = "design"}` entries to `experience-status` (fallback: `journey-mapping`). [spec/spec-B-pack-status-skills]
 
@@ -28,7 +28,7 @@ file as stale and ask before relying on it.
 
 **M1 · capture-work — classify-then-triage front-door (RFC-0064 Amendment #3).** Renames `queue-add` → `capture-work`; adds build/shape classification before write; routes shaping items to `[shaping_queue]` or typed `[backlog].open`; progressive capability-detected hand-off. `workspace-status` now prefixes every Ready and Backlog item with `[build]`, `[shape]`, or `[brief]`. `work-loop` step-0 guard redirects shaping items to the correct skill. [spec/capture-work]
 
-**RFC-0064 P3 · author-brief documentation.** New intake how-to (`docs/guides/core/how-to/intake-an-external-brief.md`) covering the `author-brief` skill end-to-end; DoR gate section + `Rabbit holes`/`Status` rows added to `product-brief-fields.md`; `receive-brief` how-to decision table updated. [spec/author-brief-docs]
+**RFC-0064 P3 · author-brief documentation.** New intake how-to (`guides/core/how-to/intake-an-external-brief.md`) covering the `author-brief` skill end-to-end; DoR gate section + `Rabbit holes`/`Status` rows added to `product-brief-fields.md`; `receive-brief` how-to decision table updated. [spec/author-brief-docs]
 
 **RFC-0064 Amendment #4 — cross-pack first-value adoption overlay.** Defines Level A/B pack obligations and pilot-first rollout contract for pack onboarding. Five new work items queued: `spec/portfolio-pack-first-value-contract` (semantic onboarding contract, no dependency), three pilot specs (`architect`/`figma`/`governance-extras`, each needing the contract), and `spec/agentbundle-first-value-handoff` (install completion UX, needing the contract). Two shaping entries added: `nontechnical-pack-first-value-rollout` (shape, blocked on pilots) and `portfolio-outcome-entry-surfaces` (design, blocked on contract + pilots). Feeds P5 adoption evidence. [RFC-0064 Amendment #4]
 

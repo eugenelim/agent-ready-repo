@@ -225,8 +225,8 @@ product-slug: <replace-with-product-slug>
 **Depends on:** none (parallel with Tasks 1–2)
 **Verification mode:** goal-based
 **Done when:**
-- `docs/guides/core/explanation/digital-experience-contract.md` exists
-- `grep "^## " docs/guides/core/explanation/digital-experience-contract.md` returns: The contract, The three tiers, The ownership map, Graceful capability detection
+- `guides/core/explanation/digital-experience-contract.md` exists
+- `grep "^## " guides/core/explanation/digital-experience-contract.md` returns: The contract, The three tiers, The ownership map, Graceful capability detection
 
 **Approach:** Diátaxis explanation page. Audience: adopter who just installed one of the four packs and wants to understand the contract concept. Content:
 - **The contract** — the "locally polished, globally broken" problem; why a shared schema; what it is (a markdown template, a blank form, not a ceremony)
@@ -277,7 +277,7 @@ python tools/check-contract-drift.py --root .
 ls .claude/skills/frontend-engineering/references/digital-experience-contract.md
 
 # Gate 6: guide exists with required h2s
-grep "^## " docs/guides/core/explanation/digital-experience-contract.md
+grep "^## " guides/core/explanation/digital-experience-contract.md
 
 # Gate 7: journey cross-references
 grep "Digital Experience Contract" web/src/content/journeys/product-strategy.md

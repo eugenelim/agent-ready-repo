@@ -16,8 +16,8 @@
   - `check-workspace` renamed to `workspace-status` (clean retire; operative references swept; frozen ADR bodies left as historical record per CONVENTIONS §2).
   - Two new status skills: `desk-research-project-status` and `experience-status`; `design` added to workspace.toml `shaping_queue` type enum.
   - `work-loop` gains argless resume wiring and description triggers.
-  - New explanation guide `docs/guides/_shared/explanation/pack-workflow-design.md`; `CONTRIBUTING.md` and `author-a-skill.md` updated.
-- **Affected surface:** core pack, desk-research pack, experience-design pack, workspace.toml schema, docs/guides, CONTRIBUTING.md.
+  - New explanation guide `guides/_shared/explanation/pack-workflow-design.md`; `CONTRIBUTING.md` and `author-a-skill.md` updated.
+- **Affected surface:** core pack, desk-research pack, experience-design pack, workspace.toml schema, guides, CONTRIBUTING.md.
 - **Stakes:** Reversible — rename is mechanical with a lint gate; new skills are additive; doc guide is net-new.
 - **Review focus:** (1) Verb taxonomy completeness and the banned-label list. (2) Argless work-loop disambiguation: Change C rule 4 lists-and-asks whenever more than one active item exists — whether from a single initiative's multi-element `.active` array or across initiatives — replacing the existing "auto-pick first path" behavior in SKILL.md Step 0.
 - **Not in scope:** Status skills for episodic packs (architect, product-strategy, converters, iac-terraform). Workspace.toml schema version bump. Automated arc-compliance checking for existing packs.
@@ -72,7 +72,7 @@ Sweep all **operative** references in the same PR. The implementing spec derives
 
 Lint gate in the implementing PR: `grep -rn "check-workspace"` over the full `git ls-files` output, excluding the explicit historical set (frozen ADR bodies, `docs/product/changelog.md`, `docs/specs/`, this RFC's body), returns zero hits. The gate is derived from the full tracked-file set, not from the illustrative path list above.
 
-**A2. Verb taxonomy in `docs/guides/_shared/how-to/author-a-skill.md`.**
+**A2. Verb taxonomy in `guides/_shared/how-to/author-a-skill.md`.**
 
 Add a "## Naming your skill" section after "## Body structure":
 
@@ -142,7 +142,7 @@ This is a description + Step 0 body change only — no new skill, no new artifac
 
 ### Change D — Pack workflow design guide
 
-**D1. New guide: `docs/guides/_shared/explanation/pack-workflow-design.md`.**
+**D1. New guide: `guides/_shared/explanation/pack-workflow-design.md`.**
 
 Seven sections with a decision-framework structure, not a pure Diátaxis explanation (Diátaxis is a documentation methodology that separates tutorials, how-to guides, reference material, and explanations into four distinct types):
 
@@ -158,7 +158,7 @@ Seven sections with a decision-framework structure, not a pure Diátaxis explana
 
 Before the current step 1 ("Open an RFC"), add:
 
-> **0. Design the pack's workflow arc first.** A pack is a set of cohesive workflows for a role's work — not a list of features. Before writing any `SKILL.md`, work through the pack workflow design framework at `docs/guides/_shared/explanation/pack-workflow-design.md`. It takes you through: characterizing whether your pack is episodic, sustained-project, or sustained-derived; mapping the Arrive → Orient → Work → Persist → Collaborate arc to your pack's skill set; naming your skills against the verb taxonomy; and deciding whether your pack needs a status skill, a `*-project-start` skill, and config-driven output paths. The RFC reviewers will ask these questions; answering them before you write the skill bodies saves a review cycle.
+> **0. Design the pack's workflow arc first.** A pack is a set of cohesive workflows for a role's work — not a list of features. Before writing any `SKILL.md`, work through the pack workflow design framework at `guides/_shared/explanation/pack-workflow-design.md`. It takes you through: characterizing whether your pack is episodic, sustained-project, or sustained-derived; mapping the Arrive → Orient → Work → Persist → Collaborate arc to your pack's skill set; naming your skills against the verb taxonomy; and deciding whether your pack needs a status skill, a `*-project-start` skill, and config-driven output paths. The RFC reviewers will ask these questions; answering them before you write the skill bodies saves a review cycle.
 
 Also add to step 1: "The RFC should include your arc mapping from step 0 — which skills cover which arc stages, and why."
 

@@ -201,7 +201,7 @@ Verification is goal-based for structure and manual QA for judgment.
   the Value Proposition header at a lower line number than Scope.
 
 - [x] **AC10.** A Diátaxis how-to guide ships at
-  `docs/guides/product-engineering/how-to/create-a-lean-canvas.md` covering: when
+  `guides/product-engineering/how-to/create-a-lean-canvas.md` covering: when
   to use `lean-canvas` (post bet + capability map vs. standalone elicitation);
   simple vs. full mode choice; how to use the produced initiative brief (linking
   workspace.toml `["ini-NNN"]` section, sharing with the team).

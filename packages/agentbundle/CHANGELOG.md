@@ -287,7 +287,7 @@ entry; recorded here for the history._
 ### Fixed
 
 - **`build-self` no longer emits untracked per-quadrant guide READMEs.** The
-  self-host projection skips `docs/guides/**` (adopters still receive guide
+  self-host projection skips `guides/**` (adopters still receive guide
   scaffolds via seed delivery).
 
 ## [0.3.1] — 2026-06-12

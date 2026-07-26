@@ -200,7 +200,7 @@ next-action = "..."
 # Relative path from repo root to the step-by-step tutorial file.
 # Omit until the pilot spec that creates the file ships.
 # When present: must resolve to an existing .md file (validator exits 1 if absent).
-tutorial = "docs/guides/<pack>/tutorials/<slug>.md"
+tutorial = "guides/<pack>/tutorials/<slug>.md"
 
 # ── Level B write-operation fields (required when writes-to-repo = true) ─────
 
@@ -388,7 +388,7 @@ field, not a hardcoded set in the tool.
   carries the same verbatim prompt text outside of the tutorial itself (no
   duplicate that could drift separately).
 - [x] No second hand-maintained inventory of first-value facts: grep confirms no
-  `docs/guides/<pack>/README.md` or `packs/<pack>/README.md` carries a separate
+  `guides/<pack>/README.md` or `packs/<pack>/README.md` carries a separate
   inline table of audience/surface/prerequisite facts that duplicates
   `[pack.first-value]` content.
 
@@ -406,7 +406,7 @@ field, not a hardcoded set in the tool.
    `core`, `credential-brokers`, `desk-research`, `experience-design`, `figma`,
    `governance-extras`, `iac-terraform`, `monorepo-extras`, `product-engineering`,
    `product-strategy`, `release-engineering`, `user-guide-diataxis`.
-4. The architect pack already has a `docs/guides/architect/tutorials/` directory —
+4. The architect pack already has a `guides/architect/tutorials/` directory —
    confirmed 2026-07-21. The first-session tutorial is a new file; it ships in
    the `portfolio-first-run-pilot-architect` spec, not here.
 5. `make build-check` is the correct integration point. It is the documented

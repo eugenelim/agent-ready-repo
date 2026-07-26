@@ -47,7 +47,7 @@ behavioral evals — without touching the locked template format.
 - [x] **AC6 (no format change).** `assets/adr.md` gains no new section or field;
   only guidance *comments* may be refined. The frozen ADR-0027 format holds.
 - [x] **AC7 (guide sync).** The repo-owned how-to guide
-  (`docs/guides/governance-extras/how-to/new-adr.md`) is synced for the
+  (`guides/governance-extras/how-to/new-adr.md`) is synced for the
   behaviors that materially change (title brevity, decision-frame, one-decision
   pitfall, pointer-metadata pitfall) so it doesn't contradict the skill.
 - [x] **AC8 (changelog).** A `[Unreleased]` entry under governance-extras 0.4.0

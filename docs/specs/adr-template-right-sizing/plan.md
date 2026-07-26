@@ -166,7 +166,7 @@ shape with nothing made mandatory.
 **Depends on:** T1
 
 **Tests:**
-- Goal-based: `grep -n "Decision summary\|Revisit if\|Mode" docs/guides/governance-extras/how-to/new-adr.md` shows the three fields described in Step 5.
+- Goal-based: `grep -n "Decision summary\|Revisit if\|Mode" guides/governance-extras/how-to/new-adr.md` shows the three fields described in Step 5.
 - Manual-QA: guide and skill don't contradict each other on optionality or shape. Verifies AC6.
 
 **Approach:**

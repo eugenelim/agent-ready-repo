@@ -367,7 +367,7 @@ append is real code and is **TDD**.
   rule. Verification: `rg -F 'agentbundle-layout.toml' .gitignore` returns a hit in
   the install-time-scratch section, and `rg` finds no surviving `research-layout.toml`
   reference **on a live consumer surface** — the three skill bodies and the
-  `docs/guides/research/**` guides. The old name legitimately survives in **historical
+  `guides/research/**` guides. The old name legitimately survives in **historical
   record**, which the sweep exempts: this spec/plan and its RFC-0040 / ADR-0030; the
   **frozen** `docs/specs/research-project-mode/` spec & plan and that spec's row in the
   living `docs/specs/README.md` index (CONVENTIONS forbids editing a frozen spec's

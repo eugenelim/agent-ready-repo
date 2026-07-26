@@ -165,7 +165,7 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   constant when an RFC authorises a new excluded class. Phase-1
   Projected paths that would otherwise match an excluded glob (the
   seed READMEs under `docs/architecture/`, `docs/product/`,
-  `docs/knowledge/`, `docs/guides/`) are listed in
+  `docs/knowledge/`, `guides/`) are listed in
   `PROJECTED_README_OVERRIDES`.
 - On drift, name the source path and the regeneration command in the
   failure message: `[drift] <projected>: edit <source>; run: make
@@ -400,7 +400,7 @@ and the Codex multi-pack aggregation fix land.
   Codex multi-pack aggregation fix and self-host composition runtime.
 - [x] **AC9 (seed READMEs) — Phase 1, superseded by 2026-05-25 amendment.**
   ~~Seed READMEs under `docs/architecture/`, `docs/specs/`,
-  `docs/knowledge/`, `docs/product/`, `docs/guides/`, `docs/rfc/`,
+  `docs/knowledge/`, `docs/product/`, `guides/`, `docs/rfc/`,
   `docs/adr/`, and `packages/` are *Projected*; the gate enforces
   byte-equality with their pack-side sources.~~ **Superseded:** the
   2026-05-25 amendment (RFC-0002 § Amendments § 2026-05-25)
@@ -512,7 +512,7 @@ and the Codex multi-pack aggregation fix land.
   removed entries fall through to `EXCLUDED_PATTERNS`: 11 covered by
   the existing patterns (`docs/architecture/*.md`,
   `docs/product/*.md`, `docs/knowledge/*.md`,
-  `docs/guides/**/*.md`); 8 added explicitly in the same edit
+  `guides/**/*.md`); 8 added explicitly in the same edit
   (`docs/CHARTER.md`, `docs/knowledge/patterns.jsonl`,
   `docs/rfc/README.md`, `docs/adr/README.md`, `docs/specs/README.md`,
   `packages/README.md`, `packages/_example/README.md`,

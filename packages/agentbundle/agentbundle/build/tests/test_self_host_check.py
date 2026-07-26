@@ -767,7 +767,7 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertFalse(_is_excluded(Path("docs/CONVENTIONS.md")))
 
         # All 19 reclassified paths are now Excluded (either via
-        # existing `docs/<area>/*.md` patterns, the `docs/guides/**/*.md`
+        # existing `docs/<area>/*.md` patterns, the `guides/**/*.md`
         # pattern, or one of the 8 explicit additions made by the
         # amendment).
         for path in (
@@ -780,12 +780,12 @@ class ExcludedGlobTests(unittest.TestCase):
             "docs/product/README.md",
             "docs/product/roadmap.md",
             "docs/product/changelog.md",
-            # Covered by `docs/guides/**/*.md`:
-            "docs/guides/README.md",
-            "docs/guides/_shared/tutorials/README.md",
-            "docs/guides/_shared/how-to/README.md",
-            "docs/guides/_shared/reference/README.md",
-            "docs/guides/_shared/explanation/README.md",
+            # Covered by `guides/**/*.md`:
+            "guides/README.md",
+            "guides/_shared/tutorials/README.md",
+            "guides/_shared/how-to/README.md",
+            "guides/_shared/reference/README.md",
+            "guides/_shared/explanation/README.md",
             # Explicit literal additions:
             "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
@@ -964,10 +964,10 @@ class SeedProjectionTests(unittest.TestCase):
         at install, not via self-host projection. `_project_seeds`
         (self-host only) must NOT scaffold the by-quadrant guide tree:
         doing so litters a repo that owns its guides (e.g. organized by
-        pack) with untracked `docs/guides/<quadrant>/README.md` on every
+        pack) with untracked `guides/<quadrant>/README.md` on every
         build-self run. Regression for the per-pack-migration drift —
         the seed scaffold stays by-quadrant for adopters, but self-host
-        must leave the repo's own `docs/guides/` alone.
+        must leave the repo's own `guides/` alone.
         """
         from agentbundle.build.self_host import _project_seeds
 
@@ -985,7 +985,7 @@ class SeedProjectionTests(unittest.TestCase):
                 encoding="utf-8",
             )
             output = tmp_path / "out"
-            output.mkdir()  # No pre-existing docs/guides tree
+            output.mkdir()  # No pre-existing guides tree
 
             _project_seeds(packs_dir, output)
 

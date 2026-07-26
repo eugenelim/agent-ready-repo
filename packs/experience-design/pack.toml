@@ -55,7 +55,7 @@ skills = ["creative-direction", "content-design", "tone-of-voice", "design-revie
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience-design/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/experience-design/"
 
 [[pack.maintainers]]
 name = "eugenelim"

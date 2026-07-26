@@ -237,7 +237,7 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
 
 **Touches:** `web/src/components/layout/SiteFooter.astro`, `web/src/pages/index.astro`
 
-**Done when:** dark closer section visible; CTA links to `/docs/guides/_shared/how-to/build-an-org-stack-pack/`.
+**Done when:** dark closer section visible; CTA links to `/guides/_shared/how-to/build-an-org-stack-pack/`.
 
 ---
 
@@ -323,7 +323,7 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
 - Goal-based: `npx pa11y http://localhost:4321/journeys/research --standard WCAG2AA` exits 0 errors
 
 **Approach:**
-- Author 6 `.md` files under `web/src/content/journeys/` — one per pack; frontmatter matches the full `journeysCollection` schema from T9; body = staged narrative authored from each pack's skill list and gate definitions in the existing MkDocs docs (`/docs/guides/<pack>/`)
+- Author 6 `.md` files under `web/src/content/journeys/` — one per pack; frontmatter matches the full `journeysCollection` schema from T9; body = staged narrative authored from each pack's skill list and gate definitions in the existing MkDocs docs (`/guides/<pack>/`)
 - Update `/journeys/index.astro` to show all 9 live journeys; mark the remaining 5 as "coming soon"
 - Update the 6 corresponding pack content files (`web/src/content/packs/*.md`) to set `journeyUrl` to the now-live journey URL (removing the "coming soon" flag)
 

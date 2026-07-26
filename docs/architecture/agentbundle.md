@@ -237,5 +237,5 @@ directory via a portability shim (`${CLAUDE_PLUGIN_DATA}` →
   authoritative spec for the CLI verbs.
 - [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md) —
   authoritative spec for the contract, primitives, and projection modes.
-- [`docs/guides/_shared/explanation/install-routes.md`](../guides/_shared/explanation/install-routes.md) —
+- [`guides/_shared/explanation/install-routes.md`](../guides/_shared/explanation/install-routes.md) —
   adopter-facing companion to this page.

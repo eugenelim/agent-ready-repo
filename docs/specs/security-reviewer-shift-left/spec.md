@@ -108,7 +108,7 @@ order.
   `AGENTS.md` carries a light "blessed security tools/helpers" point and that root +
   seed stay in sync with growth ≤ ~4 lines; (8b) `grep` that `security-reviewer.md`
   still names both conditional read paths `docs/architecture/security.md` and
-  `docs/guides/reference/security.md` (agent-prose grep, not a file-presence check —
+  `guides/reference/security.md` (agent-prose grep, not a file-presence check —
   the files need not exist); (8c) assert no new mandatory `security.md` standard file
   was added.
 - **Adopter-clean + no-contract-change + projection** (AC9, AC10, AC11): goal-based —
@@ -176,7 +176,7 @@ order.
   minimal sub-bullet on the existing `security-reviewer` entry (not a new section) so
   the file grows by ≤ ~4 lines and root `AGENTS.md` + `packs/core/seeds/AGENTS.md`
   stay in sync; **(8b)** `security-reviewer.md` still names both conditional read
-  paths `docs/architecture/security.md` and `docs/guides/reference/security.md`
+  paths `docs/architecture/security.md` and `guides/reference/security.md`
   (an agent-prose grep — the files need not exist; the read is `if either exists`);
   **(8c)** no new mandatory `security.md` standard file is introduced. *Note: root
   `AGENTS.md` is already ~202 lines, so the "~200-line budget" is treated as
@@ -221,7 +221,7 @@ item was verified by direct repo read or against RFC-0029, which is Accepted. --
   **net-new wiring** (source: `work-loop/SKILL.md` §§ PLAN + Modes, read 2026-06-12;
   RFC-0029 D3).
 - Technical: `security-reviewer.md` already reads
-  `docs/architecture/security.md` / `docs/guides/reference/security.md` and cites
+  `docs/architecture/security.md` / `guides/reference/security.md` and cites
   OWASP Top 10:**2021** as its web lens — both confirmed (source:
   `packs/core/.apm/agents/security-reviewer.md:42,62`, read 2026-06-12).
 - Technical: `docs/CONVENTIONS.md` is projected from the seed

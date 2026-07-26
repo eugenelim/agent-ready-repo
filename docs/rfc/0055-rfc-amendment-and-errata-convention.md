@@ -103,7 +103,7 @@ The convention's substance lives in the **`new-rfc` skill**, which ships with `g
 - **`SKILL.md`** — the procedure: when to use Errata vs Amendments, the two-layer structure and its threshold, append-only and supersession rules.
 - **`assets/rfc.md`** — an optional, clearly-conditional scaffold (a commented block with a "delete unless this RFC is accumulating corrections" instruction), so it travels into every RFC an adopter drafts without being cargo-culted into empty sections.
 
-`CONVENTIONS.md` is **not** edited. It is seeded by `core`; housing a `governance-extras` feature there would couple the two packs and leave the skill non-self-contained for adopters who install the RFC tooling but adapt their own conventions doc. The repo-only how-to guide (`docs/guides/governance-extras/how-to/new-rfc.md`) *may* gain a short note as a dogfood enhancement, but it does not ship and is not part of the portable convention.
+`CONVENTIONS.md` is **not** edited. It is seeded by `core`; housing a `governance-extras` feature there would couple the two packs and leave the skill non-self-contained for adopters who install the RFC tooling but adapt their own conventions doc. The repo-only how-to guide (`guides/governance-extras/how-to/new-rfc.md`) *may* gain a short note as a dogfood enhancement, but it does not ship and is not part of the portable convention.
 
 ### D5 — Forward-only
 

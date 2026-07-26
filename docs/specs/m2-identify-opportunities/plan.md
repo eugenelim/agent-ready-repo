@@ -137,7 +137,7 @@ executed with the resulting artifact recorded in the PR description.
 
 **Depends on:** T1
 
-**Touches:** `docs/guides/product-engineering/how-to/identify-opportunities.md`
+**Touches:** `guides/product-engineering/how-to/identify-opportunities.md`
 
 **Tests:**
 - File exists at path — AC13
@@ -145,7 +145,7 @@ executed with the resulting artifact recorded in the PR description.
   seeding from `situation-framing.md`, interpreting opportunity score output
 
 **Approach:**
-- Author `docs/guides/product-engineering/how-to/identify-opportunities.md`
+- Author `guides/product-engineering/how-to/identify-opportunities.md`
   in Diátaxis how-to shape: goal-first, no JTBD theory, steps and decision
   points only. Section structure: "When to use this skill" (step-2 context,
   standalone), "Seeding from a situation-framing artifact" (what fields to

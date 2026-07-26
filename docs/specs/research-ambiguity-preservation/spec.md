@@ -92,7 +92,7 @@ camps, chronology + rationale chains):
   existing schema field or downstream contract removed/changed), and framed as
   a standing habit (a procedure step, not an aside).
 - [x] **AC8** The pack's in-repo guides are kept in sync with the changed
-  frontmatter and `counterpoints.md` verdict shape: `docs/guides/research/`
+  frontmatter and `counterpoints.md` verdict shape: `guides/research/`
   reference (the three changed verbatim frontmatter descriptions), the
   tutorial (`counterpoints.md` walkthrough + example), and the how-to
   (pipeline artifact list) no longer describe `/devils-advocate` as

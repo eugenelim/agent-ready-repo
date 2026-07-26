@@ -64,7 +64,7 @@ description of what is true *now*:
 
 ## Declined-pattern register
 
-- Tempted to create a new `docs/guides/reference/glossary.md` for context
+- Tempted to create a new `guides/reference/glossary.md` for context
   poisoning; declining — no glossary exists, guides are by-pack, core ships
   self-contained, and a core→glossary link would dangle for core-only adopters.
   The canonical home is `new-spec`'s rationale inline.

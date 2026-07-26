@@ -279,18 +279,18 @@ end-to-end narrative with all required option fields present.
 
 **Depends on:** T1
 
-**Touches:** `docs/guides/product-engineering/how-to/generate-solution-options.md`
+**Touches:** `guides/product-engineering/how-to/generate-solution-options.md`
 
 **Tests:**
 - File exists at
-  `docs/guides/product-engineering/how-to/generate-solution-options.md`
+  `guides/product-engineering/how-to/generate-solution-options.md`
   (goal-based; AC10)
 - Manual QA: guide covers all four topics in AC10; reads accurately against the
   shipped SKILL.md (AC10)
 
 **Approach:**
 
-Author `docs/guides/product-engineering/how-to/generate-solution-options.md`
+Author `guides/product-engineering/how-to/generate-solution-options.md`
 as a Diátaxis how-to (task-oriented; reader knows the goal they want to reach).
 
 Cover:

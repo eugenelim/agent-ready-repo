@@ -269,7 +269,7 @@ narrative in each path.
 
 **Depends on:** T1
 
-**Touches:** `docs/guides/product-engineering/how-to/place-a-bet.md`
+**Touches:** `guides/product-engineering/how-to/place-a-bet.md`
 
 **Tests:**
 - Goal-based: file exists at correct path (AC11)
@@ -278,7 +278,7 @@ narrative in each path.
 
 **Approach:**
 
-Author `docs/guides/product-engineering/how-to/place-a-bet.md` as a Diátaxis
+Author `guides/product-engineering/how-to/place-a-bet.md` as a Diátaxis
 how-to (task-oriented; reader knows their goal). Cover:
 
 1. When to reach for `place-bet` vs `de-risk-intent` — step 3.5 validates the

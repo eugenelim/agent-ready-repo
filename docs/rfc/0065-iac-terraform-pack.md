@@ -169,7 +169,7 @@ version = ">=0.6"
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/iac-terraform/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/iac-terraform/"
 
 [[pack.maintainers]]
 name = "eugenelim"
@@ -1359,7 +1359,7 @@ _All in one PR (Q2 — companions ship with the pack)._
   (convention + template + optional lint), `new-adr` infra mode, and the
   `extension-contract` convention + one `architect-review` rubric line.
 - Add `iac-terraform` to the self-host recipe include list (declarative config).
-- Per-pack guide home `docs/guides/iac-terraform/` + changelog entry.
+- Per-pack guide home `guides/iac-terraform/` + changelog entry.
 - **Update `docs/CHARTER.md`** — reframe the "not a framework" scope line to make opt-in accelerator packs for common tech stacks explicitly in scope (D2 Approver ruling: "it's foundational"; applied in this PR).
 - Author `references/release-loop-integration.md` against the current `release-loop`
   contract (the seven integration items in §1b), **recording the targeted

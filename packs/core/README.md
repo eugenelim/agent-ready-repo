@@ -50,4 +50,4 @@ for the design rationale.
 
 ---
 
-→ **Go deeper:** the [`core` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/core/).
+→ **Go deeper:** the [`core` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/core/).

@@ -31,7 +31,7 @@ Both large batches (T2, T4) are driven through a **resumable tracking file** and
 
 - web/AGENTS.md — no new dependency, no CSS framework; `--ds-*` tokens are the sole
   styling authority.
-- Diátaxis (`docs/guides/README.md`, `new-guide` skill) — link-out rule; no
+- Diátaxis (`guides/README.md`, `new-guide` skill) — link-out rule; no
   mode-mixing; reference/explanation quadrants untouched.
 - CONVENTIONS § 4 — spec metadata (status, ACs checked-or-deferred at ship).
 
@@ -228,7 +228,7 @@ Stage tables unchanged. Traces to: AC9.
 ### T4: Guide contract headers — how-to + tutorial (84 files) + new-guide templates
 
 **Depends on:** none
-**Touches:** docs/guides/**/how-to/*.md, docs/guides/**/tutorials/*.md, .claude/skills/new-guide/assets/how-to.md, .claude/skills/new-guide/assets/tutorials.md
+**Touches:** guides/**/how-to/*.md, guides/**/tutorials/*.md, .claude/skills/new-guide/assets/how-to.md, .claude/skills/new-guide/assets/tutorials.md
 
 **Tests:**
 - Goal-based: grep confirms each of the 68 how-to files has `**Use this when:**` + `**Result:**` and each of the 14 tutorial files has `**What you'll build:**` + `**Time:**`, directly under H1 (the two `_shared/**/README.md` framework explainers are excluded). Verifies AC7.

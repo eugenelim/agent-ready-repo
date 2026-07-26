@@ -162,7 +162,7 @@ template/hint/docs stop pointing adopters at repo-native paths, and
 - Technical: `lint-plan-deps.py` (RFC-0015) and `add-credentialed-skill` /
   `example-credentialed-skill` (RFC-0013) are owned by other specs; the
   adopter-facing how-to + explanation for credentialed skills already exist
-  (source: `docs/guides/{how-to,explanation}/*credential*`).
+  (source: `guides/{how-to,explanation}/*credential*`).
 - Technical: `max_iterations` is double-sourced — `loop-cohort.py:55` DEFAULTS +
   `state.json:4`. The schema self-test's `defaults-match-template` block requires
   every DEFAULTS key to be in the template with a matching value, so the template

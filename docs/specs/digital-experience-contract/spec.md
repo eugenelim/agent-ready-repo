@@ -23,7 +23,7 @@ The deliverable is:
 
 3. A **self-test** (`tools/test-check-contract-drift.py`) covering all meaningful drift modes.
 
-4. An **explanation guide** (`docs/guides/core/explanation/digital-experience-contract.md`) — a Diátaxis explanation page describing the contract, its three risk tiers, and the ownership map.
+4. An **explanation guide** (`guides/core/explanation/digital-experience-contract.md`) — a Diátaxis explanation page describing the contract, its three risk tiers, and the ownership map.
 
 5. **Cross-reference notes** added to the `whatChanges` field of the three existing affected journey pages (`web/src/content/journeys/product-strategy.md`, `experience-design.md`, `core.md`). The PE journey page (`product-engineering.md`) does not exist; its cross-reference is deferred to `spec/product-engineering-shaping-doctrine` (deferred: digital-experience-contract-pe-journey-xref).
 
@@ -42,7 +42,7 @@ The contract template is additive — it ships alongside existing skills without
 - Run `make build-self FORCE=1` after placing the core copy; commit the projected `.claude/skills/frontend-engineering/references/digital-experience-contract.md`
 - Run the drift check against the four freshly-placed copies and confirm exit 0 before shipping
 - Write the explanation guide as a Diátaxis explanation (not a how-to or tutorial) — describes the concept, the tiers, and the ownership map; does not prescribe a step-by-step fill procedure (that belongs in downstream how-to guides)
-- Use absolute path form (`/docs/guides/core/explanation/digital-experience-contract/`) for any journey page links, never relative paths from the `web/src/content/journeys/` directory
+- Use absolute path form (`/guides/core/explanation/digital-experience-contract/`) for any journey page links, never relative paths from the `web/src/content/journeys/` directory
 - Add a contract cross-reference sentence to the `whatChanges` field in each of the three existing journey pages (product-strategy, experience-design, core)
 
 ### Ask first
@@ -170,7 +170,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 - **All four copies exist:** goal-based — `find packs/*/\.apm -name "digital-experience-contract.md" | wc -l` returns 4
 - **Drift check passes on fresh copies:** goal-based — `python tools/check-contract-drift.py --root .` exits 0
 - **Projected artifact committed:** goal-based — `ls .claude/skills/frontend-engineering/references/digital-experience-contract.md` exists
-- **Explanation guide exists with required sections:** goal-based — `grep "^## " docs/guides/core/explanation/digital-experience-contract.md` returns lines for: The contract, The three tiers, The ownership map, Graceful capability detection
+- **Explanation guide exists with required sections:** goal-based — `grep "^## " guides/core/explanation/digital-experience-contract.md` returns lines for: The contract, The three tiers, The ownership map, Graceful capability detection
 - **Journey page cross-references present:** goal-based — `grep "Digital Experience Contract"` hits in each of the three updated journey pages
 - **No SKILL.md, pack.toml, or evals modified:** goal-based — `git diff --name-only` contains none of those file types (except in the paths explicitly authorized by this spec)
 
@@ -189,7 +189,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 - [x] `tools/test-check-contract-drift.py` exists; covers Trees A–I (nine test cases); `python tools/test-check-contract-drift.py` exits 0.
 - [x] `python tools/check-contract-drift.py --root .` exits 0 on the freshly-placed copies.
 - [x] `make build-self FORCE=1` ran; `.claude/skills/frontend-engineering/references/digital-experience-contract.md` exists and matches the pack copy; committed in this PR.
-- [x] `docs/guides/core/explanation/digital-experience-contract.md` exists; contains h2 sections: The contract, The three tiers, The ownership map, Graceful capability detection.
+- [x] `guides/core/explanation/digital-experience-contract.md` exists; contains h2 sections: The contract, The three tiers, The ownership map, Graceful capability detection.
 - [x] `web/src/content/journeys/product-strategy.md` `whatChanges` field contains the phrase "Digital Experience Contract".
 - [x] `web/src/content/journeys/experience-design.md` `whatChanges` field contains the phrase "Digital Experience Contract".
 - [x] `web/src/content/journeys/core.md` `whatChanges` field contains the phrase "Digital Experience Contract".
@@ -209,7 +209,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 ## Boundaries — site, guide, journey
 
 Per ini-003 phase-slice doctrine, this spec ships its own guide and journey updates:
-- **Guide:** `docs/guides/core/explanation/digital-experience-contract.md` — Diátaxis explanation of what the contract is, its three tiers, and the ownership map. Cross-links use absolute `/docs/guides/core/explanation/digital-experience-contract/` form. Does not duplicate RFC-0071 — one paragraph summary with a pointer to the RFC for governance detail.
+- **Guide:** `guides/core/explanation/digital-experience-contract.md` — Diátaxis explanation of what the contract is, its three tiers, and the ownership map. Cross-links use absolute `/guides/core/explanation/digital-experience-contract/` form. Does not duplicate RFC-0071 — one paragraph summary with a pointer to the RFC for governance detail.
 - **Journey pages:** brief cross-reference sentence appended at end of the `whatChanges` YAML field value in three existing journey pages (product-strategy, experience-design, core). Not a rewrite of the `whatChanges` prose.
 - **Site (site/ — MkDocs docs site):** no change in this spec — explanation guides project to the docs site naturally; no explicit docs-site config change needed.
 - **PE journey page:** deferred to `spec/product-engineering-shaping-doctrine` (deferred: digital-experience-contract-pe-journey-xref).

@@ -6,7 +6,7 @@
 
 ## Path described
 
-Tutorial: `docs/guides/figma/tutorials/figma-first-session.md`
+Tutorial: `guides/figma/tutorials/figma-first-session.md`
 
 The described path:
 1. Install `credential-brokers` pack (`agentbundle install credential-brokers --scope user`)

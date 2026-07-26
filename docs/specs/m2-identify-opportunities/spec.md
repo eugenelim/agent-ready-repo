@@ -128,7 +128,7 @@ logic. Verification is goal-based for structure and manual-QA for behavior.
   A count-only or filename-token grep would pass vacuously; these phrases only
   exist when the branch prose exists.
 - **Diátaxis guide: goal-based for file existence, manual QA for accuracy.**
-  Guide at `docs/guides/product-engineering/how-to/identify-opportunities.md`;
+  Guide at `guides/product-engineering/how-to/identify-opportunities.md`;
   reads accurately against the shipped skill (review recorded in PR).
 - **Projection: goal-based.** `lint-packs`, `validate`, and `build` exit 0.
   Adopter-cleanliness verified by grep over the SKILL body (no RFC-NNNN, no
@@ -214,7 +214,7 @@ logic. Verification is goal-based for structure and manual-QA for behavior.
   (no RFC-NNNN, no `agent-ready-repo` references).
 
 - [x] **AC13.** A Diátaxis how-to guide ships at
-  `docs/guides/product-engineering/how-to/identify-opportunities.md` covering:
+  `guides/product-engineering/how-to/identify-opportunities.md` covering:
   when to run `identify-opportunities` (step 2 of the shaping sequence or
   standalone); how to seed job elicitation from a `situation-framing.md`;
   how to interpret and act on the opportunity score output.
@@ -244,8 +244,8 @@ logic. Verification is goal-based for structure and manual-QA for behavior.
 - **A6.** Free-form input is the primary entry point; reading `situation-framing.md`
   from the same slug path is opportunistic, not required. (source: user confirmation
   2026-07-21)
-- **A7.** `docs/guides/product-engineering/how-to/` exists; `identify-opportunities.md`
-  does not yet exist. (source: `ls docs/guides/product-engineering/how-to/`,
+- **A7.** `guides/product-engineering/how-to/` exists; `identify-opportunities.md`
+  does not yet exist. (source: `ls guides/product-engineering/how-to/`,
   2026-07-21)
 - **A8.** `workspace.toml` write-back is the `capture-work` front door's
   responsibility; this skill does not write to `workspace.toml`. (source:

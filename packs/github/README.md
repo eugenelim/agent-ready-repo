@@ -31,4 +31,4 @@ Ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`github` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/github/).
+→ **Go deeper:** the [`github` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/github/).

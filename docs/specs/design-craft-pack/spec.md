@@ -83,7 +83,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   Tailwind/CSS, no animation library, no px/ms/hex/easing/breakpoint table, no
   fixed token set (the charter's "not a framework that picks your tech stack").
 - **Never** add a **new top-level directory**; the pack lives at
-  `packs/design-craft/`, its guides under the existing `docs/guides/`, its lint
+  `packs/design-craft/`, its guides under the existing `guides/`, its lint
   under the existing `tools/`.
 - **Never** make `core` (or any other pack) import from or depend on this pack —
   `design-craft` stands alone.
@@ -112,7 +112,7 @@ goal-based for structure and the agnosticism floor, and manual-QA for judgment.
   manual QA.** Walk a worked example through each skill and record the result; the
   skills' judgment is not unit-testable without asserting mock shapes.
 - **Diátaxis guides: goal-based for existence, manual QA for accuracy.** The guide
-  files exist at their `docs/guides/design-craft/` quadrant paths (goal-based);
+  files exist at their `guides/design-craft/` quadrant paths (goal-based);
   each reads accurately against the shipped skills (manual review recorded in the
   build PR). *(Guide authoring lands in the build PR, not this spec/plan PR.)*
 
@@ -169,7 +169,7 @@ the build PR (memory: set-final-status-in-the-implementing-PR). -->
   (`build-check.yml` + `build-check-windows.yml`) — the RFC-0007 enforcement
   pattern, Python for Windows portability. It is **not** promoted to a repo-wide
   `CONVENTIONS` lint (that would be a separate RFC).
-- [x] **Diátaxis guides** exist under `docs/guides/design-craft/` at their quadrant
+- [x] **Diátaxis guides** exist under `guides/design-craft/` at their quadrant
   paths — an **explanation** (the design-craft loop and why portable discipline),
   **how-to(s)** (per skill or grouped), and a **reference** (the four skills + the
   `quality-floor` checklist) — each reading accurately against the shipped skills
@@ -195,6 +195,6 @@ the build PR (memory: set-final-status-in-the-implementing-PR). -->
 - Technical: [pack.adapter-contract] version 0.12 matches research per RFC-0033 OQ#1 default (source: packs/research/pack.toml).
 - Technical: user-scope-default packs aggregate in .claude-plugin/marketplace.json but are not projected to this repo's working tree, so the gate is lint-packs + validate + build + pytest, not build-self (source: .claude-plugin/marketplace.json; architect precedent; memory project_self_host_pack_scope).
 - Technical: the agnosticism stack-token check wires into CI analogous to the converters attribution/Rail-C scrubs (source: .github/workflows/build-check.yml:197-229); as a new tool it is Python, not inline bash, for Windows portability (source: memory feedback_new_tools_python_not_bash, feedback_lint_bash_to_py_windows_trap).
-- Technical: guides land under docs/guides/design-craft/<quadrant>/ via new-guide and are repo-owned (not projected) (source: docs/guides/architect/ structure; memory reference_self_host_projected_readme_allowlist).
+- Technical: guides land under guides/design-craft/<quadrant>/ via new-guide and are repo-owned (not projected) (source: guides/architect/ structure; memory reference_self_host_projected_readme_allowlist).
 - Technical: SKILL.md <100 lines with depth in references/ is the house pattern; a docs/product/changelog.md [Unreleased] entry is required for the new pack (source: packs/architect/README.md; memory feedback_changelog_for_skill_changes).
 - Product: audience is interaction/visual designers + design-eng hybrids, authors of upstream design intent the build consumes; v1 is four skills + one shared checklist, no subagent (source: RFC-0033 decisions 2/3/5; user confirmation 2026-06-14).

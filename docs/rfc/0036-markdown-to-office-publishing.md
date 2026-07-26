@@ -5,7 +5,7 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-17
 - **Date closed:** 2026-06-17
-- **Related:** RFC-0007 (`converters` — first user-scope pack; the home) · RFC-0004 (install-scope per pack — the user-scope dimension `converters` uses) · `file-to-markdown` (the inverse direction — Office→Markdown; the Tier-1 pip detect-and-stop precedent) · `markdown-to-html` (the deterministic-script "you are not the renderer" idiom) · `mermaid-renderer` (the Tier-1 `--check` reference) · `docs/guides/_shared/how-to/author-a-skill.md` (the 3-tier dependency model) · `docs/CHARTER.md` (the four principles)
+- **Related:** RFC-0007 (`converters` — first user-scope pack; the home) · RFC-0004 (install-scope per pack — the user-scope dimension `converters` uses) · `file-to-markdown` (the inverse direction — Office→Markdown; the Tier-1 pip detect-and-stop precedent) · `markdown-to-html` (the deterministic-script "you are not the renderer" idiom) · `mermaid-renderer` (the Tier-1 `--check` reference) · `guides/_shared/how-to/author-a-skill.md` (the 3-tier dependency model) · `docs/CHARTER.md` (the four principles)
 
 ---
 
@@ -194,7 +194,7 @@ The three skills are pure additions to `converters/.apm/skills/`. A skills addit
 - `file-to-markdown` — the **inverse** direction (Office→Markdown via Docling); the **Tier-1 pip detect-and-stop** precedent these skills mirror; adding the forward direction completes the round-trip.
 - `markdown-to-html` — the deterministic-renderer idiom ("you are not the renderer; the script is") and the closest "Markdown in, formatted artifact out" sibling.
 - `mermaid-renderer` — the Tier-1 reference (`## Prerequisites` + a `--check` verb + an explicit don't-auto-install rule).
-- `docs/guides/_shared/how-to/author-a-skill.md` — the 3-tier dependency model decision 5 applies; the `stdlib > pip > npm` preference (these are pip).
+- `guides/_shared/how-to/author-a-skill.md` — the 3-tier dependency model decision 5 applies; the `stdlib > pip > npm` preference (these are pip).
 - `docs/CHARTER.md` — the four principles; the skills clear them (universal task; substantive, not duplicative; a habit; reached for whenever a branded deliverable is produced).
 
 **External prior art** (✓ = fetched and confirmed by the author).
@@ -219,7 +219,7 @@ The three skills are pure additions to `converters/.apm/skills/`. A skills addit
 
 Filled in on acceptance:
 - **Spec:** `docs/specs/markdown-to-office-publishing/` (via `new-spec`) — the three skills, each with a lean `SKILL.md` + `references/` + a deterministic render `scripts/` entry; the `## Prerequisites` Tier-1 `--check` verb; the detect→confirm→elicit→opt-out template flow; the inspect-then-map fill-point manifest + Markdown mapping; the `converters` version bump + `marketplace.json` refresh; activation-tuned names/descriptions.
-- **User docs (decision 7):** a new `docs/guides/converters/how-to/publish-markdown-to-office.md`, an extension to `docs/guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry — authored in the implementing PR alongside the skills.
+- **User docs (decision 7):** a new `guides/converters/how-to/publish-markdown-to-office.md`, an extension to `guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry — authored in the implementing PR alongside the skills.
 - **Possible ADR** — only if the template-fill-over-convert choice warrants a durable architectural record beyond this RFC; likely unnecessary (this RFC is the record).
 
 ## Errata

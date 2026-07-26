@@ -49,7 +49,7 @@ is functional (not pack-derived) and stays.
 - Sweep the entire `packs/` tree for operative `experience` pack-name
   references — at minimum the six confirmed cross-pack files plus intra-pack
   SKILL.md files within the renamed pack.
-- Update guide prose and slug-named guide file within `docs/guides/experience-design/`
+- Update guide prose and slug-named guide file within `guides/experience-design/`
   to reflect the new pack name.
 - Update all platform-site surfaces: `site/mkdocs.yml` nav entries and guide
   paths; `tools/build-site.py` PACKS list entry and stale description;
@@ -107,7 +107,7 @@ invariants. No manual QA — no user-facing UI surface is introduced.
   exist.
 - [x] `packs/experience-design/pack.toml` has `name = "experience-design"`,
   `version = "1.0.0"`, `display_name = "Experience Design"`, and `documentation`
-  link updated to `.../docs/guides/experience-design/`.
+  link updated to `.../guides/experience-design/`.
 - [x] `packs/experience-design/.claude-plugin/plugin.json` has
   `"name": "experience-design"` and `"version": "1.0.0"`.
 - [x] All 18 skill directories in `packs/experience-design/.apm/skills/` are
@@ -135,17 +135,17 @@ invariants. No manual QA — no user-facing UI surface is introduced.
   records the alias-assessment outcome: pack-level alias unsupported (adapter-
   level only); migration is documentation-only via `packs/experience-design/AGENTS.md`;
   assessed 2026-07-18.
-- [x] `docs/guides/experience-design/` directory exists; `docs/guides/experience/`
+- [x] `guides/experience-design/` directory exists; `guides/experience/`
   does not exist.
-- [x] `docs/guides/experience-design/reference/experience-design.md` exists;
-  `docs/guides/experience-design/reference/experience.md` does not.
-- [x] Guide prose in `docs/guides/experience-design/` contains no operative
+- [x] `guides/experience-design/reference/experience-design.md` exists;
+  `guides/experience-design/reference/experience.md` does not.
+- [x] Guide prose in `guides/experience-design/` contains no operative
   `experience` pack-name references (install commands, skill invocation prose
   updated; `[experience]` layout table key references and `experience-reviewer`
   references are correct and stay).
-- [x] `docs/guides/README.md:23` — Designer/UX row: pack link and path updated to
+- [x] `guides/README.md:23` — Designer/UX row: pack link and path updated to
   `experience-design`; "design critique" updated to "design review" (renamed in RFC-0066).
-  `docs/guides/README.md:56` — pack table row updated to `experience-design`; stale
+  `guides/README.md:56` — pack table row updated to `experience-design`; stale
   skill descriptions ("aesthetic direction", "design systems", "design critique" — all
   renamed in RFC-0066) updated to current names.
 - [x] `README.md:125` — pack table row updated to `experience-design`.
@@ -181,7 +181,7 @@ invariants. No manual QA — no user-facing UI surface is introduced.
 
 - Technical: `packs/experience/pack.toml` — `name = "experience"`,
   `version = "0.6.0"`, `display_name = "Experience"`, `documentation` →
-  `docs/guides/experience/` (`packs/experience/pack.toml:2,6,55`)
+  `guides/experience/` (`packs/experience/pack.toml:2,6,55`)
 - Technical: `packs/experience/.claude-plugin/plugin.json` — `"name":
   "experience"`, `"version": "0.6.0"` (`packs/experience/.claude-plugin/plugin.json`)
 - Technical: 18 skill dirs in `packs/experience/.apm/skills/`, all function-named;
@@ -209,9 +209,9 @@ invariants. No manual QA — no user-facing UI surface is introduced.
   (`find packs/experience/ -name agentbundle-layout.md`)
 - Technical: `[pack.evals] skills` in `pack.toml` has 11 function-named skills;
   none require renaming (`packs/experience/pack.toml:48`)
-- Technical: `docs/guides/experience/` has `README.md`,
+- Technical: `guides/experience/` has `README.md`,
   `explanation/the-experience-thread.md`, `how-to/author-design-intent.md`,
-  `reference/experience.md` (`ls docs/guides/experience/`)
+  `reference/experience.md` (`ls guides/experience/`)
 - Technical: `site/mkdocs.yml` has 6 operative experience entries — 5 lowercase-path
   entries (caught by `grep experience site/mkdocs.yml`) plus the line-200 guides section
   header `- Experience:` (capital E, caught only by case-insensitive grep)
@@ -226,8 +226,8 @@ invariants. No manual QA — no user-facing UI surface is introduced.
   (read `web/src/content/journeys/experience.md`)
 - Technical: `web/src/pages/journeys/index.astro:17` —
   `{ slug: 'experience', name: 'Experience' }` (`grep experience web/src/pages/journeys/index.astro`)
-- Technical: `docs/guides/README.md:23,56` — 4 operative experience references
-  (`grep experience docs/guides/README.md`)
+- Technical: `guides/README.md:23,56` — 4 operative experience references
+  (`grep experience guides/README.md`)
 - Technical: `README.md:125` — 1 operative experience reference in pack table
   (`grep experience README.md`)
 - Process: RFC-0064 is still Draft — direct body edit is correct; formal errata

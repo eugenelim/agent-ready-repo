@@ -15,7 +15,7 @@ Ship a professional MkDocs Material documentation site under `site/` that aggreg
 - [x] `site/docs/index.md` is a rich hero landing page (three loops, pack catalogue, install command)
 - [x] `site/docs/getting-started/index.md` walks through quick start → first loop
 - [x] `site/docs/stylesheets/extra.css` adds custom polish on top of Material
-- [x] `tools/build-site.py` copies packs/*/README.md → site/docs/packs/<name>.md, docs/guides/** → site/docs/guides/**, changelog + contributing
+- [x] `tools/build-site.py` copies packs/*/README.md → site/docs/packs/<name>.md, guides/** → site/guides/**, changelog + contributing
 - [x] `tools/build-site.py` generates a `site/docs/packs/index.md` pack catalogue summary
 - [x] `make site-sync` runs the aggregation script
 - [x] `make site-build` runs site-sync then `mkdocs build`
@@ -34,7 +34,7 @@ Ship a professional MkDocs Material documentation site under `site/` that aggreg
 
 Verification mode: goal-based check + visual/manual QA
 
-- `python tools/build-site.py` exits 0 and populates `site/docs/packs/`, `site/docs/guides/`
+- `python tools/build-site.py` exits 0 and populates `site/docs/packs/`, `site/guides/`
 - `mkdocs build --config-file site/mkdocs.yml` exits 0 (strict mode)
 - `mkdocs serve` starts and the landing page renders correctly
 
@@ -44,7 +44,7 @@ Verification mode: goal-based check + visual/manual QA
 - GitHub repo is `eugenelim/agent-ready-repo` — confirmed from pack README link
 - `packs/` contains exactly 14 packs — confirmed from exploration
 - All 14 packs have `README.md` — to be confirmed by build-site.py at runtime (skip missing, warn)
-- `docs/guides/` is the full user-facing guide tree — confirmed (107 .md files mirrored by build-site.py)
+- `guides/` is the full user-facing guide tree — confirmed (107 .md files mirrored by build-site.py)
 
 ## Declined patterns
 

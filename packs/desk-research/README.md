@@ -44,4 +44,4 @@ Ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`desk-research` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/desk-research/).
+→ **Go deeper:** the [`desk-research` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/desk-research/).

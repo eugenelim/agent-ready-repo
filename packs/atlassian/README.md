@@ -48,4 +48,4 @@ Once credentials are set up, ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`atlassian` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/atlassian/).
+→ **Go deeper:** the [`atlassian` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/atlassian/).

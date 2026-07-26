@@ -106,7 +106,7 @@ packs/product-engineering/.apm/skills/map-capabilities/
     <slug>/
       bet.md                          ← sample bet input (T3)
       capability-map.md               ← sample output artifact (T3)
-docs/guides/product-engineering/how-to/
+guides/product-engineering/how-to/
   map-capabilities.md                 ← Diátaxis how-to (T4)
 ```
 
@@ -243,7 +243,7 @@ fields and sections present, adopter-clean.
 
 **Tests:**
 - File exists at
-  `docs/guides/product-engineering/how-to/map-capabilities.md`.
+  `guides/product-engineering/how-to/map-capabilities.md`.
 - File opens with a Diátaxis how-to header (goal-oriented, second-person).
 - Covers: when to run `map-capabilities` (after `place-bet`), how to read Wardley
   + strategic-criticality annotations, how to use the suggested build sequence to

@@ -27,4 +27,4 @@ Ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`monorepo-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/monorepo-extras/).
+→ **Go deeper:** the [`monorepo-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/monorepo-extras/).

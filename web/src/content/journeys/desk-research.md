@@ -79,7 +79,7 @@ typicalSession:
   agentTurns: "4–8"
   humanTouches: 2
   wallClockMinutes: "15–40"
-docsUrl: /docs/guides/desk-research/
+docsUrl: /guides/desk-research/
 packUrl: /packs/desk-research/
 relatedJourneys:
   - architect

@@ -100,7 +100,7 @@ The specifics, recorded so the next maintainer need not re-litigate them:
   precedence: `AGENTS.md` (a light "blessed security tools/helpers" customization
   point, *not* a new `security.md`) → `CONVENTIONS.md` and any context other packs
   install → inference fallback (grep for the de-facto helper). The agent's existing
-  read of `docs/architecture/security.md` / `docs/guides/reference/security.md` is
+  read of `docs/architecture/security.md` / `guides/reference/security.md` is
   **retained** (it fits the "any context the repo provides" tier). What is rejected
   is *minting a new mandatory standard file*, not reading one an adopter keeps.
 - **Packaging.** New `security-checklists` skill (core pack) + edits to

@@ -85,7 +85,7 @@ Files touched (all under `packs/governance-extras/` unless noted):
   existing eval + a new eval entry for the decidable handoff (AC7).
   (`eval_queries.json` is trigger-only and stays unchanged.)
 - `pack.toml` + `.claude-plugin/plugin.json` — version bump (AC9).
-- `docs/guides/governance-extras/how-to/new-rfc.md` — Steps 3 & 5 sync (AC6).
+- `guides/governance-extras/how-to/new-rfc.md` — Steps 3 & 5 sync (AC6).
 - `docs/product/changelog.md` — `[Unreleased]` entry (AC9).
 - generated: `.claude/` + `.agents/` skill copies + `marketplace.json` via
   `make build-self` (AC8).
@@ -170,7 +170,7 @@ present; existing coverage is intact; `eval_queries.json` is unchanged.
 
 **Depends on:** T1
 
-**Touches:** docs/guides/governance-extras/how-to/new-rfc.md
+**Touches:** guides/governance-extras/how-to/new-rfc.md
 
 **Tests:**
 - `grep` Step 3 of the guide for the decidable-in-chat decision handoff

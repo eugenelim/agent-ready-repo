@@ -119,7 +119,7 @@ shows the move cleanly.
 - In `pack.toml`: update `name = "research"` → `name = "desk-research"`;
   `version = "0.6.1"` → `version = "1.0.0"`;
   `display_name = "Research"` → `display_name = "Desk Research"`;
-  `documentation` URL: `.../docs/guides/research/` → `.../docs/guides/desk-research/`;
+  `documentation` URL: `.../guides/research/` → `.../guides/desk-research/`;
   `[pack.evals] skills` list: update `"research"` → `"desk-research"` and
   `"research-project-start"` → `"desk-research-project-start"`;
   inline comment prose that names "research's skills" or "research-project-start as the
@@ -323,22 +323,22 @@ contains the assessment note; grep checks above exit 0.
 
 ---
 
-### T6: Rename docs/guides/research → docs/guides/desk-research + update guide content
+### T6: Rename guides/research → guides/desk-research + update guide content
 
 **Depends on:** T2
 
-**Touches:** `docs/guides/research/` → `docs/guides/desk-research/` (directory move);
+**Touches:** `guides/research/` → `guides/desk-research/` (directory move);
 guide files within (prose + slug-named file renames)
 
 **Tests:**
-- `[ -d docs/guides/desk-research ] && [ ! -d docs/guides/research ]` exits 0
-- `grep -rn "\/research\b\|research-project\|\`research\`" docs/guides/desk-research/ --include="*.md"` returns 0 lines
+- `[ -d guides/desk-research ] && [ ! -d guides/research ]` exits 0
+- `grep -rn "\/research\b\|research-project\|\`research\`" guides/desk-research/ --include="*.md"` returns 0 lines
 
 **Approach:**
-- `git mv docs/guides/research docs/guides/desk-research`
+- `git mv guides/research guides/desk-research`
 - Rename the two pack-named slug files:
-  - `git mv docs/guides/desk-research/reference/research-pack.md docs/guides/desk-research/reference/desk-research-pack.md`
-  - `git mv docs/guides/desk-research/tutorials/research-first-session.md docs/guides/desk-research/tutorials/desk-research-first-session.md`
+  - `git mv guides/desk-research/reference/research-pack.md guides/desk-research/reference/desk-research-pack.md`
+  - `git mv guides/desk-research/tutorials/research-first-session.md guides/desk-research/tutorials/desk-research-first-session.md`
 - Update prose in all guide files — any invocation slug `/research` → `/desk-research`,
   `research-project-*` → `desk-research-project-*`, pack-name mentions `research pack` →
   `desk-research pack`. Leave topic-level prose ("research methodology", "how to do

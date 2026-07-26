@@ -110,7 +110,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   "future setting table not yet supported" error if it sees one.
   Documented in *Risks* (plan.md).
 - Add the new reference page under any pack's `seeds/` tree.
-  `docs/guides/**/*.md` is in `EXCLUDED_PATTERNS` — native to this
+  `guides/**/*.md` is in `EXCLUDED_PATTERNS` — native to this
   repo, not projected. New pages land directly.
 - Add a structural temptation: a generic "Setting" abstraction class
   per registered key, a "ConfigStore" service-locator, or a settings
@@ -312,11 +312,11 @@ Manual QA is not needed; every behavior above is mechanically verifiable.
     calling the path resolver with defaults and asserting the result
     lies inside the per-test tmp_path.
 18. **AC18.** A new reference page lands at
-    `docs/guides/_shared/reference/agentbundle.md` covering, in this order:
+    `guides/_shared/reference/agentbundle.md` covering, in this order:
     `pip install agentbundle` (with a working forward-link to the
-    existing `docs/guides/_shared/how-to/install-agentbundle-from-clone.md`),
+    existing `guides/_shared/how-to/install-agentbundle-from-clone.md`),
     installing a pack, and configuring the default adapter via the new
-    subcommand. Cross-linked from `docs/guides/_shared/reference/README.md`.
+    subcommand. Cross-linked from `guides/_shared/reference/README.md`.
 19. **AC19.** Zero new runtime dependencies in
     `packages/agentbundle/pyproject.toml`. The diff to that file is
     empty (or limited to comments / formatting).
@@ -358,7 +358,7 @@ Manual QA is not needed; every behavior above is mechanically verifiable.
   monkey-patch path. They keep passing because `configured_adapter(None)`
   returns the constant — the new resolver is additive. (source: repo
   grep)
-- **Technical**: `docs/guides/**/*.md` is in `EXCLUDED_PATTERNS` in
+- **Technical**: `guides/**/*.md` is in `EXCLUDED_PATTERNS` in
   `self_host.py:311` — native to this repo, not pack-projected. New
   reference page lands directly. (source:
   `packages/agentbundle/agentbundle/build/self_host.py:311`)
@@ -391,7 +391,7 @@ Manual QA is not needed; every behavior above is mechanically verifiable.
 
 ## Changelog
 
-- 2026-05-31: Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `agentbundle config {get,set,unset,path}` subcommand (`commands/config.py`, wired in `cli.py`), the `scope.configured_adapter` reporter, the `_resolve_target_adapter` pre-flight block, the fail-soft TOML loader, the autouse HOME/XDG/APPDATA conftest fixture, and the `docs/guides/_shared/reference/agentbundle.md` page. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
+- 2026-05-31: Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `agentbundle config {get,set,unset,path}` subcommand (`commands/config.py`, wired in `cli.py`), the `scope.configured_adapter` reporter, the `_resolve_target_adapter` pre-flight block, the fail-soft TOML loader, the autouse HOME/XDG/APPDATA conftest fixture, and the `guides/_shared/reference/agentbundle.md` page. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
 - 2026-05-28: Initial draft.
 - 2026-05-28: Pre-EXECUTE adversarial review pass 5 (user-directed
   fail-loud redesign). Behavioural change: when user-config sets an

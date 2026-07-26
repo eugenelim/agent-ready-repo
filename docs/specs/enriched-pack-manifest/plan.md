@@ -14,7 +14,7 @@
 
 ## Approach
 
-Three layers, in order: **schema** (declare the fields), **projection** (carry the subset + READMEs into the dist routes), **population** (fill all 12 shipped packs, including `product-engineering`, RFC-0030, now on `main`). The schema work (T1) and the two contract-surface changes (T2 contract bump, T3 relax the plugin-manifest schemas) are independent and parallelizable; the projector (T4), README wiring (T5), categories warn (T6), and `@catalogue/pack` rendering (T7) each depend only on the schema; population (T8) depends on the projection + categories being in place so every pack validates and projects cleanly; the per-pack `docs/guides/` migration (T12) and its convention/skill adaptation (T13) precede the `documentation`-link wiring (T10); docs (T9) closes. The riskiest part is **not** the additive schema — it's the **contract bump's blast radius** (version-pinned assertions across CI-ungated test roots) and keeping **legacy projected output byte-identical** so the change is provably additive. Every field is optional and the projector emits new keys only when present, which is what makes legacy invariance testable.
+Three layers, in order: **schema** (declare the fields), **projection** (carry the subset + READMEs into the dist routes), **population** (fill all 12 shipped packs, including `product-engineering`, RFC-0030, now on `main`). The schema work (T1) and the two contract-surface changes (T2 contract bump, T3 relax the plugin-manifest schemas) are independent and parallelizable; the projector (T4), README wiring (T5), categories warn (T6), and `@catalogue/pack` rendering (T7) each depend only on the schema; population (T8) depends on the projection + categories being in place so every pack validates and projects cleanly; the per-pack `guides/` migration (T12) and its convention/skill adaptation (T13) precede the `documentation`-link wiring (T10); docs (T9) closes. The riskiest part is **not** the additive schema — it's the **contract bump's blast radius** (version-pinned assertions across CI-ungated test roots) and keeping **legacy projected output byte-identical** so the change is provably additive. Every field is optional and the projector emits new keys only when present, which is what makes legacy invariance testable.
 
 ## Constraints
 
@@ -22,7 +22,7 @@ Three layers, in order: **schema** (declare the fields), **projection** (carry t
 - **RFC-0001** — contracts live in `contracts/`; do not relocate.
 - **RFC-0011** — new `pack.toml` fields are optional and gated by a contract bump; legacy packs need no migration (the precedent followed by T1+T2).
 - **ADR-0021** — `pack.toml` is the metadata source of truth, projected lossily per tool; `@catalogue/pack` identity (declare-only here). The decision record for RFC-0031 D2/D7; T1/T3/T4/T7 implement it.
-- **ADR-0020** — the `documentation` link target is the per-pack `docs/guides/<pack>/` home; the guide migration that creates it is **performed by this plan** (T12 migrate + T13 convention/skill) and consumed by T10.
+- **ADR-0020** — the `documentation` link target is the per-pack `guides/<pack>/` home; the guide migration that creates it is **performed by this plan** (T12 migrate + T13 convention/skill) and consumed by T10.
 - **RFC-0030** — `product-engineering` landed on `main` (2026-06-13); T8's sweep enriches it as a normal pack.
 - **CONVENTIONS.md** — changelog entry for user-visible change; non-cosmetic pack edits bump the pack version.
 
@@ -183,18 +183,18 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 
 **Done when:** all 12 packs validate clean, each version differs from the merge-base, build-check green.
 
-### T12: Migrate `docs/guides/` to the per-pack Diátaxis layout (ADR-0020)
+### T12: Migrate `guides/` to the per-pack Diátaxis layout (ADR-0020)
 
 **Depends on:** none
-**Touches:** `docs/guides/<quadrant>/*` → `docs/guides/<pack>/<quadrant>/*` (the ~30 existing guides, incl. the `product-engineering` guides main just added), `docs/guides/_shared/<quadrant>/*` (cross-cutting), `docs/guides/README.md` + per-quadrant `README.md`s
+**Touches:** `guides/<quadrant>/*` → `guides/<pack>/<quadrant>/*` (the ~30 existing guides, incl. the `product-engineering` guides main just added), `guides/_shared/<quadrant>/*` (cross-cutting), `guides/README.md` + per-quadrant `README.md`s
 
 **Tests:** (goal-based)
-- Every existing guide lands under either `docs/guides/<pack>/<quadrant>/` (pack-specific) or `docs/guides/_shared/<quadrant>/` (cross-cutting) — no doc left at the old `docs/guides/<quadrant>/` top level.
+- Every existing guide lands under either `guides/<pack>/<quadrant>/` (pack-specific) or `guides/_shared/<quadrant>/` (cross-cutting) — no doc left at the old `guides/<quadrant>/` top level.
 - All internal cross-links between guides still resolve (link-check); `make build-check` doc-drift gates green.
 
 **Approach:**
 - Classify each of the ~30 guides: pack-specific (e.g. `core-pack.md`→`core/`, `research-methodology.md`→`research/`, the intent guides→`product-engineering/`) vs cross-cutting repo-workflow (`new-rfc`, `new-adr`, `author-a-skill`→`_shared/`).
-- Move files with `git mv` so they render as **renames** (cheap to review); isolate the cross-link rewrites + README refreshes into a separate commit. Land into `docs/guides/<pack>/{tutorials,how-to,reference,explanation}/`; preserve the four-type discipline *within* each pack.
+- Move files with `git mv` so they render as **renames** (cheap to review); isolate the cross-link rewrites + README refreshes into a separate commit. Land into `guides/<pack>/{tutorials,how-to,reference,explanation}/`; preserve the four-type discipline *within* each pack.
 - **PR-sizing:** the guides migration (T12 + T13 + T10) is separable from the manifest work (ADR-0020 vs ADR-0021) — if the combined diff exceeds the split threshold, land it as its own PR stacked on the manifest PR.
 
 **Done when:** all guides relocated, links resolve, build-check green.
@@ -202,11 +202,11 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 ### T13: Adapt `CONVENTIONS.md §5c` + the `new-guide` skill to the per-pack layout
 
 **Depends on:** T12 (co-lands so the Living `CONVENTIONS.md` matches the moved reality)
-**Touches:** `docs/CONVENTIONS.md` §5c, `.claude/skills/new-guide/SKILL.md` (+ its assets/templates and the `docs/guides/<quadrant>/<slug>` write-path references), the Source-of-truth table row in `AGENTS.md`/`CLAUDE.md` if it pins the guides path
+**Touches:** `docs/CONVENTIONS.md` §5c, `.claude/skills/new-guide/SKILL.md` (+ its assets/templates and the `guides/<quadrant>/<slug>` write-path references), the Source-of-truth table row in `AGENTS.md`/`CLAUDE.md` if it pins the guides path
 
 **Tests:** (goal-based)
 - `CONVENTIONS.md §5c` describes the per-pack hierarchy (pack-at-top, four types within, `_shared/` for cross-cutting; adopter seed scaffold stays type-at-top); `conventions-check` / lint green.
-- The `new-guide` skill's documented write path is `docs/guides/<pack>/<quadrant>/<slug>.md`; a dry-run/inspection confirms it (no doc written).
+- The `new-guide` skill's documented write path is `guides/<pack>/<quadrant>/<slug>.md`; a dry-run/inspection confirms it (no doc written).
 
 **Approach:**
 - Amend §5c prose; update the `new-guide` SKILL.md write-path + quadrant logic; update the Source-of-truth table reference. Per ADR-0020, the adopter-facing `user-guide-diataxis` seed scaffold is **unchanged** (stays type-at-top).
@@ -219,11 +219,11 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 **Touches:** `packs/*/pack.toml` (`[pack.links].documentation`), `packs/*/README.md` (the link-out line)
 
 **Tests:** (goal-based)
-- Each pack's `[pack.links].documentation` resolves to an existing `docs/guides/<pack>/` home (absolute repo URL on `main`).
+- Each pack's `[pack.links].documentation` resolves to an existing `guides/<pack>/` home (absolute repo URL on `main`).
 - Each pack's projected README contains a "go deeper →" link-out to that home.
 
 **Approach:**
-- Set `documentation` to the absolute repo URL of `docs/guides/<pack>/` (created by T12); add the link-out line to each README.
+- Set `documentation` to the absolute repo URL of `guides/<pack>/` (created by T12); add the link-out line to each README.
 
 **Done when:** every shipped pack's `documentation` link + README link-out resolves to its per-pack guide home.
 
@@ -274,6 +274,6 @@ Pure catalogue/build change — no infra, no external systems, no runtime flag. 
 ## Changelog
 
 - 2026-06-13: initial plan (follows RFC-0031 Decision 6 "first spec").
-- 2026-06-13: doc-surface added (README link-out, PyPI READMEs, `docs/architecture/pack-manifest.md`); per-pack `docs/guides/` layout decided in ADR-0020 and **migrated in-plan** (T12 migrate + T13 convention/`new-guide` adaptation), consumed by T10; `product-engineering` (RFC-0030, landed) folded into the 12-pack population sweep.
+- 2026-06-13: doc-surface added (README link-out, PyPI READMEs, `docs/architecture/pack-manifest.md`); per-pack `guides/` layout decided in ADR-0020 and **migrated in-plan** (T12 migrate + T13 convention/`new-guide` adaptation), consumed by T10; `product-engineering` (RFC-0030, landed) folded into the 12-pack population sweep.
 - 2026-06-13: **guide-migration layer scope expanded by user direction.** The earlier "Ask first → don't author substantial net-new guide content per pack" boundary is **lifted for this layer**: T12 now (a) migrates the ~38 existing guides, (b) authors net-new good-enough Diátaxis guides for the 7 previously-undocumented packs and fills clear gaps in `architect`, (c) gives every pack a `README.md` home, and (d) sweeps every repo-wide cross-link to a moved guide. Voice = adopter-facing developer-evangelist (matches the repo `README.md`). **Classification correction:** `new-rfc`/`new-adr` (+ a new `update-conventions` how-to) land under `governance-extras/` — the pack that *ships* those skills — not `_shared/` (an earlier illustrative example); `_shared/` holds only guides that document no single pack (install routes, adapter-support, `agentbundle` CLI, pack-catalogue, upgrade, file-safety, `author-a-skill`). The four per-quadrant writing-rule READMEs move to `_shared/<quadrant>/README.md` and the `new-guide` skill is repointed there.
 - 2026-06-13: **manifest layer implemented** (T1–T8, T11, manifest portion of T9) and split from the guide-migration layer (T12/T13/T10) per the PR-sizing note — guide migration is a follow-on PR stacked on this one (backlog `per-pack-guide-home-documentation-links`). Build learnings: (1) the in-house JSON-Schema validator lacked `maxItems` — added it (the ≤5 cap on categories/keywords needed it). (2) `_aggregate_marketplace` reads the *source* `plugin.json`, so the subset is merged at aggregation time from `pack.toml` (not stored in source `plugin.json`, which stays minimal). (3) `make build-self` regenerates the committed `.claude-plugin/marketplace.json`; it refused a dirty tree, so the `self --force` form regenerated it mid-work. (4) `agentbundle validate product-engineering` had a pre-existing user-scope-seeds rail failure (it shipped `seeds/` while declaring `user` scope, RFC-0004 Rail A); **resolved in this PR** by relocating its intent/rollup templates from `seeds/` into the owning skills' `assets/` (per the AGENTS.local.md skill-template convention) so the pack ships no `seeds/` and validates clean — all 12 packs now pass. The `product-engineering-pack` / `value-stream-meta-repo` specs + plans were updated and RFC-0030 / ADR-0022 carry errata. (5) overview.md ships **no** hardcoded pack count (maintainer direction — brittle), diverging from the AC13 count clause. (6) AGENTS.local.md is the canonical source for this repo's skill-template-in-`assets/` convention — read it up front.

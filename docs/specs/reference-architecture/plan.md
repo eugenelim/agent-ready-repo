@@ -12,7 +12,7 @@
 
 Source-first, projection-second. Every change is authored under `packs/core/`
 (skill assets, the `adapt-to-project` SKILL.md, the CONVENTIONS seed) or this
-repo's own `docs/guides/`, then realized by `make build-self`; nothing edits a
+repo's own `guides/`, then realized by `make build-self`; nothing edits a
 projected `.claude/` or projected `docs/` path directly.
 
 The work splits into four near-independent build pieces plus guides. The
@@ -97,7 +97,7 @@ acceptance criterion lives here — each sub-section traces to the AC(s) it serv
   arc42 template — creates the skill's first `assets/` dir).
 - **New:** a regression test under the `agentbundle` integration test root
   (two-producer collision guard).
-- **New:** four files under `docs/guides/<quadrant>/` (this repo's own guides).
+- **New:** four files under `guides/<quadrant>/` (this repo's own guides).
 - **Modified:** `packs/core/.apm/skills/adapt-to-project/SKILL.md` (a
   reference-architecture harvest subsection under Class-3).
 - **Modified:** `packs/core/seeds/docs/CONVENTIONS.md` (the document-hierarchy
@@ -251,11 +251,11 @@ and the projection-parity check is green.
 
 **Depends on:** T1, T2, T3, T4
 
-**Touches:** `docs/guides/tutorials/`, `docs/guides/how-to/`, `docs/guides/explanation/`, `docs/guides/reference/`
+**Touches:** `guides/tutorials/`, `guides/how-to/`, `guides/explanation/`, `guides/reference/`
 
 **Tests:** *(goal-based — the user-guides AC; the documentation half of the
 stack-pack-contract AC; adopter-clean AC)*
-- four files exist at the correct `docs/guides/<quadrant>/<slug>.md` paths.
+- four files exist at the correct `guides/<quadrant>/<slug>.md` paths.
 - a **task-local self-test** greps each guide's `](relative/path)` targets and
   asserts every intra-repo target resolves on disk. (No repo-wide markdown-link
   or guide-frontmatter gate exists, so this task ships its own goal-based
@@ -270,7 +270,7 @@ stack-pack-contract AC; adopter-clean AC)*
   stack-pack-contract AC.
 
 **Approach:**
-- These guides are this repo's own `docs/guides/` content (repo-owned, not
+- These guides are this repo's own `guides/` content (repo-owned, not
   projected to adopters), authored via the `user-guide-diataxis` pack's
   `new-guide` skill — not part of what `core` ships.
 - Invoke `new-guide` per quadrant (it settles each guide's audience contract):

@@ -21,7 +21,7 @@
 
 **7. Patch vs minor not justified.** Adding a tutorial is additive feature content; spec.md:73 asserts patch without justification.
 
-**8. `tutorial` path is catalogue-internal.** `docs/guides/architect/...` doesn't exist in adopter installs; the lint only validates relative to the catalogue root. Convention needs documenting.
+**8. `tutorial` path is catalogue-internal.** `guides/architect/...` doesn't exist in adopter installs; the lint only validates relative to the catalogue root. Convention needs documenting.
 
 ## Nits
 

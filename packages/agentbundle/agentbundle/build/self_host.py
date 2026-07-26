@@ -361,7 +361,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/architecture/*.md",
     "docs/product/*.md",
     "docs/knowledge/*.md",
-    "docs/guides/**/*.md",
+    "guides/**/*.md",
     # Seeded-once / adopter-curated files (RFC-0002 Manual semantics).
     "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
     # Manual seed-projected paths (RFC-0002 amendment 2026-05-25). The
@@ -445,7 +445,7 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
 # accordingly. The reclassified paths now fall through to
 # EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
-# `docs/product/*.md`, `docs/knowledge/*.md`, `docs/guides/**/*.md`,
+# `docs/product/*.md`, `docs/knowledge/*.md`, `guides/**/*.md`,
 # and the 8 explicit additions listed above). See RFC-0002 §
 # Amendments § 2026-05-25.
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
@@ -538,8 +538,8 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
         # by-quadrant guide tree here: the seed stays by-quadrant for
         # adopters, but writing it during self-host litters a repo that
         # owns its guides (e.g. organized by pack) with untracked
-        # `docs/guides/<quadrant>/README.md` on every build-self run.
-        if relative.as_posix().startswith("docs/guides/"):
+        # `guides/<quadrant>/README.md` on every build-self run.
+        if relative.as_posix().startswith("guides/"):
             continue
         if _is_excluded(relative) and (output_root / relative).exists():
             # Manual file on disk — leave it alone. The seed is

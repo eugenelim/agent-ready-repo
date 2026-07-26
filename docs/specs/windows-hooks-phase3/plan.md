@@ -322,7 +322,7 @@ Added per reviewer Blocker 5.
 | Check #5: link regex `grep -oE '\]\([^)]+\)'` + `sed -E ...` + `grep -vE '^https?:'` (78-93) | `re.findall(r"\]\(([^)]+)\)", text)`; filter scheme-prefixed and anchor-only; resolve `dir / target` and check `Path.exists()` |
 | Check #6: `docs/CHARTER.md` exists (95-100) | `Path("docs/CHARTER.md").is_file()` |
 | Check #7: no `docs/constitution/` (103-107) | `not Path("docs/constitution").is_dir()` |
-| Check #8: Diátaxis dirs (110-119) | Loop `("tutorials","how-to","reference","explanation")` over `Path(f"docs/guides/{d}").is_dir()` |
+| Check #8: Diátaxis dirs (110-119) | Loop `("tutorials","how-to","reference","explanation")` over `Path(f"guides/{d}").is_dir()` |
 | Check #9: stale-doc warn — `stat -c %Y \|\| stat -f %m \|\| now_epoch` (130-138) | `Path(f).stat().st_mtime` (cross-platform; supersedes both stat invocations) — int-cast to seconds-since-epoch, age = `(now - mtime) // 86400` |
 | Check #10: `drift_check` helper (141-204) | `def _drift_check(pattern, canonical, forbidden_files)` — `re.search(pattern, text)` on canonical (if non-empty); same on each forbidden, with the inverted assertion. **Three explicit `_drift_check` invocations enumerated below** + the vendor-token grep loop (lines 188-193) + the gitignore-probe loop (lines 197-204; uses `git check-ignore --quiet` via subprocess). |
 | Check #10a: drift_check #1 (162-165) | pattern=`r'"max_iterations":\s*[0-9]+'`; canonical=`".claude/skills/work-loop/assets/state.json"`; forbidden=`[".claude/skills/work-loop/SKILL.md", "AGENTS.md", "docs/CONVENTIONS.md"]` |

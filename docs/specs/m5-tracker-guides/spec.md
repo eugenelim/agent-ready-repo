@@ -26,26 +26,26 @@ brief-intake landscape:
    maps the same conceptual levels (brief, spec) to the corresponding object in
    each tracker, plus the skill-to-skill routing table.
 
-Both live in `docs/guides/_shared/` because they span multiple packs (`github`,
+Both live in `guides/_shared/` because they span multiple packs (`github`,
 `linear`, `atlassian`, `core`) — no single pack guide is the right home.
 
 ## Acceptance Criteria
 
-- [x] **AC1.** `docs/guides/_shared/how-to/choose-a-tracker-integration.md`
+- [x] **AC1.** `guides/_shared/how-to/choose-a-tracker-integration.md`
   exists and covers all five intake paths with prerequisites and links to the
   per-tracker how-to guide where one exists: no tracker (`author-brief`), GitHub
   Milestone (`github-brief-intake`), Linear Issue/Project (`linear-brief-intake`),
   Jira epic (`jira-brief-intake`), Jira Align Feature (`jira-align-brief-intake`).
   A decision table is the entry point.
-- [x] **AC2.** `docs/guides/_shared/reference/tracker-vocabulary.md` exists with
+- [x] **AC2.** `guides/_shared/reference/tracker-vocabulary.md` exists with
   (a) a cross-tracker vocabulary table mapping canonical brief/spec levels to each
   tracker's objects (GitHub, Linear, Jira, Jira Align, none), and (b) the
   brief-intake skill routing table (tracker → skill → pack).
-- [x] **AC3.** `docs/guides/_shared/how-to/README.md` lists
+- [x] **AC3.** `guides/_shared/how-to/README.md` lists
   `choose-a-tracker-integration.md` with a one-line description.
-- [x] **AC4.** `docs/guides/_shared/reference/README.md` lists
+- [x] **AC4.** `guides/_shared/reference/README.md` lists
   `tracker-vocabulary.md` with a one-line description.
-- [x] **AC5.** `docs/guides/README.md` Shared guides section references both new
+- [x] **AC5.** `guides/README.md` Shared guides section references both new
   guides by name.
 - [x] **AC6.** `docs/product/changelog.md` `[Unreleased]` entry records the new
   guides.
@@ -59,7 +59,7 @@ Pure docs — no executable logic.
   (vocabulary + skill routing) appear in AC2's reference. Verified by `grep` and
   `ls`.
 - **Doc-drift: goal-based check.** `_shared/how-to/README.md`,
-  `_shared/reference/README.md`, and `docs/guides/README.md` all name the new
+  `_shared/reference/README.md`, and `guides/README.md` all name the new
   files. Verified by `grep`.
 
 ## Assumptions
@@ -72,10 +72,10 @@ Pure docs — no executable logic.
   pack); `jira-align-brief-intake` also ships in `atlassian`. (probe:
   `packs/atlassian/.apm/skills/`, 2026-07-22)
 - Technical: The `_shared/how-to/` and `_shared/reference/` directories exist and
-  accept new files without restructuring. (probe: `ls docs/guides/_shared/`,
+  accept new files without restructuring. (probe: `ls guides/_shared/`,
   2026-07-22)
 - Process: Phase-slice doctrine: this spec ships both guides in a single PR — no
   terminal doc wave. (source: workspace.toml P4 header)
-- Product: `docs/guides/_shared/` is the correct location for cross-pack guides
+- Product: `guides/_shared/` is the correct location for cross-pack guides
   that span `github`, `linear`, `atlassian`, and `core`. (source: `_shared/README.md`,
   which defines it as the home for cross-cutting guides)

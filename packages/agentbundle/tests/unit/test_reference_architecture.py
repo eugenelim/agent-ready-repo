@@ -14,7 +14,7 @@ Covers, per the spec's Testing Strategy:
 "Adopter-clean" = no internal-repo reference: no ``RFC-NNNN`` / ``ADR-NNNN``
 token and no ``docs/(specs|rfc|adr)/`` path string. ``lint-catalogue-seeds`` enforces only
 RFC-number absence and only under ``packs/*/seeds/**`` — it covers neither the
-``.apm/`` template/SKILL nor the ``docs/guides/`` files — so these checks carry
+``.apm/`` template/SKILL nor the ``guides/`` files — so these checks carry
 the invariant for the surfaces lint misses.
 """
 
@@ -30,7 +30,7 @@ TEMPLATE = ADAPT_SKILL_DIR / "assets" / "reference.md"
 SKILL = ADAPT_SKILL_DIR / "SKILL.md"
 CONVENTIONS_SEED = REPO_ROOT / "packs" / "core" / "seeds" / "docs" / "CONVENTIONS.md"
 
-GUIDES_DIR = REPO_ROOT / "docs" / "guides"
+GUIDES_DIR = REPO_ROOT / "guides"
 GUIDES = {
     "tutorial": GUIDES_DIR / "architect" / "tutorials" / "create-your-reference-architecture.md",
     "how-to": GUIDES_DIR / "architect" / "how-to" / "establish-reference-architecture.md",

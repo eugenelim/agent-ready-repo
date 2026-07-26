@@ -65,7 +65,7 @@
 | **Agnosticism** | Strict: zero stack specifics; method only; two named guardrails (below). |
 | **Skill-vs-agent** | All skills. Zero agents — no `work-loop` reviewer subagents (a future `design-reviewer` is left open per RFC-0032; OQ#2). |
 | **Artifacts** | Durable design-intent docs (e.g. an aesthetic-direction doc, a token-taxonomy rationale) the designer writes and the build references. Carried as **skill assets** the skills copy at runtime (no `seeds/`). |
-| **Guides** | A per-pack Diátaxis home at `docs/guides/design-craft/` (via `new-guide`). |
+| **Guides** | A per-pack Diátaxis home at `guides/design-craft/` (via `new-guide`). |
 | **Seams** | `product-engineering` (intent upstream; UX-writing), `architect` (system design; diagrams), `core` (the build the design intent steers). |
 
 ### 1. The audience and the "design intent" framing (decision 2 — the charter judgment)
@@ -159,11 +159,11 @@ packs/design-craft/
             └── assets/
 ```
 
-`pack.toml` declares `categories`/`keywords`, `[pack.adapter-contract] version` (matching the pure-markdown-skills packs — `research` is at `0.12`; the spec pins the exact level at build), `[pack.install] default-scope = "user"` + `allowed-scopes = ["user","repo"]`, the `allowed-adapters` list (all seven shipped adapters), `[pack.links]` (homepage/repository/`documentation` → `docs/guides/design-craft/`), and a `[[pack.maintainers]]` entry. A `.claude-plugin/plugin.json` and a `README.md` ship per the standard pack shape. Skills follow **progressive disclosure** — SKILL.md lean, detail in `references/`. The shared `quality-floor` checklist lives as a `references/` file (referenced by the authoring skills and applied by `design-critique`).
+`pack.toml` declares `categories`/`keywords`, `[pack.adapter-contract] version` (matching the pure-markdown-skills packs — `research` is at `0.12`; the spec pins the exact level at build), `[pack.install] default-scope = "user"` + `allowed-scopes = ["user","repo"]`, the `allowed-adapters` list (all seven shipped adapters), `[pack.links]` (homepage/repository/`documentation` → `guides/design-craft/`), and a `[[pack.maintainers]]` entry. A `.claude-plugin/plugin.json` and a `README.md` ship per the standard pack shape. Skills follow **progressive disclosure** — SKILL.md lean, detail in `references/`. The shared `quality-floor` checklist lives as a `references/` file (referenced by the authoring skills and applied by `design-critique`).
 
 **No `seeds/`.** A pack with a non-empty `seeds/` cannot declare `"user" ∈ allowed-scopes` (RFC-0004 Rail A; confirmed by the RFC-0030 erratum). Any template the pack ships (e.g. the aesthetic-direction doc) is carried as a **skill asset** the skill copies into the repo at runtime — so the template travels with the skill and the filled doc still lands repo-scope, with no scope conflict. No hooks, no `<adapt:NAME>` markers (RFC-0007's three user-scope refusal rails pass by construction).
 
-**Registration.** A new pack ⇒ `pack.toml` + `.claude-plugin/plugin.json` + aggregation into the top-level `marketplace.json`. As a user-scope-default pack, `design-craft` is **not projected into this repo's working tree** (like `architect`/`figma`/`research`) but **must** appear in `marketplace.json` — the build refreshes it. Guides land via `new-guide` under `docs/guides/design-craft/`.
+**Registration.** A new pack ⇒ `pack.toml` + `.claude-plugin/plugin.json` + aggregation into the top-level `marketplace.json`. As a user-scope-default pack, `design-craft` is **not projected into this repo's working tree** (like `architect`/`figma`/`research`) but **must** appear in `marketplace.json` — the build refreshes it. Guides land via `new-guide` under `guides/design-craft/`.
 
 ---
 
@@ -256,6 +256,6 @@ packs/design-craft/
 
 Filled in on acceptance:
 - **ADR-NNNN** — the "design-craft serves designers as upstream design-intent authors" scope decision + the strict-agnosticism guardrails (the durable architectural record).
-- **Spec:** `docs/specs/design-craft-pack/` (via `new-spec`) — the four skills + the shared `quality-floor` checklist, progressive-disclosure SKILL.md + `references/`, the runtime-copied asset templates (no `seeds/`), `pack.toml`/`plugin.json`/`README.md`, the agnosticism stack-token grep as a `Tests:` entry + CI check, `marketplace.json` registration, and the `docs/guides/design-craft/` Diátaxis set.
+- **Spec:** `docs/specs/design-craft-pack/` (via `new-spec`) — the four skills + the shared `quality-floor` checklist, progressive-disclosure SKILL.md + `references/`, the runtime-copied asset templates (no `seeds/`), `pack.toml`/`plugin.json`/`README.md`, the agnosticism stack-token grep as a `Tests:` entry + CI check, `marketplace.json` registration, and the `guides/design-craft/` Diátaxis set.
 - **Guides:** via `new-guide` — an explanation (the design-craft loop and why portable discipline), how-tos (one per skill or grouped), and a reference (the four skills + the quality-floor checklist).
 - **No CONVENTIONS edit.** The agnosticism stack-token lint ships as a **pack-scoped check** (a grep over `packs/design-craft/`, the RFC-0007 enforcement pattern) — *not* a top-level convention. Generalizing it into a repo-wide convention would be a separate RFC, decided on its own merits, never smuggled in via this pack's spec.

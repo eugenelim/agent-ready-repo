@@ -386,10 +386,10 @@ Before / after tree fragment:
 
 The brownfield fixture now carries a class-4 surface: overlapping
 `docs/howto/` (adopter-original, containing
-`getting-started.md`) and `docs/guides/how-to/` (diátaxis-
+`getting-started.md`) and `guides/how-to/` (diátaxis-
 projection, containing `index.md`). The skill proposes folding
 one into the other (`kind = "consolidate"`); the canonical
-destination is `docs/guides/how-to/` per the diátaxis layout the
+destination is `guides/how-to/` per the diátaxis layout the
 pack ships. Filenames deliberately differ in the fixture so the
 consolidation doesn't surface a same-name collision (SKILL.md
 doesn't currently specify a collision-handling sub-protocol; the
@@ -406,8 +406,8 @@ Transcript excerpt:
 adopter> /adapt-to-project   (after class-3 resolution)
 
 skill>  Class-4 discovery: docs/howto/ overlaps
-        docs/guides/how-to/ (diátaxis-projected). Proposed action:
-        fold docs/howto/* into docs/guides/how-to/, preserving
+        guides/how-to/ (diátaxis-projected). Proposed action:
+        fold docs/howto/* into guides/how-to/, preserving
         filenames (no same-name collisions in this tree). After
         consolidation, remove docs/howto/.
 
@@ -416,13 +416,13 @@ skill>  Class-4 discovery: docs/howto/ overlaps
 adopter> accept
 
 skill>  Moved docs/howto/getting-started.md
-              → docs/guides/how-to/getting-started.md.
+              → guides/how-to/getting-started.md.
         Removed docs/howto/. Recorded under
         [[findings.accepted]] in <repo>/.adapt-discovery.toml at
         repo scope:
           kind             = "consolidate"
           source-path      = "docs/howto/"
-          destination-path = "docs/guides/how-to/"
+          destination-path = "guides/how-to/"
           action           = "fold-into-destination"
 ```
 
@@ -459,14 +459,14 @@ skill>  [class-4 proposal as in row 15]
         Per-change approval — accept / decline?
 
 adopter> decline — we use docs/howto/ for adopter how-tos and
-         docs/guides/how-to/ for the pack's; keep them separate
+         guides/how-to/ for the pack's; keep them separate
          and don't re-propose.
 
 skill>  Recorded under [[findings.declined]] in
         <repo>/.adapt-discovery.toml at repo scope:
           kind             = "consolidate"
           source-path      = "docs/howto/"
-          destination-path = "docs/guides/how-to/"
+          destination-path = "guides/how-to/"
         Both directories remain on disk. Future sessions will not
         re-propose this consolidation.
 ```
@@ -476,7 +476,7 @@ Before / after tree fragment:
 ```text
 ─ before ───  same as row 15
 ─ after ────  docs/howto/ unchanged;
-              docs/guides/how-to/ unchanged;
+              guides/how-to/ unchanged;
               .adapt-discovery.toml gains a
               [[findings.declined]] entry (kind = "consolidate").
 ```

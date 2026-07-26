@@ -157,7 +157,7 @@ checks plus manual QA of the documented judgment.
   this spec creates, so it ships atomically with it).
 - [x] **`make build-self`** projects the new core skill cleanly (no unexpected
   reverts to projected paths) and **`make build-check`** is green.
-- [x] Three adopter-facing **guide files exist** under `docs/guides/` at their
+- [x] Three adopter-facing **guide files exist** under `guides/` at their
   Diátaxis paths — a **tutorial** ("From idea to a walking skeleton: start a new
   project"), a **how-to** ("Decide and record your foundation during inception"),
   and an **explanation** ("Why a walking skeleton beats a throwaway prototype").

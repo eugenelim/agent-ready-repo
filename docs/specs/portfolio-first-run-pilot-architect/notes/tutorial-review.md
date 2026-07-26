@@ -1,7 +1,7 @@
 # Tutorial manual review — AC1b / AC1c / AC1d
 
 **Date:** 2026-07-22  
-**Tutorial:** `docs/guides/architect/tutorials/architect-first-session.md`  
+**Tutorial:** `guides/architect/tutorials/architect-first-session.md`  
 **Reviewer:** eugenelim (implementing session)
 
 ## AC1b — Five sections present and in order, each matching its contract field

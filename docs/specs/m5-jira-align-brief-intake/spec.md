@@ -186,9 +186,9 @@ executable logic, so no TDD-mode tasks.
   child → `US-n` provenance format; (e) a note that this mapping must be
   reviewed and annotated before first use on a new Jira Align instance.
 - [x] Every doc that enumerates the atlassian skill set names the new skill:
-  `packs/atlassian/README.md`, `docs/guides/atlassian/README.md`,
-  `docs/guides/atlassian/reference/atlassian-skills.md` (a section mirroring
-  the skill's frontmatter), `docs/guides/atlassian/explanation/atlassian-pack.md`,
+  `packs/atlassian/README.md`, `guides/atlassian/README.md`,
+  `guides/atlassian/reference/atlassian-skills.md` (a section mirroring
+  the skill's frontmatter), `guides/atlassian/explanation/atlassian-pack.md`,
   and `docs/architecture/overview.md` (the per-pack skill table). Each doc's
   count and role-grouping prose is kept internally consistent; hardcoded
   numbers are de-counted per the no-brittle-counts convention where the edit

@@ -146,7 +146,7 @@ home rather than duplicating.
   justifies a choice mid-sentence ("organized this way because…") reads as
   internal thinking spilling onto the page; cut it, or give the *why* its own
   sentence. Drop self-narration too ("internally we…", "our goal here is…").
-- **Soft-wrap guides — one logical line per paragraph.** Under `docs/guides/`,
+- **Soft-wrap guides — one logical line per paragraph.** Under `guides/`,
   don't hard-wrap mid-paragraph: one line per paragraph, a blank line between
   paragraphs, list items one line each. It renders identically on GitHub (a
   wrapped newline reads as a space) and stays clean in preview panes that treat
@@ -211,7 +211,7 @@ adopters receive on first install via brownfield rules):
 | `docs/knowledge/patterns.jsonl`           | `packs/core/seeds/docs/knowledge/patterns.jsonl` (empty)     |
 | `docs/rfc/README.md`                      | `packs/governance-extras/seeds/docs/rfc/README.md`           |
 | `docs/adr/README.md`                      | `packs/governance-extras/seeds/docs/adr/README.md`           |
-| `docs/guides/**/README.md`                | `packs/user-guide-diataxis/seeds/docs/guides/**/README.md`   |
+| `guides/**/README.md`                | `packs/user-guide-diataxis/seeds/guides/**/README.md`   |
 | `.claude/skills/<name>/**`           | `packs/<pack>/.apm/skills/<name>/**` (e.g. `packs/core/.apm/skills/new-spec/SKILL.md`) |
 | `.claude/agents/<name>.md`           | `packs/<pack>/.apm/agents/<name>.md`                         |
 | `.claude/commands/<name>.md`         | `packs/<pack>/.apm/commands/<name>.md`                       |
@@ -278,11 +278,11 @@ seed it names, re-run `make build-self`, re-commit).
 If you edit any README, table, or doc under the projected paths above,
 **check the seed first**.
 
-## `docs/guides/` is organized by pack in this repo (not by quadrant)
+## `guides/` is organized by pack in this repo (not by quadrant)
 
 This catalogue organizes its own user docs **by pack** —
-`docs/guides/<pack>/{tutorials,how-to,reference,explanation}/` for
-pack-specific guides and `docs/guides/_shared/{quadrant}/` for cross-cutting
+`guides/<pack>/{tutorials,how-to,reference,explanation}/` for
+pack-specific guides and `guides/_shared/{quadrant}/` for cross-cutting
 ones (install routes, adapter support, the catalogue model, `author-a-skill`).
 Per [ADR-0020](docs/adr/0020-per-pack-diataxis-hierarchy-for-guides.md), the
 four-type Diátaxis discipline still holds — it just applies *within* each
@@ -294,7 +294,7 @@ ADR-0020's "amend `CONVENTIONS.md §5c`" instruction is an **erratum** because
 of it:
 
 - The **`user-guide-diataxis` seed scaffold** ships an adopter a
-  by-quadrant `docs/guides/{quadrant}/` tree — an adopter is one product, not
+  by-quadrant `guides/{quadrant}/` tree — an adopter is one product, not
   a catalogue of packs. Unchanged on purpose.
 - **`docs/CONVENTIONS.md` §5c is projected** from
   `packs/core/seeds/docs/CONVENTIONS.md` (it's in `PROJECTED_README_OVERRIDES`),

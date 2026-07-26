@@ -40,7 +40,7 @@ version = "^0.1"
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/release-engineering/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/release-engineering/"
 
 [[pack.maintainers]]
 name = "eugenelim"

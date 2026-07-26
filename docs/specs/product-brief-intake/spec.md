@@ -140,7 +140,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   brief lives under `docs/product/`, the skill under `packs/core/.apm/skills/`.
 - [x] **`make build-self`** projects the new core primitives (skill + seed)
   cleanly and `make build-check` is green.
-- [x] Three adopter-facing **guide files exist** under `docs/guides/` at their
+- [x] Three adopter-facing **guide files exist** under `guides/` at their
   Diátaxis paths — a how-to ("Receive a product brief and decompose it into
   specs"), a reference (brief fields incl. `Epic:` + the spec map; the `Brief:` /
   `Satisfies:` fields), and an explanation ("Why a brief layer"). *(Authored in

@@ -263,7 +263,7 @@ check holds.
 **Depends on:** T3, T4, T5, T6
 
 **Tests:**
-- Goal-based + manual QA: four pages exist under `docs/guides/product-engineering/…` — Explanation,
+- Goal-based + manual QA: four pages exist under `guides/product-engineering/…` — Explanation,
   How-to (end-to-end + recurse + fold-in-requirements), Tutorial (a fully walked example), Reference
   (slots + plan-tree template + roster) (AC40); the tutorial walks a real example end-to-end.
 

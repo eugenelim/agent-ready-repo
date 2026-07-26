@@ -50,7 +50,7 @@ accepted-at      = 2026-05-22T10:00:00Z
 finding-id       = "user-guide-diataxis/restructure:b819e2d4"
 kind             = "restructure"
 source-path      = "docs/howto/"
-destination-path = "docs/guides/how-to/"
+destination-path = "guides/how-to/"
 declined-at      = 2026-05-22T10:01:00Z
 """
 
@@ -233,7 +233,7 @@ def test_findings_round_trip_preserves_fields(tmp_path):
         finding_id="user-guide-diataxis/consolidate:b819e2d4",
         kind="consolidate",
         source_path="docs/howto/",
-        destination_path="docs/guides/how-to/",
+        destination_path="guides/how-to/",
         action=None,
         recorded_at=ts,
         accepted=False,

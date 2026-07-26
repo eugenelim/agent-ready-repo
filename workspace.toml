@@ -135,7 +135,7 @@ queue   = [
   # ==================================================================
 
   # ---------------- P1 · Orient + Capture ----------------
-  # P1 guides + plan-by-phase doctrine (Amendment #3 e/f). Guides (docs/guides/core/):
+  # P1 guides + plan-by-phase doctrine (Amendment #3 e/f). Guides (guides/core/):
   # ---------------- P2 · Shape (M2 PE skills) ----------------
   # GATE: open + accept RFC-00XX pe-pack-strategic-shaping FIRST — it resolves skill
   # boundaries (RFC-0064 M2 ACs + Known Unknowns). Each skill spec is authored after
@@ -277,7 +277,7 @@ queue   = [
   #   in each pack's references/ with deterministic drift check; ownership map;
   #   risk modes (explore/pilot/production field sets); graceful capability-detection
   #   rules (safe fallback + provisional label when a skill is absent).
-  #   Site/guide: short explanation guide in docs/guides/core/explanation/ describing
+  #   Site/guide: short explanation guide in guides/core/explanation/ describing
   #   the contract, its three risk modes, and which skills read/write which fields;
   #   a brief cross-reference note added to each affected pack's journey page (web/
   #   and site/) pointing to the contract explanation.
@@ -595,12 +595,12 @@ open = [
   # Unblocks when: screened on actual mobile viewport + physical device.
   {slug = "site-mobile-responsiveness"},
 
-  # docs/guides/desk-research/tutorials/desk-research-first-session.md line 15 says
+  # guides/desk-research/tutorials/desk-research-first-session.md line 15 says
   # `agentbundle install research --scope user` but the pack id is `desk-research`
   # (renamed in M3). Stale id fails silently for new adopters.
   # Fix: use the canonical `agentbundle install desk-research --scope user` install
   #   path; extend the owning docs/parity lint with a retired-id negative fixture.
-  # File: docs/guides/desk-research/tutorials/desk-research-first-session.md:15.
+  # File: guides/desk-research/tutorials/desk-research-first-session.md:15.
   # Done: active content uses `desk-research`; the stale id fails the owning check.
   # Do not expand this item into a tutorial redesign.
   {slug = "desk-research-install-name-drift"},
@@ -834,7 +834,7 @@ open = [
   #      → design → hand off contract to a repo's core pack.
   #   5. pack-profiles spec AC update: the "ask first" boundary (currently "Adding a
   #      third shipped first-party profile") needs updating since inception made three.
-  # File: profiles/digital-product.toml (new); web/src/pages/journeys/; docs/guides/.
+  # File: profiles/digital-product.toml (new); web/src/pages/journeys/; guides/.
   # Unblocks when: all ini-003 specs ship (the skill set must be final before the
   #   profile's guide content is authored; premature guide content will drift).
   {slug = "digital-product-profile", needs = "ini-003:work:spec/digital-product-guides-update"},
@@ -1050,13 +1050,13 @@ open = [
   {slug = "behavior-check-for-backend-skills"},
 
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
-  # docs/guides/core/explanation/role-journeys.md covers headless AI execution
+  # guides/core/explanation/role-journeys.md covers headless AI execution
   # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension
   # (derived from engineer-scales-to-swarm journey, status: shaping) is deferred.
   # Fix: once engineer-scales-to-swarm is shaped and its journey map is promoted from
   #   shaping → planned/shipped, extend the Agent section with coordinated headless
-  #   CLI swarm patterns; update docs/guides/core/explanation/role-journeys.md.
-  # File: docs/guides/core/explanation/role-journeys.md (Agent section).
+  #   CLI swarm patterns; update guides/core/explanation/role-journeys.md.
+  # File: guides/core/explanation/role-journeys.md (Agent section).
   # Unblocks when: engineer-scales-to-swarm journey is shaped (status moves from shaping).
   {slug = "role-journey-agent-swarm-section", source = "spec/m6-role-journey-guides AC6"},
 

@@ -153,7 +153,7 @@ empty section.
 **Depends on:** T1
 
 **Tests:** (goal-based)
-- `grep` `docs/guides/governance-extras/how-to/new-rfc.md` confirms a short note
+- `grep` `guides/governance-extras/how-to/new-rfc.md` confirms a short note
   referencing the correction convention and pointing at the skill — AC6.
 
 **Approach:**

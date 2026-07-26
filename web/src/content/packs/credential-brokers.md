@@ -5,7 +5,7 @@ tagline: "Credential resolution — env → OS keyring → dotfile. Never cleart
 skills:
   - credential-setup
 installCommand: "agentbundle install --pack credential-brokers --scope user"
-docsUrl: /docs/guides/credential-brokers/
+docsUrl: /guides/credential-brokers/
 journeyUrl: /journeys/credential-brokers/
 ---
 

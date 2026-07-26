@@ -60,7 +60,7 @@
 
 ## Proposal
 
-Applied to `packs/governance-extras/.apm/skills/new-adr/` (`assets/adr.md`, `SKILL.md`, `evals/evals.json`) and the repo-owned how-to guide `docs/guides/governance-extras/how-to/new-adr.md`.
+Applied to `packs/governance-extras/.apm/skills/new-adr/` (`assets/adr.md`, `SKILL.md`, `evals/evals.json`) and the repo-owned how-to guide `guides/governance-extras/how-to/new-adr.md`.
 
 ### R2 — first-screen `## Decision summary` (D1)
 

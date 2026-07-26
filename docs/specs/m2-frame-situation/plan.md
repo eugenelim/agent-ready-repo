@@ -174,9 +174,9 @@ describes the shipped skill.
 
 **Approach:**
 
-`docs/guides/product-engineering/how-to/` exists (the Diátaxis `how-to/`
+`guides/product-engineering/how-to/` exists (the Diátaxis `how-to/`
 bucket under the PE pack guide). Author
-`docs/guides/product-engineering/how-to/frame-a-situation.md` as a
+`guides/product-engineering/how-to/frame-a-situation.md` as a
 Diátaxis how-to (task-oriented; reader knows what goal they want).
 
 Cover:

@@ -51,8 +51,8 @@ Specifically:
 - **Renamed (the live surface):** the pack directory `packs/design-craft/` →
   `packs/experience/`; `pack.toml` `name`/`display_name`/`description`;
   `.claude-plugin/plugin.json`; the `.claude-plugin/marketplace.json`
-  aggregated entry; the guides directory `docs/guides/design-craft/` →
-  `docs/guides/experience/` and the `[pack.links].documentation` URL; the
+  aggregated entry; the guides directory `guides/design-craft/` →
+  `guides/experience/` and the `[pack.links].documentation` URL; the
   README; cross-links in the pack's skills; **the framework-agnosticism CI lint
   `tools/lint-design-craft-agnostic.py` (scan root hardcoded to
   `packs/design-craft/`), its self-test `tools/test-lint-design-craft-agnostic.py`,

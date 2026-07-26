@@ -50,7 +50,7 @@ at apply time.
 
 ## Guides
 
-Full user-facing documentation: [`docs/guides/iac-terraform/`](../../../../docs/guides/iac-terraform/)
+Full user-facing documentation: [`guides/iac-terraform/`](../../../../guides/iac-terraform/)
 
 ---
 

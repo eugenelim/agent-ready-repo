@@ -150,7 +150,7 @@ N/A. Only the two that carry real decisions are kept; the rest are pruned.
   explicit-gap statement) — not just that the three-bucket rule is *named*.
 - Goal-based (AC8b regression): `grep` confirms the trimmed `security-reviewer.md`
   **still names both** conditional read paths `docs/architecture/security.md` and
-  `docs/guides/reference/security.md` — the body trim must not drop the existing
+  `guides/reference/security.md` — the body trim must not drop the existing
   `load context` reads (agent-prose grep; the files need not exist).
 
 **Approach:**

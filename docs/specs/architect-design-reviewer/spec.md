@@ -137,8 +137,8 @@ integration surface. No TDD-mode tasks.
   (substring match, the sentence wraps two lines) *"Code-side reviewers cover
   code; design-side review is a skill, not a subagent."* and documents the
   shipped `design-reviewer` subagent.
-- [x] `docs/guides/architect/how-to/review-an-architecture-artifact.md` and
-  `docs/guides/architect/README.md` mention the `design-reviewer` subagent as
+- [x] `guides/architect/how-to/review-an-architecture-artifact.md` and
+  `guides/architect/README.md` mention the `design-reviewer` subagent as
   the independent (fresh-context) review option alongside the in-thread skill.
 - [x] Pack version bumped `0.5.3` → `0.6.0` in `packs/architect/pack.toml`
   **and** `packs/architect/.claude-plugin/plugin.json`; `marketplace.json`

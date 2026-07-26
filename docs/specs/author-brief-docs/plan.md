@@ -10,7 +10,7 @@
 
 ## Approach
 
-Four files change; all are docs under `docs/guides/core/`. T1 writes the new how-to guide (the bulk of the work). T2 patches three existing files — the `product-brief-fields.md` reference (fixes stale attribution + adds `Rabbit holes`/`Status` rows to the table + adds DoR gate section), the `receive-brief` how-to (adds `author-brief` row to its decision table), and the README. Both tasks conform to `author-brief` SKILL.md as the source of truth; they can land in one PR.
+Four files change; all are docs under `guides/core/`. T1 writes the new how-to guide (the bulk of the work). T2 patches three existing files — the `product-brief-fields.md` reference (fixes stale attribution + adds `Rabbit holes`/`Status` rows to the table + adds DoR gate section), the `receive-brief` how-to (adds `author-brief` row to its decision table), and the README. Both tasks conform to `author-brief` SKILL.md as the source of truth; they can land in one PR.
 
 All verification is goal-based grep + a final manual read-through of the how-to to confirm it is followable without consulting SKILL.md.
 
@@ -32,15 +32,15 @@ All verification is goal-based grep + a final manual read-through of the how-to 
 **Depends on:** none
 
 **Tests:**
-- `ls docs/guides/core/how-to/intake-an-external-brief.md` exits 0 (AC1)
-- `grep -i "author-brief\|receive-brief\|new-spec" docs/guides/core/how-to/intake-an-external-brief.md` returns hits — backstop only; full decision-table assertion in manual (1.1) (AC2)
-- `grep -i "rabbit holes" docs/guides/core/how-to/intake-an-external-brief.md` returns hits; `grep -i "appetite" ...` returns hits; `grep -i "outcome" ...` returns hits — three independent greps, each individually required; full six-step flow asserted in manual (1.2) (AC3)
-- `grep -i "workspace\.toml" docs/guides/core/how-to/intake-an-external-brief.md` returns hits; `grep -i "diagnostic" docs/guides/core/how-to/intake-an-external-brief.md` returns hits; `grep -i "multiple.*initiative\|select" docs/guides/core/how-to/intake-an-external-brief.md` returns hits — covering all three branch outcomes (AC3 — workspace.toml branches)
-- `grep -i "stops at draft" docs/guides/core/how-to/intake-an-external-brief.md` returns hits (first half); `grep -i "decompose" docs/guides/core/how-to/intake-an-external-brief.md` returns hits (second half) — two independent greps, both required (AC4)
-- `grep -i "receive-a-product-brief" docs/guides/core/how-to/intake-an-external-brief.md` returns the Next-step link (AC5)
+- `ls guides/core/how-to/intake-an-external-brief.md` exits 0 (AC1)
+- `grep -i "author-brief\|receive-brief\|new-spec" guides/core/how-to/intake-an-external-brief.md` returns hits — backstop only; full decision-table assertion in manual (1.1) (AC2)
+- `grep -i "rabbit holes" guides/core/how-to/intake-an-external-brief.md` returns hits; `grep -i "appetite" ...` returns hits; `grep -i "outcome" ...` returns hits — three independent greps, each individually required; full six-step flow asserted in manual (1.2) (AC3)
+- `grep -i "workspace\.toml" guides/core/how-to/intake-an-external-brief.md` returns hits; `grep -i "diagnostic" guides/core/how-to/intake-an-external-brief.md` returns hits; `grep -i "multiple.*initiative\|select" guides/core/how-to/intake-an-external-brief.md` returns hits — covering all three branch outcomes (AC3 — workspace.toml branches)
+- `grep -i "stops at draft" guides/core/how-to/intake-an-external-brief.md` returns hits (first half); `grep -i "decompose" guides/core/how-to/intake-an-external-brief.md` returns hits (second half) — two independent greps, both required (AC4)
+- `grep -i "receive-a-product-brief" guides/core/how-to/intake-an-external-brief.md` returns the Next-step link (AC5)
 
 **Approach:**
-- Create `docs/guides/core/how-to/intake-an-external-brief.md`.
+- Create `guides/core/how-to/intake-an-external-brief.md`.
 - Open with a "Is `author-brief` the right entry point?" decision table: `author-brief` (unstructured external input → draft brief), `receive-brief` (already-formed multi-feature brief → decompose into specs), `new-spec` (single feature, authoring from scratch). Each row names a distinct trigger so a reader picks the right skill without reading both SKILL.md files.
 - Walk the six steps drawn directly from `author-brief` SKILL.md as the source of truth: (1) ingest whatever you have, (2) identify which DoR fields are present/missing, (3) elicit — Outcome is required; Appetite defaults offered; Rabbit holes gap surfaced (≥1 required for DoR), (4) confirm the slug, (5) brief file created and queued in `workspace.toml` — name all three branch outcomes: happy path appends to `brief_queue.draft`; no/unparseable `workspace.toml` → file-only + named diagnostic; multiple active initiatives → user is prompted to select, (6) handoff to `receive-brief`.
 - Include a concrete "Before you start" block (the `core` pack installed; any unstructured input; no form needed).
@@ -54,19 +54,19 @@ All verification is goal-based grep + a final manual read-through of the how-to 
 **Depends on:** none (both tasks conform to SKILL.md as source of truth; T1 is ordered first for readability but T2 touches different files)
 
 **Tests:**
-- `! grep -q "created by the.*receive-brief.*skill" docs/guides/core/reference/product-brief-fields.md` exits 0 after the attribution fix (negative check — the stale phrase is gone) (AC7)
-- `grep -i "rabbit holes" docs/guides/core/reference/product-brief-fields.md` returns hits — currently absent in the file, so a true discriminating check (AC6 — table row)
-- `grep -i "DoR gate\|required to reach" docs/guides/core/reference/product-brief-fields.md` returns hits for the new section (AC6 — gate section); `grep -i "spec map" docs/guides/core/reference/product-brief-fields.md` returns hits confirming all four eligibility fields named; `grep -i "status.*draft\|status.*ready" docs/guides/core/reference/product-brief-fields.md` returns hits for Draft/Ready split statement; full DoR gate section assertions in manual (2.3) and (2.4) (AC6)
-- `grep -i "author-brief" docs/guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md` returns a row in the decision table (AC8)
-- `grep -i "intake-an-external-brief" docs/guides/core/README.md` returns the listing entry (AC9)
+- `! grep -q "created by the.*receive-brief.*skill" guides/core/reference/product-brief-fields.md` exits 0 after the attribution fix (negative check — the stale phrase is gone) (AC7)
+- `grep -i "rabbit holes" guides/core/reference/product-brief-fields.md` returns hits — currently absent in the file, so a true discriminating check (AC6 — table row)
+- `grep -i "DoR gate\|required to reach" guides/core/reference/product-brief-fields.md` returns hits for the new section (AC6 — gate section); `grep -i "spec map" guides/core/reference/product-brief-fields.md` returns hits confirming all four eligibility fields named; `grep -i "status.*draft\|status.*ready" guides/core/reference/product-brief-fields.md` returns hits for Draft/Ready split statement; full DoR gate section assertions in manual (2.3) and (2.4) (AC6)
+- `grep -i "author-brief" guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md` returns a row in the decision table (AC8)
+- `grep -i "intake-an-external-brief" guides/core/README.md` returns the listing entry (AC9)
 
 **Approach:**
-- `docs/guides/core/reference/product-brief-fields.md`:
+- `guides/core/reference/product-brief-fields.md`:
   1. Fix the opening paragraph (line 3) and callout (line 5): replace "A brief ... is created by the `receive-brief` skill" with language reflecting the two-skill split — `author-brief` creates the draft brief and elicits DoR fields; `receive-brief` decomposes it into specs and marks it Ready. Fix the callout: "`receive-brief` elicits what's missing" → "`author-brief` elicits missing DoR fields when authoring from unstructured input; `receive-brief` elicits what's missing when receiving a formed brief."
   2. Add `Rabbit holes` and `Status` rows to the body-sections table. `Rabbit holes`: optional in general use, but required-for-Ready per DoR gate. `Status`: the lifecycle field set by the skill (`Draft` by `author-brief`; `Ready` by `receive-brief`).
   3. Add a "DoR gate" section after the body-sections table defining the four eligibility fields (Outcome, Appetite, Rabbit holes ≥1, Spec map skeleton ≥1 placeholder row), framing them as "required to reach `Ready`" (not simply "required"), and stating that `author-brief` elicits these but sets `Status: Draft` only; only `receive-brief` sets `Status: Ready`.
-- `docs/guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md`: in the entry-point decision table, add row: `author-brief` | "You have unstructured external input (email, stakeholder message, Linear issue) and need to author a brief from scratch first".
-- `docs/guides/core/README.md`: add `[Intake an external brief into a product brief](how-to/intake-an-external-brief.md)` under the How-to section.
+- `guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md`: in the entry-point decision table, add row: `author-brief` | "You have unstructured external input (email, stakeholder message, Linear issue) and need to author a brief from scratch first".
+- `guides/core/README.md`: add `[Intake an external brief into a product brief](how-to/intake-an-external-brief.md)` under the How-to section.
 
 **Done when:** AC6–AC9 pass.
 

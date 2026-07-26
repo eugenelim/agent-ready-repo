@@ -267,4 +267,4 @@ All original open design questions are resolved in RFC-0066. No open design ques
 
 ## Handoff notes
 
-**Shipped in RFC-0066 implementation PR:** 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template added to the screen-brief, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (9 skills to canonical vocabulary), D8 0.5.0 → 0.6.0 bump. Marketing site (`web/`) and docs guides (`docs/guides/experience/`) updated in the same PR.
+**Shipped in RFC-0066 implementation PR:** 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template added to the screen-brief, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (9 skills to canonical vocabulary), D8 0.5.0 → 0.6.0 bump. Marketing site (`web/`) and docs guides (`guides/experience/`) updated in the same PR.

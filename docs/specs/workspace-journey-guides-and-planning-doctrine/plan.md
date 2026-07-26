@@ -42,15 +42,15 @@ Each task targets specific file paths and has a goal-based verification command.
 ### Component / module decomposition
 
 **New files:**
-- `docs/guides/core/tutorials/your-first-workspace.md` — Diátaxis tutorial (AC1)
-- `docs/guides/core/how-to/start-a-project.md` — Diátaxis how-to (AC2)
-- `docs/guides/core/how-to/orient-at-session-start.md` — Diátaxis how-to (AC3)
-- `docs/guides/core/how-to/capture-work.md` — Diátaxis how-to (AC4)
-- `docs/guides/core/reference/workspace-toml-schema.md` — Diátaxis reference (AC5)
-- `docs/guides/core/explanation/two-room-model.md` — Diátaxis explanation (AC6)
+- `guides/core/tutorials/your-first-workspace.md` — Diátaxis tutorial (AC1)
+- `guides/core/how-to/start-a-project.md` — Diátaxis how-to (AC2)
+- `guides/core/how-to/orient-at-session-start.md` — Diátaxis how-to (AC3)
+- `guides/core/how-to/capture-work.md` — Diátaxis how-to (AC4)
+- `guides/core/reference/workspace-toml-schema.md` — Diátaxis reference (AC5)
+- `guides/core/explanation/two-room-model.md` — Diátaxis explanation (AC6)
 
 **Edited files:**
-- `docs/CONVENTIONS.md` — new `### Phase-slice planning` subsection under `§ How we do non-trivial work`; cross-reference sentence under `§ 5c. docs/guides/` (AC7, AC8)
+- `docs/CONVENTIONS.md` — new `### Phase-slice planning` subsection under `§ How we do non-trivial work`; cross-reference sentence under `§ 5c. guides/` (AC7, AC8)
 - `packs/governance-extras/.apm/skills/new-rfc/SKILL.md` — prose addition in the roadmap-sequencing step (AC9)
 - `packs/core/.apm/skills/receive-brief/SKILL.md` — prose addition in the shippable-slice definition (AC10)
 
@@ -73,7 +73,7 @@ Each task targets specific file paths and has a goal-based verification command.
 
 - `packs/governance-extras/.apm/skills/new-rfc/SKILL.md` → projected to `.claude/skills/new-rfc/` by `make build-self FORCE=1`
 - `packs/core/.apm/skills/receive-brief/SKILL.md` → projected to `.claude/skills/receive-brief/` by `make build-self FORCE=1`
-- `docs/guides/core/` → static Markdown; no build step; referenced from CONVENTIONS.md and skill cross-references
+- `guides/core/` → static Markdown; no build step; referenced from CONVENTIONS.md and skill cross-references
 
 ## Tasks
 
@@ -81,20 +81,20 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Depends on:** none
 
-**Touches:** `docs/guides/core/explanation/two-room-model.md`
+**Touches:** `guides/core/explanation/two-room-model.md`
 
 **Tests:**
-- File exists at `docs/guides/core/explanation/two-room-model.md`
+- File exists at `guides/core/explanation/two-room-model.md`
 - Opening paragraph is concept-oriented, not recipe-oriented (no numbered steps)
 - File contains at least two forward links: one to `orient-at-session-start.md`, one to `capture-work.md`
-- `grep -i "build\|shape\|two-room\|shaping queue\|work queue" docs/guides/core/explanation/two-room-model.md` returns ≥ 4 matches
+- `grep -i "build\|shape\|two-room\|shaping queue\|work queue" guides/core/explanation/two-room-model.md` returns ≥ 4 matches
 
 **Approach:**
 - Author the explanation covering: the two-room metaphor (build room = `[work].queue`; shape room = `[shaping_queue]`); why the separation exists (different cadences, different skills, different artifacts); how items graduate from shape to build; how `workspace-status` surfaces both rooms; how `capture-work` routes new items to the right room
 - Close with "What next?" linking to `how-to/orient-at-session-start.md` and `how-to/capture-work.md`
 - No recipe steps — only concepts and prose
 
-**Done when:** `ls docs/guides/core/explanation/two-room-model.md` succeeds and manual Diátaxis spot-check passes (explanation quadrant: concept-oriented, no recipe steps)
+**Done when:** `ls guides/core/explanation/two-room-model.md` succeeds and manual Diátaxis spot-check passes (explanation quadrant: concept-oriented, no recipe steps)
 
 ---
 
@@ -102,10 +102,10 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Depends on:** none
 
-**Touches:** `docs/guides/core/reference/workspace-toml-schema.md`
+**Touches:** `guides/core/reference/workspace-toml-schema.md`
 
 **Tests:**
-- File exists at `docs/guides/core/reference/workspace-toml-schema.md`
+- File exists at `guides/core/reference/workspace-toml-schema.md`
 - All five top-level sections are documented: `["ini-NNN"]`, `["ini-NNN".shaping_queue]`, `["ini-NNN".brief_queue]`, `["ini-NNN".work]`, `[backlog]`
 - `needs` queue-prefix notation table is present (columns: prefix, resolves against)
 - `type` vocabulary table is present for shaping entries: `shape | research | strategy | signal | design` — all five values from `packs/core/.apm/skills/capture-work/SKILL.md`
@@ -117,7 +117,7 @@ Each task targets specific file paths and has a goal-based verification command.
 - Cross-link to `explanation/two-room-model.md` in the opening context line
 - Keep prose to field definitions only — no "you should" narrative
 
-**Done when:** `ls docs/guides/core/reference/workspace-toml-schema.md` succeeds and manual spot-check confirms reference quadrant (no recipe steps, dry and complete)
+**Done when:** `ls guides/core/reference/workspace-toml-schema.md` succeeds and manual spot-check confirms reference quadrant (no recipe steps, dry and complete)
 
 ---
 
@@ -134,7 +134,7 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Approach:**
 - Add `### Phase-slice planning` subsection at the end of `## How we do non-trivial work` (after the existing subsections, before `## Scaling profiles`) with the doctrine statement from Design (LLD) § Behavior & rules above
-- Under `### 5c. docs/guides/` add a one-sentence cross-reference: "See [Phase-slice planning](#phase-slice-planning) — guides ship with the phase that introduces their capability, not in a terminal documentation wave."
+- Under `### 5c. guides/` add a one-sentence cross-reference: "See [Phase-slice planning](#phase-slice-planning) — guides ship with the phase that introduces their capability, not in a terminal documentation wave."
 - Do not rewrite existing subsection content; only add
 
 **Done when:** `grep -c "phase-slice" docs/CONVENTIONS.md` ≥ 2 and both placements are visible in `git diff`
@@ -203,12 +203,12 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Depends on:** T1, T2
 
-**Touches:** `docs/guides/core/how-to/orient-at-session-start.md`
+**Touches:** `guides/core/how-to/orient-at-session-start.md`
 
 **Tests:**
-- File exists at `docs/guides/core/how-to/orient-at-session-start.md`
+- File exists at `guides/core/how-to/orient-at-session-start.md`
 - Numbered steps are present (how-to quadrant requirement)
-- `grep -i "workspace-status\|active.*initiative\|ready.*to.*start\|active.*context" docs/guides/core/how-to/orient-at-session-start.md` returns ≥ 3 matches
+- `grep -i "workspace-status\|active.*initiative\|ready.*to.*start\|active.*context" guides/core/how-to/orient-at-session-start.md` returns ≥ 3 matches
 - Cross-links to `two-room-model.md` and `workspace-toml-schema.md` present
 
 **Approach:**
@@ -217,7 +217,7 @@ Each task targets specific file paths and has a goal-based verification command.
 - Link to `explanation/two-room-model.md` for concept background and `reference/workspace-toml-schema.md` for field definitions
 - Do not include capture-work steps — that is `how-to/capture-work.md`
 
-**Done when:** `ls docs/guides/core/how-to/orient-at-session-start.md` succeeds and manual Diátaxis spot-check passes (how-to quadrant: numbered recipe, specific goal)
+**Done when:** `ls guides/core/how-to/orient-at-session-start.md` succeeds and manual Diátaxis spot-check passes (how-to quadrant: numbered recipe, specific goal)
 
 ---
 
@@ -225,12 +225,12 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Depends on:** T7
 
-**Touches:** `docs/guides/core/how-to/capture-work.md`
+**Touches:** `guides/core/how-to/capture-work.md`
 
 **Tests:**
-- File exists at `docs/guides/core/how-to/capture-work.md`
+- File exists at `guides/core/how-to/capture-work.md`
 - Numbered steps are present
-- `grep -i "capture-work\|classify\|build\|shaping\|confirm" docs/guides/core/how-to/capture-work.md` returns ≥ 4 matches
+- `grep -i "capture-work\|classify\|build\|shaping\|confirm" guides/core/how-to/capture-work.md` returns ≥ 4 matches
 - Cross-link to `orient-at-session-start.md` and `two-room-model.md` present
 
 **Approach:**
@@ -238,7 +238,7 @@ Each task targets specific file paths and has a goal-based verification command.
 - Include a "When to use vs. not use" note (capture-work = named item that belongs in the queue; not for items already in `workspace.toml`)
 - Link to `orient-at-session-start.md` ("see orientation to know where it lands") and `two-room-model.md` for classification context
 
-**Done when:** `ls docs/guides/core/how-to/capture-work.md` succeeds and manual spot-check passes (how-to quadrant)
+**Done when:** `ls guides/core/how-to/capture-work.md` succeeds and manual spot-check passes (how-to quadrant)
 
 ---
 
@@ -246,12 +246,12 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Depends on:** T7
 
-**Touches:** `docs/guides/core/how-to/start-a-project.md`
+**Touches:** `guides/core/how-to/start-a-project.md`
 
 **Tests:**
-- File exists at `docs/guides/core/how-to/start-a-project.md`
+- File exists at `guides/core/how-to/start-a-project.md`
 - Numbered steps are present
-- `grep -i "core pack\|agentbundle\|workspace.toml\|workspace-status\|ready.*to.*start" docs/guides/core/how-to/start-a-project.md` returns ≥ 4 matches
+- `grep -i "core pack\|agentbundle\|workspace.toml\|workspace-status\|ready.*to.*start" guides/core/how-to/start-a-project.md` returns ≥ 4 matches
 - Cross-link to `orient-at-session-start.md` present
 - Cross-link to `explanation/two-room-model.md` present (start-a-project is a natural entry point to understanding the two rooms)
 
@@ -260,7 +260,7 @@ Each task targets specific file paths and has a goal-based verification command.
 - Distinguish from the tutorial (the how-to assumes the reader knows *what* they want to do — start on this project — and gives steps without learning narrative)
 - Link to `orient-at-session-start.md` for session-level orientation and to `explanation/two-room-model.md` for concept background (AC12: each how-to links to explanation where relevant — relevant here because a contributor arriving for the first time benefits from the two-room context)
 
-**Done when:** `ls docs/guides/core/how-to/start-a-project.md` succeeds and manual spot-check passes (how-to quadrant, starts with numbered steps not narrative)
+**Done when:** `ls guides/core/how-to/start-a-project.md` succeeds and manual spot-check passes (how-to quadrant, starts with numbered steps not narrative)
 
 ---
 
@@ -268,12 +268,12 @@ Each task targets specific file paths and has a goal-based verification command.
 
 **Depends on:** T7, T8, T9
 
-**Touches:** `docs/guides/core/tutorials/your-first-workspace.md`
+**Touches:** `guides/core/tutorials/your-first-workspace.md`
 
 **Tests:**
-- File exists at `docs/guides/core/tutorials/your-first-workspace.md`
+- File exists at `guides/core/tutorials/your-first-workspace.md`
 - Learning scenario is concrete (a specific repo/initiative context is used throughout, not a generic "your repo")
-- `grep -i "workspace-status\|capture-work\|work-loop\|workspace.toml" docs/guides/core/tutorials/your-first-workspace.md` returns ≥ 4 matches
+- `grep -i "workspace-status\|capture-work\|work-loop\|workspace.toml" guides/core/tutorials/your-first-workspace.md` returns ≥ 4 matches
 - Links to at least two of the three how-tos authored in T7–T9
 
 **Approach:**
@@ -282,7 +282,7 @@ Each task targets specific file paths and has a goal-based verification command.
 - End with a "What you learned" paragraph naming the two-room model and the orient → capture → build arc
 - Link to `how-to/orient-at-session-start.md`, `how-to/capture-work.md`, and `how-to/start-a-project.md` as "Next steps"
 
-**Done when:** `ls docs/guides/core/tutorials/your-first-workspace.md` succeeds and manual spot-check passes (tutorial quadrant: learning narrative, concrete scenario, ends with what was learned)
+**Done when:** `ls guides/core/tutorials/your-first-workspace.md` succeeds and manual spot-check passes (tutorial quadrant: learning narrative, concrete scenario, ends with what was learned)
 
 ---
 

@@ -5,7 +5,7 @@ tagline: "Read and render Figma designs — files, frames, variables."
 skills:
   - figma
 installCommand: "agentbundle install --pack figma --scope user"
-docsUrl: /docs/guides/figma/
+docsUrl: /guides/figma/
 journeyUrl: /journeys/figma/
 ---
 

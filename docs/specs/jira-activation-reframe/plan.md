@@ -204,7 +204,7 @@ start-delivery hand-off survives, and the skill is read-only by default.
 **Tests:**
 - `grep` finds no surviving "Tier A / B / C" or "agent-readiness"-as-headline framing
   in `reference/atlassian-skills.md`, `explanation/atlassian-pack.md`,
-  `docs/guides/atlassian/README.md`, `packs/atlassian/README.md`, or the journey card
+  `guides/atlassian/README.md`, `packs/atlassian/README.md`, or the journey card
   (AC3, AC14).
 - `work-with-jira.md` documents "ready to pull" (or cross-references the canonical
   definition) and points to the two skills in the reader's language (AC15).

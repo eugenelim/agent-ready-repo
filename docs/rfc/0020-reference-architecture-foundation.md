@@ -162,7 +162,7 @@ Filled in on acceptance:
 - Spec: `docs/specs/reference-architecture/` — the `reference.md` **template asset** (arc42 sections, instantiated on demand like `spec.md`/`plan.md` — **not** a pre-placed seed), the `adapt-to-project` Class-3 harvest extension, and the stack-pack contract (what a pack pre-bakes and how it delivers).
 - Spec(s): the first **stack pack(s)** (e.g. a frontend and a backend pack) — downstream, each clearing the charter bars on its own.
 - Convention change: `docs/CONVENTIONS.md` — amend the document-hierarchy diagram to add `reference.md` under `architecture/`, distinguished from `overview.md`.
-- **User guides (in *this* catalogue repo, `docs/guides/`, via `new-guide`)** — authored as part of "done"; this repo ships a guide on **`reference.md` and how to use it**:
+- **User guides (in *this* catalogue repo, `guides/`, via `new-guide`)** — authored as part of "done"; this repo ships a guide on **`reference.md` and how to use it**:
   - *Tutorial* — **"Create and use your `reference.md`"**: establish it (greenfield via `init-project` / brownfield via harvest / stack-pack pre-bake), then *use* it — how a design conforms to it, how to reference its components and stereotypes by name, and how the LLD (RFC-0019, Decision 9) reads it as steering.
   - *How-to* — "Establish your repo's reference architecture" (greenfield author / brownfield harvest / stack-pack pre-bake).
   - *Explanation* — "Foundation vs. map": why `reference.md` (normative steering) and `overview.md` (descriptive) are separate, and why `reference.md` is template-instantiated rather than seeded.

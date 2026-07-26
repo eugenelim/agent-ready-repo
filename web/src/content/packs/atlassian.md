@@ -15,7 +15,7 @@ skills:
   - confluence-publisher
   - ai-adoption-report
 installCommand: "agentbundle install --pack atlassian --scope user"
-docsUrl: /docs/guides/atlassian/
+docsUrl: /guides/atlassian/
 journeyUrl: /journeys/atlassian/
 ---
 
@@ -113,4 +113,4 @@ always read-only.
 ### Skills included — under the hood
 
 The skills below activate from natural-language requests. You don't need to name
-them to use them. See the [skills reference](/docs/guides/atlassian/reference/atlassian-skills/) for exact contracts and limits.
+them to use them. See the [skills reference](/guides/atlassian/reference/atlassian-skills/) for exact contracts and limits.

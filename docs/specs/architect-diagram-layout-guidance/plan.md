@@ -86,14 +86,14 @@ Done when: `grep -c "tidy-tree" .../references/mermaid-mindmap.md` ≥ 1
 Depends on: Task 5
 Verification mode: manual QA
 
-Approach: Write `docs/guides/architect/explanation/architect-diagram-skill-design.md`
+Approach: Write `guides/architect/explanation/architect-diagram-skill-design.md`
 with all seven sections from AC9. No imperative instructions. Update
-`docs/guides/architect/README.md` with `## Explanation` section (AC10).
+`guides/architect/README.md` with `## Explanation` section (AC10).
 
 Done when:
 - Guide file exists with all seven sections
 - No step-by-step instructions in guide prose
-- `grep -c "Explanation" docs/guides/architect/README.md` ≥ 1
+- `grep -c "Explanation" guides/architect/README.md` ≥ 1
 
 ---
 

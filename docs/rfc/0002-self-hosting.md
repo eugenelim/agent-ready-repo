@@ -124,7 +124,7 @@ build artifacts, machine-local state, repo-perspective documents).
 | `docs/product/README.md`, `docs/product/roadmap.md`, `docs/product/changelog.md` | Manual | This repo's living product state. Pack seeds at `packs/core/seeds/docs/product/` are placeholder templates with `YYYY-MM-DD` placeholders. Reclassified by the 2026-05-25 amendment. |
 | `docs/rfc/README.md` | Manual | This repo's living RFC index. Pack seed at `packs/governance-extras/seeds/docs/rfc/README.md` is a placeholder template (blank table). Reclassified by the 2026-05-25 amendment. |
 | `docs/adr/README.md` | Manual | This repo's living ADR index. Pack seed at `packs/governance-extras/seeds/docs/adr/README.md` is a placeholder template (blank table). Reclassified by the 2026-05-25 amendment. |
-| `docs/guides/README.md`, `docs/guides/{tutorials,how-to,reference,explanation}/README.md` | Manual | This repo's living Diátaxis guide intros. Pack seeds at `packs/user-guide-diataxis/seeds/docs/guides/...` are generic Diátaxis prose templates. Reclassified by the 2026-05-25 amendment. |
+| `guides/README.md`, `guides/{tutorials,how-to,reference,explanation}/README.md` | Manual | This repo's living Diátaxis guide intros. Pack seeds at `packs/user-guide-diataxis/seeds/guides/...` are generic Diátaxis prose templates. Reclassified by the 2026-05-25 amendment. |
 | `packages/README.md`, `packages/_example/` | Manual | This repo's living monorepo intro and worked-example package. Pack seeds at `packs/monorepo-extras/seeds/packages/` are placeholder templates. Reclassified by the 2026-05-25 amendment. (This repo today has a `monorepo-extras` pack source but no in-tree packages of its own.) |
 | `.claude/skills/new-spec/assets/spec.md`, `plan.md` | Projected | From `packs/core/.apm/skills/new-spec/assets/` — direct-directory skill projection. |
 | `.claude/skills/new-adr/assets/adr.md`, `.claude/skills/new-rfc/assets/rfc.md` | Projected | From `packs/governance-extras/.apm/skills/{new-adr,new-rfc}/assets/` — direct-directory skill projection. |
@@ -327,7 +327,7 @@ not file-by-file:
 | `.git/` | Repository internals. |
 | `.context/`, `.claude/settings.local.json` | Machine-local. |
 | `docs/rfc/NNNN-*.md`, `docs/adr/NNNN-*.md`, `docs/specs/<feature>/*` (entries themselves) | This repo's own governance entries authored on disk. The parent directory READMEs are also Manual after the 2026-05-25 amendment (see source-of-truth table); the build pipeline does not project either the index README or the per-entry files. |
-| Content under `docs/architecture/`, `docs/product/`, `docs/knowledge/`, `docs/guides/` | This repo's living narrative content. Pack seeds at these paths are placeholder templates adopters receive on first install via brownfield rules (`safety.write_companion`); after the 2026-05-25 amendment shrinks `PROJECTED_README_OVERRIDES` in `self_host.py` to remove the per-path re-inclusions, `EXCLUDED_PATTERNS`' default `docs/<area>/*.md` / `docs/guides/**/*.md` coverage takes effect and self-host stops projecting these paths — the on-disk copies are this repo's hand-maintained instance. |
+| Content under `docs/architecture/`, `docs/product/`, `docs/knowledge/`, `guides/` | This repo's living narrative content. Pack seeds at these paths are placeholder templates adopters receive on first install via brownfield rules (`safety.write_companion`); after the 2026-05-25 amendment shrinks `PROJECTED_README_OVERRIDES` in `self_host.py` to remove the per-path re-inclusions, `EXCLUDED_PATTERNS`' default `docs/<area>/*.md` / `guides/**/*.md` coverage takes effect and self-host stops projecting these paths — the on-disk copies are this repo's hand-maintained instance. |
 | `README.md`, `USING_THIS_TEMPLATE.md` | Repo-perspective documents about the template itself. |
 | `LICENSE-*`, `.gitignore`, `.github/workflows/*` | Repo-specific operational files. |
 | `AGENTS.local.md` | This repo's contributor-specific guidance. |
@@ -363,7 +363,7 @@ landed. Once they have, the cutover is four steps:
      `docs/rfc/` and `docs/adr/` → `packs/governance-extras/seeds/`.
    - **`user-guide-diataxis`:** A new `new-guide` skill body →
      `packs/user-guide-diataxis/.apm/skills/`. Seed READMEs for
-     `docs/guides/` and its four quadrants →
+     `guides/` and its four quadrants →
      `packs/user-guide-diataxis/seeds/`.
    - **`monorepo-extras`:** `.claude/skills/new-package/` →
      `packs/monorepo-extras/.apm/skills/`. Existing
@@ -696,7 +696,7 @@ If accepted, this RFC produces one downstream artifact:
   the 19 via the patterns `docs/architecture/*.md`,
   `docs/product/*.md`, `docs/knowledge/*.md` (covers the README but
   not `patterns.jsonl` — different extension), and
-  `docs/guides/**/*.md`. The remaining **eight** paths —
+  `guides/**/*.md`. The remaining **eight** paths —
   `docs/CHARTER.md` (not in `EXCLUDED_PATTERNS` today; only the
   override holds it), `docs/knowledge/patterns.jsonl` (extension
   miss), `docs/rfc/README.md`, `docs/adr/README.md`,

@@ -32,16 +32,16 @@
 
 ### T1 — Author tutorial file
 **Depends on:** none
-**Touches:** `docs/guides/figma/tutorials/figma-first-session.md` (new file; creates `tutorials/` directory)
+**Touches:** `guides/figma/tutorials/figma-first-session.md` (new file; creates `tutorials/` directory)
 **Verification mode:** Visual / manual QA
 **Done when:** Tutorial covers AC1–AC10; no credential present (grep check).
 
 **Tests:**
 - Read the tutorial against the AC1–AC10 checklist.
-- `grep -r "figd_\|FIGMA_API_TOKEN=" docs/guides/figma/tutorials/` returns zero matches.
+- `grep -r "figd_\|FIGMA_API_TOKEN=" guides/figma/tutorials/` returns zero matches.
 
 **Approach:**
-Create `docs/guides/figma/tutorials/` directory and write the tutorial. Structure:
+Create `guides/figma/tutorials/` directory and write the tutorial. Structure:
 1. Outcome sentence (what you'll have at the end).
 2. Before you start: prerequisites (Figma account + PAT, access to a file,
    `credential-brokers` pack installed separately, figma pack installed).
@@ -76,7 +76,7 @@ git diff packs/figma/pack.toml
 ```
 
 **Approach:**
-1. Add `tutorial = "docs/guides/figma/tutorials/figma-first-session.md"` to
+1. Add `tutorial = "guides/figma/tutorials/figma-first-session.md"` to
    `[pack.first-value]` in `packs/figma/pack.toml`. No other fields touched.
 2. Correct `verification` from the non-functional workspace-listing text to:
    `"Ask the agent to check your Figma connection; it should confirm your account name is visible with no authentication error."`

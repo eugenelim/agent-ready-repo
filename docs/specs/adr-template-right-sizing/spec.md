@@ -141,7 +141,7 @@ contract. No TDD-mode task; there is no compressible invariant to drive.
 
   The file parses as JSON; `eval_queries.json` (trigger detection) is byte-unchanged.
 - [x] **AC6 (how-to guide sync).** Step 5 of
-  `docs/guides/governance-extras/how-to/new-adr.md` describes the three fields
+  `guides/governance-extras/how-to/new-adr.md` describes the three fields
   consistently with the skill, so guide and skill don't contradict each other.
 - [x] **AC7 (follow-on ADR extends ADR-0027).** A new ADR (ADR-0041) records the
   template extension with `Related:` pointing at ADR-0027 ("extends — read the
