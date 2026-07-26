@@ -508,11 +508,23 @@ def _step_agent_artifacts(
             _report(path, "body is empty")
         check_links(path, body, body_start)
 
+    # --- APM leak guard (packs/core/.apm/skills/) — runs unconditionally ---
+
+    apm_skills_dir = root / "packs" / "core" / ".apm" / "skills"
+    if apm_skills_dir.exists():
+        for skill_dir_item in sorted(p for p in apm_skills_dir.iterdir() if p.is_dir()):
+            for target in sorted(skill_dir_item.rglob("*.md")):
+                text = target.read_text(encoding="utf-8")
+                for pat, label in _APM_SKILL_BLOCKLIST:
+                    for _lineno, line in enumerate(text.splitlines(), 1):
+                        if re.search(pat, line):
+                            _report(target, f"leaked {label} in shipped skill body")
+
     # --- Scan .claude/ artifacts ---
 
     claude_dir = root / ".claude"
     if not claude_dir.exists():
-        return []
+        return diags
 
     skills_dir = claude_dir / "skills"
     agents_dir = claude_dir / "agents"
@@ -540,18 +552,6 @@ def _step_agent_artifacts(
             if cmd_md.name.upper() == "README.MD":
                 continue
             check_command(cmd_md)
-
-    # --- APM leak guard (packs/core/.apm/skills/) ---
-
-    apm_skills_dir = root / "packs" / "core" / ".apm" / "skills"
-    if apm_skills_dir.exists():
-        for skill_dir_item in sorted(p for p in apm_skills_dir.iterdir() if p.is_dir()):
-            for target in sorted(skill_dir_item.rglob("*.md")):
-                text = target.read_text(encoding="utf-8")
-                for pat, label in _APM_SKILL_BLOCKLIST:
-                    for _lineno, line in enumerate(text.splitlines(), 1):
-                        if re.search(pat, line):
-                            _report(target, f"leaked {label} in shipped skill body")
 
     return diags
 
@@ -751,7 +751,7 @@ def verify_catalogue(
                     f"step {_step_num} ({_step_name}) raised unexpected error: {exc}",
                 )]
             all_diags.extend(step_diags)
-            if step_diags and not continue_on_error:
+            if any(d.severity == Severity.ERROR for d in step_diags) and not continue_on_error:
                 break
 
     return VerifyResult(

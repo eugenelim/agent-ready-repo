@@ -758,15 +758,14 @@ def _add_pack_fv(root: Path, name: str, *, pack_toml_extra: str = "") -> Path:
 
 
 def test_check_first_value_missing_section(tmp_path, monkeypatch):
-    """Pack without [pack.first-value] → CAT-L030 mentioning 'section missing'."""
+    """Pack without [pack.first-value] → silently skipped (adoption is opt-in)."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
     _add_pack_fv(tmp_path, "pack-a")
     result = lint_catalogue(tmp_path)
     l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
-    assert l030, "expected CAT-L030 for missing first-value section"
-    assert any("section missing" in d.message for d in l030)
+    assert not l030, "expected no CAT-L030 when [pack.first-value] section is absent"
 
 
 def test_check_first_value_level_a_missing_field(tmp_path, monkeypatch):

@@ -327,6 +327,7 @@ def test_step_agent_artifacts_pyyaml_absent(tmp_path, monkeypatch):
 
     assert len(result) == 1
     assert result[0].code == "CAT-V-011"
+    assert result[0].severity == Severity.WARN
     assert "PyYAML required" in result[0].message
 
 

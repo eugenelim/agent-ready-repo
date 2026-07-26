@@ -1385,8 +1385,7 @@ class _PackRules:
 
         fv = pt.get("pack", {}).get("first-value")
         if fv is None:
-            _v("[pack.first-value] section missing")
-            return diags
+            return []  # Section absent → pack has not adopted the contract; skip.
 
         ap = fv.get("audience-posture")
         if ap is None:
