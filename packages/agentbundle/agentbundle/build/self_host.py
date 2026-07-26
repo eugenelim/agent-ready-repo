@@ -362,6 +362,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/product/*.md",
     "docs/knowledge/*.md",
     "guides/**/*.md",
+    "docs/guides/**/*.md",  # adopter seed projection; not managed in this repo post-wave1
     # Seeded-once / adopter-curated files (RFC-0002 Manual semantics).
     "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
     # Manual seed-projected paths (RFC-0002 amendment 2026-05-25). The
@@ -369,6 +370,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # paths; the following 7 are not matched by any pattern and need
     # explicit listing. See `docs/specs/self-hosting/spec.md` AC20.
     "docs/CHARTER.md",
+    "docs/CONVENTIONS.md",  # reclassified Manual post-wave1 guides restructure
     "docs/knowledge/patterns.jsonl",
     "docs/rfc/README.md",
     "docs/adr/README.md",
@@ -442,14 +444,12 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # *Projected* even when EXCLUDED_PATTERNS would otherwise catch them.
 #
 # The 2026-05-25 amendment to RFC-0002 reclassified 19 paths Projected
-# → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
-# accordingly. The reclassified paths now fall through to
-# EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
-# `docs/product/*.md`, `docs/knowledge/*.md`, `guides/**/*.md`,
-# and the 8 explicit additions listed above). See RFC-0002 §
-# Amendments § 2026-05-25.
+# → Manual; the allow-list shrank to one entry (`docs/CONVENTIONS.md`).
+# The wave1 guides restructure (2026-07-26) reclassified the final entry:
+# `docs/CONVENTIONS.md` moved to EXCLUDED_PATTERNS. The list is now empty.
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
-    "docs/CONVENTIONS.md",
+    # Post-wave1 guides restructure (2026-07-26): docs/CONVENTIONS.md
+    # reclassified to Manual — moved to EXCLUDED_PATTERNS.
 )
 
 
@@ -537,9 +537,11 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
         # install, not via self-host projection. Never scaffold the
         # by-quadrant guide tree here: the seed stays by-quadrant for
         # adopters, but writing it during self-host litters a repo that
-        # owns its guides (e.g. organized by pack) with untracked
-        # `guides/<quadrant>/README.md` on every build-self run.
-        if relative.as_posix().startswith("guides/"):
+        # owns its guides with untracked files on every build-self run.
+        # Cover both locations: guides/ (this repo post-wave1) and
+        # docs/guides/ (adopter seed projection path, still used by seeds).
+        posix = relative.as_posix()
+        if posix.startswith("guides/") or posix.startswith("docs/guides/"):
             continue
         if _is_excluded(relative) and (output_root / relative).exists():
             # Manual file on disk — leave it alone. The seed is

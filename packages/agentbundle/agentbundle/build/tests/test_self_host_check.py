@@ -758,18 +758,17 @@ class ExcludedGlobTests(unittest.TestCase):
 
     def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
         """Per RFC-0002 amendment 2026-05-25: PROJECTED_README_OVERRIDES
-        shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
-        Every other formerly-overridden path now falls through to
-        EXCLUDED_PATTERNS coverage."""
+        shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remained.
+        Post-wave1 guides restructure (2026-07-26): docs/CONVENTIONS.md
+        reclassified Manual → PROJECTED_README_OVERRIDES is now empty;
+        docs/CONVENTIONS.md falls through to EXCLUDED_PATTERNS."""
         from agentbundle.build.self_host import _is_excluded
 
-        # docs/CONVENTIONS.md stays in the override → not excluded.
-        self.assertFalse(_is_excluded(Path("docs/CONVENTIONS.md")))
+        # docs/CONVENTIONS.md reclassified Manual post-wave1 → now excluded.
+        self.assertTrue(_is_excluded(Path("docs/CONVENTIONS.md")))
 
-        # All 19 reclassified paths are now Excluded (either via
-        # existing `docs/<area>/*.md` patterns, the `guides/**/*.md`
-        # pattern, or one of the 8 explicit additions made by the
-        # amendment).
+        # All 19 reclassified paths (2026-05-25) + docs/CONVENTIONS.md and
+        # docs/guides/**/*.md (2026-07-26 wave1) are Excluded.
         for path in (
             # Covered by `docs/architecture/*.md`:
             "docs/architecture/README.md",
@@ -786,9 +785,16 @@ class ExcludedGlobTests(unittest.TestCase):
             "guides/_shared/how-to/README.md",
             "guides/_shared/reference/README.md",
             "guides/_shared/explanation/README.md",
+            # Covered by `docs/guides/**/*.md` (wave1 adopter seed projection):
+            "docs/guides/README.md",
+            "docs/guides/tutorials/README.md",
+            "docs/guides/how-to/README.md",
+            "docs/guides/reference/README.md",
+            "docs/guides/explanation/README.md",
             # Explicit literal additions:
             "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
+            "docs/CONVENTIONS.md",  # reclassified Manual post-wave1
             "docs/knowledge/patterns.jsonl",
             "docs/rfc/README.md",
             "docs/adr/README.md",
