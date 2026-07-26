@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.17.1] — 2026-07-25
+
+### Fixed
+
+- **`upgrade --all` no longer blocked for adopters on legacy `"agent-ready-repo"` sentinel sources.**
+  Packs installed before source-provenance tracking was added stored
+  `source = "agent-ready-repo"` in the state file. The 5-layer default-chain
+  fallback introduced in 0.14.0 only fired when `source` was `None`; packs
+  carrying the old sentinel bypassed the fallback and were immediately marked
+  `source-unknown` → all rows blocked. The condition now covers both absent
+  cases (`None` and `"agent-ready-repo"`), so pre-provenance installs resolve
+  through the configured default source and upgrade normally.
+
 ## [0.13.0] — 2026-07-24
 
 ### Added
