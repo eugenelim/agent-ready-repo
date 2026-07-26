@@ -1,0 +1,36 @@
+# Site recipe — controls docs-site sidebar grouping and pack ordering.
+# All packs in packs/ that have a pack.toml appear regardless; this file
+# controls order and groups only. Packs not mentioned go in an "Other"
+# group at the end, alphabetical.
+
+[[groups]]
+label = "Foundation"
+packs = ["core", "governance-extras"]
+
+[[groups]]
+label = "Agent workflows"
+packs = [
+  "desk-research", "architect", "product-engineering",
+  "product-strategy", "release-engineering",
+]
+
+[[groups]]
+label = "Engineering"
+packs = [
+  "iac-terraform", "monorepo-extras",
+  "contracts",
+]
+
+[[groups]]
+label = "Integrations"
+packs = [
+  "atlassian", "figma", "github", "linear",
+]
+
+[[groups]]
+label = "Content and design"
+packs = ["experience-design", "user-guide-diataxis", "converters"]
+
+[[groups]]
+label = "Catalogue operations"
+packs = ["catalogue-curation", "credential-brokers"]
