@@ -3,7 +3,7 @@ names in pack content before they reach a release artefact.
 
 Also covers the per-target metadata gate landed under
 docs/specs/lint-packs-target-vocab/: skill/agent name pattern, name
-length, and description length per docs/contracts/target-vocab.toml.
+length, and description length per contracts/target-vocab.toml.
 """
 
 from __future__ import annotations
@@ -495,7 +495,7 @@ class LintPackVocabTests(unittest.TestCase):
         both walks fail deterministically."""
         from unittest.mock import patch
         from agentbundle.build import lint_packs as lp_module
-        sentinel = Path("docs/contracts/__nonexistent_target_vocab__.toml")
+        sentinel = Path("contracts/__nonexistent_target_vocab__.toml")
         with tempfile.TemporaryDirectory() as tmp:
             packs_dir = Path(tmp) / "isolated" / "packs"
             packs_dir.mkdir(parents=True)
@@ -596,7 +596,7 @@ class LintPackVocabTests(unittest.TestCase):
             packs_dir = root / "packs"
             packs_dir.mkdir(parents=True)
             _write_minimal_pack(packs_dir / "p", name="p")
-            vocab_dir = root / "docs" / "contracts"
+            vocab_dir = root / "contracts"
             vocab_dir.mkdir(parents=True)
             (vocab_dir / "target-vocab.toml").write_text(body, encoding="utf-8")
             args = argparse.Namespace(packs_dir=str(packs_dir))
@@ -682,7 +682,7 @@ class LintPackVocabTests(unittest.TestCase):
             packs_dir = root / "packs"
             packs_dir.mkdir(parents=True)
             _write_minimal_pack(packs_dir / "p", name="p")
-            vocab_dir = root / "docs" / "contracts"
+            vocab_dir = root / "contracts"
             vocab_dir.mkdir(parents=True)
             (vocab_dir / "target-vocab.toml").write_text(
                 '[target.alpha]\nname-pattern = "^[a-z][a-z0-9-]*$"\n'

@@ -125,12 +125,12 @@ goal-based check (`make build-check`).
 `packages/agentbundle/agentbundle/build/tests/test_contract.py`,
 new test class `TestCodexSkillDirectDirectory`)
 
-- *Schema test*: `docs/contracts/adapter.toml` parses cleanly,
+- *Schema test*: `contracts/adapter.toml` parses cleanly,
   the Codex `skill` projection has `mode = "direct-directory"`,
   `target-path = ".agents/skills/"`, `on-conflict =
   "prompt-then-preserve"`, and no
   `managed-block-delimiter-start` / `-end` keys. [AC1]
-- *Drift test*: `docs/contracts/adapter.toml` and
+- *Drift test*: `contracts/adapter.toml` and
   `packages/agentbundle/agentbundle/_data/adapter.toml` produce
   byte-identical bytes when read. [AC2]
 - *Seed test*:
@@ -141,7 +141,7 @@ new test class `TestCodexSkillDirectDirectory`)
 
 **Approach:**
 
-- Edit `docs/contracts/adapter.toml` — the
+- Edit `contracts/adapter.toml` — the
   `[[adapter.codex.projection]]` block starting at line 208
   (header) with body at lines 209-214 (verified:
   `primitive = "skill"` at line 209,
@@ -340,7 +340,7 @@ edit `test_self_host_check.py`)
   `assertNotIn("<!-- agent-skills:start -->", text)` against
   the projected output. [AC26]
 - *Repo sweep*: a `grep -r "agent-skills:start" packages/
-  packs/ docs/contracts/ tools/` outside of `codex.py` and
+  packs/ contracts/ tools/` outside of `codex.py` and
   `docs/rfc/` returns zero hits. (Acceptable hits: `codex.py`
   carries the literals as constants; `docs/rfc/` keeps them as
   historical context.)
@@ -873,7 +873,7 @@ Implementation risks the executing agent should watch:
   scanning the diff will see the new tree and can sanity-check
   the size delta.
 - **`make build-check` drift between contract files** (T1).
-  The two contract files (`docs/contracts/adapter.toml` and
+  The two contract files (`contracts/adapter.toml` and
   `_data/adapter.toml`) drift silently if edited out-of-sync.
   Mitigation: T1's drift test catches this at the file-bytes
   level, not just by schema parsing.

@@ -6,7 +6,7 @@
 - **Constrained by:** [`dropped-primitives-coverage`](../dropped-primitives-coverage/spec.md), [`distribution-adapters`](../distribution-adapters/spec.md)
 - **Brief:** none
 - **Contract:** none <!-- adapter contract TOML is internal build-pipeline data, not a root contracts/<type>/ API surface; mirrors named in Adapter contract data below -->
-- **Adapter contract data:** [`docs/contracts/adapter.toml`](../../../docs/contracts/adapter.toml), [`packages/agentbundle/agentbundle/_data/adapter.toml`](../../../packages/agentbundle/agentbundle/_data/adapter.toml)
+- **Adapter contract data:** [`contracts/adapter.toml`](../../../contracts/adapter.toml), [`packages/agentbundle/agentbundle/_data/adapter.toml`](../../../packages/agentbundle/agentbundle/_data/adapter.toml)
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing

@@ -69,7 +69,7 @@ class Profile:
 def _schema_path() -> Path:
     """Locate the bundled ``_data/profile.schema.json``.
 
-    Unlike ``pack.schema.json`` (which also ships to ``docs/contracts/`` as an
+    Unlike ``pack.schema.json`` (which also ships to ``contracts/`` as an
     adopter-facing contract), the profile schema is internal and lives only at
     ``_data/`` — it ships with both the editable checkout and the zipapp. The
     caller surfaces a clear error if it is ever absent.

@@ -19,7 +19,7 @@ _DATA_COPY = (
     _REPO_ROOT
     / "packages/agentbundle/agentbundle/_data/adapter.toml"
 )
-_DOCS_COPY = _REPO_ROOT / "docs/contracts/adapter.toml"
+_DOCS_COPY = _REPO_ROOT / "contracts/adapter.toml"
 
 
 def _contract() -> dict:
@@ -103,7 +103,7 @@ class ContractMirrorTests(unittest.TestCase):
         self.assertEqual(
             _DATA_COPY.read_bytes(),
             _DOCS_COPY.read_bytes(),
-            "the _data/ and docs/contracts/ adapter.toml copies must be identical",
+            "the _data/ and contracts/ adapter.toml copies must be identical",
         )
 
 

@@ -96,7 +96,7 @@ under time pressure.
   its target at projection time.
 - **Edit `packs/core/seeds/AGENTS.md` and the runtime contract
   (`packages/agentbundle/agentbundle/_data/adapter.toml`) in the same
-  task as `docs/contracts/adapter.toml`.** All three files reference
+  task as `contracts/adapter.toml`.** All three files reference
   the legacy delimiter pair; drift between them breaks
   `make build-check`.
 - **Cite RFC-0009 by section name in the sibling spec amendment.**
@@ -188,7 +188,7 @@ Two verification modes mapped per Objective behaviour:
   `test_direct_directory_cleanup.py` for the shared helper.
 - **Goal-based check** for the contract-flip and self-host gates —
   `make build-check` exits clean (drift detection between
-  `docs/contracts/adapter.toml`, `_data/adapter.toml`, and the seed
+  `contracts/adapter.toml`, `_data/adapter.toml`, and the seed
   AGENTS.md); `dist/codex/.agents/skills/<name>/SKILL.md` exists for
   every fixture skill after a self-host build.
 - **Visual / manual QA** is **not** used for this spec — no UI, no
@@ -229,7 +229,7 @@ Every Acceptance Criterion maps to at least one construction test.
 
 Contract surface:
 
-- [x] **AC1.** `docs/contracts/adapter.toml` and
+- [x] **AC1.** `contracts/adapter.toml` and
       `packages/agentbundle/agentbundle/_data/adapter.toml` declare
       the Codex `skill` projection as
       `mode = "direct-directory"`,
@@ -238,7 +238,7 @@ Contract surface:
       `managed-block-delimiter-start` / `-end` keys are removed from
       the Codex `skill` entry only (the contract schema retains the
       keys; they remain valid on entries with `mode = "managed-block-inline"`).
-- [x] **AC2.** `docs/contracts/adapter.toml` and
+- [x] **AC2.** `contracts/adapter.toml` and
       `packages/agentbundle/agentbundle/_data/adapter.toml` are
       byte-identical after T1 lands (preserves the pre-existing
       invariant; verified `diff -q` exit 0 in the tree as of 2026-05-25).

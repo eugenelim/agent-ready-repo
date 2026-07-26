@@ -6,7 +6,7 @@
 - **Constrained by:** RFC-0064 Amendment #4 (2026-07-21) — cross-pack first-value adoption overlay; RFC-0031 (pack.toml as source of truth + lossy projection model); RFC-0011 (optional `pack.toml` fields under a contract bump)
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** `docs/contracts/pack.schema.json`
+- **Contract:** `contracts/pack.schema.json`
 - **Shape:** mixed <!-- schema extension + data migration (17 pack.toml files) + new validator tool -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -287,13 +287,13 @@ field, not a hardcoded set in the tool.
   fixtures rejected.
 - `make build-self FORCE=1` exits 0 after all 17 `pack.toml` files are edited.
 - Each of the 17 packs passes `agentbundle validate <pack>` (schema-valid
-  against `docs/contracts/pack.schema.json`).
+  against `contracts/pack.schema.json`).
 
 ## Acceptance Criteria
 
 ### AC1 — Schema extended (both copies)
 
-- [x] Both `docs/contracts/pack.schema.json` and `packages/agentbundle/agentbundle/_data/pack.schema.json` accept an optional `[pack.first-value]`
+- [x] Both `contracts/pack.schema.json` and `packages/agentbundle/agentbundle/_data/pack.schema.json` accept an optional `[pack.first-value]`
   section under `[pack]`. All fields listed in the Field Reference are typed
   correctly (`audience-posture`, `surfaces`, `prerequisites`, `verification`,
   `recovery`, `level-b`, `starter-task`, `starter-prompt`, `expected-result`,
@@ -303,7 +303,7 @@ field, not a hardcoded set in the tool.
   required — enforcement is the validator's job, not the schema's.
 - [x] Both copies carry `"additionalProperties": false` on the `first-value`
   object as a typo-guard (the `pack` object itself remains open).
-- [x] `diff docs/contracts/pack.schema.json packages/agentbundle/agentbundle/_data/pack.schema.json` exits 0 (copies remain byte-identical, satisfying `test_pack_schema_copies_match`).
+- [x] `diff contracts/pack.schema.json packages/agentbundle/agentbundle/_data/pack.schema.json` exits 0 (copies remain byte-identical, satisfying `test_pack_schema_copies_match`).
 
 ### AC2 — Validator authored and wired
 
@@ -416,7 +416,7 @@ field, not a hardcoded set in the tool.
    alongside the tutorial file they create. The validator tolerates an absent
    `tutorial` field (it only fails on a *declared* path that does not resolve).
 8. `pack.schema.json` has two byte-identical copies (confirmed 2026-07-22):
-   `docs/contracts/pack.schema.json` (source) and
+   `contracts/pack.schema.json` (source) and
    `packages/agentbundle/agentbundle/_data/pack.schema.json` (the copy
    `agentbundle validate` actually reads). Both must be edited identically.
    `test_pack_schema_copies_match` asserts equality; editing one breaks the test.

@@ -109,7 +109,7 @@ projected. The build pipeline reads it directly when emitting the
 ### `.apm/` — primitives
 
 The five primitives declared in the adapter contract
-([`docs/contracts/adapter.toml`](../contracts/adapter.toml)):
+([`contracts/adapter.toml`](../contracts/adapter.toml)):
 
 | Primitive | On-disk path | Notes |
 | --- | --- | --- |
@@ -173,7 +173,7 @@ that contribute to the AGENTS.md managed block.
    `_data/pack.schema.json`, and rejects pack-internal name collisions
    before any adapter runs.
 2. The build dispatcher reads
-   [`docs/contracts/adapter.toml`](../contracts/adapter.toml) to learn
+   [`contracts/adapter.toml`](../contracts/adapter.toml) to learn
    which projection mode applies to each primitive per adapter.
 3. [`build/adapters/`](../../packages/agentbundle/agentbundle/build/adapters/)
    projects `.apm/<primitive-type>/` into the per-tool output

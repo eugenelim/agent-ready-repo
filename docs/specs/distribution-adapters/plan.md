@@ -162,7 +162,7 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
   - `packages/agentbundle/agentbundle/build/tests/fixtures/README.md`
     — fixture layout convention (one pack per subdirectory under
     `fixtures/packs/`, named for the test it serves).
-- Author `docs/contracts/adapter.schema.json` (JSON-Schema-shaped,
+- Author `contracts/adapter.schema.json` (JSON-Schema-shaped,
   validated by `validate.py`) defining `[contract]`, `[primitive.*]`,
   `[adapter.<target>]` with `[[adapter.<target>.projection]]` array,
   `[frontmatter-mapping.*]`, `[frontmatter-default.*]`.
@@ -186,7 +186,7 @@ loads under `validate.py` against itself.
 **Verification mode:** TDD.
 
 **Tests:**
-- Loading `docs/contracts/adapter.toml` with `tomllib` and
+- Loading `contracts/adapter.toml` with `tomllib` and
   validating against `adapter.schema.json` returns no errors (verifies AC 1).
 - Every (5 primitives × 4 adapters) = 20 pairs appears in the contract
   as a `[[adapter.<target>.projection]]` table; the test enumerates the
@@ -214,7 +214,7 @@ loads under `validate.py` against itself.
   inject when missing).
 
 **Approach:**
-- Populate `docs/contracts/adapter.toml`:
+- Populate `contracts/adapter.toml`:
   - `[primitive.skill]`, `[primitive.agent]`, `[primitive.hook-body]`,
     `[primitive.hook-wiring]`, `[primitive.command]` — each with its
     `source-path`.
@@ -227,7 +227,7 @@ loads under `validate.py` against itself.
   — the contract-validation test suite.
 
 **Done when:** `python -m agentbundle.build validate
-docs/contracts/adapter.toml` exits zero, and every test
+contracts/adapter.toml` exits zero, and every test
 in `test_contract.py` passes.
 
 ---
@@ -259,12 +259,12 @@ in `test_contract.py` passes.
   `.claude-plugin/plugin.json` (verifies AC 4).
 
 **Approach:**
-- Author `docs/contracts/pack.schema.json` capturing the
+- Author `contracts/pack.schema.json` capturing the
   `[pack]`, `[pack.dependencies]` (with `required`/`recommended`/
   `conflicts` arrays of `{catalogue, pack, version}` objects),
   `[pack.adaptation]` (substitutions + augmentation-points), and
   `[pack.seeds]` tables.
-- Author `docs/contracts/plugin-manifest.schema.json` for
+- Author `contracts/plugin-manifest.schema.json` for
   `.claude-plugin/plugin.json`.
 - Author the new tests in two **new** files —
   `packages/agentbundle/agentbundle/build/tests/test_pack_schema.py` and
@@ -683,7 +683,7 @@ contract files only).
   `[".."]`, `["no-trailing-slash"]`, `["/begins-with-slash/"]`, and
   `[]` (one assertion per case, named for readability). Verifies the
   `[scope]` half of new AC #14.
-- `docs/contracts/adapter.toml` loads with
+- `contracts/adapter.toml` loads with
   `[contract] version = "0.2"` and the
   `[adapter."claude-code".scope]` block above (two prefixes:
   `.claude/` and `.agentbundle/`); validates against the
@@ -694,7 +694,7 @@ contract files only).
   dimension*).
 
 **Approach:**
-- Extend `docs/contracts/adapter.schema.json`:
+- Extend `contracts/adapter.schema.json`:
   - At each `[adapter.<name>]` block, add an optional `scope` property
     of type object with required keys `repo` and `user` (both
     strings) and an optional `allowed-prefixes` property whose values
@@ -741,7 +741,7 @@ the v0.2 schema.
   dimension* — implied defaults apply uniformly to all v0.1 packs).
 
 **Approach:**
-- Extend `docs/contracts/pack.schema.json` with two jsonschema
+- Extend `contracts/pack.schema.json` with two jsonschema
   `if`/`then` blocks under `[pack]`:
   1. `if [pack.adapter-contract] version == "0.2" then require
      [pack.install]`.
@@ -924,7 +924,7 @@ runtime behavior. The first `make build` run produces `dist/` (added
 to `.gitignore` as part of T6); CI starts running `make build --check`
 once RFC-0002's spec wires it in. Reversible: removing
 `packages/agentbundle/agentbundle/build/`,
-`docs/contracts/`, and the `tools/build/build.py` shim
+`contracts/`, and the `tools/build/build.py` shim
 rolls everything back; no adopter has consumed an artifact yet (the
 catalogue isn't published until follow-on work).
 
@@ -1006,7 +1006,7 @@ catalogue isn't published until follow-on work).
   main. Cited AC 4 in T6's first goal test. Updated the Risks section
   to reflect the new scope.
 - 2026-05-22: adapter contract files moved from
-  `docs/specs/adapter-contract/` to `docs/contracts/` with
+  `docs/specs/adapter-contract/` to `contracts/` with
   `<name>.schema.json` filenames (`adapter.toml`, `adapter.schema.json`,
   `pack.schema.json`, `plugin-manifest.schema.json`). Paths and
   bare-filename references updated; field semantics unchanged. See

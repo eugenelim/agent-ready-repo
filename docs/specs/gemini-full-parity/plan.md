@@ -62,7 +62,7 @@ Per-task tests live under **Tasks**. Cross-cutting:
 Stack: Python; the `agentbundle` build package (no `docs/architecture/reference.md`
 present — stack detected from the repo). Adapters are contract-driven projection
 modules; the contract is `_data/adapter.toml` + `_data/adapter.schema.json`,
-byte-mirrored to `docs/contracts/`.
+byte-mirrored to `contracts/`.
 
 ### Design decisions
 - **Reuse, don't invent.** Exactly one new projection mode (`gemini-command-toml`)
@@ -124,7 +124,7 @@ byte-mirrored to `docs/contracts/`.
   `MultiEdit`→single `replace`); `model` `values` map; absent `model` → omitted.
 - `gemini-command-toml` admitted to the `mode` enum at every enumerating site in
   `adapter.schema.json`.
-- All edits dual-copied to `docs/contracts/`; `test_contract_files_byte_identical`
+- All edits dual-copied to `contracts/`; `test_contract_files_byte_identical`
   is the guard. *Traces to: AC2, AC4, AC5, AC6, AC9, AC13 · adapter.toml/schema.*
 
 ### Dependencies & integration
@@ -178,16 +178,16 @@ CI-only-root test red-fails):
 **Tests:**
 - `test_contract` validates the new `[adapter.gemini]` block (projections, scope, frontmatter-mapping, hook-event map). [AC2, AC3, AC5, AC6, AC9]
 - `gemini-command-toml` present in the `mode` enum at every enumerating site. [AC4]
-- `test_contract_files_byte_identical` green (`_data/*` ↔ `docs/contracts/*`). [AC13]
+- `test_contract_files_byte_identical` green (`_data/*` ↔ `contracts/*`). [AC13]
 - All `test_contract*.py` version assertions updated to the new version and green; no lexical version-compare regression. [AC13]
 
 **Approach:**
 - Add `[adapter.gemini]` to `packages/agentbundle/agentbundle/_data/adapter.toml`: 5 projection rows (skill→`.gemini/skills/`, agent→`.gemini/agents/` + `gemini-agent-frontmatter`, hook-body→`.gemini/hooks/`, hook-wiring→`merge-json` `.gemini/settings.json` managed-key `hooks` + `hook-event-map` + `context-filenames`, command→`gemini-command-toml` `.gemini/commands/`), a `[adapter.gemini.projections.kiro-ide-hook] mode = "dropped"` table entry, `[adapter.gemini.scope]` (`allowed-prefixes` `[".gemini/", ".agentbundle/"]` both scopes), `gemini-agent-frontmatter` (`tools` + `model` `values` maps), the hook-event map.
 - Add `gemini-command-toml` to the `mode` enum at every site in `_data/adapter.schema.json` (4 sites).
-- Dual-copy both to `docs/contracts/adapter.toml` + `docs/contracts/adapter.schema.json`.
+- Dual-copy both to `contracts/adapter.toml` + `contracts/adapter.schema.json`.
 - Bump the contract version **v0.12 → v0.13** (main is at v0.12 post-copilot-skills-and-web); sweep `test_contract.py` (`ALL_ADAPTERS` +`gemini`, pair-count `38→44`, mode-enum +`gemini-command-toml`, version, **and the docstring prose** at `:5`/`:150`), `test_contract_v07.py`/`test_contract_v08.py` (numeric `>=` compares — safe, no edit), `tests/unit/test_contract_v0_3_schema.py`, the per-adapter version pins in `build/tests/test_adapter_kiro_ide.py` + `test_adapter_cursor.py` (both `assertEqual(version, "0.12")`), and any cohort/adapter-support version pin.
 
-**Touches:** packages/agentbundle/agentbundle/_data/adapter.toml, packages/agentbundle/agentbundle/_data/adapter.schema.json, docs/contracts/adapter.toml, docs/contracts/adapter.schema.json, packages/agentbundle/agentbundle/build/tests/test_contract*.py
+**Touches:** packages/agentbundle/agentbundle/_data/adapter.toml, packages/agentbundle/agentbundle/_data/adapter.schema.json, contracts/adapter.toml, contracts/adapter.schema.json, packages/agentbundle/agentbundle/build/tests/test_contract*.py
 
 **Done when:** `python -m pytest packages/agentbundle/agentbundle/build/tests/test_contract*.py` is green and the new block validates.
 

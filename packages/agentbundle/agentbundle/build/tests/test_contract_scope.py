@@ -20,8 +20,8 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
-SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 
 
 def _load_schema() -> dict:

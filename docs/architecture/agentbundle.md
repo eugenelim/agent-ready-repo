@@ -10,7 +10,7 @@ the pip-installable `credbroker` library (RFC-0023)
 (see [`credentials.md`](credentials.md)). This page describes the
 package as code; the spec lives in
 [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md),
-the contract in [`docs/contracts/adapter.toml`](../contracts/adapter.toml),
+the contract in [`contracts/adapter.toml`](../contracts/adapter.toml),
 and the *why* in [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md)
 + [RFC-0003](../rfc/0003-spec-and-cli.md).
 
@@ -120,7 +120,7 @@ packs/                                dist/
 ### The adapter contract
 
 The contract is published, semver'd, and lives at
-[`docs/contracts/adapter.toml`](../contracts/adapter.toml). Currently
+[`contracts/adapter.toml`](../contracts/adapter.toml). Currently
 **v0.6** (RFC-0011 / pack-allowed-adapters). The four user-scope-capable
 packs (`atlassian`, `figma`, `converters`, `contracts`) target v0.6 to
 opt into the new resolver; the four repo-only packs still target the

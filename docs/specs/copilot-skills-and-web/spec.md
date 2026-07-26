@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [RFC-0024](../../rfc/0024-copilot-subagent-projection.md) (§ Errata — closes Open Q4, records the skill-surface flip), [ADR-0013](../../adr/0013-copilot-full-parity-user-scope-adapter.md) (§ Errata), [RFC-0009](../../rfc/0009-codex-native-skills.md) (flip-on-upstream-support precedent). Modifies the adapter contract `docs/contracts/adapter.toml` + its byte-identical twin `packages/agentbundle/agentbundle/_data/adapter.toml` (contract version `0.11` → `0.12`; copilot `skill` `instruction-file`→`direct-directory`; `copilot-instruction` frontmatter-default removed; scope prefixes retargeted).
+- **Constrained by:** [RFC-0024](../../rfc/0024-copilot-subagent-projection.md) (§ Errata — closes Open Q4, records the skill-surface flip), [ADR-0013](../../adr/0013-copilot-full-parity-user-scope-adapter.md) (§ Errata), [RFC-0009](../../rfc/0009-codex-native-skills.md) (flip-on-upstream-support precedent). Modifies the adapter contract `contracts/adapter.toml` + its byte-identical twin `packages/agentbundle/agentbundle/_data/adapter.toml` (contract version `0.11` → `0.12`; copilot `skill` `instruction-file`→`direct-directory`; `copilot-instruction` frontmatter-default removed; scope prefixes retargeted).
 - **Contract:** none <!-- no REST/event/RPC interface surface; the adapter contract (`adapter.toml`) is internal build-pipeline data, named in Constrained by above -->
 - **Shape:** integration
 
@@ -45,7 +45,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Always do
 
-- Edit the canonical contract `docs/contracts/adapter.toml` and keep the twin
+- Edit the canonical contract `contracts/adapter.toml` and keep the twin
   `packages/agentbundle/agentbundle/_data/adapter.toml` **byte-identical** (the
   drift gate enforces it); the same byte-identical rule binds both
   `adapter.schema.json` copies.
@@ -115,7 +115,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `mode = "direct-directory"`, `target-path = ".github/skills/"`, with no
   `frontmatter-default`; the `copilot-instruction` frontmatter-default table is
   removed; both copies remain byte-identical. The single-copy
-  `docs/contracts/target-vocab.toml` `[target.copilot]` comment names
+  `contracts/target-vocab.toml` `[target.copilot]` comment names
   `.github/skills/` rather than `.github/instructions/` (no `_data/` twin — the
   byte-identical rule does not apply to target-vocab).
 - [x] `[adapter.copilot.scope]` admits `.github/skills/` under
@@ -189,7 +189,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   is web is "Currently not applicable for cloud agent". (source: https://docs.github.com/en/copilot/reference/custom-agents-configuration, fetched 2026-06-11)
 - Technical: copilot `skill` is the **only** consumer of the `instruction-file`
   mode and the `copilot-instruction` frontmatter-default in the contract, so
-  both are orphaned by the flip and safe to drop from copilot's use. (source: `grep instruction-file/copilot-instruction docs/contracts/adapter.toml`, 2026-06-11)
+  both are orphaned by the flip and safe to drop from copilot's use. (source: `grep instruction-file/copilot-instruction contracts/adapter.toml`, 2026-06-11)
 - Technical: copilot is installed per-pack via `copilot.project(pack_dir, …)`
   (`install.py:2415/2484`) and is **not** in `SELF_HOST_ADAPTERS`
   (`claude-code`, `codex`), so the skill flip needs only a `direct-directory`

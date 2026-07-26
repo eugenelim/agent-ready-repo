@@ -33,7 +33,7 @@ Steps:
 
 1. **Open an RFC.** New packs need RFC review — the contract surface is published, not internal. See [`docs/rfc/`](docs/rfc/) for the template and recent precedents (RFC-0004 added install-scope-per-pack; RFC-0007 added the user-scope converter pack). The RFC should include your arc mapping from step 0 — which skills cover which arc stages, and why.
 2. **Create `packs/<your-pack>/`** with the directory shape:
-   - `pack.toml` — manifest. Conforms to [`docs/contracts/pack.schema.json`](docs/contracts/pack.schema.json). Required tables: `[pack]`, `[pack.adapter-contract]`, `[pack.install]`. Cross-field invariant `default-scope ∈ allowed-scopes` is schema-enforced.
+   - `pack.toml` — manifest. Conforms to [`contracts/pack.schema.json`](contracts/pack.schema.json). Required tables: `[pack]`, `[pack.adapter-contract]`, `[pack.install]`. Cross-field invariant `default-scope ∈ allowed-scopes` is schema-enforced.
    - `.apm/` — upstream for adapter-projected primitives (`skills/`, `agents/`, `hooks/`, `commands/`, `hook-wiring/`).
    - `seeds/` — upstream for seed-projected files (README, governance content). Files prefixed `_` are composition fragments, not standalone.
 3. **Run the pack validator.** `agentbundle validate packs/<your-pack>`; fix anything it reports before opening the PR.
@@ -131,8 +131,8 @@ The **one-time** PyPI Trusted Publisher — a Pending Publisher matching `releas
 | How we work, document hierarchy | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) |
 | Why we chose X over Y | [`docs/adr/`](docs/adr/) |
 | In-flight proposals | [`docs/rfc/`](docs/rfc/) |
-| Per-IDE adapter contract | [`docs/contracts/adapter.toml`](docs/contracts/adapter.toml) |
-| Pack manifest schema | [`docs/contracts/pack.schema.json`](docs/contracts/pack.schema.json) |
+| Per-IDE adapter contract | [`contracts/adapter.toml`](contracts/adapter.toml) |
+| Pack manifest schema | [`contracts/pack.schema.json`](contracts/pack.schema.json) |
 | Catalogue model rationale | [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) |
 
 ## When this file is wrong

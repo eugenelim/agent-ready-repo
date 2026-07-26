@@ -49,7 +49,7 @@ has no union support, so it cannot hold the two-element glob list; see Declined.
   quoted frontmatter — it parses (PyYAML) back to the exact two-element list,
   guarding the IDE's fail-silent parser against the `skill://` URIs / `**` globs.
 - [x] **AC4** — `[contract] version` is bumped 0.14 → 0.15 in both
-  `docs/contracts/adapter.toml` and `_data/adapter.toml` (byte-identical drift
+  `contracts/adapter.toml` and `_data/adapter.toml` (byte-identical drift
   gate holds), and every pinned-version test is updated.
 - [x] **AC5** — RFC-0022 records the omission + correction as erratum E4
   (Approver-signed errata table), covering both CLI and IDE.

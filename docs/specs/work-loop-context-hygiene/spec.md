@@ -230,7 +230,7 @@ present and every verification surface provably intact.
   in-session capability matrix and the convention is behavior-anchored skills,
   so anchoring the lever to the invariant + cross-referencing that section is
   preferred over a bare hedge (source: repo research 2026-06-11,
-  `SKILL.md:608-635`, `docs/contracts/adapter.toml`; user confirmation
+  `SKILL.md:608-635`, `contracts/adapter.toml`; user confirmation
   2026-06-11).
 - Product: the audience is the agent running the work-loop; success is a
   clearer resident window deep into a multi-loop spec with zero loss of

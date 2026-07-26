@@ -357,7 +357,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/specs/*/plan.md",
     "docs/specs/*/state.json",
     "docs/specs/*/notes/**",
-    "docs/contracts/**",
+    "contracts/**",
     "docs/architecture/*.md",
     "docs/product/*.md",
     "docs/knowledge/*.md",

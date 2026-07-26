@@ -70,7 +70,7 @@ layout. No new module/dependency; reuses the `direct-directory` projector.
   already canonical Claude `SKILL.md`, which Copilot accepts verbatim; the
   passthrough + symlink-defence + skill-bounded orphan-sweep in `codex.py` /
   `direct_directory.py` is the model. Rejected: a copilot-specific skill mode
-  (no behaviour the shared one lacks). Traces to: AC4 · `docs/contracts/adapter.toml`.
+  (no behaviour the shared one lacks). Traces to: AC4 · `contracts/adapter.toml`.
 - **Branch in single-pack `project()`, no `project_packs` refactor.** Copilot is
   installed per-pack (`install.py`) and is not self-hosted, so the multi-pack
   `project_packs` form codex uses for self-host is unnecessary here; mirror
@@ -81,7 +81,7 @@ layout. No new module/dependency; reuses the `direct-directory` projector.
   tool-name mapping would be wrong (spec § Never do). Traces to: AC5.
 
 ### Interfaces & contracts
-- `docs/contracts/adapter.toml` + `_data/adapter.toml` twin — the copilot
+- `contracts/adapter.toml` + `_data/adapter.toml` twin — the copilot
   `skill` projection row, `[adapter.copilot.scope]` prefixes, `[contract]
   version`, and removal of `[frontmatter-default."copilot-instruction"]`. Both
   byte-identical; `adapter.schema.json` enum already contains `direct-directory`
@@ -149,7 +149,7 @@ naming Open Q4 closure + the skill flip with doc citations.
   `assertGreaterEqual((0,8))` tuple compares and survive the bump (AC3).
 
 **Approach:**
-- Edit `docs/contracts/adapter.toml`: copilot `skill` projection block (lines
+- Edit `contracts/adapter.toml`: copilot `skill` projection block (lines
   ~412-417) → `mode = "direct-directory"`, `target-path = ".github/skills/"`,
   drop `frontmatter-default`; update the header comment block **including the
   now-false narration at line ~33 (`skill` gains `~/.copilot/instructions/`) and
@@ -160,9 +160,9 @@ naming Open Q4 closure + the skill flip with doc citations.
 - Mirror **byte-identical** into `packages/agentbundle/agentbundle/_data/adapter.toml`.
 - Check `adapter.schema.json` (both copies) — `direct-directory` already in the
   enum; only edit if a removed key was schema-validated (expected: no change).
-- Update the `[target.copilot]` comment in `docs/contracts/target-vocab.toml`
+- Update the `[target.copilot]` comment in `contracts/target-vocab.toml`
   (`.github/instructions/` → `.github/skills/`); the name-pattern/desc cap still
-  apply. **Single-copy file** (read from `docs/contracts/` only, no `_data/`
+  apply. **Single-copy file** (read from `contracts/` only, no `_data/`
   twin) — the byte-identical rule does not apply here (AC1).
 - Update every other version-pin assertion the search surfaces.
 

@@ -19,7 +19,7 @@ Three layers, in order: **schema** (declare the fields), **projection** (carry t
 ## Constraints
 
 - **RFC-0031** — the eight accepted decisions; this spec implements the "first spec" row of its Decision 6 roadmap.
-- **RFC-0001** — contracts live in `docs/contracts/`; do not relocate.
+- **RFC-0001** — contracts live in `contracts/`; do not relocate.
 - **RFC-0011** — new `pack.toml` fields are optional and gated by a contract bump; legacy packs need no migration (the precedent followed by T1+T2).
 - **ADR-0021** — `pack.toml` is the metadata source of truth, projected lossily per tool; `@catalogue/pack` identity (declare-only here). The decision record for RFC-0031 D2/D7; T1/T3/T4/T7 implement it.
 - **ADR-0020** — the `documentation` link target is the per-pack `docs/guides/<pack>/` home; the guide migration that creates it is **performed by this plan** (T12 migrate + T13 convention/skill) and consumed by T10.
@@ -51,7 +51,7 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 - The projectable **subset** (`author`←maintainers[0], `license`, `homepage`/`repository`←links, `keywords`, `category`←categories[0], `displayName`←display_name) is added to `plugin-manifest.schema.json` + `plugin-manifest.derived.schema.json`. Traces to: schema-relax + projection ACs.
 
 ### Interfaces & contracts
-- Contracts touched: `pack.schema.json` (author surface), `adapter.toml` (0.13→0.14), both `plugin-manifest*.schema.json` (projected surface). All four under `docs/contracts/`. Traces to: every schema AC.
+- Contracts touched: `pack.schema.json` (author surface), `adapter.toml` (0.13→0.14), both `plugin-manifest*.schema.json` (projected surface). All four under `contracts/`. Traces to: every schema AC.
 
 ### Dependencies & integration
 - README projection integrates with `self_host.py`'s projected-README handling (`PROJECTED_README_OVERRIDES` / exclude patterns, ~lines 295–398) and the per-pack dist routes (`dist/claude-plugins/<pack>/`, `dist/apm/<pack>/`). The marketplace aggregation is `_aggregate_marketplace` (`self_host.py:499`). No new external dependency. Traces to: README + projection ACs.
@@ -61,7 +61,7 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 ### T1: `pack.schema.json` accepts the enriched optional fields
 
 **Depends on:** none
-**Touches:** `docs/contracts/pack.schema.json`, `packages/agentbundle/tests/integration/test_install_pack_metadata_shape.py`
+**Touches:** `contracts/pack.schema.json`, `packages/agentbundle/tests/integration/test_install_pack_metadata_shape.py`
 
 **Tests:** (TDD)
 - A manifest with all new fields (`readme`, `display_name`, `license`, `[[pack.maintainers]]`, `[pack.links].*`, `categories`, `keywords`, `[pack].catalogue`, `[pack.metadata.foo]`) validates.
@@ -78,7 +78,7 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 ### T2: adapter-contract bump `0.13 → 0.14`
 
 **Depends on:** none
-**Touches:** `docs/contracts/adapter.toml`, `packages/agentbundle/agentbundle/_data/adapter.toml`, `packages/agentbundle/agentbundle/build/tests/test_contract.py`, `build/tests/test_adapter_kiro_ide.py`, `build/tests/test_adapter_gemini.py`, `build/tests/test_adapter_cursor.py`, `packages/agentbundle/tests/unit/test_contract_v0_3_schema.py` (the 7 files grep `0.13` finds)
+**Touches:** `contracts/adapter.toml`, `packages/agentbundle/agentbundle/_data/adapter.toml`, `packages/agentbundle/agentbundle/build/tests/test_contract.py`, `build/tests/test_adapter_kiro_ide.py`, `build/tests/test_adapter_gemini.py`, `build/tests/test_adapter_cursor.py`, `packages/agentbundle/tests/unit/test_contract_v0_3_schema.py` (the 7 files grep `0.13` finds)
 
 **Tests:** (goal-based)
 - `agentbundle --version` reports the bumped spec version.
@@ -86,7 +86,7 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 
 **Approach:**
 - Bump `version` in `adapter.toml` and its `_data` mirror (keep byte-parity).
-- Grep `0.13` across `packages/agentbundle/` + `docs/contracts/` (~7 files) and update each pinned assertion; assess whether `pack.schema.json`'s version-gate `if` enum needs `0.14` (it currently lists `["0.2","0.3","0.6"]` for *requiring* `install` — likely untouched, but confirm).
+- Grep `0.13` across `packages/agentbundle/` + `contracts/` (~7 files) and update each pinned assertion; assess whether `pack.schema.json`'s version-gate `if` enum needs `0.14` (it currently lists `["0.2","0.3","0.6"]` for *requiring* `install` — likely untouched, but confirm).
 - Watch the lexical-version-compare trap (`scope.py` tuple compare already handles it; verify no string-compare assertion regressed).
 
 **Done when:** full package pytest is green and `--version` shows `0.14`.
@@ -94,7 +94,7 @@ Stack: Python 3.11/3.12, stdlib `tomllib` (parse) + `json` (emit) + `jsonschema`
 ### T3: Relax `additionalProperties:false` on both plugin-manifest schemas
 
 **Depends on:** none
-**Touches:** `docs/contracts/plugin-manifest.schema.json`, `docs/contracts/plugin-manifest.derived.schema.json`, `packages/agentbundle/agentbundle/build/tests/test_plugin_manifest_schema.py`
+**Touches:** `contracts/plugin-manifest.schema.json`, `contracts/plugin-manifest.derived.schema.json`, `packages/agentbundle/agentbundle/build/tests/test_plugin_manifest_schema.py`
 
 **Tests:** (TDD)
 - A plugin manifest carrying `author`/`license`/`homepage`/`repository`/`keywords`/`category`/`displayName` validates against **both** schemas.

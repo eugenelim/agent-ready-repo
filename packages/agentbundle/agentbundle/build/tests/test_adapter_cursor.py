@@ -21,7 +21,7 @@ from agentbundle.build.contract import load as load_contract
 from agentbundle.scope import contract_version_at_least
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 
 
 def _seed_agent(pack: Path, name: str, *, tools: str | None, model: str | None = None) -> None:

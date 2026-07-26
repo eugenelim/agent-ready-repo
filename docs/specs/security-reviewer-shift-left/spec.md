@@ -63,7 +63,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Never do
 
-- Change the adapter contract (`docs/contracts/adapter.toml` / `_data/` twin) —
+- Change the adapter contract (`contracts/adapter.toml` / `_data/` twin) —
   the `skill` primitive already projects `direct-directory` everywhere.
 - Mint a new mandatory per-repo `security.md` standard file (D5 rejected it);
   convention awareness rides existing surfaces only.
@@ -185,7 +185,7 @@ order.
 - [x] **Adopter-clean**: the shipped `security-checklists` skill names no
   repo-specific helper (`write_jailed`, `credbroker`, …) — it carries the
   established-helper-bypass *mechanism* only (grep-gated).
-- [x] **No adapter-contract change**: `docs/contracts/adapter.toml` (and its
+- [x] **No adapter-contract change**: `contracts/adapter.toml` (and its
   `_data/` twin) `version` is unchanged, and `skill` stays `direct-directory` for
   every adapter.
 - [x] The new skill + agent edits + work-loop edits **project via `make build-self`
@@ -210,7 +210,7 @@ item was verified by direct repo read or against RFC-0029, which is Accepted. --
 
 - Technical: the `skill` primitive projects `direct-directory` on every adapter, so
   `references/` travel everywhere with no contract change (source:
-  `docs/contracts/adapter.toml`; RFC-0029 § Evidence "contract grep").
+  `contracts/adapter.toml`; RFC-0029 § Evidence "contract grep").
 - Technical: the work-loop already loads `references/*.md` on demand and dispatches
   reviewers with a constructed brief, so orchestrator-side module-inlining reuses an
   existing mechanism (source: `packs/core/.apm/skills/work-loop/SKILL.md` §§ PLAN

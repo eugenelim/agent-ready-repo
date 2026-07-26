@@ -29,7 +29,7 @@
   (`per-pack-apm-package` recipe documents the install-marker
   artifact derivation; conformance suite gains APM-route cases;
   contract v0.4 → v0.5 bump recorded). Modifies
-  [`docs/contracts/adapter.toml`](../../contracts/adapter.toml).
+  [`contracts/adapter.toml`](../../contracts/adapter.toml).
 
 > **Spec contract:** this document defines what "done" means. The
 > implementing PR must match this spec, or update it. Verification
@@ -715,10 +715,10 @@ taxonomy.
       (which pinned the original literal) gets an in-PR amend
       to track the new literal — landed by plan task T10.
 - [x] **AC9 (adapter contract bumps v0.4 → v0.5 with `"apm"`
-      appended to `install-routes`).** `docs/contracts/adapter.toml`
+      appended to `install-routes`).** `contracts/adapter.toml`
       declares `[contract] version = "0.5"` and
       `[adapter."claude-code"] install-routes = ["cli",
-      "claude-plugins", "apm"]`. `docs/contracts/adapter.schema.json`
+      "claude-plugins", "apm"]`. `contracts/adapter.schema.json`
       accepts `"apm"` as a new enum value on the
       `install-routes` items. The `install-routes` array stays
       on `[adapter."claude-code"]` for this spec's purposes per

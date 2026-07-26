@@ -162,7 +162,7 @@ Most tests live per-task below. Cross-cutting:
 
 **Touches:** `packages/agentbundle/agentbundle/_data/pack.schema.json`,
 `packages/agentbundle/agentbundle/_data/adapter.toml`,
-`docs/contracts/adapter.toml`, `docs/contracts/pack.schema.json`,
+`contracts/adapter.toml`, `contracts/pack.schema.json`,
 `packages/agentbundle/agentbundle/build/main.py`,
 `packages/agentbundle/tests/**`,
 `packages/agentbundle/agentbundle/build/tests/**` (4 of the 5 `== "0.15"`
@@ -182,7 +182,7 @@ contract-version assertions live in this second, CI-ungated test root)
 `[contract] version` → `SPEC_VERSION` (the umbrella manifest/projection contract;
 direct precedent — the enriched-pack-manifest extension, contract v0.14, bumped this
 same field). Bump it **`"0.15"` → `"0.16"`** in *both* byte-identical copies
-(`_data/adapter.toml` and `docs/contracts/adapter.toml`, drift-gated by
+(`_data/adapter.toml` and `contracts/adapter.toml`, drift-gated by
 `BundledCopiesMatchTests`) with a dated ledger comment citing this spec.
 - Add `[pack.layout]` to `pack.schema.json` (both copies) as an optional `object`
   property under `pack.properties` with optional `.repo` / `.user` sub-tables, each

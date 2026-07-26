@@ -42,9 +42,9 @@ Cursor *does* read some foreign ecosystems for compatibility — confirmed for s
 
 ## Proposal
 
-A new `cursor` adapter module (`packages/agentbundle/agentbundle/build/adapters/cursor.py`), registered in `adapters/__init__.py`, driven by a new `[adapter.cursor]` block in `_data/adapter.toml` (contract version **0.10 → 0.11**), mirrored byte-for-byte to `docs/contracts/adapter.toml`.
+A new `cursor` adapter module (`packages/agentbundle/agentbundle/build/adapters/cursor.py`), registered in `adapters/__init__.py`, driven by a new `[adapter.cursor]` block in `_data/adapter.toml` (contract version **0.10 → 0.11**), mirrored byte-for-byte to `contracts/adapter.toml`.
 
-**No new projection mode is introduced.** Every Cursor primitive reuses an existing, already-enumerated mode (`direct-directory`, `direct-file`, `merge-json`, `dropped`) — the agent shape follows the Kiro-IDE pattern (`direct-file` + a `frontmatter-mapping`), not a bespoke mode like Copilot's `copilot-agent-md`. This keeps the projection-mode enum in `adapter.schema.json` (and its `docs/contracts/adapter.schema.json` mirror) untouched, so the contract change is the `[adapter.cursor]` block + a version bump only. The one open risk is whether the `tools → readonly` derivation (decision 2) can be expressed as a declarative frontmatter-mapping; if not, the implementing spec adds a minimal projection helper (the Copilot precedent) rather than a new contract mode.
+**No new projection mode is introduced.** Every Cursor primitive reuses an existing, already-enumerated mode (`direct-directory`, `direct-file`, `merge-json`, `dropped`) — the agent shape follows the Kiro-IDE pattern (`direct-file` + a `frontmatter-mapping`), not a bespoke mode like Copilot's `copilot-agent-md`. This keeps the projection-mode enum in `adapter.schema.json` (and its `contracts/adapter.schema.json` mirror) untouched, so the contract change is the `[adapter.cursor]` block + a version bump only. The one open risk is whether the `tools → readonly` derivation (decision 2) can be expressed as a declarative frontmatter-mapping; if not, the implementing spec adds a minimal projection helper (the Copilot precedent) rather than a new contract mode.
 
 ### Projection table
 
@@ -156,4 +156,4 @@ Conclusion: all five primitives map mechanically; the only fidelity loss is the 
 Filled in on acceptance:
 - ADR-0015: Cursor full-parity distribution adapter (record the five decisions).
 - Spec: `docs/specs/cursor-full-parity/` (+ plan) — adapter module, `[adapter.cursor]` contract block, `cursor-agent-frontmatter-v0.11` + hook-event mapping tables, contract version bump (no mode-enum change), unit tests in `build/tests/test_adapter_cursor.py`, `allowed-adapters` acceptance, CI wiring, root `AGENTS.md` line.
-- Contract bump `_data/adapter.toml` 0.10 → 0.11, mirrored to `docs/contracts/adapter.toml`.
+- Contract bump `_data/adapter.toml` 0.10 → 0.11, mirrored to `contracts/adapter.toml`.

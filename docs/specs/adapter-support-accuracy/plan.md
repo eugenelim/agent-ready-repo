@@ -15,7 +15,7 @@ beyond getting a claim wrong, which the per-task goal-based checks cover. -->
 ## Approach
 
 Pure documentation edits. The shape: verify each claim against the oracle, then
-rewrite the prose. The oracle is `docs/contracts/adapter.toml` for the projection
+rewrite the prose. The oracle is `contracts/adapter.toml` for the projection
 facts (Kiro/Codex/Copilot primitive modes and targets) and the **live**
 github/copilot-cli changelog + issues for the one empirical runtime claim (Copilot
 repo-scope hooks) — the doc page recorded that as a runtime finding, so it must be

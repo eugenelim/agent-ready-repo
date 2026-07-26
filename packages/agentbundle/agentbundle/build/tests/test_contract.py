@@ -27,8 +27,8 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
-SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 
 # All seven RFC-0001 projection modes.
 SEVEN_RFC_MODES = {
@@ -584,7 +584,7 @@ class TestCodexSkillDirectDirectory(unittest.TestCase):
     AC1: Codex `skill` is `direct-directory` projecting to
          `.agents/skills/` with `on-conflict = "prompt-then-preserve"`;
          no managed-block delimiter keys remain on the entry.
-    AC2: `docs/contracts/adapter.toml` and the bundled `_data/adapter.toml`
+    AC2: `contracts/adapter.toml` and the bundled `_data/adapter.toml`
          are byte-identical.
     AC15: The seed AGENTS.md no longer carries the legacy delimiter pair.
     """

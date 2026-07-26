@@ -20,7 +20,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 DERIVED_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.derived.schema.json"
+    REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
 )
 
 ENRICHED_TOML = """

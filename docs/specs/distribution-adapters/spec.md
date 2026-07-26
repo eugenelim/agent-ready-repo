@@ -693,7 +693,7 @@ amendment)**.
 
 ### `[contract] version` bump 0.2 → 0.3
 
-`docs/contracts/adapter.toml`'s `[contract] version` bumps from
+`contracts/adapter.toml`'s `[contract] version` bumps from
 `"0.2"` to `"0.3"` (T1, RFC-0005). The conformance suite picks up
 the new modes, the scope-conditional `target` shape, the
 `agent-event-vocabulary` field, the `[pack.install] user-scope-hooks`
@@ -702,7 +702,7 @@ flag, and the v0.3 state-file additions (optional `adapter`,
 
 ### `[contract] version` bump 0.1 → 0.2
 
-`docs/contracts/adapter.toml`'s `[contract] version` bumps from
+`contracts/adapter.toml`'s `[contract] version` bumps from
 `"0.1"` to `"0.2"`. The conformance suite (sibling spec
 `agent-spec-cli` §`validate --strict`, when its fixtures land) adds
 per-scope cases: every contract change above (allowed-prefixes
@@ -879,7 +879,7 @@ change is needed) or a successor RFC.
 
 ### `[contract] version` bump 0.3 → 0.4
 
-`docs/contracts/adapter.toml`'s `[contract] version` bumps from
+`contracts/adapter.toml`'s `[contract] version` bumps from
 `"0.3"` to `"0.4"` in the same PR as the v0.4 declaration table.
 The conformance suite picks up the new primitive, the new
 `ide-event-vocabulary` / `ide-action-vocabulary` projection fields,
@@ -907,7 +907,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Always do
 
 - Place the canonical adapter contract at
-  `docs/contracts/adapter.toml` with a sibling
+  `contracts/adapter.toml` with a sibling
   `adapter.schema.json`. This supersedes RFC-0001's original
   `docs/specs/adapter-contract/contract.toml` convention (see
   [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments));
@@ -1071,11 +1071,11 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Acceptance Criteria
 
-- [x] `docs/contracts/adapter.toml` exists, covers all four
+- [x] `contracts/adapter.toml` exists, covers all four
   reference adapters (`claude-code`, `kiro`, `copilot`, `codex`), names
   the five primitive types (`skill`, `agent`, `hook-body`, `hook-wiring`,
   `command`), enumerates every (primitive, adapter) pair explicitly, and
-  validates against a sibling `docs/contracts/adapter.schema.json`.
+  validates against a sibling `contracts/adapter.schema.json`.
 - [x] All seven projection modes (`direct-directory`, `direct-file`,
   `merge-json`, `instruction-file`, `managed-block-inline`,
   `degraded-info-log`, `dropped`) appear in `adapter.schema.json` as the enum of
@@ -1083,7 +1083,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   carries an `on-conflict` value matching RFC-0001's per-mode default
   table (or an explicit override from the legal set).
 - [x] `pack.toml` shape is pinned in
-  `docs/contracts/pack.schema.json` and referenced from
+  `contracts/pack.schema.json` and referenced from
   `adapter.toml`. The schema accepts `[pack]`, `[pack.dependencies]`
   (with `required`/`recommended`/`conflicts` keys), `[pack.adaptation]`,
   and `[pack.seeds]` tables per RFC-0001. The schema enforces shape
@@ -1183,7 +1183,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   status` against the working tree before and after, returning byte-
   identical output). This pins the property § Default-recipe behaviour
   declares; T8 owns the test.
-- [x] **(RFC-0004)** `docs/contracts/adapter.toml` carries
+- [x] **(RFC-0004)** `contracts/adapter.toml` carries
   `[contract] version = "0.2"` and a `[adapter."claude-code".scope]`
   table declaring `repo = "."`, `user = "~"`, and
   `allowed-prefixes.user = [".claude/", ".agentbundle/"]` (the
@@ -1196,7 +1196,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   no `..` after normalisation, trailing `/`). A test asserts the
   schema rejects each of `["/"]`, `[""]`, `["../"]`, `[".."]`, and
   `[]` for `allowed-prefixes.user`.
-- [x] **(RFC-0004)** `docs/contracts/pack.schema.json` requires
+- [x] **(RFC-0004)** `contracts/pack.schema.json` requires
   `[pack.install]` on any pack declaring
   `[pack.adapter-contract] version = "0.2"` (jsonschema `if`/`then`
   on the contract-version field), with `default-scope ∈ {"repo",
@@ -1252,7 +1252,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   addition and the `[pack.install]` declaration land in the **same
   PR** as the contract / schema amendment so the catalogue's
   published packs and the CLI release land in lockstep.
-- [ ] **(RFC-0005 v0.4)** `docs/contracts/adapter.toml` declares a
+- [ ] **(RFC-0005 v0.4)** `contracts/adapter.toml` declares a
   sixth `[primitive."kiro-ide-hook"]` table with
   `source-path = ".apm/kiro-ide-hooks/"` and a sibling
   `[adapter.kiro.projections.kiro-ide-hook]` table with `mode =
@@ -1306,7 +1306,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   `user-scope-hooks = true` still refuses because the *primitive*
   is repo-only in v1.
 - [ ] **(RFC-0008)** The adapter contract
-  (`docs/contracts/adapter.toml`) declares `install-routes` on
+  (`contracts/adapter.toml`) declares `install-routes` on
   `[adapter."claude-code"]` per RFC-0008 / spec
   `claude-plugins-install-route`. The conformance suite ships a
   *marker presence* and a *scope refusal* case per declared install
@@ -1318,7 +1318,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   ships a fix.
 - [ ] **(RFC-0010)** apm-route conformance cases; per-target
   coverage matrix. The adapter contract
-  (`docs/contracts/adapter.toml`) declares `"apm"` on
+  (`contracts/adapter.toml`) declares `"apm"` on
   `[adapter."claude-code"].install-routes` per RFC-0010 / spec
   `apm-install-route-parity`. The conformance suite ships a
   *marker presence* and a *scope refusal* case for the APM route
@@ -1485,7 +1485,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   ACs flipped `[ ]` → `[x]` against on-disk evidence in
   `packages/agentbundle/agentbundle/build/` (contract loader, four
   reference adapters, recipe loader, validate, self-host, scope
-  rails) and `docs/contracts/`. The 5 `(RFC-0004)`-tagged ACs are
+  rails) and `contracts/`. The 5 `(RFC-0004)`-tagged ACs are
   already `[x]` from the v0.2 contract bump. The Rail C code-side
   marker-regex widening (paired with adapt-to-project AC21) is
   the only ROADMAP-tracked code gap on this spec and is not an

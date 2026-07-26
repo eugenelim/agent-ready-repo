@@ -115,7 +115,7 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   `packs/<pack>/.apm/skills/`, `packs/<pack>/.apm/agents/`,
   `packs/<pack>/.apm/hooks/`, `packs/<pack>/.apm/commands/`, and
   `packs/<pack>/.apm/hook-wiring/`), `packs/*/seeds/`, the adapter
-  contract at `docs/contracts/`, and the build pipeline at
+  contract at `contracts/`, and the build pipeline at
   `packages/agentbundle/agentbundle/build/` (with a thin shim at
   `tools/build/build.py`; the user-facing entry points are still
   `make build-self` and `make build-check`). In Phase 1, project the
@@ -688,7 +688,7 @@ and the Codex multi-pack aggregation fix land.
   open.
 - 2026-05-22: typo-class amendment after Phase 1 ship — adapter
   contract files relocated from `docs/specs/adapter-contract/` to
-  `docs/contracts/` (path-only; field semantics and acceptance
+  `contracts/` (path-only; field semantics and acceptance
   criteria unchanged). See
   [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments)
   for the full rationale and the `CONVENTIONS.md:80` exception note.

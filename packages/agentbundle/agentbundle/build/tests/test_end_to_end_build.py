@@ -139,7 +139,7 @@ class CheckCommandTests(unittest.TestCase):
             from agentbundle.build.self_host import run_self_host
 
             contract = load_contract(
-                REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+                REPO_ROOT / "contracts" / "adapter.toml"
             )
             # Pre-seed using the self-host runner so the working
             # tree exactly matches what `make build-check` will render

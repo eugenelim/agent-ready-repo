@@ -216,7 +216,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Technical: `core` is projected by `build-self`, so the skill edits engage
   both lint surfaces — unlike Stage 1's user-scope `contracts` pack (source:
   `self_host.py` `SELF_HOST_PACKS`).
-- Technical: `docs/contracts/` (adapter schemas) and the `contracts` pack both
+- Technical: `contracts/` (adapter schemas) and the `contracts` pack both
   exist; repo-root `contracts/` is greenfield; the catalogue has no API contract
   of its own (source: `ls` + `git ls-files`).
 - Technical: RFC-0016's doc-drift gate is `lint-spec-status.py` run in

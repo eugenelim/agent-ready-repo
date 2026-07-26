@@ -5,7 +5,7 @@ Verifies the T1 edits landed:
 
   - ``[contract] version == "0.7"`` in both the runtime data file
     (`_data/adapter.toml`) and the docs mirror
-    (`docs/contracts/adapter.toml`). The two files must stay byte-
+    (`contracts/adapter.toml`). The two files must stay byte-
     aligned per the v0.3-schema sync test; this module pins the
     version on both as belt-and-braces (AC1 for both RFCs).
   - **RFC-0012 surface:**
@@ -39,7 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 DATA_CONTRACT_PATH = (
     REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "adapter.toml"
 )
-DOCS_CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+DOCS_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 DATA_SCHEMA_PATH = (
     REPO_ROOT
     / "packages"

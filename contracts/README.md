@@ -1,4 +1,4 @@
-# `docs/contracts/`
+# `contracts/`
 
 Catalogue-level, machine-readable contract files. These are *not* per-feature
 specs — they're the published interface this catalogue exposes to consumers

@@ -19,7 +19,7 @@ from agentbundle.build.adapters.codex import (
 from agentbundle.build.contract import load as load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 
 
 def _seed_pack(root: Path, name: str = "pack", skill_prefix: str = "") -> Path:

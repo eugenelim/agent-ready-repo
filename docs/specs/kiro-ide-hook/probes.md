@@ -131,11 +131,11 @@ which paths skip.
    probe-pinned `target.repo` and vocabulary values, add the
    explicit `mode = "dropped"` rows for claude-code / codex /
    copilot.
-2. Mirror to `docs/contracts/adapter.toml`.
+2. Mirror to `contracts/adapter.toml`.
 3. Bump `pack.schema.json`'s `adapter-contract.version` enum to
-   include `"0.4"`. Mirror to `docs/contracts/pack.schema.json`.
+   include `"0.4"`. Mirror to `contracts/pack.schema.json`.
 4. Add `"kiro-ide-hook"` to `adapter.schema.json`'s
-   `primitive.required` array. Mirror to `docs/contracts/`.
+   `primitive.required` array. Mirror to `contracts/`.
 5. If Q6 lands the `yes × no` quadrant, also retarget
    `[adapter.kiro.projections.hook-body].target.user` to
    `.kiro/hook-bodies/<name>.{sh,py}` in lockstep (T-E1b).

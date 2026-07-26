@@ -98,9 +98,9 @@ def test_agentbundle_build_validate_path_normalises():
     from agentbundle.cli import _normalise_path_separators as normalise
 
     parser = build_parser()
-    args = parser.parse_args(["validate", r"docs\contracts\adapter.toml"])
+    args = parser.parse_args(["validate", r"contracts\adapter.toml"])
     normalise(args)
-    assert args.path == "docs/contracts/adapter.toml"
+    assert args.path == "contracts/adapter.toml"
 
 
 def test_forward_slashes_only_passthrough():

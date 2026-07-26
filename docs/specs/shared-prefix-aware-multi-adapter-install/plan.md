@@ -147,7 +147,7 @@ present): Python 3.12, stdlib-only `agentbundle` package, hand-emitted TOML stat
   AC "emitter round-trips".
 
 ### Interfaces & contracts
-- Adapter contract (`_data/adapter.toml`, mirrored `docs/contracts/adapter.toml`):
+- Adapter contract (`_data/adapter.toml`, mirrored `contracts/adapter.toml`):
   each `allowed-prefixes` entry gains a `class` (`private`/`shared`); each
   `shared` prefix gains a `reader-cohort` list. Contract version bumped.
 - cursor/gemini/copilot `skill` output path → `.agents/skills/`; cursor, gemini,
@@ -376,7 +376,7 @@ present): Python 3.12, stdlib-only `agentbundle` package, hand-emitted TOML stat
   unchanged. (AC "cohort skill routing")
 - cursor, gemini, and copilot `allowed-prefixes` include `.agents/skills/` at
   **both** repo and user scope (codex already does). (AC "cohort prefix admissibility")
-- `_data/adapter.toml` and `docs/contracts/adapter.toml` agree byte-for-byte;
+- `_data/adapter.toml` and `contracts/adapter.toml` agree byte-for-byte;
   contract version bumped; version-assertion sweep updated. (AC "byte-for-byte", AC "version bump")
 
 **Approach:**
@@ -384,7 +384,7 @@ present): Python 3.12, stdlib-only `agentbundle` package, hand-emitted TOML stat
   gemini/copilot skill modes to `.agents/skills/`; add `.agents/skills/` to
   cursor/gemini/copilot `allowed-prefixes.repo` **and** `.user` (codex already
   has it); bump contract version; update `version.py`/pinned tests; mirror to
-  `docs/contracts/adapter.toml`.
+  `contracts/adapter.toml`.
 
 **Done when:** contract tests + version sweep green; `make build`/projection clean.
 

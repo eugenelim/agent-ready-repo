@@ -30,7 +30,7 @@ hand-rolled in this module.
 - Constrained by `dropped-primitives-coverage`: keep the existing
   `codex-agent-toml` mode and body-to-`developer_instructions` convention.
 - Constrained by `distribution-adapters`: adapter behavior is contract-driven
-  from `docs/contracts/adapter.toml` and the bundled `_data` mirror.
+  from `contracts/adapter.toml` and the bundled `_data` mirror.
 - OpenAI docs constrain the emitted TOML shape to documented Codex config keys.
 
 ## Construction tests

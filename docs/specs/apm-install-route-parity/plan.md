@@ -31,10 +31,10 @@ tests-throughout.** Authoring order:
    live alongside the template in
    `packages/agentbundle/tests/integration/test_apm_install_route.py`.
 2. **Bump the contract (T2).** Edit
-   `docs/contracts/adapter.toml` to v0.5 with `"apm"` appended
+   `contracts/adapter.toml` to v0.5 with `"apm"` appended
    to the `install-routes` array on
    `[adapter."claude-code"]`; edit
-   `docs/contracts/adapter.schema.json` to accept `"apm"` on
+   `contracts/adapter.schema.json` to accept `"apm"` on
    the enum of `install-routes` items. Schema-level changes are
    small and isolated; landing them now lets every later task
    assert against the schema without re-rebasing.
@@ -487,7 +487,7 @@ behaviour-preserving past the argparse-prefix).
 
 ---
 
-### T2: Contract bump to v0.5 and schema acceptance land in `docs/contracts/`
+### T2: Contract bump to v0.5 and schema acceptance land in `contracts/`
 
 **Depends on:** none
 
@@ -496,7 +496,7 @@ behaviour-preserving past the argparse-prefix).
 
 **Tests:**
 - `test_contract_version_is_v05` (AC9). `tomllib.loads` of
-  `docs/contracts/adapter.toml` returns
+  `contracts/adapter.toml` returns
   `{"contract": {"version": "0.5", ...}}`.
 - `test_claude_code_install_routes_includes_apm` (AC9).
   `contract["adapter"]["claude-code"]["install-routes"] ==
@@ -513,7 +513,7 @@ behaviour-preserving past the argparse-prefix).
   mutation with `"foo"` (not in the enum) is rejected.
 
 **Approach:**
-- Edit `docs/contracts/adapter.toml`:
+- Edit `contracts/adapter.toml`:
   - `[contract] version = "0.4"` → `"0.5"`.
   - Under `[adapter."claude-code"]`, amend the
     `install-routes` array from `["cli", "claude-plugins"]` to
@@ -523,7 +523,7 @@ behaviour-preserving past the argparse-prefix).
     line naming RFC-0010 + spec `apm-install-route-parity`.
   - Add `RFC-0010 (apm install route, v0.5)` to the header
     comment block enumerating RFC references.
-- Edit `docs/contracts/adapter.schema.json` to extend the
+- Edit `contracts/adapter.schema.json` to extend the
   `install-routes` items' enum from
   `["cli", "claude-plugins"]` to
   `["cli", "claude-plugins", "apm"]`. No other schema
@@ -537,7 +537,7 @@ behaviour-preserving past the argparse-prefix).
   for the v0.5 shape; mirror the prior v0.3→v0.4 update.
 
 **Done when:** the four tests are green;
-`tomllib.loads(open("docs/contracts/adapter.toml").read())`
+`tomllib.loads(open("contracts/adapter.toml").read())`
 returns `version == "0.5"`; the existing test suite under
 `packages/agentbundle/agentbundle/build/tests/` is green.
 
@@ -961,7 +961,7 @@ v0.5).
   Criteria section:
   - **AC<N+1> (APM-route conformance cases; per-target
     coverage matrix).** The adapter contract
-    (`docs/contracts/adapter.toml`) declares `"apm"` on
+    (`contracts/adapter.toml`) declares `"apm"` on
     `[adapter."claude-code"].install-routes` per RFC-0010 /
     spec `apm-install-route-parity`. The conformance suite
     ships a *marker presence* and a *scope refusal* case
@@ -1227,7 +1227,7 @@ the change via:
   commit (T9's drift check + T4's idempotence test).
 
 Reversibility: every code change is contained to
-`packages/agentbundle/`, `docs/contracts/`, `docs/specs/`,
+`packages/agentbundle/`, `contracts/`, `docs/specs/`,
 `packs/core/.apm/skills/adapt-to-project/SKILL.md`, and
 `packs/core/README.md`. Reverting the PR restores the v0.4
 contract version, the prior `plugin.json` projection (without

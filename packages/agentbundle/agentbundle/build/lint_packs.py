@@ -18,7 +18,7 @@ Three checks, applied to every pack under a `--packs-dir`:
      exceed the strictest `description-max-length`. Multi-line YAML
      descriptions (`>`, `|`, continuation lines) are refused outright
      rather than mis-parsed. Constraints come from
-     `docs/contracts/target-vocab.toml` — see
+     `contracts/target-vocab.toml` — see
      `docs/specs/lint-packs-target-vocab/spec.md`.
 
 The lint is Python-only so it runs on every CI platform without
@@ -48,7 +48,7 @@ _PACK_SUBTREES = ("seeds", ".apm")
 # Path to the sibling vocab file, relative to a repo root. The loader
 # walks up from a caller-supplied start until an ancestor contains
 # this relative path.
-_VOCAB_RELPATH = Path("docs/contracts/target-vocab.toml")
+_VOCAB_RELPATH = Path("contracts/target-vocab.toml")
 
 # Sentinel returned by `_extract_frontmatter_fields` when a key's
 # value position is `>`, `|`, or empty (signaling a folded / nested
@@ -58,7 +58,7 @@ _MULTILINE = object()
 
 
 class Constraints(NamedTuple):
-    """Strictest-cap snapshot of `docs/contracts/target-vocab.toml`.
+    """Strictest-cap snapshot of `contracts/target-vocab.toml`.
 
     `binding_targets` keys (`"description_max"`, `"name_max"`,
     `"name_pattern"`) carry the ASCII-sorted list of targets enforcing
@@ -84,7 +84,7 @@ def _walk_up_for_vocab(start: Path) -> Path | None:
 
 
 def _load_target_vocab(start: Path) -> tuple[dict | None, str | None]:
-    """Walk up from `start` looking for `docs/contracts/target-vocab.toml`;
+    """Walk up from `start` looking for `contracts/target-vocab.toml`;
     fall back to walking up from this module's own ancestor chain when
     the explicit walk fails. This keeps the gate working when an
     adopter points `--packs-dir` at a tmp tree outside the repo while

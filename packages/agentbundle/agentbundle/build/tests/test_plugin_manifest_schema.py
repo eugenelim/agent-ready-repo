@@ -20,10 +20,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 PLUGIN_MANIFEST_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
+    REPO_ROOT / "contracts" / "plugin-manifest.schema.json"
 )
 PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.derived.schema.json"
+    REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
 )
 
 
