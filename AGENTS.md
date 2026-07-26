@@ -197,6 +197,16 @@ the `work-loop` skill's *Anti-patterns* section.
 | "I'll grep the codebase as I go." | Verify APIs *before* you start writing, not while you're writing — same rigor as the *Grep to verify a function exists* bullet above. |
 | "I'll match the surrounding code's pattern." | Check [Source of truth](#source-of-truth) first; local style may already conflict with the canonical convention. |
 
+## Privacy
+
+Never commit real personal information — names, email addresses, phone
+numbers, company names, or account identifiers (AAD object IDs, UUIDs)
+— to the repo. Use `example.com`, generic names (`Example User`,
+`Colleague`), and placeholder UUIDs in all code, docs, specs, test
+fixtures, and commit messages. When authoring governance docs (ADRs,
+RFCs, specs), populate author and decider fields from the project's
+established conventions only — do not infer them from session context.
+
 ## When this file is wrong
 
 Flag drift in your PR — don't silently work around it. AGENTS.md vs. reality

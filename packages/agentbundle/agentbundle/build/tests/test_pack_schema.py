@@ -277,9 +277,9 @@ categories = ["research", "documentation"]
 keywords = ["osint", "synthesis", "citations"]
 
 [[pack.maintainers]]
-name = "Eugene Lim"
-email = "eugenelim@users.noreply.github.com"
-url = "https://github.com/eugenelim"
+name = "Example User"
+email = "example@example.com"
+url = "https://github.com/example-user"
 
 [pack.links]
 homepage = "https://example.com"

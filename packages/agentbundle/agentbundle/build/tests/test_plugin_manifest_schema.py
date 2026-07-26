@@ -169,7 +169,7 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
     # category is marketplace-only — not a valid field in plugin.json (derived schema).
     # It is kept in the source schema's allow-list for hand-authored files only.
     _SUBSET = {
-        "author": {"name": "Eugene Lim", "email": "eugenelim@users.noreply.github.com"},
+        "author": {"name": "Example User", "email": "example@example.com"},
         "license": "Apache-2.0",
         "homepage": "https://example.com",
         "repository": "https://github.com/example/repo",
