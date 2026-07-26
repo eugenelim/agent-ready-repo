@@ -199,13 +199,22 @@ the `work-loop` skill's *Anti-patterns* section.
 
 ## Privacy
 
-Never commit real personal information — names, email addresses, phone
-numbers, company names, or account identifiers (AAD object IDs, UUIDs)
-— to the repo. Use `example.com`, generic names (`Example User`,
-`Colleague`), and placeholder UUIDs in all code, docs, specs, test
-fixtures, and commit messages. When authoring governance docs (ADRs,
-RFCs, specs), populate author and decider fields from the project's
-established conventions only — do not infer them from session context.
+**Never commit personal information to any file in this repo.** This includes:
+- Real names, email addresses, usernames, or account identifiers
+- Org-specific domains, subdomains, or employer hostnames
+- AAD/UUID identifiers tied to real people
+- Device names, profile paths, or user-specific filesystem paths
+- Names of personal service providers or platforms that identify account relationships
+
+Use generic placeholders everywhere: `user@example.com`, `colleague@example.com`,
+`Example User`, `https://mail.yourorg.com/`, `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`,
+`example-service`, `[service type]`.
+
+**This rule covers all git artifacts** — code, comments, docs, specs, commit messages,
+PR titles, PR bodies, and PR comments are permanent record. Never use real service or
+vendor names as examples; use `example-service` or `[service type]` instead. When
+authoring governance docs (ADRs, RFCs, specs), populate author and decider fields from
+the project's established conventions only — do not infer them from session context.
 
 ## When this file is wrong
 
