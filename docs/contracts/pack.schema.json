@@ -86,17 +86,17 @@
             }
           },
           "if": {
-            "properties": {"default-scope": {"const": "user"}},
+            "properties": {"default-scope": {"enum": ["user"]}},
             "required": ["default-scope"]
           },
           "then": {
             "properties": {
-              "allowed-scopes": {"contains": {"const": "user"}}
+              "allowed-scopes": {"contains": {"enum": ["user"]}}
             }
           },
           "else": {
             "properties": {
-              "allowed-scopes": {"contains": {"const": "repo"}}
+              "allowed-scopes": {"contains": {"enum": ["repo"]}}
             }
           }
         },
@@ -253,7 +253,18 @@
         }
       },
       "if": {
-        "required": ["adapter-contract"]
+        "required": ["adapter-contract"],
+        "properties": {
+          "adapter-contract": {
+            "type": "object",
+            "required": ["version"],
+            "properties": {
+              "version": {
+                "pattern": "^0\\.([2-9]|[1-9][0-9])|^[1-9]"
+              }
+            }
+          }
+        }
       },
       "then": {
         "required": ["install"]
