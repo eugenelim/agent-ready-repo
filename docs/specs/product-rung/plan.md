@@ -30,7 +30,7 @@ This plan describes the **implementing PR**. The governance PR that introduces A
 Most verification is per-task below. Cross-cutting checks that span tasks:
 
 **Integration / cross-cutting checks:**
-- **Adopter-clean:** a `grep` over every shipped file this change touches — `packs/product-engineering/.apm/**`, `packs/core/.apm/**`, and `packs/product-engineering/README.md` (the pack README ships to adopters) — finds no `RFC-\d`, `ADR-\d`, `docs/rfc/`, or `docs/backlog.md` anchor citation. The repo-owned `docs/guides/**` pages are exempt (not shipped to adopters).
+- **Adopter-clean:** a `grep` over every shipped file this change touches — `packs/product-engineering/.apm/**`, `packs/core/.apm/**`, and `packs/product-engineering/README.md` (the pack README ships to adopters) — finds no `RFC-\d`, `ADR-\d`, `docs/rfc/`, or `docs/backlog.md` anchor citation. The repo-owned `guides/**` pages are exempt (not shipped to adopters).
 - **Both field blocks present + level-conditional:** `grep` confirms `intent-template.md` carries both a `product-vision` and a `product-strategy` field block, each marked filled-only-at-that-rung.
 - **Projection drift-clean:** after `make build-self`, `git status` shows only the expected `.claude/skills/init-project/SKILL.md` drift (core) and, after `make build`, only the expected `marketplace.json` version line (product-engineering) — no unexpected reverts.
 
@@ -152,7 +152,7 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 **Tests:**
 - `grep`/read confirms the four `product-engineering` guide pages describe the rungs and the Level-vs-Scale model: `explanation/the-intent-tree.md` (the two altitudes), `reference/intent-fields-and-modes.md` (recognized-set `Level` values + the two field blocks + the `market-existence` kind), `README.md` (overview names the altitudes), `how-to/shape-a-feature-intent.md` (the app-scale-greenfield-can-start-at-a-product-altitude note) (AC: user guides touched up).
 - `grep`/read confirms `packs/product-engineering/README.md` names `product-vision` / `product-strategy` and states `Level` is an open recognized set decoupled from `Scale` — both the "same artifact at different levels" line and the `frame-intent` row updated (AC: pack README updated).
-- `grep`/read confirms the core inception guide(s) name `intent` / `frame-intent` as a fourth `init-project` discovery source, framed as optional upstream — `docs/guides/_shared/how-to/run-a-full-inception.md` and the discovery-source list in `docs/guides/core/tutorials/start-a-new-project.md` (AC: core inception guide names the seam).
+- `grep`/read confirms the core inception guide(s) name `intent` / `frame-intent` as a fourth `init-project` discovery source, framed as optional upstream — `guides/_shared/how-to/run-a-full-inception.md` and the discovery-source list in `guides/core/tutorials/start-a-new-project.md` (AC: core inception guide names the seam).
 
 **Approach:**
 - Extend the four `product-engineering` guide pages: the explanation with the two altitudes + Level/Scale orthogonality; the reference with the recognized-set values, the two field blocks, and `market-existence`; the index overview and the feature-shaping how-to with the altitude option for greenfield concepts.

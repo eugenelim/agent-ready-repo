@@ -244,7 +244,7 @@ dotfile defensively.
   the four-broker design rationale (the predecessor shim model).
 - [`docs/specs/skill-secrets/spec.md`](../specs/skill-secrets/spec.md) —
   the predecessor spec (kept for historical context).
-- [`docs/guides/credential-brokers/explanation/credentialed-skills.md`](../guides/credential-brokers/explanation/credentialed-skills.md) —
+- [`guides/credential-brokers/explanation/credentialed-skills.md`](../guides/credential-brokers/explanation/credentialed-skills.md) —
   the adopter-facing companion.
-- [`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`](../guides/credential-brokers/how-to/add-a-credentialed-skill.md) —
+- [`guides/credential-brokers/how-to/add-a-credentialed-skill.md`](../guides/credential-brokers/how-to/add-a-credentialed-skill.md) —
   the step-by-step procedure for authoring a new credentialed primitive.

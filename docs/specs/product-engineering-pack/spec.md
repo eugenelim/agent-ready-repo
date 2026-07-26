@@ -58,7 +58,7 @@ The three-tier guard that keeps an implementing agent inside the lines.
   this pack (habits, not infrastructure; the 3-reviewer ceiling stands).
 - **Never** add a new top-level directory; the pack lives at `packs/product-engineering/`,
   with its skill templates under each skill's `assets/`, guides under the existing
-  `docs/guides/`. <!-- enriched-pack-manifest: templates moved from `seeds/docs/product/`
+  `guides/`. <!-- enriched-pack-manifest: templates moved from `seeds/docs/product/`
   to skill `assets/` so the pack ships no seeds and stays user-scope (Rail A). -->
 - **Never** make `core` import from or depend on this pack — `core` stands alone.
 - **Never** build the cross-component / value-stream / meta-repo layer, live tracker
@@ -130,7 +130,7 @@ structure and manual-QA for judgment.
   unchanged. Brief-level provenance (`parent-intent:`, for a BU cross-repo slice to name
   its parent intent) is a **phase-2 concern**, not v1. Grep proves `core` is untouched and
   imports nothing from the pack.
-- [x] **Diátaxis guides** exist under `docs/guides/` at their quadrant paths — an
+- [x] **Diátaxis guides** exist under `guides/` at their quadrant paths — an
   **explanation** ("the intent tree & level-agnostic shaping"), a **how-to** ("shape a
   feature in an app repo"; the BU/cross-component how-to is a forward-flagged stub since
   BU is phase 2), and a **reference** (intent fields, modes, projection profiles) — each

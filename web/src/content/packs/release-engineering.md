@@ -5,7 +5,7 @@ tagline: "Deploy. Verify. Converge. Then ship."
 skills:
   - release-loop
 installCommand: "agentbundle install --pack release-engineering"
-docsUrl: /docs/guides/release-engineering/
+docsUrl: /guides/release-engineering/
 journeyUrl: /journeys/release/
 ---
 

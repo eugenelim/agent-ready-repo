@@ -126,7 +126,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] The no-write invariant is regression-guarded: an integration test asserts
   the target tree, state file, and install marker are byte-identical before and
   after a `--dry-run` of both `install` and `upgrade`.
-- [x] A Diátaxis **how-to** under `docs/guides/how-to/` documents previewing an
+- [x] A Diátaxis **how-to** under `guides/how-to/` documents previewing an
   install/upgrade with `--dry-run` (when to reach for it, how to read the plan
   output, the no-write guarantee), and the CLI **reference** page lists the
   `--dry-run` flag for both commands.

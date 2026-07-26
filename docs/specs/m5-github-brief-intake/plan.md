@@ -19,11 +19,11 @@ Pure prose-choreography, modelled file-for-file on the atlassian pack's
 2. **Author the skill** at `packs/github/.apm/skills/github-brief-intake/` —
    `SKILL.md` (procedure + lifecycle + graceful-degradation branch) and
    `manifest.json` (naming the `receive-brief` soft dependency by name).
-3. **Author the guide slice** at `docs/guides/github/` — `README.md` and
+3. **Author the guide slice** at `guides/github/` — `README.md` and
    `how-to/intake-a-github-milestone-as-a-brief.md` (end-to-end user-facing
    walkthrough).
 4. **Update cross-cutting docs** — `docs/architecture/overview.md` pack table,
-   `docs/guides/README.md` pack-index row, `docs/product/changelog.md`
+   `guides/README.md` pack-index row, `docs/product/changelog.md`
    `[Unreleased]` entry.
 5. **Run the pack gate** — `lint-packs`, `agentbundle validate`, `make build`,
    agentbundle package pytest.
@@ -274,21 +274,21 @@ still green.
 
 **Depends on:** T2
 
-**Touches:** `docs/guides/github/README.md`,
-`docs/guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
+**Touches:** `guides/github/README.md`,
+`guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
 
 **Tests:**
-- `ls docs/guides/github/how-to/` returns `intake-a-github-milestone-as-a-brief.md`
+- `ls guides/github/how-to/` returns `intake-a-github-milestone-as-a-brief.md`
   (AC: guide file exists).
-- `grep -c "gh auth status" docs/guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
+- `grep -c "gh auth status" guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
   ≥ 1 (AC: prerequisites covered).
-- `grep -c "new-spec" docs/guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
+- `grep -c "new-spec" guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
   ≥ 1 (AC: single-issue redirect documented).
 - Manual read-through: a developer who has not read `SKILL.md` can follow the
   guide end-to-end without consulting it (AC: guide covers full intake flow).
 
 **Approach:**
-- Create `docs/guides/github/` with `how-to/` subdirectory.
+- Create `guides/github/` with `how-to/` subdirectory.
 - Author `README.md` (two-sentence pack overview; links the how-to guide).
 - Author the how-to following Diátaxis task-orientation: prerequisites → steps
   → expected output → degradation paths → next step (link to `receive-brief`
@@ -303,13 +303,13 @@ self-contained.
 
 **Depends on:** T1, T2, T3
 
-**Touches:** `docs/architecture/overview.md`, `docs/guides/README.md`,
+**Touches:** `docs/architecture/overview.md`, `guides/README.md`,
 `docs/product/changelog.md`
 
 **Tests:**
 - `grep -c "github" docs/architecture/overview.md` ≥ 1 and the row names
   `github-brief-intake` (AC: overview pack table updated).
-- `grep -c "github" docs/guides/README.md` ≥ 1 (AC: guides index updated).
+- `grep -c "github" guides/README.md` ≥ 1 (AC: guides index updated).
 - `grep -c "github-brief-intake" docs/product/changelog.md` ≥ 1 (AC: changelog
   entry present).
 - `make build` exits 0 and regenerates root `.claude-plugin/marketplace.json`
@@ -320,7 +320,7 @@ self-contained.
 **Approach:**
 - Add `github` row to the pack table in `docs/architecture/overview.md` (follow
   the atlassian row's format).
-- Add `github` pack-index row to `docs/guides/README.md`.
+- Add `github` pack-index row to `guides/README.md`.
 - Add `[Unreleased]` entry to `docs/product/changelog.md` recording the new
   `github` pack and `github-brief-intake` skill.
 - Create `docs/specs/m5-github-brief-intake/notes/fixture-snapshot.json` with

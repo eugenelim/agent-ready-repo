@@ -35,7 +35,7 @@ CONTRIBUTING.md step numbering: the existing steps must be renumbered (current "
 ### T1: Author `pack-workflow-design.md`
 
 **Depends on:** none
-**Touches:** docs/guides/_shared/explanation/pack-workflow-design.md
+**Touches:** guides/_shared/explanation/pack-workflow-design.md
 
 **Tests:**
 - Goal-based (AC1): file exists at the specified path.
@@ -116,7 +116,7 @@ Stateless: reserved category per ADR-0054; no current catalogue pack fits — gu
 **Approach:**
 - Read `CONTRIBUTING.md` to find the "Adding a new pack" section and its current step structure.
 - Insert step 0 before the current step 1 with the RFC-0067 §D2 paragraph content (adapted to the file's voice and formatting convention):
-  > **0. Design the pack's workflow arc first.** A pack is a set of cohesive workflows for a role's work — not a list of features. Before writing any SKILL.md, work through the pack workflow design framework at `docs/guides/_shared/explanation/pack-workflow-design.md`. It takes you through: characterizing whether your pack is episodic, sustained-project, or sustained-derived; mapping the Arrive → Orient → Work → Persist → Collaborate arc to your pack's skill set; naming your skills against the verb taxonomy; and deciding whether your pack needs a status skill, a `*-project-start` skill, and config-driven output paths. The RFC reviewers will ask these questions; answering them before you write the skill bodies saves a review cycle.
+  > **0. Design the pack's workflow arc first.** A pack is a set of cohesive workflows for a role's work — not a list of features. Before writing any SKILL.md, work through the pack workflow design framework at `guides/_shared/explanation/pack-workflow-design.md`. It takes you through: characterizing whether your pack is episodic, sustained-project, or sustained-derived; mapping the Arrive → Orient → Work → Persist → Collaborate arc to your pack's skill set; naming your skills against the verb taxonomy; and deciding whether your pack needs a status skill, a `*-project-start` skill, and config-driven output paths. The RFC reviewers will ask these questions; answering them before you write the skill bodies saves a review cycle.
 - Add to the "Open an RFC" step: "The RFC should include your arc mapping from step 0 — which skills cover which arc stages, and why."
 - If the file uses numbered steps, renumber existing steps (step 1 → step 2, etc.) for consistency.
 
@@ -127,13 +127,13 @@ Stateless: reserved category per ADR-0054; no current catalogue pack fits — gu
 ### T3: Confirm author-a-skill.md intro link exists (read-only precondition check)
 
 **Depends on:** none
-**Touches:** docs/guides/_shared/how-to/author-a-skill.md (read-only)
+**Touches:** guides/_shared/how-to/author-a-skill.md (read-only)
 
 **Tests:**
 - Coordination check: verify that Spec A has landed its AC8 (the intro link to `../explanation/pack-workflow-design.md` in `author-a-skill.md`). If Spec A is not yet shipped, this spec's PR should be sequenced after it, or Spec A and this spec ship in the same PR with Spec A owning the `author-a-skill.md` edit.
 
 **Approach:**
-- Read `docs/guides/_shared/how-to/author-a-skill.md`.
+- Read `guides/_shared/how-to/author-a-skill.md`.
 - If the intro-link sentence is present: task is complete — Spec A has delivered AC8.
 - If absent: do NOT add it here — it is Spec A's AC8. Note in the PR description that Spec A must ship before or with this PR for the link to resolve.
 - This spec does NOT modify `author-a-skill.md`.

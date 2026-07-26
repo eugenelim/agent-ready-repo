@@ -149,7 +149,7 @@ against RFC-0014.
 **Depends on:** T2
 
 **Tests:**
-- `docs/guides/governance-extras/how-to/new-rfc.md` reflects the guided
+- `guides/governance-extras/how-to/new-rfc.md` reflects the guided
   shape/intake step and the four template changes; no unrelated drift
   (`git diff` scoped to the guide). (AC7)
 - The guide's own `## Step N` headings are renumbered consistently after the

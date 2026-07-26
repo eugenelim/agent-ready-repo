@@ -19,7 +19,7 @@
 
 ### T4 — Write tools/build-site.py content aggregation script
 **Depends on:** none  
-**Verification:** goal-based (`python tools/build-site.py` exits 0; site/docs/packs/ and site/docs/guides/ populated)  
+**Verification:** goal-based (`python tools/build-site.py` exits 0; site/docs/packs/ and site/guides/ populated)  
 **Done when:** script copies all 14 pack READMEs, mirrors guides/, copies changelog + contributing, generates packs/index.md, rewrites broken links (cross-pack, governance, stale)
 
 ### T5 — Add Makefile targets
@@ -35,7 +35,7 @@
 ### T7 — Update .gitignore for generated content
 **Depends on:** T4  
 **Verification:** goal-based (`git status` after build-site.py shows no unexpected tracked changes)  
-**Done when:** site/built/, site/docs/packs/, site/docs/guides/, site/docs/changelog.md, site/docs/contributing.md are gitignored
+**Done when:** site/built/, site/docs/packs/, site/guides/, site/docs/changelog.md, site/docs/contributing.md are gitignored
 
 ### T8 — Full strict build passes clean
 **Depends on:** T2, T3, T4, T5, T6, T7  

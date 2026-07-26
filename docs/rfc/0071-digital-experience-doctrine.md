@@ -75,7 +75,7 @@ are glossed on first use inline. -->
   - `packs/product-strategy/` — all 9 skills updated (triggers, outputs, evals)
   - `packs/core/` — `frontend-engineering` updated (modes, contract, evidence manifest)
   - `tools/` — new drift-check script for Digital Experience Contract equivalence
-  - `docs/guides/` — intent indexes per pack; new end-to-end tutorial
+  - `guides/` — intent indexes per pack; new end-to-end tutorial
 - **Stakes:** Non-trivial to reverse once in production adoption. The definition-of-done
   change and contract schema affect adopters' workflows. New skills can be amended or
   removed; the rename follows ADR-0038 alias-free precedent (breaking, accepted risk for

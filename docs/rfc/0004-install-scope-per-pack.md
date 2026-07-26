@@ -163,7 +163,7 @@ refuse a malformed pack identically.
 | ---------------------- | --------------- | ---------------- | ----------------------------------------------------------- |
 | `core`                 | `repo`          | `["repo"]`       | Ships AGENTS.md seed, CONVENTIONS, hooks, conventions-check, and reviewer agents that textually reference `AGENTS.md` / `docs/CONVENTIONS.md` by name — none of which serves a different repo verbatim. (The reviewer agents would mechanically *load* at user scope but would import this project's vocabulary into every repo the adopter opens; that's a content-portability fail, not a contract refusal.) |
 | `governance-extras`    | `repo`          | `["repo"]`       | RFC/ADR templates and ceremony are per-project; an RFC about "what should this codebase do?" can't live at user scope. |
-| `user-guide-diataxis`  | `repo`          | `["repo"]`       | Scaffolds `docs/guides/` for *this project's* users; no project = no scaffolding target. |
+| `user-guide-diataxis`  | `repo`          | `["repo"]`       | Scaffolds `guides/` for *this project's* users; no project = no scaffolding target. |
 | `monorepo-extras`      | `repo`          | `["repo"]`       | `new-package` scaffolds in `packages/`; meaningless without a monorepo. |
 
 The "falsifiable test" is: *does the same file content serve every

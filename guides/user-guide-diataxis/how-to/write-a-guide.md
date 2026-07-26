@@ -2,7 +2,7 @@
 
 **Use this when:** a feature already ships and you need to document it in the right Diátaxis kind — tutorial, how-to, reference, or explanation — from the first page.
 **Prerequisites:** `user-guide-diataxis` pack installed, a real reader in mind, and behavior that already ships (not a proposal).
-**Result:** a scaffolded guide at `docs/guides/<pack>/<quadrant>/<slug>.md`, kind-checked against a signed-off audience contract, with kind-specific rules applied and sibling cross-links verified.
+**Result:** a scaffolded guide at `guides/<pack>/<quadrant>/<slug>.md`, kind-checked against a signed-off audience contract, with kind-specific rules applied and sibling cross-links verified.
 
 This guide is for someone documenting a feature that already ships and who wants the page to land in the right Diátaxis kind the first time. It assumes you've installed the `user-guide-diataxis` pack and that your agent can run the `new-guide` skill.
 
@@ -44,9 +44,9 @@ Read it. Accept it, or push back if the kind looks wrong. The contract is the ch
 
 4. **Let the skill scaffold from the matching template.** Each kind has one template carrying its minimal section structure. The skill copies the right one to the per-pack write path:
 
-`docs/guides/<pack>/<quadrant>/<slug>.md`
+`guides/<pack>/<quadrant>/<slug>.md`
 
-So a how-to in this pack lands at `docs/guides/user-guide-diataxis/how-to/<slug>.md`. The slug is short and noun-y, matching what the reader would search for — `rotate-credentialed-skill-token`, not `how-to-rotate-your-token-step-by-step`. The quadrant directory already carries the framing; don't repeat it in the filename.
+So a how-to in this pack lands at `guides/user-guide-diataxis/how-to/<slug>.md`. The slug is short and noun-y, matching what the reader would search for — `rotate-credentialed-skill-token`, not `how-to-rotate-your-token-step-by-step`. The quadrant directory already carries the framing; don't repeat it in the filename.
 
 5. **Draft inside the kind's rules, applying link-out.** When you reach for material from an adjacent kind, write a link instead of the material. Tempted to explain *why* mid-tutorial? Link to an explanation. Tempted to list every option mid-how-to? Link to the reference. The link can be a placeholder until the other page exists.
 

@@ -67,7 +67,7 @@ For each kind of decision, there is exactly one place it lives:
 | How will we build it, step by step?       | `docs/specs/<feature>/plan.md`       |
 | How is the code organized today?          | `docs/architecture/`                 |
 | What is the product doing today?          | `docs/product/` (roadmap, changelog) |
-| How do users use the product?             | `docs/guides/` (Diátaxis: tutorials, how-to, reference, explanation) |
+| How do users use the product?             | `guides/` (Diátaxis: tutorials, how-to, reference, explanation) |
 | How do agents do `<repeating task>`?      | A skill file (`SKILL.md` with frontmatter); your IDE handles discovery |
 
 If you can't find the answer in one of these places, **the answer doesn't

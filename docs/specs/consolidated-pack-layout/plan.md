@@ -252,7 +252,7 @@ step per scope.
 
 **Touches:** `packs/research/.apm/skills/research-project-start/**`,
 `packs/research/pack.toml`, `packs/research/.claude-plugin/plugin.json`,
-`docs/guides/research/**`, `docs/product/changelog.md`
+`guides/research/**`, `docs/product/changelog.md`
 
 **Tests:**
 - Goal-based: `rg` against `research-project-start/SKILL.md` names
@@ -282,7 +282,7 @@ leaves the tree clean.
 
 **Touches:** `packs/architect/.apm/skills/architect-design/**`,
 `packs/architect/pack.toml`, `packs/architect/.claude-plugin/plugin.json`,
-`docs/guides/architect/**`, `docs/product/changelog.md`
+`guides/architect/**`, `docs/product/changelog.md`
 
 **Tests:**
 - Goal-based: `rg` against `architect-design/SKILL.md` names the `[architect]`
@@ -311,7 +311,7 @@ leaves the tree clean.
 `packs/product-engineering/.apm/skills/align-value-stream/**`,
 `packs/product-engineering/pack.toml`,
 `packs/product-engineering/.claude-plugin/plugin.json`,
-`docs/guides/product-engineering/**`, `docs/product/changelog.md`
+`guides/product-engineering/**`, `docs/product/changelog.md`
 
 **Tests:**
 - Goal-based: `rg` against `frame-intent` + `align-value-stream` SKILL.md names the

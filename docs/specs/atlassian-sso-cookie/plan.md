@@ -379,7 +379,7 @@ so a skill change bumps the pack `0.2.0 → 0.3.0` and drifts the aggregate
 marketplace, regenerated via `make build` — the aggregate drifts; run the full
 `packages/agentbundle` suite by hand per the version-bump trap), and the
 hand-maintained skill-reference mirror
-`docs/guides/atlassian/reference/atlassian-skills.md` (mirrors `description:`/
+`guides/atlassian/reference/atlassian-skills.md` (mirrors `description:`/
 frontmatter verbatim; sweep it for the `auth`/Security-section change).
 
 **CONVENTIONS anchor (AC16 contract):** the `metadata.auth-fallback: creds` marker
@@ -422,7 +422,7 @@ declare `auth: sso-cookie` + the fallback marker and pass.
 
 **Depends on:** T3
 
-**Touches:** `docs/guides/` (adapt-to-project `.upstream` companion merge for the
+**Touches:** `guides/` (adapt-to-project `.upstream` companion merge for the
 pre-baked config), `docs/product/changelog.md`, the spec status.
 
 **Tests:** goal-based — guide describes the class-2 `.upstream` companion merge

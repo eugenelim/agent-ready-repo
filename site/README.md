@@ -16,7 +16,7 @@ One-time. The three packages are `mkdocs-material`, `mkdocs-minify-plugin`, and 
 make site-serve
 ```
 
-Opens a live-reload server at **`http://127.0.0.1:8000/agent-ready-repo/`** (subpath mirrors the GitHub Pages URL). Edits to hand-crafted pages under `site/docs/` rebuild immediately; changes to source files in `packs/` or `docs/guides/` require re-running `make site-sync` to re-aggregate.
+Opens a live-reload server at **`http://127.0.0.1:8000/agent-ready-repo/`** (subpath mirrors the GitHub Pages URL). Edits to hand-crafted pages under `site/docs/` rebuild immediately; changes to source files in `packs/` or `guides/` require re-running `make site-sync` to re-aggregate.
 
 ## Build the static output
 
@@ -47,7 +47,7 @@ Strict mode — same flags as CI. Any warning is a build failure.
 
 **Generated** by `make site-sync` (gitignored, don't edit):
 - `site/docs/packs/` — sourced from `packs/*/README.md`
-- `site/docs/guides/` — sourced from `docs/guides/`
+- `site/guides/` — sourced from `guides/`
 - `site/docs/changelog.md` — sourced from `docs/product/changelog.md`
 - `site/docs/contributing.md` — sourced from `CONTRIBUTING.md`
 - `site/built/` — MkDocs output

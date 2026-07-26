@@ -117,7 +117,7 @@ Ship `catalogue-curation` — a repo-scope, opt-in, **domain-agnostic** pack who
 - [x] **Ingested code runs the repo's own gates at ingest time.** Before an assimilated primitive lands, `assimilate-*` runs the repo's **internal lint suite** (`lint-skill-spec`, `lint-agent-artifacts`, and the other `build-check` lints that apply to the artifact kind) **and its SAST/SCA scanners** (`.snyk` / dependency scan locally where runnable; CodeQL runs automatically on the PR the change opens) over the migrated candidate — the *same* gates the repo applies to its own code, invoked proactively rather than deferred to the work-loop's `security-reviewer` alone. A lint or scanner failure **blocks the landing** (fail-closed) or is surfaced for an explicit human confirm; ingestion never bypasses these gates. (Reuses existing repo tooling — no new scanner dependency.)
 
 **Docs & bookkeeping**
-- [x] `docs/guides/catalogue-curation/` exists (Diátaxis: a tutorial + how-tos for the four skills incl. resume + re-sync + fork-export, reference for the manifest/ledger/guard, explanation of why curation is a pack + the single-authoritative-source model), authored via `new-guide`.
+- [x] `guides/catalogue-curation/` exists (Diátaxis: a tutorial + how-tos for the four skills incl. resume + re-sync + fork-export, reference for the manifest/ledger/guard, explanation of why curation is a pack + the single-authoritative-source model), authored via `new-guide`.
 - [x] `docs/product/changelog.md` `[Unreleased]` gains a `catalogue-curation` entry.
 - [x] `docs/backlog.md` gains greppable anchors for the deferred Non-goals (`retire-primitive`, `audit-catalogue`) and the ledger stale-run sweep.
 

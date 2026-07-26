@@ -261,10 +261,10 @@ projection re-renders cleanly in T9.
 ### T10: Adopter guides authored via `new-guide`
 
 **Depends on:** T1, T2, T3, T4, T5
-**Touches:** docs/guides/**
+**Touches:** guides/**
 
 **Tests:**
-- Goal-based: three guide files exist under `docs/guides/` at their Diátaxis
+- Goal-based: three guide files exist under `guides/` at their Diátaxis
   paths — a how-to, a reference, and an explanation per the spec's guide ACs.
   *(verifies AC: guide files exist)*
 - Manual QA: each reads accurately against the shipped skill + template

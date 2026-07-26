@@ -205,14 +205,14 @@ tasks.
 
 ### Guide
 
-- [x] `docs/guides/github/README.md` exists and lists the how-to guide.
-- [x] `docs/guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
+- [x] `guides/github/README.md` exists and lists the how-to guide.
+- [x] `guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
   covers: prerequisites (`gh` CLI installed + `gh auth status`), full intake
   flow (select milestone → enumerate issues → review story map → confirm slug →
   write brief → hand off to `receive-brief`), public-repo auth-degradation path,
   single-issue → `new-spec` redirect, and optional post-intake write-back
   (comment / label / close).
-- [x] `docs/guides/README.md` lists the new `github` guide pack row.
+- [x] `guides/README.md` lists the new `github` guide pack row.
 
 ### Cross-cutting docs
 

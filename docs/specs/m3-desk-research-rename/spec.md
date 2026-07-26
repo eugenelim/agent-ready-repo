@@ -55,7 +55,7 @@ both activity-type identifiers, not pack identifiers — they stay as `research`
   beyond the three named cross-pack files — at minimum check `init-project`,
   `contract-acquisition`, `discovery-loop`, `frame-intent` references, and
   `frame-domain` examples.
-- Update guide prose and slug-named guide files within `docs/guides/desk-research/`
+- Update guide prose and slug-named guide files within `guides/desk-research/`
   to reflect new skill slugs.
 - Create `packs/desk-research/AGENTS.md` with a migration table covering: pack name,
   all five renamed skill slugs, and the adopter install-state impact.
@@ -104,7 +104,7 @@ No manual QA — no user-facing UI surface.
 
 - [x] `packs/desk-research/` directory exists; `packs/research/` does not exist.
 - [x] `packs/desk-research/pack.toml` has `name = "desk-research"`, `version = "1.0.0"`,
-  `display_name = "Desk Research"`, and `documentation` link updated to `.../docs/guides/desk-research/`.
+  `display_name = "Desk Research"`, and `documentation` link updated to `.../guides/desk-research/`.
 - [x] `packs/desk-research/.claude-plugin/plugin.json` has `"name": "desk-research"` and
   `"version": "1.0.0"`.
 - [x] `[pack.evals] skills` list in `pack.toml` contains `"desk-research"` and
@@ -132,11 +132,11 @@ No manual QA — no user-facing UI surface.
 - [x] RFC-0064 body (M3 ACs section) records the assessment outcome: pack-level alias
   unsupported in agentbundle (adapter-level only); migration is documentation-only;
   assessed 2026-07-18.
-- [x] Guide files under `docs/guides/desk-research/` contain no `/research` or
+- [x] Guide files under `guides/desk-research/` contain no `/research` or
   `research-project-*` invocation prose; pack-named slug files renamed
   (`reference/research-pack.md` → `reference/desk-research-pack.md`,
   `tutorials/research-first-session.md` → `tutorials/desk-research-first-session.md`).
-- [x] `docs/guides/desk-research/` directory exists; `docs/guides/research/` does not.
+- [x] `guides/desk-research/` directory exists; `guides/research/` does not.
 - [x] `packages/agentbundle/tests/integration/test_install_research_user_scope.py` and
   other integration tests that reference the actual pack by name pass with the new name.
 - [x] `make lint-packs` exits 0; `make build-self` exits 0; `pytest packages/agentbundle/`
@@ -162,8 +162,8 @@ No manual QA — no user-facing UI surface.
   `test_install_research_user_scope.py`, `test_install_copilot_full_parity.py:152`,
   `test_install_profile_live.py:83`, `test_install_default_source.py:124-146`,
   `test_enriched_pack_metadata.py:40` (source: grep on `packages/agentbundle/tests/`)
-- Technical: `docs/guides/research/` exists; pack.toml `documentation` link points to it
-  (source: `packs/research/pack.toml:85`; `ls docs/guides/`)
+- Technical: `guides/research/` exists; pack.toml `documentation` link points to it
+  (source: `packs/research/pack.toml:85`; `ls guides/`)
 - Process: RFC-0064 M3 governs this rename; no sub-RFC needed; rename and bug-fix are
   independent and can ship in parallel PRs (source: `docs/rfc/0064-ini-001-ai-native-ecosystem.md:122`)
 - Process: Operative references renamed; historical references in frozen RFC/ADR bodies

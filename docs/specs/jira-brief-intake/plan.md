@@ -130,7 +130,7 @@ pack with no drift.
 
 **Depends on:** T1
 
-**Touches:** packs/atlassian/README.md, docs/guides/atlassian/README.md, docs/guides/atlassian/reference/atlassian-skills.md, docs/guides/atlassian/explanation/atlassian-pack.md, docs/architecture/overview.md, docs/guides/README.md, docs/product/changelog.md
+**Touches:** packs/atlassian/README.md, guides/atlassian/README.md, guides/atlassian/reference/atlassian-skills.md, guides/atlassian/explanation/atlassian-pack.md, docs/architecture/overview.md, guides/README.md, docs/product/changelog.md
 
 **Tests:**
 - `grep` for `jira-brief-intake` hits all six enumeration docs. Verifies spec AC7.
@@ -147,13 +147,13 @@ pack with no drift.
 - `packs/atlassian/README.md`: add the skill to the workflow-skills sentence
   and the "What's inside" bullets (de-count rather than bump a hardcoded count,
   per the no-brittle-counts convention, where the edit already touches the line).
-- `docs/guides/atlassian/README.md`: add to the skill enumeration.
-- `docs/guides/atlassian/reference/atlassian-skills.md`: add a
+- `guides/atlassian/README.md`: add to the skill enumeration.
+- `guides/atlassian/reference/atlassian-skills.md`: add a
   `## jira-brief-intake` section (Purpose / Primary inputs / Outputs / Source)
   mirroring the frontmatter.
-- `docs/guides/atlassian/explanation/atlassian-pack.md`: add a one-line bullet.
+- `guides/atlassian/explanation/atlassian-pack.md`: add a one-line bullet.
 - `docs/architecture/overview.md`: add the skill to the atlassian row's skill list.
-- `docs/guides/README.md`: add the skill to the atlassian pack-index row.
+- `guides/README.md`: add the skill to the atlassian pack-index row.
 - `docs/product/changelog.md`: add an `[Unreleased] → Added` entry.
 
 **Done when:** all six enumeration docs and the changelog name the skill, and

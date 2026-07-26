@@ -25,4 +25,4 @@ run `credential-setup` to store your Linear Personal API Key under namespace
 
 ## Guides
 
-→ [When to use linear-brief-intake vs linear-brief-sync](../../docs/guides/linear/how-to/linear-brief-intake-and-sync.md)
+→ [When to use linear-brief-intake vs linear-brief-sync](../../guides/linear/how-to/linear-brief-intake-and-sync.md)

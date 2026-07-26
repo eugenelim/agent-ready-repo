@@ -64,8 +64,8 @@ pack the derivative doesn't want (e.g. SDLC packs for a creative-writing
 catalogue) — this is the domain-repurposing lever.
 
 ## 4. GUIDES (per-pack, with _shared always)
-For each pack in the include-set, copy `docs/guides/<pack-name>/` into the
-target at the same path. Always copy `docs/guides/_shared/` (agentbundle
+For each pack in the include-set, copy `guides/<pack-name>/` into the
+target at the same path. Always copy `guides/_shared/` (agentbundle
 infrastructure guides; adopter-facing, not catalogue-internal). Guides for
 packs outside the include-set are **omitted** (omit-not-leak). The SUBSTITUTE
 pass applies to all staged guide content; any identity references in `_shared/`

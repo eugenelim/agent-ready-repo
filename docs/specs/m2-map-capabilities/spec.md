@@ -164,7 +164,7 @@ logic. Verification is goal-based for structure and manual QA for judgment.
   organization, Wardley annotation, disposition vocabulary, and the suggested
   build sequence.
 - **Diátaxis guide: goal-based for file existence, manual QA for accuracy.**
-  Guide at `docs/guides/product-engineering/how-to/map-capabilities.md`.
+  Guide at `guides/product-engineering/how-to/map-capabilities.md`.
 - **Projection: goal-based.** `lint-packs`, `validate`, and `build` exit 0.
   Adopter-cleanliness verified by grep over SKILL.md body (no RFC-NNNN, no
   `agent-ready-repo`). `make build-self` is not run — the PE pack is user-scope
@@ -269,7 +269,7 @@ logic. Verification is goal-based for structure and manual QA for judgment.
   Adopter-clean (no RFC-NNNN, no `agent-ready-repo` references).
 
 - [x] **AC15.** A Diátaxis how-to guide ships at
-  `docs/guides/product-engineering/how-to/map-capabilities.md` covering: when to
+  `guides/product-engineering/how-to/map-capabilities.md` covering: when to
   run `map-capabilities` (after `place-bet`, before brief-authoring); how to read
   the Wardley + strategic-criticality annotations; how to use the suggested build
   sequence (Build-disposition capabilities) to seed the M3–M6 spec queue.
@@ -307,8 +307,8 @@ logic. Verification is goal-based for structure and manual QA for judgment.
 - **A7.** Wardley stage and strategic-criticality vocabulary definitions belong in
   the SKILL.md body (inline, matching `frame-situation` A3 precedent). This tightens
   the 100-line budget — acknowledged as a risk in the plan. (source: `m2-frame-situation/spec.md` A3)
-- **A8.** `docs/guides/product-engineering/how-to/` exists; `map-capabilities.md`
-  guide does not yet exist. (source: `ls docs/guides/product-engineering/how-to/`,
+- **A8.** `guides/product-engineering/how-to/` exists; `map-capabilities.md`
+  guide does not yet exist. (source: `ls guides/product-engineering/how-to/`,
   2026-07-21)
 - **A9.** `workspace.toml` write-back is the `capture-work` front door's
   responsibility; this skill suggests verbally. (source: RFC-0064 Amendment #3;

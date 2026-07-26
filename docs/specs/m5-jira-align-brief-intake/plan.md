@@ -62,9 +62,9 @@ an updated `marketplace.json` that includes the new skill.
 **Verification mode:** goal-based check
 **Done when:** `grep -r "jira-align-brief-intake"` returns hits in all five
 target docs: `packs/atlassian/README.md`,
-`docs/guides/atlassian/README.md`,
-`docs/guides/atlassian/reference/atlassian-skills.md`,
-`docs/guides/atlassian/explanation/atlassian-pack.md`,
+`guides/atlassian/README.md`,
+`guides/atlassian/reference/atlassian-skills.md`,
+`guides/atlassian/explanation/atlassian-pack.md`,
 `docs/architecture/overview.md`.
 
 **Approach:** Add the new skill to each doc's enumeration prose. De-count

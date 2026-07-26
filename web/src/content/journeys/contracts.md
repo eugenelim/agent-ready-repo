@@ -36,7 +36,7 @@ typicalSession:
   agentTurns: "4–8"
   humanTouches: 1
   wallClockMinutes: "15–30"
-docsUrl: /docs/guides/contracts/
+docsUrl: /guides/contracts/
 packUrl: /packs/contracts/
 relatedJourneys:
   - architect

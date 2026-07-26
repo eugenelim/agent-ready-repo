@@ -264,7 +264,7 @@ reference docs); the `linear` primitive ships a **thin Python script**
   to match (no build-drift). The pack's `default-scope = "user"`.
 - [x] Every doc that enumerates tracker intake skills or the `linear` pack
   names the new skills: `docs/architecture/overview.md` (per-pack skill
-  table), `docs/guides/README.md` (pack-index row). The pack ships its own
+  table), `guides/README.md` (pack-index row). The pack ships its own
   README at `packs/linear/README.md`.
 - [x] A `docs/product/changelog.md` `[Unreleased]` entry records the new
   pack and both skills.
@@ -281,7 +281,7 @@ reference docs); the `linear` primitive ships a **thin Python script**
   phrases, argv-ban, and credbroker import), `lint-packs`, `agentbundle
   validate`, `make build`, and the agentbundle package pytest all pass.
 - [x] **Guide slice:** a tracker intake how-to guide or vocabulary reference
-  for the `linear` pack exists under `docs/guides/` at its Diátaxis path,
+  for the `linear` pack exists under `guides/` at its Diátaxis path,
   covering: when to use `linear-brief-intake` vs `linear-brief-sync`, the
   sync lifecycle, and the Executing-lock semantics.
 

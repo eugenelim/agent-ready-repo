@@ -86,7 +86,7 @@ Two existing files gain a sharpened, optional slot; the preflight learns to read
 
 ### Layer C — Organization-pack authoring guidance (Decision 5)
 
-An organization with a standard stack ships its golden path as **a pack, composed entirely of primitives that already exist** — the org-side mirror of Backstage golden-path templates and Cursor "Team Rules". A new how-to guide (`docs/guides/_shared/how-to/build-an-org-stack-pack.md`) walks it:
+An organization with a standard stack ships its golden path as **a pack, composed entirely of primitives that already exist** — the org-side mirror of Backstage golden-path templates and Cursor "Team Rules". A new how-to guide (`guides/_shared/how-to/build-an-org-stack-pack.md`) walks it:
 
 1. **Seeds carrying filled-in standards.** The org pack ships `seeds/docs/architecture/reference.md` *populated with the org's real stack* (not the placeholder template), plus optional `seeds/docs/CONVENTIONS.md` / `seeds/AGENTS.md` deltas. On install these land in the adopter repo via the existing seed-drop mechanism (RFC-0002).
 2. **Framework-library skills.** The org pack ships `.apm/skills/<framework>/SKILL.md` for its internal frameworks — the Layer-A detect target. These are ordinary skills; the model auto-activates them by description-match.
@@ -171,7 +171,7 @@ Filled in on acceptance:
 - **Spec: `docs/specs/framework-contract-grounding/`** — Layer A: widen the EXECUTE gate trigger + the software detect-and-recommend tier (recommend installing a published cloud / application-SDK vendor skill *or* authoring an internal one via `author-a-skill`; guidance only, no bundled starter); `quality-engineer` re-derivation.
 - **Spec: `docs/specs/adopter-grounding-surface/`** — Layer B: the `AGENTS.md` command block + sharpened `reference.md` prompts + the preflight "read recorded coordinates first" step; `adapt-to-project`/`init-project` elicitation.
 - **Spec: `docs/specs/catalogue-seeds-lint/`** — Decision 6: rename `lint-seeds` → `lint-catalogue-seeds`; add the opt-in `[pack].lint-seeds` flag to the four first-party scaffold packs; rename the CI step; confirm whether the new optional `pack.toml` field needs a manifest contract-version bump (ADR-0021).
-- **Guide: `docs/guides/_shared/how-to/build-an-org-stack-pack.md`** — Layer C: org-pack authoring (filled-in seeds + framework skills + repo-scope profile from the organization's own detached fork; omit the `lint-seeds` flag).
+- **Guide: `guides/_shared/how-to/build-an-org-stack-pack.md`** — Layer C: org-pack authoring (filled-in seeds + framework skills + repo-scope profile from the organization's own detached fork; omit the `lint-seeds` flag).
 - **RFC (backlog): org-owned detached-fork distribution** — ~~how an organization forks the catalogue into one it owns outright and distributes internally with no upstream dependency~~. **Withdrawn — see [§ Errata](#errata) (2026-06-25).** The distribution mechanism is already the shipped RFC-0046 / ADR-0036 editable-install path; no separate RFC is warranted.
 - **Changelog** — `docs/product/changelog.md` `[Unreleased]` entry for the user-visible grounding behavior.
 

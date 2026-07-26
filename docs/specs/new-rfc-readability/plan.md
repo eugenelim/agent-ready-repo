@@ -125,7 +125,7 @@ match, and no new template section appears in `git diff`.
 **Depends on:** T2
 
 **Tests:**
-- `grep` in `docs/guides/governance-extras/how-to/new-rfc.md` Step 4: prose
+- `grep` in `guides/governance-extras/how-to/new-rfc.md` Step 4: prose
   contains the tokens "readiness summary" and "proof" (linked/summarized) —
   matching the literal tokens AC6 names.
 - `git diff` on the guide shows only the Step 4 update (no unrelated drift).

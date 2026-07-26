@@ -150,7 +150,7 @@ optional `parent_intent`. No required field beyond outcome + opportunity (never 
 ### T6: Diátaxis guides ship
 
 **Depends on:** T3, T4, T5
-**Touches:** docs/guides/explanation/*, docs/guides/how-to/*, docs/guides/reference/*
+**Touches:** guides/explanation/*, guides/how-to/*, guides/reference/*
 
 **Tests:**
 - Goal-based: the guide files exist at their Diátaxis quadrant paths (AC8).

@@ -28,4 +28,4 @@ Ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`user-guide-diataxis` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/user-guide-diataxis/).
+→ **Go deeper:** the [`user-guide-diataxis` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/user-guide-diataxis/).

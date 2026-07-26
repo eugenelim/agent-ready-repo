@@ -39,7 +39,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   then run `make build-self` to regenerate the `.claude/` and `.agents/` copies.
 - Run both lint surfaces by hand — `lint-packs` (source) and
   `tools/lint-agent-artifacts.py` (projection).
-- Keep `docs/guides/governance-extras/how-to/new-rfc.md` (a Living doc) in sync
+- Keep `guides/governance-extras/how-to/new-rfc.md` (a Living doc) in sync
   in the same PR when the gate's described behavior changes.
 
 ### Ask first
@@ -119,7 +119,7 @@ This is a prose-guidance change to a skill (no code logic), so verification is
 - [x] **AC5 — no frozen-decision surface changed.** The diff introduces no new
   RFC body section or header field, does not convert "The ask" numbered
   decisions to a table, and does not modify `docs/CONVENTIONS.md`.
-- [x] **AC6 — how-to guide synced.** `docs/guides/governance-extras/how-to/new-rfc.md`
+- [x] **AC6 — how-to guide synced.** `guides/governance-extras/how-to/new-rfc.md`
   Step 4 reflects the reviewer-friendly readiness handoff — the **Step 4 prose**
   contains both the tokens **"readiness summary"** and **"proof"**
   (linked/summarized); the check is scoped to Step 4 so the pre-existing

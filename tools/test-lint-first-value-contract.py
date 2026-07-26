@@ -133,9 +133,9 @@ def test_tutorial_declared_file_exists() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         fv = _valid_level_b()
-        fv["tutorial"] = "docs/guides/architect/tutorials/first-session.md"
+        fv["tutorial"] = "guides/architect/tutorials/first-session.md"
         make_pack(root, "architect", fv, allowed_adapters=["claude-code"])
-        write(root / "docs/guides/architect/tutorials/first-session.md", "# Tutorial\n")
+        write(root / "guides/architect/tutorials/first-session.md", "# Tutorial\n")
         rc, out, err = run(root)
         expect(rc == 0, f"test_tutorial_declared_file_exists: expected exit 0, got {rc}\nstderr: {err}")
 
@@ -332,7 +332,7 @@ def test_tutorial_declared_file_missing() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         fv = _valid_level_b()
-        fv["tutorial"] = "docs/guides/architect/tutorials/nonexistent.md"
+        fv["tutorial"] = "guides/architect/tutorials/nonexistent.md"
         make_pack(root, "architect", fv, allowed_adapters=["claude-code"])
         rc, out, err = run(root)
         expect(rc == 1, f"test_tutorial_declared_file_missing: expected exit 1, got {rc}\nstderr: {err}")
@@ -343,9 +343,9 @@ def test_tutorial_declared_not_md() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         fv = _valid_level_b()
-        fv["tutorial"] = "docs/guides/architect/tutorials/first-session.txt"
+        fv["tutorial"] = "guides/architect/tutorials/first-session.txt"
         make_pack(root, "architect", fv, allowed_adapters=["claude-code"])
-        write(root / "docs/guides/architect/tutorials/first-session.txt", "# Not a markdown file\n")
+        write(root / "guides/architect/tutorials/first-session.txt", "# Not a markdown file\n")
         rc, out, err = run(root)
         expect(rc == 1, f"test_tutorial_declared_not_md: expected exit 1, got {rc}\nstderr: {err}")
 
@@ -355,9 +355,9 @@ def test_tutorial_declared_is_directory() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         fv = _valid_level_b()
-        fv["tutorial"] = "docs/guides/architect/tutorials"
+        fv["tutorial"] = "guides/architect/tutorials"
         make_pack(root, "architect", fv, allowed_adapters=["claude-code"])
-        (root / "docs/guides/architect/tutorials").mkdir(parents=True, exist_ok=True)
+        (root / "guides/architect/tutorials").mkdir(parents=True, exist_ok=True)
         rc, out, err = run(root)
         expect(rc == 1, f"test_tutorial_declared_is_directory: expected exit 1, got {rc}\nstderr: {err}")
 

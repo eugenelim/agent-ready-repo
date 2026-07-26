@@ -88,13 +88,13 @@ Goal-based checks plus adversarial review — there is no runtime logic.
 - [x] `user-guide-diataxis` pack version bumped 0.1.2 → 0.1.3 in `pack.toml` and `plugin.json`; `marketplace.json` re-aggregated.
 - [x] `make build-self` re-projects and `make build-check` reports zero drift; `lint-skill-spec.py` and `lint-packs` pass.
 - [x] `docs/product/changelog.md` `[Unreleased]` gains an entry for the new-guide clear-prose guidance.
-- [x] `AGENTS.local.md` gains a "house style for our own internal docs" section covering natural prose, no rationale/identity leak, and soft-wrap for `docs/guides/`, stated as house style with no strategic rationale.
+- [x] `AGENTS.local.md` gains a "house style for our own internal docs" section covering natural prose, no rationale/identity leak, and soft-wrap for `guides/`, stated as house style with no strategic rationale.
 - [x] `AGENTS.local.md` contains no adoption/virality/Hacker-News/founder/positioning framing (verified by grep).
 - [ ] An automated `.apm/**` leak lint is **not** built here (deferred: apm-leak-lint-rfc).
 
 Scope expansion (owner direction, 2026-06-13) — ride-along fixes for the two items originally surfaced as follow-ups:
 
-- [x] `make build-self` no longer scaffolds the by-quadrant guide tree in self-host: `_project_seeds` skips `docs/guides/**` (it's self-host-only; adopters get guides via `deliver_seeds`). A regression test pins it and the `test_self_host_check.py` suite passes.
+- [x] `make build-self` no longer scaffolds the by-quadrant guide tree in self-host: `_project_seeds` skips `guides/**` (it's self-host-only; adopters get guides via `deliver_seeds`). A regression test pins it and the `test_self_host_check.py` suite passes.
 - [x] `atlassian` 0.1.2 → 0.1.3: the `make build-self` remediation hint in `jira` and four `RFC-0023` comment citations in shipped `test_exit_codes.py` scripts are removed.
 - [x] `core` 0.4.2 → 0.4.3: `conventions-check` no longer names `tools/lint-*` scripts or "this catalogue's own"; reframed as adopter-performable checks that degrade to manual inspection.
 - [x] `research/.../retriever-interface.md` naming the `credential-brokers` pack is left as-is — a functional cross-pack capability boundary, not a governance citation (owner-reviewed 2026-06-13).
@@ -106,4 +106,4 @@ Scope expansion (owner direction, 2026-06-13) — ride-along fixes for the two i
 - Technical: skills may carry a `references/` subdir loaded on demand and referenced skill-relative; the `work-loop` skill does this (source: `packs/core/.apm/skills/work-loop/SKILL.md` references `references/*.md`).
 - Process: an automated `.apm/**` leak lint is a new convention and therefore RFC-gated (source: `AGENTS.local.md` § "Shipped pack content carries no internal-governance citations", user confirmation 2026-06-13).
 - Product: the AI-prose craft is universal and adopter-appropriate; the repo's strategic positioning is sensitive and stays in memory only (source: user confirmation 2026-06-13).
-- Technical: `_project_seeds` runs only from `run_self_host` (`make build-self`); adopter scaffolding uses the separate `commands/install.py` → `deliver_seeds` path, so skipping `docs/guides/**` in `_project_seeds` affects self-host only and leaves adopter delivery untouched (source: probe, call-site grep 2026-06-13).
+- Technical: `_project_seeds` runs only from `run_self_host` (`make build-self`); adopter scaffolding uses the separate `commands/install.py` → `deliver_seeds` path, so skipping `guides/**` in `_project_seeds` affects self-host only and leaves adopter delivery untouched (source: probe, call-site grep 2026-06-13).

@@ -52,7 +52,7 @@ typicalSession:
   agentTurns: "6–10"
   humanTouches: 2
   wallClockMinutes: "30–60"
-docsUrl: /docs/guides/architect/
+docsUrl: /guides/architect/
 packUrl: /packs/architect/
 relatedJourneys:
   - core

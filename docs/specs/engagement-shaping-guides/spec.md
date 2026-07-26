@@ -7,7 +7,7 @@ Mode: full (multi-feature risk trigger — four new guides). Scoped to docs:
 the operative gates are `new-guide`'s per-guide audience-contract checkpoint,
 the per-quadrant Diátaxis rules, the `clear-prose` pass, and an
 `adversarial-reviewer` pass. No security/infra machinery applies (repo-owned
-Markdown under `docs/guides/`, which is not projected, so `build-self` drift
+Markdown under `guides/`, which is not projected, so `build-self` drift
 does not gate it).
 
 ## Objective
@@ -44,18 +44,18 @@ pieces above.
 
 New files:
 
-1. `docs/guides/product-engineering/how-to/frame-a-product-vision.md` — how-to.
-2. `docs/guides/product-engineering/how-to/shape-a-product-strategy.md` — how-to.
-3. `docs/guides/architect/how-to/shape-an-architecture-concept.md` — how-to.
-4. `docs/guides/_shared/explanation/shaping-a-new-engagement.md` — explanation
+1. `guides/product-engineering/how-to/frame-a-product-vision.md` — how-to.
+2. `guides/product-engineering/how-to/shape-a-product-strategy.md` — how-to.
+3. `guides/architect/how-to/shape-an-architecture-concept.md` — how-to.
+4. `guides/_shared/explanation/shaping-a-new-engagement.md` — explanation
    (cross-pack; the co-shaping arc and the relations).
 
 README updates (per-pack indexes — the only index files; `new-guide` forbids
 touching the per-quadrant framework READMEs):
 
-5. `docs/guides/product-engineering/README.md` — add the two new how-to lines.
-6. `docs/guides/architect/README.md` — add the new how-to line.
-7. `docs/guides/README.md` — add the new `_shared` explanation under the
+5. `guides/product-engineering/README.md` — add the two new how-to lines.
+6. `guides/architect/README.md` — add the new how-to line.
+7. `guides/README.md` — add the new `_shared` explanation under the
    "Not tied to one pack" section.
 
 ## Acceptance criteria

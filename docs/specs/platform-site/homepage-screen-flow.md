@@ -256,7 +256,7 @@ Tab 4 — Solution architect:
 **Body:**
 > Adopt the catalogue as-is, or fork it as your own. Write your house conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — the loop, the reviewers, and the standards come out identical on every machine and in every agent.
 
-**CTA (amber):** `How to build your org's catalogue →` → links to `/docs/guides/_shared/how-to/build-an-org-stack-pack/`
+**CTA (amber):** `How to build your org's catalogue →` → links to `/guides/_shared/how-to/build-an-org-stack-pack/`
 
 ---
 

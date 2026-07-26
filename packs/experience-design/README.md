@@ -166,4 +166,4 @@ writes copy keyed to every screen × state cell. See the
 
 ---
 
-→ **Go deeper:** the [`experience-design` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience-design/).
+→ **Go deeper:** the [`experience-design` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/experience-design/).

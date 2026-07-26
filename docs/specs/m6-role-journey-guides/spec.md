@@ -21,7 +21,7 @@ changelog of how the approach evolved. -->
 
 ## Objective
 
-`docs/guides/core/explanation/role-journeys.md` orients each primary persona — PM, engineer, and headless AI agent — to how they use the workspace coordination system at their operating altitude. The guide is Diátaxis explanation-quadrant: it explains the system from each persona's vantage point, names their primary altitude touchpoints, and routes to relevant how-tos and the source journey maps without duplicating them.
+`guides/core/explanation/role-journeys.md` orients each primary persona — PM, engineer, and headless AI agent — to how they use the workspace coordination system at their operating altitude. The guide is Diátaxis explanation-quadrant: it explains the system from each persona's vantage point, names their primary altitude touchpoints, and routes to relevant how-tos and the source journey maps without duplicating them.
 
 A common "First install and orientation" anchor at the top links to the existing tutorial (`your-first-workspace.md`) and the session-start how-to (`orient-at-session-start.md`) so the guide avoids re-narrating onboarding content. Each role section zooms in on the altitude and workflow pattern that matters most for that persona.
 
@@ -36,19 +36,19 @@ Each section is derived from and links back to the source journey maps in `docs/
 - Write in present tense, retcon style: describe the system as if it already works this way
 - Derive each role section from the named source journey maps; link back to them as authoritative references
 - Keep every section at explanation altitude: why the system works this way for this persona, not step-by-step recipe instructions (recipes belong in the how-to quadrant — link, do not duplicate)
-- Update `docs/guides/core/README.md` (Explanation section) when the guide is added
-- Update `docs/guides/README.md` "By role" table so PM and Engineer rows link to the guide (and Agent, if a row exists or is being added)
+- Update `guides/core/README.md` (Explanation section) when the guide is added
+- Update `guides/README.md` "By role" table so PM and Engineer rows link to the guide (and Agent, if a row exists or is being added)
 
 ### Ask first
 
 - Any scope change that adds a fourth role not named in RFC-0064 M6 AC (e.g. designer, architect) — adding roles widens the AC surface beyond Amendment #4's scope boundary
 - Any material update to the PM tracker-intake subsection that goes beyond what is currently described in the `pm-intakes-from-tracker` source journey map
-- Any restructuring of the `docs/guides/README.md` "By role" table beyond adding or updating links to the new guide
+- Any restructuring of the `guides/README.md` "By role" table beyond adding or updating links to the new guide
 
 ### Never do
 
 - Add numbered how-to recipe steps inside the explanation guide — the explanation quadrant is understanding-oriented; route to a how-to file instead
-- Create a new top-level directory under `docs/guides/` or a new Diátaxis quadrant directory under `docs/guides/core/`
+- Create a new top-level directory under `guides/` or a new Diátaxis quadrant directory under `guides/core/`
 - Duplicate content from the source journey maps — summarise, cite, and link; the guide is an entry point
 - Write the swarm/coordinated-agent-pipeline content from `engineer-scales-to-swarm` (status: `shaping`) — that extension is deferred until the journey is shaped
 - Include pack-specific first-value content (Level A/B pack profiles); per RFC-0064 Amendment #4 line 800, P5 role guides are scoped by Platform Core journey phases, not pack profiles
@@ -57,15 +57,15 @@ Each section is derived from and links back to the source journey maps in `docs/
 
 Documentation-only spec — no runtime logic. Two verification modes:
 
-- **Goal-based check** for file presence and registration: `ls docs/guides/core/explanation/role-journeys.md` confirms the file exists; `grep -c "role-journeys" docs/guides/core/README.md` returns ≥ 1; `grep -c "role-journeys" docs/guides/README.md` returns ≥ 1
+- **Goal-based check** for file presence and registration: `ls guides/core/explanation/role-journeys.md` confirms the file exists; `grep -c "role-journeys" guides/core/README.md` returns ≥ 1; `grep -c "role-journeys" guides/README.md` returns ≥ 1
 - **Register-integrity guard** (not an implementation-time check — pre-satisfied at authoring): `grep -c "role-journey-agent-swarm-section" workspace.toml` returns ≥ 1; ensures the backlog anchor is present so the in-guide deferred marker resolves
-- **Manual QA** for content quality: (a) each section is read cold by a reviewer adopting the named persona (PM, engineer, headless agent) and can answer "how does this persona use the system at their altitude?" without needing to consult the source journey map first; (b) no numbered recipe steps appear in any section; (c) at least two distinct `docs/guides/core/` cross-links appear within the role sections (not the common anchor); (d) each source journey link sits within its own role section, not misplaced in another section; (e) the `docs/specs/README.md` row's Status column matches `spec.md`'s `Status:` header — flip both atomically in the shipping PR
+- **Manual QA** for content quality: (a) each section is read cold by a reviewer adopting the named persona (PM, engineer, headless agent) and can answer "how does this persona use the system at their altitude?" without needing to consult the source journey map first; (b) no numbered recipe steps appear in any section; (c) at least two distinct `guides/core/` cross-links appear within the role sections (not the common anchor); (d) each source journey link sits within its own role section, not misplaced in another section; (e) the `docs/specs/README.md` row's Status column matches `spec.md`'s `Status:` header — flip both atomically in the shipping PR
 
 ## Acceptance Criteria
 
-- [x] AC1: `docs/guides/core/explanation/role-journeys.md` exists as a single guide file containing four named sections: "First install and orientation" (common anchor), "PM", "Engineer", and "Agent"
+- [x] AC1: `guides/core/explanation/role-journeys.md` exists as a single guide file containing four named sections: "First install and orientation" (common anchor), "PM", "Engineer", and "Agent"
 
-- [x] AC2: The common section is ≤ 10 lines of prose and links to both `docs/guides/core/tutorials/your-first-workspace.md` and `docs/guides/core/how-to/orient-at-session-start.md`; it does not reproduce the content of either guide
+- [x] AC2: The common section is ≤ 10 lines of prose and links to both `guides/core/tutorials/your-first-workspace.md` and `guides/core/how-to/orient-at-session-start.md`; it does not reproduce the content of either guide
 
 - [x] AC3: The PM section covers the shaping-room human path across altitudes 0–1 — the section heading or opening sentence names that it spans three sub-personas (strategist, PE, and intake PM). Content covers: direction-setting at altitude 0 (OKR cascade, initiative framing — derived from `product-strategist-sets-direction`), the shaping sequence at altitude 1 (six-step sequence — derived from `product-engineer-shapes-initiative`), and tracker intake into the brief queue (derived from `pm-intakes-from-tracker`); the section links to all three source journey maps
 
@@ -75,20 +75,20 @@ Documentation-only spec — no runtime logic. Two verification modes:
 
 - [x] AC6: The Agent section explicitly marks the swarm extension as deferred with the text `(deferred: role-journey-agent-swarm-section)` in the guide prose; `workspace.toml [backlog].open` contains the matching `role-journey-agent-swarm-section` entry (pre-populated at spec-authoring time; the AC verifies the in-guide marker is present)
 
-- [x] AC7: `docs/guides/core/README.md` Explanation section contains a bullet for `role-journeys.md` with a one-line description
+- [x] AC7: `guides/core/README.md` Explanation section contains a bullet for `role-journeys.md` with a one-line description
 
-- [x] AC8: `docs/guides/README.md` "By role" table "Product manager / strategist" row links to `docs/guides/core/explanation/role-journeys.md`; an "AI agent" (or equivalent) row is added if absent and also links to it; the Engineer row links to it as well
+- [x] AC8: `guides/README.md` "By role" table "Product manager / strategist" row links to `guides/core/explanation/role-journeys.md`; an "AI agent" (or equivalent) row is added if absent and also links to it; the Engineer row links to it as well
 
 - [x] AC9: Every role section (PM, Engineer, Agent) contains at least one link pointing to its source journey map file(s) in `docs/product/journeys/`
 
-- [x] AC10: The PM, Engineer, or Agent role sections (not the common anchor) contain cross-links to at least two existing guides in `docs/guides/core/` (e.g. `explanation/two-room-model.md`, `how-to/capture-work.md`, `how-to/plan-and-execute-non-trivial-work.md`)
+- [x] AC10: The PM, Engineer, or Agent role sections (not the common anchor) contain cross-links to at least two existing guides in `guides/core/` (e.g. `explanation/two-room-model.md`, `how-to/capture-work.md`, `how-to/plan-and-execute-non-trivial-work.md`)
 
 - [x] AC11: `docs/specs/README.md` contains a table row for `m6-role-journey-guides/` whose Status column matches the spec's current `Status:` field, with RFC-0064 as the constraint
 
 ## Assumptions
 
-- Technical: `docs/guides/core/explanation/` is the correct Diátaxis quadrant for an understanding-oriented, role-perspective guide — confirmed by `ls docs/guides/core/explanation/` (7 existing files, all understanding-oriented, none role-persona-shaped; 2026-07-21)
-- Technical: No role-specific guide file exists anywhere under `docs/guides/` — confirmed by `ls docs/guides/` (no `roles/` directory; no persona-shaped files in core/ quadrants; 2026-07-21)
+- Technical: `guides/core/explanation/` is the correct Diátaxis quadrant for an understanding-oriented, role-perspective guide — confirmed by `ls guides/core/explanation/` (7 existing files, all understanding-oriented, none role-persona-shaped; 2026-07-21)
+- Technical: No role-specific guide file exists anywhere under `guides/` — confirmed by `ls guides/` (no `roles/` directory; no persona-shaped files in core/ quadrants; 2026-07-21)
 - Technical: Source journey maps exist at `docs/product/journeys/` with expected slugs — confirmed: 10 files; PM-relevant: `product-strategist-sets-direction` (planned), `product-engineer-shapes-initiative` (proposed), `pm-intakes-from-tracker` (proposed); Engineer-relevant: `engineer-adopts-coordination` (planned), `engineer-runs-work-loop` (shipped); Agent-relevant: `agent-executes-spec` (shipped) (frontmatter scan; 2026-07-21)
 - Process: Constrained by RFC-0064 M6 AC line 529 and Amendment #3 P5 Adopt; Amendment #4 line 800 scopes P5 guides to Platform Core journey phases, not pack profiles — confirmed (`docs/rfc/0064-ini-001-ai-native-ecosystem.md:529,800`; 2026-07-21)
 - Process: One combined multi-section guide file (not three separate files, not a new directory) is the correct structure — user confirmation 2026-07-21

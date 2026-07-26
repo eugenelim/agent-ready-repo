@@ -149,6 +149,6 @@ No data migration; forward-only. Edit point is the pack source `packs/governance
 ## Follow-on artifacts
 
 On acceptance:
-- **Spec:** `docs/specs/new-rfc-two-humans/` — the skill + template implementation: edit `packs/governance-extras/.apm/skills/new-rfc/{SKILL.md,assets/rfc.md}`, `make build-self`, run both lint surfaces (`lint-packs` + `tools/lint-agent-artifacts.py`), sync `docs/guides/governance-extras/how-to/new-rfc.md`, update the Tier-4 eval (`evals/evals.json`) with the new human-usability criteria, add a `docs/product/changelog.md` `[Unreleased]` entry, and bump `governance-extras` (`0.3.2 → 0.4.0` — new template/skill surface).
+- **Spec:** `docs/specs/new-rfc-two-humans/` — the skill + template implementation: edit `packs/governance-extras/.apm/skills/new-rfc/{SKILL.md,assets/rfc.md}`, `make build-self`, run both lint surfaces (`lint-packs` + `tools/lint-agent-artifacts.py`), sync `guides/governance-extras/how-to/new-rfc.md`, update the Tier-4 eval (`evals/evals.json`) with the new human-usability criteria, add a `docs/product/changelog.md` `[Unreleased]` entry, and bump `governance-extras` (`0.3.2 → 0.4.0` — new template/skill surface).
 - **ADR:** only if a future RFC contests the direction; this RFC + the skill diff are the durable record otherwise (mirroring RFC-0014's choice).
 - No CONVENTIONS §3 edit — see Non-goals.

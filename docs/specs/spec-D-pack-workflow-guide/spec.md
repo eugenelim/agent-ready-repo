@@ -15,7 +15,7 @@
 
 ## Objective
 
-A pack author who reads `docs/guides/_shared/explanation/pack-workflow-design.md` before writing their first skill can make all five arc-design decisions (workflow type, arc-stage mapping, skill naming, vault-path shape, workspace-status registration) without consulting a reviewer. `CONTRIBUTING.md`'s "Adding a new pack" section has a step 0 that directs authors to the guide before opening an RFC. The guide is framed at archetype level (episodic/sustained-project/sustained-derived/stateless from ADR-0054) so it remains stable as new packs land.
+A pack author who reads `guides/_shared/explanation/pack-workflow-design.md` before writing their first skill can make all five arc-design decisions (workflow type, arc-stage mapping, skill naming, vault-path shape, workspace-status registration) without consulting a reviewer. `CONTRIBUTING.md`'s "Adding a new pack" section has a step 0 that directs authors to the guide before opening an RFC. The guide is framed at archetype level (episodic/sustained-project/sustained-derived/stateless from ADR-0054) so it remains stable as new packs land.
 
 ## Boundaries
 
@@ -45,11 +45,11 @@ All criteria use **goal-based check**: each section's presence and content are v
 
 ## Acceptance Criteria
 
-- [x] **AC1.** `docs/guides/_shared/explanation/pack-workflow-design.md` exists.
+- [x] **AC1.** `guides/_shared/explanation/pack-workflow-design.md` exists.
 - [x] **AC2.** The guide contains all seven RFC-0067 §D1 sections: (1) What a pack is + session-arc vocabulary, (2) Step 1 — Characterize workflow type (decision tree), (3) Step 2 — Map the arc, (4) Step 3 — Name your skills, (5) Step 4 — Decide vault-path shape, (6) Step 5 — Register with workspace-status, (7) Reference: three worked archetypes (Episodic, Sustained-project, Sustained-derived) plus a stateless reserved-category note.
 - [x] **AC3.** Section 2 (Step 1) contains a decision tree leading to one of the four ADR-0054 types: episodic, sustained-project, sustained-derived, stateless.
 - [x] **AC4.** Section 3 (Step 2) walks each arc stage (Arrive, Orient, Work, Persist, Collaborate) with guiding questions for the pack author.
-- [x] **AC5.** Section 4 (Step 3) references the verb taxonomy from ADR-0054 and cites the banned-label list; it cross-links to `docs/guides/_shared/how-to/author-a-skill.md` for the full taxonomy table.
+- [x] **AC5.** Section 4 (Step 3) references the verb taxonomy from ADR-0054 and cites the banned-label list; it cross-links to `guides/_shared/how-to/author-a-skill.md` for the full taxonomy table.
 - [x] **AC6.** Section 5 (Step 4) covers: single `output_dir` base per pack, skill-specific subdirectories, and cites `journey-mapping` as the canonical vault-path example.
 - [x] **AC7.** Section 6 (Step 5) covers: `shaping_queue` type, routing to `workspace-status`, and the fallback if experience-design is not installed.
 - [x] **AC8.** Section 7 (Reference) contains worked archetypes for: Episodic (product-strategy), Sustained-project (desk-research), Sustained-derived (experience-design). Stateless: ADR-0054 classifies no current catalogue pack as stateless (converters and architect are Episodic); the guide notes this as a reserved category for hypothetical future packs with no current worked example.
@@ -61,6 +61,6 @@ All criteria use **goal-based check**: each section's presence and content are v
 ## Assumptions
 
 - Technical: `CONTRIBUTING.md` has an "Adding a new pack" section with numbered steps; the step 0 addition prepends before the current step 1 (source: RFC-0067 §D2 assumes this structure).
-- Technical: `docs/guides/_shared/explanation/` directory exists (source: `ls docs/guides/_shared/explanation/` confirmed at spec-authoring time — directory contains README.md, file-safety-contract.md, install-routes.md, pack-catalogue.md, shaping-a-new-engagement.md, the-three-loops.md).
+- Technical: `guides/_shared/explanation/` directory exists (source: `ls guides/_shared/explanation/` confirmed at spec-authoring time — directory contains README.md, file-safety-contract.md, install-routes.md, pack-catalogue.md, shaping-a-new-engagement.md, the-three-loops.md).
 - Process: no governance citations in the guide body — the guide is adopter-surface explanation content; ADR/RFC provenance belongs in this spec's "Constrained by" header, not in the guide itself (source: `feedback_no_governance_citations_in_shipped_pack_content.md`).
 - Product: the four-type classification (ADR-0054) is stable enough to anchor the guide at archetype level; new pack archetypes will trigger an ADR-0054 revision before the guide needs updating.

@@ -71,7 +71,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   build time (surface it as a `## Design (LLD)` decision, don't silently move it).
 - **Shipping the user guides to adopters** (seeding them into
   `user-guide-diataxis`) rather than authoring them in this catalogue repo's
-  `docs/guides/` as RFC-0020 directs.
+  `guides/` as RFC-0020 directs.
 
 ### Never do
 
@@ -121,7 +121,7 @@ test. Modes, per user-visible outcome from the Objective:
   `reference.md` under `architecture/` distinct from `overview.md`; build-self
   projects it; the doc-drift gate is green.
 - **User guides ship** — *goal-based*: four files exist under the right
-  `docs/guides/<quadrant>/` paths, and a **task-local self-test** greps each
+  `guides/<quadrant>/` paths, and a **task-local self-test** greps each
   guide's `](relative/path)` link targets and asserts every intra-repo target
   resolves on disk. (There is no *repo-wide* markdown-link or guide-frontmatter
   gate, so T5 carries its own link-resolution self-test — a goal-based grep, not
@@ -187,7 +187,7 @@ test. Modes, per user-visible outcome from the Objective:
   `reference.md` under `architecture/` as the **normative** sibling of the
   **descriptive** `overview.md`; build-self projects the edit and the doc-drift
   gate is green.
-- [x] User guides ship under `docs/guides/`: a **tutorial** ("Create and use
+- [x] User guides ship under `guides/`: a **tutorial** ("Create and use
   your `reference.md`"), a **how-to** ("Establish your repo's reference
   architecture"), an **explanation** ("Foundation vs. map"), and a **reference**
   ("`reference.md` arc42 sections + the stack-pack contract"); a task-local
@@ -196,7 +196,7 @@ test. Modes, per user-visible outcome from the Objective:
 - [x] **No adopter-facing created/edited artifact embeds an internal-repo
   reference.** The template asset, the `adapt-to-project` SKILL.md harvest text,
   the `packs/core/seeds/docs/CONVENTIONS.md` seed edit, and the four
-  `docs/guides/` files contain no `RFC-NNNN` / `ADR-NNNN` token and no
+  `guides/` files contain no `RFC-NNNN` / `ADR-NNNN` token and no
   `docs/(specs|rfc|adr)/` path string. A goal-based grep-absence check in
   T1/T3/T4/T5 enforces it. The greenfield/`init-project` path is named honestly
   as *not yet available* without citing any proposal number. (Governance
@@ -235,10 +235,10 @@ test. Modes, per user-visible outcome from the Objective:
 - Product: all three build deliverables (template + harvest + stack-pack
   contract), the user guides, and the CONVENTIONS edit are in scope; greenfield
   authoring (RFC-0021) is out (source: user confirmation 2026-06-01).
-- Process: the user guides are **this catalogue repo's own** `docs/guides/`
+- Process: the user guides are **this catalogue repo's own** `guides/`
   documentation (repo-owned, matched by `EXCLUDED_PATTERNS` so never projected to
   adopters), authored via the `user-guide-diataxis` pack's `new-guide` skill —
   distinct from what `core` ships (the template + harvest + contract). A
   core-only adopter gets the producer machinery, not these guides (source:
-  `self_host.py` `EXCLUDED_PATTERNS` `docs/guides/**`; RFC-0020 §Follow-on "in
-  *this* catalogue repo, `docs/guides/`").
+  `self_host.py` `EXCLUDED_PATTERNS` `guides/**`; RFC-0020 §Follow-on "in
+  *this* catalogue repo, `guides/`").

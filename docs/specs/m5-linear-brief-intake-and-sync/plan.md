@@ -13,8 +13,8 @@
   `SKILL.md` + `manifest.json`; `linear` primitive also gets
   `scripts/linear.py`, `requirements.txt`, `references/creds-schema.toml`;
   `linear-brief-intake` also gets `references/examples.md`; update
-  `docs/architecture/overview.md`, `docs/guides/README.md`,
-  `docs/product/changelog.md`; create `docs/guides/linear/` guide.
+  `docs/architecture/overview.md`, `guides/README.md`,
+  `docs/product/changelog.md`; create `guides/linear/` guide.
 - **"Done" looks like:** `tools/lint_credentialed_skills.py`, `lint-packs`,
   `agentbundle validate`, `make build`, and the agentbundle package pytest all
   pass; three skills exist with spec-compliant `SKILL.md` and `manifest.json`;
@@ -241,12 +241,12 @@ def test_get_project_respects_retry_after_on_429(mock_linear_api, mock_sleep):
 **Depends on:** T2, T3, T4
 **Files:**
 - `docs/architecture/overview.md` — add `linear` row to the pack table
-- `docs/guides/README.md` — add `linear` row to the "All packs" table
+- `guides/README.md` — add `linear` row to the "All packs" table
 - `docs/product/changelog.md` — add [Unreleased] entry for the new pack and skills
 
 **Done when:**
 - `grep -n "linear" docs/architecture/overview.md` returns a row in the `| Pack | Scope | Carries |` table.
-- `grep -n "linear" docs/guides/README.md` returns a row in the "All packs" table.
+- `grep -n "linear" guides/README.md` returns a row in the "All packs" table.
 - `grep -n "linear" docs/product/changelog.md` returns the [Unreleased] entry.
 
 **No stub**.
@@ -257,16 +257,16 @@ def test_get_project_respects_retry_after_on_429(mock_linear_api, mock_sleep):
 **Verification mode:** goal-based check (file exists + topics covered)
 **Depends on:** T3, T4
 **Files:**
-- `docs/guides/linear/README.md` (pack guide home)
-- `docs/guides/linear/how-to/linear-brief-intake-and-sync.md`
+- `guides/linear/README.md` (pack guide home)
+- `guides/linear/how-to/linear-brief-intake-and-sync.md`
 
 **Done when:**
-- Guide exists at `docs/guides/linear/how-to/linear-brief-intake-and-sync.md`.
+- Guide exists at `guides/linear/how-to/linear-brief-intake-and-sync.md`.
 - Guide covers all three required topics from spec:
   1. When to use `linear-brief-intake` vs `linear-brief-sync` (decision table or prose).
   2. The full sync lifecycle (five steps from RFC-0068: intake → spec authored → review round → delta catch-up → lock).
   3. Executing-lock semantics (what triggers it, what `linear-brief-sync` does when it fires, how to unblock).
-- `docs/guides/linear/README.md` exists as the pack guide home.
+- `guides/linear/README.md` exists as the pack guide home.
 
 **No stub**.
 

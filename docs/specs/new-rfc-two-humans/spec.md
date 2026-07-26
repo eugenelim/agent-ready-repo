@@ -58,7 +58,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   then run `make build-self` to regenerate the `.claude/` and `.agents/` copies.
 - Run both lint surfaces by hand — `lint-packs` (source) and
   `tools/lint-agent-artifacts.py` (projection).
-- Keep `docs/guides/governance-extras/how-to/new-rfc.md` (a Living doc) in sync
+- Keep `guides/governance-extras/how-to/new-rfc.md` (a Living doc) in sync
   in the same PR when the skill's described procedure changes.
 - Preserve every RFC-0014 pre-handoff gate check (citation-integrity,
   verify-before-you-assert, per-subpoint backing, completeness checklist,
@@ -169,7 +169,7 @@ artifact — the same shape as the shipped B-narrow spec:
   survive verbatim*; and the `adversarial-reviewer` dispatch stays *mandatory,
   re-run until clean*. Weight-based trimming reduces research depth and draft
   size, never a mandated check at its tier.
-- [x] **AC7 — how-to guide synced.** `docs/guides/governance-extras/how-to/new-rfc.md`
+- [x] **AC7 — how-to guide synced.** `guides/governance-extras/how-to/new-rfc.md`
   reflects the new guided shape/intake step and the four template changes
   (Decision weight, Reviewer brief, decisions table, intake), with no unrelated
   drift. The guide carries its **own** `## Step N` numbering; inserting the intake

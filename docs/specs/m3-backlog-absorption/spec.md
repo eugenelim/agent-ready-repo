@@ -184,7 +184,7 @@ single view of open work.
   `docs/specs/discovery-producer-type-markers/spec.md` (×2) (`#discovery-loop-type-marker-producers`),
   `docs/specs/credbroker-user-scope/plan.md` (`#active-with-credbroker-pip`),
   `docs/specs/pack-activation-evals/plan.md` (`#behavior-check-for-backend-skills`),
-  `docs/guides/_shared/how-to/preview-install-or-upgrade.md` (`#install-dry-run-preview-governance-seeds`).
+  `guides/_shared/how-to/preview-install-or-upgrade.md` (`#install-dry-run-preview-governance-seeds`).
   `CONTRIBUTING.md` updated where applicable. `docs/specs/README.md` reference
   to `#credbroker-phase-2` may remain (tombstone retains the heading).
 - [x] `CONTRIBUTING.md` and `packs/core/.apm/skills/export-catalogue/SKILL.md`

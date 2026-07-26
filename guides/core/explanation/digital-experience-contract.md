@@ -49,4 +49,4 @@ This rule is what makes the contract safe across partial installations. An adopt
 
 ---
 
-*Governed by RFC-0071 (Digital Experience Doctrine, Area A / D1). The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](/docs/guides/product-strategy/), [experience-design](/docs/guides/experience-design/), [core](/docs/guides/core/). The product-engineering journey page is pending `spec/product-engineering-shaping-doctrine`.*
+*Governed by RFC-0071 (Digital Experience Doctrine, Area A / D1). The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](/guides/product-strategy/), [experience-design](/guides/experience-design/), [core](/guides/core/). The product-engineering journey page is pending `spec/product-engineering-shaping-doctrine`.*

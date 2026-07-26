@@ -146,7 +146,7 @@ The spec is closed when each of the following observable outcomes is verifiable 
 - **AC14.** At merge time, the cross-caller survey command excludes the doc directories that legitimately reference the substrings as documentation:
   ```
   grep -rn -E "does not declare 'attach-to-agent'|not in adapter.*agent-event-vocabulary" \
-    tools/ .github/ docs/guides/ docs/architecture/ docs/product/
+    tools/ .github/ guides/ docs/architecture/ docs/product/
   ```
   This is expected to return **empty**. (Spec / RFC / ADR directories — `docs/specs/`, `docs/rfc/`, `docs/adr/` — legitimately quote the refusal text as documentation per RFC-0005's pinned wording and the parent `dropped-primitives-coverage` spec; they're excluded from the survey because their citations don't constitute behavioural consumption.) Initial survey was run 2026-05-26 and returned empty for the whitelisted directories. The AC pins re-running the same command at merge time so a caller added between draft and merge can't slip past.
 

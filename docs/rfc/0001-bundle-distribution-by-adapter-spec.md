@@ -67,7 +67,7 @@ The three add-ons extend core: `governance-extras` adds the
 RFC/ADR ceremony (skills + `docs/rfcs/` + `docs/adrs/` + the
 rfc.md+adr.md templates); `user-guide-diataxis` adds the user-
 documentation structure (the four diátaxis homes under
-`docs/guides/`); `monorepo-extras` adds the `new-package` skill
+`guides/`); `monorepo-extras` adds the `new-package` skill
 and `packages/` scaffolding for adopters with a monorepo layout.
 Adopters install à la carte through APM, Claude
 Code plugins, or our CLI; the repo is not a starting-point
@@ -236,7 +236,7 @@ agent-ready-repo/
 │   ├── knowledge/                     # ← projected from packs/core/seeds/docs/knowledge/ (skills append patterns.jsonl here)
 │   ├── product/                       # ← projected from packs/core/seeds/docs/product/
 │   ├── rfcs/, adrs/                   # ← projected from packs/governance-extras/seeds/docs/{rfcs,adrs}/  (THIS REPO's RFCs and ADRs land here)
-│   ├── guides/                        # ← projected from packs/user-guide-diataxis/seeds/docs/guides/  (this repo's user-facing guides if any)
+│   ├── guides/                        # ← projected from packs/user-guide-diataxis/seeds/guides/  (this repo's user-facing guides if any)
 │   ├── _templates/                    # ← projected from union of packs/{core,governance-extras}/seeds/docs/_templates/
 │   └── contracts/                     # NOT projected — meta-content owned by the catalogue itself
 │       └── adapter.toml               # Adapter contract; published standalone via RFC-0003
@@ -682,7 +682,7 @@ Common adoption patterns:
 |---|---|---|---|---|---|
 | `core` | work-loop, new-spec, bug-fix, adapt-to-project | adversarial-reviewer, security-reviewer, quality-engineer, implementer | session-start, pre-pr | conventions-check | `AGENTS.md` template + `docs/CHARTER.md` + `docs/CONVENTIONS.md` + `docs/architecture/` + `docs/specs/` + `docs/knowledge/` + `docs/product/` + `docs/_templates/{spec,plan}.md` (each directory with a README) |
 | `governance-extras` | new-rfc, new-adr, update-conventions | — | — | — | `docs/rfcs/` + `docs/adrs/` + `docs/_templates/{rfc,adr}.md` (each with a README) |
-| `user-guide-diataxis` | new-guide | — | — | — | `docs/guides/` with `tutorials/` + `how-to/` + `reference/` + `explanation/` (each with a README) |
+| `user-guide-diataxis` | new-guide | — | — | — | `guides/` with `tutorials/` + `how-to/` + `reference/` + `explanation/` (each with a README) |
 | `monorepo-extras` | new-package | — | — | — | `packages/` with `_example/` skeleton (and `packages/README.md`) |
 
 THIS repo's own ADRs, RFCs, and specs (governance entries about
@@ -728,7 +728,7 @@ relevance):
 | `docs/rfcs/README.md` | `governance-extras` | Explains the RFC convention |
 | `docs/adrs/README.md` | `governance-extras` | Explains the ADR convention |
 | `docs/_templates/rfc.md`, `adr.md` | `governance-extras` | RFC + ADR templates |
-| `docs/guides/README.md`, plus `tutorials/`, `how-to/`, `reference/`, `explanation/` (each with their own README) | `user-guide-diataxis` | Diátaxis-aware user-documentation structure |
+| `guides/README.md`, plus `tutorials/`, `how-to/`, `reference/`, `explanation/` (each with their own README) | `user-guide-diataxis` | Diátaxis-aware user-documentation structure |
 | `packages/README.md`, `packages/_example/` | `monorepo-extras` | Monorepo package convention + example skeleton |
 
 Every directory the packs project comes with a `README.md`
@@ -1124,7 +1124,7 @@ accepted-at = 2026-05-22T10:00:00Z
 [[declined]]
 finding-id = "user-guide-diataxis/howto-from-docs-howto"
 source-path = "docs/howto/"
-destination-path = "docs/guides/how-to/"
+destination-path = "guides/how-to/"
 declined-at = 2026-05-22T10:01:00Z
 ```
 

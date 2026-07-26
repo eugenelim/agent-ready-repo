@@ -27,4 +27,4 @@ Ask your agent, for example:
 
 ---
 
-→ **Go deeper:** the [`contracts` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/contracts/).
+→ **Go deeper:** the [`contracts` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/contracts/).

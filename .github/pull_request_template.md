@@ -36,7 +36,7 @@ paragraph why this PR doesn't need one.
 - [ ] Spec and code agree (or spec was updated in this PR)
 - [ ] Living docs match reality:
   - [ ] `docs/product/changelog.md` updated for any user-visible behavior change
-  - [ ] `docs/guides/` updated if user-facing behavior, config, or interfaces changed (right Diátaxis bucket — see [`docs/guides/README.md`](../docs/guides/README.md))
+  - [ ] `guides/` updated if user-facing behavior, config, or interfaces changed (right Diátaxis bucket — see [`guides/README.md`](../guides/README.md))
   - [ ] `docs/architecture/` updated if code structure changed materially
   - [ ] `docs/product/roadmap.md` updated if this completes a roadmap item
 - [ ] No new top-level directories (those need an RFC)

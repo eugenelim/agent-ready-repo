@@ -166,7 +166,7 @@ accepted-at      = 2026-05-22T10:00:00Z
 finding-id       = "user-guide-diataxis/restructure:b819e2d4"
 kind             = "restructure"
 source-path      = "docs/howto/"
-destination-path = "docs/guides/how-to/"
+destination-path = "guides/how-to/"
 declined-at      = 2026-05-22T10:01:00Z
 ```
 
@@ -1016,7 +1016,7 @@ Per the work-loop's three-mode taxonomy:
   captures do not close *(c)*. The brownfield fixture is extended
   in the same PR with a class-3 surface (`DESIGN.md` overlapping
   `docs/CHARTER.md`) and a class-4 surface
-  (`docs/howto/getting-started.md` + `docs/guides/how-to/index.md`)
+  (`docs/howto/getting-started.md` + `guides/how-to/index.md`)
   so rows 12–16 can carry simulated captures. AC4b checkbox stays
   unchecked: rows 8–16 still await real-adopter capture; rows
   19–28 still await the first user-scope-eligible pack.

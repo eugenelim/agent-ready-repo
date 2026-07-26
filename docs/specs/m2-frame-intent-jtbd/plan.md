@@ -175,13 +175,13 @@ are relevant; the rest are pruned.
 ### T4: Update `shape-a-feature-intent.md` guide with JTBD subsection
 
 **Depends on:** T2, T3  
-**Touches:** `docs/guides/product-engineering/how-to/shape-a-feature-intent.md`
+**Touches:** `guides/product-engineering/how-to/shape-a-feature-intent.md`
 
 **Tests:**
-- `grep -i "functional job\|jtbd" docs/guides/product-engineering/how-to/shape-a-feature-intent.md` — JTBD section present
-- `grep "Emotional job" docs/guides/product-engineering/how-to/shape-a-feature-intent.md` — present
-- `grep "Social job" docs/guides/product-engineering/how-to/shape-a-feature-intent.md` — present
-- `grep "Struggling moment" docs/guides/product-engineering/how-to/shape-a-feature-intent.md` — present
+- `grep -i "functional job\|jtbd" guides/product-engineering/how-to/shape-a-feature-intent.md` — JTBD section present
+- `grep "Emotional job" guides/product-engineering/how-to/shape-a-feature-intent.md` — present
+- `grep "Social job" guides/product-engineering/how-to/shape-a-feature-intent.md` — present
+- `grep "Struggling moment" guides/product-engineering/how-to/shape-a-feature-intent.md` — present
 
 **Approach:**
 - In the "## 1. Frame the intent" section of the guide, after the existing Opportunity bullet (which currently says "what the user is trying to get done, framed without a solution"), insert a "### JTBD enrichment" subsection

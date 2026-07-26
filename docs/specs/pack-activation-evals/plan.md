@@ -333,7 +333,7 @@ summaries; `make build-check` is untouched.
 **Depends on:** T1 (the convention/lint must exist before the docs describe it)
 
 **Tests:**
-- Goal-based: `docs/guides/_shared/how-to/author-a-skill.md` gains a section
+- Goal-based: `guides/_shared/how-to/author-a-skill.md` gains a section
   covering (a) writing `evals/eval_queries.json` — the trigger-eval convention
   (flat `[{query, should_trigger}]`, ~8–10 each way, near-miss negatives),
   **distinct** from the output-quality `evals/evals.json`; (b) declaring
@@ -373,7 +373,7 @@ summaries; `make build-check` is untouched.
   eval-output workspace `.eval-workspace/<pack>/iteration-<N>/…/outputs/` as a
   gitignored run-artifact (not pack source) emitted by `run-pack-evals.py` (AC22).
 - Sweep the per-pack reference guides touched by the first cut
-  (`docs/guides/core/`, `docs/guides/converters/`) for any `evals/`-layout claim
+  (`guides/core/`, `guides/converters/`) for any `evals/`-layout claim
   that the relaxed lint makes stale; fix in place.
 
 **Done when:** the guide documents writing + running the Tier-A evals **and** the

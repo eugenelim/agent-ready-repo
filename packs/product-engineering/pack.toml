@@ -46,7 +46,7 @@ skills = ["frame-intent", "de-risk-intent", "decompose-intent", "align-value-str
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-engineering/"
 
 [[pack.maintainers]]
 name = "eugenelim"

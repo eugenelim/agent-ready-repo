@@ -75,7 +75,7 @@ The pack's `README.md` is copied verbatim into both the claude-plugins and APM
 route directories, so the `readme = "README.md"` pointer resolves relative to
 the route. A pack without a README projects none and does not error. The README
 is the **sole portable per-pack doc**; deeper guides live in this repo under
-`docs/guides/` and are linked from the README rather than shipped inside the
+`guides/` and are linked from the README rather than shipped inside the
 pack.
 
 ## `@catalogue/pack` identity (declare-only)

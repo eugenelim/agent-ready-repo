@@ -102,7 +102,7 @@ against `packs/experience/`.
 - [x] `packs/experience/` exists with all skill content moved under it; `packs/design-craft/` no longer exists.
 - [x] `pack.toml` and `.claude-plugin/plugin.json` carry `name = "experience"`, a refreshed `display_name`/`description`, and **version `0.2.0`**.
 - [x] `.claude-plugin/marketplace.json` aggregates the `experience` entry (name, displayName, description, links, documentation) and carries **no** `design-craft` entry; re-aggregation ran (`make build`/`build-self`).
-- [x] `docs/guides/design-craft/` is renamed to `docs/guides/experience/` and the `[pack.links].documentation` URL points to it.
+- [x] `guides/design-craft/` is renamed to `guides/experience/` and the `[pack.links].documentation` URL points to it.
 - [x] No install-time pack alias is added (grep-confirmed: no new rename/alias field in any manifest).
 - [x] Frozen governance (RFC-0033, ADR-0024, the Shipped `design-craft-pack` spec, the `docs/rfc`/`docs/specs` README index rows) is **not** edited; the rename is bridged by ADR-0038 (already Accepted) and a changelog entry.
 

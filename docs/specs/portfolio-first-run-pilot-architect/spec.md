@@ -24,11 +24,11 @@ The architect pilot establishes the baseline pattern (local, no credentials, non
 
 ### Always do
 
-- Author the tutorial at `docs/guides/architect/tutorials/architect-first-session.md`, using the contract fields (`starter-task`, `starter-prompt`, `expected-result`, `recovery`, `next-action`) from `packs/architect/pack.toml` `[pack.first-value]` as the authoritative source.
+- Author the tutorial at `guides/architect/tutorials/architect-first-session.md`, using the contract fields (`starter-task`, `starter-prompt`, `expected-result`, `recovery`, `next-action`) from `packs/architect/pack.toml` `[pack.first-value]` as the authoritative source.
 - Use the `starter-prompt` verbatim in the tutorial — no paraphrase, no `<placeholder>` tokens.
 - Keep the tutorial terminal-free: no bash commands, no `git` invocations, no file-path strings the user must type, no prerequisite that conflicts with `prerequisites = []` in the contract.
 - Record the transcript at `docs/specs/portfolio-first-run-pilot-architect/notes/transcript.md`. Record which skill actually fired and what it produced — not what was expected to happen. If the path does not complete, document the reproducible blocker with enough evidence for a second evaluator to reproduce it.
-- Wire `tutorial = "docs/guides/architect/tutorials/architect-first-session.md"` in `packs/architect/pack.toml` `[pack.first-value]` once the tutorial file exists and the transcript confirms the path (or confirms a known-honest grading).
+- Wire `tutorial = "guides/architect/tutorials/architect-first-session.md"` in `packs/architect/pack.toml` `[pack.first-value]` once the tutorial file exists and the transcript confirms the path (or confirms a known-honest grading).
 - Bump the architect pack version (patch — this change is catalogue-internal; the tutorial path and the `tutorial` field are not projected to adopter installs) and add a changelog entry when `pack.toml` changes.
 - Also bump `packs/architect/.claude-plugin/plugin.json` version to match any `pack.toml` version change.
 - Run `make build-self FORCE=1` after any `pack.toml` or skill edit.
@@ -62,18 +62,18 @@ Note on "plain language accessible to a non-technical user" (AC1d) and section c
 
 ### AC1 — Tutorial authored
 
-- [x] `docs/guides/architect/tutorials/architect-first-session.md` exists.
+- [x] `guides/architect/tutorials/architect-first-session.md` exists.
 - [x] The tutorial covers, in order: (a) install verification — ask the agent a question and confirm it responds with architectural context, matching the contract's `verification` field; (b) the exact `starter-prompt` from the contract, presented as copy-ready text; (c) what the user will see, matching the `expected-result` field; (d) recovery, matching the `recovery` field; (e) next action, matching the `next-action` field.
 - [x] The tutorial contains no bash commands, no `git` invocations, no file-path syntax the user must type manually, and no prerequisite that conflicts with `prerequisites = []` in the contract.
 - [x] The tutorial is written in plain language accessible to a non-technical user.
 
 ### AC2 — Tutorial linked from README
 
-- [x] `docs/guides/architect/README.md` has a link to `tutorials/architect-first-session.md` in its Tutorials section.
+- [x] `guides/architect/README.md` has a link to `tutorials/architect-first-session.md` in its Tutorials section.
 
 ### AC3 — Tutorial field wired
 
-- [x] `packs/architect/pack.toml` `[pack.first-value]` has `tutorial = "docs/guides/architect/tutorials/architect-first-session.md"`.
+- [x] `packs/architect/pack.toml` `[pack.first-value]` has `tutorial = "guides/architect/tutorials/architect-first-session.md"`.
 - [x] The architect pack version is bumped (patch) from `0.13.2` in `pack.toml`.
 - [x] `packs/architect/.claude-plugin/plugin.json` version matches the bumped `pack.toml` version.
 - [x] `docs/product/changelog.md` `[Unreleased]` has an entry for the tutorial addition.
@@ -107,7 +107,7 @@ Note on "plain language accessible to a non-technical user" (AC1d) and section c
 4. The pilot run uses a real codebase with settled architecture decisions (this repo, florence-v1, or equivalent) — the pilot needs a real codebase, not a toy one.
 5. The existing `create-your-reference-architecture.md` tutorial covers a different path (`adapt-to-project` + arc42 template, route-by-route). The new tutorial is additive; no change to the existing tutorial is needed.
 6. Architect pack version is `0.13.2` — confirmed 2026-07-22 from `packs/architect/pack.toml`.
-7. The `tutorial` field value (`docs/guides/architect/tutorials/architect-first-session.md`) is a catalogue-internal path: it exists only in this repo and is resolved relative to the catalogue root by `lint-first-value-contract.py`. It is not projected to adopter installs (consistent with `[pack.first-value]` being catalogue-internal per portfolio-pack-first-value-contract Boundaries). This pilot sets the convention.
+7. The `tutorial` field value (`guides/architect/tutorials/architect-first-session.md`) is a catalogue-internal path: it exists only in this repo and is resolved relative to the catalogue root by `lint-first-value-contract.py`. It is not projected to adopter installs (consistent with `[pack.first-value]` being catalogue-internal per portfolio-pack-first-value-contract Boundaries). This pilot sets the convention.
 
 ## Changelog
 

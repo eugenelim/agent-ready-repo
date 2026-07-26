@@ -9,7 +9,7 @@ Checks:
   5. Internal markdown links resolve.
   6. docs/CHARTER.md exists.
   7. No legacy docs/constitution/ directory exists.
-  8. The four Diátaxis subdirectories under docs/guides/ exist.
+  8. The four Diátaxis subdirectories under guides/ exist.
   9. Living docs aren't suspiciously stale (warn-only, not a fail).
  10. Drift-watch — phrases that must live in exactly one canonical home.
 """
@@ -166,29 +166,29 @@ def main() -> int:
     else:
         ok("No legacy docs/constitution/ directory.")
 
-    # 8. Diátaxis structure under docs/guides/ — accepted either at the top
+    # 8. Diátaxis structure under guides/ — accepted either at the top
     #    level (the by-quadrant scaffold an adopter installs) or under
-    #    docs/guides/_shared/ (the per-pack layout this catalogue uses, ADR-0020:
+    #    guides/_shared/ (the per-pack layout this catalogue uses, ADR-0020:
     #    quadrants live within each pack, with the cross-cutting writing-rule
     #    READMEs in _shared/).
     diataxis_dirs = ("tutorials", "how-to", "reference", "explanation")
     missing = [
         d
         for d in diataxis_dirs
-        if not Path(f"docs/guides/{d}").is_dir()
-        and not Path(f"docs/guides/_shared/{d}").is_dir()
+        if not Path(f"guides/{d}").is_dir()
+        and not Path(f"guides/_shared/{d}").is_dir()
     ]
     if missing:
         note(
-            f"docs/guides/ is missing Diátaxis subdirectories: {' '.join(missing)}. "
-            f"See docs/guides/README.md."
+            f"guides/ is missing Diátaxis subdirectories: {' '.join(missing)}. "
+            f"See guides/README.md."
         )
     else:
         # Coarse scaffold check only: it confirms each quadrant name resolves to
         # a directory (top-level, or under _shared/ in the per-pack layout). It
         # does not validate that every per-pack guide home is well-formed —
         # cross-link resolution and the per-pack READMEs cover that.
-        ok("docs/guides/ exposes the four Diátaxis quadrants (top-level or _shared/ scaffold).")
+        ok("guides/ exposes the four Diátaxis quadrants (top-level or _shared/ scaffold).")
 
     # 9. Stale living-doc check (warn-only)
     living_docs = (

@@ -394,7 +394,7 @@ shim), and adapter-contract edits.
   appended after the body, after LF normalisation). Verifies
   Acceptance Criterion 8.
 - Goal-based: every seed README path under `docs/architecture/`,
-  `docs/specs/`, `docs/knowledge/`, `docs/product/`, `docs/guides/`,
+  `docs/specs/`, `docs/knowledge/`, `docs/product/`, `guides/`,
   `docs/rfc/`, `docs/adr/`, and `packages/` listed in RFC-0002's
   *Projected* table exists on disk and matches its pack-side source
   under the gate's comparison rules. Verifies Acceptance Criterion 9.

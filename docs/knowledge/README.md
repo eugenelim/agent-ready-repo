@@ -11,7 +11,7 @@ This is deliberately different from the documents that already exist:
 |---|---|
 | `docs/adr/` | Decisions ("we chose X over Y because…"). Immutable. |
 | `docs/architecture/` | Current code structure. Living. |
-| `docs/guides/` | User-facing docs. Diátaxis. |
+| `guides/` | User-facing docs. Diátaxis. |
 | **`docs/knowledge/patterns.jsonl`** | **Practitioner-level lessons: patterns, gotchas, antipatterns. Scoped to file globs.** |
 
 ADRs answer *why was this decided*. Knowledge entries answer *what

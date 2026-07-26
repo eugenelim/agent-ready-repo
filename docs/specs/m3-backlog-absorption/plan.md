@@ -496,7 +496,7 @@ set from research:
 | `docs/specs/credbroker-user-scope/plan.md` | `#active-with-credbroker-pip` | Update prose |
 | `docs/specs/pack-activation-evals/plan.md` | `#behavior-check-for-backend-skills` | Update prose |
 | `docs/specs/llm-agent-agentic-boundary-extension/plan.md` | `#…` (ellipsis in prose) | Update the guidance prose; no anchor link to fix |
-| `docs/guides/_shared/how-to/preview-install-or-upgrade.md` | `#install-dry-run-preview-governance-seeds` | Update the `backlog` link to reference workspace.toml |
+| `guides/_shared/how-to/preview-install-or-upgrade.md` | `#install-dry-run-preview-governance-seeds` | Update the `backlog` link to reference workspace.toml |
 | `CONTRIBUTING.md` | `#credbroker-phase-2` | Tombstone retained — link resolves; update prose if needed |
 | `docs/specs/README.md` | `#credbroker-phase-2` | Tombstone retained — link resolves |
 | `packs/core/.apm/skills/export-catalogue/SKILL.md` | any | Remove or update any `docs/backlog.md` reference |

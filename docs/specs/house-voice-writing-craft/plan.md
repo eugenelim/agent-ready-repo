@@ -55,7 +55,7 @@ to build the `.apm/**` leak lint; declining — RFC-gated new convention.
 
 **Tests:** (goal-based)
 - `grep -riE 'viral|virality|adoption|hacker.?news|evangelist|founder|go.viral' AGENTS.local.md` returns nothing.
-- New section names natural prose, no rationale/identity leak, and soft-wrap for `docs/guides/`.
+- New section names natural prose, no rationale/identity leak, and soft-wrap for `guides/`.
 
 **Approach:**
 - Add a "house style for our own internal docs" section: natural prose (the tells), no rationale/identity leak, soft-wrap guides. Cross-reference the pack as the adopter-facing home so the two don't duplicate. No strategic *why*.
@@ -72,7 +72,7 @@ to build the `.apm/**` leak lint; declining — RFC-gated new convention.
 - 2026-06-13: initial plan.
 - 2026-06-13: scope expanded by owner direction to ride along the two items
   originally surfaced as follow-ups — the build-self by-quadrant guide-scaffold
-  fix (`_project_seeds` skips `docs/guides/**`, TDD) and the flagged other-pack
+  fix (`_project_seeds` skips `guides/**`, TDD) and the flagged other-pack
   leaks (atlassian 0.1.3, core 0.4.3 `conventions-check`). `research` naming
   `credential-brokers` was reviewed and left (functional cross-pack reference).
   The systemic remaining `core` `.apm/**` references stay deferred to the

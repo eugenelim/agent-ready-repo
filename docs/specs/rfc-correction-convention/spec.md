@@ -107,7 +107,7 @@ which is **manual QA**:
   template home).
 - [x] No `docs/CONVENTIONS.md` change is made (RFC-0055 D4) and no file under
   `docs/rfc/*.md` is modified (RFC-0055 D5, forward-only) — verifiable from the diff.
-- [x] The repo-only guide `docs/guides/governance-extras/how-to/new-rfc.md` gains
+- [x] The repo-only guide `guides/governance-extras/how-to/new-rfc.md` gains
   a short note pointing at the convention; it does not restate the convention and
   does not ship with the pack.
 - [x] `docs/product/changelog.md` `[Unreleased]` records the skill-behavior change,

@@ -90,7 +90,7 @@ The three-tier guard that keeps an implementing agent inside the lines.
   in this pack (habits, not infrastructure; the 3-reviewer ceiling stands).
 - **Never** add a new **top-level directory**; the pack lives at
   `packs/product-engineering/`, seeds under its `seeds/`, guides under the
-  existing `docs/guides/`.
+  existing `guides/`.
 - **Never** make `core` import from or depend on this pack — `core` stands alone;
   `parent-intent:` is additive and never interpreted by `receive-brief`.
 - **Never** **attach a contract as authority** (copy it into the brief) — reference
@@ -202,13 +202,13 @@ is goal-based for structure and manual-QA for judgment.
   atomic cross-repo commit**, **no shared release train**, and the rollup is a
   **snapshot, not a live feed**.
 - [x] **The Diátaxis guides are updated**: a new phase-2 **how-to** page ships at
-  `docs/guides/how-to/<problem-named>.md` ("run a capability across a value stream /
+  `guides/how-to/<problem-named>.md` ("run a capability across a value stream /
   many component repos") reading accurately against the shipped skills; the v1
-  **forward references** in `docs/guides/product-engineering/how-to/shape-a-feature-intent.md` — **both**
+  **forward references** in `guides/product-engineering/how-to/shape-a-feature-intent.md` — **both**
   the header blurb ("that path is phase 2") and the footer note ("specified but not
   yet shipped — see RFC-0030 Appendix A") — are updated to point at the new page, with
   the stale "phase 2" / "not yet shipped" wording removed; and the
-  **reference** guide (`docs/guides/product-engineering/reference/intent-fields-and-modes.md`) gains the
+  **reference** guide (`guides/product-engineering/reference/intent-fields-and-modes.md`) gains the
   BU-scale fields (`parent-intent:`, the rollup, the catalog). Manual-QA recorded in
   the PR.
 - [x] **The pack version bumps** to `0.2.0` (`pack.toml` + `.claude-plugin/plugin.json`),

@@ -26,7 +26,7 @@ marking done; the post-rename grep is the gate for T1.
 The riskiest part is T1 (the rename sweep): RFC-0066's spike confirmed ~43 files
 in `packs/experience/` contain old slug references across SKILL.md bodies,
 `references/*.md`, `assets/*` templates, `evals/*.json`, the agent file, README,
-and pack.toml — plus 4 files in `docs/guides/experience/` — plus cross-pack
+and pack.toml — plus 4 files in `guides/experience/` — plus cross-pack
 inbound references in core/product-engineering/research. The post-rename grep
 covers all file types and directories; T1 does not advance until the grep returns
 zero and the cross-pack audit is resolved.
@@ -45,7 +45,7 @@ zero and the cross-pack audit is resolved.
 
 **Cross-task integration:**
 - Post-rename grep (gate for T1 — covers all file types including JSON):
-  `grep -r "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" packs/experience/ docs/guides/experience/ --include="*.md" --include="*.toml" --include="*.json"`
+  `grep -r "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" packs/experience/ guides/experience/ --include="*.md" --include="*.toml" --include="*.json"`
   → zero results.
 - Agnosticism lint (runs after T1, T2, T3, T4, T5a, T5b):
   `python tools/lint-experience-agnostic.py packs/experience/` → exit 0.
@@ -126,11 +126,11 @@ in T5a and T5b (not enumerated here — each task's Tests: confirms presence).
 
 **Depends on:** none
 
-**Touches:** `packs/experience/.apm/skills/` (all 11 dirs + their `evals/evals.json`), `packs/experience/.apm/agents/experience-reviewer.md`, `packs/experience/README.md`, `packs/experience/pack.toml`, `packs/experience/.claude-plugin/plugin.json` (description only; version bump stays in T6), `docs/guides/experience/**`, `packs/experience/.apm/skills/content-design/SKILL.md`, cross-pack inbound files in `packs/core/` (scripts), `packs/product-engineering/` (voice-and-microcopy), `packs/desk-research/` (imperative invocations updated in-PR)
+**Touches:** `packs/experience/.apm/skills/` (all 11 dirs + their `evals/evals.json`), `packs/experience/.apm/agents/experience-reviewer.md`, `packs/experience/README.md`, `packs/experience/pack.toml`, `packs/experience/.claude-plugin/plugin.json` (description only; version bump stays in T6), `guides/experience/**`, `packs/experience/.apm/skills/content-design/SKILL.md`, cross-pack inbound files in `packs/core/` (scripts), `packs/product-engineering/` (voice-and-microcopy), `packs/desk-research/` (imperative invocations updated in-PR)
 
 **Tests:**
 - Post-rename grep returns zero across all file types:
-  `grep -r "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" packs/experience/ docs/guides/experience/ --include="*.md" --include="*.toml" --include="*.json"` → zero results.
+  `grep -r "map-customer-journey\|blueprint-service\|map-screen-flow\|map-internal-process\|aesthetic-direction\|layout-and-information-architecture\|design-critique\|design-system-foundations\|copy-direction" packs/experience/ guides/experience/ --include="*.md" --include="*.toml" --include="*.json"` → zero results.
 - Cross-pack audit: same grep extended to `packs/core/ packs/product-engineering/ packs/desk-research/` — imperative invocations updated in-PR (including `voice-and-microcopy`'s `copy-direction`→`tone-of-voice` and `desk-research`'s `map-internal-process`→`process-mapping`); core `.py` docstrings updated in-PR.
 - `ls packs/experience/.apm/skills/ | sort` shows exactly 11 directories with canonical names.
 - `python tools/lint-experience-agnostic.py packs/experience/` exits 0.
@@ -162,7 +162,7 @@ in T5a and T5b (not enumerated here — each task's Tests: confirms presence).
 8. In `packs/experience/.claude-plugin/plugin.json`:
    - Update `description` field to use canonical skill names and note the 18-skill chain.
    (Version bump from 0.5.0 → 0.6.0 stays in T6 step 2. Moving description here so the T1 grep gate can pass — plugin.json is inside `packs/experience/` and is included in the `*.json` grep.)
-9. In `docs/guides/experience/` (4 files): update all old slug references.
+9. In `guides/experience/` (4 files): update all old slug references.
 10. In `packs/experience/.apm/skills/content-design/SKILL.md`: update
     `copy-direction` → `tone-of-voice`; leave `voice-and-microcopy` references
     unchanged.
@@ -359,20 +359,20 @@ After all 6 are created, run lint.
 
 **Depends on:** T1, T3, T4
 
-**Touches:** `docs/guides/experience/README.md`, `docs/guides/experience/explanation/the-experience-thread.md`, `docs/guides/experience/how-to/author-design-intent.md`, `docs/guides/experience/reference/experience.md`
+**Touches:** `guides/experience/README.md`, `guides/experience/explanation/the-experience-thread.md`, `guides/experience/how-to/author-design-intent.md`, `guides/experience/reference/experience.md`
 
 **Tests:**
 - Each of the 4 guide files reads naturally with canonical skill names (not just slug-swapped — trigger descriptions, "when to use" prose, and chain-position descriptions match the updated skills).
-- `docs/guides/experience/` README (or reference/experience.md) lists all 18 skills with their canonical names.
+- `guides/experience/` README (or reference/experience.md) lists all 18 skills with their canonical names.
 - New skills mentioned in the guides or listed in the reference page include at minimum a one-line description of what each does and when to use it (stub level — not full guide pages; those are deferred follow-on).
-- `grep 'design-principles\|conversion-design\|documentation-design\|analytical-design\|marketplace-design\|informational-design\|workspace-design' docs/guides/experience/reference/experience.md` → matches (new skills visible in the reference).
+- `grep 'design-principles\|conversion-design\|documentation-design\|analytical-design\|marketplace-design\|informational-design\|workspace-design' guides/experience/reference/experience.md` → matches (new skills visible in the reference).
 
 **Approach:**
 1. Read each of the 4 guide files (slug updates were already applied in T1; this task is the content pass).
-2. In `docs/guides/experience/reference/experience.md`: add the 7 new skills to the skill list/table with one-line descriptions and the phase they belong to (Define: design-principles; Genre-specific: 6 others).
-3. In `docs/guides/experience/explanation/the-experience-thread.md`: verify the experience chain narrative reflects the renamed skills and the new chain structure (11 → 18); update any chain description that would be misleading with new names.
-4. In `docs/guides/experience/how-to/author-design-intent.md`: verify the how-to steps read correctly with new skill names; update any "invoke `design-critique`" or "run `aesthetic-direction`" references that now use renamed skills.
-5. In `docs/guides/experience/README.md`: update skill list and any navigation references.
+2. In `guides/experience/reference/experience.md`: add the 7 new skills to the skill list/table with one-line descriptions and the phase they belong to (Define: design-principles; Genre-specific: 6 others).
+3. In `guides/experience/explanation/the-experience-thread.md`: verify the experience chain narrative reflects the renamed skills and the new chain structure (11 → 18); update any chain description that would be misleading with new names.
+4. In `guides/experience/how-to/author-design-intent.md`: verify the how-to steps read correctly with new skill names; update any "invoke `design-critique`" or "run `aesthetic-direction`" references that now use renamed skills.
+5. In `guides/experience/README.md`: update skill list and any navigation references.
 6. Verify no old-slug reference remains in the 4 files (the T1 sweep should have caught these; this is a content-quality pass on top).
 
 **Done when:** 4 files verified for content correctness; 7 new skills visible in reference/experience.md; no old-slug references remain.

@@ -5,7 +5,7 @@ tagline: "Diátaxis-shaped documentation skeleton."
 skills:
   - new-guide
 installCommand: "agentbundle install --pack user-guide-diataxis"
-docsUrl: /docs/guides/user-guide-diataxis/
+docsUrl: /guides/user-guide-diataxis/
 journeyUrl: /journeys/user-guide-diataxis/
 ---
 

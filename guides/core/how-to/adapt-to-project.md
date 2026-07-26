@@ -40,7 +40,7 @@ Your repo already has conventions, so the skill walks **four classes of change**
 1. **Substitution.** Same `<adapt:NAME>` markers as greenfield, but the values usually already exist in your `README`, `package.json`, or `Makefile`; the skill proposes pulling them in.
 2. **Companion merges.** For each `*.upstream.<ext>` file the install left on disk, the skill proposes a merged result against your existing file. Per-file accept, edit, skip, or decline.
 3. **Discovery + restructuring.** Non-canonical primitives elsewhere in your tree — a `DESIGN.md` at root, a stray `docs/architecture.md` — get matched against pack-canonical paths (`docs/CHARTER.md`, `docs/architecture/overview.md`). Per-finding accept, edit, or decline.
-4. **Within-layout consolidation.** Overlapping shapes — your `docs/howto/` vs. the diátaxis pack's `docs/guides/how-to/` — get folded together per your call.
+4. **Within-layout consolidation.** Overlapping shapes — your `docs/howto/` vs. the diátaxis pack's `guides/how-to/` — get folded together per your call.
 
 ### Companion availability by install route
 

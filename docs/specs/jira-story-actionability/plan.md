@@ -370,30 +370,30 @@ version is `0.5.0` in both toml + json, package pytest clean (or noted CI-only).
 **Depends on:** T1, T2, T3
 
 **Tests:**
-- `grep "jira-story-triage\|jira-team-status" docs/guides/atlassian/how-to/work-with-jira.md` returns matches.
-- `grep "jira-story-triage" docs/guides/atlassian/reference/atlassian-skills.md` returns a match.
-- `grep "jira-team-status" docs/guides/atlassian/reference/atlassian-skills.md` returns a match.
-- `grep "jira-story-triage\|jira-team-status" docs/guides/atlassian/README.md` returns matches.
-- `grep "jira-story-triage\|jira-team-status" docs/guides/atlassian/explanation/atlassian-pack.md` returns matches.
+- `grep "jira-story-triage\|jira-team-status" guides/atlassian/how-to/work-with-jira.md` returns matches.
+- `grep "jira-story-triage" guides/atlassian/reference/atlassian-skills.md` returns a match.
+- `grep "jira-team-status" guides/atlassian/reference/atlassian-skills.md` returns a match.
+- `grep "jira-story-triage\|jira-team-status" guides/atlassian/README.md` returns matches.
+- `grep "jira-story-triage\|jira-team-status" guides/atlassian/explanation/atlassian-pack.md` returns matches.
 - `grep "jira-story-triage\|jira-team-status" packs/atlassian/README.md` returns matches.
 - `grep "jira-story-triage\|jira-team-status\|story quality\|pre-create gate" docs/product/changelog.md` returns a match in `[Unreleased]`.
 
 **Approach:**
 
-`docs/guides/atlassian/how-to/work-with-jira.md` — add `## Write actionable stories`
+`guides/atlassian/how-to/work-with-jira.md` — add `## Write actionable stories`
 after "Create an issue": introduce the five-question bar and Q5 right-sizing (~200
 words); note the `jira` skill applies the gate automatically on `create-issue`; link
 to `jira-story-triage` (bulk audit) and `jira-team-status` (sprint entry point).
 
-`docs/guides/atlassian/reference/atlassian-skills.md` — add `## jira-story-triage`
+`guides/atlassian/reference/atlassian-skills.md` — add `## jira-story-triage`
 and `## jira-team-status` sections (Purpose / Primary inputs / Outputs / Required
 credentials / Source) mirroring each skill's frontmatter `description`, placed after
 `jira-brief-intake`.
 
-`docs/guides/atlassian/README.md` — how-to list: add entries for both skills; pack
+`guides/atlassian/README.md` — how-to list: add entries for both skills; pack
 description: extend to name backlog management skills.
 
-`docs/guides/atlassian/explanation/atlassian-pack.md` — "The skills that build on top"
+`guides/atlassian/explanation/atlassian-pack.md` — "The skills that build on top"
 section: add bullets for both new skills.
 
 `packs/atlassian/README.md` — "What's inside" bullets: add both skills under

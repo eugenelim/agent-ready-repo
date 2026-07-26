@@ -109,7 +109,7 @@ make build-check
 ### T4: Add `## Naming your skill` section to `author-a-skill.md`
 
 **Depends on:** none
-**Touches:** docs/guides/_shared/how-to/author-a-skill.md
+**Touches:** guides/_shared/how-to/author-a-skill.md
 
 **Tests:**
 - Goal-based (AC7): the file gains a `## Naming your skill` section after `## Body structure` with the verb table (5 rows: status, start, check, init, resume) and the banned-label list (arrive, orient, onboard, return, onboarding).
@@ -120,10 +120,10 @@ make build-check
 - Insert `## Naming your skill` after that section with:
   - The verb taxonomy table from ADR-0054 §Decision (status/start/check/init/resume with Meaning and Activation phrasing columns).
   - The banned-label list sentence: "Banned as skill names: `arrive`, `orient`, `onboard`, `return`, `onboarding` — these are UX-stage labels, not user-facing commands."
-- Add the intro sentence to the guide's intro paragraph (or as a callout before the first section): "If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills." (Note: `author-a-skill.md` is at `docs/guides/_shared/how-to/`; `explanation/` is one level up and across, so the correct relative path is `../explanation/`, not `../../explanation/`. The RFC-0067 body at §A2 incorrectly writes `../../explanation/` — the spec/plan are correct.)
-- Create a minimal stub at `docs/guides/_shared/explanation/pack-workflow-design.md` **only if the file does not already exist** (idempotent guard: if Spec D has already shipped the full guide, skip stub creation). The stub contains one introductory sentence noting full content is in Spec D; Spec D fills the guide body.
+- Add the intro sentence to the guide's intro paragraph (or as a callout before the first section): "If you're authoring the first skill in a new pack, read [Pack workflow design](../explanation/pack-workflow-design.md) first — it tells you how to design the pack's arc before writing individual skills." (Note: `author-a-skill.md` is at `guides/_shared/how-to/`; `explanation/` is one level up and across, so the correct relative path is `../explanation/`, not `../../explanation/`. The RFC-0067 body at §A2 incorrectly writes `../../explanation/` — the spec/plan are correct.)
+- Create a minimal stub at `guides/_shared/explanation/pack-workflow-design.md` **only if the file does not already exist** (idempotent guard: if Spec D has already shipped the full guide, skip stub creation). The stub contains one introductory sentence noting full content is in Spec D; Spec D fills the guide body.
 
-**Done when:** AC7 + AC8 hold; the verb table matches ADR-0054 exactly. The stub at `docs/guides/_shared/explanation/pack-workflow-design.md` resolves the link.
+**Done when:** AC7 + AC8 hold; the verb table matches ADR-0054 exactly. The stub at `guides/_shared/explanation/pack-workflow-design.md` resolves the link.
 
 ---
 
@@ -138,7 +138,7 @@ make build-check
 **Approach:**
 - Add an `[Unreleased]` section (or append to it if one exists) noting:
   - Renamed: `check-workspace` → `workspace-status` (clean retire — no alias).
-  - Added: Verb taxonomy (`## Naming your skill`) section to `docs/guides/_shared/how-to/author-a-skill.md`.
+  - Added: Verb taxonomy (`## Naming your skill`) section to `guides/_shared/how-to/author-a-skill.md`.
 
 **Done when:** AC11 holds.
 

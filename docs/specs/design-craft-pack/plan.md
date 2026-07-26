@@ -107,7 +107,7 @@ It is catalogue-governance under `tools/`, **not** a pack primitive, and is
 - Goal-based: `make build` is green and `marketplace.json` lists `design-craft` with name + description + version (AC1).
 
 **Approach:**
-- Copy the `pack.toml` / `.claude-plugin/plugin.json` / `README.md` shape from `packs/research/`; set name `design-craft`, version `0.1.0`, `default-scope = "user"`, `allowed-scopes = ["user","repo"]`, `[pack.adapter-contract] version = "0.12"`, `allowed-adapters` = the seven shipped adapters (claude-code, codex, copilot, kiro-ide, kiro-cli, cursor, gemini), `[pack.links] documentation` → `docs/guides/design-craft/`, a `[[pack.maintainers]]` entry.
+- Copy the `pack.toml` / `.claude-plugin/plugin.json` / `README.md` shape from `packs/research/`; set name `design-craft`, version `0.1.0`, `default-scope = "user"`, `allowed-scopes = ["user","repo"]`, `[pack.adapter-contract] version = "0.12"`, `allowed-adapters` = the seven shipped adapters (claude-code, codex, copilot, kiro-ide, kiro-cli, cursor, gemini), `[pack.links] documentation` → `guides/design-craft/`, a `[[pack.maintainers]]` entry.
 - Add the `design-craft` entry to `.claude-plugin/marketplace.json` (alphabetical with the others).
 - README: what the pack is, the four skills + the `quality-floor` checklist, install snippet, "what's NOT in this pack" (no stack specifics, no values tables, no `seeds/`, no subagent — the OQ#2 twin is a later RFC).
 
@@ -211,18 +211,18 @@ It is catalogue-governance under `tools/`, **not** a pack primitive, and is
 ### T8: ADR, guides, changelog, spec status, and full gate sweep
 
 **Depends on:** T1-T7
-**Touches:** docs/adr/00NN-design-craft-upstream-intent-and-agnosticism.md, docs/adr/README.md, docs/guides/design-craft/**, docs/product/changelog.md, docs/specs/README.md, docs/specs/design-craft-pack/spec.md
+**Touches:** docs/adr/00NN-design-craft-upstream-intent-and-agnosticism.md, docs/adr/README.md, guides/design-craft/**, docs/product/changelog.md, docs/specs/README.md, docs/specs/design-craft-pack/spec.md
 
 **Tests:**
 - Goal-based: the ADR exists, is registered in `docs/adr/README.md`, and records the scope decision + the strict-agnosticism guardrails (AC10).
-- Goal-based: guide files exist at their `docs/guides/design-craft/{explanation|how-to|reference}` paths (AC9); manual-QA accuracy recorded in the PR.
+- Goal-based: guide files exist at their `guides/design-craft/{explanation|how-to|reference}` paths (AC9); manual-QA accuracy recorded in the PR.
 - Goal-based: `docs/product/changelog.md` carries an `[Unreleased]` entry naming the new pack (AC11).
 - Goal-based: `make lint-packs`, `make validate`, `make build`, `tools/lint-skill-spec.py`, the agnosticism lint, and the package `pytest` suite are all green; every shipped `SKILL.md` `<100` lines; a grep proves the diff adds nothing under `packs/core/` and no pack file makes `core` depend on `design-craft` (AC11).
-- Goal-based (structural Never): a grep of the pack tree confirms **no `hooks/`, no `agents/`, no `*.py` validator in the pack, no `seeds/`**, and that the only new top-level paths the diff adds are `packs/design-craft/`, `docs/guides/design-craft/`, and the two `tools/` lint files (AC11).
+- Goal-based (structural Never): a grep of the pack tree confirms **no `hooks/`, no `agents/`, no `*.py` validator in the pack, no `seeds/`**, and that the only new top-level paths the diff adds are `packs/design-craft/`, `guides/design-craft/`, and the two `tools/` lint files (AC11).
 
 **Approach:**
 - Author the ADR via `new-adr` (the design-intent scope decision + Guardrails A/B as the durable record); register it in `docs/adr/README.md`.
-- Author guides via `new-guide` under `docs/guides/design-craft/`: an explanation (the design-craft loop + why portable discipline), how-to(s) (per skill or grouped), a reference (the four skills + the `quality-floor` checklist).
+- Author guides via `new-guide` under `guides/design-craft/`: an explanation (the design-craft loop + why portable discipline), how-to(s) (per skill or grouped), a reference (the four skills + the `quality-floor` checklist).
 - Add a `docs/product/changelog.md` `[Unreleased]` entry for the new pack.
 - Flip the spec `Status:` to Shipped with the date and check off every AC (memory: set-final-status-in-the-implementing-PR).
 - Run the full local gate sweep; fix any findings.

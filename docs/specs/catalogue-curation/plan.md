@@ -132,7 +132,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 
 ### T9: Per-pack guide
 **Depends on:** T4, T5, T6, T7
-**Touches:** docs/guides/catalogue-curation/**
+**Touches:** guides/catalogue-curation/**
 **Tests:**
 - Goal-based: guide home exists, all four quadrants present, links resolve (`lint-agent-artifacts` link check / doc-link grep).
 **Approach:**
@@ -179,4 +179,4 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 - 2026-07-22: Manual QA complete for assimilate-primitive (shared/ingest into agent-commander), assimilate-repo (llm-wiki-kit survey → RFC-0001, PKM charter anchor, 53/3/1 verdicts), and export-catalogue (white-label to /tmp/catalogue-fork-qa, PASS). Spec ACs checked accordingly.
 - 2026-07-22: `assimilate-repo` step 1 added — charter anchor elicitation (reads target catalogue's CHARTER.md `## Domain`; elicits if absent; overrideable). `docs/CHARTER.md` `## Domain` section added to naypyidaw. Canonical workflow note added to skill.
 - 2026-07-22: `export-catalogue` seed-planting (step 4) and mission-capture (step 5) added — fork gets full docs scaffold at export time; CHARTER.md written from elicited mission. Transform manifest updated. `workspace-status` "If absent" init updated to emit full schema-documented template (replaces single-line comment; workspace.toml removed from seeds to avoid Tier-1 projection clobber).
-- 2026-07-22: `docs/guides` de-identified — all `eugenelim/agent-ready-repo` identity genericised across `_shared/` and pack-specific guides for clean adopter export. Remaining open paths: hook-confirm, re-sync RFC routing, anti-pattern detection, propose-catalogue-pack QA.
+- 2026-07-22: `guides` de-identified — all `eugenelim/agent-ready-repo` identity genericised across `_shared/` and pack-specific guides for clean adopter export. Remaining open paths: hook-confirm, re-sync RFC routing, anti-pattern detection, propose-catalogue-pack QA.

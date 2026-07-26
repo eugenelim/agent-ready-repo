@@ -138,13 +138,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] Each skill ships `evals/evals.json` (canonical `skill_name` + `evals` keys) with activation and don't-render-by-hand assertions; the converters evals carry-over CI check (`build-check.yml`, "converters evals.json carry-over disposition") is extended to enumerate the three new skills.
 - [x] The pack version is bumped `0.1.2 → 0.2.0` in both `packs/converters/pack.toml` and `packs/converters/.claude-plugin/plugin.json`; `[pack.adapter-contract]` stays `0.8`; `make build` refreshes the top-level `.claude-plugin/marketplace.json` to the new version; `lint-packs` and `make build` are green.
 - [x] The pack's user-facing surfaces are updated to reflect the Markdown→Office direction: `packs/converters/README.md`'s skill list adds the three skills, and the `description` in `pack.toml` + `plugin.json` (which propagates into `marketplace.json`) names the outward direction — not just the current inward-only wording.
-- [x] User docs land in the implementing PR: a new `docs/guides/converters/how-to/publish-markdown-to-office.md`, an extension to `docs/guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry.
+- [x] User docs land in the implementing PR: a new `guides/converters/how-to/publish-markdown-to-office.md`, an extension to `guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry.
 
 ## Assumptions
 
 - Technical: Runtime is Python ≥3.11; deterministic render scripts are `.py` (source: `packages/agentbundle/pyproject.toml:9`; existing converters `scripts/`).
 - Technical: `python-pptx` and `openpyxl` are MIT-licensed; `docxtpl` is **LGPL-2.1-only** — not "permissive" as RFC-0036's at-a-glance table states — but Tier-1 use (the user pip-installs it; the catalogue never bundles or redistributes it) imposes no license obligation on the catalogue (source: [python-pptx LICENSE](https://github.com/scanny/python-pptx/blob/master/LICENSE); [docxtpl PyPI](https://libraries.io/pypi/docxtpl), web lookup 2026-06-17).
-- Technical: Tier-1 detection for a pip *library* is an import-probe, not `shutil.which` (source: `docs/guides/_shared/how-to/author-a-skill.md:131`).
+- Technical: Tier-1 detection for a pip *library* is an import-probe, not `shutil.which` (source: `guides/_shared/how-to/author-a-skill.md:131`).
 - Technical: SKILL.md frontmatter is `name` + `description` (+ optional); body cap warns >500 / errors >1000 lines (source: `tools/lint-skill-spec.py`).
 - Technical: a skill `scripts/` pytest suite is CI-gated only via an explicit per-path line (source: `.github/workflows/build-check.yml:166-184`); converters ships no script tests today.
 - Process: RFC-0036 is Accepted; the spec follows it and an ADR is unnecessary (the RFC is the record) (source: RFC-0036 § Follow-on artifacts).

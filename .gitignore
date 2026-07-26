@@ -72,7 +72,7 @@ dist/
 # Hand-crafted sources under site/docs/ are committed; generated dirs are not.
 site/built/
 site/docs/packs/
-site/docs/guides/
+site/guides/
 site/docs/changelog.md
 site/docs/contributing.md
 site/docs/.siteignore

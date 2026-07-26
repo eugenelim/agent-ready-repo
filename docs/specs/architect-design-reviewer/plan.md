@@ -135,8 +135,8 @@ green for `design-reviewer.md`.
 - `grep` confirms `packs/architect/README.md` no longer carries the old
   "design-side review is a skill, not a subagent" exclusion verbatim and now
   documents the `design-reviewer` subagent.
-- `grep` confirms `docs/guides/architect/how-to/review-an-architecture-artifact.md`
-  and `docs/guides/architect/README.md` mention the subagent.
+- `grep` confirms `guides/architect/how-to/review-an-architecture-artifact.md`
+  and `guides/architect/README.md` mention the subagent.
 - `lint-packs` green (no broken cross-references in the edited pack files).
 
 **Approach:**

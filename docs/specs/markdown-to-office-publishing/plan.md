@@ -40,7 +40,7 @@ re-opens the produced file, all CI-gated by explicit per-path lines.
   with PDF / visual-QA as non-goals (decision 6), docs as a follow-on (decision 7).
 - **RFC-0007** — the `converters` pack: user-scope-default, ships no `seeds/`, no
   hooks; these additions inherit that shape.
-- **`docs/guides/_shared/how-to/author-a-skill.md`** — the 3-tier dependency
+- **`guides/_shared/how-to/author-a-skill.md`** — the 3-tier dependency
   model (Tier-1 here) and the progressive-disclosure skill structure.
 - **`tools/lint-skill-spec.py`** — frontmatter + body-cap contract every
   `SKILL.md` must pass.
@@ -301,16 +301,16 @@ activation grading pass is recorded.
 ### T5: user docs — how-to, reference extension, changelog
 
 **Depends on:** T1, T2, T3
-**Touches:** docs/guides/converters/how-to/publish-markdown-to-office.md, docs/guides/converters/reference/converter-skills.md, docs/product/changelog.md
+**Touches:** guides/converters/how-to/publish-markdown-to-office.md, guides/converters/reference/converter-skills.md, docs/product/changelog.md
 
 **Tests:**
 - Goal-based: the new how-to and the reference edits exist and pass any docs
   link-check; the changelog has an `[Unreleased]` entry naming the three skills.
 
 **Approach:**
-- Author `docs/guides/converters/how-to/publish-markdown-to-office.md` (Diátaxis
+- Author `guides/converters/how-to/publish-markdown-to-office.md` (Diátaxis
   how-to) via `new-guide`, leading with the natural-language prompt per skill.
-- Extend `docs/guides/converters/reference/converter-skills.md` with the three
+- Extend `guides/converters/reference/converter-skills.md` with the three
   new skills.
 - Add the `docs/product/changelog.md` `[Unreleased]` entry.
 

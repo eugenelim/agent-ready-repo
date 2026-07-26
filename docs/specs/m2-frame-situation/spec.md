@@ -125,7 +125,7 @@ manual-QA for judgment.
   AC9 ambiguous-ask: `grep -F "genuinely ambiguous"` (ask-don't-force branch).
   A count-only OR-grep would pass vacuously; pin to unique phrases.
 - **Diátaxis guide: goal-based for file existence, manual QA for accuracy.**
-  Guide at `docs/guides/product-engineering/how-to/frame-a-situation.md`;
+  Guide at `guides/product-engineering/how-to/frame-a-situation.md`;
   reads accurately against the shipped skill (review recorded in PR).
 - **Projection: goal-based.** `lint-packs`, `validate`, and `build` exit 0.
   Adopter-cleanliness verified by grep over the SKILL body (no RFC-NNNN, no
@@ -197,7 +197,7 @@ manual-QA for judgment.
   `agent-ready-repo` references).
 
 - [x] **AC11.** A Diátaxis how-to guide ships at
-  `docs/guides/product-engineering/how-to/frame-a-situation.md` covering:
+  `guides/product-engineering/how-to/frame-a-situation.md` covering:
   when to use `frame-situation` vs `frame-intent` (altitude decision); what
   a well-formed signal looks like; and how to use the Wardley assessment
   output to choose the six-step entry point.
@@ -220,7 +220,7 @@ manual-QA for judgment.
 - **A3.** Wardley Evolution curve vocabulary (Genesis / Custom-built / Product /
   Commodity) is the canonical maturity model; the skill body briefly defines
   each stage so Wardley-unfamiliar adopters can follow without prior reading.
-- **A4.** `docs/guides/product-engineering/` exists and carries Diátaxis
+- **A4.** `guides/product-engineering/` exists and carries Diátaxis
   sub-buckets (`how-to/`, `reference/`, `tutorials/`, `explanation/`). The
   guide file at `how-to/frame-a-situation.md` does not yet exist.
 - **A5.** Workspace.toml write-back (auto-adding the [shaping_queue] entry)

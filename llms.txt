@@ -32,10 +32,10 @@
 
 ## Guides
 
-- [Guides index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/README.md): the Diátaxis guide set, organized by pack.
-- [Author a skill](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/_shared/how-to/author-a-skill.md): the hands-on how-to for writing a SKILL.md, including evals.
-- [Build an org stack pack](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/_shared/how-to/build-an-org-stack-pack.md): the full recipe for standing up your own catalogue.
-- [Why a catalogue](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/_shared/explanation/pack-catalogue.md): the adopter-facing explanation of the catalogue model.
+- [Guides index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/guides/README.md): the Diátaxis guide set, organized by pack.
+- [Author a skill](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/guides/_shared/how-to/author-a-skill.md): the hands-on how-to for writing a SKILL.md, including evals.
+- [Build an org stack pack](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/guides/_shared/how-to/build-an-org-stack-pack.md): the full recipe for standing up your own catalogue.
+- [Why a catalogue](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/guides/_shared/explanation/pack-catalogue.md): the adopter-facing explanation of the catalogue model.
 
 ## Optional
 

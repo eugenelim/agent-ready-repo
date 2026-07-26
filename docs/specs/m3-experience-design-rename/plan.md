@@ -14,7 +14,7 @@ Seven sequential tasks. T1 renames the pack directory — everything else keys
 off the new path. T2 updates the manifests (pack.toml + plugin.json). T3 sweeps
 all operative cross-pack references in `packs/` plus the root `README.md`. T4
 renames the guide directory, updates the slug-named guide file and all guide
-prose, and updates `docs/guides/README.md`. T5 updates all platform-site surfaces
+prose, and updates `guides/README.md`. T5 updates all platform-site surfaces
 (MkDocs, build-site.py, and the Astro web content). T6 creates the AGENTS.md
 migration guide and edits RFC-0064. T7 runs the build gates.
 
@@ -47,7 +47,7 @@ suite covers pack install/resolve infrastructure).
 - `[ -d packs/experience-design ] && [ ! -d packs/experience ]` — directory move
   complete.
 - `` grep -rn '"experience"\|experience pack\|`experience`' packs/ --include="*.md" | grep -v "^packs/experience-design/" `` — zero unremediated operative hits after T3. The backtick form `` `experience` `` is the dominant reference form in cross-pack SKILL.md files and must be included.
-- `[ -d docs/guides/experience-design ] && [ ! -d docs/guides/experience ]` — guide
+- `[ -d guides/experience-design ] && [ ! -d guides/experience ]` — guide
   directory move complete.
 
 ## Design (LLD)
@@ -62,8 +62,8 @@ The change touches six layers:
    skill directories unchanged inside it.
 3. **Operative cross-pack references** — six files outside the pack plus
    `product-engineering/README.md` and the root `README.md`.
-4. **Guide directory** — `docs/guides/experience` → `docs/guides/experience-design`;
-   one slug-named file renamed; prose updated; `docs/guides/README.md` updated.
+4. **Guide directory** — `guides/experience` → `guides/experience-design`;
+   one slug-named file renamed; prose updated; `guides/README.md` updated.
 5. **Platform site** — `site/mkdocs.yml` (MkDocs nav), `tools/build-site.py`
    (Astro pack list), `web/src/content/packs/experience.md` (file rename + content),
    `web/src/content/journeys/experience.md` (file rename + content),
@@ -140,8 +140,8 @@ git mv packs/experience packs/experience-design
 - `name = "experience"` → `name = "experience-design"`
 - `version = "0.6.0"` → `version = "1.0.0"`
 - `display_name = "Experience"` → `display_name = "Experience Design"`
-- `documentation` URL: `.../docs/guides/experience/` →
-  `.../docs/guides/experience-design/`
+- `documentation` URL: `.../guides/experience/` →
+  `.../guides/experience-design/`
 - `description` field: update "experience pack" prose if present; leave
   `experience-reviewer` and `[experience]` layout-key references intact.
 - Comments in pack.toml that name "the experience pack" → "the experience-design
@@ -244,8 +244,8 @@ Seven lines carry the `` `experience` `` pack name — update all to `` `experie
   `experience-design`.
 
 *`README.md` (root):*
-- Line 125: `[\`experience\`](docs/guides/experience/)` and description →
-  `[\`experience-design\`](docs/guides/experience-design/)` with updated description.
+- Line 125: `[\`experience\`](guides/experience/)` and description →
+  `[\`experience-design\`](guides/experience-design/)` with updated description.
 
 *Intra-pack SKILL.md sweep:*
 - Review every hit from the Step 0 grep within `packs/experience-design/.apm/skills/`.
@@ -256,26 +256,26 @@ Seven lines carry the `` `experience` `` pack name — update all to `` `experie
 
 ---
 
-### T4: Guide directory rename + prose + docs/guides/README.md
+### T4: Guide directory rename + prose + guides/README.md
 
 **Depends on:** T1
 
 **Touches:**
-`docs/guides/experience/` → `docs/guides/experience-design/`,
-`docs/guides/experience-design/reference/experience.md` →
-`docs/guides/experience-design/reference/experience-design.md`,
-all guide prose files within `docs/guides/experience-design/`,
-`docs/guides/README.md`
+`guides/experience/` → `guides/experience-design/`,
+`guides/experience-design/reference/experience.md` →
+`guides/experience-design/reference/experience-design.md`,
+all guide prose files within `guides/experience-design/`,
+`guides/README.md`
 
 **Tests:**
-- `[ -d docs/guides/experience-design ] && [ ! -d docs/guides/experience ]` exits 0
-- `[ -f docs/guides/experience-design/reference/experience-design.md ] && [ ! -f docs/guides/experience-design/reference/experience.md ]` exits 0
-- `` grep -rn '"experience"\|experience pack\|`experience`\|install.*experience[^-]' docs/guides/experience-design/ --include="*.md" `` returns 0 lines (excluding `[experience]` layout-key and `experience-reviewer` hits)
+- `[ -d guides/experience-design ] && [ ! -d guides/experience ]` exits 0
+- `[ -f guides/experience-design/reference/experience-design.md ] && [ ! -f guides/experience-design/reference/experience.md ]` exits 0
+- `` grep -rn '"experience"\|experience pack\|`experience`\|install.*experience[^-]' guides/experience-design/ --include="*.md" `` returns 0 lines (excluding `[experience]` layout-key and `experience-reviewer` hits)
 
 **Approach:**
-- `git mv docs/guides/experience docs/guides/experience-design`
+- `git mv guides/experience guides/experience-design`
 - Rename the slug-named reference file:
-  `git mv docs/guides/experience-design/reference/experience.md docs/guides/experience-design/reference/experience-design.md`
+  `git mv guides/experience-design/reference/experience.md guides/experience-design/reference/experience-design.md`
 - Update prose in all guide files:
   - Heading in `reference/experience-design.md` line 1: `` # `experience` — `` →
     `` # `experience-design` — ``
@@ -284,7 +284,7 @@ all guide prose files within `docs/guides/experience-design/`,
   - Pack-name prose: "the `experience` pack" → "the `experience-design` pack"
   - Leave `[experience]` layout-table references intact (activity-type key).
   - Leave `experience-reviewer` references intact.
-- Update `docs/guides/README.md`:
+- Update `guides/README.md`:
   - Line 23: `` [`experience`](experience/) `` → `` [`experience-design`](experience-design/) ``;
     "design critique" → "design review" (renamed in RFC-0066).
   - Line 56: `` [`experience`](experience/) `` → `` [`experience-design`](experience-design/) ``;
@@ -344,7 +344,7 @@ Verification (must return 0 lines after edits):
 - Frontmatter: `name: Experience` → `name: Experience Design`;
   `installCommand: "agentbundle install --pack experience --scope user"` →
   `"agentbundle install --pack experience-design --scope user"`;
-  `docsUrl: /docs/guides/experience/` → `/docs/guides/experience-design/`;
+  `docsUrl: /guides/experience/` → `/guides/experience-design/`;
   `journeyUrl: /journeys/experience/` → `/journeys/experience-design/`.
 - Skills list is already current (RFC-0066) — no changes needed.
 - Body prose: "Experience installs..." → "Experience Design installs..."; any
@@ -353,7 +353,7 @@ Verification (must return 0 lines after edits):
 *`web/src/content/journeys/experience.md` → `experience-design.md`:*
 - `git mv web/src/content/journeys/experience.md web/src/content/journeys/experience-design.md`
 - Frontmatter: `pack: experience` → `pack: experience-design`;
-  `docsUrl: /docs/guides/experience/` → `/docs/guides/experience-design/`;
+  `docsUrl: /guides/experience/` → `/guides/experience-design/`;
   `packUrl: /packs/experience/` → `/packs/experience-design/`.
 - `whatChanges` prose: "After installing experience," → "After installing
   experience-design,"; `experience-reviewer` stays.
@@ -505,7 +505,7 @@ mitigation.
   voice-and-microcopy to all 7 lines (3,17,20,28,29,32,68); corrected discovery-loop
   citation to line 210; expanded PE README to lines 123,127,129,139,142; added mkdocs
   guides section header (line 200) and leaf nav title retitle to T5; added
-  docs/guides/README.md:23 stale "design critique" fix to T4; scoped T6 RFC grep to
+  guides/README.md:23 stale "design critique" fix to T4; scoped T6 RFC grep to
   experience-design bullet; added case-insensitive mkdocs verification grep;
   added tools/lint-experience-agnostic.py to T3 Touches + approach (CI path breaks
   without it); widened Step 0 sweep to tools/ + .py; added lint to T7 gates and

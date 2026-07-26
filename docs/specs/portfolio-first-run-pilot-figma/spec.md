@@ -21,7 +21,7 @@ Access Token, and reads structure from a file they already own. The contract
 describes the path. This spec proves it.
 
 The deliverable is a step-by-step tutorial at
-`docs/guides/figma/tutorials/figma-first-session.md` that a designer with no
+`guides/figma/tutorials/figma-first-session.md` that a designer with no
 terminal workflow can follow to reach the first visible result (a list of pages
 and top-level frames from their own Figma file). The tutorial adds the `tutorial`
 field to the Figma pack's `[pack.first-value]`, making the contract independently
@@ -73,7 +73,7 @@ Three constraints shape this spec:
   `notes/surface-evidence.md` with grading "Limited" and a reproducible
   blocker, citing `behavior-check-for-backend-skills`. Do not invent a transcript.
 - **Soft-wrap the tutorial.** One logical line per paragraph, blank line between,
-  list items one line each (per AGENTS.local.md house style for `docs/guides/`).
+  list items one line each (per AGENTS.local.md house style for `guides/`).
 
 ### Ask first
 
@@ -107,7 +107,7 @@ Three constraints shape this spec:
 
 **Tutorial file (AC1–AC10):** Visual / manual QA. Read the tutorial against the
 AC1–AC10 checklist: each required section present, no credential embedded
-(`.github/workflows/ci-security.yml` gitleaks is the authoritative PR gate; author-time aid: `grep -r "figd_\|FIGMA_API_TOKEN=" docs/guides/figma/tutorials/` scoped to the tutorial only — the spec itself references the pattern in AC prose).
+(`.github/workflows/ci-security.yml` gitleaks is the authoritative PR gate; author-time aid: `grep -r "figd_\|FIGMA_API_TOKEN=" guides/figma/tutorials/` scoped to the tutorial only — the spec itself references the pattern in AC prose).
 
 **Contract wiring and factual correction (AC11–AC14):** Goal-based checks.
 - `python3 tools/lint-first-value-contract.py --root .` exits 0.
@@ -126,7 +126,7 @@ AC1–AC10 checklist: each required section present, no credential embedded
 
 ### AC1 — Tutorial file exists
 
-- [x] `docs/guides/figma/tutorials/figma-first-session.md` exists.
+- [x] `guides/figma/tutorials/figma-first-session.md` exists.
 - [x] The file opens with a one-sentence outcome statement: what the reader
   will have accomplished by the end.
 
@@ -207,19 +207,19 @@ AC1–AC10 checklist: each required section present, no credential embedded
   value from `[pack.first-value]`: asking the agent to export a specific frame
   as a Markdown description.
 - [x] The tutorial links to the existing how-to guide
-  (`docs/guides/figma/how-to/inspect-a-figma-file.md`) for more operations.
+  (`guides/figma/how-to/inspect-a-figma-file.md`) for more operations.
 
 ### AC10 — No credential in any authored artifact
 
 - [x] `gitleaks` (`.github/workflows/ci-security.yml`, PR-gated) is the
   authoritative gate for credential detection.
-- [x] Author-time aid: `grep -r "figd_\|FIGMA_API_TOKEN=" docs/guides/figma/tutorials/` returns zero matches (scoped to the tutorial only; the spec itself references the pattern in AC text).
+- [x] Author-time aid: `grep -r "figd_\|FIGMA_API_TOKEN=" guides/figma/tutorials/` returns zero matches (scoped to the tutorial only; the spec itself references the pattern in AC text).
 - [x] No hardcoded Figma file key or URL appears in the tutorial.
 
 ### AC11 — tutorial field added to pack.toml
 
 - [x] `packs/figma/pack.toml` `[pack.first-value]` section gains:
-  `tutorial = "docs/guides/figma/tutorials/figma-first-session.md"`
+  `tutorial = "guides/figma/tutorials/figma-first-session.md"`
 
 ### AC12 — verification field corrected in pack.toml
 

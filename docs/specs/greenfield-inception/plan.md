@@ -23,7 +23,7 @@ code, no new dependency. Three surfaces:
 2. **A CONVENTIONS seed amendment** — document the **two front-doors** (greenfield
    `init-project` / brownfield `adapt-to-project`) and where each enters the loop.
 3. **Three adopter guides** — a tutorial, a how-to, and an explanation under
-   `docs/guides/`, authored via `new-guide` (which lives in this catalogue repo's
+   `guides/`, authored via `new-guide` (which lives in this catalogue repo's
    `user-guide-diataxis` pack), then `make build-self` + `make build-check`.
 
 The riskiest part is **scope discipline in the skill prose**: `init-project` must
@@ -200,10 +200,10 @@ cleanly in T3.
 ### T4: Adopter guides authored via `new-guide`
 
 **Depends on:** T1
-**Touches:** docs/guides/**
+**Touches:** guides/**
 
 **Tests:**
-- Goal-based: three guide files exist under `docs/guides/` at their Diátaxis paths
+- Goal-based: three guide files exist under `guides/` at their Diátaxis paths
   — a tutorial ("From idea to a walking skeleton"), a how-to ("Decide and record
   your foundation during inception"), and an explanation ("Why a walking skeleton
   beats a throwaway prototype"). *(verifies AC: guide files exist)*

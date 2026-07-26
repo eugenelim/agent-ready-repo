@@ -1289,7 +1289,7 @@ Filled in on acceptance.
   concepts (the coordinator contract; divergence → convergence → validation; *converged ≠ validated*;
   the recursive plan-tree; the requirements crosswalk; two new skills), so **building the pack is not
   enough — users must be able to adopt it.** The implementing spec **must author the Diátaxis guide
-  set** (via the `new-guide` skill, under `docs/guides/product-engineering/…`) as an **acceptance
+  set** (via the `new-guide` skill, under `guides/product-engineering/…`) as an **acceptance
   criterion**, before the capability counts as shipped:
   - **Explanation** — what the discovery loop is and why: the coordinator contract, the
     divergence → convergence → validation arc, *converged ≠ validated*, the no-engine model, recursion.

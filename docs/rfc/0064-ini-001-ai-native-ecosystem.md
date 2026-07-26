@@ -526,7 +526,7 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [ ] PE pack Diátaxis guides: 2 tutorials, 4 how-tos, 2 reference, 2 explanation — named artifact list to be confirmed at M6 spec authoring time
 - [ ] `author-brief` documentation: how-to (intake-an-external-brief) + reference (DoR field definitions)
 - [ ] Astro site: project index view for non-engineer (PM) visibility — requires `docs/product/projects/` as a data source registered in the Astro build config; AC is complete when the index page renders project entries from committed `_template.md`-shaped files
-- [ ] Role journey section committed to `docs/guides/`: PM / engineer / agent — how each uses the system at their altitude; derived from `docs/product/journeys/` living maps
+- [ ] Role journey section committed to `guides/`: PM / engineer / agent — how each uses the system at their altitude; derived from `docs/product/journeys/` living maps
 - [ ] Live-demo guide: scenario selection criteria (≥3 representative team types); pre-flight checklist (installs, auth, repo state); narration script targeting the full shaping → brief → spec flow on the org's own codebase in ≤30 minutes — primary M6 deliverable from the enterprise adoption path (surfaced by `team-evaluates-and-adopts` journey Stage 3)
 - [ ] Enterprise rollout playbook: champion → CTO → platform team → engineers adoption path; staged rollout phases (pilot team → wave → org-wide); rollout checklist and retrospective template
 

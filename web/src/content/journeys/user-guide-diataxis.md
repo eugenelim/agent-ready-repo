@@ -46,7 +46,7 @@ typicalSession:
   agentTurns: "4–7"
   humanTouches: 2
   wallClockMinutes: "15–35"
-docsUrl: /docs/guides/user-guide-diataxis/
+docsUrl: /guides/user-guide-diataxis/
 packUrl: /packs/user-guide-diataxis/
 relatedJourneys:
   - core

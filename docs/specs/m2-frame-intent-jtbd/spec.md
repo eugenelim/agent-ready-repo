@@ -29,7 +29,7 @@ friction point where the current situation fails them). The intent template's
 Opportunity section carries four corresponding structured sub-fields. A new
 `references/jtbd-job-categories.md` grounds the vocabulary, keeping it consistent
 with `identify-opportunities`. The existing
-`docs/guides/product-engineering/how-to/shape-a-feature-intent.md` guide carries
+`guides/product-engineering/how-to/shape-a-feature-intent.md` guide carries
 a JTBD enrichment subsection (phase-slice doctrine — guide ships with the capability).
 
 The scope boundary with `identify-opportunities` holds: `frame-intent` elicits all
@@ -126,7 +126,7 @@ guide examples are concrete (one per dimension).
   `identify-opportunities`
 - [x] `jtbd-job-categories.md` cross-references `identify-opportunities` as the
   skill for deep job discovery and Ulwick scoring
-- [x] `docs/guides/product-engineering/how-to/shape-a-feature-intent.md` includes
+- [x] `guides/product-engineering/how-to/shape-a-feature-intent.md` includes
   a JTBD enrichment subsection covering the three job categories and struggling
   moment, with at least one concrete example per dimension
 - [x] When `frame-intent` step 5 is run and the practitioner provides JTBD
@@ -152,7 +152,7 @@ guide examples are concrete (one per dimension).
 - Technical: No `docs/product/intents/` directory exists — zero back-compat burden on already-authored intent files (source: bash probe, directory absent)
 - Technical: PE pack is currently v0.11.1; this is a feature addition → bump to v0.12.0 (source: `packs/product-engineering/pack.toml`)
 - Technical: `identify-opportunities` owns the full three-tier JTBD model with Ulwick scoring; `frame-intent` must not re-implement scoring (source: `packs/product-engineering/.apm/skills/identify-opportunities/SKILL.md`)
-- Technical: The guide to update is `docs/guides/product-engineering/how-to/shape-a-feature-intent.md` — covers the frame-intent flow but has no JTBD section (source: file read)
+- Technical: The guide to update is `guides/product-engineering/how-to/shape-a-feature-intent.md` — covers the frame-intent flow but has no JTBD section (source: file read)
 - Process: RFC-0064 M2.7 scopes this work as a shipped-skill modification with its own spec; `Constrained by: RFC-0064` (source: `docs/rfc/0064-ini-001-ai-native-ecosystem.md:116, 482`)
 - Process: No new RFC required — scoped modification within the RFC-0064 boundary (source: `docs/CONVENTIONS.md §When NOT to open an RFC`)
 - Product: JTBD grain is medium — all three job dimensions plus struggling moment elicited in step 5, no scoring (source: user confirmation 2026-07-21)

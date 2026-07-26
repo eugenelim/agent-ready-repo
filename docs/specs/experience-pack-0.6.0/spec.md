@@ -137,7 +137,7 @@ All skill content is pure markdown — no runtime code. Two verification modes a
         (documentation, marketing, analytical, informational, marketplace,
         workspace).
 - [x] AC6: Nine skill directories renamed; post-rename grep for old slugs returns
-      zero results across `packs/experience/` and `docs/guides/experience/` in all
+      zero results across `packs/experience/` and `guides/experience/` in all
       file types (`*.md`, `*.toml`, `*.json`); cross-pack inbound references in
       `packs/core/`, `packs/product-engineering/`, and `packs/desk-research/` that name
       old experience-pack slugs as imperative invocations are updated to canonical
@@ -156,7 +156,7 @@ All skill content is pure markdown — no runtime code. Two verification modes a
       and 7 new skills.
 - [x] AC11: `docs/rfc/README.md` has an RFC-0066 row with title, status
       (Accepted), and date closed.
-- [x] AC12: All 4 `docs/guides/experience/` files (README.md,
+- [x] AC12: All 4 `guides/experience/` files (README.md,
       explanation/the-experience-thread.md, how-to/author-design-intent.md,
       reference/experience.md) use canonical skill slugs; zero old-slug references.
 - [x] AC13: `content-design/SKILL.md` reference to `copy-direction` updated to
@@ -169,9 +169,9 @@ All skill content is pure markdown — no runtime code. Two verification modes a
       `web/src/components/marketing/HumanGates.astro`,
       `web/src/components/marketing/Hero.astro`,
       `web/src/components/marketing/BuildYourOrg.astro`).
-- [x] AC15: `docs/guides/experience/reference/experience.md` lists all 18 skills with
-      canonical names and one-line descriptions; `docs/guides/experience/explanation/the-experience-thread.md`
-      and `docs/guides/experience/how-to/author-design-intent.md` read correctly with
+- [x] AC15: `guides/experience/reference/experience.md` lists all 18 skills with
+      canonical names and one-line descriptions; `guides/experience/explanation/the-experience-thread.md`
+      and `guides/experience/how-to/author-design-intent.md` read correctly with
       renamed skill names and updated chain structure.
 - [x] AC16: In `docs/product/journeys/`, all imperative old-skill-slug invocations
       are updated to canonical names; zero imperative old-slug references remain;
@@ -212,9 +212,9 @@ All skill content is pure markdown — no runtime code. Two verification modes a
 - Technical: `tools/lint-experience-agnostic.py` is the mechanical agnosticism gate;
   `tools/test-lint-experience-agnostic.py` provides its test suite
   (source: `tools/` directory listing)
-- Technical: `docs/guides/experience/` has exactly 4 .md files in the rename sweep:
+- Technical: `guides/experience/` has exactly 4 .md files in the rename sweep:
   README.md, explanation/the-experience-thread.md, how-to/author-design-intent.md,
-  reference/experience.md (source: `find docs/guides/experience/ -name "*.md"`)
+  reference/experience.md (source: `find guides/experience/ -name "*.md"`)
 - Technical: Next available ADR ordinal is 0052 (latest is 0051)
   (source: `docs/adr/` directory listing)
 - Process: ADR-0038's alias-free precedent governs skill renames: rename live

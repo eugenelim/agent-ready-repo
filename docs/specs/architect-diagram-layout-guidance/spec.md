@@ -199,7 +199,7 @@ Full details in the survey. Key findings per reference file:
 
 ### Explanation guide
 
-- [x] **AC9 — Explanation guide.** `docs/guides/architect/explanation/architect-diagram-skill-design.md`
+- [x] **AC9 — Explanation guide.** `guides/architect/explanation/architect-diagram-skill-design.md`
       exists. Diátaxis *explanation* type: explains *why* the skill works as it does;
       no step-by-step instructions; references (does not duplicate) the how-to guides.
       Contains the following sections, each grounded in `mermaid-layout-survey.md`:
@@ -228,7 +228,7 @@ Full details in the survey. Key findings per reference file:
          rendering" north star; how the venue-caveat system operationalises it (for
          `architecture-beta`, `timeline`, ELK, config frontmatter, tidy-tree layout).
 
-- [x] **AC10 — Guide index updated.** `docs/guides/architect/README.md` gains an
+- [x] **AC10 — Guide index updated.** `guides/architect/README.md` gains an
       `## Explanation` section linking to the guide with framing: "Explains *why* the
       skill's choices are designed as they are."
 

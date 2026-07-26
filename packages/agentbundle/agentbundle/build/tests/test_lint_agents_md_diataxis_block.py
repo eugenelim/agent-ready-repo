@@ -1,8 +1,8 @@
 """`tools/lint-agents-md.py` check #8 — the Diátaxis-structure block.
 
 After the per-pack guide migration (ADR-0020) the four Diátaxis quadrant
-directories may live either at the top level (`docs/guides/<quadrant>/`, the
-by-quadrant scaffold an adopter installs) or under `docs/guides/_shared/`
+directories may live either at the top level (`guides/<quadrant>/`, the
+by-quadrant scaffold an adopter installs) or under `guides/_shared/`
 (the per-pack layout this catalogue uses). The check passes in *either*
 layout and fails only when a quadrant name resolves to neither.
 
@@ -37,7 +37,7 @@ def _seed_common(root: Path) -> None:
     (root / "AGENTS.md").write_text("# AGENTS.md\n", encoding="utf-8")
     (root / "CLAUDE.md").symlink_to("AGENTS.md")
     (root / "docs").mkdir(parents=True, exist_ok=True)
-    (root / "docs" / "guides").mkdir(parents=True, exist_ok=True)
+    (root / "guides").mkdir(parents=True, exist_ok=True)
 
 
 def _make_quadrants(base: Path) -> None:
@@ -63,7 +63,7 @@ class DiataxisBlockTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             _seed_common(root)
-            _make_quadrants(root / "docs" / "guides")
+            _make_quadrants(root / "guides")
             result = _run_linter(root)
             self.assertIn(_OK_SUBSTR, result.stdout)
             self.assertNotIn(_MISSING_SUBSTR, result.stderr)
@@ -72,9 +72,9 @@ class DiataxisBlockTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             _seed_common(root)
-            _make_quadrants(root / "docs" / "guides" / "_shared")
+            _make_quadrants(root / "guides" / "_shared")
             # A representative pack home, no top-level quadrant dirs.
-            (root / "docs" / "guides" / "core" / "how-to").mkdir(parents=True)
+            (root / "guides" / "core" / "how-to").mkdir(parents=True)
             result = _run_linter(root)
             self.assertIn(_OK_SUBSTR, result.stdout)
             self.assertNotIn(_MISSING_SUBSTR, result.stderr)
@@ -83,7 +83,7 @@ class DiataxisBlockTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             _seed_common(root)
-            # docs/guides/ exists but carries no quadrant dirs in either spot.
+            # guides/ exists but carries no quadrant dirs in either spot.
             result = _run_linter(root)
             self.assertIn(_MISSING_SUBSTR, result.stderr)
             for q in QUADRANTS:

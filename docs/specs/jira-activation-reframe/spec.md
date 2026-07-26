@@ -165,7 +165,7 @@ verification is **goal-based** plus a **manual phrase-trace**:
 - [x] The five-question bar text is identical in both `SKILL.md` files.
 - [x] All mirrored description surfaces are synced: each `manifest.json`,
   `reference/atlassian-skills.md`, `explanation/atlassian-pack.md`,
-  `docs/guides/atlassian/README.md`, `packs/atlassian/README.md`, and the journey card
+  `guides/atlassian/README.md`, `packs/atlassian/README.md`, and the journey card
   reflect the new purpose and split; `references/examples.md` for both skills shows the
   new output.
 - [x] `work-with-jira.md` documents "ready to pull" (or cross-references the canonical

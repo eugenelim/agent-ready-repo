@@ -506,7 +506,7 @@ level-b          = true
 writes-to-repo   = true
 starter-task     = "Set up a Diátaxis documentation structure for your project"
 starter-prompt   = "Create the initial Diátaxis documentation scaffold for this project, organized into tutorials, how-to guides, reference, and explanation sections."
-expected-result  = "A docs/guides/ directory with a README and empty folders for tutorials, how-to, reference, and explanation — ready to fill in."
+expected-result  = "A guides/ directory with a README and empty folders for tutorials, how-to, reference, and explanation — ready to fill in."
 next-action      = "Start with the tutorials section: ask the agent to help you write a tutorial for your most important user task."
 safety-gate      = "The skill shows you the planned directory structure and file list before creating anything. Confirm the preview before the scaffold is written."
 ```
@@ -534,10 +534,10 @@ No stub (goal-based). Done when lint-spec-status exits 0 and workspace.toml entr
    ```
 2. AC6 grep verification (run and confirm both return empty):
    - Pilot starter-prompt uniqueness: grep for a distinctive substring of each pilot pack's starter-prompt value in README and guide files only (not docs/specs/ which carries the plan):
-     - `grep -rl "Create an ADR for the decision to use TOML" packs/*/README.md docs/guides/*/README.md 2>/dev/null` → should be empty (governance-extras starter-prompt not duplicated)
-     - `grep -rl "Read the file structure of my main design file in Figma" packs/*/README.md docs/guides/*/README.md 2>/dev/null` → should be empty (figma starter-prompt not duplicated)
-     - `grep -rl "Describe the architecture of this codebase and create a reference.md" packs/*/README.md docs/guides/*/README.md 2>/dev/null` → should be empty (architect starter-prompt not duplicated)
-   - No duplicate inventory table: `grep -rl "audience-posture\|first-value" packs/*/README.md docs/guides/*/README.md 2>/dev/null` → should return nothing (no README carries a first-value inventory table)
+     - `grep -rl "Create an ADR for the decision to use TOML" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (governance-extras starter-prompt not duplicated)
+     - `grep -rl "Read the file structure of my main design file in Figma" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (figma starter-prompt not duplicated)
+     - `grep -rl "Describe the architecture of this codebase and create a reference.md" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (architect starter-prompt not duplicated)
+   - No duplicate inventory table: `grep -rl "audience-posture\|first-value" packs/*/README.md guides/*/README.md 2>/dev/null` → should return nothing (no README carries a first-value inventory table)
 3. Mark all 6 ACs in `spec.md` as `[x]`; update status line to `Implementing → Shipped`.
 4. Move `"spec/portfolio-pack-first-value-contract"` from `["ini-002".work].active`
    to `["ini-002".work].shipped` in `workspace.toml`.

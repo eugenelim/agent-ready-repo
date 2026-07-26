@@ -5,7 +5,7 @@
 
 ## Assumption trio
 
-- **Files touched:** `docs/guides/architect/tutorials/architect-first-session.md` (new), `packs/architect/pack.toml` (`tutorial` field + version bump), `docs/guides/architect/README.md` (link), `docs/product/changelog.md` (entry), `notes/transcript.md` (new), `notes/skill-changes.md` (new); conditionally `packs/architect/.apm/skills/architect-design/SKILL.md` if transcript reveals a skill gap.
+- **Files touched:** `guides/architect/tutorials/architect-first-session.md` (new), `packs/architect/pack.toml` (`tutorial` field + version bump), `guides/architect/README.md` (link), `docs/product/changelog.md` (entry), `notes/transcript.md` (new), `notes/skill-changes.md` (new); conditionally `packs/architect/.apm/skills/architect-design/SKILL.md` if transcript reveals a skill gap.
 - **Tests that prove done:** `lint-first-value-contract.py --root .` exits 0; `make build-check` exits 0; transcript file exists with observed result recorded.
 - **Not changing:** first-value contract fields in `pack.toml` (unless transcript proves them wrong); existing `create-your-reference-architecture.md` tutorial; any other pack's files.
 
@@ -29,15 +29,15 @@
 **Verification:** mixed (goal-based for file existence and no-terminal check; manual QA for section-coverage against AC1b and plain-language heuristic against AC1d — record the manual check in `notes/tutorial-review.md`)
 
 **Tests:**
-- `ls docs/guides/architect/tutorials/architect-first-session.md` exits 0
-- `! grep -Eq '^\s*```bash|^\s*\$ |\bgit ' docs/guides/architect/tutorials/architect-first-session.md` exits 0 (no bash blocks, shell prompts, or git commands)
-- `grep "Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions." docs/guides/architect/tutorials/architect-first-session.md` exits 0 (full verbatim starter-prompt present)
+- `ls guides/architect/tutorials/architect-first-session.md` exits 0
+- `! grep -Eq '^\s*```bash|^\s*\$ |\bgit ' guides/architect/tutorials/architect-first-session.md` exits 0 (no bash blocks, shell prompts, or git commands)
+- `grep "Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions." guides/architect/tutorials/architect-first-session.md` exits 0 (full verbatim starter-prompt present)
 
 **Approach:**
 1. Read `packs/architect/pack.toml` `[pack.first-value]` fields: `verification`, `starter-prompt`, `expected-result`, `recovery`, `next-action`.
-2. Author `docs/guides/architect/tutorials/architect-first-session.md` with five sections in order: install verification, starter prompt, expected result, recovery, next action.
+2. Author `guides/architect/tutorials/architect-first-session.md` with five sections in order: install verification, starter prompt, expected result, recovery, next action.
 3. Write in plain language; no terminal commands; the `starter-prompt` field is quoted verbatim as copy-ready text.
-4. Follow the `docs/guides/` soft-wrap rule: one logical line per paragraph, blank line between paragraphs.
+4. Follow the `guides/` soft-wrap rule: one logical line per paragraph, blank line between paragraphs.
 5. After authoring, record a manual coverage check in `notes/tutorial-review.md` (created here, before the transcript exists) covering three AC criteria: (a) **AC1b** — confirm each of the five sections maps to its contract field (verification / starter-prompt / expected-result / recovery / next-action); (b) **AC1c** — confirm no file-path syntax the user must type (note: `reference.md` or `docs/architecture/reference.md` may appear as *output* in the tutorial; that's fine — the check is whether the user is asked to type a path); (c) **AC1d** — score against the plain-language heuristic (no code blocks, no unexplained abbreviations, average sentence ≤ 20 words).
 
 ---
@@ -77,7 +77,7 @@
 - `make build-self FORCE=1` exits 0
 
 **Approach:**
-1. Edit `packs/architect/pack.toml` `[pack.first-value]`: add `tutorial = "docs/guides/architect/tutorials/architect-first-session.md"`.
+1. Edit `packs/architect/pack.toml` `[pack.first-value]`: add `tutorial = "guides/architect/tutorials/architect-first-session.md"`.
 2. Bump `[pack]` `version` from `0.13.2` to `0.13.3`.
 3. Edit `packs/architect/.claude-plugin/plugin.json` to bump `"version"` from its current value to `"0.13.3"`.
 4. Run `make build-self FORCE=1`.
@@ -91,11 +91,11 @@
 **Verification:** goal-based
 
 **Tests:**
-- `grep 'architect-first-session' docs/guides/architect/README.md` exits 0
+- `grep 'architect-first-session' guides/architect/README.md` exits 0
 
 **Approach:**
-1. Edit `docs/guides/architect/README.md` Tutorials section: add a link to `tutorials/architect-first-session.md` with a one-line description ("Start here — the guided first session from install verification to your first architecture artifact.").
-2. Check if README is projected (it's under `docs/guides/architect/README.md` — an AGENTS.local.md Manual path). Edit it directly; no build-self needed for README files under docs/guides/.
+1. Edit `guides/architect/README.md` Tutorials section: add a link to `tutorials/architect-first-session.md` with a one-line description ("Start here — the guided first session from install verification to your first architecture artifact.").
+2. Check if README is projected (it's under `guides/architect/README.md` — an AGENTS.local.md Manual path). Edit it directly; no build-self needed for README files under guides/.
 
 ---
 
@@ -150,7 +150,7 @@
 
 ### Tutorial structure
 
-The tutorial is a single document at `docs/guides/architect/tutorials/architect-first-session.md`. It is a **tutorial** (learning by doing) in Diátaxis terms — not a how-to (which assumes task confidence) and not a reference.
+The tutorial is a single document at `guides/architect/tutorials/architect-first-session.md`. It is a **tutorial** (learning by doing) in Diátaxis terms — not a how-to (which assumes task confidence) and not a reference.
 
 Section order maps to the contract fields:
 
@@ -163,12 +163,12 @@ Section order maps to the contract fields:
 | If it doesn't work | `recovery` field |
 | What to do next | `next-action` field |
 
-The tutorial has **no prerequisites section** (the contract says `prerequisites = []`; nothing to state). It assumes the pack is installed (the install path lives in `docs/guides/_shared/`; the tutorial need only say "with the architect pack installed").
+The tutorial has **no prerequisites section** (the contract says `prerequisites = []`; nothing to state). It assumes the pack is installed (the install path lives in `guides/_shared/`; the tutorial need only say "with the architect pack installed").
 
 ### Pack.toml edit
 
 Only two lines change in `[pack.first-value]`:
-- Add: `tutorial = "docs/guides/architect/tutorials/architect-first-session.md"`
+- Add: `tutorial = "guides/architect/tutorials/architect-first-session.md"`
 
 And in `[pack]`:
 - Change: `version = "0.13.2"` → `version = "0.13.3"`

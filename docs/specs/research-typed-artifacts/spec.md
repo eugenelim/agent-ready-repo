@@ -129,8 +129,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   migration, the nine live consumers (3 skill bodies —
   `research`/`devils-advocate`/`build-outline` SKILL.md — plus 1 reference doc
   `research/references/confidence-schema.md`; and 5 docs:
-  `docs/guides/research/{tutorials/research-first-session,reference/research-pack,how-to/research-pipelines}.md`,
-  `docs/guides/_shared/how-to/run-a-full-inception.md`,
+  `guides/research/{tutorials/research-first-session,reference/research-pack,how-to/research-pipelines}.md`,
+  `guides/_shared/how-to/run-a-full-inception.md`,
   `docs/specs/research-pack/plan.md`) reference `research.md` only as the named
   legacy alias, never as the current output artifact. Verification: a reviewer
   reads each residual `research.md` occurrence in those files and confirms it

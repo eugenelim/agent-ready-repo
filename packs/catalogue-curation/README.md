@@ -44,6 +44,6 @@ skill-authoring flow. Deferred items live in `workspace.toml [backlog]`.
 ## Learn it
 
 Full walkthroughs, references, and the "why" live in the per-pack guide:
-[`docs/guides/catalogue-curation/`](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/catalogue-curation/).
+[`guides/catalogue-curation/`](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/catalogue-curation/).
 
 Requires `core` and `governance-extras`. Repo-scope, opt-in; not in any default profile.

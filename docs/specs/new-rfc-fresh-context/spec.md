@@ -71,7 +71,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   run `make build-self` to regenerate the `.claude/` and `.agents/` copies.
 - Run both lint surfaces by hand — `lint-packs` (source) and
   `tools/lint-agent-artifacts.py` (projection).
-- Keep `docs/guides/governance-extras/how-to/new-rfc.md` (a Living doc) in sync
+- Keep `guides/governance-extras/how-to/new-rfc.md` (a Living doc) in sync
   in the same PR when the gate's or the handoff's described behavior changes.
 - Specify the no-context readability check **harness-neutrally** — describe the
   context-denial and the dispatch the same way the existing `adversarial-reviewer`
@@ -182,7 +182,7 @@ This is a prose-guidance change to a skill (no code logic), so verification is
   contain* the claim; verify-before-you-assert *executed … never self-certified*;
   the `adversarial-reviewer` dispatch *mandatory* — and modifies neither
   `docs/CONVENTIONS.md` nor `docs/CHARTER.md`.
-- [x] **AC6 — how-to guide synced.** `docs/guides/governance-extras/how-to/new-rfc.md`
+- [x] **AC6 — how-to guide synced.** `guides/governance-extras/how-to/new-rfc.md`
   reflects the two reader-facing behavior changes: its research/de-risk step
   (Step 3) describes the decidable-in-chat decision handoff, and its pre-handoff
   gate step (Step 5) describes the no-context readability check — with no other

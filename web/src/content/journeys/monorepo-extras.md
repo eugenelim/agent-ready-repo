@@ -32,7 +32,7 @@ typicalSession:
   agentTurns: "3–5"
   humanTouches: 1
   wallClockMinutes: "10–20"
-docsUrl: /docs/guides/monorepo-extras/
+docsUrl: /guides/monorepo-extras/
 packUrl: /packs/monorepo-extras/
 relatedJourneys:
   - core

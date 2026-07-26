@@ -116,7 +116,7 @@ mode-separation constraint.
 - [x] `JourneyContract.astro` renders the four contract lines above the narrative. (That each journey's `yourDecisions` correspond to its `humanGates` is a REVIEW/manual-QA check on the converted journeys, not a lint-enforced criterion.)
 - [x] `npm run build` in `web/` succeeds and `lint-web-journey-parity.py` still passes (skill counts unchanged).
 - [x] `lint-journey-contract.py` passes against the tree and fails on a fixture journey missing the contract or a stage label; its self-test is green.
-- [x] All 68 how-to and 14 tutorial guides under `docs/guides/**` carry a per-quadrant contract header (how-to: `Use this when` / `Prerequisites` / `Result`; tutorial: `What you'll build` / `Prerequisites` / `Time`); the two per-quadrant framework-explainer READMEs (`_shared/how-to/README.md`, `_shared/tutorials/README.md`) and every reference or explanation guide are NOT modified.
+- [x] All 68 how-to and 14 tutorial guides under `guides/**` carry a per-quadrant contract header (how-to: `Use this when` / `Prerequisites` / `Result`; tutorial: `What you'll build` / `Prerequisites` / `Time`); the two per-quadrant framework-explainer READMEs (`_shared/how-to/README.md`, `_shared/tutorials/README.md`) and every reference or explanation guide are NOT modified.
 - [x] The `new-guide` skill's `assets/how-to.md` and `assets/tutorials.md` templates carry the contract header so future guides inherit it.
 - [x] All 11 product-journey maps under `docs/product/journeys/*.md` (the glob matches 12 files — the 11 maps plus `README.md`, which is the index and is NOT modified) carry a 4-line contract header (`Use it when` / `You provide` / `You receive` / `Your decisions`); their stage tables are unchanged.
 - [x] `docs/specs/platform-site/journey-page-template.md` (a living template-reference doc, not frozen spec history) documents the new structure (contract block, fixed stage labels, reordered sections) and no longer prescribes the superseded per-stage `**You did:**` prose-narrative convention.
@@ -126,7 +126,7 @@ mode-separation constraint.
 
 - Technical: 16 web journeys render via an Astro `journeys` content collection with a zod schema; optional fields render only when present, so a new field can be introduced without breaking the build mid-rollout (source: web/src/content.config.ts; web/src/pages/journeys/[journey].astro).
 - Technical: `lint-web-journey-parity.py` checks only the `skills:` list count against pack skill dirs, not body structure (source: tools/lint-web-journey-parity.py).
-- Technical: guides are per-pack Diátaxis under docs/guides/<pack>/<quadrant>/ — 69 how-to, 15 tutorial, 53 reference/explanation — built by MkDocs (source: find over docs/guides; site/mkdocs.yml).
+- Technical: guides are per-pack Diátaxis under guides/<pack>/<quadrant>/ — 69 how-to, 15 tutorial, 53 reference/explanation — built by MkDocs (source: find over guides; site/mkdocs.yml).
 - Technical: the 11 product-journey maps already carry `Persona:` / `Outcome:` / `Trigger:` / `End state:` bold headers from which the contract lines derive; `docs/product/journeys/*.md` globs 12 files (the 12th is `README.md`, the index, excluded from the treatment) (source: docs/product/journeys/engineer-runs-work-loop.md).
 - Process: this ships via work-loop spec/plan in a single PR, A/B/C together, not an RFC (source: user confirmation 2026-07-23).
 - Process: a grounded aesthetic reference exists so design-intent ACs are checkable (source: docs/specs/platform-site/aesthetic-direction.md, design-system-foundations.md).

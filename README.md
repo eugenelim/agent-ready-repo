@@ -8,7 +8,7 @@ Raw idea → Gate: Idea → Spec → Gate: Spec → Shipped code → Gate: PR �
 
 [![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/) [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#license) [![OWASP Agentic Skills Top 10](https://img.shields.io/badge/OWASP-Agentic%20Skills%20Top%2010%20v1.0-blue)](https://owasp.org/www-project-agentic-skills-top-10/)
 
-[Quick Start](#quick-start) · [The Three Loops](#the-three-loops) · [The Catalogue](#the-catalogue) · [Docs](docs/guides/) · [Contributing](CONTRIBUTING.md)
+[Quick Start](#quick-start) · [The Three Loops](#the-three-loops) · [The Catalogue](#the-catalogue) · [Docs](guides/) · [Contributing](CONTRIBUTING.md)
 
 > "You shouldn't be prompting coding agents anymore. You should be designing loops that prompt your agents." — [Peter Steinberger](https://x.com/steipete/status/2063697162748260627)
 
@@ -66,7 +66,7 @@ agentbundle upgrade --pack core
 agentbundle install --pack core --dry-run
 ```
 
-`--dry-run` previews every file before anything is written — one line per file, then a `create`/`overwrite` count. Installs auto-detect your agent and fall back to Claude Code; [configure a different default →](docs/guides/_shared/how-to/configure-adapter.md)
+`--dry-run` previews every file before anything is written — one line per file, then a `create`/`overwrite` count. Installs auto-detect your agent and fall back to Claude Code; [configure a different default →](guides/_shared/how-to/configure-adapter.md)
 
 Every source verb defaults to this catalogue when you don't name one; pass a git URL or local path to use a different one, or `agentbundle config set source <catalogue>` to change the default.
 
@@ -89,7 +89,7 @@ Raw idea → ratified brief. Five candidate shapes explored in parallel, collaps
 
 **Human gate.** You approve a ratified decision brief, not a validated solution. The loop never advances past Gate: Idea automatically.
 
-→ [Discovery loop guide](docs/guides/product-engineering/) · [Walk a discovery end-to-end](docs/guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md)
+→ [Discovery loop guide](guides/product-engineering/) · [Walk a discovery end-to-end](guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md)
 
 ### Build — `core`
 
@@ -97,7 +97,7 @@ Spec → shipped code. Lint, typecheck, and tests must pass. Three specialist re
 
 **Human gate.** You merge only when adversarial review is clean and all gates pass.
 
-→ [The `core` pack as a system](docs/guides/core/explanation/core-pack.md)
+→ [The `core` pack as a system](guides/core/explanation/core-pack.md)
 
 ### Release — `release-engineering`
 
@@ -105,7 +105,7 @@ Built → production. Autonomous e2e convergence on ephemeral environments; depl
 
 **Human gate.** Prod ship always surfaces to a human. Always.
 
-→ [Release loop guide](docs/guides/release-engineering/) · [The release loop explained](docs/guides/release-engineering/explanation/the-release-loop.md)
+→ [Release loop guide](guides/release-engineering/) · [The release loop explained](guides/release-engineering/explanation/the-release-loop.md)
 
 ## The catalogue
 
@@ -113,21 +113,21 @@ Three packs form the operating model. The rest are curated kits — each distill
 
 | Pack | Scope | What it does |
 | --- | --- | --- |
-| [`core`](docs/guides/core/) | **repo** | The build loop. `work-loop`, `new-spec`, `bug-fix`, the four reviewer/executor subagents, hooks, governance seeds. **Install this first.** |
-| [`product-engineering`](docs/guides/product-engineering/) | user | The discovery loop — raw idea to build-ready brief. |
-| [`release-engineering`](docs/guides/release-engineering/) | **repo** | The release loop — build to production. Hard-depends on `core`. |
-| [`governance-extras`](docs/guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos. |
-| [`user-guide-diataxis`](docs/guides/user-guide-diataxis/) | repo | Stand up a Diátaxis docs site. |
-| [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | Scaffold packages in a monorepo. |
-| [`desk-research`](docs/guides/desk-research/) | user / repo | Go from a question to an evidence-grounded answer. |
-| [`contracts`](docs/guides/contracts/) | user / repo | Author an API contract (OpenAPI 3.1). |
-| [`converters`](docs/guides/converters/) | user / repo | Move documents in and out of Markdown. |
-| [`atlassian`](docs/guides/atlassian/) | user / repo | Work Jira and Confluence from the agent. |
-| [`figma`](docs/guides/figma/) | user / repo | Read and render Figma designs. |
-| [`architect`](docs/guides/architect/) | user / repo | Design a system and pressure-test it. |
-| [`experience-design`](docs/guides/experience-design/) | user / repo | Carry the whole design thread — journey to realization. |
+| [`core`](guides/core/) | **repo** | The build loop. `work-loop`, `new-spec`, `bug-fix`, the four reviewer/executor subagents, hooks, governance seeds. **Install this first.** |
+| [`product-engineering`](guides/product-engineering/) | user | The discovery loop — raw idea to build-ready brief. |
+| [`release-engineering`](guides/release-engineering/) | **repo** | The release loop — build to production. Hard-depends on `core`. |
+| [`governance-extras`](guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos. |
+| [`user-guide-diataxis`](guides/user-guide-diataxis/) | repo | Stand up a Diátaxis docs site. |
+| [`monorepo-extras`](guides/monorepo-extras/) | repo | Scaffold packages in a monorepo. |
+| [`desk-research`](guides/desk-research/) | user / repo | Go from a question to an evidence-grounded answer. |
+| [`contracts`](guides/contracts/) | user / repo | Author an API contract (OpenAPI 3.1). |
+| [`converters`](guides/converters/) | user / repo | Move documents in and out of Markdown. |
+| [`atlassian`](guides/atlassian/) | user / repo | Work Jira and Confluence from the agent. |
+| [`figma`](guides/figma/) | user / repo | Read and render Figma designs. |
+| [`architect`](guides/architect/) | user / repo | Design a system and pressure-test it. |
+| [`experience-design`](guides/experience-design/) | user / repo | Carry the whole design thread — journey to realization. |
 
-A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `desk-research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
+A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `desk-research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](guides/_shared/how-to/install-a-profile.md).
 
 Adopt the catalogue as-is, or fork it as your own. Write your conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — identical across every machine and every agent. The same bundler works for any domain, not just software delivery. [How to build your org's catalogue →](docs/architecture/catalogue.md)
 

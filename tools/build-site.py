@@ -4,7 +4,7 @@ Aggregate repo content into site/docs/ for the MkDocs build.
 
 Copies:
   packs/*/README.md         → site/docs/packs/<name>.md
-  docs/guides/**            → site/docs/guides/**
+  guides/**            → site/guides/**
   docs/product/changelog.md → site/docs/changelog.md  (links rewritten)
   CONTRIBUTING.md           → site/docs/contributing.md (links rewritten)
 
@@ -126,11 +126,11 @@ def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
 def _rewrite_guide(text: str, guide_src_path: Path) -> str:
     """Rewrite links in guide files that exit the guides tree.
 
-    Links within docs/guides/ are kept as-is (they work in the site).
-    Links that resolve within the repo but outside docs/guides/ are
+    Links within guides/ are kept as-is (they work in the site).
+    Links that resolve within the repo but outside guides/ are
     converted to GitHub URLs so they don't produce dead references.
     """
-    guides_root = (REPO_ROOT / "docs" / "guides").resolve()
+    guides_root = (REPO_ROOT / "guides").resolve()
     repo_root = REPO_ROOT.resolve()
 
     def replace(m: re.Match) -> str:
@@ -190,7 +190,7 @@ def _rewrite_contributing(text: str) -> str:
     """
     contributing_src = REPO_ROOT / "CONTRIBUTING.md"
     repo_root = REPO_ROOT.resolve()
-    guides_root = (REPO_ROOT / "docs" / "guides").resolve()
+    guides_root = (REPO_ROOT / "guides").resolve()
 
     def replace(m: re.Match) -> str:
         prefix, path, anchor = m.group(1), m.group(2), m.group(3) or ""
@@ -295,7 +295,7 @@ def main() -> None:
 
     packs_dir = REPO_ROOT / "packs"
     packs_out = SITE_DOCS / "packs"
-    guides_src = REPO_ROOT / "docs" / "guides"
+    guides_src = REPO_ROOT / "guides"
     guides_out = SITE_DOCS / "guides"
     generated = [packs_out, guides_out]
 
@@ -320,7 +320,7 @@ def main() -> None:
 
     print("build-site: mirroring guides …")
     n = mirror_dir(guides_src, guides_out, rewriter=_rewrite_guide, dry_run=args.dry_run)
-    print(f"  {n} files from docs/guides/")
+    print(f"  {n} files from guides/")
 
     print("build-site: copying changelog …")
     changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"

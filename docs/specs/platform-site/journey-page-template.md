@@ -64,7 +64,7 @@ typicalSession:
   humanTouches: 2
   wallClockMinutes: "25–45"
 
-docsUrl: /docs/guides/core/
+docsUrl: /guides/core/
 packUrl: /packs/core/
 relatedJourneys:
   - release

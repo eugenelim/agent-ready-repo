@@ -103,7 +103,7 @@ before writing. Mirrors `product-engineering`'s `frame-intent`. Traces to: D6 AC
 
 **Approach:**
 - `git mv packs/design-craft packs/experience`; update `pack.toml` `name`/`display_name`/`description`/`version=0.2.0`, `[pack.links].documentation` URL, and `.claude-plugin/plugin.json` `name`/`version`/`description`.
-- `git mv docs/guides/design-craft docs/guides/experience`.
+- `git mv guides/design-craft guides/experience`.
 - `git mv tools/lint-design-craft-agnostic.py tools/lint-experience-agnostic.py` and the self-test; retarget the scan root (`:147`) to `packs/experience/`, rename the env override `DESIGN_CRAFT_ROOT` → `EXPERIENCE_ROOT`, update the self-test's env set and the leading descriptor of both CI steps. **Leave pinned:** the RFC-0033 docstring citation and the `(design-craft-pack AC8)` CI step name.
 - Update cross-links in the four existing skills + README; re-aggregate `marketplace.json`.
 - Do **not** edit RFC-0033, ADR-0024, the Shipped `design-craft-pack` spec, or README index rows (bridged by ADR-0038).

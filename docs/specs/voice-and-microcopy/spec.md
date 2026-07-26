@@ -53,7 +53,7 @@ The three-tier guard that keeps an implementing agent inside the lines.
 - Bump the pack version in **both** `pack.toml` `[pack] version` **and**
   `.claude-plugin/plugin.json`, and add an `[Unreleased]` changelog entry.
 - Add per-pack **Diátaxis guide coverage** for the new skill (a how-to + an index
-  entry in the guides README) under `docs/guides/product-engineering/`.
+  entry in the guides README) under `guides/product-engineering/`.
 - Frame the voice as **constant**, the tone as **context-flexed** — error copy is
   calm even in a playful product.
 - Make every error and empty-state formula **blame-free and actionable** — name
@@ -125,8 +125,8 @@ Verification is **goal-based**, exercised by the catalogue's existing gates:
 - [x] `docs/product/changelog.md` carries an `[Unreleased] → Added` entry for the
   new skill (with the pack version).
 - [x] The pack `README.md` skill table lists `voice-and-microcopy`, and
-  `docs/guides/product-engineering/` gains a how-to plus a row under the
-  `## How-to` heading of `docs/guides/product-engineering/README.md`.
+  `guides/product-engineering/` gains a how-to plus a row under the
+  `## How-to` heading of `guides/product-engineering/README.md`.
 - [x] `make lint-packs`, `make build`, `make validate`, and
   `tools/lint-agent-artifacts.py` all pass; `git status` is clean.
 

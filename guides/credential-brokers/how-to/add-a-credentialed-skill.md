@@ -368,5 +368,5 @@ Both lints exit 0 against the worked example; aim for the same.
 - RFC: [`docs/rfc/0013-credential-broker-contract.md`](../../../rfc/0013-credential-broker-contract.md) (the four-broker contract); [`docs/rfc/0023-credential-manager-broker.md`](../../../rfc/0023-credential-manager-broker.md) (the `credbroker` library that replaced the projected shim for `auth: creds`)
 - ADR: [`docs/adr/0003-credential-broker-contract.md`](../../../adr/0003-credential-broker-contract.md)
 - Reference consumer (runnable, shipped): [`packs/atlassian/.apm/skills/jira/`](../../../../packs/atlassian/.apm/skills/jira) — a live `auth: creds` credentialed CLI
-- Explanation: [`docs/guides/credential-brokers/explanation/credentialed-skills.md`](../explanation/credentialed-skills.md)
+- Explanation: [`guides/credential-brokers/explanation/credentialed-skills.md`](../explanation/credentialed-skills.md)
 - Related how-to: [How to author a skill](../../_shared/how-to/author-a-skill.md) — the general skill-authoring standards (structure, cross-platform scripts, the three-tier dependency policy); the `auth: cli` broker is where credential and tool-presence concerns meet.

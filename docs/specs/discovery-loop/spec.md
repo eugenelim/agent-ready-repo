@@ -129,7 +129,7 @@ end-to-end validation run that is the load-bearing gate for the modelled-not-run
   full live on-`omnigent` run is a **nice-to-have, not a spec gate** (the contract is harness-neutral;
   the sidecar was already prototyped in omnigent's storage form).
 - **Guides**: **goal-based + manual QA** — the four Diátaxis pages exist under
-  `docs/guides/product-engineering/…` and the tutorial walks a real example end-to-end.
+  `guides/product-engineering/…` and the tutorial walks a real example end-to-end.
 
 ## Acceptance Criteria
 
@@ -384,7 +384,7 @@ end-to-end validation run that is the load-bearing gate for the modelled-not-run
   sidecar-schema contract (in the skill, not `core`) — no new runtime engine, spike-confirmed; the
   sidecar is the connectedness verifier.* (The ADR is authored in the implementing PR, not this
   authoring PR — RFC-0053 § Follow-on lists it first.)
-- [x] **AC40.** The **Diátaxis guide set** is authored (via `new-guide`, under `docs/guides/product-engineering/…`)
+- [x] **AC40.** The **Diátaxis guide set** is authored (via `new-guide`, under `guides/product-engineering/…`)
   **as an acceptance criterion before the capability counts as shipped**: an **Explanation** (the
   coordinator contract, the divergence → convergence → validation arc, *converged ≠ validated*, the
   no-engine model, recursion); a **How-to** (run a discovery end-to-end — the one-prompt + targeted

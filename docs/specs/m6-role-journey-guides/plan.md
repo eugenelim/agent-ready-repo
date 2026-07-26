@@ -10,15 +10,15 @@
 
 ## Approach
 
-One file: `docs/guides/core/explanation/role-journeys.md`. Read each source journey map, extract altitude touchpoints for the persona, write Diátaxis explanation-quadrant prose (no recipe steps), and cross-link back to the sources. The work is authoring and cross-linking — no runtime logic, no code, no build-self needed.
+One file: `guides/core/explanation/role-journeys.md`. Read each source journey map, extract altitude touchpoints for the persona, write Diátaxis explanation-quadrant prose (no recipe steps), and cross-link back to the sources. The work is authoring and cross-linking — no runtime logic, no code, no build-self needed.
 
-Two README updates (`docs/guides/core/README.md` and `docs/guides/README.md`) register the guide. One workspace.toml entry (`role-journey-agent-swarm-section`) records the deferred swarm extension for the Agent section.
+Two README updates (`guides/core/README.md` and `guides/README.md`) register the guide. One workspace.toml entry (`role-journey-agent-swarm-section`) records the deferred swarm extension for the Agent section.
 
 The riskiest part is the PM section: it references M2 (shaping sequence) and M5 (tracker intake) capabilities drawn from `proposed` journey maps — authored before those milestones ship. The PM section is written as retcon-present for the full P5 system. See Risks.
 
 ## Constraints
 
-- RFC-0064 M6 AC line 529: "Role journey section committed to `docs/guides/`: PM / engineer / agent — how each uses the system at their altitude; derived from `docs/product/journeys/` living maps"
+- RFC-0064 M6 AC line 529: "Role journey section committed to `guides/`: PM / engineer / agent — how each uses the system at their altitude; derived from `docs/product/journeys/` living maps"
 - RFC-0064 Amendment #3 P5 Adopt: terminal phase (the whole journey must be stable first — advisory gate in workspace.toml)
 - RFC-0064 Amendment #4 line 800: P5 role guides scoped by Platform Core journey phases, not pack profiles
 - Diátaxis: explanation quadrant — understanding-oriented prose; no recipe steps
@@ -37,7 +37,7 @@ The riskiest part is the PM section: it references M2 (shaping sequence) and M5 
 
 ### Component / module decomposition
 
-`docs/guides/core/explanation/role-journeys.md` — one file, four sections:
+`guides/core/explanation/role-journeys.md` — one file, four sections:
 
 1. **First install and orientation** (≤ 10 lines) — links to `tutorials/your-first-workspace.md` and `how-to/orient-at-session-start.md`; brief mention of the two-room model link; no recipes
 2. **PM** — altitude 0 (direction-setting: OKR cascade, initiative framing via `product-strategist-sets-direction`) → altitude 1 (shaping: six-step sequence via `product-engineer-shapes-initiative`; tracker intake via `pm-intakes-from-tracker`); links to all three source journey maps
@@ -48,22 +48,22 @@ The riskiest part is the PM section: it references M2 (shaping sequence) and M5 
 
 - No new concepts introduced — the guide synthesises and routes to existing journey maps and guides
 - Every role section: explanation prose only (paragraphs, not numbered lists); at least one source link to the journey map file(s) it derives from
-- Cross-links: at least two links to other existing guides in `docs/guides/core/`
+- Cross-links: at least two links to other existing guides in `guides/core/`
 
 ## Tasks
 
-### T1: Scaffold `docs/guides/core/explanation/role-journeys.md` and author the common section
+### T1: Scaffold `guides/core/explanation/role-journeys.md` and author the common section
 
 **Depends on:** none
 
 **Tests:**
-- `ls docs/guides/core/explanation/role-journeys.md` succeeds (AC1)
-- `grep -c "your-first-workspace" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC2)
-- `grep -c "orient-at-session-start" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC2)
+- `ls guides/core/explanation/role-journeys.md` succeeds (AC1)
+- `grep -c "your-first-workspace" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC2)
+- `grep -c "orient-at-session-start" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC2)
 - Common section has ≤ 10 lines of prose (AC2 — manual count)
 
 **Approach:**
-- Create `docs/guides/core/explanation/role-journeys.md` with a top-level heading and four named section headings (First install and orientation, PM, Engineer, Agent)
+- Create `guides/core/explanation/role-journeys.md` with a top-level heading and four named section headings (First install and orientation, PM, Engineer, Agent)
 - Write the common section (≤ 10 lines): link to the tutorial and the orient how-to; one sentence on the two-room-model explanation for context; no recipe steps
 - Leave PM, Engineer, Agent sections as labelled stubs
 
@@ -76,9 +76,9 @@ The riskiest part is the PM section: it references M2 (shaping sequence) and M5 
 **Depends on:** T1
 
 **Tests:**
-- `grep -c "product-strategist-sets-direction" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC3, AC9)
-- `grep -c "product-engineer-shapes-initiative" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC3, AC9)
-- `grep -c "pm-intakes-from-tracker" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC3, AC9)
+- `grep -c "product-strategist-sets-direction" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC3, AC9)
+- `grep -c "product-engineer-shapes-initiative" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC3, AC9)
+- `grep -c "pm-intakes-from-tracker" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC3, AC9)
 - PM section covers altitude 0 direction-setting, altitude 1 shaping, and brief-queue intake (AC3 — manual)
 - No numbered recipe steps in PM section (AC — manual)
 
@@ -97,9 +97,9 @@ The riskiest part is the PM section: it references M2 (shaping sequence) and M5 
 **Depends on:** T2
 
 **Tests:**
-- `grep -c "workspace-status" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC4)
-- `grep -c "engineer-adopts-coordination" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC4, AC9)
-- `grep -c "engineer-runs-work-loop" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC4, AC9)
+- `grep -c "workspace-status" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC4)
+- `grep -c "engineer-adopts-coordination" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC4, AC9)
+- `grep -c "engineer-runs-work-loop" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC4, AC9)
 - Initiative vs. ad-hoc distinction is present in the Engineer section (AC4 — manual)
 - No numbered recipe steps in Engineer section (AC — manual)
 
@@ -118,8 +118,8 @@ The riskiest part is the PM section: it references M2 (shaping sequence) and M5 
 **Depends on:** T3
 
 **Tests:**
-- `grep -c "agent-executes-spec" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC5, AC9)
-- `grep -c "deferred: role-journey-agent-swarm-section" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC6 — verifies the in-guide marker is present; workspace.toml entry was pre-populated at spec-authoring time)
+- `grep -c "agent-executes-spec" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC5, AC9)
+- `grep -c "deferred: role-journey-agent-swarm-section" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC6 — verifies the in-guide marker is present; workspace.toml entry was pre-populated at spec-authoring time)
 - Agent section covers cold-start, autonomous spec pick-up, headless execution, and ship signal (AC5 — manual)
 - No numbered recipe steps in Agent section (AC — manual)
 
@@ -139,16 +139,16 @@ The riskiest part is the PM section: it references M2 (shaping sequence) and M5 
 **Depends on:** T2, T3, T4
 
 **Tests:**
-- `grep -c "role-journeys" docs/guides/core/README.md` returns ≥ 1 (AC7)
-- `grep -c "role-journeys" docs/guides/README.md` returns ≥ 3 (AC8 — one match per row: "Product manager / strategist", Engineer, and Agent; a single-row link returns 1 and fails)
-- `grep -c "deferred: role-journey-agent-swarm-section" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC6 — in-guide marker; pre-populated workspace.toml entry is already verified at spec authoring)
+- `grep -c "role-journeys" guides/core/README.md` returns ≥ 1 (AC7)
+- `grep -c "role-journeys" guides/README.md` returns ≥ 3 (AC8 — one match per row: "Product manager / strategist", Engineer, and Agent; a single-row link returns 1 and fails)
+- `grep -c "deferred: role-journey-agent-swarm-section" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC6 — in-guide marker; pre-populated workspace.toml entry is already verified at spec authoring)
 - `grep -c "m6-role-journey-guides" docs/specs/README.md` returns ≥ 1 (AC11)
-- `grep -c "capture-work" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC10 first cross-link — role-section only, cannot appear in the common anchor)
-- `grep -c "plan-and-execute-non-trivial-work" docs/guides/core/explanation/role-journeys.md` returns ≥ 1 (AC10 second cross-link — confirms the ≥ 2 distinct role-section cross-link requirement)
+- `grep -c "capture-work" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC10 first cross-link — role-section only, cannot appear in the common anchor)
+- `grep -c "plan-and-execute-non-trivial-work" guides/core/explanation/role-journeys.md` returns ≥ 1 (AC10 second cross-link — confirms the ≥ 2 distinct role-section cross-link requirement)
 
 **Approach:**
-- Update `docs/guides/core/README.md` Explanation section: add a bullet for `[Role journeys](explanation/role-journeys.md)` with a one-line description (e.g. "how PMs, engineers, and agents use the system at their altitude")
-- Update `docs/guides/README.md` "By role" table: update PM and Engineer rows to link to the new guide; add an Agent row if absent
+- Update `guides/core/README.md` Explanation section: add a bullet for `[Role journeys](explanation/role-journeys.md)` with a one-line description (e.g. "how PMs, engineers, and agents use the system at their altitude")
+- Update `guides/README.md` "By role" table: update PM and Engineer rows to link to the new guide; add an Agent row if absent
 - Verify cross-links (AC10): the guide should already link to `two-room-model.md` from the common section and other existing guides from the role sections; add any missing cross-links
 - Verify `workspace.toml [backlog].open` contains `{slug = "role-journey-agent-swarm-section"}` (pre-populated at spec-authoring time — do not duplicate; confirm presence only)
 - Update `docs/specs/README.md`: add table row for `m6-role-journey-guides/` — set the Status column to the spec's current `Status:` field at implementation time (not the literal "Draft" — the spec will be `Implementing` or `Shipped` by the time T5 runs); Constrained by: RFC-0064 M6 AC line 529; confirm by inspection that the README Status value matches `spec.md` line 3; flip both atomically in the same PR

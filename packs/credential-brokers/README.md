@@ -52,4 +52,4 @@ rotate a key.
 
 ---
 
-→ **Go deeper:** the [`credential-brokers` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/credential-brokers/).
+→ **Go deeper:** the [`credential-brokers` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/credential-brokers/).

@@ -78,7 +78,7 @@ passes on the pack.
 - `marketplace.json` shows the bumped product-engineering version after `make build`.
 - `docs/product/changelog.md` `[Unreleased] → Added` names the new skill.
 - The pack `README.md` skill table includes a `voice-and-microcopy` row, and
-  `docs/guides/product-engineering/README.md` links a new how-to that exists.
+  `guides/product-engineering/README.md` links a new how-to that exists.
 
 **Approach:**
 - Bump pack version to `0.4.0` (additive new skill) in `pack.toml` +
@@ -89,7 +89,7 @@ passes on the pack.
   seeds" but the pack ships no `seeds/` — change "seeds" to "assets" (same-file,
   same-concern ride-along).
 - Add the changelog entry.
-- Add `docs/guides/product-engineering/how-to/write-product-microcopy.md` and an
+- Add `guides/product-engineering/how-to/write-product-microcopy.md` and an
   index row in the guides README.
 - Run `make build`; confirm clean `git status`.
 
