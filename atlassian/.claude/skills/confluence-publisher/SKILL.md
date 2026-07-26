@@ -15,10 +15,6 @@ Publish a single page to Confluence — create or update — from Markdown,
 storage XHTML, or plain text. Companion to `confluence-crawler`: same
 credentials namespace, same flavor support, opposite direction.
 
-## Output rendering
-
-Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
-
 ## Instructions
 
 You are a Confluence publishing agent. Authentication, REST mechanics,

@@ -1,6 +1,6 @@
 ---
 name: user-flow
-description: "Use when a customer journey needs to become the screens that realize it — sequencing the screens, the transitions between them, and the error/edge flows (a failed action lands the user where?), then emitting one self-contained brief per screen. Triggers on map the screen flow, what screens do we need, sequence the screens for this journey, design the screen-to-screen flow, what happens when this action fails, turn this journey into screens. Carries a platform/surface axis and ends in a whole-journey walk that never skips. Do NOT use to map the journey itself (use journey-mapping), to design how one screen behaves internally (use interaction-design), or to blueprint the backing services (use service-blueprint). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when a customer journey needs to become the screens that realize it — sequencing the screens, the transitions between them, and the error/edge flows (a failed action lands the user where?), then emitting one self-contained brief per screen. Triggers on map the screen flow, what screens do we need, sequence the screens for this journey, design the screen-to-screen flow, what happens when this action fails, turn this journey into screens. Carries a platform/surface axis and ends in a whole-journey walk that never skips. Do NOT use to map the journey itself (use journey-mapping), to design how one screen behaves internally (use interaction-design), or to blueprint the backing services (use service-blueprint)."
 ---
 
 # Skill: user-flow
@@ -19,16 +19,12 @@ machine, motion — is `interaction-design`'s, not this skill's. See
 **Inputs:** a customer journey (from `journey-mapping`, or elicited inline —
 this skill is standalone-useful without an upstream artifact) and the backing
 services (from `service-blueprint`, or named textually when it is absent).
-**Consumed by:** `creative-direction` / `design-token-taxonomy` /
+**Consumed by:** `creative-direction` / `design-system` /
 `information-architecture` / `interaction-design` (each enriches a
-per-screen brief), `product-engineering`'s `ux-writing` (writes copy per
+per-screen brief), `product-engineering`'s `voice-and-microcopy` (writes copy per
 screen × state, keyed to the state matrix), the `experience-reviewer` agent
 (reviews the flow + briefs), and — through the optional handover — a generative
 design tool (realization).
-
-## Output rendering
-
-Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
 
 ## When to invoke
 
@@ -130,8 +126,8 @@ Confirm all four before drafting; if any fails, resolve it first.
    whichever tool they use. The handover is **instructions keyed to the brief**,
    never pixels or values; it names tool *categories*, endorses none.
 10. **Hand off.** Point the craft skills (`creative-direction`,
-    `design-token-taxonomy`, `information-architecture`,
-    `interaction-design`) at the briefs to enrich, `ux-writing` at the
+    `design-system`, `information-architecture`,
+    `interaction-design`) at the briefs to enrich, `voice-and-microcopy` at the
     state matrix for copy, and the `experience-reviewer` for the independent review.
 
 ## Anti-patterns to refuse

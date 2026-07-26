@@ -1,15 +1,11 @@
 ---
 name: documentation-design
-description: "Use when designing a documentation surface — a docs site, a help centre, an API reference, or a technical guide set. Decides what type of content belongs where, how navigation scales with content volume, and what the first-value-moment is for each content type. Triggers on 'design the docs site', 'structure the help centre', 'what goes on the docs landing page', 'how should we navigate the API reference', 'TTFV for this tutorial'. Produces IA and navigation specifications for documentation surfaces. Do NOT use for marketing surfaces (use conversion-design) or informational editorial pages (use informational-design). Surface genre: documentation. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when designing a documentation surface — a docs site, a help centre, an API reference, or a technical guide set. Decides what type of content belongs where, how navigation scales with content volume, and what the first-value-moment is for each content type. Triggers on 'design the docs site', 'structure the help centre', 'what goes on the docs landing page', 'how should we navigate the API reference', 'TTFV for this tutorial'. Produces IA and navigation specifications for documentation surfaces. Do NOT use for marketing surfaces (use conversion-design) or informational editorial pages (use informational-design). Surface genre: documentation."
 ---
 
 # Skill: documentation-design
 
-Converts the Diátaxis type mapping and the user's learning goal into a **structural specification for a documentation surface** — the content hierarchy, navigation strategy, landing page IA, and machine-readability decisions that shape whether a reader reaches their first value moment or abandons. This skill is IA and structure; it does not write the documentation (that is `new-guide`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Converts the Diátaxis type mapping and the user's learning goal into a **structural specification for a documentation surface** — the content hierarchy, navigation strategy, landing page IA, and machine-readability decisions that shape whether a reader reaches their first value moment or abandons. This skill is IA and structure; it does not write the documentation (that is `new-guide`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 ## When to invoke
 

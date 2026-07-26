@@ -23,10 +23,6 @@ not re-litigated per sibling feature. It reuses the existing pre-PMF **qualitati
 bar** in `references/kill-condition.md` (no new mechanism): predeclare a clear
 qualitative line, in 0-to-1 terms, before you probe.
 
-## Output rendering
-
-Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
-
 ## When to invoke
 
 Before de-risking, confirm:
@@ -48,13 +44,8 @@ Before de-risking, confirm:
 
 2. **Name the riskiest assumption — "what would have to be true".** From the
    intent's assumptions, pick the one with the highest risk × least evidence.
-   Classify each assumption on the evidence ladder (`observed` — confirmed by
-   direct measurement; `supported` — backed by analogous data or research;
-   `inferred` — derived from adjacent signals; `assumed` — team consensus without
-   external data; `unknown` — no signal exists yet). The riskiest assumption to
-   test is the one at the lowest evidence level — `unknown` before `assumed`,
-   `assumed` before `inferred`. Front it with *what would have to be true* for
-   the bet to pay off, then restate the single riskiest condition as the test target.
+   Front it with *what would have to be true* for the bet to pay off, then
+   restate the single riskiest condition as the test target.
 
 3. **Predeclare the kill condition — in the test's own currency.** Write down,
    **before** running anything, what result would kill the bet — a number where
@@ -90,7 +81,6 @@ validation_hook:
   assumption: <the riskiest assumption, restated>
   kill_condition: <the predeclared line, in the test's own currency>
   activity: <the real-world activity that confirms or enriches it>
-  evidence_level: observed | supported | inferred | assumed | unknown
 ```
 
 This is the field `plan-validation` consumes to build the validation plan, and the

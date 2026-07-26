@@ -136,7 +136,12 @@ Before PLAN begins, orient to the current initiative and work queue:
        (e.g. `"M1 · Workspace Foundation"`).
      - **Active spec (argless only — skip when a spec path is given):**
        Collect every path in `["ini-NNN".work].active` across all active
-       initiatives.
+       initiatives. Exactly one → state the resolved spec path in the
+       orientation block (e.g., "Beginning on `docs/specs/<slug>/spec.md`")
+       and begin on that spec without asking. Zero
+       → surface "No active spec found — run `workspace-status` to see
+       what's ready to start." More than one (single initiative or across
+       initiatives) → list all and ask the user to pick.
      - **Stale-queue check.** For each active initiative, for each entry in
        `["ini-NNN".work].queue` and `["ini-NNN".work].active`: resolve the
        path (bare string → as-is; inline object → `path` field; `slug` is
@@ -166,10 +171,8 @@ proceed to step 1 (PLAN) immediately. Otherwise a path must be resolved:
 if exactly one active item, state the resolved path (e.g.,
 "Beginning on `docs/specs/<slug>/spec.md`") in the orientation block, strip
 the `spec/` prefix, then read `docs/specs/<slug>/spec.md` and `plan.md` as
-step 1 of PLAN. Zero active items → surface "No active spec found — run
-`workspace-status` to see what's ready to start." and stop. More than one
-(single initiative or across initiatives) → list all and ask the user to
-pick; stop after surfacing the list and do not proceed until the user picks.
+step 1 of PLAN. In the zero and multi-item branches, stop after surfacing
+the message or list and do not proceed until the user picks.
 
 ### 1. PLAN — think before acting
 
@@ -290,7 +293,7 @@ For anything beyond trivial, *think before you write code*. Concretely:
 
   ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory. Re-fires on mid-EXECUTE re-plan.
   ² Security: auth, secrets, user input, deserialization, file/network I/O. Infra-flavored work: mandatory. Dispatch in **spec-stage secure-design mode**; inline boundary-matching modules (net-new wiring only) per the [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
-  ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`. When the `frontend-engineering` pack is installed, atomic craft skills (`token-architecture`, `a11y-engineering`, `fe-performance`, `rendering-strategy`, `component-contract`, `responsive-layout`, `css-architecture`) are available — load only the one the task warrants against its specific concern.
+  ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`.
 
   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed, note in summary. Full depth (firing conditions, infra force-load, re-plan re-fire, `approve-plan` gate, Profile-A opt-out): [`references/pre-execute-review.md`](references/pre-execute-review.md).
 - **Initialize the loop's state file.** Run this skill's bundled
@@ -363,7 +366,7 @@ contract the agent already holds. (Detail in
 surface trigger fires, the `frontend-engineering` skill has already been
 loaded inline during PLAN. Its craft rules govern all HTML element selection,
 CSS token discipline, accessibility patterns, and state completeness during
-EXECUTE; its GATES section defines the verification commands to run at step 3. When the `frontend-engineering` pack is installed, atomic craft skills from the pack are available as supplementary inline loads during EXECUTE for specific concerns — load `token-architecture` when the primary task is token system design, `a11y-engineering` for accessibility-focused work, `fe-performance` for CWV remediation.
+EXECUTE; its GATES section defines the verification commands to run at step 3.
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
@@ -658,7 +661,6 @@ note in the summary, not a blocker.
   key pages from the output, not the code diff. Fallback if
   no `experience-reviewer` is installed (experience-design pack absent): proceed and
   note it — absence of the experience-design pack is a named skip, not a silent pass.
-- Match `frontend-reviewer` — for diffs whose primary output is HTML/CSS/JS, **in full-mode work**. Pass the diff and the surface's evidence manifest state (known exceptions, last gate run). It applies the diff-level lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance and Target Size (the two manual-verification items automated tooling misses), and CWV regression signals. Does not duplicate adversarial-reviewer (spec drift), quality-engineer (testability), or experience-reviewer (aesthetic taste). Fallback if `frontend-reviewer` is absent (frontend-engineering pack not installed): proceed and record a named skip — absence of the pack is not a silent pass.
 
 **Dispatch reviewers in parallel when you invoke more than one** per
 the [Parallel dispatch discipline](#parallel-dispatch-discipline)
@@ -738,7 +740,7 @@ mode below, then evaluate the terminal-state bullet last.
     always; `security-reviewer` on security-boundary diffs;
     `quality-engineer` on every loop, plus a whole-spec pass on the
     final loop of a multi-loop spec; `experience-reviewer` on
-    user-facing surface diffs in full-mode work; `frontend-reviewer` on HTML/CSS/JS primary-output diffs in full-mode work): either the subagent
+    user-facing surface diffs in full-mode work): either the subagent
     returned `Clean — ready to commit.`, **or** no matching subagent was
     installed and the final summary names the missing review by its
     role label — e.g. `adversarial-reviewer: no matching subagent
@@ -774,13 +776,6 @@ mode below, then evaluate the terminal-state bullet last.
     targeted insertion; never `tomllib`+`tomli_w`). **Commit before `git push`
     / `gh pr create` — must be in the PR branch, not a follow-up after merge.**
     Not found, or absent: skip — no error.
-  - **Initiative closeout:** if that move emptied the initiative — its
-    `["<slug>".work].queue` and `.active` are now both empty and `.shipped` is
-    non-empty — that was the last spec. Elicit: "`<slug>` — that was the last spec;
-    mark the initiative completed (`status = "closed"`)?" On confirmation, set the
-    initiative's `status = "closed"` in the same comment-preserving edit and commit it
-    in this PR. Skip silently when queued or active work remains, or when
-    `workspace.toml` is absent.
   - **Reminder:** update `docs/product/roadmap.md` to reflect the shipped
     spec (one line; the roadmap is the human-readable companion to the queue).
     If `workspace.toml` is absent, skip this reminder.

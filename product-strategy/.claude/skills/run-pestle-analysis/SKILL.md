@@ -1,15 +1,11 @@
 ---
 name: run-pestle-analysis
-description: Use when a strategist needs to scan the macro environment before setting strategy or evaluating a market entry decision. Triggers on "run a PESTLE", "I need to understand the macro environment before setting strategy", "what external forces are moving in our market", "political economic social scan for our industry", "what macro trends should we factor into this decision". Produces a committed macro-environment artifact. Do NOT use as a substitute for current intelligence — PESTLE organizes and prioritizes information you supply; it does not generate market research.
+description: Use when a strategist needs to scan the macro environment before setting strategy or evaluating market entry. Triggers on "run a PESTLE", "I need to understand the macro environment", "political economic social analysis", "macro scan", "what external forces affect us". Produces a committed macro-environment artifact. Do NOT use as a substitute for current intelligence — PESTLE organizes and prioritizes information you supply; it does not generate market research.
 ---
 
 # Skill: run-pestle-analysis
 
 Produces a **macro-environment analysis** using the PESTLE framework — Political, Economic, Social, Technological, Legal, and Environmental dimensions. PESTLE is a structured scan; it surfaces which macro forces are most material to the strategic context and in what time horizon. See `references/agentbundle-layout.md` for artifact path.
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
 
 ## When to invoke
 
@@ -34,4 +30,3 @@ Table — When presenting several items that share the same fields, render a Mar
 - **PESTLE as a forecast.** Each dimension describes observable forces, not predictions. Flag uncertainty rather than stating projections as fact.
 - **Shallow dimension entries.** Each dimension needs at least one named, concrete signal — a law, a rate, a trend. "Social factors may affect us" is not an assessment.
 - **Missing prioritization.** A PESTLE with six equally-weighted dimensions gives strategy nothing to act on. The step-8 prioritization is the deliverable, not the scan.
-- **Macro analysis as moat claim.** Identifying a macro tailwind (e.g., "AI adoption is growing") does not constitute a competitive moat. A PESTLE entry that names a favorable trend but does not name the mechanism by which this specific organization captures it preferentially — while competitors do not — is incomplete. The moat mechanism belongs in SWOT; PESTLE names the force.

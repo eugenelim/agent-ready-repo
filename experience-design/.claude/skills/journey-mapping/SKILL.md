@@ -1,6 +1,6 @@
 ---
 name: journey-mapping
-description: Use when a product team needs to understand how a customer moves through an experience end-to-end — mapping the stages, actions, emotions, pains, and opportunities along the path. Triggers on "map the customer journey", "what does the user go through", "journey map this flow", "map out the experience stages", "what are the customer touchpoints", "where does the user feel pain". Carries a platform/surface axis (responsive-web, iOS, Android, cross-platform) that changes what the method asks at each stage. Scoped to customer/end-user journeys only — employee journeys are out of v1. Do NOT use to design screen interactions (use `user-flow`), to blueprint the backing services (use `service-blueprint`), or to map an internal business process (use `process-mapping`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+description: Use when a product team needs to understand how a customer moves through an experience end-to-end — mapping the stages, actions, emotions, pains, and opportunities along the path. Triggers on "map the customer journey", "what does the user go through", "journey map this flow", "map out the experience stages", "what are the customer touchpoints", "where does the user feel pain". Carries a platform/surface axis (responsive-web, iOS, Android, cross-platform) that changes what the method asks at each stage. Scoped to customer/end-user journeys only — employee journeys are out of v1. Do NOT use to design screen interactions (use `user-flow`), to blueprint the backing services (use `service-blueprint`), or to map an internal business process (use `process-mapping`).
 ---
 
 # Skill: journey-mapping
@@ -8,10 +8,6 @@ description: Use when a product team needs to understand how a customer moves th
 Produces a **customer/end-user journey map** — the stages a customer moves through, the actions they take, the emotions they feel, the pains they encounter, and the opportunities those pains reveal. The map is **outside-in and frontstage**: it describes what the customer experiences, not what happens behind the scenes. The method draws on NN/g journey mapping, Patton user-story mapping, and Torres opportunity-solution tree thinking; see `references/journey-mapping.md`.
 
 **Inputs:** a persona (or role description) and an outcome the customer is trying to achieve. Both are elicited inline when absent — this skill is standalone-useful without upstream research artifacts. **Consumed by:** `user-flow` (derives the screen sequence and per-screen briefs from the journey stages) and `service-blueprint` (maps the frontstage actions to backstage services). When `architect` or `contracts` are not installed, downstream services are named textually rather than by package reference.
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
 
 ## When to invoke
 

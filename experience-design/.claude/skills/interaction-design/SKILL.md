@@ -1,6 +1,6 @@
 ---
 name: interaction-design
-description: Use when a screen or component needs its behavioral layer designed — how it responds to actions, validates input, transitions between states, and guides users through gesture and cognitive fit. Triggers on "design how this form behaves", "what happens when the user taps submit", "design the loading and error states", "map the state machine for this component", "design the micro-interactions", "how should this feel to use". Do NOT use to structure hierarchy or wayfinding (use `information-architecture`), to name aesthetic direction (use `creative-direction`), to map cross-screen navigation routes (use `user-flow`), or to enumerate which states exist (that enumeration belongs to the shared quality floor). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+description: Use when a screen or component needs its behavioral layer designed — how it responds to actions, validates input, transitions between states, and guides users through gesture and cognitive fit. Triggers on "design how this form behaves", "what happens when the user taps submit", "design the loading and error states", "map the state machine for this component", "design the micro-interactions", "how should this feel to use". Do NOT use to structure hierarchy or wayfinding (use `information-architecture`), to name aesthetic direction (use `creative-direction`), to map cross-screen navigation routes (use `user-flow`), or to enumerate which states exist (that enumeration belongs to the shared quality floor).
 ---
 
 # Skill: interaction-design
@@ -8,10 +8,6 @@ description: Use when a screen or component needs its behavioral layer designed 
 Designs **how a screen or component behaves** — the feedback an action produces, the timing of validation, the state machine that drives a component, the motion that communicates change, and the cognitive fit that makes it feel obvious. The output enriches the **interaction/behavior section** of a per-screen brief; it does not emit its own file-per-slug artifact.
 
 **Three state homes — the load-bearing carve.** The shared quality floor (at `../design-review/references/quality-floor.md`) owns the state *set* — the enumeration of which states must be designed (empty, loading, error, success, partial, disabled). `user-flow` owns *cross-screen* routing — which screens follow which, and the macro-level error/edge paths across the journey. This skill owns the *in-component* state machine — the transitions and guards *within* a single screen or component — plus the motion, feedback timing, and input flow that animate those transitions. Macro-flow vs. micro-behavior is the line; never re-enumerate the state set or route across screens here.
-
-## Output rendering
-
-Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
 
 ## When to invoke
 

@@ -770,7 +770,7 @@ mutating JSON by hand.
 ### Model selection
 
 Every subagent file declares `model:` in its frontmatter explicitly. The
-`agentbundle catalogue verify` (step 11, `_step_agent_artifacts`) linter
+[`lint-agent-artifacts.py`](../tools/lint-agent-artifacts.py) linter
 enforces this. Reasoning behind each current choice:
 
 | Subagent | Model | Why |
@@ -1102,9 +1102,9 @@ The keys live under `metadata:` rather than at top level because the
 [agentskills.io specification](https://agentskills.io/specification)
 pins the top-level frontmatter set to `name`, `description`,
 `license`, `compatibility`, `metadata`, `allowed-tools` and reserves
-`metadata:` as the project-specific escape hatch. `agentbundle catalogue verify`
-(step 11) refuses any top-level key outside that set; `agentbundle catalogue lint`
-(`_PackRules._check_credentialed_skills`) scopes its checks to skills with `metadata.credentialed: true`.
+`metadata:` as the project-specific escape hatch. `tools/lint-agent-artifacts.py`
+refuses any top-level key outside that set; `tools/lint_credentialed_skills.py`
+scopes its checks to skills with `metadata.credentialed: true`.
 
 `metadata.auth-fallback` is optional and names a second broker a **dual-auth**
 skill falls back to when the active one can't resolve (e.g. an `auth: sso-cookie`
@@ -1174,7 +1174,7 @@ Credentialed-CLI-class primitives must refuse the value-shaped flags
 `--password`. The CLI verb's `setup` subparser registers these as
 *tombstone arguments* whose action emits the verbatim sentinel
 `tokens cannot be passed via argv` and exits non-zero; the
-`agentbundle catalogue lint` (`_PackRules._check_credentialed_skills`) refuses any primitive's
+`tools/lint_credentialed_skills.py` lint refuses any primitive's
 script that declares one of the banned names in an
 `argparse.ArgumentParser.add_argument` call. MCP-server-class
 primitives may accept *header-naming* flags (`--bearer-header`,

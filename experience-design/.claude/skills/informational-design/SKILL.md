@@ -1,11 +1,11 @@
 ---
 name: informational-design
-description: "Use when designing an informational surface — an article page, a news or editorial page, a long-form content page, or a content-rich page whose primary purpose is to inform, not to convert or enable tasks. Triggers on 'design the article page', 'structure the editorial page', 'how should the blog look', 'long-form content design', 'reading experience design'. Uses typography as the primary design tool. Do NOT use for documentation (use documentation-design), marketing (use conversion-design), or tool/app surfaces (use workspace-design). Surface genre: informational. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when designing an informational surface — an article page, a news or editorial page, a long-form content page, or a content-rich page whose primary purpose is to inform, not to convert or enable tasks. Triggers on 'design the article page', 'structure the editorial page', 'how should the blog look', 'long-form content design', 'reading experience design'. Uses typography as the primary design tool. Do NOT use for documentation (use documentation-design), marketing (use conversion-design), or tool/app surfaces (use workspace-design). Surface genre: informational."
 ---
 
 # Skill: informational-design
 
-Converts the editorial structure and reading goal into a **structural specification for an informational surface** — the typographic hierarchy, the reading-pattern calibration, the editorial grid, and the "what's next" chain that sustains reader engagement after the primary content is consumed. This skill uses **typography as the primary design tool**; layout, grid, and navigation are typography's support structure. It does not write the content (that is `content-design`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
+Converts the editorial structure and reading goal into a **structural specification for an informational surface** — the typographic hierarchy, the reading-pattern calibration, the editorial grid, and the "what's next" chain that sustains reader engagement after the primary content is consumed. This skill uses **typography as the primary design tool**; layout, grid, and navigation are typography's support structure. It does not write the content (that is `content-design`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 ## When to invoke
 

@@ -8,10 +8,6 @@ description: Use this skill when the user wants to scaffold a new package in the
 Scaffold a new package under `packages/` with the conventions every package
 in this monorepo follows.
 
-## Output rendering
-
-Tree / hierarchy — Render hierarchies as an ASCII tree (├─ └─ │) inside a fenced block, not as nested bullets.
-
 ## When to invoke
 
 Confirm:

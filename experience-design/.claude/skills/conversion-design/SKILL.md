@@ -1,15 +1,11 @@
 ---
 name: conversion-design
-description: "Use when designing a marketing surface — a landing page, product homepage, pricing page, or acquisition flow — where the primary goal is to convert a visitor into a lead, trial user, or customer. Triggers on 'design the landing page', 'structure the homepage', 'what goes above the fold', 'convert visitors', 'design the pricing page', 'product marketing surface'. Produces IA and structural specifications for conversion surfaces. Do NOT use for product UI design (use user-flow + interaction-design), documentation surfaces (use documentation-design), or analytical dashboards (use analytical-design). Surface genre: marketing. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when designing a marketing surface — a landing page, product homepage, pricing page, or acquisition flow — where the primary goal is to convert a visitor into a lead, trial user, or customer. Triggers on 'design the landing page', 'structure the homepage', 'what goes above the fold', 'convert visitors', 'design the pricing page', 'product marketing surface'. Produces IA and structural specifications for conversion surfaces. Do NOT use for product UI design (use user-flow + interaction-design), documentation surfaces (use documentation-design), or analytical dashboards (use analytical-design). Surface genre: marketing."
 ---
 
 # Skill: conversion-design
 
-Converts the content brief and design-principles artefact into a **structural specification for a marketing surface** — the above-fold contract, the scroll story, and the social-proof architecture that carries a visitor from "not sure" to "ready to act." This skill is IA and structure; it does not write copy (that is `content-design` and `tone-of-voice`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Converts the content brief and design-principles artefact into a **structural specification for a marketing surface** — the above-fold contract, the scroll story, and the social-proof architecture that carries a visitor from "not sure" to "ready to act." This skill is IA and structure; it does not write copy (that is `content-design` and `tone-of-voice`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 ## When to invoke
 

@@ -36,6 +36,7 @@ Tier 3 dotfile); run ``credential-setup`` skill to populate the namespace.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import csv
 import json
 import logging
@@ -84,7 +85,7 @@ try:
         JiraError,
         load_credentials,
     )
-    from ._sso_config import _select_auth_path  # noqa: E402
+    from ._sso_config import load_sso_config  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # A missing module here is a non-secret dependency (e.g. httpx);
     # `credbroker` is imported lazily inside load_credentials(), so its
@@ -710,13 +711,13 @@ async def _run(args: argparse.Namespace) -> int:
     # Auth selector: an sso-config.toml with auth_default = "sso-cookie"
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
-        auth_path, sso_config = _select_auth_path()
+        sso_config = load_sso_config()
     except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
 
     try:
-        if auth_path == "sso-cookie":
+        if sso_config is not None:
             client = JiraClient.from_sso_cookies(sso_config)
         else:
             credentials = load_credentials()
@@ -786,7 +787,6 @@ def main(argv: list[str] | None = None) -> int:
     # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt
     # (BaseException) — argparse usage exits and Ctrl-C (130) pass through.
     try:
-        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         return asyncio.run(_run(args))
     except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
         name = type(exc).__name__

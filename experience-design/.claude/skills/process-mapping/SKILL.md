@@ -1,6 +1,6 @@
 ---
 name: process-mapping
-description: Use when a team needs to understand, document, or improve how an internal business operation works — mapping an APQC L3 process end-to-end as a swimlane flow with as-is and to-be states, a SIPOC scoping table, and a pain/waste register. Triggers on "map our internal process", "document this business process", "what does our current process look like", "as-is to-be process", "process improvement", "how does this workflow actually work", "swimlane diagram for this process", "map the claims process", "map the order fulfilment flow". This is the inside-out operations sibling of `journey-mapping`. Do NOT use to map what a customer experiences (use `journey-mapping`), to blueprint how screens tie to backing services (use `service-blueprint`), or to sequence screen transitions (use `user-flow`). Does NOT carry a platform/surface axis — it is actor/swimlane-shaped, not device-shaped. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+description: Use when a team needs to understand, document, or improve how an internal business operation works — mapping an APQC L3 process end-to-end as a swimlane flow with as-is and to-be states, a SIPOC scoping table, and a pain/waste register. Triggers on "map our internal process", "document this business process", "what does our current process look like", "as-is to-be process", "process improvement", "how does this workflow actually work", "swimlane diagram for this process", "map the claims process", "map the order fulfilment flow". This is the inside-out operations sibling of `journey-mapping`. Do NOT use to map what a customer experiences (use `journey-mapping`), to blueprint how screens tie to backing services (use `service-blueprint`), or to sequence screen transitions (use `user-flow`). Does NOT carry a platform/surface axis — it is actor/swimlane-shaped, not device-shaped.
 ---
 
 # Skill: process-mapping
@@ -8,11 +8,6 @@ description: Use when a team needs to understand, document, or improve how an in
 Produces an **internal business process map** — the inside-out sibling of `journey-mapping`. Where the journey skill maps what a customer experiences frontstage and outside-in, this skill maps what the organisation does backstage and inside-out: the actors, the handoffs, the decision gates, the waste, and the target state. The method is anchored on the APQC L3 process (named flow: trigger → outcome → roles → steps), decomposed to L4 activities (cross-functional handoffs and decision gates — the swimlane content). L5 tasks are work-instruction territory and are out of scope here. See `references/process-mapping.md`.
 
 **Inputs:** job aids, SOPs, or work instructions (primary); SME knowledge elicited inline when no documents are present. Both are standalone-useful without upstream design artifacts. **Consumed by:** `product-engineering`'s `frame-intent` skill — this map is the producer of the "current-state process map" input that `frame-intent` uses as a brownfield constraint. **Cross-reference:** when the process being mapped is triggered by a customer action, cross-reference the service blueprint by name (the `service-blueprint` output for the same journey).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
-Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
 
 ## When to invoke
 

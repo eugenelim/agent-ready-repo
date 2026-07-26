@@ -1,15 +1,11 @@
 ---
 name: workspace-design
-description: "Use when designing a workspace surface — a productivity tool, a collaborative environment, an agentic UI, or any surface whose primary purpose is to support sustained professional work across sessions. Triggers on 'design the workspace', 'structure the tool UI', 'collaborative editing surface', 'agentic UI design', 'multi-agent coordination UI', 'task management surface', 'session arc design'. Covers context-persistence, collaboration state IA, ambient attention, agentic patterns, and interrupt design. Do NOT use for dashboards and monitoring views (use analytical-design) or marketplace surfaces (use marketplace-design). Surface genre: workspace. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when designing a workspace surface — a productivity tool, a collaborative environment, an agentic UI, or any surface whose primary purpose is to support sustained professional work across sessions. Triggers on 'design the workspace', 'structure the tool UI', 'collaborative editing surface', 'agentic UI design', 'multi-agent coordination UI', 'task management surface', 'session arc design'. Covers context-persistence, collaboration state IA, ambient attention, agentic patterns, and interrupt design. Do NOT use for dashboards and monitoring views (use analytical-design) or marketplace surfaces (use marketplace-design). Surface genre: workspace."
 ---
 
 # Skill: workspace-design
 
-Converts the session arc, the collaboration model, and the agentic patterns into a **structural specification for a workspace surface** — the context-persistence architecture, the attention zone layout, the collaboration state IA, the interrupt and notification design, and the agentic patterns that make a workspace surface feel like a professional environment rather than a series of disconnected screens. This skill is IA and structure; it does not design individual component interactions (that is `interaction-design`) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Converts the session arc, the collaboration model, and the agentic patterns into a **structural specification for a workspace surface** — the context-persistence architecture, the attention zone layout, the collaboration state IA, the interrupt and notification design, and the agentic patterns that make a workspace surface feel like a professional environment rather than a series of disconnected screens. This skill is IA and structure; it does not design individual component interactions (that is `interaction-design`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 ## When to invoke
 

@@ -24,10 +24,6 @@ hypothesis**: every load-bearing assumption carries a validation hook
 (kill-condition + the real-world activity that would confirm it). Desk-grounding
 is not validation; the loop says so structurally.
 
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
-
 ## The contract this skill carries
 
 - **The typed sidecar schema** — [`references/sidecar-schema.md`](references/sidecar-schema.md),
@@ -114,7 +110,7 @@ contract). The phase→skill→artifact roster:
 The **convergence loop** runs the lens skills as **parallel writers, bouncing off
 each other only through the open-questions queue — never chat**: *product*
 (`decompose-intent`), *UX/experience* (`journey-mapping`, `service-blueprint`,
-`user-flow`, `ux-writing` — if installed), *tech*
+`user-flow`, `voice-and-microcopy` — if installed), *tech*
 (`architect-design`/`architect-diagram`, contracts — if installed), and *reconcile*
 (the discovery reviewer roster + the self-coverage gate + the traceability lint).
 

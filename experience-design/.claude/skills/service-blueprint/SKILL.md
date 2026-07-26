@@ -1,6 +1,6 @@
 ---
 name: service-blueprint
-description: Use when you need to map the backing services that fulfil a customer journey — building a service blueprint with four rows (frontstage / line-of-visibility / backstage / support) that ties every screen action to the service or system behind it. Triggers on "service blueprint", "what backs this screen", "map the backstage", "what services support this journey", "blueprint the service". Do NOT use to map the customer journey itself (use `journey-mapping`), to sequence screens and their transitions (use `user-flow`), or to derive a token/scale taxonomy (use `design-token-taxonomy`). Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register.
+description: Use when you need to map the backing services that fulfil a customer journey — building a service blueprint with four rows (frontstage / line-of-visibility / backstage / support) that ties every screen action to the service or system behind it. Triggers on "service blueprint", "what backs this screen", "map the backstage", "what services support this journey", "blueprint the service". Do NOT use to map the customer journey itself (use `journey-mapping`), to sequence screens and their transitions (use `user-flow`), or to design system components (use `design-system`).
 ---
 
 # Skill: service-blueprint
@@ -24,11 +24,6 @@ upstream artifact is present.
 **Consumed by:** `architect` (the backstage column feeds C4 component
 decomposition + service contracts); the spec LLD (the support row names the
 internal systems the spec must account for).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
-Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
 
 ## When to invoke
 

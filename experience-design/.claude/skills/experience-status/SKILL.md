@@ -1,6 +1,6 @@
 ---
 name: experience-status
-description: "Orient to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next. Triggers on 'where are we with the design', 'what experience artifacts do we have', 'status of the design thread', 'what's next in the design', 'show me what design work exists', or any cold-start orient for the experience-design work thread. Read-only: never writes files, never elicits configuration. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Orient to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next. Triggers on 'where are we with the design', 'what experience artifacts do we have', 'status of the design thread', 'what's next in the design', 'show me what design work exists', or any cold-start orient for the experience-design work thread. Read-only: never writes files, never elicits configuration."
 ---
 
 # /experience-status
@@ -8,11 +8,6 @@ description: "Orient to the current design thread at a glance — reads design a
 Cold-start orient for a sustained experience-design thread. Run this when you return to design work and want to know what artifacts exist, what's missing from the minimal viable thread (journey map → screen flow → per-screen briefs), and which skill to run next.
 
 **Read-only** by contract (ADR-0054): it never writes files, never elicits `[design] output_dir` (stops at "not configured"), and never advances state.
-
-## Output rendering
-
-Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
-Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
 ## When to invoke
 
@@ -100,7 +95,7 @@ Format output with the following sections (omit sections with zero entries):
 - If journey map is missing: run `journey-mapping`
 - If screen flow is missing (but journey map exists): run `user-flow`
 - If per-screen briefs are missing (but flow exists): run `user-flow`
-- If all three exist: thread is complete — run `service-blueprint` if backstage mapping is needed, or `creative-direction` / `design-token-taxonomy` / `interaction-design` to enrich the screen briefs.
+- If all three exist: thread is complete — run `service-blueprint` if backstage mapping is needed, or `creative-direction` / `design-system` / `interaction-design` to enrich the screen briefs.
 
 ---
 

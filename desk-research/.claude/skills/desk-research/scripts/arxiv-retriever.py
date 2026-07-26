@@ -26,10 +26,6 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
-sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
-
 ARXIV_API = "https://export.arxiv.org/api/query"
 ATOM_NS = "{http://www.w3.org/2005/Atom}"
 

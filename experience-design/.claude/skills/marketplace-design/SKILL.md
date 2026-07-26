@@ -1,15 +1,11 @@
 ---
 name: marketplace-design
-description: "Use when designing a marketplace surface — a catalogue, a listing grid, a product detail page, or a buying/transaction flow that connects buyers and sellers or producers and consumers. Triggers on 'design the marketplace', 'structure the listing page', 'how should the catalogue work', 'design the search and filter', 'buyer journey on the marketplace', 'product card design'. Produces IA specifications for catalogue, filter, comparison, and transaction bridge surfaces. Do NOT use for single-product marketing surfaces (use conversion-design) or workspace tool surfaces (use workspace-design). Surface genre: marketplace. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when designing a marketplace surface — a catalogue, a listing grid, a product detail page, or a buying/transaction flow that connects buyers and sellers or producers and consumers. Triggers on 'design the marketplace', 'structure the listing page', 'how should the catalogue work', 'design the search and filter', 'buyer journey on the marketplace', 'product card design'. Produces IA specifications for catalogue, filter, comparison, and transaction bridge surfaces. Do NOT use for single-product marketing surfaces (use conversion-design) or workspace tool surfaces (use workspace-design). Surface genre: marketplace."
 ---
 
 # Skill: marketplace-design
 
-Converts the buyer journey and the listing object model into a **structural specification for a marketplace surface** — the listing card IA, the filter and facet architecture, the comparison affordances, and the transaction bridge that carries a buyer from discovery to commitment. This skill is IA and structure; it does not design individual card components (that is `interaction-design`'s component state machine) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Converts the buyer journey and the listing object model into a **structural specification for a marketplace surface** — the listing card IA, the filter and facet architecture, the comparison affordances, and the transaction bridge that carries a buyer from discovery to commitment. This skill is IA and structure; it does not design individual card components (that is `interaction-design`'s component state machine) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 ## When to invoke
 

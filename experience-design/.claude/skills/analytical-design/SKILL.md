@@ -1,15 +1,11 @@
 ---
 name: analytical-design
-description: "Use when designing an analytical surface — a dashboard, a reporting view, a monitoring screen, or any surface whose primary purpose is to help a user understand a data set and act on it. Triggers on 'design the dashboard', 'structure the reporting view', 'what goes on the analytics screen', 'KPI layout', 'design a monitoring view'. Produces domain-model-first IA and widget hierarchy specifications. Scope boundary — individual chart encoding design is out of scope (use interaction-design for component state machines); this skill handles dashboard IA only. Do NOT use for marketing surfaces (use conversion-design) or workspace productivity surfaces (use workspace-design). Surface genre: analytical. Do NOT use to name copy voice goals — use `copy-direction` for a specific surface or `tone-of-voice` for brand-level register."
+description: "Use when designing an analytical surface — a dashboard, a reporting view, a monitoring screen, or any surface whose primary purpose is to help a user understand a data set and act on it. Triggers on 'design the dashboard', 'structure the reporting view', 'what goes on the analytics screen', 'KPI layout', 'design a monitoring view'. Produces domain-model-first IA and widget hierarchy specifications. Scope boundary — individual chart encoding design is out of scope (use interaction-design for component state machines); this skill handles dashboard IA only. Do NOT use for marketing surfaces (use conversion-design) or workspace productivity surfaces (use workspace-design). Surface genre: analytical."
 ---
 
 # Skill: analytical-design
 
-Converts business questions and the domain model into a **structural specification for an analytical surface** — the widget hierarchy, the spatial layout grammar, and the role-based view architecture that lets a user move from a status signal to a diagnostic to a corrective action without losing their place. This skill is dashboard IA; it does not design individual chart encodings (that is `interaction-design`'s widget state machine) and does not derive the token/scale taxonomy (that is `design-token-taxonomy` and `creative-direction`).
-
-## Output rendering
-
-Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Converts business questions and the domain model into a **structural specification for an analytical surface** — the widget hierarchy, the spatial layout grammar, and the role-based view architecture that lets a user move from a status signal to a diagnostic to a corrective action without losing their place. This skill is dashboard IA; it does not design individual chart encodings (that is `interaction-design`'s widget state machine) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 ## When to invoke
 

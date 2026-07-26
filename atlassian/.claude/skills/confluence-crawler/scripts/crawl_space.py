@@ -16,6 +16,7 @@ PAT is never accepted on the command line.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import re
 import sys
@@ -76,7 +77,7 @@ try:
     )
     from ._convert import to_markdown  # noqa: E402
     from ._links import LinkTargets  # noqa: E402
-    from ._sso_config import _select_auth_path  # noqa: E402
+    from ._sso_config import load_sso_config  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # A missing module here is a non-secret dependency (e.g. httpx);
     # `credbroker` is imported lazily inside load_credentials(), so its
@@ -387,17 +388,16 @@ async def _run_check(client: ConfluenceClient, flavor: str) -> int:
 
 
 async def main_async(args: argparse.Namespace) -> int:
-    import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
     # Auth selector: sso-config.toml with auth_default = "sso-cookie"
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
-        auth_path, sso_config = _select_auth_path()
+        sso_config = load_sso_config()
     except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
         log.error("%s", exc)
         return EXIT_USER_ACTION
 
     try:
-        if auth_path == "sso-cookie":
+        if sso_config is not None:
             client = ConfluenceClient.from_sso_cookies(
                 sso_config,
                 concurrency=args.concurrency,
@@ -500,7 +500,6 @@ def main() -> int:
     # Exception` deliberately does NOT catch KeyboardInterrupt (130 below) or
     # SystemExit (BaseException) — those pass through.
     try:
-        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         return asyncio.run(main_async(args))
     except KeyboardInterrupt:
         log.warning("interrupted")

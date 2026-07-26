@@ -5,7 +5,7 @@ to a generative design tool / a UI-codegen step), yet **carrying the connective
 context so the whole flow holds together**. The mechanism is a split:
 
 - **Shared design contract** — authored ONCE per product (by `creative-direction`
-  + `design-token-taxonomy` + the navigation model + `interaction-design`'s
+  + `design-system` + the navigation model + `interaction-design`'s
   behavioral conventions + the shared quality floor), *referenced* by every screen
   brief, never copied. This is what keeps N independently-generated screens coherent.
 - **Per-screen spec** — this screen only (its job, states, data, actions, copy).
@@ -62,7 +62,7 @@ surface-genre: <marketing | documentation | informational | analytical | transac
   (mermaid stateDiagram-v2) · motion purpose + reduced-motion · gesture — or:
   see interaction-design enrichment>
 
-## Copy  (from ux-writing; per state)
+## Copy  (from voice-and-microcopy; per state)
 - <key strings per state, or: see copy-deck §<screen>>
 
 ## Shared contract — REFERENCE, do not restate
