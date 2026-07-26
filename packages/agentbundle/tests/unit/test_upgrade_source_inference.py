@@ -112,3 +112,54 @@ def test_source_present_unchanged():
     # canonical_source must be derived from the pack's recorded source
     assert row.canonical_source is not None
     assert "example.com" in row.canonical_source
+
+
+# ---------------------------------------------------------------------------
+# Test 4: source="agent-ready-repo" (legacy sentinel) + default chain succeeds
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_sentinel_source_infers_from_default_chain():
+    """The legacy 'agent-ready-repo' sentinel is treated the same as None —
+    inference via the 5-layer default chain, not an immediate source-unknown block.
+    """
+    state = _make_state(source="agent-ready-repo")
+
+    mock_resolve_cat = MagicMock(side_effect=CatalogueError("catalogue not found"))
+
+    with (
+        patch(
+            "agentbundle.source_defaults.resolve_default_source",
+            return_value="https://example.com/catalogue.toml",
+        ),
+        patch("agentbundle.commands.upgrade.resolve_catalogue", mock_resolve_cat),
+    ):
+        rows, _ = _run_source_version_preflight(state, scope="user", root=None)
+
+    row = rows[0]
+    assert row.canonical_source is not None, "canonical_source must be set when inference succeeds"
+    assert row.status_reason != "source-unknown", (
+        f"expected inference to succeed; got status_reason={row.status_reason!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 5: source="agent-ready-repo" (legacy sentinel) + default chain raises
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_sentinel_source_default_chain_fails_marks_unknown():
+    """When source is the legacy sentinel and resolve_default_source raises,
+    the row is marked status='unknown', status_reason='source-unknown'."""
+    state = _make_state(source="agent-ready-repo")
+
+    with patch(
+        "agentbundle.source_defaults.resolve_default_source",
+        side_effect=CatalogueError("no default configured"),
+    ):
+        rows, _ = _run_source_version_preflight(state, scope="user", root=None)
+
+    row = rows[0]
+    assert row.status == "unknown"
+    assert row.status_reason == "source-unknown"
+    assert row.canonical_source is None
