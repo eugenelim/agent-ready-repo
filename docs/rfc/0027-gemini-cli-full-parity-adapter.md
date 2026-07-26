@@ -46,10 +46,10 @@ Unlike Cursor (RFC-0026), Gemini does **not** cross-read foreign ecosystems (`.c
 
 ## Proposal
 
-A new `gemini` adapter module (`packages/agentbundle/agentbundle/build/adapters/gemini.py`), registered in `adapters/__init__.py`, driven by a new `[adapter.gemini]` block in `packages/agentbundle/agentbundle/_data/adapter.toml` (contract bump **v0.11 → v0.12**, post-Cursor — see Open Q1), mirrored byte-for-byte to `docs/contracts/adapter.toml`.
+A new `gemini` adapter module (`packages/agentbundle/agentbundle/build/adapters/gemini.py`), registered in `adapters/__init__.py`, driven by a new `[adapter.gemini]` block in `packages/agentbundle/agentbundle/_data/adapter.toml` (contract bump **v0.11 → v0.12**, post-Cursor — see Open Q1), mirrored byte-for-byte to `contracts/adapter.toml`.
 
 This is a larger contract change than RFC-0026's "block + version bump only," along **two** surfaces:
-1. **One new projection mode** (`gemini-command-toml`), added to the `mode` enum in `adapter.schema.json` and its `docs/contracts/` mirror — because Gemini's command format is TOML, not the Markdown every other command-capable tool uses. Every other *primitive* reuses an existing enumerated mode.
+1. **One new projection mode** (`gemini-command-toml`), added to the `mode` enum in `adapter.schema.json` and its `contracts/` mirror — because Gemini's command format is TOML, not the Markdown every other command-capable tool uses. Every other *primitive* reuses an existing enumerated mode.
 2. **A static, primitive-less settings emission** for the `AGENTS.md` bridge (decision 5). No existing contract construct expresses this — every projection today is driven by a source primitive. The mechanism is Open Q2, not assumed solved.
 
 ### Projection table
@@ -206,5 +206,5 @@ Conclusion: all five primitives map; the only fidelity loss is dropping unmapped
 Filled in on acceptance:
 - [ADR-0016](../adr/0016-gemini-cli-full-parity-adapter.md): Gemini CLI full-parity distribution adapter (records the seven decisions). Cursor took ADR-0015.
 - Spec: `docs/specs/gemini-full-parity/` (+ plan) — adapter module, `[adapter.gemini]` contract block, `gemini-agent-frontmatter` (tool + model `values` maps) + `gemini-command-toml` mode + hook-event mapping tables, `context.fileName` bridge, contract version bump + `gemini-command-toml` mode-enum addition, unit tests in `build/tests/test_adapter_gemini.py` (incl. settings.json multi-managed-key merge test), `allowed-adapters` acceptance, CI wiring, support-matrix (`docs/guides/_shared/reference/adapter-support.md`) correction from "Universal layer" to its true tier, root `AGENTS.md` line.
-- Contract bump `packages/agentbundle/agentbundle/_data/adapter.toml` **v0.11 → v0.12**, mirrored to `docs/contracts/adapter.toml`, with the new `gemini-command-toml` mode added to both `adapter.schema.json` mirrors.
+- Contract bump `packages/agentbundle/agentbundle/_data/adapter.toml` **v0.11 → v0.12**, mirrored to `contracts/adapter.toml`, with the new `gemini-command-toml` mode added to both `adapter.schema.json` mirrors.
 - Spec + plan: [`docs/specs/gemini-full-parity/`](../specs/gemini-full-parity/spec.md) (Approved).

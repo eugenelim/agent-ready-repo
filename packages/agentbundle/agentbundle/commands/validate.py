@@ -42,7 +42,7 @@ VALID_RECIPES: frozenset[str] = frozenset(
 )
 
 # Location of pack.schema.json relative to the repo root.  The schema is
-# bundled in docs/contracts/ and is also bundled at
+# bundled in contracts/ and is also bundled at
 # agentbundle/_data/pack.schema.json for zipapp use.
 _HERE = Path(__file__).resolve().parent
 
@@ -54,7 +54,7 @@ def _schema_path() -> Path:
         return bundled
     # Dev fallback: walk up from agentbundle/ package to repo root.
     repo_root = _HERE.parent.parent.parent.parent
-    return repo_root / "docs" / "contracts" / "pack.schema.json"
+    return repo_root / "contracts" / "pack.schema.json"
 
 
 def _conformance_fixtures_dir() -> Path:
@@ -461,7 +461,7 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     if bundled.exists():
         contract_path = bundled
     else:
-        contract_path = here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+        contract_path = here.parent.parent.parent.parent / "contracts" / "adapter.toml"
         if not contract_path.exists():
             return None, None
     contract = load_contract(contract_path)
@@ -500,7 +500,7 @@ def _load_adapter_contract() -> dict:
         contract_path = bundled
     else:
         contract_path = (
-            here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+            here.parent.parent.parent.parent / "contracts" / "adapter.toml"
         )
         if not contract_path.exists():
             return {}

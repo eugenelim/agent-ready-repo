@@ -67,7 +67,7 @@ Specifically:
 **Negative:**
 - A new top-level directory and two new conventions (folder layout, traceability)
   for adopters to learn; "contracts" now names three surfaces (the pack,
-  `docs/contracts/`, and repo-root `contracts/`) — disambiguated by path.
+  `contracts/`, and repo-root `contracts/`) — disambiguated by path.
 
 **Neutral / to revisit:**
 - v1 covers OpenAPI/REST only; other contract types (AsyncAPI, proto, …) plug in

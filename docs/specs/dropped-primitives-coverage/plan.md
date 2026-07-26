@@ -60,7 +60,7 @@ Order matters — listed in the order they should be done. The graph is **mostly
   - **All edits in one commit.**
 - Edit `packages/agentbundle/agentbundle/_data/adapter.schema.json`:
   - Extend the projection-mode `enum` to admit `"codex-agent-toml"` at **every site that currently enumerates `"dropped"`**. Discover the sites with `grep -n '"dropped"' adapter.schema.json` (today: four sites — two for the top-level array-form `[[adapter.<name>.projection]]` shapes and two for the scope-conditional `[adapter.<name>.projections.<primitive>]` shapes; future schema edits may change the count). Each enum site that admits the current modes (`direct-directory` / `direct-file` / `merge-json` / `user-merge-json` / `merge-into-agent-json` / `instruction-file` / `managed-block-inline` / `degraded-info-log` / `dropped`) gets `codex-agent-toml` added. Without the extension at every site, schema-validated contract loads reject v0.8 on first run.
-- Mirror the edited `_data/adapter.toml` into `docs/contracts/adapter.toml` (existing convention enforced by `test_contract.py::test_contract_files_byte_identical`).
+- Mirror the edited `_data/adapter.toml` into `contracts/adapter.toml` (existing convention enforced by `test_contract.py::test_contract_files_byte_identical`).
 - Run `make build-self FORCE=1` to propagate any projected `adapter.toml` copies.
 
 **Done when:** the contract tests pass, the schema-load test in `test_contract.py` exits 0 (the schema enum extension is the load-bearing piece), and `make build-self FORCE=1` produces a clean working tree.

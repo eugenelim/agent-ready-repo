@@ -25,7 +25,7 @@ from tempfile import TemporaryDirectory
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 CORE_PACK = REPO_ROOT / "packs" / "core"
-CONTRACT = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+CONTRACT = REPO_ROOT / "contracts" / "adapter.toml"
 KIRO_HOOK = CORE_PACK / ".apm" / "kiro-ide-hooks" / "work-loop-check.kiro.hook"
 HOOK_BODY = CORE_PACK / ".apm" / "hooks" / "work-loop-check.py"
 

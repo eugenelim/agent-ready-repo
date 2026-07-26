@@ -21,9 +21,9 @@ order:
    pipeline has something concrete to project; trying to wire the
    pipeline first leaves nothing to verify.
 2. **Bump the contract and schemas (T2).** Edit
-   `docs/contracts/adapter.toml` to v0.4 with `install-routes`; edit
-   `docs/contracts/adapter.schema.json` to accept the new key; edit
-   `docs/contracts/plugin-manifest.schema.json` to accept the
+   `contracts/adapter.toml` to v0.4 with `install-routes`; edit
+   `contracts/adapter.schema.json` to accept the new key; edit
+   `contracts/plugin-manifest.schema.json` to accept the
    synthesised `hooks` block on the *derived* shape while keeping the
    *source* shape valid without `hooks`. Schema-level changes are
    small and isolated; landing them now lets every later task assert
@@ -343,7 +343,7 @@ set that is a subset of the AC1 allow-list.
 
 ---
 
-### T2: Contract bump to v0.4 and schema acceptances land in `docs/contracts/`
+### T2: Contract bump to v0.4 and schema acceptances land in `contracts/`
 
 **Depends on:** none
 
@@ -352,7 +352,7 @@ set that is a subset of the AC1 allow-list.
 
 **Tests:**
 - `test_contract_version_is_v04` — `tomllib.loads` of
-  `docs/contracts/adapter.toml` returns
+  `contracts/adapter.toml` returns
   `{"contract": {"version": "0.4", ...}}`. AC11.
 - `test_claude_code_install_routes_present` —
   `contract["adapter"]["claude-code"]["install-routes"] == ["cli",
@@ -378,13 +378,13 @@ set that is a subset of the AC1 allow-list.
   synthesised `hooks.SessionStart` block.
 
 **Approach:**
-- Edit `docs/contracts/adapter.toml`:
+- Edit `contracts/adapter.toml`:
   - `[contract] version = "0.3"` → `"0.4"`.
   - Under `[adapter."claude-code"]`, add the key
     `install-routes = ["cli", "claude-plugins"]`, preceded by
     a one-line `#`-prefixed TOML comment naming RFC-0008 and
     spec `claude-plugins-install-route`.
-- Edit `docs/contracts/adapter.schema.json` to accept the new
+- Edit `contracts/adapter.schema.json` to accept the new
   optional `install-routes` array on the `adapter.<name>` shape
   (items: enum of `"cli"` and `"claude-plugins"`; both ordered).
 - **Schema split** (per AC10 gate 1). The validator
@@ -394,7 +394,7 @@ set that is a subset of the AC1 allow-list.
   EXECUTE-time discovery needed. The schema-split rail uses
   `additionalProperties: false` + an explicit positive
   property list:
-  - Amend `docs/contracts/plugin-manifest.schema.json` (the
+  - Amend `contracts/plugin-manifest.schema.json` (the
     source-shape schema; the existing file) to add
     `"additionalProperties": false` and an explicit
     `properties` enumeration that includes `name`, `version`,
@@ -403,7 +403,7 @@ set that is a subset of the AC1 allow-list.
     validation because `hooks` is not in the property list and
     `additionalProperties: false` refuses unlisted keys. Keeps
     the existing `required: ["name", "version", "description"]`.
-  - Create `docs/contracts/plugin-manifest.derived.schema.json`
+  - Create `contracts/plugin-manifest.derived.schema.json`
     — the derived-shape schema. Identical to the source schema
     plus the optional `hooks` property of shape
     `{ "SessionStart": array<{"command": string}> }`, added to
@@ -418,7 +418,7 @@ set that is a subset of the AC1 allow-list.
   and `test_plugin_manifest_schema.py` for the new shape.
 
 **Done when:** every test in this task's `Tests:` list is
-green; `tomllib.loads(open("docs/contracts/adapter.toml").read())`
+green; `tomllib.loads(open("contracts/adapter.toml").read())`
 returns `version == "0.4"`; the existing test suite under
 `packages/agentbundle/agentbundle/build/tests/` is green.
 
@@ -514,7 +514,7 @@ project it), T2 (schema must accept the synthesised shape).
   `templates/` copy by the existing `make build-self` /
   `make build-check` self-host machinery** (the same mechanism
   that already syncs `_data/adapter.toml`,
-  `_data/pack.schema.json`, etc., from `docs/contracts/`). If
+  `_data/pack.schema.json`, etc., from `contracts/`). If
   the existing sync doesn't already cover `templates/`, T4
   extends it with one line under
   `packages/agentbundle/agentbundle/build/self_host.py` — pre-
@@ -559,7 +559,7 @@ template; `make build-check` exits zero.
   absent. AC10.
 - `test_source_plugin_json_validates_against_schema` —
   every source-tree `plugin.json` validates against
-  `docs/contracts/plugin-manifest.schema.json`. AC10.
+  `contracts/plugin-manifest.schema.json`. AC10.
 
 **Approach:**
 - Read every source-tree `packs/*/.claude-plugin/plugin.json`;
@@ -718,7 +718,7 @@ across future PRs that flip other checkboxes.)
   `docs/specs/distribution-adapters/spec.md` Acceptance Criteria
   section:
   - **AC<N+1> (install-routes contract).** The adapter contract
-    (`docs/contracts/adapter.toml`) declares `install-routes`
+    (`contracts/adapter.toml`) declares `install-routes`
     on `[adapter."claude-code"]` per RFC-0008 / spec
     `claude-plugins-install-route`. The conformance suite ships
     a *marker presence* and a *scope refusal* case per declared
@@ -868,7 +868,7 @@ change via:
   the post-migration tree passes the gate on first commit.
 
 Reversibility: every code change is contained to
-`packages/agentbundle/`, `docs/contracts/`, `docs/specs/`, and
+`packages/agentbundle/`, `contracts/`, `docs/specs/`, and
 `packs/core/.apm/skills/adapt-to-project/SKILL.md`. Reverting
 the PR restores the prior contract version, the prior
 hand-authored `plugin.json` files (already match the source

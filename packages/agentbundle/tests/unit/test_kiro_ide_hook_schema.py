@@ -31,7 +31,7 @@ from pathlib import Path
 from agentbundle.build import validate as v
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-ADAPTER_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
+ADAPTER_SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 
 
 def _load_schema() -> dict:
@@ -116,7 +116,7 @@ class ExistingContractStillValidates(unittest.TestCase):
         import tomllib
 
         schema = _load_schema()
-        contract_path = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+        contract_path = REPO_ROOT / "contracts" / "adapter.toml"
         contract = tomllib.loads(contract_path.read_text(encoding="utf-8"))
         errors = v.validate(contract, schema)
         self.assertEqual(errors, [])

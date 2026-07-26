@@ -12,7 +12,7 @@
 
 Three touch zones, all in PR scope:
 
-1. **Vocab data** — new `docs/contracts/target-vocab.toml` with
+1. **Vocab data** — new `contracts/target-vocab.toml` with
    per-target tables for the four targets `adapter.toml` declares
    today. `description-max-length` and `name-pattern` carried by
    every target; `name-max-length` carried only where the target's
@@ -24,7 +24,7 @@ Three touch zones, all in PR scope:
    - A module-level `_load_target_vocab(start)` helper. Path
      resolution walks up from `start` (the resolved `--packs-dir` in
      production, an explicit tmp tree in tests) to find
-     `docs/contracts/target-vocab.toml`. Returns `(vocab, error)` so
+     `contracts/target-vocab.toml`. Returns `(vocab, error)` so
      callers can surface AC11 failures. There is no fallback to the
      module file's ancestor — if the walk reaches filesystem root
      without finding the file, that's an AC11 failure.
@@ -84,14 +84,14 @@ full gates.
 Task statuses: `pending`, `in_progress`, `done`. Each task lists
 `Tests:` before `Approach:` per work-loop's TDD discipline.
 
-### T1 — Add `docs/contracts/target-vocab.toml`
+### T1 — Add `contracts/target-vocab.toml`
 
 - **Status:** pending
 - **Verification mode:** Goal-based.
 - **Depends on:** none.
 - **Done when:**
-  - File exists at `docs/contracts/target-vocab.toml`.
-  - `python -c "import tomllib; tomllib.loads(open('docs/contracts/target-vocab.toml').read())"` exits 0.
+  - File exists at `contracts/target-vocab.toml`.
+  - `python -c "import tomllib; tomllib.loads(open('contracts/target-vocab.toml').read())"` exits 0.
   - File declares `[target."claude-code"]`, `[target.kiro]`,
     `[target.copilot]`, `[target.codex]`. Each has
     `description-max-length` (int) and `name-pattern` (string).
@@ -177,7 +177,7 @@ Task statuses: `pending`, `in_progress`, `done`. Each task lists
     sort, comma-space separator).
   - `test_missing_vocab_file_fails_loud` — invoke `cmd_lint_packs`
     with a packs-dir tree whose ancestor lacks
-    `docs/contracts/target-vocab.toml`; asserts exit 1 and stderr
+    `contracts/target-vocab.toml`; asserts exit 1 and stderr
     mentions `target-vocab.toml`.
   - `test_inconsistent_name_pattern_fails_loud` — invoke
     `cmd_lint_packs` with a tmp tree containing a `target-vocab.toml`
@@ -210,7 +210,7 @@ Task statuses: `pending`, `in_progress`, `done`. Each task lists
   - `python -m agentbundle.build.lint_packs --packs-dir
     packages/agentbundle/tests/fixtures/lint_packs/` exits 0
     against the existing clean fixture (when the in-tree
-    `docs/contracts/target-vocab.toml` is reachable from that
+    `contracts/target-vocab.toml` is reachable from that
     packs-dir's ancestor chain).
 - **Tests:** Those defined in T2.
 - **Approach:**
@@ -284,7 +284,7 @@ Task statuses: `pending`, `in_progress`, `done`. Each task lists
   single line — which is also how the description survives projection
   to Codex / Kiro JSON.
 - **The vocab loader's path resolution.** `_load_target_vocab(start)`
-  walks up from `start` looking for `docs/contracts/target-vocab.toml`.
+  walks up from `start` looking for `contracts/target-vocab.toml`.
   When `cmd_lint_packs` is invoked with a `--packs-dir` outside the
   repo (e.g. a `dist-test/` tree under tmp), the walk must terminate
   at filesystem root with the missing-file error path (AC11). The

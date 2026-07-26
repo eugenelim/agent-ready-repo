@@ -21,7 +21,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 PACK_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
+    REPO_ROOT / "contracts" / "pack.schema.json"
 )
 
 

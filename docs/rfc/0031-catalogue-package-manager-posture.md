@@ -58,7 +58,7 @@ We frame this as making the catalogue's manifest describe what it already ships 
 
 ### D2 — `pack.toml` is the rich superset; marketplaces are lossy projections
 
-`pack.toml` (ours; `docs/contracts/pack.schema.json`) becomes the single source of truth. Each tool receives a **subset** of the metadata, and — critically — **different fields land in different files per tool**: Claude Code and Copilot have rich `marketplace.json` *entries*, but Codex's marketplace entry is thin and its richness lives in `.codex-plugin/plugin.json` plus an `interface` block. The projector therefore routes each field to the right destination file for each tool. Projection is one-directional (`pack.toml` → tool format) and never round-trips.
+`pack.toml` (ours; `contracts/pack.schema.json`) becomes the single source of truth. Each tool receives a **subset** of the metadata, and — critically — **different fields land in different files per tool**: Claude Code and Copilot have rich `marketplace.json` *entries*, but Codex's marketplace entry is thin and its richness lives in `.codex-plugin/plugin.json` plus an `interface` block. The projector therefore routes each field to the right destination file for each tool. Projection is one-directional (`pack.toml` → tool format) and never round-trips.
 
 ### D3 — First-class fields vs. the `[pack.metadata.<tool>]` extension hatch
 
@@ -116,7 +116,7 @@ We ship a **suggested default** category list and validate an unknown slug with 
 
 ### Migration
 
-Follow RFC-0011's model exactly: a single **adapter-contract version bump** (currently `0.13` per `docs/contracts/adapter.toml` — the spec must re-grep at authoring time, the contract moves fast) gates the schema extension; **every new field is optional**; legacy packs need no migration. The breaking-shaped change is relaxing **both** of our `additionalProperties:false` gates to admit the projectable fields: the authoring `docs/contracts/plugin-manifest.schema.json` **and** the projected-output `plugin-manifest.derived.schema.json` (the binding gate — it validates the `dist/.../plugin.json` the new fields actually land in; relaxing only the authoring schema would fail the build). Both are entirely within our control and verified safe on the consumer side (see Evidence).
+Follow RFC-0011's model exactly: a single **adapter-contract version bump** (currently `0.13` per `contracts/adapter.toml` — the spec must re-grep at authoring time, the contract moves fast) gates the schema extension; **every new field is optional**; legacy packs need no migration. The breaking-shaped change is relaxing **both** of our `additionalProperties:false` gates to admit the projectable fields: the authoring `contracts/plugin-manifest.schema.json` **and** the projected-output `plugin-manifest.derived.schema.json` (the binding gate — it validates the `dist/.../plugin.json` the new fields actually land in; relaxing only the authoring schema would fail the build). Both are entirely within our control and verified safe on the consumer side (see Evidence).
 
 ## Options considered
 
@@ -160,7 +160,7 @@ Follow RFC-0011's model exactly: a single **adapter-contract version bump** (cur
 - RFC-0001 — the adapter contract lives in TOML and is the "live source of truth," projected per-IDE. Source-of-truth-plus-projection precedent.
 - RFC-0008 — `plugin.json` is already partly *derived* (synthesized `SessionStart`), establishing the derive-from-source direction D5 extends.
 - RFC-0011 — added an optional field to `[pack.install]` under an adapter-contract bump with no migration for legacy packs — the exact migration model adopted here.
-- `docs/contracts/pack.schema.json` (`[pack]` has no `additionalProperties:false` → already extensible) and `plugin-manifest.schema.json` (has it → the constraint we own).
+- `contracts/pack.schema.json` (`[pack]` has no `additionalProperties:false` → already extensible) and `plugin-manifest.schema.json` (has it → the constraint we own).
 
 **External prior art** (each fetched and confirmed to contain the cited claim):
 

@@ -422,7 +422,7 @@ contracts/
   mcp/          # Model Context Protocol tool/resource schemas
 ```
 
-This is distinct from `docs/contracts/` (adapter schemas) and from the
+This is distinct from `contracts/` (adapter schemas) and from the
 `contracts` *pack* of authoring skills; the API tree is unambiguously repo-root
 `contracts/`.
 

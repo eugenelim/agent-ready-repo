@@ -25,7 +25,7 @@ A reader of the adapter support matrix
 should get an honest, contract-faithful picture of what each agent tool receives —
 with no claim that contradicts the adapter contract or a tool's current behaviour.
 This spec corrects six documentation-accuracy defects in that page (and the same
-claims wherever else they appear), verified against `docs/contracts/adapter.toml`
+claims wherever else they appear), verified against `contracts/adapter.toml`
 (byte-identical to `packages/agentbundle/agentbundle/_data/adapter.toml`) and, for
 the Copilot repo-hook claim, against the live github/copilot-cli changelog +
 issues. Success: every corrected claim is true against its source of truth, and the
@@ -35,7 +35,7 @@ matrix, the caveats, and the backlog agree with one another.
 
 ### Always do
 
-- Verify each claim against `docs/contracts/adapter.toml` (the contract wins on any
+- Verify each claim against `contracts/adapter.toml` (the contract wins on any
   disagreement) before changing the prose.
 - For the Copilot repo-scope hook claim, treat the live copilot-cli changelog +
   issues as the source of truth — not the doc page (it records an empirical runtime
@@ -119,7 +119,7 @@ matrix, the caveats, and the backlog agree with one another.
 
 ## Assumptions
 
-- Technical: `docs/contracts/adapter.toml` is byte-identical to
+- Technical: `contracts/adapter.toml` is byte-identical to
   `packages/agentbundle/agentbundle/_data/adapter.toml` (source: `diff -q`, 2026-06-11).
 - Technical: latest copilot-cli is 1.0.61 (2026-06-09); repo `.github/hooks/`
   loading is gated on folder-trust + prompt-mode opt-in, with no scope-wide

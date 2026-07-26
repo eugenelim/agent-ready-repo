@@ -3,7 +3,7 @@
 # applies at build time so a violation surfaces where the pack author
 # can fix it, not at adopter install.
 #
-# Split from docs/contracts/adapter.toml deliberately: adapter.toml
+# Split from contracts/adapter.toml deliberately: adapter.toml
 # describes projection rules (mode, target-path, on-conflict) and is
 # governed by adapter.schema.json. This file describes constraints on
 # the source content adapters project. Moving these caps into

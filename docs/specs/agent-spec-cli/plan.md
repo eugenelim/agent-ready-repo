@@ -1005,7 +1005,7 @@ No flag-gating required.
   preservation (`.sh` and `.py`) across T3, T12, and T15. Added
   spec-version-tag risk row.
 - 2026-05-22: adapter contract files moved from
-  `docs/specs/adapter-contract/` to `docs/contracts/` with `<name>.schema.json`
+  `docs/specs/adapter-contract/` to `contracts/` with `<name>.schema.json`
   filenames. Bare-`contract.toml` references throughout this spec and
   plan updated to `adapter.toml`; the `[pack.adapter-contract]` TOML
   key (a conceptual table identifier in pack manifests) is unchanged.

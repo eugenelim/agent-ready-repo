@@ -24,7 +24,7 @@ allowed-scopes = ["repo"]
 
 # Per adapt-to-project AC17/AC18: enforced at install time against the
 # union of both scopes' state files. Schema field already declared in
-# docs/contracts/pack.schema.json; no new field is introduced.
+# contracts/pack.schema.json; no new field is introduced.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"

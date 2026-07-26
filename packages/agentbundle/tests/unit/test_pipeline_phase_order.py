@@ -19,7 +19,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 
 
 PHASE_ORDER = ("hook-body", "agent", "hook-wiring", "command", "skill")

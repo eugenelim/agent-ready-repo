@@ -89,7 +89,7 @@ re-proposed; previously skipped markers are re-offered.
 This spec also addresses two structural gaps RFC-0001 left implicit:
 
 1. **The catalogue is `core + N optional addons`, and the schema
-   already says so.** `docs/contracts/pack.schema.json:12-25` declares
+   already says so.** `contracts/pack.schema.json:12-25` declares
    `[pack.dependencies.required]` as an array of `{catalogue, pack,
    version}` objects today, but no consumer enforces it; the three
    addons each ship the *non-conforming* `recommends = ["core"]`
@@ -260,7 +260,7 @@ entries, and deletes the file.
 ### Pack dependency surface (existing schema, newly enforced)
 
 The schema for `[pack.dependencies.required]` is already declared at
-`docs/contracts/pack.schema.json:12-25` — an array of objects with
+`contracts/pack.schema.json:12-25` — an array of objects with
 fields `{catalogue: string, pack: string, version: string}`. This
 spec **enforces it at install time** without introducing a new
 field. Addon packs migrate from today's non-conforming

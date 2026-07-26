@@ -157,7 +157,7 @@ home rather than duplicating.
 
 The `agent` primitive (e.g. `adversarial-reviewer`, `quality-engineer`)
 projects to **three of four** shipped adapters. Verified against
-`docs/contracts/adapter.toml` *and* each tool's docs (checked 2026-05):
+`contracts/adapter.toml` *and* each tool's docs (checked 2026-05):
 
 | Adapter | agent mode | target | Ships? |
 | --- | --- | --- | --- |

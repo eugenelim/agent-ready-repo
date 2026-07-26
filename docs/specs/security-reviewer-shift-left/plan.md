@@ -50,7 +50,7 @@ net-new, and must not perturb the byte-identical risk-trigger block.
 Most construction tests live under **Tasks** below. Cross-cutting (span tasks):
 
 **Integration tests:**
-- **No-contract-change assertion** — `docs/contracts/adapter.toml` (and `_data/`
+- **No-contract-change assertion** — `contracts/adapter.toml` (and `_data/`
   twin) `version` unchanged vs `origin/main`; `skill` projection mode stays
   `direct-directory` for every adapter. (AC10)
 - **No-new-dir / no-new-dependency assertion** — vs `origin/main`, no new
@@ -244,7 +244,7 @@ eliminated, not just sequenced.
 **Touches:** packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, (generated projections)
 
 **Tests:**
-- Goal-based: `docs/contracts/adapter.toml` + `_data/` twin `version` unchanged vs
+- Goal-based: `contracts/adapter.toml` + `_data/` twin `version` unchanged vs
   `origin/main`; `skill` stays `direct-directory`.
 - Goal-based: bump core pack version (pack.toml + plugin.json), run `make
   build-self`, then `git status` is clean — the new skill + edits project with no

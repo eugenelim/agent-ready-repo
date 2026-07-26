@@ -111,7 +111,7 @@ Shape: **integration** — wiring the catalogue's build pipeline to Copilot's ex
 - **Contract schema** (`adapter.schema.json`): the projection-mode enum admits
   `copilot-agent-md` + `copilot-hooks-json` at all 4 `dropped` sites. **Dual-copy:** every
   `adapter.toml` / `adapter.schema.json` edit lands byte-identically in
-  `packages/agentbundle/agentbundle/_data/` **and** `docs/contracts/`. Two distinct gates:
+  `packages/agentbundle/agentbundle/_data/` **and** `contracts/`. Two distinct gates:
   the TOML by `test_contract_files_byte_identical` (`build/tests/test_contract.py`), the schema
   by `test_adapter_schema_copies_match` (`tests/unit/test_contract_v0_3_schema.py`, CI-only root).
 - **User-scope divergent-prefix mechanism** (AC10b — the load-bearing design decision):
@@ -217,7 +217,7 @@ including the unmapped-event failure.
 
 **Depends on:** T1, T2
 
-**Touches:** packages/agentbundle/agentbundle/_data/adapter.toml, packages/agentbundle/agentbundle/_data/adapter.schema.json, docs/contracts/adapter.toml, docs/contracts/adapter.schema.json
+**Touches:** packages/agentbundle/agentbundle/_data/adapter.toml, packages/agentbundle/agentbundle/_data/adapter.schema.json, contracts/adapter.toml, contracts/adapter.schema.json
 
 **Tests:** (AC1, AC1a, AC2, AC3, AC4, AC5) — goal-based check
 - `[contract] version == "0.10"`; header comment names this spec.
@@ -238,7 +238,7 @@ including the unmapped-event failure.
   `adapter.toml`.
 - Extend the schema enum at every `dropped` site (verify the count first).
 - Bump `[contract] version`.
-- **Mirror both files into `docs/contracts/`** byte-identically (the dual-copy gates:
+- **Mirror both files into `contracts/`** byte-identically (the dual-copy gates:
   `test_contract_files_byte_identical` for the TOML, `test_adapter_schema_copies_match` for the
   schema).
 

@@ -53,7 +53,7 @@ per-prompt event, so neither tool silently skips the loop.
 
 ### Never do
 
-- Edit the adapter contract (`docs/contracts/adapter.toml`) or any adapter's
+- Edit the adapter contract (`contracts/adapter.toml`) or any adapter's
   projection code. This feature is pure pack content over shipped primitives.
 - Touch the existing `session-start` hook (body or wiring).
 - Have the hook body parse untrusted input or attempt to *classify* prompt

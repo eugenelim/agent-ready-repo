@@ -49,7 +49,7 @@ do. No code changes in this PR; this RFC is the decision artifact.
 
 The Codex adapter
 (`packages/agentbundle/agentbundle/build/adapters/codex.py`,
-`docs/contracts/adapter.toml` § `[[adapter.codex.projection]]`)
+`contracts/adapter.toml` § `[[adapter.codex.projection]]`)
 projects the `skill` primitive as:
 
 ```toml
@@ -116,7 +116,7 @@ or both-surfaces alternatives suffer.
 
 ### Adapter contract change
 
-In `docs/contracts/adapter.toml`, replace:
+In `contracts/adapter.toml`, replace:
 
 ```toml
 [[adapter.codex.projection]]
@@ -486,7 +486,7 @@ Filled in on acceptance. Expected shape:
   Provisional tasks (the spec author decides final shape and
   decomposition):
   - **T1.** Flip the `[[adapter.codex.projection]]` entry for `skill`
-    in `docs/contracts/adapter.toml` to `direct-directory`.
+    in `contracts/adapter.toml` to `direct-directory`.
   - **T2.** Rewrite `codex.py` to route `skill` through the shared
     `direct-directory` path (with `shutil.copytree(...,
     symlinks=True)` invariant pinned per § Failure modes); collapse

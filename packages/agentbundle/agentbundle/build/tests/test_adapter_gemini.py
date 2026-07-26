@@ -25,7 +25,7 @@ from agentbundle.build.projections.gemini_command_toml import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 
 _COMMAND_RULE = {"target-path": ".gemini/commands/"}
 

@@ -5,7 +5,7 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-05-29
 - **Date closed:** 2026-05-29
-- **Related:** `docs/CONVENTIONS.md` § 4 + § Document lifecycle; `packs/core/.apm/agents/adversarial-reviewer.md` #5; `packs/core/.apm/skills/work-loop/SKILL.md` § GATES / § DECIDE; `packs/core/.apm/skills/new-spec/assets/spec.md`; `packs/core/.apm/hooks/pre-pr.py`; `docs/contracts/adapter.toml`
+- **Related:** `docs/CONVENTIONS.md` § 4 + § Document lifecycle; `packs/core/.apm/agents/adversarial-reviewer.md` #5; `packs/core/.apm/skills/work-loop/SKILL.md` § GATES / § DECIDE; `packs/core/.apm/skills/new-spec/assets/spec.md`; `packs/core/.apm/hooks/pre-pr.py`; `contracts/adapter.toml`
 
 ## The ask
 

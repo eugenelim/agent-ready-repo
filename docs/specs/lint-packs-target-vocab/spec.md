@@ -19,7 +19,7 @@ Kiro agent-JSON projection writes the field through unchanged, and
 Kiro / Codex either reject or ellipsis-truncate it at install. The
 gate moves that failure forward to where the pack author can fix it.
 
-The constraints come from a new sibling file `docs/contracts/target-vocab.toml`,
+The constraints come from a new sibling file `contracts/target-vocab.toml`,
 **not** from `adapter.toml`. Adding tables under `adapter.toml`'s target
 blocks would change the contract grammar (require an `adapter.schema.json`
 update) — that's RFC scope. Sibling-file scope is PR scope.
@@ -127,7 +127,7 @@ Out of scope, *intentionally*:
 ## Acceptance Criteria
 
 1. **AC1 — Sibling vocab file exists and is auditable.**
-   `docs/contracts/target-vocab.toml` declares per-target constraints
+   `contracts/target-vocab.toml` declares per-target constraints
    for at least the four targets `adapter.toml` enumerates today
    (`claude-code`, `kiro`, `copilot`, `codex`). Each per-target table
    carries `description-max-length` (integer) and `name-pattern`
@@ -198,7 +198,7 @@ Out of scope, *intentionally*:
     last `": "` and sort. AC10 holds because every new-finding shape
     pinned in AC2–AC6 places a real relpath as the trailing segment.
 11. **AC11 — Missing or malformed vocab file fails loud.** If
-    `docs/contracts/target-vocab.toml` cannot be found, is malformed,
+    `contracts/target-vocab.toml` cannot be found, is malformed,
     parses to a structure without per-target tables, or declares
     inconsistent `name-pattern` values across targets,
     `cmd_lint_packs` exits non-zero with a stderr line naming the
@@ -243,7 +243,7 @@ Three modes, mapped to the spec's outcomes:
   binding limit, and the binding target. Each positive test asserts
   the lint returns `[]` for an equivalent clean fixture.
 - **Goal-based check (AC1, AC7, AC9, AC11).** `python -c "import
-  tomllib; tomllib.loads(open('docs/contracts/target-vocab.toml').read())"`
+  tomllib; tomllib.loads(open('contracts/target-vocab.toml').read())"`
   passes. `python -m agentbundle.build.lint_packs --packs-dir packs/`
   exits 0 in the final tree. A vocab-file-missing temp-dir test
   asserts AC11.
@@ -281,7 +281,7 @@ Two commits in one PR (process recommendation; AC9 pins only the
 final tree):
 
 1. **Gate introduction (mechanical).** Adds
-   `docs/contracts/target-vocab.toml`, extends `lint_packs.py`, adds
+   `contracts/target-vocab.toml`, extends `lint_packs.py`, adds
    tests. After this commit, `make build` over `packs/` may fail if
    real violations exist.
 2. **Real-pack fixes (mechanical).** Shortens any over-cap
@@ -294,4 +294,4 @@ but AC9 doesn't require the split to survive merge.
 
 ## Changelog
 
-- 2026-05-31 — Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `make build`-time gate in `packages/agentbundle/agentbundle/build/lint_packs.py` reading the sibling `docs/contracts/target-vocab.toml`, covered by `build/tests/test_lint_packs.py`. The gate refuses offending source content and never rewrites at emit time, preserving RFC-0001's byte-equal projection invariant. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
+- 2026-05-31 — Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `make build`-time gate in `packages/agentbundle/agentbundle/build/lint_packs.py` reading the sibling `contracts/target-vocab.toml`, covered by `build/tests/test_lint_packs.py`. The gate refuses offending source content and never rewrites at emit time, preserving RFC-0001's byte-equal projection invariant. ACs use a non-checkbox format; verified against the merged tree. No deferrals.

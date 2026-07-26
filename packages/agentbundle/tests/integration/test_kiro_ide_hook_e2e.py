@@ -25,7 +25,7 @@ from tempfile import TemporaryDirectory
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-V0_3_CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+V0_3_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 
 
 def _synthesised_v0_4_contract() -> dict:

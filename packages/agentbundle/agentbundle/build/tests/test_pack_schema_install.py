@@ -32,7 +32,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
+PACK_SCHEMA_PATH = REPO_ROOT / "contracts" / "pack.schema.json"
 
 
 def _load_schema() -> dict:

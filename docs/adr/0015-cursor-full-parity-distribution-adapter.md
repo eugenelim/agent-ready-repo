@@ -28,7 +28,7 @@ Constraints that shaped the projection mappings:
 
 **We treat `cursor` as a full-parity distribution adapter: it projects every catalogue primitive to Cursor's native `.cursor/*` discovery paths at both repo and user scope, reusing only existing projection modes, with documented degradation for the one primitive (agent tools) Cursor cannot represent.**
 
-Concretely (contract **v0.10 → v0.11**, a new `[adapter.cursor]` block mirrored byte-for-byte to `docs/contracts/adapter.toml`, **no projection-mode-enum change**):
+Concretely (contract **v0.10 → v0.11**, a new `[adapter.cursor]` block mirrored byte-for-byte to `contracts/adapter.toml`, **no projection-mode-enum change**):
 
 1. **Full native adapter.** Project all five primitives to `.cursor/*` (repo) and `~/.cursor/*` (user) — `skill`→`.cursor/skills/<name>/` (`direct-directory`), `agent`→`.cursor/agents/<name>.md` (`direct-file` + a `cursor-agent-frontmatter-v0.11` mapping, the Kiro-IDE `.md` shape), `hook-body`→`.cursor/hooks/<name>.{sh,py}` (`direct-file`), `hook-wiring`→`.cursor/hooks.json` (`merge-json`, managed-key `hooks`), `command`→`.cursor/commands/<name>.md` (`direct-file`). The Kiro-only `kiro-ide-hook` primitive is `dropped`. Chosen over a do-nothing or thin adapter because `.cursor/` precedence means a partial `.cursor/` tree is *worse* than none, and a Cursor adopter should never be forced to also install the Claude projection.
 

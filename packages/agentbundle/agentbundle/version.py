@@ -26,7 +26,7 @@ def _read_bundled_adapter_toml_text() -> str:
       1. `agentbundle._data/adapter.toml` via `importlib.resources` —
          works inside a `zipapp`, a `pip install`, and a dev checkout
          that has `_data/` populated.
-      2. `<repo>/docs/contracts/adapter.toml` — dev-checkout fallback
+      2. `<repo>/contracts/adapter.toml` — dev-checkout fallback
          for the (rare) case where `_data/` is missing in the source
          tree (mostly during initial scaffolding).
     """
@@ -37,7 +37,7 @@ def _read_bundled_adapter_toml_text() -> str:
     except (FileNotFoundError, ModuleNotFoundError):
         pass
 
-    fallback = _HERE.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+    fallback = _HERE.parent.parent.parent / "contracts" / "adapter.toml"
     return fallback.read_text(encoding="utf-8")
 
 

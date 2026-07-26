@@ -18,7 +18,7 @@
   contract currently at v0.4; this RFC bumps to v0.5). Touches
   [`docs/specs/adapt-to-project/spec.md`](../specs/adapt-to-project/spec.md),
   [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md),
-  and [`docs/contracts/adapter.toml`](../contracts/adapter.toml).
+  and [`contracts/adapter.toml`](../contracts/adapter.toml).
 
 ## Summary
 
@@ -227,7 +227,7 @@ on acceptance.
 
 **Kiro is not currently an APM target.** Our adapter contract
 declares Kiro as a first-class adapter
-([`docs/contracts/adapter.toml:124-181`](../contracts/adapter.toml)),
+([`contracts/adapter.toml:124-181`](../contracts/adapter.toml)),
 but APM does not compile to Kiro today — [microsoft/apm#702](https://github.com/microsoft/apm/issues/702)
 is an open feature request from April 2026 to add Kiro to the
 target set. When APM lands Kiro support, our writer projects
@@ -693,7 +693,7 @@ On acceptance:
   (option-b not available) and confirms RFC-0008's pattern as
   ecosystem-route-agnostic.
 - **Contract amendment:**
-  [`docs/contracts/adapter.toml`](../contracts/adapter.toml) bumps to
+  [`contracts/adapter.toml`](../contracts/adapter.toml) bumps to
   v0.5; appends `"apm"` to `install-routes` under
   `[adapter."claude-code"]`. Conformance suite gains route-keyed
   *marker presence* and *scope refusal* cases for the APM route.

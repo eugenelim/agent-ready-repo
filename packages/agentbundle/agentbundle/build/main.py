@@ -53,7 +53,7 @@ _GITHUB_URL_RE = re.compile(
 
 def _bundled_or_repo(name: str) -> Path:
     """Locate a data file shipped under both `agentbundle/_data/` and
-    `<repo>/docs/contracts/`.
+    `<repo>/contracts/`.
 
     Prefer the bundled copy when present on disk (works in a `pip install`
     and a dev checkout); fall back to the repo path for dev checkouts
@@ -64,7 +64,7 @@ def _bundled_or_repo(name: str) -> Path:
     bundled = PACKAGE_ROOT.parent / "_data" / name
     if bundled.exists():
         return bundled
-    return REPO_ROOT / "docs" / "contracts" / name
+    return REPO_ROOT / "contracts" / name
 
 
 def _read_bundled(name: str) -> str:
@@ -73,7 +73,7 @@ def _read_bundled(name: str) -> str:
     Resolution order:
       1. `<package>/_data/<name>` via `importlib.resources` — works for
          filesystem installs AND inside a `zipapp` archive.
-      2. `<repo>/docs/contracts/<name>` — dev fallback for source trees
+      2. `<repo>/contracts/<name>` — dev fallback for source trees
          whose `_data/` hasn't been populated.
     """
     try:
@@ -84,7 +84,7 @@ def _read_bundled(name: str) -> str:
             return resource.read_text(encoding="utf-8")
     except (FileNotFoundError, ModuleNotFoundError):
         pass
-    return (REPO_ROOT / "docs" / "contracts" / name).read_text(encoding="utf-8")
+    return (REPO_ROOT / "contracts" / name).read_text(encoding="utf-8")
 
 
 CONTRACT_PATH = _bundled_or_repo("adapter.toml")

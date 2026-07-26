@@ -94,7 +94,7 @@ Constraints in play at the time of this decision:
 - No live-model CI workflow exists today — the only secrets in CI are
   release-time Artifactory/PyPI credentials — so any live-model job is genuinely
   net-new and must be isolated from the deterministic PR path.
-- `pack.toml`'s schema (`docs/contracts/pack.schema.json`) sets no
+- `pack.toml`'s schema (`contracts/pack.schema.json`) sets no
   `additionalProperties: false` on the `pack` object, so a new `[pack.evals]`
   subsection is admissible without a schema migration.
 

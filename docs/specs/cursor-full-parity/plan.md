@@ -83,7 +83,7 @@ Python 3 stdlib only (`shutil`, `json`, `tomllib`, `pathlib`), inside the existi
 ### Interfaces & contracts
 
 The only "interface" is the internal `[adapter.cursor]` block in `adapter.toml` (dual-copy to
-`docs/contracts/adapter.toml`) — projection array, scope table, frontmatter mapping, and the
+`contracts/adapter.toml`) — projection array, scope table, frontmatter mapping, and the
 `hook-event-map` inline table. No external REST/event/RPC contract. Consumed by `cursor.py`
 (projection), `adapters/__init__.py` (registration), `install.py` (dispatch),
 `shipped_adapters_from_contract()` (advertisement). Traces to: AC1–AC5, AC12–AC14.
@@ -115,7 +115,7 @@ AC19.
 
 **Tests:**
 - `test_contract_files_byte_identical` (existing) stays green — both `_data/` and
-  `docs/contracts/` copies edited identically. (AC1a)
+  `contracts/` copies edited identically. (AC1a)
 - Existing `adapter.toml` schema-validation test passes with the new block (no schema change). (AC1)
 - A new assertion (in T4's module) reads `[adapter.cursor]` and confirms the projection entries,
   scope prefixes, and mapping exist as specified. (AC2–AC4)
@@ -139,7 +139,7 @@ AC19.
   ".agentbundle/"]`.
 - Add `[frontmatter-mapping."cursor-agent-frontmatter-v0.11"]` with `name`/`description`/`model`
   identity renames; no `tools`, no `values` maps.
-- Copy the entire edited file byte-for-byte to `docs/contracts/adapter.toml`.
+- Copy the entire edited file byte-for-byte to `contracts/adapter.toml`.
 - **Note:** `adapter.schema.json` is *not* edited — verify all four modes + five primitives are
   already enumerated (AC1) before assuming so.
 
@@ -216,7 +216,7 @@ assertions (AC2–AC5) and the no-self-host assertion (AC15).
 
 **Approach:**
 - Model on `test_adapter_kiro_ide.py` + `test_adapter_copilot.py`: `load_contract` from
-  `docs/contracts/adapter.toml`, seed fixture packs under `tempfile.TemporaryDirectory`, call
+  `contracts/adapter.toml`, seed fixture packs under `tempfile.TemporaryDirectory`, call
   `cursor.project`, assert on-disk shape and `json.loads` of `hooks.json`.
 - Include readonly-predicate fixtures for each arm using the real shipped tool sets, and a seeded
   pre-existing `hooks.json` for the non-destructive-merge test.

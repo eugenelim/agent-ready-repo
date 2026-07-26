@@ -91,7 +91,7 @@ The verification modes (per the `work-loop` skill):
   regression, the Tier-2 co-owned-edit classification, and the last-owner
   survival/removal pair. Each is a named pre-mortem falsifier from RFC-0052.
 - **Goal-based check** — the contract bump (prefix-class + reader-cohort fields
-  present in `_data/adapter.toml` and mirrored to `docs/contracts/adapter.toml`;
+  present in `_data/adapter.toml` and mirrored to `contracts/adapter.toml`;
   cursor/gemini/copilot skill target = `.agents/skills/`; cursor/gemini/copilot
   `allowed-prefixes` include `.agents/skills/` at both repo and user scope),
   verified by reading the contract and by the contract-version assertion sweep.
@@ -161,7 +161,7 @@ Contract & cohort routing:
 
 - [x] Each `allowed-prefixes` entry in the adapter contract carries a class —
   `private` or `shared` — and each `shared` prefix declares its reader cohort
-  (shipped adapters). `_data/adapter.toml` and `docs/contracts/adapter.toml`
+  (shipped adapters). `_data/adapter.toml` and `contracts/adapter.toml`
   agree byte-for-byte.
 - [x] `.agents/skills/` is declared `shared` with cohort
   {codex, cursor, gemini, copilot}; `.kiro/skills/` is declared `shared` with
@@ -222,7 +222,7 @@ Coexistence flows & disclosure:
   at `safety.py:452-545`; `projected_paths` is a `State` method, `file_sha` a
   `PackState` method (source: `config.py:137-153`).
 - Technical: the adapter contract lives in `_data/adapter.toml` (version `0.16`)
-  mirrored to `docs/contracts/adapter.toml`; current skill outputs — codex
+  mirrored to `contracts/adapter.toml`; current skill outputs — codex
   `.agents/skills/`, cursor `.cursor/skills/`, gemini `.gemini/skills/`, copilot
   `.github/skills/` (repo) + `.copilot/skills/` (user). cursor (`.cursor/`),
   gemini (`.gemini/`), and copilot (`.github/...` repo, `.copilot/...` user) all

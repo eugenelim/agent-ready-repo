@@ -11,7 +11,7 @@ from pathlib import Path
 from agentbundle.build.validate import validate
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
+SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 
 
 class TypeKeywordTests(unittest.TestCase):

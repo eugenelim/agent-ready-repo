@@ -52,7 +52,7 @@ One item → its brief → `new-spec` → `work-loop` → a component increment 
 | sidecar (carried schema — § Amendments 2026-06-26) | **blackboard · open-questions · traceability · decision-log** | `docs/discovery/<initiative>/_state/` |
 | work | **brief** | `docs/product/briefs/` |
 | work | **spec** + **plan** (each declares `Component:`) | `docs/specs/<feature>/` |
-| cross | **architecture** (C4, domain model), **contracts** (OpenAPI/AsyncAPI) | `docs/architecture/`, `docs/contracts/` |
+| cross | **architecture** (C4, domain model), **contracts** (OpenAPI/AsyncAPI) | `docs/architecture/`, `contracts/` |
 | governance | **ADR**, **RFC** | `docs/adr/`, `docs/rfc/` |
 | build output | the **components** | `packages/<component>/` |
 
@@ -145,7 +145,7 @@ filename** (`domain-framing.md`, `scope-boundary.md`, `journey-map.md`, `service
 of where the adopter put it. This is what lets us not hardcode.
 
 ## Notes
-- `docs/discovery/` and `docs/contracts/` are new top-level doc homes — *defaults*, not
+- `docs/discovery/` and `contracts/` are new top-level doc homes — *defaults*, not
   hardcoded (resolved per the three tiers above).
 - Grouping is **by initiative** for discovery artifacts (one discovery-loop run = one
   decision-brief = one backlog) and **flat by feature** for briefs/specs (work-loop

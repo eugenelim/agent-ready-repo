@@ -23,7 +23,7 @@ from agentbundle.build.main import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 

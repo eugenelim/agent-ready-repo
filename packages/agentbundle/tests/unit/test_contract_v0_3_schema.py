@@ -22,7 +22,7 @@ Covers spec ACs:
         claude-plugins-install-route to "0.4"; bumped by T2 of
         apm-install-route-parity to "0.5").
 
-Tests load the shipped `docs/contracts/{adapter,pack}.{toml,schema.json}` and call
+Tests load the shipped `contracts/{adapter,pack}.{toml,schema.json}` and call
 the project's stdlib-only validator. Mirrored copies under
 `packages/agentbundle/agentbundle/_data/` ship inside the zipapp; the two trees are
 kept in sync manually (both excluded from self-host drift comparison).
@@ -37,11 +37,11 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
-ADAPTER_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
-PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
-PLUGIN_MANIFEST_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
-PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "plugin-manifest.derived.schema.json"
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+ADAPTER_SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
+PACK_SCHEMA_PATH = REPO_ROOT / "contracts" / "pack.schema.json"
+PLUGIN_MANIFEST_SCHEMA_PATH = REPO_ROOT / "contracts" / "plugin-manifest.schema.json"
+PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
 
 KIRO_EVENTS = ["agentSpawn", "userPromptSubmit", "preToolUse", "postToolUse", "stop"]
 
@@ -575,7 +575,7 @@ class AdapterBlockCoverageTests(unittest.TestCase):
 
 
 class BundledCopiesMatchTests(unittest.TestCase):
-    """`_data/` ships in the zipapp; `docs/contracts/` is the dev-checkout
+    """`_data/` ships in the zipapp; `contracts/` is the dev-checkout
     fallback per build/main.py § resolution chain. Both are excluded from the
     self-host drift check, so we assert identity here to catch divergence."""
 
@@ -585,24 +585,24 @@ class BundledCopiesMatchTests(unittest.TestCase):
     def test_adapter_toml_copies_match(self) -> None:
         a = (self._data_dir() / "adapter.toml").read_bytes()
         b = CONTRACT_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/adapter.toml and docs/contracts/adapter.toml differ")
+        self.assertEqual(a, b, "_data/adapter.toml and contracts/adapter.toml differ")
 
     def test_adapter_schema_copies_match(self) -> None:
         a = (self._data_dir() / "adapter.schema.json").read_bytes()
         b = ADAPTER_SCHEMA_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/adapter.schema.json and docs/contracts/adapter.schema.json differ")
+        self.assertEqual(a, b, "_data/adapter.schema.json and contracts/adapter.schema.json differ")
 
     def test_pack_schema_copies_match(self) -> None:
         a = (self._data_dir() / "pack.schema.json").read_bytes()
         b = PACK_SCHEMA_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/pack.schema.json and docs/contracts/pack.schema.json differ")
+        self.assertEqual(a, b, "_data/pack.schema.json and contracts/pack.schema.json differ")
 
     def test_plugin_manifest_schema_copies_match(self) -> None:
         a = (self._data_dir() / "plugin-manifest.schema.json").read_bytes()
         b = PLUGIN_MANIFEST_SCHEMA_PATH.read_bytes()
         self.assertEqual(
             a, b,
-            "_data/plugin-manifest.schema.json and docs/contracts/plugin-manifest.schema.json differ",
+            "_data/plugin-manifest.schema.json and contracts/plugin-manifest.schema.json differ",
         )
 
     def test_plugin_manifest_derived_schema_copies_match(self) -> None:
@@ -611,7 +611,7 @@ class BundledCopiesMatchTests(unittest.TestCase):
         self.assertEqual(
             a, b,
             "_data/plugin-manifest.derived.schema.json and "
-            "docs/contracts/plugin-manifest.derived.schema.json differ",
+            "contracts/plugin-manifest.derived.schema.json differ",
         )
 
     def test_install_marker_template_copies_match(self) -> None:

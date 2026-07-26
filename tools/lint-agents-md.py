@@ -279,7 +279,7 @@ def main() -> int:
     # the `<!-- agent-skills:start -->` literal — the one-shot
     # migration strip should have removed it. Warning-only (does not
     # `note(...)` / fail) so adopters mid-migration aren't blocked.
-    contract_path = Path("docs/contracts/adapter.toml")
+    contract_path = Path("contracts/adapter.toml")
     legacy_marker = "<!-- agent-skills:start -->"
     if contract_path.is_file():
         try:

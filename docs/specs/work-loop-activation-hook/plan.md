@@ -108,7 +108,7 @@ recorded.
   validate` target never run it against `core` — so this CI-wired test is the only
   thing that gates the rail here.
 - Invoke `kiro_ide_hook.project()` with the **real on-disk contract values**:
-  read `target.repo` from `docs/contracts/adapter.toml` via stdlib `tomllib`
+  read `target.repo` from `contracts/adapter.toml` via stdlib `tomllib`
   (`adapter."kiro-ide".projections."kiro-ide-hook".target.repo`) and pass it as
   the projector's `target_template`; do **not** retype the path or synthesise it
   like `test_kiro_ide_hook_e2e.py` (that fixture uses the wrong `<pack>/<name>`

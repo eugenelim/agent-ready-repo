@@ -7,7 +7,7 @@ The check fires through the linter's existing `warn(...)` closure
 
 Test shape: CLI subprocess invocation in a `tmp_path` scratch tree
 that mirrors the repo's layout (root `AGENTS.md`, `CLAUDE.md` symlink,
-synthetic `docs/contracts/adapter.toml`). The linter is run with
+synthetic `contracts/adapter.toml`). The linter is run with
 `cwd=tmp_path`; the test asserts the return code and stderr.
 """
 
@@ -54,7 +54,7 @@ def _seed_tree(
     contract_body: str,
     agents_md_body: str,
 ) -> None:
-    contracts = root / "docs" / "contracts"
+    contracts = root / "contracts"
     contracts.mkdir(parents=True)
     (contracts / "adapter.toml").write_text(contract_body, encoding="utf-8")
 

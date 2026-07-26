@@ -42,7 +42,7 @@
 
 ## Nits
 
-**17. Verify `docs/contracts/adapter.toml` is hand-edited.** `spec.md:6`. May be projection target.
+**17. Verify `contracts/adapter.toml` is hand-edited.** `spec.md:6`. May be projection target.
 
 **18. Rollout overstates reversibility of Phase 1.** `plan.md:377`. Contract bump is effectively forward-only once `credential-brokers` ships.
 

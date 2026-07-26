@@ -35,7 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 DATA_CONTRACT_PATH = (
     REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "adapter.toml"
 )
-DOCS_CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+DOCS_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 DATA_SCHEMA_PATH = (
     REPO_ROOT
     / "packages"

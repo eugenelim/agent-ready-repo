@@ -19,7 +19,7 @@
   (install→adapt chain, marker schema, proactive cache-scan AC) and
   [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
   (contract v0.4 bump, per-route conformance cases). Modifies
-  [`docs/contracts/adapter.toml`](../../contracts/adapter.toml).
+  [`contracts/adapter.toml`](../../contracts/adapter.toml).
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -536,11 +536,11 @@ taxonomy.
       declared at source and is synthesised by the build. Drift
       protection ships as **two** mechanical gates, both wired
       into `make build-check`:
-      1. **Schema split.** `docs/contracts/plugin-manifest.schema.json`
+      1. **Schema split.** `contracts/plugin-manifest.schema.json`
          is the source-shape schema and explicitly forbids the
          `hooks` property (via JSON-Schema `not: {required:
          ["hooks"]}` or equivalent). A sibling
-         `docs/contracts/plugin-manifest.derived.schema.json`
+         `contracts/plugin-manifest.derived.schema.json`
          accepts the synthesised `hooks` block. The build
          pipeline validates source-tree manifests against the
          source schema and derived-tree manifests against the
@@ -558,10 +558,10 @@ taxonomy.
       AC20's writer-drift gate runs alongside.
 - [x] **AC11 (adapter contract bumps v0.3 → v0.4 with
       `install-routes` array; pack-side `adapter-contract.version`
-      pin clarified).** `docs/contracts/adapter.toml`
+      pin clarified).** `contracts/adapter.toml`
       declares `[contract] version = "0.4"` and
       `[adapter."claude-code"] install-routes = ["cli",
-      "claude-plugins"]`. `docs/contracts/adapter.schema.json`
+      "claude-plugins"]`. `contracts/adapter.schema.json`
       accepts the new flat array key on the adapter table.
       Existing adapter blocks (Kiro, Copilot, Codex) carry **no**
       `install-routes` key — the field is optional per-adapter

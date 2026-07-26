@@ -165,7 +165,7 @@ class ClaudeCodeDetector:
         from agentbundle.build.adapters.claude_code import project
         from agentbundle.build.contract import load as load_contract
 
-        contract = load_contract(REPO_ROOT / "docs" / "contracts" / "adapter.toml")
+        contract = load_contract(REPO_ROOT / "contracts" / "adapter.toml")
         project(pack_path, contract, output_root)
 
     def run_and_parse(

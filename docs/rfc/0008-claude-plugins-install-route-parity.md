@@ -14,7 +14,7 @@
   [RFC-0007](0007-user-scope-converter-pack.md) (first user-scope pack
   ships, making the user-scope leg of this gap concrete).
   Touches [`docs/specs/adapt-to-project/spec.md`](../specs/adapt-to-project/spec.md)
-  and [`docs/contracts/adapter.toml`](../contracts/adapter.toml).
+  and [`contracts/adapter.toml`](../contracts/adapter.toml).
 
 ## Summary
 
@@ -682,10 +682,10 @@ On acceptance:
   of [Alt 4](#alt-4--new-axis-on-the-contract-primitive--adapter--scope--install-route)
   in favour of the minimal `install-routes` array.
 - **Contract amendment:**
-  [`docs/contracts/adapter.toml`](../contracts/adapter.toml) bumps
+  [`contracts/adapter.toml`](../contracts/adapter.toml) bumps
   to v0.4; adds an `install-routes = ["cli", "claude-plugins"]` array
   key under `[adapter."claude-code"]`. Conformance suite
-  (`docs/contracts/adapter.schema.json` and the fixture set under
+  (`contracts/adapter.schema.json` and the fixture set under
   RFC-0003 F-conformance) gains route-keyed *marker presence* and
   *scope refusal* cases.
 - **Spec amendment:**
