@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.20.1] — 2026-07-27
+
+### Fixed
+
+- **Windows portability.** The CLI entry point now reconfigures stdout/stderr to
+  UTF-8 with `backslashreplace` at startup, preventing `UnicodeEncodeError` on
+  Windows consoles (cp1252) when output includes non-ASCII characters (⚠, →).
+- **Windows sandbox isolation in tests.** The test suite's autouse fixture now
+  sets `USERPROFILE` alongside `HOME`, ensuring `scope.resolve_user_root()` uses
+  the sandbox on Windows (where `Path("~").expanduser()` reads `USERPROFILE`).
+- **Editable-install detection on Windows.** `url2pathname` can return a path
+  with a spurious leading `/` before the drive letter (e.g. `/C:\repo`); that
+  prefix is now stripped before constructing the `Path`.
+- **NTFS reparse-point safety.** `is_symlink()` calls in the pack-floor install
+  and seed-delivery paths are now wrapped in `try/except OSError`, skipping the
+  entry conservatively when the reparse point cannot be interrogated.
+
 ## [0.20.0] — 2026-07-27
 
 ### Added
