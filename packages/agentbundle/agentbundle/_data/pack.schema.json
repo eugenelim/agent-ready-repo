@@ -199,6 +199,30 @@
             "pattern": "^[^/].*"
           }
         },
+        "runtime-dependencies": {
+          "type": "array",
+          "description": "External runtime dependencies required by this pack's skills.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ecosystem", "package"],
+            "properties": {
+              "ecosystem": {
+                "type": "string",
+                "enum": ["pypi", "npm", "cargo", "go", "homebrew", "apt", "system"]
+              },
+              "package": {"type": "string"},
+              "version": {"type": "string"},
+              "optional": {"type": "boolean", "default": false},
+              "skills": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "install": {"type": "string"},
+              "note": {"type": "string"}
+            }
+          }
+        },
         "layout": {
           "type": "object",
           "additionalProperties": false,
