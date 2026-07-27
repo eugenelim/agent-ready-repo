@@ -15,8 +15,9 @@ import sys
 import types
 from pathlib import Path
 
-import httpx
 import pytest
+
+httpx = pytest.importorskip("httpx")
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 LINEAR_SCRIPT = (

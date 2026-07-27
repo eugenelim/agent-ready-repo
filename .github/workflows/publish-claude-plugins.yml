@@ -49,9 +49,9 @@ jobs:
       - name: Build claude-plugin artifacts
         run: make build
 
-      - name: Validate generated plugin manifests (hermetic schema check)
+      - name: Validate generated plugin manifests (agentbundle catalogue verify step 13)
         run: |
-          python3 tools/validate-claude-plugin-manifests.py
+          PYTHONPATH=packages/agentbundle python -m agentbundle catalogue verify --root .
 
       - name: Configure git identity
         run: |
@@ -59,4 +59,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Publish to claude-plugins-dist branch
-        run: python3 tools/publish-claude-plugins.py
+        run: python3 tools/catalogue/publish_claude_plugins.py

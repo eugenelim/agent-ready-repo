@@ -212,6 +212,7 @@ def test_install_proceeds_when_required_at_user_scope(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     # Pre-seed core at user scope only; repo state is empty.
     _pre_install_core(
@@ -243,6 +244,7 @@ def test_install_proceeds_when_required_at_user_scope_repo_only_addon(
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     _pre_install_core(
         cat, target, version="0.1.0", scope="user",

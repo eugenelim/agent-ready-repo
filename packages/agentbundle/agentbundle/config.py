@@ -20,12 +20,18 @@ sanctioned write surface.
 from __future__ import annotations
 
 import hashlib
+import re
 import tomllib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
+from urllib.request import url2pathname
 
+
+_WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_CREDENTIAL_SUBSTRINGS = ("token", "key", "secret", "password", "auth")
 
 STATE_SCHEMA_VERSION = "0.4"
 
@@ -115,7 +121,7 @@ class PackState:
     """One installed pack's slice of `.agentbundle-state.toml`."""
 
     installed_version: str
-    source: str = "agent-ready-repo"
+    source: str | None = None
     install_route: str = "cli"
     # RFC-0004: every v0.2 entry carries an explicit scope. v0.1 state
     # files are read as all-`"repo"` (the legacy implicit default);
@@ -340,7 +346,7 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     return state
 
 
-def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any]) -> "PackState":
+def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any], default_scope: str = "repo") -> "PackState":
     """Parse one ``[pack.<name>.adapters.<adapter>]`` row into a PackState.
 
     The adapter is part of the table key, so it is passed in rather than
@@ -367,7 +373,7 @@ def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any]) -> "PackSt
             }
 
     raw_scope = body.get("scope")
-    scope = raw_scope if isinstance(raw_scope, str) and raw_scope in ("repo", "user") else "repo"
+    scope = raw_scope if isinstance(raw_scope, str) and raw_scope in ("repo", "user") else default_scope
 
     raw_target = body.get("target-file")
     if isinstance(raw_target, str):
@@ -392,7 +398,7 @@ def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any]) -> "PackSt
 
     return PackState(
         installed_version=body.get("installed-version", ""),
-        source=body.get("source", "agent-ready-repo"),
+        source=body.get("source"),
         install_route=body.get("install-route", "cli"),
         scope=scope,
         primitives=list(body.get("primitives", []) or []),
@@ -402,6 +408,82 @@ def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any]) -> "PackSt
         target_file=target_file,
         hook_wiring_owned=hook_wiring_owned,
     )
+
+
+
+def canonicalize_source(value: str | None) -> str | None:
+    """Normalize a pack source URI to a canonical, credential-free form.
+
+    Returns None for:
+    - None input
+    - The legacy "agent-ready-repo" sentinel
+    - Empty or whitespace-only strings
+    - Local paths that raise OSError on resolve
+    - file:// URLs with a non-empty, non-localhost netloc
+    - URLs with user-info (``@``) in the netloc
+    - URLs whose query-string keys or fragment contain a credential substring
+
+    For all other inputs, returns a normalized URI:
+    - Local paths (schemeless or Windows drive paths, or ``file://``) are
+      resolved to an absolute POSIX path string via :func:`Path.resolve`.
+    - Remote URIs are lowercased in scheme and netloc; trailing slashes are
+      stripped from non-root paths; query and fragment pass through unchanged.
+    """
+    # Rule 1
+    if value is None:
+        return None
+    # Rule 2 — legacy sentinel is treated as "absent"
+    if value == "agent-ready-repo":
+        return None
+    # Rule 3 — empty / blank
+    if not value or not value.strip():
+        return None
+
+    # Rule 4 — Windows drive path or schemeless → local path
+    if _WIN_DRIVE_RE.match(value):
+        try:
+            return str(Path(value).resolve())
+        except OSError:
+            return None
+
+    parsed = urlsplit(value)
+
+    if not parsed.scheme:
+        # Schemeless → local path
+        try:
+            return str(Path(value).resolve())
+        except OSError:
+            return None
+
+    # Rule 5 — file:// scheme
+    if parsed.scheme == "file":
+        # Reject non-empty, non-localhost netloc (remote file:// is unsafe)
+        if parsed.netloc and parsed.netloc not in ("", "localhost"):
+            return None
+        try:
+            return str(Path(url2pathname(parsed.path)).resolve())
+        except OSError:
+            return None
+
+    # Rule 6 — user-info in netloc
+    if "@" in parsed.netloc:
+        return None
+
+    # Rule 7 — credential substrings in query or fragment
+    from urllib.parse import parse_qsl, SplitResult
+    for key, _val in parse_qsl(parsed.query):
+        if any(cred in key.lower() for cred in _CREDENTIAL_SUBSTRINGS):
+            return None
+    if any(cred in parsed.fragment.lower() for cred in _CREDENTIAL_SUBSTRINGS):
+        return None
+
+    # Rule 8 — normalize scheme + netloc to lowercase; strip trailing slash
+    normalized_scheme = parsed.scheme.lower()
+    normalized_netloc = parsed.netloc.lower()
+    path = parsed.path.rstrip("/") if parsed.path and parsed.path != "/" else parsed.path
+    return SplitResult(
+        normalized_scheme, normalized_netloc, path, parsed.query, parsed.fragment
+    ).geturl()
 
 
 def dump_state(state: State) -> str:
@@ -428,7 +510,8 @@ def dump_state(state: State) -> str:
         prefix = f"pack.{_toml_key(name)}.adapters.{_toml_key(adapter)}"
         lines.append(f"[{prefix}]")
         lines.append(f"installed-version = {_emit_basic_string(ps.installed_version)}")
-        lines.append(f"source = {_emit_basic_string(ps.source)}")
+        if ps.source is not None:
+            lines.append(f"source = {_emit_basic_string(ps.source)}")
         lines.append(f"install-route = {_emit_basic_string(ps.install_route)}")
         lines.append(f"scope = {_emit_basic_string(ps.scope)}")
         # ``target-file`` is emitted when set (even if it equals the

@@ -36,7 +36,6 @@ _MISSING_SUBSTR = "is missing Diátaxis subdirectories"
 def _seed_common(root: Path) -> None:
     (root / "AGENTS.md").write_text("# AGENTS.md\n", encoding="utf-8")
     (root / "CLAUDE.md").symlink_to("AGENTS.md")
-    (root / "docs").mkdir(parents=True, exist_ok=True)
     (root / "guides").mkdir(parents=True, exist_ok=True)
 
 

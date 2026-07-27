@@ -179,22 +179,24 @@ def test_install_run_forwards_resolved_adapter_when_multi_adapter_and_no_cli_ada
     agentbundle_dir.mkdir()
     from agentbundle.config import PackState, State, dump_state
 
+    cat = tmp_path / "catalogue"
+    (cat / "packs").mkdir(parents=True)
+
     two_adapter_state = State(
         packs={
             ("converters", "claude-code"): PackState(
-                installed_version="0.8.0", adapter="claude-code", scope="user"
+                installed_version="0.8.0", adapter="claude-code", scope="user",
+                source=str(cat),
             ),
             ("converters", "codex"): PackState(
-                installed_version="0.8.0", adapter="codex", scope="user"
+                installed_version="0.8.0", adapter="codex", scope="user",
+                source=str(cat),
             ),
         }
     )
     (agentbundle_dir / "state.toml").write_text(
         dump_state(two_adapter_state), encoding="utf-8"
     )
-
-    cat = tmp_path / "catalogue"
-    (cat / "packs").mkdir(parents=True)
     shutil.copytree(converters_src, cat / "packs" / "converters")
     (tmp_path / "repo").mkdir()
 

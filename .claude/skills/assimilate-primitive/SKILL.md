@@ -14,6 +14,10 @@ or command (or a small connected bundle, e.g. a skill + its hook).
 Run in **two phases**: judge the untrusted content **safe** first, then shape it
 to our target state. Never merge the two — you inspect raw, then transform.
 
+## Output rendering
+
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+
 ## Phase 1 — fetch and make it safe (before you trust a byte)
 
 1. **Fetch, SSRF-guarded.** A local path is read as-is. A **URL** is fetched
@@ -32,7 +36,7 @@ to our target state. Never merge the two — you inspect raw, then transform.
    — executable code, not prose — flag it as a higher-scrutiny class and require
    an explicit "yes, land this code" before proceeding.
 4. **Run the repo's own gates on the candidate.** Before it lands, run the
-   internal lints that apply to the artifact kind (`lint-skill-spec`,
+   internal lints that apply to the artifact kind (`agentbundle catalogue lint --deep`,
    `lint-agent-artifacts`) and the SAST/SCA scanners (`.snyk` / dependency scan
    where runnable; CodeQL runs on the PR this opens). A failure **blocks the
    landing** or is surfaced for an explicit confirm — ingestion never bypasses

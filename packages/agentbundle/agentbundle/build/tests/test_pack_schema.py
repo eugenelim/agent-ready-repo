@@ -279,7 +279,7 @@ keywords = ["osint", "synthesis", "citations"]
 [[pack.maintainers]]
 name = "Example User"
 email = "example@example.com"
-url = "https://github.com/eugenelim"
+url = "https://github.com/example-user"
 
 [pack.links]
 homepage = "https://example.com"

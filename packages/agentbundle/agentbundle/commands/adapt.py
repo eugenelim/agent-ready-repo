@@ -301,7 +301,7 @@ def run(args: "argparse.Namespace") -> int:
                     summary = _diff_summary(original, cp)
                 else:
                     summary = "original file not found"
-                report_lines.append(f"- `{rel_companion}`: {summary}")
+                report_lines.append(f"- `{rel_companion.as_posix()}`: {summary}")
         else:
             report_lines.append("_No pending companions._")
         report_lines.append("")

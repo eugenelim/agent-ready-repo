@@ -32,6 +32,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 
 # The work-loop skill ships with `core` but lands under different roots
 # depending on which agent tool the pack was installed for — so probe the
@@ -76,7 +80,7 @@ def _run(label: str, argv: list[str]) -> None:
     fresh adopter tree that hasn't wired a given gate yet doesn't hard-crash.
     """
     try:
-        result = subprocess.run(argv, capture_output=True, text=True, check=False)
+        result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False)
     except FileNotFoundError:
         # To stderr (not stdout) so a *wired-but-mistyped* tool is visually
         # distinct from a passing check and doesn't scroll past as a ✓.
@@ -111,7 +115,7 @@ def main() -> int:
             for phase in ("implement", "review"):
                 result = subprocess.run(
                     [py, str(loop_cohort), "check", str(spec_dir), "--phase", phase],
-                    capture_output=True, text=True, check=False,
+                    capture_output=True, text=True, encoding="utf-8", check=False,
                 )
                 if result.returncode != 0:
                     if result.stdout:

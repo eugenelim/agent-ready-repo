@@ -15,7 +15,6 @@ Rate limits: Figma documents per-endpoint tiers (Tier 1 ≈ generous, Tier 2
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import secrets
 from dataclasses import dataclass
@@ -112,6 +111,7 @@ class FigmaClient:
             timeout=timeout_s,
             follow_redirects=False,
         )
+        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         self._sem = asyncio.Semaphore(concurrency)
 
     async def __aenter__(self) -> "FigmaClient":
@@ -141,6 +141,7 @@ class FigmaClient:
                     )
                 except httpx.TransportError as exc:
                     last_exc = exc
+                    import asyncio  # noqa: PLC0415 — lazy, cached after __init__
                     await asyncio.sleep(self._backoff(attempt))
                     continue
 
@@ -176,6 +177,7 @@ class FigmaClient:
                         "HTTP %s on %s — retrying in %.1fs",
                         resp.status_code, path, delay,
                     )
+                    import asyncio  # noqa: PLC0415 — lazy, cached after __init__
                     await asyncio.sleep(delay)
                     continue
                 if resp.status_code >= 400:

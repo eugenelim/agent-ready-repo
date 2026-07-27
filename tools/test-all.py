@@ -22,6 +22,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 
 def _repo_root() -> Path:
     try:
@@ -41,10 +45,12 @@ def _repo_root() -> Path:
 # self-tests prefer `sys.executable` over a bare `python3` so the
 # child runs with the same interpreter as the umbrella.
 TESTS: list[tuple[str, list[str]]] = [
-    ("lint-agent-artifacts", ["bash", "tools/test-lint-agent-artifacts.sh"]),
-    ("lint-catalogue-seeds", [sys.executable, "tools/test-lint-catalogue-seeds.py"]),
+    ("check-xd-chain",     [sys.executable, "tools/test-check-xd-chain.py"]),
     ("lint-knowledge",       ["bash", "tools/test-lint-knowledge.sh"]),
-    ("lint-skill-spec",      [sys.executable, "tools/test-lint-skill-spec.py"]),
+    ("lint-skill-spec",      [sys.executable, "-m", "pytest",
+                              "packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py",
+                              "-v"]),
+    ("llm-judge-cross-pack-eval", [sys.executable, "tools/test-llm-judge-cross-pack-eval.py"]),
     ("loop-cohort",          ["bash", "tools/test-loop-cohort.sh"]),
     ("pre-pr",               ["bash", "tools/test-pre-pr.sh"]),
     ("session-start",        ["bash", "tools/test-session-start.sh"]),

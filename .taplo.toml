@@ -1,0 +1,11 @@
+[[rule]]
+include = ["catalogue.toml"]
+schema = { path = "contracts/catalogue.schema.json" }
+
+[[rule]]
+include = ["packs/*/pack.toml"]
+schema = { path = "contracts/pack.schema.json" }
+
+[[rule]]
+include = ["profiles/*.toml"]
+schema = { path = "contracts/profile.schema.json" }

@@ -22,7 +22,6 @@ JQL search differs:
 """
 from __future__ import annotations
 
-import asyncio
 import base64
 import json
 import logging
@@ -164,6 +163,7 @@ class JiraClient:
         # Concurrency is gated by the semaphore alone. Throttling for
         # rate-limited endpoints comes from the API's own 429 + Retry-After
         # response, which the request loop honors.
+        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         self._sem = asyncio.Semaphore(concurrency)
 
     @classmethod
@@ -245,6 +245,7 @@ class JiraClient:
             trust_env=True,  # corporate proxy + SSL_CERT_FILE/SSL_CERT_DIR
             follow_redirects=False,  # never re-attach the cookie cross-host
         )
+        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         self._sem = asyncio.Semaphore(concurrency)
         return self
 
@@ -309,6 +310,7 @@ class JiraClient:
                     )
                 except httpx.TransportError as exc:
                     last_exc = exc
+                    import asyncio  # noqa: PLC0415 — lazy, cached after __init__
                     await asyncio.sleep(self._backoff(attempt))
                     continue
 
@@ -358,6 +360,7 @@ class JiraClient:
                         "HTTP %s on %s — retrying in %.1fs",
                         resp.status_code, path, delay,
                     )
+                    import asyncio  # noqa: PLC0415 — lazy, cached after __init__
                     await asyncio.sleep(delay)
                     continue
                 if resp.status_code >= 400:

@@ -3,7 +3,7 @@
 
 Pattern: build fixture trees in a tempdir, run the drift-check via subprocess
 against each tree (``--root <tmp>``), assert exit code and output substrings.
-Real invocation — not synthesised import. Follows tools/test-lint-profiles.py.
+Real invocation — not synthesised import. Follows the pattern in lint.py.
 
 Trees:
   A — four identical copies: exit 0
@@ -23,6 +23,10 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 CHECKER = REPO_ROOT / "tools" / "check-contract-drift.py"

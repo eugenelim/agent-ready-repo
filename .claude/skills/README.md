@@ -54,13 +54,21 @@ Each `SKILL.md` should:
    `AGENTS.md` / `docs/CONVENTIONS.md` / `docs/CHARTER.md` rather than
    our copy. The contract is that an `AGENTS.md` exists, not that
    ours does.
+5. **Declare output rendering directives inline.** If the skill surfaces
+   structured output in chat — tables, status lists, diagrams, diffs, key-value
+   receipts — add an `## Output rendering` section before the first procedural
+   `##` in the body. Paste only the directive line(s) that match what this skill
+   actually emits; don't load the full catalog into every skill. Full catalog:
+   [`docs/guides/core/reference/output-rendering.md`](../../docs/guides/core/reference/output-rendering.md).
+   Skills that write files and receipt them, interact conversationally, or emit
+   raw data streams for machine consumption need no directive.
 
 ## Spec compliance
 
 Every skill in this repo — and every skill an adopter scaffolds from
 this template — is held to the [agentskills.io
 specification](https://agentskills.io/specification). The contract is
-mechanical, enforced by `tools/lint-skill-spec.py`; the linter runs in
+mechanical, enforced by `agentbundle catalogue lint --root . --deep`; the linter runs in
 CI, in the pre-PR hook, and on demand.
 
 ### Blessed layout
@@ -137,9 +145,9 @@ is delegated.
 
 ### Enforcement floor
 
-`tools/lint-skill-spec.py` walks both the projection
+`agentbundle catalogue lint --root . --deep` walks both the projection
 (`.claude/skills/*/SKILL.md`) and the seeds
 (`packs/*/.apm/skills/*/SKILL.md`) so drift between source-of-truth
 and rendered output can't sneak past `make build-check`. Run it
-manually with `python3 tools/lint-skill-spec.py`. The companion
-self-test is `python3 tools/test-lint-skill-spec.py`.
+manually with `agentbundle catalogue lint --root . --deep`. The companion
+self-test is `python3 -m pytest packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py -v`.

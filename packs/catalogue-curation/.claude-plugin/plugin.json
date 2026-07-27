@@ -1,5 +1,5 @@
 {
   "name": "catalogue-curation",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Catalogue-operator skills: assimilate external primitives, survey repos, propose packs, and export white-label / attributed derivatives of the catalogue."
 }

@@ -29,16 +29,6 @@ from agentbundle.build.projections.codex_agent_toml import (
 )
 
 
-def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member.
-
-    Drops nested symlinks so they are never reproduced in the output
-    tree. The top-level `is_symlink()` skip in `project_packs` covers
-    the skill root; this covers the subtree.
-    """
-    base = Path(directory)
-    return {name for name in names if (base / name).is_symlink()}
-
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
     """Yield Codex's projected primitive names in phase order."""
@@ -142,11 +132,13 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
                             destination.unlink()
                         elif destination.exists():
                             shutil.rmtree(destination)
-                        # `ignore=_ignore_symlinks` drops nested symlinks
-                        # entirely — never reproduced in the output tree.
-                        # A malicious pack with a symlink to /etc/passwd
-                        # cannot exfiltrate.
-                        shutil.copytree(entry, destination, ignore=_ignore_symlinks)
+                        # symlinks=True preserves relative nested symlinks;
+                        # absolute targets are filtered by _ignore_absolute_symlinks.
+                        shutil.copytree(
+                            entry, destination,
+                            symlinks=True,
+                            ignore=_ignore_absolute_symlinks,
+                        )
             # Bound to `skill` only per spec § Never do. Other
             # direct-directory primitives opt in explicitly.
             if primitive_name == "skill":
@@ -164,6 +156,19 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
                 project_codex_agent_toml(source_dir, output_root, rule, mapping)
         else:
             raise ValueError(f"codex: unhandled mode {mode!r} for {primitive_name}")
+
+
+def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: drop symlinks with absolute targets.
+
+    Relative symlinks (intra-skill cross-references) are preserved (AC5).
+    Absolute symlinks always escape the tree and are a path-escape vector.
+    """
+    base = Path(directory)
+    return {
+        name for name in names
+        if (base / name).is_symlink() and os.path.isabs(os.readlink(base / name))
+    }
 
 
 def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:

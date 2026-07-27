@@ -42,6 +42,7 @@ def _install_args(
     scope: str | None = None,
     force: bool = False,
     force_merge: bool = False,
+    adapter: str | None = None,
 ) -> argparse.Namespace:
     """Build the install command's namespace shape, matching cli.py."""
     return argparse.Namespace(
@@ -51,6 +52,7 @@ def _install_args(
         scope=scope,
         force=force,
         force_merge=force_merge,
+        adapter=adapter,
     )
 
 
@@ -136,6 +138,7 @@ class KiroUserHooksInstallTests(_UserScopeInstallBase):
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro-cli",
         )
         rc, _stdout, stderr = _run_install(args)
         self.assertEqual(rc, 0, f"install failed: {stderr}")
@@ -282,6 +285,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro-cli",
         )
         rc, _stdout, stderr = _run_install(args)
         self.assertEqual(rc, 1, "evil pack was accepted")
@@ -340,12 +344,14 @@ class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro",
         ))
         rc_ide, _out2, err_ide = _run_install(_install_args(
             pack="kiro-ide-hooks",
             catalogue=str(self.cat),
             output=str(self.repo),
             scope="user",
+            adapter="kiro-ide",
         ))
 
         # Both refuse — the alias is a true alias for kiro-ide.

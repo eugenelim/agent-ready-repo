@@ -25,37 +25,55 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 BROKER_DIR = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "adapter-root-bins"
 BROKER_PY = BROKER_DIR / "sso-broker.py"
+# AC10: projected copy that `make build-self` places in .agentbundle/bin/
+PROJECTED_BROKER_PY = REPO_ROOT / ".agentbundle" / "bin" / "sso-broker.py"
 SHIM_DIR = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "shared-libs"
 
 
-def _load_broker_module(home: pathlib.Path) -> types.ModuleType:
-    """Load sso-broker.py against a sandboxed HOME so its module-level
-    constants resolve under the test's tmp path."""
-    # Stage the broker dir under home/.agentbundle/bin and rewrite
-    # _AGENTBUNDLE_HOME via monkeypatch after import.
-    spec = importlib.util.spec_from_file_location("sso_broker", BROKER_PY)
+def _load_cli_module(py_path: pathlib.Path) -> types.ModuleType:
+    """Load a Python file as a module via importlib, prepending its parent
+    to sys.path for the duration of the load.
+
+    Generalises ``_load_broker_module``: uses ``py_path.parent`` as the
+    sys.path prefix rather than a hardcoded directory, so both the pack-source
+    and the projected (``.agentbundle/bin/``) copy can be loaded identically.
+    """
+    spec = importlib.util.spec_from_file_location(py_path.stem, py_path)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
-    # Make Tier-2 sibling helpers importable absolutely (the broker
-    # file does this itself via sys.path.insert when relative import fails).
-    sys.path.insert(0, str(BROKER_DIR))
+    sys.path.insert(0, str(py_path.parent))
     try:
         spec.loader.exec_module(mod)
     finally:
-        sys.path.remove(str(BROKER_DIR))
+        sys.path.remove(str(py_path.parent))
     return mod
 
 
-@pytest.fixture
-def broker(tmp_path, monkeypatch):
+@pytest.fixture(params=["source", "projected"])
+def broker(request, tmp_path, monkeypatch):
     """Load the broker, sandbox its HOME, and stub the Tier-2 backend
-    to an in-memory dict so tests run cross-platform."""
+    to an in-memory dict so tests run cross-platform.
+
+    AC10: parametrised over two paths:
+      - "source"   — pack-source ``packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py``
+      - "projected" — ``make build-self`` output at ``.agentbundle/bin/sso-broker.py``
+
+    The "projected" variant skips when the projected file is absent (unbuilt
+    checkout); both must pass when the projected file exists.
+    """
+    if request.param == "projected":
+        broker_py = PROJECTED_BROKER_PY
+        if not broker_py.is_file():
+            pytest.skip(f"{broker_py} not present — run make build-self")
+    else:
+        broker_py = BROKER_PY
+
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("USERPROFILE", str(home))
 
-    mod = _load_broker_module(home)
+    mod = _load_cli_module(broker_py)
 
     # Rewrite the module-level paths to point under the sandboxed home.
     mod._AGENTBUNDLE_HOME = home / ".agentbundle"
