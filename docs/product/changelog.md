@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [frontend-engineering][0.1.0] — 2026-07-27
+
+### Added
+
+- **New standalone pack: `frontend-engineering` (0.1.0).** Promotes the `frontend-engineering` skill from core to a first-class pack. Ships nine skills: `frontend-engineering` (design pre-flight, craft rules, gates), `token-architecture`, `a11y-engineering`, `fe-performance`, `rendering-strategy`, `component-contract`, `responsive-layout`, `css-architecture`, and `fe-status`. Includes a `frontend-reviewer` diff-level subagent. Co-installs with `experience-design` for full genre routing.
+
 ## [agentbundle][0.20.0] — 2026-07-27
 
 ### Added

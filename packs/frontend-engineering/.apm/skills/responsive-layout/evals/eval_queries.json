@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Make this three-column card grid responsive \u2014 it breaks at mobile",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the breakpoint strategy for our design system",
+    "should_trigger": true
+  },
+  {
+    "query": "Implement container queries so this sidebar component adapts to its container",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a fluid typography scale that works from 320px to 1440px",
+    "should_trigger": true
+  },
+  {
+    "query": "Fix the layout shift at tablet \u2014 the navigation collapses but the content doesn't reflow",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the mobile-first layout for this pricing comparison table",
+    "should_trigger": true
+  },
+  {
+    "query": "Implement a CSS Grid layout for our article page with a sticky sidebar",
+    "should_trigger": true
+  },
+  {
+    "query": "Our responsive nav uses JS media query listeners \u2014 convert it to CSS only",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up auto-fill grid columns that work without any media queries",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a new responsive page from this brief including all states",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the design token system for our CSS",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit the WCAG 2.2 compliance of this form",
+    "should_trigger": false
+  },
+  {
+    "query": "Improve the LCP on our product landing page",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we server-side render this listing page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the component API for this layout component",
+    "should_trigger": false
+  },
+  {
+    "query": "Organise our global CSS using cascade layers",
+    "should_trigger": false
+  },
+  {
+    "query": "Show me the current state of the surface against our quality floor",
+    "should_trigger": false
+  }
+]

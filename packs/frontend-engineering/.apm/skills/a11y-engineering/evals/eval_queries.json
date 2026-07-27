@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Audit this surface for WCAG 2.2 AA compliance beyond what axe-core can catch",
+    "should_trigger": true
+  },
+  {
+    "query": "Fix the focus management on this modal \u2014 focus isn't returning on close",
+    "should_trigger": true
+  },
+  {
+    "query": "The live region isn't being announced \u2014 diagnose and fix",
+    "should_trigger": true
+  },
+  {
+    "query": "Document the keyboard contract for this data grid component",
+    "should_trigger": true
+  },
+  {
+    "query": "Check WCAG 2.4.11 Focus Appearance on our focus rings",
+    "should_trigger": true
+  },
+  {
+    "query": "Our combobox doesn't work with a keyboard \u2014 implement the correct pattern",
+    "should_trigger": true
+  },
+  {
+    "query": "The aria-expanded on this accordion is set once and never updated",
+    "should_trigger": true
+  },
+  {
+    "query": "Fix the tab order on this form \u2014 it doesn't follow the visual layout",
+    "should_trigger": true
+  },
+  {
+    "query": "Verify WCAG 2.5.8 Target Size Minimum on our mobile touch targets",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a new page and run the standard accessibility gate as part of gates",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the token system for our design system",
+    "should_trigger": false
+  },
+  {
+    "query": "Improve the Core Web Vitals on this landing page",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we use SSR for this authenticated page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the component API for our select input",
+    "should_trigger": false
+  },
+  {
+    "query": "Make the hero section responsive",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit the CSS specificity in our codebase",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current state of this surface?",
+    "should_trigger": false
+  }
+]

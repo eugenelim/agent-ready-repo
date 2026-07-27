@@ -308,6 +308,30 @@ export default defineConfig({
               ],
             },
             {
+              label: 'Frontend Engineering',
+              items: [
+                { label: 'Overview', slug: 'guides/frontend-engineering' },
+                {
+                  label: 'Tutorials',
+                  items: [
+                    { label: 'Scaffold a Component', slug: 'guides/frontend-engineering/tutorials/scaffold-a-component' },
+                  ],
+                },
+                {
+                  label: 'How-to',
+                  items: [
+                    { label: 'Run an Audit', slug: 'guides/frontend-engineering/how-to/run-an-audit' },
+                  ],
+                },
+                {
+                  label: 'Reference',
+                  items: [
+                    { label: 'Frontend Engineering Pack', slug: 'guides/frontend-engineering/reference/frontend-engineering' },
+                  ],
+                },
+              ],
+            },
+            {
               label: 'Contracts',
               items: [
                 { label: 'Overview', slug: 'guides/contracts' },

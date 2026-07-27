@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Set up cascade layers for our design system CSS",
+    "should_trigger": true
+  },
+  {
+    "query": "Our CSS has a specificity war \u2014 audit it and propose a restructure",
+    "should_trigger": true
+  },
+  {
+    "query": "Design a scoping strategy for our component library CSS",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up a specificity budget and enforcement rules for our codebase",
+    "should_trigger": true
+  },
+  {
+    "query": "Our CSS selectors reach 0-3-2 specificity \u2014 help us bring it back to 0-1-0",
+    "should_trigger": true
+  },
+  {
+    "query": "Audit our CSS for hardcoded colour values that should be tokens",
+    "should_trigger": true
+  },
+  {
+    "query": "Design the layer ordering for our global CSS reset, theme, and components",
+    "should_trigger": true
+  },
+  {
+    "query": "Our button styles are being overridden unpredictably \u2014 diagnose the cascade issue",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up @layer ordering to prevent utility classes overriding component styles",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a new UI surface with a CSS token seed block",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the semantic token hierarchy for our colour system",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit this surface for WCAG 2.2 AA compliance",
+    "should_trigger": false
+  },
+  {
+    "query": "Profile the CLS on our page \u2014 why is content shifting?",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we use ISR or SSG for this page?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the component API for our input",
+    "should_trigger": false
+  },
+  {
+    "query": "Make this two-column layout respond at mobile",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current quality state of our CSS?",
+    "should_trigger": false
+  }
+]
