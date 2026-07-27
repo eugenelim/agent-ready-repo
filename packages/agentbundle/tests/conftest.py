@@ -38,4 +38,8 @@ def _isolate_user_config_dir(
     monkeypatch.setenv("HOME", str(sandbox))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(sandbox / ".config"))
     monkeypatch.setenv("APPDATA", str(sandbox / "AppData" / "Roaming"))
+    # Windows: Path("~").expanduser() reads USERPROFILE, not HOME.
+    # Tests that need a different home (e.g. unittest.TestCase with
+    # patch.dict) override this in setUp — patch.dict takes precedence.
+    monkeypatch.setenv("USERPROFILE", str(sandbox))
     return sandbox

@@ -1648,7 +1648,11 @@ def _deliver_user_scope_floor(
     # Reject a symlinked primitive dir itself (os.walk(top=symlink) enumerates
     # the link target's real files, which the per-entry is_symlink() skip below
     # would not catch) — see collect_pack_root_bins for the bin/ twin.
-    has_lib = lib_src_root.is_dir() and not lib_src_root.is_symlink()
+    try:
+        lib_src_is_symlink = lib_src_root.is_symlink()
+    except OSError:
+        lib_src_is_symlink = True  # can't determine; skip conservatively
+    has_lib = lib_src_root.is_dir() and not lib_src_is_symlink
     if not bin_sources and not has_lib:
         # No floor content in this pack — nothing to deliver, and no reason to
         # gate the install on the floor dirs' modes.
@@ -1686,7 +1690,11 @@ def _deliver_user_scope_floor(
             )
             for fname in sorted(filenames):
                 src = Path(dirpath) / fname
-                if src.is_symlink():
+                try:
+                    src_is_symlink = src.is_symlink()
+                except OSError:
+                    src_is_symlink = True  # can't determine; skip conservatively
+                if src_is_symlink:
                     continue
                 rel = src.relative_to(lib_src_root)
                 relpath = (Path(".agentbundle") / "lib" / rel).as_posix()

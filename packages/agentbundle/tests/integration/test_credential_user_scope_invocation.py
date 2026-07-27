@@ -130,9 +130,14 @@ def _assert_no_relative_import_error(result: subprocess.CompletedProcess, entry:
         and not any(mod in stderr for mod in credential_area_modules)
     )
     # Scripts with custom dependency guards emit "error: missing dependency '<pkg>'"
-    # instead of ModuleNotFoundError — same out-of-scope category.
+    # instead of ModuleNotFoundError — same out-of-scope category. setup.py emits
+    # "credbroker not found. …" when credbroker is absent (precondition failure,
+    # not the relative-import bug this test owns).
     custom_dep_guard = (
-        "error: missing dependency" in stderr
+        (
+            "error: missing dependency" in stderr
+            or "credbroker not found." in stderr
+        )
         and "pip install" in stderr
     )
     if bare_module_not_found or custom_dep_guard:

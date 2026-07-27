@@ -100,13 +100,21 @@ def _classify_seeds(seeds_dir: Path, root: Path) -> list[SeedDelivery]:
     from agentbundle import safety
 
     footer_path = seeds_dir / "_agents-footer.md"
-    footer_ok = footer_path.is_file() and not footer_path.is_symlink()
+    try:
+        footer_is_symlink = footer_path.is_symlink()
+    except OSError:
+        footer_is_symlink = True  # can't determine; skip conservatively
+    footer_ok = footer_path.is_file() and not footer_is_symlink
 
     seed_files: list[Path] = []
     for dirpath, _dirnames, filenames in os.walk(seeds_dir, followlinks=False):
         for fname in filenames:
             fpath = Path(dirpath) / fname
-            if fpath.is_symlink():
+            try:
+                fpath_is_symlink = fpath.is_symlink()
+            except OSError:
+                fpath_is_symlink = True  # can't determine; skip conservatively
+            if fpath_is_symlink:
                 continue
             seed_files.append(fpath)
 
