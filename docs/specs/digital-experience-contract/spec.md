@@ -27,7 +27,7 @@ The deliverable is:
 
 5. **Cross-reference notes** added to the `whatChanges` field of the three existing affected journey pages (`web/src/content/journeys/product-strategy.md`, `experience-design.md`, `core.md`). The PE journey page (`product-engineering.md`) does not exist; its cross-reference is deferred to `spec/product-engineering-shaping-doctrine` (deferred: digital-experience-contract-pe-journey-xref).
 
-6. **`make build-self FORCE=1`** — after placing the core pack's template, the new `packs/core/.apm/skills/frontend-engineering/references/digital-experience-contract.md` projects to `.claude/skills/frontend-engineering/references/digital-experience-contract.md`. The projected artifact is committed in this PR.
+6. **`make build-self FORCE=1`** — after placing the core pack's template, the new `packs/core/.apm/skills/frontend-engineering/references/digital-experience-contract.md` (since moved to `packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md` by ADR-0057) projects to `.claude/skills/frontend-engineering/references/digital-experience-contract.md`. The projected artifact was committed at ship time; the projected copy was subsequently removed when core's resident skill was deleted (ADR-0057).
 
 The contract template is additive — it ships alongside existing skills without changing any SKILL.md file. Downstream doctrine specs (M2a–M4) update skills to reference and populate the contract; this spec ships the shared schema they will reference.
 
@@ -169,7 +169,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 - **Template field presence:** goal-based — `grep -c "^###" <one-copy-path>` returns 32
 - **All four copies exist:** goal-based — `find packs/*/\.apm -name "digital-experience-contract.md" | wc -l` returns 4
 - **Drift check passes on fresh copies:** goal-based — `python tools/check-contract-drift.py --root .` exits 0
-- **Projected artifact committed:** goal-based — `ls .claude/skills/frontend-engineering/references/digital-experience-contract.md` exists
+- **Projected artifact committed:** goal-based — `ls .claude/skills/frontend-engineering/references/digital-experience-contract.md` exists *(superseded: projected copy removed by ADR-0057 when core's resident FE skill was deleted; see `docs/specs/frontend-engineering-core-delegation/spec.md`)*
 - **Explanation guide exists with required sections:** goal-based — `grep "^## " guides/core/explanation/digital-experience-contract.md` returns lines for: The contract, The three tiers, The ownership map, Graceful capability detection
 - **Journey page cross-references present:** goal-based — `grep "Digital Experience Contract"` hits in each of the three updated journey pages
 - **No SKILL.md, pack.toml, or evals modified:** goal-based — `git diff --name-only` contains none of those file types (except in the paths explicitly authorized by this spec)
@@ -180,7 +180,7 @@ The table below defines every field, its owning discipline, and its minimum tier
   - `packs/product-strategy/.apm/skills/synthesize-stakeholder-research/references/digital-experience-contract.md`
   - `packs/product-engineering/.apm/skills/frame-intent/references/digital-experience-contract.md`
   - `packs/experience-design/.apm/skills/design-review/references/digital-experience-contract.md`
-  - `packs/core/.apm/skills/frontend-engineering/references/digital-experience-contract.md`
+  - `packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md` *(originally `packs/core/.apm/skills/frontend-engineering/references/`; moved by ADR-0057)*
 - [x] All four copies are byte-for-byte identical. `diff` between any pair exits 0.
 - [x] Each copy's frontmatter contains exactly: `schema-version: "1.0"`, `risk-tier: explore`, `product-slug: <replace-with-product-slug>`.
 - [x] Each copy contains all 32 field subsections (h3 headers) in the order defined in the Template Schema table, each with a `<!-- Required: <tier>+ -->` comment on the line immediately following the h3 header.
@@ -188,7 +188,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 - [x] `tools/check-contract-drift.py` exists; pure stdlib Python (no non-stdlib imports); `#!/usr/bin/env python3` shebang; argparse `--root .`; exit 0/1; implements byte-compare-first then structural-fingerprint-for-diagnosis algorithm.
 - [x] `tools/test-check-contract-drift.py` exists; covers Trees A–I (nine test cases); `python tools/test-check-contract-drift.py` exits 0.
 - [x] `python tools/check-contract-drift.py --root .` exits 0 on the freshly-placed copies.
-- [x] `make build-self FORCE=1` ran; `.claude/skills/frontend-engineering/references/digital-experience-contract.md` exists and matches the pack copy; committed in this PR.
+- [x] `make build-self FORCE=1` ran; `.claude/skills/frontend-engineering/references/digital-experience-contract.md` existed and matched the pack copy at ship time. *(The projected copy was subsequently removed by ADR-0057 when core's resident FE skill was deleted; the source copy moved to `packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md`.)*
 - [x] `guides/core/explanation/digital-experience-contract.md` exists; contains h2 sections: The contract, The three tiers, The ownership map, Graceful capability detection.
 - [x] `web/src/content/journeys/product-strategy.md` `whatChanges` field contains the phrase "Digital Experience Contract".
 - [x] `web/src/content/journeys/experience-design.md` `whatChanges` field contains the phrase "Digital Experience Contract".

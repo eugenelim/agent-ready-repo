@@ -10,7 +10,7 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
-whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. Lint, typecheck, and tests are mechanical gates the loop runs before you see the diff. The adversarial reviewer reads the diff cold — no context from the build session. The loop cannot self-certify: it always surfaces to you for plan approval and PR merge."
+whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. Lint, typecheck, and tests are mechanical gates the loop runs before you see the diff. The adversarial reviewer reads the diff cold — no context from the build session. The loop cannot self-certify: it always surfaces to you for plan approval and PR merge. For HTML/CSS/JS work, install the frontend-engineering pack to unlock craft rules, WCAG 2.2 AA guidance, and the evidence manifest."
 skills:
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews — mechanical gates and human checkpoints the agent cannot bypass."
@@ -21,9 +21,6 @@ skills:
   - name: bug-fix
     description: "Diagnoses and fixes a bug with a targeted root-cause analysis before writing a line of code."
     humanTouches: 1
-  - name: frontend-engineering
-    description: "Establishes design intent and craft rules before writing HTML/CSS — pre-flight before any frontend surface change."
-    humanTouches: 0
   - name: contract-acquisition
     description: "Grounds agent code against an unfamiliar API or library contract before implementation — prevents guessed signatures."
     humanTouches: 0

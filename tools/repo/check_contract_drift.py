@@ -43,8 +43,8 @@ PACK_ANCHORS: dict[str, str] = {
         "packs/experience-design/.apm/skills/"
         "design-review/references/digital-experience-contract.md"
     ),
-    "core": (
-        "packs/core/.apm/skills/"
+    "frontend-engineering": (
+        "packs/frontend-engineering/.apm/skills/"
         "frontend-engineering/references/digital-experience-contract.md"
     ),
 }

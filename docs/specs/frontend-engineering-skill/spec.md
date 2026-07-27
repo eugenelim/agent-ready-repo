@@ -1,6 +1,6 @@
 # Spec: frontend-engineering skill for core
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Superseded in part: packs/core/.apm/skills/frontend-engineering/SKILL.md was deleted by ADR-0057 (2026-07-27); ACs that assert this file exists are historically true but no longer current. See docs/specs/frontend-engineering-core-delegation/spec.md. -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0023](../../adr/0023-reviewer-ceiling-scopes-core-code-review-lenses.md)

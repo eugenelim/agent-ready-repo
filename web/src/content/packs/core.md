@@ -6,7 +6,6 @@ skills:
   - work-loop
   - new-spec
   - bug-fix
-  - frontend-engineering
   - contract-acquisition
   - receive-brief
   - init-project

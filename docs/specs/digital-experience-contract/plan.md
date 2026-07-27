@@ -11,11 +11,11 @@ Full (structural change + multi-feature risk triggers)
 **Done when:**
 - `find packs/*/\.apm -name "digital-experience-contract.md" | wc -l` returns 4
 - `grep -c "^###" packs/experience-design/.apm/skills/design-review/references/digital-experience-contract.md` returns 32
-- `diff packs/product-strategy/.apm/skills/synthesize-stakeholder-research/references/digital-experience-contract.md packs/core/.apm/skills/frontend-engineering/references/digital-experience-contract.md` exits 0
-- `ls .claude/skills/frontend-engineering/references/digital-experience-contract.md` exists (post build-self)
+- `diff packs/product-strategy/.apm/skills/synthesize-stakeholder-research/references/digital-experience-contract.md packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md` exits 0 *(path updated by ADR-0057; core's copy moved to the FE pack)*
+- `ls .claude/skills/frontend-engineering/references/digital-experience-contract.md` exists (post build-self) *(superseded: projected copy removed by ADR-0057)*
 
 **Approach:**
-1. Create `packs/core/.apm/skills/frontend-engineering/references/` directory (new)
+1. Create `packs/core/.apm/skills/frontend-engineering/references/` directory (new) *(path subsequently moved to `packs/frontend-engineering/...` by ADR-0057)*
 2. Write the canonical template once (see spec Template Schema table for exact field order, owner tags, and tiers)
 3. Copy byte-for-byte to all four anchor paths
 4. Run `make build-self FORCE=1` to project the core copy to `.claude/skills/frontend-engineering/references/digital-experience-contract.md`
@@ -264,7 +264,7 @@ diff packs/product-strategy/.apm/skills/synthesize-stakeholder-research/referenc
 diff packs/product-engineering/.apm/skills/frame-intent/references/digital-experience-contract.md \
      packs/experience-design/.apm/skills/design-review/references/digital-experience-contract.md
 diff packs/experience-design/.apm/skills/design-review/references/digital-experience-contract.md \
-     packs/core/.apm/skills/frontend-engineering/references/digital-experience-contract.md
+     packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md
 # all three diffs → exit 0
 
 # Gate 3: drift check self-test
@@ -273,8 +273,8 @@ python tools/test-check-contract-drift.py
 # Gate 4: drift check on live copies
 python tools/check-contract-drift.py --root .
 
-# Gate 5: projected artifact committed
-ls .claude/skills/frontend-engineering/references/digital-experience-contract.md
+# Gate 5: projected artifact committed (superseded — projected copy removed by ADR-0057)
+# ls .claude/skills/frontend-engineering/references/digital-experience-contract.md
 
 # Gate 6: guide exists with required h2s
 grep "^## " guides/core/explanation/digital-experience-contract.md

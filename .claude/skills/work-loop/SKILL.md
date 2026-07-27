@@ -297,11 +297,11 @@ For anything beyond trivial, *think before you write code*. Concretely:
   | Spec amended or structural change¹ | Spec/plan adversarial review | `adversarial-reviewer` |
   | Security boundary² | Secure-design review | `security-reviewer` |
   | User-facing surface³ | Design-intent pass | `creative-direction` / `design-review` |
-  | HTML/CSS/JS primary output | Frontend pre-flight (mandatory) | load `frontend-engineering` inline |
+  | HTML/CSS/JS primary output | Frontend pre-flight (`frontend-engineering` pack required; named skip if absent) | load `frontend-engineering` inline if the pack is installed |
 
   ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory. Re-fires on mid-EXECUTE re-plan.
   ² Security: auth, secrets, user input, deserialization, file/network I/O. Infra-flavored work: mandatory. Dispatch in **spec-stage secure-design mode**; inline boundary-matching modules (net-new wiring only) per the [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
-  ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`. When the `frontend-engineering` pack is installed, atomic craft skills (`token-architecture`, `a11y-engineering`, `fe-performance`, `rendering-strategy`, `component-contract`, `responsive-layout`, `css-architecture`) are available — load only the one the task warrants against its specific concern.
+  ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`. The `frontend-engineering` skill is owned by the `frontend-engineering` pack (not `core`); check if it appears in your available skills before loading it. If absent, record a named skip — `FE pre-flight: skipped (frontend-engineering pack absent)` — in the spec and proceed without the pre-flight. When the pack is installed, atomic craft skills (`token-architecture`, `a11y-engineering`, `fe-performance`, `rendering-strategy`, `component-contract`, `responsive-layout`, `css-architecture`) are available — load only the one the task warrants against its specific concern.
 
   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed, note in summary. Full depth (firing conditions, infra force-load, re-plan re-fire, `approve-plan` gate, Profile-A opt-out): [`references/pre-execute-review.md`](references/pre-execute-review.md).
 - **Initialize the loop's state file.** Run this skill's bundled
@@ -371,10 +371,15 @@ contract the agent already holds. (Detail in
 [`references/infra-verification.md`](references/infra-verification.md).)
 
 **Frontend-triggered work (HTML/CSS/JS primary output).** When the frontend
-surface trigger fires, the `frontend-engineering` skill has already been
-loaded inline during PLAN. Its craft rules govern all HTML element selection,
-CSS token discipline, accessibility patterns, and state completeness during
-EXECUTE; its GATES section defines the verification commands to run at step 3. When the `frontend-engineering` pack is installed, atomic craft skills from the pack are available as supplementary inline loads during EXECUTE for specific concerns — load `token-architecture` when the primary task is token system design, `a11y-engineering` for accessibility-focused work, `fe-performance` for CWV remediation.
+surface trigger fires and the `frontend-engineering` pack is installed, its
+skill was loaded inline during PLAN. Its craft rules govern all HTML element
+selection, CSS token discipline, accessibility patterns, and state completeness
+during EXECUTE; its GATES section defines the verification commands to run at
+step 3. When the pack is installed, atomic craft skills are available as
+supplementary inline loads for specific concerns — load `token-architecture`
+when the primary task is token system design, `a11y-engineering` for
+accessibility-focused work, `fe-performance` for CWV remediation. If the pack
+is absent, record a named skip and proceed without FE craft guidance.
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
