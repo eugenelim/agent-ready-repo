@@ -46,6 +46,16 @@ rfc-status
 
 ---
 
+## RFCs and ADRs
+
+**RFC (Request for Comments)** — a structured proposal for any cross-cutting change: a new convention, an architectural direction, a team process. An RFC is not a decision; it's the case for a decision. It carries a proposer perspective (why this is worth doing) and a genuine objector perspective (the strongest case against it). You can seed `new-rfc` with context — pass a desk-research brief, an architect design doc, or any prior analysis and the skill folds them in as the factual grounding instead of inventing the case from scratch. Accepted RFCs can be amended with a signed cover note (erratum) — a compact correction that does not reopen the full RFC cycle.
+
+`rfc-status` reads the full `docs/rfc/` landscape: active RFCs by lifecycle state (Draft / Open / Accepted / Rejected / Deferred), resolved counts, and any unproposed findings sitting in the candidate register waiting to become RFCs.
+
+**ADR (Architecture Decision Record)** — the record of a decision already made. It captures the decision, the alternatives that were considered and why they were rejected, and the consequences. ADRs are immutable once merged; when a decision is reversed, the original ADR is superseded, not deleted. `new-adr` runs two critique tracks — a standard context / consequences analysis and an adversarial pass that argues against the decision — so the final record honestly names what was left on the table. If an RFC preceded the decision, the ADR links back to it.
+
+---
+
 ## Entry points
 
 | Say this               | What happens                                            |
