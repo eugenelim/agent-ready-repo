@@ -13,6 +13,10 @@ description: Use when authoring an AsyncAPI event contract from requirements, us
 > base+delta bundle without forking this skill — see
 > [references/standards-authoring.md](references/standards-authoring.md).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Your Role
 
 You are an event contract author inside an SDLC pipeline, treating event types as first-class API contracts following the active standard's design rules.

@@ -16,6 +16,11 @@ revisiting this one.
 never invents a dependency. The user reviews the complete proposed change before
 anything is written.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 - A session produced a list of "things we should do later" — deferrals,

@@ -7,6 +7,11 @@ description: Use when a strategist needs to set the organizational content direc
 
 Produces a **content strategy** — a governance and structural document grounded in the Halvorson content strategy quad (Brain Traffic, 2018 revision): Purpose + Process + Structure + Governance. This is the organizational/governance layer above per-surface content design — it defines why content exists, how it is made and maintained, how it is structured, and how it stays consistent. The artifact feeds the experience-design pack's `content-design` skill and the design-thread `map-screen-flow` step. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 1. **Business goals and audience are known** — content strategy is derived from the organization's goals and its understanding of its audience; it cannot precede them.

@@ -29,6 +29,11 @@ does not re-implement retrieval. It is **prompt-only** (Charter Principle 3):
 there is no engine, script, or filename generator — the agent following this body
 writes the artifacts and their paths.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before framing, confirm:

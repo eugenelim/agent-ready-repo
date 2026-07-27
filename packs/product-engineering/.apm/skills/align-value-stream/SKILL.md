@@ -15,6 +15,11 @@ read and edit*, never a running service. The slices it rolls up are produced by
 `decompose-intent`'s business-unit branch; its spine is **currency** — a stale
 map is the dominant failure mode. Depth lives in `references/`.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before aligning, confirm:

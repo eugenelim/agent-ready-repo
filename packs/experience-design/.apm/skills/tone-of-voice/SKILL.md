@@ -7,6 +7,11 @@ description: Use when a designer, copywriter, or builder has a felt "copy vibe" 
 
 Turns a vague "copy vibe" into a small set of **named, ranked copy goals**, each grounded in a stable referent, and records them — along with arbitration rules — in a tone-of-voice doc the rest of the build references. The doc is the durable artifact: every later copy choice points back to a goal and its referent rather than relitigating voice on each surface. This skill is the copy twin of `creative-direction`: same interrogation rhythm applied to what the product *says* rather than how it *looks*.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 Confirm all four before drafting; if any fails, push back and resolve it first.

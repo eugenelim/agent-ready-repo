@@ -12,6 +12,11 @@ shell to convention, and route the decision through an RFC — or reject it.
 Justification-first; the scaffold is the reward for clearing the bar, not the
 starting point.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## Procedure
 
 1. **Test additivity + fit against the *local* charter.** Read this catalogue's

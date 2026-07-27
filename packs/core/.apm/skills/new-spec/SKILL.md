@@ -8,6 +8,10 @@ description: Use this skill when the user wants to start a new feature with a sp
 Create a new feature spec under `docs/specs/<feature>/` with both `spec.md`
 and `plan.md`.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 The spec is the contract; the plan is the strategy. Even a one-day feature

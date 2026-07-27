@@ -12,6 +12,12 @@ RFC** of per-candidate verdicts — resumable, idempotent, and safe under parall
 git worktrees. It reuses `assimilate-primitive`'s per-unit safety + craft for
 each `assimilate` verdict; its own job is the **survey, the ledger, and the RFC**.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## Procedure
 
 1. **Establish the charter anchor.** Read `docs/CHARTER.md` from the running

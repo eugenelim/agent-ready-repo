@@ -31,6 +31,12 @@ skill is still fully useful: it writes copy for the states you name directly
 
 > **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience-design` pack's `tone-of-voice` skill; `voice-and-microcopy` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience-design pack); onboarding copy voice and register → `tone-of-voice` (experience-design pack); onboarding UI-state strings (loading, error, empty) → `voice-and-microcopy` (this skill).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before writing, confirm:

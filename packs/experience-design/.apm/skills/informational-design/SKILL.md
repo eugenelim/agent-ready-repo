@@ -7,6 +7,11 @@ description: "Use when designing an informational surface — an article page, a
 
 Converts the editorial structure and reading goal into a **structural specification for an informational surface** — the typographic hierarchy, the reading-pattern calibration, the editorial grid, and the "what's next" chain that sustains reader engagement after the primary content is consumed. This skill uses **typography as the primary design tool**; layout, grid, and navigation are typography's support structure. It does not write the content (that is `content-design`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 Confirm all three before specifying:

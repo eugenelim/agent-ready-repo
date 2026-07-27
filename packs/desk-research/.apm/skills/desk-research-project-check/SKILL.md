@@ -11,6 +11,11 @@ makes a recommendation. It is deliberately **passive**: it reads, judges, and
 reports; it never advances the lifecycle and never computes a number. The human
 decides what to do with the signal.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## When to invoke
 
 Inside an existing project folder, on phrasing like *"is this project

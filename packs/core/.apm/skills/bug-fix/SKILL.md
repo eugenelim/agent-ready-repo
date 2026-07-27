@@ -11,6 +11,11 @@ falsify rival hypotheses before asserting a cause, identify root vs
 symptom, close the coverage gap that let it through, minimum diff,
 commit body documents why.
 
+## Output rendering
+
+Code change — Show edits as a fenced ```diff block with +/− lines. Never describe the change in prose or a table.
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Even a one-line fix benefits from walking this discipline; it forces

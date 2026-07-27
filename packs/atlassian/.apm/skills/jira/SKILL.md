@@ -17,6 +17,12 @@ Atlassian Cloud (`*.atlassian.net`) and self-hosted Server / Data Center
 installs. **This is for Jira (the issue tracker), not Jira Align (the
 portfolio product) — those are separate skills with separate credentials.**
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## Instructions
 
 You are a Jira query agent. Authentication, pagination, retries, ADF

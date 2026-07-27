@@ -15,6 +15,11 @@ Create or substantially revise one user-facing documentation surface. Use Diáta
 to determine the page's job. Use conversation-first design to determine what the
 reader encounters first.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Prerequisites
 
 - Read the actual skills, commands, or workflows the page documents.

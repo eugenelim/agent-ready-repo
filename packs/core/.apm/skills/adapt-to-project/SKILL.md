@@ -9,6 +9,13 @@ description: Use this skill to walk the adopter through the four classes of post
 > 2–4 are LLM-judgment writes the skill performs directly under the
 > per-scope path-jail.
 
+## Output rendering
+
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 Invoke this skill **inside an adopter's repository** after they have

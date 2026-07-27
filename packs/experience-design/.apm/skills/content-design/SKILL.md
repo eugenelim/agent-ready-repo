@@ -7,6 +7,11 @@ description: "Use when a designer or product person needs to decide what a surfa
 
 Produces a **content brief** — a text-first document answering "what does this surface need to say, for whom, in what form, to achieve what objective" — before any wireframe or screen flow is started. The brief is the durable artifact: it lets every later design and copy choice point back to a content decision, not a fresh opinion. This skill fills the first link in the design thread between `journey-mapping` and `user-flow`: it runs after a journey exists (or elicits one inline) and before screens are sequenced.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Confirm all four before drafting; if any fails, push back and resolve it first.

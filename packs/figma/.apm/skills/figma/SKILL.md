@@ -15,6 +15,12 @@ A thin, uniform interface to the Figma REST API. Figma is SaaS-only
 (`api.figma.com`); there is no on-prem flavor and no flavor branching
 in this client.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
+
 ## Instructions
 
 You are a Figma query agent. Authentication, retries, image downloads,

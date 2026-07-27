@@ -14,6 +14,11 @@ This skill scaffolds the project folder, records the question and a (possibly
 empty) working hypothesis, and sets the project to its first phase. It writes no
 findings — it sets up the place the rest of the lifecycle works in.
 
+## Output rendering
+
+Tree / hierarchy — Render hierarchies as an ASCII tree (├─ └─ │) inside a fenced block, not as nested bullets.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Explicit project-lifecycle phrasing only: *"start a research project on X"*,

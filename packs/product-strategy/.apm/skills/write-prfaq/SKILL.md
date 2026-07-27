@@ -7,6 +7,11 @@ description: Use when a strategist needs to write the press release before the p
 
 Produces a **PRFAQ** — a press release written as if the product already exists, followed by a customer FAQ and an internal FAQ — using the Amazon PRFAQ format as the direction-setting convention. The press release forces specificity about who the customer is, what problem they have, and how the product solves it in their terms. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 1. **A product concept exists but has not yet been committed to engineering** — PRFAQ is a pre-spec forcing function, not a post-spec documentation exercise.

@@ -64,6 +64,14 @@ SKILLS: dict[str, list[str]] = {
     # core
     "workspace-status":             ["status-list", "table", "mermaid", "progress"],
     "frontend-engineering":         ["table"],
+    "work-loop":                    ["status-list", "severity-list", "table", "narrative", "progress"],
+    "receive-brief":                ["table", "key-value"],
+    "contract-acquisition":         ["table", "key-value", "narrative"],
+    "capture-work":                 ["table", "key-value"],
+    "author-brief":                 ["key-value"],
+    "adapt-to-project":             ["status-list", "table", "key-value", "narrative"],
+    "new-spec":                     ["key-value"],
+    "bug-fix":                      ["diff", "table"],
     # governance-extras
     "rfc-status":                   ["table"],
     "new-adr":                      ["key-value"],
@@ -75,11 +83,20 @@ SKILLS: dict[str, list[str]] = {
     # catalogue-curation
     "assimilate-primitive":         ["severity-list"],
     "export-catalogue":             ["status-list"],
+    "assimilate-repo":              ["table", "status-list", "narrative"],
+    "propose-catalogue-pack":       ["table", "narrative"],
     # desk-research
     "compare-hypotheses":           ["table"],
     "desk-research-project-digest": ["table"],
     "desk-research-project-status": ["key-value"],
     "desk-research-project-synthesize": ["narrative", "key-value"],
+    "decision-archaeology":         ["narrative", "key-value"],
+    "desk-research":                ["table", "narrative", "status-list"],
+    "desk-research-project-start":  ["tree", "key-value"],
+    "build-outline":                ["narrative"],
+    "source-map":                   ["table"],
+    "identify-perspectives":        ["narrative", "table"],
+    "desk-research-project-check":  ["narrative", "status-list"],
     # converters
     "file-to-markdown":             ["key-value"],
     "markdown-to-docx":             ["key-value"],
@@ -98,10 +115,24 @@ SKILLS: dict[str, list[str]] = {
     "place-bet":                    ["table"],
     "plan-validation":              ["key-value"],
     "new-package":                  ["tree"],
+    "identify-opportunities":       ["table", "key-value"],
+    "frame-intent":                 ["key-value", "narrative"],
+    "decompose-intent":             ["tree", "key-value"],
+    "diverge-solutions":            ["table", "narrative", "key-value"],
+    "voice-and-microcopy":          ["table", "narrative", "key-value"],
+    "frame-domain":                 ["narrative", "key-value"],
+    "lean-canvas":                  ["table", "key-value"],
+    "align-value-stream":           ["table", "key-value"],
     # product-strategy
     "run-pestle-analysis":          ["table"],
     "run-porters-five-forces":      ["table"],
     "run-okr-cascade":              ["table"],
+    "write-prfaq":                  ["narrative", "key-value"],
+    "define-content-strategy":      ["narrative", "key-value"],
+    "run-bcg-matrix":               ["table", "key-value"],
+    "run-swot":                     ["table", "narrative", "key-value"],
+    "synthesize-stakeholder-research": ["narrative", "key-value"],
+    "define-ux-strategy":           ["narrative", "key-value"],
     # iac-terraform
     "generate-iac":                 ["table", "status-list"],
     "reconcile-iac":                ["table", "key-value"],
@@ -123,6 +154,16 @@ SKILLS: dict[str, list[str]] = {
     # experience-design (additional severity-list producers)
     "design-review":                ["severity-list"],
     "devils-advocate":              ["severity-list"],
+    # experience-design (additional)
+    "design-principles":            ["narrative", "key-value"],
+    "informational-design":         ["table", "narrative"],
+    "content-design":               ["table", "key-value"],
+    "tone-of-voice":                ["key-value", "narrative"],
+    "design-system":                ["narrative"],
+    "creative-direction":           ["key-value", "narrative"],
+    # contracts
+    "event-contract":               ["table"],
+    "api-contract":                 ["table"],
     # atlassian
     "jira-team-status":             ["table"],
     "ai-adoption-report":           ["table", "key-value"],
@@ -132,11 +173,25 @@ SKILLS: dict[str, list[str]] = {
     "jira-defect-flow":             ["table"],
     "jira-story-triage":            ["table"],
     "confluence-publisher":         ["key-value"],
+    "confluence-crawler":           ["key-value"],
+    "jira-align":                   ["table", "key-value"],
+    "jira":                         ["table", "key-value", "status-list"],
     # linear
     "linear-brief-sync":            ["diff"],
     "linear-brief-intake":          ["table"],
+    "linear":                       ["table", "key-value"],
     # github
     "github-brief-intake":          ["table"],
+    # figma
+    "figma":                        ["table", "key-value", "mermaid"],
+    # user-guide-diataxis
+    "new-guide":                    ["narrative", "key-value"],
+    # frontend-engineering (additional)
+    "fe-performance":               ["table", "severity-list", "key-value"],
+    "component-contract":           ["table", "key-value", "narrative"],
+    "a11y-engineering":             ["table", "severity-list", "status-list", "key-value"],
+    "rendering-strategy":           ["table", "narrative"],
+    "fe-status":                    ["status-list", "key-value", "table"],
 }
 
 
