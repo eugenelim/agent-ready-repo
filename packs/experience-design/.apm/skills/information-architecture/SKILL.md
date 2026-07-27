@@ -10,6 +10,10 @@ a screen or flow — what belongs on the surface, in what order the eye should
 meet it, and how the user stays oriented. Reasoning and concepts, never
 layout code.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Confirm before drafting:

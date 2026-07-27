@@ -20,6 +20,10 @@ acceptance criteria, clarify the outcome), this skill routes them to
 skill's `update-issue` when the user explicitly asks to set a field, with the payload
 confirmed first.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Cross-skill invocation — name, not path
 
 Sibling and host skills are named **by their `name:` field, never by path**.

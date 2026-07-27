@@ -21,6 +21,10 @@ For the read-only *team status* view — what the team can pick up next, what is
 blocked, unassigned, in progress, or a stand-up summary — use `jira-team-status`.
 This skill is the one that *judges readiness and fixes weak items*.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Cross-skill invocation — name, not path
 
 This skill names the `jira` skill **by its `name:` field, never by path**.

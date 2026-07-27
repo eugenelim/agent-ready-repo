@@ -12,6 +12,10 @@ Delta catch-up: re-fetches the Linear Issue, diffs only Linear-sourced fields
 before/after for PE approval, and writes only what PE approves. It never
 touches PE-authored fields and never runs while the brief is Executing.
 
+## Output rendering
+
+Code change — Show edits as a fenced ```diff block with +/− lines. Never describe the change in prose or a table.
+
 ## Cross-skill invocation — name, not path
 
 Name the `linear` skill **by its `name:` field, never by path**.

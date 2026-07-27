@@ -100,7 +100,7 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `agent
 
 **Craft rules (not linted — hold in head):**
 - **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `agentbundle catalogue lint --deep` enforces this).
-- **Body answers what to do once invoked** — preconditions, judgment, procedure. Keep it terse.
+- **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `guides/core/reference/output-rendering.md`.
 
 ## Personal information
 

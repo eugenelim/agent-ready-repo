@@ -23,6 +23,10 @@ not re-litigated per sibling feature. It reuses the existing pre-PMF **qualitati
 bar** in `references/kill-condition.md` (no new mechanism): predeclare a clear
 qualitative line, in 0-to-1 terms, before you probe.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before de-risking, confirm:

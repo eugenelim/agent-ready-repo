@@ -26,6 +26,10 @@ screen × state, keyed to the state matrix), the `experience-reviewer` agent
 (reviews the flow + briefs), and — through the optional handover — a generative
 design tool (realization).
 
+## Output rendering
+
+Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
+
 ## When to invoke
 
 Confirm all four before drafting; if any fails, resolve it first.

@@ -9,6 +9,10 @@ Designs **how a screen or component behaves** — the feedback an action produce
 
 **Three state homes — the load-bearing carve.** The shared quality floor (at `../design-review/references/quality-floor.md`) owns the state *set* — the enumeration of which states must be designed (empty, loading, error, success, partial, disabled). `user-flow` owns *cross-screen* routing — which screens follow which, and the macro-level error/edge paths across the journey. This skill owns the *in-component* state machine — the transitions and guards *within* a single screen or component — plus the motion, feedback timing, and input flow that animate those transitions. Macro-flow vs. micro-behavior is the line; never re-enumerate the state set or route across screens here.
 
+## Output rendering
+
+Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
+
 ## When to invoke
 
 Confirm all three before enriching the brief; if any fails, resolve it first.
