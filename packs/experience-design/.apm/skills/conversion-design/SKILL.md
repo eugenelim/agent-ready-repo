@@ -81,6 +81,20 @@ Each step names the product capability serving it; none reprints UI labels. The 
 
 For grounding creative-direction on a marketing surface, study how these sites handle conversion structure: Evil Martians (developer tools aesthetic), Linear (enterprise SaaS clarity), Vercel (demo-first product confidence). Internalize the structural philosophy — information hierarchy, proof placement, CTA legibility — not the surface treatment.
 
+## Editorial quality gate
+
+Before the structural specification is complete, run both passes against the above-fold spec and scroll story. Load `references/editorial-quality-gates.md`.
+
+**Deletion pass.** Assume the specification is 30% too long. Work through the 10 deletion questions against the above-fold contract and each zone of the scroll story. Remove from the specification anything that does not increase the reader's understanding, desire, credibility, differentiation, or intent to act.
+
+**Human copy tests.** Run all four tests and record which passed and which raised a concern in the specification output:
+- **5-second test** — after 5 seconds on the above-fold spec, can a reader answer all six questions (what is this / who is it for / why care / why different / why believe / what next)?
+- **Specificity test** — could any section of the above-fold contract be pasted onto another company's landing page unchanged? If yes, it is not yet specific enough.
+- **Point-of-view test** — does the copy have a clear opinion about the problem, the status quo, and why current approaches fail?
+- **Distinctiveness test** — does this read as a specific human with something specific to say, or as an AI explaining a category?
+
+The structural specification output must include a one-line gate summary: which tests passed, which raised a concern.
+
 ## Anti-patterns to refuse
 
 - **Feature-list hero.** Lists of features above the fold are not a conviction statement; they assume the reader already cares. Move features to zone 3 (solution fit) where they answer a question the reader now has.
