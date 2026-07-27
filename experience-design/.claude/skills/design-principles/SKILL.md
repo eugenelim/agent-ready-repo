@@ -7,6 +7,11 @@ description: Use when a design team needs shared, durable decision rules — con
 
 Converts journey-map peak moments and highest-opportunity pains into **3–5 named design principles** — decision rules that resolve disputes, survive sprint boundaries, and let every later screen point back to a principle rather than relitigating taste. The principles are **not brand values** (those belong in `creative-direction`) and **not interaction heuristics** (Nielsen's apply universally; these are specific to this product and this audience).
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Confirm all three before drafting:

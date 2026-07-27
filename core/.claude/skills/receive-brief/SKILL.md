@@ -14,6 +14,11 @@ independently-shippable slices, and **execute** each slice through the normal
 `new-spec` → `work-loop` pipeline. The brief becomes a live tracker whose
 coverage rolls up from the specs it spawned.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Invoke when the unit of work that arrives is **bigger than one feature** and

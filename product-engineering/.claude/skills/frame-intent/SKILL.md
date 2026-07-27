@@ -13,6 +13,11 @@ document. This is the entry point of the
 product-engineering loop: frame here, then `de-risk-intent`, then
 `decompose-intent`. The intent model is in `references/intent-model.md`.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 Before framing, confirm:

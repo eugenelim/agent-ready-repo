@@ -10,6 +10,11 @@ functional, emotional, and social — score each via the Ulwick formula, and
 produce a ranked opportunity list that feeds `diverge-solutions`.
 Step 2 of the PE shaping sequence.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Confirm the input is **problem-space, not solution-space.** If the topic

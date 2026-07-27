@@ -8,6 +8,11 @@ description: Reconstruct the rationale for a past decision by walking time-order
 Reconstructs *why* a past decision was made by following its
 artifact trail in chronological order.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 - "Why did we choose X over Y?" type questions.

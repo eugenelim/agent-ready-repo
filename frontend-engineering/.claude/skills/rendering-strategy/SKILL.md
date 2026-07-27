@@ -17,6 +17,11 @@ Load `rendering-strategy` when:
 
 ---
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## Rendering model decision framework
 
 | Model | When to use | CWV profile | Data pattern | Personalization | Key tradeoffs |

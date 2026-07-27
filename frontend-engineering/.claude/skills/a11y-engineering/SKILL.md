@@ -21,6 +21,13 @@ when:
 
 ---
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## The two automated-tooling gaps
 
 Automated accessibility tools (pa11y, axe-core) cap at `wcag21aa`. Two WCAG

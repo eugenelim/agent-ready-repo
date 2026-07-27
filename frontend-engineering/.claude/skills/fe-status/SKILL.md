@@ -13,6 +13,12 @@ use `frontend-engineering` in `create` mode instead.
 
 ---
 
+## Output rendering
+
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## What to look for
 
 Read the following artifacts in the order listed. Stop when the summary

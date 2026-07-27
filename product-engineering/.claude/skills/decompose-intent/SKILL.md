@@ -13,6 +13,11 @@ unit your delivery loop can build. At `app` Scale the leaf feature intent *is* a
 no new machinery. The recursion + the brief projection are in
 `references/recursive-decomposition.md`.
 
+## Output rendering
+
+Tree / hierarchy — Render hierarchies as an ASCII tree (├─ └─ │) inside a fenced block, not as nested bullets.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Before decomposing, confirm:

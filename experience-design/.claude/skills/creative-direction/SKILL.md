@@ -7,6 +7,11 @@ description: Use when a designer or stakeholder has a felt "vibe" but no named d
 
 Turns a vague "vibe" into a small set of **named, ranked emotional and brand goals**, each grounded in a stable referent, and records them in an creative-direction doc the rest of the build references. The doc is the durable artifact: it lets every later choice point back to a goal and its referent, not a fresh opinion.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 Confirm all four before drafting; if any fails, push back and resolve it first.

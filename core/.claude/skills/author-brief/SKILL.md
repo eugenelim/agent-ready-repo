@@ -12,6 +12,10 @@ then queue it so `workspace-status` can surface it immediately.
 and does not set `Status: Ready`. Those are `receive-brief`'s job. The two
 skills have distinct entry points and must stay distinct.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 - The user has an email thread, a prose description, a Linear Issue body, or

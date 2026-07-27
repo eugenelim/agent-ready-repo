@@ -7,6 +7,11 @@ description: Use when a strategist needs to assess portfolio position and derive
 
 Produces a **portfolio position analysis** using the BCG Growth-Share Matrix — four quadrants: Stars (high growth, high share), Cash Cows (low growth, high share), Question Marks (high growth, low share), and Dogs (low growth, low share). Investment implications flow from quadrant position. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 1. **A multi-product or multi-business-unit portfolio exists** — at least two offerings must be mappable; single-product analysis belongs in SWOT.

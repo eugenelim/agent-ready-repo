@@ -12,6 +12,12 @@ prompt's depth and discipline signals, dispatches retrievers, synthesises
 findings with citations and per-finding confidence ratings, and (in deep
 mode) adversarially reviews its own output.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## When to invoke
 
 Any prompt that asks the model to find out, look up, investigate,

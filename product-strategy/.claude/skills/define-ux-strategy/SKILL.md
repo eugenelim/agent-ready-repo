@@ -7,6 +7,11 @@ description: Use when a strategist needs to set the experience direction before 
 
 Produces a **UX strategy** — a three-layer document (Vision, Goals + Measures, Plan) that bridges business strategy and experience design. Draws on the NN/g three-layer UX strategy model, Jaime Levy's four-tenets framework (business strategy + value innovation + validated user research + killer UX), and Gothelf/Seiden OKR-linked UX framing. Sits upstream of the experience-design pack's `journey-mapping`. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 1. **Market strategy and business goals are known** — UX strategy translates those goals into experience direction; it cannot precede the business strategy it is derived from.
