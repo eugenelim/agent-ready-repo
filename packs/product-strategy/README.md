@@ -30,17 +30,17 @@ On any session return, ask the agent what's in `docs/product/shaping/` — or co
 
 ## Entry points
 
-| Say this | What happens |
-|----------|--------------|
-| `write-prfaq` | Draft the press release + FAQ before the product exists — the altitude-0 forcing function |
-| `run-pestle-analysis` | Scan the macro environment across six lenses — Political, Economic, Social, Technological, Legal, Environmental |
-| `run-porters-five-forces` | Map the competitive landscape — supplier and buyer power, new entrants, substitutes, rivalry |
-| `run-bcg-matrix` | Position each initiative in the portfolio matrix — Stars, Cash Cows, Question Marks, Dogs |
-| `run-swot` | Synthesize the situation picture — Strengths, Weaknesses, Opportunities, Threats |
-| `run-okr-cascade` | Cascade company OKRs to team level, identify gaps, and route them to the PE shaping queue |
-| `synthesize-stakeholder-research` | Synthesize desk-research outputs into a committed strategic narrative by theme |
-| `define-ux-strategy` | Set the experience vision, goals with measures, and plan — upstream of journey-mapping |
-| `define-content-strategy` | Set the organizational and governance layer for content — upstream of content-design |
+| Say this | Give it | What happens |
+|----------|---------|--------------|
+| `write-prfaq` | A product concept, elevator pitch, or problem statement | Drafts the press release + FAQ before the product exists — the altitude-0 forcing function |
+| `run-pestle-analysis` | The scope: organization, market entry, or product line | Scans the macro environment across six lenses — Political, Economic, Social, Technological, Legal, Environmental |
+| `run-porters-five-forces` | The industry and the competitive reference point | Maps the competitive landscape — supplier and buyer power, new entrants, substitutes, rivalry |
+| `run-bcg-matrix` | A list of initiatives or products with their relative market position | Positions each in the portfolio matrix — Stars, Cash Cows, Question Marks, Dogs |
+| `run-swot` | Scope alone (elicits inline), or prior PESTLE / Porter's / BCG artifacts | Synthesizes the situation picture — Strengths, Weaknesses, Opportunities, Threats |
+| `run-okr-cascade` | Company OKRs (text, doc, or described inline) | Cascades to team level, identifies gaps, and routes them to the PE shaping queue in `workspace.toml` |
+| `synthesize-stakeholder-research` | One or more `desk-research-project-synthesize` briefs | Converts research evidence into a committed strategic narrative by theme |
+| `define-ux-strategy` | The approved PRFAQ and market situation (optional but improves grounding) | Sets the experience vision, goals with measures, and plan — upstream of `journey-mapping` |
+| `define-content-strategy` | Organizational context and any prior strategy artifacts | Sets the governance layer for content — Purpose, Process, Structure, Governance — upstream of `content-design` |
 
 ---
 
