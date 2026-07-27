@@ -348,6 +348,24 @@ const installCommand =
     border-radius: var(--ds-radius-sm);
   }
 
+  /* Terminal-style output blocks — override Shiki's inline background. */
+  .journey-narrative :global(pre) {
+    background-color: var(--ds-hero-bg) !important;
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5) var(--ds-space-6);
+    margin-bottom: var(--ds-space-5);
+    overflow-x: auto;
+  }
+
+  .journey-narrative :global(pre code) {
+    background: none !important;
+    color: var(--ds-hero-fg) !important;
+    padding: 0;
+    font-size: var(--ds-type-mono-sm);
+    line-height: var(--ds-lead-mono);
+    border-radius: 0;
+  }
+
   .journey-narrative :global(hr) {
     border: none;
     border-top: 1px solid var(--ds-border);

@@ -10,7 +10,7 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
-whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. You get lint, typecheck, and tests as mechanical gates. Three specialist reviewers read every diff cold. The loop cannot self-certify — it always surfaces to you for plan approval and PR merge. The core pack's frontend-engineering skill fills the Frontend Engineering section of the Digital Experience Contract — the shared schema that enforces continuity from strategy to rendered evidence."
+whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. Lint, typecheck, and tests are mechanical gates the loop runs before you see the diff. The adversarial reviewer reads the diff cold — no context from the build session. The loop cannot self-certify: it always surfaces to you for plan approval and PR merge."
 skills:
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews — mechanical gates and human checkpoints the agent cannot bypass."
@@ -88,35 +88,84 @@ relatedJourneys:
   - release
 ---
 
-### 1. Agree on the plan
-
-- **You provide:** the requested change and its important constraints.
-- **Agent does:** activates `work-loop`, checks whether risk triggers require full mode, writes the lean inline spec — the **trio** (problem, user, success criteria) — and surfaces its assumptions.
-- **You decide:** approve the plan, or redirect if the agent overreached the scope or picked the wrong mode. Five to ten minutes of focused reading — the gate that costs least and protects most.
-- **Output:** an agreed, bounded plan.
-
----
-
-### 2. Build and verify
-
-- **Agent does:** implements against the spec, running lint, typecheck, and tests after each logical change; when a gate fails, it fixes the issue and re-runs the gate before continuing.
-- **You do:** watch at key moments — after each logical task, skim the output for file names you didn't expect, for scope creep, and for a surfaced question. Answer quickly if it surfaces; a blocked agent costs more than a fast redirect. If all is well, let it run.
-- **Output:** a green implementation.
+| Say this | What happens |
+|----------|-------------|
+| `workspace-status` | Orient — what's ready, blocked, and done |
+| `author-brief` | Turn any idea, email, or issue into a queued brief |
+| `work-loop` | Plan → execute → gates → adversarial review → merge |
+| `bug-fix` | Diagnose and fix a specific bug |
+| `new-spec` | Author a spec directly, without the brief layer |
 
 ---
 
-### 3. Review independently
+### 1. Orient — every session
 
-- **Reviewer does:** reads the diff cold in a fresh session (`adversarial-reviewer`) with no context from the build, and returns findings grouped by severity — Blockers, Concerns, Nits.
-- **Loop does:** fixes Blockers and re-runs the gates, iterating until the reviewer reports clean.
-- **You do:** monitor the findings as they land; give a one-line steer on any Blocker you disagree with ("this is expected because…"); scan Concerns and Nits and choose to apply or defer.
-- **Output:** a clean review — or concerns surfaced clearly to you.
+Type `workspace-status` to see what's ready to start, what's blocked, and what shipped last session.
+
+```text
+● sprint-8/data-export     ready    spec approved · 3 tasks
+⚠ sprint-8/auth-refresh    blocked  needs spec/api-contract
+✓ sprint-7/payment-ui      done     shipped 2026-07-25
+```
+
+- **Output:** queue state — ready items, blocked items with reason, recent completions.
 
 ---
 
-### 4. Decide the merge
+### 2. Author a brief
 
-- **Agent does:** opens the PR with a description covering what changed, why, what was deferred, and what was found mid-implementation.
-- **You do:** read the description, not just the diff — it tells you what the agent decided when it had choices. Confirm the implementation matches the plan you approved, the spec and code align, and no unexplained scope appeared.
+Type `author-brief` and paste any unstructured input — an idea, email thread, or issue. The agent extracts the outcome, appetite, and key constraints, then queues the brief in `workspace.toml`.
+
+```text
+  brief   docs/product/briefs/data-export.md
+  queued  sprint-8/data-export → ready
+```
+
+- **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
+
+---
+
+### 3. Agree the plan
+
+Type `work-loop docs/product/briefs/data-export.md`. The agent checks risk triggers, writes the spec and plan, surfaces assumptions, and stops for your sign-off before a line of code is written.
+
+```text
+mode: full — new dependency trigger
+  spec  docs/specs/data-export/spec.md
+  plan  docs/specs/data-export/plan.md
+
+  Problem  Streaming export crashes above 50k rows.
+  User     Engineer shipping the bulk-export feature.
+  Success  1M rows under 2 GB peak RSS.
+
+  Assumption: streaming CSV is acceptable; XLSX is deferred.
+
+Approve? ›
+```
+
+- **You decide:** approve spec and plan — 5–10 minutes, the cheapest gate.
+- **Output:** `docs/specs/data-export/spec.md` + `plan.md` — your checkpoint before any code is written.
+
+---
+
+### 4. Execute
+
+Type `work-loop execute spec/data-export`. The agent implements, runs lint / typecheck / tests after each logical change, and hands the diff to `adversarial-reviewer` in a fresh session.
+
+```text
+  ● Lint          ok
+  ● Typecheck     ok
+  ● Tests  246/246 ok
+  ● Review        1 blocker → fixed → clean
+```
+
+- **Output:** code and tests across multiple files — too many to enumerate individually. Review the PR diff.
+
+---
+
+### 5. Merge
+
+The agent opens the PR. Read the description before the diff — it tells you what the agent decided when it had choices, and what was deferred.
+
 - **You decide:** merge, redirect, or defer.
-- **Output:** a merge-ready change.
+- **Output:** a merged change.
