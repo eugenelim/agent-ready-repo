@@ -159,8 +159,8 @@ These are optional inputs; the skills degrade gracefully when the upstream artif
 ## Cross-pack: `product-engineering`
 
 The **words** a user reads in the UI are the `product-engineering` pack's
-`voice-and-microcopy` skill's domain — the design seat's content layer. Pass
-`user-flow`'s per-screen state matrix to `voice-and-microcopy` and it
+`ux-writing` skill's domain — the design seat's content layer. Pass
+`user-flow`'s per-screen state matrix to `ux-writing` and it
 writes copy keyed to every screen × state cell. See the
 [`product-engineering` pack README](../product-engineering/README.md).
 

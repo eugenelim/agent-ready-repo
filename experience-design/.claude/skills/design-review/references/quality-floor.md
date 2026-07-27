@@ -7,7 +7,7 @@ authoring and connective skills (`creative-direction`,
 `user-flow`, `interaction-design`) reference it as they work via the
 sibling-relative path `../design-review/references/quality-floor.md`;
 `design-review` applies it as an explicit pass; `product-engineering`'s
-`voice-and-microcopy` defers to it by-name (cross-pack, so by reference, not a
+`ux-writing` defers to it by-name (cross-pack, so by reference, not a
 hard file load). It lives in `design-review/references/` because that is the
 one location every consumer can resolve once the pack projects every skill as a
 sibling under the adapter's skills root — a pack-level `references/` directory
