@@ -1,0 +1,70 @@
+[
+  {
+    "query": "Our LCP is 4.2s \u2014 diagnose and fix",
+    "should_trigger": true
+  },
+  {
+    "query": "Improve the Core Web Vitals on our product landing page",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up performance budgets for our main marketing routes",
+    "should_trigger": true
+  },
+  {
+    "query": "The INP on our search page is 350ms \u2014 find the long tasks causing it",
+    "should_trigger": true
+  },
+  {
+    "query": "Our JS bundle is 800KB \u2014 run a bundle analysis and prioritise what to split",
+    "should_trigger": true
+  },
+  {
+    "query": "Profile the CLS on our article page \u2014 content is shifting after images load",
+    "should_trigger": true
+  },
+  {
+    "query": "Reduce the Time to Interactive on our onboarding flow",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up Lighthouse CI to enforce CWV budgets in our pipeline",
+    "should_trigger": true
+  },
+  {
+    "query": "Our fonts are blocking render \u2014 diagnose and fix",
+    "should_trigger": true
+  },
+  {
+    "query": "Build a new component and include the standard performance gate",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the token system for our CSS",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit the accessibility of this surface",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we use SSG or SSR for our documentation site?",
+    "should_trigger": false
+  },
+  {
+    "query": "Design the props contract for our data table component",
+    "should_trigger": false
+  },
+  {
+    "query": "Make this three-column layout responsive",
+    "should_trigger": false
+  },
+  {
+    "query": "Set up cascade layers for our stylesheet",
+    "should_trigger": false
+  },
+  {
+    "query": "What is the current quality state of our frontend?",
+    "should_trigger": false
+  }
+]
