@@ -82,5 +82,29 @@ The reviewer runs in a forked context — no authoring memory. You act on its fi
 
 ---
 
+## Diagram session
+
+```text
+architect-diagram [C4 component view — billing service]
+
+  Routed: C4 Component
+  Reference: docs/architecture/reference.md
+
+  ```mermaid
+  C4Component
+    Container_Ext(api, "API Gateway", "HTTPS")
+    Container(billing, "Billing Service", "Go · event-sourced")
+    Container(events, "Event Store", "Kafka")
+    Container_Ext(pay, "Payment Processor", "Stripe")
+    Rel(api, billing, "POST /invoice")
+    Rel(billing, events, "append event")
+    Rel(billing, pay, "POST /charge")
+  ```
+```
+
+`architect-diagram` routes by intent — C4 (container, component, context), sequence, state, ER, or flowchart — from a plain description. No notation flag needed.
+
+---
+
 → **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture invariants, and decision log.  
 → **Go deeper:** the [`architect` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/architect/).
