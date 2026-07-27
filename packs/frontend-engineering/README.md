@@ -59,4 +59,4 @@ Projects to: Claude Code, Codex, Copilot, Cursor, Gemini, Kiro.
 
 ## Guides
 
-→ [`docs/guides/frontend-engineering/`](../../docs/guides/frontend-engineering/)
+→ [`guides/frontend-engineering/`](../../guides/frontend-engineering/)

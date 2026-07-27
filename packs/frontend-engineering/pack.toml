@@ -22,7 +22,7 @@ skills = ["frontend-engineering", "token-architecture", "a11y-engineering", "fe-
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/frontend-engineering/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/frontend-engineering/"
 
 [[pack.maintainers]]
 name = "eugenelim"

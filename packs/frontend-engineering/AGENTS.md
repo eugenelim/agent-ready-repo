@@ -2,7 +2,7 @@
 
 The `frontend-engineering` pack installs 9 skills and a `frontend-reviewer` agent
 for HTML/CSS/JS work. The guide tree for all skills lives in
-[`docs/guides/frontend-engineering/`](../../docs/guides/frontend-engineering/) —
+[`guides/frontend-engineering/`](../../guides/frontend-engineering/) —
 tutorials, how-to, and a reference page covering all skills and the reviewer.
 
 For full genre routing in the frontend pre-flight (the `experience-design` co-install

@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-25
 - **Decision-makers:** eugenelim
-- **Related:** [`docs/guides/frontend-engineering/`](../guides/frontend-engineering/), [`.claude/skills/frontend-engineering/SKILL.md`](../../.claude/skills/frontend-engineering/SKILL.md)
+- **Related:** [`guides/frontend-engineering/`](../../guides/frontend-engineering/), [`.claude/skills/frontend-engineering/SKILL.md`](../../.claude/skills/frontend-engineering/SKILL.md)
 
 ## Decision summary
 
@@ -41,7 +41,7 @@ The following risk triggers fired, routing this work to full-mode work-loop:
 | No atomic craft skills | 8 additional atomic skills partitioning the main skill's concerns |
 | No diff-level reviewer | `frontend-reviewer` agent in `.apm/agents/` |
 | No catalogue page | `web/src/content/packs/frontend-engineering.md` |
-| No guide tree | `docs/guides/frontend-engineering/` with tutorials, how-to, and reference |
+| No guide tree | `guides/frontend-engineering/` with tutorials, how-to, and reference |
 | No work-loop integration | 4 insertion points in `work-loop` SKILL.md (footnote, EXECUTE FE, REVIEW, DECIDE) |
 
 ## What does not change
