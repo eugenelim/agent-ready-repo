@@ -33,10 +33,6 @@ See `AGENTS.local.md` for broader self-host context.
 | `[pack.first-value]` | — | First-value install metadata |
 | `[pack.adaptation]` | — | Adaptation inference rules |
 
-## Pack design model
-
-intent → user journey → stage → capability → output
-
 ## Primary workflow (any catalogue)
 
 Run after any pack change. If `agentbundle` is not installed: `pip install agentbundle`.
@@ -102,10 +98,6 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `agent
 - **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `agentbundle catalogue lint --deep` enforces this).
 - **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `guides/core/reference/output-rendering.md`.
 
-## Personal information
-
-**Never include personal information in pack content.** This means no real names, email addresses, usernames, account IDs, phone numbers, or any other PII in `.apm/**`, `seeds/**`, `pack.toml`, or any other in-tree file. Use placeholder values (e.g. `example@example.com`, `<your-org>`) in templates and example config. The CI credential scan (`Gate C`) blocks real bearer tokens; the same discipline applies to all personal data.
-
 ## Eval coverage
 
 A non-cosmetic pack update must also update the pack's eval harness:
@@ -141,6 +133,12 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 ```
 Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic loss.
 Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252.
+
+## Authoring README.md and DESIGN.md
+
+**README** (for adopters): states the pack's intent and the user journey it serves — not a contributor capability reference, not a skill inventory. Structure: outcome sentence → first-workflow command with mock → `| Say this | What happens |` entry points table → 2–3 terminal session mocks → cross-pack dependencies → links.
+
+**DESIGN.md** (for contributors, living reference not proposal): create when the pack has non-obvious philosophy, a method shape skill authors must not break, or decisions that get re-litigated in PRs. Structure: ADR/RFC header → TL;DR (3–5 prose sentences) → Non-Goals bullets → numbered sections (philosophy, method, invariants, decisions) → decisions log with `Alternative considered:` per entry. Update same-PR on any conflicting skill change — drift is a bug.
 
 ## Skill reference files
 
