@@ -105,5 +105,15 @@ architect-diagram [C4 component view — billing service]
 
 ---
 
+## Install
+
+```bash
+agentbundle install --pack architect <catalogue>
+```
+
+Adapters: `claude-code`, `kiro-ide`, `codex`, `copilot`, `cursor`, `gemini`. Default scope: user.
+
+---
+
 → **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture invariants, and decision log.  
 → **Go deeper:** the [`architect` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/architect/).
