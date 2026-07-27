@@ -135,6 +135,10 @@ every feature's low-level design to conform to. The greenfield front door has
 done its job: a recorded foundation, a validated walking skeleton, and the
 normal loop running — instead of a throwaway someone has to clean up later.
 
+## Output rendering
+
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## Anti-patterns to refuse
 
 - **Performing discovery / research yourself.** Discovery is fed *in* (stage 2)

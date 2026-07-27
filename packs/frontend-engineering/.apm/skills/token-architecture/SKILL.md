@@ -298,3 +298,7 @@ A token architecture encodes organizational decisions. Before finalizing:
 - [ ] Is the **dark-theme override** kept in sync with the light-theme semantic
   layer? Every new semantic token added to light mode must have a corresponding
   dark override (or an explicit decision that it inherits the light value).
+
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.

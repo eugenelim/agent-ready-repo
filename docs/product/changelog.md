@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [frontend-engineering][0.1.2] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `css-architecture`, `responsive-layout`, `token-architecture`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [core][0.15.4] — 2026-07-27
+
+### Changed
+
+- **Output rendering directive added to `init-project`.** Skill now declares rendering shape for inline output. No functional change.
+
 ## [user-guide-diataxis][0.2.1] — 2026-07-27
 
 ### Changed

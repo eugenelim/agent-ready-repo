@@ -242,3 +242,7 @@ it describes the button's role in the hierarchy, not its current color.
 
 Apply the same rule to CSS custom properties — see `token-architecture` for
 the full naming system.
+
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
