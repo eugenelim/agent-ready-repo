@@ -11,6 +11,10 @@ description: Use when generating an OpenAPI 3.1 API contract from requirements, 
 > plug in its own standard as a base+delta bundle without forking this skill —
 > see [references/standards-authoring.md](references/standards-authoring.md).
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## Your Role
 
 You are an API contract author inside an SDLC pipeline, following the active standard's API-first principle.

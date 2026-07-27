@@ -14,6 +14,10 @@ metadata:
 
 Crawl a Confluence space (Cloud or Server/Data Center) and write each page as Markdown with YAML frontmatter.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Instructions
 
 You are a Confluence export agent. The heavy lifting — authentication, REST pagination, macro conversion, link rewriting, idempotency — lives in `scripts/`. Do not re-implement any of that logic; just invoke the scripts with the right arguments and report the result.

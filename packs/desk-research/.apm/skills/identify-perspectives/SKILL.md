@@ -9,6 +9,11 @@ The first step in the decision pipeline. Enumerates the named camps on
 a contested topic so downstream skills can survey sources per camp and
 compare hypotheses across them.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 - At the start of the decision pipeline, before `/source-map`.

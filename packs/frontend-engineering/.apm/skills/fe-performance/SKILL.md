@@ -16,6 +16,12 @@ build (the GATES section of `frontend-engineering` covers that). Load
 
 ---
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## CWV causality model
 
 Before profiling, understand what each metric measures and what typically

@@ -18,6 +18,14 @@ verifiable termination criteria.
 > reset. (Reviewers also "surface" findings in the descriptive sense
 > — "raised" — when they return their report; context disambiguates.)
 
+## Output rendering
+
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line, file:line anchor aligned.
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Progress — Report progress inline as done/total (e.g. 3/8). Only draw a bar if you're animating in a terminal.
+
 ## When this skill applies
 
 - Implementing a spec from `docs/specs/`.

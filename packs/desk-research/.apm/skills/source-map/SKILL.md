@@ -11,6 +11,10 @@ Discovers and curates the sources a research artifact will eventually
 cite. Runs upstream of `/desk-research` standard / deep mode and upstream of
 the decision pipeline; can also run standalone before any synthesis.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 - Before standard or deep research on an unfamiliar topic.

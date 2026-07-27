@@ -7,6 +7,11 @@ description: Use when a strategist needs to turn existing stakeholder research i
 
 Produces a **stakeholder synthesis** — a strategic narrative that organizes stakeholder perspectives (executive, user, regulator, partner) by theme, not by stakeholder group, to surface the strategic signals that cross-cut viewpoints. Consumes desk-research pack outputs; does not produce primary research. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 1. **Research inputs exist.** Check `docs/research/` or adopter-supplied paths for desk-research project outputs (research briefs, synthesis memos, interview summaries). If none are found, surface: `"run desk-research project first — no research inputs found"` and stop.

@@ -10,6 +10,10 @@ named aesthetic direction. You ship the *method* to derive values and a
 portable serialization shape — never a reprinted palette, spacing, or type
 table. The reader produces the numbers.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 Before drafting, confirm:

@@ -52,6 +52,12 @@ its *contract*.
 > **same tiered protocol** (T0 version → T1 type-checker / introspection oracle
 > → T2 curated skill → T3 versioned docs → runtime probe), not just one tier.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When it fires
 
 This skill is **user- and agent-invoked** (it has an activation surface, unlike

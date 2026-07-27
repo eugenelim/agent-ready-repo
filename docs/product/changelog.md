@@ -15,6 +15,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [user-guide-diataxis][0.2.1] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `new-guide`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [product-strategy][0.2.2] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `write-prfaq`, `define-content-strategy`, `run-bcg-matrix`, `run-swot`, `synthesize-stakeholder-research`, `define-ux-strategy`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [product-engineering][0.13.2] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `identify-opportunities`, `frame-intent`, `decompose-intent`, `diverge-solutions`, `voice-and-microcopy`, `frame-domain`, `lean-canvas`, `align-value-stream`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [linear][0.1.4] — 2026-07-27
+
+### Changed
+
+- **Output rendering directive added to `linear`.** Skill now declares rendering shape for inline output. No functional change.
+
+## [frontend-engineering][0.1.1] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `fe-performance`, `component-contract`, `a11y-engineering`, `rendering-strategy`, `fe-status`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [figma][0.2.1] — 2026-07-27
+
+### Changed
+
+- **Output rendering directive added to `figma`.** Skill now declares rendering shape for inline output. No functional change.
+
+## [experience-design][1.6.2] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `design-principles`, `informational-design`, `content-design`, `tone-of-voice`, `design-system`, `creative-direction`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [desk-research][1.1.3] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `decision-archaeology`, `desk-research`, `desk-research-project-start`, `build-outline`, `source-map`, `identify-perspectives`, `desk-research-project-check`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [contracts][0.3.5] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `api-contract`, `event-contract`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [catalogue-curation][0.1.4] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `assimilate-repo`, `propose-catalogue-pack`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [atlassian][0.6.2] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `confluence-crawler`, `jira-align`, `jira`.** Skills now declare rendering shape for inline output. No functional change.
+
+## [core][0.15.3] — 2026-07-27
+
+### Changed
+
+- **Output rendering directives added to `work-loop`, `receive-brief`, `contract-acquisition`, `capture-work`, `author-brief`, `adapt-to-project`, `new-spec`, `bug-fix`.** Skills now declare rendering shape for inline output. No functional change.
+
 ## [frontend-engineering][0.1.0] — 2026-07-27
 
 ### Added

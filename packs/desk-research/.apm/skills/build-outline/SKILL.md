@@ -8,6 +8,10 @@ description: Decompose a research question into the sub-questions a thorough ans
 The pre-research scaffold. Decomposes a question into sub-questions so
 the synthesis step has a structure to fill.
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## When to invoke
 
 - Before standard or deep `/desk-research` on a broad question.

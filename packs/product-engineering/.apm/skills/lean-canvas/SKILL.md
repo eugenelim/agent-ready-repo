@@ -8,6 +8,11 @@ description: Use when a product engineer or PM is ready to produce an initiative
 Elicit an initiative brief through an adapted Lean Canvas and produce one
 shareable file: `docs/product/initiatives/<ini-slug>.md`.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Confirm the scope is **initiative-level** (quarters-long, cross-repo outcome).

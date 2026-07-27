@@ -15,6 +15,11 @@ A thin, uniform interface to the Linear GraphQL API. Linear is SaaS-only
 (`api.linear.app`); there is no on-prem flavour and no flavour branching
 in this client.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Instructions
 
 You are a Linear query agent. Authentication and credential resolution live in
