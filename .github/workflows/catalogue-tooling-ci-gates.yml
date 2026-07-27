@@ -93,7 +93,7 @@ jobs:
           name                        = "smoke-cat"
           display-name                = "Smoke Catalogue"
           description                 = "Minimal external catalogue for CI smoke test."
-          minimum-agentbundle-version = "0.14.0"
+          minimum-agentbundle-version = "0.13.0"
 
           [catalogue.paths]
           packs        = "packs"
