@@ -27,21 +27,8 @@ On any session return, type `rfc-status` to see where proposals stand.
 ```text
 rfc-status
 
-  Active:
-
-  | State | RFCs                                       |
-  |-------|--------------------------------------------|
-  | Draft | RFC-0043: Trunk-based development          |
-  | Open  | RFC-0042: Conventional commits adoption    |
-
-  Resolved:
-
-  | State    | Count |
-  |----------|------:|
-  | Accepted |    12 |
-  | Rejected |     2 |
-
-  RFC candidates: 3 entries
+  Active: RFC-0043 (Draft) · RFC-0042 (Open)
+  Resolved: 14  ·  Candidates: 3
 ```
 
 ---

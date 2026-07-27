@@ -78,7 +78,7 @@ skills = ["desk-research", "source-map", "build-outline", "identify-perspectives
 # writes a user `[research]` section by hand or via elicitation
 # (see the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
-output_dir = ".context/desk-research"
+output_dir = "docs/product/research"
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

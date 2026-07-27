@@ -24,7 +24,7 @@ write-prfaq
   draft  docs/product/shaping/prfaq.md
 ```
 
-On any session return, ask the agent what's in `docs/product/shaping/` — or continue directly with `run-swot`.
+On any session return, type `workspace-status` to see the strategy queue.
 
 ---
 

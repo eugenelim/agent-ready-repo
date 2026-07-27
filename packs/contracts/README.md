@@ -19,7 +19,7 @@ api-contract [orders service: create, get, cancel]
   Error responses: 400, 404, 409, 500 (Problem schema)
 ```
 
-No orient command in this pack. On any session return, open the contract file directly and continue: `api-contract [path to existing spec]` to review or extend.
+On any session return, continue with `api-contract [path to existing spec]` to review or extend — no separate orient needed.
 
 ---
 
@@ -44,9 +44,7 @@ api-contract [orders service: create, get, cancel]
 
   Error responses: 400, 404, 409, 500 (Problem schema)
   House standard: Zalando (default)
-```
 
-```text
   Consumer-perspective check
 
   ● All endpoints secured (Bearer token)

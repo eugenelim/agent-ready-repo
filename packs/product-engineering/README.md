@@ -17,10 +17,10 @@ frame-intent
   Outcome  Activation rate rises; first-session drop-off decreases.
 ```
 
-On any session return, type `discovery-loop` to orient.
+On any session return, type `discovery-loop [initiative-name]` to resume where you left off.
 
 ```text
-discovery-loop
+discovery-loop self-serve-onboarding
 
   Initiative  self-serve-onboarding
 
@@ -28,8 +28,10 @@ discovery-loop
   intent             ratified
   explore-options    done — 4 candidates
   domain-framing     done
-  assumption-test    in progress
+  assumption-test    in progress ← current
   decision-brief     pending G2
+
+  Proceed to assumption-test? ›
 ```
 
 ---

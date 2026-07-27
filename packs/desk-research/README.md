@@ -9,6 +9,8 @@ evidence-grounded desk research — portable across every repo.
 Type `desk-research` and describe what you're trying to find out.
 
 ```text
+desk-research "What drives deployment frequency in high-performing teams?"
+
   ● evidence-retriever   running  DORA 2023 State of DevOps
   ✓ source-extractor     done     accelerate.io — 3 findings extracted
   ✓ synthesis            done     8 claims graded · 2 gaps named
