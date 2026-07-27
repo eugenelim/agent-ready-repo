@@ -117,52 +117,126 @@ relatedJourneys:
   - core
 ---
 
+| Say this | What happens |
+|----------|-------------|
+| `discovery-loop` | Start or resume a supervised end-to-end discovery |
+| `frame-intent` | Frame a product problem at any altitude |
+| `de-risk-intent` | Surface the riskiest assumption and design a prototype approach |
+| `decompose-intent` | Break the converged intent into delivery briefs and specs |
+| `ux-writing` | Characterize the product voice and write per-state UI copy |
+
+---
+
 ### 1. Shape intent
 
-- **You provide:** a product idea or problem description.
-- **Agent does:** activates `discovery-loop`, runs `frame-intent` to establish product framing (problem, user, outcome), and emits an intent document.
-- **You do:** read the intent document — the framing is only a page; give concrete corrections if the problem statement is too vague ("users want to collaborate faster" → "the PM can't see which stories are blocked without checking three tools").
-- **You decide:** give G0 consent once the framing is specific enough to eliminate candidates — this gate sets the direction for everything that follows.
+Type `frame-intent` and describe the product problem — any altitude, any level of clarity.
+
+```text
+frame-intent
+
+  Level    feature
+  Problem  New users don't understand the product's value in the first session.
+  User     First-time user arriving after sign-up with no prior context.
+  Outcome  Activation rate rises; first-session drop-off decreases.
+
+Ratify framing? ›
+```
+
+- **You decide:** G0 — ratify the framing before the loop diverges. A vague problem means the loop explores the wrong space.
 - **Output:** an intent document with a specific problem, named user, and measurable outcome.
 
 ---
 
 ### 2. Diverge across candidates
 
-- **Agent does:** runs `explore-options` to generate candidate product shapes with distinct tradeoff profiles.
-- **You do:** watch candidates appear; if a candidate is obviously out-of-scope or repeats a prior approach, say so before the lens roster runs — it saves a review cycle.
-- **Output:** a set of candidate product shapes with distinct tradeoff profiles.
+Type `discovery-loop` and let the agent run `explore-options` to generate candidate product shapes with distinct tradeoff profiles.
+
+```text
+explore-options
+
+  Shape   Mechanic                      Riskiest assumption
+  A       Guided setup wizard           Users complete wizard without abandoning
+  B       API-first self-serve          Users tolerate high first-session cost
+  C       Community-driven templates    Template quality drives first activation
+  D       In-app explainer video        Passive exposure converts without action
+```
+
+- **Output:** a set of candidate product shapes with distinct tradeoff profiles — each with a named riskiest assumption.
 
 ---
 
 ### 3. Run the lens roster
 
-- **Reviewer does:** runs two discovery reviewers — threat and reliability — against each surviving candidate; each reads cold and returns findings; candidates that fail are eliminated.
-- **You do:** monitor the review output; if a candidate you want to keep is eliminated, read the finding — sometimes it rests on a false premise you can correct with one sentence.
-- **Output:** a filtered candidate set with review findings attached.
+The `discovery-lead` agent runs `discovery-threat-reviewer` and `discovery-reliability-reviewer` against each surviving candidate; each reads cold and returns findings.
+
+```text
+discovery-threat-reviewer
+
+  Concern  Shape A: wizard collects account data before trust is established
+  Blocker  Shape B: token stored at rest without encryption boundary named
+
+discovery-reliability-reviewer
+
+  Concern  Shape C: community template freshness has no defined staleness bound
+```
+
+- **Output:** a filtered candidate set with review findings attached; candidates with Blockers are eliminated.
 
 ---
 
 ### 4. Check mid-discovery
 
-- **Agent does:** surfaces the surviving candidates for a mid-course review.
-- **You do:** review which candidates remain and whether the field feels right; if only one candidate survives and it feels too easy, consider asking the agent to re-explore from a different angle.
-- **You decide:** confirm the surviving candidates at the mid-discovery check (G1.5), or direct a re-exploration — this is the last moment to expand the option space cheaply.
+The agent surfaces the surviving candidates for your mid-course review.
+
+```text
+discovery-loop [G1.5]
+
+  Candidate   Status       Note
+  Shape A     surviving    concern addressed — trust framing added
+  Shape C     surviving    staleness concern open — carried to convergence
+  Shape B     eliminated   token-at-rest blocker
+  Shape D     eliminated   no commitment signal detected
+
+Mid-discovery check — confirm candidates? ›
+```
+
+- **You decide:** G1.5 — confirm the surviving candidates or direct a re-exploration. This is the last cheap moment to expand the option space.
 - **Output:** a confirmed candidate field ready for convergence.
 
 ---
 
 ### 5. Converge on the candidate
 
-- **Agent does:** runs `de-risk-intent` to surface the riskiest assumption and design a prototype approach to test it; then runs `decompose-intent` to decompose the chosen direction into specs and briefs for the delivery loop.
-- **You do:** watch the assumption-test take shape; if the prototype approach is too expensive or won't actually test the assumption, redirect — a bad de-risk approach means an untested assumption at the brief's core.
-- **Output:** a de-risked candidate with decomposition into delivery briefs.
+The agent runs `de-risk-intent` to surface the riskiest assumption and design a test, then `decompose-intent` to break the winning shape into delivery briefs.
+
+```text
+de-risk-intent
+
+  Assumption   Users complete the wizard without abandoning at step 2.
+  Kill cond.   < 4 of 6 target users reach step 3 in a moderated prototype session.
+  Approach     validate-first — predeclare the line, then run sessions.
+  Hook         Conduct 6 moderated prototype sessions with target user profile.
+```
+
+- **Output:** a de-risked candidate with a predeclared kill condition and a named validation hook; then a decomposition into delivery briefs.
 
 ---
 
 ### 6. Reconcile and commit
 
-- **Agent does:** presents the full discovery sidecar — intent, assumption-test, validated candidate, and decomposition.
-- **You do:** read the full brief — all sections; G2 is "is this brief complete?" and G3 is "am I ready to build this?" — these are two distinct decisions.
-- **You decide:** ratify the reconciliation record at G2; commit the brief to the delivery loop at G3.
-- **Output:** a ratified decision brief handed to the delivery loop.
+The agent presents the full discovery sidecar — intent, assumption-test, validated candidate, and decomposition — for your final review.
+
+```text
+discovery-loop [G2]
+
+  Section          Status     Notes
+  intent           ratified   feature level, onboarding-activation
+  assumption-test  done       validate-first, 6 sessions, line predeclared
+  candidates       1 of 4     Shape A survived
+  decision-brief   ready      validation hook attached
+
+Reconcile? ›
+```
+
+- **You decide:** G2 — is the brief complete? Then G3 — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
+- **Output:** a ratified decision brief with a connected hypothesis and validation hooks — ready for the delivery loop.

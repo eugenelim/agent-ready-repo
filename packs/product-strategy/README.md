@@ -1,62 +1,103 @@
 # product-strategy
 
-The strategy seat upstream of product engineering and experience design. Installed to **user scope** so the skills travel across every workspace.
+The strategy seat upstream of every initiative — committed artifacts.
 
-## Three pillars
+---
 
-**Pillar 1 — Market & competitive strategy** (7 skills): canonical frameworks that turn a market situation into committed artifacts in `docs/product/shaping/`. The OKR cascade feeds strategy-gap entries directly into the PE pack's `frame-situation` shaping queue.
+## Start here
 
-| Skill | Framework | Artifact |
-|---|---|---|
-| `run-swot` | SWOT — Strengths, Weaknesses, Opportunities, Threats | `swot-analysis.md` |
-| `run-porters-five-forces` | Porter's Five Forces — Supplier Power, Buyer Power, New Entrants, Substitutes, Rivalry | `competitive-landscape.md` |
-| `run-pestle-analysis` | PESTLE — Political, Economic, Social, Technological, Legal, Environmental | `macro-environment.md` |
-| `run-bcg-matrix` | BCG Matrix — Stars, Cash Cows, Question Marks, Dogs | `portfolio-position.md` |
-| `run-okr-cascade` | OKR cascade — company → team → shaping-queue gaps | `okr-cascade.md` + `workspace.toml` entries |
-| `write-prfaq` | PRFAQ — press release + FAQ as altitude-0 forcing function | `prfaq.md` |
-| `synthesize-stakeholder-research` | Research synthesis — strategic narrative by theme across stakeholder groups | `stakeholder-synthesis.md` |
+Type `write-prfaq` and describe the product concept you want to pressure-test.
 
-**Pillar 2 — UX strategy** (1 skill): sets the experience vision, goals/measures, and plan before design begins.
+```text
+write-prfaq
 
-| Skill | Frameworks | Artifact |
-|---|---|---|
-| `define-ux-strategy` | NN/g three-layer model · Jaime Levy four tenets · Gothelf/Seiden OKR-linked UX framing | `ux-strategy.md` |
+  Headline:  [Company] ships workspace.toml — product engineers who
+             coordinate AI agent work across sessions.
 
-**Pillar 3 — Content strategy** (1 skill): the organizational/governance layer above per-surface content design.
+  Customer:  A solo engineer shipping a 3-person startup's backlog
+             with AI coding agents.
+  Problem:   Every session starts blind. The agent doesn't know
+             what was decided, what's blocked, or what ships next.
+  Solution:  workspace.toml — a version-controlled queue the agent
+             reads at session start. One grep, full context.
 
-| Skill | Framework | Artifact |
-|---|---|---|
-| `define-content-strategy` | Halvorson content strategy quad — Purpose + Process + Structure + Governance | `content-strategy.md` |
-
-## Pack chain position
-
-```
-product-strategy (this pack)
-        ↓                          ↓                      ↓
-product-engineering          experience-design        content-design skill
-(product-vision intent)  (journey → screen → services)  (experience-design)
+  draft  docs/product/shaping/prfaq.md
 ```
 
-`run-okr-cascade` → writes `{type = "strategy"}` gaps → `["ini-NNN".shaping_queue].backlog` in `workspace.toml` → PE pack's `frame-situation` reads them.
+On any session return, ask the agent what's in `docs/product/shaping/` — or continue directly with `run-swot`.
 
-## Install
+---
 
-Default scope is **user** — installed under `~/.claude/skills/` (or your adapter's equivalent) so the skills load in every workspace.
+## Entry points
 
-```bash
-# <catalogue> is your catalogue URI: a local clone path or a git+https://… URL.
-agentbundle install --pack product-strategy <catalogue>   # CLI route
+| Say this | What happens |
+|----------|--------------|
+| `write-prfaq` | Draft the press release + FAQ before the product exists — the altitude-0 forcing function |
+| `run-pestle-analysis` | Scan the macro environment across six lenses — Political, Economic, Social, Technological, Legal, Environmental |
+| `run-porters-five-forces` | Map the competitive landscape — supplier and buyer power, new entrants, substitutes, rivalry |
+| `run-bcg-matrix` | Position each initiative in the portfolio matrix — Stars, Cash Cows, Question Marks, Dogs |
+| `run-swot` | Synthesize the situation picture — Strengths, Weaknesses, Opportunities, Threats |
+| `run-okr-cascade` | Cascade company OKRs to team level, identify gaps, and route them to the PE shaping queue |
+| `synthesize-stakeholder-research` | Synthesize desk-research outputs into a committed strategic narrative by theme |
+| `define-ux-strategy` | Set the experience vision, goals with measures, and plan — upstream of journey-mapping |
+| `define-content-strategy` | Set the organizational and governance layer for content — upstream of content-design |
+
+---
+
+## How a session runs
+
+```text
+run-swot
+
+  Quadrant       Items
+  ─────────────  ──────────────────────────────────────────────────
+  Strengths      Developer-first positioning; fast iteration cycle
+  Weaknesses     Low brand awareness outside early-adopter segment
+  Opportunities  AI-native distribution; enterprise channel open
+  Threats        Funded competitor entering adjacent market
+
+  Approve the situation picture? ›
 ```
 
-Or via your adapter's plugin marketplace UI.
+```text
+write-prfaq
 
-## What is NOT in this pack
+  Headline:  [Company] ships workspace.toml — product engineers who
+             coordinate AI agent work across sessions.
 
-- **Growth strategy** — AARRR, product-led growth, PMF testing; deferred to a follow-on `growth` pack (RFC-0063 OQ1)
-- **Primary research production** — no interview guides, discussion scripts, or survey templates; `synthesize-stakeholder-research` consumes desk-research pack outputs
-- **Per-surface content design** — that is the `content-design` skill in the experience-design pack; this pack covers the organizational/governance layer only
-- **Analytics or CRO tooling** — measurement and experimentation belong downstream of strategy
+  Customer:  A solo engineer shipping a 3-person startup's backlog
+             with AI coding agents.
+  Problem:   Every session starts blind. The agent doesn't know
+             what was decided, what's blocked, or what ships next.
+  Solution:  workspace.toml — a version-controlled queue the agent
+             reads at session start. One grep, full context.
 
-## Artifact output path
+  Approve the PRFAQ? ›
+```
 
-All artifacts commit to `docs/product/shaping/` by default. Configure the base path via the `[strategy]` section in your repo's (or user-profile) `agentbundle-layout.toml` (adopter-owned; never shipped with this pack — see each skill's `references/agentbundle-layout.md`).
+```text
+run-okr-cascade
+
+  Gap slug              KR                        Priority
+  ──────────────────    ──────────────────────    ──────────
+  retention-cohort      Retain 60% at week 4      High
+  activation-depth      3 features in 14 days     High
+  channel-enterprise    ARR from enterprise        Medium
+
+  3 gaps → workspace.toml  [ini-001.shaping_queue].backlog
+```
+
+The gaps appear in `workspace-status` for product engineers to pick up via `frame-situation`.
+
+---
+
+## Cross-pack
+
+**Downstream — `product-engineering`:** `run-okr-cascade` writes `{type = "strategy"}` gap entries to `workspace.toml`. The PE pack's `frame-situation` reads them from the shaping queue.
+
+**Downstream — `experience-design`:** `define-ux-strategy` produces `ux-strategy.md` and `define-content-strategy` produces `content-strategy.md`. Both are strategic anchors the experience-design pack's `journey-mapping` and `content-design` read from.
+
+---
+
+→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, pillars, invariants, and decision log.  
+→ **Go deeper:** the [`product-strategy` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-strategy/).

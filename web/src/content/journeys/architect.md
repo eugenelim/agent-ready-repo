@@ -1,7 +1,7 @@
 ---
 pack: architect
 scope: user
-tagline: "Design docs, diagrams, and reviews — workspace-agnostic."
+tagline: "Concept to reviewed architecture doc — any workspace."
 prerequisitePacks: []
 contract:
   useItWhen: "You need a technical design doc, architecture diagram, or design critique for your codebase."
@@ -10,7 +10,7 @@ contract:
   yourDecisions:
     - "Approve the Stage 0 concept"
     - "Review the design and independent critique"
-whatChanges: "After installing architect, every architecture artifact gets a method: `architect-design` produces Google-style design docs grounded against your repo's `reference.md`, `architect-diagram` draws the system in Mermaid (C4, sequence, state, ER, deployment), and `architect-review` critiques any design artifact with a severity-tagged rubric. The forked-context `design-reviewer` subagent gives every design an independent read — a reviewer that has not seen the authoring session."
+whatChanges: "After installing architect, every design decision gets a method: `architect-design` shapes a Stage 0 concept before any full write-up begins, writes the complete Google-style doc, and converges it against review; `architect-diagram` draws any system in Mermaid (C4, sequence, state, ER, or flowchart); `architect-review` critiques any design artifact with severity-tagged findings. The `design-reviewer` subagent reads finished artifacts cold — no authoring context — so the review cannot mark its own homework. You decide at two gates: the Stage 0 concept before the full doc is written, and the independent review findings before the doc is shared or acted on."
 skills:
   - name: architect-design
     description: "Authors a Google-style technical design doc: Stage 0 concept → Stage 1 full write-up → Stage 2 review-ready artifact, grounded against the repo's reference architecture."
@@ -59,34 +59,85 @@ relatedJourneys:
   - experience-design
 ---
 
-### 1. Ground the design in the reference architecture
+| Say this | What happens |
+|----------|-------------|
+| `architect-design` | Frame a concept, write a Google-style design doc, and converge it against review |
+| `architect-diagram` | Draw a Mermaid diagram — C4, sequence, state, ER, or flowchart |
+| `architect-review` | Critique a design doc or diagram with severity-tagged findings |
 
-- **Agent does:** checks for a `reference.md` in the repo — the golden-path file that describes the stack, patterns, and constraints the architecture skills design against — and offers to create it if one doesn't exist.
-- **You do:** confirm the reference is accurate for this task; update it before the design session starts if it is stale or missing a key constraint.
-- **Output:** a current, grounded `reference.md` the design skills can rely on.
+---
+
+### 1. Ground in the reference architecture
+
+Type `architect-design` — the skill checks what architecture context exists in the repo and states what it found before framing begins.
+
+```text
+architect-design
+
+  Knowledge surface: docs/architecture/reference.md
+
+  Stack       Node.js 20 · PostgreSQL 15 · S3
+  Patterns    CQRS; event-sourced ledger for financial data
+  Concern     Multi-tenancy, tenant data isolation
+```
+
+- **Output:** the architecture context the design will be grounded against, or an offer to create `reference.md` if none exists.
 
 ---
 
 ### 2. Frame the Stage 0 concept
 
-- **You provide:** a description of the design problem.
-- **Agent does:** runs `architect-design` in Stage 0 mode, producing a half-page concept that frames the problem, names constraints, and proposes a candidate approach with at least one alternative.
-- **You decide:** approve the concept at the G-concept gate, or redirect before the full write-up begins; if the alternatives section feels thin, ask for one more before approving.
-- **Output:** an approved Stage 0 concept.
+Type `architect-design [describe the problem]` — the agent shapes a ½-page concept covering the problem, constraints, and candidate approaches, then stops for your approval before the full doc is written.
+
+```text
+  concept  docs/design/multi-tenant-billing/concept.md
+
+  Problem      Billing engine for a multi-tenant SaaS.
+  Constraint   No shared state between tenants.
+  Candidates   Event-sourced ledger; relational schema + row-level security
+
+Approve this shape? ›
+```
+
+- **You decide:** approve the concept or redirect — a one-sentence redirect here saves a full write-up cycle.
+- **Output:** `docs/design/multi-tenant-billing/concept.md` — the approved Stage 0 concept.
 
 ---
 
 ### 3. Write the full design document
 
-- **Agent does:** writes the full Stage 1 design document — problem statement, alternatives with rejection reasoning, proposed design, open questions, and success criteria — grounded against `reference.md` throughout.
-- **You do:** watch the document take shape; if the alternatives section omits an approach the team has already discussed and ruled out, mention it; note any scope drift from the approved concept.
-- **Output:** a full Stage 1 design document ready for independent review.
+The agent writes the complete Google-style doc — TL;DR, Context, Goals, Proposal, Alternatives, Risks, Rollout, Open Questions — self-checked against the design-doc rubric before you see it.
+
+```text
+  docs/design/multi-tenant-billing/design.md
+
+  ## TL;DR
+
+  Introduce a dedicated billing service backed by an event-sourced ledger.
+  Tenant isolation is enforced at ingestion by partition key, not at query
+  time by row-level security — a constraint we cannot control in
+  third-party integrations.
+```
+
+- **Output:** `docs/design/multi-tenant-billing/design.md` — the full design doc, rubric-clean and ready for independent review.
 
 ---
 
 ### 4. Review independently
 
-- **Reviewer does:** reads the design cold in a forked context (`design-reviewer`) — a reviewer that has not seen the authoring session — and returns findings grouped by severity: Blockers, Concerns, Nits.
-- **You do:** read the findings as they land; give a one-sentence steer on any Blocker you disagree with.
-- **You decide:** for each Blocker, fix it or provide a one-sentence reason it doesn't apply; apply or defer Concerns and Nits with a reason.
-- **Output:** a design doc with a clean independent review, or concerns surfaced clearly to you.
+Type `architect-review` — the forked-context `design-reviewer` subagent reads the artifact cold with no authoring memory and returns severity-tagged findings.
+
+```text
+architect-review docs/design/multi-tenant-billing/design.md
+
+  Verdict: SHIP WITH CHANGES
+
+  🟥  Proposal §4 — trust boundary between billing service and payment
+      processor is unlabeled; required before the integration contract
+      can be implemented.
+  🟧  Alternatives §2 — relational-plus-RLS rejection reason is thin.
+  ⚪  TL;DR sentence 2 could be tightened.
+```
+
+- **You decide:** for each Blocker, apply the fix or give a one-sentence reason it doesn't apply; apply or defer Concerns and Nits with a reason.
+- **Output:** a review-clean design doc ready to share with stakeholders or hand to the build loop.
