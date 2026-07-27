@@ -67,8 +67,12 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           git fetch --quiet origin main
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::tag ${GITHUB_REF_NAME} points to ${GITHUB_SHA} which is not an ancestor of origin/main; refusing to publish (spec §Never do: publish from branches other than main)" >&2
+          # Use `git branch -r --contains` rather than `merge-base --is-ancestor`:
+          # the ancestor check silently returns 0 for diverged histories with no
+          # common ancestor, bypassing the guard. The branch-contains query is
+          # direct: it asks which remote refs include this exact commit.
+          if ! git branch -r --contains "$GITHUB_SHA" 2>/dev/null | grep -qE '(^|\s)origin/main($|\s)'; then
+            echo "::error::tag ${GITHUB_REF_NAME} points to ${GITHUB_SHA}, which is not on origin/main; refusing to publish. Tag only from a commit that is on main." >&2
             exit 1
           fi
 
