@@ -25,6 +25,14 @@ On any session return, type `desk-research-project-status` to orient to an activ
 
 ---
 
+## Two modes
+
+**Ad-hoc** — one question, one session. Type `desk-research` and pick a depth (quick through deep). The agent maps sources, dispatches retrieval, and returns a confidence-graded synthesis in minutes. Use this for a lookup, a fact-check, or a brief.
+
+**Project mode** — a sustained investigation that spans days or accumulates a corpus. Start with `desk-research-project-start`. The project skills track a working hypothesis across sessions, let you checkpoint coverage (`desk-research-project-check`), compress the corpus into a digest, and end in a synthesis brief graded by evidence quality. Use this when a single session would underserve the question.
+
+---
+
 ## Entry points
 
 | Say this | What happens |
