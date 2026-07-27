@@ -3,16 +3,55 @@
 Context for working inside any pack directory. **Max 150 lines** (AGENTS.md hygiene gate enforces it).
 See `AGENTS.local.md` for broader self-host context.
 
-## Pack anatomy
+## Pack layout
 
 | Path | Purpose |
 |------|---------|
-| `pack.toml` | Pack metadata — version, description, categories, keywords |
+| `pack.toml` | Pack metadata — version, description, adapter-contract, categories |
 | `.claude-plugin/plugin.json` | Claude plugin manifest source (must match `pack.toml` version, stay schema-valid) |
-| `.apm/skills/<name>/SKILL.md` | Skill source of truth — projected per adapter by `make build-self` |
-| `.apm/agents/<name>.md` | Agent source of truth — projected per adapter |
-| `.apm/commands/<name>.md` and `.apm/hooks/` | Command and hook sources — projected per adapter |
 | `seeds/` | Adopter scaffold templates (brownfield install) |
+| `docs/` | Concept anchor and pack guides — never projected or installed; travels in Artifactory packages |
+| `.apm/skills/` | Skill sources → projected per adapter |
+| `.apm/agents/` | Agent sources → projected per adapter |
+| `.apm/hooks/` | Hook-body sources → projected per adapter |
+| `.apm/hook-wiring/` | Hook-wiring sources → projected per adapter |
+| `.apm/commands/` | Command sources → projected per adapter |
+| `.apm/kiro-ide-hooks/` | Kiro IDE hook sources → projected per adapter |
+| `.apm/shared-libs/` | Shared library sources → projected per adapter |
+| `.apm/adapter-root-bins/` | Adapter root binary sources → projected per adapter |
+| `.apm/user-libs/` | User library sources → projected per adapter |
+
+## pack.toml schema map
+
+| Table | Required fields | Notable optional fields |
+|-------|----------------|------------------------|
+| `[pack]` | `name`, `version`, `description`, `adapter-contract` | `display-name`, `categories`, `keywords`, `maintainers`, `links`, `readme` |
+| `[pack.recipes.*]` | `description` | `steps`, `adapter` |
+| `[pack.dependencies]` | — | Pack dependency declarations |
+| `[pack.seeds]` | — | Seed path configuration |
+| `[pack.layout]` | — | Per-scope layout overrides |
+| `[pack.first-value]` | — | First-value install metadata |
+| `[pack.adaptation]` | — | Adaptation inference rules |
+
+## Pack design model
+
+intent → user journey → stage → capability → output
+
+## Primary workflow (any catalogue)
+
+Run after any pack change. If `agentbundle` is not installed: `pip install agentbundle`.
+
+```bash
+agentbundle catalogue lint --root .
+agentbundle catalogue verify --root .
+agentbundle catalogue self-host --root . --write
+```
+
+Home-repository additional gate (not required for external catalogues):
+
+```bash
+make build-check   # agentbundle catalogue verify + repo governance + SAST
+```
 
 ## Version bump rule
 
@@ -20,9 +59,9 @@ Every **non-cosmetic** change to pack content requires a version bump in both:
 1. `pack.toml` → `[pack] version`
 2. `.claude-plugin/plugin.json` → `"version"`
 
-Which increment: **patch** for changed bodies/directives/conventions; **minor** for new primitives; **major** for removals. Never ride an unreleased version from another in-flight PR — two features never share one version number.
+Which increment: **patch** for changed bodies/directives/conventions; **minor** for new primitives; **major** for removals. Never ride an unreleased version from another in-flight PR.
 
-After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), then add a changelog entry in `docs/product/changelog.md`.
+After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), then add a `## [pack-name][version] — YYYY-MM-DD` section in `docs/product/changelog.md`.
 
 ## Self-hosting projection
 
@@ -32,10 +71,10 @@ All `.apm/` primitives are the **source of truth**. `make build-self` projects t
 
 Use `FORCE=1 make build-self` when the working tree is intentionally dirty. Direct equivalent:
 ```bash
-python3 tools/build_gate_chain.py build-self --force --packs-dir packs
+agentbundle catalogue self-host --root . --write --force
 ```
 
-**Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`, `pack.toml`), run `build-self --force` AFTER all edits — not between them. Build-self can silently revert edits made before it ran. Safe pattern: all edits → `FORCE=1 make build-self` → `git status` → `make build-check` → commit.
+**Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`, `pack.toml`), run `build-self --force` AFTER all edits — not between them. Safe pattern: all edits → `FORCE=1 make build-self` → `git status` → `make build-check` → commit.
 
 **Vendored copy:** `packs/credential-brokers/.apm/user-libs/credbroker/` is byte-synced from `packages/credbroker/credbroker/`. Edit the `packages/` source; never the `.apm/user-libs/` copy.
 
@@ -51,7 +90,7 @@ Each pack's `.claude-plugin/plugin.json` is validated against `docs/contracts/pl
 
 ## Authoring or editing a skill
 
-Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `python3 tools/lint-skill-spec.py` to confirm [agentskills.io spec](https://agentskills.io/specification) compliance.
+Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `agentbundle catalogue lint --root . --deep` to confirm [agentskills.io spec](https://agentskills.io/specification) compliance (requires `pip install 'agentbundle[lint]'` for the full deep pass; shallow structural checks run without it).
 
 **Spec compliance (enforced by linter):**
 - Each skill is a **self-contained folder** — `SKILL.md` + optional `scripts/`, `references/`, `assets/`, `evals/`. Never import from another skill's folder or assume files outside its directory.
@@ -60,10 +99,12 @@ Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `pytho
 - **Path rules in body:** self-references use skill-relative paths (`scripts/foo.py`); cross-skill references use the skill name only — never `.claude/skills/<...>/` or `packs/.../skills/<...>/` prefixes.
 
 **Craft rules (not linted — hold in head):**
-- **`description` is the trigger surface** — body must not restate when to invoke.
-- **Body answers what to do once invoked** — preconditions, judgment, procedure. Keep it terse.
-- **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `docs/guides/core/reference/output-rendering.md`.
-- **No internal-governance citations** — no RFC/ADR numbers or internal spec paths in any `.apm/**` content.
+- **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `agentbundle catalogue lint --deep` enforces this).
+- **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `guides/core/reference/output-rendering.md`.
+
+## Personal information
+
+**Never include personal information in pack content.** This means no real names, email addresses, usernames, account IDs, phone numbers, or any other PII in `.apm/**`, `seeds/**`, `pack.toml`, or any other in-tree file. Use placeholder values (e.g. `example@example.com`, `<your-org>`) in templates and example config. The CI credential scan (`Gate C`) blocks real bearer tokens; the same discipline applies to all personal data.
 
 ## Eval coverage
 
@@ -73,4 +114,37 @@ A non-cosmetic pack update must also update the pack's eval harness:
 - **Tier-4 LLM-judge rubric** — `evals/evals.json` for judgment/authoring skills.
 - **Tier-B-lite** — additionally an `expect` block + `evals/files/` fixture for deterministic skills.
 
-Verify locally with `python tools/run-pack-evals.py --pack <pack> --mode judge --judge-adapter claude-code --artifacts <file>`.
+Verify locally with `agentbundle pack evals run --pack <pack> --mode judge --judge-adapter claude-code --artifacts <file> --catalogue-root .`.
+
+## Agents project to multiple adapters
+
+The `agent` primitive projects to claude-code, kiro, and codex; copilot addable. `AGENTS.md` is **Manual** — `build-self` won't regenerate it; edit both `packs/core/seeds/AGENTS.md` and the working-tree file directly.
+
+## Shipped pack content carries no internal-governance citations
+
+When authoring anything under `.apm/**` (skills, agents, commands, hooks, `scripts/`, `references/`, `shared-libs/`, `adapter-root-bins/`), never cite this catalogue's own governance. The four types to keep out:
+
+1. **RFC numbers** — `RFC-0001`…`RFC-00NN`.
+2. **ADR numbers** — `ADR-0001`…`ADR-00NN`.
+3. **Spec/plan citations** — `spec § AC15`, `plan §T5 lines 357-362`, `docs/specs/<feature>.md § "Outputs"`.
+4. **Internal doc paths** — `docs/specs/…`, `docs/adr/…`, `docs/rfc/…`, `.github/workflows/…`.
+
+Drop the citation, keep the rule: *"Markers are repo-only per RFC-0004"* → *"Markers are repo-only"*.
+
+## Windows-safe Python scripts
+
+Any script under `.apm/` that prints to stdout or stderr must include the UTF-8 reconfigure guard immediately after `import sys`, before any `print()` call:
+
+```python
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+```
+Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic loss.
+Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252.
+
+## Skill reference files
+
+No shared `references/` directory exists. References are copied per-skill; each skill stands alone.
+
+- **Intra-pack**: source copy says `> Note: this reference is intentionally duplicated into \`<skill>\`'s \`references/<file>\`.`; receiving copy says `duplicated from`. Copies stay byte-identical except the note wording.
+- **Cross-pack** (e.g. `digital-experience-contract.md`): file carries `schema-version:` in YAML frontmatter; all copies byte-identical. When updating, grep for the filename and update every copy in the same commit.

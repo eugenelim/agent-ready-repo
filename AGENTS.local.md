@@ -1,9 +1,12 @@
 # AGENTS.local.md
 
 Repo-local addendum for maintainers of this checkout. Shared agent instructions belong in
-`packs/core/seeds/AGENTS.md` and are projected to `AGENTS.md`. Pack-specific guidance
-(version bumps, projection, skill authoring, eval coverage, plugin format) lives in
-[`packs/AGENTS.md`](packs/AGENTS.md).
+`packs/core/seeds/AGENTS.md` and are projected to `AGENTS.md`.
+
+- **Pack and skill development** (version bumps, projection, skill authoring, eval coverage, plugin format):
+  [`packs/AGENTS.md`](packs/AGENTS.md).
+- **Python package development** (install-test rules, Windows compatibility, release coupling):
+  [`packages/AGENTS.md`](packages/AGENTS.md).
 
 ## Design against the adopter's projected state, not this repo's internal state
 
