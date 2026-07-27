@@ -248,11 +248,11 @@ queue   = [
 #
 # Introduces the Digital Experience Contract as the shared cross-pack primitive.
 # Closes all phantom handoffs (design-system-foundations, copy-direction
-# boundary, voice-and-microcopy). Requires the following pre-implementation
+# boundary, ux-writing). Requires the following pre-implementation
 # decisions to be ratified in RFC-0071 before any M1+ spec starts:
 #   1. Contract storage: pack-local references/digital-experience-contract.md
 #      with deterministic drift check (preserves independent installability).
-#   2. voice-and-microcopy stays in product-engineering; frontmatter boundary
+#   2. ux-writing stays in product-engineering; frontmatter boundary
 #      wording updated in both packs.
 #   3. design-system-foundations as new XD skill (distinct job: apply the
 #      token taxonomy; distinct from design-system which derives the method).
@@ -312,28 +312,24 @@ queue   = [
   # Problem: PE shaping flow produces a complete brief but doesn't require a
   #   thin end-to-end slice, first-success operationalization, or post-launch
   #   learning contract. Gate language uses internal IDs. Options divergence is
-  #   a fixed-number ritual, not a decision-exposing minimum. voice-and-microcopy
-  #   rename to ux-writing (RFC-0066 D7, deferred) is included here since this
-  #   spec touches all PE skill boundary labels.
+  #   a fixed-number ritual, not a decision-exposing minimum.
   # Deliver: 19-field shaping output structure including thin-slice required
   #   field and post-launch learning contract; thin-slice requirement in
   #   place-bet (one user can begin a real task, reach a meaningful result,
   #   encounter/recover from one material failure, and produce instrumentation);
   #   evidence ladder (observed/supported/inferred/assumed/unknown); risk-selected
   #   specialist lenses (product/experience/architecture/safety default + conditional
-  #   additions); plain-English gate language; voice-and-microcopy → ux-writing
-  #   rename per ADR-0038 alias-free precedent (grep-verified count required before
-  #   rename ships — mirrors RFC-0066 D7 verification requirement); updated evals
-  #   with weak fixtures (five fake alternatives, no first success, component-layer
-  #   slice, bet with no instrumentation, handoff saying "make it intuitive").
+  #   additions); plain-English gate language; updated evals with weak fixtures
+  #   (five fake alternatives, no first success, component-layer slice, bet with
+  #   no instrumentation, handoff saying "make it intuitive").
   #   Site/guide: update product-engineering pack page (web/ + site/) — jobs-first;
   #   update PE journey page (thin-slice + learning-contract steps visible); update
   #   place-bet how-to guide to show what a good thin-slice definition looks like;
   #   add how-to guide for writing a post-launch learning contract.
   # Done: PE output always includes first-success + thin slice + learning contract;
-  #   gate language is human-readable; voice-and-microcopy → ux-writing complete
-  #   in PE pack + XD pack cross-references; weak fixtures fail; pack page + journey
+  #   gate language is human-readable; weak fixtures fail; pack page + journey
   #   + relevant how-to guides updated.
+  # Note: ux-writing rename shipped separately in spec/ux-writing-rename.
   {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
 
   # XD prerequisite · copy-direction (fulfills RFC-0062 — Accepted 2026-07-23)

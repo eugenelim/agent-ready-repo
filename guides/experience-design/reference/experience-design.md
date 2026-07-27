@@ -44,7 +44,7 @@ plus **one per-screen brief per screen** (shared-contract / per-screen-spec
 split). Ends in a cross-brief consistency pass and a **non-droppable steel
 thread** (prototype → text-only, never nothing). Can emit an optional design-tool
 handover (instructions, never pixels). **Consumed by** the craft skills,
-`voice-and-microcopy`, and `experience-reviewer`.
+`ux-writing`, and `experience-reviewer`.
 
 **Do NOT use** to map the journey (use `journey-mapping`), to design
 in-screen behavior (use `interaction-design`), or to blueprint services (use
