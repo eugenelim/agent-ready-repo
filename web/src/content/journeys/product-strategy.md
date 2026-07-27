@@ -1,7 +1,7 @@
 ---
 pack: product-strategy
 scope: user
-tagline: "Market, UX, and content strategy — committed artifacts upstream of every initiative."
+tagline: "Strategy seat upstream of every initiative — committed artifacts."
 prerequisitePacks:
   - product-engineering
 contract:
@@ -12,7 +12,7 @@ contract:
     - "Approve the market situation picture"
     - "Approve the PRFAQ"
     - "Approve the OKR cascade and gap routing"
-whatChanges: "After installing product-strategy, the altitude-0 work above every initiative has a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market context (PESTLE, Porter's Five Forces), portfolio position (BCG Matrix, SWOT), altitude-0 forcing function (PRFAQ), OKR cascade with direct routing to the PE pack's shaping queue, and the experience and content direction that the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` where downstream packs — product-engineering and experience-design (including its content-design skill) — can reference it by path. Strategy skills fill the Strategy section of the Digital Experience Contract — the shared schema that connects strategy outcomes to experience design and frontend implementation."
+whatChanges: "After installing product-strategy, every initiative starts with a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market situation (PESTLE, Porter's, BCG, SWOT), altitude-0 direction (PRFAQ), OKR routing to the PE shaping queue, and the UX and content strategy anchors the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` — the shared path downstream packs reference by name. The OKR cascade writes directly to `workspace.toml`, where product engineers pick up strategy-driven shaping items via `workspace-status`."
 skills:
   - name: synthesize-stakeholder-research
     description: "Converts desk-research project outputs into a strategic narrative by theme — committed as stakeholder-synthesis.md. Surfaces a 'run desk-research project first' prompt if no research inputs are found."
@@ -93,36 +93,104 @@ relatedJourneys:
   - core
 ---
 
-### 1. Build and gate the market situation
-
-- **You provide:** the market and organizational context — company OKRs, any prior desk-research project outputs, and the scope of the initiative or strategic question to address.
-- **Agent does:** runs synthesize-stakeholder-research if prior desk-research outputs exist; then runs run-pestle-analysis, run-porters-five-forces, and run-bcg-matrix; synthesizes all inputs into a committed SWOT as the capstone situation picture; commits each artifact to docs/product/shaping/.
-- **You do:** before moving forward, confirm the SWOT reads as a synthesis of the prior analyses — redirect if it introduces claims you can't trace back to PESTLE, Porter's, or BCG.
-- **You decide:** approve the market situation picture.
-- **Output:** committed PESTLE, Porter's Five Forces, BCG matrix, and SWOT — the grounded situation picture all downstream artifacts build on.
-
----
-
-### 2. Commit the altitude-0 direction
-
-- **Agent does:** runs write-prfaq to draft the press release + FAQ — naming the specific person, the measurable benefit, and the hardest objection a skeptical stakeholder would raise; commits to docs/product/shaping/prfaq.md.
-- **You do:** read the PRFAQ; if the press release doesn't name a specific person or deliver a measurable benefit, or doesn't connect to the approved situation picture, redirect before the cascade and experience direction are set against an unspecific vision.
-- **You decide:** approve the PRFAQ.
-- **Output:** committed prfaq.md — the altitude-0 forcing function that initiative briefs trace back to as their strategic rationale.
+| Say this | What happens |
+|----------|--------------|
+| `run-pestle-analysis` | Scan the macro environment: Political, Economic, Social, Technological, Legal, Environmental |
+| `run-porters-five-forces` | Map competitive forces: supplier/buyer power, new entrants, substitutes, rivalry |
+| `run-bcg-matrix` | Position each initiative in the portfolio: Stars, Cash Cows, Question Marks, Dogs |
+| `run-swot` | Synthesize the situation picture: Strengths, Weaknesses, Opportunities, Threats |
+| `run-okr-cascade` | Cascade OKRs, identify gaps, and route them to the PE shaping queue |
+| `write-prfaq` | Draft the press release + FAQ before the product exists |
+| `synthesize-stakeholder-research` | Synthesize desk-research outputs into a strategic narrative by theme |
+| `define-ux-strategy` | Set the experience vision, goals, and plan — upstream of journey-mapping |
+| `define-content-strategy` | Set the content governance layer — upstream of content-design |
 
 ---
 
-### 3. Cascade strategy gaps to the shaping queue
+### 1. Analyze the market situation
 
-- **Agent does:** runs run-okr-cascade to derive team-level OKRs from company targets, identify gaps between current state and each target, and prepare strategy-type entries for workspace.toml; each gap becomes a {type = "strategy"} entry ranked by OKR weight.
-- **You do:** review the gap list; confirm each gap reflects an actual gap (not a feature the team wants regardless of OKRs), is ranked by OKR weight, and is specific enough for frame-situation to scope into a shaping brief without re-scoping from scratch.
-- **You decide:** approve the OKR cascade and gap routing.
-- **Output:** strategy-type gap entries written to workspace.toml — signaling strategy-driven shaping items to product engineers via workspace-status.
+Run the market analysis sequence — `run-pestle-analysis` (macro environment) → `run-porters-five-forces` (competitive landscape) → `run-bcg-matrix` (portfolio position) — then `run-swot` to synthesize all three into the capstone situation picture.
+
+```text
+run-swot
+
+  Quadrant       Items
+  ─────────────  ──────────────────────────────────────────────────
+  Strengths      Developer-first positioning; fast iteration cycle
+  Weaknesses     Low brand awareness outside early-adopter segment
+  Opportunities  AI-native distribution; enterprise channel open
+  Threats        Funded competitor entering adjacent market
+
+  Approve the situation picture? ›
+```
+
+- **You decide:** approve the SWOT before the PRFAQ and OKR cascade build on it — a vague situation picture means downstream artifacts build on ungrounded assumptions.
+- **Output:** `docs/product/shaping/swot-analysis.md` — the capstone situation picture built from `macro-environment.md`, `competitive-landscape.md`, and `portfolio-position.md`.
+
+---
+
+### 2. Commit altitude-0 direction
+
+Type `write-prfaq` and describe the product concept; the agent drafts the press release and FAQ, naming the specific customer, the measurable benefit, and the hardest objection a skeptical stakeholder would raise.
+
+```text
+write-prfaq
+
+  Headline:  [Company] ships workspace.toml — product engineers who
+             coordinate AI agent work across sessions.
+
+  Customer:  A solo engineer shipping a 3-person startup's backlog
+             with AI coding agents.
+  Problem:   Every session starts blind. The agent doesn't know
+             what was decided, what's blocked, or what ships next.
+  Solution:  workspace.toml — a version-controlled queue the agent
+             reads at session start. One grep, full context.
+
+  Approve the PRFAQ? ›
+```
+
+- **You decide:** approve the PRFAQ — if the press release doesn't name a specific person or deliver a measurable benefit, redirect before the cascade sets gaps against an underspecified vision.
+- **Output:** `docs/product/shaping/prfaq.md` — the altitude-0 forcing function initiative briefs trace back to.
+
+---
+
+### 3. Cascade OKRs to the shaping queue
+
+Type `run-okr-cascade`; the agent derives team-level OKRs from company targets, identifies gaps between current state and each target, and prepares strategy-type entries for `workspace.toml`.
+
+```text
+run-okr-cascade
+
+  Gap slug              KR                        Priority
+  ──────────────────    ──────────────────────    ──────────
+  retention-cohort      Retain 60% at week 4      High
+  activation-depth      3 features in 14 days     High
+  channel-enterprise    ARR from enterprise        Medium
+
+  Approve and write to workspace.toml? ›
+```
+
+- **You decide:** approve the gap list — confirm each gap reflects an actual OKR delta, is ranked by OKR weight, and is specific enough for `frame-situation` to scope without re-scoping from scratch.
+- **Output:** `docs/product/shaping/okr-cascade.md` and strategy-type entries in `workspace.toml` — gaps product engineers pick up from `workspace-status`.
 
 ---
 
 ### 4. Set experience and content direction
 
-- **Agent does:** runs define-ux-strategy to produce a committed ux-strategy.md — experience vision, goals with measures, and plan, grounded in the approved market situation and PRFAQ; runs define-content-strategy to produce a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance).
-- **You do:** review both artifacts before sharing with design and content teams; confirm ux-strategy.md connects to the approved PRFAQ; confirm content-strategy.md names specific decisions — channel priority, ownership model, update cadence — not aspirational intent.
-- **Output:** committed ux-strategy.md and content-strategy.md — the anchors the experience-design pack reads from when journey-mapping and content-design run.
+Type `define-ux-strategy` to commit the experience vision, goals with measures, and plan; type `define-content-strategy` to commit the organizational and governance layer for content.
+
+```text
+define-ux-strategy
+
+  Vision:  Reduce session-start friction for engineers who run AI
+           coding agents daily — every agent reads context in under
+           10 seconds.
+
+  Goals:
+    KR-1   Task-completion rate > 80% without re-scoping
+    KR-2   Session-start orient time < 10 s (p75)
+
+  committed  docs/product/shaping/ux-strategy.md
+```
+
+- **Output:** `docs/product/shaping/ux-strategy.md` and `docs/product/shaping/content-strategy.md` — the anchors the experience-design pack reads from when `journey-mapping` and `content-design` run.

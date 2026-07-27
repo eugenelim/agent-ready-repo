@@ -1,7 +1,7 @@
 ---
 pack: governance-extras
 scope: repo
-tagline: "Decision trail — RFCs, ADRs, and conventions for long-lived repos."
+tagline: "decisions committed, proposals structured, conventions tracked."
 prerequisitePacks: []
 contract:
   useItWhen: "A cross-cutting change, architectural decision, or working-convention update needs a structured paper trail that survives personnel changes."
@@ -11,7 +11,7 @@ contract:
     - "Review the RFC draft before circulation"
     - "Accept, reject, or defer the RFC"
     - "Merge the ADR"
-whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything, architectural decisions are recorded in ADRs with critique tracks, and CONVENTIONS.md evolves through tracked updates. Every significant 'why did we choose this?' question has an answer that survives personnel changes."
+whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
     description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives — the front door for changes that affect more than one person or system."
@@ -75,27 +75,82 @@ relatedJourneys:
   - core
 ---
 
+| Say this               | What happens                                            |
+|------------------------|---------------------------------------------------------|
+| `rfc-status`           | Orient — RFC landscape by status and findings count     |
+| `new-rfc`              | Propose a cross-cutting change through a structured RFC |
+| `new-adr`              | Record an architectural decision with critique tracks   |
+| `update-conventions`   | Evolve CONVENTIONS.md through tracked RFC review        |
+
+---
+
 ### 1. Draft the RFC
 
-- **You provide:** the cross-cutting change or problem to address, and any known stakeholders or alternatives.
-- **Agent does:** activates `new-rfc`, drafts the problem statement, and structures the proposer and objector perspectives.
-- **You do:** read the RFC draft; the most common error is confusing the solution with the problem — the RFC should name what's broken or missing; if the draft leads with the solution, redirect to reframe around the underlying need.
-- **You decide:** review the RFC draft at G-draft before circulating to stakeholders.
-- **Output:** a circulated RFC draft with a clear problem statement and genuine adversarial perspectives.
+Type `new-rfc` and describe the change you want to propose — the agent structures the proposal, models the proposer and objector perspectives, and previews the draft before writing anything.
+
+```text
+new-rfc [adopt trunk-based development]
+
+  identifier   RFC-0043
+  title        Trunk-based development over feature branches
+  status       Draft
+  target       docs/rfc/0043-trunk-based-development.md
+
+  Proposer     Reduces integration latency; CI catches regressions fast
+  Objector     Long-lived branches give teams isolation; trunk conflicts are costly
+
+Approve? ›
+```
+
+- **You decide:** review the RFC draft at G-draft before circulating — the most common error is naming the solution in the problem statement; redirect to reframe around the underlying need.
+- **Output:** `docs/rfc/0043-trunk-based-development.md` — a circulated RFC draft with a clear problem statement and genuine adversarial perspectives.
 
 ---
 
 ### 2. Manage the comment period
 
-- **Agent does:** documents each objection and drafts responses, keeping the RFC's objector section updated as the conversation evolves.
-- **You do:** manage the comment period — keep it time-boxed, ensure genuine objections get genuine responses, and prevent accumulation without resolution; an RFC with no decision date is a governance failure.
-- **Output:** a resolved objection record with all objections addressed or explicitly set aside.
+Type `rfc-status` at any point during the comment period to see where the RFC stands — the agent keeps the RFC's objector section updated as feedback arrives.
+
+```text
+rfc-status
+
+  Active:
+
+  | State | RFCs                                       |
+  |-------|--------------------------------------------|
+  | Open  | RFC-0043: Trunk-based development          |
+
+  Resolved:
+
+  | State    | Count |
+  |----------|------:|
+  | Accepted |    12 |
+  | Rejected |     2 |
+
+  RFC candidates: 3 entries
+```
+
+- **Output:** a resolved objection record — all objections addressed or explicitly set aside with a reason.
 
 ---
 
 ### 3. Decide and record
 
-- **Agent does:** updates the RFC status with the decision; if accepted, runs `new-adr` to record the architectural decision.
-- **You do:** verify the ADR captures the actual decision and the honest forces behind it — not a post-hoc rationalization; merge the ADR as part of the same PR or directly following one.
+Close the comment period, state your decision, and type `new-adr` to lock in the architectural record — the agent previews the ADR before writing.
+
+```text
+new-adr [branching strategy: trunk-based development]
+
+  identifier   ADR-0028
+  title        Branching strategy: trunk-based development
+  status       Proposed
+  target       docs/adr/0028-branching-strategy-trunk-based.md
+
+  Decision     Use trunk-based development over long-lived feature branches
+  Tradeoff     Requires disciplined CI; enables faster integration loop
+
+Approve? ›
+```
+
 - **You decide:** accept, reject, or defer the RFC at G-accept; then merge the ADR at G-merge.
-- **Output:** a decided RFC and, if accepted, a merged ADR with honest rationale.
+- **Output:** a decided RFC and, if accepted, a merged ADR with honest rationale — linked from the RFC that produced it.

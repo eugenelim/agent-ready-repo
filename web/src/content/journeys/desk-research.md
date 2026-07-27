@@ -10,7 +10,7 @@ contract:
   yourDecisions:
     - "Set scope and depth"
     - "Review the synthesized brief"
-whatChanges: "After installing research, every question your agent takes on is grounded before it answers. `/desk-research` runs scoping, source curation, and synthesis in one session across four depth modes. For sustained investigations, the four `desk-research-project-*` skills run a multi-week lifecycle that accumulates a corpus and ends in a brief you can hand to a decision."
+whatChanges: "After installing desk-research, every question your agent takes on is evidence-grounded before it answers. `desk-research` runs scoping, source curation, and synthesis in one session across four depth modes. For sustained investigations, the four `desk-research-project-*` skills run a lifecycle that accumulates a corpus and ends in a confidence-graded brief. Gaps are named explicitly — honest gaps are better than false confidence."
 skills:
   - name: desk-research
     description: "The primary desk-research skill. Runs scoping, source curation, and synthesis in a single session, selecting depth from four modes — shallow through exhaustive."
@@ -86,27 +86,75 @@ relatedJourneys:
   - core
 ---
 
+| Say this | What happens |
+|----------|--------------|
+| `desk-research` | Single-session research — scoping, retrieval, synthesis in one pass |
+| `source-map` | Map canonical sources before retrieval begins |
+| `build-outline` | Build a research outline from the source map |
+| `identify-perspectives` | Map stakeholder perspectives before synthesis |
+| `compare-hypotheses` | Competing-hypotheses pipeline — scored matrix |
+| `devils-advocate` | Steelman the opposing case |
+| `decision-archaeology` | Reconstruct why a prior decision was made |
+| `desk-research-project-start` | Initialize a sustained multi-week research project |
+| `desk-research-project-status` | Orient to an active project — phase, hypothesis, what's next |
+| `desk-research-project-check` | Snapshot progress — sources captured, coverage, gaps |
+| `desk-research-project-digest` | Summarize corpus into a synthesis matrix |
+| `desk-research-project-synthesize` | Synthesize digest into a confidence-graded brief |
+
+---
+
 ### 1. Scope the question
 
-- **You provide:** the question and chosen depth mode (shallow through exhaustive).
-- **Agent does:** activates `desk-research` or `desk-research-project-start`; identifies the question type and maps the source space; emits a scope statement.
-- **You do:** read the scope statement before retrieval begins; if the agent's framing misses the real question, redirect with one sentence — a bad scope leads to a confident answer to the wrong question.
-- **You decide:** set scope and depth — the direction for everything that follows.
-- **Output:** a scoped question with chosen depth mode confirmed.
+Type `desk-research` and describe what you want to find out — the agent maps the source space and surfaces its scoping assumptions before retrieving anything.
+
+```text
+desk-research "What drives deployment frequency in platform engineering teams?"
+
+  Mode:     standard
+  Sources:  DORA reports, Google Cloud DevOps research, academic CS
+  Scope:    peer-reviewed + grey literature, 2019–2024
+
+  Approve scope? ›
+```
+
+- **You decide:** approve scope and depth before retrieval begins — a bad scope returns a synthesis that answers the wrong question.
+- **Output:** a confirmed scope statement with chosen depth mode.
 
 ---
 
 ### 2. Curate sources
 
-- **Agent does:** runs `source-map` to identify the canonical sources for the question domain; dispatches retrieval subagents to fetch and synthesize source material.
-- **You do:** watch the source list take shape; if a key source is missing — a specific industry report, a primary author's paper, an internal standard you know exists — name it explicitly; the agent doesn't know your domain.
+The agent runs `source-map` to identify the canonical sources for the domain, then dispatches retrieval subagents to fetch and extract material.
+
+```text
+  ● evidence-retriever   running  DORA 2023 State of DevOps
+  ✓ source-extractor     done     accelerate.io — 3 findings extracted
+  ● evidence-retriever   running  Google Cloud DevOps metrics guide
+  ○ synthesis            idle
+```
+
 - **Output:** a curated source set with fetched material ready for synthesis.
 
 ---
 
 ### 3. Synthesize and grade
 
-- **Agent does:** synthesizes a brief graded by confidence (GRADE A–D), citing each claim to its source; marks unsupported claims as explicit gaps.
-- **You do:** read the confidence grades first — a GRADE-C synthesis needs a different follow-on (narrow the question, run another retrieval pass) than a GRADE-A; check that each claim has a source citation and is not an unsupported assertion.
-- **You decide:** review the synthesized brief — act on it, narrow the question, or run another retrieval pass.
-- **Output:** a confidence-graded synthesis brief with cited sources and explicit gap map.
+The agent synthesizes findings into a brief — every claim carries a GRADE confidence tag and a source citation; gaps are named in a `## Known unknowns` section.
+
+```text
+  brief  deployment-frequency-brief.md
+
+  Bottom line:  Trunk-based development and automated testing pipelines
+                are the strongest predictors of deployment frequency.
+
+    Claim                                              Grade      Sources
+    Trunk-based development → 4× deployment rate     [high]      4 independent
+    Test automation → 2× deployment rate              [high]      3 independent
+    Platform team structure → moderate effect         [moderate]  3; downgrade: org-confound
+
+  Known unknowns
+    Known-unknown: effect isolated to platform eng. Would close by: segmented DORA data.
+```
+
+- **You decide:** review the synthesized brief — if confidence is low, narrow the question or run another retrieval pass before acting on findings.
+- **Output:** a confidence-graded brief with cited sources and explicit gap map.

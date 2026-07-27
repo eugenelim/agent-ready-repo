@@ -1,7 +1,7 @@
 ---
 pack: contracts
 scope: user
-tagline: "OpenAPI 3.1 and AsyncAPI — API-first design."
+tagline: "API-first design — OpenAPI 3.1 and AsyncAPI contracts before implementation."
 prerequisitePacks: []
 contract:
   useItWhen: "You are designing an API or event-driven interface and need a machine-readable contract before implementation starts."
@@ -9,7 +9,7 @@ contract:
   youReceive: "A validated OpenAPI 3.1 or AsyncAPI 2.x contract file, versioned and ready to commit."
   yourDecisions:
     - "Review the contract before it drives implementation"
-whatChanges: "After installing contracts, API design starts from the contract, not the code. `api-contract` produces a validated OpenAPI 3.1 spec from requirements, user stories, or a domain model. `event-contract` produces an AsyncAPI 2.x spec for event-driven interfaces. Both skills apply a pluggable house standard — the Zalando guidelines by default, your own base + delta bundle without forking the skill."
+whatChanges: "After installing contracts, every API or event-driven interface starts from the contract, not the code. `api-contract` produces a validated OpenAPI 3.1 spec from requirements or a domain model; `event-contract` produces an AsyncAPI 2.x spec for event-driven interfaces. Both skills apply a pluggable house standard — Zalando by default, replaceable with your own base + delta bundle. A consumer-perspective check is built in; the contract drives implementation, not the other way."
 skills:
   - name: api-contract
     description: "Authors an OpenAPI 3.1 contract from requirements or user stories — endpoints, request/response schemas, error codes, and the consumer-perspective check built in."
@@ -43,25 +43,63 @@ relatedJourneys:
   - core
 ---
 
+| Say this | What happens |
+|----------|-------------|
+| `api-contract` | Author or review an OpenAPI 3.1 contract — endpoints, schemas, error codes |
+| `event-contract` | Author or review an AsyncAPI 2.x event contract — channels and message shapes |
+
+---
+
 ### 1. Author the contract
 
-- **You provide:** a description of the API surface — resources, actions, consumers, and any house naming conventions.
-- **Agent does:** runs `api-contract` or `event-contract` with the pluggable house standard configured (Zalando guidelines by default), producing a first-draft contract: endpoints, request/response schemas, error codes, and a consumer-perspective check.
-- **You do:** watch the draft take shape and note corrections as they arise — don't wait for the full draft to redirect on a naming convention or a missing error case; if you know the consumer will call this API in a specific way, say so before the agent finalizes the response schemas.
-- **Output:** a first-draft contract ready for consumer-perspective review.
+Type `api-contract` and describe the API surface — resources, actions, and the consumers who will call it.
+
+```text
+api-contract [orders service: create, get, cancel]
+
+  Endpoint              Method   Schema
+  /orders               POST     OrderCreate → OrderResponse
+  /orders/{order_id}    GET      → OrderResponse
+  /orders/{order_id}    DELETE   → (204 No Content)
+
+  Error responses: 400, 404, 409, 500 (Problem schema)
+```
+
+- **Output:** a first-draft OpenAPI 3.1 contract — endpoints, schemas, and error responses taking shape.
 
 ---
 
 ### 2. Review from the consumer's perspective
 
-- **Agent does:** runs a self-review against the house standard and surfaces the contract for your review at the G-contract gate.
-- **You decide:** read through the error responses first — the most common failure mode is a contract that specifies the happy path thoroughly but skips 400, 404, or 500 cases; name any missing error cases explicitly, and correct naming inconsistencies before implementation begins.
-- **Output:** a ratified contract that covers the consumer's full perspective, including all error codes.
+The agent runs a consumer-perspective check against the house standard and surfaces the contract at the G-contract gate.
+
+```text
+  Consumer-perspective check
+
+  ● All endpoints secured (Bearer token)
+  ● Error shapes consistent (Problem schema)
+  ⚠ POST /orders: missing 409 Conflict for duplicate order_id
+
+  G-contract ›
+```
+
+- **You decide:** approve the contract — check error codes first; a contract covering only 200 responses is incomplete.
+- **Output:** a ratified contract covering the consumer's full perspective, including all error codes.
 
 ---
 
 ### 3. Commit the versioned contract
 
-- **Agent does:** emits the ratified contract as a versioned OpenAPI 3.1 or AsyncAPI 2.x file, ready to commit alongside the implementation it governs.
-- **You do:** confirm the contract file is placed alongside the service it governs — not in a separate repository or a documentation folder that would diverge from the service over time.
-- **Output:** a versioned contract file committed alongside its implementation.
+The agent emits the ratified contract as a versioned YAML file. For event-driven interfaces, run `event-contract` through the same review flow before committing.
+
+```text
+event-contract [order.placed event]
+
+  Channel                     Message           Category
+  orders/order.placed.v1      OrderPlacedV1     business-event
+
+  Envelope: CloudEvents (structured mode)
+  Payload:  order_id · customer_id · items[] · total_amount
+```
+
+- **Output:** versioned OpenAPI 3.1 or AsyncAPI 2.x contract files committed alongside the services they govern.
