@@ -1,6 +1,6 @@
 # ADR-0056: Promote `frontend-engineering` to first-class pack
 
-- **Status:** Accepted
+- **Status:** Accepted (Amended by ADR-0057 — the "not modified or deleted" clause for the resident skill is superseded; the resident has been deleted)
 - **Date:** 2026-07-25
 - **Decision-makers:** eugenelim
 - **Related:** [`guides/frontend-engineering/`](../../guides/frontend-engineering/), [`.claude/skills/frontend-engineering/SKILL.md`](../../.claude/skills/frontend-engineering/SKILL.md)

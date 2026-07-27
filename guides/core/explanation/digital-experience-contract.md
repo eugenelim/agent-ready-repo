@@ -31,7 +31,7 @@ Each section of the contract belongs to one discipline. Skills in that pack fill
 | Strategy | `product-strategy` |
 | Product Engineering | `product-engineering` |
 | Experience Design | `experience-design` |
-| Frontend Engineering | `core` (frontend-engineering skill) |
+| Frontend Engineering | `frontend-engineering` (frontend-engineering skill) |
 
 The ownership rule enforces continuity without ceremony. A product-strategy skill that reads the "First-Success Operationalization" field and notices it is absent does not fill it in; it labels its output `[provisional — product-engineering not installed]` and states what PE work remains. The same rule applies in the other direction.
 
@@ -45,7 +45,7 @@ Any skill that attempts to hand off to a skill in an unavailable pack must:
 
 No phantom handoff may ship. Every handoff either resolves to an installed skill or degrades explicitly. "I populated the Experience Design section based on the product brief" is not a graceful degradation if experience-design pack is not installed; "I sketched the primary journey from the PE brief — provisional, experience-design review pending" is.
 
-This rule is what makes the contract safe across partial installations. An adopter with only the core pack installed can still see the contract's fields; the core skill fills its section, marks the upstream sections provisional, and names what specialist work would complete them.
+This rule is what makes the contract safe across partial installations. An adopter without the `frontend-engineering` pack installed can still populate the contract's other sections; the Frontend Engineering section is left blank or marked `[provisional — frontend-engineering not installed]` until the pack is added.
 
 ---
 
