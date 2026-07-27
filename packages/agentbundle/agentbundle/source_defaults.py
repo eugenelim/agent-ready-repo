@@ -294,7 +294,11 @@ def _enclosing_git_root(start: Path) -> Path | None:
     """
     cur = start
     while True:
-        if (cur / ".git").exists():
+        try:
+            exists = (cur / ".git").exists()
+        except OSError:
+            exists = False
+        if exists:
             return cur
         if cur.parent == cur:
             return None
@@ -354,7 +358,12 @@ def _detect_editable_source(dist: object, *, stream: TextIO | None = None) -> st
         return None
     if parts.netloc not in ("", "localhost"):
         return None
-    pkg_path = Path(url2pathname(unquote(parts.path)))
+    raw = url2pathname(unquote(parts.path))
+    # url2pathname on some Windows Python builds returns "/C:\path" with a
+    # spurious leading slash before the drive letter; strip it.
+    if sys.platform == "win32" and len(raw) >= 3 and raw[0] == "/" and raw[2] == ":":
+        raw = raw[1:]
+    pkg_path = Path(raw)
     try:
         pkg_root = pkg_path.resolve(strict=True)
     except OSError:

@@ -38,4 +38,8 @@ def _isolate_user_config_dir(
     monkeypatch.setenv("HOME", str(sandbox))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(sandbox / ".config"))
     monkeypatch.setenv("APPDATA", str(sandbox / "AppData" / "Roaming"))
+    # Windows: Path("~").expanduser() reads USERPROFILE, not HOME.
+    # AGENTBUNDLE_USER_ROOT is checked first by scope.resolve_user_root()
+    # and takes precedence on all platforms, so this one env var is enough.
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(sandbox))
     return sandbox

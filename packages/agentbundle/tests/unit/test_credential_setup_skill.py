@@ -52,6 +52,8 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
     """AC19: setup.py refuses the reserved `sso` namespace; stderr names
     the reserved set. Run the script via subprocess against the projected
     sibling shim under a tmp_path skill dir."""
+    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:
+        pytest.skip("credbroker not installed")
     # Build a tmp skill dir with the shim siblings + setup.py so the
     # relative import (`from .credentials_shim ...`) resolves.
     skill_dir = tmp_path / "credential-setup"
@@ -98,6 +100,8 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
 def test_ac18_argv_ban_refused(tmp_path):
     """AC18 / argv-ban: setup.py refuses --token / --api-token / etc.
     on the command line."""
+    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:
+        pytest.skip("credbroker not installed")
     skill_dir = tmp_path / "credential_setup"
     skill_dir.mkdir()
     (skill_dir / "__init__.py").write_text("")
@@ -120,6 +124,8 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
     """AC18: when the user enters a secret, it never appears on stdout —
     only stderr announcements. We simulate via in-process import after
     projecting the shim siblings into a temp package."""
+    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:
+        pytest.skip("credbroker not installed")
     skill_dir = tmp_path / "credential_setup"
     skill_dir.mkdir()
     (skill_dir / "__init__.py").write_text("")

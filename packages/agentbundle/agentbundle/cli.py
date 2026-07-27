@@ -936,6 +936,13 @@ def _normalise_path_separators(args: argparse.Namespace) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    # Windows cp1252 consoles can't represent non-ASCII chars (⚠, →, etc.).
+    # Reconfigure to UTF-8 with backslash-escape fallback so the process
+    # never crashes on non-ASCII output regardless of console code page.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = _build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
