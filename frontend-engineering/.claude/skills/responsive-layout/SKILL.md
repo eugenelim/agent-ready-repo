@@ -230,6 +230,10 @@ for column headers. This requires no JS.
 
 ---
 
+## Output rendering
+
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+
 ## Common failures to refuse
 
 | Pattern | Problem | Fix |
