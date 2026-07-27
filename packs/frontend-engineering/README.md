@@ -25,6 +25,16 @@ HTML/CSS/JS diffs. Covers CSS token drift, ARIA mutation completeness, state
 coverage regression, and WCAG 2.2 Focus Appearance / Target Size items that
 automated tooling misses.
 
+## Relation to the resident `frontend-engineering` skill
+
+The `core` pack ships a 443-line `frontend-engineering` skill as the
+baseline surface. This pack ships a 660-line expanded version with four
+explicit modes (create/retrofit/audit/verify), an 18-state matrix,
+a 12-field page contract, an evidence manifest, CWV targets, and a WCAG
+2.2 AA baseline. **When both packs are installed, load the pack's skill —
+it supersedes the resident.** The resident remains active for users without
+this pack.
+
 ## Co-install
 
 For full genre routing in the frontend pre-flight (step 1b of `frontend-engineering`),

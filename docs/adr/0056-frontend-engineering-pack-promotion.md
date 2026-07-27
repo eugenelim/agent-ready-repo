@@ -7,8 +7,8 @@
 
 ## Decision summary
 
-- **Decision:** The `frontend-engineering` resident skill (`.claude/skills/frontend-engineering/`) is promoted to a first-class pack (`packs/frontend-engineering/`) with 9 skills, a `frontend-reviewer` agent, a guide tree, and a catalogue page. The resident skill file remains in place — it is not deleted. The pack includes the resident skill verbatim as one of its 9 shipped skills.
-- **Because:** The skill has accumulated enough depth and distinct concerns — token system architecture, accessibility engineering, performance diagnostics, rendering strategy, component API design, responsive layout, CSS architecture — that a flat single-skill surface no longer serves the full range of tasks. A pack partitions those concerns into named atomic skills a practitioner loads by task, without forcing them to internalize the entire 661-line skill every session.
+- **Decision:** The `frontend-engineering` resident skill (`.claude/skills/frontend-engineering/`) is promoted to a first-class pack (`packs/frontend-engineering/`) with 9 skills, a `frontend-reviewer` agent, a guide tree, and a catalogue page. The resident skill file remains in place — it is not deleted. The pack ships an expanded 660-line version of the skill (the resident is 443 lines) that adds four explicit modes (create/retrofit/audit/verify), an 18-state matrix (vs. 6 in the resident), a 12-field page contract, an evidence manifest, Core Web Vitals targets, a brownfield checklist, and an updated WCAG baseline (2.2 AA vs. 2.1 AA). The pack skill supersedes the resident when both are installed. The resident remains unchanged as the baseline for users without the pack.
+- **Because:** The skill has accumulated enough depth and distinct concerns — token system architecture, accessibility engineering, performance diagnostics, rendering strategy, component API design, responsive layout, CSS architecture — that a flat single-skill surface no longer serves the full range of tasks. A pack partitions those concerns into named atomic skills a practitioner loads by task, without forcing them to internalize the entire baseline skill every session.
 - **Applies to:** `packs/frontend-engineering/` and the four work-loop insertion points that reference the pack's atomic skills and the `frontend-reviewer`.
 - **Tradeoff accepted:** Nine skills and an agent to maintain rather than one. The tradeoff is accepted because the pack's skills are distinct and non-overlapping; the maintenance cost grows sub-linearly with the concern count.
 - **Revisit if:** The pack grows beyond 12 skills, at which point a split by concern cluster (accessibility / performance / architecture) should be evaluated.
@@ -37,7 +37,7 @@ The following risk triggers fired, routing this work to full-mode work-loop:
 
 | Before | After |
 |---|---|
-| One 661-line skill in `.claude/skills/frontend-engineering/` | Same file in place; also shipped verbatim as `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md` |
+| One 443-line skill in `.claude/skills/frontend-engineering/` | Same file unchanged; pack ships a 660-line expanded version as `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md` |
 | No atomic craft skills | 8 additional atomic skills partitioning the main skill's concerns |
 | No diff-level reviewer | `frontend-reviewer` agent in `.apm/agents/` |
 | No catalogue page | `web/src/content/packs/frontend-engineering.md` |
@@ -46,9 +46,10 @@ The following risk triggers fired, routing this work to full-mode work-loop:
 
 ## What does not change
 
-- The resident `.claude/skills/frontend-engineering/SKILL.md` is **not modified or deleted**. It remains the primary surface for users without the pack installed.
-- The main skill's frontmatter `description` is not changed — it continues to correctly describe when to load the skill.
-- The `experience-design` co-install requirement in the main skill (step 1b, genre routing) is unchanged — the pack does not alter the existing T2 gate.
+- The resident `.claude/skills/frontend-engineering/SKILL.md` is **not modified or deleted**. It remains the baseline surface for users without the pack installed.
+- The pack skill's frontmatter `description` is intentionally expanded beyond the resident's: it adds the four modes (create/retrofit/audit/verify) that differentiate the pack version. The resident description is unchanged.
+- **Precedence:** when the pack is installed alongside core, the pack's 660-line version supersedes the resident 443-line version — load the pack skill by name; it contains the full contract.
+- The `experience-design` co-install requirement (genre routing) is unchanged — the pack formalizes what was already a T2 gate in the resident skill.
 
 ## Options considered
 
