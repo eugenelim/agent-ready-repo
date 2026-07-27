@@ -21,6 +21,11 @@ from __future__ import annotations
 import ipaddress
 import socket
 from urllib.parse import urlsplit
+import sys
+
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 ALLOWED_URL_SCHEMES = frozenset({"https", "git", "ssh"})
 # Schemes that turn "fetch a URL" into a local-file read or an SSRF pivot.

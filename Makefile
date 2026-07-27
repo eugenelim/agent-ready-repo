@@ -12,13 +12,11 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr sast print-sast-dirs print-sast-config validate clean zipapp release-preflight
+.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr package sast print-sast-dirs print-sast-config validate clean zipapp release-preflight
 
-# Windows-portability gate. Refuses packs that ship symlinks or
-# Windows-poisonous names under seeds/ or .apm/. Runs before every
-# build target so a violation cannot be smuggled into dist/.
+# Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
-	$(PYTHON) -m agentbundle.build lint-packs --packs-dir $(PACKS_DIR)
+	$(PYTHON) -m agentbundle catalogue lint --root .
 
 build: lint-packs
 ifeq ($(RECIPE),)
@@ -35,29 +33,25 @@ else
 endif
 endif
 
-# Routes through the make-free repo-native chaining script
-# (tools/build_gate_chain.py build-self) so the lint-packs → self step list
-# lives in exactly one place and the Windows entry
-# (`python tools/build_gate_chain.py build-self`) and this target cannot drift.
-# The chain reaches `self` through `cmd_self`, so the tests/fixtures
-# fixture-overwrite guard and the ALLOW_FIXTURE_PACKS override fire unchanged.
+# Self-host projection via the portable catalogue engine.
+# Windows contributors: python tools/repo/build_gate_chain.py build-self
 build-self:
 ifeq ($(DRY_RUN),1)
 ifeq ($(FORCE),1)
-	$(PYTHON) tools/build_gate_chain.py build-self --dry-run --force --packs-dir $(PACKS_DIR)
+	$(PYTHON) -m agentbundle catalogue self-host --root . --check --force
 else
-	$(PYTHON) tools/build_gate_chain.py build-self --dry-run --packs-dir $(PACKS_DIR)
+	$(PYTHON) -m agentbundle catalogue self-host --root . --check
 endif
 else
 ifeq ($(FORCE),1)
-	$(PYTHON) tools/build_gate_chain.py build-self --force --packs-dir $(PACKS_DIR)
+	$(PYTHON) -m agentbundle catalogue self-host --root . --write --force
 else
-	$(PYTHON) tools/build_gate_chain.py build-self --packs-dir $(PACKS_DIR)
+	$(PYTHON) -m agentbundle catalogue self-host --root . --write
 endif
 endif
 
 build-self-dry-run:
-	$(PYTHON) tools/build_gate_chain.py build-self --dry-run --packs-dir $(PACKS_DIR)
+	$(PYTHON) -m agentbundle catalogue self-host --root . --check
 
 # Projected-artifact + spec-state aggregator. Mirrors what
 # docs.yml's per-layer jobs and the `Lifecycle hooks` job run in CI;
@@ -66,24 +60,30 @@ build-self-dry-run:
 # lint-packs, projected .claude/* artifacts via pre-pr). Safe to call
 # directly when you want only the artifact checks without rebuilding.
 pre-pr:
-	$(PYTHON) tools/pre-pr-catalogue.py
+	$(PYTHON) tools/catalogue/pre_pr_catalogue.py
 
-# Routes the Windows-clean gate steps through the make-free repo-native script
-# (tools/build_gate_chain.py build-check), which runs — in this order —
-# lint-packs, build, check, pre-pr-catalogue, the spec-status self-test+lint
-# pair (RFC-0016 § Errata / ADR-0007; runs the PROJECTED copy as its fail-closed
-# gate), the brief-coverage self-test+lint pair (receive-brief; no-ops on
-# this repo, fail-closed on a stale Spec map), and the traceability self-test+lint
-# pair (work-loop; no-ops on this repo — no discovery chain — fail-closed on a
-# dangling edge or cycle). The step list lives once, in the
-# script, so this target and the Windows entry
-# (`python tools/build_gate_chain.py build-check`) cannot drift. The script is
-# repo-native (not an `agentbundle` subcommand) because it spawns repo-only
-# scripts never shipped to adopters. The SAST leg below is NOT chained into the
-# script — Semgrep has no Windows support and the leg is conditional — so it
-# stays appended here, run last.
+# Package this catalogue into a distributable archive (three-file Artifactory layout).
+# Usage: make package BUNDLE=eng RELEASE=2026.07.24.1 CHANNEL=stable OUTPUT=/tmp/out
+BUNDLE   ?=
+RELEASE  ?=
+CHANNEL  ?=
+OUTPUT   ?=
+
+package:
+	@test -n "$(BUNDLE)"   || (echo "make package BUNDLE=<name> required"   >&2; exit 1)
+	@test -n "$(RELEASE)"  || (echo "make package RELEASE=<ver> required"   >&2; exit 1)
+	@test -n "$(CHANNEL)"  || (echo "make package CHANNEL=<ch> required"    >&2; exit 1)
+	@test -n "$(OUTPUT)"   || (echo "make package OUTPUT=<dir> required"    >&2; exit 1)
+	$(PYTHON) -m agentbundle catalogue package \
+		--root . --bundle $(BUNDLE) --release $(RELEASE) --channel $(CHANNEL) --output $(OUTPUT)
+
+# Portable verify then repo-only policy gates.
+# Step 1 (portable): lint, build, schema, self-host drift — via agentbundle catalogue verify.
+# Step 2 (repo-only): build output validation, pre-pr aggregator, spec/traceability linters.
+# Windows contributors: python tools/repo/build_gate_chain.py build-check
 build-check:
-	$(PYTHON) tools/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
+	$(PYTHON) -m agentbundle catalogue verify --root .
+	$(PYTHON) tools/repo/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
 	# SKIP_SAST short-circuits the SAST/SCA leg only (the drift + lint gates

@@ -65,6 +65,19 @@ def resolve_catalogue(uri: str) -> Path:
             "SSH git URLs deferred to v1.1; use https or local path."
         )
 
+    # Explicit reject for http:// variants — layer-1 explicit arg bypasses
+    # _is_valid_source, so we must guard here to avoid silent local-path fallback.
+    if uri.startswith(("catalogue+http://", "archive+http://")):
+        raise CatalogueError(
+            "HTTPS-only: catalogue+http:// and archive+http:// are not supported; "
+            "use catalogue+https:// or archive+https://"
+        )
+
+    # Dispatch new HTTPS catalogue schemes (RFC-0072)
+    if uri.startswith(("catalogue+https://", "archive+https://")):
+        from agentbundle.https_catalogue import fetch_catalogue_archive
+        return fetch_catalogue_archive(uri)
+
     if uri.startswith(_HTTPS_PREFIX):
         return _resolve_https(uri)
 

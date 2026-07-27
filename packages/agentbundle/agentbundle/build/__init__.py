@@ -44,7 +44,6 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
     schema_path = (
         Path(__file__).resolve().parent.parent.parent.parent.parent
-        / "docs"
         / "contracts"
         / "adapter.schema.json"
     )
@@ -111,7 +110,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default="dist",
         help="Where to write build artefacts (default: dist/).",
     )
-    build_parser.set_defaults(func=cmd_build)
+    build_parser.set_defaults(func=_cmd_build_shim)
 
     self_parser = subparsers.add_parser(
         "self",
@@ -130,7 +129,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "OS for filesystems or workflows that disallow symlinks."
         ),
     )
-    self_parser.set_defaults(func=cmd_self)
+    self_parser.set_defaults(func=_cmd_self_shim)
 
     check_parser = subparsers.add_parser(
         "check",
@@ -146,7 +145,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "regular-file CLAUDE.md copy rather than a symlink."
         ),
     )
-    check_parser.set_defaults(func=cmd_check)
+    check_parser.set_defaults(func=_cmd_check_shim)
 
     scaffold_parser = subparsers.add_parser(
         "scaffold",
@@ -162,12 +161,51 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Windows-portability lint: reject packs that ship symlinks "
             "or Windows-poisonous names under seeds/ or .apm/."
+            " [deprecated: use 'agentbundle catalogue lint']"
         ),
     )
     lint_packs_parser.add_argument("--packs-dir", default="packs")
-    lint_packs_parser.set_defaults(func=cmd_lint_packs)
+    lint_packs_parser.set_defaults(func=_cmd_lint_packs_shim)
 
     return parser
+
+
+def _cmd_build_shim(args) -> int:
+    print(
+        "agentbundle.build build is deprecated; use 'agentbundle catalogue build --root .' instead",
+        file=sys.stderr,
+    )
+    return int(cmd_build(args))
+
+
+def _cmd_self_shim(args) -> int:
+    print(
+        "agentbundle.build self is deprecated; use 'agentbundle catalogue self-host --write --root .' instead",
+        file=sys.stderr,
+    )
+    return int(cmd_self(args))
+
+
+def _cmd_check_shim(args) -> int:
+    print(
+        "agentbundle.build check is deprecated; use 'agentbundle catalogue self-host --check --root .' instead",
+        file=sys.stderr,
+    )
+    return int(cmd_check(args))
+
+
+def _cmd_lint_packs_shim(args) -> int:
+    print(
+        "agentbundle.build lint-packs is deprecated; use 'agentbundle catalogue lint --root .' instead",
+        file=sys.stderr,
+    )
+    from agentbundle.catalogue_tooling.lint import lint_catalogue, render_table
+
+    packs_dir = Path(getattr(args, "packs_dir", "packs")).resolve()
+    root = packs_dir.parent
+    result = lint_catalogue(root)
+    print(render_table(result), file=sys.stderr)
+    return 0 if result.ok else 1
 
 
 def _cmd_scaffold(args) -> int:

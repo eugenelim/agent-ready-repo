@@ -758,17 +758,18 @@ class ExcludedGlobTests(unittest.TestCase):
 
     def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
         """Per RFC-0002 amendment 2026-05-25: PROJECTED_README_OVERRIDES
-        shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remained.
-        Post-wave1 guides restructure (2026-07-26): docs/CONVENTIONS.md
-        reclassified Manual → PROJECTED_README_OVERRIDES is now empty;
-        docs/CONVENTIONS.md falls through to EXCLUDED_PATTERNS."""
+        shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
+        Every other formerly-overridden path now falls through to
+        EXCLUDED_PATTERNS coverage."""
         from agentbundle.build.self_host import _is_excluded
 
-        # docs/CONVENTIONS.md reclassified Manual post-wave1 → now excluded.
-        self.assertTrue(_is_excluded(Path("docs/CONVENTIONS.md")))
+        # docs/CONVENTIONS.md stays in the override → not excluded.
+        self.assertFalse(_is_excluded(Path("docs/CONVENTIONS.md")))
 
-        # All 19 reclassified paths (2026-05-25) + docs/CONVENTIONS.md and
-        # docs/guides/**/*.md (2026-07-26 wave1) are Excluded.
+        # All 19 reclassified paths are now Excluded (either via
+        # existing `docs/<area>/*.md` patterns, the `guides/**/*.md`
+        # pattern, or one of the 8 explicit additions made by the
+        # amendment).
         for path in (
             # Covered by `docs/architecture/*.md`:
             "docs/architecture/README.md",
@@ -785,16 +786,9 @@ class ExcludedGlobTests(unittest.TestCase):
             "guides/_shared/how-to/README.md",
             "guides/_shared/reference/README.md",
             "guides/_shared/explanation/README.md",
-            # Covered by `docs/guides/**/*.md` (wave1 adopter seed projection):
-            "docs/guides/README.md",
-            "docs/guides/tutorials/README.md",
-            "docs/guides/how-to/README.md",
-            "docs/guides/reference/README.md",
-            "docs/guides/explanation/README.md",
             # Explicit literal additions:
             "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
-            "docs/CONVENTIONS.md",  # reclassified Manual post-wave1
             "docs/knowledge/patterns.jsonl",
             "docs/rfc/README.md",
             "docs/adr/README.md",
@@ -982,8 +976,8 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
             pack = packs_dir / "user-guide-diataxis"
-            (pack / "seeds" / "docs" / "guides" / "tutorials").mkdir(parents=True)
-            (pack / "seeds" / "docs" / "guides" / "tutorials" / "README.md").write_text(
+            (pack / "seeds" / "guides" / "tutorials").mkdir(parents=True)
+            (pack / "seeds" / "guides" / "tutorials" / "README.md").write_text(
                 "# Tutorials\n", encoding="utf-8"
             )
             (pack / "pack.toml").write_text(
@@ -996,7 +990,7 @@ class SeedProjectionTests(unittest.TestCase):
             _project_seeds(packs_dir, output)
 
             self.assertFalse(
-                (output / "docs" / "guides" / "tutorials" / "README.md").exists(),
+                (output / "guides" / "tutorials" / "README.md").exists(),
                 "self-host projection must not scaffold by-quadrant guides",
             )
 

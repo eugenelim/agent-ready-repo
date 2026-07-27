@@ -1,4 +1,4 @@
-"""Tests for `tools/lint-agent-artifacts.py`'s `metadata.auth` admission.
+"""Tests for `_step_agent_artifacts`'s `metadata.auth` admission.
 
 Verifies AC3 + AC26 from docs/specs/credential-broker-contract/spec.md:
   - The lint admits `metadata.auth` as an enum (env / cli / creds /
@@ -9,23 +9,19 @@ Verifies AC3 + AC26 from docs/specs/credential-broker-contract/spec.md:
   - `metadata.credentialed: true` requires `metadata.auth` to be set;
     omitting it triggers a refuse-and-explain error.
 
-The lint is invoked as a subprocess against a tempdir `LINT_ROOT` so the
-fixture skills don't pollute the repo's `.claude/` tree or get picked up
-by Claude Code's skill discovery.
+Uses `_step_agent_artifacts` directly against a tempdir fixture root
+so the fixture skills don't pollute the repo's `.claude/` tree or get
+picked up by Claude Code's skill discovery.
 """
 
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-LINT_SCRIPT = REPO_ROOT / "tools" / "lint-agent-artifacts.py"
+from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
 
 ALL_BROKERS = ("env", "cli", "creds", "sso-cookie")
 
@@ -36,16 +32,8 @@ def _write_skill(root: Path, name: str, body_frontmatter: str) -> None:
     (skill_dir / "SKILL.md").write_text(body_frontmatter, encoding="utf-8")
 
 
-def _run_lint(root: Path) -> subprocess.CompletedProcess:
-    # Inherit the parent's full env (so the linter's `git rev-parse`
-    # invocation resolves `git` on any PATH shape — NixOS / Alpine /
-    # custom CI images don't always carry `git` under /usr/bin).
-    # LINT_ROOT redirects the linter to the fixture tempdir.
-    return subprocess.run(
-        [sys.executable, str(LINT_SCRIPT)],
-        capture_output=True, text=True,
-        env={**os.environ, "LINT_ROOT": str(root)},
-    )
+def _run_lint(root: Path) -> list:
+    return _step_agent_artifacts(root, None, None, root)
 
 
 class TestMetadataAuthAdmission(unittest.TestCase):
@@ -69,14 +57,14 @@ class TestMetadataAuthAdmission(unittest.TestCase):
                         """))
                     result = _run_lint(root)
                     self.assertEqual(
-                        result.returncode, 0,
+                        result, [],
                         f"broker={broker} should lint clean; "
-                        f"stderr=\n{result.stderr}",
+                        f"errors={[d.message for d in result]}",
                     )
 
 
 class TestMetadataAuthRefusalShape(unittest.TestCase):
-    """Unknown broker values refused with the pinned stderr."""
+    """Unknown broker values refused with the pinned message."""
 
     def test_unknown_broker_refused_with_pinned_message(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -93,11 +81,12 @@ class TestMetadataAuthRefusalShape(unittest.TestCase):
                 Body.
                 """))
             result = _run_lint(root)
-            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(len(result) > 0)
+            messages = " ".join(d.message for d in result)
             self.assertIn(
                 "frontmatter key 'metadata.auth' must be one of "
                 "{env, cli, creds, sso-cookie}; got 'mystery'",
-                result.stderr,
+                messages,
             )
 
 
@@ -118,11 +107,12 @@ class TestCredentialedRequiresAuth(unittest.TestCase):
                 Body.
                 """))
             result = _run_lint(root)
-            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(len(result) > 0)
+            messages = " ".join(d.message for d in result)
             # The pinned message names the missing key explicitly so the
             # author knows what to add.
-            self.assertIn("metadata.auth", result.stderr)
-            self.assertIn("required when metadata.credentialed: true", result.stderr)
+            self.assertIn("metadata.auth", messages)
+            self.assertIn("required when metadata.credentialed: true", messages)
 
     def test_credentialed_false_without_auth_clean(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -139,9 +129,9 @@ class TestCredentialedRequiresAuth(unittest.TestCase):
                 """))
             result = _run_lint(root)
             self.assertEqual(
-                result.returncode, 0,
+                result, [],
                 f"non-credentialed skill should lint clean; "
-                f"stderr=\n{result.stderr}",
+                f"errors={[d.message for d in result]}",
             )
 
     def test_credentialed_false_with_auth_declared_clean(self) -> None:
@@ -167,9 +157,9 @@ class TestCredentialedRequiresAuth(unittest.TestCase):
                 """))
             result = _run_lint(root)
             self.assertEqual(
-                result.returncode, 0,
+                result, [],
                 f"credentialed=false + auth declared should lint clean today; "
-                f"stderr=\n{result.stderr}",
+                f"errors={[d.message for d in result]}",
             )
 
 

@@ -374,6 +374,7 @@ def test_user_scope_only_install_chains_adapt_against_args_output(tmp_path, monk
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, _, err = _install(
         dict(pack="user-only", catalogue=str(cat), output=str(target), scope="user", force=False)

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "profile.schema.json",
+  "title": "ProfileConfig",
+  "description": "JSON Schema for profiles/*.toml — pack-profile install bundles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scope", "description", "packs"],
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": ["user", "repo"],
+      "description": "Install scope — all packs in the profile must allow this scope (lint-profiles.py scope-homogeneous invariant)."
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line description of the profile's intended use case."
+    },
+    "packs": {
+      "type": "array",
+      "description": "Ordered list of packs to install — deps-first ordered (dependencies before dependents).",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pack"],
+        "properties": {
+          "pack": {
+            "type": "string",
+            "description": "Pack name as it appears in the catalogue."
+          }
+        }
+      }
+    }
+  }
+}

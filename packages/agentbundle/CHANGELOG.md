@@ -6,6 +6,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.13.0] — 2026-07-26
+
+### Added
+
+- **`agentbundle catalogue lint` now covers profiles, seeds, first-value contract, and credentialed-skill conventions.** Four checks previously scattered across standalone `tools/` scripts are now built into the CLI: profile key validation (`_check_profiles`); catalogue-seed blocklist enforcement — no `agent-ready-repo` strings, RFC/K-series identifiers, or internal-spec names leak into adopter seeds (`_check_seeds`); first-value contract completeness for Level-A and Level-B packs (`_check_first_value`); credentialed-skill AST inspection — argv-ban, canonical shim detection, dotfile guard (`_check_credentialed_skills`). Requires `pip install 'agentbundle[lint]'` for the credentialed-skill AST pass.
+
+- **`agentbundle catalogue lint --deep` runs the agentskills.io spec compliance pass on every `SKILL.md`.** Checks frontmatter key set, description length cap (1024 chars), kebab-case name, blessed subdirectory layout, eval structure, and path reference hygiene. Exits 2 with a clear message when PyYAML is not installed; exits 0 without `--deep` regardless of PyYAML.
+
+- **`agentbundle catalogue verify` now runs agent-artifact lint (step 11) and plugin-manifest schema validation (step 13).** Step 11 (`_step_agent_artifacts`) validates `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, and `.claude/commands/*.md` frontmatter and enforces the APM-skill leak guard. Step 13 (`_step_plugin_manifests`) validates every generated `*.claude-plugin/plugin.json` against the bundled schema. Both require `pip install 'agentbundle[lint]'`; absent PyYAML, step 11 returns a single advisory diagnostic and step 13 is a no-op.
+
+- **`agentbundle pack evals run`** — new CLI command porting the pack activation-eval runner into the CLI. Runs Tier-A skill-activation evals using `claude --output-format stream-json --verbose --allowed-tools Skill`; reads `[pack.evals].skills` from `pack.toml`; writes per-run results to a gitignored eval workspace. Report-only: an eval miss is not a non-zero exit.
+
+- **`upgrade --all` sentinel fix.** Packs installed before source-provenance tracking was added stored `source = "agent-ready-repo"` in state. The fix covers both `None` and `"agent-ready-repo"` absent cases so pre-provenance installs resolve through the configured default source and upgrade normally.
+
+- **Windows cp1252/UTF-8 guards.** All `.apm/` scripts and CLI subprocess calls now include `sys.stdout.reconfigure(encoding="utf-8", errors="strict")` / `sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")` and `encoding="utf-8"` on `subprocess.run` calls. Lazy `import asyncio` in credentialed scripts.
+
+- **New `[lint]` optional dependency.** `pip install 'agentbundle[lint]'` pulls `pyyaml>=6.0` for deep linting. Zero-dependency adopters who don't use `--deep` or verify are unaffected.
+
+### Removed
+
+- **Six standalone `tools/` scripts deleted.** `tools/lint-agent-artifacts.py`, `tools/lint-catalogue-seeds.py`, `tools/lint-profiles.py`, `tools/lint-first-value-contract.py`, `tools/lint_credentialed_skills.py`, and `tools/validate-claude-plugin-manifests.py` — plus their self-tests and the `tools/lint-credentialed-skills.sh` wrapper — are removed. All functionality is preserved in `catalogue lint` and `catalogue verify` with identical error codes and message strings.
+
 ## [0.12.1] — 2026-07-23
 
 ### Changed

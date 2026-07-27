@@ -20,40 +20,49 @@ PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent  # packages/agentbu
 
 
 # ---------------------------------------------------------------------------
-# Pure helpers — _status_for (AC3, AC4)
+# Pure helpers -- _compute_status_pair (migrated from _status_for; AC3, AC4, AC5)
 # ---------------------------------------------------------------------------
 
 
 def test_status_up_to_date():
-    assert li._status_for("0.9.0", "0.9.0", catalogue_resolved=True) == "up-to-date"
+    assert li._compute_status_pair("0.9.0", "0.9.0", reason_ctx=None) == ("up-to-date", None)
 
 
 def test_status_upgrade_available():
     assert (
-        li._status_for("0.9.0", "0.10.0", catalogue_resolved=True)
-        == "upgrade-available"
+        li._compute_status_pair("0.9.0", "0.10.0", reason_ctx=None)
+        == ("upgrade-available", None)
     )
 
 
-def test_status_installed_ahead_is_up_to_date():
-    # Local install ahead of the catalogue → nothing to upgrade to.
-    assert li._status_for("0.10.0", "0.9.0", catalogue_resolved=True) == "up-to-date"
+def test_status_installed_ahead_returns_ahead():
+    # Local install ahead of the catalogue -> "ahead" (new semantic; was "up-to-date").
+    assert li._compute_status_pair("0.10.0", "0.9.0", reason_ctx=None) == ("ahead", None)
 
 
-def test_status_unknown_when_catalogue_unresolved():
-    assert li._status_for("0.9.0", None, catalogue_resolved=False) == "unknown"
+def test_status_unknown_when_reason_ctx_set():
+    assert li._compute_status_pair("0.9.0", None, reason_ctx="source-unavailable") == (
+        "unknown",
+        "source-unavailable",
+    )
 
 
-def test_status_unknown_when_latest_missing():
-    assert li._status_for("0.9.0", None, catalogue_resolved=True) == "unknown"
+def test_status_unknown_when_available_none():
+    assert li._compute_status_pair("0.9.0", None, reason_ctx=None) == (
+        "unknown",
+        "pack-not-found",
+    )
 
 
 def test_status_unknown_when_unparseable():
-    assert li._status_for("0.9.0", "main", catalogue_resolved=True) == "unknown"
+    assert li._compute_status_pair("0.9.0", "main", reason_ctx=None) == (
+        "unknown",
+        "unparseable-catalogue-version",
+    )
 
 
 # ---------------------------------------------------------------------------
-# Pure helper — _drift_count (AC6)
+# Pure helper -- _drift_count (AC6)
 # ---------------------------------------------------------------------------
 
 
@@ -86,7 +95,7 @@ def test_drift_count_absent_is_not_drift(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Pure helper — _collect_rows ordering (AC1)
+# Pure helper -- _collect_rows ordering (AC1)
 # ---------------------------------------------------------------------------
 
 
@@ -101,22 +110,23 @@ def test_collect_rows_sorted_across_scopes(tmp_path):
         packs={("architect", "claude-code"): PackState(installed_version="0.9.0")}
     )
     rows = li._collect_rows([("repo", tmp_path, repo), ("user", tmp_path, user)])
-    assert [(r["pack"], r["adapter"], r["scope"]) for r in rows] == [
-        ("architect", "claude-code", "user"),
-        ("architect", "codex", "repo"),
-        ("core", "claude-code", "repo"),
+    # Sort order is now (scope, pack, adapter) per RFC-0072 D5.
+    assert [(r["scope"], r["pack"], r["adapter"]) for r in rows] == [
+        ("repo", "architect", "codex"),
+        ("repo", "core", "claude-code"),
+        ("user", "architect", "claude-code"),
     ]
 
 
 # ---------------------------------------------------------------------------
-# Command — fixtures and helpers
+# Command -- fixtures and helpers
 # ---------------------------------------------------------------------------
 
 
 def _make_args(**kw) -> SimpleNamespace:
     base = dict(
         catalogue=None, root=".", scope=None, no_check=False, check_drift=False,
-        _user_config=None,
+        format="table", updates_only=False, _user_config=None,
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -139,7 +149,7 @@ def _write_catalogue(root: Path, versions: dict[str, str]) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Command — behavior (AC1, AC2, AC4, AC5, AC6, AC7)
+# Command -- behavior (AC1, AC2, AC4, AC5, AC6, AC7)
 # ---------------------------------------------------------------------------
 
 
@@ -152,12 +162,14 @@ def test_empty_state_prints_friendly_line(tmp_path, capsys):
 
 
 def test_lists_repo_rows_with_columns(tmp_path, capsys):
+    cat = _write_catalogue(tmp_path / "cat", {"architect": "0.10.0"})
     _write_state(
         tmp_path / ".agentbundle-state.toml",
-        State(packs={("architect", "codex"): PackState(installed_version="0.9.0")}),
+        State(packs={("architect", "codex"): PackState(
+            installed_version="0.9.0", source=str(cat)
+        )}),
     )
-    cat = _write_catalogue(tmp_path / "cat", {"architect": "0.10.0"})
-    args = _make_args(root=str(tmp_path), scope="repo", catalogue=str(cat))
+    args = _make_args(root=str(tmp_path), scope="repo")
     rc = li.run(args)
     out = capsys.readouterr().out
     assert rc == 0
@@ -181,30 +193,32 @@ def test_no_check_drops_latest_status(tmp_path, capsys):
 
 
 def test_unresolvable_catalogue_degrades_to_unknown(tmp_path, capsys):
+    # Use git+ssh:// URI -- resolve_catalogue raises CatalogueError immediately
+    # without network, giving source-unavailable -> unknown.
     _write_state(
         tmp_path / ".agentbundle-state.toml",
-        State(packs={("architect", "codex"): PackState(installed_version="0.9.0")}),
+        State(packs={("architect", "codex"): PackState(
+            installed_version="0.9.0", source="git+ssh://example.test/repo"
+        )}),
     )
-    # Point at a catalogue path that does not exist → CatalogueError → unknown.
-    args = _make_args(
-        root=str(tmp_path), scope="repo", catalogue=str(tmp_path / "nope")
-    )
+    args = _make_args(root=str(tmp_path), scope="repo")
     rc = li.run(args)
     out = capsys.readouterr().out
     assert rc == 0
     assert "unknown" in out
-    assert "—" in out  # LATEST sentinel
+    assert "\u2014" in out or "—" in out  # LATEST sentinel (em dash)
 
 
 def test_resolved_catalogue_missing_pack_is_unknown(tmp_path, capsys):
-    # Catalogue resolves but does not contain the installed pack → unknown
-    # (AC3's "that pack's catalogue entry can't be resolved" case).
+    # Catalogue resolves but does not contain the installed pack -> pack-not-found -> unknown.
+    cat = _write_catalogue(tmp_path / "cat", {"some-other-pack": "1.0.0"})
     _write_state(
         tmp_path / ".agentbundle-state.toml",
-        State(packs={("architect", "codex"): PackState(installed_version="0.9.0")}),
+        State(packs={("architect", "codex"): PackState(
+            installed_version="0.9.0", source=str(cat)
+        )}),
     )
-    cat = _write_catalogue(tmp_path / "cat", {"some-other-pack": "1.0.0"})
-    args = _make_args(root=str(tmp_path), scope="repo", catalogue=str(cat))
+    args = _make_args(root=str(tmp_path), scope="repo")
     rc = li.run(args)
     out = capsys.readouterr().out
     assert rc == 0
@@ -213,7 +227,7 @@ def test_resolved_catalogue_missing_pack_is_unknown(tmp_path, capsys):
 
 def test_legacy_state_in_one_scope_is_skipped_not_fatal(tmp_path, capsys):
     # An incompatible (legacy-schema) repo state file is warned-and-skipped,
-    # not a hard abort — list-installed still exits 0.
+    # not a hard abort -- list-installed still exits 0.
     (tmp_path / ".agentbundle-state.toml").write_text(
         'schema-version = "0.1"\n', encoding="utf-8"
     )
@@ -251,7 +265,7 @@ def test_check_drift_column(tmp_path, capsys):
 
 
 def test_scope_filter_excludes_other_scope(tmp_path, capsys):
-    # Repo has a row; restrict to user scope → should not list the repo row.
+    # Repo has a row; restrict to user scope -> should not list the repo row.
     _write_state(
         tmp_path / ".agentbundle-state.toml",
         State(packs={("core", "claude-code"): PackState(installed_version="0.5.0")}),
@@ -265,7 +279,7 @@ def test_scope_filter_excludes_other_scope(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# CLI wiring — real subprocess invocation (AC13)
+# CLI wiring -- real subprocess invocation (AC13)
 # ---------------------------------------------------------------------------
 
 

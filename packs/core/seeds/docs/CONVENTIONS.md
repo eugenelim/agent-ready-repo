@@ -459,7 +459,7 @@ absent a skill, it is hand-authored into the same conventional location.
 
 ---
 
-## 5. Current-state docs — `docs/architecture/`, `docs/product/`, `docs/guides/`
+## 5. Current-state docs — `docs/architecture/`, `docs/product/`, `guides/`
 
 These three directories are the *living* layer — they describe what is, not
 what was decided or what's proposed. Each serves a different audience:
@@ -522,12 +522,12 @@ right now?"
   `agentbundle-layout.toml [research] output_dir` or elicited at
   `desk-research-project-start` time.
 
-### 5c. `docs/guides/` — for users
+### 5c. `guides/` — for users
 
 The user-facing documentation, organized by [Diátaxis](https://diataxis.fr/).
 Four kinds of content, each in its own subdirectory, each serving a
 different user need. **Mixing kinds is the most common cause of bad
-docs** — see [`guides/README.md`](guides/README.md) for the framework
+docs** — see [`guides/README.md`](../guides/README.md) for the framework
 in detail.
 
 - `tutorials/` — *learning-oriented.* Lessons that take a beginner from
@@ -751,7 +751,7 @@ existing repo just opens a PR.
 
 Each journey phase ships its capability and its guide together. A phase whose tooling ships without its guide is not a complete slice — the guide is part of what makes the capability independently usable. Deferring all guides to a terminal documentation wave is an anti-pattern: it accumulates authoring debt, makes earlier phases incompletely documented, and often results in guides that are never written.
 
-**What counts as a guide for a phase:** a Diátaxis artifact in `docs/guides/` (see *§ 5c. docs/guides/*) that covers the capability the phase introduces. The guide need not be comprehensive — it should orient the user to the capability and link to the reference for the rest.
+**What counts as a guide for a phase:** a Diátaxis artifact in `guides/` (see *§ 5c. guides/*) that covers the capability the phase introduces. The guide need not be comprehensive — it should orient the user to the capability and link to the reference for the rest.
 
 **Enforcement:** the `receive-brief` skill extends the shippability test to include guides; the `new-rfc` skill requires that when an RFC covers multiple phases, each phase's guides ship with that phase — not in a terminal wave.
 
@@ -770,7 +770,7 @@ mutating JSON by hand.
 ### Model selection
 
 Every subagent file declares `model:` in its frontmatter explicitly. The
-[`lint-agent-artifacts.py`](../tools/lint-agent-artifacts.py) linter
+`agentbundle catalogue verify` (step 11, `_step_agent_artifacts`) linter
 enforces this. Reasoning behind each current choice:
 
 | Subagent | Model | Why |
@@ -951,7 +951,7 @@ something forces them to fill.
 | `docs/adr/` (write when you make a real tradeoff) | `docs/product/personas.md` |
 | `docs/specs/` (one spec at a time, or none) | Per-package `AGENTS.md` (no packages) |
 | `docs/product/changelog.md` | `.claude/agents/adversarial-reviewer.md` (overhead at this size) |
-| `docs/guides/reference/` (API/config docs) | Other Diátaxis buckets — fill as needed |
+| `guides/reference/` (API/config docs) | Other Diátaxis buckets — fill as needed |
 | `.claude/skills/work-loop/` | |
 
 **Rule of thumb:** if your README + an OpenAPI/schema file would have
@@ -966,7 +966,7 @@ Most folders start carrying content.
 - All of Profile A, plus:
 - `docs/architecture/overview.md` becomes useful (one file).
 - `docs/specs/` typically has 1-3 active features at a time.
-- `docs/guides/` grows: at least `reference/` and probably one
+- `guides/` grows: at least `reference/` and probably one
   `tutorials/` entry (a quickstart) and a few `how-to/` recipes.
 - ADRs accumulate slowly — maybe 5-15 over the project's first year.
 - `rfc/` may still be unused; PRs are enough for most decisions.
@@ -982,7 +982,7 @@ This is the design target — everything in the template is in active use.
 - `apps/` and/or `packages/` populated, each with its own `AGENTS.md`.
 - `rfc/` actively used for cross-cutting changes.
 - `docs/architecture/` contains an overview plus per-subsystem files.
-- `docs/guides/` has substantive content in all four Diátaxis buckets.
+- `guides/` has substantive content in all four Diátaxis buckets.
 - `docs/product/roadmap.md` reviewed quarterly with real stakes.
 - ADRs are routine — likely 30+ in the project's history.
 - Multiple specs in flight; spec/plan/review discipline carries weight.
@@ -1102,9 +1102,9 @@ The keys live under `metadata:` rather than at top level because the
 [agentskills.io specification](https://agentskills.io/specification)
 pins the top-level frontmatter set to `name`, `description`,
 `license`, `compatibility`, `metadata`, `allowed-tools` and reserves
-`metadata:` as the project-specific escape hatch. `tools/lint-agent-artifacts.py`
-refuses any top-level key outside that set; `tools/lint_credentialed_skills.py`
-scopes its checks to skills with `metadata.credentialed: true`.
+`metadata:` as the project-specific escape hatch. `agentbundle catalogue verify`
+(step 11) refuses any top-level key outside that set; `agentbundle catalogue lint`
+(`_PackRules._check_credentialed_skills`) scopes its checks to skills with `metadata.credentialed: true`.
 
 `metadata.auth-fallback` is optional and names a second broker a **dual-auth**
 skill falls back to when the active one can't resolve (e.g. an `auth: sso-cookie`
@@ -1174,7 +1174,7 @@ Credentialed-CLI-class primitives must refuse the value-shaped flags
 `--password`. The CLI verb's `setup` subparser registers these as
 *tombstone arguments* whose action emits the verbatim sentinel
 `tokens cannot be passed via argv` and exits non-zero; the
-`tools/lint_credentialed_skills.py` lint refuses any primitive's
+`agentbundle catalogue lint` (`_PackRules._check_credentialed_skills`) refuses any primitive's
 script that declares one of the banned names in an
 `argparse.ArgumentParser.add_argument` call. MCP-server-class
 primitives may accept *header-naming* flags (`--bearer-header`,

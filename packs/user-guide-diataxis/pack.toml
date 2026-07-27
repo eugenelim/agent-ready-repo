@@ -13,7 +13,7 @@ keywords = ["diataxis", "tutorials", "how-to", "reference"]
 # RFC-0002 placeholder contract here. Catalogue-internal — not projected.
 lint-seeds = true
 
-# RFC-0004 v0.2 contract metadata. Scaffolds `guides/` for *this*
+# RFC-0004 v0.2 contract metadata. Scaffolds `docs/guides/` for *this*
 # project's users \u2014 no project, no scaffolding target \u2014 so the pack is
 # repo-only.
 [pack.adapter-contract]
@@ -52,7 +52,7 @@ name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
 
 # Level B: non-technical audience (technical writers, PMs); docs scaffold is structural repo record with preview-confirm gate.
-# safety-gate describes the install-time scaffold creation preview (pack seeds → guides/ directory),
+# safety-gate describes the install-time scaffold creation preview (pack seeds → docs/guides/ directory),
 # not the new-guide skill's conversation-contract gate. The conversation contract fires when a guide page
 # is actually authored (new-guide Step 3); the starter-task here is the earlier scaffold step. Intentional.
 [pack.first-value]
@@ -65,6 +65,6 @@ level-b          = true
 writes-to-repo   = true
 starter-task     = "Set up a Diátaxis documentation structure for your project"
 starter-prompt   = "Create the initial Diátaxis documentation scaffold for this project, organized into tutorials, how-to guides, reference, and explanation sections."
-expected-result  = "A guides/ directory with a README and empty folders for tutorials, how-to, reference, and explanation — ready to fill in."
+expected-result  = "A docs/guides/ directory with a README and empty folders for tutorials, how-to, reference, and explanation — ready to fill in."
 next-action      = "Start with the tutorials section: ask the agent to help you write a tutorial for your most important user task."
 safety-gate      = "The skill shows you the planned directory structure and file list before creating anything. Confirm the preview before the scaffold is written."

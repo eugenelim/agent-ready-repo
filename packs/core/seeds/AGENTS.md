@@ -209,6 +209,25 @@ the `work-loop` skill's *Anti-patterns* section.
 | "I'll grep the codebase as I go." | Verify APIs *before* you start writing, not while you're writing — same rigor as the *Grep to verify a function exists* bullet above. |
 | "I'll match the surrounding code's pattern." | Check [Source of truth](#source-of-truth) first; local style may already conflict with the canonical convention. |
 
+## Privacy
+
+**Never commit personal information to any file in this repo.** This includes:
+- Real names, email addresses, usernames, or account identifiers
+- Org-specific domains, subdomains, or employer hostnames
+- AAD/UUID identifiers tied to real people
+- Device names, profile paths, or user-specific filesystem paths
+- Names of personal service providers or platforms that identify account relationships
+
+Use generic placeholders everywhere: `user@example.com`, `colleague@example.com`,
+`Example User`, `https://mail.yourorg.com/`, `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`,
+`example-service`, `[service type]`.
+
+**This rule covers all git artifacts** — code, comments, docs, specs, commit messages,
+PR titles, PR bodies, and PR comments are permanent record. Never use real service or
+vendor names as examples; use `example-service` or `[service type]` instead. When
+authoring governance docs (ADRs, RFCs, specs), populate author and decider fields from
+the project's established conventions only — do not infer them from session context.
+
 ## When this file is wrong
 
 Flag drift in your PR — don't silently work around it. AGENTS.md vs. reality

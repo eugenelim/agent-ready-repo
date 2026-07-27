@@ -80,10 +80,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install tools dependencies
-        # `make build-check` chains `tools/hooks/pre-pr.py`, which calls
-        # `tools/lint-agent-artifacts.py` (and siblings) — those import
-        # PyYAML from tools/requirements.txt. Install before invoking make
-        # so the projected-artifact lint surface is reachable in CI.
+        # `make build-check` chains `tools/hooks/pre-pr.py` and
+        # `tools/catalogue/pre_pr_catalogue.py`. Install tools/requirements.txt
+        # before invoking make so the projected-artifact lint surface is reachable in CI.
         run: pip install -r tools/requirements.txt
 
       - name: Install SAST/SCA tools
@@ -451,16 +450,6 @@ jobs:
       - name: pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)
         working-directory: packs/converters/.apm/skills/msg-to-markdown/scripts
         run: python -m pytest test_drift.py test_convert.py test_security.py test_parity.py
-
-      - name: profiles lint + self-test (pack-profiles AC9)
-        # RFC-0034: profiles must be scope-homogeneous, dependency-complete
-        # (incl. version), and deps-first ordered. The self-test proves the
-        # linter catches each crafted bad fixture; the lint then scans the
-        # shipped profiles/ and fails the build on any real violation. Python,
-        # invoked directly (not via bash), so the same step works on Windows.
-        run: |
-          python3 tools/test-lint-profiles.py
-          python3 tools/lint-profiles.py --root .
 
       - name: catalogue-curation guard lint + self-test (RFC-0059 D6)
         # RFC-0059: the catalogue-curation skills must never change this repo's

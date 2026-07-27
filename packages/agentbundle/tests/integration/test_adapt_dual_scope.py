@@ -23,12 +23,26 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import sys
 from pathlib import Path
 
 import pytest
 
 from agentbundle.commands import adapt
 from agentbundle.config import PackState, State, dump_state
+
+
+def _set_home(monkeypatch: pytest.MonkeyPatch, path: Path) -> None:
+    """Pin the user-scope root to *path* for this test.
+
+    Sets HOME, USERPROFILE, and AGENTBUNDLE_USER_ROOT so resolve_user_root
+    returns the temp path on all platforms, including Windows CI runners where
+    Path.expanduser() ignores monkeypatched HOME/USERPROFILE env vars.
+    """
+    monkeypatch.setenv("HOME", str(path))
+    if sys.platform == "win32":
+        monkeypatch.setenv("USERPROFILE", str(path))
+    monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(path))
 
 
 def _write_state(path: Path, files: dict[str, str], scope: str = "repo") -> None:
@@ -63,7 +77,7 @@ def test_adapt_writes_per_scope_pending_reports(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     user_dir = fake_home / ".agentbundle"
     user_dir.mkdir(parents=True)
-    monkeypatch.setenv("HOME", str(fake_home))
+    _set_home(monkeypatch, fake_home)
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -109,7 +123,7 @@ def test_adapt_ci_or_across_scopes(tmp_path, monkeypatch, case):
     fake_home = tmp_path / "home"
     user_dir = fake_home / ".agentbundle"
     user_dir.mkdir(parents=True)
-    monkeypatch.setenv("HOME", str(fake_home))
+    _set_home(monkeypatch, fake_home)
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -134,7 +148,7 @@ def test_adapt_ci_or_across_scopes(tmp_path, monkeypatch, case):
 def test_adapt_ci_passes_when_neither_scope_has_companions(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     (fake_home / ".agentbundle").mkdir(parents=True)
-    monkeypatch.setenv("HOME", str(fake_home))
+    _set_home(monkeypatch, fake_home)
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -160,7 +174,7 @@ def test_adapt_handles_missing_user_state(tmp_path, monkeypatch):
     """
     fake_home = tmp_path / "home"
     fake_home.mkdir()
-    monkeypatch.setenv("HOME", str(fake_home))
+    _set_home(monkeypatch, fake_home)
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -190,7 +204,7 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
     fake_home = tmp_path / "home"
     user_dir = fake_home / ".agentbundle"
     user_dir.mkdir(parents=True)
-    monkeypatch.setenv("HOME", str(fake_home))
+    _set_home(monkeypatch, fake_home)
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()

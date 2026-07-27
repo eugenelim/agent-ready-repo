@@ -3,9 +3,9 @@
 Subcommand order on the parser matches the canonical install-workflow order
 from the spec (discovery-first): `list-packs`, `list-profiles`, `list-targets`,
 `scaffold`, `install`, `validate`, `render`, `adapt`, `diff`, `upgrade`,
-`uninstall`, `init-state`, `config`, `reconcile`. `list-profiles` (RFC-0034)
-lists the catalogue's curated single-scope install profiles; `install
---profile <name>` installs one.
+`uninstall`, `init-state`, `config`, `reconcile`, `package-catalogue`.
+`list-profiles` (RFC-0034) lists the catalogue's curated single-scope install
+profiles; `install --profile <name>` installs one.
 
 Each subcommand's `run(args) -> int` lives under `agentbundle.commands.*`;
 this module wires `argparse` and prints `--version`. No business logic here.
@@ -163,6 +163,20 @@ def _shipped_adapters_choices() -> tuple[str, ...]:
     return shipped_adapters_from_contract()
 
 
+class _StubHelpAction(argparse.Action):
+    """A --help action for stub subcommand groups that exits 1 (not 0).
+
+    Used on the `catalogue` and `lint packs` parsers so callers can
+    distinguish "this group is not yet implemented" (exit 1) from a
+    normal help print (exit 0). Wave 2-4 specs replace these stubs with
+    real handlers; this action will be removed at that point.
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.print_help()
+        parser.exit(1)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = _VerbAwareParser(
         prog="agentbundle",
@@ -243,9 +257,9 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs="?",
         default=None,
         help=(
-            "Catalogue URI to compare installed versions against. Optional: when "
-            "omitted, the source is resolved from your config, an editable clone, "
-            "or the packaged default (RFC-0047). Ignored under --no-check."
+            "[Deprecated] Catalogue URI -- now ignored; rows are resolved against "
+            "their recorded provenance. Use --no-check to skip catalogue resolution "
+            "entirely."
         ),
     )
     sp.add_argument("--root", default=".")
@@ -270,6 +284,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Add a DRIFT column counting installed files locally edited since "
             "install (on-disk SHA differs from the recorded SHA)."
+        ),
+    )
+    sp.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format: table (default) or json.",
+    )
+    sp.add_argument(
+        "--updates-only",
+        action="store_true",
+        default=False,
+        help=(
+            "Show only rows needing attention (upgrade-available, ahead, unknown). "
+            "Summary counts always reflect the full set. No effect under --no-check."
         ),
     )
     sp.set_defaults(func=_lazy("list_installed"))
@@ -491,7 +520,24 @@ def _build_parser() -> argparse.ArgumentParser:
         "upgrade",
         help="Upgrade a pack or a single primitive within a pack.",
     )
-    sp.add_argument("--pack", required=True)
+    # --pack and --all are mutually exclusive; exactly one is required (AC1).
+    mode_group = sp.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument(
+        "--pack",
+        help="Upgrade a single named pack (whole-pack or per-primitive).",
+    )
+    mode_group.add_argument(
+        "--all",
+        action="store_true",
+        dest="all",
+        default=False,
+        help=(
+            "Upgrade all installed packs at the given --scope. "
+            "Requires --scope repo|user. Rejects --adapter and positional "
+            "<catalogue>. Uses each row's recorded provenance for source "
+            "resolution."
+        ),
+    )
     # The five per-primitive flags are mutually exclusive: a pack-version
     # upgrade is for the whole pack or exactly one named primitive, never two
     # at once. Grouping them lets argparse reject `--skill a --agent b` rather
@@ -509,7 +555,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Catalogue URI to fetch the new version from. Optional: when "
             "omitted, the source is resolved from your config, an editable "
-            "clone, or the packaged default (RFC-0046)."
+            "clone, or the packaged default (RFC-0046). Rejected with --all."
         ),
     )
     sp.add_argument("--root", default=".")
@@ -520,7 +566,18 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Disambiguate when the pack is installed for multiple adapters at "
             "the resolved scope (RFC-0052). Inferred when the pack has a single "
-            "adapter row; required when it has more than one."
+            "adapter row; required when it has more than one. Rejected with --all."
+        ),
+    )
+    sp.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help=(
+            "Output format. 'table' (default) prints a human-readable plan "
+            "table. 'json' emits a machine-readable JSON document to stdout "
+            "(requires --yes for non-dry-run applies; not yet supported with "
+            "--pack)."
         ),
     )
     sp.add_argument(
@@ -529,7 +586,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Skip the upgrade confirmation prompt. Required for non-interactive "
             "use (CI, pipes); without it the upgrade asks before writing, and "
-            "refuses rather than blocking when stdin is not a TTY."
+            "refuses rather than blocking when stdin is not a TTY. Required for "
+            "--format json with --all (non-dry-run)."
         ),
     )
     sp.add_argument(
@@ -635,6 +693,175 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     sp.set_defaults(func=_lazy("reconcile"))
+
+    # --- package-catalogue --- (maintainer/CI only; RFC-0072 D1/D5)
+    sp = subparsers.add_parser(
+        "package-catalogue",
+        help="Package a catalogue repository into an Artifactory artifact layout (maintainer/CI only).",
+    )
+    sp.add_argument("--root", required=True, help="Catalogue repository root directory.")
+    sp.add_argument("--bundle", required=True, help="Bundle name (e.g. engineering).")
+    sp.add_argument("--release", required=True, help="Release tag (e.g. 0.13.0).")
+    sp.add_argument("--channel", required=True, help="Channel name (e.g. stable).")
+    sp.add_argument("--output", required=True, help="Output root directory.")
+    sp.add_argument(
+        "--source-revision",
+        default=None,
+        help="Git commit or tag (CI supplies this; no git shell-out).",
+    )
+    sp.add_argument(
+        "--minimum-agentbundle-version",
+        default=None,
+        help="Minimum agentbundle version for the channel descriptor.",
+    )
+    sp.add_argument(
+        "--published-at",
+        default=None,
+        help="Publication timestamp for the channel descriptor (ISO-8601).",
+    )
+    sp.set_defaults(func=_lazy("package_catalogue"))
+
+    # --- catalogue <sub> --- (Wave 2-4; lint/sync-defaults/build/self-host implemented)
+    cat_parser = subparsers.add_parser(
+        "catalogue",
+        help="Portable catalogue engine commands.",
+        add_help=False,
+    )
+    cat_parser.add_argument(
+        "-h",
+        "--help",
+        action=_StubHelpAction,
+        default=argparse.SUPPRESS,
+        nargs=0,
+        help="show this help message and exit",
+    )
+    cat_subs = cat_parser.add_subparsers(dest="catalogue_sub", metavar="<sub>")
+
+    # catalogue lint
+    _lint_p = cat_subs.add_parser("lint", help="Lint catalogue packs (profiles, seeds, first-value contract, credentialed-skill conventions).")
+    _lint_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _lint_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _lint_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _lint_p.add_argument("--deep", action="store_true", default=False,
+                         help="Run full agentskills.io spec-compliance lint (requires PyYAML: pip install 'agentbundle[lint]').")
+    _lint_p.set_defaults(func=_lazy("catalogue_lint"))
+
+    # catalogue verify
+    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (18-step pipeline, including agent-artifact lint and plugin manifest validation).")
+    _ver_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _ver_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _ver_p.add_argument("--archive", default=None, help="Verify a packaged .tar.gz archive instead of source tree.")
+    _ver_p.add_argument("--sha256-file", default=None, dest="sha256_file", help="SHA-256 sidecar file for archive verification.")
+    _ver_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _ver_p.set_defaults(func=_lazy("catalogue_verify"))
+
+    # catalogue build
+    _build_p = cat_subs.add_parser("build", help="Build catalogue dist tree.")
+    _build_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _build_p.add_argument("--output", default=None, help="Output directory (overrides catalogue.toml).")
+    _build_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    _build_p.add_argument("--recipe", default=None, help="Recipe name or .toml path.")
+    _build_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _build_p.set_defaults(func=_lazy("catalogue_build"))
+
+    # catalogue self-host
+    _sh_p = cat_subs.add_parser("self-host", help="Manage self-host projection.")
+    _sh_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _sh_excl = _sh_p.add_mutually_exclusive_group()
+    _sh_excl.add_argument("--check", action="store_true", default=False, help="Dry-run check (read-only).")
+    _sh_excl.add_argument("--write", action="store_true", default=False, help="Write self-host projection.")
+    _sh_p.add_argument("--force", action="store_true", default=False, help="Force write even on dirty tree.")
+    _sh_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
+
+    # catalogue package
+    _pkg_p = cat_subs.add_parser("package", help="Package catalogue into a distributable archive.")
+    _pkg_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _pkg_p.add_argument("--bundle", required=True, help="Bundle/product identifier.")
+    _pkg_p.add_argument("--release", required=True, help="Release version string.")
+    _pkg_p.add_argument("--channel", required=True, help="Channel name (e.g. 'stable').")
+    _pkg_p.add_argument("--output", required=True, help="Output directory for Artifactory layout.")
+    _pkg_p.add_argument("--source-revision", default=None, dest="source_revision", help="VCS revision.")
+    _pkg_p.add_argument("--minimum-agentbundle-version", default=None, dest="minimum_agentbundle_version", help="Minimum agentbundle version required.")
+    _pkg_p.add_argument("--published-at", default=None, dest="published_at", help="Published-at timestamp (ISO-8601).")
+    _pkg_p.set_defaults(func=_lazy("catalogue_package"))
+
+    # catalogue sync-defaults
+    _sd_p = cat_subs.add_parser("sync-defaults", help="Sync install-defaults from catalogue.toml.")
+    _sd_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    _sd_excl = _sd_p.add_mutually_exclusive_group()
+    _sd_excl.add_argument("--check", action="store_true", default=False, help="Check for drift (read-only).")
+    _sd_excl.add_argument("--write", action="store_true", default=False, help="Regenerate install-defaults.toml.")
+    _sd_p.set_defaults(func=_lazy("catalogue_sync_defaults"))
+
+    # --- lint packs --- (Wave 2; implemented)
+    lint_parser = subparsers.add_parser(
+        "lint",
+        help="Lint commands.",
+    )
+    lint_subs = lint_parser.add_subparsers(dest="lint_sub", metavar="<sub>")
+    packs_p = lint_subs.add_parser(
+        "packs",
+        help="Lint catalogue packs (alias for 'agentbundle catalogue lint').",
+    )
+    packs_p.add_argument("--root", default=".", help="Catalogue root directory.")
+    packs_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
+    packs_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    packs_p.add_argument("--deep", action="store_true", default=False,
+                         help="Run full agentskills.io spec-compliance lint (requires PyYAML: pip install 'agentbundle[lint]').")
+    packs_p.set_defaults(func=_lazy("catalogue_lint"))
+
+    # --- pack <sub> --- (pack evals run)
+    pack_parser = subparsers.add_parser(
+        "pack",
+        help="Pack-level commands (evals, etc.).",
+    )
+    pack_subs = pack_parser.add_subparsers(dest="pack_sub", metavar="<sub>")
+
+    pack_evals_p = pack_subs.add_parser("evals", help="Pack evaluation commands.")
+    pack_evals_subs = pack_evals_p.add_subparsers(dest="pack_evals_sub", metavar="<sub>")
+
+    evals_run_p = pack_evals_subs.add_parser(
+        "run",
+        help="Run Tier-A activation evals for a pack (report-only).",
+    )
+    evals_run_p.add_argument("--pack", required=True, help="Pack name under packs/.")
+    evals_run_p.add_argument(
+        "--catalogue-root", default=".", dest="catalogue_root",
+        help="Catalogue repository root (default: current directory).",
+    )
+    evals_run_p.add_argument("--runs", type=int, default=3, help="Runs per query (default 3).")
+    evals_run_p.add_argument(
+        "--adapter", default="claude-code",
+        help="Detector adapter (only claude-code ships in the first cut).",
+    )
+    evals_run_p.add_argument(
+        "--timeout", type=int, default=180,
+        help="Per-run wall-clock timeout in seconds (default 180).",
+    )
+    evals_run_p.add_argument(
+        "--mode", choices=("headless", "in-harness", "judge"), default="headless",
+        help="Eval mode: headless (default), in-harness, or judge.",
+    )
+    evals_run_p.add_argument(
+        "--judge-adapter", default="claude-code", dest="judge_adapter",
+        help="Judge backend (claude-code or codex). Use with --mode judge.",
+    )
+    evals_run_p.add_argument("--model", default=None, help="Model the judge uses.")
+    evals_run_p.add_argument("--judge-config", default=None, dest="judge_config",
+                              help="TOML file with [judge.<name>] backend definitions.")
+    evals_run_p.add_argument("--artifacts", default=None,
+                              help="JSON path for --mode judge.")
+    evals_run_p.add_argument(
+        "--check", choices=("activation", "behavior"), default="activation",
+        help="In-harness check type: activation (default) or behavior.",
+    )
+    evals_run_p.add_argument("--prepare-workspace", default=None, dest="prepare_workspace",
+                              metavar="SKILL/EVAL_ID",
+                              help="Seed a per-eval working dir and print its path.")
+    evals_run_p.add_argument("--reports", default=None,
+                              help="JSON path for --mode in-harness.")
+    evals_run_p.set_defaults(func=_lazy("pack_evals"))
 
     return parser
 

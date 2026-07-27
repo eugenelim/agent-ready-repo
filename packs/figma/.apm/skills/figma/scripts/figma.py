@@ -36,7 +36,6 @@ namespace.
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import logging
 import re
@@ -883,6 +882,7 @@ def main(argv: list[str] | None = None) -> int:
     # Exception` deliberately does NOT catch SystemExit (input-validation
     # raises) or KeyboardInterrupt (BaseException) — those pass through.
     try:
+        import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         return asyncio.run(_dispatch(args))
     except AuthError as exc:
         sys.stderr.write(f"{exc}\n")

@@ -8,7 +8,7 @@ primitives, zero runtime, and zero adapter-contract surface (RFC-0034).
 This module owns reading and validating those manifests. It does **not**
 orchestrate installs (that is ``commands/install.py``'s ``_run_profile``) and it
 does **not** lint the catalogue's profiles against the live ``packs/`` tree
-(that is ``tools/lint-profiles.py``).
+(that is ``lint.py (_check_profiles)``).
 
 Manifest shape (closed schema ``_data/profile.schema.json``)::
 

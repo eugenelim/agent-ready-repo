@@ -72,6 +72,53 @@ class _ScopePlan:
     new_companions: list[str] = field(default_factory=list)
 
 
+
+def _check_source_conflict(
+    pack_name: str, scope: str, state: "State | None", source_uri: str
+) -> str | None:
+    """Return an error message string if a source conflict is detected, else None.
+
+    Implements RFC-0072 D3: refuse an install at ``scope`` when existing
+    (pack, adapter) rows at that scope have a different canonical source from
+    ``source_uri``. ``--force`` is NOT a parameter — callers must not gate
+    this check on ``force``. ``source_uri`` is the logical catalogue URI
+    (derived at the call site via ``getattr(args, "_source_uri", None) or
+    catalogue_uri``); do not pass ``catalogue_uri`` directly.
+    """
+    if state is None:
+        return None
+    existing_rows = state.rows_for_pack(pack_name)
+    if not existing_rows:
+        return None
+    from agentbundle.config import canonicalize_source
+    incoming_canonical = canonicalize_source(source_uri)
+    conflicts: list[tuple[str, str]] = []
+    for adapter, ps in sorted(existing_rows.items()):
+        existing_canonical = canonicalize_source(ps.source)
+        if (
+            incoming_canonical is None
+            or existing_canonical is None
+            or existing_canonical != incoming_canonical
+        ):
+            display = existing_canonical if existing_canonical is not None else "unknown/legacy source"
+            conflicts.append((adapter, display))
+    if not conflicts:
+        return None
+    incoming_display = incoming_canonical if incoming_canonical is not None else "unknown/legacy source"
+    lines = [
+        f"{pack_name}: source conflict at {scope} scope \u2014 "
+        f"incoming source {incoming_display!r} differs from existing installation(s):",
+    ]
+    for adapter, display in conflicts:
+        lines.append(f"  {adapter}: {display!r}")
+    lines.append("--force does not override source conflicts.")
+    lines.append(
+        f"Recovery: run 'agentbundle upgrade --pack {pack_name}' from a concrete source "
+        f"to migrate a legacy row, or uninstall all existing adapters first "
+        f"('agentbundle uninstall --pack {pack_name}') then reinstall."
+    )
+    return "\n".join(lines)
+
 def run(args: "argparse.Namespace") -> int:
     """Entry point for ``agentbundle install``.
 
@@ -90,6 +137,7 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle.config import (
         ConfigError,
         PackState,
+        canonicalize_source,
         dump_state,
         load_pack_toml,
         load_state,
@@ -133,6 +181,17 @@ def run(args: "argparse.Namespace") -> int:
     # pre-flight in `_resolve_target_adapter` no-ops when this is None,
     # so legacy callers see exactly today's behavior.
     user_config: "UserConfig | None" = getattr(args, "_user_config", None)
+    # Org preferred-adapter hint — read once, used at every _resolve_target_adapter
+    # call site below.  A blank or absent [organization].preferred_adapter yields
+    # None and leaves all existing behaviour unchanged.  A present but invalid
+    # value (not in the shipped adapter contract) is diagnosed here, before any
+    # I/O, so the install exits 1 with a clear error message.
+    from agentbundle.source_defaults import read_packaged_preferred_adapter as _read_pref_adapter
+    try:
+        _org_preferred_adapter: str | None = _read_pref_adapter()
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
     output_root = Path(args.output).resolve()
 
     # `--force-merge` runtime binding (Step 2's resolved scope is the
@@ -368,6 +427,24 @@ def run(args: "argparse.Namespace") -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
+    # ── Source conflict guard (RFC-0072 D3) ────────────────────────────────────────────
+    # Must fire before Step-3c --force cleanup (the earliest mutation point).
+    # --force does NOT bypass; this call has no conditional on `force`.
+    # Derive the logical source URI (AC11): profile sub-installs set
+    # `args._source_uri` to the logical catalogue URI; `catalogue_uri` is the
+    # resolved temp dir in that case. `or catalogue_uri` also handles the
+    # `_source_uri = None` case (attribute present but None).
+    _guard_source_uri = getattr(args, "_source_uri", None) or catalogue_uri
+    _src_conflict = _check_source_conflict(
+        pack_name,
+        requested_scope,
+        repo_state if requested_scope == "repo" else user_state,
+        _guard_source_uri,
+    )
+    if _src_conflict is not None:
+        print(f"install: {_src_conflict}", file=sys.stderr)
+        return 1
+
     # ── Step 3c: RFC-0012 AC24 in-band detection (repo scope, per-IDE) ──
     # Pre-RFC-0012 state must surface migration messaging *before* the
     # already-installed branch fires its "use 'upgrade'" refusal —
@@ -399,6 +476,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -423,6 +501,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
             _orphan_filter_relpaths = set(_early_repo_projection.keys())
         except (FileNotFoundError, ValueError):
@@ -461,6 +540,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -589,6 +669,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,  # First install has no prior state here.
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -721,6 +802,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused:
             # Repo resolution failed; defer the actual refusal to the
@@ -821,6 +903,7 @@ def run(args: "argparse.Namespace") -> int:
                     state_adapter=None,
                     command_name="install",
                     user_config=user_config,
+                    preferred_adapter=_org_preferred_adapter,
                 )
         if any(p.scope == "user" for p in plans):
             user_projection = _render_for_user_scope(
@@ -831,6 +914,7 @@ def run(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
             user_scope_hooks_enabled = bool(
                 isinstance(pack_install, dict)
@@ -1022,7 +1106,7 @@ def run(args: "argparse.Namespace") -> int:
         prior = plan.state.row(pack_name, scope_adapter)
         new_pack_state = PackState(
             installed_version=pack_version,
-            source="agent-ready-repo",
+            source=canonicalize_source(getattr(args, "_source_uri", None) or catalogue_uri),
             # pack-profiles AC13: a profile install records "profile"; the
             # orchestrator sets `args._install_route`. Default "cli" keeps
             # single-pack callers unchanged.
@@ -2888,6 +2972,7 @@ def _render_for_user_scope(
     state_adapter: str | None = None,
     command_name: str = "install",
     user_config: "UserConfig | None" = None,
+    preferred_adapter: str | None = None,
 ) -> dict[str, bytes]:
     """Project a pack via the Claude Code / Kiro / Codex adapter
     (depending on RFC-0011 resolution), for user-scope install.
@@ -2945,6 +3030,7 @@ def _render_for_user_scope(
         state_adapter=state_adapter,
         user_config=user_config,
         command_name=command_name,
+        preferred_adapter=preferred_adapter,
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
@@ -3003,6 +3089,7 @@ def _render_for_repo_scope(
     state_adapter: str | None = None,
     command_name: str = "install",
     user_config: "UserConfig | None" = None,
+    preferred_adapter: str | None = None,
 ) -> tuple[str, dict[str, bytes]]:
     """Project a pack via the resolved adapter (RFC-0011 + RFC-0012
     six-step lookup at ``scope="repo"``), for repo-scope install at
@@ -3044,6 +3131,7 @@ def _render_for_repo_scope(
         state_adapter=state_adapter,
         command_name=command_name,
         user_config=user_config,
+        preferred_adapter=preferred_adapter,
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
@@ -3202,6 +3290,7 @@ def _resolve_target_adapter(
     state_adapter: str | None = None,
     command_name: str = "install",
     user_config: "UserConfig | None" = None,
+    preferred_adapter: str | None = None,
 ) -> str:
     """Resolve the adapter that an install/upgrade targets at *scope*
     (RFC-0011 substrate; RFC-0012 widens to repo scope).
@@ -3378,6 +3467,31 @@ def _resolve_target_adapter(
                 f"clear it."
             )
         return candidate
+
+    # Step 2.75: org preferred-adapter hint from packaged
+    # _data/install-defaults.toml.  Fires only when state_adapter is None
+    # (same gate as step 2.5) so upgrade correctness is preserved — state-hint
+    # (step 2) and user-config (step 2.5) already returned above when set.
+    # The value was validated against the shipped adapter contract by
+    # read_packaged_preferred_adapter(); here we validate against the
+    # pack's allowed_adapters and the scope-appropriate admissible set.
+    if state_adapter is None and preferred_adapter is not None:
+        admissible_at_scope = user_capable if scope == "user" else shipped
+        if preferred_adapter not in admissible_at_scope:
+            raise _AdapterResolutionRefused(
+                f"{command_name}: org preferred_adapter {preferred_adapter!r} is "
+                f"not supported at {scope} scope. Adapters supported at "
+                f"{scope} scope: {sorted(admissible_at_scope)}. To override: "
+                f"pass --adapter <name> or run `agentbundle config set adapter "
+                f"<name>`."
+            )
+        if allowed_adapters is not None and preferred_adapter not in allowed_adapters:
+            raise _AdapterResolutionRefused(
+                f"{command_name}: org preferred_adapter {preferred_adapter!r} "
+                f"is not in pack {pack_name!r}'s allowed-adapters "
+                f"{sorted(allowed_adapters)}."
+            )
+        return preferred_adapter
 
     # Step 3 + Step 4: contract-version gate + per-scope branch.
     if (
@@ -3892,7 +4006,7 @@ def validate_dependencies_required(
     version range is enforced for real at write time — the profile orchestrator
     writes deps-first, so each dependent's per-pack gate re-runs against actual
     state with the dep's real version — and the profile lint
-    (``tools/lint-profiles.py``) independently checks in-batch version
+    (``lint.py (_check_profiles)``) independently checks in-batch version
     satisfiability at author-time. The version-range *grammar* is still
     validated even for an in-batch dep (a malformed range is a manifest bug).
     Default ``None`` → existing single-pack behavior, byte-for-byte.
@@ -4041,6 +4155,12 @@ def _run_profile(args: "argparse.Namespace") -> int:
         return 1
     cli_adapter: str | None = getattr(args, "adapter", None)
     user_config = getattr(args, "_user_config", None)
+    from agentbundle.source_defaults import read_packaged_preferred_adapter as _read_pref_adapter_profile
+    try:
+        _org_preferred_adapter: str | None = _read_pref_adapter_profile()
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
     output_root = Path(args.output).resolve()
 
     # ── Resolve catalogue + load the profile manifest ─────────────────────────
@@ -4098,6 +4218,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
             state_adapter=None,
             command_name="install",
             user_config=user_config,
+            preferred_adapter=_org_preferred_adapter,
         )
     except _AdapterResolutionRefused as exc:
         print(str(exc), file=sys.stderr)
@@ -4123,6 +4244,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
                 state_adapter=None,
                 command_name="install",
                 user_config=user_config,
+                preferred_adapter=_org_preferred_adapter,
             )
         except _AdapterResolutionRefused:
             compat = (
@@ -4193,6 +4315,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
         ns.pack = name
         ns.profile = None  # so run()'s dispatch does not recurse
         ns.catalogue = str(catalogue_dir)
+        ns._source_uri = catalogue_uri
         ns.output = args.output
         ns.scope = scope_value  # pin the declared scope for every pack
         ns.adapter = batch_adapter  # pin the one resolved adapter

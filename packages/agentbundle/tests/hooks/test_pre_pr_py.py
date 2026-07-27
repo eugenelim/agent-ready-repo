@@ -33,24 +33,33 @@ def _load_hook():
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "pre-pr.py"
-CATALOGUE_HOOK = REPO_ROOT / "tools" / "pre-pr-catalogue.py"
+CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
 
-def test_catalogue_hook_runs_all_8_checks_and_delegates() -> None:
-    """AC3: the repo-native catalogue hook runs the exact 8-check set the old
-    pre-pr.py ran, then delegates to the shipped pre-pr.py."""
+def test_catalogue_hook_runs_core_checks_and_delegates() -> None:
+    """AC3: the repo-native catalogue hook runs the core check set, then delegates
+    to the shipped pre-pr.py. Agent-artifact, seeds, credentialed-skill, and
+    profiles checks are now covered by agentbundle catalogue verify/lint."""
     src = CATALOGUE_HOOK.read_text(encoding="utf-8")
     for tool in (
         "tools/lint-agents-md.py",
-        "tools/lint-agent-artifacts.py",
-        "tools/lint-skill-spec.py",
+        # skill-spec lint now invokes agentbundle catalogue lint --deep (not a tools/ script)
         "tools/lint-knowledge.py",
         "tools/lint-build.py",
+    ):
+        assert tool in src, f"catalogue hook must run {tool}"
+    for removed_tool in (
+        "tools/lint-agent-artifacts.py",
         "tools/lint-catalogue-seeds.py",
         "tools/lint_credentialed_skills.py",
         "tools/test-lint-credentialed-skills.py",
+        "tools/lint-profiles.py",
     ):
-        assert tool in src, f"catalogue hook must run {tool}"
+        assert removed_tool not in src, (
+            f"catalogue hook must not reference deleted script {removed_tool}"
+        )
+    # skill-spec lint step now delegates to agentbundle package instead of tools/ script
+    assert '"--deep"' in src, "catalogue hook must run agentbundle catalogue lint --deep"
     assert "tools/hooks/pre-pr.py" in src, (
         "catalogue hook must delegate to the shipped pre-pr.py"
     )
@@ -93,7 +102,7 @@ def sandbox(tmp_path: Path) -> Path:
 def _run(cwd: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(cwd / "packs/core/.apm/hooks/pre-pr.py")],
-        cwd=cwd, capture_output=True, text=True,
+        cwd=cwd, capture_output=True, text=True, encoding="utf-8",
     )
 
 
@@ -130,7 +139,7 @@ def test_pre_pr_adopter_tree_no_tooling_is_graceful(tmp_path: Path) -> None:
     repo = tmp_path / "adopter"
     repo.mkdir()
     result = subprocess.run(
-        [sys.executable, str(HOOK)], cwd=repo, capture_output=True, text=True,
+        [sys.executable, str(HOOK)], cwd=repo, capture_output=True, text=True, encoding="utf-8",
     )
     assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
     assert "pre-pr: all checks passed" in result.stdout

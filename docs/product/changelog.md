@@ -15,6 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.13.0] — 2026-07-26
+
+### Added
+
+- **`agentbundle catalogue lint` now covers profiles, seeds, first-value contract, and credentialed-skill conventions.** Four checks previously in standalone `tools/` scripts are now in the CLI: profile validation, seed blocklist enforcement, first-value contract completeness, and credentialed-skill AST inspection. Requires `pip install 'agentbundle[lint]'` for the AST pass.
+
+- **`agentbundle catalogue lint --deep` runs the agentskills.io spec compliance pass on every `SKILL.md`.** Checks frontmatter key set, description length cap, name format, layout, and eval structure. Exits 2 with a clear message when PyYAML is absent.
+
+- **`agentbundle catalogue verify` now runs agent-artifact lint (step 11) and plugin-manifest schema validation (step 13).** Step 11 validates projected skill/agent/command frontmatter; step 13 validates `plugin.json` against the bundled schema. Both require `pip install 'agentbundle[lint]'`.
+
+- **`agentbundle pack evals run`** — new CLI command for pack activation evals. Runs Tier-A skill-activation evals via `claude --output-format stream-json`; writes results to a gitignored eval workspace. Report-only.
+
+- **Windows cp1252/UTF-8 guards.** All scripts and subprocess calls now include UTF-8 reconfigure guards. Lazy `import asyncio` in credentialed scripts.
+
+- **New `[lint]` optional dependency.** `pip install 'agentbundle[lint]'` pulls `pyyaml>=6.0`.
+
+### Removed
+
+- **Six standalone `tools/` linter scripts deleted.** `lint-agent-artifacts.py`, `lint-catalogue-seeds.py`, `lint-profiles.py`, `lint-first-value-contract.py`, `lint_credentialed_skills.py`, and `validate-claude-plugin-manifests.py` removed. All functionality preserved in `catalogue lint` and `catalogue verify`.
+
+---
+
 ## [Unreleased]
 
 ### Changed

@@ -39,10 +39,10 @@ def _run_upgrade(args):
     return rc, stderr.getvalue()
 
 
-def _install_args(pack, catalogue, output, scope="user"):
+def _install_args(pack, catalogue, output, scope="user", adapter=None):
     return argparse.Namespace(
         pack=pack, catalogue=catalogue, output=output,
-        scope=scope, force=False, force_merge=False,
+        scope=scope, force=False, force_merge=False, adapter=adapter,
     )
 
 
@@ -84,7 +84,7 @@ class UpgradeThenUninstallTests(_UpgradeBase):
 
         _copy_fixture(FIXTURES / "kiro-user-hooks", self.cat / "packs" / "kiro-user-hooks")
         self.assertEqual(_run_install(_install_args(
-            "kiro-user-hooks", str(self.cat), str(self.repo))), 0)
+            "kiro-user-hooks", str(self.cat), str(self.repo), adapter="kiro-cli")), 0)
 
         # Upgrade (same wiring shape — exercises the merge phase
         # without testing the rename path).
@@ -224,7 +224,7 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         pack_dst = self.cat / "packs" / "kiro-user-hooks"
         _copy_fixture(FIXTURES / "kiro-user-hooks", pack_dst)
         self.assertEqual(_run_install(_install_args(
-            "kiro-user-hooks", str(self.cat), str(self.repo))), 0)
+            "kiro-user-hooks", str(self.cat), str(self.repo), adapter="kiro-cli")), 0)
         agent_json = self.home / ".kiro" / "agents" / "reviewer.json"
         self.assertTrue(agent_json.exists(), "setup: legacy JSON agent should exist")
 
@@ -274,7 +274,7 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         pack_dst = self.cat / "packs" / "kiro-user-hooks"
         _copy_fixture(FIXTURES / "kiro-user-hooks", pack_dst)
         self.assertEqual(_run_install(_install_args(
-            "kiro-user-hooks", str(self.cat), str(self.repo))), 0)
+            "kiro-user-hooks", str(self.cat), str(self.repo), adapter="kiro-cli")), 0)
         agent_json = self.home / ".kiro" / "agents" / "reviewer.json"
 
         state_path = self.home / ".agentbundle" / "state.toml"
