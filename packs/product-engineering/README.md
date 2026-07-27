@@ -83,6 +83,26 @@ The agent writes a brief for each leaf. Pass any brief to `receive-brief` → `w
 
 ---
 
+## Where artifacts land
+
+```text
+docs/
+├── product/
+│   ├── intents/          ← frame-intent, de-risk-intent, decompose-intent
+│   │   └── <slug>.md
+│   ├── rollups/          ← align-value-stream (business-unit scale)
+│   │   └── <slug>.md
+│   └── voice/            ← ux-writing
+│       └── <slug>.md
+└── discovery/            ← discovery-loop (sidecar + initiative tree)
+    └── <initiative-slug>/
+        └── _state/
+```
+
+The base paths are configurable — `[product] output_dir` and `[discovery] output_dir` in your repo's `agentbundle-layout.toml`. Defaults to `docs/product/` and `docs/discovery/`.
+
+---
+
 ## Cross-pack
 
 **Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `frame-intent` as strategic anchors. Absent means both skills degrade gracefully.
