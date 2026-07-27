@@ -10,6 +10,7 @@ See `AGENTS.local.md` for broader self-host context.
 | `pack.toml` | Pack metadata — version, description, adapter-contract, categories |
 | `.claude-plugin/plugin.json` | Claude plugin manifest source (must match `pack.toml` version, stay schema-valid) |
 | `seeds/` | Adopter scaffold templates (brownfield install) |
+| `docs/` | Concept anchor and pack guides — never projected or installed; travels in Artifactory packages |
 | `.apm/skills/` | Skill sources → projected per adapter |
 | `.apm/agents/` | Agent sources → projected per adapter |
 | `.apm/hooks/` | Hook-body sources → projected per adapter |
@@ -140,7 +141,6 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 ```
 Windows CI (Python 3.11, cp1252 default) crashes on any Unicode character without this guard. `errors="strict"` on stdout surfaces encoding bugs immediately; `errors="backslashreplace"` on stderr prevents diagnostic loss.
 Any `subprocess.run` call with `text=True` must also pass `encoding="utf-8"` — child scripts reconfigured to UTF-8 produce bytes undefined in cp1252.
-
 
 ## Skill reference files
 

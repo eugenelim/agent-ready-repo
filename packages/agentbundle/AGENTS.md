@@ -20,3 +20,12 @@ runs on tag push only (`push: tags: agentbundle-v*`); it does not run on merge.
 **Version rule:** the next version after what is currently on PyPI. Check
 `pip index versions agentbundle` before choosing a version number to avoid
 collisions with any prior research-branch publish.
+
+## Engine-Change-RFC requirement
+
+Any PR that touches `packages/agentbundle/**` must include an
+`Engine-Change-RFC: <RFC-NNNN or ADR-NNNN>` trailer in at least one commit
+message. The `lint-catalogue-curation-guard` tool enforces this on every
+build; without the trailer the build will fail. Cite the RFC or ADR that
+governs the change — or ADR-0056 for general engine additions — and place the
+trailer on its own line after the commit message body.

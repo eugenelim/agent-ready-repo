@@ -328,6 +328,29 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("show"))
 
+    # --- docs --- (catalogue query; reads packs/<pack>/docs/)
+    sp = subparsers.add_parser(
+        "docs",
+        help=(
+            "Read pack documentation from the catalogue source. "
+            "Displays index.md by default; use --list to enumerate files."
+        ),
+    )
+    sp.add_argument("pack", help="Pack name to read docs for (e.g. core).")
+    sp.add_argument(
+        "file",
+        nargs="?",
+        default=None,
+        help="Documentation file stem to display (e.g. 'concept'). Default: index.",
+    )
+    sp.add_argument(
+        "--list",
+        action="store_true",
+        dest="list_docs",
+        help="List available documentation files for the pack.",
+    )
+    sp.set_defaults(func=_lazy("docs"))
+
     # --- scaffold --- (no --scope; always repo-targeted)
     sp = subparsers.add_parser(
         "scaffold",

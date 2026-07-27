@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.20.0] — 2026-07-27
+
+### Added
+
+- **`agentbundle docs <pack>`** — new CLI verb that reads pack documentation
+  from `packs/<pack>/docs/` in the catalogue source. Supports `--list` to
+  enumerate available files and an optional `<file>` positional to display a
+  specific file by stem. Works across all four source types (local path, editable
+  install, git+https, Artifactory archive). Markdown rendered as plain text with
+  ANSI bold headings on a TTY.
+
+- **`[pack.runtime-dependencies]` in pack schema.** New array under `[pack]`
+  for declaring external runtime dependencies (pip packages, npm modules, etc.)
+  required by a pack's skills. Each entry carries `ecosystem` (required, one of
+  pypi/npm/cargo/go/homebrew/apt/system), `package` (required), `version`,
+  `optional`, `skills`, `install`, and `note`.
+
 ## [0.19.0] — 2026-07-27
 
 Supersedes the accidental research-branch 0.18.0 PyPI publish. Contains all

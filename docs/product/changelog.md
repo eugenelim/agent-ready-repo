@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.20.0] — 2026-07-27
+
+### Added
+
+- **`agentbundle docs <pack>`** — read pack documentation from the catalogue
+  source. `--list` enumerates available files; `<file>` displays a specific file
+  by stem. Works across all source types.
+
+- **`[pack.runtime-dependencies]` in pack schema** — declare external runtime
+  dependencies per pack (ecosystem, package, version, optional, skills, install,
+  note).
+
 ## [agentbundle][0.13.0] — 2026-07-26
 
 ### Added
