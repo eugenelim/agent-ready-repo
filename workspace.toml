@@ -1114,21 +1114,48 @@ open = [
   #   exercised (QA covered skill ingest only).
   {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
 
-  # ── journey-template-revamp follow-ups (experience-reviewer, deferred) ─────────
-  # The revamp landed the contract + fixed stage cards; these are experience polish
-  # the reviewer surfaced as out-of-scope-for-this-spec enhancements.
-  # Journey "what good output looks like" (template section 5) renders only when a
-  #   journey sets goodOutputDescription — no journey does, so the highest-value
-  #   "what do I get?" proof is absent site-wide. Fix: author a real transcript/
-  #   artifact snippet for the P1 journeys (core, discovery, release) in their
-  #   goodOutputDescription frontmatter. File: web/src/content/journeys/*.md.
-  {slug = "journey-good-output-transcripts", source = "spec/journey-template-revamp experience-review Minor-3"},
-  # Journey hero h1 is a bare pack slug ("core"), meaningless when deep-linked cold;
-  #   the five-second scan rests entirely on the tagline. Fix: pair the slug with a
-  #   short descriptive eyebrow/qualifier in JourneyHero.astro.
-  {slug = "journey-hero-descriptive-eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
-  # Contract "Your decisions" chips look interactive (share chip styling) but aren't,
-  #   and duplicate the gate labels below. Fix: anchor each chip to its GateDetail
-  #   card (turn duplication into wayfinding). Files: JourneyContract.astro + GateDetail.astro.
-  {slug = "journey-decision-chip-gate-anchors", source = "spec/journey-template-revamp experience-review Nit-5"},
+  # ── journey-template-revamp experience polish ─────────────────────────────────
+  {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
+  {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
+  {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
+
+  # ── Starlight migration follow-ons ─────────────────────────────────────────
+  # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
+  # Mirrors RFC-0061 (web/) precedent.
+  {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+["ini-005"]
+name      = "AgentBundle Portable Catalogue Tooling"
+status    = "active"
+milestone = "M1 · Portable Engine + Public CLI"
+# Brief: establish agentbundle/catalogue_tooling/ as the portable catalogue
+# engine, publish the agentbundle catalogue * and agentbundle lint packs CLI
+# surface, introduce catalogue.toml as the configuration layer, and rewire
+# the home repository to use the new public commands.
+# 16-bucket brief: .context/attachments/PB6fwW/pasted_text_2026-07-24_16-11-28.txt
+
+["ini-005".shaping_queue]
+active  = []
+backlog = []
+
+["ini-005".work]
+active  = []
+shipped = [
+  "spec/catalogue-tooling-foundation",
+  "spec/catalogue-tooling-lint",
+  "spec/catalogue-tooling-sync-defaults",
+  "spec/catalogue-tooling-build-self",
+  "spec/catalogue-tooling-verify",
+  "spec/catalogue-tooling-package-enhanced",
+]
+queue   = [
+  # Wave 5 — parallel after package-enhanced ships
+  {path = "spec/catalogue-tooling-rewire", needs = "work:spec/catalogue-tooling-package-enhanced"},
+  # docs needs verify (Flow E, command names), package-enhanced (allowlist + output paths), and rewire (make build-check wording)
+  {path = "spec/catalogue-tooling-docs", needs = "work:spec/catalogue-tooling-verify,work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
+  # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
+  {path = "spec/catalogue-tooling-ci-gates", needs = "work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
 ]

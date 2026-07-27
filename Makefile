@@ -201,18 +201,18 @@ release-preflight: lint-packs
 	@bash tools/release-check.sh
 
 # ── Site publishing ──────────────────────────────────────────────────────────
-# Requires: pip install -r site/requirements.txt
+# Requires: npm ci --prefix docs-site (one-time setup)
+# Build order is load-bearing: web/ build cleans build/; docs-site/ build
+# writes into build/docs/. This matches .github/workflows/pages.yml.
 
-.PHONY: site-sync site-build site-serve site-deploy
+.PHONY: site-sync site-build site-serve
 
-site-sync:  ## Aggregate repo content into site/docs/ (run before build/serve)
+site-sync:  ## Aggregate repo content into docs-site/src/content/docs/ (run before build/serve)
 	$(PYTHON) tools/build-site.py
 
-site-build: site-sync  ## Build static site → site/built/ (strict, matches CI)
-	mkdocs build --config-file site/mkdocs.yml --strict
+site-build: site-sync  ## Build full site → build/ (marketing) + build/docs/ (Starlight)
+	npm run build --prefix web
+	npm run build --prefix docs-site
 
-site-serve: site-sync  ## Start live-reload dev server at http://localhost:8000
-	mkdocs serve --config-file site/mkdocs.yml
-
-site-deploy: site-sync  ## Deploy to gh-pages branch (CI uses pages.yml instead)
-	mkdocs gh-deploy --config-file site/mkdocs.yml --force
+site-serve: site-sync  ## Start Starlight dev server at http://localhost:4321
+	npm run dev --prefix docs-site

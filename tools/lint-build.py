@@ -36,6 +36,7 @@ RFC_AUTHORISED_DIRS = (
     "governance",  # RFC-0065 D16 — governance-index template seed projection (governance-extras)
     "contracts",  # ADR-0055 — wave1 docs restructure: lift docs/contracts/ to repo root
     "guides",  # ADR-0055 — wave1 docs restructure: lift docs/guides/ to repo root
+    "docs-site",  # ADR-0055 — Starlight replaces MkDocs: Astro+Node.js docs-site pipeline
 )
 
 

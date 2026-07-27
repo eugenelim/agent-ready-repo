@@ -2,7 +2,7 @@
 
 The platform-site marketing anchor, served at `/`. See [`AGENTS.md`](AGENTS.md)
 for dependencies, the build contract (`npm run build` emits into `../build/`, not
-`dist/`), and the Astro-before-MkDocs build order. Design and content are governed
+`dist/`), and the build-order requirement (this build runs before `docs-site/`). Design and content are governed
 by [`docs/specs/platform-site/`](../docs/specs/platform-site/spec.md); the
 directory was approved by [RFC-0061](../docs/rfc/0061-web-top-level-directory.md).
 

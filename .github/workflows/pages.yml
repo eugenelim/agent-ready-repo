@@ -25,7 +25,7 @@ jobs:
 
       # ── Astro marketing site FIRST (RFC-0061) ───────────────────────────
       # `astro build` cleans its outDir (build/) on every run, so it must run
-      # BEFORE MkDocs writes into build/docs/ — otherwise MkDocs output is wiped.
+      # BEFORE the `docs-site/` Starlight build writes into build/docs/.
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -40,24 +40,25 @@ jobs:
         env:
           ASTRO_TELEMETRY_DISABLED: "1"
 
-      # ── MkDocs reference docs SECOND — writes into build/docs/ ───────────
-      - uses: actions/setup-python@v5
+      # ── Starlight reference docs SECOND — writes into build/docs/ ──────────
+      # Build order is load-bearing: web/ Astro build (above) cleans build/
+      # on every run, so it MUST run before docs-site/ writes into build/docs/.
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: site/requirements.txt
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
 
-      - name: Install site dependencies
-        run: pip install -r site/requirements.txt
+      - name: Install docs-site dependencies
+        run: npm ci --prefix docs-site
 
       - name: Aggregate content
         run: python tools/build-site.py
 
-      - name: Build site
-        run: mkdocs build --config-file site/mkdocs.yml --strict
+      - name: Build docs site
+        run: npm run build --prefix docs-site
         env:
-          # Suppress git-revision-date warnings when history is shallow
-          CI: "true"
+          ASTRO_TELEMETRY_DISABLED: "1"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
