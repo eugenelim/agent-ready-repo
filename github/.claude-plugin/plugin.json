@@ -1,6 +1,6 @@
 {
   "name": "github",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "GitHub integration: `github-brief-intake` \u2014 turn a GitHub Milestone into a product brief and hand off to `receive-brief`.",
   "hooks": {
     "SessionStart": [
