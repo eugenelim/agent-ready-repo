@@ -62,7 +62,7 @@ surface-genre: <marketing | documentation | informational | analytical | transac
   (mermaid stateDiagram-v2) · motion purpose + reduced-motion · gesture — or:
   see interaction-design enrichment>
 
-## Copy  (from voice-and-microcopy; per state)
+## Copy  (from ux-writing; per state)
 - <key strings per state, or: see copy-deck §<screen>>
 
 ## Shared contract — REFERENCE, do not restate

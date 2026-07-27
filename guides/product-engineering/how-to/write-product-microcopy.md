@@ -4,7 +4,7 @@
 **Prerequisites:** `product-engineering` pack installed; a shaped feature with a spec; a voice chart (created once on first use of the skill and reused across all subsequent features).
 **Result:** UI-state copy — errors, empty states, CTAs, and labels — that passes the content checklist and is consistent with the product's documented voice chart.
 
-> **Diátaxis: how-to.** A goal-oriented walk through the `voice-and-microcopy`
+> **Diátaxis: how-to.** A goal-oriented walk through the `ux-writing`
 > skill — characterizing a product's voice, then writing the recurring UI-state
 > copy. For shaping the *intent* behind a feature, see the how-to
 > [*Shape a feature intent*](shape-a-feature-intent.md); for the field tables, the
@@ -16,10 +16,10 @@ button that commits the action. Install the `product-engineering` pack, then:
 
 ## 1. Characterize the product's voice — once
 
-Invoke **`voice-and-microcopy`**. The first time, it characterizes your product's
+Invoke **`ux-writing`**. The first time, it characterizes your product's
 **voice** along a few axes — humor, formality, respect, enthusiasm — and records
 it in a **voice chart** (the skill ships the template at
-`voice-and-microcopy/assets/voice-chart-template.md`; copy it to
+`ux-writing/assets/voice-chart-template.md`; copy it to
 `docs/product/voice/<slug>.md`). Place the product on each axis with a one-line
 rationale and a real sample string. Do this once and **reuse the chart** across
 every feature — don't re-derive it per screen.
@@ -42,12 +42,12 @@ For the copy in front of you, the skill applies the formula for that UI state:
 - **Label** — concise, keyword front-loaded, one term per concept.
 
 Each formula ships with a before → after in
-`voice-and-microcopy/references/microcopy-formulas.md`.
+`ux-writing/references/microcopy-formulas.md`.
 
 ## 3. Run the content checklist before it ships
 
 Before the copy lands, the skill runs the **content checklist**
-(`voice-and-microcopy/references/content-checklist.md`): voice-consistent,
+(`ux-writing/references/content-checklist.md`): voice-consistent,
 blame-free, actionable, concise, terminology-consistent, scannable, inclusive. Run
 it deliberately on the strings that carry weight — errors, empty states, primary
 buttons, destructive confirmations — and fix the misses.
