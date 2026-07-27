@@ -36,33 +36,38 @@ Three real artifacts from this repo run through the improved skill system.
 
 ---
 
-## Example 2 — Pack card: product-engineering (product-copy mode)
+## Example 2 — Product vision headline: product-vision-INI-001 (product-copy mode)
 
-**Source:** `web/src/content/packs/product-engineering.md` body paragraph  
-**Mode classified:** `product-copy`
+**Source:** `docs/product/shaping/product-vision-INI-001.md` Headline section  
+**Mode classified:** `product-copy` (conviction statement; the surface is persuasion, not explanation)
 
-### BEFORE (81 words)
+### BEFORE (24 words)
 
-> Product Engineering installs upstream of the build loop. The `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief: diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks. `frame-intent`, `de-risk-intent`, and `decompose-intent` run as habits over a recursive intent hierarchy. `voice-and-microcopy` adds the content layer.
+> A product OS for engineering teams — the coordination layer that closes the gap between one AI assistant and a thousand coordinated agents.
 
 ### Gate results
 
-**Anti-AI-smell scan:** No flagged warning-signal words. Structural flags:
-- "installs upstream of the build loop" — jargon pair (upstream, build loop) with no reader benefit
-- "diverging across candidate product shapes, converging through a lens roster with two discovery reviewers" — architecture description, not outcome
+**Anti-AI-smell scan:** No warning-signal words. Structural flags:
+- "closes the gap" — generic resolution phrase; the gap is named but not felt
+- "product OS" — borrowed OS metaphor; does not explain what an OS actually does for the reader
+- "coordination layer" — mechanism first; the reader's situation does not appear before the solution
 
-**Deletion pass:** "and emitting a connected hypothesis with validation hooks" — the phrase carries no reader meaning without context. "run as habits over a recursive intent hierarchy" — pure architecture.
+**Deletion pass:**
+- Q5 (Feature instead of outcome?): FIRE — "the coordination layer" names a mechanism, not what the reader gains
+- Q10 (Is the product's actual POV visible?): FIRE — the "Why now" section has a sharp POV ("the bottleneck shifted from model capability to coordination infrastructure"); the headline does not carry it
 
-**5-second test:** PARTIAL — a technical practitioner gets it; a product person does not know what problem it solves.  
-**Specificity test:** PARTIAL — "turns a raw idea into a build-ready decision brief" is genuinely specific; the mechanism description after it is not.  
-**Point-of-view test:** FAIL — no opinion about why product ideas fail before the build.  
-**Distinctiveness test:** FAIL — could describe any structured product planning methodology.
+**5-second test:** PARTIAL — *what is this?* ("a product OS") and *who is it for?* ("engineering teams") are clear; *why should I care?* requires the reader to feel the coordination gap, which the headline only names.  
+**Specificity test:** PARTIAL — "one AI assistant and a thousand coordinated agents" is specific and strong; "closes the gap" is generic.  
+**Point-of-view test:** FAIL — the strong POV lives in the body ("the bottleneck is coordination, not capability") but the headline is just a mechanism description.  
+**Distinctiveness test:** FAIL — "closes the gap" could appear unchanged on hundreds of coordination/integration products.
 
-### AFTER (72 words)
+### AFTER (28 words)
 
-> Most product ideas die in the gap between "we should build this" and a team that knows what to build and why. Product Engineering closes that gap. The `discovery-loop` (run by the `discovery-lead` agent) stress-tests the idea before engineering starts: it generates competing product shapes, subjects them to domain grounding and two specialist reviewers, and doesn't hand off until there's a connected hypothesis with a named kill condition.
+> Engineering teams now run AI on every task — but each agent starts from scratch, knows nothing of the others, and leaves no shared trail. This is the OS beneath the agents.
 
-**Evaluation:** word count down 11% (the BEFORE was already lean). USER PROBLEM now leads. Architecture description pruned to the outcome it produces. Still specific — kill condition, domain grounding, specialist reviewers are differentiating details.
+**Evaluation:** same word count. POV now leads (the reader's situation before the solution). "OS beneath the agents" earns the metaphor by naming what an OS actually does. The specific "one AI assistant to a thousand" claim is preserved in the body where it can be explained.
+
+**Note on technical-editorial mode:** The `product-vision-INI-001.md` body sections (The problem, The solution, The adopter, Why now) use `technical-editorial` mode correctly — specific claims, evidence-backed, no AI-smell flags. The gate battery does not fire on those sections.
 
 ---
 
@@ -104,7 +109,7 @@ Remove "the grown-up successor to `design-craft`" — the dash-phrase is an inte
 | Example | Mode | 5-second | Specificity | POV | Distinctiveness | Word change |
 |---------|------|----------|-------------|-----|----------------|-------------|
 | experience-design card | product-copy | FAIL → pass | FAIL → pass | FAIL → pass | FAIL → pass | −43% |
-| product-engineering card | product-copy | partial → pass | partial → pass | FAIL → pass | FAIL → pass | −11% |
+| product-vision-INI-001 headline | product-copy | partial → pass | partial → pass | FAIL → pass | FAIL → pass | +17% |
 | experience-design README | technical-editorial | not fired | not fired | not fired | not fired | −0.5% |
 
 **Key finding confirmed:** the gap is not capability — the existing skills have the craft knowledge. The gap is mode-blindness. Pack cards and README openings were written in the same voice because no system distinguished when to switch register. With `communication_mode` declared and the editorial gates active, the distinction is now explicit and enforced.

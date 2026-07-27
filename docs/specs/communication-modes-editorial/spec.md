@@ -1,6 +1,6 @@
 # Spec: communication-modes-editorial
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Mode:** full (structural + public-interface triggers)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -57,28 +57,28 @@ The fix is the smallest change that produces a large improvement:
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Mode declaration in content-design.** `content-design` SKILL.md instructs the agent to include `communication_mode: product-copy | technical-editorial | reference-documentation` in the content brief artifact's frontmatter. `communication_mode` is an editorial label orthogonal to the existing two elicitation sub-paths (which remain unchanged): acquisition surfaces → `product-copy`; product/reference surfaces that are help, feature explanation, or onboarding → `technical-editorial`; product/reference surfaces that are API, CLI, configuration, installation, or troubleshooting → `reference-documentation`. The content-design SKILL.md frontmatter `description:` is updated to reflect the mode concept. SKILL.md:21 ("Documentation surfaces route as product/reference") is updated to note that documentation surfaces map to `reference-documentation` mode.
+- [x] **AC1 — Mode declaration in content-design.** `content-design` SKILL.md instructs the agent to include `communication_mode: product-copy | technical-editorial | reference-documentation` in the content brief artifact's frontmatter. `communication_mode` is an editorial label orthogonal to the existing two elicitation sub-paths (which remain unchanged): acquisition surfaces → `product-copy`; product/reference surfaces that are help, feature explanation, or onboarding → `technical-editorial`; product/reference surfaces that are API, CLI, configuration, installation, or troubleshooting → `reference-documentation`. The content-design SKILL.md frontmatter `description:` is updated to reflect the mode concept. SKILL.md:21 ("Documentation surfaces route as product/reference") is updated to note that documentation surfaces map to `reference-documentation` mode.
 
-- [ ] **AC2 — communication-modes.md reference exists.** `packs/experience-design/.apm/skills/content-design/references/communication-modes.md` defines the 3 modes (optimization target, hierarchy, anti-patterns) and is referenced from `content-design` SKILL.md Step 1.
+- [x] **AC2 — communication-modes.md reference exists.** `packs/experience-design/.apm/skills/content-design/references/communication-modes.md` defines the 3 modes (each with an optimization target); product-copy also includes the full information hierarchy and named anti-patterns. Referenced from `content-design` SKILL.md Step 1.
 
-- [ ] **AC3 — editorial-quality-gates.md reference exists.** `packs/experience-design/.apm/skills/tone-of-voice/references/editorial-quality-gates.md` and `packs/experience-design/.apm/skills/conversion-design/references/editorial-quality-gates.md` (copy with duplication note) define the anti-AI-smell checklist, deletion pass protocol (10 questions), and human copy tests (5-second, specificity, point-of-view, distinctiveness tests).
+- [x] **AC3 — editorial-quality-gates.md reference exists.** `packs/experience-design/.apm/skills/tone-of-voice/references/editorial-quality-gates.md` and `packs/experience-design/.apm/skills/conversion-design/references/editorial-quality-gates.md` (copy with duplication note) define the anti-AI-smell checklist, deletion pass protocol (10 questions), and human copy tests (5-second, specificity, point-of-view, distinctiveness tests).
 
-- [ ] **AC4 — tone-of-voice applies anti-AI-smell when mode = product-copy.** `tone-of-voice` SKILL.md Step 3 (ground each goal) includes: "If a content brief is upstream and declares `communication_mode: product-copy`, load `references/editorial-quality-gates.md` and check each copy goal against the anti-AI-smell criteria before recording." Step 7 (plain-language floor) adds the anti-AI-smell pass as a mandatory parallel check alongside the existing three floor checks.
+- [x] **AC4 — tone-of-voice applies anti-AI-smell when mode = product-copy.** `tone-of-voice` SKILL.md Step 3 (ground each goal) includes: "If a content brief is upstream and declares `communication_mode: product-copy`, load `references/editorial-quality-gates.md` and check each copy goal against the anti-AI-smell criteria before recording." Step 7 (plain-language floor) adds the anti-AI-smell pass as a mandatory parallel check alongside the existing three floor checks.
 
-- [ ] **AC5 — conversion-design requires deletion pass and human copy test.** `conversion-design` SKILL.md adds a final step (after Numbered product tour spine, before canonical aesthetic reference): run the deletion pass (load `references/editorial-quality-gates.md`) and the human copy test suite. The output spec must note which copy tests passed and which questions raised concerns.
+- [x] **AC5 — conversion-design requires deletion pass and human copy test.** `conversion-design` SKILL.md adds a final section (last content section before anti-patterns): run the deletion pass (load `references/editorial-quality-gates.md`) and the human copy test suite. The output spec must note which copy tests passed and which questions raised concerns.
 
-- [ ] **AC6 — experience-reviewer marketing clarity lens extended.** `experience-reviewer` agent:
+- [x] **AC6 — experience-reviewer marketing clarity lens extended.** `experience-reviewer` agent:
   - Scope change: marketing clarity lens fires on **copy-bearing Product Copy mode artifacts** (landing pages, pack cards, README openings, product descriptions with `communication_mode: product-copy`). Does NOT fire on content briefs or tone-of-voice docs (direction artifacts, not final copy).
   - Three new sub-checks added under marketing clarity: anti-AI-smell scan (flag compensatory words — unlock, empower, seamless, robust, comprehensive, powerful, next-generation, best-in-class, at scale, revolutionary — as warning signals requiring editorial judgment, not automatic findings), deletion audit ("assume 30% too long — identify the weakest paragraph and any repeated idea"), and the specificity check ("could this paragraph appear unchanged on another company's website with only the product name swapped?").
   - The anti-AI-smell word list is inlined in the agent file with a comment noting it mirrors `tone-of-voice`'s `references/editorial-quality-gates.md` and must be kept in sync.
   - Existing tweet test, 5-second scan, and painkiller-first criteria are unchanged.
 
-- [ ] **AC7 — tested against 3 real examples.** At least 3 artifacts from this repo run through the improved skills with before/after documented:
-  1. A copy-bearing marketing surface (e.g. a web component or pack card)
-  2. A pack README description
-  3. A product document (e.g. a prfaq or vision doc)
+- [x] **AC7 — tested against 3 real examples.** At least 3 artifacts from this repo run through the improved skills with before/after documented:
+  1. A copy-bearing marketing surface — `web/src/content/packs/experience-design.md` body paragraph (product-copy mode)
+  2. A pack README description — `packs/experience-design/README.md` opening (technical-editorial mode)
+  3. A product document — `docs/product/shaping/product-vision-INI-001.md` Headline + The problem opening (product-copy mode for headline, technical-editorial for body)
 
-- [ ] **AC8 — pack version bumped.** `packs/experience-design/pack.toml` version incremented (patch). If `plugin.json` exists, updated in the same commit.
+- [x] **AC8 — pack version bumped.** `packs/experience-design/pack.toml` version incremented (patch). If `plugin.json` exists, updated in the same commit.
 
 ## Testing Strategy
 

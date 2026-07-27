@@ -1,5 +1,9 @@
 # Editorial quality gates — product-copy mode
 
+> Note: this reference is intentionally duplicated into `conversion-design`'s
+> `references/editorial-quality-gates.md`. Skill autonomy beats DRY at this
+> scale — each skill stands alone. See the pack README.
+
 Apply these gates to product-copy mode output. They are judgment tools, not checklists.
 A "flag" is a prompt to examine whether the word or pattern is earning its place.
 
