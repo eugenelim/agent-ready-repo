@@ -9,6 +9,10 @@ Cold-start orient for a sustained desk-research project. Run this when you retur
 
 **Read-only** by contract (ADR-0054): it never advances `phase`, never invokes `desk-research-project-digest` or `desk-research-project-synthesize`, and never modifies `overview.md`.
 
+## Output rendering
+
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Any return-to-a-named-research-project phrasing: *"where are we on the X research"*, *"status of the Y investigation"*, *"resume the Z project"*, *"what phase is the research in"*, *"where did we leave off on the research"*. Also useful at session start alongside `workspace-status` to orient to a sustained research thread.

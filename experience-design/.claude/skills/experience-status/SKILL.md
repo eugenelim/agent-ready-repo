@@ -9,6 +9,11 @@ Cold-start orient for a sustained experience-design thread. Run this when you re
 
 **Read-only** by contract (ADR-0054): it never writes files, never elicits `[design] output_dir` (stops at "not configured"), and never advances state.
 
+## Output rendering
+
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## When to invoke
 
 Any cold-start orient for the design thread: *"where are we with the design"*, *"what experience artifacts do we have"*, *"status of the design thread"*, *"what's next in the design"*, *"show me what design work exists"*. Also useful at session start alongside `workspace-status` to orient to an ongoing experience thread.

@@ -9,6 +9,11 @@ description: Use this skill to audit Terraform/OpenTofu drift, reconcile state, 
 Audit and propose; a human (or the `release-loop` consent gate) decides. Never
 autonomously apply.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+
 ## Three triggers — all first-class
 
 | Trigger | When | What it does |

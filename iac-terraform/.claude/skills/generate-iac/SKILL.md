@@ -10,6 +10,11 @@ The output is a deploy-ready Terraform directory with a pinned, clean `plan` —
 the G4 handoff to `release-loop` (or the generated human-gated pipeline where
 `release-loop` is absent). Apply is never in scope for this skill.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
+
 ## v1 scope — governed realization, not architectural design
 
 **In scope (v1):** governed HCL generation from a pre-formed architectural

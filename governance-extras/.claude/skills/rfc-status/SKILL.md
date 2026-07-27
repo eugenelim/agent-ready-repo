@@ -9,6 +9,10 @@ Surface the current RFC landscape in one pass. Useful at session start (with
 `workspace-status`) or any time you need to know what governance work is in
 flight before proposing or opening a new RFC.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 Any request for an RFC overview: "what RFCs are active?", "rfc status", "show

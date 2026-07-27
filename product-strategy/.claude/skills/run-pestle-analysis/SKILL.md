@@ -7,6 +7,10 @@ description: Use when a strategist needs to scan the macro environment before se
 
 Produces a **macro-environment analysis** using the PESTLE framework — Political, Economic, Social, Technological, Legal, and Environmental dimensions. PESTLE is a structured scan; it surfaces which macro forces are most material to the strategic context and in what time horizon. See `references/agentbundle-layout.md` for artifact path.
 
+## Output rendering
+
+Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
+
 ## When to invoke
 
 1. **A scope is defined** — geography, industry, and time horizon must be named before the scan begins. A global PESTLE for an indeterminate horizon is not useful.
