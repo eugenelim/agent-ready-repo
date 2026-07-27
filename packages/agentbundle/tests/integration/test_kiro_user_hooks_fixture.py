@@ -16,6 +16,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -43,7 +44,10 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.home = self.tmp / "home"
         self.home.mkdir()
-        self._env_patch = patch.dict(os.environ, {"HOME": str(self.home)})
+        self._env_patch = patch.dict(
+            os.environ,
+            {"HOME": str(self.home), "AGENTBUNDLE_USER_ROOT": str(self.home)},
+        )
         self._env_patch.start()
         self.addCleanup(self._env_patch.stop)
 
@@ -120,13 +124,20 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
 
         project(self.agent_json, "kiro-user-hooks", wiring)
 
+        # Projection/read-back: verify the command round-trips through
+        # the merge correctly on all platforms.
+        data = json.loads(self.agent_json.read_text(encoding="utf-8"))
+        command = data["hooks"]["agentSpawn"][0]["command"]
+        self.assertEqual(command, str(hook_body))
+
+        # Dispatch: Git-for-Windows bash strips backslashes from Windows
+        # paths (C:\... → C:...), so `sh -c <windows-path>` cannot work.
+        if sys.platform == "win32":
+            return
         # Read the merged command back from the on-disk agent JSON and
         # dispatch it. Run from an arbitrary cwd (the tmp root, not the
         # hook body's directory) to satisfy AC18's "from any working
         # directory" clause.
-        data = json.loads(self.agent_json.read_text(encoding="utf-8"))
-        command = data["hooks"]["agentSpawn"][0]["command"]
-        self.assertEqual(command, str(hook_body))
         result = subprocess.run(
             ["sh", "-c", command],
             cwd=str(self.tmp),

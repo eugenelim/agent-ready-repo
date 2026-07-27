@@ -344,7 +344,9 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
 
             import os
             old_home = os.environ.get("HOME")
+            old_user_root = os.environ.get("AGENTBUNDLE_USER_ROOT")
             os.environ["HOME"] = str(fake_home)
+            os.environ["AGENTBUNDLE_USER_ROOT"] = str(fake_home)
             try:
                 # First install at repo scope (no force).
                 rc, _, err1 = self._install(
@@ -382,6 +384,10 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
                     os.environ["HOME"] = old_home
                 else:
                     os.environ.pop("HOME", None)
+                if old_user_root is not None:
+                    os.environ["AGENTBUNDLE_USER_ROOT"] = old_user_root
+                else:
+                    os.environ.pop("AGENTBUNDLE_USER_ROOT", None)
 
 
 class KiroPerFileDropEndToEnd(unittest.TestCase):
