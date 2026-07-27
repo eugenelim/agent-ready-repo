@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.19.0] — 2026-07-27
+
+Supersedes the accidental research-branch 0.18.0 PyPI publish. Contains all
+features from 0.13.0 through 0.18.0 plus the ini-005 catalogue-tooling surface
+introduced in 0.13.0.
+
 ## [0.13.0] — 2026-07-26
 
 ### Added
