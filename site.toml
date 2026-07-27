@@ -17,7 +17,7 @@ packs = [
 [[groups]]
 label = "Engineering"
 packs = [
-  "iac-terraform", "monorepo-extras",
+  "frontend-engineering", "iac-terraform", "monorepo-extras",
   "contracts",
 ]
 

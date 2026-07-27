@@ -567,6 +567,15 @@ open = [
   # Unblocks when: apm-leak-lint-rfc RFC is approved, or explicit approval obtained.
   {slug = "credbroker-frozen-pack-ref-sweep", source = "spec/apm-internal-ref-sweep"},
 
+  # packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py::
+  # test_entry_point_imports_resolve_under_user_scope_layout fails because credbroker
+  # is not installed in the test environment (requires `pip install -e ./packages/credbroker`).
+  # Pre-existing failure confirmed on origin/main (pre-flight 2026-07-27).
+  # Fix: install credbroker package in CI test environment, or scope the test to skip
+  #   when credbroker is not installed (`pytest.importorskip`).
+  # Unblocks when: CI environment includes credbroker, or test gains a skip guard.
+  {slug = "pre-existing-credbroker-test-not-installed", source = "pre-flight/2026-07-27"},
+
   # RFC-0065 D5 (source-author review 2026-07-18). Azure shipped contract-complete
   # in iac-terraform v1 (four provider files + providers/azure.md) but no worked
   # example has passed terraform init -backend=false && fmt -check && validate. The
