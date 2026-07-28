@@ -10,8 +10,8 @@ sequences in a string literal.
 from __future__ import annotations
 
 import shutil
-import subprocess
 import sys
+import zipapp
 from pathlib import Path
 
 
@@ -31,16 +31,11 @@ def main() -> None:
         ignore=shutil.ignore_patterns("__pycache__", "tests", "*.pyc"),
     )
 
-    # shell=False (default) — list args pass directly to execvp without shell
-    # interpretation, so user-supplied argv[1] cannot inject shell commands.
-    subprocess.run(  # nosemgrep
-        [
-            sys.executable, "-m", "zipapp", str(stage),
-            "-o", str(output_dir / "agentbundle.pyz"),
-            "-m", "agentbundle.cli:main",
-            "-p", "/usr/bin/env python3",
-        ],
-        check=True,
+    zipapp.create_archive(
+        stage,
+        target=output_dir / "agentbundle.pyz",
+        interpreter="/usr/bin/env python3",
+        main="agentbundle.cli:main",
     )
 
     shutil.rmtree(stage, ignore_errors=True)

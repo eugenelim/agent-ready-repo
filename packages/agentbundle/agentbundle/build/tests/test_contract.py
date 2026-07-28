@@ -602,10 +602,10 @@ class TestCodexSkillDirectDirectory(unittest.TestCase):
         self.assertNotIn("managed-block-delimiter-end", entry)
 
     def test_contract_files_byte_identical(self) -> None:
-        self.assertEqual(
-            CONTRACT_PATH.read_bytes(),
-            DATA_CONTRACT_PATH.read_bytes(),
-        )
+        def _norm(p: Path) -> bytes:
+            return p.read_bytes().replace(b"\r\n", b"\n")
+
+        self.assertEqual(_norm(CONTRACT_PATH), _norm(DATA_CONTRACT_PATH))
 
     def test_seed_agents_md_has_no_legacy_delimiters(self) -> None:
         text = SEED_AGENTS_MD_PATH.read_text(encoding="utf-8")

@@ -63,13 +63,14 @@ def _seed_tree(
 
 
 def _run_linter(cwd: Path) -> subprocess.CompletedProcess[str]:
-    env = dict(os.environ)
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     return subprocess.run(
         [sys.executable, str(LINTER)],
         cwd=cwd,
         env=env,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
 
