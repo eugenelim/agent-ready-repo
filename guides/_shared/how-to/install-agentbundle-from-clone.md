@@ -95,7 +95,7 @@ make zipapp                                              # builds dist/agentbund
 
 Use the zipapp when one of these holds:
 
-- **You only install non-credentialed packs** (`core`, `governance-extras`, `user-guide-diataxis`, `monorepo-extras`, `contracts`). The CLI is all you need; no skill in those packs imports `agentbundle.cli`.
+- **You only install non-credentialed packs** (`core`, `governance-extras`, `product-documentation`, `monorepo-extras`, `contracts`). The CLI is all you need; no skill in those packs imports `agentbundle.cli`.
 - **Split-host topology where pip is blocked on the install host but not the agent host** — host A is locked-down (CI runner, air-gapped builder) and runs the zipapp to project pack content into a target repo, the CLI never imports `agentbundle.cli`; host B is the developer workstation that has a normal Python install where you `pip install agentbundle` so skill scripts resolve the loader there.
 - **You're handing the zipapp off to a third party** who doesn't have `pip` and won't run credentialed skills — the zipapp is a portable artifact for that case by design.
 

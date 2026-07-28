@@ -1,0 +1,5 @@
+{
+  "name": "product-documentation",
+  "version": "0.1.0",
+  "description": "Create, revise, retrofit, audit, and verify catalogue-facing product documentation. Supports Diátaxis as a page contract (not a mandatory folder scaffold). Portable across adopter repositories."
+}

@@ -2,14 +2,16 @@
 
 `make build-self` already invokes ``validate_pack_metadata`` per pack at
 build time, so a malformed shipped manifest breaks CI. These pytests
-pin the *positive* shape — the four shipped packs declare the v0.2
-contract metadata and the three addon packs carry the required-dep on
+pin the *positive* shape — the repo-only packs declare the v0.8
+contract metadata and the addon packs carry the required-dep on
 ``core`` — so a silent metadata removal (or a botched bump) trips a
 test rather than slipping through.
 
-Scope is deliberately narrow: enumerate the four shipped packs by
-name. Three addons / four total is small enough not to warrant a
-helper.
+``product-documentation`` is separate: it allows user + repo scope and
+carries no ``core`` dependency; it has its own assertions below.
+``user-guide-diataxis`` (0.3.0) is a deprecated compat shim that
+requires ``product-documentation`` (not ``core``); it has its own
+assertion below.
 """
 
 from __future__ import annotations
@@ -22,8 +24,11 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACKS_DIR = REPO_ROOT / "packs"
 
-ALL_SHIPPED_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
-ADDON_PACKS = ("governance-extras", "user-guide-diataxis", "monorepo-extras")
+# Repo-only packs (allowed-scopes = ["repo"]) with adapter-contract v0.8
+# (core is v0.12 — bumped by copilot-full-parity / copilot-skills-and-web).
+REPO_ONLY_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
+# Addon packs that declare a required dep on core ^0.1.
+CORE_DEP_PACKS = ("governance-extras", "monorepo-extras")
 
 
 def _load(pack_name: str) -> dict:
@@ -32,15 +37,14 @@ def _load(pack_name: str) -> dict:
     return tomllib.loads(path.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("pack_name", ADDON_PACKS)
+@pytest.mark.parametrize("pack_name", CORE_DEP_PACKS)
 def test_addon_manifests_carry_required_dependency(pack_name):
-    """Every addon pack declares `[[pack.dependencies.required]]` against
-    `core` with the `^0.1` caret-minor range (adapt-to-project AC18).
+    """Addon packs (governance-extras, monorepo-extras) declare
+    `[[pack.dependencies.required]]` against `core` with the `^0.1`
+    caret-minor range (adapt-to-project AC18).
 
-    Scope: this test pins the *manifest shape*. The install-time gate
-    behavior (refusing an addon install when core is absent from the
-    union of repo+user state) is covered separately by
-    `test_install_dependencies_gate.py`.
+    user-guide-diataxis (0.3.0) is a deprecated shim that depends on
+    product-documentation instead of core; its dep is pinned separately.
     """
     data = _load(pack_name)
     required = data.get("pack", {}).get("dependencies", {}).get("required")
@@ -61,15 +65,38 @@ def test_addon_manifests_carry_required_dependency(pack_name):
     )
 
 
-@pytest.mark.parametrize("pack_name", ALL_SHIPPED_PACKS)
-def test_all_packs_declare_install_table(pack_name):
-    """Every shipped pack declares the current contract + the
+def test_shim_requires_product_documentation():
+    """user-guide-diataxis (0.3.0) is a deprecated compat shim.
+    It must declare a required dep on product-documentation ^0.1 so the
+    resolver errors when the canonical pack is absent.
+    """
+    data = _load("user-guide-diataxis")
+    required = data.get("pack", {}).get("dependencies", {}).get("required")
+    assert isinstance(required, list) and required, (
+        "user-guide-diataxis: expected non-empty [[pack.dependencies.required]] list"
+    )
+    matches = [
+        e for e in required
+        if isinstance(e, dict)
+        and e.get("catalogue") == "agent-ready-repo"
+        and e.get("pack") == "product-documentation"
+        and e.get("version") == "^0.1"
+    ]
+    assert matches, (
+        "user-guide-diataxis: required-dep entry "
+        '{catalogue="agent-ready-repo", pack="product-documentation", version="^0.1"} not found; '
+        f"got {required!r}"
+    )
+
+
+@pytest.mark.parametrize("pack_name", REPO_ONLY_PACKS)
+def test_repo_only_packs_declare_install_table(pack_name):
+    """Repo-only shipped packs declare the current contract + the
     `[pack.install]` table with `default-scope = "repo"` and
     `allowed-scopes = ["repo"]`. RFC-0004 sets the install-scope
-    dimension; all four shipped packs are repo-only by content (core
-    ships hooks, addons scaffold project directories) so the four
-    packs land in lockstep with the contract. RFC-0012 bumps the
-    four repo-only packs from v0.2 to v0.7 (Drawback #7 mitigation —
+    dimension; all four repo-only packs are repo-only by content (core
+    ships hooks, addons scaffold project directories). RFC-0012 bumps
+    the four repo-only packs from v0.2 to v0.7 (Drawback #7 mitigation —
     required for the resolver to route them to codex/copilot via the
     no-flag default at repo scope).
     """
@@ -97,4 +124,52 @@ def test_all_packs_declare_install_table(pack_name):
     assert install.get("allowed-scopes") == ["repo"], (
         f"{pack_name}: [pack.install] allowed-scopes must be [\"repo\"]; "
         f"got {install!r}"
+    )
+
+
+def test_shim_has_no_seeds():
+    """T-D3: user-guide-diataxis 0.3.0 is a deprecated compat shim.
+    It must have no seeds/ directory; a re-added scaffold would silently
+    project quadrant directories into adopter repos.
+    """
+    seeds = PACKS_DIR / "user-guide-diataxis" / "seeds"
+    assert not seeds.exists(), (
+        f"user-guide-diataxis: seeds/ directory must not exist in compat shim; found {seeds}"
+    )
+
+
+def test_canonical_has_no_quadrant_seeds():
+    """T-D4: product-documentation installs no directory scaffold.
+    Assert the four Diátaxis quadrant paths are absent under seeds/.
+    """
+    seeds = PACKS_DIR / "product-documentation" / "seeds"
+    if not seeds.exists():
+        return  # no seeds at all — trivially passes
+    for quadrant in ("tutorials", "how-to", "reference", "explanation"):
+        path = seeds / "guides" / quadrant
+        assert not path.exists(), (
+            f"product-documentation: seeds/guides/{quadrant}/ must not exist "
+            "(Diátaxis is a page contract, not a directory scaffold)"
+        )
+
+
+def test_product_documentation_install_table():
+    """product-documentation allows both user and repo scope (no core dep).
+    Pins the install-table shape so a silent scope restriction regresses.
+    """
+    data = _load("product-documentation")
+    contract = data.get("pack", {}).get("adapter-contract", {})
+    assert contract.get("version") == "0.8", (
+        f"product-documentation: adapter-contract.version must be \"0.8\"; got {contract!r}"
+    )
+    install = data.get("pack", {}).get("install")
+    assert isinstance(install, dict), "product-documentation: [pack.install] table missing"
+    assert install.get("default-scope") == "repo", (
+        f"product-documentation: default-scope must be \"repo\"; got {install!r}"
+    )
+    assert install.get("allowed-scopes") == ["user", "repo"], (
+        f"product-documentation: allowed-scopes must be [\"user\", \"repo\"]; got {install!r}"
+    )
+    assert not data.get("pack", {}).get("dependencies"), (
+        "product-documentation: must have no core dependency (user scope requires it)"
     )

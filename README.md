@@ -117,7 +117,7 @@ Three packs form the operating model. The rest are curated kits — each distill
 | [`product-engineering`](guides/product-engineering/) | user | The discovery loop — raw idea to build-ready brief. |
 | [`release-engineering`](guides/release-engineering/) | **repo** | The release loop — build to production. Hard-depends on `core`. |
 | [`governance-extras`](guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos. |
-| [`user-guide-diataxis`](guides/user-guide-diataxis/) | repo | Stand up a Diátaxis docs site. |
+| [`product-documentation`](guides/product-documentation/) | user / repo | Create, revise, audit, and verify product documentation. |
 | [`monorepo-extras`](guides/monorepo-extras/) | repo | Scaffold packages in a monorepo. |
 | [`desk-research`](guides/desk-research/) | user / repo | Go from a question to an evidence-grounded answer. |
 | [`contracts`](guides/contracts/) | user / repo | Author an API contract (OpenAPI 3.1). |

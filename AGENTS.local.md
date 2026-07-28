@@ -67,8 +67,8 @@ consumes, not a citation).
 ## House style for internal docs
 
 Applies to prose that stays in this repo and never ships: this file, `docs/architecture/`, `docs/specs/`,
-RFCs, ADRs, internal READMEs. The adopter-facing version ships in the `user-guide-diataxis` pack's
-`new-guide` skill (`references/clear-prose.md`).
+RFCs, ADRs, internal READMEs. The adopter-facing version ships in the `product-documentation` pack's
+`author-product-docs` skill (`references/clear-prose.md`).
 
 - **Write prose that reads like a person wrote it.** Cut hedges ("it's worth noting"), uniform sentence
   rhythm, em-dash overuse, throat-clearing openers, inflated verbs ("leverage", "utilize", "delve").
@@ -135,9 +135,11 @@ Write maintainer-facing guides (tooling, repo setup, CI) under `docs/guides/`.
 `docs/guides/` inside this repo uses the older flat `{quadrant}/` layout (pre-by-pack convention).
 The `new-guide` skill is layout-aware and writes under `guides/` by default; pass `--internal` to target `docs/guides/`.
 
-The adopter-facing `user-guide-diataxis` seed scaffold ships a by-quadrant `docs/guides/{quadrant}/` tree
-(an adopter is one product, not a catalogue); `docs/CONVENTIONS.md` §5c is projected and stays
-by-quadrant for adopters.
+The `product-documentation` pack has no seeds — it does not install a directory scaffold.
+`docs/CONVENTIONS.md` §5c is projected from `packs/core/seeds/docs/CONVENTIONS.md` and stays
+pack-neutral. The `author-product-docs` skill is layout-aware: it inspects the host's existing
+documentation structure and routes by audience (external user → `guides/<pack>/`;
+maintainer → `docs/guides/`).
 
 ## Install-test coverage rule
 

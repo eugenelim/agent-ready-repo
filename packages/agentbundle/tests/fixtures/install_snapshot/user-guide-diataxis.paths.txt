@@ -1,5 +1,0 @@
-guides/README.md
-guides/explanation/README.md
-guides/how-to/README.md
-guides/reference/README.md
-guides/tutorials/README.md
