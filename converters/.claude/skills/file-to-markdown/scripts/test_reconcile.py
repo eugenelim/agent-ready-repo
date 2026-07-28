@@ -84,6 +84,7 @@ def test_render_markdown_frontmatter_byte_parity(monkeypatch):
     block = "\n".join(lines[: end + 1])
     assert block == EXPECTED_IMAGE_FRONTMATTER
 
+
 CROP = {"x": 0, "y": 0, "w": 1200, "h": 900}
 
 

@@ -30,6 +30,7 @@ DEFAULT_CONCURRENCY = 4
 DEFAULT_TIMEOUT_S = 30.0
 MAX_RETRIES = 5
 
+
 # Image renders come back as presigned URLs on these hosts. Anything else
 # is rejected by ``download()`` — Figma's render endpoint should never
 # return third-party hosts, and if a malicious response (or MITM) tried

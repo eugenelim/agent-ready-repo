@@ -52,7 +52,7 @@ def test_rejects_wildcard_and_catchall_endpoints(bad):
     "::1",                    # IPv6 loopback
     "fe80::1",                # IPv6 link-local
     "fc00::1",                # IPv6 ULA (private)
-    "::ffff:169.254.169.254", # IPv4-mapped IPv6 metadata — the sharp case
+    "::ffff:169.254.169.254",  # IPv4-mapped IPv6 metadata — the sharp case
     "::ffff:127.0.0.1",       # IPv4-mapped IPv6 loopback
 ])
 def test_rejects_internal_ip_targets(ip):

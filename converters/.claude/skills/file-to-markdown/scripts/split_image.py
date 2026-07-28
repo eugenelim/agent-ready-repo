@@ -525,7 +525,7 @@ def main() -> None:
                   f"(reason: {ps['reason']})")
         print(f"  Sliding window: {m['sliding_window_tiles']} tiles  "
               f"(viewport={m['viewport']}px, stride={m['stride']}px, "
-              f"overlap={m['overlap_pct']*100:.0f}%)")
+              f"overlap={m['overlap_pct'] * 100:.0f}%)")
         if m["focus_region_tiles"]:
             print(f"  Focus regions:  {m['focus_region_tiles']} tiles")
         print(f"  Total: {m['total_tiles']} tiles")

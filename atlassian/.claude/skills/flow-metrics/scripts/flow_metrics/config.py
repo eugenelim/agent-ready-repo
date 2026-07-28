@@ -246,6 +246,7 @@ def validate_state_config(parsed: Any) -> None:
             "'active_states' or 'wait_states'"
         )
     # Rule 8: every referenced canonical name is a key of canonical_states.
+
     def _check_refs(refs: list[str], label: str) -> None:
         for r in refs:
             if r not in canonical_keys:

@@ -636,6 +636,7 @@ def main() -> int:
              for t in detail.get("tiles", [])}
     # Also accept tile ids of the form "W0_R0_C0" (basename without extension)
     # or full filename.
+
     def resolve_tile(tile_id: str) -> dict | None:
         if tile_id in tiles:
             return tiles[tile_id]
