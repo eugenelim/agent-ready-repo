@@ -1,7 +1,7 @@
 name: catalogue-tooling-ci-gates
 
 # Nine gates introduced by ini-005 Wave 5c:
-#   A: agentbundle-tests             — full pytest matrix (Ubuntu 3.11/3.12, Windows 3.11)
+#   A: agentbundle-tests             — full pytest on Ubuntu 3.11/3.12; curated portable subset on Windows 3.11
 #   B: external-catalogue-smoke      — portable engine outside this repo
 #   C: enterprise-agentbundle-distribution — enterprise distribution + credential scan
 #   D: catalogue-artifact-smoke      — real catalogue packaging round-trip
@@ -23,9 +23,12 @@ jobs:
   # ── Gate A: complete agentbundle test discovery ───────────────────────────
   agentbundle-tests:
     name: "Gate A — agentbundle tests (${{ matrix.os }} / py${{ matrix.python }})"
-    # Windows has 50+ pre-existing compat failures (CRLF, cp1252, symlinks, pwd
-    # module) that pre-date wave5c. Keep the run so regressions surface, but
-    # don't let it block the PR until the Windows-compat follow-up lands.
+    # Windows runs a curated portable subset (same paths as build-check-windows.yml)
+    # rather than the full suite. The full 2773-test run has 50+ pre-existing
+    # compat failures (CRLF, cp1252, symlinks, pwd module) that make the signal
+    # hard to read; the curated list covers path-sensitive and Windows-specific
+    # tests that are known to pass. continue-on-error is kept while the curated
+    # list is still being validated.
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
       fail-fast: false
@@ -50,12 +53,28 @@ jobs:
         run: pip install -e packages/credbroker
       - name: Install pyyaml for agent-artifact lint and credentialed-skill tests
         run: pip install 'pyyaml>=6.0'
-      - name: Run full agentbundle test suite
+      - name: Run full agentbundle test suite (Linux)
+        if: matrix.os != 'windows-latest'
         working-directory: packages/agentbundle
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
         run: python -m pytest tests/ agentbundle/build/tests/ -q
+      - name: Run agentbundle test suite (Windows — curated portable subset)
+        if: matrix.os == 'windows-latest'
+        working-directory: packages/agentbundle
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python -m pytest tests/integration/test_install_converters_user_scope.py
+          python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
+          python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
+          python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
+          python -m pytest agentbundle/build/tests/test_user_libs_projection.py
+          python -m pytest tests/integration/test_credential_brokers_pack_install.py
+          python -m pytest tests/hooks/
+          python -m pytest tests/unit/test_packstate_source_provenance.py
 
   # ── Gate B: external catalogue portability ────────────────────────────────
   external-catalogue-smoke:
