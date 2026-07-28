@@ -1,10 +1,10 @@
-# How to export a catalogue for org-fork distribution
+# How to configure a catalogue for enterprise distribution
 
-**Use this when:** Your org maintains a fork of `agentbundle` and you want developers to run `agentbundle install` against your internal Artifactory channel without a manual `config set source` step.
-**Prerequisites:** A `catalogue.toml` with `[distribution.agentbundle.artifactory]` populated; Artifactory accessible from your build host; `agentbundle` ≥ 0.22.0 installed.
-**Result:** An org `agentbundle` wheel whose baked `install-defaults.toml` points to your channel, so every developer who installs from your internal index gets the right source automatically.
+**Use this when:** You maintain a catalogue and want developers to run `agentbundle install` against your internal Artifactory channel without a manual `config set source` step.
+**Prerequisites:** Artifactory accessible from your build host; bundle name and channel agreed with your platform team; `agentbundle` ≥ 0.22.0 installed.
+**Result:** A `catalogue.toml` configured with your Artifactory coordinates, and a regenerated `install-defaults.toml` that bakes those coordinates into the distributed wheel — so every developer who installs from your internal index gets the right source automatically.
 
-The mechanism is the org bootstrap (Layer 3 of the source-resolution chain). When `agentbundle` starts and no explicit source or user config is set, it reads `_data/install-defaults.toml` from the installed wheel and picks up the Artifactory coordinates baked in at publish time. No developer config required.
+The mechanism is the org bootstrap. When `agentbundle` starts with no explicit source and no user config, it reads `_data/install-defaults.toml` from the installed wheel. If that file carries a valid `[organization.artifactory]` block, `agentbundle` resolves the catalogue source from Artifactory without any per-developer configuration.
 
 ## Step 1 — Add `[distribution.agentbundle.artifactory]` to `catalogue.toml`
 
@@ -17,9 +17,9 @@ bundle     = "engineering"
 channel    = "stable"
 ```
 
-All five fields are required when `enabled = true`. Use your real Artifactory hostname,
-the repository key, the bundle name your platform team assigned, and the channel name
-you use when publishing releases (typically `stable`).
+All five fields are required when `enabled = true`. `base-url` must be HTTPS with no
+credentials embedded. `repository`, `bundle`, and `channel` must each match
+`[A-Za-z0-9._-]+` — no path separators.
 
 ## Step 2 — Regenerate `install-defaults.toml`
 
@@ -29,19 +29,19 @@ From your catalogue root:
 agentbundle catalogue sync-defaults --root . --write
 ```
 
-This overwrites `agentbundle/_data/install-defaults.toml` (the path set by
+This rewrites `agentbundle/_data/install-defaults.toml` (the path declared by
 `distribution.agentbundle.install-defaults-output` in `catalogue.toml`). The file is
-committed to your fork — it is not generated at install time.
+committed to your repository — it is not generated at install time.
 
-Verify the output before committing:
+Confirm the channel was written correctly:
 
 ```bash
 grep channel packages/agentbundle/agentbundle/_data/install-defaults.toml
 # → channel = "stable"
 ```
 
-An empty `channel = ""` means the field was missing or blank in `catalogue.toml`.
-Fix it there and rerun.
+If you see `channel = ""`, the `channel` field was absent or blank in `catalogue.toml`.
+Correct it and rerun.
 
 ## Step 3 — Add a CI drift check
 
@@ -49,74 +49,50 @@ Fix it there and rerun.
 agentbundle catalogue sync-defaults --root . --check
 ```
 
-`--check` exits 0 when the on-disk file matches what `--write` would produce and non-zero
-on drift. Add this to your CI pipeline on every push so a stale `install-defaults.toml`
-blocks the build before the wheel ships.
+`--check` exits 0 when the on-disk file matches the current `catalogue.toml`, non-zero
+when they diverge. Add this to your CI pipeline so a stale `install-defaults.toml` fails
+the build before the wheel ships.
 
-## Step 4 — Build the wheel
+## Step 4 — Commit and build
+
+Commit `install-defaults.toml` alongside the `catalogue.toml` change, then build your
+agentbundle wheel as usual:
 
 ```bash
 cd packages/agentbundle
 python -m build --wheel
 ```
 
-The generated `dist/agentbundle-<version>-py3-none-any.whl` bundles the updated
-`install-defaults.toml`. Publish it to your org's internal PyPI index.
-
-## Step 5 — Developer install
-
-Once the wheel is published, developers install it once:
+Publish `dist/agentbundle-<version>-py3-none-any.whl` to your internal package index.
+Developers install it once:
 
 ```bash
 pip install agentbundle --index-url https://pypi.example.com/simple/
 ```
 
-From that point:
+From that point, `agentbundle install --pack core` resolves your Artifactory channel
+automatically. No `config set source` needed.
 
-```bash
-agentbundle install --pack core
-```
+## Offline and air-gapped environments
 
-resolves the catalogue from your Artifactory channel automatically. No `config set source`
-needed. The org bootstrap fires at Layer 3; if the developer has a `[settings].source` set
-in their user config, that takes priority (Layer 2).
-
-## Offline and air-gapped hosts
-
-For developer machines or CI runners that cannot reach Artifactory, set `AGENTBUNDLE_NO_REMOTE=1`:
+For hosts that cannot reach Artifactory, set `AGENTBUNDLE_NO_REMOTE=1`:
 
 ```bash
 AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue
 ```
 
-This skips the org Artifactory bootstrap (Layer 3) and editable-install detection (Layer 4).
-`agentbundle` falls through to the packaged default source (`[defaults] source` in
-`install-defaults.toml`) or to the explicit catalogue argument. Useful in:
+This skips the org Artifactory bootstrap and editable-install detection, falling through
+to the packaged default source or an explicit catalogue argument. Set it in the host's
+shell profile, a CI environment variable, or a wrapper script — no config file needed.
 
-- CI pipelines that run fully offline against a local copy.
-- Developer machines on restricted networks where Artifactory isn't reachable.
-- Air-gapped infrastructure where no external HTTP is allowed.
+## Disabling the bootstrap
 
-Set the variable in the shell profile, a CI environment variable, or a wrapper script —
-it does not need to appear in any config file.
-
-## Reverting to the public catalogue
-
-Set `enabled = false` in `catalogue.toml`, rerun `sync-defaults --write`, and rebuild.
-Developers who install the updated wheel fall through to the packaged default (Layer 5),
-which resolves the public `agent-ready-repo` catalogue.
-
-## What this does not affect
-
-- `agentbundle catalogue package` — takes its `--bundle`, `--release`, and `--channel`
-  flags at run time. The `catalogue.toml` block drives `install-defaults.toml` only.
-- Developers who have run `agentbundle config set source <url>` — their Layer 2 user
-  config always wins over the org bootstrap.
-- `AGENTBUNDLE_HTTP_BEARER_TOKEN` — the bearer token env var is separate from the
-  bootstrap config; set it per host or per CI job where Artifactory requires auth.
+To revert to the public catalogue, set `enabled = false` in `catalogue.toml`, rerun
+`sync-defaults --write`, and rebuild. Developers who install the updated wheel fall through
+to the packaged default source.
 
 ## See also
 
-- [How to package a catalogue for enterprise app-store distribution](../../../docs/guides/how-to/enterprise-app-store.md) — the Artifactory upload workflow (connected → disconnected host).
-- [Flow E — fully disconnected host](../../../docs/guides/how-to/flow-e-disconnected.md) — receive-side extraction and install.
+- [How to package a catalogue for enterprise app-store distribution](../../../docs/guides/how-to/enterprise-app-store.md) — building and uploading the Artifactory release archive.
+- [Flow E — fully disconnected host](../../../docs/guides/how-to/flow-e-disconnected.md) — receive-side extraction and install for air-gapped machines.
 - [`agentbundle` reference](../reference/agentbundle.md) — full source-resolution chain and all env vars.
