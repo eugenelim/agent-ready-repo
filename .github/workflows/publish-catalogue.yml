@@ -149,66 +149,91 @@ jobs:
           if-no-files-found: error
 
   # ── Job 2: upload-to-artifactory ─────────────────────────────────────────
-  # Skipped when dry_run is true or ARTIFACTORY_TOKEN is unset.
-  # The channel descriptor upload (final step) runs only after archive and
-  # sidecar are verified remotely — making the release visible to consumers
-  # last.
+  # Runs when dry_run is false. A guard step at the top checks ARTIFACTORY_TOKEN
+  # and skips all upload steps when the secret is absent (secrets context is not
+  # available in job-level if: expressions per actionlint SC-context-availability).
+  # The channel descriptor upload (final step) runs only after archive and sidecar
+  # are verified remotely — making the release visible to consumers last.
   upload-to-artifactory:
     needs: [package-and-validate]
-    if: ${{ !inputs.dry_run && secrets.ARTIFACTORY_TOKEN != '' }}
+    if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
       ARTIFACTORY_BASE_URL: ${{ vars.ARTIFACTORY_BASE_URL }}
       ARTIFACTORY_REPOSITORY: ${{ vars.ARTIFACTORY_REPOSITORY }}
     steps:
-      - uses: actions/checkout@v4
+      - id: guard
+        name: Check Artifactory token presence
+        env:
+          ART_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+        run: |
+          if [ -n "$ART_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ARTIFACTORY_TOKEN is not set; skipping Artifactory upload."
+          fi
 
-      - name: Download catalogue-dist artifact
+      - if: steps.guard.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - if: steps.guard.outputs.configured == 'true'
+        name: Download catalogue-dist artifact
         uses: actions/download-artifact@v4
         with:
           name: catalogue-dist
           path: /tmp/catalogue-dist
 
-      - name: Install JFrog CLI
+      - if: steps.guard.outputs.configured == 'true'
+        name: Install JFrog CLI
         run: curl -fL https://install-cli.jfrog.io | sh
 
-      - name: Configure JFrog CLI
+      - if: steps.guard.outputs.configured == 'true'
+        name: Configure JFrog CLI
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
         run: |
           jf config add artifactory \
             --url "$ARTIFACTORY_BASE_URL" \
             --access-token "$ARTIFACTORY_TOKEN" \
             --interactive=false
 
-      - name: Set path variables
+      - if: steps.guard.outputs.configured == 'true'
+        name: Set path variables
         run: |
           ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
-          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
-          echo "SIDECAR=${ARCHIVE}.sha256" >> "$GITHUB_ENV"
-          echo "DESCRIPTOR=/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json" >> "$GITHUB_ENV"
+          {
+            echo "ARCHIVE=$ARCHIVE"
+            echo "SIDECAR=${ARCHIVE}.sha256"
+            echo "DESCRIPTOR=/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json"
+          } >> "$GITHUB_ENV"
 
-      - name: Upload archive to Artifactory
+      - if: steps.guard.outputs.configured == 'true'
+        name: Upload archive to Artifactory
         run: |
           jf rt upload \
             "$ARCHIVE" \
             "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz" \
             --fail-no-op
 
-      - name: Upload sidecar to Artifactory
+      - if: steps.guard.outputs.configured == 'true'
+        name: Upload sidecar to Artifactory
         run: |
           jf rt upload \
             "$SIDECAR" \
             "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz.sha256"
 
-      - name: Remote verify — download sidecar and compare
+      - if: steps.guard.outputs.configured == 'true'
+        name: Remote verify — download sidecar and compare
         run: |
           jf rt dl \
             "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz.sha256" \
             /tmp/remote-sidecar.sha256
           diff "$SIDECAR" /tmp/remote-sidecar.sha256
 
-      - name: Upload channel descriptor to Artifactory
+      - if: steps.guard.outputs.configured == 'true'
+        name: Upload channel descriptor to Artifactory
         run: |
           jf rt upload \
             "$DESCRIPTOR" \
