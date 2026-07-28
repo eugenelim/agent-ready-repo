@@ -1,61 +1,72 @@
 # Rendered verification
 
-Verification scope is proportionate to the change. A content-only edit and a
-navigation restructure warrant different levels of checking.
+Proportionate verification rules by change type. Only claim a check passed if it actually ran.
 
-## Scope by change type
+## Verification levels
 
-### Content-only edits (no navigation or layout changes)
+### Level 1 — Content-only edits
 
-- Confirm the rendered page displays the new content correctly.
-- Check that internal links in the changed file resolve.
-- Verify code blocks and commands render without truncation.
+Applies when: body copy, prose, or examples changed without altering navigation, file structure, or page layout.
 
-### Navigation changes (new page, moved page, renamed slug)
+Required checks:
+- Link check: every link in the changed file resolves (file exists, or external URL responds).
+- No broken internal references: relative links point to files that exist.
+- Canonical sources verified: product claims match what the skill sources actually say.
 
-All of the above, plus:
-- Verify the new or moved page appears in the sidebar or index where expected.
-- Verify old routes return a redirect or 404, not silently stale content.
-- Check that cross-links from sibling pages pointing to this page still resolve.
-- Confirm the page title and breadcrumb match the file's heading.
+How to run:
+```bash
+grep -oE '\[.*?\]\((.*?)\)' <file> | grep -v '^http' | while read link; do
+  target=$(echo "$link" | sed 's/.*(\(.*\))/\1/')
+  [ -f "$target" ] || echo "BROKEN: $target"
+done
+```
 
-### Page-layout changes (new sections, restructured headings)
+### Level 2 — Navigation changes
 
-All of the above, plus:
-- Confirm the heading hierarchy is valid (no h3 under h1, no skipped levels).
-- Check anchor links resolve after heading changes.
-- Verify the page renders without broken layout at standard viewport widths.
+Applies when: a new file is added to the guide tree, a file is renamed, or an index/README is updated.
 
-### Responsive behavior
+Required checks (in addition to Level 1):
+- Guide index updated: if a new guide was added, the parent `README.md` or index links to it.
+- Pack README updated: if the new guide changes the pack's primary entry path, the pack README is updated.
+- No orphaned files: every new file is reachable from at least one index or cross-link.
 
-Check at three viewport widths: mobile (~375px), tablet (~768px), desktop
-(~1280px). Flag wrapping issues in tables, overflow in code blocks, and nav
-items that disappear at narrow widths.
+### Level 3 — Page-layout changes
 
-### Accessibility
+Applies when: section structure, heading hierarchy, or page scaffolding changes (not just prose).
 
-- Confirm image alt text is present and describes the image, not the filename.
-- Verify heading levels are not used for visual styling (h2 for emphasis is wrong).
-- Check that link text is descriptive ("learn more" is not descriptive).
+Required checks (in addition to Level 2):
+- Build the docs-site or web locally and inspect the rendered page.
+- Heading hierarchy is valid (no skipped levels, no duplicate `#` titles).
+- Table of contents (if auto-generated) renders correctly.
 
-### Links
+### Level 4 — Rendered site verification
 
-Before declaring a change ready, run the renderer's link checker or manually
-verify that every new or changed link resolves. Do not write a link that has
-never been checked.
+Applies when: routes change, redirects are added, or site configuration is updated.
 
-### Source versus rendered drift
+Required checks (in addition to Level 3):
+- All routes that previously existed still resolve (no 404s).
+- Old routes that should redirect do redirect.
+- New routes are accessible.
+- Run `make build` or equivalent; inspect the built output, not just the source.
 
-Generated pages (rendered from templates or data) must not be hand-edited.
-When a rendered page is stale, update the source data or template. If you
-cannot identify the source, state this explicitly rather than editing the
-rendered output.
+### Level 5 — Accessibility and responsive behavior
+
+Applies when: layout components are changed in the rendering system.
+
+Required checks (in addition to Level 4):
+- Main content is readable without JavaScript (where applicable).
+- Color contrast meets WCAG 2.1 AA minimums.
+- Interactive elements are keyboard-accessible.
+
+This level is typically out of scope for documentation authoring and is the rendering system maintainer's responsibility. Note it as a known limitation when docs changes affect rendered layout.
 
 ---
 
-## What "claimed verification" means
+## Source-versus-rendered drift
 
-A verification claim ("I have verified the rendered output") is only valid if
-the renderer was actually run and the output was actually inspected. Do not
-claim verification that did not happen. If the renderer is unavailable, state
-that the verification was not performed and describe what would need to be run.
+When `web/` or `docs-site/` renders content from `guides/`:
+- The source file is `guides/<pack>/<kind>/<slug>.md`.
+- Editing the rendered output (e.g., a built HTML file or a generated Astro page) does not fix the source.
+- Always edit the canonical source and let the build regenerate the rendered output.
+
+Reporting "verified against rendered output" requires that the renderer was actually run. If the renderer was not run, report "verified against source; rendered output not checked" instead.

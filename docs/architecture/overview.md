@@ -16,7 +16,6 @@
 │   ├── core/             # the load-bearing pack; every other pack composes against it
 │   ├── governance-extras/
 │   ├── product-documentation/
-│   ├── user-guide-diataxis/   # deprecated compat shim → depends on product-documentation
 │   ├── monorepo-extras/
 │   ├── contracts/
 │   ├── converters/
@@ -65,8 +64,7 @@ catalogue listing — see [`pack-manifest.md`](pack-manifest.md).
 | --- | --- | --- |
 | `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
 | `governance-extras` | repo only | `new-rfc`, `new-adr`, `update-conventions` skills + `docs/rfc/` and `docs/adr/` shapes. Requires `core`. |
-| `product-documentation` | user or repo | `author-product-docs` skill — five modes (create, revise, retrofit, audit, verify). Diátaxis as page contract, no directory scaffold. No `core` dependency. |
-| `user-guide-diataxis` | repo only | **Deprecated compat shim.** Depends on `product-documentation`; no seeds. `new-guide` is a thin redirect to `author-product-docs`. |
+| `product-documentation` | repo or user | `author-product-docs` skill for creating, revising, retrofitting, auditing, and verifying product docs. No `core` dependency. `user-guide-diataxis@0.3.0` (deprecated compat pack) depends on this pack. |
 | `monorepo-extras` | repo only | `new-package` skill + `packages/_example/` template. Requires `core`. |
 | `contracts` | user (default) or repo | `api-contract` (OpenAPI 3.1) and `event-contract` (AsyncAPI). |
 | `converters` | user (default) or repo | Document/image → Markdown, Markdown → styled HTML, Outlook `.msg` → Markdown. |

@@ -132,14 +132,8 @@ Editing them directly trips `make build-check`. Full workflow: [`packs/AGENTS.md
 Write new user-facing guides under `guides/_shared/how-to/` (or the owning pack's subtree).
 Write maintainer-facing guides (tooling, repo setup, CI) under `docs/guides/`.
 
-`docs/guides/` inside this repo uses the older flat `{quadrant}/` layout (pre-by-pack convention).
-The `new-guide` skill is layout-aware and writes under `guides/` by default; pass `--internal` to target `docs/guides/`.
-
-The `product-documentation` pack has no seeds — it does not install a directory scaffold.
-`docs/CONVENTIONS.md` §5c is projected from `packs/core/seeds/docs/CONVENTIONS.md` and stays
-pack-neutral. The `author-product-docs` skill is layout-aware: it inspects the host's existing
-documentation structure and routes by audience (external user → `guides/<pack>/`;
-maintainer → `docs/guides/`).
+`docs/guides/` inside this repo uses a flat `{quadrant}/` layout.
+The `author-product-docs` skill (in the `product-documentation` pack) inspects the repo's guide structure and routes to the correct tree based on audience — external users → `guides/`, internal maintainers → `docs/guides/`.
 
 ## Install-test coverage rule
 

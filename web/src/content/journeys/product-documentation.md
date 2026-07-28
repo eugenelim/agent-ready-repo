@@ -1,52 +1,51 @@
 ---
 pack: product-documentation
 scope: repo
-tagline: "Create or improve product documentation in five modes."
+tagline: "Create, revise, retrofit, audit, and verify product documentation."
 prerequisitePacks: []
 contract:
-  useItWhen: "You need to create, revise, retrofit, audit, or verify product documentation — a guide, pack README, journey page, or explanation page — and want the result to lead with what the reader can accomplish."
-  youProvide: "A description of the documentation goal — what to create or improve and who the reader is."
-  youReceive: "A documentation artifact matched to the reader's job: a task-first guide, an improved pack README, or an audit report — inspected against canonical source behavior before drafting."
+  useItWhen: "You need to write, improve, or audit any catalogue-facing guide, pack README, or journey — whether you're starting from scratch, reworking legacy docs, or checking that existing pages hold up to their Diátaxis page contract."
+  youProvide: "A description of what you want to document, improve, or check, and optionally the mode (create / revise / retrofit / audit / verify)."
+  youReceive: "A draft, revision, retrofit plan, audit report, or verification result — whichever fits the request — with the Diátaxis page kind confirmed and the write destination resolved."
   yourDecisions:
-    - "Confirm the proposed mode (create, revise, retrofit, audit, verify)"
-    - "Confirm the artifact type and page kind"
-    - "Review the draft before it is written to disk"
-whatChanges: "One or more documentation files are created or updated. For create/revise mode, a task-first artifact is written to the appropriate guides directory or pack README. For audit mode, a findings report is returned without editing. No directory scaffold is installed."
+    - "Confirm the Diátaxis page kind (tutorial / how-to / reference / explanation)"
+    - "Review the drafted or revised output before it is merged"
+whatChanges: "After installing product-documentation, your project has the `author-product-docs` skill — one entry point for five documentation modes. The skill infers the mode from your request, resolves the correct destination (`guides/` for catalogue-facing content, `docs/guides/` for maintainer docs), and follows Diátaxis as a page contract rather than a mandatory directory structure. Pack READMEs are treated as first-class artifacts alongside guide pages."
 skills:
   - name: author-product-docs
-    description: "Creates, revises, retrofits, audits, or verifies product documentation using Diátaxis as a page contract. Inspects canonical pack sources before drafting. Supports five modes inferred from the request."
-    humanTouches: 1
+    description: "Creates, revises, retrofits, audits, or verifies documentation using Diátaxis as a page contract — one skill, five modes, no forced directory skeleton."
+    humanTouches: 2
 humanGates:
-  - id: G-contract
+  - id: G-kind
     globalGate: null
-    label: "Confirm the documentation contract"
-    trigger: "Before author-product-docs begins drafting — to confirm mode, audience, and artifact type"
-    duration: "2–5 minutes"
+    label: "Confirm the Diátaxis page kind"
+    trigger: "Before author-product-docs begins drafting — to confirm the page kind inferred from your request"
+    duration: "2–4 minutes"
     whatToCheck:
-      - "Is the proposed mode right — create, revise, retrofit, audit, or verify?"
-      - "Is the audience right — external user or internal maintainer?"
-      - "Is the artifact type right — guide, README, journey, or explanation?"
-      - "Is the page kind right — tutorial, how-to, reference, or explanation?"
-    whatGoodLooksLike: "A contract where the mode, audience, and artifact type match what you had in mind — or a clear redirect if they don't."
-    whatBadLooksLike: "A contract proposing four empty quadrant directories or placing catalogue-facing content in docs/guides/."
-    consequence: "Confirming the contract locks in the minimum artifact set. Redirecting here is cheaper than revising after the draft is written."
+      - "Is this a tutorial (learning-oriented — the reader is doing to learn), a how-to (task-oriented — the reader knows what they want and needs the steps), a reference (information-oriented — structured facts, no narrative), or an explanation (understanding-oriented — why, context, background)?"
+      - "Does the mode make sense for the request? Create/revise/retrofit = active authoring; audit = gap report only; verify = rendered-accuracy check."
+      - "Is the audience internal (maintainers, contributors → docs/guides/) or external (adopters, end users → guides/)?"
+    whatGoodLooksLike: "A confirmed page kind that you could justify in one sentence — 'This is a how-to because the reader already knows they want to install X and just needs the steps.'"
+    whatBadLooksLike: "An explanation that buries the reader in background before revealing what they can do, or a how-to that opens with three paragraphs about why the tool exists."
+    consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. The classification gate catches this before the first paragraph is drafted — cheap here, expensive after it's live."
   - id: G-review
     globalGate: "G4"
-    label: "Review the draft"
-    trigger: "After author-product-docs produces a draft"
-    duration: "5–20 minutes"
+    label: "Review the drafted or revised output"
+    trigger: "After author-product-docs produces an output — before it is committed or merged"
+    duration: "10–20 minutes"
     whatToCheck:
-      - "Does the artifact lead with what the reader can accomplish, not with a skill or command inventory?"
-      - "Does the first copyable example appear within the first 120 words?"
-      - "Is the read/write boundary explicit?"
-      - "Are all cross-links pointing to pages that exist?"
-    whatGoodLooksLike: "A task-first artifact that a reader can pick up cold and use without knowing any skill names."
-    whatBadLooksLike: "An artifact that opens with a list of skills, creates empty quadrant directories, or links to pages that do not exist."
-    consequence: "A poorly structured guide ships quietly and frustrates readers. Review before merge."
+      - "Does the page stay within its Diátaxis kind — no background narrative in a how-to, no step-by-step instructions in an explanation?"
+      - "For a pack README: does it lead with a task or outcome (not a heading that names the pack)?"
+      - "For a how-to: is every step an action the reader can take, not a sentence about the system's behavior?"
+      - "For an audit report: does each finding include the violated contract and a concrete fix suggestion?"
+      - "Are all cross-links pointing to artifacts that actually exist in the repo?"
+    whatGoodLooksLike: "A page a reader can pick up cold, act on or learn from, and close — knowing exactly what they accomplished or understood."
+    whatBadLooksLike: "A how-to that ends with 'now you understand how X works' (that's an explanation), or a reference page with a narrative introduction that restates what the tool does before listing anything."
+    consequence: "A badly structured doc ships quietly. Catching contract violations at the review gate is the cheapest point — after a page is live, users accumulate expectations of stability."
 typicalSession:
-  agentTurns: "5–10"
-  humanTouches: 1
-  wallClockMinutes: "15–45"
+  agentTurns: "4–8"
+  humanTouches: 2
+  wallClockMinutes: "15–40"
 docsUrl: /guides/product-documentation/
 packUrl: /packs/product-documentation/
 relatedJourneys:
@@ -54,25 +53,29 @@ relatedJourneys:
   - governance-extras
 ---
 
-### 1. Describe the documentation goal
+### 1. Describe what you need
 
-- **You provide:** what to create or improve and who the reader is.
-- **Agent does:** activates `author-product-docs`; reads canonical pack sources (`pack.toml`, skill files); proposes a documentation contract naming mode, audience, artifact type, and page kind.
-- **You decide:** confirm the documentation contract.
-- **Output:** a confirmed contract ready to draft from.
-
----
-
-### 2. Draft the artifact
-
-- **Agent does:** drafts the artifact starting from canonical behavior — not from imagination. For a guide or README, puts the first copyable example within 120 words. For an audit, produces findings without editing. For a verify, confirms documentation matches current shipped behavior.
-- **You do:** watch the draft take shape; for task-oriented pages, check that the reader could pick it up cold and complete a task without knowing any skill names.
-- **Output:** a draft artifact or findings report.
+- **You provide:** what you want to document, improve, or check. The mode is optional — the skill infers it from your request. If you say "write a guide for X", it activates create mode. If you say "this doc feels wrong", it activates revise or audit mode.
+- **Agent does:** activates `author-product-docs`; inspects the relevant pack or spec for ground-truth behavior; proposes the Diátaxis page kind and target artifact.
+- **You do:** check that the inferred page kind fits your intent.
+- **You decide:** confirm the Diátaxis page kind.
+- **Output:** a confirmed page kind, mode, and destination path.
 
 ---
 
-### 3. Review and finalize
+### 2. Draft, revise, or audit
 
-- **You do:** read the draft as a first-time reader. If the first thing you see is a list of skills or commands, flag it — the inventory belongs after the first task completes.
-- **You decide:** review the draft — gate passes when the artifact leads with outcomes and links only to pages that exist.
-- **Output:** a reviewed artifact ready for merge.
+- **Agent does:**
+  - **create / revise / retrofit** — writes or updates the artifact, leads with a task or outcome, stays within the page contract, cross-links only existing pages.
+  - **audit** — reads the target doc set and produces a findings list: each finding names the violated contract and a concrete fix.
+  - **verify** — checks that the rendered page matches the skill or pack behavior it describes.
+- **You do:** for create/revise/retrofit, read the draft as a first-time reader; if you find yourself re-reading a sentence to extract the action it asks for, flag it. For audit, check that you agree with the contract cited for each finding.
+- **Output:** a draft, revision, retrofit plan, audit report, or verification result.
+
+---
+
+### 3. Review and merge
+
+- **You do:** read the output as the intended reader. For create/revise: does the page have a clear entry state, a clear exit, and no sentence that serves a different Diátaxis kind? For audit: is every finding actionable without needing to re-read the original doc?
+- **You decide:** review the output — gate passes when page kind, voice, and structure are consistent.
+- **Output:** a review-gate-passed artifact; the agent opens a PR after approval.

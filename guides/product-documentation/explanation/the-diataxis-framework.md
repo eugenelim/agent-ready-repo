@@ -1,6 +1,6 @@
 # About the Diátaxis framework
 
-> Why the `product-documentation` pack assigns every page to one of four kinds, and why that one rule does most of the work. This page is for readers who want the model, not a procedure. To write a page, see [How to write a guide](../how-to/write-a-guide.md).
+> Why the `product-documentation` pack sorts every page into one of four kinds, and why that one rule does most of the work. This page is for readers who want the model, not a procedure. To create documentation, see [How to use author-product-docs](../how-to/use-author-product-docs.md).
 
 ## The question this page answers
 
@@ -21,10 +21,16 @@ Two axes settle the kind. Is the reader acting or understanding? Are they learni
 
 |  | Practical (you *do* something) | Theoretical (you *understand* something) |
 | --- | --- | --- |
-| **Learning** (acquiring a skill) | **tutorials/** — "Take me through it from the start." | **explanation/** — "Help me understand why." |
-| **Task** (getting something done) | **how-to/** — "Help me solve this specific problem." | **reference/** — "Tell me exactly what this does." |
+| **Learning** (acquiring a skill) | **tutorial** — "Take me through it from the start." | **explanation** — "Help me understand why." |
+| **Task** (getting something done) | **how-to** — "Help me solve this specific problem." | **reference** — "Tell me exactly what this does." |
 
 When a page resists placement, it's usually two pages wearing one title. Split it. A topic like "authentication" isn't a page — *learning* it, *configuring* it, *looking up its parameters*, and *understanding why it's cookie-based* are four pages, possibly all four kinds.
+
+## These are contracts, not directories
+
+Diátaxis defines what a page promises its reader, not where files must live. A how-to guide in a flat `guides/` directory still follows the how-to contract. A reference page in a nested `guides/pack/reference/` tree still follows the reference contract.
+
+The `author-product-docs` skill assigns a page kind from the reader's posture and applies the matching contract throughout drafting — without requiring any particular directory structure. Whether your repo uses a by-pack layout, a flat layout, or something else, the page still delivers what its kind promises.
 
 ## The discipline that makes it work
 
@@ -42,5 +48,5 @@ Same topic, three audiences, three framings. An ADR records *why the team chose*
 
 ## See also
 
-- [How to write a guide](../how-to/write-a-guide.md) — the procedure, end to end, with the `author-product-docs` skill.
+- [How to use author-product-docs](../how-to/use-author-product-docs.md) — the procedure, end to end.
 - [The catalogue framework](../../README.md) — how packs and their guides fit together.

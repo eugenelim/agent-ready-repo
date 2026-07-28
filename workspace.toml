@@ -85,6 +85,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  "spec/product-documentation-pack",            # PR this branch — product-documentation pack (Phase 1)
   "spec/agentbundle-first-value-handoff",          # PR this branch — first-value handoff block in agentbundle install
   "spec/catalogue-curation",                # PR #614
   "spec/m2-frame-situation",     # frame-situation PE skill
@@ -121,6 +122,7 @@ shipped = [
   "spec/portfolio-first-run-pilot-architect",         # RFC-0064 Amendment #4 local/no-credential pilot
   "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
   "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
+  "spec/new-guide-conversation-first",         # user-guide-diataxis 0.2.0: conversation-first doctrine (spec.md=Shipped; moved from queue)
 ]
 queue   = [
   # ==================================================================
@@ -235,7 +237,7 @@ queue   = [
   "spec/work-loop-step0-observability",                  # consumes work-loop-step0-{branch1-echo,layout} backlog items
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
   # ---- Independent skill improvements ----
-  "spec/new-guide-conversation-first",                  # user-guide-diataxis 0.2.0: conversation-first doctrine + revised procedure + evals (pack renamed to product-documentation 0.1.0 in spec/product-documentation-pack)
+  # spec/new-guide-conversation-first — moved to shipped above (spec.md=Shipped; superseded by product-documentation Phase 1)
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -1,31 +1,49 @@
-# Product Documentation
+# Product Documentation guides
 
-`product-documentation` creates, revises, retrofits, audits, and verifies
-catalogue-facing product documentation. The `author-product-docs` skill works
-across five modes with Diátaxis as a page contract — not a mandatory folder
-scaffold. No directory skeleton is installed; one artifact is the default.
+Documentation for the `product-documentation` pack — create, revise, retrofit, audit, and verify user-facing docs grounded in what your pack actually ships.
 
-New here? Start with [How to author product docs](how-to/author-product-docs.md).
-For the conceptual background on Diátaxis, read
-[About the Diátaxis framework](explanation/the-diataxis-framework.md).
+## Get started fast
 
-## How-to
+```
+Help me write the README for this pack
+```
 
-Task-oriented recipes for specific documentation goals.
+```
+Write a how-to guide for rotating a credential token
+```
 
-- [Author product docs](how-to/author-product-docs.md) — use `author-product-docs`
-  to create, revise, retrofit, audit, or verify product documentation.
-- [Write a guide](how-to/write-a-guide.md) — choose the right Diátaxis page kind
-  and draft a task-first page.
+```
+Audit the existing docs and tell me what's missing
+```
 
-## Explanation
-
-Understanding-oriented background.
-
-- [About the Diátaxis framework](explanation/the-diataxis-framework.md) — the
-  four page kinds, the page-contract model, and the link-out discipline.
+The `author-product-docs` skill infers what you need from your request. You do not need to name a mode.
 
 ---
 
-Cross-cutting guides — installing the catalogue, upgrading packs, the adapter
-support matrix — live in [`../_shared/`](../_shared/).
+## How-to guides
+
+| Guide | When to use |
+|---|---|
+| [How to use author-product-docs](how-to/use-author-product-docs.md) | Create guides, READMEs, journeys, or audit docs for any pack |
+
+---
+
+## Explanations
+
+| Guide | What it covers |
+|---|---|
+| [About the Diátaxis framework](explanation/the-diataxis-framework.md) | The four page kinds — tutorial, how-to, reference, explanation — and when to use each |
+
+---
+
+## Install this pack
+
+```bash
+agentbundle install --pack product-documentation
+```
+
+Scope: `--scope repo` (default) or `--scope user` (available across all repos).
+
+## Replaces
+
+This pack supersedes [`user-guide-diataxis`](../user-guide-diataxis/). If you have `user-guide-diataxis@0.3.0` installed, you already have this pack as a dependency.

@@ -1,34 +1,34 @@
 ---
 name: new-guide
-description: "Deprecated legacy skill. Activates on 'new guide', 'write a guide', 'new tutorial', 'new how-to', 'new reference page', 'new explanation' — legacy invocation syntax only. Redirects to author-product-docs. Use author-product-docs directly for all new documentation work."
+description: "Create or substantially revise user guides, pack pages, and journey pages using Diátaxis plus conversation-first UX. Use when asked to write, simplify, restructure, audit, or modernize tutorials, how-to guides, reference pages, explanations, pack pages, or journey pages so readers can start from a natural-language goal, see what to say, understand what happens next, and reach an outcome without learning internal skill names first. Do NOT use for feature contracts (use `new-spec`), cross-cutting proposals (use `new-rfc`), recording decisions (use `new-adr`), minor single-line edits (normal PR), contributor docs, docstrings, release notes, or blog posts."
 ---
 
-# new-guide — Deprecated redirect
+# Compatibility shim — use `author-product-docs` instead
 
-This skill is a compatibility redirect. The canonical skill is
-`author-product-docs` in the `product-documentation` pack.
+This skill is deprecated. The `product-documentation` pack (installed as a dependency of this pack) provides `author-product-docs` with the same triggers and five explicit modes: create, revise, retrofit, audit, and verify.
 
 ## What to do
 
-Use `author-product-docs` instead:
+Your request will work with `author-product-docs`. You can invoke it explicitly or just describe what you need — the skill activates on the same natural-language triggers:
 
-> Write a how-to guide for [your task].
-> Create a tutorial explaining how to [your workflow].
-> Revise the pack README for [pack name].
+- "Write a how-to guide for X"
+- "Create a tutorial for Y"
+- "Revise this guide"
+- "Audit the docs for Z"
+- "Verify this documentation against what ships"
 
-`author-product-docs` supports create, revise, retrofit, audit, and verify
-modes. It uses Diátaxis as a page contract — no four-quadrant folder scaffold is
-required.
+`author-product-docs` is already installed via the `product-documentation` dependency. No reinstall needed.
 
-Install the canonical pack if you haven't already:
+## What changed
 
+The new skill supports five modes (create, revise, retrofit, audit, verify), treats Diátaxis as a page contract rather than a required directory structure, inspects canonical sources before making product claims, and correctly routes between the catalogue-facing `guides/` tree and the internal `docs/guides/` tree.
+
+The four-quadrant seed scaffold is no longer installed. Your existing `docs/guides/` directory is unaffected.
+
+## Migrating
+
+Replace `user-guide-diataxis` with `product-documentation` in your profiles and install commands:
+
+```bash
+agentbundle install --pack product-documentation
 ```
-agentbundle install --pack product-documentation <catalogue>
-```
-
-## Overlap note
-
-Both `new-guide` and `author-product-docs` activate on requests like "write a
-how-to guide." When both packs are installed, either skill may activate — the
-correct resolution is always `author-product-docs`. The agent should prefer the
-canonical skill and ignore this redirect when both are present.

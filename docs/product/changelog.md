@@ -19,19 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **New pack: `product-documentation`.** Replaces `user-guide-diataxis` as the canonical product documentation pack. Introduces the `author-product-docs` skill with five modes (create, revise, retrofit, audit, verify), inferred from natural requests. Diátaxis is a page contract, not a mandatory folder scaffold — no directory skeleton is installed. Supports user and repo scope. No `core` dependency. Reference files: `artifact-model.md`, `page-contracts.md`, `repository-ownership.md`, `conversation-first.md`, `rendered-verification.md`, `clear-prose.md`.
+- **New pack: `product-documentation`.** Replaces `user-guide-diataxis` as the documentation authoring primitive. Installs the `author-product-docs` skill — a single entry point for five modes: **create** (new guide or README), **revise** (update an existing artifact), **retrofit** (reconnect a fragmented doc set to its Diátaxis contracts), **audit** (gap report with evidence and fix suggestions), and **verify** (checks that documentation claims match shipped behavior). Diátaxis governs what each page does for the reader, not which directories you must create. No four-quadrant seed scaffold is installed.
 
 ## [user-guide-diataxis][0.3.0] — 2026-07-28
 
 ### Changed
 
-- **Converted to a deprecated compatibility shim.** Depends on `product-documentation`. Seeds removed. `new-guide` skill replaced with a thin redirect naming `author-product-docs` as the canonical skill. Install `product-documentation` directly for all new work. Note: a bare `agentbundle install --pack user-guide-diataxis` will fail unless `product-documentation` is already installed.
-
-## [agentbundle][0.23.0] — 2026-07-28
-
-### Changed
-
-- **Ruff preview-mode spacing rules enforced.** `catalogue_tooling/` whitespace-only pass; no behaviour change.
+- **Deprecated.** `user-guide-diataxis` now depends on `product-documentation`; installing it still works and delivers `author-product-docs` as a result. The `new-guide` skill is a thin shim that routes to `author-product-docs`. Existing installs are unaffected. New projects should install `product-documentation` directly.
 
 ## [catalogue-curation][0.1.6] — 2026-07-28
 

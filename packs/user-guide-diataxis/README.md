@@ -1,47 +1,24 @@
-# user-guide-diataxis — Deprecated
+# user-guide-diataxis (Deprecated)
 
-> **This pack is a deprecated compatibility shim.** It has no seeds and no
-> authoring capability of its own. Install
-> [`product-documentation`](../product-documentation/) directly for all new
-> work.
+> **This pack is deprecated.** Install [`product-documentation`](../product-documentation/README.md) directly.
+>
+> `user-guide-diataxis@0.3.0` installs `product-documentation` as a dependency, so if you have this pack installed you already have the new capability. The `new-guide` skill remains available as a compatibility shim — it activates on the same triggers and routes to `author-product-docs`.
 
-## Migration
+## Migrating
 
+Replace `user-guide-diataxis` with `product-documentation` in your install commands and profiles:
+
+```bash
+agentbundle install --pack product-documentation
 ```
-agentbundle install --pack product-documentation <catalogue>
-```
 
-The `author-product-docs` skill replaces `new-guide` and supports five modes:
-create, revise, retrofit, audit, and verify. It is directory-agnostic — no
-four-quadrant folder scaffold is installed.
+The four-quadrant seed scaffold (`docs/guides/tutorials/`, `how-to/`, `reference/`, `explanation/`) is no longer installed. The `author-product-docs` skill inspects your repo's existing guide structure and writes to the appropriate location.
 
 ## What changed
 
-`user-guide-diataxis` 0.2.x installed a `docs/guides/` skeleton with four seed
-READMEs (tutorials, how-to, reference, explanation) and the `new-guide` skill.
+- `new-guide` → `author-product-docs` (same triggers, five modes: create/revise/retrofit/audit/verify)
+- No seed scaffold installed (Diátaxis is now a page contract, not a directory requirement)
+- `core` dependency removed
+- Available at `user` scope as well as `repo` scope (via the `product-documentation` dependency)
 
-Version 0.3.0 is a shim only: it depends on `product-documentation`, has no
-seeds, and provides a thin `new-guide` redirect that names `author-product-docs`
-as the canonical skill.
-
-## Important: install order
-
-agentbundle does not auto-install this shim's dependencies. A bare:
-
-```
-agentbundle install --pack user-guide-diataxis <catalogue>
-```
-
-will fail with "install product-documentation first" if `product-documentation`
-is not already present. Install `product-documentation` first:
-
-```
-agentbundle install --pack product-documentation <catalogue>
-agentbundle install --pack user-guide-diataxis <catalogue>
-```
-
-For profile-based installs, both packs must appear in the profile.
-
----
-
-→ [product-documentation guides](../../guides/product-documentation/)
+→ [Product Documentation pack](../product-documentation/README.md)

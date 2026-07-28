@@ -20,7 +20,7 @@ fixtures/
 │   │       ├── hook-wiring/<name>.toml
 │   │       └── commands/<name>.md
 │   ├── governance-extras/
-│   ├── user-guide-diataxis/
+│   ├── product-documentation/
 │   └── monorepo-extras/
 └── recipes/                               # T6 negative-path tests
     └── bogus-target.toml                  # unknown-adapter-target negative test

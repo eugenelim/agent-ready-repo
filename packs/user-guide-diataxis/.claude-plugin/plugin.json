@@ -1,5 +1,5 @@
 {
   "name": "user-guide-diataxis",
   "version": "0.3.0",
-  "description": "Deprecated compatibility shim. Depends on product-documentation. Install product-documentation directly for all new work."
+  "description": "Deprecated compatibility pack. Installs product-documentation and exposes a new-guide shim that routes to author-product-docs. Install product-documentation directly going forward."
 }
