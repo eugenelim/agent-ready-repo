@@ -221,19 +221,50 @@ jobs:
 
       - name: Write example.test catalogue.toml
         run: |
-          cat > /tmp/enterprise-catalogue.toml <<'TOML'
-          [catalogue]
-          name        = "enterprise-dist-test"
-          version     = "1.0.0"
-          description = "Enterprise distribution smoke test — example.test values only."
+          mkdir -p /tmp/enterprise-cat
+          cat > /tmp/enterprise-cat/catalogue.toml <<'TOML'
+          schema = 1
 
-          [catalogue.channels]
-          stable = "https://artifactory.example.test/agentbundle-catalogues/enterprise-dist-test/stable.json"
+          [catalogue]
+          name                        = "test-catalogue"
+          display-name                = "Test Catalogue"
+          description                 = "Enterprise distribution smoke test — example.test values only."
+          minimum-agentbundle-version = "0.21.0"
+
+          [catalogue.paths]
+          packs        = "packs"
+          profiles     = "profiles"
+          contracts    = "contracts"
+          marketplace  = ".claude-plugin/marketplace.json"
+          build-output = "dist"
+
+          [catalogue.build]
+          recipes                 = ["default"]
+          self-host               = false
+          claude-plugin-branch    = "main"
+          marketplace-description = "Enterprise distribution smoke test."
+
+          [catalogue.package]
+          include = []
+
+          [distribution.agentbundle]
+          install-defaults-output = "install-defaults.toml"
+          preferred-adapter        = "claude-code"
+          default-source           = "git+https://artifactory.example.test/agentbundle-catalogues/engineering"
+
+          [distribution.agentbundle.artifactory]
+          enabled    = true
+          base-url   = "https://artifactory.example.test/artifactory"
+          repository = "agentbundle-generic-local"
+          bundle     = "engineering"
+          channel    = "stable"
           TOML
 
-      - name: sync-defaults --check (expect drift on fresh tree, not an error)
-        run: |
-          agentbundle catalogue sync-defaults --root . --check || true
+      - name: sync-defaults --write (enterprise catalogue)
+        run: agentbundle catalogue sync-defaults --root /tmp/enterprise-cat --write
+
+      - name: sync-defaults --check (enterprise catalogue)
+        run: agentbundle catalogue sync-defaults --root /tmp/enterprise-cat --check
 
       - name: Build wheel for artifact scan
         run: |
@@ -281,7 +312,7 @@ jobs:
         run: pip install -e packages/agentbundle
 
       - name: sync-defaults --check
-        run: agentbundle catalogue sync-defaults --root . --check || true
+        run: agentbundle catalogue sync-defaults --root . --check
 
       - name: lint
         run: agentbundle catalogue lint --root .
@@ -358,6 +389,9 @@ jobs:
       - name: Install agentbundle (editable)
         run: pip install -e packages/agentbundle
 
+      - name: Create temp repo directory
+        run: mkdir -p /tmp/offline-repo
+
       - name: Download archive from Gate D
         uses: actions/download-artifact@v4
         with:
@@ -388,6 +422,15 @@ jobs:
         run: |
           agentbundle config set source /tmp/disconnected/extracted
           agentbundle list-packs
+
+      - name: Offline install from extracted archive
+        env:
+          AGENTBUNDLE_NO_REMOTE: "1"
+        run: |
+          agentbundle install --pack core \
+            /tmp/disconnected/extracted \
+            --scope repo \
+            --output /tmp/offline-repo
 
   # ── Gate F: repository rewiring correctness ───────────────────────────────
   catalogue-repo-rewire:
