@@ -16,18 +16,17 @@ You need a skill directory under `packs/<pack>/.apm/skills/<name>/` with a `SKIL
 
 ## Frontmatter and description
 
-Keep frontmatter to the keys the [agentskills.io](https://agentskills.io) spec allows (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`) and put any project-specific data under the `metadata:` escape hatch. The description is one sentence that names the *trigger* ("Use when …"), not the implementation.
+Keep frontmatter to the keys the [agentskills.io](https://agentskills.io) spec allows (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`) and put any project-specific data under the `metadata:` escape hatch. The description is one sentence that names the *trigger* ("Use when …"), not the implementation. **`name`** must be kebab-case (`^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 characters); the linter enforces this.
 
-**The description must be a single-line scalar.** Folded/literal YAML blocks (`>`, `|`) and continuation lines (an indented next line) parse as valid YAML but break on some adapter targets — their downstream loaders fail on a multi-line description even when the YAML itself is clean. For the same reason, keep YAML structural characters out of an unquoted value: a bare `: ` mid-description, a leading `#`/`&`/`*`/`[`, or whitespace-then-`#` all change the parse. If you need any of those characters, wrap the whole value in double quotes. Keep it under 1024 characters.
+**The description must be a single-line scalar.** Folded/literal YAML blocks (`>`, `|`) and continuation lines (an indented next line) parse as valid YAML but break on some adapter targets — their downstream loaders fail on a multi-line description even when the YAML itself is clean. For the same reason, keep YAML structural characters out of an unquoted value: a bare `: ` mid-description, a leading `#`/`&`/`*`/`[`, or whitespace-then-`#` all change the parse. If you need any of those characters, wrap the whole value in double quotes. Keep it under 1024 characters — Kiro's frontmatter parser silently truncates at the byte boundary, cutting descriptions mid-sentence for Kiro users.
 
 Don't memorize the exact rules from this page — run the linter, which is the source of truth:
 
 ```bash
-python3 tools/lint-skill-spec.py
-python3 tools/lint-agent-artifacts.py
+agentbundle catalogue lint --root . --deep
 ```
 
-They check the key whitelist, description syntax, `allowed-tools` shape, and `evals/`. (The CONVENTIONS rule applies: the linter does the style job better than prose can.)
+It checks the key whitelist, description syntax, `allowed-tools` shape, `evals/`, and the projected copy. (The CONVENTIONS rule applies: the linter does the style job better than prose can.)
 
 ## Body structure
 
@@ -56,19 +55,20 @@ Banned as skill names: `arrive`, `orient`, `onboard`, `return`, `onboarding` —
 
 ## Directory layout
 
-A skill is a directory with `SKILL.md` plus four optional subdirectories — and the linter (`tools/lint-skill-spec.py`) only blesses those four:
+A skill is a directory with `SKILL.md` plus four optional subdirectories — and the linter only blesses those four:
 
 - `scripts/` — helper code the skill invokes (`python scripts/foo.py`). The skill body drives the script; it is not the script.
 - `references/` — detailed material the agent loads **on demand**, not every time (schemas, per-branch strategies, long tables).
 - `assets/` — templates and fixtures the skill copies or fills in (`assets/template.html`, `assets/state.json`).
 - `evals/` — evaluation fixtures. Two files serve two tiers: `evals/eval_queries.json` (Tier-A **activation** evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B **output-quality** evals). See [Evals](#evals--does-the-skill-activate-and-does-it-do-the-job) below.
 
-Two rules the linter enforces, worth getting right the first time:
+Three rules to get right the first time (the first two are linter-enforced):
 
 - **Keep files one level deep.** A reference to `scripts/a/b/c.py` warns — flatten it. (`evals/` keeps its own canonical nesting.)
 - **Reference your own files skill-relative, sibling skills by name.** `scripts/foo.py` and `references/bar.md`, never `.claude/skills/<name>/...` or `packs/<pack>/.apm/skills/<name>/...` install-path prefixes; to point at another skill, name it (`the jira skill`), don't path into it.
+- **Each skill is self-contained.** Never read from, import from, or assume the presence of files in another skill's directory — including sibling skills in the same pack. Skills are projected independently to each adapter; cross-skill paths that look valid in the source tree do not survive projection. If two or more skills need shared code (auth clients, config loaders, API wrappers), put it in `.apm/shared-libs/<name>/` — the projection system copies it into every adapter's layout alongside the skill directories.
 
-Edit the **seed** under `packs/<pack>/.apm/skills/<name>/`, never the projected copy under `.claude/skills/`; after any edit run `make build-self` to regenerate the projection, then `python3 tools/lint-skill-spec.py`.
+Edit the **seed** under `packs/<pack>/.apm/skills/<name>/`, never the projected copy under `.claude/skills/`; after any edit run `make build-self` to regenerate the projection, then `agentbundle catalogue lint --root . --deep`.
 
 ## Progressive disclosure
 
@@ -364,12 +364,41 @@ is an error, never a silent pass. It **wobbles** run-to-run and wants periodic
 **human calibration** (does it agree with you on a sample?); the full Tier-B
 grading (pass-rate deltas, with/without-skill, train/validation) is a future RFC.
 
+## Output rendering
+
+When a skill surfaces structured output in chat — tables, status lists, review queues, confirmation dialogs — add an `## Output rendering` section in the SKILL.md body **before the first procedural `##`**. Declare the rendering contract there: what columns appear and their alignment rules, which status glyphs the skill uses, truncation limits, and whether it maintains a persistent command bar.
+
+The full conventions — status glyph set (●/✓/○/⚠), column alignment and truncation limits, persistent command bar pattern, delete-gate box template, card format for one-by-one review flows, and progress reporting form — are in [`guides/_shared/reference/skill-ux-patterns.md`](../reference/skill-ux-patterns.md).
+
+## Script conventions
+
+For scripts under `scripts/`, follow the flag and docblock conventions in [`guides/_shared/reference/skill-script-conventions.md`](../reference/skill-script-conventions.md): consistent `--headed`/`--yes`/`--debug`/`--raw` flags, `=` form for value flags, a usage docblock listing every flag, and shortcut IDs with type-prefix when the script acts on a typed collection.
+
+## Setup skills
+
+A skill that installs a dependency or configures an environment should be **idempotent**: each step checks whether it is already done before running, so re-running at any point is safe. Declare a `verification` command and a `recovery` command in `pack.toml` under `[pack.first-value]` — the verification command exits 0 when setup is complete; the recovery command is the exact one-liner fix when it fails. Full format: [`guides/_shared/reference/skill-script-conventions.md`](../reference/skill-script-conventions.md) § pack.toml verification and recovery.
+
+For skills that automate a web browser — persistent-profile auth for SSO and device-certificate sites, bearer token interception, session checks, probe files as data layer — see [`guides/_shared/how-to/browser-automation-skill.md`](browser-automation-skill.md).
+
 ## What's enforced vs. recommended
 
-Frontmatter and description rules are lint-enforced (`tools/lint-skill-spec.py`, `tools/lint-agent-artifacts.py`); credentialed-skill rules have their own lint. The body structure, the cross-platform rules, and the three-tier dependency policy are **reviewer-enforced conventions** — no gate checks them, so they live or die in review. Hold the line there.
+Frontmatter and description rules are lint-enforced (`agentbundle catalogue lint --root . --deep`); credentialed-skill rules have their own lint. The body structure, the cross-platform rules, and the three-tier dependency policy are **reviewer-enforced conventions** — no gate checks them, so they live or die in review. Hold the line there.
+
+## Runtime config and operation logging
+
+Skills that store user-specific settings or record actions use the pack-config API:
+
+- **`load_pack_config(pack_dir("<pack>"))`** — read values the user set via `agentbundle pack-config set`.
+- **`write_entry(pack_dir("<pack>"), {...})`** — append a structured record to the pack's operation log (`agentbundle oplog <pack>` to view).
+- For credentialed skills, `pack_dir()` is the base directory the credential broker writes tokens into.
+
+Full reference and CLI equivalents: [`guides/_shared/reference/pack-config-api.md`](../reference/pack-config-api.md). Script-level usage examples (with Python imports and flag patterns): [`guides/_shared/reference/skill-script-conventions.md`](../reference/skill-script-conventions.md) § Pack config and operation logging.
 
 ## See also
 
 - [How to add a credentialed skill](../../credential-brokers/how-to/add-a-credentialed-skill.md) — the separate contract for tokens, API auth, and the `auth: cli` broker.
+- [Output rendering directives](../reference/output-rendering.md) — the canonical directive catalog for `## Output rendering`.
+- [Skill UX patterns](../reference/skill-ux-patterns.md) — craft rules: column alignment, truncation, command bar, delete-gate box.
+- [Skill script conventions](../reference/skill-script-conventions.md) — flag conventions, docblocks, shared-libs, pack-config API.
 - [`mermaid-renderer`](../../../../packs/converters/.apm/skills/mermaid-renderer) — the Tier-1 reference: `## Prerequisites` + a `shutil.which` `--check` verb + an explicit "don't auto-install" rule.
 - [`docs/CONVENTIONS.md`](../../../CONVENTIONS.md) § Skills — when to add a skill at all (the three-times rule).

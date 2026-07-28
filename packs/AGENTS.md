@@ -63,8 +63,6 @@ After bumping: `FORCE=1 make build-self` (re-aggregates `marketplace.json`), the
 
 All `.apm/` primitives are the **source of truth**. `make build-self` projects them to every shipped adapter's layout (see `docs/contracts/adapter.toml` for the full map). Never edit a projected output directly.
 
-**Exception: `.claude/skills/README.md` is canonical (not projected) — edit it directly.**
-
 Use `FORCE=1 make build-self` when the working tree is intentionally dirty. Direct equivalent:
 ```bash
 agentbundle catalogue self-host --root . --write --force
@@ -88,15 +86,10 @@ Each pack's `.claude-plugin/plugin.json` is validated against `docs/contracts/pl
 
 Edit `.apm/skills/<name>/SKILL.md`. Run `make build-self` to project. Run `agentbundle catalogue lint --root . --deep` to confirm [agentskills.io spec](https://agentskills.io/specification) compliance (requires `pip install 'agentbundle[lint]'` for the full deep pass; shallow structural checks run without it).
 
-**Spec compliance (enforced by linter):**
-- Each skill is a **self-contained folder** — `SKILL.md` + optional `scripts/`, `references/`, `assets/`, `evals/`. Never import from another skill's folder or assume files outside its directory.
-- **Closed frontmatter key set:** `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`. Anything else goes nested under `metadata:`.
-- **`name`** is kebab-case (`^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 chars).
-- **Path rules in body:** self-references use skill-relative paths (`scripts/foo.py`); cross-skill references use the skill name only — never `.claude/skills/<...>/` or `packs/.../skills/<...>/` prefixes.
-
-**Craft rules (not linted — hold in head):**
-- **`description` is the trigger surface** — body must not restate when to invoke. **Hard cap: 1024 chars** (Kiro's frontmatter parser silently truncates at the byte boundary; `agentbundle catalogue lint --deep` enforces this).
-- **Declare output rendering directives** — `## Output rendering` before the first procedural `##` for skills that surface structured output. Catalog: `guides/core/reference/output-rendering.md`.
+Full authoring standards — frontmatter key whitelist, body structure, naming verb taxonomy, directory layout, progressive disclosure, cross-platform Python, three-tier dependency policy, and evals — live in [`guides/_shared/how-to/author-a-skill.md`](../guides/_shared/how-to/author-a-skill.md). Additional catalogue-specific craft:
+- **Output rendering conventions** (status glyphs, column alignment, truncation limits, persistent command bar, delete-gate box) — [`guides/_shared/reference/skill-ux-patterns.md`](../guides/_shared/reference/skill-ux-patterns.md).
+- **Script flag conventions** (`--headed`, `--yes`, `--debug`, `--raw`; `=` form for values; usage docblocks; shortcut IDs) — [`guides/_shared/reference/skill-script-conventions.md`](../guides/_shared/reference/skill-script-conventions.md).
+- **Browser automation and auth handoff** (persistent Chrome profile, token interception, probe-files data layer) — [`guides/_shared/how-to/browser-automation-skill.md`](../guides/_shared/how-to/browser-automation-skill.md).
 
 ## Eval coverage
 
