@@ -12,6 +12,7 @@ All domain names use the ``example.test`` placeholder (AC29).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import io
 import json
@@ -20,33 +21,26 @@ import re
 import subprocess
 import sys
 import tarfile
-import tempfile
 import urllib.request
 from pathlib import Path
-from typing import Iterator
 from unittest import mock
 
 import pytest
-
-from agentbundle.catalogue import CatalogueError
-from agentbundle.source_defaults import _is_valid_source
 from agentbundle import https_catalogue
+from agentbundle.catalogue import CatalogueError
 from agentbundle.https_catalogue import (
-    _MAX_ARCHIVE_BYTES,
-    _MAX_EXPANDED_BYTES,
-    _MAX_MEMBERS,
-    _OriginLockingRedirectHandler,
     _build_opener,
     _check_client_version,
     _fetch_bytes_limited,
     _make_request,
+    _OriginLockingRedirectHandler,
     _parse_descriptor,
     _resolve_artifact_url,
     _safe_extract,
     _stream_and_verify,
     fetch_catalogue_archive,
 )
-
+from agentbundle.source_defaults import _is_valid_source
 
 # ---------------------------------------------------------------------------
 # Test helpers / fixtures
@@ -62,7 +56,7 @@ class _MockResponse:
     def read(self, n: int = -1) -> bytes:
         return self._buf.read(n)
 
-    def __enter__(self) -> "_MockResponse":
+    def __enter__(self) -> _MockResponse:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -575,10 +569,8 @@ def test_stream_and_verify_sha256_mismatch_cleans_up():
     data, _ = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
     opener = _MockOpener(data)
-    try:
+    with contextlib.suppress(CatalogueError):
         _stream_and_verify("https://example.test/archive.tar.gz", wrong_sha256, opener, 30)
-    except CatalogueError:
-        pass
     # No temp files should linger — we just verify no exception escapes uncleaned
     # (the temp file is created + deleted internally)
 
@@ -791,9 +783,11 @@ def test_fetch_catalogue_archive_catalogue_https(tmp_path: Path):
     archive_tmp = tmp_path / "archive.tar.gz"
     archive_tmp.write_bytes(archive_data)
 
-    with mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data), \
-         mock.patch.object(https_catalogue, "_stream_and_verify", return_value=archive_tmp), \
-         mock.patch.object(https_catalogue, "_check_client_version"):
+    with (
+        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),
+        mock.patch.object(https_catalogue, "_stream_and_verify", return_value=archive_tmp),
+        mock.patch.object(https_catalogue, "_check_client_version"),
+    ):
         result = fetch_catalogue_archive(
             "catalogue+https://example.test/channels/stable.json",
             env={},
@@ -833,8 +827,10 @@ def test_fetch_catalogue_archive_minimum_version_rejected():
     }
     descriptor_data = json.dumps(descriptor).encode()
 
-    with mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data), \
-         mock.patch.object(https_catalogue, "_stream_and_verify") as mock_verify:
+    with (
+        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),
+        mock.patch.object(https_catalogue, "_stream_and_verify") as mock_verify,
+    ):
         with pytest.raises(CatalogueError, match="999.0.0"):
             fetch_catalogue_archive(
                 "catalogue+https://example.test/channels/stable.json",
@@ -848,14 +844,16 @@ def test_fetch_catalogue_archive_temp_dir_cleaned_on_digest_mismatch():
     descriptor = {**_VALID_DESCRIPTOR, "sha256": "a" * 64}
     descriptor_data = json.dumps(descriptor).encode()
 
-    with mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data), \
-         mock.patch.object(https_catalogue, "_stream_and_verify",
-                           side_effect=CatalogueError("SHA-256 mismatch")):
-        with pytest.raises(CatalogueError, match="mismatch"):
-            fetch_catalogue_archive(
-                "catalogue+https://example.test/channels/stable.json",
-                env={},
-            )
+    with (
+        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),  # noqa: E501
+        mock.patch.object(https_catalogue, "_stream_and_verify",
+                          side_effect=CatalogueError("SHA-256 mismatch")),
+        pytest.raises(CatalogueError, match="mismatch"),
+    ):
+        fetch_catalogue_archive(
+            "catalogue+https://example.test/channels/stable.json",
+            env={},
+        )
 
 
 def test_fetch_catalogue_archive_unsupported_scheme():
@@ -880,17 +878,17 @@ def test_bearer_token_passed_to_opener():
         captured_env["token"] = token
         return _MockOpener(b"", token=token)
 
-    with mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data), \
-         mock.patch.object(https_catalogue, "_stream_and_verify",
-                           side_effect=CatalogueError("mismatch for test")), \
-         mock.patch.object(https_catalogue, "_build_opener", side_effect=fake_build_opener):
-        try:
-            fetch_catalogue_archive(
-                "catalogue+https://example.test/channels/stable.json",
-                env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": "my-secret-token"},
-            )
-        except CatalogueError:
-            pass
+    with (
+        mock.patch.object(https_catalogue, "_fetch_bytes_limited", return_value=descriptor_data),  # noqa: E501
+        mock.patch.object(https_catalogue, "_stream_and_verify",
+                          side_effect=CatalogueError("mismatch for test")),
+        mock.patch.object(https_catalogue, "_build_opener", side_effect=fake_build_opener),
+        contextlib.suppress(CatalogueError),
+    ):
+        fetch_catalogue_archive(
+            "catalogue+https://example.test/channels/stable.json",
+            env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": "my-secret-token"},
+        )
     assert captured_env.get("token") == "my-secret-token"
 
 
@@ -969,7 +967,7 @@ def test_no_real_endpoints_in_test_file():
     for netloc in fetcher_urls:
         # Strip userinfo (user:pass@) to get just the host part
         host = netloc.split("@")[-1]
-        assert host.startswith("example.test") or host.startswith("localhost"), (
+        assert host.startswith(("example.test", "localhost")), (
             f"Found fetcher URL with real domain: {host!r} (use example.test or localhost)"
         )
 
@@ -998,7 +996,7 @@ def test_resolve_catalogue_catalogue_https_dispatches(tmp_path: Path):
     from agentbundle.catalogue import resolve_catalogue
     fake_dir = tmp_path / "extracted"
     fake_dir.mkdir()
-    with mock.patch("agentbundle.https_catalogue.fetch_catalogue_archive", return_value=fake_dir) as mock_fetch:
+    with mock.patch("agentbundle.https_catalogue.fetch_catalogue_archive", return_value=fake_dir) as mock_fetch:  # noqa: E501
         result = resolve_catalogue("catalogue+https://example.test/channels/stable.json")
     mock_fetch.assert_called_once_with("catalogue+https://example.test/channels/stable.json")
     assert result == fake_dir
@@ -1010,7 +1008,7 @@ def test_resolve_catalogue_archive_https_dispatches(tmp_path: Path):
     fake_dir = tmp_path / "extracted"
     fake_dir.mkdir()
     archive_uri = "archive+https://example.test/releases/core.tar.gz#sha256=" + "a" * 64
-    with mock.patch("agentbundle.https_catalogue.fetch_catalogue_archive", return_value=fake_dir) as mock_fetch:
+    with mock.patch("agentbundle.https_catalogue.fetch_catalogue_archive", return_value=fake_dir) as mock_fetch:  # noqa: E501
         result = resolve_catalogue(archive_uri)
     mock_fetch.assert_called_once_with(archive_uri)
     assert result == fake_dir
@@ -1020,7 +1018,7 @@ def test_resolve_catalogue_existing_git_https_unchanged():
     """AC31: existing git+https:// dispatch still works (no regression)."""
     from agentbundle.catalogue import resolve_catalogue
     with mock.patch("agentbundle.catalogue._resolve_https", return_value=Path("/fake")) as m:
-        result = resolve_catalogue("git+https://github.com/example/repo")
+        resolve_catalogue("git+https://github.com/example/repo")
     m.assert_called_once()
 
 

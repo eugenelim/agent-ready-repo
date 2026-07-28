@@ -12,7 +12,6 @@ Three goal-based / unit tests:
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -78,7 +77,7 @@ def test_cli_version_matches_pyproject():
     pyproject = tomllib.loads(
         (PACKAGE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
-    assert CLI_VERSION == pyproject["project"]["version"]
+    assert pyproject["project"]["version"] == CLI_VERSION
 
 
 def test_spec_version_is_read_at_import_time(tmp_path):

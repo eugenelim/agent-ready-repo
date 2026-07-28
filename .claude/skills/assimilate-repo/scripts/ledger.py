@@ -40,7 +40,7 @@ class LedgerSchemaError(ValueError):
 
 
 def default_base() -> Path:
-    return Path(os.path.expanduser("~")) / ".agentbundle" / "catalogue-curation"
+    return Path.home() / ".agentbundle" / "catalogue-curation"
 
 
 def _salt(base: Path) -> str:
@@ -104,7 +104,9 @@ def validate_entry(entry: dict) -> None:
             raise LedgerSchemaError(f"field {key!r} contains a control character (forbidden)")
 
 
-def append_entry(source: str, entry: dict, *, base: Path | None = None, salt: str | None = None) -> None:
+def append_entry(
+    source: str, entry: dict, *, base: Path | None = None, salt: str | None = None
+) -> None:
     """Validate and append one candidate entry to the run ledger (append-only)."""
     base = base or default_base()
     validate_entry(entry)
@@ -130,7 +132,11 @@ def read_entries(source: str, *, base: Path | None = None, salt: str | None = No
 
 def done_names(source: str, *, base: Path | None = None, salt: str | None = None) -> set[str]:
     """Candidate names already resolved — a re-run/worktree skips these."""
-    return {e["name"] for e in read_entries(source, base=base, salt=salt) if e.get("status") == "done"}
+    return {
+        e["name"]
+        for e in read_entries(source, base=base, salt=salt)
+        if e.get("status") == "done"
+    }
 
 
 # ── durable per-source marker (purge-exempt) ────────────────────────────────

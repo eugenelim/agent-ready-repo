@@ -4,11 +4,9 @@ in-bounds. Requires `agentbundle` importable (the repo engine)."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
-
 import write_jail as wj
 
 
@@ -42,7 +40,7 @@ def test_symlink_escape_rejected(tmp_path: Path) -> None:
     (outside / "secret.txt").write_text("s")
     link = root / "link"
     try:
-        os.symlink(outside, link)
+        link.symlink_to(outside)
     except (OSError, NotImplementedError):
         pytest.skip("symlinks unsupported on this platform")
     # A path that only stays in-bounds if symlinks are NOT resolved.

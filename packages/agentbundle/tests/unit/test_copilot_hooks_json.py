@@ -18,8 +18,8 @@ import unittest
 from pathlib import Path
 
 from agentbundle.build.projections.copilot_hooks_json import (
-    project_copilot_hooks_json,
     _EVENT_MAP,
+    project_copilot_hooks_json,
 )
 
 RULE = {"target-path": ".github/hooks/"}
@@ -92,7 +92,7 @@ class TestCopilotHooksJsonSerialiser(unittest.TestCase):
             "Stop": "agentStop",
         }
         self.assertEqual(_EVENT_MAP, expected)
-        for source_event, copilot_event in expected.items():
+        for source_event, _ in expected.items():
             self._write(
                 f"{source_event}.toml",
                 f'[[hooks.{source_event}]]\n'

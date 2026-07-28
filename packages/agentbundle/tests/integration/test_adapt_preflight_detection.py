@@ -43,7 +43,6 @@ from pathlib import Path
 
 from agentbundle.safety import sha256_bytes
 
-
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 BROWNFIELD = FIXTURES / "brownfield-adapt"
 USER_HOME = FIXTURES / "brownfield-adapt-user-home"

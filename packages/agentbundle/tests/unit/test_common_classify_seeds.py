@@ -1,10 +1,6 @@
 """Unit tests for _classify_seeds — TDD red stubs for projection-dry-run-governance-seeds."""
 
-import os
-import tempfile
 from pathlib import Path
-
-import pytest
 
 
 def _mk_seeds_dir(tmp_path: Path, files: dict) -> Path:
@@ -161,8 +157,8 @@ def test_classify_seeds_no_write_invariant(tmp_path):
     root = tmp_path / "root"
     root.mkdir()
 
-    before = set(str(p) for p in root.rglob("*"))
+    before = {str(p) for p in root.rglob("*")}
     _classify_seeds(seeds, root)
-    after = set(str(p) for p in root.rglob("*"))
+    after = {str(p) for p in root.rglob("*")}
 
     assert before == after, f"_classify_seeds wrote files: {after - before}"

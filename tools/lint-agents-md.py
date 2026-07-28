@@ -70,7 +70,7 @@ def main() -> int:
     #    file's literal content). Either shape is accepted.
     claude_md = Path("CLAUDE.md")
     if claude_md.is_symlink():
-        target = os.readlink(claude_md)
+        target = str(claude_md.readlink())
         if target == "AGENTS.md":
             ok("CLAUDE.md → AGENTS.md (symlink).")
         else:
@@ -106,7 +106,7 @@ def main() -> int:
             ok(f"AGENTS.md is {lines} lines (≤ {MAX_ROOT_LINES}).")
 
     # 4. Per-package AGENTS.md size
-    for f in sorted(Path(".").rglob("AGENTS.md")):
+    for f in sorted(Path().rglob("AGENTS.md")):
         # Match bash `find . -not -path './node_modules/*' -not -path './.git/*'`
         # — top-level exclusion only, not any-depth. A nested
         # packages/x/node_modules/y/AGENTS.md (if one ever appeared)
@@ -161,7 +161,8 @@ def main() -> int:
     # 7. No legacy constitution/ folder
     if Path("docs/constitution").is_dir():
         note(
-            "docs/constitution/ exists. This was replaced by docs/CHARTER.md — see docs/CONVENTIONS.md."
+            "docs/constitution/ exists. This was replaced by docs/CHARTER.md"
+            " — see docs/CONVENTIONS.md."
         )
     else:
         ok("No legacy docs/constitution/ directory.")

@@ -10,16 +10,16 @@ values + body, byte-for-byte.
 
 from __future__ import annotations
 
+import io
 import tempfile
 import tomllib
 import unittest
 from contextlib import redirect_stderr
-import io
 from pathlib import Path
 
 from agentbundle.build.projections.codex_agent_toml import (
-    project_codex_agent_toml,
     _apply_mapping,
+    project_codex_agent_toml,
 )
 
 # The contract's `[frontmatter-mapping."codex-agent-frontmatter-v0.8"]`
@@ -293,7 +293,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
         """Files without ``.md`` suffix are skipped."""
         (self.source / "skip.txt").write_text("ignored", encoding="utf-8")
         self._write("---\nname: foo\n---\nBody.\n")
-        data = self._run()
+        self._run()
         # If `skip.txt` had been processed we'd get .codex/agents/skip.toml;
         # check it's absent.
         self.assertFalse(

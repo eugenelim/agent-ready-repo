@@ -30,7 +30,7 @@ Design notes:
 from __future__ import annotations
 
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Mapping
 
 # The frontmatter contract version. Consumers key on this to detect the shape;
@@ -61,7 +61,7 @@ def build_fields(
     requires_review: bool,
     fields: Mapping[str, Any],
     ingestion_quality_extra: Mapping[str, Any] | None = None,
-) -> "OrderedDict[str, Any]":
+) -> OrderedDict[str, Any]:
     """Return the validated, ordered contract field set as an ``OrderedDict``.
 
     This is the **single source** for the contract's field set and validation.
@@ -92,13 +92,13 @@ def build_fields(
         if required not in fields:
             raise ValueError(f"fields is missing required key {required!r}")
 
-    block: "OrderedDict[str, Any]" = OrderedDict()
+    block: OrderedDict[str, Any] = OrderedDict()
     block["contract-version"] = CONTRACT_VERSION
     block["tier"] = tier
     for k, v in fields.items():
         block[k] = v
 
-    iq: "OrderedDict[str, Any]" = OrderedDict()
+    iq: OrderedDict[str, Any] = OrderedDict()
     iq["extraction-confidence"] = extraction_confidence
     if ingestion_quality_extra:
         for k, v in ingestion_quality_extra.items():
@@ -131,7 +131,7 @@ def build_frontmatter(
 
 def now_iso() -> str:
     """UTC ingestion timestamp, matching the image branch's format."""
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 # --- Hand-rolled stdlib YAML emitter (no PyYAML) ---------------------------

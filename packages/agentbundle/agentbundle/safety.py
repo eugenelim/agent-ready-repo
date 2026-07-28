@@ -164,8 +164,8 @@ def assert_under(root: Path, target: Path) -> None:
 
 def assert_projection_jailed(
     root: Path,
-    relpaths: "Iterable[str]",
-    allowed_prefixes: "list[str] | None",
+    relpaths: Iterable[str],
+    allowed_prefixes: list[str] | None,
     *,
     command: str,
 ) -> None:
@@ -269,7 +269,7 @@ def assert_portable_name(relpath: str) -> None:
                     f"{segment!r} (Windows-incompatible): {relpath}"
                 )
         # Class 2: trailing dot or space.
-        if segment.endswith(".") or segment.endswith(" "):
+        if segment.endswith((".", " ")):
             raise PathJailError(
                 f"refusing path with trailing dot or space in segment "
                 f"{segment!r} (Windows strips both silently): {relpath}"
@@ -368,10 +368,7 @@ def write_jailed(
             f"cannot create parent directory {target.parent}: {exc}"
         ) from exc
 
-    if isinstance(content, str):
-        data = content.encode("utf-8")
-    else:
-        data = content
+    data = content.encode("utf-8") if isinstance(content, str) else content
 
     try:
         fd, tmp_str = tempfile.mkstemp(
@@ -388,8 +385,8 @@ def write_jailed(
         with os.fdopen(fd, "wb") as fh:
             fh.write(data)
         if mode is not None:
-            os.chmod(tmp, mode)
-        os.replace(tmp, target)
+            tmp.chmod(mode)
+        tmp.replace(target)
     except OSError as exc:
         tmp.unlink(missing_ok=True)
         raise WriteError(

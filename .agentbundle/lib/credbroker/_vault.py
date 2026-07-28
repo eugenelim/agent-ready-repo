@@ -33,6 +33,8 @@ cannot be relocated to a different entry without failing authentication.
 from __future__ import annotations
 
 import base64
+import binascii
+import contextlib
 import json
 import os
 import pathlib
@@ -153,7 +155,7 @@ class Vault:
     # ── construction ──────────────────────────────────────────────────
 
     @classmethod
-    def create(cls, master: str, *, path: pathlib.Path | None = None) -> "Vault":
+    def create(cls, master: str, *, path: pathlib.Path | None = None) -> Vault:
         """Create a fresh (unsaved) vault with a new random salt + DEK."""
         path = path or _vault_path()
         salt = os.urandom(SALT_LEN)
@@ -167,7 +169,7 @@ class Vault:
         return cls(path, salt, params, kek, dek, entries={})
 
     @classmethod
-    def open(cls, master: str, *, path: pathlib.Path | None = None) -> "Vault":
+    def open(cls, master: str, *, path: pathlib.Path | None = None) -> Vault:
         """Open an existing vault; raise ``VaultError`` if the master is wrong.
 
         Derives the KEK from the *stored* salt + parameters, then unwraps the
@@ -206,7 +208,7 @@ class Vault:
             wrap_nonce = _b64d(wrapped["nonce"])
             wrapped_ct = _b64d(wrapped["ct"])
             entries = dict(doc.get("entries") or {})
-        except (KeyError, TypeError, ValueError, base64.binascii.Error) as exc:
+        except (KeyError, TypeError, ValueError, binascii.Error) as exc:
             raise VaultError(f"vault header malformed: {path}") from exc
 
         if int(doc.get("version", 0)) != VAULT_VERSION:
@@ -261,8 +263,10 @@ class Vault:
             ct = _b64d(entry["ct"])
             pt = AESGCM(self._dek).decrypt(nonce, ct, name.encode("utf-8"))
         except InvalidTag as exc:
-            raise VaultError(f"entry {name!r} failed authentication (tampered or corrupt)") from exc
-        except (KeyError, TypeError, ValueError, base64.binascii.Error) as exc:
+            raise VaultError(
+                f"entry {name!r} failed authentication (tampered or corrupt)"
+            ) from exc
+        except (KeyError, TypeError, ValueError, binascii.Error) as exc:
             raise VaultError(f"entry {name!r} malformed") from exc
         return pt.decode("utf-8")
 
@@ -309,23 +313,24 @@ class Vault:
             os.close(fd)
             if os.name == "nt":
                 _verify_icacls(tmp_path, allow_permissive_acl=allow_permissive_acl)
-            os.replace(tmp_path, self._path)
+            pathlib.Path(tmp_path).replace(self._path)
         except Exception:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+            with contextlib.suppress(OSError):
+                pathlib.Path(tmp_path).unlink()
             raise
 
 
 # ── module-level convenience (per-invocation open) ─────────────────────
 
 
-def set_credential(namespace: str, key: str, value: str, *, master: str,
-                   path: pathlib.Path | None = None) -> None:
+def set_credential(
+    namespace: str, key: str, value: str, *, master: str, path: pathlib.Path | None = None
+) -> None:
     """Open-or-create the vault, set one entry, and save. One Argon2id pass."""
     path = path or _vault_path()
-    vault = Vault.open(master, path=path) if Vault.exists(path) else Vault.create(master, path=path)
+    vault = (
+        Vault.open(master, path=path) if Vault.exists(path) else Vault.create(master, path=path)
+    )
     vault.set(namespace, key, value)
     vault.save()
 

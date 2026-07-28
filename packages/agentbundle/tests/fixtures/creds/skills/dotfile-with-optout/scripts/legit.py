@@ -1,14 +1,12 @@
 """dotfile-with-optout fixture: opt-out marker on the same line keeps lint silent."""
 from __future__ import annotations
-from .credentials_shim import load_credentials  # AC25 fixture stub
 
-
-import os
+from pathlib import Path
 
 
 def read():
-    path = os.path.expanduser("~/.agentbundle/credentials.env")  # credentialed-primitive: reads-creds-directly
-    return open(path, encoding="utf-8").read()
+    path = Path("~/.agentbundle/credentials.env").expanduser()  # credentialed-primitive: reads-creds-directly  # noqa: E501
+    return path.open(encoding="utf-8").read()
 
 
 if __name__ == "__main__":

@@ -271,7 +271,6 @@ def case_drift_warn_only() -> None:
 def case_layout_base_escape_confined() -> None:
     """A layout `[traceability]` base that escapes `--root` (absolute / `..`) is
     ignored, not read — the path-confinement guard."""
-    import sys as _sys
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")  # anchor, so the report (incl. notes) prints
@@ -279,9 +278,8 @@ def case_layout_base_escape_confined() -> None:
               '[traceability]\nspec = "/etc"\n')
         rc, out, err = run(root)
         expect(rc == 0, f"escaping layout base → no crash, exit 0, got {rc}: {err}")
-        if _sys.version_info >= (3, 11):  # tomllib present → layout parsed
-            expect("escapes root" in out,
-                   f"escaping base reported + ignored: {out}")
+        expect("escapes root" in out,
+               f"escaping base reported + ignored: {out}")
 
 
 def case_catalog_symlink_confined() -> None:

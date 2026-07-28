@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
 
+import pytest
 from agentbundle import safety
 from agentbundle.config import PackState, State
 

@@ -10,13 +10,10 @@ Coverage:
 
 from __future__ import annotations
 
-import os
 import types
 import urllib.error
 from pathlib import Path
 from unittest import mock
-
-import pytest
 
 # Fixture catalogue: tests/fixtures/list_packs/catalogue/
 FIXTURE_CATALOGUE = (
@@ -65,9 +62,9 @@ def test_output_is_stable_sorted(capsys):
     rc = _run(str(FIXTURE_CATALOGUE))
     assert rc == 0
     out = capsys.readouterr().out
-    lines = [l for l in out.splitlines() if l.strip()]
+    lines = [ln for ln in out.splitlines() if ln.strip()]
     # Skip header and separator; first data row is alpha.
-    data_lines = [l for l in lines if not l.startswith("NAME") and not l.startswith("-")]
+    data_lines = [ln for ln in lines if not ln.startswith("NAME") and not ln.startswith("-")]
     assert data_lines[0].startswith("alpha"), "alpha should come before beta"
     assert data_lines[1].startswith("beta"), "beta should be second"
 
@@ -113,7 +110,7 @@ def test_beta_dependency_shown(capsys):
     assert rc == 0
     out = capsys.readouterr().out
     # Find the beta row and check it mentions alpha.
-    beta_lines = [l for l in out.splitlines() if l.strip().startswith("beta")]
+    beta_lines = [ln for ln in out.splitlines() if ln.strip().startswith("beta")]
     assert beta_lines, "beta row must be present"
     assert "alpha" in beta_lines[0], "beta's dep on alpha must appear in the row"
 

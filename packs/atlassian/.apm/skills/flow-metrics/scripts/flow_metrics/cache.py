@@ -27,6 +27,7 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -39,7 +40,6 @@ from typing import (
     Any,
     Iterator,
     Mapping,
-    Optional,
     Union,
     get_args,
     get_origin,
@@ -48,14 +48,13 @@ from typing import (
 
 from .per_issue import PerIssueRow
 
-
 CACHE_SCHEMA_VERSION = "1.1"  # 1.1: PerIssueRow grew the `teams` tuple field
 STALE_TMP_AGE_SECONDS = 3600
 TMP_GLOB = "*.tmp"
 _PROGRAM_SCOPE_KINDS = frozenset({"program", "portfolio"})
 
 
-def _normalize_clause(s: Optional[str]) -> str:
+def _normalize_clause(s: str | None) -> str:
     """v1 normalization: strip + collapse whitespace.
 
     Same shape for JQL and OData — both follow the spec's conservative
@@ -69,13 +68,13 @@ def _normalize_clause(s: Optional[str]) -> str:
 def cache_key(
     scope: Mapping[str, Any],
     window: Mapping[str, str],
-    user_jql: Optional[str],
-    user_align_filter: Optional[str],
+    user_jql: str | None,
+    user_align_filter: str | None,
     state_config_sha: str,
     issuetype_config_sha: str,
-    team_field_override: Optional[str],
-    align_join_field: Optional[str],
-    align_teams_path: Optional[str],
+    team_field_override: str | None,
+    align_join_field: str | None,
+    align_teams_path: str | None,
 ) -> str:
     """Return the sha256 cache key for a fetch.
 
@@ -123,18 +122,16 @@ def _ensure_cache_dir(cache_dir: Path) -> None:
     """
     cache_dir.mkdir(parents=True, exist_ok=True)
     if os.name != "nt":
-        try:
-            os.chmod(cache_dir, 0o700)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            cache_dir.chmod(0o700)
 
 
 # Cached at first call: which PerIssueRow fields carry datetime values
 # (directly or as Optional[datetime]) and which carry tuples. Computed
 # by introspecting the dataclass so the cache module stays robust to
 # PerIssueRow growing new datetime / tuple fields.
-_DATETIME_FIELD_NAMES: Optional[frozenset] = None
-_TUPLE_FIELD_NAMES: Optional[frozenset] = None
+_DATETIME_FIELD_NAMES: frozenset | None = None
+_TUPLE_FIELD_NAMES: frozenset | None = None
 
 
 def _datetime_field_names() -> frozenset:
@@ -207,19 +204,19 @@ def _json_to_row(line: str) -> PerIssueRow:
     return PerIssueRow(**kwargs)
 
 
-def read_cache(cache_dir: Path, key: str) -> Optional[Iterator[PerIssueRow]]:
+def read_cache(cache_dir: Path, key: str) -> Iterator[PerIssueRow] | None:
     """Stream cached rows for ``key`` if a finalised file exists.
 
     Returns None on miss (no ``<key>.jsonl`` in ``cache_dir``). The
     returned iterator opens the file lazily and yields one
     :class:`PerIssueRow` per line — peak memory is O(one row).
     """
-    path = cache_dir / "{}.jsonl".format(key)
+    path = cache_dir / f"{key}.jsonl"
     if not path.is_file():
         return None
 
     def _iter() -> Iterator[PerIssueRow]:
-        with open(path, "r", encoding="utf-8") as f:
+        with path.open(encoding="utf-8") as f:
             for line in f:
                 line = line.rstrip("\n")
                 if not line:
@@ -250,11 +247,11 @@ def write_cache_tee(
     orphaned by a successful drain: each is consumed by its own replace.
     """
     _ensure_cache_dir(cache_dir)
-    tmp_name = "{}.jsonl.{}.tmp".format(key, os.getpid())
+    tmp_name = f"{key}.jsonl.{os.getpid()}.tmp"
     tmp_path = cache_dir / tmp_name
-    final_path = cache_dir / "{}.jsonl".format(key)
+    final_path = cache_dir / f"{key}.jsonl"
 
-    f = open(tmp_path, "w", encoding="utf-8")
+    f = tmp_path.open("w", encoding="utf-8")  # noqa: SIM115
     drained = False
     try:
         for row in source:
@@ -266,7 +263,7 @@ def write_cache_tee(
     finally:
         f.close()
         if drained:
-            os.replace(tmp_path, final_path)
+            tmp_path.replace(final_path)
 
 
 def cleanup_stale_tmps(cache_dir: Path) -> None:
@@ -286,10 +283,8 @@ def cleanup_stale_tmps(cache_dir: Path) -> None:
         except OSError:
             continue
         if mtime < cutoff:
-            try:
+            with contextlib.suppress(OSError):
                 path.unlink()
-            except OSError:
-                pass
 
 
 __all__ = [

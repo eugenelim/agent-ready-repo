@@ -8,9 +8,7 @@ modes.
 from __future__ import annotations
 
 import pytest
-
 from agentbundle import scope
-
 
 # ---------------------------------------------------------------------------
 # resolve() — precedence (CLI > pack > builtin)
@@ -99,7 +97,6 @@ def test_resolve_user_root_refuses_literal_tilde(monkeypatch):
     ``expanduser`` returns the bare ``"~"`` per Python's documented
     semantics.
     """
-    import os
     import pwd
 
     monkeypatch.delenv("HOME", raising=False)

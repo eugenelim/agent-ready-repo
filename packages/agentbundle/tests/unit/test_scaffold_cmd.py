@@ -10,11 +10,9 @@ Test cases:
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
 import pytest
-
 from agentbundle.commands.scaffold import run
 
 # ---------------------------------------------------------------------------
@@ -69,7 +67,9 @@ def _expected_delivered(pack_fixture: Path) -> dict[str, bytes]:
         if not f.is_file() or f.name.startswith("_"):
             continue
         relpath = f.relative_to(seeds).as_posix()
-        result[relpath] = _composed_agents_md(pack_fixture) if relpath == "AGENTS.md" else f.read_bytes()
+        result[relpath] = (
+            _composed_agents_md(pack_fixture) if relpath == "AGENTS.md" else f.read_bytes()
+        )
     return result
 
 
@@ -166,7 +166,7 @@ def _symlink_or_skip(src, dst) -> None:
     """Create a symlink dst → src, or skip the test if the OS refuses
     (Windows without privilege)."""
     try:
-        os.symlink(src, dst)
+        Path(dst).symlink_to(src)
     except (OSError, NotImplementedError) as exc:
         pytest.skip(f"symlinks unsupported on this platform: {exc}")
 
@@ -253,8 +253,8 @@ def test_scaffold_refuses_path_jail_escape(tmp_path, monkeypatch):
     with exit 1 and a one-line stderr — not propagate PathJailError uncaught.
     (Blocker 2 from quality-engineer review.)
     """
-    from agentbundle.commands import scaffold
     from agentbundle import safety
+    from agentbundle.commands import scaffold
 
     # Build a fixture pack with an empty seeds/ dir, then monkey-patch the
     # walk to yield a malicious relpath that resolves outside --output.
@@ -279,8 +279,8 @@ def test_scaffold_refuses_path_jail_escape(tmp_path, monkeypatch):
 
 def test_init_state_refuses_path_jail_escape(tmp_path, monkeypatch):
     """init-state must catch PathJailError and exit 1 with stderr (Blocker 2)."""
-    from agentbundle.commands import init_state
     from agentbundle import safety
+    from agentbundle.commands import init_state
 
     packs_dir = tmp_path / "packs"
     pack = packs_dir / "core"

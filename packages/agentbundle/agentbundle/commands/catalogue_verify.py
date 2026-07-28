@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     root = Path(getattr(args, "root", ".")).resolve()
     archive_str = getattr(args, "archive", None)
     sha256_str = getattr(args, "sha256_file", None)

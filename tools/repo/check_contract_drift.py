@@ -60,7 +60,10 @@ def _parse_frontmatter(text: str, pack: str) -> str:
     """Extract schema-version from YAML frontmatter; exit 1 on failure."""
     m = _FRONTMATTER_RE.search(text)
     if not m:
-        print(f"error: {pack}: no parseable frontmatter block (expected --- delimiters)", file=sys.stderr)
+        print(
+            f"error: {pack}: no parseable frontmatter block (expected --- delimiters)",
+            file=sys.stderr,
+        )
         sys.exit(1)
     version_m = _SCHEMA_VERSION_RE.search(m.group(1))
     if not version_m:
@@ -132,7 +135,7 @@ def _diagnose(
                 f"  {pack}: structural fingerprint length differs from {reference_pack} "
                 f"({len(fp)} vs {len(ref_fp)} entries)"
             )
-            for j, (ref_item, fp_item) in enumerate(zip(ref_fp, fp[: len(ref_fp)])):
+            for j, (ref_item, fp_item) in enumerate(zip(ref_fp, fp[: len(ref_fp)], strict=False)):
                 if ref_item != fp_item:
                     errors.append(
                         f"    first divergence at position {j}: "
@@ -146,7 +149,7 @@ def _diagnose(
             for item in missing_items:
                 errors.append(f"    missing in {pack}: {item}")
         else:
-            for j, (ref_item, fp_item) in enumerate(zip(ref_fp, fp)):
+            for j, (ref_item, fp_item) in enumerate(zip(ref_fp, fp, strict=False)):
                 if ref_item != fp_item:
                     errors.append(
                         f"  {pack}: divergence at position {j}: "
@@ -192,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     texts = [b.decode("utf-8", errors="replace") for b in byte_contents]
-    versions = [_parse_frontmatter(t, pack) for t, pack in zip(texts, packs)]
+    versions = [_parse_frontmatter(t, pack) for t, pack in zip(texts, packs, strict=False)]
     fps = [_structural_fingerprint(t) for t in texts]
     _diagnose(packs, texts, versions, fps)
     return 1

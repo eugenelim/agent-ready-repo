@@ -14,13 +14,11 @@ import importlib.util
 import json
 import os
 import pathlib
-import shutil
 import subprocess
 import sys
 import types
 
 import pytest
-
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 BROKER_DIR = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "adapter-root-bins"

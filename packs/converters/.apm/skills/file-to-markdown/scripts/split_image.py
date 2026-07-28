@@ -43,7 +43,7 @@ import argparse
 import json
 import math
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -209,7 +209,7 @@ def generate_overview(
         "overview_dimensions": {"width": new_w, "height": new_h},
         "scale_factor": round(scale, 4),
         "output_file": str(out_path.resolve()),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
     manifest_path = output_dir / "overview_manifest.json"
@@ -362,7 +362,7 @@ def generate_detail_tiles(
         "focus_region_tiles": sum(1 for t in tiles if t["source"] == "focus_region"),
         "total_tiles": len(tiles),
         "output_dir": str(output_dir.resolve()),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "tiles": tiles,
     }
 
@@ -450,7 +450,10 @@ def main() -> None:
     p_ov.add_argument("--max-dim", type=int, default=DEFAULT_MAX_DIM)
     p_ov.add_argument(
         "--max-source-dim", type=int, default=DEFAULT_MAX_SOURCE,
-        help=f"Auto-downscale source images with longest side above this (default {DEFAULT_MAX_SOURCE}px)",
+        help=(
+            f"Auto-downscale source images with longest side above this"
+            f" (default {DEFAULT_MAX_SOURCE}px)"
+        ),
     )
 
     # detail
@@ -461,7 +464,10 @@ def main() -> None:
     p_dt.add_argument("--stride", type=int, default=DEFAULT_STRIDE)
     p_dt.add_argument(
         "--max-source-dim", type=int, default=DEFAULT_MAX_SOURCE,
-        help=f"Auto-downscale source images with longest side above this (default {DEFAULT_MAX_SOURCE}px)",
+        help=(
+            f"Auto-downscale source images with longest side above this"
+            f" (default {DEFAULT_MAX_SOURCE}px)"
+        ),
     )
     p_dt.add_argument(
         "--focus-regions",

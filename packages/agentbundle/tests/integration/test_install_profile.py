@@ -16,7 +16,6 @@ import io
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Hygiene — pin $HOME and reset install.py's once-per-process detection sets.
 # ---------------------------------------------------------------------------
@@ -175,7 +174,9 @@ def test_profile_skips_already_installed(tmp_path):
 
     # Pre-seed pf-core at repo scope.
     state = State()
-    state.packs[("pf-core", "claude-code")] = PackState(installed_version="0.4.9", scope="repo", adapter="claude-code")
+    state.packs[("pf-core", "claude-code")] = PackState(
+        installed_version="0.4.9", scope="repo", adapter="claude-code"
+    )
     (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
@@ -303,7 +304,9 @@ def test_profile_refuses_when_dep_preinstalled_at_unsatisfying_version(tmp_path)
 
     # pf-core present at 0.0.1 (does NOT satisfy pf-addon-a's pf-core ^0.1).
     state = State()
-    state.packs[("pf-core", "claude-code")] = PackState(installed_version="0.0.1", scope="repo", adapter="claude-code")
+    state.packs[("pf-core", "claude-code")] = PackState(
+        installed_version="0.0.1", scope="repo", adapter="claude-code"
+    )
     (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
@@ -349,7 +352,6 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
     """A profile pack already installed at the opposite scope is refused with a
     clear, profile-aware message (not the single-pack '--force' line)."""
     from agentbundle.config import PackState, State, dump_state
-    from agentbundle import scope as scope_mod
 
     cat = tmp_path / "cat"
     target = tmp_path / "repo"
@@ -363,7 +365,9 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
         '[pack.install]\ndefault-scope = "user"\nallowed-scopes = ["user", "repo"]\n',
         encoding="utf-8",
     )
-    (cat / "packs" / "pf-tool" / ".apm" / "skills" / "pf-tool-skill").mkdir(parents=True, exist_ok=True)
+    (cat / "packs" / "pf-tool" / ".apm" / "skills" / "pf-tool-skill").mkdir(
+        parents=True, exist_ok=True
+    )
     (cat / "packs" / "pf-tool" / ".apm" / "skills" / "pf-tool-skill" / "SKILL.md").write_text(
         "---\ndescription: fixture.\n---\n\n# pf-tool\n", encoding="utf-8"
     )
@@ -371,7 +375,9 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
 
     # Pre-install pf-tool at REPO scope (the opposite of the profile's user scope).
     repo_state = State()
-    repo_state.packs[("pf-tool", "claude-code")] = PackState(installed_version="0.1.0", scope="repo", adapter="claude-code")
+    repo_state.packs[("pf-tool", "claude-code")] = PackState(
+        installed_version="0.1.0", scope="repo", adapter="claude-code"
+    )
     (target / ".agentbundle-state.toml").write_text(dump_state(repo_state), encoding="utf-8")
 
     rc, out, err = _run_install(["--profile", "userset", str(cat), "--output", str(target)])

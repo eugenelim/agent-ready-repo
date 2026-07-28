@@ -56,8 +56,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--check", action="store_true",
                         help="Verify mmdc is on PATH; exit 0 or 2")
     parser.add_argument("--input", help="Source Markdown file")
-    parser.add_argument("--output-dir", type=Path, default=Path("./mermaid-out"),
-                        help="Output directory for images and rewritten Markdown (default: ./mermaid-out)")
+    parser.add_argument(
+        "--output-dir", type=Path, default=Path("./mermaid-out"),
+        help="Output directory for images and rewritten Markdown (default: ./mermaid-out)",
+    )
     parser.add_argument("--format", choices=VALID_FORMATS, default="png",
                         help="Output image format (default: png)")
     parser.add_argument("--theme", choices=VALID_THEMES, default="default",

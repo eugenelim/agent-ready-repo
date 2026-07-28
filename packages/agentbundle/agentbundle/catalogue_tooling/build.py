@@ -101,18 +101,18 @@ def build_catalogue(
 
     # Temporarily override module-level constants when config is present.
     # Restored in finally to avoid cross-test pollution.
-    saved_branch = _build_main._DIST_BRANCH
-    saved_desc = _build_main._MARKETPLACE_DESCRIPTION
+    saved_branch = _build_main._DIST_BRANCH  # type: ignore[attr-defined]
+    saved_desc = _build_main._MARKETPLACE_DESCRIPTION  # type: ignore[attr-defined]
     try:
         if config and config.build.claude_plugin_branch:
-            _build_main._DIST_BRANCH = config.build.claude_plugin_branch
+            _build_main._DIST_BRANCH = config.build.claude_plugin_branch  # type: ignore[attr-defined]
         if config and config.build.marketplace_description:
-            _build_main._MARKETPLACE_DESCRIPTION = config.build.marketplace_description
+            _build_main._MARKETPLACE_DESCRIPTION = config.build.marketplace_description  # type: ignore[attr-defined]
 
         rc = cmd_build(args)
     finally:
-        _build_main._DIST_BRANCH = saved_branch
-        _build_main._MARKETPLACE_DESCRIPTION = saved_desc
+        _build_main._DIST_BRANCH = saved_branch  # type: ignore[attr-defined]
+        _build_main._MARKETPLACE_DESCRIPTION = saved_desc  # type: ignore[attr-defined]
 
     return BuildResult(
         ok=(rc == 0),

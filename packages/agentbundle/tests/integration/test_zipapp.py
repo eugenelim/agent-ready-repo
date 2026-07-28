@@ -16,7 +16,6 @@ These tests pin the two ship-time invariants for the zipapp:
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import sys
 from pathlib import Path

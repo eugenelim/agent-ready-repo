@@ -12,9 +12,8 @@ new resolver logic. These tests pin that claim.
 from __future__ import annotations
 
 import pytest
-
-from agentbundle.config import PackState, State
 from agentbundle.commands.install import validate_dependencies_required
+from agentbundle.config import PackState, State
 
 
 def _catalogue_curation() -> dict:
@@ -26,7 +25,11 @@ def _catalogue_curation() -> dict:
             "dependencies": {
                 "required": [
                     {"catalogue": "agent-ready-repo", "pack": "core", "version": "^0.1"},
-                    {"catalogue": "agent-ready-repo", "pack": "governance-extras", "version": "^0.1"},
+                    {
+                        "catalogue": "agent-ready-repo",
+                        "pack": "governance-extras",
+                        "version": "^0.1",
+                    },
                 ]
             },
         }
@@ -50,7 +53,9 @@ def _governance_extras() -> dict:
 def _installed(*names: str) -> State:
     return State(
         packs={
-            (n, "claude-code"): PackState(installed_version="0.1.0", scope="repo", adapter="claude-code")
+            (n, "claude-code"): PackState(
+                installed_version="0.1.0", scope="repo", adapter="claude-code"
+            )
             for n in names
         }
     )

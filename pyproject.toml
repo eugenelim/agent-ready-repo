@@ -1,0 +1,72 @@
+[tool.ruff]
+line-length = 99
+target-version = "py311"
+exclude = [
+    ".agentbundle",   # projected build output; source lives in packs/
+    ".agents",        # projected skill scripts; source lives in packs/ and .claude/
+    ".claude",        # projected skill scripts; source lives in packs/
+    "build",
+    "__pycache__",
+    ".git",
+    "node_modules",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "PIE",  # flake8-pie
+    "RET",  # flake8-return
+    "PTH",  # flake8-use-pathlib
+]
+# Excluded rules (documented rationale):
+#   T20  — print() is the output mechanism in CLI scripts/tools; suppressed
+#          per-area via per-file-ignores rather than noqa per line
+#   ARG  — pytest fixture arguments are intentionally unused by caller;
+#          test files excluded below; lambda _x: patterns are intentional
+#   UP035 — deprecated typing imports may be version-guarded; unsafe-fix only
+ignore = ["UP035"]
+
+[tool.ruff.lint.per-file-ignores]
+# CLI tools and lint scripts use print() as their output mechanism
+"tools/**" = ["T201", "T203"]
+"tools/*.py" = ["T201", "T203"]
+# Skill scripts are CLI tools executed by agents
+"**/.agents/skills/*/scripts/**" = ["T201", "T203"]
+".agents/skills/*/scripts/*.py" = ["T201", "T203"]
+"packs/*/scripts/**" = ["T201", "T203"]
+"packs/**/.apm/skills/*/scripts/*.py" = ["T201", "T203"]
+# Test files: pytest fixture args (tmp_path, monkeypatch, etc.) are
+# legitimately unused when the fixture is invoked only for side effects
+"**/test_*.py" = ["ARG001", "ARG002", "ARG005"]
+"**/*_test.py" = ["ARG001", "ARG002", "ARG005"]
+"**/test-*.py" = ["ARG001", "ARG002", "ARG005"]
+# Adapter-root-bins are CLI entry points
+"**/adapter-root-bins/**" = ["T201", "T203"]
+# Credbroker test file that tests CLI scripts
+"packages/credbroker/tests/**" = ["ARG001", "ARG002"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+no_strict_optional = true
+warn_unused_ignores = false
+# Scope: typed library packages only. Untyped scripts (tools/, skill scripts)
+# are excluded — typing them is a separate initiative.
+files = [
+    "packages/agentbundle/agentbundle",
+    "packages/credbroker/credbroker",
+]
+# build/tests/ uses a contract-mixin test pattern where `contract` and
+# `repo_root` are injected via class-level attributes; mypy cannot see
+# through the mixin chain. Excluding avoids ~200 spurious attr-defined
+# errors without suppressing real ones in the library code itself.
+exclude = [
+    "packages/agentbundle/agentbundle/build/tests/",
+]

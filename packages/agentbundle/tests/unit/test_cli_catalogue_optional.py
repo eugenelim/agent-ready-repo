@@ -5,7 +5,6 @@ required on the discovery verbs — RFC-0046 (argparse surface only).
 from __future__ import annotations
 
 import pytest
-
 from agentbundle.cli import _build_parser
 
 

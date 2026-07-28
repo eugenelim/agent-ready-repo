@@ -14,11 +14,8 @@ from __future__ import annotations
 
 import argparse
 import io
-import sys
 from pathlib import Path
 from unittest import mock
-
-import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -174,8 +171,9 @@ def test_version_mismatch_exits_1_naming_both_versions(capsys):
 
 def test_version_mismatch_uses_common_helper():
     """`check_spec_version_gate` returns 1 on major mismatch."""
-    from agentbundle.commands._common import check_spec_version_gate
     import io
+
+    from agentbundle.commands._common import check_spec_version_gate
 
     pack_data = {"pack": {"name": "x", "version": "0.1", "adapter-contract": {"version": "99.0"}}}
     captured = io.StringIO()

@@ -11,8 +11,6 @@ from __future__ import annotations
 import types
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from agentbundle.catalogue import CatalogueError
 from agentbundle.commands.upgrade import _run_source_version_preflight
 
@@ -21,7 +19,9 @@ from agentbundle.commands.upgrade import _run_source_version_preflight
 # ---------------------------------------------------------------------------
 
 
-def _make_state(pack_name: str = "my-pack", adapter: str = "claude-code", source=None, version: str = "0.1.0"):
+def _make_state(
+    pack_name: str = "my-pack", adapter: str = "claude-code", source=None, version: str = "0.1.0"
+):
     """Build a minimal state namespace for _run_source_version_preflight."""
     pack_state = types.SimpleNamespace(
         installed_version=version,

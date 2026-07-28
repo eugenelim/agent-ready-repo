@@ -76,7 +76,6 @@ def run(args) -> int:
     # with adopter-edited content produce .upstream.<ext> companions.
     self_host_mode = bool(getattr(args, "self_host", False))
     state_path = output_dir / ".agentbundle-state.toml"
-    state = None
     if self_host_mode:
         if not state_path.exists():
             print(
@@ -88,7 +87,7 @@ def run(args) -> int:
         from agentbundle.config import load_state
 
         try:
-            state = load_state(state_path)
+            load_state(state_path)
         except ConfigError as exc:
             print(f"render: {exc}", file=sys.stderr)
             return 1

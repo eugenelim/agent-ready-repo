@@ -32,8 +32,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
 FIXTURES_PACKS = (
@@ -157,7 +155,8 @@ def test_make_build_check_fails_on_writer_drift(tmp_path):
 
 
 def test_make_build_check_passes_on_clean_tree(tmp_path):
-    """AC20: gate exits zero when all derived install-marker.py files are byte-identical to the template.
+    """AC20: gate exits zero when all derived install-marker.py files
+    are byte-identical to the template.
 
     Runs ``agentbundle build`` against fixture packs into ``<workspace>/dist/``,
     then calls ``run_build_check_drift_gates`` in-process; expects 0.

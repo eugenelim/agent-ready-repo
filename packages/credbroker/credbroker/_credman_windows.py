@@ -148,9 +148,9 @@ def read_credential(namespace: str, key: str) -> str | None:
     """
     target = _target_name(namespace, key)
     out_ptr = POINTER(CREDENTIAL)()
-    ok = _advapi32.CredReadW(target, CRED_TYPE_GENERIC, 0, byref(out_ptr))
+    ok = _advapi32.CredReadW(target, CRED_TYPE_GENERIC, 0, byref(out_ptr))  # type: ignore[attr-defined]
     if not ok:
-        rc = ctypes.get_last_error()
+        rc = ctypes.get_last_error()  # type: ignore[attr-defined]
         if rc == ERROR_NOT_FOUND:
             return None
         _classify_last_error(rc, "read")
@@ -165,7 +165,7 @@ def read_credential(namespace: str, key: str) -> str | None:
         blob_bytes = ctypes.string_at(cred.CredentialBlob, size)
         return blob_bytes.decode("utf-16-le")
     finally:
-        _advapi32.CredFree(out_ptr)
+        _advapi32.CredFree(out_ptr)  # type: ignore[attr-defined]
 
 
 def write_credential(namespace: str, key: str, value: str) -> None:
@@ -191,18 +191,18 @@ def write_credential(namespace: str, key: str, value: str) -> None:
     cred.Persist = CRED_PERSIST_LOCAL_MACHINE
     cred.UserName = namespace
 
-    ok = _advapi32.CredWriteW(byref(cred), 0)
+    ok = _advapi32.CredWriteW(byref(cred), 0)  # type: ignore[attr-defined]
     if not ok:
-        rc = ctypes.get_last_error()
+        rc = ctypes.get_last_error()  # type: ignore[attr-defined]
         _classify_last_error(rc, "write")
 
 
 def delete_credential(namespace: str, key: str) -> None:
     """Idempotent delete — ``ERROR_NOT_FOUND`` is swallowed."""
     target = _target_name(namespace, key)
-    ok = _advapi32.CredDeleteW(target, CRED_TYPE_GENERIC, 0)
+    ok = _advapi32.CredDeleteW(target, CRED_TYPE_GENERIC, 0)  # type: ignore[attr-defined]
     if not ok:
-        rc = ctypes.get_last_error()
+        rc = ctypes.get_last_error()  # type: ignore[attr-defined]
         if rc == ERROR_NOT_FOUND:
             return
         _classify_last_error(rc, "delete")

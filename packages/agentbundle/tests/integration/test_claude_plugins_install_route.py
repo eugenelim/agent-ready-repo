@@ -20,13 +20,13 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import textwrap
 import tomllib
 from pathlib import Path
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Path to the writer script (repo-relative)
@@ -42,7 +42,7 @@ assert WRITER.exists(), f"Writer not found at {WRITER}"
 # ---------------------------------------------------------------------------
 
 
-def _run_writer(env: dict, *, install_route: str = "claude-plugins") -> "subprocess.CompletedProcess":
+def _run_writer(env: dict, *, install_route: str = "claude-plugins") -> subprocess.CompletedProcess:  # noqa: E501
     """Invoke the writer in subprocess.
 
     Pass ``--install-route claude-plugins`` by default — the apm-install-route-parity
@@ -243,7 +243,9 @@ def test_scope_local_opt_in_for_repo_only_pack_writes_repo_marker(pack_root_fact
         allowed_scopes=["repo"],
         opt_in_at=["local"],
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -272,7 +274,9 @@ def test_scope_project_opt_in_for_repo_only_pack_writes_repo_marker(pack_root_fa
         allowed_scopes=["repo"],
         opt_in_at=["project"],
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
     assert result.stderr == ""
@@ -294,7 +298,9 @@ def test_scope_user_opt_in_for_user_only_pack_writes_user_marker(pack_root_facto
         allowed_scopes=["user"],
         opt_in_at=["user"],
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -315,7 +321,9 @@ def test_scope_precedence_local_beats_project_beats_user(pack_root_factory):
         allowed_scopes=["repo", "user"],
         opt_in_at=["local", "project", "user"],
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -339,7 +347,9 @@ def test_scope_malformed_local_json_falls_through_to_project(pack_root_factory):
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.write_text("{not valid json", encoding="utf-8")
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -356,7 +366,9 @@ def test_scope_no_match_exits_zero_no_marker_no_hash(pack_root_factory):
         allowed_scopes=["repo"],
         opt_in_at=[],  # no settings files written
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0
     assert result.stderr == ""
@@ -392,14 +404,16 @@ def test_scope_project_dir_unset_skips_project_and_local_checks(pack_root_factor
 
 
 def test_refuse_repo_only_pack_at_user_scope(pack_root_factory):
-    """AC3(a) + AC18: repo-only pack enabled at user scope → refuse with 'detected install scope user'."""
+    """AC3(a) + AC18: repo-only pack enabled at user scope → refuse with 'detected install scope user'."""  # noqa: E501
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
         allowed_scopes=["repo"],  # repo only
         opt_in_at=["user"],       # but opted in at user scope
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0  # exits 0 on refuse-and-warn
     assert "detected install scope user" in result.stderr
@@ -413,14 +427,16 @@ def test_refuse_repo_only_pack_at_user_scope(pack_root_factory):
 
 
 def test_refuse_user_only_pack_at_project_scope(pack_root_factory):
-    """AC3(b): user-only pack enabled at project scope → refuse with 'detected install scope project'."""
+    """AC3(b): user-only pack enabled at project scope → refuse with 'detected install scope project'."""  # noqa: E501
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="converters",
         version="0.1.0",
         allowed_scopes=["user"],   # user only
         opt_in_at=["project"],     # but opted in at project scope
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0
     assert "detected install scope project" in result.stderr
@@ -440,7 +456,9 @@ def test_refuse_user_only_pack_at_local_scope(pack_root_factory):
         allowed_scopes=["user"],  # user only
         opt_in_at=["local"],      # opted in at local scope
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0
     assert "detected install scope local" in result.stderr
@@ -464,7 +482,9 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
         allowed_scopes=["repo"],
         opt_in_at=["local"],
     )
-    env_a = _make_env(plugin_root=plugin_root_a, plugin_data=plugin_data_a, home=home, project_dir=project_dir)
+    env_a = _make_env(
+        plugin_root=plugin_root_a, plugin_data=plugin_data_a, home=home, project_dir=project_dir
+    )
     result = _run_writer(env_a)
     assert result.returncode == 0, result.stderr
 
@@ -487,7 +507,7 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
     # We need to add "local" opt-in for pack-b in the project_dir settings.
     local_settings = project_dir / ".claude" / "settings.local.json"
     # Update to include both packs.
-    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8")
+    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8")  # noqa: E501
 
     # Set up the sitecustomize.py that crashes os.replace on first call.
     sitecustomize_dir = tmp_path / "sitecustomize_crash"
@@ -624,7 +644,9 @@ def test_detection_cold_start_writes(pack_root_factory):
         allowed_scopes=["repo"],
         opt_in_at=["local"],
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -651,7 +673,9 @@ def test_detection_keep_data_reinstall_writes(pack_root_factory):
     (plugin_data / "pack-manifest-hash").write_text(current_hash + "\n", encoding="utf-8")
 
     # Marker file is absent (simulates --keep-data reinstall).
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -669,7 +693,9 @@ def test_detection_warm_cache_skips(pack_root_factory):
         allowed_scopes=["repo"],
         opt_in_at=["local"],
     )
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
 
     # First run: cold start, writes both.
     result = _run_writer(env)
@@ -713,9 +739,11 @@ def test_two_writers_sequential_both_entries_present(pack_root_factory):
     # Make pack-a settings visible in the shared project_dir.
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8")
+    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8")  # noqa: E501
 
-    env_a = _make_env(plugin_root=plugin_root_a, plugin_data=plugin_data_a, home=home, project_dir=project_dir)
+    env_a = _make_env(
+        plugin_root=plugin_root_a, plugin_data=plugin_data_a, home=home, project_dir=project_dir
+    )
     result_a = _run_writer(env_a)
     assert result_a.returncode == 0, result_a.stderr
 
@@ -726,7 +754,9 @@ def test_two_writers_sequential_both_entries_present(pack_root_factory):
         allowed_scopes=["repo"],
         opt_in_at=["local"],
     )
-    env_b = _make_env(plugin_root=plugin_root_b, plugin_data=plugin_data_b, home=home, project_dir=project_dir)
+    env_b = _make_env(
+        plugin_root=plugin_root_b, plugin_data=plugin_data_b, home=home, project_dir=project_dir
+    )
     result_b = _run_writer(env_b)
     assert result_b.returncode == 0, result_b.stderr
 
@@ -788,7 +818,9 @@ def test_cli_to_claude_plugins_handoff_preserves_datetime(tmp_path, pack_root_fa
     local_settings.parent.mkdir(parents=True, exist_ok=True)
     local_settings.write_text(json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8")
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -854,9 +886,11 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
     )
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8")
+    local_settings.write_text(json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8")  # noqa: E501
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -897,7 +931,7 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
     # Pre-seed marker with the old version.
     marker_path = project_dir / ".adapt-install-marker.toml"
     import datetime as dt
-    old_ts = dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+    old_ts = dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.UTC)
     old_content = textwrap.dedent(f"""
         marker-schema-version = "0.1"
 
@@ -909,7 +943,9 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
     """).lstrip()
     marker_path.write_text(old_content, encoding="utf-8")
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
@@ -957,7 +993,7 @@ def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
     new_entry = {
         "name": "core",
         "version": "0.1.0",
-        "installed-at": dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+        "installed-at": dt.datetime(2026, 1, 1, tzinfo=dt.UTC),
         "install-route": "claude-plugins",
     }
 
@@ -994,7 +1030,9 @@ def test_user_marker_refuses_symlinked_agentbundle(tmp_path, pack_root_factory):
     agentbundle = home / ".agentbundle"
     agentbundle.symlink_to(foreign_dir)
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
     assert result.returncode != 0
     # Nit-6: symlink case message contains "is a symlink to".
@@ -1135,7 +1173,7 @@ def test_writer_drops_entries_with_malformed_name_or_version(tmp_path, pack_root
     home = tmp_path / "home"
     home.mkdir()
 
-    ts = dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts = dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     # Note: TOML integer for name triggers the type-validation drop path.
     marker_path = project_dir / ".adapt-install-marker.toml"
     marker_path.write_text(
@@ -1165,7 +1203,9 @@ def test_writer_drops_entries_with_malformed_name_or_version(tmp_path, pack_root
     local_settings.parent.mkdir(parents=True, exist_ok=True)
     local_settings.write_text(json.dumps({"enabledPlugins": ["third-pack"]}), encoding="utf-8")
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
 
     # (d) writer must not crash on the bad input.
@@ -1277,11 +1317,13 @@ def test_writer_refuses_pack_name_with_control_chars(tmp_path):
         _json.dumps({"enabledPlugins": [bad_name]}), encoding="utf-8"
     )
 
-    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    env = _make_env(
+        plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
+    )
     result = _run_writer(env)
 
     # (a) exit 0.
-    assert result.returncode == 0, f"Expected exit 0; got {result.returncode}. stderr: {result.stderr!r}"
+    assert result.returncode == 0, f"Expected exit 0; got {result.returncode}. stderr: {result.stderr!r}"  # noqa: E501
     # (b) no marker file.
     assert not (project_dir / ".adapt-install-marker.toml").exists(), (
         "Writer wrote a marker for a pack with an invalid name"

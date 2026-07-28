@@ -67,8 +67,7 @@ def _redact_error(msg: str) -> str:
         msg,
     )
     # 3. Bearer tokens (with or without "Authorization:" prefix)
-    msg = re.sub(r"(?i)Bearer\s+\S+", "Bearer ***", msg)
-    return msg
+    return re.sub(r"(?i)Bearer\s+\S+", "Bearer ***", msg)
 
 
 # ---------------------------------------------------------------------------
@@ -78,10 +77,10 @@ def _redact_error(msg: str) -> str:
 
 def _compute_status_pair(
     installed: str,
-    available_version: "str | None",
+    available_version: str | None,
     *,
-    reason_ctx: "str | None",
-) -> "tuple[str, str | None]":
+    reason_ctx: str | None,
+) -> tuple[str, str | None]:
     """Return ``(status, status_reason)`` from installed/available versions.
 
     Four statuses: ``up-to-date``, ``upgrade-available``, ``ahead``,
@@ -119,7 +118,7 @@ def _compute_status_pair(
 # ---------------------------------------------------------------------------
 
 
-def _version_key(version: str) -> "tuple[int, ...] | None":
+def _version_key(version: str) -> tuple[int, ...] | None:
     """Parse a dotted version into a comparable int tuple, or None if non-numeric.
 
     A non-numeric segment (a pre-release / build tag like ``1.2.0-rc1`` or
@@ -139,8 +138,8 @@ def _version_key(version: str) -> "tuple[int, ...] | None":
 
 
 def _resolve_per_source(
-    rows: "list[dict]",
-) -> "tuple[list[dict], dict[tuple[str, str, str], _RowCtx]]":
+    rows: list[dict],
+) -> tuple[list[dict], dict[tuple[str, str, str], _RowCtx]]:
     """Resolve each unique canonical source exactly once; return (sources, row_ctx_map).
 
     ``row_ctx_map`` is keyed by ``(scope, pack, adapter)`` -- three fields --
@@ -155,6 +154,7 @@ def _resolve_per_source(
     """
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import _major
+    from agentbundle.commands.list_packs import _discover_pack_dirs
     from agentbundle.config import (
         ConfigError,
         canonicalize_source,
@@ -163,13 +163,11 @@ def _resolve_per_source(
     )
     from agentbundle.version import SPEC_VERSION
 
-    from agentbundle.commands.list_packs import _discover_pack_dirs
-
     cli_major = _major(SPEC_VERSION)
 
     # Group by canonical source; None-source rows get source-unknown immediately.
-    by_source: "dict[str, list[dict]]" = {}
-    row_ctx_map: "dict[tuple[str, str, str], _RowCtx]" = {}
+    by_source: dict[str, list[dict]] = {}
+    row_ctx_map: dict[tuple[str, str, str], _RowCtx] = {}
 
     for row in rows:
         src = canonicalize_source(row["_pack_state"].source)
@@ -179,7 +177,7 @@ def _resolve_per_source(
         else:
             by_source.setdefault(src, []).append(row)
 
-    sources: "list[dict]" = []
+    sources: list[dict] = []
 
     for src, src_rows in by_source.items():
         # Attempt catalogue resolution
@@ -200,15 +198,17 @@ def _resolve_per_source(
             continue
 
         # Walk the catalogue and build per-pack ctx map using a toml cache
-        toml_cache: "dict[str, dict]" = {}
-        pack_ctx: "dict[str, _RowCtx]" = {}
+        toml_cache: dict[str, dict] = {}
+        pack_ctx: dict[str, _RowCtx] = {}
 
         for pack_dir in _discover_pack_dirs(catalogue_dir):
             try:
                 toml = load_pack_toml(pack_dir / "pack.toml")
             except ConfigError:
                 # malformed-catalogue -- store against the pack dir name as fallback
-                pack_ctx[pack_dir.name] = _RowCtx(reason="malformed-catalogue", available_version=None)
+                pack_ctx[pack_dir.name] = _RowCtx(
+                    reason="malformed-catalogue", available_version=None
+                )
                 continue
             pack_section = toml.get("pack", {})
             name = pack_section.get("name") or pack_dir.name
@@ -221,7 +221,9 @@ def _resolve_per_source(
             # Ladder step 5 -- version absent or non-string
             version = pack_section.get("version")
             if not version or not isinstance(version, str):
-                pack_ctx[name] = _RowCtx(reason="unparseable-catalogue-version", available_version=None)
+                pack_ctx[name] = _RowCtx(
+                    reason="unparseable-catalogue-version", available_version=None
+                )
                 continue
             pack_ctx[name] = _RowCtx(reason=None, available_version=version)
 
@@ -243,7 +245,9 @@ def _resolve_per_source(
                 toml.get("pack", {}).get("install", {}).get("allowed-adapters")
             )
             if allowed_adapters is not None and row["adapter"] not in allowed_adapters:
-                row_ctx_map[key] = _RowCtx(reason="adapter-no-longer-supported", available_version=None)
+                row_ctx_map[key] = _RowCtx(
+                    reason="adapter-no-longer-supported", available_version=None
+                )
             else:
                 row_ctx_map[key] = ctx
 
@@ -265,8 +269,8 @@ def _resolve_per_source(
 
 
 def _render_json(
-    rows: "list[dict]",
-    sources: "list[dict]",
+    rows: list[dict],
+    sources: list[dict],
     *,
     scope_val: str,
     updates_only: bool,
@@ -339,7 +343,7 @@ def _render_json(
 
 
 def _print_table(
-    rows: "list[dict]",
+    rows: list[dict],
     *,
     check: bool,
     want_drift: bool,
@@ -379,7 +383,7 @@ def _print_table(
     if updates_only and check:
         display_rows = [r for r in rows if r.get("status") != "up-to-date"]
 
-    table_rows: "list[list[str]]" = []
+    table_rows: list[list[str]] = []
     for r in display_rows:
         cells = [r["pack"], r["adapter"], r["scope"], r["installed"]]
         if show_source:
@@ -407,15 +411,15 @@ def _print_table(
 
 
 def _collect_rows(
-    scope_states: "list[tuple[str, Path, State]]",
-) -> "list[dict]":
+    scope_states: list[tuple[str, Path, State]],
+) -> list[dict]:
     """Flatten every ``(pack, adapter)`` row across scopes into sorted dicts.
 
     Each row carries the display fields plus ``_pack_state`` / ``_root`` for a
     later (optional) drift pass. Sorted by (scope, pack, adapter) so output is
     deterministic (RFC-0072 D5).
     """
-    rows: "list[dict]" = []
+    rows: list[dict] = []
     for scope_name, root, state in scope_states:
         for (pack, adapter), ps in state.packs.items():
             rows.append(
@@ -437,7 +441,7 @@ def _collect_rows(
 # ---------------------------------------------------------------------------
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle list-installed``."""
     import sys
 
@@ -465,7 +469,7 @@ def run(args: "argparse.Namespace") -> int:
 
     # Gather (scope, root, State) read-only
     repo_root = Path(getattr(args, "root", ".")).resolve()
-    scope_states: "list[tuple[str, Path, State]]" = []
+    scope_states: list[tuple[str, Path, State]] = []
     for sc in scopes:
         if sc == "repo":
             base, state_path = repo_root, repo_root / ".agentbundle-state.toml"
@@ -497,12 +501,14 @@ def run(args: "argparse.Namespace") -> int:
         return 0
 
     # Catalogue join for LATEST / STATUS (unless --no-check)
-    sources_list: "list[dict]" = []
+    sources_list: list[dict] = []
     if check:
         sources_list, row_ctx_map = _resolve_per_source(rows)
     else:
         row_ctx_map = {
-            (row["scope"], row["pack"], row["adapter"]): _RowCtx(reason=None, available_version=None)
+            (row["scope"], row["pack"], row["adapter"]): _RowCtx(
+                reason=None, available_version=None
+            )
             for row in rows
         }
 

@@ -20,8 +20,8 @@ from __future__ import annotations
 
 import ipaddress
 import socket
-from urllib.parse import urlsplit
 import sys
+from urllib.parse import urlsplit
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -118,5 +118,5 @@ if __name__ == "__main__":
         kind = check_source(sys.argv[1] if len(sys.argv) > 1 else "")
     except SsrfRejected as exc:
         print(f"ssrf_check: rejected — {exc}", file=sys.stderr)
-        raise SystemExit(2)
+        raise SystemExit(2) from None
     print(f"ssrf_check: ok ({kind})")

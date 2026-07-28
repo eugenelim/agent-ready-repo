@@ -197,7 +197,10 @@ class ForceMergeFlagBindingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
             (tmp / "catalogue" / "packs").mkdir(parents=True)
-            _copy_fixture(FIXTURES / "cc-user-hooks", tmp / "catalogue" / "packs" / "cc-user-hooks")
+            _copy_fixture(
+                FIXTURES / "cc-user-hooks",
+                tmp / "catalogue" / "packs" / "cc-user-hooks",
+            )
             (tmp / "repo").mkdir()
             args = _install_args(
                 pack="cc-user-hooks",

@@ -38,6 +38,7 @@ Schema reference: ../assets/state.json and ../references/state-schema.md.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import fnmatch
 import glob as _glob
 import hashlib
@@ -106,7 +107,7 @@ def read_state(spec_dir: Path) -> dict:
     try:
         data = json.loads(path.read_text())
     except json.JSONDecodeError as exc:
-        raise ValueError(f"state.json malformed: {exc.msg} at line {exc.lineno}")
+        raise ValueError(f"state.json malformed: {exc.msg} at line {exc.lineno}") from exc
     if not isinstance(data, dict):
         raise ValueError("state.json root must be an object")
     return data
@@ -122,15 +123,10 @@ def write_state_atomic(spec_dir: Path, state: dict) -> None:
         with os.fdopen(fd, "w") as fh:
             json.dump(state, fh, indent=2)
             fh.write("\n")
-        os.replace(tmp, path)
+        Path(tmp).replace(path)
     except Exception:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            # Best-effort cleanup of the temp file: if the original write or
-            # os.replace failed, a failed unlink here must not mask that
-            # original failure, which we re-raise below.
-            pass
+        with contextlib.suppress(OSError):
+            Path(tmp).unlink()
         raise
 
 
@@ -272,7 +268,7 @@ def globs_overlap(a: str, b: str) -> bool:
     sa, sb = a.split("/"), b.split("/")
     if len(sa) != len(sb):
         return False  # different depth, no `**` → no shared path
-    return not any(_seg_provably_disjoint(x, y) for x, y in zip(sa, sb))
+    return not any(_seg_provably_disjoint(x, y) for x, y in zip(sa, sb, strict=False))
 
 
 def wave_touches_disjoint(per_task_globs) -> str:
@@ -295,7 +291,7 @@ def wave_touches_disjoint(per_task_globs) -> str:
 def build_dag(ordered, deps):
     """Return ``(indegree, children)`` over local edges only."""
     taskset = set(ordered)
-    indeg = {t: 0 for t in ordered}
+    indeg = dict.fromkeys(ordered, 0)
     children = defaultdict(list)
     for t in ordered:
         for d in deps.get(t, ()):

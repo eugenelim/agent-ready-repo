@@ -22,9 +22,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import os
 import tarfile
-import tempfile
 import types
 from pathlib import Path
 from unittest import mock
@@ -97,8 +95,8 @@ def test_brownfield_tier2_gets_companion_not_overwrite(tmp_path):
     differs from the incoming bundle *and* has no matching SHA in any
     pack's state is Tier-2 by construction (first-install collision).
     """
-    from agentbundle.render import render_pack
     from agentbundle import safety
+    from agentbundle.render import render_pack
 
     projection = render_pack(ALPHA_PACK_DIR)
     tier2_relpath = sorted(projection.keys())[0]
@@ -179,14 +177,16 @@ def test_state_file_merge_preserves_existing_pack(tmp_path):
 
 def test_local_relative_path_no_subprocess(tmp_path):
     """Local relative path catalogue must not invoke subprocess.run or Popen."""
-    with mock.patch("subprocess.run", side_effect=AssertionError("subprocess.run must not be called")):
-        with mock.patch("subprocess.Popen", side_effect=AssertionError("subprocess.Popen must not be called")):
-            # Use a relative path from tmp_path parent — not ideal but we
-            # just need to verify the no-subprocess contract; the install
-            # itself may fail if the relative path doesn't resolve, which
-            # is fine — the important thing is subprocess is never called.
-            # Use the absolute fixture path for a reliable resolve.
-            rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    with (
+        mock.patch("subprocess.run", side_effect=AssertionError("subprocess.run must not be called")),  # noqa: E501
+        mock.patch("subprocess.Popen", side_effect=AssertionError("subprocess.Popen must not be called")),  # noqa: E501
+    ):
+        # Use a relative path from tmp_path parent — not ideal but we
+        # just need to verify the no-subprocess contract; the install
+        # itself may fail if the relative path doesn't resolve, which
+        # is fine — the important thing is subprocess is never called.
+        # Use the absolute fixture path for a reliable resolve.
+        rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0
 
 
@@ -196,9 +196,11 @@ def test_local_relative_path_no_subprocess(tmp_path):
 
 def test_local_absolute_path_no_subprocess(tmp_path):
     abs_path = str(FIXTURE_CATALOGUE.resolve())
-    with mock.patch("subprocess.run", side_effect=AssertionError("subprocess.run called")):
-        with mock.patch("subprocess.Popen", side_effect=AssertionError("subprocess.Popen called")):
-            rc = _run_install("alpha", abs_path, str(tmp_path))
+    with (
+        mock.patch("subprocess.run", side_effect=AssertionError("subprocess.run called")),
+        mock.patch("subprocess.Popen", side_effect=AssertionError("subprocess.Popen called")),
+    ):
+        rc = _run_install("alpha", abs_path, str(tmp_path))
     assert rc == 0
 
 
@@ -220,7 +222,6 @@ def _mock_urlopen_returning_alpha(url_capture: list):
         def __exit__(self, *args):
             pass
 
-    original_urlopen = None
 
     def _fake_urlopen(url, **kwargs):
         url_capture.append(url)
@@ -238,10 +239,9 @@ def _tarball_mock():
 
     def _fake_urlopen(url, **kwargs):
         captured.append(url)
-        buf = _make_tarball(FIXTURE_CATALOGUE, "alpha-v1.0")
+        return _make_tarball(FIXTURE_CATALOGUE, "alpha-v1.0")
         # tarfile.open(..., mode="r|gz") expects a streaming file-like;
         # return a BytesIO-backed file object so tarfile can read it.
-        return buf
 
     patcher = mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen)
     return patcher, captured
@@ -250,7 +250,7 @@ def _tarball_mock():
 def test_git_https_tag_constructs_tags_url(tmp_path, _tarball_mock):
     patcher, captured = _tarball_mock
     with patcher:
-        rc = _run_install(
+        _run_install(
             "alpha",
             "git+https://github.com/owner/repo@v1.0",
             str(tmp_path),
@@ -264,7 +264,7 @@ def test_git_https_tag_constructs_tags_url(tmp_path, _tarball_mock):
 def test_git_https_branch_constructs_heads_url(tmp_path, _tarball_mock):
     patcher, captured = _tarball_mock
     with patcher:
-        rc = _run_install(
+        _run_install(
             "alpha",
             "git+https://github.com/owner/repo@main",
             str(tmp_path),
@@ -276,7 +276,7 @@ def test_git_https_branch_constructs_heads_url(tmp_path, _tarball_mock):
 def test_git_https_sha_constructs_sha_url(tmp_path, _tarball_mock):
     patcher, captured = _tarball_mock
     with patcher:
-        rc = _run_install(
+        _run_install(
             "alpha",
             "git+https://github.com/owner/repo@deadbeef",
             str(tmp_path),
@@ -289,7 +289,7 @@ def test_git_https_40char_sha_constructs_sha_url(tmp_path, _tarball_mock):
     sha40 = "a" * 40
     patcher, captured = _tarball_mock
     with patcher:
-        rc = _run_install(
+        _run_install(
             "alpha",
             f"git+https://github.com/owner/repo@{sha40}",
             str(tmp_path),
@@ -368,8 +368,8 @@ def test_path_jail_probe_refused(tmp_path):
 def test_state_records_sha_for_tier1_paths(tmp_path):
     """After install, .agentbundle-state.toml must record a sha for every
     path the install wrote (Tier-1 paths)."""
-    from agentbundle.config import load_state
     from agentbundle import safety
+    from agentbundle.config import load_state
     from agentbundle.render import render_pack
 
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
@@ -396,6 +396,7 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     import argparse
     import contextlib
     import io
+
     from agentbundle.commands.install import run as install_run
 
     cat = str(Path(__file__).parent.parent / "fixtures" / "upgrade" / "catalogue_v1")
@@ -427,7 +428,6 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
     """When the on-disk SHA at a projected path matches *another* pack's
     recorded SHA, install logs a warning rather than silently overwriting.
     (Concern 15 from adversarial review.)"""
-    import argparse
     from agentbundle import safety
     from agentbundle.commands.install import _classify_for_install
     from agentbundle.config import PackState, State
@@ -445,7 +445,7 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
     state.packs[("other", "claude-code")] = PackState(
         installed_version="0.1",
         adapter="claude-code",
-        files={"shared.md": {"sha": safety.sha256_bytes(on_disk_content), "from-pack-version": "0.1"}},
+        files={"shared.md": {"sha": safety.sha256_bytes(on_disk_content), "from-pack-version": "0.1"}},  # noqa: E501
     )
 
     tier = _classify_for_install(
@@ -454,7 +454,7 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
     assert tier is safety.Tier.TIER_1
     captured = capsys.readouterr()
     assert "also recorded under pack 'other'" in captured.err, (
-        f"expected collision warning in stderr: {captured.err!r}"
+        f"expected collision warning in stderr: {captured.err!r}"  # noqa: E501
     )
 
 
@@ -653,7 +653,7 @@ def test_dry_run_seed_companion_line(tmp_path):
     charter_on_disk = target / "docs" / "CHARTER.md"
     charter_on_disk.write_bytes(b"# adopter edited charter\n")
 
-    before = _snapshot_tree(target)
+    _snapshot_tree(target)
     _reset_inband_cache()
     rc, out, err = _run_core(_args_core(target, dry_run=True))
     assert rc == 0, f"dry-run must exit 0: {err}"

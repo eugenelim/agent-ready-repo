@@ -36,14 +36,13 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Set
+from typing import Any, Iterable, Iterator
 
 from .aggregate import AggregateBlock, aggregate
 from .config import StateConfig
 from .jql import compose_jql
 from .per_issue import PerIssueRow
 from .upstream import JiraClient
-
 
 # Minimal field set for the cohort search: we only need the issue keys.
 # ``summary`` is requested as a defensive "non-empty fields list" so a
@@ -55,7 +54,7 @@ def resolve_cohort_keys(
     jira: JiraClient,
     cohort_jql: str,
     scope: str,
-) -> Set[str]:
+) -> set[str]:
     """Return the set of issue keys matching ``(scope) AND (cohort_jql)``.
 
     Issues exactly one ``jira: search`` call. The composed JQL ends in
@@ -79,7 +78,7 @@ def resolve_cohort_keys(
             "resolve_cohort_keys: cohort_jql must be a non-empty JQL expression"
         )
     full_jql = compose_jql(scope, cohort_jql, order_by_key=True)
-    keys: Set[str] = set()
+    keys: set[str] = set()
     for issue in jira.search(full_jql, fields=_COHORT_SEARCH_FIELDS):
         key = issue.get("key") if isinstance(issue, dict) else None
         if isinstance(key, str) and key:
@@ -89,7 +88,7 @@ def resolve_cohort_keys(
 
 def tag_cohort(
     rows: Iterable[PerIssueRow],
-    cohort_keys: Set[str],
+    cohort_keys: set[str],
 ) -> Iterator[PerIssueRow]:
     """Yield rows after stamping ``row.cohort = (row.key in cohort_keys)``.
 
@@ -134,13 +133,13 @@ def aggregate_cohort(
 
 def build_cohort_breakdown(
     rows: Iterable[PerIssueRow],
-    cohort_keys: Set[str],
+    cohort_keys: set[str],
     config: StateConfig,
     window: Any,
     notes: Any,
     *,
     include_subtasks: bool = False,
-) -> Dict[str, AggregateBlock]:
+) -> dict[str, AggregateBlock]:
     """Tag ``rows`` and emit ``{"cohort": ..., "control": ...}``.
 
     Materialises the row stream once (two passes are required —
@@ -155,7 +154,7 @@ def build_cohort_breakdown(
     :class:`NotesCollector` will satisfy the interface, but tests pass
     a ``MagicMock()`` and assert the call.
     """
-    materialised: List[PerIssueRow] = list(tag_cohort(rows, cohort_keys))
+    materialised: list[PerIssueRow] = list(tag_cohort(rows, cohort_keys))
     cohort_rows = [r for r in materialised if r.cohort]
     control_rows = [r for r in materialised if not r.cohort]
 
@@ -172,7 +171,7 @@ def build_cohort_breakdown(
     return {"cohort": cohort_block, "control": control_block}
 
 
-def cohort_meta(cohort_jql: Optional[str]) -> Dict[str, str]:
+def cohort_meta(cohort_jql: str | None) -> dict[str, str]:
     """Return a meta-block fragment carrying ``cohort_jql`` when set.
 
     Empty dict when ``--cohort-jql`` was not provided (None or empty

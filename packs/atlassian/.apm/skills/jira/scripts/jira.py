@@ -36,6 +36,7 @@ Tier 3 dotfile); run ``credential-setup`` skill to populate the namespace.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import json
 import logging
@@ -60,10 +61,8 @@ if __package__ in (None, "") and __spec__ is None:
     # its messages emit correctly. Guarded: a replaced stream (StringIO under
     # a test harness) or pythonw's None has no reconfigure().
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     # Vendored credbroker floor (~/.agentbundle/lib) at LOWEST precedence:
@@ -94,7 +93,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("jira.cli")
 
@@ -415,14 +414,14 @@ async def _cmd_check(client: JiraClient) -> int:
     return EXIT_OK
 
 
-async def _cmd_whoami(client: JiraClient, writer: "OutputWriter") -> int:
+async def _cmd_whoami(client: JiraClient, writer: OutputWriter) -> int:
     info = await client.whoami()
     writer.emit_single(info)
     return EXIT_OK
 
 
 async def _cmd_get_issue(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     issue = await client.get_issue(
         args.issue_key, fields=args.fields, expand=args.expand
@@ -432,7 +431,7 @@ async def _cmd_get_issue(
 
 
 async def _cmd_create_issue(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     try:
         body = _load_body(args)
@@ -476,7 +475,7 @@ async def _cmd_delete_issue(
 
 
 async def _cmd_list_transitions(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     transitions = await client.list_transitions(args.issue_key)
     for t in transitions:
@@ -505,7 +504,7 @@ async def _cmd_transition(
 
 
 async def _cmd_comment(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     result = await client.add_comment(args.issue_key, args.body)
     writer.emit_single(result if isinstance(result, dict) else {"value": result})
@@ -513,7 +512,7 @@ async def _cmd_comment(
 
 
 async def _cmd_attach(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     if not args.file_path.is_file():
         print(f"error: file not found: {args.file_path}", file=sys.stderr)
@@ -526,7 +525,7 @@ async def _cmd_attach(
 
 
 async def _cmd_search(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     if args.page_size <= 0 or args.page_size > 100:
         print("error: --page-size must be 1..100", file=sys.stderr)
@@ -544,7 +543,7 @@ async def _cmd_search(
 
 
 async def _cmd_get_project(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     proj = await client.get_project(args.key_or_id)
     writer.emit_single(proj)
@@ -552,7 +551,7 @@ async def _cmd_get_project(
 
 
 async def _cmd_list_projects(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     async for proj in client.iter_projects(
         query=args.query, page_size=args.page_size, limit=args.limit
@@ -563,7 +562,7 @@ async def _cmd_list_projects(
 
 
 async def _cmd_get_user(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     if not (args.account_id or args.username or args.key):
         print(
@@ -579,7 +578,7 @@ async def _cmd_get_user(
 
 
 async def _cmd_list_users(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     async for user in client.iter_users(
         args.query, page_size=args.page_size, limit=args.limit
@@ -590,7 +589,7 @@ async def _cmd_list_users(
 
 
 async def _cmd_raw(
-    client: JiraClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     params: dict[str, str] = {}
     for pair in args.param:

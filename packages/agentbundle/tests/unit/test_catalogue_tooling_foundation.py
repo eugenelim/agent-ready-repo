@@ -83,8 +83,10 @@ def test_result_types_structure():
         assert field in cr_fields, f"CommandResult missing field: {field}"
 
     # Subtypes are subclasses of CommandResult
-    for subtype in (LintResult, VerifyResult, BuildResult, SelfHostResult, PackageResult, SyncDefaultsResult):
-        assert issubclass(subtype, CommandResult), f"{subtype.__name__} not subclass of CommandResult"
+    for subtype in (
+        LintResult, VerifyResult, BuildResult, SelfHostResult, PackageResult, SyncDefaultsResult
+    ):
+        assert issubclass(subtype, CommandResult), f"{subtype.__name__} not subclass of CommandResult"  # noqa: E501
 
 
 def test_stub_raises_not_implemented():
@@ -98,7 +100,7 @@ def test_stub_raises_not_implemented():
     # Wave 4: package_catalogue is implemented; calling with missing required
     # args returns a PackageResult error rather than raising NotImplementedError.
     result = package_catalogue(
-        root=Path("."),
+        root=Path(),
         bundle="test",
         release="0.0.0",
         channel="stable",
@@ -496,7 +498,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]  # packages/agentbundle/tests/u
 def test_schema_copies_byte_equal():
     """AC4: both schema copies are byte-identical."""
     src = _REPO_ROOT / "contracts" / "catalogue.schema.json"
-    dst = _REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "catalogue.schema.json"
+    dst = (
+        _REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "catalogue.schema.json"
+    )
     assert src.exists(), f"Schema missing at {src}"
     assert dst.exists(), f"Schema copy missing at {dst}"
     assert src.read_bytes() == dst.read_bytes(), "Schema copies are not byte-identical"

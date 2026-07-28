@@ -15,9 +15,7 @@ import sys
 import types
 
 import pytest
-
 from agentbundle.catalogue_tooling.lint import _cs_is_canonical_shim
-
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 _CANONICAL_SHIM_SRC = (

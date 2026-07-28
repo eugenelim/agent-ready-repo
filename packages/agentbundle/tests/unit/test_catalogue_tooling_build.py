@@ -13,14 +13,11 @@ The build module is available as the *module* via
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from agentbundle.catalogue_tooling.build import _validate_recipe_path, build_catalogue
 from agentbundle.catalogue_tooling.results import BuildResult
-
 
 # ---------------------------------------------------------------------------
 # _validate_recipe_path

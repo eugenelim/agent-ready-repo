@@ -29,7 +29,7 @@ _BOLD_ON = "\x1b[1m"
 _BOLD_OFF = "\x1b[0m"
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import resolve_catalogue_uri
     from agentbundle.commands.show import _find_pack_dir

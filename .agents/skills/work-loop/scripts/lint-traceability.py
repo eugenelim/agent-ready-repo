@@ -465,7 +465,11 @@ def recognize_contracts(base: Path, root: Path, g: Graph) -> None:
         if not _within(d, root):
             continue
         for p in sorted(_confined(d.glob("*"), root)):
-            if not p.is_file() or p.name.startswith("_") or p.suffix not in {".md", ".yaml", ".yml", ".json"}:
+            if (
+                not p.is_file()
+                or p.name.startswith("_")
+                or p.suffix not in {".md", ".yaml", ".yml", ".json"}
+            ):
                 continue
             stem = p.stem
             m = re.match(r"(.+?)[.@]v?(\d+)$", stem)
@@ -587,7 +591,7 @@ def resolve_endpoint(target: str, local_ids: set[str],
     # O(N log N)-per-miss scan is intentional at chain scale (hundreds of nodes,
     # not thousands); a suffix index is the move only if a monorepo outgrows it.
     for nid in sorted(local_ids):
-        if nid.endswith(f":{target}") or nid.endswith(f"/{target}"):
+        if nid.endswith((f":{target}", f"/{target}")):
             return "local", False, nid
     if target in rollup:
         return "satisfied-by-reference", rollup[target], target
@@ -683,7 +687,7 @@ def _find_cycles(g: Graph) -> list[str]:
             adj.setdefault(a, []).append(b)
 
     WHITE, GREY, BLACK = 0, 1, 2
-    color: dict[str, int] = {n: WHITE for n in g.nodes}
+    color: dict[str, int] = dict.fromkeys(g.nodes, WHITE)
     seen_cycle: set[frozenset[str]] = set()
 
     for start in list(g.nodes):
@@ -691,7 +695,7 @@ def _find_cycles(g: Graph) -> list[str]:
             continue
         color[start] = GREY
         path = [start]
-        stack: list[tuple[str, "object"]] = [(start, iter(adj.get(start, ())))]
+        stack: list[tuple[str, object]] = [(start, iter(adj.get(start, ())))]
         while stack:
             node, it = stack[-1]
             descended = False
@@ -1198,9 +1202,7 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
         hard.append(f"CYCLE — {c}")
 
     exit_hint = 0
-    if hard:
-        exit_hint = 1
-    elif (orphans or unreachable) and strict:
+    if hard or (orphans or unreachable) and strict:
         exit_hint = 1
     return out, hard, exit_hint
 

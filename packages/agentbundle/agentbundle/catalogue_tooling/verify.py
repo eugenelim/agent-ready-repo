@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 import tempfile
 from pathlib import Path
 
@@ -185,9 +184,17 @@ def _step_version_parity(
         pj_name = pj.get("name")
         pj_version = pj.get("version")
         if pt_name and pj_name and pt_name != pj_name:
-            diags.append(_err("CAT-V-005", f"pack.toml name {pt_name!r} != plugin.json name {pj_name!r}", pack=pack_dir.name))
+            diags.append(_err(
+                "CAT-V-005",
+                f"pack.toml name {pt_name!r} != plugin.json name {pj_name!r}",
+                pack=pack_dir.name,
+            ))
         if pt_version and pj_version and pt_version != pj_version:
-            diags.append(_err("CAT-V-005", f"pack.toml version {pt_version!r} != plugin.json version {pj_version!r}", pack=pack_dir.name))
+            diags.append(_err(
+                "CAT-V-005",
+                f"pack.toml version {pt_version!r} != plugin.json version {pj_version!r}",
+                pack=pack_dir.name,
+            ))
     return diags
 
 
@@ -285,15 +292,15 @@ def _step_agent_artifacts(
         if not isinstance(node, yaml.MappingNode):
             raise yaml.constructor.ConstructorError(
                 None, None,
-                f"expected a mapping node, got {node.id}",
-                node.start_mark,
+                f"expected a mapping node, got {node.id}",  # type: ignore[attr-defined]
+                node.start_mark,  # type: ignore[attr-defined]
             )
         mapping: dict = {}
-        for key_node, value_node in node.value:
-            key = loader.construct_object(key_node, deep=deep)
+        for key_node, value_node in node.value:  # type: ignore[attr-defined]
+            key = loader.construct_object(key_node, deep=deep)  # type: ignore[attr-defined]
             if key in mapping:
                 raise _DuplicateKeyError(key, key_node.start_mark.line + 1)
-            mapping[key] = loader.construct_object(value_node, deep=deep)
+            mapping[key] = loader.construct_object(value_node, deep=deep)  # type: ignore[attr-defined]
         return mapping
 
     _FrontmatterLoader.add_constructor(
@@ -366,7 +373,7 @@ def _step_agent_artifacts(
 
     def check_links(path: Path, body: str, body_start_line: int) -> None:
         base = path.parent
-        for offset, line in enumerate(body.splitlines()):
+        for _offset, line in enumerate(body.splitlines()):
             for match in LINK.finditer(line):
                 target = match.group(1).split("#", 1)[0].strip()
                 if not target:
@@ -641,7 +648,10 @@ def _step_output_drift(
 def _step_selfhost_drift(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 15: self-host drift check via check_self_host. Skips when no catalogue.toml or no self-host projection."""
+    """Step 15: self-host drift check via check_self_host.
+
+    Skips when no catalogue.toml or no self-host projection.
+    """
     if config is None:
         return []
     # .adapt-discovery.toml is required by run_self_host (AC14 fail-fast). Its
@@ -654,7 +664,11 @@ def _step_selfhost_drift(
     except Exception as exc:
         return [_err("CAT-V-015", f"self-host check failed: {exc}")]
     if not result.ok:
-        return [_err("CAT-V-015", "self-host projection is out of date (run 'agentbundle catalogue self-host --write')")]
+        return [_err(
+            "CAT-V-015",
+            "self-host projection is out of date"
+            " (run 'agentbundle catalogue self-host --write')",
+        )]
     return []
 
 
@@ -673,7 +687,11 @@ def _step_sync_defaults(
     except Exception as exc:
         return [_err("CAT-V-016", f"sync-defaults check failed: {exc}")]
     if not result.ok:
-        return [_err("CAT-V-016", "install-defaults.toml is out of date (run 'agentbundle catalogue sync-defaults --write')")]
+        return [_err(
+            "CAT-V-016",
+            "install-defaults.toml is out of date"
+            " (run 'agentbundle catalogue sync-defaults --write')",
+        )]
     return []
 
 

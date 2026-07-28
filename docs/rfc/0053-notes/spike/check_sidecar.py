@@ -11,7 +11,6 @@ Usage:
     python3 check_sidecar.py traceability.json [open-questions.md]
 """
 import json
-import re
 import sys
 from pathlib import Path
 

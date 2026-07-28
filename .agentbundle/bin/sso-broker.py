@@ -18,6 +18,7 @@ subprocess-invoked from `auth: sso-cookie` consumer skills.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import pathlib
@@ -45,10 +46,8 @@ if __package__ in (None, "") and __spec__ is None:
     # before any output, including the platform-backend import below. Guarded:
     # a StringIO test-harness replacement or pythonw's None has no reconfigure().
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = pathlib.Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
@@ -165,10 +164,8 @@ def read_credential(namespace: str, key: str) -> str | None:
 
 def _delete_credential(namespace: str, key: str) -> None:
     if _tier2_capable():
-        try:
+        with contextlib.suppress(Exception):  # noqa: BLE001 — best-effort delete
             _tier2_backend.delete_credential(namespace, key)
-        except Exception:  # noqa: BLE001 — best-effort delete
-            pass
 
 
 def _store_cookie_jar(profile: str, serialized: bytes) -> str:
@@ -283,8 +280,8 @@ def _file_floor_write(profile: str, serialized: bytes) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_bytes(serialized)
     if os.name == "posix":
-        os.chmod(tmp, 0o600)
-    os.replace(tmp, path)
+        tmp.chmod(0o600)
+    tmp.replace(path)
 
 
 # ----------------------------------------------------------------------
@@ -323,8 +320,8 @@ def _write_profile(profile: str, table: dict) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
     if os.name == "posix":
-        os.chmod(tmp, 0o600)
-    os.replace(tmp, path)
+        tmp.chmod(0o600)
+    tmp.replace(path)
 
 
 # ----------------------------------------------------------------------

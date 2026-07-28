@@ -108,7 +108,7 @@ class ConfluenceClient:
             follow_redirects=True,
         )
 
-    def __enter__(self) -> "ConfluenceClient":
+    def __enter__(self) -> ConfluenceClient:
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -150,7 +150,11 @@ class ConfluenceClient:
                 )
             if resp.status_code == 429 or 500 <= resp.status_code < 600:
                 retry_after = resp.headers.get("Retry-After")
-                delay = float(retry_after) if retry_after and retry_after.isdigit() else self._backoff(attempt)
+                delay = (
+                    float(retry_after)
+                    if retry_after and retry_after.isdigit()
+                    else self._backoff(attempt)
+                )
                 log.warning("HTTP %s on %s — retrying in %.1fs", resp.status_code, path, delay)
                 time.sleep(delay)
                 continue
@@ -289,6 +293,8 @@ def load_credentials() -> Credentials:
     """
     from credbroker import (
         CredentialsMissingError,
+    )
+    from credbroker import (
         load_credentials as _resolver_load,
     )
 

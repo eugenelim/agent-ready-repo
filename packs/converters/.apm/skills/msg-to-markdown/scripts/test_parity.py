@@ -22,10 +22,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 import mapi
 import msg_fixtures as fx
+import pytest
 
 HERE = Path(__file__).resolve().parent
 BASELINE = json.loads((HERE / "testdata" / "msgreader_baseline.json").read_text())

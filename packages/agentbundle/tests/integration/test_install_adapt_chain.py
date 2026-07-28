@@ -23,9 +23,6 @@ import io
 import tomllib
 from pathlib import Path
 
-import pytest
-
-
 ADDON_NO_DEPENDENCIES = """\
 [pack]
 name = "addon"
@@ -92,7 +89,7 @@ def test_install_marker_records_new_companions(tmp_path):
     collision_full.write_text("adopter-edited\n", encoding="utf-8")
 
     rc, _, _ = _install(
-        dict(pack="demo", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "demo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0
 
@@ -123,7 +120,7 @@ def test_install_marker_companions_empty_on_clean_install(tmp_path):
     target.mkdir()
 
     rc, _, _ = _install(
-        dict(pack="demo", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "demo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0
 
@@ -145,7 +142,7 @@ def test_install_writes_marker_at_repo_scope_root(tmp_path):
     target.mkdir()
 
     rc, _, _ = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0
     marker_path = target / ".adapt-install-marker.toml"
@@ -169,8 +166,8 @@ def test_install_marker_appends_atomically(tmp_path):
     target = tmp_path / "repo"
     target.mkdir()
 
-    _install(dict(pack="alpha", catalogue=str(cat), output=str(target), scope=None, force=False))
-    _install(dict(pack="beta", catalogue=str(cat), output=str(target), scope=None, force=False))
+    _install({"pack": "alpha", "catalogue": str(cat), "output": str(target), "scope": None, "force": False})  # noqa: E501
+    _install({"pack": "beta", "catalogue": str(cat), "output": str(target), "scope": None, "force": False})  # noqa: E501
 
     marker_path = target / ".adapt-install-marker.toml"
     data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
@@ -189,7 +186,7 @@ def test_install_with_no_discovery_file_emits_one_line_and_succeeds(tmp_path):
     target.mkdir()
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0
     assert (target / ".adapt-install-marker.toml").exists()
@@ -213,7 +210,7 @@ def test_install_chained_adapt_failure_returns_nonzero_preserves_marker(tmp_path
     )
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc != 0, "malformed discovery must propagate non-zero"
     assert (target / ".adapt-install-marker.toml").exists(), (
@@ -261,7 +258,7 @@ def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, "call", _no_subprocess)
 
     rc, _, _ = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0
     # Positive assertion: the projected file got the substituted value
@@ -377,7 +374,7 @@ def test_user_scope_only_install_chains_adapt_against_args_output(tmp_path, monk
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, _, err = _install(
-        dict(pack="user-only", catalogue=str(cat), output=str(target), scope="user", force=False)
+        {"pack": "user-only", "catalogue": str(cat), "output": str(target), "scope": "user", "force": False}  # noqa: E501
     )
     assert rc == 0, f"user-scope-only install failed: {err}"
     # User-scope state file landed at the namespaced dot-directory.

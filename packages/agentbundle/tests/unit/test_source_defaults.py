@@ -13,18 +13,16 @@ import json
 from pathlib import Path
 
 import pytest
-
-from agentbundle.catalogue import CatalogueError
 from agentbundle import source_defaults
+from agentbundle.catalogue import CatalogueError
 from agentbundle.source_defaults import (
-    _source_from_install_defaults,
     _detect_editable_source,
     _is_valid_source,
     _load_distribution,
+    _source_from_install_defaults,
     read_packaged_default,
     resolve_default_source,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -446,7 +444,7 @@ def test_preferred_adapter_returns_none_for_absent_or_invalid(text):
 
 def test_preferred_adapter_coexists_with_defaults_table():
     """[defaults].source and [organization].preferred_adapter can coexist."""
-    text = '[defaults]\nsource = "git+https://example.com/x"\n[organization]\npreferred_adapter = "cursor"\n'
+    text = '[defaults]\nsource = "git+https://example.com/x"\n[organization]\npreferred_adapter = "cursor"\n'  # noqa: E501
     assert _preferred_adapter_from_install_defaults(text) == "cursor"
 
 
@@ -488,7 +486,7 @@ def test_read_packaged_preferred_adapter_valid_returns_value(monkeypatch):
         lambda _t: "cursor",
     )
     from agentbundle import scope as _scope
-    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))
+    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))  # noqa: E501
     result = read_packaged_preferred_adapter()
     assert result == "cursor"
 
@@ -501,7 +499,7 @@ def test_read_packaged_preferred_adapter_invalid_raises(monkeypatch):
         lambda _t: "not-an-adapter",
     )
     from agentbundle import scope as _scope
-    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))
+    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))  # noqa: E501
     with pytest.raises(CatalogueError, match="not-an-adapter"):
         read_packaged_preferred_adapter()
 

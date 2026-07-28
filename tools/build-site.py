@@ -64,11 +64,15 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
     for group in groups:
         label = group.get("label")
         if not label:
-            print(f"  warn  site.toml group missing 'label' — skipping", file=sys.stderr)
+            print("  warn  site.toml group missing 'label' — skipping", file=sys.stderr)
             continue
         for slug in group.get("packs", []):
             if slug not in packs_by_slug:
-                print(f"  warn  site.toml slug '{slug}' in group '{label}' has no packs/{slug}/pack.toml", file=sys.stderr)
+                print(
+                    f"  warn  site.toml slug '{slug}' in group '{label}'"
+                    f" has no packs/{slug}/pack.toml",
+                    file=sys.stderr,
+                )
                 continue
             if slug not in grouped:
                 packs_by_slug[slug]["group"] = label
@@ -77,7 +81,10 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
 
     for slug in sorted(packs_by_slug):
         if slug not in grouped:
-            print(f"  warn  pack '{slug}' not in any site.toml group — placed in 'Other'", file=sys.stderr)
+            print(
+                f"  warn  pack '{slug}' not in any site.toml group — placed in 'Other'",
+                file=sys.stderr,
+            )
             packs_by_slug[slug]["group"] = "Other"
             ordered.append(packs_by_slug[slug])
 
@@ -176,7 +183,7 @@ def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
 
     def replace(m: re.Match) -> str:
         prefix, path, anchor = m.group(1), m.group(2), m.group(3) or ""
-        if not path or path.startswith("http://") or path.startswith("https://") or path.startswith("#"):
+        if not path or path.startswith(("http://", "https://", "#")):
             return m.group(0)
         try:
             resolved = (pack_src_path.parent / path).resolve()
@@ -211,7 +218,7 @@ def _rewrite_guide(text: str, guide_src_path: Path) -> str:
 
     def replace(m: re.Match) -> str:
         prefix, path, anchor = m.group(1), m.group(2), m.group(3) or ""
-        if not path or path.startswith("http://") or path.startswith("https://") or path.startswith("#"):
+        if not path or path.startswith(("http://", "https://", "#")):
             return m.group(0)
 
         # Resolve the link relative to the guide file's source position
@@ -225,7 +232,7 @@ def _rewrite_guide(text: str, guide_src_path: Path) -> str:
             if resolved.is_dir():
                 # Bare directory link → index
                 return m.group(0)
-            elif resolved.exists():
+            if resolved.exists():
                 return m.group(0)
             # Stale link within guides/ — fall through
 
@@ -261,7 +268,7 @@ def _rewrite_contributing(text: str) -> str:
 
     def replace(m: re.Match) -> str:
         prefix, path, anchor = m.group(1), m.group(2), m.group(3) or ""
-        if not path or path.startswith("http://") or path.startswith("https://") or path.startswith("#"):
+        if not path or path.startswith(("http://", "https://", "#")):
             return m.group(0)
         try:
             resolved = (contributing_src.parent / path).resolve()
@@ -326,7 +333,10 @@ def mirror_dir(src: Path, dst: Path, rewriter=None, dry_run: bool = False) -> in
             target = dst / Path(*rel_parts)
             if dry_run:
                 action = "rename" if path.name == "README.md" else "copy"
-                print(f"  {action} {path.relative_to(REPO_ROOT)} → {target.relative_to(REPO_ROOT)}")
+                print(
+                    f"  {action} {path.relative_to(REPO_ROOT)}"
+                    f" → {target.relative_to(REPO_ROOT)}"
+                )
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if path.suffix == ".md":
@@ -360,7 +370,10 @@ def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) ->
     )
     lines = [header]
     for p in packs:
-        lines.append(f"| [**{p['display_name']}**]({p['slug']}/) | `{p['scope']}` | {p['description']} |\n")
+        lines.append(
+            f"| [**{p['display_name']}**]({p['slug']}/) |"
+            f" `{p['scope']}` | {p['description']} |\n"
+        )
 
     content = "".join(lines)
     index_md = out_dir / "index.md"
@@ -389,7 +402,10 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False)
 
     payload = json.dumps(sidebar, indent=2)
     if dry_run:
-        print(f"  gen   docs-site/src/sidebar-config.json ({len(payload)} bytes, {len(sidebar)} groups)")
+        print(
+            f"  gen   docs-site/src/sidebar-config.json"
+            f" ({len(payload)} bytes, {len(sidebar)} groups)"
+        )
     else:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(payload + "\n", encoding="utf-8")
@@ -400,7 +416,9 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False)
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--clean", action="store_true")
     args = parser.parse_args()
@@ -425,7 +443,11 @@ def main() -> None:
         src = packs_dir / p["slug"] / "README.md"
         dst = packs_out / f"{p['slug']}.md"
         if src.exists():
-            copy_file(src, dst, rewriter=lambda t, s=src: _rewrite_pack_readme(t, s), dry_run=args.dry_run)
+            copy_file(
+                src, dst,
+                rewriter=lambda t, s=src: _rewrite_pack_readme(t, s),
+                dry_run=args.dry_run,
+            )
         else:
             print(f"  warn  packs/{p['slug']}/README.md missing", file=sys.stderr)
 
@@ -452,7 +474,11 @@ def main() -> None:
     contributing_src = REPO_ROOT / "CONTRIBUTING.md"
     contributing_dst = SITE_DOCS / "contributing.md"
     if contributing_src.exists():
-        copy_file(contributing_src, contributing_dst, rewriter=_rewrite_contributing, dry_run=args.dry_run)
+        copy_file(
+            contributing_src, contributing_dst,
+            rewriter=_rewrite_contributing,
+            dry_run=args.dry_run,
+        )
     else:
         print("  warn  CONTRIBUTING.md missing", file=sys.stderr)
 
@@ -462,12 +488,18 @@ def main() -> None:
     tokens_dst = REPO_ROOT / "docs-site" / "src" / "styles" / "tokens.css"
     if tokens_src.exists():
         if args.dry_run:
-            print(f"  copy  {tokens_src.relative_to(REPO_ROOT)} → {tokens_dst.relative_to(REPO_ROOT)}")
+            print(
+                f"  copy  {tokens_src.relative_to(REPO_ROOT)}"
+                f" → {tokens_dst.relative_to(REPO_ROOT)}"
+            )
         else:
             tokens_dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(tokens_src, tokens_dst)
     else:
-        print(f"error  web/src/styles/tokens.css missing — docs-site CSS depends on it", file=sys.stderr)
+        print(
+            "error  web/src/styles/tokens.css missing — docs-site CSS depends on it",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     print("build-site: done." + (" (dry run)" if args.dry_run else ""))

@@ -12,9 +12,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import pytest
-
 import credbroker
+import pytest
 from credbroker import _sso
 
 

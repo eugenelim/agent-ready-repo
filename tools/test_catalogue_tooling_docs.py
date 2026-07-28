@@ -30,14 +30,20 @@ class AgentsMdTest(unittest.TestCase):
         self._lines = self._text.splitlines()
 
     def test_line_count(self):
-        self.assertLessEqual(len(self._lines), 150, f"packs/AGENTS.md is {len(self._lines)} lines; must be ≤ 150")
+        self.assertLessEqual(
+            len(self._lines), 150,
+            f"packs/AGENTS.md is {len(self._lines)} lines; must be ≤ 150",
+        )
 
     def test_primitive_dirs(self):
         adapter_text = _ADAPTER_TOML.read_text(encoding="utf-8")
         source_paths = re.findall(r'source-path\s*=\s*"([^"]+)"', adapter_text)
         self.assertTrue(source_paths, "No source-path entries found in adapter.toml")
         for path in source_paths:
-            self.assertIn(path, self._text, f"Primitive source path {path!r} missing from packs/AGENTS.md")
+            self.assertIn(
+                path, self._text,
+                f"Primitive source path {path!r} missing from packs/AGENTS.md",
+            )
 
     def test_schema_tables(self):
         major_tables = (
@@ -50,7 +56,10 @@ class AgentsMdTest(unittest.TestCase):
             "adaptation",
         )
         for table in major_tables:
-            self.assertIn(table, self._text, f"Schema table {table!r} missing from packs/AGENTS.md")
+            self.assertIn(
+                table, self._text,
+                f"Schema table {table!r} missing from packs/AGENTS.md",
+            )
 
     def test_canonical_commands(self):
         self.assertIn("agentbundle catalogue lint", self._text)
@@ -59,7 +68,10 @@ class AgentsMdTest(unittest.TestCase):
 
     def test_pack_design_model(self):
         for word in ("intent", "journey", "capability"):
-            self.assertIn(word, self._text, f"Design model word {word!r} missing from packs/AGENTS.md")
+            self.assertIn(
+                word, self._text,
+                f"Design model word {word!r} missing from packs/AGENTS.md",
+            )
 
 
 class AgentsLocalMdTest(unittest.TestCase):
@@ -96,7 +108,8 @@ class GuideDocsTest(unittest.TestCase):
         self.assertIn(
             "not supported",
             text,
-            "Flow E guide must explicitly state that local channel-descriptor resolution is NOT supported",
+            "Flow E guide must explicitly state that local channel-descriptor"
+            " resolution is NOT supported",
         )
 
     def test_guide_uses_canonical_commands(self):

@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from agentbundle.config import State
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle show``."""
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import resolve_catalogue_uri
@@ -115,7 +115,7 @@ def _find_pack_dir(catalogue_dir: Path, pack_name: str) -> tuple[Path, dict] | N
 # ---------------------------------------------------------------------------
 
 
-def _degrade(args: "argparse.Namespace", pack_name: str, fmt: str) -> int:
+def _degrade(args: argparse.Namespace, pack_name: str, fmt: str) -> int:
     """Recover the inventory from the install state when the catalogue is gone.
 
     Reads both the user and repo scope (mirroring ``list-installed``). An
@@ -155,7 +155,7 @@ def _degrade(args: "argparse.Namespace", pack_name: str, fmt: str) -> int:
     return 0
 
 
-def _load_states(args: "argparse.Namespace") -> list["State"]:
+def _load_states(args: argparse.Namespace) -> list[State]:
     """Load the user- and repo-scope install-state files, read-only.
 
     Mirrors ``list-installed``'s two-scope gather: user
@@ -177,7 +177,7 @@ def _load_states(args: "argparse.Namespace") -> list["State"]:
     repo_root = Path(getattr(args, "root", ".") or ".").resolve()
     candidates.append(("repo", repo_root / ".agentbundle-state.toml"))
 
-    states: list["State"] = []
+    states: list[State] = []
     for scope_name, path in candidates:
         try:
             states.append(load_state(path))

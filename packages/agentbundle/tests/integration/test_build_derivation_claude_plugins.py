@@ -149,7 +149,7 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
         f"(Claude Code 2.1.209+ contract); got keys: {list(entry.keys())}"
     )
     inner = entry["hooks"]
-    assert isinstance(inner, list) and len(inner) == 1, f"[{pack_name}] inner hooks must be 1-element list"
+    assert isinstance(inner, list) and len(inner) == 1, f"[{pack_name}] inner hooks must be 1-element list"  # noqa: E501
     assert inner[0]["type"] == "command", f"[{pack_name}] inner hook type must be 'command'"
     assert inner[0]["command"] == EXPECTED_COMMAND, (
         f"[{pack_name}] SessionStart command mismatch:\n"
@@ -499,6 +499,7 @@ def test_derived_schema_rejects_old_flat_hooks_shape():
     caused 17+ errors from `claude plugin validate` on Claude Code 2.1.209.
     """
     import json as _json
+
     from agentbundle.build.main import _read_bundled
     from agentbundle.build.validate import validate as validate_instance
 
@@ -518,7 +519,7 @@ def test_derived_schema_rejects_old_flat_hooks_shape():
     assert errors, (
         "Derived schema must reject the old flat {command} hooks shape "
         "(regression: hooks: Invalid input on claude plugin validate 2.1.209). "
-        f"Schema accepted it with no errors."
+        "Schema accepted it with no errors."
     )
 
 

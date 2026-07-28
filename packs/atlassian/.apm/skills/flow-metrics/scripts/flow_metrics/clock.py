@@ -5,8 +5,8 @@ without resorting to time-machine libraries.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def today_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)

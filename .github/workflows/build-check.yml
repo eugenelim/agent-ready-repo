@@ -108,6 +108,19 @@ jobs:
       - name: Install agentbundle (editable) + pytest
         run: pip install -e packages/agentbundle/ pytest
 
+      - name: Install ruff + mypy
+        run: pip install ruff mypy
+
+      - name: ruff lint (style, imports, common bugs)
+        # tools/lint-ruff.py delegates to `python -m ruff check .` with the
+        # project config from pyproject.toml. Fails the build on any violation.
+        run: python3 tools/lint-ruff.py
+
+      - name: mypy type-check (typed packages only)
+        # tools/lint-mypy.py scopes mypy to packages/agentbundle/agentbundle and
+        # packages/credbroker/credbroker; build/tests/ is excluded (mixin pattern).
+        run: python3 tools/lint-mypy.py
+
       # version-drift guard: CLI_VERSION (agentbundle/version.py) must equal
       # [project].version (pyproject.toml). make build-check runs no pytest, so
       # wire this path explicitly or the guard is dead. A stale CLI_VERSION

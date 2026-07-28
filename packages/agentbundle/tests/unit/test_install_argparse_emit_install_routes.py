@@ -114,7 +114,6 @@ class HandlerLevelMutexTests(unittest.TestCase):
     def _run_install(self, argv: list[str], capsys=None):
         """Invoke install.run via the argparse layer; capture stderr."""
         import io
-        import sys
         from contextlib import redirect_stderr
 
         from agentbundle.cli import _build_parser

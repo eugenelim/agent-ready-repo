@@ -5,7 +5,6 @@ private/metadata/loopback literals and `localhost` (resolved locally)."""
 from __future__ import annotations
 
 import pytest
-
 import ssrf_check as s
 
 

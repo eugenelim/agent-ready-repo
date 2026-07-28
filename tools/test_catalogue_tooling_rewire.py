@@ -10,7 +10,6 @@ Verifies that:
 
 from __future__ import annotations
 
-import sys
 import unittest
 from pathlib import Path
 
@@ -30,16 +29,12 @@ class MakefileRewireTest(unittest.TestCase):
         in_target = False
         body_lines: list[str] = []
         for line in lines:
-            if line.startswith(f"{target}:") or line.startswith(f"{target} :"):
+            if line.startswith((f"{target}:", f"{target} :")):
                 in_target = True
                 continue
             if in_target:
                 # include tab-indented lines AND Makefile conditional keywords
-                if (line.startswith("\t")
-                        or line.startswith("ifeq")
-                        or line.startswith("ifneq")
-                        or line.startswith("else")
-                        or line.startswith("endif")):
+                if (line.startswith(("\t", "ifeq", "ifneq", "else", "endif"))):
                     body_lines.append(line)
                 elif line.strip() and not line.startswith(" ") and not line.startswith("#"):
                     break

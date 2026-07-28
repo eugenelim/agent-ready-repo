@@ -366,8 +366,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             self.tmp_path / "pack",
             agents=["a"], commands=["c"],
         )
-        from io import StringIO
         import sys
+        from io import StringIO
 
         captured = StringIO()
         old = sys.stderr
@@ -407,8 +407,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             self.tmp_path / "pack",
             agents=["a"], commands=["c"],
         )
-        from io import StringIO
         import sys
+        from io import StringIO
 
         # First fire — repo.
         captured = StringIO()
@@ -422,7 +422,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             self.assertIn("warning:", captured.getvalue())
 
             # Repeat repo — silenced.
-            captured.seek(0); captured.truncate()
+            captured.seek(0)
+            captured.truncate()
             _maybe_emit_dropped_warning(
                 root=self.tmp_path, pack_dir=pack, pack_name="pack",
                 adapter="copilot", scope="repo",
@@ -430,7 +431,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             self.assertEqual(captured.getvalue(), "")
 
             # First fire — user. INDEPENDENT of repo's silencing.
-            captured.seek(0); captured.truncate()
+            captured.seek(0)
+            captured.truncate()
             _maybe_emit_dropped_warning(
                 root=self.tmp_path, pack_dir=pack, pack_name="pack",
                 adapter="copilot", scope="user",
@@ -442,7 +444,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             )
 
             # Repeat user — silenced.
-            captured.seek(0); captured.truncate()
+            captured.seek(0)
+            captured.truncate()
             _maybe_emit_dropped_warning(
                 root=self.tmp_path, pack_dir=pack, pack_name="pack",
                 adapter="copilot", scope="user",
@@ -462,8 +465,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             self.tmp_path / "pack",
             agents=["a"], commands=["c"], hook_wirings=["w"],
         )
-        from io import StringIO
         import sys
+        from io import StringIO
 
         captured = StringIO()
         old = sys.stderr
@@ -482,8 +485,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
 
     def test_skills_only_pack_silent_against_any_adapter(self) -> None:
         pack = _seed_pack(self.tmp_path / "pack", skills=["s"])
-        from io import StringIO
         import sys
+        from io import StringIO
 
         for adapter in ("codex", "copilot", "kiro", "claude-code"):
             with self.subTest(adapter=adapter):
@@ -526,7 +529,7 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
         """
         import sys
         from io import StringIO
-        from unittest.mock import patch, call
+        from unittest.mock import patch
 
         pack = _seed_pack(
             self.tmp_path / "pack",
@@ -667,14 +670,14 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
         inputs-stable assertion.
         """
         import sys
+        import tomllib as _tomllib
         from io import StringIO
-        from agentbundle.build.main import REPO_ROOT
+
+        from agentbundle.build.main import REPO_ROOT, _read_bundled
         from agentbundle.commands._drop_warning import (
             enumerate_event_dropped_wirings,
             format_drop_message,
         )
-        import tomllib as _tomllib
-        from agentbundle.build.main import _read_bundled
 
         pack_dir = REPO_ROOT / "packs" / "core"
 

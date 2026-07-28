@@ -43,7 +43,9 @@ def _run_install(args: argparse.Namespace) -> int:
         return install.run(args)
 
 
-def _install_args(pack: str, catalogue: str, output: str, scope: str = "user", adapter: str | None = None):
+def _install_args(
+    pack: str, catalogue: str, output: str, scope: str = "user", adapter: str | None = None
+):
     return argparse.Namespace(
         pack=pack, catalogue=catalogue, output=output,
         scope=scope, force=False, force_merge=False, adapter=adapter,

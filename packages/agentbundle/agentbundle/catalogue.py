@@ -103,8 +103,7 @@ def _resolve_https(uri: str) -> Path:
     atexit.register(shutil.rmtree, str(tmpdir), True)
     _fetch_and_extract(tarball_url, tmpdir)
     # The GitHub archive extracts to <repo>-<ref>/ (with '/' → '-' in SHAs).
-    inner = _find_inner_dir(tmpdir)
-    return inner
+    return _find_inner_dir(tmpdir)
 
 
 def _ref_type(ref: str) -> str:
@@ -148,13 +147,12 @@ def _github_archive_url(owner: str, repo: str, ref: str) -> str:
 def _fetch_and_extract(url: str, dest: Path) -> None:
     try:
         # B310: constant github.com archive base assembled from parsed owner/repo/ref.
-        with urllib.request.urlopen(url) as resp:  # nosec B310
-            with tarfile.open(fileobj=resp, mode="r|gz") as tf:
-                # filter="data" rejects unsafe members (absolute paths, ..
-                # links, devices, setuid bits) — Python 3.12+ default but
-                # explicit for 3.11 compatibility and to silence the 3.14
-                # DeprecationWarning. Path-jail is belt; this is braces.
-                tf.extractall(path=dest, filter="data")
+        with urllib.request.urlopen(url) as resp, tarfile.open(fileobj=resp, mode="r|gz") as tf:  # nosec B310
+            # filter="data" rejects unsafe members (absolute paths, ..
+            # links, devices, setuid bits) — Python 3.12+ default but
+            # explicit for 3.11 compatibility and to silence the 3.14
+            # DeprecationWarning. Path-jail is belt; this is braces.
+            tf.extractall(path=dest, filter="data")
     except urllib.error.URLError as exc:
         raise CatalogueError(
             f"Failed to fetch catalogue archive: {url} — {exc.reason}"

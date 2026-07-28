@@ -174,14 +174,14 @@ def test_run_and_parse_error_paths() -> None:
         def _timeout(*a, **k):
             raise sp.TimeoutExpired(cmd="claude", timeout=1)
         M.subprocess.run = _timeout
-        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "timeout",
+        check("err", det.run_and_parse("q", pathlib.Path(), 1).error == "timeout",
               "timeout must be flagged as a harness error")
 
         class _NonZero:
             returncode = 2
             stdout = '{"type":"result","result":"x"}'
         M.subprocess.run = lambda *a, **k: _NonZero()
-        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "exit-2",
+        check("err", det.run_and_parse("q", pathlib.Path(), 1).error == "exit-2",
               "non-zero exit must be flagged as a harness error")
 
         class _Ok:
@@ -190,21 +190,21 @@ def test_run_and_parse_error_paths() -> None:
                       '"name":"Skill","input":{"skill":"x"}}]}}\n'
                       '{"type":"result","result":"ok"}')
         M.subprocess.run = lambda *a, **k: _Ok()
-        r = det.run_and_parse("q", pathlib.Path("."), 1)
+        r = det.run_and_parse("q", pathlib.Path(), 1)
         check("err", r.error is None and r.skills_fired == ["x"],
               "a clean run must carry no error")
 
         def _oserror(*a, **k):
             raise OSError("claude not spawnable")
         M.subprocess.run = _oserror
-        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "spawn-error",
+        check("err", det.run_and_parse("q", pathlib.Path(), 1).error == "spawn-error",
               "a spawn failure must be flagged as a harness error")
 
         class _Empty:
             returncode = 0
             stdout = ""
         M.subprocess.run = lambda *a, **k: _Empty()
-        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "no-result-event",
+        check("err", det.run_and_parse("q", pathlib.Path(), 1).error == "no-result-event",
               "a returncode-0 empty/truncated stream must be flagged")
     finally:
         M.subprocess.run = orig
@@ -287,7 +287,9 @@ def test_run_eval_workspace_and_grading() -> None:
         check("ws", iter1.is_dir(), "iteration-1/ not created")
         check(
             "ws",
-            (iter1 / "alpha" / "q00" / "with_skill" / "run-1" / "outputs" / "result.txt").is_file(),
+            (
+                iter1 / "alpha" / "q00" / "with_skill" / "run-1" / "outputs" / "result.txt"
+            ).is_file(),
             "per-run outputs/result.txt not captured",
         )
         check("ws", (iter1 / "summary.json").is_file(), "summary.json missing")
@@ -467,7 +469,7 @@ def test_seed_workspace() -> None:
         if hasattr(os, "symlink"):
             link = skill_dir / "evals" / "files" / "link.txt"
             try:
-                os.symlink(skill_dir / "evals" / "files" / "in.txt", link)
+                link.symlink_to(skill_dir / "evals" / "files" / "in.txt")
             except (OSError, NotImplementedError):
                 pass
             else:
@@ -569,7 +571,9 @@ def test_judge_prompt_and_parse() -> None:
     v = M.parse_judge_verdict('{"verdict":"PASS","assertions":[],"rationale":"ok"}')
     check("judge-parse", v["verdict"] == "PASS", "clean PASS")
     # Prose-wrapped JSON (codex tends to chatter around it).
-    v = M.parse_judge_verdict('Here is my verdict:\n{"verdict": "fail", "rationale": "nope"}\nDone.')
+    v = M.parse_judge_verdict(
+        'Here is my verdict:\n{"verdict": "fail", "rationale": "nope"}\nDone.'
+    )
     check("judge-parse", v["verdict"] == "FAIL", "prose-wrapped + normalized to FAIL")
     # A `}` inside a string value must not truncate the parse (string-aware).
     v = M.parse_judge_verdict('{"verdict":"PASS","rationale":"uses {x} and } chars"}')
@@ -635,8 +639,10 @@ def test_grade_judge() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo_root = pathlib.Path(tmp)
         _build_behavior_pack(repo_root)  # skill 'alpha', evals incl. id 1
-        good = repo_root / "good.txt"; good.write_text("a strong artifact", encoding="utf-8")
-        bad = repo_root / "bad.txt"; bad.write_text("a weak artifact", encoding="utf-8")
+        good = repo_root / "good.txt"
+        good.write_text("a strong artifact", encoding="utf-8")
+        bad = repo_root / "bad.txt"
+        bad.write_text("a weak artifact", encoding="utf-8")
         judge = FakeJudge({
             "a strong artifact": '{"verdict":"PASS","assertions":[],"rationale":"solid"}',
             "a weak artifact": '{"verdict":"FAIL","assertions":[],"rationale":"missing A"}',
@@ -656,7 +662,10 @@ def test_grade_judge() -> None:
               "eval 3 missing artifact -> errored (fail closed)")
         check("judge", summary["skills"]["alpha"]["pass_count"] == 1, "1 of 3 PASS")
         # Bounded verdict capture (no key/artifact dump).
-        cap = (repo_root/".eval-workspace"/"bxpack"/"iteration-1"/"alpha"/"1"/"judge"/"verdict.json")
+        cap = (
+            repo_root / ".eval-workspace" / "bxpack"
+            / "iteration-1" / "alpha" / "1" / "judge" / "verdict.json"
+        )
         check("judge", cap.is_file(), "verdict.json captured")
         # A traversal eval-id (operator-supplied map key → path segment) is refused.
         try:

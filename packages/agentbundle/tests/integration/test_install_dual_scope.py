@@ -21,15 +21,9 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import os
-import re
-import tempfile
 from pathlib import Path
 
-import pytest
-
-from agentbundle.commands import install, uninstall, upgrade, diff
-
+from agentbundle.commands import diff, install, uninstall, upgrade
 
 # Pack catalogues for the various test setups.
 PACK_TOML_REPO_ONLY = """
@@ -88,13 +82,13 @@ def test_install_refuses_when_already_at_requested_scope(tmp_path):
     target.mkdir()
 
     rc1, out1, _ = _install(
-        dict(pack="demo-repo", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "demo-repo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc1 == 0, "first install should succeed"
     assert "installed: demo-repo @ repo" in out1
 
     rc2, _, err2 = _install(
-        dict(pack="demo-repo", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "demo-repo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc2 != 0
     assert "already installed at repo" in err2
@@ -107,9 +101,9 @@ def test_force_does_not_bypass_in_place_refusal(tmp_path):
     target = tmp_path / "repo"
     target.mkdir()
 
-    _install(dict(pack="demo-repo", catalogue=str(cat), output=str(target), scope=None, force=False))
+    _install({"pack": "demo-repo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False})  # noqa: E501
     rc, _, err = _install(
-        dict(pack="demo-repo", catalogue=str(cat), output=str(target), scope=None, force=True)
+        {"pack": "demo-repo", "catalogue": str(cat), "output": str(target), "scope": None, "force": True}  # noqa: E501
     )
     assert rc != 0
     assert "already installed at repo" in err
@@ -133,13 +127,13 @@ def test_cross_scope_conflict_refused_without_force(tmp_path, monkeypatch):
 
     # Install at repo first.
     rc1, _, _ = _install(
-        dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False)
+        {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False}  # noqa: E501
     )
     assert rc1 == 0
 
     # Now try installing at user without --force.
     rc2, _, err2 = _install(
-        dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=False)
+        {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": False}  # noqa: E501
     )
     assert rc2 != 0
     assert "demo-both already installed at repo; pass --force to install at both" in err2
@@ -155,10 +149,10 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
 
     rc, out, _ = _install(
-        dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True)
+        {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True}  # noqa: E501
     )
     assert rc == 0
     # Both state files exist after the run.
@@ -172,8 +166,7 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     # without binding to message-rail surface details.
     lines = out.splitlines()
     repo_line = next(
-        (ln for ln in lines if ln.startswith("installed: demo-both @ repo")
-         or ln.startswith("emitted install routes for demo-both")),
+        (ln for ln in lines if ln.startswith(("installed: demo-both @ repo", "emitted install routes for demo-both"))),  # noqa: E501
         None,
     )
     user_line = next(
@@ -204,7 +197,7 @@ def test_force_no_op_when_pack_not_already_other_scope(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, out, _ = _install(
-        dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=True)
+        {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": True}  # noqa: E501
     )
     assert rc == 0
     # RFC-0012: repo-scope install at the dist-tree fallback (no
@@ -213,8 +206,7 @@ def test_force_no_op_when_pack_not_already_other_scope(tmp_path, monkeypatch):
     # `installed: X @ repo` plain text.
     out_lines = out.splitlines()
     assert any(
-        ln.startswith("emitted install routes for demo-both")
-        or ln.startswith("installed: demo-both @ repo")
+        ln.startswith(("emitted install routes for demo-both", "installed: demo-both @ repo"))
         for ln in out_lines
     ), f"expected repo-scope install message; got {out_lines!r}"
 
@@ -231,7 +223,7 @@ def test_single_scope_install_emits_one_installed_line_last(tmp_path):
     target.mkdir()
 
     rc, out, _ = _install(
-        dict(pack="demo-repo", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "demo-repo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0
     non_empty = [ln for ln in out.splitlines() if ln.strip()]
@@ -253,8 +245,8 @@ def test_uninstall_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True))
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True})  # noqa: E501
 
     args = argparse.Namespace(pack="demo-both", root=str(target), scope=None)
     buf = io.StringIO()
@@ -275,8 +267,8 @@ def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True))
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True})  # noqa: E501
 
     args = argparse.Namespace(
         pack="demo-both",
@@ -317,7 +309,7 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
 
     # Install at user scope, then uninstall at user scope.
     rc, _, _ = _install(
-        dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=False)
+        {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": False}  # noqa: E501
     )
     assert rc == 0
     assert (fake_home / ".agentbundle" / "state.toml").exists()
@@ -360,7 +352,7 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
 
     # Install at user scope.
     rc, _, _ = _install(
-        dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=False)
+        {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": False}  # noqa: E501
     )
     assert rc == 0
 
@@ -418,7 +410,7 @@ allowed-scopes = ["user"]
     target.mkdir()
 
     rc, out, _ = _install(
-        dict(pack="legacy-stray", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "legacy-stray", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc == 0, "v0.1 pack install must succeed; stray install table ignored"
     # The pack must land at repo scope (the legacy implicit default),
@@ -437,8 +429,8 @@ def test_diff_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=False))
-    _install(dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=True))
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False})  # noqa: E501
+    _install({"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "user", "force": True})  # noqa: E501
 
     args = argparse.Namespace(pack_path=str(pack), root=str(target), scope=None)
     buf = io.StringIO()

@@ -107,7 +107,7 @@ class Tier3Tests(_ResolverBase):
         dotfile = agentbundle / "credentials.env"
         dotfile.write_text("SHIMNS_API_TOKEN=tier3-value\n", encoding="utf-8")
         if os.name == "posix":
-            os.chmod(dotfile, 0o600)
+            dotfile.chmod(0o600)
         creds = credbroker.load_credentials("shimns", required_keys=["API_TOKEN"])
         self.assertEqual(creds.API_TOKEN, "tier3-value")
 

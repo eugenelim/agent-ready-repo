@@ -13,7 +13,6 @@ import tomllib
 from pathlib import Path
 from typing import Literal
 
-
 # ---------------------------------------------------------------------------
 # Pinned ordering for <reason-summary> in the formatter.
 # Any future category is appended after these three in stable-sorted order.
@@ -214,7 +213,7 @@ def _build_file_list(file_relpath_pairs: list[tuple[str, str]]) -> str:
     """Build the ``<file-list>`` string: deduplicated file paths,
     lexicographically sorted, joined with serial-comma-plus-``and``.
     """
-    files = sorted(set(f for f, _ in file_relpath_pairs))
+    files = sorted({f for f, _ in file_relpath_pairs})
     return _join_serial_comma_files(files)
 
 

@@ -56,8 +56,8 @@ class TestPathJailCodexPrefix(unittest.TestCase):
     success means the prefix was admitted; ``PathJailError`` means refused."""
 
     def test_path_jail_accepts_codex_agents_repo(self) -> None:
-        from agentbundle.commands.install import _adapter_allowed_prefixes_repo
         from agentbundle import safety
+        from agentbundle.commands.install import _adapter_allowed_prefixes_repo
 
         prefixes = _adapter_allowed_prefixes_repo("codex")
         with tempfile.TemporaryDirectory() as tmp:
@@ -72,8 +72,8 @@ class TestPathJailCodexPrefix(unittest.TestCase):
             self.assertTrue((root / ".codex" / "agents" / "foo.toml").exists())
 
     def test_path_jail_accepts_codex_hooks_json_repo(self) -> None:
-        from agentbundle.commands.install import _adapter_allowed_prefixes_repo
         from agentbundle import safety
+        from agentbundle.commands.install import _adapter_allowed_prefixes_repo
 
         prefixes = _adapter_allowed_prefixes_repo("codex")
         with tempfile.TemporaryDirectory() as tmp:
@@ -88,8 +88,8 @@ class TestPathJailCodexPrefix(unittest.TestCase):
             self.assertTrue((root / ".codex" / "hooks.json").exists())
 
     def test_path_jail_accepts_codex_user_scope(self) -> None:
-        from agentbundle.commands.install import _adapter_allowed_prefixes_user
         from agentbundle import safety
+        from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
         prefixes = _adapter_allowed_prefixes_user("codex")
         with tempfile.TemporaryDirectory() as tmp:
@@ -110,8 +110,8 @@ class TestPathJailCodexPrefix(unittest.TestCase):
             )
 
     def test_path_jail_rejects_write_outside_codex_prefixes(self) -> None:
-        from agentbundle.commands.install import _adapter_allowed_prefixes_repo
         from agentbundle import safety
+        from agentbundle.commands.install import _adapter_allowed_prefixes_repo
 
         prefixes = _adapter_allowed_prefixes_repo("codex")
         with tempfile.TemporaryDirectory() as tmp:
@@ -134,7 +134,9 @@ class TestNoHardcodedCodexPrefixList(unittest.TestCase):
         """`_adapter_allowed_prefixes_*` is the only place codex's prefix
         list lives outside the contract file. A grep that catches new
         hardcoded sites surfaces a regression."""
-        install_py = Path(__file__).resolve().parents[2] / "agentbundle" / "commands" / "install.py"
+        install_py = (
+            Path(__file__).resolve().parents[2] / "agentbundle" / "commands" / "install.py"
+        )
         text = install_py.read_text(encoding="utf-8")
         # The accessor's fallback default IS a hardcoded list — that's
         # the legacy-contract escape hatch, not new code. Allow it.

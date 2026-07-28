@@ -9,7 +9,6 @@ EOF → abort.
 from __future__ import annotations
 
 import pytest
-
 from agentbundle.commands._common import confirm_or_refuse
 
 

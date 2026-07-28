@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import sys
 import tomllib
 from pathlib import Path
 
@@ -127,7 +126,7 @@ def _check_description_source(fm_lines: list[str]) -> tuple[int, str] | None:
             )
         if i + 1 < len(fm_lines):
             nxt = fm_lines[i + 1]
-            if nxt.strip() and (nxt.startswith(" ") or nxt.startswith("\t")):
+            if nxt.strip() and (nxt.startswith((" ", "\t"))):
                 return i, (
                     "description must be a single-line scalar; "
                     "continuation lines (indented next line) are not portable"
@@ -236,7 +235,7 @@ def lint_skill_spec(root: Path, pack: str | None = None) -> list[Diagnostic]:
                 "UTF-8 BOM detected at file start; save the file as UTF-8 "
                 "without BOM"
             ), ""
-        if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
+        if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
             return None, 0, "", "UTF-16 BOM detected; save as UTF-8 without BOM", ""
         try:
             text = raw.decode("utf-8")

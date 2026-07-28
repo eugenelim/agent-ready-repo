@@ -18,12 +18,12 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Tuple
+from typing import Any, Iterable
 
 from . import ValidationError
 
 # Required meta keys. Order matches the documented input contract.
-REQUIRED_META_KEYS: Tuple[str, ...] = (
+REQUIRED_META_KEYS: tuple[str, ...] = (
     "scope",
     "window",
     "state_config_sha",
@@ -61,10 +61,10 @@ class InputFile:
     window_to: str
     meta: dict
     aggregates: dict
-    cohort_breakdown: Optional[dict]
-    per_team: Optional[list]
-    schema_version: Tuple[int, int]
-    notes_from_upstream: List[str] = field(default_factory=list)
+    cohort_breakdown: dict | None
+    per_team: list | None
+    schema_version: tuple[int, int]
+    notes_from_upstream: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -95,9 +95,7 @@ def infer_scope_kind(scope: dict, *, basename: str) -> str:
     """
     if not isinstance(scope, dict):
         raise ValidationError(
-            "{}: meta.scope must be an object; got {}".format(
-                basename, type(scope).__name__
-            )
+            f"{basename}: meta.scope must be an object; got {type(scope).__name__}"
         )
 
     has_portfolio = "portfolio_id" in scope
@@ -113,7 +111,7 @@ def infer_scope_kind(scope: dict, *, basename: str) -> str:
         return "project+team" if has_team else "project"
 
     raise ValidationError(
-        "unrecognised scope shape in {}: {}".format(basename, scope)
+        f"unrecognised scope shape in {basename}: {scope}"
     )
 
 
@@ -135,33 +133,31 @@ def load_input(path: Path) -> InputFile:
         raw = p.read_text(encoding="utf-8")
     except OSError as e:
         raise ValidationError(
-            "{}: cannot read input file: {}".format(basename, e)
+            f"{basename}: cannot read input file: {e}"
         ) from e
 
     try:
         doc = json.loads(raw)
     except json.JSONDecodeError as e:
         raise ValidationError(
-            "{}: invalid JSON: {}".format(basename, e)
+            f"{basename}: invalid JSON: {e}"
         ) from e
 
     if not isinstance(doc, dict):
         raise ValidationError(
-            "{}: top-level JSON must be an object; got {}".format(
-                basename, type(doc).__name__
-            )
+            f"{basename}: top-level JSON must be an object; got {type(doc).__name__}"
         )
 
     meta = doc.get("meta")
     if not isinstance(meta, dict):
         raise ValidationError(
-            "{}: meta block missing or not an object".format(basename)
+            f"{basename}: meta block missing or not an object"
         )
 
     for key in REQUIRED_META_KEYS:
         if key not in meta:
             raise ValidationError(
-                "{}: meta.{} is required but missing".format(basename, key)
+                f"{basename}: meta.{key} is required but missing"
             )
 
     schema_version = _parse_schema_version(meta["schema_version"], basename=basename)
@@ -172,25 +168,20 @@ def load_input(path: Path) -> InputFile:
     aggregates = doc.get("aggregates", {})
     if not isinstance(aggregates, dict):
         raise ValidationError(
-            "{}: aggregates must be an object; got {}".format(
-                basename, type(aggregates).__name__
-            )
+            f"{basename}: aggregates must be an object; got {type(aggregates).__name__}"
         )
 
     cohort_breakdown = doc.get("cohort_breakdown")
     if cohort_breakdown is not None and not isinstance(cohort_breakdown, dict):
         raise ValidationError(
-            "{}: cohort_breakdown must be an object when present; got {}".format(
-                basename, type(cohort_breakdown).__name__
-            )
+            f"{basename}: cohort_breakdown must be an object when present;"
+            f" got {type(cohort_breakdown).__name__}"
         )
 
     per_team = doc.get("per_team")
     if per_team is not None and not isinstance(per_team, list):
         raise ValidationError(
-            "{}: per_team must be an array when present; got {}".format(
-                basename, type(per_team).__name__
-            )
+            f"{basename}: per_team must be an array when present; got {type(per_team).__name__}"
         )
 
     # flow-metrics emits ``notes`` at the top level (see
@@ -218,7 +209,7 @@ def load_input(path: Path) -> InputFile:
     )
 
 
-def _parse_schema_version(value: Any, *, basename: str) -> Tuple[int, int]:
+def _parse_schema_version(value: Any, *, basename: str) -> tuple[int, int]:
     """Parse ``meta.schema_version`` as ``(major, minor)``.
 
     Anything that isn't a string matching ``<digits>.<digits>`` exits 2.
@@ -227,20 +218,18 @@ def _parse_schema_version(value: Any, *, basename: str) -> Tuple[int, int]:
     """
     if not isinstance(value, str):
         raise ValidationError(
-            "{}: meta.schema_version must be a string of the form "
-            "'<int>.<int>'; got {}".format(basename, type(value).__name__)
+            f"{basename}: meta.schema_version must be a string of the form "
+            f"'<int>.<int>'; got {type(value).__name__}"
         )
     m = _SCHEMA_VERSION_RE.match(value)
     if not m:
         raise ValidationError(
-            "{}: meta.schema_version '{}' is not of the form '<int>.<int>'".format(
-                basename, value
-            )
+            f"{basename}: meta.schema_version '{value}' is not of the form '<int>.<int>'"
         )
     return int(m.group(1)), int(m.group(2))
 
 
-def _parse_window(window: Any, *, basename: str) -> Tuple[str, str]:
+def _parse_window(window: Any, *, basename: str) -> tuple[str, str]:
     """Validate ``meta.window`` and return ``(from, to)`` strings verbatim.
 
     Both endpoints must be ``YYYY-MM-DD`` exactly (regex + calendar
@@ -250,36 +239,33 @@ def _parse_window(window: Any, *, basename: str) -> Tuple[str, str]:
     """
     if not isinstance(window, dict):
         raise ValidationError(
-            "{}: meta.window must be an object with 'from' and 'to'; got {}".format(
-                basename, type(window).__name__
-            )
+            f"{basename}: meta.window must be an object with 'from' and 'to';"
+            f" got {type(window).__name__}"
         )
     for side in ("from", "to"):
         if side not in window:
             raise ValidationError(
-                "{}: meta.window.{} is required but missing".format(basename, side)
+                f"{basename}: meta.window.{side} is required but missing"
             )
-    out: List[str] = []
+    out: list[str] = []
     for side in ("from", "to"):
         value = window[side]
         if not isinstance(value, str) or not _ISO_DATE_RE.match(value):
             raise ValidationError(
-                "{}: meta.window.{} '{}' is not YYYY-MM-DD "
-                "(no time component allowed)".format(basename, side, value)
+                f"{basename}: meta.window.{side} '{value}' is not YYYY-MM-DD "
+                "(no time component allowed)"
             )
         try:
             date.fromisoformat(value)
-        except ValueError:
+        except ValueError as exc:
             raise ValidationError(
-                "{}: meta.window.{} '{}' is not a valid calendar date".format(
-                    basename, side, value
-                )
-            )
+                f"{basename}: meta.window.{side} '{value}' is not a valid calendar date"
+            ) from exc
         out.append(value)
     return out[0], out[1]
 
 
-def _coerce_notes_list(value: Any, *, basename: str) -> List[str]:
+def _coerce_notes_list(value: Any, *, basename: str) -> list[str]:
     """Coerce upstream notes into a list of strings.
 
     Missing or empty is fine. A non-list, or a list with non-string
@@ -289,16 +275,13 @@ def _coerce_notes_list(value: Any, *, basename: str) -> List[str]:
         return []
     if not isinstance(value, list):
         raise ValidationError(
-            "{}: notes must be an array of strings when present; got {}".format(
-                basename, type(value).__name__
-            )
+            f"{basename}: notes must be an array of strings when present;"
+            f" got {type(value).__name__}"
         )
     for i, entry in enumerate(value):
         if not isinstance(entry, str):
             raise ValidationError(
-                "{}: notes[{}] must be a string; got {}".format(
-                    basename, i, type(entry).__name__
-                )
+                f"{basename}: notes[{i}] must be a string; got {type(entry).__name__}"
             )
     return list(value)
 
@@ -306,7 +289,7 @@ def _coerce_notes_list(value: Any, *, basename: str) -> List[str]:
 # ---------------------------------------------------------------------------
 # Cross-input helpers
 # ---------------------------------------------------------------------------
-def collect_mixed_major_note(inputs: Iterable[InputFile]) -> Optional[str]:
+def collect_mixed_major_note(inputs: Iterable[InputFile]) -> str | None:
     """Return the ``mixed-major-schema-versions`` note, or ``None``.
 
     If input files in the same run disagree on the major component of
@@ -321,7 +304,7 @@ def collect_mixed_major_note(inputs: Iterable[InputFile]) -> Optional[str]:
     # dependency one-directional is cheap).
     from .notes import Note
 
-    pairs: List[Tuple[int, str]] = [
+    pairs: list[tuple[int, str]] = [
         (inp.schema_version[0], inp.basename) for inp in inputs
     ]
     distinct_majors = {major for major, _ in pairs}

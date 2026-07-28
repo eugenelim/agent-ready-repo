@@ -342,21 +342,24 @@ def _merge_by_iou(
 def sort_canonical(elements: list[Element], layout: str) -> list[Element]:
     layout = (layout or "").lower()
     if layout in {"left-to-right", "lr", "horizontal"}:
-        keyf = lambda e: (e.global_bbox["x"] if e.global_bbox else 0,
-                          e.global_bbox["y"] if e.global_bbox else 0,
-                          e.name)
+        def keyf(e):
+            return (e.global_bbox["x"] if e.global_bbox else 0,
+                                  e.global_bbox["y"] if e.global_bbox else 0,
+                                  e.name)
     elif layout in {"top-to-bottom", "tb", "vertical"}:
-        keyf = lambda e: (e.global_bbox["y"] if e.global_bbox else 0,
-                          e.global_bbox["x"] if e.global_bbox else 0,
-                          e.name)
+        def keyf(e):
+            return (e.global_bbox["y"] if e.global_bbox else 0,
+                                  e.global_bbox["x"] if e.global_bbox else 0,
+                                  e.name)
     else:
         # Reading order (y, then x), and finally alphabetical for
         # elements without bboxes.
-        keyf = lambda e: (
-            e.global_bbox["y"] if e.global_bbox else 9_999_999,
-            e.global_bbox["x"] if e.global_bbox else 9_999_999,
-            e.name,
-        )
+        def keyf(e):
+            return (
+                    e.global_bbox["y"] if e.global_bbox else 9_999_999,
+                    e.global_bbox["x"] if e.global_bbox else 9_999_999,
+                    e.name,
+                )
     return sorted(elements, key=keyf)
 
 

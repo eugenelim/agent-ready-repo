@@ -52,7 +52,7 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
-def _run(label: str, argv: list[str], env: "dict | None" = None) -> None:
+def _run(label: str, argv: list[str], env: dict | None = None) -> None:
     """Run *argv*; on non-zero exit, surface its output, print the failure line,
     and ``sys.exit(1)``. On success, print the success line.
 
@@ -60,7 +60,9 @@ def _run(label: str, argv: list[str], env: "dict | None" = None) -> None:
     ``_run`` does **not** skip on a missing tool — a deleted catalogue linter
     must fail loud, not silently pass. Do not "unify" the two `_run`s: that
     would make a dropped catalogue check go green (a real regression)."""
-    result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", check=False, env=env)
+    result = subprocess.run(
+        argv, capture_output=True, text=True, encoding="utf-8", check=False, env=env
+    )
     if result.returncode != 0:
         if result.stdout:
             sys.stdout.write(result.stdout)

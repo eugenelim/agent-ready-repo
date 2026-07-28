@@ -166,7 +166,6 @@ def test_install_identical_seed_skipped(tmp_path):
 
 def test_install_records_skipped_seed_in_state(tmp_path):
     """AC9: a byte-identical seed (action=='skipped') is still recorded in state."""
-    from pathlib import Path as _Path
 
     target = tmp_path / "repo"
     target.mkdir()

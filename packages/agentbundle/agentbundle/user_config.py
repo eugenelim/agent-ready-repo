@@ -31,7 +31,6 @@ from typing import Any, Mapping
 
 from agentbundle.config import _emit_basic_string
 
-
 _KNOWN_KEYS: tuple[str, ...] = ("adapter", "source")
 
 
@@ -275,16 +274,11 @@ def _validate_key_value(key: str, value: str) -> None:
                 f"agentbundle: unknown adapter {value!r}. Admissible: "
                 f"{sorted(shipped)}."
             )
-    if key == "source":
-        # Parseable-only at write time: refuse an empty/whitespace value. The
-        # scheme gate (reject non-`git+https` URLs, require markers for a local
-        # path) lives in `source_defaults.resolve_default_source`, so a value
-        # like `http://…` is accepted-but-inert here and rejected at resolution.
-        if not value.strip():
-            raise ValueError(
-                "agentbundle: `source` must be a non-empty catalogue URI "
-                "(git+https://…) or local path."
-            )
+    if key == "source" and not value.strip():
+        raise ValueError(
+            "agentbundle: `source` must be a non-empty catalogue URI "
+            "(git+https://…) or local path."
+        )
 
 
 def write_setting(path: Path, key: str, value: str) -> None:

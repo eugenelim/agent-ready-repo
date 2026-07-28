@@ -18,15 +18,11 @@ import json
 import os
 import sys
 import tarfile
-import tempfile
+import tomllib
 from pathlib import Path
-from typing import Generator
 from unittest import mock
 
-import tomllib
-
 import pytest
-
 from agentbundle import cli
 from agentbundle.commands import package_catalogue
 from agentbundle.commands.package_catalogue import (
@@ -39,7 +35,6 @@ from agentbundle.commands.package_catalogue import (
     _write_channel_descriptor,
     run,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -75,12 +70,12 @@ def _make_fixture_catalogue(
     if with_profiles:
         profiles_dir = root / "profiles"
         profiles_dir.mkdir()
-        (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8")
+        (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8")  # noqa: E501
 
     if with_contracts:
         contracts_dir = root / "contracts"
         contracts_dir.mkdir(parents=True)
-        (contracts_dir / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8")
+        (contracts_dir / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8")  # noqa: E501
 
     (root / "AGENTS.md").write_text("# Test Catalogue Agent Context\n", encoding="utf-8")
 
@@ -249,7 +244,7 @@ def test_validate_content_top_level_dir_symlink_rejected(tmp_path: Path) -> None
     real_packs.mkdir()
     pack_dir = real_packs / "core"
     pack_dir.mkdir()
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")  # noqa: E501
 
     root = tmp_path / "cat"
     root.mkdir()
@@ -273,7 +268,7 @@ def test_validate_content_intermediate_dir_symlink_rejected(tmp_path: Path) -> N
     # packs/ must exist for packs-dir check not to fire first
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")  # noqa: E501
 
     symlink_docs = root / "docs"
     symlink_docs.symlink_to(real_docs)
@@ -314,7 +309,7 @@ def test_validate_content_traversal_rejected(tmp_path: Path) -> None:
     (root / "packs").mkdir()
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir()
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")  # noqa: E501
 
     outside = tmp_path / "outside.txt"
     outside.write_text("evil\n", encoding="utf-8")
@@ -391,7 +386,7 @@ def test_read_content_files_single_read(tmp_path: Path) -> None:
     file_bytes = _read_content_files(root, paths)
     posix_keys = {p.relative_to(root).as_posix() for p in paths}
     assert set(file_bytes.keys()) == posix_keys
-    for key, data in file_bytes.items():
+    for _key, data in file_bytes.items():
         assert isinstance(data, bytes)
         assert len(data) > 0
 
@@ -673,8 +668,8 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     assert result == 0
 
     # AC3: exactly three output files
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
-    sidecar_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz.sha256"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    sidecar_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz.sha256"  # noqa: E501
     descriptor_path = output / "catalogues" / "engineering" / "channels" / "stable.json"
 
     assert archive_path.exists()
@@ -733,7 +728,7 @@ def test_package_catalogue_refuse_overwrite(tmp_path: Path) -> None:
     args = _make_args(root, output=output)
 
     # Pre-create the archive path with known content
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     archive_path.write_bytes(b"existing_content")
 
@@ -761,8 +756,8 @@ def test_package_catalogue_archive_reproducible(tmp_path: Path) -> None:
     assert r1 == 0
     assert r2 == 0
 
-    a1 = (output1 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()
-    a2 = (output2 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()
+    a1 = (output1 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()  # noqa: E501
+    a2 = (output2 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()  # noqa: E501
     assert hashlib.sha256(a1).digest() == hashlib.sha256(a2).digest()
 
 
@@ -774,7 +769,7 @@ def test_package_catalogue_sidecar_format(tmp_path: Path) -> None:
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     sidecar_path = archive_path.parent / "catalogue-0.1.0.tar.gz.sha256"
 
     archive_bytes = archive_path.read_bytes()
@@ -791,7 +786,7 @@ def test_package_catalogue_source_date_epoch_in_manifest(tmp_path: Path) -> None
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     with tarfile.open(fileobj=io.BytesIO(archive_path.read_bytes()), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None
@@ -809,7 +804,7 @@ def test_package_catalogue_generated_at_no_microseconds(tmp_path: Path) -> None:
     with mock.patch.dict(os.environ, env, clear=True):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     with tarfile.open(fileobj=io.BytesIO(archive_path.read_bytes()), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None
@@ -821,9 +816,8 @@ def test_package_catalogue_generated_at_no_microseconds(tmp_path: Path) -> None:
 def test_package_catalogue_cli_help() -> None:
     """AC1: --help exits 0 and lists all flags."""
     stdout_buf = io.StringIO()
-    with pytest.raises(SystemExit) as exc_info:
-        with contextlib.redirect_stdout(stdout_buf):
-            cli.main(["package-catalogue", "--help"])
+    with pytest.raises(SystemExit) as exc_info, contextlib.redirect_stdout(stdout_buf):
+        cli.main(["package-catalogue", "--help"])
     assert exc_info.value.code == 0
     help_text = stdout_buf.getvalue()
     for flag in [
@@ -852,9 +846,8 @@ def test_package_catalogue_cli_help() -> None:
 def test_package_catalogue_missing_required_flag(missing_flag: str, remaining: list[str]) -> None:
     """AC2: each missing required flag causes non-zero exit."""
     stderr_buf = io.StringIO()
-    with pytest.raises(SystemExit) as exc_info:
-        with contextlib.redirect_stderr(stderr_buf):
-            cli.main(["package-catalogue"] + remaining)
+    with pytest.raises(SystemExit) as exc_info, contextlib.redirect_stderr(stderr_buf):
+        cli.main(["package-catalogue"] + remaining)
     assert exc_info.value.code != 0
     stderr_text = stderr_buf.getvalue()
     # argparse includes the flag name or an error about it
@@ -893,7 +886,7 @@ def test_package_catalogue_sha256_in_descriptor_matches_sidecar(tmp_path: Path) 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     sidecar_path = archive_path.parent / "catalogue-0.1.0.tar.gz.sha256"
     descriptor_path = output / "catalogues" / "engineering" / "channels" / "stable.json"
 
@@ -909,9 +902,11 @@ def test_package_catalogue_malformed_source_date_epoch(tmp_path: Path) -> None:
     args = _make_args(root, output=output)
 
     stderr_buf = io.StringIO()
-    with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "not-an-integer"}):
-        with contextlib.redirect_stderr(stderr_buf):
-            result = run(args)
+    with (
+        mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "not-an-integer"}),
+        contextlib.redirect_stderr(stderr_buf),
+    ):
+        result = run(args)
 
     assert result == 1
     err = stderr_buf.getvalue()
@@ -958,7 +953,7 @@ def test_package_catalogue_manifest_digest_matches_archived_bytes(tmp_path: Path
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     archive_bytes = archive_path.read_bytes()
 
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
@@ -988,7 +983,7 @@ def test_package_catalogue_packs_version_matches_archived_pack_toml(tmp_path: Pa
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
     archive_bytes = archive_path.read_bytes()
 
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
@@ -1066,7 +1061,7 @@ def test_no_git_shell_out_in_package_catalogue() -> None:
         r'\["git"',
     ]
     for pat in patterns:
-        assert not re.search(pat, content), f"Found disallowed pattern {pat!r} in package_catalogue.py"
+        assert not re.search(pat, content), f"Found disallowed pattern {pat!r} in package_catalogue.py"  # noqa: E501
 
 
 def test_no_new_runtime_dependency() -> None:
@@ -1087,9 +1082,8 @@ def test_no_new_runtime_dependency() -> None:
                 assert top in stdlib_modules or top == "agentbundle", (
                     f"Non-stdlib/agentbundle import: {alias.name}"
                 )
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                top = node.module.split(".")[0]
-                assert top in stdlib_modules or top == "agentbundle" or node.level > 0, (
-                    f"Non-stdlib/agentbundle import from: {node.module}"
-                )
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            top = node.module.split(".")[0]
+            assert top in stdlib_modules or top == "agentbundle" or node.level > 0, (
+                f"Non-stdlib/agentbundle import from: {node.module}"
+            )

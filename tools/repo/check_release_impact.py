@@ -70,10 +70,7 @@ def is_release_impacting(path: str) -> bool:
     for prefix in NON_IMPACTING_PREFIXES:
         if path.startswith(prefix):
             return False
-    for prefix in RELEASE_IMPACTING_PREFIXES:
-        if path.startswith(prefix):
-            return True
-    return False
+    return any(path.startswith(prefix) for prefix in RELEASE_IMPACTING_PREFIXES)
 
 
 def has_release_indicator(changed: list[str]) -> bool:
@@ -97,7 +94,9 @@ def main(argv: list[str] | None = None) -> int:
     impacting = [f for f in changed if is_release_impacting(f)]
 
     if not impacting:
-        print(f"check-release-impact: {len(changed)} changed file(s), none release-impacting — pass")
+        print(
+            f"check-release-impact: {len(changed)} changed file(s), none release-impacting — pass"
+        )
         return 0
 
     if has_release_indicator(changed):

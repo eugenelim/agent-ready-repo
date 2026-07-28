@@ -17,13 +17,9 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import os
 from pathlib import Path
 
-import pytest
-
 from agentbundle.commands import install
-
 
 PACK_A_REPO_RECS_B = """
 [pack]
@@ -127,7 +123,8 @@ def test_disjoint_recommended_is_repo_only(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, _out, err = _run(
-        dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="user", force=False)
+        {"pack": "alpha-rec", "catalogue": str(cat), "output": str(target),
+         "scope": "user", "force": False}
     )
     assert rc == 0
     assert (
@@ -149,7 +146,8 @@ def test_disjoint_recommended_is_user_only(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     rc, _out, err = _run(
-        dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="repo", force=False)
+        {"pack": "alpha-rec", "catalogue": str(cat), "output": str(target),
+         "scope": "repo", "force": False}
     )
     assert rc == 0
     assert (
@@ -168,10 +166,14 @@ def test_compatible_present_at_recommended_scope(tmp_path):
     target.mkdir()
 
     # Install B first.
-    _run(dict(pack="beta-rec", catalogue=str(cat), output=str(target), scope=None, force=False))
+    _run(
+        {"pack": "beta-rec", "catalogue": str(cat), "output": str(target),
+         "scope": None, "force": False}
+    )
     # Now install A — should see B at repo.
     rc, _out, err = _run(
-        dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "alpha-rec", "catalogue": str(cat), "output": str(target),
+         "scope": None, "force": False}
     )
     assert rc == 0
     assert "note: recommends 'beta-rec' (found at repo scope)" in err
@@ -186,7 +188,8 @@ def test_missing_entirely(tmp_path):
     target.mkdir()
 
     rc, _out, err = _run(
-        dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "alpha-rec", "catalogue": str(cat), "output": str(target),
+         "scope": None, "force": False}
     )
     assert rc == 0
     assert "note: recommends 'beta-rec' (not installed)" in err
@@ -205,10 +208,14 @@ def test_dual_scope_force_emits_one_warning_per_scope(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTBUNDLE_USER_ROOT", str(fake_home))
 
     # Install A at repo first.
-    _run(dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="repo", force=False))
+    _run(
+        {"pack": "alpha-rec", "catalogue": str(cat), "output": str(target),
+         "scope": "repo", "force": False}
+    )
     # Now install A at user with --force — emits warnings for both scopes.
     rc, _out, err = _run(
-        dict(pack="alpha-rec", catalogue=str(cat), output=str(target), scope="user", force=True)
+        {"pack": "alpha-rec", "catalogue": str(cat), "output": str(target),
+         "scope": "user", "force": True}
     )
     assert rc == 0
     # Two stderr lines per recommend per scope. The repo-line warning

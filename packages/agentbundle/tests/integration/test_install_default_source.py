@@ -21,7 +21,6 @@ from pathlib import Path
 from agentbundle.commands import install, list_packs, list_profiles
 from agentbundle.user_config import UserConfig
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 REAL_CORE = REPO_ROOT / "packs" / "core"
 

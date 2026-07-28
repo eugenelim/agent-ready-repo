@@ -29,7 +29,6 @@ from __future__ import annotations
 import re
 import zipfile
 from pathlib import Path
-from typing import Iterable
 from xml.etree import ElementTree as ET
 
 # --- Coarse resource ceilings ---------------------------------------
@@ -110,7 +109,7 @@ def _reject_dtd(data: bytes) -> None:
 def _is_safe_member_name(name: str) -> bool:
     """A member name is safe iff it is relative and has no ``..`` component and
     no drive/root — so it could never be joined into a path that escapes."""
-    if not name or name.startswith("/") or name.startswith("\\"):
+    if not name or name.startswith(("/", "\\")):
         return False
     p = Path(name)
     if p.is_absolute() or (len(p.drive) > 0):
@@ -140,7 +139,7 @@ class SafeZip:
         self._read_total = 0  # cumulative ACTUAL bytes decompressed via read_member
         self._names = set(zf.namelist())
 
-    def __enter__(self) -> "SafeZip":
+    def __enter__(self) -> SafeZip:
         return self
 
     def __exit__(self, *exc) -> None:

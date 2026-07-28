@@ -19,7 +19,6 @@ import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import setup  # noqa: E402
-
 from credbroker import _core  # noqa: E402
 
 _HAS_CRYPTO = (
@@ -86,7 +85,10 @@ def test_no_keyring_crypto_vault_master_from_env(env, tmp_path, monkeypatch):
     assert rc == 0
     from credbroker import _vault
 
-    assert _vault.read_credential("jira", "API_TOKEN", master="master-pw", path=_core._vault_path()) == SECRET
+    assert (
+        _vault.read_credential("jira", "API_TOKEN", master="master-pw", path=_core._vault_path())
+        == SECRET
+    )
 
 
 @requires_crypto
@@ -103,7 +105,12 @@ def test_no_keyring_crypto_prompts_and_establishes_master(env, tmp_path, monkeyp
         assert (mf.stat().st_mode & 0o077) == 0  # not group/other accessible
     from credbroker import _vault
 
-    assert _vault.read_credential("jira", "API_TOKEN", master="freshly-set-master", path=_core._vault_path()) == SECRET
+    assert (
+        _vault.read_credential(
+            "jira", "API_TOKEN", master="freshly-set-master", path=_core._vault_path()
+        )
+        == SECRET
+    )
 
 
 @requires_crypto
@@ -126,7 +133,7 @@ def test_permissive_master_file_exits_3(env, tmp_path, monkeypatch):
     monkeypatch.setattr(_core, "_tier2_backend", None)
     mf = _core._vault_master_file()
     mf.write_text("some-master")
-    os.chmod(mf, 0o644)  # group/other-readable -> source rejects -> clean exit 3
+    mf.chmod(0o644)  # group/other-readable -> source rejects -> clean exit 3
     assert _run(tmp_path) == 3
 
 
@@ -221,5 +228,7 @@ def test_setup_imports_credbroker_not_shim_nor_private():
             if (node.module or "").split(".")[0] == "credbroker":
                 imported_credbroker = True
                 for alias in node.names:
-                    assert not alias.name.startswith("_"), f"private credbroker import: {alias.name}"
+                    assert not alias.name.startswith("_"), (
+                        f"private credbroker import: {alias.name}"
+                    )
     assert imported_credbroker, "setup.py must import from credbroker"

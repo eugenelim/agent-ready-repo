@@ -21,13 +21,10 @@ dual-state-file walk*:
 from __future__ import annotations
 
 import argparse
-import contextlib
-import io
 import sys
 from pathlib import Path
 
 import pytest
-
 from agentbundle.commands import adapt
 from agentbundle.config import PackState, State, dump_state
 

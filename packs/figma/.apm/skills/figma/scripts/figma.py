@@ -36,6 +36,7 @@ namespace.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import re
@@ -59,10 +60,8 @@ if __package__ in (None, "") and __spec__ is None:
     # its messages emit correctly. Guarded: a replaced stream (StringIO under
     # a test harness) or pythonw's None has no reconfigure().
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     # Vendored credbroker floor (~/.agentbundle/lib) at LOWEST precedence:
@@ -93,7 +92,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("figma.cli")
 
@@ -229,7 +228,7 @@ def _extract_file_key(s: str) -> str:
     ``KEY/../variables/local`` or ``KEY?published=true`` cannot
     reshape downstream ``/v1/files/{key}/...`` URL templates.
     """
-    if s.startswith("http://") or s.startswith("https://"):
+    if s.startswith(("http://", "https://")):
         m = FILE_KEY_URL_RE.match(s)
         if not m:
             # Do not echo `s` — a URL with credentials in the userinfo

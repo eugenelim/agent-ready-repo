@@ -9,7 +9,6 @@ Use ``agentbundle catalogue package`` instead.
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     """Compatibility shim for ``agentbundle package-catalogue``.
 
     Prints a deprecation warning and delegates to ``package_catalogue()``.

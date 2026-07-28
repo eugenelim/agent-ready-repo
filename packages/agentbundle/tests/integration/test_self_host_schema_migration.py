@@ -93,7 +93,7 @@ def test_canonical_markers_table_loads(tmp_path, capsys):
     packs_dir = tmp_path / "packs"
     packs_dir.mkdir()
 
-    rc = self_host.run_self_host(
+    self_host.run_self_host(
         working_tree=tmp_path,
         packs_dir=packs_dir,
         dry_run=True,

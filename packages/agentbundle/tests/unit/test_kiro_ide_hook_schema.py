@@ -52,7 +52,7 @@ def _minimal_v0_3_contract() -> dict:
         "adapter": {
             "kiro": {
                 "projection": [
-                    {"primitive": "skill", "mode": "direct-directory", "target-path": ".kiro/skills/"},
+                    {"primitive": "skill", "mode": "direct-directory", "target-path": ".kiro/skills/"},  # noqa: E501
                 ],
                 "projections": {
                     "kiro-ide-hook": {

@@ -12,13 +12,13 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.defaults import check_defaults, write_defaults
 
     root = Path(getattr(args, "root", ".")).resolve()
     do_write = getattr(args, "write", False)
     do_check = getattr(args, "check", False)
-    fmt = getattr(args, "format", "json")
+    getattr(args, "format", "json")
 
     if not do_check and not do_write:
         print("sync-defaults: specify --check or --write", file=sys.stderr)

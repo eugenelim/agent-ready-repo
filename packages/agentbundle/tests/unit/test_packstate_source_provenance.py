@@ -1,21 +1,18 @@
-"""Tests for spec/packstate-source-provenance: PackState.source default, 
+"""Tests for spec/packstate-source-provenance: PackState.source default,
 _parse_adapter_row, dump_state, and canonicalize_source."""
 
 from __future__ import annotations
 
-import platform
 import sys
-import pytest
-from pathlib import Path
 
+import pytest
 from agentbundle.config import (
     PackState,
     State,
+    _parse_adapter_row,
     canonicalize_source,
     dump_state,
-    _parse_adapter_row,
 )
-
 
 # ── T1: PackState.source field, _parse_adapter_row, dump_state ───────────────
 
@@ -214,7 +211,6 @@ def test_canonicalize_file_url_literal_percent(tmp_path):
     # This discriminates single-decode from double-decode
     # We test the canonicalize function handles this correctly
     # %2520 -> url2pathname -> %20 (one decode of %25 -> %)
-    import urllib.parse
     from urllib.parse import urlsplit
     from urllib.request import url2pathname
     # Build a URL where the path has %2520 (literal percent followed by 20)

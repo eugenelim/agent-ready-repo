@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -30,10 +29,10 @@ class TargetResolutionError(Exception):
 
 @dataclass(frozen=True)
 class ResolvedTarget:
-    page_id: Optional[str]
-    space_key: Optional[str]
-    title: Optional[str]
-    parent_id: Optional[str]
+    page_id: str | None
+    space_key: str | None
+    title: str | None
+    parent_id: str | None
     body_text: str
     frontmatter: dict
 
@@ -71,12 +70,12 @@ def read_input(path: str) -> str:
 def resolve_target(
     *,
     raw_body: str,
-    page_id: Optional[str],
-    url: Optional[str],
+    page_id: str | None,
+    url: str | None,
     from_frontmatter: bool,
-    space: Optional[str],
-    title: Optional[str],
-    parent_id: Optional[str],
+    space: str | None,
+    title: str | None,
+    parent_id: str | None,
 ) -> ResolvedTarget:
     """Apply the target-mode rules; return the resolved identifiers + body.
 
@@ -116,9 +115,9 @@ def resolve_target(
 
     frontmatter, body = split_frontmatter(raw_body)
 
-    resolved_id: Optional[str] = None
-    resolved_title: Optional[str] = title
-    resolved_space: Optional[str] = space
+    resolved_id: str | None = None
+    resolved_title: str | None = title
+    resolved_space: str | None = space
 
     if page_id:
         resolved_id = str(page_id)

@@ -18,9 +18,6 @@ from types import ModuleType
 from typing import Mapping
 from unittest.mock import patch
 
-import pytest
-
-
 # ---------------------------------------------------------------------------
 # Subprocess smoke-test
 # ---------------------------------------------------------------------------
@@ -28,8 +25,8 @@ import pytest
 def test_list_targets_subprocess_exit0_and_all_adapters(tmp_path):
     """Invoking `python -m agentbundle list-targets` exits 0 and lists all four
     canonical adapter names."""
-    import subprocess
     import os
+    import subprocess
 
     pkg_root = str(
         (tmp_path.parent.parent / "packages" / "agentbundle").resolve()
@@ -60,9 +57,9 @@ def test_list_targets_subprocess_exit0_and_all_adapters(tmp_path):
 
 def test_list_targets_deterministic(tmp_path):
     """Two consecutive subprocess runs produce identical stdout."""
-    import subprocess
     import os
     import pathlib
+    import subprocess
 
     pkg_root = str(pathlib.Path(__file__).parent.parent.parent.resolve())
     env = {**os.environ, "PYTHONPATH": pkg_root}
@@ -101,7 +98,6 @@ def test_list_targets_reflects_runtime_registry(monkeypatch):
     # Also patch agentbundle.render.list_adapters to pick up the change since
     # render.py caches the import at module-load time via `from ... import`.
     import agentbundle.render as render_mod
-    original_list_adapters = render_mod.list_adapters
 
     def patched_list_adapters():
         return sorted(patched_registry.keys())

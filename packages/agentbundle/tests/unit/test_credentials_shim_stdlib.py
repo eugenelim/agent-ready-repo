@@ -10,7 +10,6 @@ assertion would compare against a polluted baseline.
 
 from __future__ import annotations
 
-import ast
 import json
 import shutil
 import subprocess

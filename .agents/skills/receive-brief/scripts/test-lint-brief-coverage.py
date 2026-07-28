@@ -38,7 +38,9 @@ def write_spec(root: Path, slug: str, status: str, brief: str | None = None) -> 
     p.write_text(header, encoding="utf-8")
 
 
-def write_brief(root: Path, slug: str, rows: list[tuple[str, str]], stem: str | None = None) -> None:
+def write_brief(
+    root: Path, slug: str, rows: list[tuple[str, str]], stem: str | None = None
+) -> None:
     """Write a brief with a two-column Spec map. `rows` is (spec-slug, recorded-status)."""
     name = stem if stem is not None else slug
     p = root / "docs" / "product" / "briefs" / f"{name}.md"

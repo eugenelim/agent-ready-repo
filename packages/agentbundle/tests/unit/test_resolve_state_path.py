@@ -4,8 +4,6 @@
 
 from pathlib import Path
 
-import pytest
-
 
 def test_resolve_state_path_repo_scope():
     from agentbundle.commands._common import resolve_state_path  # noqa: PLC0415

@@ -31,13 +31,11 @@ short-circuit witness.
 from __future__ import annotations
 
 import io
-import sys
 import tomllib
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACKS_DIR = REPO_ROOT / "packs"
@@ -101,7 +99,7 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
             self.assertTrue(
                 projection_dir.exists(),
                 f"expected projection at {projection_dir}; "
-                f"adopter tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
+                f"adopter tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",  # noqa: E501
             )
 
             # State file records the resolved adapter. The v0.4 TOML
@@ -505,8 +503,7 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
             # Per-IDE projection — no dist-tree-shaped paths recorded.
             for relpath in files_before:
                 self.assertFalse(
-                    relpath.startswith("apm/")
-                    or relpath.startswith("claude-plugins/")
+                    relpath.startswith(("apm/", "claude-plugins/"))
                     or relpath == "marketplace.json",
                     f"install recorded unexpected dist-tree path {relpath!r}; "
                     f"all paths: {sorted(files_before)}",
@@ -555,7 +552,7 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
             self.assertFalse(
                 (adopter / "claude-plugins").exists(),
                 f"upgrade leaked claude-plugins/ subtree under {adopter}; "
-                f"tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
+                f"tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",  # noqa: E501
             )
             self.assertFalse(
                 (adopter / "apm").exists(),

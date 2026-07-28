@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 import render
 
 HERE = Path(__file__).resolve().parent
@@ -101,7 +100,9 @@ def test_map_projects_frontmatter_headings_lists_and_table():
     assert model["sections"][0]["table"] is None
 
     # a Markdown table → table rows (placed into a TABLE-type placeholder at render)
-    assert model["sections"][1]["table"] == [["Metric", "Value"], ["ARR", "4.2M"], ["Churn", "1.1%"]]
+    assert model["sections"][1]["table"] == [
+        ["Metric", "Value"], ["ARR", "4.2M"], ["Churn", "1.1%"]
+    ]
 
 
 # --------------------------------------------------------------------------- #
@@ -157,7 +158,7 @@ def test_confine_accepts_path_under_root(tmp_path):
 def test_render_fills_template_and_reopened_values_present(tmp_path):
     from pptx import Presentation
 
-    template = _build_template(tmp_path / "template.pptx")
+    _build_template(tmp_path / "template.pptx")
     (tmp_path / "deck.md").write_text(MARKDOWN, encoding="utf-8")
 
     result = subprocess.run(

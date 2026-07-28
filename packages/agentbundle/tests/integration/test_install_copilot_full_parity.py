@@ -17,7 +17,6 @@ synthetic user-scope hook pack:
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import io
 import os

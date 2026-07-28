@@ -14,12 +14,9 @@ from __future__ import annotations
 
 import argparse
 import subprocess
-import sys
-import tempfile
 from pathlib import Path
 
 import pytest
-
 from agentbundle.commands.render import run
 
 # The test fixture pack lives next to the build tests; it has both .sh and .py hooks.

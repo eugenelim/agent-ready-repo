@@ -21,14 +21,13 @@ from __future__ import annotations
 
 import json
 import re
+import re as _re
 import sys
 import tomllib
 from pathlib import Path
 from typing import Callable, TextIO
 from urllib.parse import unquote, urlsplit
 from urllib.request import url2pathname
-
-import re as _re
 
 from agentbundle.catalogue import CatalogueError
 
@@ -101,16 +100,12 @@ def _is_valid_source(value: str) -> bool:
         return True
     if value.startswith(_CATALOGUE_HTTPS_PREFIX):
         parsed = urlsplit(value)
-        if "@" in parsed.netloc:
-            return False
-        return True
+        return "@" not in parsed.netloc
     if value.startswith(_ARCHIVE_HTTPS_PREFIX):
         parsed = urlsplit(value)
         if "@" in parsed.netloc:
             return False
-        if not _SHA256_FRAGMENT_RE.fullmatch(parsed.fragment):
-            return False
-        return True
+        return bool(_SHA256_FRAGMENT_RE.fullmatch(parsed.fragment))
     if _WIN_DRIVE_RE.match(value):
         return _local_path_has_markers(value)
     if urlsplit(value).scheme:
@@ -243,7 +238,7 @@ def _source_from_org_bootstrap(text: str, *, config_path: str) -> str | None:
 
 
 def read_org_bootstrap(
-    read_text: "Callable[[], tuple[str, str] | None] | None" = None,
+    read_text: Callable[[], tuple[str, str] | None] | None = None,
 ) -> str | None:
     """Return the org Artifactory bootstrap source URI, or ``None``.
 

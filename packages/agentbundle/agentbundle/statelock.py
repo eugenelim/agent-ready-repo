@@ -81,7 +81,7 @@ def state_lock(
                     lock_path.name + f".reclaim.{os.getpid()}"
                 )
                 try:
-                    os.rename(lock_path, claimed)
+                    lock_path.rename(claimed)
                 except (FileNotFoundError, OSError):
                     # Another contender reclaimed or the holder released first.
                     continue
@@ -91,7 +91,7 @@ def state_lock(
             if time.monotonic() >= deadline:
                 raise StateLockTimeout(
                     f"could not acquire state lock {lock_path} within {timeout}s"
-                )
+                ) from None
             time.sleep(poll)
     try:
         with contextlib.suppress(OSError):
@@ -108,7 +108,7 @@ def state_lock(
 
 def persist_state_locked(
     state_path: Path,
-    mutate: "Callable[[State], None]",
+    mutate: Callable[[State], None],
     *,
     scope: str = "repo",
     allowed_prefixes: list[str] | None = None,

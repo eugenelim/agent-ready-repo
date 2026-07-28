@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.4.0] — 2026-07-27
+
+### Changed
+
+- **Ruff + mypy CI gates.** `credbroker` is now covered by the repo-wide
+  `ruff check` and `mypy` gates added to `build-check.yml` and
+  `build-check-windows.yml`. No behaviour changes; all internal code now
+  satisfies `mypy --strict` import checking.
+
+### Fixed
+
+- **`_vault.py`: explicit `binascii` import.** The exception handler in
+  `_vault.py` previously caught `base64.binascii.Error` — a private
+  cross-module reference that worked in practice but is not part of any
+  stable interface. Changed to `import binascii` at the top of the module
+  and `binascii.Error` in the handler, which is the documented form.
+- **`_vault.py`: pathlib migration.** `os.replace()` and `os.unlink()` calls
+  replaced with `Path.replace()` / `Path.unlink()` to eliminate `os`-module
+  usage where `pathlib` already owns the path object.
+
 ## [0.3.0] — 2026-07-27
 
 ### Fixed

@@ -224,10 +224,10 @@ def _validate_path(root: Path, p: str, field_name: str) -> None:
     resolved_root = root.resolve()
     try:
         resolved_path = (root / p).resolve()
-    except OSError:
+    except OSError as exc:
         raise CatalogueConfigError(
             f"catalogue.toml: {field_name!r} path cannot be resolved: {p!r}"
-        )
+        ) from exc
     if not resolved_path.is_relative_to(resolved_root):
         raise CatalogueConfigError(
             f"catalogue.toml: {field_name!r} path escapes catalogue root "

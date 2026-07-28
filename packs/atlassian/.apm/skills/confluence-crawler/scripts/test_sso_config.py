@@ -10,14 +10,12 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import pytest
-
 import _sso_config
+import pytest
 from _sso_config import SsoConfig, load_sso_config
 
 pytest.importorskip("credbroker")
 from credbroker import SsoConfigError  # noqa: E402
-
 
 _VALID_COOKIE = textwrap.dedent(
     """
@@ -71,9 +69,15 @@ def test_valid_sso_cookie_config_parses(tmp_path: Path) -> None:
     [
         ('base_url = "https://jira.corp.example.com"', 'base_url = "http://jira.corp.example.com"'),
         ('login_url = "https://sso.corp.example.com/login"', 'login_url = "ftp://sso.corp.example.com"'),
-        ('success_url_pattern = "https://jira.corp.example.com/secure/Dashboard.jspa"', 'success_url_pattern = "jira.corp.example.com/x"'),
+        (
+            'success_url_pattern = "https://jira.corp.example.com/secure/Dashboard.jspa"',
+            'success_url_pattern = "jira.corp.example.com/x"',
+        ),
         ('validation_endpoint = "/rest/api/2/myself"', 'validation_endpoint = "https://jira.corp.example.com/rest"'),
-        ('validation_endpoint = "/rest/api/2/myself"', 'validation_endpoint = "//evil.example.com/rest"'),
+        (
+            'validation_endpoint = "/rest/api/2/myself"',
+            'validation_endpoint = "//evil.example.com/rest"',
+        ),
         ('cookie_domains = ["jira.corp.example.com"]', "cookie_domains = []"),
     ],
 )

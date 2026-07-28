@@ -22,8 +22,6 @@ Subcommands under test:
 from __future__ import annotations
 
 import argparse
-import shutil
-import sys
 from pathlib import Path
 from typing import Callable
 
@@ -286,7 +284,7 @@ def test_adapt_without_values_makes_no_tier1_changes(tmp_path: Path):
     """Negative-invariant row: read-only `adapt` writes nothing except
     possibly `.adapt-pending.md` (which is itself a Tier-1 path)."""
     pack_dir = UPGRADE_CATALOGUE_V1 / "packs" / "core"
-    pre = _build_brownfield(tmp_path)
+    _build_brownfield(tmp_path)
 
     # Install so there's a projection to scan over.
     _run_install(tmp_path, pack_dir)

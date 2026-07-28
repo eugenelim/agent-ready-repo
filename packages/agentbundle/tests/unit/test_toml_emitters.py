@@ -16,12 +16,11 @@ value can introduce a sibling table.
 from __future__ import annotations
 
 import tomllib
+from datetime import UTC
 
 import pytest
-
 from agentbundle import config
 from agentbundle.config import PackState, State, dump_state
-
 
 # ---------------------------------------------------------------------------
 # _emit_basic_string — pure-function round-trip
@@ -99,7 +98,7 @@ def test_dump_state_resists_files_sha_injection() -> None:
     state.packs[("core", "claude-code")] = ps
 
     parsed = tomllib.loads(dump_state(state))
-    assert parsed["pack"]["core"]["adapters"]["claude-code"]["files"]["AGENTS.md"]["sha"] == adversarial
+    assert parsed["pack"]["core"]["adapters"]["claude-code"]["files"]["AGENTS.md"]["sha"] == adversarial  # noqa: E501
     assert "evil" not in parsed["pack"]
 
 
@@ -128,7 +127,7 @@ def test_dump_state_resists_primitive_version_injection() -> None:
     state.packs[("core", "claude-code")] = ps
 
     parsed = tomllib.loads(dump_state(state))
-    assert parsed["pack"]["core"]["adapters"]["claude-code"]["skill"]["work-loop"]["version"] == adversarial
+    assert parsed["pack"]["core"]["adapters"]["claude-code"]["skill"]["work-loop"]["version"] == adversarial  # noqa: E501
     assert "evil" not in parsed["pack"]
 
 
@@ -276,14 +275,15 @@ def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
     in the resulting file; the new CLI entry must carry install-route = "cli".
     """
     import tomllib as _tomllib
+    from datetime import datetime
+
     from agentbundle.commands.install import _append_install_marker
-    from datetime import datetime, timezone
 
     # Pre-seed a marker with a claude-plugins-routed entry.
     marker = tmp_path / ".adapt-install-marker.toml"
     # We write raw TOML to seed the entry with the exact install-route value
     # the Claude-plugins writer would produce, including a bare datetime.
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     marker.write_text(
         'marker-schema-version = "0.1"\n'
         "\n"
@@ -364,12 +364,13 @@ def test_cli_install_coerces_malformed_unresolved_markers_field(tmp_path) -> Non
           is absent (bad field dropped, rest of entry preserved);
       (d) exit code is implicitly 0 (no exception).
     """
-    from agentbundle.commands.install import _append_install_marker
     import datetime as _dt
+
+    from agentbundle.commands.install import _append_install_marker
 
     # Seed a marker with a valid-looking entry but malformed unresolved-markers.
     marker = tmp_path / ".adapt-install-marker.toml"
-    ts = _dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=_dt.timezone.utc)
+    ts = _dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=_dt.UTC)
     marker.write_text(
         'marker-schema-version = "0.1"\n'
         "\n"

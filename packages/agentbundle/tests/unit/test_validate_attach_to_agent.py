@@ -52,7 +52,7 @@ class InMemoryRailKiroTargetedTests(unittest.TestCase):
         self.assertIn("or names an unknown agent", refusal)
 
     def test_refuses_attach_to_agent_of_wrong_type(self) -> None:
-        """A non-string `attach-to-agent` is shape-wrong; the rail treats it the same as missing."""
+        """A non-string `attach-to-agent` is shape-wrong; the rail treats it the same as missing."""  # noqa: E501
         from agentbundle.build.scope_rails import check_kiro_attach_to_agent
 
         refusal = check_kiro_attach_to_agent(

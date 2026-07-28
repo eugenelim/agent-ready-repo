@@ -16,6 +16,7 @@ PAT is never accepted on the command line.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import re
 import sys
@@ -40,10 +41,8 @@ if __package__ in (None, "") and __spec__ is None:
     # its messages emit correctly. Guarded: a replaced stream (StringIO under
     # a test harness) or pythonw's None has no reconfigure().
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     # Vendored credbroker floor (~/.agentbundle/lib) at LOWEST precedence:
@@ -86,7 +85,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("confluence_crawler")
 
@@ -196,17 +195,35 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = _ScrubbingArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = _ScrubbingArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--space", help="Confluence space key (e.g., ENG)")
     parser.add_argument("--root", help="Page ID to start from (default: space homepage)")
-    parser.add_argument("--depth", type=int, default=UNLIMITED_DEPTH, help="Max hierarchy depth (default: unlimited)")
-    parser.add_argument("--output", type=Path, default=Path("./confluence-out"), help="Output directory")
-    parser.add_argument("--force", action="store_true", help="Re-fetch and overwrite even if version unchanged")
-    parser.add_argument("--no-attachments", action="store_true", help="Skip downloading attachments")
+    parser.add_argument(
+        "--depth", type=int, default=UNLIMITED_DEPTH,
+        help="Max hierarchy depth (default: unlimited)",
+    )
+    parser.add_argument(
+        "--output", type=Path, default=Path("./confluence-out"), help="Output directory"
+    )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Re-fetch and overwrite even if version unchanged",
+    )
+    parser.add_argument(
+        "--no-attachments", action="store_true", help="Skip downloading attachments"
+    )
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--min-delay-ms", type=int, default=100)
-    parser.add_argument("--insecure", action="store_true", help="Disable TLS verification (not recommended)")
-    parser.add_argument("--check", action="store_true", help="Verify credentials and connectivity, then exit")
+    parser.add_argument(
+        "--insecure", action="store_true",
+        help="Disable TLS verification (not recommended)",
+    )
+    parser.add_argument(
+        "--check", action="store_true",
+        help="Verify credentials and connectivity, then exit",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     return parser.parse_args(argv)
 
@@ -219,8 +236,11 @@ def _setup_logging(verbose: bool) -> None:
 
 
 def _safe_slug(title: str, fallback: str) -> str:
-    base = slugify(title, max_length=SLUG_MAX_LEN) or slugify(fallback, max_length=SLUG_MAX_LEN) or fallback
-    return base
+    return (
+        slugify(title, max_length=SLUG_MAX_LEN)
+        or slugify(fallback, max_length=SLUG_MAX_LEN)
+        or fallback
+    )
 
 
 def _assign_slugs(discovered: Iterable[DiscoveredPage]) -> dict[str, str]:
@@ -448,7 +468,10 @@ async def main_async(args: argparse.Namespace) -> int:
             if existing_entry is None or existing_entry[1] < page.version:
                 to_fetch.add(page.id)
 
-        log.info("%d pages need fetching (skipping %d unchanged)", len(to_fetch), len(discovered) - len(to_fetch))
+        log.info(
+            "%d pages need fetching (skipping %d unchanged)",
+            len(to_fetch), len(discovered) - len(to_fetch),
+        )
 
         plan = CrawlPlan(
             base_url=creds.base_url,
@@ -486,7 +509,10 @@ async def main_async(args: argparse.Namespace) -> int:
         success = sum(1 for r in results if r is not None)
         failed = len(to_fetch) - success
 
-        log.info("wrote %d pages (failed: %d, skipped: %d)", success, failed, len(discovered) - len(to_fetch))
+        log.info(
+            "wrote %d pages (failed: %d, skipped: %d)",
+            success, failed, len(discovered) - len(to_fetch),
+        )
         # Partial completion (some pages failed) is a functional outcome → 1,
         # not a credential/user-action; per-page detail is in the log above.
         return EXIT_OK if failed == 0 else EXIT_ERROR

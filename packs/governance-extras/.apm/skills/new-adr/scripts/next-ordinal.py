@@ -13,18 +13,19 @@ The match is strict on purpose: bare `0042.md` counts, `README.md`
 does not, and `12345-foo.md` parses as 12345 (not 1234) so 5-digit
 prefixes don't silently collide with 4-digit ones.
 """
-import os
 import re
 import sys
+from pathlib import Path
 
 _PREFIX = re.compile(r"^(\d{4,})[-.]")
 
 
 def next_ordinal(dirpath: str) -> int:
-    if not os.path.isdir(dirpath):
+    p = Path(dirpath)
+    if not p.is_dir():
         return 1
     nums = []
-    for name in os.listdir(dirpath):
+    for name in (entry.name for entry in p.iterdir()):
         m = _PREFIX.match(name)
         if m:
             nums.append(int(m.group(1)))

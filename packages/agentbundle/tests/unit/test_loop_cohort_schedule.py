@@ -14,8 +14,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 LC_PATH = REPO_ROOT / "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
 
@@ -617,14 +615,16 @@ def _run_lc(*args):
 
 
 def test_init_state_has_auto_parallel_false(tmp_path):
-    spec = tmp_path / "spec"; spec.mkdir()
+    spec = tmp_path / "spec"
+    spec.mkdir()
     r = _run_lc("init", str(spec))
     assert r.returncode == 0, r.stderr
     assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC1
 
 
 def test_auto_parallel_verb_flips_both_ways(tmp_path):
-    spec = tmp_path / "spec"; spec.mkdir()
+    spec = tmp_path / "spec"
+    spec.mkdir()
     _run_lc("init", str(spec))
     assert _run_lc("auto-parallel", str(spec)).returncode == 0
     assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is True   # AC2

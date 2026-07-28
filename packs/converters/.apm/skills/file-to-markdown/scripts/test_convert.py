@@ -18,10 +18,9 @@ import types
 import zipfile
 from pathlib import Path
 
-import pytest
-
 import contract
 import convert
+import pytest
 import safe_io
 
 HERE = Path(__file__).resolve().parent
@@ -55,7 +54,7 @@ def make_pdf(text: str) -> bytes:
     xref = out.tell()
     out.write(b"xref\n0 " + str(len(objs) + 1).encode() + b"\n0000000000 65535 f \n")
     for off in offsets:
-        out.write(("%010d 00000 n \n" % off).encode())
+        out.write(f"{off:010d} 00000 n \n".encode())
     out.write(b"trailer<</Size " + str(len(objs) + 1).encode()
               + b"/Root 1 0 R>>\nstartxref\n" + str(xref).encode() + b"\n%%EOF")
     return out.getvalue()
@@ -239,7 +238,9 @@ def test_full_document_body_injection_is_content_not_contract(tmp_path):
     """A body containing `---` and a forged `contract-version:` line is
     read as content — a frontmatter parser sees only the builder's leading
     block."""
-    hostile_body = "Intro paragraph.\n\n---\ncontract-version: \"9.9\"\ntier: \"3-managed-api\"\n\nMore."
+    hostile_body = (
+        "Intro paragraph.\n\n---\ncontract-version: \"9.9\"\ntier: \"3-managed-api\"\n\nMore."
+    )
     result = convert.ExtractResult(
         body=hostile_body, tier=contract.TIER_0, content_type="pdf",
         confidence="high", requires_review=False,
@@ -829,7 +830,9 @@ def test_chunk_mode_tokenizer_extra_absent_errors_clearly(tmp_path, monkeypatch)
     """AC8: --chunk with the docling-core[chunking] tokenizer extra absent errors
     clearly (no crash) and names the extra to install."""
     install_fake_docling(monkeypatch, "# Doc\n")
-    install_fake_chunker(monkeypatch, [], raises=ModuleNotFoundError("No module named 'transformers'"))
+    install_fake_chunker(
+        monkeypatch, [], raises=ModuleNotFoundError("No module named 'transformers'")
+    )
     with pytest.raises(RuntimeError, match=r"docling-core\[chunking\]"):
         convert._extract_docling(tmp_path / "d.xls", chunk=True)
 
@@ -905,7 +908,7 @@ def test_dispatch_constructs_only_tiers_0_1_2(tmp_path, monkeypatch):
 
 # --- AC4/AC8: no new egress, no installed OCR/ML model, no AGPL pymupdf -----
 
-import re as _re
+import re as _re  # noqa: E402
 
 _SCRIPTS = Path(__file__).resolve().parent
 # The Tier-1 path must import no network client and no OCR/ML model. convert.py
@@ -952,7 +955,7 @@ def test_pymupdf_appears_nowhere_as_code():
 
 # --- T5: cross-cutting security guards (AST-based, ignore prose) -------------
 
-import ast as _ast
+import ast as _ast  # noqa: E402
 
 
 def test_glob_covers_new_high_risk_modules():

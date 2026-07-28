@@ -42,9 +42,7 @@ import re
 from pathlib import Path
 
 import pytest
-
 from agentbundle.commands import scaffold
-
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACKS_ROOT = REPO_ROOT / "packs"

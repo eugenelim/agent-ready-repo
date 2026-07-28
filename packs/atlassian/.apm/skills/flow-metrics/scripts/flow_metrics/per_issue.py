@@ -31,8 +31,8 @@ Stdlib only. Python >= 3.10.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Any, Iterable, Iterator, List, Mapping, Optional, Tuple
+from datetime import UTC, datetime, timedelta
+from typing import Any, Iterable, Iterator, Mapping
 
 from . import compose_jql
 from .changelog import ChangelogEntry, iter_issue_changelog
@@ -45,7 +45,6 @@ from .predicates import (
 )
 from .timeline import Timeline
 from .upstream import JiraClient
-
 
 NO_TEAM = "(no team)"
 
@@ -63,35 +62,35 @@ class PerIssueRow:
 
     key: str
     issue_created: datetime
-    first_commitment_at: Optional[datetime]
-    first_delivery_at: Optional[datetime]
+    first_commitment_at: datetime | None
+    first_delivery_at: datetime | None
     cycle_eligible: bool
-    cycle_time_hours: Optional[float]
-    lead_time_hours: Optional[float]
-    flow_efficiency: Optional[float]
+    cycle_time_hours: float | None
+    lead_time_hours: float | None
+    flow_efficiency: float | None
     rework_count: int
-    issuetype_at_delivery: Optional[str]
-    issuetype_bucket: Optional[str]
+    issuetype_at_delivery: str | None
+    issuetype_bucket: str | None
     team: str
     delivered_in_window: bool
     cancelled_in_window: bool
     wip_at_to: bool
-    wip_samples: Tuple[bool, ...] = field(default_factory=tuple)
+    wip_samples: tuple[bool, ...] = field(default_factory=tuple)
     # Full team list for array-kind team_field semantics — ``team`` keeps
     # the first non-empty entry for backward compat with single-value
     # consumers; ``teams`` is the complete list the per-team rollup
     # needs to count one issue in every membership bucket. For
     # ``single_value`` kind, ``teams`` is a one-element tuple
     # ``(team,)`` (or ``(NO_TEAM,)`` when the field is missing).
-    teams: Tuple[str, ...] = field(default_factory=tuple)
-    cohort: Optional[bool] = None
+    teams: tuple[str, ...] = field(default_factory=tuple)
+    cohort: bool | None = None
 
 
 def _hours_between(start: datetime, end: datetime) -> float:
     return (end - start).total_seconds() / 3600.0
 
 
-def _name_from_item(item: Any) -> Optional[str]:
+def _name_from_item(item: Any) -> str | None:
     """Pull the team-name string out of a single raw catalog entry.
 
     Accepts plain strings or option-dict shapes ({value, name}); returns
@@ -107,7 +106,7 @@ def _name_from_item(item: Any) -> Optional[str]:
     return None
 
 
-def _resolve_teams(issue: Mapping, state_config: StateConfig) -> Tuple[str, Tuple[str, ...]]:
+def _resolve_teams(issue: Mapping, state_config: StateConfig) -> tuple[str, tuple[str, ...]]:
     """Return ``(primary_team, full_team_list)`` for the issue's row.
 
     ``primary_team`` is the first non-empty team name (matching the
@@ -128,7 +127,7 @@ def _resolve_teams(issue: Mapping, state_config: StateConfig) -> Tuple[str, Tupl
     uniform across kinds.
     """
     tf = state_config.team_field
-    no_match: Tuple[str, Tuple[str, ...]] = (NO_TEAM, ())
+    no_match: tuple[str, tuple[str, ...]] = (NO_TEAM, ())
     if tf is None or tf.id is None:
         return no_match
     fields = issue.get("fields") or {}
@@ -175,7 +174,7 @@ def _resolve_team(issue: Mapping, state_config: StateConfig) -> str:
 
 def _first_commitment_at_or_before(
     timeline: Timeline, before_or_at: datetime
-) -> Optional[datetime]:
+) -> datetime | None:
     """Timestamp of the first changelog transition into ``commitment_state``
     whose timestamp is ``<= before_or_at``. ``None`` if no such transition.
     """
@@ -192,7 +191,7 @@ def _flow_efficiency(
     timeline: Timeline,
     state_config: StateConfig,
     interval: tuple,
-) -> Optional[float]:
+) -> float | None:
     """``active_t / (active_t + wait_t)`` over ``interval``.
 
     Returns ``None`` for the zero-denominator case (e.g. an
@@ -217,7 +216,7 @@ def _wip_samples(
     state_config: StateConfig,
     window: Any,
     delivered: bool,
-) -> Tuple[bool, ...]:
+) -> tuple[bool, ...]:
     """Per-day WIP-style samples for the inclusive window.
 
     One bool per calendar day ``d`` from ``window.from_date`` through
@@ -235,11 +234,11 @@ def _wip_samples(
     if delivered:
         return tuple([False] * sample_count)
     active = state_config.active_states
-    out: List[bool] = []
+    out: list[bool] = []
     for i in range(sample_count):
         day = window.from_date + timedelta(days=i)
         anchor = (
-            datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+            datetime(day.year, day.month, day.day, tzinfo=UTC)
             + timedelta(days=1)
             - timedelta(microseconds=1)
         )
@@ -274,14 +273,14 @@ def derive_row(
     is_cycle_eligible = cycle_eligible(timeline, window) if delivered else False
     wip_samples = _wip_samples(timeline, state_config, window, delivered)
 
-    first_delivery_at: Optional[datetime] = None
-    first_commitment_at: Optional[datetime] = None
-    cycle_time_hours: Optional[float] = None
-    lead_time_hours: Optional[float] = None
-    flow_efficiency: Optional[float] = None
+    first_delivery_at: datetime | None = None
+    first_commitment_at: datetime | None = None
+    cycle_time_hours: float | None = None
+    lead_time_hours: float | None = None
+    flow_efficiency: float | None = None
     rework_count = 0
-    issuetype_at_delivery: Optional[str] = None
-    issuetype_bucket: Optional[str] = None
+    issuetype_at_delivery: str | None = None
+    issuetype_bucket: str | None = None
 
     if delivered:
         first_delivery_at = timeline.first_canonical_transition_into(
@@ -343,7 +342,7 @@ def _default_fields(state_config: StateConfig) -> str:
     """Default field list for the Jira search. Includes the configured
     team field id if one is set so :func:`_resolve_team` can read it.
     """
-    base: List[str] = ["summary", "status", "issuetype", "created"]
+    base: list[str] = ["summary", "status", "issuetype", "created"]
     tf = state_config.team_field
     if tf is not None and tf.id:
         base.append(tf.id)
@@ -353,12 +352,12 @@ def _default_fields(state_config: StateConfig) -> str:
 def iter_per_issue_rows(
     jira: JiraClient,
     scope_clause: str,
-    user_clause: Optional[str],
+    user_clause: str | None,
     state_config: StateConfig,
     issuetype_config: IssuetypeConfig,
     window: Any,
     *,
-    fields: Optional[str] = None,
+    fields: str | None = None,
 ) -> Iterator[PerIssueRow]:
     """Stream per-issue rows for ``scope_clause`` (+ optional
     ``user_clause``) over ``window``.

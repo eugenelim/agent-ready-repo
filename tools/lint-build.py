@@ -27,12 +27,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 # Top-level directories explicitly authorised by an Accepted RFC. Add
 # entries only when an Accepted RFC authorises the new directory.
 RFC_AUTHORISED_DIRS = (
     "packs",  # RFC-0002 — self-hosting source-of-truth split
-    ".agentbundle",  # RFC-0013 — adapter-root-bins/ self-hosted projection (sso-broker.py + helpers)
+    ".agentbundle",  # RFC-0013 — adapter-root-bins/ self-hosted projection
+                     # (sso-broker.py + helpers)
     "governance",  # RFC-0065 D16 — governance-index template seed projection (governance-extras)
     "contracts",  # ADR-0055 — wave1 docs restructure: lift docs/contracts/ to repo root
     "guides",  # ADR-0055 — wave1 docs restructure: lift docs/guides/ to repo root

@@ -30,18 +30,18 @@ FIXTURE_CATALOGUE = (
 
 
 def _install_args(output: str, **overrides) -> argparse.Namespace:
-    base = dict(
-        pack="alpha",
-        catalogue=str(FIXTURE_CATALOGUE),
-        output=output,
-        scope=None,
-        force=False,
-        force_merge=False,
-        dry_run=False,
-        yes=False,
-        adapter=None,
-        emit_install_routes=True,  # dist-tree shape (fixture predates per-IDE)
-    )
+    base = {
+        "pack": "alpha",
+        "catalogue": str(FIXTURE_CATALOGUE),
+        "output": output,
+        "scope": None,
+        "force": False,
+        "force_merge": False,
+        "dry_run": False,
+        "yes": False,
+        "adapter": None,
+        "emit_install_routes": True,  # dist-tree shape (fixture predates per-IDE)
+    }
     base.update(overrides)
     return argparse.Namespace(**base)
 

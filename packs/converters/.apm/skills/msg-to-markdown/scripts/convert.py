@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import timezone
+from datetime import UTC
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import contract
@@ -80,8 +80,8 @@ def _eml_message_to_model(msg, budget, depth, counters) -> mapi.EmailModel:
         try:
             dt = parsedate_to_datetime(str(msg["Date"]))
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            m.date = dt.astimezone(timezone.utc).isoformat(timespec="seconds")
+                dt = dt.replace(tzinfo=UTC)
+            m.date = dt.astimezone(UTC).isoformat(timespec="seconds")
         except (TypeError, ValueError):
             m.date = None
 
@@ -127,7 +127,11 @@ def _eml_message_to_model(msg, budget, depth, counters) -> mapi.EmailModel:
                 payload = part.get_content()
             except Exception:
                 payload = b""
-            raw = payload if isinstance(payload, bytes) else str(payload).encode("utf-8", "replace")
+            raw = (
+                payload
+                if isinstance(payload, bytes)
+                else str(payload).encode("utf-8", "replace")
+            )
             budget.take(len(raw))
             m.attachments.append(mapi.Attachment(
                 filename=part.get_filename() or "unnamed",

@@ -26,7 +26,6 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACKS_DIR = REPO_ROOT / "packs"
 
@@ -101,7 +100,7 @@ class CodexProjectionEndToEnd(unittest.TestCase):
             hooks_json = adopter / ".codex" / "hooks.json"
             self.assertTrue(
                 hooks_json.exists(),
-                f"expected .codex/hooks.json from core's hook-wiring TOMLs",
+                "expected .codex/hooks.json from core's hook-wiring TOMLs",
             )
             data = json.loads(hooks_json.read_text(encoding="utf-8"))
             self.assertIn("hooks", data)
@@ -313,15 +312,15 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
         return rc, out_buf.getvalue(), err_buf.getvalue()
 
     def _common_args(self, *, catalogue: Path, output: Path) -> dict:
-        return dict(
-            pack="dual-warn",
-            catalogue=str(catalogue),
-            output=str(output),
-            force=False,
-            adapter="codex",
-            emit_install_routes=False,
-            force_merge=False,
-        )
+        return {
+            "pack": "dual-warn",
+            "catalogue": str(catalogue),
+            "output": str(output),
+            "force": False,
+            "adapter": "codex",
+            "emit_install_routes": False,
+            "force_merge": False,
+        }
 
     def test_dual_scope_warning_fires_per_scope_via_user_force(self) -> None:
         """Install at repo first (no force), then install at user with
@@ -377,7 +376,7 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
                     err2.count("codex projects as 'dropped'"),
                     2,
                     f"expected dual-scope warning to fire per scope; "
-                    f"saw {err2.count('codex projects as ' + chr(0x27) + 'dropped' + chr(0x27))} occurrence(s):\n{err2}",
+                    f"saw {err2.count('codex projects as ' + chr(0x27) + 'dropped' + chr(0x27))} occurrence(s):\n{err2}",  # noqa: E501
                 )
             finally:
                 if old_home is not None:

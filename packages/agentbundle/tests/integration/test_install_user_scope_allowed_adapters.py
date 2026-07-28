@@ -42,7 +42,9 @@ def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
     return rc, stdout.getvalue(), stderr.getvalue()
 
 
-def _install_args(*, catalogue: str, repo: str, scope: str, adapter: str | None = None) -> argparse.Namespace:
+def _install_args(
+    *, catalogue: str, repo: str, scope: str, adapter: str | None = None
+) -> argparse.Namespace:
     return argparse.Namespace(
         pack="converters",
         catalogue=catalogue,
@@ -102,7 +104,9 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         # Pass adapter explicitly: org preferred_adapter (claude-code) takes priority
         # over probe-based auto-detection; explicit --adapter overrides it (step 1).
         rc, stdout, stderr = _run_install(
-            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user", adapter="kiro-ide")
+            _install_args(
+                catalogue=str(self.cat), repo=str(self.repo), scope="user", adapter="kiro-ide"
+            )
         )
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
         self._assert_pack_landed(".kiro/skills", "kiro-ide")
@@ -113,7 +117,9 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         # Pass adapter explicitly: org preferred_adapter (claude-code) takes priority
         # over probe-based auto-detection; explicit --adapter overrides it (step 1).
         rc, stdout, stderr = _run_install(
-            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user", adapter="codex")
+            _install_args(
+                catalogue=str(self.cat), repo=str(self.repo), scope="user", adapter="codex"
+            )
         )
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
         self._assert_pack_landed(".agents/skills", "codex")
@@ -183,7 +189,7 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         self.assertNotIn(
             "pack adapter changed from",
             stderr_buf.getvalue(),
-            f"upgrade triggered cross-adapter refusal despite state hint",
+            "upgrade triggered cross-adapter refusal despite state hint",
         )
         after = load_state(state_path)
         self.assertTrue(

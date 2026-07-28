@@ -60,7 +60,7 @@ def test_manual_qa_matrix_has_proactive_cache_scan_idempotence_row() -> None:
     assert "proactive cache scan idempotence — marker entry present, no double-adapt" in body, (
         "docs/specs/adapt-to-project/notes/manual-qa-matrix.md must contain a row "
         "naming 'proactive cache scan idempotence — marker entry present, no double-adapt'. "
-        "Required by AC19 of docs/specs/claude-plugins-install-route/spec.md (end-to-end pin for AC25)."
+        "Required by AC19 of docs/specs/claude-plugins-install-route/spec.md (end-to-end pin for AC25)."  # noqa: E501
     )
 
 

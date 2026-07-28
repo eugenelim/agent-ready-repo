@@ -8,9 +8,6 @@ sandbox, so the handler's file IO lands under tmp.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-
-import pytest
 
 from agentbundle.commands.config import run
 from agentbundle.user_config import _user_config_path

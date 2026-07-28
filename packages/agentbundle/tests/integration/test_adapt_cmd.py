@@ -15,8 +15,6 @@ from __future__ import annotations
 import types
 from pathlib import Path
 
-import pytest
-
 # Path to the shared fixtures for adapt tests.
 ADAPT_FIXTURES = Path(__file__).parent.parent / "fixtures" / "adapt"
 

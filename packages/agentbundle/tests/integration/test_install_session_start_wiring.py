@@ -29,7 +29,6 @@ from pathlib import Path
 
 from agentbundle.commands import install
 
-
 PACK_TOML = """
 [pack]
 name = "test-core"
@@ -84,13 +83,13 @@ def test_install_writes_nested_session_start_binding(tmp_path):
     target.mkdir()
 
     rc, _stdout, stderr = _install(
-        dict(
-            pack="test-core",
-            catalogue=str(cat),
-            output=str(target),
-            scope=None,
-            force=False,
-        )
+        {
+            "pack": "test-core",
+            "catalogue": str(cat),
+            "output": str(target),
+            "scope": None,
+            "force": False,
+        }
     )
     assert rc == 0, f"install failed: {stderr}"
 

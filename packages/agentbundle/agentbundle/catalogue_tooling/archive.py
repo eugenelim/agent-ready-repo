@@ -58,7 +58,10 @@ def _check_sha256_sidecar(archive: Path, sha256_file: Path | None) -> list[Diagn
         return [_err("CAT-V-ARC-001", f"cannot read sha256 sidecar: {exc}")]
     actual_hex = hashlib.sha256(archive.read_bytes()).hexdigest()
     if expected_hex != actual_hex:
-        return [_err("CAT-V-ARC-001", f"sha256 sidecar mismatch: expected {expected_hex}, got {actual_hex}")]
+        return [_err(
+            "CAT-V-ARC-001",
+            f"sha256 sidecar mismatch: expected {expected_hex}, got {actual_hex}",
+        )]
     return []
 
 
@@ -74,7 +77,10 @@ def _check_gzip_parseable(archive: Path) -> list[Diagnostic]:
 def _check_compressed_size(archive: Path) -> list[Diagnostic]:
     size = archive.stat().st_size
     if size > _MAX_COMPRESSED_BYTES:
-        return [_err("CAT-V-ARC-003", f"compressed size {size} exceeds limit {_MAX_COMPRESSED_BYTES}")]
+        return [_err(
+            "CAT-V-ARC-003",
+            f"compressed size {size} exceeds limit {_MAX_COMPRESSED_BYTES}",
+        )]
     return []
 
 
@@ -102,7 +108,11 @@ def check_members(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
     # no device/special files or FIFOs
     for m in members:
         if m.isdev() or m.isfifo():
-            diags.append(_err("CAT-V-ARC-007", f"device/special/FIFO in archive: {m.name!r}", path=m.name))
+            diags.append(_err(
+                "CAT-V-ARC-007",
+                f"device/special/FIFO in archive: {m.name!r}",
+                path=m.name,
+            ))
 
     # AC13: no duplicate members
     seen: set[str] = set()
@@ -125,7 +135,10 @@ def check_members(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
 
     # member count limit
     if len(members) > _MAX_MEMBERS:
-        diags.append(_err("CAT-V-ARC-003", f"member count {len(members)} exceeds limit {_MAX_MEMBERS}"))
+        diags.append(_err(
+            "CAT-V-ARC-003",
+            f"member count {len(members)} exceeds limit {_MAX_MEMBERS}",
+        ))
 
     return diags
 
@@ -133,7 +146,10 @@ def check_members(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
 def _check_expanded_size(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
     total = sum(m.size for m in members if m.isreg())
     if total > _MAX_EXPANDED_BYTES:
-        return [_err("CAT-V-ARC-003", f"expanded size {total} exceeds limit {_MAX_EXPANDED_BYTES}")]
+        return [_err(
+            "CAT-V-ARC-003",
+            f"expanded size {total} exceeds limit {_MAX_EXPANDED_BYTES}",
+        )]
     return []
 
 
@@ -180,7 +196,10 @@ def _check_manifest_schema(manifest: dict) -> list[Diagnostic]:
         diags.append(_err("CAT-V-ARC-011", f"manifest schema must be 1 or 2, got {schema!r}"))
     for field in ("bundle", "release", "generated_at"):
         if not isinstance(manifest.get(field), str):
-            diags.append(_err("CAT-V-ARC-011", f"manifest missing required string field {field!r}"))
+            diags.append(_err(
+                "CAT-V-ARC-011",
+                f"manifest missing required string field {field!r}",
+            ))
     if not isinstance(manifest.get("files"), list):
         diags.append(_err("CAT-V-ARC-011", "manifest 'files' must be a list"))
     if not isinstance(manifest.get("packs"), list):
@@ -201,11 +220,19 @@ def _check_all_manifest_digests(
         member_name = f"{prefix}{rel_path}" if prefix else rel_path
         member = member_map.get(member_name)
         if member is None:
-            diags.append(_err("CAT-V-ARC-013", f"manifest declares {rel_path!r} but not in archive", path=rel_path))
+            diags.append(_err(
+                "CAT-V-ARC-013",
+                f"manifest declares {rel_path!r} but not in archive",
+                path=rel_path,
+            ))
             continue
         fobj = tf.extractfile(member)
         if fobj is None:
-            diags.append(_err("CAT-V-ARC-012", f"cannot extract {rel_path!r} for digest check", path=rel_path))
+            diags.append(_err(
+                "CAT-V-ARC-012",
+                f"cannot extract {rel_path!r} for digest check",
+                path=rel_path,
+            ))
             continue
         actual_sha = hashlib.sha256(fobj.read()).hexdigest()
         if actual_sha != expected_sha:
@@ -268,7 +295,10 @@ def _check_min_agentbundle_compat(manifest: dict) -> list[Diagnostic]:
     except ValueError:
         return []
     if running < required:
-        return [_err("CAT-V-ARC-015", f"archive requires agentbundle >= {min_ver}, running {CLI_VERSION}")]
+        return [_err(
+            "CAT-V-ARC-015",
+            f"archive requires agentbundle >= {min_ver}, running {CLI_VERSION}",
+        )]
     return []
 
 
@@ -335,7 +365,8 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
                 try:
                     tf.extractall(tmpdir, filter="data")
                 except TypeError:
-                    # Python < 3.12: extract member-by-member; paths pre-validated by check_members()
+                    # Python < 3.12: extract member-by-member;
+                    # paths pre-validated by check_members()
                     for _m in tf.getmembers():
                         _dest = tmpdir / _m.name
                         _dest.parent.mkdir(parents=True, exist_ok=True)

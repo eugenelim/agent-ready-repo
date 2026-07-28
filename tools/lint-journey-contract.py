@@ -116,7 +116,7 @@ def _check_stages(body: str) -> list[str]:
             )
 
     # Find new-format stage headings and the label lines in each section.
-    stage_starts = [i for i, l in enumerate(lines) if _HEADING_NEW.match(l)]
+    stage_starts = [i for i, ln in enumerate(lines) if _HEADING_NEW.match(ln)]
     if not stage_starts:
         findings.append("no `## N.`-format stages found")
         return findings

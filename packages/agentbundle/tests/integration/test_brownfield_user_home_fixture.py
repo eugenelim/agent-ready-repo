@@ -15,7 +15,6 @@ from pathlib import Path
 
 from agentbundle.config import load_adapt_discovery_typed, load_state
 
-
 FIXTURE = (
     Path(__file__).parent.parent
     / "fixtures"

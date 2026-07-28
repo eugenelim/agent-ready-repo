@@ -23,7 +23,7 @@ Tier-3 files (paths not recorded in the pack's state table) are never touched.
 
 from __future__ import annotations
 
-import os
+import contextlib
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle uninstall``.
 
     Args:
@@ -44,9 +44,9 @@ def run(args: "argparse.Namespace") -> int:
 
     Returns 0 on success, non-zero on error.
     """
-    from agentbundle.config import ConfigError, dump_state, load_state
     from agentbundle import safety
     from agentbundle.commands._common import resolve_state_path
+    from agentbundle.config import ConfigError, dump_state, load_state
 
     pack_name: str = args.pack
     cli_scope: str | None = getattr(args, "scope", None)
@@ -288,7 +288,7 @@ def run(args: "argparse.Namespace") -> int:
         on_disk = root / relpath
         if decision == "remove":
             try:
-                os.remove(on_disk)
+                on_disk.unlink()
             except OSError as exc:
                 print(
                     f"uninstall: could not remove {relpath}: {exc}",
@@ -417,7 +417,5 @@ def _prune_empty_parents(root: Path, removed_relpaths: list[str]) -> None:
     # Sort deepest first (longest path first) so we remove children before
     # parents — avoids trying to remove a directory that still has children.
     for d in sorted(dirs_to_check, key=lambda p: len(p.parts), reverse=True):
-        try:
+        with contextlib.suppress(OSError):
             d.rmdir()  # Only succeeds if the directory is empty.
-        except OSError:
-            pass  # Not empty or other error — skip silently.

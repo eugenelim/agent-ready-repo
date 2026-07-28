@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 
 import pytest
-
 from agentbundle.cli import _build_parser, _normalise_path_separators
 
 
@@ -76,7 +75,7 @@ def test_allow_list_pins_path_bearing_attributes():
     that would otherwise be silent."""
     from agentbundle.cli import _PATH_BEARING_ATTRS
 
-    assert _PATH_BEARING_ATTRS == frozenset(
+    assert frozenset(
         {
             "output",
             "output_dir",
@@ -87,7 +86,7 @@ def test_allow_list_pins_path_bearing_attributes():
             "values_from",
             "path",
         }
-    )
+    ) == _PATH_BEARING_ATTRS
 
 
 def test_agentbundle_build_validate_path_normalises():

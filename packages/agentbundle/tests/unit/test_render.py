@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 from typing import Mapping
 
@@ -46,7 +45,6 @@ def test_render_pack_to_dir_byte_identical_to_make_build(tmp_path):
     # share the same recipe set.
     via_make = tmp_path / "via-make"
     via_make.mkdir()
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin"}
     proc = subprocess.run(
         [
             "make",
@@ -75,7 +73,8 @@ def test_render_pack_to_dir_byte_identical_to_make_build(tmp_path):
     }
     # Render only ran on one pack, so marketplace.json may have a single
     # entry vs make's multi-entry. Compare per-pack outputs separately.
-    drop_marketplace = lambda d: {k: v for k, v in d.items() if k != "claude-plugins/marketplace.json"}
+    def drop_marketplace(d):
+        return {k: v for k, v in d.items() if k != "claude-plugins/marketplace.json"}
     assert drop_marketplace(via_render_core) == drop_marketplace(via_make_core)
 
 
