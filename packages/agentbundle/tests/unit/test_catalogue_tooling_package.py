@@ -19,6 +19,7 @@ from agentbundle.catalogue_tooling.package import (
     _check_required_files,
     _generate_manifest,
     _scan_content,
+    _write_archive,
     package_catalogue,
 )
 
@@ -758,3 +759,33 @@ def test_package_default_required_still_enforced(tmp_path: Path) -> None:
 
     assert not result.ok
     assert any("LICENSE-APACHE" in d.message for d in result.diagnostics)
+
+
+# ---------------------------------------------------------------------------
+# Streaming archive: no top-level BytesIO buffer
+# ---------------------------------------------------------------------------
+
+
+def test_write_archive_does_not_use_BytesIO_for_main_buffer(tmp_path: Path) -> None:
+    """_write_archive must not create an io.BytesIO() as the top-level gzip buffer."""
+    file_bytes = {"foo.txt": b"hello world"}
+    manifest_bytes = b'{"schema": 2}'
+    dest = tmp_path / "test.tar.gz"
+
+    no_arg_calls: list[tuple] = []
+    original_bytesio = io.BytesIO
+
+    def tracking_bytesio(*args, **kwargs):
+        if not args and not kwargs:
+            no_arg_calls.append(())
+        return original_bytesio(*args, **kwargs)
+
+    target = "agentbundle.catalogue_tooling.package.io.BytesIO"
+    with mock.patch(target, side_effect=tracking_bytesio):
+        _write_archive(file_bytes, manifest_bytes, dest)
+
+    assert dest.exists(), "archive was not written to disk"
+    assert no_arg_calls == [], (
+        f"io.BytesIO() called with no args {len(no_arg_calls)} time(s)"
+        " — top-level buffer not eliminated"
+    )

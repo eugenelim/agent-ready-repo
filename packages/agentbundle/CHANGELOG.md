@@ -8,6 +8,15 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Changed
+
+- **`_build_archive` → `_write_archive`** (`catalogue_tooling/package.py`): the archive builder
+  now streams the compressed output directly to the staged file on disk instead of
+  materialising the full content in an `io.BytesIO` buffer first. The SHA-256 is then computed
+  over the smaller compressed file. All determinism guarantees are preserved (sorted members,
+  normalised metadata, zeroed gzip mtime, `GNU_FORMAT`). No change to archive contents, sidecar,
+  or channel descriptor.
+
 ### Added
 
 - **`AGENTBUNDLE_CA_BUNDLE` environment variable** (`https_catalogue.py`): when set to a path,

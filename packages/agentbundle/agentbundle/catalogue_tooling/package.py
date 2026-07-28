@@ -344,10 +344,9 @@ def _generate_manifest(
 # ---------------------------------------------------------------------------
 
 
-def _build_archive(file_bytes: dict[str, bytes], manifest_bytes: bytes) -> bytes:
-    """Build a deterministic .tar.gz archive in memory.
+def _write_archive(file_bytes: dict[str, bytes], manifest_bytes: bytes, dest: Path) -> None:
+    """Write a deterministic .tar.gz archive directly to *dest*.
 
-    Returns the complete compressed bytes.
     - All members sorted lexicographically by name.
     - All members: uid=0, gid=0, mtime=0, mode=0o644.
     - gzip header mtime field (bytes 4-7) is zeroed.
@@ -357,31 +356,33 @@ def _build_archive(file_bytes: dict[str, bytes], manifest_bytes: bytes) -> bytes
     members.append(("catalogue-manifest.json", manifest_bytes))
     members.sort(key=lambda x: x[0])
 
-    buf = io.BytesIO()
-    gz = gzip.GzipFile(fileobj=buf, mode="wb", mtime=0)
-    tar = tarfile.TarFile(fileobj=gz, mode="w", format=tarfile.GNU_FORMAT)  # type: ignore[arg-type]
+    with dest.open("wb") as f:
+        # filename="" keeps the gzip FNAME header field empty for byte-identical output
+        # regardless of the dest path — same determinism guarantee as the old BytesIO path.
+        gz = gzip.GzipFile(fileobj=f, mode="wb", mtime=0, filename="")
+        tar = tarfile.TarFile(fileobj=gz, mode="w", format=tarfile.GNU_FORMAT)  # type: ignore[arg-type]
+        try:
+            for member_name, data in members:
+                if member_name.startswith("/"):
+                    raise ValueError(f"unsafe archive member name: {member_name!r}")
+                parts = member_name.split("/")
+                if ".." in parts:
+                    raise ValueError(f"unsafe archive member name: {member_name!r}")
+                if len(member_name) >= 2 and member_name[1] == ":":
+                    raise ValueError(f"unsafe archive member name: {member_name!r}")
 
-    for member_name, data in members:
-        if member_name.startswith("/"):
-            raise ValueError(f"unsafe archive member name: {member_name!r}")
-        parts = member_name.split("/")
-        if ".." in parts:
-            raise ValueError(f"unsafe archive member name: {member_name!r}")
-        if len(member_name) >= 2 and member_name[1] == ":":
-            raise ValueError(f"unsafe archive member name: {member_name!r}")
-
-        info = tarfile.TarInfo(name=member_name)
-        info.type = tarfile.REGTYPE
-        info.size = len(data)
-        info.uid = 0
-        info.gid = 0
-        info.mtime = 0
-        info.mode = 0o644
-        tar.addfile(info, io.BytesIO(data))
-
-    tar.close()
-    gz.close()
-    return buf.getvalue()
+                info = tarfile.TarInfo(name=member_name)
+                info.type = tarfile.REGTYPE
+                info.size = len(data)
+                info.uid = 0
+                info.gid = 0
+                info.mtime = 0
+                info.mode = 0o644
+                tar.addfile(info, io.BytesIO(data))
+        finally:
+            # Close tar then gz while f is still open so GC sees no closed-file state.
+            tar.close()
+            gz.close()
 
 
 # ---------------------------------------------------------------------------
@@ -461,15 +462,14 @@ def package_catalogue(
 ) -> PackageResult:
     """Package a catalogue at *root* into an Artifactory artifact layout.
 
-    Implements the 8-step staging + atomic placement sequence:
+    Implements the 7-step staging + atomic placement sequence:
       1. Pre-package verify_catalogue
-      2. Build archive bytes in memory
-      3. Write staged archive
-      4. Compute + write staged sidecar
-      5. Self-verify staged archive + sidecar
-      6. Atomic place archive
-      7. Atomic place sidecar
-      8. Write channel descriptor LAST
+      2. Build and stream archive directly to the staged path
+      3. Compute + write staged sidecar
+      4. Self-verify staged archive + sidecar
+      5. Atomic place archive
+      6. Atomic place sidecar
+      7. Write channel descriptor LAST
 
     Returns a PackageResult; does NOT raise on expected failures.
     """
@@ -602,7 +602,7 @@ def package_catalogue(
     if marketplace_bytes is not None:
         marketplace_digest = "sha256:" + hashlib.sha256(marketplace_bytes).hexdigest()
 
-    # --- Step 2: Build archive bytes in memory ---
+    # --- Step 2+3: Build and write archive directly to staged path ---
     manifest_bytes = _generate_manifest(
         bundle=bundle,
         release=release,
@@ -616,20 +616,18 @@ def package_catalogue(
         marketplace_digest=marketplace_digest,
         profiles_metadata=profiles_metadata,
     )
-    archive_bytes = _build_archive(file_bytes, manifest_bytes)
-
-    # Compute sha256
-    sha256_hex = hashlib.sha256(archive_bytes).hexdigest()
 
     # --- Create output directories ---
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     (output / "catalogues" / bundle / "channels").mkdir(parents=True, exist_ok=True)
 
-    # --- Step 3: Write staged archive ---
     staged_archive = _staging_path(archive_path)
     staged_sidecar = _staging_path(sidecar_path)
     try:
-        staged_archive.write_bytes(archive_bytes)
+        _write_archive(file_bytes, manifest_bytes, staged_archive)
+
+        # sha256 of the published archive bytes (what the sidecar and channel descriptor attest to)
+        sha256_hex = hashlib.sha256(staged_archive.read_bytes()).hexdigest()
 
         # --- Step 4: Write staged sidecar ---
         staged_sidecar.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
