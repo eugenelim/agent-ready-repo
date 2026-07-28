@@ -35,8 +35,9 @@ def _validate_recipe_path(root: Path, recipe: str | None) -> None:
     if not recipe:
         raise ValueError("recipe path must not be empty")
     rp = Path(recipe)
-    # Reject absolute paths (including Windows drive-absolute)
-    if rp.is_absolute() or (len(recipe) > 1 and recipe[1] == ":"):
+    # Reject absolute paths (Windows drive-absolute, POSIX absolute, or Unix-
+    # style root on Windows where Path.is_absolute() returns False for "/foo").
+    if rp.is_absolute() or (len(recipe) > 1 and recipe[1] == ":") or recipe.startswith("/"):
         raise ValueError(f"recipe path must be relative, not absolute: {recipe!r}")
     # Reject traversal
     if ".." in rp.parts:

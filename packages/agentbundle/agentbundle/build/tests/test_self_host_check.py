@@ -21,6 +21,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -1206,6 +1207,7 @@ class MarketplaceAggregationTests(unittest.TestCase):
             )
 
 
+@unittest.skipIf(sys.platform == "win32", "symlinks require Developer Mode on Windows")
 class ClaudeSymlinkTests(unittest.TestCase):
     """Unit tests for `_recreate_claude_symlink`."""
 
@@ -1349,6 +1351,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
             self.assertIn("CLAUDE.md", buf.getvalue())
             self.assertIn("copy", buf.getvalue().lower())
 
+    @unittest.skipIf(sys.platform == "win32", "symlinks require Developer Mode on Windows")
     def test_default_path_unchanged_on_posix(self) -> None:
         """Sanity: with no force_copy and sys.platform unmonkeypatched,
         the existing symlink behaviour is unchanged."""
@@ -1698,6 +1701,7 @@ class CrlfNormalisationTests(unittest.TestCase):
 class FileModeBitsTests(unittest.TestCase):
     """Phase-2 comparison rule (b): mode bits drift for regular files."""
 
+    @unittest.skipIf(sys.platform == "win32", "execute bits not supported on Windows")
     def test_mode_bits_drift_for_regular_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"
@@ -1827,6 +1831,7 @@ class StrengthenedDiffRegressionIntegrationTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
+    @unittest.skipIf(sys.platform == "win32", "symlinks/execute bits not supported on Windows")
     def test_each_rule_catches_its_regression(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"

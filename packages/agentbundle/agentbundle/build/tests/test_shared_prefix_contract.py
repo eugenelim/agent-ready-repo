@@ -100,9 +100,12 @@ class CohortSkillRoutingTests(unittest.TestCase):
 
 class ContractMirrorTests(unittest.TestCase):
     def test_data_and_docs_agree_byte_for_byte(self) -> None:
+        def _norm(p: Path) -> bytes:
+            return p.read_bytes().replace(b"\r\n", b"\n")
+
         self.assertEqual(
-            _DATA_COPY.read_bytes(),
-            _DOCS_COPY.read_bytes(),
+            _norm(_DATA_COPY),
+            _norm(_DOCS_COPY),
             "the _data/ and contracts/ adapter.toml copies must be identical",
         )
 

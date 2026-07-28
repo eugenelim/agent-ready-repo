@@ -114,10 +114,10 @@ def _check_source_conflict(
     )
     lines = [
         f"{pack_name}: source conflict at {scope} scope \u2014 "
-        f"incoming source {incoming_display!r} differs from existing installation(s):",
+        f"incoming source '{incoming_display}' differs from existing installation(s):",
     ]
     for adapter, display in conflicts:
-        lines.append(f"  {adapter}: {display!r}")
+        lines.append(f"  {adapter}: '{display}'")
     lines.append("--force does not override source conflicts.")
     lines.append(
         f"Recovery: run 'agentbundle upgrade --pack {pack_name}' from a concrete source "

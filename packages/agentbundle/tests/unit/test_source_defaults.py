@@ -43,7 +43,16 @@ class _FakeDist:
 
 
 def _direct_url(path: Path, *, editable: bool = True, host: str = "") -> str:
-    url = f"file://{host}{path.as_posix()}"
+    if host:
+        # file://host/path — needs an explicit leading '/' before the path
+        # so the path component starts correctly on all platforms.
+        posix = path.as_posix()
+        sep = "" if posix.startswith("/") else "/"
+        url = f"file://{host}{sep}{posix}"
+    else:
+        # as_uri() generates the correct file:///C:/path form on Windows
+        # (file://C:/path would have 'C' parsed as the netloc by urlsplit).
+        url = path.as_uri()
     return json.dumps({"url": url, "dir_info": {"editable": editable}})
 
 

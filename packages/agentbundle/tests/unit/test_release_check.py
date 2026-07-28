@@ -11,17 +11,22 @@ verifier; this test pins its refuse-and-explain behaviour.
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 RELEASE_CHECK = REPO_ROOT / "tools" / "release-check.sh"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="no Unix execute bits on Windows")
 def test_release_check_exists_and_executable():
     assert RELEASE_CHECK.exists(), "tools/release-check.sh is missing"
     assert RELEASE_CHECK.stat().st_mode & 0o111, "release-check.sh must be executable"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="bash encoding differs on Windows")
 def test_release_check_refuses_when_tag_missing():
     """In normal CI / local dev the `contract-v<version>` tag has not yet
     been cut for an in-progress branch — the script must exit 1 and name
