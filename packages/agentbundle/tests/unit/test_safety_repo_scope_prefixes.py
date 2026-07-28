@@ -158,7 +158,9 @@ class ScanForPackArtifactsTests(unittest.TestCase):
         with TemporaryDirectory() as raw:
             root = Path(raw)
             (root / ".claude" / "skills" / "demo").mkdir(parents=True)
-            (root / ".claude" / "skills" / "demo" / "SKILL.md").write_text("x", encoding="utf-8", newline="\n")
+            (root / ".claude" / "skills" / "demo" / "SKILL.md").write_text(
+                "x", encoding="utf-8", newline="\n"
+            )
             (root / ".claude" / "agents").mkdir(parents=True)
             (root / ".claude" / "agents" / "a.md").write_text("y", encoding="utf-8", newline="\n")
             found = safety.scan_for_pack_artifacts(root, [".claude/"])
@@ -177,9 +179,7 @@ class ScanForPackArtifactsTests(unittest.TestCase):
             (root / ".claude" / "skills" / "x.md").write_text("x", encoding="utf-8", newline="\n")
             (root / ".agentbundle").mkdir(parents=True)
             (root / ".agentbundle" / "state.toml").write_text("y", encoding="utf-8", newline="\n")
-            found = safety.scan_for_pack_artifacts(
-                root, [".claude/", ".agentbundle/"]
-            )
+            found = safety.scan_for_pack_artifacts(root, [".claude/", ".agentbundle/"])
             self.assertEqual(len(found), 2)
 
     def test_missing_prefix_dirs_silently_skipped(self) -> None:
@@ -190,9 +190,7 @@ class ScanForPackArtifactsTests(unittest.TestCase):
             (root / ".claude" / "skills").mkdir(parents=True)
             (root / ".claude" / "skills" / "x.md").write_text("x", encoding="utf-8", newline="\n")
             # .kiro/ doesn't exist — skipped, not an error.
-            found = safety.scan_for_pack_artifacts(
-                root, [".claude/", ".kiro/"]
-            )
+            found = safety.scan_for_pack_artifacts(root, [".claude/", ".kiro/"])
             self.assertEqual(len(found), 1)
 
     def test_read_only_no_state_mutation(self) -> None:

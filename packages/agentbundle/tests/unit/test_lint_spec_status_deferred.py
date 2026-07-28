@@ -7,6 +7,7 @@ Tests:
   (e) malformed TOML drives through backlog_open_slugs (not just _regex helper)
   (f) _regex_backlog_slugs directly resolves slugs from [backlog].open
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -30,7 +31,9 @@ def test_workspace_only_slug_passes_check(tmp_path: Path) -> None:
     lint = _load_lint_module()
 
     workspace = tmp_path / "workspace.toml"
-    workspace.write_text('[backlog]\nopen = [{slug = "my-ws-only-slug"}]\n', encoding="utf-8", newline="\n")
+    workspace.write_text(
+        '[backlog]\nopen = [{slug = "my-ws-only-slug"}]\n', encoding="utf-8", newline="\n"
+    )
 
     specs = tmp_path / "docs" / "specs" / "my-spec"
     specs.mkdir(parents=True)
@@ -60,7 +63,9 @@ def test_slug_absent_from_workspace_is_hard_violation(tmp_path: Path) -> None:
         encoding="utf-8",
         newline="\n",
     )
-    (tmp_path / "workspace.toml").write_text("[backlog]\nopen = []\n", encoding="utf-8", newline="\n")
+    (tmp_path / "workspace.toml").write_text(
+        "[backlog]\nopen = []\n", encoding="utf-8", newline="\n"
+    )
 
     hard, _warn = lint.check(tmp_path, base_ref=None)
     assert any("nonexistent-slug" in v for v in hard)

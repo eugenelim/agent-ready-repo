@@ -168,11 +168,11 @@ class KiroUserHooksInstallTests(_UserScopeInstallBase):
 
 class ForceMergeFlagBindingTests(unittest.TestCase):
     """AC12 binding rails for ``--force-merge``:
-       - Bound to ``install`` verb (other verbs refuse with
-         ``unknown flag for <verb>: --force-merge``).
-       - Bound to ``--scope user``.
-       - Claude-Code-only at install time (refused on Kiro-targeted
-         packs since agent JSON is pack-owned)."""
+    - Bound to ``install`` verb (other verbs refuse with
+      ``unknown flag for <verb>: --force-merge``).
+    - Bound to ``--scope user``.
+    - Claude-Code-only at install time (refused on Kiro-targeted
+      packs since agent JSON is pack-owned)."""
 
     def test_force_merge_on_uninstall_refuses_with_unknown_flag(self) -> None:
         import subprocess
@@ -270,8 +270,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
             # Path-traversal payload.
-            'attach-to-agent = "../../../tmp/escape"\n\n'
-            '[[hooks.agentSpawn]]\ncommand = "x"\n',
+            'attach-to-agent = "../../../tmp/escape"\n\n[[hooks.agentSpawn]]\ncommand = "x"\n',
             encoding="utf-8",
             newline="\n",
         )
@@ -301,7 +300,8 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
         # `escape` artifact lands anywhere under the sandbox (in particular
         # outside the user-scope home jail).
         self.assertEqual(
-            list(self.tmp.rglob("*escape*")), [],
+            list(self.tmp.rglob("*escape*")),
+            [],
             "path-traversal attach-to-agent created a file outside the jail",
         )
 
@@ -326,8 +326,7 @@ class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
         )
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
-            'attach-to-agent = "reviewer"\n\n'
-            '[[hooks.agentSpawn]]\ncommand = "x"\n',
+            'attach-to-agent = "reviewer"\n\n[[hooks.agentSpawn]]\ncommand = "x"\n',
             encoding="utf-8",
             newline="\n",
         )
@@ -347,20 +346,24 @@ class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
         self._make_hooks_pack("kiro-alias-hooks", "kiro")
         self._make_hooks_pack("kiro-ide-hooks", "kiro-ide")
 
-        rc_alias, _out, err_alias = _run_install(_install_args(
-            pack="kiro-alias-hooks",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            adapter="kiro",
-        ))
-        rc_ide, _out2, err_ide = _run_install(_install_args(
-            pack="kiro-ide-hooks",
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="user",
-            adapter="kiro-ide",
-        ))
+        rc_alias, _out, err_alias = _run_install(
+            _install_args(
+                pack="kiro-alias-hooks",
+                catalogue=str(self.cat),
+                output=str(self.repo),
+                scope="user",
+                adapter="kiro",
+            )
+        )
+        rc_ide, _out2, err_ide = _run_install(
+            _install_args(
+                pack="kiro-ide-hooks",
+                catalogue=str(self.cat),
+                output=str(self.repo),
+                scope="user",
+                adapter="kiro-ide",
+            )
+        )
 
         # Both refuse — the alias is a true alias for kiro-ide.
         self.assertEqual(rc_alias, 1, f"kiro alias should refuse like kiro-ide: {err_alias}")
@@ -383,11 +386,13 @@ class RailBStillRefusesPacksWithoutOptInTests(_UserScopeInstallBase):
         # Synthesise a pack that ships hooks but lacks the opt-in flag.
         pack_dir = self.cat / "packs" / "no-opt-in"
         (pack_dir / ".apm" / "hooks").mkdir(parents=True)
-        (pack_dir / ".apm" / "hooks" / "x.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
+        (pack_dir / ".apm" / "hooks" / "x.sh").write_text(
+            "#!/bin/sh\n", encoding="utf-8", newline="\n"
+        )
         (pack_dir / "pack.toml").write_text(
-            "[pack]\nname = \"no-opt-in\"\nversion = \"0.1.0\"\n"
-            "[pack.adapter-contract]\nversion = \"0.3\"\n"
-            "[pack.install]\ndefault-scope = \"user\"\nallowed-scopes = [\"user\"]\n",
+            '[pack]\nname = "no-opt-in"\nversion = "0.1.0"\n'
+            '[pack.adapter-contract]\nversion = "0.3"\n'
+            '[pack.install]\ndefault-scope = "user"\nallowed-scopes = ["user"]\n',
             encoding="utf-8",
             newline="\n",
         )

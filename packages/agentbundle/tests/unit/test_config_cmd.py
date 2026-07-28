@@ -125,7 +125,9 @@ def test_unset_missing_key_is_noop(capsys) -> None:
 def test_unset_preserves_other_settings(capsys) -> None:
     cfg_path = _user_config_path()
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    cfg_path.write_text('[settings]\nadapter = "codex"\nfuture_str = "x"\n', encoding="utf-8", newline="\n")
+    cfg_path.write_text(
+        '[settings]\nadapter = "codex"\nfuture_str = "x"\n', encoding="utf-8", newline="\n"
+    )
     exit_code = run(_args("unset", "adapter"))
     assert exit_code == 0
     assert cfg_path.exists()

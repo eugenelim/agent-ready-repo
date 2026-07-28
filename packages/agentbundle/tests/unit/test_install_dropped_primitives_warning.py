@@ -125,7 +125,9 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         """Claude-code has no `dropped` modes."""
         pack = _seed_pack(
             self.tmp_path / "pack",
-            agents=["a"], commands=["c1"], hook_wirings=["w1"],
+            agents=["a"],
+            commands=["c1"],
+            hook_wirings=["w1"],
         )
         result = _enumerate_dropped_primitives(pack, "claude-code")
         self.assertEqual(result, {})
@@ -159,9 +161,15 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         pack = self.tmp_path / "pack"
         (pack / ".apm" / "commands").mkdir(parents=True)
         # One real command (.md), plus junk files.
-        (pack / ".apm" / "commands" / "real.md").write_text("# real\n", encoding="utf-8", newline="\n")
-        (pack / ".apm" / "commands" / ".DS_Store").write_text("junk", encoding="utf-8", newline="\n")
-        (pack / ".apm" / "commands" / "README.txt").write_text("not a command", encoding="utf-8", newline="\n")
+        (pack / ".apm" / "commands" / "real.md").write_text(
+            "# real\n", encoding="utf-8", newline="\n"
+        )
+        (pack / ".apm" / "commands" / ".DS_Store").write_text(
+            "junk", encoding="utf-8", newline="\n"
+        )
+        (pack / ".apm" / "commands" / "README.txt").write_text(
+            "not a command", encoding="utf-8", newline="\n"
+        )
         # Stray subdirectory — shouldn't count toward .md commands.
         (pack / ".apm" / "commands" / "subdir").mkdir()
         result = _enumerate_dropped_primitives(pack, "codex")
@@ -174,8 +182,12 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         # so the dropped-count is absent regardless of suffix. Name preserved.
         pack = self.tmp_path / "pack"
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
-        (pack / ".apm" / "hook-wiring" / "real.toml").write_text("[hooks]\n", encoding="utf-8", newline="\n")
-        (pack / ".apm" / "hook-wiring" / "stray.md").write_text("not a wiring", encoding="utf-8", newline="\n")
+        (pack / ".apm" / "hook-wiring" / "real.toml").write_text(
+            "[hooks]\n", encoding="utf-8", newline="\n"
+        )
+        (pack / ".apm" / "hook-wiring" / "stray.md").write_text(
+            "not a wiring", encoding="utf-8", newline="\n"
+        )
         result = _enumerate_dropped_primitives(pack, "copilot")
         self.assertNotIn("hook-wiring", result)
 
@@ -208,8 +220,11 @@ class TestEnumerateCompatiblePrimitives(unittest.TestCase):
         hook-body + hook-wiring; only `command` drops."""
         pack = _seed_pack(
             self.tmp_path / "pack",
-            skills=["s1"], agents=["a1"], hook_bodies=["h1"],
-            hook_wirings=["w1"], commands=["c1"],
+            skills=["s1"],
+            agents=["a1"],
+            hook_bodies=["h1"],
+            hook_wirings=["w1"],
+            commands=["c1"],
         )
         result = _enumerate_compatible_primitives(pack, "copilot")
         self.assertEqual(set(result), {"skill", "agent", "hook-body", "hook-wiring"})
@@ -234,7 +249,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
 
     def test_one_type_plural(self) -> None:
         msg = _format_dropped_warning(
-            "core", "codex",
+            "core",
+            "codex",
             dropped_counts={"command": 3},
             compatible_types=["skill"],
         )
@@ -242,7 +258,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
 
     def test_two_type(self) -> None:
         msg = _format_dropped_warning(
-            "core", "copilot",
+            "core",
+            "copilot",
             dropped_counts={"agent": 2, "command": 3},
             compatible_types=["skill"],
         )
@@ -251,7 +268,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
 
     def test_three_type_serial_comma(self) -> None:
         msg = _format_dropped_warning(
-            "core", "copilot",
+            "core",
+            "copilot",
             dropped_counts={"agent": 2, "command": 3, "hook-wiring": 1},
             compatible_types=["skill", "hook-body"],
         )
@@ -261,7 +279,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
     def test_zero_count_elision(self) -> None:
         """Counts with a zero entry render as if the zero weren't there."""
         msg = _format_dropped_warning(
-            "core", "codex",
+            "core",
+            "codex",
             dropped_counts={"agent": 0, "command": 3, "hook-wiring": 0},
             compatible_types=["skill"],
         )
@@ -274,7 +293,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
 
     def test_compatible_list_in_message(self) -> None:
         msg = _format_dropped_warning(
-            "core", "codex",
+            "core",
+            "codex",
             dropped_counts={"command": 1},
             compatible_types=["skill", "agent", "hook-body", "hook-wiring"],
         )
@@ -287,7 +307,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
     def test_pinned_wording_exact_template_plural(self) -> None:
         """Spec AC10 pinned wording — exact string match for N>1 case."""
         msg = _format_dropped_warning(
-            "core", "codex",
+            "core",
+            "codex",
             dropped_counts={"command": 3},
             compatible_types=["skill", "agent", "hook-body", "hook-wiring"],
         )
@@ -302,7 +323,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
     def test_pinned_wording_exact_template_singular(self) -> None:
         """Spec AC10 pinned wording — exact string match for N=1 case."""
         msg = _format_dropped_warning(
-            "core", "codex",
+            "core",
+            "codex",
             dropped_counts={"command": 1},
             compatible_types=["skill", "agent"],
         )
@@ -316,7 +338,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
     def test_pinned_wording_exact_template_three_type(self) -> None:
         """Spec AC10 pinned wording — exact string match for serial-comma case."""
         msg = _format_dropped_warning(
-            "core", "copilot",
+            "core",
+            "copilot",
             dropped_counts={"agent": 2, "command": 3, "hook-wiring": 1},
             compatible_types=["skill", "hook-body"],
         )
@@ -334,7 +357,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
         a malformed 'ships  that ...' string."""
         with self.assertRaises(ValueError):
             _format_dropped_warning(
-                "core", "codex",
+                "core",
+                "codex",
                 dropped_counts={"agent": 0, "command": 0},
                 compatible_types=["skill"],
             )
@@ -343,7 +367,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
         """Empty dict raises the same way as all-zero."""
         with self.assertRaises(ValueError):
             _format_dropped_warning(
-                "core", "codex",
+                "core",
+                "codex",
                 dropped_counts={},
                 compatible_types=["skill"],
             )
@@ -364,7 +389,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
         is silent."""
         pack = _seed_pack(
             self.tmp_path / "pack",
-            agents=["a"], commands=["c"],
+            agents=["a"],
+            commands=["c"],
         )
         import sys
         from io import StringIO
@@ -405,7 +431,8 @@ class TestShortCircuitSeenSet(unittest.TestCase):
         """
         pack = _seed_pack(
             self.tmp_path / "pack",
-            agents=["a"], commands=["c"],
+            agents=["a"],
+            commands=["c"],
         )
         import sys
         from io import StringIO
@@ -416,8 +443,11 @@ class TestShortCircuitSeenSet(unittest.TestCase):
         sys.stderr = captured
         try:
             _maybe_emit_dropped_warning(
-                root=self.tmp_path, pack_dir=pack, pack_name="pack",
-                adapter="copilot", scope="repo",
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="pack",
+                adapter="copilot",
+                scope="repo",
             )
             self.assertIn("warning:", captured.getvalue())
 
@@ -425,8 +455,11 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             captured.seek(0)
             captured.truncate()
             _maybe_emit_dropped_warning(
-                root=self.tmp_path, pack_dir=pack, pack_name="pack",
-                adapter="copilot", scope="repo",
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="pack",
+                adapter="copilot",
+                scope="repo",
             )
             self.assertEqual(captured.getvalue(), "")
 
@@ -434,11 +467,15 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             captured.seek(0)
             captured.truncate()
             _maybe_emit_dropped_warning(
-                root=self.tmp_path, pack_dir=pack, pack_name="pack",
-                adapter="copilot", scope="user",
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="pack",
+                adapter="copilot",
+                scope="user",
             )
             self.assertIn(
-                "warning:", captured.getvalue(),
+                "warning:",
+                captured.getvalue(),
                 "user-scope warning should fire fresh despite repo "
                 "being silenced — that's the independence AC11 pins",
             )
@@ -447,8 +484,11 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             captured.seek(0)
             captured.truncate()
             _maybe_emit_dropped_warning(
-                root=self.tmp_path, pack_dir=pack, pack_name="pack",
-                adapter="copilot", scope="user",
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="pack",
+                adapter="copilot",
+                scope="user",
             )
             self.assertEqual(captured.getvalue(), "")
 
@@ -463,7 +503,9 @@ class TestShortCircuitSeenSet(unittest.TestCase):
         """Claude-code has no dropped modes; warning stays silent."""
         pack = _seed_pack(
             self.tmp_path / "pack",
-            agents=["a"], commands=["c"], hook_wirings=["w"],
+            agents=["a"],
+            commands=["c"],
+            hook_wirings=["w"],
         )
         import sys
         from io import StringIO

@@ -162,7 +162,12 @@ def test_render_json_contains_all_fields():
     result = _make_result(ok=False, diagnostics=[_make_error_diag()])
     doc = json.loads(render_json(result))
     for key in (
-        "schema_version", "command", "operation", "agentbundle_version", "ok", "diagnostics"
+        "schema_version",
+        "command",
+        "operation",
+        "agentbundle_version",
+        "ok",
+        "diagnostics",
     ):
         assert key in doc, f"missing key {key!r} in render_json output"
 
@@ -235,6 +240,7 @@ def test_cli_verify_format_json(tmp_path):
 def test_step_agent_artifacts_no_claude_dir(tmp_path):
     """No .claude/ dir → empty list (graceful skip)."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert result == []
 
@@ -242,6 +248,7 @@ def test_step_agent_artifacts_no_claude_dir(tmp_path):
 def test_step_agent_artifacts_skill_missing_name(tmp_path):
     """Skill with no name key → CAT-V-011, 'frontmatter missing required key: name'."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     skill_dir = tmp_path / ".claude" / "skills" / "my-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -257,6 +264,7 @@ def test_step_agent_artifacts_skill_missing_name(tmp_path):
 def test_step_agent_artifacts_agent_missing_model(tmp_path):
     """Agent without model → CAT-V-011."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     agents_dir = tmp_path / ".claude" / "agents"
     agents_dir.mkdir(parents=True)
     (agents_dir / "my-agent.md").write_text(
@@ -271,6 +279,7 @@ def test_step_agent_artifacts_agent_missing_model(tmp_path):
 def test_step_agent_artifacts_credentialed_skill_bad_auth(tmp_path):
     """Skill with invalid auth value → CAT-V-011."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     skill_dir = tmp_path / ".claude" / "skills" / "cred-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -285,6 +294,7 @@ def test_step_agent_artifacts_credentialed_skill_bad_auth(tmp_path):
 def test_step_agent_artifacts_unknown_skill_key(tmp_path):
     """Skill with unknown frontmatter key → CAT-V-011."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     skill_dir = tmp_path / ".claude" / "skills" / "my-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -299,6 +309,7 @@ def test_step_agent_artifacts_unknown_skill_key(tmp_path):
 def test_step_agent_artifacts_broken_link(tmp_path):
     """Skill with broken relative link → CAT-V-011."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     skill_dir = tmp_path / ".claude" / "skills" / "my-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -327,6 +338,7 @@ def test_step_agent_artifacts_pyyaml_absent(tmp_path, monkeypatch):
     monkeypatch.setattr(builtins, "__import__", _mock_import)
 
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
 
     assert len(result) == 1
@@ -338,6 +350,7 @@ def test_step_agent_artifacts_pyyaml_absent(tmp_path, monkeypatch):
 def test_step_agent_artifacts_no_module_scope_yaml():
     """verify.py must not import yaml at module scope."""
     import agentbundle.catalogue_tooling.verify as verify_mod
+
     assert not hasattr(verify_mod, "yaml")
 
 
@@ -358,6 +371,7 @@ def test_step_agent_artifacts_pipeline_integration(tmp_path):
 def test_step_agent_artifacts_clean(tmp_path):
     """A clean skill → empty list."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
+
     skill_dir = tmp_path / ".claude" / "skills" / "my-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -377,6 +391,7 @@ def test_step_agent_artifacts_clean(tmp_path):
 def test_step_plugin_manifests_no_dist_dir(tmp_path):
     """No dist/claude-plugins dir → empty list (graceful skip)."""
     from agentbundle.catalogue_tooling.verify import _step_plugin_manifests
+
     result = _step_plugin_manifests(tmp_path, None, None, tmp_path)
     assert result == []
 
@@ -384,6 +399,7 @@ def test_step_plugin_manifests_no_dist_dir(tmp_path):
 def test_step_plugin_manifests_invalid_manifest(tmp_path):
     """plugin.json failing schema → CAT-V-013."""
     from agentbundle.catalogue_tooling.verify import _step_plugin_manifests
+
     plugin_dir = tmp_path / "dist" / "claude-plugins" / "my-pack.claude-plugin"
     plugin_dir.mkdir(parents=True)
     (plugin_dir / "plugin.json").write_text(json.dumps({}), encoding="utf-8", newline="\n")
@@ -394,10 +410,13 @@ def test_step_plugin_manifests_invalid_manifest(tmp_path):
 def test_step_plugin_manifests_marketplace_with_hooks(tmp_path):
     """marketplace.json with hooks in plugin entry → CAT-V-013."""
     from agentbundle.catalogue_tooling.verify import _step_plugin_manifests
+
     dist_dir = tmp_path / "dist" / "claude-plugins"
     dist_dir.mkdir(parents=True)
     marketplace = {"plugins": [{"name": "my-pack", "hooks": {"PostInstall": []}}]}
-    (dist_dir / "marketplace.json").write_text(json.dumps(marketplace), encoding="utf-8", newline="\n")
+    (dist_dir / "marketplace.json").write_text(
+        json.dumps(marketplace), encoding="utf-8", newline="\n"
+    )
     result = _step_plugin_manifests(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-013" for d in result)
 
@@ -405,6 +424,7 @@ def test_step_plugin_manifests_marketplace_with_hooks(tmp_path):
 def test_step_plugin_manifests_clean(tmp_path):
     """Empty dist/claude-plugins dir (no manifests, no marketplace.json) → empty list."""
     from agentbundle.catalogue_tooling.verify import _step_plugin_manifests
+
     (tmp_path / "dist" / "claude-plugins").mkdir(parents=True)
     result = _step_plugin_manifests(tmp_path, None, None, tmp_path)
     assert result == []

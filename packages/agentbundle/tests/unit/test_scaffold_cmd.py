@@ -270,6 +270,7 @@ def test_scaffold_refuses_path_jail_escape(tmp_path, monkeypatch):
     # resolved outside the root.
     def _refuse(root, relpath, content):
         raise safety.PathJailError("refusing to write outside repo root: /etc")
+
     monkeypatch.setattr(safety, "write_jailed", _refuse)
 
     args = argparse.Namespace(pack="evil", packs_dir=str(packs_dir), output=str(output))
@@ -285,10 +286,13 @@ def test_init_state_refuses_path_jail_escape(tmp_path, monkeypatch):
     packs_dir = tmp_path / "packs"
     pack = packs_dir / "core"
     (pack).mkdir(parents=True)
-    (pack / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1"\n', encoding="utf-8", newline="\n")
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "core"\nversion = "0.1"\n', encoding="utf-8", newline="\n"
+    )
 
     def _refuse(root, relpath, content):
         raise safety.PathJailError("refusing to write outside repo root: /etc")
+
     monkeypatch.setattr(safety, "write_jailed", _refuse)
 
     args = argparse.Namespace(pack="core", packs_dir=str(packs_dir), root=str(tmp_path))

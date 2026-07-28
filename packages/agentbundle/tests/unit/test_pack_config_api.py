@@ -150,9 +150,7 @@ def test_pack_dir_state_rows_disagree(tmp_path):
     state.packs[("atlassian", "claude-code")] = PackState(
         installed_version="1.0.0", user_root="~/.agentbundle"
     )
-    state.packs[("atlassian", "kiro")] = PackState(
-        installed_version="1.0.0", user_root="~/other"
-    )
+    state.packs[("atlassian", "kiro")] = PackState(installed_version="1.0.0", user_root="~/other")
 
     with pytest.raises(PackRootConflict) as exc_info:
         pack_dir("atlassian", state=state, home=tmp_path)
@@ -221,7 +219,9 @@ def test_load_pack_config_user_override(tmp_path):
     from agentbundle.config import load_pack_config, pack_dir
 
     d = pack_dir("atlassian", home=tmp_path)
-    (d / "config.toml").write_text('url = "https://custom.example.com/"', encoding="utf-8", newline="\n")
+    (d / "config.toml").write_text(
+        'url = "https://custom.example.com/"', encoding="utf-8", newline="\n"
+    )
     result = load_pack_config("atlassian", home=tmp_path)
 
     assert result.get("url") == "https://custom.example.com/"
@@ -308,10 +308,7 @@ def test_write_entry_reserved_key_raises(tmp_path):
     from agentbundle.oplog import write_entry
 
     with pytest.raises(ValueError, match="reserved"):
-        write_entry(
-            "atlassian", "install", src="s",
-            extra={"ts": "2026-01-01"}, home=tmp_path
-        )
+        write_entry("atlassian", "install", src="s", extra={"ts": "2026-01-01"}, home=tmp_path)
     # No I/O should have happened
     ops_file = tmp_path / ".agentbundle" / "atlassian" / "ops.jsonl"
     assert not ops_file.exists()
@@ -330,10 +327,7 @@ def test_write_entry_too_large_raises(tmp_path):
 def test_write_entry_extra_truncated(tmp_path):
     from agentbundle.oplog import write_entry
 
-    write_entry(
-        "atlassian", "install", src="s",
-        extra={"k": "v" * 5000}, home=tmp_path
-    )
+    write_entry("atlassian", "install", src="s", extra={"k": "v" * 5000}, home=tmp_path)
 
     ops_file = tmp_path / ".agentbundle" / "atlassian" / "ops.jsonl"
     entry = json.loads(ops_file.read_text(encoding="utf-8").strip())

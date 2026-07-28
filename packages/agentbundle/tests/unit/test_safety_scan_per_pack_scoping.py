@@ -54,7 +54,7 @@ def _make_pack_source(
     )
     apm = pack_dir / ".apm"
     apm.mkdir()
-    for skill_name in (skills or []):
+    for skill_name in skills or []:
         skill_dir = apm / "skills" / skill_name
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
@@ -62,12 +62,10 @@ def _make_pack_source(
             encoding="utf-8",
             newline="\n",
         )
-    for agent_name in (agents or []):
+    for agent_name in agents or []:
         agents_dir = apm / "agents"
         agents_dir.mkdir(exist_ok=True)
-        (agents_dir / f"{agent_name}.md").write_text(
-            "agent body", encoding="utf-8", newline="\n"
-        )
+        (agents_dir / f"{agent_name}.md").write_text("agent body", encoding="utf-8", newline="\n")
     return pack_dir
 
 
@@ -121,12 +119,15 @@ class PerPackScopingTests(unittest.TestCase):
             _plant(adopter, ".claude/skills/bpack-skill/SKILL.md")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".claude/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".claude/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             rels = sorted(p.relative_to(adopter).as_posix() for p in result)
             self.assertEqual(
-                rels, [".claude/skills/bpack-skill/SKILL.md"],
+                rels,
+                [".claude/skills/bpack-skill/SKILL.md"],
                 f"pack-A's orphan leaked into pack-B's scan: {rels!r}",
             )
 
@@ -148,11 +149,14 @@ class PerPackScopingTests(unittest.TestCase):
             _plant(adopter, ".claude/agents/some-other-agent.md")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".claude/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".claude/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             self.assertEqual(
-                result, [],
+                result,
+                [],
                 f"cross-pack false positive: {[str(p) for p in result]!r}",
             )
 
@@ -175,12 +179,15 @@ class PerPackScopingTests(unittest.TestCase):
             _plant(adopter, ".github/instructions/apack.md")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".github/instructions/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".github/instructions/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             rels = sorted(p.relative_to(adopter).as_posix() for p in result)
             self.assertEqual(
-                rels, [".github/instructions/bpack.md"],
+                rels,
+                [".github/instructions/bpack.md"],
                 f"copilot stem match failed: {rels!r}",
             )
 
@@ -203,12 +210,15 @@ class PerPackScopingTests(unittest.TestCase):
             _plant(adopter, ".agents/skills/apack-skill/SKILL.md")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".agents/skills/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".agents/skills/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             rels = sorted(p.relative_to(adopter).as_posix() for p in result)
             self.assertEqual(
-                rels, [".agents/skills/bpack-skill/SKILL.md"],
+                rels,
+                [".agents/skills/bpack-skill/SKILL.md"],
                 f"codex primitive-segment match failed: {rels!r}",
             )
 
@@ -222,7 +232,8 @@ class PerPackScopingTests(unittest.TestCase):
             packs = tmp / "packs"
             packs.mkdir()
             _make_pack_source(
-                packs, name="bpack",
+                packs,
+                name="bpack",
                 skills=["bpack-skill"],
                 agents=["bpack-agent"],
             )
@@ -233,14 +244,15 @@ class PerPackScopingTests(unittest.TestCase):
             _plant(adopter, ".claude/skills/foreign-skill/SKILL.md")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".claude/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".claude/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             rels = sorted(p.relative_to(adopter).as_posix() for p in result)
             self.assertEqual(
                 rels,
-                [".claude/agents/bpack-agent.md",
-                 ".claude/skills/bpack-skill/SKILL.md"],
+                [".claude/agents/bpack-agent.md", ".claude/skills/bpack-skill/SKILL.md"],
             )
 
     def test_pack_with_no_apm_directory_only_matches_pack_name(self) -> None:
@@ -268,8 +280,10 @@ class PerPackScopingTests(unittest.TestCase):
 
             # Copilot shape: matches.
             copilot = safety.scan_for_pack_artifacts(
-                adopter, [".github/instructions/"],
-                pack_dir=pack_dir, pack_name="bpack",
+                adopter,
+                [".github/instructions/"],
+                pack_dir=pack_dir,
+                pack_name="bpack",
             )
             self.assertEqual(
                 [p.relative_to(adopter).as_posix() for p in copilot],
@@ -278,8 +292,10 @@ class PerPackScopingTests(unittest.TestCase):
             # Claude-shape: no match (no primitive directories to match
             # against, and "bpack" doesn't appear in the foreign path).
             claude = safety.scan_for_pack_artifacts(
-                adopter, [".claude/"],
-                pack_dir=pack_dir, pack_name="bpack",
+                adopter,
+                [".claude/"],
+                pack_dir=pack_dir,
+                pack_name="bpack",
             )
             self.assertEqual(claude, [])
 
@@ -311,11 +327,14 @@ class CrossPackNameCollisionTests(unittest.TestCase):
             _plant(adopter, ".claude/hooks/bpack.py", content="foreign-hook")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".claude/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".claude/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             self.assertEqual(
-                result, [],
+                result,
+                [],
                 "cross-pack name collision matched pack B's scan; "
                 "the depth-restricted stem rule isn't holding",
             )
@@ -339,11 +358,14 @@ class CrossPackNameCollisionTests(unittest.TestCase):
             _plant(adopter, ".claude/skills/bpack/SKILL.md", content="foreign")
 
             result = safety.scan_for_pack_artifacts(
-                adopter, [".claude/"],
-                pack_dir=packs / "bpack", pack_name="bpack",
+                adopter,
+                [".claude/"],
+                pack_dir=packs / "bpack",
+                pack_name="bpack",
             )
             self.assertEqual(
-                result, [],
+                result,
+                [],
                 "cross-pack segment-named-after-pack-name matched; "
                 "primitive_names should not include pack_name itself",
             )
@@ -363,17 +385,17 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             packs = tmp / "packs"
             packs.mkdir()
             _make_pack_source(
-                packs, name="bpack",
+                packs,
+                name="bpack",
                 skills=["bpack-skill"],
                 agents=["bpack-agent"],
             )
-            primitives, stem = _collect_pack_owned_names(
-                packs / "bpack", "bpack"
-            )
+            primitives, stem = _collect_pack_owned_names(packs / "bpack", "bpack")
             self.assertEqual(primitives, {"bpack-skill", "bpack-agent"})
             self.assertEqual(stem, "bpack")
             self.assertNotIn(
-                "bpack", primitives,
+                "bpack",
+                primitives,
                 "primitive_names must not include pack_name — that's "
                 "what enabled the cross-pack collision regression",
             )
@@ -390,11 +412,11 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             _make_pack_source(packs, name="bpack", skills=["bpack-skill"])
             # Plant noise under .apm/skills/.
             (packs / "bpack" / ".apm" / "skills" / "__pycache__").mkdir()
-            (packs / "bpack" / ".apm" / "skills" / ".DS_Store").write_text("", encoding="utf-8", newline="\n")
-
-            primitives, _ = _collect_pack_owned_names(
-                packs / "bpack", "bpack"
+            (packs / "bpack" / ".apm" / "skills" / ".DS_Store").write_text(
+                "", encoding="utf-8", newline="\n"
             )
+
+            primitives, _ = _collect_pack_owned_names(packs / "bpack", "bpack")
             self.assertEqual(primitives, {"bpack-skill"})
 
     def test_rfc_0013_primitive_types_are_collected(self) -> None:
@@ -412,18 +434,24 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             pack_dir = tmp / "broker"
             apm = pack_dir / ".apm"
             (apm / "shared-libs").mkdir(parents=True)
-            (apm / "shared-libs" / "credentials_shim.py").write_text("x", encoding="utf-8", newline="\n")
+            (apm / "shared-libs" / "credentials_shim.py").write_text(
+                "x", encoding="utf-8", newline="\n"
+            )
             (apm / "adapter-root-bins").mkdir(parents=True)
-            (apm / "adapter-root-bins" / "sso-broker.py").write_text("x", encoding="utf-8", newline="\n")
+            (apm / "adapter-root-bins" / "sso-broker.py").write_text(
+                "x", encoding="utf-8", newline="\n"
+            )
 
             primitives, _ = _collect_pack_owned_names(pack_dir, "broker")
             self.assertIn(
-                "credentials_shim", primitives,
+                "credentials_shim",
+                primitives,
                 "shared-libs primitive not collected; RFC-0013 type "
                 "missing from _PACK_PRIMITIVE_TYPES",
             )
             self.assertIn(
-                "sso-broker", primitives,
+                "sso-broker",
+                primitives,
                 "adapter-root-bins primitive not collected; RFC-0013 "
                 "type missing from _PACK_PRIMITIVE_TYPES",
             )

@@ -70,14 +70,20 @@ def _make_fixture_catalogue(
     if with_profiles:
         profiles_dir = root / "profiles"
         profiles_dir.mkdir()
-        (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8", newline="\n")  # noqa: E501
+        (profiles_dir / "default.toml").write_text(
+            '[profile]\nname = "default"\n', encoding="utf-8", newline="\n"
+        )  # noqa: E501
 
     if with_contracts:
         contracts_dir = root / "contracts"
         contracts_dir.mkdir(parents=True)
-        (contracts_dir / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8", newline="\n")  # noqa: E501
+        (contracts_dir / "adapter.toml").write_text(
+            '[contract]\nversion = "1"\n', encoding="utf-8", newline="\n"
+        )  # noqa: E501
 
-    (root / "AGENTS.md").write_text("# Test Catalogue Agent Context\n", encoding="utf-8", newline="\n")
+    (root / "AGENTS.md").write_text(
+        "# Test Catalogue Agent Context\n", encoding="utf-8", newline="\n"
+    )
 
     if with_readme:
         (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8", newline="\n")
@@ -134,9 +140,7 @@ def _make_args(
 
 
 def test_scan_content_includes_allowlisted_files(tmp_path: Path) -> None:
-    root = _make_fixture_catalogue(
-        tmp_path, extra_dirs=["build", "tests", ".git"]
-    )
+    root = _make_fixture_catalogue(tmp_path, extra_dirs=["build", "tests", ".git"])
     paths = _scan_content(root)
     posix = [p.relative_to(root).as_posix() for p in paths]
     # Allowlisted entries present (Wave 4 allowlist)
@@ -181,8 +185,12 @@ def test_scan_content_returns_sorted_paths(tmp_path: Path) -> None:
 
 def test_scan_content_absent_optional_dir(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(
-        tmp_path, with_profiles=False, with_contracts=False, with_readme=False,
-        with_license=False, with_marketplace=False,
+        tmp_path,
+        with_profiles=False,
+        with_contracts=False,
+        with_readme=False,
+        with_license=False,
+        with_marketplace=False,
     )
     paths = _scan_content(root)
     posix = [p.relative_to(root).as_posix() for p in paths]
@@ -244,7 +252,9 @@ def test_validate_content_top_level_dir_symlink_rejected(tmp_path: Path) -> None
     real_packs.mkdir()
     pack_dir = real_packs / "core"
     pack_dir.mkdir()
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n")  # noqa: E501
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+    )  # noqa: E501
 
     root = tmp_path / "cat"
     root.mkdir()
@@ -261,14 +271,18 @@ def test_validate_content_intermediate_dir_symlink_rejected(tmp_path: Path) -> N
     real_docs = tmp_path / "real_docs"
     contracts = real_docs / "contracts"
     contracts.mkdir(parents=True)
-    (contracts / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8", newline="\n")
+    (contracts / "adapter.toml").write_text(
+        '[contract]\nversion = "1"\n', encoding="utf-8", newline="\n"
+    )
 
     root = tmp_path / "cat"
     root.mkdir()
     # packs/ must exist for packs-dir check not to fire first
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n")  # noqa: E501
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+    )  # noqa: E501
 
     symlink_docs = root / "docs"
     symlink_docs.symlink_to(real_docs)
@@ -309,7 +323,9 @@ def test_validate_content_traversal_rejected(tmp_path: Path) -> None:
     (root / "packs").mkdir()
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir()
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n")  # noqa: E501
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+    )  # noqa: E501
 
     outside = tmp_path / "outside.txt"
     outside.write_text("evil\n", encoding="utf-8", newline="\n")
@@ -416,18 +432,24 @@ def test_generate_manifest_required_fields() -> None:
 
 def test_generate_manifest_source_revision_null() -> None:
     manifest_bytes = _generate_manifest(
-        bundle="b", release="r", source_revision=None,
+        bundle="b",
+        release="r",
+        source_revision=None,
         generated_at="2023-11-14T22:13:20+00:00",
-        file_digests={}, packs_metadata=[],
+        file_digests={},
+        packs_metadata=[],
     )
     assert json.loads(manifest_bytes)["source_revision"] is None
 
 
 def test_generate_manifest_source_revision_string() -> None:
     manifest_bytes = _generate_manifest(
-        bundle="b", release="r", source_revision="abc123",
+        bundle="b",
+        release="r",
+        source_revision="abc123",
         generated_at="2023-11-14T22:13:20+00:00",
-        file_digests={}, packs_metadata=[],
+        file_digests={},
+        packs_metadata=[],
     )
     assert json.loads(manifest_bytes)["source_revision"] == "abc123"
 
@@ -435,9 +457,12 @@ def test_generate_manifest_source_revision_string() -> None:
 def test_generate_manifest_files_sorted() -> None:
     digests = {"z/file.txt": "a" * 64, "a/file.txt": "b" * 64}
     manifest_bytes = _generate_manifest(
-        bundle="b", release="r", source_revision=None,
+        bundle="b",
+        release="r",
+        source_revision=None,
         generated_at="2023-11-14T22:13:20+00:00",
-        file_digests=digests, packs_metadata=[],
+        file_digests=digests,
+        packs_metadata=[],
     )
     files = json.loads(manifest_bytes)["files"]
     paths = [f["path"] for f in files]
@@ -447,9 +472,12 @@ def test_generate_manifest_files_sorted() -> None:
 def test_generate_manifest_packs_sorted() -> None:
     packs = [{"name": "zzz", "version": "1.0.0"}, {"name": "aaa", "version": "2.0.0"}]
     manifest_bytes = _generate_manifest(
-        bundle="b", release="r", source_revision=None,
+        bundle="b",
+        release="r",
+        source_revision=None,
         generated_at="2023-11-14T22:13:20+00:00",
-        file_digests={}, packs_metadata=packs,
+        file_digests={},
+        packs_metadata=packs,
     )
     pack_names = [p["name"] for p in json.loads(manifest_bytes)["packs"]]
     assert pack_names == sorted(pack_names)
@@ -457,9 +485,12 @@ def test_generate_manifest_packs_sorted() -> None:
 
 def test_generate_manifest_no_self_reference() -> None:
     manifest_bytes = _generate_manifest(
-        bundle="b", release="r", source_revision=None,
+        bundle="b",
+        release="r",
+        source_revision=None,
         generated_at="2023-11-14T22:13:20+00:00",
-        file_digests={"packs/core/pack.toml": "a" * 64}, packs_metadata=[],
+        file_digests={"packs/core/pack.toml": "a" * 64},
+        packs_metadata=[],
     )
     paths = [f["path"] for f in json.loads(manifest_bytes)["files"]]
     assert "catalogue-manifest.json" not in paths
@@ -468,9 +499,12 @@ def test_generate_manifest_no_self_reference() -> None:
 def test_generate_manifest_accepts_fixed_generated_at() -> None:
     ts = "2023-11-14T22:13:20+00:00"
     manifest_bytes = _generate_manifest(
-        bundle="b", release="r", source_revision=None,
+        bundle="b",
+        release="r",
+        source_revision=None,
         generated_at=ts,
-        file_digests={}, packs_metadata=[],
+        file_digests={},
+        packs_metadata=[],
     )
     assert json.loads(manifest_bytes)["generated_at"] == ts
 
@@ -668,8 +702,17 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     assert result == 0
 
     # AC3: exactly three output files
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
-    sidecar_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz.sha256"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
+    sidecar_path = (
+        output
+        / "catalogues"
+        / "engineering"
+        / "releases"
+        / "0.1.0"
+        / "catalogue-0.1.0.tar.gz.sha256"
+    )  # noqa: E501
     descriptor_path = output / "catalogues" / "engineering" / "channels" / "stable.json"
 
     assert archive_path.exists()
@@ -728,7 +771,9 @@ def test_package_catalogue_refuse_overwrite(tmp_path: Path) -> None:
     args = _make_args(root, output=output)
 
     # Pre-create the archive path with known content
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     archive_path.write_bytes(b"existing_content")
 
@@ -756,8 +801,12 @@ def test_package_catalogue_archive_reproducible(tmp_path: Path) -> None:
     assert r1 == 0
     assert r2 == 0
 
-    a1 = (output1 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()  # noqa: E501
-    a2 = (output2 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()  # noqa: E501
+    a1 = (
+        output1 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    ).read_bytes()  # noqa: E501
+    a2 = (
+        output2 / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    ).read_bytes()  # noqa: E501
     assert hashlib.sha256(a1).digest() == hashlib.sha256(a2).digest()
 
 
@@ -769,7 +818,9 @@ def test_package_catalogue_sidecar_format(tmp_path: Path) -> None:
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     sidecar_path = archive_path.parent / "catalogue-0.1.0.tar.gz.sha256"
 
     archive_bytes = archive_path.read_bytes()
@@ -786,7 +837,9 @@ def test_package_catalogue_source_date_epoch_in_manifest(tmp_path: Path) -> None
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     with tarfile.open(fileobj=io.BytesIO(archive_path.read_bytes()), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None
@@ -804,7 +857,9 @@ def test_package_catalogue_generated_at_no_microseconds(tmp_path: Path) -> None:
     with mock.patch.dict(os.environ, env, clear=True):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     with tarfile.open(fileobj=io.BytesIO(archive_path.read_bytes()), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None
@@ -868,12 +923,18 @@ def test_package_catalogue_install_flags_rejected(extra_flags: list[str], tmp_pa
         cli.main(
             [
                 "package-catalogue",
-                "--root", ".",
-                "--bundle", "b",
-                "--release", "r",
-                "--channel", "c",
-                "--output", ".",
-            ] + extra_flags
+                "--root",
+                ".",
+                "--bundle",
+                "b",
+                "--release",
+                "r",
+                "--channel",
+                "c",
+                "--output",
+                ".",
+            ]
+            + extra_flags
         )
     assert exc_info.value.code != 0
 
@@ -886,7 +947,9 @@ def test_package_catalogue_sha256_in_descriptor_matches_sidecar(tmp_path: Path) 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     sidecar_path = archive_path.parent / "catalogue-0.1.0.tar.gz.sha256"
     descriptor_path = output / "catalogues" / "engineering" / "channels" / "stable.json"
 
@@ -941,6 +1004,7 @@ def test_package_catalogue_published_at_default(tmp_path: Path) -> None:
     assert "." not in descriptor["published_at"]
     # Must be parseable as an ISO-8601 datetime
     from datetime import datetime
+
     dt = datetime.fromisoformat(descriptor["published_at"])
     assert dt is not None
 
@@ -953,7 +1017,9 @@ def test_package_catalogue_manifest_digest_matches_archived_bytes(tmp_path: Path
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     archive_bytes = archive_path.read_bytes()
 
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
@@ -983,7 +1049,9 @@ def test_package_catalogue_packs_version_matches_archived_pack_toml(tmp_path: Pa
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
         run(_make_args(root, output=output))
 
-    archive_path = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"  # noqa: E501
+    archive_path = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )  # noqa: E501
     archive_bytes = archive_path.read_bytes()
 
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
@@ -1049,6 +1117,7 @@ def test_package_catalogue_flag_traversal_rejected(flag: str, value: str, tmp_pa
 def test_no_git_shell_out_in_package_catalogue() -> None:
     """AC23: no subprocess/git shell-out in package_catalogue.py."""
     import re
+
     source_path = Path(package_catalogue.__file__)
     content = source_path.read_text(encoding="utf-8")
     patterns = [
@@ -1061,19 +1130,44 @@ def test_no_git_shell_out_in_package_catalogue() -> None:
         r'\["git"',
     ]
     for pat in patterns:
-        assert not re.search(pat, content), f"Found disallowed pattern {pat!r} in package_catalogue.py"  # noqa: E501
+        assert not re.search(pat, content), (
+            f"Found disallowed pattern {pat!r} in package_catalogue.py"
+        )  # noqa: E501
 
 
 def test_no_new_runtime_dependency() -> None:
     """AC27: package_catalogue.py imports only stdlib and agentbundle."""
     import ast
+
     source_path = Path(package_catalogue.__file__)
     tree = ast.parse(source_path.read_text(encoding="utf-8"))
     stdlib_modules = {
-        "gzip", "hashlib", "io", "json", "os", "re", "sys", "tarfile", "tomllib",
-        "datetime", "pathlib", "typing", "contextlib", "collections", "__future__",
-        "abc", "argparse", "functools", "itertools", "math", "shutil", "string",
-        "time", "types", "warnings", "copy",
+        "gzip",
+        "hashlib",
+        "io",
+        "json",
+        "os",
+        "re",
+        "sys",
+        "tarfile",
+        "tomllib",
+        "datetime",
+        "pathlib",
+        "typing",
+        "contextlib",
+        "collections",
+        "__future__",
+        "abc",
+        "argparse",
+        "functools",
+        "itertools",
+        "math",
+        "shutil",
+        "string",
+        "time",
+        "types",
+        "warnings",
+        "copy",
     }
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

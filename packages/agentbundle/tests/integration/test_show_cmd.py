@@ -36,17 +36,22 @@ UNRESOLVABLE = "git+ssh://example.com/owner/repo"
 # ---------------------------------------------------------------------------
 
 
-def _args(pack: str, *, catalogue: str | None = None, fmt: str = "table",
-          root: str = ".") -> SimpleNamespace:
+def _args(
+    pack: str, *, catalogue: str | None = None, fmt: str = "table", root: str = "."
+) -> SimpleNamespace:
     return SimpleNamespace(
         pack=pack, catalogue=catalogue, format=fmt, root=root, _user_config=None
     )
 
 
-def _make_catalogue(root: Path, *, name: str = "demo",
-                    skills: tuple[str, ...] = ("zeta", "alpha"),
-                    agents: tuple[str, ...] = ("beta", "aardvark"),
-                    meta: bool = True) -> Path:
+def _make_catalogue(
+    root: Path,
+    *,
+    name: str = "demo",
+    skills: tuple[str, ...] = ("zeta", "alpha"),
+    agents: tuple[str, ...] = ("beta", "aardvark"),
+    meta: bool = True,
+) -> Path:
     """Build ``<root>/packs/<name>/`` with pack.toml + .apm tree; return root."""
     pack = root / "packs" / name
     toml = f'[pack]\nname = "{name}"\n'
@@ -56,7 +61,9 @@ def _make_catalogue(root: Path, *, name: str = "demo",
     (pack / "pack.toml").write_text(toml, encoding="utf-8", newline="\n")
     for s in skills:
         (pack / ".apm" / "skills" / s).mkdir(parents=True)
-        (pack / ".apm" / "skills" / s / "SKILL.md").write_text("# s\n", encoding="utf-8", newline="\n")
+        (pack / ".apm" / "skills" / s / "SKILL.md").write_text(
+            "# s\n", encoding="utf-8", newline="\n"
+        )
     for a in agents:
         (pack / ".apm" / "agents").mkdir(parents=True, exist_ok=True)
         (pack / ".apm" / "agents" / f"{a}.md").write_text("# a\n", encoding="utf-8", newline="\n")
@@ -90,7 +97,10 @@ def test_primary_via_default_source_chain(tmp_path, capsys):
     marker.parent.mkdir(parents=True)
     marker.write_text("{}\n", encoding="utf-8", newline="\n")
     args = SimpleNamespace(
-        pack="demo", catalogue=None, format="json", root=".",
+        pack="demo",
+        catalogue=None,
+        format="json",
+        root=".",
         _user_config=SimpleNamespace(source=str(cat)),
     )
     rc = show.run(args)
@@ -182,16 +192,18 @@ def test_unknown_pack_json_still_empty_stdout(tmp_path, capsys):
 def test_degrade_installed_repo_scope(tmp_path, capsys):
     _write_state(
         tmp_path / ".agentbundle-state.toml",
-        State(packs={
-            ("demo", "claude-code"): PackState(
-                installed_version="0.9.0",
-                files={
-                    ".claude/skills/zeta/SKILL.md": {"sha": "a"},
-                    ".claude/skills/alpha/SKILL.md": {"sha": "b"},
-                    ".claude/agents/beta.md": {"sha": "c"},
-                },
-            )
-        }),
+        State(
+            packs={
+                ("demo", "claude-code"): PackState(
+                    installed_version="0.9.0",
+                    files={
+                        ".claude/skills/zeta/SKILL.md": {"sha": "a"},
+                        ".claude/skills/alpha/SKILL.md": {"sha": "b"},
+                        ".claude/agents/beta.md": {"sha": "c"},
+                    },
+                )
+            }
+        ),
     )
     rc = show.run(_args("demo", catalogue=UNRESOLVABLE, fmt="json", root=str(tmp_path)))
     out = capsys.readouterr().out
@@ -207,12 +219,14 @@ def test_degrade_installed_repo_scope(tmp_path, capsys):
 def test_degrade_table_omits_version_prints_source_line(tmp_path, capsys):
     _write_state(
         tmp_path / ".agentbundle-state.toml",
-        State(packs={
-            ("demo", "claude-code"): PackState(
-                installed_version="0.9.0",
-                files={".claude/skills/alpha/SKILL.md": {"sha": "b"}},
-            )
-        }),
+        State(
+            packs={
+                ("demo", "claude-code"): PackState(
+                    installed_version="0.9.0",
+                    files={".claude/skills/alpha/SKILL.md": {"sha": "b"}},
+                )
+            }
+        ),
     )
     rc = show.run(_args("demo", catalogue=UNRESOLVABLE, root=str(tmp_path)))
     out = capsys.readouterr().out
@@ -226,30 +240,32 @@ def test_degrade_multi_adapter_dedupes_across_extensions(tmp_path, capsys):
     collapse to one entry per logical skill/agent (extension-agnostic recovery)."""
     _write_state(
         tmp_path / ".agentbundle-state.toml",
-        State(packs={
-            ("demo", "claude-code"): PackState(
-                installed_version="0.9.0",
-                files={
-                    ".claude/skills/alpha/SKILL.md": {"sha": "1"},
-                    ".claude/agents/bot.md": {"sha": "2"},
-                },
-            ),
-            ("demo", "codex"): PackState(
-                installed_version="0.9.0",
-                files={
-                    ".agents/skills/alpha/SKILL.md": {"sha": "3"},
-                    ".codex/agents/bot.toml": {"sha": "4"},
-                },
-            ),
-            ("demo", "kiro"): PackState(
-                installed_version="0.9.0",
-                files={".kiro/agents/bot.json": {"sha": "5"}},
-            ),
-            ("demo", "copilot"): PackState(
-                installed_version="0.9.0",
-                files={".github/agents/bot.agent.md": {"sha": "6"}},
-            ),
-        }),
+        State(
+            packs={
+                ("demo", "claude-code"): PackState(
+                    installed_version="0.9.0",
+                    files={
+                        ".claude/skills/alpha/SKILL.md": {"sha": "1"},
+                        ".claude/agents/bot.md": {"sha": "2"},
+                    },
+                ),
+                ("demo", "codex"): PackState(
+                    installed_version="0.9.0",
+                    files={
+                        ".agents/skills/alpha/SKILL.md": {"sha": "3"},
+                        ".codex/agents/bot.toml": {"sha": "4"},
+                    },
+                ),
+                ("demo", "kiro"): PackState(
+                    installed_version="0.9.0",
+                    files={".kiro/agents/bot.json": {"sha": "5"}},
+                ),
+                ("demo", "copilot"): PackState(
+                    installed_version="0.9.0",
+                    files={".github/agents/bot.agent.md": {"sha": "6"}},
+                ),
+            }
+        ),
     )
     rc = show.run(_args("demo", catalogue=UNRESOLVABLE, fmt="json", root=str(tmp_path)))
     obj = json.loads(capsys.readouterr().out)
@@ -258,9 +274,7 @@ def test_degrade_multi_adapter_dedupes_across_extensions(tmp_path, capsys):
     assert obj["agents"] == ["bot"]  # never "bot.agent" / "bot.json"
 
 
-def test_degrade_legacy_state_scope_warned_not_fatal(
-    tmp_path, capsys, _isolate_user_config_dir
-):
+def test_degrade_legacy_state_scope_warned_not_fatal(tmp_path, capsys, _isolate_user_config_dir):
     """A legacy/incompatible state file in one scope is warned-and-skipped (not
     fatal): recovery still succeeds from the other scope, and a stderr warning
     names the skipped scope — mirroring `list-installed`."""
@@ -271,12 +285,14 @@ def test_degrade_legacy_state_scope_warned_not_fatal(
     # User scope: a valid state carrying the installed pack.
     _write_state(
         _isolate_user_config_dir / ".agentbundle" / "state.toml",
-        State(packs={
-            ("demo", "claude-code"): PackState(
-                installed_version="0.9.0",
-                files={".claude/skills/recovered/SKILL.md": {"sha": "x"}},
-            )
-        }),
+        State(
+            packs={
+                ("demo", "claude-code"): PackState(
+                    installed_version="0.9.0",
+                    files={".claude/skills/recovered/SKILL.md": {"sha": "x"}},
+                )
+            }
+        ),
     )
     rc = show.run(_args("demo", catalogue=UNRESOLVABLE, fmt="json", root=str(tmp_path)))
     captured = capsys.readouterr()
@@ -291,12 +307,14 @@ def test_degrade_installed_user_scope_only(tmp_path, capsys, _isolate_user_confi
     user_state = _isolate_user_config_dir / ".agentbundle" / "state.toml"
     _write_state(
         user_state,
-        State(packs={
-            ("demo", "claude-code"): PackState(
-                installed_version="0.9.0",
-                files={".claude/skills/solo/SKILL.md": {"sha": "x"}},
-            )
-        }),
+        State(
+            packs={
+                ("demo", "claude-code"): PackState(
+                    installed_version="0.9.0",
+                    files={".claude/skills/solo/SKILL.md": {"sha": "x"}},
+                )
+            }
+        ),
     )
     # repo root (tmp_path) has no state → recovery must come from user scope.
     rc = show.run(_args("demo", catalogue=UNRESOLVABLE, fmt="json", root=str(tmp_path)))
@@ -354,8 +372,7 @@ def test_agent_from_relpath_extension_agnostic():
 def test_show_run_writes_no_files(tmp_path, capsys):
     _make_catalogue(tmp_path / "cat")
     before = set((tmp_path / "cat").rglob("*"))
-    rc = show.run(_args("demo", catalogue=str(tmp_path / "cat"), fmt="json",
-                        root=str(tmp_path)))
+    rc = show.run(_args("demo", catalogue=str(tmp_path / "cat"), fmt="json", root=str(tmp_path)))
     capsys.readouterr()
     after = set((tmp_path / "cat").rglob("*"))
     assert rc == 0
@@ -372,7 +389,8 @@ def test_show_run_writes_no_files(tmp_path, capsys):
 def test_show_help_documents_format():
     proc = subprocess.run(
         [sys.executable, "-m", "agentbundle", "show", "--help"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert proc.returncode == 0
     assert "--format" in proc.stdout

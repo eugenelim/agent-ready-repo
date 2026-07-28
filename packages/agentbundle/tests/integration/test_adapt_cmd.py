@@ -23,6 +23,7 @@ ADAPT_FIXTURES = Path(__file__).parent.parent / "fixtures" / "adapt"
 # Helper: build an argparse.Namespace the same way the CLI would
 # ---------------------------------------------------------------------------
 
+
 def _args(
     *,
     root: str,
@@ -39,12 +40,14 @@ def _run(
     ci: bool = False,
 ) -> int:
     from agentbundle.commands.adapt import run
+
     return run(_args(root=root, values_from=values_from, ci=ci))
 
 
 # ---------------------------------------------------------------------------
 # Helper: set up a tmp_path with a state file + projected files
 # ---------------------------------------------------------------------------
+
 
 def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
     """Write files and seed a .agentbundle-state.toml recording them."""
@@ -77,6 +80,7 @@ def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
 # ---------------------------------------------------------------------------
 # 1. Marker substitution: <adapt:project-name> replaced by values.toml
 # ---------------------------------------------------------------------------
+
 
 def test_marker_substitution_replaces_markers(tmp_path):
     """``adapt --values-from values.toml`` substitutes every <adapt:NAME> marker."""
@@ -117,6 +121,7 @@ def test_marker_substitution_sha_matches_substituted_form(tmp_path):
 # ---------------------------------------------------------------------------
 # 2. .adapt-pending.md lists .upstream.* companions with diff summaries
 # ---------------------------------------------------------------------------
+
 
 def test_adapt_pending_md_lists_companions(tmp_path):
     """Two .upstream.md companions should both appear in .adapt-pending.md.
@@ -178,6 +183,7 @@ def test_adapt_pending_md_no_companions_says_none_pending(tmp_path):
 # 3. .adapt-discovery.toml never written: byte-identical before and after
 # ---------------------------------------------------------------------------
 
+
 def test_adapt_discovery_toml_never_written(tmp_path):
     """``adapt`` reads .adapt-discovery.toml but must not modify it."""
     import shutil
@@ -227,6 +233,7 @@ def test_adapt_discovery_accepted_entries_applied(tmp_path):
 # 4. --ci with companions: exit non-zero, stderr lists companions
 # ---------------------------------------------------------------------------
 
+
 def test_ci_with_companions_exits_nonzero(tmp_path, capsys):
     """``adapt --ci`` exits 1 when any .upstream.* companion is on disk."""
     (tmp_path / "AGENTS.upstream.md").write_text("upstream", encoding="utf-8", newline="\n")
@@ -257,6 +264,7 @@ def test_ci_with_companions_lists_all_on_stderr(tmp_path, capsys):
 # 5. --ci clean: exit zero when no companions on disk
 # ---------------------------------------------------------------------------
 
+
 def test_ci_clean_exits_zero(tmp_path):
     """``adapt --ci`` exits 0 when no .upstream.* companions exist."""
     # No companions; only a normal file.
@@ -280,6 +288,7 @@ def test_ci_clean_after_companions_removed_exits_zero(tmp_path):
 # 6. Binary file skipped gracefully
 # ---------------------------------------------------------------------------
 
+
 def test_binary_file_skipped_without_error(tmp_path):
     """Projected files that cannot be decoded as UTF-8 are skipped with a warning."""
     binary_content = bytes(range(256))
@@ -295,7 +304,9 @@ def test_binary_file_skipped_without_error(tmp_path):
         files={"data.bin": {"sha": sha256_bytes(binary_content), "from-pack-version": "0.1.0"}},
         adapter="claude-code",
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        dump_state(state), encoding="utf-8", newline="\n"
+    )
     (tmp_path / "data.bin").write_bytes(binary_content)
 
     values_path = ADAPT_FIXTURES / "values.toml"

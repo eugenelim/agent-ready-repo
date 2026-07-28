@@ -36,9 +36,17 @@ def _synthesised_v0_4_contract() -> dict:
         "target": {"repo": ".kiro/hooks/<pack>/<name>.kiro.hook"},
         "on-conflict": "prompt-then-preserve",
         "ide-event-vocabulary": [
-            "fileCreated", "fileEdit", "fileSave", "fileDeleted",
-            "promptSubmit", "agentStop", "preToolUse", "postToolUse",
-            "preTaskExecution", "postTaskExecution", "manualTrigger",
+            "fileCreated",
+            "fileEdit",
+            "fileSave",
+            "fileDeleted",
+            "promptSubmit",
+            "agentStop",
+            "preToolUse",
+            "postToolUse",
+            "preTaskExecution",
+            "postTaskExecution",
+            "manualTrigger",
         ],
         "ide-action-vocabulary": ["askAgent", "runCommand"],
     }
@@ -55,28 +63,36 @@ def _make_fixture_pack(root: Path, pack_name: str = "kiro-ide-hooks-basic") -> P
     # askAgent hook (byte-copy path).
     (pack / ".apm" / "kiro-ide-hooks").mkdir(parents=True)
     (pack / ".apm" / "kiro-ide-hooks" / "lint-prompt.kiro.hook").write_text(
-        json.dumps({
-            "name": "Lint on save",
-            "description": "Ask the agent to lint.",
-            "version": "1",
-            "when": {"type": "fileSave", "patterns": ["**/*.py"]},
-            "then": {"type": "askAgent", "prompt": "Lint the saved file."},
-        }, indent=2) + "\n",
+        json.dumps(
+            {
+                "name": "Lint on save",
+                "description": "Ask the agent to lint.",
+                "version": "1",
+                "when": {"type": "fileSave", "patterns": ["**/*.py"]},
+                "then": {"type": "askAgent", "prompt": "Lint the saved file."},
+            },
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
         newline="\n",
     )
     # runCommand hook (parse, expand, emit path).
     (pack / ".apm" / "kiro-ide-hooks" / "lint-command.kiro.hook").write_text(
-        json.dumps({
-            "name": "Lint via command",
-            "description": "Invoke the lint hook-body directly.",
-            "version": "1",
-            "when": {"type": "fileSave", "patterns": ["**/*.py"]},
-            "then": {
-                "type": "runCommand",
-                "command": "${hook-body:lint}",
+        json.dumps(
+            {
+                "name": "Lint via command",
+                "description": "Invoke the lint hook-body directly.",
+                "version": "1",
+                "when": {"type": "fileSave", "patterns": ["**/*.py"]},
+                "then": {
+                    "type": "runCommand",
+                    "command": "${hook-body:lint}",
+                },
             },
-        }, indent=2) + "\n",
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
         newline="\n",
     )
@@ -99,7 +115,9 @@ class KiroAdapterDispatchesKiroIdeHook(unittest.TestCase):
             kiro_adapter.project(pack, contract, output)
 
             # askAgent — byte-copy preserves source exactly.
-            ask_path = output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-prompt.kiro.hook"  # noqa: E501
+            ask_path = (
+                output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-prompt.kiro.hook"
+            )  # noqa: E501
             self.assertTrue(ask_path.exists())
             ask_body = json.loads(ask_path.read_text(encoding="utf-8"))
             self.assertEqual(ask_body["then"]["type"], "askAgent")
@@ -107,7 +125,9 @@ class KiroAdapterDispatchesKiroIdeHook(unittest.TestCase):
 
             # runCommand — placeholder expanded to ./tools/hooks/lint.py
             # (Kiro adapter's legacy hook-body target is tools/hooks/).
-            cmd_path = output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-command.kiro.hook"  # noqa: E501
+            cmd_path = (
+                output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-command.kiro.hook"
+            )  # noqa: E501
             self.assertTrue(cmd_path.exists())
             cmd_body = json.loads(cmd_path.read_text(encoding="utf-8"))
             self.assertEqual(cmd_body["then"]["command"], "./tools/hooks/lint.py")
@@ -150,7 +170,9 @@ class ValidateCommandRailFires(unittest.TestCase):
             pack = _make_fixture_pack(root)
             # Drop a required field to trigger refusal path 1.
             broken = pack / ".apm" / "kiro-ide-hooks" / "broken.kiro.hook"
-            broken.write_text(json.dumps({"description": "no name no version"}), encoding="utf-8", newline="\n")
+            broken.write_text(
+                json.dumps({"description": "no name no version"}), encoding="utf-8", newline="\n"
+            )
 
             # pack.toml is needed for validate.run.
             (pack / "pack.toml").write_text(
@@ -164,6 +186,7 @@ class ValidateCommandRailFires(unittest.TestCase):
             import argparse
 
             from agentbundle.commands.validate import run as validate_run
+
             ns = argparse.Namespace(pack_path=str(pack), strict=False)
 
             buf = io.StringIO()
