@@ -20,6 +20,7 @@ consults a repo-committed source. See
 from __future__ import annotations
 
 import json
+import os
 import re
 import re as _re
 import sys
@@ -572,19 +573,20 @@ def resolve_default_source(
             file=stream,
         )
 
-    # Layer 3 — org Artifactory bootstrap (RFC-0072 D2).
-    if read_org is None:
-        read_org = read_org_bootstrap
-    org = read_org()  # None when disabled; raises CatalogueError on fail-closed
-    if org is not None:
-        return org
+    if not os.environ.get("AGENTBUNDLE_NO_REMOTE"):
+        # Layer 3 — org Artifactory bootstrap (RFC-0072 D2).
+        if read_org is None:
+            read_org = read_org_bootstrap
+        org = read_org()  # None when disabled; raises CatalogueError on fail-closed
+        if org is not None:
+            return org
 
-    # Layer 4 — editable detection.
-    if dist is _UNSET:
-        dist = _load_distribution()
-    editable = _detect_editable_source(dist, stream=stream)
-    if editable is not None:
-        return editable
+        # Layer 4 — editable detection.
+        if dist is _UNSET:
+            dist = _load_distribution()
+        editable = _detect_editable_source(dist, stream=stream)
+        if editable is not None:
+            return editable
 
     # Layer 5 — packaged default, validated.
     if read_packaged is None:

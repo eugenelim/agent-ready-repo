@@ -257,10 +257,12 @@ def test_config_valid_enterprise(tmp_path):
         "base-url = 'https://art.example.com'\n"
         "repository = 'my-repo'\n"
         "bundle = 'engineering'\n"
+        "channel = 'stable'\n"
     )
     _write_toml(tmp_path, content)
     result = load_catalogue_config(tmp_path)
     assert result is not None
+    assert result.distribution.agentbundle.artifactory.channel == "stable"
 
 
 def test_config_bad_schema_integer(tmp_path):
@@ -545,3 +547,62 @@ def test_cli_lint_packs_help():
     combined = stdout + stderr
     assert rc == 0, f"Expected zero exit for lint packs --help, got {rc}: {combined}"
     assert "--root" in combined, "--root not found in lint packs --help output"
+
+
+# ---------------------------------------------------------------------------
+# Artifactory channel field — load_catalogue_config validation
+# ---------------------------------------------------------------------------
+
+_ART_ENABLED_BASE = (
+    "schema = 1\n"
+    "[catalogue]\n"
+    "name = 'test'\ndisplay-name = 'T'\ndescription = 't'\n"
+    "minimum-agentbundle-version = '0.14.0'\n"
+    "[catalogue.paths]\n"
+    "packs = 'packs'\nprofiles = 'profiles'\ncontracts = 'contracts'\n"
+    "marketplace = '.claude-plugin/marketplace.json'\nbuild-output = 'dist'\n"
+    "[catalogue.build]\n"
+    "recipes = ['default']\nself-host = false\nclaude-plugin-branch = 'main'\n"
+    "marketplace-description = 't'\n"
+    "[catalogue.package]\n"
+    "include = ['packs/core']\nrequired = ['packs/core']\n"
+    "[distribution.agentbundle]\n"
+    "install-defaults-output = 'agentbundle/_data/install-defaults.toml'\n"
+    "preferred-adapter = 'claude-code'\n"
+    "default-source = 'git+https://github.com/example/repo'\n"
+    "[distribution.agentbundle.artifactory]\n"
+    "enabled = true\n"
+    "base-url = 'https://art.example.com'\n"
+    "repository = 'my-repo'\n"
+    "bundle = 'engineering'\n"
+)
+
+
+def test_load_catalogue_config_art_enabled_with_channel(tmp_path):
+    """ArtifactoryConfig.channel is set when enabled = true and channel is present."""
+    from agentbundle.catalogue_tooling.config import load_catalogue_config
+
+    content = _ART_ENABLED_BASE + "channel = 'stable'\n"
+    _write_toml(tmp_path, content)
+    result = load_catalogue_config(tmp_path)
+    assert result is not None
+    assert result.distribution.agentbundle.artifactory.channel == "stable"
+
+
+def test_load_catalogue_config_art_enabled_no_channel_raises(tmp_path):
+    """enabled = true with no channel field raises CatalogueConfigError."""
+    from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
+
+    _write_toml(tmp_path, _ART_ENABLED_BASE)
+    with pytest.raises(CatalogueConfigError, match="channel"):
+        load_catalogue_config(tmp_path)
+
+
+def test_load_catalogue_config_art_enabled_empty_channel_raises(tmp_path):
+    """enabled = true with channel = '' raises CatalogueConfigError."""
+    from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
+
+    content = _ART_ENABLED_BASE + "channel = ''\n"
+    _write_toml(tmp_path, content)
+    with pytest.raises(CatalogueConfigError, match="channel"):
+        load_catalogue_config(tmp_path)

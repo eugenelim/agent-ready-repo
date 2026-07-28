@@ -1,7 +1,6 @@
----
-title: Catalogue hygiene — Part 1 (export-boundary convention)
-status: Shipped
----
+# Spec: catalogue-hygiene-part1
+
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 
 Mode: light (no risk trigger fired — deletion is git-recoverable; AGENTS.md files are docs, not code)
 

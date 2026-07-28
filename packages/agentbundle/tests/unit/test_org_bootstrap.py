@@ -670,3 +670,77 @@ def test_resolve_layer1_beats_layer3():
     )
     assert out == "explicit-arg"
     assert called == [], "read_org must not have been called"
+
+
+# ---------------------------------------------------------------------------
+# test_source_from_org_bootstrap_with_channel — channel segment in URI
+# ---------------------------------------------------------------------------
+
+
+def test_source_from_org_bootstrap_with_channel():
+    """channel = "stable" in TOML produces a URI containing the channel segment."""
+    toml = """\
+[organization.artifactory]
+enabled = true
+base-url = "https://example.test/art"
+repository = "repo-local"
+bundle = "engineering"
+channel = "stable"
+"""
+    url = _source_from_org_bootstrap(toml, config_path="test-path")
+    assert url is not None
+    assert "channels/stable.json" in url
+    assert url == (
+        "catalogue+https://example.test/art"
+        "/repo-local/catalogues/engineering/channels/stable.json"
+    )
+
+
+# ---------------------------------------------------------------------------
+# AGENTBUNDLE_NO_REMOTE — Layer 3 and 4 bypass
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_default_source_no_remote_skips_layers_3_and_4(monkeypatch):
+    """AGENTBUNDLE_NO_REMOTE=1 → Layer 3 (read_org) and Layer 4 (dist) are not called."""
+    monkeypatch.setenv("AGENTBUNDLE_NO_REMOTE", "1")
+
+    layer3_called: list[bool] = []
+    layer4_called: list[bool] = []
+
+    class _SpyDist:
+        def __getattr__(self, name: str):
+            layer4_called.append(True)
+            raise AssertionError(f"Layer 4 reached (attr: {name!r})")
+
+    def _read_org_spy() -> str | None:
+        layer3_called.append(True)
+        raise AssertionError("Layer 3 must not be called with AGENTBUNDLE_NO_REMOTE set")
+
+    with pytest.raises(CatalogueError):
+        # Layer 5 also absent → raises CatalogueError (all layers exhausted)
+        resolve_default_source(
+            None,
+            config_source=None,
+            dist=_SpyDist(),
+            read_org=_read_org_spy,
+            read_packaged=lambda: None,
+        )
+
+    assert layer3_called == [], "Layer 3 must not have been called"
+    assert layer4_called == [], "Layer 4 must not have been called"
+
+
+def test_resolve_default_source_no_remote_layer5_still_works(monkeypatch):
+    """AGENTBUNDLE_NO_REMOTE=1 → Layer 5 packaged default is still returned."""
+    monkeypatch.setenv("AGENTBUNDLE_NO_REMOTE", "1")
+
+    packaged = "git+https://example.test/packaged-default"
+    out = resolve_default_source(
+        None,
+        config_source=None,
+        dist=None,
+        read_org=lambda: (_ for _ in ()).throw(AssertionError("Layer 3 must not run")),
+        read_packaged=lambda: packaged,
+    )
+    assert out == packaged

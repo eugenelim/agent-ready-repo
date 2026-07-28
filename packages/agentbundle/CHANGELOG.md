@@ -6,6 +6,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [Unreleased]
+
+### Added
+
+- **`channel` field in `catalogue.toml`** (`distribution.agentbundle.artifactory`): the
+  `channel` field is now required when `enabled = true`. `load_catalogue_config` validates
+  it against the same safe-segment regex used for `repository` and `bundle`, and stores it
+  in `ArtifactoryConfig.channel`. `compile_defaults` now emits the actual channel value
+  instead of an empty string, so generated `install-defaults.toml` files contain the
+  correct channel and Artifactory-sourced installs resolve successfully.
+- **`AGENTBUNDLE_NO_REMOTE` environment variable** (`source_defaults.py`): when set to any
+  truthy value, `resolve_default_source` skips the Artifactory org bootstrap (Layer 3) and
+  editable-install detection (Layer 4), falling through directly to the packaged default
+  (Layer 5). Useful for offline and air-gapped deployments.
+- **`catalogue.schema.json`**: added `channel` as an optional string property in the
+  `artifactory` object block; `additionalProperties: false` now permits the field without
+  breaking `enabled = false` configs.
+
+### Fixed
+
+- `compile_defaults` no longer emits `channel = ""` when Artifactory is enabled. The
+  previous hardcoded empty value made every Artifactory-enabled install-defaults.toml
+  unusable at runtime.
+
+### Documentation
+
+- **`docs/guides/how-to/enterprise-app-store.md`**: corrected the archive output path
+  (`dist/catalogues/<bundle>/releases/<release>/catalogue-<release>.tar.gz`) and the
+  channel descriptor path (`channels/<channel>.json`); added a `[distribution.agentbundle.artifactory]`
+  configuration example with `channel = "stable"`; added an environment variable reference
+  table covering `AGENTBUNDLE_HTTP_BEARER_TOKEN`, `AGENTBUNDLE_NO_REMOTE`, and
+  `AGENTBUNDLE_CA_BUNDLE` (upcoming).
+
 ## [0.21.1] — 2026-07-28
 
 ### Fixed
