@@ -519,3 +519,212 @@ def test_check_required_files_fails_on_missing_license(tmp_path: Path) -> None:
     err = _check_required_files(root, paths)
     assert err is not None
     assert "LICENSE-APACHE" in err
+
+
+# ---------------------------------------------------------------------------
+# pack_include and required_override
+# ---------------------------------------------------------------------------
+
+
+def _make_two_pack_catalogue(tmp_path: Path) -> Path:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    for pack_name in ("pack-alpha", "pack-beta"):
+        pack_dir = root / "packs" / pack_name
+        pack_dir.mkdir(parents=True)
+        (pack_dir / "pack.toml").write_text(
+            f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\n', encoding="utf-8"
+        )
+    (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
+    (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+    cp_dir = root / ".claude-plugin"
+    cp_dir.mkdir()
+    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8")
+    return root
+
+
+def test_scan_content_include_one_pack(tmp_path: Path) -> None:
+    root = _make_two_pack_catalogue(tmp_path)
+    paths = _scan_content(root, pack_include=["packs/pack-alpha"])
+    posix = [p.relative_to(root).as_posix() for p in paths]
+    assert any(p.startswith("packs/pack-alpha/") for p in posix)
+    assert not any(p.startswith("packs/pack-beta/") for p in posix)
+
+
+def test_scan_content_include_empty_includes_all(tmp_path: Path) -> None:
+    root = _make_two_pack_catalogue(tmp_path)
+    paths = _scan_content(root, pack_include=[])
+    posix = [p.relative_to(root).as_posix() for p in paths]
+    assert any(p.startswith("packs/pack-alpha/") for p in posix)
+    assert any(p.startswith("packs/pack-beta/") for p in posix)
+
+
+def test_scan_content_nonpack_dirs_always_included(tmp_path: Path) -> None:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    pack_dir = root / "packs" / "pack-alpha"
+    pack_dir.mkdir(parents=True)
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "pack-alpha"\nversion = "0.1.0"\n', encoding="utf-8"
+    )
+    (root / "profiles").mkdir()
+    (root / "profiles" / "default.toml").write_text(
+        '[profile]\nname = "default"\n', encoding="utf-8"
+    )
+    (root / "contracts").mkdir()
+    (root / "contracts" / "adapter.toml").write_text(
+        '[contract]\nversion = "1"\n', encoding="utf-8"
+    )
+    paths = _scan_content(root, pack_include=["packs/pack-alpha"])
+    posix = [p.relative_to(root).as_posix() for p in paths]
+    assert any(p.startswith("packs/pack-alpha/") for p in posix)
+    assert any(p.startswith("profiles/") for p in posix)
+    assert any(p.startswith("contracts/") for p in posix)
+
+
+def test_scan_content_include_nonexistent_raises(tmp_path: Path) -> None:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    (root / "packs").mkdir()
+    with pytest.raises(ValueError, match="does not exist"):
+        _scan_content(root, pack_include=["packs/nonexistent-pack"])
+
+
+@pytest.mark.parametrize("bad_entry", ["../outside", "packs/../../escape"])
+def test_scan_content_include_path_traversal_raises(bad_entry: str, tmp_path: Path) -> None:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    with pytest.raises(ValueError):
+        _scan_content(root, pack_include=[bad_entry])
+
+
+def test_check_required_custom_license(tmp_path: Path) -> None:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    (root / "packs").mkdir()
+    (root / "LICENSE").write_text("Custom license\n", encoding="utf-8")
+    paths = [root / "LICENSE"]
+    err = _check_required_files(root, paths, required_override=["LICENSE"])
+    assert err is None
+
+
+def test_check_required_none_uses_defaults(tmp_path: Path) -> None:
+    root = _make_catalogue(tmp_path, with_license_apache=False)
+    paths = _scan_content(root)
+    err = _check_required_files(root, paths, required_override=None)
+    assert err is not None
+    assert "LICENSE-APACHE" in err
+
+
+# ---------------------------------------------------------------------------
+# Integration tests: package_catalogue honours include / required config
+# ---------------------------------------------------------------------------
+
+
+def _ok_verify_result():
+    from agentbundle.catalogue_tooling.results import VerifyResult
+    return VerifyResult(
+        ok=True,
+        diagnostics=[],
+        schema_version=1,
+        command="catalogue verify",
+        operation="source-checkout",
+        agentbundle_version="0.0.0",
+        catalogue_schema_version=1,
+    )
+
+
+def _mock_package_config(include: list, required: list):
+    config = mock.MagicMock()
+    config.name = "test"
+    config.display_name = "Test"
+    config.minimum_agentbundle_version = "0.1.0"
+    config.package.include = include
+    config.package.required = required
+    return config
+
+
+def test_package_honours_include_config(tmp_path: Path) -> None:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    for pack_name in ("pack-a", "pack-b"):
+        pack_dir = root / "packs" / pack_name
+        pack_dir.mkdir(parents=True)
+        (pack_dir / "pack.toml").write_text(
+            f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\n', encoding="utf-8"
+        )
+    (root / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8")
+    (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
+    (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+    cp_dir = root / ".claude-plugin"
+    cp_dir.mkdir()
+    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8")
+    output = tmp_path / "out"
+
+    with (
+        mock.patch(
+            "agentbundle.catalogue_tooling.verify.verify_catalogue",
+            return_value=_ok_verify_result(),
+        ),
+        mock.patch(
+            "agentbundle.catalogue_tooling.config.load_catalogue_config",
+            return_value=_mock_package_config(include=["packs/pack-a"], required=[]),
+        ),
+        mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}),
+    ):
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
+
+    assert result.ok, [d.message for d in result.diagnostics]
+    archive = output / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    with tarfile.open(fileobj=io.BytesIO(archive.read_bytes()), mode="r:gz") as tf:
+        names = tf.getnames()
+    assert any(n.startswith("packs/pack-a/") for n in names)
+    assert not any(n.startswith("packs/pack-b/") for n in names)
+
+
+def test_package_custom_required_no_apache_license(tmp_path: Path) -> None:
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    pack_dir = root / "packs" / "core"
+    pack_dir.mkdir(parents=True)
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+    )
+    (root / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8")
+    (root / "LICENSE").write_text("Proprietary license\n", encoding="utf-8")
+    cp_dir = root / ".claude-plugin"
+    cp_dir.mkdir()
+    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8")
+    output = tmp_path / "out"
+
+    with (
+        mock.patch(
+            "agentbundle.catalogue_tooling.verify.verify_catalogue",
+            return_value=_ok_verify_result(),
+        ),
+        mock.patch(
+            "agentbundle.catalogue_tooling.config.load_catalogue_config",
+            return_value=_mock_package_config(include=[], required=["LICENSE"]),
+        ),
+        mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}),
+    ):
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
+
+    assert result.ok, [d.message for d in result.diagnostics]
+
+
+def test_package_default_required_still_enforced(tmp_path: Path) -> None:
+    root = _make_catalogue(tmp_path, with_license_apache=False)
+    output = tmp_path / "out"
+
+    with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
+
+    assert not result.ok
+    assert any("LICENSE-APACHE" in d.message for d in result.diagnostics)

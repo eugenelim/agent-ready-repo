@@ -108,17 +108,17 @@
         "package": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["include", "required"],
+          "required": ["include"],
           "properties": {
             "include": {
               "type": "array",
               "items": { "type": "string" },
-              "description": "Pack paths to include in a packaged archive."
+              "description": "Pack paths to include in a packaged archive. Empty list means include all packs."
             },
             "required": {
               "type": "array",
               "items": { "type": "string" },
-              "description": "Pack paths that must be present (subset of include)."
+              "description": "Required root-level file paths. Overrides the default LICENSE-APACHE / LICENSE-MIT constraint when set. Absent or empty means use the default requirement."
             }
           }
         }

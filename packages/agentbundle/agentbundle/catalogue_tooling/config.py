@@ -373,15 +373,6 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     include = pkg_raw.get("include", [])
     required = pkg_raw.get("required", [])
 
-    include_set = set(include)
-    required_set = set(required)
-    not_in_include = required_set - include_set
-    if not_in_include:
-        raise CatalogueConfigError(
-            f"catalogue.toml: package.required entries not in package.include: "
-            f"{sorted(not_in_include)}"
-        )
-
     package = CataloguePackage(include=include, required=required)
 
     # --- [distribution.agentbundle] ---

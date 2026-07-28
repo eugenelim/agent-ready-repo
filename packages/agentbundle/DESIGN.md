@@ -1028,3 +1028,78 @@ catalogue source.
 **Self-hosted catalogue reference — `guides/_shared/reference/`, no PyPI
 link.** Other catalogues place their reference at the same path in their
 own repo.
+
+---
+
+## Catalogue packaging engine (`catalogue_tooling/package.py`)
+
+### Content allowlist
+
+Every packaged archive is built from an explicit allowlist — nothing outside it is ever included. The allowlist has three layers:
+
+| Layer | What | Controlled by |
+| ----- | ---- | ------------- |
+| Pack directories | `packs/<name>/` | `_DEFAULT_INCLUDE_DIRS` + `config.package.include` |
+| Non-pack directories | `profiles/`, `contracts/`, `.claude-plugin/` | `_DEFAULT_INCLUDE_DIRS` (always included) |
+| Root files | `AGENTS.md`, `README.md`, `LICENSE-*` | `_DEFAULT_INCLUDE_ROOT_FILES` (always included) |
+
+**Non-pack directories and root files are always included regardless of `config.package.include`.**
+
+### `config.package.include` semantics (D-3)
+
+When `catalogue.package.include` is non-empty in `catalogue.toml`, it is an explicit pack allowlist:
+
+- Each entry must be a relative path starting with `packs/` (e.g., `"packs/core"`).
+- Entries containing `..` components are rejected before any filesystem access.
+- Entries pointing to non-existent directories raise a clear error.
+- An empty `include = []` means include all packs — the default behavior.
+
+This lets operators ship partial catalogues: a `[catalogue.package] include = ["packs/core"]` archive contains only `packs/core/` plus the always-included non-pack dirs and root files.
+
+### `config.package.required` semantics (D-2)
+
+The default `_REQUIRED_PATHS` constant requires `LICENSE-APACHE` and `LICENSE-MIT` (in addition to `packs/` and `.claude-plugin/marketplace.json`). Enterprise operators with proprietary or single-file licenses can override this:
+
+- When `catalogue.package.required` is explicitly set and non-empty, it **replaces** `_REQUIRED_PATHS` entirely.
+- When `required` is absent or empty (the common case), `_REQUIRED_PATHS` applies unchanged.
+- This is a full replacement, not a merge — the operator owns the complete required-files contract when they override it.
+
+### 8-step staging + atomic placement sequence
+
+`package_catalogue()` never writes partial output. It uses a staged-then-renamed sequence:
+
+1. Pre-package `verify_catalogue` (full source-checkout pipeline)
+2. Load `catalogue.toml` config (include/required overrides, manifest metadata)
+3. Scan + validate content (allowlist, symlink/hardlink/traversal guards, pack.toml validity)
+4. Build archive bytes in memory
+5. Write staged `.tmp` archive + sidecar
+6. Self-verify the staged archive (`verify_archive`)
+7. Atomic rename archive and sidecar into place
+8. Write channel descriptor **last** (only after archive is verified and placed)
+
+Step 6 ensures the archive is structurally sound before it becomes visible. Step 8 ensures the channel descriptor never points to a partially-written or missing archive.
+
+### Config loading order
+
+`catalogue.toml` is loaded exactly once, immediately after `verify_catalogue` returns ok. Both the packaging behavior (include/required) and the manifest metadata (name, display-name, min-version) come from this single load. If config loading fails, all fields default to their safe fallbacks and the archive is built from defaults.
+
+---
+
+## Schema contract (`_data/catalogue.schema.json`, `contracts/catalogue.schema.json`)
+
+The `[catalogue.package]` section:
+
+- `include` — required, array of strings. Empty array = include all packs.
+- `required` — optional, array of strings. When present and non-empty, overrides `_REQUIRED_PATHS`; when absent or empty, `_REQUIRED_PATHS` applies.
+
+Both schema copies (`_data/` and `contracts/`) must stay identical. The `_data/` copy is bundled into the wheel; `contracts/` is the source-of-truth in the repo.
+
+---
+
+## Invariants
+
+- **Symlinks are always rejected.** No symlink — file, directory, or hardlink — enters the archive. This is checked at scan time (excluded) and validate time (error).
+- **Path traversal in `include` is rejected before any I/O.** The `..` check happens before any `os.walk` call.
+- **Archives are deterministic under `SOURCE_DATE_EPOCH`.** All timestamps, sort orders, and member metadata are fixed; identical inputs produce byte-identical archives.
+- **`catalogue.toml` is never included in the archive.** It is stripped from `file_bytes` before archiving even if `_scan_content` somehow collected it.
+- **Channel descriptor is written last.** A descriptor that exists always points to a valid, verified archive.
