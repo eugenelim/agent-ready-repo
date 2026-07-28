@@ -121,13 +121,18 @@ def test_all_candidates_miss_raises_with_seven_paths(upstream, monkeypatch):
     edits to `_USER_SCOPE_CAPABLE_ADAPTER_DIRS` are caught."""
     with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as proj:
         monkeypatch.setenv("HOME", str(Path(home)))
+        # On Windows, Path.home() reads USERPROFILE (not HOME); set both so
+        # the probe uses the controlled temp directory, not the real user home.
+        if sys.platform == "win32":
+            monkeypatch.setenv("USERPROFILE", str(Path(home)))
         monkeypatch.delenv("FLOW_METRICS_JIRA_SCRIPT", raising=False)
 
         with pytest.raises(upstream.UpstreamNotFoundError) as excinfo:
             upstream.discover_skill_path("jira", cwd=Path(proj))
 
-        # The error message names every candidate path.
-        msg = str(excinfo.value)
+        # The error message names every candidate path. Normalize separators
+        # so the assertion holds on Windows (backslash) and POSIX (slash) alike.
+        msg = str(excinfo.value).replace("\\", "/")
         # 3 user + 3 project = 6 adapter-rooted candidates plus 1 sibling.
         for adapter_dir in (".claude", ".kiro", ".agents"):
             assert f"{adapter_dir}/skills/jira" in msg, (

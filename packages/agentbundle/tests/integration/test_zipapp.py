@@ -16,6 +16,7 @@ These tests pin the two ship-time invariants for the zipapp:
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -59,7 +60,16 @@ def test_zipapp_list_targets_runs_standalone(zipapp_path: Path):
     """Smoke test that the zipapp's bundled registry surfaces the four
     reference adapters with no PYTHONPATH and no installed copy of
     agentbundle on the path."""
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin"}
+    # Restrict PATH to a Unix-only minimal set to verify the zipapp has no
+    # dependency on an installed agentbundle. On Windows sys.executable is
+    # passed directly so PATH doesn't matter for finding Python; we still
+    # need the Windows env vars (USERPROFILE, SYSTEMROOT, TEMP) so that
+    # Path.home() and tempfile work inside the subprocess.
+    if sys.platform == "win32":
+        env = {k: v for k, v in os.environ.items()
+               if k in ("USERPROFILE", "HOMEDRIVE", "HOMEPATH", "SYSTEMROOT", "TEMP", "TMP")}
+    else:
+        env = {"PATH": "/usr/bin:/bin:/usr/local/bin"}
     proc = subprocess.run(
         [sys.executable, str(zipapp_path), "list-targets"],
         capture_output=True,
