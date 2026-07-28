@@ -33,10 +33,22 @@ import tarfile
 import tempfile
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from agentbundle.catalogue import CatalogueError
+
+
+@dataclass
+class CatalogueArchiveResult:
+    """Provenance metadata returned alongside the extracted archive path."""
+
+    path: Path
+    artifact_uri: str | None = None
+    archive_sha256: str | None = None
+    source_revision: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Named safety limits (RFC-0072; all enforced regardless of Content-Length)
@@ -455,13 +467,17 @@ def _safe_extract(archive_path: Path, dest: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path:
-    """Fetch and extract a catalogue archive from a ``catalogue+https://`` or
-    ``archive+https://`` source URI.
+def fetch_catalogue_archive_with_provenance(
+    source_uri: str, *, env: dict | None = None
+) -> CatalogueArchiveResult:
+    """Fetch and extract a catalogue archive, returning path and provenance.
 
-    Returns the path to the extracted temp directory. The caller is responsible
-    for cleanup on success. On any failure, temp directories are cleaned up
-    before the ``CatalogueError`` is re-raised.
+    Returns a :class:`CatalogueArchiveResult` whose ``path`` is the extracted
+    temp directory and whose remaining fields record the resolved artifact URL,
+    the verified SHA-256, and the optional ``source_revision`` from the channel
+    descriptor. The caller is responsible for cleanup of ``result.path`` on
+    success. On any failure, temp directories are cleaned up before the
+    ``CatalogueError`` is re-raised.
 
     ``env`` defaults to ``os.environ``; injectable for testing (bearer token
     lookup). Note: proxy settings are always read from ``os.environ`` by
@@ -472,7 +488,6 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
     token = env.get("AGENTBUNDLE_HTTP_BEARER_TOKEN")
 
     if source_uri.startswith("catalogue+https://"):
-        # Strip the "catalogue+" prefix to get the actual HTTPS URL
         channel_url = source_uri[len("catalogue+"):]
         opener = _build_opener(token, channel_url, env=env)
 
@@ -488,7 +503,13 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
             )
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
-            return dest
+            _raw_rev = descriptor.get("source_revision")
+            return CatalogueArchiveResult(
+                path=dest,
+                artifact_uri=artifact_url,
+                archive_sha256=descriptor["sha256"],
+                source_revision=_raw_rev if isinstance(_raw_rev, str) else None,
+            )
         except Exception:
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
@@ -498,7 +519,6 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
             raise
 
     elif source_uri.startswith("archive+https://"):
-        # Strip "archive+" prefix, extract sha256 from fragment
         archive_url_with_fragment = source_uri[len("archive+"):]
         parsed = urlsplit(archive_url_with_fragment)
         fragment = parsed.fragment
@@ -507,7 +527,6 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
                 "archive+https:// URL must have #sha256=<64hex> fragment"
             )
         expected_sha256 = fragment[len("sha256="):]
-        # Remove fragment from URL for actual request
         archive_url = urlunsplit(parsed._replace(fragment=""))
         opener = _build_opener(token, archive_url, env=env)
 
@@ -517,7 +536,12 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
             archive_path = _stream_and_verify(archive_url, expected_sha256, opener, _HTTP_TIMEOUT)
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
-            return dest
+            return CatalogueArchiveResult(
+                path=dest,
+                artifact_uri=archive_url,
+                archive_sha256=expected_sha256,
+                source_revision=None,
+            )
         except Exception:
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
@@ -530,3 +554,12 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
         raise CatalogueError(
             f"https_catalogue: unsupported scheme in {source_uri!r}"
         )
+
+
+def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path:
+    """Backward-compatible wrapper; returns only the extracted archive path.
+
+    Prefer :func:`fetch_catalogue_archive_with_provenance` when provenance
+    metadata (artifact URI, SHA-256, source revision) is needed.
+    """
+    return fetch_catalogue_archive_with_provenance(source_uri, env=env).path

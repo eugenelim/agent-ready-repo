@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     import argparse
 
     from agentbundle.config import State
+    from agentbundle.https_catalogue import CatalogueArchiveResult
     from agentbundle.safety import Tier
     from agentbundle.user_config import UserConfig
 
@@ -271,11 +272,26 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     # ── Step 1: Resolve catalogue + locate + spec gate ────────────────────────
-    try:
-        catalogue_dir = resolve_catalogue(catalogue_uri)
-    except CatalogueError as exc:
-        print(f"install: {exc}", file=sys.stderr)
-        return 1
+    # For catalogue+https:// and archive+https:// sources, call the provenance-
+    # aware fetcher directly so artifact_uri / archive_sha256 / source_revision
+    # can be recorded in PackState. For all other source types, fall through to
+    # resolve_catalogue (which returns only a Path).
+    _https_provenance: CatalogueArchiveResult | None = None
+    if catalogue_uri.startswith(("catalogue+https://", "archive+https://")):
+        from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+        try:
+            _archive_result = fetch_catalogue_archive_with_provenance(catalogue_uri)
+            catalogue_dir = _archive_result.path
+            _https_provenance = _archive_result
+        except CatalogueError as exc:
+            print(f"install: {exc}", file=sys.stderr)
+            return 1
+    else:
+        try:
+            catalogue_dir = resolve_catalogue(catalogue_uri)
+        except CatalogueError as exc:
+            print(f"install: {exc}", file=sys.stderr)
+            return 1
 
     # Load catalogue.toml for operator-declared user-dir (RFC-0074 / ADR-0058).
     # Absent catalogue.toml → user_dir stays at the default "~/.agentbundle".
@@ -1135,6 +1151,13 @@ def run(args: argparse.Namespace) -> int:
             # RFC-0074 / ADR-0058: write user-root from catalogue.user-dir so
             # pack_dir() can resolve the correct user-scope directory at runtime.
             user_root=_catalogue_user_dir,
+            artifact_uri=_https_provenance.artifact_uri if _https_provenance is not None else None,
+            archive_sha256=(
+                _https_provenance.archive_sha256 if _https_provenance is not None else None
+            ),
+            source_revision=(
+                _https_provenance.source_revision if _https_provenance is not None else None
+            ),
         )
 
         for relpath, content in sorted(projection.items()):

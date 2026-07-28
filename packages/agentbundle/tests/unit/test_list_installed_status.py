@@ -539,13 +539,14 @@ def test_json_row_all_fields_present():
 
 
 def test_json_row_exact_key_set():
-    """Each row has exactly nine contract keys; no internal keys."""
+    """Each row has the expected contract keys; no internal keys."""
     row = _make_row(status="up-to-date", available_version="1.0.0")
     out = li._render_json([row], [], scope_val="all", updates_only=False, check=True)
     result = json.loads(out)
     expected_keys = {
         "pack", "adapter", "scope", "source", "installed_version",
         "available_version", "status", "status_reason", "drift_count",
+        "artifact_uri", "archive_sha256", "source_revision",
     }
     for r in result["rows"]:
         assert set(r.keys()) == expected_keys

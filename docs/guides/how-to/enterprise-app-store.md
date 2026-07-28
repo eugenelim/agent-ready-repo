@@ -116,6 +116,24 @@ For automated packaging in CI:
 Never embed production Artifactory URLs, credentials, or bearer tokens in workflow YAML. Use
 secrets or a credentials broker.
 
+## Installed provenance
+
+After installation from an Artifactory source, each pack row in
+`.agentbundle-state.toml` includes three provenance fields:
+
+| Field | Description |
+|---|---|
+| `artifact-uri` | The exact archive URL resolved at install time |
+| `archive-sha256` | Hex SHA-256 of the fetched archive, verified before extraction |
+| `source-revision` | Source revision recorded in the channel descriptor, if the publisher included it (e.g. the Git SHA passed via `--source-revision` in CI) |
+
+These fields are also exposed in `agentbundle list-installed --format json` under
+`artifact_uri`, `archive_sha256`, and `source_revision` on each row.
+
+Operators can correlate any installed pack to a specific archive artifact in
+Artifactory for audit or incident response. Packs installed from a local directory
+source omit all three fields.
+
 ## Environment variables
 
 | Variable | Description |

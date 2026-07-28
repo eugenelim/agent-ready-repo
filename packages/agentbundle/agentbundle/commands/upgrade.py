@@ -40,6 +40,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
+    from agentbundle.https_catalogue import CatalogueArchiveResult
     from agentbundle.user_config import UserConfig
 
 from agentbundle import safety
@@ -108,6 +109,11 @@ class _BulkRow:
     _projection: dict | None = None      # dict[str, bytes] | None
     allowed_prefixes: list | None = None  # list[str] | None
     resolved_adapter: str | None = None  # repo scope only
+
+    # provenance captured from catalogue+https:// / archive+https:// fetches
+    artifact_uri: str | None = None
+    archive_sha256: str | None = None
+    source_revision: str | None = None
 
     # set during apply
     outcome: str = "planned"
@@ -232,15 +238,29 @@ def _run_source_version_preflight(
             continue
 
         if cs not in source_resolution_map:
-            try:
-                cat_dir = resolve_catalogue(cs)
-                source_resolution_map[cs] = (cat_dir, None, None)
-            except CatalogueError as exc:
-                source_resolution_map[cs] = (
-                    None, "catalogue-error", _redact_credentials(str(exc))
-                )
+            if cs.startswith(("catalogue+https://", "archive+https://")):
+                from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+                try:
+                    _ar = fetch_catalogue_archive_with_provenance(cs)
+                    source_resolution_map[cs] = (
+                        _ar.path, None, None,
+                        _ar.artifact_uri, _ar.archive_sha256, _ar.source_revision,
+                    )
+                except CatalogueError as exc:
+                    source_resolution_map[cs] = (
+                        None, "catalogue-error", _redact_credentials(str(exc)),
+                        None, None, None,
+                    )
+            else:
+                try:
+                    cat_dir = resolve_catalogue(cs)
+                    source_resolution_map[cs] = (cat_dir, None, None, None, None, None)
+                except CatalogueError as exc:
+                    source_resolution_map[cs] = (
+                        None, "catalogue-error", _redact_credentials(str(exc)), None, None, None
+                    )
 
-        cat_dir, _err_code, _err_msg = source_resolution_map[cs]
+        cat_dir, _err_code, _err_msg, _art_uri, _arc_sha, _src_rev = source_resolution_map[cs]
         if cat_dir is None:
             row.status = "unknown"
             row.status_reason = "source-unavailable"
@@ -253,6 +273,9 @@ def _run_source_version_preflight(
             continue
         row.pack_dir = pack_dir
         row.catalogue_dir = cat_dir
+        row.artifact_uri = _art_uri
+        row.archive_sha256 = _arc_sha
+        row.source_revision = _src_rev
 
         try:
             pack_toml = load_pack_toml(pack_dir / "pack.toml")
@@ -568,6 +591,9 @@ def _apply_single_row(
         pack_state.installed_version = to_version  # type: ignore[attr-defined]
         if row.canonical_source is not None:
             pack_state.source = row.canonical_source  # type: ignore[attr-defined]
+        pack_state.artifact_uri = row.artifact_uri  # type: ignore[attr-defined]
+        pack_state.archive_sha256 = row.archive_sha256  # type: ignore[attr-defined]
+        pack_state.source_revision = row.source_revision  # type: ignore[attr-defined]
 
     state_toml_content = dump_state(state)  # type: ignore[arg-type]
     state_relpath = state_path.relative_to(root).as_posix()
@@ -622,7 +648,8 @@ def _build_json_doc(
         if cs is None:
             continue
         if cs not in sources_seen:
-            cat_dir, error_code, error_message = source_resolution_map.get(cs, (None, None, None))
+            _default = (None, None, None, None, None, None)
+            cat_dir, error_code, error_message = source_resolution_map.get(cs, _default)[:3]
             sources_seen[cs] = {
                 "source": cs,
                 "resolved": cat_dir is not None,
@@ -1027,11 +1054,22 @@ def run(args: argparse.Namespace) -> int:
     is_per_primitive = prim_flag is not None
 
     # ── Resolve catalogue ─────────────────────────────────────────────────────
-    try:
-        catalogue_dir = resolve_catalogue(catalogue_uri)
-    except CatalogueError as exc:
-        print(f"upgrade: {exc}", file=sys.stderr)
-        return 1
+    _https_provenance: CatalogueArchiveResult | None = None
+    if catalogue_uri.startswith(("catalogue+https://", "archive+https://")):
+        from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+        try:
+            _archive_result = fetch_catalogue_archive_with_provenance(catalogue_uri)
+            catalogue_dir = _archive_result.path
+            _https_provenance = _archive_result
+        except CatalogueError as exc:
+            print(f"upgrade: {exc}", file=sys.stderr)
+            return 1
+    else:
+        try:
+            catalogue_dir = resolve_catalogue(catalogue_uri)
+        except CatalogueError as exc:
+            print(f"upgrade: {exc}", file=sys.stderr)
+            return 1
 
     # ── Locate pack dir ───────────────────────────────────────────────────────
     pack_dir = _locate_pack(catalogue_dir, pack_name)
@@ -1385,6 +1423,13 @@ def run(args: argparse.Namespace) -> int:
         available_version=to_version,
         _projection=work_projection,
         allowed_prefixes=allowed_prefixes,
+        artifact_uri=_https_provenance.artifact_uri if _https_provenance is not None else None,
+        archive_sha256=(
+            _https_provenance.archive_sha256 if _https_provenance is not None else None
+        ),
+        source_revision=(
+            _https_provenance.source_revision if _https_provenance is not None else None
+        ),
     )
     _success, companions = _apply_single_row(_single_row, state, state_path, root, args)
     if not _success:
