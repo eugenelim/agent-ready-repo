@@ -218,7 +218,7 @@ def test_non_credbroker_import_error_is_reraised(tmp_path):
 
 
 def test_setup_imports_credbroker_not_shim_nor_private():
-    src = pathlib.Path(setup.__file__).read_text(encoding="utf-8")
+    src = pathlib.Path(setup.__file__).read_text()
     tree = ast.parse(src)
     target = "credentials" + "_shim"
     imported_credbroker = False

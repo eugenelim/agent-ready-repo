@@ -45,6 +45,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# credential-brokers is a protected pack (Engine-Change-RFC required for edits).
+# PLW1514 suppressed here; Python source files are always UTF-8 (PEP 3120) so
+# the missing encoding= on read_text() is benign and not worth a governance PR.
+"packs/credential-brokers/**" = ["PLW1514"]
 # CLI tools and lint scripts use print() as their output mechanism
 "tools/**" = ["T201", "T203"]
 "tools/*.py" = ["T201", "T203"]
