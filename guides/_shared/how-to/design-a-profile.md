@@ -69,7 +69,7 @@ Scope choice is obvious from the persona: user, because the work is cross-repo.
 
 ### `full-ceremony` (repo scope)
 
-Packs: `core`, `governance-extras`, `user-guide-diataxis`, `monorepo-extras`.
+Packs: `core`, `governance-extras`, `product-documentation`, `monorepo-extras`.
 
 A team that wants the full coordination and governance discipline in one install.
 All four packs are repo-scope — they write to the repo (spec files, ADRs, RFCs, guide structure, workspace state).

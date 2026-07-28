@@ -1,12 +1,12 @@
 ---
-name: User Guide (Diátaxis)
+name: User Guide (Diátaxis) — Deprecated
 scope: repo
-tagline: "Diátaxis-shaped documentation skeleton."
+tagline: "Deprecated compatibility shim. Install product-documentation instead."
 skills:
   - new-guide
-installCommand: "agentbundle install --pack user-guide-diataxis"
-docsUrl: /guides/user-guide-diataxis/
-journeyUrl: /journeys/user-guide-diataxis/
+installCommand: "agentbundle install --pack product-documentation"
+docsUrl: /guides/product-documentation/
+journeyUrl: /journeys/product-documentation/
 ---
 
-User Guide (Diátaxis) installs a `guides/` skeleton shaped to the Diátaxis framework: separate directories for tutorials, how-to guides, reference, and explanation. The `new-guide` skill scaffolds a new guide document in the correct Diátaxis category. Repo-scope by default — documentation structure is per-project.
+**Deprecated.** `user-guide-diataxis` is now a compatibility shim that depends on `product-documentation`. Install `product-documentation` directly for all new work. The `author-product-docs` skill replaces `new-guide` and supports five modes: create, revise, retrofit, audit, and verify.

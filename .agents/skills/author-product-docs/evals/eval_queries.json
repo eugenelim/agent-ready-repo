@@ -1,0 +1,24 @@
+[
+  {"query": "Write a how-to guide for rotating an expired credential before the next deploy", "should_trigger": true},
+  {"query": "Create a getting-started tutorial that walks a new user through their first workflow", "should_trigger": true},
+  {"query": "Revise this pack README so it leads with what the user can accomplish instead of a skill list", "should_trigger": true},
+  {"query": "Audit these docs for inventory-first writing and stale behavior claims", "should_trigger": true},
+  {"query": "Retrofit the onboarding guides so they connect into a coherent first-value journey", "should_trigger": true},
+  {"query": "Verify the installation how-to still matches what the current version of the pack actually does", "should_trigger": true},
+  {"query": "Add an explanation page about why the pack uses repo scope by default", "should_trigger": true},
+  {"query": "Write the pack journey for the architect pack — from first request to completed diagram", "should_trigger": true},
+  {"query": "Improve the pack README for the desk-research pack to lead with outcomes", "should_trigger": true},
+  {"query": "Create a reference page documenting every parameter the skill accepts and its default behavior", "should_trigger": true},
+
+  {"query": "Write a spec for the new CSV export feature before we build it", "should_trigger": false},
+  {"query": "Draft an RFC proposing we reorganize our documentation structure", "should_trigger": false},
+  {"query": "Record the ADR for why we chose Markdown over reStructuredText", "should_trigger": false},
+  {"query": "Document the CI pipeline for contributors working on the agentbundle codebase", "should_trigger": false},
+  {"query": "Write the empty-state and error microcopy for the upload screen", "should_trigger": false},
+  {"query": "Do a market analysis and build the product strategy for Q3", "should_trigger": false},
+  {"query": "Fix the broken link in the installation guide", "should_trigger": false},
+  {"query": "Build the frontend component that renders the pack catalogue page", "should_trigger": false},
+  {"query": "Write a blog post announcing the new product-documentation pack", "should_trigger": false},
+  {"query": "Add docstrings to every function in the installer module", "should_trigger": false},
+  {"query": "Write the incident runbook for restarting the queue worker after an OOM crash", "should_trigger": false}
+]

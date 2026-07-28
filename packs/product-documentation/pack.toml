@@ -1,0 +1,42 @@
+[pack]
+name = "product-documentation"
+version = "0.1.0"
+description = "Create, revise, retrofit, audit, and verify catalogue-facing product documentation. Supports Diátaxis as a page contract (not a mandatory folder scaffold). Portable across adopter repositories."
+readme = "README.md"
+display_name = "Product Documentation"
+license = "Apache-2.0 OR MIT"
+categories = ["documentation"]
+keywords = ["documentation", "diataxis", "product-docs", "guides", "tutorials"]
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["user", "repo"]
+
+[pack.evals]
+skills = ["author-product-docs"]
+
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-documentation/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
+
+[pack.first-value]
+audience-posture = "non-technical"
+surfaces         = ["claude-code"]
+prerequisites    = []
+verification     = "Ask the agent to write a how-to guide for [task]. It should state mode, audience, and artifact type, then draft a task-first guide."
+recovery         = "If the skill does not activate, confirm product-documentation is installed and try: 'Create a guide explaining how to [specific task].'"
+level-b          = true
+writes-to-repo   = true
+starter-task     = "Create or improve product documentation"
+starter-prompt   = "Write a how-to guide explaining how to [your most common user task]."
+expected-result  = "A documentation plan stating mode, audience, and artifact type, followed by a task-first guide draft ready for review."
+next-action      = "Review the draft. Ask the agent to create a companion explanation page or improve the pack README."
+safety-gate      = "For create, revise, and retrofit modes, the skill shows its documentation contract (mode, audience, artifact) before writing. You confirm before any files change."

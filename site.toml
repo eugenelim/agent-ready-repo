@@ -29,7 +29,7 @@ packs = [
 
 [[groups]]
 label = "Content and design"
-packs = ["experience-design", "user-guide-diataxis", "converters"]
+packs = ["experience-design", "product-documentation", "converters"]
 
 [[groups]]
 label = "Catalogue operations"

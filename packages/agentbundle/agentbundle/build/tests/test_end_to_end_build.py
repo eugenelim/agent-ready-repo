@@ -22,7 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 FIXTURES_PACKS = (
     Path(__file__).resolve().parent / "fixtures" / "packs"
 )
-REFERENCE_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
+REFERENCE_PACKS = ("core", "governance-extras", "product-documentation", "user-guide-diataxis", "monorepo-extras")
 
 
 def _run_build(args: list[str]) -> subprocess.CompletedProcess[str]:

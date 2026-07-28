@@ -56,4 +56,4 @@ buttons, destructive confirmations — and fix the misses.
 
 **Not documentation prose.** This skill shapes the words *inside the product*. For
 writing the *docs* about your product, the clear-prose craft lives in the
-`user-guide-diataxis` pack's `new-guide` skill — a different artifact and audience.
+`product-documentation` pack's `author-product-docs` skill — a different artifact and audience.

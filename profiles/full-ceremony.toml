@@ -19,7 +19,7 @@ pack = "core"
 pack = "governance-extras"
 
 [[packs]]
-pack = "user-guide-diataxis"
+pack = "product-documentation"
 
 [[packs]]
 pack = "monorepo-extras"

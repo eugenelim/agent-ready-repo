@@ -5,8 +5,8 @@ Per `dropped-primitives-coverage` AC12, eight packs bumped to v0.8:
 
   - atlassian, figma, converters, contracts (the four credentialed /
     consumer packs).
-  - core, governance-extras, user-guide-diataxis, monorepo-extras (the
-    four scaffold packs).
+  - core, governance-extras, product-documentation, user-guide-diataxis,
+    monorepo-extras (the scaffold / documentation packs).
 
 The `research` pack (shipped later by the `research-pack` spec) also
 declared v0.8 at birth. A future pack landing at v0.8 should add itself to
@@ -48,6 +48,7 @@ V08_PACKS = (
     "governance-extras",
     "linear",
     "monorepo-extras",
+    "product-documentation",
     "user-guide-diataxis",
 )
 

@@ -1,0 +1,43 @@
+{
+  "skill_name": "author-product-docs",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create or revise product documentation following the five-mode authoring procedure.",
+      "expected_output": "A documentation artifact that: inspects canonical behavior (pack.toml, skill sources) before drafting; establishes a documentation contract (mode, audience, artifact, page kind) before writing body content; assigns exactly one Diátaxis page kind by reader posture; is task-first — puts a copyable first request within the first 120 words; does not hardcode catalogue-specific paths; updates only the minimum useful artifact set (default: one); is written in second person, active voice, present tense with no inventory-first opening. For audit mode: produces findings without editing. For verify mode: confirms against canonical sources and states what was verified.",
+      "assertions": [
+        "Inspects pack.toml or skill sources before claiming product behavior — does not invent capabilities",
+        "States mode, audience, and artifact type before drafting (or infers them and names the inference)",
+        "Assigns exactly one Diátaxis page kind by reader posture, not by topic",
+        "First actionable example or copyable request appears within the first 120 words of the artifact",
+        "Does not open the artifact with a skill, command, or pack inventory",
+        "Read/write boundary is explicit — the reader knows what the skill reads vs. may change",
+        "At least one realistic follow-up request is shown",
+        "Does not hardcode docs/guides/ or guides/ as an absolute destination — inspects host layout",
+        "Does not create empty category directories (no four empty quadrant folders)",
+        "Creates the minimum useful artifact — does not produce one page of every Diátaxis kind without need",
+        "Cross-links point only to artifacts that exist or are created in the same change"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Distinguish strong product documentation output from weak scaffolded output.",
+      "expected_output": "Strong output: inspects canonical source behavior before writing; establishes mode and audience contract; produces exactly the minimum artifact the request requires (default one); task-first structure with a copyable example before 120 words; reader-language before implementation names; explicit read/write boundary; names likely follow-up. Weak output: creates four empty quadrant directories; writes to docs/guides/ even when audience is external; opens with a skill or command inventory; asks for confirmation before drafting when request and sources are clear; creates one tutorial + one how-to + one reference + one explanation without any user need for all four; pack landing page is an inventory list rather than job cards; claims rendered verification without running the renderer; links to sibling pages that do not exist.",
+      "assertions": [
+        "Strong: sources inspected before claims made; mode and audience contract stated",
+        "Strong: minimum artifact produced — not one of every Diátaxis kind",
+        "Strong: task-first structure with example within first 120 words",
+        "Strong: read/write boundary named; follow-up request shown",
+        "Weak: four empty quadrant directories created without content",
+        "Weak: catalogue-facing content written to docs/guides/ (internal tree) rather than guides/<pack>/",
+        "Weak: folder-first reasoning (picks folder before considering user job)",
+        "Weak: mandatory gate before drafting when request and sources are unambiguous",
+        "Weak: inventory-first pack landing (opens with skill list, not what the user can accomplish)",
+        "Weak: invented behavior (claims the skill does something pack.toml does not declare)",
+        "Weak: cross-links to nonexistent sibling pages",
+        "Weak: edits rendered output (docs-site built artifacts) rather than source files",
+        "Weak: claims rendered verification that never ran"
+      ]
+    }
+  ]
+}

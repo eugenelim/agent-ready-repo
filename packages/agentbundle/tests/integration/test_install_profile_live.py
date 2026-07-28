@@ -59,7 +59,7 @@ def test_full_ceremony_installs_at_repo_scope(tmp_path):
     assert rc == 0, f"full-ceremony install failed: {err}"
 
     state = load_state(target / ".agentbundle-state.toml")
-    for name in ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras"):
+    for name in ("core", "governance-extras", "product-documentation", "monorepo-extras"):
         assert state.has_pack(name), f"{name} missing; summary:\n{out}\nstderr:\n{err}"
         ps = state.row(name, "claude-code")
         assert ps is not None, f"{name}/claude-code row missing"

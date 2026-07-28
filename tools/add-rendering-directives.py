@@ -186,8 +186,8 @@ SKILLS: dict[str, list[str]] = {
     "github-brief-intake":          ["table"],
     # figma
     "figma":                        ["table", "key-value", "mermaid"],
-    # user-guide-diataxis
-    "new-guide":                    ["narrative", "key-value"],
+    # product-documentation
+    "author-product-docs":          ["narrative", "key-value"],
     # frontend-engineering (additional)
     "fe-performance":               ["table", "severity-list", "key-value"],
     "component-contract":           ["table", "key-value", "narrative"],

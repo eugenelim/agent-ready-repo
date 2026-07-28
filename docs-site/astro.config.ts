@@ -480,19 +480,20 @@ export default defineConfig({
               ],
             },
             {
-              label: 'User Guide (Diataxis)',
+              label: 'Product Documentation',
               items: [
-                { label: 'Overview', slug: 'guides/user-guide-diataxis' },
+                { label: 'Overview', slug: 'guides/product-documentation' },
                 {
                   label: 'Explanation',
                   items: [
-                    { label: 'The Diataxis Framework', slug: 'guides/user-guide-diataxis/explanation/the-diataxis-framework' },
+                    { label: 'The Diataxis Framework', slug: 'guides/product-documentation/explanation/the-diataxis-framework' },
                   ],
                 },
                 {
                   label: 'How-to',
                   items: [
-                    { label: 'Write a Guide', slug: 'guides/user-guide-diataxis/how-to/write-a-guide' },
+                    { label: 'Author Product Docs', slug: 'guides/product-documentation/how-to/author-product-docs' },
+                    { label: 'Write a Guide', slug: 'guides/product-documentation/how-to/write-a-guide' },
                   ],
                 },
               ],

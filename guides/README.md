@@ -64,7 +64,7 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | [`linear`](linear/) | [home](linear/) | Linear Issues and Projects — `linear` credentialed CLI plus `linear-brief-intake` (issue → product brief) and `linear-brief-sync` (delta catch-up). |
 | [`governance-extras`](governance-extras/) | [home](governance-extras/) | A written trail for decisions — `new-rfc`, `new-adr`, `update-conventions`. |
 | [`monorepo-extras`](monorepo-extras/) | [home](monorepo-extras/) | Monorepo scaffolding — `new-package` and a package template. |
-| [`user-guide-diataxis`](user-guide-diataxis/) | [home](user-guide-diataxis/) | The docs skeleton — Diátaxis quadrants plus `new-guide`. |
+| [`product-documentation`](product-documentation/) | [home](product-documentation/) | Product documentation — `author-product-docs` with five modes (create, revise, retrofit, audit, verify). Diátaxis as a page contract, no folder scaffold. |
 
 ---
 
@@ -89,7 +89,7 @@ Within every pack (and within `_shared/`), guides are sorted into the four Diát
 | **Learning** (acquiring a skill) | **tutorials/** — *lessons.* "Take me through it from the start." | **explanation/** — *discussions.* "Help me understand why." |
 | **Task** (getting something done) | **how-to/** — *recipes.* "Help me solve this specific problem." | **reference/** — *information.* "Tell me exactly what this does." |
 
-The discipline that makes it work is **link out**: when a tutorial wants to explain *why*, it links to an explanation instead of digressing; when a how-to wants to list every option, it links to the reference. Each quadrant's writing rules live in the per-quadrant READMEs under [`_shared/`](_shared/) — read the matching one before you write a guide (or just run `new-guide`, which walks you there).
+The discipline that makes it work is **link out**: when a tutorial wants to explain *why*, it links to an explanation instead of digressing; when a how-to wants to list every option, it links to the reference. Each quadrant's writing rules live in the per-quadrant READMEs under [`_shared/`](_shared/) — read the matching one before you write a guide (or just run `author-product-docs`, which walks you there).
 
 ## How this fits with the rest of the repo
 

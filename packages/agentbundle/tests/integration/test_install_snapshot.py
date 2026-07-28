@@ -1,7 +1,7 @@
 """First-install snapshot test (RFC-0002 amendment 2026-05-25, item (e)).
 
-For each pack with seeds (`core`, `governance-extras`,
-`user-guide-diataxis`, `monorepo-extras`), this test runs
+For each pack with seeds (`core`, `governance-extras`, `monorepo-extras`),
+this test runs
 `agentbundle scaffold` against the real pack into a fresh tempdir
 and verifies two contracts that together close the seed scaffold
 leak:
@@ -76,7 +76,9 @@ SENTINEL_RE = re.compile(
     r"^\s*<!--\s*seed-content-lint-ignore:\s*([^>]+?)\s*-->\s*$"
 )
 
-PACKS_WITH_SEEDS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
+PACKS_WITH_SEEDS = ("core", "governance-extras", "monorepo-extras")
+# user-guide-diataxis (0.3.0) is a deprecated compat shim with no seeds.
+# product-documentation has no seeds by design (Diátaxis as page contract, not scaffold).
 
 
 def _scaffold_pack(pack_name: str, tmp_path: Path) -> Path:
