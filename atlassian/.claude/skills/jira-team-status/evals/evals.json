@@ -1,0 +1,227 @@
+{
+  "skill_name": "jira-team-status",
+  "evals": [
+    {
+      "id": 1,
+      "fixture": "one-project-one-page",
+      "prompt": "Show the team status for ATLAS sprint 12. Start read-only.",
+      "context": "8 items in ATLAS sprint 12: ATLAS-201 (To Do, ready description, Quick), ATLAS-202 (To Do, ready description, Standard), ATLAS-206 (To Do, empty description), ATLAS-211 (In Progress, assigned), ATLAS-215 (In Progress, Flagged=blocked), ATLAS-219 (To Do, TBD description), ATLAS-220 (To Do, ready, unassigned), ATLAS-225 (Done, skip).",
+      "expected_output": "Header block first: scope = ATLAS sprint 12, coverage = Complete — 7 open items, Jira not changed, summary counts before sections. §1 Ready to pull: ATLAS-201 (Quick), ATLAS-202 (Standard), ATLAS-220 (Quick, unassigned). §2 Needs story work: ATLAS-206 (empty description), ATLAS-219 (TBD description). §3 Blocked: ATLAS-215 (Flagged). §4 In progress: ATLAS-211. Cross-cutting: ATLAS-220 unassigned. Recommended next candidates with reasons. Follow-up actions pointing to jira-story-triage for §2 items.",
+      "assertions": [
+        "Header block (scope, coverage, Jira-not-changed confirmation, summary counts) appears before any grouped section",
+        "Coverage statement says 'Complete — 7 open items' (ATLAS-225 Done is excluded)",
+        "ATLAS-201 and ATLAS-202 appear in §1 Ready to pull with complexity labels",
+        "ATLAS-206 appears in §2 Needs story work with reason 'empty description'",
+        "ATLAS-219 appears in §2 Needs story work (TBD description fails minimum-definition clause)",
+        "ATLAS-215 appears in §3 Blocked with Flagged signal noted",
+        "ATLAS-211 appears in §4 In progress",
+        "ATLAS-220 appears in §1 and in the Unassigned cross-cutting flag",
+        "Recommended next candidates section names at least one item with an explicit reason (not just Jira rank)",
+        "Follow-up actions mention jira-story-triage for ATLAS-206 and ATLAS-219",
+        "Agent does not change any Jira field"
+      ]
+    },
+    {
+      "id": 2,
+      "fixture": "multiple-projects",
+      "prompt": "Show the team backlog for projects APP and API in sprint 24.",
+      "context": "APP sprint 24: 6 items across statuses. API sprint 24: 5 items across statuses. Total 11 open items. One API item has a cross-project dependency block on APP-215.",
+      "expected_output": "Header block: scope = APP, API sprint 24, coverage = Complete — 11 items across 2 projects. Items from both projects grouped into §1–§4. Cross-project dependency risk flagged in risks section (API item blocked by APP-215). Summary counts include items from both projects.",
+      "assertions": [
+        "Header block names both projects (APP and API) in the scope line",
+        "Coverage statement covers both projects in a single completeness statement",
+        "Items from both APP and API appear in the grouped sections",
+        "Cross-project dependency risk appears in the risks / data-quality gaps section",
+        "Agent does not treat the two projects' items as independent runs; they are unified in one output"
+      ]
+    },
+    {
+      "id": 3,
+      "fixture": "more-than-100-issues",
+      "prompt": "Show the full DEVKIT backlog — everything the team can work on.",
+      "context": "DEVKIT has 137 open backlog items. Cloud instance (no total field available until all pages fetched). Configured cap: none. Fetching proceeds to completion: 137 items retrieved in 2 pages.",
+      "expected_output": "Coverage statement: 'Complete — 137 items (2 pages)'. All items grouped. No claim of '100 items — total unknown'; the full paginated result is reported.",
+      "assertions": [
+        "Coverage statement reports the actual full count (137 items) after pagination completes",
+        "Coverage statement does not say 'truncated at 100' or imply the result is a 100-item cap",
+        "Agent did not stop at 100 items and present a partial result as complete",
+        "If Cloud, coverage notes the number of pages fetched"
+      ]
+    },
+    {
+      "id": 4,
+      "fixture": "ambiguous-team-scope",
+      "prompt": "Show me the Team Atlas backlog.",
+      "context": "Two possible Atlas scopes: (1) Atlas Jira board (board ID 42, contains 15 issues), (2) issues where Team custom field = 'Atlas' (returns 23 issues, different set). No prior context to disambiguate.",
+      "expected_output": "Agent asks exactly one compact clarification: 'I found two possible Atlas scopes: 1. The Atlas Jira board (15 issues) 2. Issues whose Team field is Atlas (23 issues) — Which should I use?' Agent does not guess; does not return results before the user answers.",
+      "assertions": [
+        "Agent asks a compact disambiguation question before fetching results",
+        "Agent names both scopes with enough detail to distinguish them",
+        "Agent does not pick one scope silently without asking",
+        "Agent does not ask multiple follow-up questions; one compact question covers the ambiguity"
+      ]
+    },
+    {
+      "id": 5,
+      "fixture": "permission-limited-scope",
+      "prompt": "Show the backlog for the INTERNAL board.",
+      "context": "User has read access to 2 of 3 projects on the INTERNAL board. One project (PRIV) returns 403 on search. 14 items accessible from PROJ1 and PROJ2.",
+      "expected_output": "Coverage statement: 'Permission-limited — 14 items accessible (PRIV project returned 403 — inaccessible)'. Items from PROJ1 and PROJ2 grouped normally. Output does not claim to represent the complete INTERNAL board.",
+      "assertions": [
+        "Coverage statement names the inaccessible project (PRIV) and its reason (403)",
+        "Output does not claim 'complete' or 'whole backlog' when one project was inaccessible",
+        "Items from accessible projects are still grouped and presented",
+        "Agent does not infer data from inaccessible projects"
+      ]
+    },
+    {
+      "id": 6,
+      "fixture": "no-open-sprint",
+      "prompt": "What can the ALPHA team work on next?",
+      "context": "ALPHA project has no open sprint. Open backlog items: 9 items with statusCategory = To Do.",
+      "expected_output": "Agent notes: 'No active sprint found for ALPHA — showing the open backlog (statusCategory != Done).' Header block reflects backlog scope. Items grouped by team-readiness rule. Coverage: Complete — 9 items.",
+      "assertions": [
+        "Agent notes the absence of an active sprint explicitly",
+        "Agent falls back to the open backlog (not sprint scope)",
+        "Coverage statement reflects the backlog scope, not a sprint",
+        "Items are still grouped by team-readiness categories"
+      ]
+    },
+    {
+      "id": 7,
+      "fixture": "empty-backlog",
+      "prompt": "Show the team status for EMPTY sprint 1.",
+      "context": "EMPTY project sprint 1 exists but contains 0 open items (all Done).",
+      "expected_output": "Header block: scope = EMPTY sprint 1, coverage = Complete — 0 open items, Jira not changed. All sections emit 'None in this scope.' Agent does not claim it couldn't retrieve results; it confirms the sprint exists and is empty.",
+      "assertions": [
+        "Coverage statement says '0 open items' (not an error or 'no results')",
+        "All grouped sections (§1–§5) emit 'None in this scope' headers",
+        "Agent confirms Jira was not changed",
+        "Agent does not claim a retrieval error or auth failure"
+      ]
+    },
+    {
+      "id": 8,
+      "fixture": "blocked-and-in-progress-overlap",
+      "prompt": "Team status for PLATFORM sprint 8.",
+      "context": "PLATFORM-301: statusCategory = In Progress AND Flagged = true (blocked while in progress). PLATFORM-302: statusCategory = In Progress, not blocked, unassigned.",
+      "expected_output": "PLATFORM-301 appears in §3 Blocked (Blocked takes precedence over In Progress per the precedence rule). PLATFORM-302 appears in §4 In Progress. Both appear in cross-cutting: PLATFORM-302 in Unassigned. Output header notes 2 in-progress and 1 blocked.",
+      "assertions": [
+        "PLATFORM-301 appears in §3 Blocked, NOT in §4 In Progress (precedence: Blocked > In Progress)",
+        "PLATFORM-302 appears in §4 In Progress",
+        "PLATFORM-302 appears in the Unassigned cross-cutting flag (unassigned + in-progress)",
+        "Summary counts reflect: Blocked=1, In progress=1 (not 2 in-progress)"
+      ]
+    },
+    {
+      "id": 9,
+      "fixture": "unassigned-ready-work",
+      "prompt": "Are there any unassigned items ready to pick up in PROJ sprint 5?",
+      "context": "PROJ sprint 5: 3 ready-to-pull items (all unassigned), 2 in-progress items (1 assigned, 1 unassigned), 1 blocked (unassigned).",
+      "expected_output": "§1 shows 3 ready items, all flagged as unassigned. Cross-cutting unassigned list includes all 5 unassigned items across groups. Summary distinguishes Unassigned (5) from Ready (3). Recommended next candidates include all 3 ready unassigned items with note about ownership.",
+      "assertions": [
+        "§1 Ready to pull shows all 3 unassigned ready items",
+        "Cross-cutting Unassigned list covers items from all groups (§1, §3, §4), not just ready items",
+        "Summary line includes total unassigned count (5) separately from ready count (3)",
+        "Recommended candidates note items are unassigned (ownership action may be needed)"
+      ]
+    },
+    {
+      "id": 10,
+      "fixture": "missing-story-detail",
+      "prompt": "Team backlog overview for EXPRESS sprint 3.",
+      "context": "EXPRESS sprint 3: EXPR-401 (empty description), EXPR-402 (description = '!image.png!' only), EXPR-403 (description = 'TBD — design decision pending'), EXPR-404 (Spike issuetype, no ACs), EXPR-405 (good description, ready).",
+      "expected_output": "§2 Needs story work: EXPR-401 (empty description), EXPR-402 (image-only), EXPR-403 (TBD throughout), EXPR-404 (Discovery/Spike, no ACs). §1 Ready to pull: EXPR-405 only. Follow-up mentions jira-story-triage for all four §2 items.",
+      "assertions": [
+        "EXPR-401 in §2 with reason 'empty description'",
+        "EXPR-402 in §2 with reason 'image-only description'",
+        "EXPR-403 in §2 with reason 'wholly TBD / awaiting decision'",
+        "EXPR-404 in §2 with reason 'Discovery/Spike issuetype without acceptance criteria'",
+        "EXPR-405 in §1 Ready to pull",
+        "Follow-up actions suggest jira-story-triage for all four §2 items"
+      ]
+    },
+    {
+      "id": 11,
+      "fixture": "explicit-agent-readiness-request",
+      "prompt": "Show me agent-ready work in ATLAS sprint 12 — which items can a coding agent take without a meeting?",
+      "context": "ATLAS sprint 12: 5 team-ready items. Of those, 2 pass all five Q (Q1-Q5). 3 fail Q2 (no repo named) or Q5 (too large). 2 more items are Needs story work.",
+      "expected_output": "Agent notes the agent-execution lens is active. §1 header becomes 'Agent-ready (explicit lens active)'. Shows 2 items passing all five Q. Also shows 3 items as 'Ready to pull (team)' sub-group (pass team readiness but not all Q). Does NOT mix them into one group. Explains which Q each team-ready-but-not-agent-ready item fails.",
+      "assertions": [
+        "Agent acknowledges the agent-execution lens is explicitly active",
+        "Agent-ready items (pass all 5 Q) are shown in a distinct sub-group or labeled section",
+        "Team-ready items that fail some Q are shown separately (not filtered out entirely)",
+        "The failed Q is named for team-ready-but-not-agent-ready items (e.g. 'Q2: no repo named')",
+        "Agent does not apply the five-question bar to the entire backlog as if it were team readiness"
+      ]
+    },
+    {
+      "id": 12,
+      "fixture": "stand-up-request-no-history",
+      "prompt": "Give me a stand-up summary for PLATFORM sprint 9. What changed since yesterday?",
+      "context": "Cloud Jira instance. No prior snapshot stored. 12 items in sprint. `updated` field available; 3 items updated in the last 24h.",
+      "expected_output": "Stand-up format with sections: Progress (3 items updated in last 24h, with explicit note that historical comparison is unavailable — using updated-in-24h as proxy), Blocked (from §3), Risks (stale items, missing owners), Ready next (top 3 recommendations). Read-only confirmed.",
+      "assertions": [
+        "Agent explicitly states historical comparison is unavailable (no prior snapshot)",
+        "Agent uses items updated in last 24h as a proxy for 'what changed'",
+        "Agent does NOT fabricate change history or claim to know what changed",
+        "Stand-up output includes Progress, Blocked, Risks, Ready next sections",
+        "Agent does not publish to Confluence or any external system",
+        "Agent confirms read-only"
+      ]
+    },
+    {
+      "id": 13,
+      "fixture": "weak-output-silent-truncation",
+      "prompt": "Show the DEVKIT backlog.",
+      "context": "DEVKIT has 180 backlog items. Agent fetches 100 and stops.",
+      "expected_output": "WEAK output: agent presents 100 items as 'the backlog' without disclosing truncation. STRONG output: agent discloses truncation, offers to paginate, does not claim completeness.",
+      "assertions": [
+        "STRONG: Coverage statement does not say 'Complete' when 80 items were not fetched",
+        "STRONG: Agent offers to continue pagination or narrow scope",
+        "WEAK (must fail): Output says 'Team status: 100 items' or 'Complete — 100 items' when 180 are available and only 100 were fetched",
+        "WEAK (must fail): Output uses the phrase 'whole backlog' or 'complete backlog' without completeness evidence"
+      ]
+    },
+    {
+      "id": 14,
+      "fixture": "weak-output-status-equals-readiness",
+      "prompt": "What can the team pick up in PROJ sprint 5?",
+      "context": "PROJ sprint 5: 8 items with statusCategory = To Do. 3 have empty descriptions. 2 have TBD-only descriptions. 3 have adequate descriptions.",
+      "expected_output": "WEAK output: all 8 To Do items listed as 'Ready to pull' because statusCategory = To Do. STRONG output: 3 with adequate descriptions in §1 Ready to pull; 5 with empty/TBD descriptions in §2 Needs story work.",
+      "assertions": [
+        "STRONG: Items with empty or TBD-only descriptions are in §2 Needs story work, NOT §1 Ready to pull",
+        "STRONG: §1 Ready to pull has only items passing all four team-readiness clauses (including minimum definition)",
+        "WEAK (must fail): All 8 To Do items appear in §1 Ready to pull regardless of description quality",
+        "WEAK (must fail): 'statusCategory = To Do' is used as the sole readiness criterion"
+      ]
+    },
+    {
+      "id": 15,
+      "fixture": "weak-output-issue-dump-no-summary",
+      "prompt": "Team status for API sprint 7.",
+      "context": "API sprint 7: 15 items.",
+      "expected_output": "WEAK output: a flat list of all 15 items with no header block, no summary counts, no groups, no recommendations. STRONG output: header block with counts first, then organized §1–§4 sections, then recommendations.",
+      "assertions": [
+        "STRONG: Header block with scope, coverage, Jira-not-changed confirmation, and summary counts appears BEFORE any item list",
+        "STRONG: Items are organized into primary groups (not a flat list)",
+        "STRONG: Recommended next candidates section with reasons appears after grouped sections",
+        "WEAK (must fail): Output begins directly with a list of issue keys and summaries without a header block",
+        "WEAK (must fail): No summary counts provided before the item list"
+      ]
+    },
+    {
+      "id": 16,
+      "fixture": "weak-output-agent-readiness-as-team-readiness",
+      "prompt": "Show the team backlog for EXPRESS sprint 2 and tell me what we can start.",
+      "context": "EXPRESS sprint 2: 10 team-ready items. 4 fail Q2 (no repo named) — legitimate team stories without a specific repo reference. 6 pass all five Q.",
+      "expected_output": "WEAK output: only 6 items in §1 Ready to pull (those passing all 5 Q); 4 items with no repo are in §2, labeled 'not ready' because Q2 fails. STRONG output: all 10 team-ready items in §1 Ready to pull; the five-question bar is NOT applied unless the user explicitly requests agent-ready work.",
+      "assertions": [
+        "STRONG: All 10 team-ready items appear in §1 Ready to pull (agent-execution bar not applied silently)",
+        "STRONG: The agent does NOT mention Q1-Q5 or the five-question bar in the output (no explicit request was made)",
+        "WEAK (must fail): Only 6 items in §1 because Q2 (no repo) was applied silently",
+        "WEAK (must fail): Items with no repo reference are classified as 'not ready' when the user did not ask for agent-ready work"
+      ]
+    }
+  ]
+}

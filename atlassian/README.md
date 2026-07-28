@@ -12,12 +12,18 @@ skills: `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`,
   AI-adoption report, a Jira defect-flow analysis, a Jira epic → product-brief
   intake, and a Jira Align Feature → product-brief intake — all feeding
   `receive-brief`.
-- Story quality skills: `jira-story-triage` (reviews a backlog for readiness
-  against a five-question bar, explains why each weak item is not ready, and
-  improves it with write-after-approval) and `jira-team-status` (a read-only
-  team status snapshot — ready to pull / in progress / blocked / unassigned /
-  needs detail — with a pick-up hand-off). Both activate from natural
-  team-and-backlog language; neither needs you to name the skill.
+- Team backlog skills: `jira-team-status` (a read-only team status view organized
+  by Ready to pull · Needs story work · Blocked · In progress — with scope and
+  completeness disclosure before grouped sections, cross-cutting flags for
+  unassigned and stale work, and a pick-up hand-off) and `jira-story-triage`
+  (reviews items against the agent-execution readiness bar, explains why each weak
+  item is not ready — which question failed and the specific gap — surfaces
+  unresolved human questions, drafts improvements, and writes back to Jira only
+  after per-item approval). "Ready to pull" means the item is in scope, in an
+  eligible open-work state, has no known blocker, and has enough definition for the
+  team to begin — not merely `statusCategory = To Do`. Unassigned is a cross-cutting
+  flag; an item can be Blocked and Unassigned simultaneously. Both skills activate
+  from natural team-and-backlog language; neither needs you to name the skill.
 
 ## Install
 
@@ -41,6 +47,10 @@ and never enter the repo. See the
 
 Once credentials are set up, ask your agent, for example:
 
+- "Show me what Team Atlas can work on next. Start read-only and tell me if the result is incomplete."
+- "What is blocked in PLATFORM sprint 12?"
+- "Which stories are not ready for engineering in DEVKIT sprint 14?"
+- "Make ATLAS-204 actionable but do not update Jira yet."
 - "Pull this sprint's flow metrics from the PLATFORM Jira board."
 - "Crawl the ENG Confluence space and summarise the onboarding pages."
 - "Build the AI-adoption report for last quarter."
