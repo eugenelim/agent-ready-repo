@@ -3,8 +3,26 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'web/**'
+      - 'docs-site/**'
+      - 'guides/**'
+      - 'docs/product/changelog.md'
+      - 'CONTRIBUTING.md'
+      - 'packs/**/README.md'
+      - 'tools/build-site.py'
+      - '.github/workflows/pages.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'web/**'
+      - 'docs-site/**'
+      - 'guides/**'
+      - 'docs/product/changelog.md'
+      - 'CONTRIBUTING.md'
+      - 'packs/**/README.md'
+      - 'tools/build-site.py'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
