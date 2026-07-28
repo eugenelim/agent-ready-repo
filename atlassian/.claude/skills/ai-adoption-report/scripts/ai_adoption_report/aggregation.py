@@ -35,17 +35,16 @@ Stdlib only. Python >= 3.10.
 from __future__ import annotations
 
 import statistics
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Literal
 
 from .delta import FLOW_DISTRIBUTION_BUCKETS, PERCENTILES
 from .notes import Note
 from .program_discovery import ProgramScope
 
-
 # Top-level keys in the order they appear in the aggregates / cohort
 # side dicts the aggregation engine produces. Follows the canonical metric row order,
 # collapsed to one entry per top-level metric.
-_TOP_LEVEL_METRIC_ORDER: Tuple[str, ...] = (
+_TOP_LEVEL_METRIC_ORDER: tuple[str, ...] = (
     "throughput",
     "wip",
     "flow_load",
@@ -58,7 +57,7 @@ _TOP_LEVEL_METRIC_ORDER: Tuple[str, ...] = (
     "flow_distribution",
 )
 
-_DISTRIBUTION_METRICS: Tuple[str, ...] = (
+_DISTRIBUTION_METRICS: tuple[str, ...] = (
     "cycle_time_hours",
     "lead_time_hours",
     "flow_time_hours",
@@ -70,9 +69,9 @@ _DISTRIBUTION_METRICS: Tuple[str, ...] = (
 # Public helper
 # ---------------------------------------------------------------------------
 def weighted_sum_and_average(
-    values: List[Optional[float]],
-    weights: List[float],
-) -> Tuple[float, Optional[float]]:
+    values: list[float | None],
+    weights: list[float],
+) -> tuple[float, float | None]:
     """Return ``(sum_of_weights, weighted_mean_or_None)``.
 
     Skips ``(value, weight)`` pairs where ``value`` is ``None`` or
@@ -86,13 +85,11 @@ def weighted_sum_and_average(
     """
     if len(values) != len(weights):
         raise ValueError(
-            "weighted_sum_and_average: len(values)={} != len(weights)={}".format(
-                len(values), len(weights)
-            )
+            f"weighted_sum_and_average: len(values)={len(values)} != len(weights)={len(weights)}"
         )
     total_w: float = 0
     total_wv: float = 0
-    for v, w in zip(values, weights):
+    for v, w in zip(values, weights, strict=False):
         if v is None or w is None or w == 0:
             continue
         total_w += w
@@ -106,8 +103,8 @@ def weighted_sum_and_average(
 # Entry points
 # ---------------------------------------------------------------------------
 def aggregate_non_cohort(
-    scopes: List[ProgramScope],
-) -> Tuple[dict, List[str]]:
+    scopes: list[ProgramScope],
+) -> tuple[dict, list[str]]:
     """Return ``(aggregates_dict, notes)`` for the non-cohort rollup.
 
     Includes every scope (per_team-flattened rows participate in the
@@ -132,9 +129,9 @@ def aggregate_non_cohort(
 
 
 def aggregate_cohort_side(
-    scopes: List[ProgramScope],
+    scopes: list[ProgramScope],
     side: Literal["cohort", "control"],
-) -> Tuple[Optional[dict], List[str]]:
+) -> tuple[dict | None, list[str]]:
     """Return ``(cohort_breakdown_side_dict | None, notes)`` for one side.
 
     Exclusions for cohort-side rollup:
@@ -154,7 +151,7 @@ def aggregate_cohort_side(
     ``cohort-breakdown-section-empty`` note. The renderer dedupes the
     duplicate emission across the two side calls.
     """
-    notes: List[str] = []
+    notes: list[str] = []
 
     eligible = [s for s in scopes if not s.from_per_team]
     total_m = len(eligible)
@@ -165,8 +162,8 @@ def aggregate_cohort_side(
         notes.append(Note.cohort_breakdown_section_empty())
         return None, notes
 
-    contributing: List[Tuple[dict, str, ProgramScope]] = []
-    missing_cb: List[str] = []
+    contributing: list[tuple[dict, str, ProgramScope]] = []
+    missing_cb: list[str] = []
     for s in eligible:
         if s.cohort_breakdown is None:
             missing_cb.append(s.source_basename)
@@ -217,10 +214,10 @@ def aggregate_cohort_side(
 # Internals
 # ---------------------------------------------------------------------------
 def _aggregate_blocks(
-    blocks_with_basenames: List[Tuple[dict, str]],
+    blocks_with_basenames: list[tuple[dict, str]],
     *,
     side_label: str,
-) -> Tuple[Dict[str, object], List[str], List[str]]:
+) -> tuple[dict[str, object], list[str], list[str]]:
     """Aggregate a list of ``(aggregates-shaped block, basename)`` pairs.
 
     Generic over non-cohort and cohort-side: the caller passes
@@ -239,8 +236,8 @@ def _aggregate_blocks(
     non-cohort: silently drop because flow-metrics emits flow_distribution
     by default unless ``--metrics`` excluded it).
     """
-    notes: List[str] = []
-    out: Dict[str, object] = {}
+    notes: list[str] = []
+    out: dict[str, object] = {}
 
     # ---- 1-3. Simple sums (throughput, wip, flow_load).
     for metric in ("throughput", "wip", "flow_load"):
@@ -258,7 +255,7 @@ def _aggregate_blocks(
         ]
         if not scope_blocks:
             continue
-        result: Dict[str, object] = {}
+        result: dict[str, object] = {}
         for p in PERCENTILES:
             p_vals = [sb.get(p) for sb in scope_blocks if sb.get(p) is not None]
             result[p] = statistics.median(p_vals) if p_vals else None
@@ -269,7 +266,7 @@ def _aggregate_blocks(
 
     # ---- 8. rework_rate (side-throughput-weighted).
     rew_vals = [b.get("rework_rate") for b, _ in blocks_with_basenames]
-    rew_weights: List[float] = []
+    rew_weights: list[float] = []
     for b, _ in blocks_with_basenames:
         w = b.get("throughput")
         rew_weights.append(w if isinstance(w, (int, float)) else 0)
@@ -283,15 +280,15 @@ def _aggregate_blocks(
 
     # ---- Collect flow_distribution-side data once (used by both
     # defect_ratio and flow_distribution rollups).
-    missing_fd: List[str] = []
+    missing_fd: list[str] = []
     fd_present = False
     denominator_sum = 0
-    defect_vals: List[Optional[float]] = []
-    defect_weights: List[float] = []
-    bucket_vals_by_key: Dict[str, List[Optional[float]]] = {
+    defect_vals: list[float | None] = []
+    defect_weights: list[float] = []
+    bucket_vals_by_key: dict[str, list[float | None]] = {
         bk: [] for bk in FLOW_DISTRIBUTION_BUCKETS
     }
-    bucket_weights: List[float] = []
+    bucket_weights: list[float] = []
 
     for block, basename in blocks_with_basenames:
         fd = block.get("flow_distribution")
@@ -321,7 +318,7 @@ def _aggregate_blocks(
     # ---- 10. flow_distribution.<bucket> (denominator-weighted) +
     # denominator (sum).
     if fd_present:
-        fd_out: Dict[str, object] = {}
+        fd_out: dict[str, object] = {}
         zero_noted = False
         for bucket in FLOW_DISTRIBUTION_BUCKETS:
             vals = bucket_vals_by_key[bucket]

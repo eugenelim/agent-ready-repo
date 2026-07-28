@@ -35,6 +35,8 @@ from urllib.parse import urlparse
 import httpx
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from _sso_config import SsoConfig
 
 log = logging.getLogger("jira.client")
@@ -69,9 +71,7 @@ class Credentials:
 def detect_flavor(base_url: str) -> str:
     host = (urlparse(base_url).hostname or "").lower()
     if (
-        host.endswith(".atlassian.net")
-        or host.endswith(".jira.com")
-        or host.endswith(".jira-dev.com")
+        host.endswith((".atlassian.net", ".jira.com", ".jira-dev.com"))
     ):
         return FLAVOR_CLOUD
     return FLAVOR_SERVER
@@ -142,7 +142,7 @@ class JiraClient:
                     "`credential-setup` skill and supply JIRA_EMAIL."
                 )
             basic = base64.b64encode(
-                f"{credentials.email}:{credentials.token}".encode("utf-8")
+                f"{credentials.email}:{credentials.token}".encode()
             ).decode("ascii")
             auth_header = f"Basic {basic}"
         else:
@@ -169,11 +169,11 @@ class JiraClient:
     @classmethod
     def from_sso_cookies(
         cls,
-        sso_config: "SsoConfig",
+        sso_config: SsoConfig,
         *,
         concurrency: int = DEFAULT_CONCURRENCY,
         timeout_s: float = DEFAULT_TIMEOUT_S,
-    ) -> "JiraClient":
+    ) -> JiraClient:
         """Build a Data Center client authenticated by a captured SSO cookie jar.
 
         Resolves the jar via credbroker (fail-closed, never downgrades to a
@@ -249,7 +249,7 @@ class JiraClient:
         self._sem = asyncio.Semaphore(concurrency)
         return self
 
-    async def __aenter__(self) -> "JiraClient":
+    async def __aenter__(self) -> JiraClient:
         return self
 
     async def __aexit__(self, *exc: object) -> None:
@@ -801,6 +801,8 @@ def load_credentials() -> Credentials:
     """
     from credbroker import (
         CredentialsMissingError,
+    )
+    from credbroker import (
         load_credentials as _resolver_load,
     )
 

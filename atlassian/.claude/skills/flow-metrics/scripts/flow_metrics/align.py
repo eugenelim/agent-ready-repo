@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 from .config import StateConfig
 from .upstream import JiraAlignClient
@@ -46,7 +46,7 @@ class AlignResponseError(Exception):
 # rejected even though it starts with ``programs/`` — it's not one of the
 # four nested-resource paths the spec enumerates. Synced with
 # JiraAlignClient._ALLOWED_RAW_PATTERNS; both must stay in lockstep.
-_ALIGN_TEAMS_PATH_PATTERNS: Tuple[re.Pattern, ...] = (
+_ALIGN_TEAMS_PATH_PATTERNS: tuple[re.Pattern, ...] = (
     re.compile(r"^programs/[0-9]+$"),
     re.compile(r"^programs/[0-9]+/teams$"),
     re.compile(r"^portfolios/[0-9]+$"),
@@ -72,19 +72,19 @@ def validate_align_teams_path(path: str) -> str:
         raise ValueError("--align-teams-path: must be a non-empty string")
     if path.startswith("/"):
         raise ValueError(
-            "--align-teams-path: absolute paths are not allowed; got {!r}".format(path)
+            f"--align-teams-path: absolute paths are not allowed; got {path!r}"
         )
     if ".." in path.split("/"):
         raise ValueError(
-            "--align-teams-path: path traversal ('..') is not allowed; got {!r}".format(path)
+            f"--align-teams-path: path traversal ('..') is not allowed; got {path!r}"
         )
     for pat in _ALIGN_TEAMS_PATH_PATTERNS:
         if pat.fullmatch(path):
             return path
     raise ValueError(
-        "--align-teams-path: {!r} is not one of the allowed Jira Align "
+        f"--align-teams-path: {path!r} is not one of the allowed Jira Align "
         "nested-resource paths (programs/<id>, programs/<id>/teams, "
-        "portfolios/<id>, portfolios/<id>/programs)".format(path)
+        "portfolios/<id>, portfolios/<id>/programs)"
     )
 
 
@@ -115,7 +115,7 @@ class AlignScope:
 
     kind: str
     value: str
-    teams_path_override: Optional[str] = None
+    teams_path_override: str | None = None
 
 
 @dataclass(frozen=True)
@@ -129,10 +129,10 @@ class Team:
     """
 
     id: str
-    name: Optional[str] = None
+    name: str | None = None
 
 
-def _coerce_id(value: Any) -> Optional[str]:
+def _coerce_id(value: Any) -> str | None:
     """Jira Align is inconsistent: some endpoints return numeric IDs,
     others return them as strings. Normalise both to the canonical
     string form so set-membership and JQL composition are well-defined.
@@ -150,7 +150,7 @@ def _coerce_id(value: Any) -> Optional[str]:
     return None
 
 
-def _parse_team_items(payload: Any, path: str) -> List[Team]:
+def _parse_team_items(payload: Any, path: str) -> list[Team]:
     """Validate a teams response and return the parsed Team list.
 
     Every element must carry an ``id`` (string or int). Missing /
@@ -161,60 +161,48 @@ def _parse_team_items(payload: Any, path: str) -> List[Team]:
     """
     if not isinstance(payload, list):
         raise AlignResponseError(
-            "unexpected response shape from {}: expected list, got {}".format(
-                path, type(payload).__name__
-            )
+            f"unexpected response shape from {path}: expected list, got {type(payload).__name__}"
         )
-    out: List[Team] = []
+    out: list[Team] = []
     for i, item in enumerate(payload):
         if not isinstance(item, dict):
             raise AlignResponseError(
-                "unexpected response shape from {}: element {} is not an object".format(
-                    path, i
-                )
+                f"unexpected response shape from {path}: element {i} is not an object"
             )
         tid = _coerce_id(item.get("id"))
         if tid is None:
             raise AlignResponseError(
-                "unexpected response shape from {}: element {} is missing 'id'".format(
-                    path, i
-                )
+                f"unexpected response shape from {path}: element {i} is missing 'id'"
             )
         name = item.get("name")
         out.append(Team(id=tid, name=name if isinstance(name, str) else None))
     return out
 
 
-def _parse_program_ids(payload: Any, path: str) -> List[str]:
+def _parse_program_ids(payload: Any, path: str) -> list[str]:
     """Same shape validation as :func:`_parse_team_items` but only the
     program ids are needed; names are ignored at the portfolio level.
     """
     if not isinstance(payload, list):
         raise AlignResponseError(
-            "unexpected response shape from {}: expected list, got {}".format(
-                path, type(payload).__name__
-            )
+            f"unexpected response shape from {path}: expected list, got {type(payload).__name__}"
         )
-    ids: List[str] = []
+    ids: list[str] = []
     for i, item in enumerate(payload):
         if not isinstance(item, dict):
             raise AlignResponseError(
-                "unexpected response shape from {}: element {} is not an object".format(
-                    path, i
-                )
+                f"unexpected response shape from {path}: element {i} is not an object"
             )
         pid = _coerce_id(item.get("id"))
         if pid is None:
             raise AlignResponseError(
-                "unexpected response shape from {}: element {} is missing 'id'".format(
-                    path, i
-                )
+                f"unexpected response shape from {path}: element {i} is missing 'id'"
             )
         ids.append(pid)
     return ids
 
 
-def resolve_teams(align: JiraAlignClient, scope: AlignScope) -> List[Team]:
+def resolve_teams(align: JiraAlignClient, scope: AlignScope) -> list[Team]:
     """Resolve the list of teams visible under ``scope``.
 
     - ``program`` kind: one ``raw GET programs/<id>/teams`` call (or the
@@ -230,25 +218,25 @@ def resolve_teams(align: JiraAlignClient, scope: AlignScope) -> List[Team]:
     the path that produced the bad payload.
     """
     if scope.kind == PROGRAM_KIND:
-        path = scope.teams_path_override or "programs/{}/teams".format(scope.value)
+        path = scope.teams_path_override or f"programs/{scope.value}/teams"
         payload = align.raw_get(path)
         return _parse_team_items(payload, path)
 
     if scope.kind == PORTFOLIO_KIND:
-        portfolios_path = "portfolios/{}/programs".format(scope.value)
+        portfolios_path = f"portfolios/{scope.value}/programs"
         programs_payload = align.raw_get(portfolios_path)
         program_ids = _parse_program_ids(programs_payload, portfolios_path)
-        teams: List[Team] = []
+        teams: list[Team] = []
         for pid in program_ids:
             # The override applies to program kind only — at portfolio
             # scope we always walk each program's canonical teams path.
-            teams_path = "programs/{}/teams".format(pid)
+            teams_path = f"programs/{pid}/teams"
             payload = align.raw_get(teams_path)
             teams.extend(_parse_team_items(payload, teams_path))
         return teams
 
     raise ValueError(
-        "AlignScope.kind must be 'program' or 'portfolio'; got {!r}".format(scope.kind)
+        f"AlignScope.kind must be 'program' or 'portfolio'; got {scope.kind!r}"
     )
 
 
@@ -256,9 +244,9 @@ def resolve_teams(align: JiraAlignClient, scope: AlignScope) -> List[Team]:
 # Project-scope gating helper
 # ---------------------------------------------------------------------------
 def teams_for_scope(
-    align: Optional[JiraAlignClient],
-    scope: Optional[AlignScope],
-) -> List[Team]:
+    align: JiraAlignClient | None,
+    scope: AlignScope | None,
+) -> list[Team]:
     """Single entry point for orchestration code: resolve teams if and
     only if a Jira Align scope is present.
 
@@ -283,7 +271,7 @@ def teams_for_scope(
 # ---------------------------------------------------------------------------
 def require_align_join_field(
     state_config: StateConfig,
-    cli_override: Optional[str],
+    cli_override: str | None,
 ) -> str:
     """Resolve the Jira ↔ Jira Align join field name.
 
@@ -310,7 +298,7 @@ def require_align_join_field(
 # ---------------------------------------------------------------------------
 # meta.sources helper (the renderer emits; the Align integration surfaces the value)
 # ---------------------------------------------------------------------------
-def compute_sources(scope_kind: Optional[str]) -> List[str]:
+def compute_sources(scope_kind: str | None) -> list[str]:
     """Return the sorted list of upstream skill names used for this run.
 
     ``project`` scope hits only Jira; ``program`` / ``portfolio`` also

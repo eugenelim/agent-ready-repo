@@ -41,7 +41,9 @@ def build_branch_name(key: str, summary: str, prefix: str, max_words: int) -> st
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("key", help="Jira issue key, e.g. PROJ-123")
     p.add_argument("summary", help="Issue summary (will be slugified)")
     p.add_argument(

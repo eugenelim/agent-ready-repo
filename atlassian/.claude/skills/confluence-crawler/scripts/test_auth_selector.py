@@ -13,10 +13,8 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("credbroker")
-from credbroker import SsoConfigError  # noqa: E402
-
 from _sso_config import SsoConfig, _select_auth_path  # noqa: E402
-
+from credbroker import SsoConfigError  # noqa: E402
 
 _VALID_SSO_COOKIE = textwrap.dedent(
     """

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import convert
@@ -94,9 +94,9 @@ def test_sender_and_recipients_by_type(tmp_path):
 
 
 def test_date_resolution_prefers_delivery_then_submit_then_creation(tmp_path):
-    d = datetime(2024, 1, 1, tzinfo=timezone.utc)
-    s = datetime(2024, 2, 2, tzinfo=timezone.utc)
-    c = datetime(2024, 3, 3, tzinfo=timezone.utc)
+    d = datetime(2024, 1, 1, tzinfo=UTC)
+    s = datetime(2024, 2, 2, tzinfo=UTC)
+    c = datetime(2024, 3, 3, tzinfo=UTC)
     p = fx.write_msg(str(tmp_path / "d.msg"), fx.message_spec(
         subject="S", body="b", delivery=d, submit=s, creation=c))
     assert mapi.read_msg(p).date.startswith("2024-01-01")
@@ -166,7 +166,7 @@ def _eml_bytes(subject="Notes", extra_headers="", body="Body here.",
                ctype="text/plain"):
     return (f"From: Alice <alice@x.com>\nTo: Bob <bob@x.com>\nCc: Carol <carol@x.com>\n"
             f"Subject: {subject}\nDate: Fri, 1 Mar 2024 12:30:00 +0000\n{extra_headers}"
-            f"Content-Type: {ctype}; charset=utf-8\n\n{body}\n").encode("utf-8")
+            f"Content-Type: {ctype}; charset=utf-8\n\n{body}\n").encode()
 
 
 def test_eml_multipart_prefers_plain(tmp_path):

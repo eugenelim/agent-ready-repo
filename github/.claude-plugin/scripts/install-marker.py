@@ -48,16 +48,12 @@ Exit codes:
 """
 
 import argparse
+import contextlib
 import datetime
 import hashlib
 import json
 import os
 import pathlib
-import sys
-import tempfile
-import tomllib
-from datetime import timezone
-
 
 # ---------------------------------------------------------------------------
 # Vendored pack-name / pack-version shape rules — copied from
@@ -69,6 +65,9 @@ from datetime import timezone
 # pack.toml would pass unchecked and land phantom TOML lines in the marker.
 # ---------------------------------------------------------------------------
 import re as _re
+import sys
+import tempfile
+import tomllib
 
 _PACK_NAME_RE = _re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _PACK_VERSION_RE = _re.compile(
@@ -164,11 +163,11 @@ def _assert_under(target: pathlib.Path, jail: pathlib.Path) -> None:
     # jail is already resolved; do not call os.path.realpath on it again.
     try:
         resolved_target.relative_to(jail)
-    except ValueError:
+    except ValueError as exc:
         raise ValueError(
             f"install-marker: marker path {resolved_target} escapes the per-scope jail "
             f"{jail}; refusing write"
-        )
+        ) from exc
 
 
 def _assert_portable_name(component: str) -> None:
@@ -196,7 +195,7 @@ def _assert_portable_name(component: str) -> None:
                 f"install-marker: refusing path component with control character "
                 f"U+{ord(ch):04X}: {component!r}"
             )
-    if component.endswith(".") or component.endswith(" "):
+    if component.endswith((".", " ")):
         raise ValueError(
             f"install-marker: refusing path component with trailing dot or space: "
             f"{component!r}"
@@ -294,7 +293,7 @@ def _marker_scope(origin: str) -> str:
 def _pack_toml(plugin_root: pathlib.Path) -> dict:
     """Load and return the pack manifest dict from ``pack.toml``."""
     toml_path = plugin_root / "pack.toml"
-    with open(toml_path, "rb") as fh:
+    with toml_path.open("rb") as fh:
         return tomllib.load(fh)
 
 
@@ -343,12 +342,11 @@ def _marker_path(
         agentbundle.mkdir(mode=0o700, parents=True, exist_ok=True)
         resolved_jail = pathlib.Path(os.path.realpath(agentbundle))
         return agentbundle / ".adapt-install-marker.toml", resolved_jail
-    else:
-        # repo scope — project_dir must be set; callers ensure this.
-        if project_dir is None:
-            raise ValueError("project_dir required for repo-scope marker")
-        resolved_jail = pathlib.Path(os.path.realpath(project_dir))
-        return project_dir / ".adapt-install-marker.toml", resolved_jail
+    # repo scope — project_dir must be set; callers ensure this.
+    if project_dir is None:
+        raise ValueError("project_dir required for repo-scope marker")
+    resolved_jail = pathlib.Path(os.path.realpath(project_dir))
+    return project_dir / ".adapt-install-marker.toml", resolved_jail
 
 
 def _should_fire(
@@ -606,18 +604,14 @@ def _write_marker(
         os.write(tmp_fd, content_bytes)
         os.close(tmp_fd)
         tmp_fd = -1
-        os.replace(tmp_name, marker_path)
+        pathlib.Path(tmp_name).replace(marker_path)
     except Exception:
         # Clean up tempfile on error (best effort).
         if tmp_fd >= 0:
-            try:
+            with contextlib.suppress(OSError):
                 os.close(tmp_fd)
-            except OSError:
-                pass
-        try:
-            os.unlink(tmp_name)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            pathlib.Path(tmp_name).unlink()
         raise
 
 
@@ -640,17 +634,13 @@ def _write_hash(plugin_data: pathlib.Path, current_hash: str) -> None:
         os.write(tmp_fd, content_bytes)
         os.close(tmp_fd)
         tmp_fd = -1
-        os.replace(tmp_name, hash_path)
+        pathlib.Path(tmp_name).replace(hash_path)
     except Exception:
         if tmp_fd >= 0:
-            try:
+            with contextlib.suppress(OSError):
                 os.close(tmp_fd)
-            except OSError:
-                pass
-        try:
-            os.unlink(tmp_name)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            pathlib.Path(tmp_name).unlink()
         raise
 
 
@@ -892,7 +882,7 @@ def _main_claude_plugins(args: argparse.Namespace) -> int:
     new_entry: dict = {
         "name": pack_name,
         "version": pack_version,
-        "installed-at": datetime.datetime.now(timezone.utc),
+        "installed-at": datetime.datetime.now(datetime.UTC),
         "install-route": args.install_route,
     }
 
@@ -912,7 +902,10 @@ def _main_claude_plugins(args: argparse.Namespace) -> int:
     except Exception as exc:
         # Hash write failure is non-fatal for the adopter (the marker was written),
         # but log it so the next session retries detection rather than silently skipping.
-        print(f"install-marker: hash write failed (next session will retry): {exc}", file=sys.stderr)
+        print(
+            f"install-marker: hash write failed (next session will retry): {exc}",
+            file=sys.stderr,
+        )
 
     return 0
 
@@ -935,7 +928,7 @@ def _main_apm(args: argparse.Namespace) -> int:
     home = pathlib.Path(home_str)
 
     # --- Resolve data directory per AC3 precedence ---
-    plugin_data = _resolve_data_dir(env)
+    plugin_data = _resolve_data_dir(env)  # type: ignore[arg-type]
     if plugin_data is None:
         # No-match fall-through (no APM data-directory token set); exit 0
         # without writing marker or hash file (the no-partial-state rail).
@@ -1072,7 +1065,7 @@ def _main_apm(args: argparse.Namespace) -> int:
     new_entry: dict = {
         "name": pack_name,
         "version": pack_version,
-        "installed-at": datetime.datetime.now(timezone.utc),
+        "installed-at": datetime.datetime.now(datetime.UTC),
         "install-route": args.install_route,
     }
 

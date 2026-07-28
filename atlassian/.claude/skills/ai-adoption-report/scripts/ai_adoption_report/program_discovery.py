@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from . import ValidationError
 from .inputs import InputFile, infer_scope_kind, load_input
@@ -39,10 +38,10 @@ class ProgramScope:
     scope: dict
     scope_kind: str
     aggregates: dict
-    cohort_breakdown: Optional[dict]
+    cohort_breakdown: dict | None
     source_basename: str
     from_per_team: bool
-    cohort_jql: Optional[str]
+    cohort_jql: str | None
     per_team_double_counted: bool
 
 
@@ -57,15 +56,15 @@ class ProgramInputs:
     dedupes.
     """
 
-    scopes: List[ProgramScope]
-    source_inputs: List[InputFile]
-    notes: List[str] = field(default_factory=list)
+    scopes: list[ProgramScope]
+    source_inputs: list[InputFile]
+    notes: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
 # Canonical scope representation.
 # ---------------------------------------------------------------------------
-_CANONICAL_FIELDS: Tuple[str, ...] = ("project", "team", "program_id", "portfolio_id")
+_CANONICAL_FIELDS: tuple[str, ...] = ("project", "team", "program_id", "portfolio_id")
 
 
 def _double_counted(inp: InputFile) -> bool:
@@ -98,7 +97,7 @@ def canonical_scope_repr(scope: dict, scope_kind: str) -> str:
     function does not depend on :func:`inputs.infer_scope_kind` raising;
     callers pass the kind already on ``InputFile``/``ProgramScope``.
     """
-    parts = ["kind={}".format(scope_kind)]
+    parts = [f"kind={scope_kind}"]
     for fname in _CANONICAL_FIELDS:
         v = scope.get(fname, "")
         parts.append("{}={}".format(fname, "" if v is None else v))
@@ -110,7 +109,7 @@ def canonical_scope_repr(scope: dict, scope_kind: str) -> str:
 # ---------------------------------------------------------------------------
 def discover_inputs(
     directory: Path,
-    window: Tuple[str, str],
+    window: tuple[str, str],
     *,
     include_cohort_breakdown: bool = False,
 ) -> ProgramInputs:
@@ -139,25 +138,23 @@ def discover_inputs(
     """
     candidates = sorted(directory.glob("*.json"), key=lambda p: p.name)
 
-    loaded: List[InputFile] = [load_input(p) for p in candidates]
+    loaded: list[InputFile] = [load_input(p) for p in candidates]
 
     from_endpoint, to_endpoint = window
-    matching: List[InputFile] = [
+    matching: list[InputFile] = [
         inp
         for inp in loaded
         if inp.window_from == from_endpoint and inp.window_to == to_endpoint
     ]
     if not matching:
         raise ValidationError(
-            "no inputs matched --window {}..{} in {}".format(
-                from_endpoint, to_endpoint, directory
-            )
+            f"no inputs matched --window {from_endpoint}..{to_endpoint} in {directory}"
         )
 
     _check_duplicates_preflatten(matching)
     _check_overlaps(matching)
 
-    program_scopes: List[ProgramScope] = []
+    program_scopes: list[ProgramScope] = []
     for inp in matching:
         program_scopes.append(
             ProgramScope(
@@ -177,7 +174,7 @@ def discover_inputs(
 
     _check_duplicates_postflatten(combined)
 
-    notes: List[str] = []
+    notes: list[str] = []
 
     # Only inputs that actually flattened (per_team non-empty) AND carry
     # per_team_double_counted=true contribute to the note. An input with
@@ -200,17 +197,17 @@ def discover_inputs(
 # ---------------------------------------------------------------------------
 # Duplicate detection
 # ---------------------------------------------------------------------------
-def _check_duplicates_preflatten(inputs: List[InputFile]) -> None:
+def _check_duplicates_preflatten(inputs: list[InputFile]) -> None:
     """Across the window-filtered set, two inputs sharing the same
     ``(scope_kind, canonical_scope_repr)`` exit 2 with both basenames
     named. If more than two duplicates, all basenames are listed in
     codepoint-ascending order.
     """
-    groups: Dict[str, List[Tuple[InputFile, bool]]] = {}
+    groups: dict[str, list[tuple[InputFile, bool]]] = {}
     for inp in inputs:
         key = canonical_scope_repr(inp.scope, inp.scope_kind)
         groups.setdefault(key, []).append((inp, False))
-    for key, entries in groups.items():
+    for _, entries in groups.items():
         if len(entries) > 1:
             raise ValidationError(
                 Note.duplicate_scope(
@@ -220,7 +217,7 @@ def _check_duplicates_preflatten(inputs: List[InputFile]) -> None:
             )
 
 
-def _check_duplicates_postflatten(scopes: List[ProgramScope]) -> None:
+def _check_duplicates_postflatten(scopes: list[ProgramScope]) -> None:
     """Plan lines 287-301: re-run duplicate detection on the combined
     list after per_team flattening so a flattened row colliding with an
     explicit ``project+team`` input still raises (otherwise the
@@ -231,11 +228,11 @@ def _check_duplicates_postflatten(scopes: List[ProgramScope]) -> None:
     Reports both basenames; the per_team-flattened source is annotated
     in the message so the user can tell which side to fix.
     """
-    groups: Dict[str, List[ProgramScope]] = {}
+    groups: dict[str, list[ProgramScope]] = {}
     for sc in scopes:
         key = canonical_scope_repr(sc.scope, sc.scope_kind)
         groups.setdefault(key, []).append(sc)
-    for key, entries in groups.items():
+    for _, entries in groups.items():
         if len(entries) > 1:
             raise ValidationError(
                 Note.duplicate_scope(
@@ -255,7 +252,7 @@ def _check_duplicates_postflatten(scopes: List[ProgramScope]) -> None:
 # ``portfolio+team`` would be order-dependent (rank-equal pair) and
 # silently miss real overlaps when a user writes an explicit
 # ``program+team`` / ``portfolio+team`` flow-metrics file.
-_PARENT_KIND: Dict[str, str] = {
+_PARENT_KIND: dict[str, str] = {
     "portfolio": "portfolio",
     "portfolio+team": "portfolio",
     "program": "program",
@@ -266,7 +263,7 @@ _PARENT_KIND: Dict[str, str] = {
 
 # Parent-identifier field name per family. Used for the within-family
 # (parent vs parent+team) declared-identifier match.
-_PARENT_ID_FIELD: Dict[str, str] = {
+_PARENT_ID_FIELD: dict[str, str] = {
     "portfolio": "portfolio_id",
     "program": "program_id",
     "project": "project",
@@ -308,9 +305,7 @@ def _overlaps(
         # Cross-family: spec-pinned rules.
         if "portfolio" in (parent_a, parent_b):
             return True
-        if {"program", "project"} == {parent_a, parent_b}:
-            return True
-        return False
+        return {"program", "project"} == {parent_a, parent_b}
 
     # Same family, different kind (one base, one +team). Overlap iff
     # the parent identifier matches.
@@ -318,13 +313,13 @@ def _overlaps(
     return scope_a.get(id_field) == scope_b.get(id_field)
 
 
-def _check_overlaps(inputs: List[InputFile]) -> None:
+def _check_overlaps(inputs: list[InputFile]) -> None:
     """Pairwise overlap check across the filtered set.
 
     The set is bounded (a program lead's directory of flow-metrics
     JSONs), so O(N^2) is fine and easier to read than a tree.
     """
-    pairs: List[Tuple[Tuple[dict, str], Tuple[dict, str]]] = []
+    pairs: list[tuple[tuple[dict, str], tuple[dict, str]]] = []
     n = len(inputs)
     for i in range(n):
         for j in range(i + 1, n):
@@ -339,7 +334,7 @@ def _check_overlaps(inputs: List[InputFile]) -> None:
 # ---------------------------------------------------------------------------
 # per_team flattening
 # ---------------------------------------------------------------------------
-def _flatten_per_team(inputs: List[InputFile]) -> List[ProgramScope]:
+def _flatten_per_team(inputs: list[InputFile]) -> list[ProgramScope]:
     """Synthesise per-team rows for every input carrying a non-empty
     ``per_team`` array.
 
@@ -366,7 +361,7 @@ def _flatten_per_team(inputs: List[InputFile]) -> List[ProgramScope]:
     - ``per_team_double_counted`` propagates from the source input's
       ``meta.per_team_double_counted``.
     """
-    out: List[ProgramScope] = []
+    out: list[ProgramScope] = []
     for inp in inputs:
         if not inp.per_team:
             continue
@@ -374,22 +369,20 @@ def _flatten_per_team(inputs: List[InputFile]) -> List[ProgramScope]:
         for idx, entry in enumerate(inp.per_team):
             if not isinstance(entry, dict):
                 raise ValidationError(
-                    "{}: per_team[{}] must be an object; got {}".format(
-                        inp.basename, idx, type(entry).__name__
-                    )
+                    f"{inp.basename}: per_team[{idx}] must be an object;"
+                    f" got {type(entry).__name__}"
                 )
             team = entry.get("team")
             if not isinstance(team, str) or not team:
                 raise ValidationError(
-                    "{}: per_team[{}] missing or empty 'team' field; "
-                    "cannot synthesise per-team scope".format(inp.basename, idx)
+                    f"{inp.basename}: per_team[{idx}] missing or empty 'team' field; "
+                    "cannot synthesise per-team scope"
                 )
             entry_aggs = entry.get("aggregates", {})
             if not isinstance(entry_aggs, dict):
                 raise ValidationError(
-                    "{}: per_team[{}].aggregates must be an object; got {}".format(
-                        inp.basename, idx, type(entry_aggs).__name__
-                    )
+                    f"{inp.basename}: per_team[{idx}].aggregates must be an object;"
+                    f" got {type(entry_aggs).__name__}"
                 )
 
             synth_scope: dict = {}

@@ -21,11 +21,10 @@ from __future__ import annotations
 
 import statistics
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Mapping, Optional
+from typing import Any, Iterator, Mapping
 
 from .config import StateConfig
 from .per_issue import PerIssueRow
-
 
 PERCENTILE_DECIMALS = 4
 
@@ -47,9 +46,9 @@ class PercentileStat:
     empty-throughput case therefore carry ``PercentileStat(None, None,
     None, 0)`` rather than raising.
     """
-    p50: Optional[float]
-    p75: Optional[float]
-    p90: Optional[float]
+    p50: float | None
+    p75: float | None
+    p90: float | None
     n: int
 
 
@@ -69,7 +68,7 @@ class AggregateBlock:
     throughput: int
     wip: int
     flow_load: float
-    rework_rate: Optional[float]
+    rework_rate: float | None
     flow_efficiency: PercentileStat
     flow_distribution: Mapping[str, float]
     flow_distribution_denominator: int
@@ -82,7 +81,7 @@ class AggregateBlock:
     flow_load_sample_count: int
 
 
-def _percentiles(values: List[float]) -> PercentileStat:
+def _percentiles(values: list[float]) -> PercentileStat:
     """Compute p50 / p75 / p90 of ``values`` via the exclusive method.
 
     statistics.quantiles requires at least two data points. For
@@ -127,11 +126,11 @@ def aggregate(
     del config  # reserved; rows are pre-derived against state config
 
     sample_count = (window.to_date - window.from_date).days + 1
-    per_day_wip: List[int] = [0] * sample_count
+    per_day_wip: list[int] = [0] * sample_count
 
-    cycle_times: List[float] = []
-    lead_times: List[float] = []
-    flow_effs: List[float] = []
+    cycle_times: list[float] = []
+    lead_times: list[float] = []
+    flow_effs: list[float] = []
 
     throughput = 0
     wip = 0
@@ -141,7 +140,7 @@ def aggregate(
     unmapped_issuetype = 0
     rework_numerator = 0
 
-    buckets: Dict[str, int] = {b: 0 for b in FLOW_DISTRIBUTION_BUCKETS}
+    buckets: dict[str, int] = dict.fromkeys(FLOW_DISTRIBUTION_BUCKETS, 0)
 
     for row in rows:
         if row.delivered_in_window:
@@ -207,16 +206,16 @@ def aggregate(
 
     distribution_denominator = sum(buckets.values())
     if distribution_denominator > 0:
-        distribution_ratios: Dict[str, float] = {
+        distribution_ratios: dict[str, float] = {
             b: round(buckets[b] / distribution_denominator, PERCENTILE_DECIMALS)
             for b in FLOW_DISTRIBUTION_BUCKETS
         }
     else:
-        distribution_ratios = {b: 0.0 for b in FLOW_DISTRIBUTION_BUCKETS}
+        distribution_ratios = dict.fromkeys(FLOW_DISTRIBUTION_BUCKETS, 0.0)
 
     defect_ratio = distribution_ratios["defect"]
 
-    rework_rate: Optional[float] = None
+    rework_rate: float | None = None
     if throughput > 0:
         rework_rate = round(rework_numerator / throughput, PERCENTILE_DECIMALS)
 

@@ -40,7 +40,7 @@ Stdlib only. Python >= 3.10.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from .aggregate import AggregateBlock, aggregate
 from .config import StateConfig, TeamField
@@ -80,11 +80,11 @@ def _default_teams_for_row(row: PerIssueRow) -> Sequence[str]:
 
 def bucket_by_team(
     rows: Iterable[PerIssueRow],
-    team_field: Optional[TeamField],
+    team_field: TeamField | None,
     *,
-    teams_for_row: Optional[TeamsExtractor] = None,
+    teams_for_row: TeamsExtractor | None = None,
     notes: Any = None,
-) -> Dict[str, List[PerIssueRow]]:
+) -> dict[str, list[PerIssueRow]]:
     """Bucket ``rows`` by team into ``{team_name: [rows]}``.
 
     Single-value semantics (``team_field.kind == "single_value"``, the
@@ -133,7 +133,7 @@ def bucket_by_team(
         )
 
     extractor: TeamsExtractor = teams_for_row or _default_teams_for_row
-    buckets: Dict[str, List[PerIssueRow]] = {}
+    buckets: dict[str, list[PerIssueRow]] = {}
     no_team_count = 0
     double_counted = 0
 
@@ -144,7 +144,7 @@ def bucket_by_team(
         # that team's bucket *once*, not twice — otherwise the team's
         # throughput is inflated for malformed upstream data.
         seen: set = set()
-        team_names: List[str] = []
+        team_names: list[str] = []
         for t in extractor(row):
             if not isinstance(t, str) or not t:
                 continue
@@ -186,12 +186,12 @@ def bucket_by_team(
 # Per-team rollup
 # ---------------------------------------------------------------------------
 def per_team_rollup(
-    buckets: Dict[str, List[PerIssueRow]],
+    buckets: dict[str, list[PerIssueRow]],
     config: StateConfig,
     window: Any,
     *,
     include_subtasks: bool = False,
-) -> List[PerTeamRow]:
+) -> list[PerTeamRow]:
     """Aggregate each team's bucket and return rows sorted by team name.
 
     Sort order is :func:`sorted`'s default — Python compares strings by
@@ -205,7 +205,7 @@ def per_team_rollup(
     ``iter(...)``. ``include_subtasks`` is threaded through unchanged so
     each per-team block honours the same flag as the top-level run.
     """
-    out: List[PerTeamRow] = []
+    out: list[PerTeamRow] = []
     for team_name in sorted(buckets.keys()):
         # aggregator API: aggregate(rows, window, config, *, include_subtasks=False).
         block = aggregate(
@@ -218,7 +218,7 @@ def per_team_rollup(
     return out
 
 
-def per_team_double_counted(team_field: Optional[TeamField]) -> bool:
+def per_team_double_counted(team_field: TeamField | None) -> bool:
     """Compute ``meta.per_team_double_counted`` from the team_field config.
 
     ``True`` iff ``team_field.kind == "array"`` — the only kind where
@@ -242,7 +242,7 @@ def _format_team_id_for_jql(team_id: Any) -> str:
     issues.
     """
     if team_id is None or isinstance(team_id, bool):
-        raise ValueError("team id must be a non-null string or int; got {!r}".format(team_id))
+        raise ValueError(f"team id must be a non-null string or int; got {team_id!r}")
     if isinstance(team_id, int):
         return str(team_id)
     if isinstance(team_id, str):
@@ -253,14 +253,14 @@ def _format_team_id_for_jql(team_id: Any) -> str:
         # Escape embedded double-quotes per Jira's JQL string-literal rules.
         return '"{}"'.format(team_id.replace("\\", "\\\\").replace('"', '\\"'))
     raise TypeError(
-        "team id must be a str or int; got {}".format(type(team_id).__name__)
+        f"team id must be a str or int; got {type(team_id).__name__}"
     )
 
 
 def compose_program_scope_jql(
     team_field_id: str,
     team_ids: Sequence[Any],
-    user_clause: Optional[str] = None,
+    user_clause: str | None = None,
 ) -> str:
     """Build the Jira-side JQL for a program / portfolio scope run.
 
@@ -288,7 +288,7 @@ def compose_program_scope_jql(
             "an empty IN () clause is rejected by Jira"
         )
     rendered = ", ".join(_format_team_id_for_jql(tid) for tid in team_ids_list)
-    scope_clause = '"{}" in ({})'.format(team_field_id, rendered)
+    scope_clause = f'"{team_field_id}" in ({rendered})'
     return compose_jql(scope_clause, user_clause, order_by_key=True)
 
 

@@ -17,7 +17,7 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
-from typing import Iterable, List, Tuple
+from typing import Iterable
 
 
 class Note:
@@ -35,7 +35,7 @@ class Note:
     @classmethod
     def mixed_major_schema_versions(
         cls,
-        versions_and_basenames: Iterable[Tuple[int, str]],
+        versions_and_basenames: Iterable[tuple[int, str]],
     ) -> str:
         """Note for mixed major schema versions: ``"mixed-major-schema-versions:
         <list of distinct majors and their input basenames>"``.
@@ -58,9 +58,9 @@ class Note:
         if len(groups) < 2:
             raise ValueError(
                 "Note.mixed_major_schema_versions requires >=2 distinct "
-                "majors; got {}".format(sorted(groups))
+                f"majors; got {sorted(groups)}"
             )
-        parts: List[str] = []
+        parts: list[str] = []
         for major in sorted(groups):
             basenames = sorted(set(groups[major]))
             parts.append("{} ({})".format(major, ", ".join(basenames)))
@@ -75,15 +75,15 @@ class Note:
 
         ``sha_name`` is ``"state_config_sha"`` or ``"issuetype_config_sha"``.
         """
-        return "config-sha-drift: {} {} → {}".format(sha_name, a, b)
+        return f"config-sha-drift: {sha_name} {a} → {b}"
 
     @classmethod
     def cohort_jql_mismatch(cls, a_jql: str, b_jql: str) -> str:
         """Cohort JQL mismatch note: ``"cohort-jql-mismatch: <baseline-jql>
         vs <current-jql>; cohort breakdown comparison omitted"``."""
         return (
-            "cohort-jql-mismatch: {} vs {}; cohort breakdown comparison "
-            "omitted".format(a_jql, b_jql)
+            f"cohort-jql-mismatch: {a_jql} vs {b_jql}; cohort breakdown comparison "
+            "omitted"
         )
 
     @classmethod
@@ -96,7 +96,7 @@ class Note:
         <comma-sep basenames sorted codepoint-ascending>;
         --include-cohort-breakdown no-op"``.
         """
-        names = sorted(set(str(b) for b in basenames))
+        names = sorted({str(b) for b in basenames})
         if not names:
             raise ValueError(
                 "Note.cohort_breakdown_absent_noop requires >=1 basename"
@@ -112,8 +112,8 @@ class Note:
         ignored in baseline mode (use program mode for multi-team
         rollup)"``."""
         return (
-            "per_team data present in {}; ignored in baseline mode "
-            "(use program mode for multi-team rollup)".format(basename)
+            f"per_team data present in {basename}; ignored in baseline mode "
+            "(use program mode for multi-team rollup)"
         )
 
     # ------------------------------------------------------------------
@@ -131,8 +131,8 @@ class Note:
         :class:`ProgramInputs.scopes`.
         """
         return (
-            "per_team-cohort-deferred: {} flattened per-team rows have no "
-            "cohort_breakdown; excluded from cohort rollup".format(n_rows)
+            f"per_team-cohort-deferred: {n_rows} flattened per-team rows have no "
+            "cohort_breakdown; excluded from cohort rollup"
         )
 
     @classmethod
@@ -163,7 +163,7 @@ class Note:
     def duplicate_scope(
         cls,
         scope: dict,
-        sources: Iterable[Tuple[str, bool]],
+        sources: Iterable[tuple[str, bool]],
     ) -> str:
         """Duplicate scope error. Literal form:
         ``"duplicate scope in input set: <scope dict> in <basename-a>
@@ -190,27 +190,23 @@ class Note:
         items = sorted(sources, key=lambda s: s[0])
         if len(items) < 2:
             raise ValueError(
-                "Note.duplicate_scope requires at least two sources; got {}".format(
-                    items
-                )
+                f"Note.duplicate_scope requires at least two sources; got {items}"
             )
         labels = [
-            "{} (per_team flattened)".format(b) if from_per_team else b
+            f"{b} (per_team flattened)" if from_per_team else b
             for b, from_per_team in items
         ]
         if len(labels) == 2:
-            joined = "{} and {}".format(labels[0], labels[1])
+            joined = f"{labels[0]} and {labels[1]}"
         else:
             joined = "{}, and {}".format(", ".join(labels[:-1]), labels[-1])
         sorted_scope = {k: scope[k] for k in sorted(scope)}
-        return "duplicate scope in input set: {} in {}".format(
-            sorted_scope, joined
-        )
+        return f"duplicate scope in input set: {sorted_scope} in {joined}"
 
     @classmethod
     def overlapping_scopes(
         cls,
-        pairs: Iterable[Tuple[Tuple[dict, str], Tuple[dict, str]]],
+        pairs: Iterable[tuple[tuple[dict, str], tuple[dict, str]]],
     ) -> str:
         """Overlapping scopes error. Exit 2 listing the overlapping scopes.
         Literal form:
@@ -232,9 +228,7 @@ class Note:
             (scope_a, basename_a), (scope_b, basename_b) = pair
             sa = {k: scope_a[k] for k in sorted(scope_a)}
             sb = {k: scope_b[k] for k in sorted(scope_b)}
-            return "{} ({}) overlaps {} ({})".format(
-                basename_a, sa, basename_b, sb
-            )
+            return f"{basename_a} ({sa}) overlaps {basename_b} ({sb})"
 
         return "overlapping scopes in input set: " + "; ".join(
             _pair_str(p) for p in items
@@ -255,8 +249,8 @@ class Note:
         aggregation engine fills in the side label at the call site.
         """
         return (
-            "aggregation-zero-denominator: {}; weighted-average undefined "
-            "(total weight is zero on {})".format(metric, side)
+            f"aggregation-zero-denominator: {metric}; weighted-average undefined "
+            f"(total weight is zero on {side})"
         )
 
     @classmethod
@@ -294,7 +288,7 @@ class Note:
         and deduplicated (a single source basename may have produced
         multiple per_team-flattened scopes; we list it once).
         """
-        names = sorted(set(str(b) for b in missing_basenames))
+        names = sorted({str(b) for b in missing_basenames})
         if not names:
             raise ValueError(
                 "Note.cohort_breakdown_missing requires >=1 basename"
@@ -310,7 +304,10 @@ class Note:
 
     @classmethod
     def cohort_breakdown_section_empty(cls) -> str:
-        """Cohort breakdown section empty note. Literal form: ``"cohort-breakdown-section-empty"``."""
+        """Cohort breakdown section empty note.
+
+        Literal form: ``"cohort-breakdown-section-empty"``.
+        """
         return "cohort-breakdown-section-empty"
 
     @classmethod
@@ -327,7 +324,7 @@ class Note:
 
         Basenames sorted codepoint-ascending and deduplicated.
         """
-        names = sorted(set(str(b) for b in missing_basenames))
+        names = sorted({str(b) for b in missing_basenames})
         if not names:
             raise ValueError(
                 "Note.cohort_flow_distribution_missing requires >=1 basename"
@@ -345,7 +342,7 @@ class Note:
     @classmethod
     def mixed_cohort_jql(
         cls,
-        jqls_and_basenames: Iterable[Tuple[str, Iterable[str]]],
+        jqls_and_basenames: Iterable[tuple[str, Iterable[str]]],
     ) -> str:
         """Mixed cohort JQL note. Literal form:
         ``"mixed-cohort-jql: <list of distinct JQLs and their input
@@ -360,13 +357,11 @@ class Note:
         """
         entries = []
         for jql, basenames in jqls_and_basenames:
-            names = sorted(set(str(b) for b in basenames))
+            names = sorted({str(b) for b in basenames})
             entries.append((str(jql), names))
         if len(entries) < 2:
             raise ValueError(
-                "Note.mixed_cohort_jql requires >=2 distinct JQLs; got {}".format(
-                    [e[0] for e in entries]
-                )
+                f"Note.mixed_cohort_jql requires >=2 distinct JQLs; got {[e[0] for e in entries]}"
             )
         entries.sort(key=lambda kv: kv[0])
         parts = [
@@ -392,7 +387,7 @@ class Note:
         access to filenames, so the caller pre-resolves ``<file>`` into
         the label.
         """
-        return "{} absent in {}; cell omitted".format(metric, side_label)
+        return f"{metric} absent in {side_label}; cell omitted"
 
     @classmethod
     def metric_null_on_one_side(cls, metric: str, side_label: str) -> str:
@@ -403,13 +398,13 @@ class Note:
         or aggregation engine may later wrap or rewrite if they want to
         thread the scope through; the stable wording lives here.
         """
-        return "{} null in {}".format(metric, side_label)
+        return f"{metric} null in {side_label}"
 
     @classmethod
     def metric_zero_both_sides(cls, metric: str) -> str:
         """Metric zero on both sides: ``"<metric> zero on both sides; percent
         delta undefined"``."""
-        return "{} zero on both sides; percent delta undefined".format(metric)
+        return f"{metric} zero on both sides; percent delta undefined"
 
     @classmethod
     def n_differs(
@@ -417,7 +412,7 @@ class Note:
         metric: str,
         n_a: int,
         n_b: int,
-        side_labels: Tuple[str, str],
+        side_labels: tuple[str, str],
     ) -> str:
         """N-differs note (per-side ``n`` differs by more than 10%,
         or zero on either side).
@@ -429,9 +424,7 @@ class Note:
         """
         a_label, b_label = side_labels
         return (
-            "n-differs: {} n={} in {}, n={} in {} (>10% delta)".format(
-                metric, n_a, a_label, n_b, b_label
-            )
+            f"n-differs: {metric} n={n_a} in {a_label}, n={n_b} in {b_label} (>10% delta)"
         )
 
 

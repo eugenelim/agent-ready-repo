@@ -66,16 +66,14 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Any, Iterable, List, Literal, Optional
+from typing import Any, Iterable
 
 from .delta import (
-    CANONICAL_METRIC_ORDER,
     FLOW_DISTRIBUTION_BUCKETS,
     PERCENTILES,
 )
 from .inputs import InputFile
 from .modes import ReportData
-
 
 # ---------------------------------------------------------------------------
 # Module constants
@@ -141,23 +139,21 @@ def render_markdown(
     inputs produce byte-identical output (per the
     ``test_byte_identical_rerun`` test).
     """
-    lines: List[str] = []
+    lines: list[str] = []
 
     # ---- Title ----
     # The title is user-supplied (via --title or the default); apply the
     # Markdown escape so a ``|`` / ``*`` / ``_`` / ``[`` / etc. in the
     # title doesn't accidentally trigger emphasis or table parsing inside
     # the heading.
-    lines.append("# {}".format(_md_escape(title)))
+    lines.append(f"# {_md_escape(title)}")
     lines.append("")
 
     # ---- Header block ----
-    lines.append("**Mode:** {}".format(report.mode))
-    lines.append("**Generated at:** {}".format(generated_at))
+    lines.append(f"**Mode:** {report.mode}")
+    lines.append(f"**Generated at:** {generated_at}")
     lines.append(
-        "**Inputs:** {} file(s) — see §Provenance.".format(
-            len(report.inputs)
-        )
+        f"**Inputs:** {len(report.inputs)} file(s) — see §Provenance."
     )
     lines.append(report.header_line)
     lines.append("")
@@ -215,7 +211,7 @@ def render_markdown(
         lines.append("## Notes")
         lines.append("")
         for n in finalized_notes:
-            lines.append("- {}".format(n))
+            lines.append(f"- {n}")
         lines.append("")
 
     # ---- Provenance ----
@@ -293,14 +289,13 @@ def render_json(
     )
 
     placeholder_in_main = json.dumps(_DELTAS_SENTINEL, ensure_ascii=False)
-    out = main_blob.replace(placeholder_in_main, deltas_blob, 1)
-    return out
+    return main_blob.replace(placeholder_in_main, deltas_blob, 1)
 
 
 # ---------------------------------------------------------------------------
 # Notes merge + finalize
 # ---------------------------------------------------------------------------
-def _finalize_notes(notes: Iterable[str]) -> List[str]:
+def _finalize_notes(notes: Iterable[str]) -> list[str]:
     """Dedupe + codepoint-sort. Used by both renderers so they emit the
     same list. The modes, program discovery, delta engine, and
     aggregation engine produced notes unsorted; the renderer finalizes.
@@ -323,11 +318,11 @@ def _build_summary(report: ReportData) -> str:
     if report.mode == "program" and not report.deltas:
         scope_n = len(report.per_scope_rows or [])
         return (
-            "Program rollup across {} scope(s); see per-scope rows and "
-            "program aggregates below.".format(scope_n)
+            f"Program rollup across {scope_n} scope(s); see per-scope rows and "
+            "program aggregates below."
         )
 
-    pieces: List[str] = []
+    pieces: list[str] = []
     deltas = report.deltas
 
     # throughput (scalar)
@@ -349,8 +344,8 @@ def _build_summary(report: ReportData) -> str:
 
     if not pieces:
         return (
-            "{} comparison; see Metric deltas table and Notes for "
-            "detail.".format(report.mode.capitalize())
+            f"{report.mode.capitalize()} comparison; see Metric deltas table and Notes for "
+            "detail."
         )
     sentence = ", ".join(pieces) + "."
     # In cohort mode the deltas describe a within-window partition
@@ -371,14 +366,14 @@ def _summary_phrase(name: str, pct: float) -> str:
     otherwise ``up X%`` or ``down X%`` with one decimal.
     """
     if pct is None:
-        return "{} unchanged".format(name)
+        return f"{name} unchanged"
     if isinstance(pct, float) and math.isinf(pct):
         return "{} {}∞%".format(name, "+" if pct > 0 else "−")
     abs_pct = abs(pct) * 100
     direction = "up" if pct > 0 else ("down" if pct < 0 else "unchanged")
     if direction == "unchanged":
-        return "{} unchanged".format(name)
-    return "{} {} {:.1f}%".format(name, direction, abs_pct)
+        return f"{name} unchanged"
+    return f"{name} {direction} {abs_pct:.1f}%"
 
 
 # ---------------------------------------------------------------------------
@@ -419,16 +414,16 @@ def _delta_rows_for_render(deltas_dict: dict) -> list[tuple[str, dict]]:
         if metric in _DISTRIBUTION_METRICS:
             for p in PERCENTILES:
                 if p in value:
-                    rows.append(("{} {}".format(metric, p), value[p]))
+                    rows.append((f"{metric} {p}", value[p]))
         elif metric == "flow_distribution":
             for bucket in FLOW_DISTRIBUTION_BUCKETS:
                 if bucket in value:
-                    rows.append(("{}.{}".format(metric, bucket), value[bucket]))
+                    rows.append((f"{metric}.{bucket}", value[bucket]))
         else:
             # Unknown nested metric — emit each sub-key in insertion order.
             for sub, cell in value.items():
                 if isinstance(cell, dict):
-                    rows.append(("{} {}".format(metric, sub), cell))
+                    rows.append((f"{metric} {sub}", cell))
     return rows
 
 
@@ -436,15 +431,13 @@ def _render_delta_table(
     rows: list[tuple[str, dict]],
     a_label: str,
     b_label: str,
-) -> List[str]:
+) -> list[str]:
     """Render the deltas table (header + separator + rows).
 
     Column order: ``Metric | <a_label> | <b_label> | Δ abs | Δ %``.
     """
     out = [
-        "| Metric | {a} | {b} | Δ abs | Δ % |".format(
-            a=_md_escape(a_label), b=_md_escape(b_label)
-        ),
+        f"| Metric | {_md_escape(a_label)} | {_md_escape(b_label)} | Δ abs | Δ % |",
         "|---|---|---|---|---|",
     ]
     for label, cell in rows:
@@ -500,8 +493,8 @@ _PER_SCOPE_COLUMNS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 
 def _render_per_scope_table(
     per_scope_rows: list,
-    program_aggregates: Optional[dict],
-) -> List[str]:
+    program_aggregates: dict | None,
+) -> list[str]:
     """Render the per-scope table plus the final Aggregate row.
 
     ``per_scope_rows`` arrives sorted by ``scope_repr`` (aggregation sorts).
@@ -538,7 +531,7 @@ def _format_scope_label(scope: dict) -> str:
     parts = []
     for key in ("project", "team", "program_id", "portfolio_id"):
         if key in scope and scope[key] not in (None, ""):
-            parts.append("{}={}".format(key, scope[key]))
+            parts.append(f"{key}={scope[key]}")
     return " ".join(parts) if parts else "(empty scope)"
 
 
@@ -557,9 +550,9 @@ def _dig(d: dict, path: tuple[str, ...]) -> Any:
 # ---------------------------------------------------------------------------
 # Provenance
 # ---------------------------------------------------------------------------
-def _render_provenance(inputs: List[InputFile]) -> List[str]:
+def _render_provenance(inputs: list[InputFile]) -> list[str]:
     """Emit one bullet per input file. Sorted by basename codepoint."""
-    out: List[str] = []
+    out: list[str] = []
     sorted_inputs = sorted(inputs, key=lambda i: i.basename)
     for inp in sorted_inputs:
         scope_text = _format_scope_label(inp.scope)
@@ -611,16 +604,16 @@ def _fmt_cell(value: Any, *, kind: str) -> str:
             # absolute delta in throughput when one side is non-integer).
             # Round to 4dp and emit shortest repr.
             sign = "−" if value < 0 else ""
-            return "{}{}".format(sign, _format_float_value(abs(value)))
+            return f"{sign}{_format_float_value(abs(value))}"
         sign = "−" if value < 0 else ""
-        return "{}{}".format(sign, abs(value))
+        return f"{sign}{abs(value)}"
     # float / hours
     if isinstance(value, int):
         sign = "−" if value < 0 else ""
-        return "{}{}".format(sign, abs(value))
+        return f"{sign}{abs(value)}"
     if isinstance(value, float):
         sign = "−" if value < 0 else ""
-        return "{}{}".format(sign, _format_float_value(abs(value)))
+        return f"{sign}{_format_float_value(abs(value))}"
     return str(value)
 
 
@@ -658,7 +651,7 @@ def _fmt_percent(value: Any) -> str:
     # value is a decimal fraction; multiply by 100 for display.
     pct = float(value) * 100
     sign = "+" if value >= 0 else "−"
-    return "{}{:.1f}%".format(sign, abs(pct))
+    return f"{sign}{abs(pct):.1f}%"
 
 
 # ---------------------------------------------------------------------------
@@ -679,7 +672,7 @@ def _md_escape(s: str) -> str:
 # ---------------------------------------------------------------------------
 # JSON helpers
 # ---------------------------------------------------------------------------
-def _build_inputs_json(inputs: List[InputFile]) -> list[dict]:
+def _build_inputs_json(inputs: list[InputFile]) -> list[dict]:
     """Build the ``meta.inputs`` array.
 
     Sorted by basename codepoint-ascending. Each entry carries the
@@ -697,7 +690,7 @@ def _build_inputs_json(inputs: List[InputFile]) -> list[dict]:
                 "generated_at": inp.meta.get("generated_at"),
                 "state_config_sha": inp.meta.get("state_config_sha"),
                 "issuetype_config_sha": inp.meta.get("issuetype_config_sha"),
-                "schema_version": "{}.{}".format(major, minor),
+                "schema_version": f"{major}.{minor}",
             }
         )
     return out

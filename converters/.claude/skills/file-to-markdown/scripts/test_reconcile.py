@@ -322,14 +322,14 @@ def test_write_confined_rejects_escape_accepts_in_root(tmp_path: Path):
     # .. traversal above the root
     try:
         reconcile._write_confined(root / ".." / "evil.md", "x", root)
-        assert False, "traversal not refused"
+        raise AssertionError("traversal not refused")
     except ValueError:
         pass
     # sibling-prefix (work-evil vs work)
     (tmp_path / "work-evil").mkdir()
     try:
         reconcile._write_confined(tmp_path / "work-evil" / "x.md", "x", root)
-        assert False, "sibling-prefix not refused"
+        raise AssertionError("sibling-prefix not refused")
     except ValueError:
         pass
     # symlink whose target escapes the root
@@ -338,7 +338,7 @@ def test_write_confined_rejects_escape_accepts_in_root(tmp_path: Path):
     link.symlink_to(outside)
     try:
         reconcile._write_confined(link, "x", root)
-        assert False, "symlink escape not refused"
+        raise AssertionError("symlink escape not refused")
     except ValueError:
         pass
     # default root (root=None → the output's own parent) — the shipping CLI
@@ -347,7 +347,7 @@ def test_write_confined_rejects_escape_accepts_in_root(tmp_path: Path):
     link2.symlink_to(tmp_path / "outside2.md")
     try:
         reconcile._write_confined(link2, "x", None)
-        assert False, "default-root symlink escape not refused"
+        raise AssertionError("default-root symlink escape not refused")
     except ValueError:
         pass
 
@@ -397,8 +397,10 @@ def test_general_crosscheck_flags_disagreement(tmp_path: Path):
     ext = _general_extractions([
         {"type": "text", "text": "alpha beta gamma delta epsilon",
          "bbox_in_tile": {"x": 0, "y": 0, "w": 200, "h": 40}, "confidence": "high"}])
-    man_p = tmp_path / "m.json"; ext_p = tmp_path / "e.json"
-    man_p.write_text(json.dumps(manifest)); ext_p.write_text(json.dumps(ext))
+    man_p = tmp_path / "m.json"
+    ext_p = tmp_path / "e.json"
+    man_p.write_text(json.dumps(manifest))
+    ext_p.write_text(json.dumps(ext))
 
     def run(layer_text):
         layer = tmp_path / "layer.txt"

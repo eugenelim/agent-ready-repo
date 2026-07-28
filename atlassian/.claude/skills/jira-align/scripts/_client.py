@@ -50,7 +50,7 @@ class Credentials:
 
 def detect_flavor(base_url: str) -> str:
     host = (urlparse(base_url).hostname or "").lower()
-    if host.endswith(".jiraalign.com") or host.endswith(".agilecraft.com"):
+    if host.endswith((".jiraalign.com", ".agilecraft.com")):
         return FLAVOR_CLOUD
     return FLAVOR_ONPREM
 
@@ -97,7 +97,7 @@ class JiraAlignClient:
         import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         self._sem = asyncio.Semaphore(concurrency)
 
-    async def __aenter__(self) -> "JiraAlignClient":
+    async def __aenter__(self) -> JiraAlignClient:
         return self
 
     async def __aexit__(self, *exc: object) -> None:
@@ -348,6 +348,8 @@ def load_credentials() -> Credentials:
     """
     from credbroker import (
         CredentialsMissingError,
+    )
+    from credbroker import (
         load_credentials as _resolver_load,
     )
 

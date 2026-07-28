@@ -12,9 +12,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 import contract
+import pytest
 import tier3
 
 

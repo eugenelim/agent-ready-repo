@@ -21,9 +21,6 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
-from typing import List, Optional
-
-
 # Sentinel default for the rare add_* method whose wording the spec does
 # not pin verbatim — kept as a module constant so the test that asserts
 # the spec-example wording has a single source of truth.
@@ -84,7 +81,7 @@ class NotesCollector:
         # is occasionally useful in debug prints; the dedup guarantee is
         # what the contract pins, not the in-memory order (which
         # :meth:`finalize` sorts away regardless).
-        self._notes: List[str] = []
+        self._notes: list[str] = []
         self._seen: set = set()
 
     def _append(self, line: str) -> None:
@@ -123,7 +120,7 @@ class NotesCollector:
         reports a higher total than the in-scope JQL."""
         self._append(_PERMISSION_UNDERCOUNT_TEMPLATE.format(n=n))
 
-    def add_field_permission_undercount(self, field: Optional[str], n: int) -> None:
+    def add_field_permission_undercount(self, field: str | None, n: int) -> None:
         """N in-scope issues had no readable team_field value. ``field``
         is the team_field id for diagnostics; the note wording does not
         embed the field id, but we accept it so call sites stay
@@ -169,7 +166,7 @@ class NotesCollector:
     # ------------------------------------------------------------------
     # Output
     # ------------------------------------------------------------------
-    def finalize(self) -> List[str]:
+    def finalize(self) -> list[str]:
         """Return a fresh lex-sorted copy of the notes buffer.
 
         Non-destructive: repeated calls return equivalent lists; the

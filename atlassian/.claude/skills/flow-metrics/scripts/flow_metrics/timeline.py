@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Iterable, List, Mapping, Optional, Tuple
+from typing import Iterable, Mapping
 
 from .changelog import ChangelogEntry, _parse_jira_timestamp
 from .config import ReworkSignal, StateConfig
@@ -33,7 +33,7 @@ class UnmappedStatusError(Exception):
 
     def __init__(self, status: str) -> None:
         self.status = status
-        super().__init__("unmapped Jira status: {!r}".format(status))
+        super().__init__(f"unmapped Jira status: {status!r}")
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,7 @@ class Timeline:
             initial_status_raw = _issue_current_status(issue)
         self._initial_status = self._map_status(initial_status_raw)
 
-        self._status_transitions: List[StatusTransition] = []
+        self._status_transitions: list[StatusTransition] = []
         for e in status_entries:
             self._status_transitions.append(
                 StatusTransition(
@@ -137,7 +137,7 @@ class Timeline:
         else:
             initial_issuetype = _issue_current_issuetype(issue)
         self._initial_issuetype = initial_issuetype
-        self._issuetype_transitions: List[IssuetypeTransition] = [
+        self._issuetype_transitions: list[IssuetypeTransition] = [
             IssuetypeTransition(
                 timestamp=e.timestamp,
                 from_value=e.from_value,
@@ -167,17 +167,17 @@ class Timeline:
         return self._initial_issuetype
 
     @property
-    def status_transitions(self) -> Tuple[StatusTransition, ...]:
+    def status_transitions(self) -> tuple[StatusTransition, ...]:
         return tuple(self._status_transitions)
 
     @property
-    def issuetype_transitions(self) -> Tuple[IssuetypeTransition, ...]:
+    def issuetype_transitions(self) -> tuple[IssuetypeTransition, ...]:
         return tuple(self._issuetype_transitions)
 
     # ------------------------------------------------------------------
     # Queries
     # ------------------------------------------------------------------
-    def first_canonical_transition_into(self, canonical_name: str) -> Optional[datetime]:
+    def first_canonical_transition_into(self, canonical_name: str) -> datetime | None:
         """Timestamp of the first changelog transition whose ``to_canonical``
         equals ``canonical_name``. Returns ``None`` if no such transition.
 
@@ -207,7 +207,7 @@ class Timeline:
         return current
 
     def time_in(
-        self, canonical_name: str, interval: Tuple[datetime, datetime]
+        self, canonical_name: str, interval: tuple[datetime, datetime]
     ) -> timedelta:
         """Total time the issue was in ``canonical_name`` within ``interval``.
 
@@ -239,8 +239,8 @@ class Timeline:
         return total
 
     def backward_edges(
-        self, rework_signals: Tuple[ReworkSignal, ...]
-    ) -> List[Tuple[datetime, str, str]]:
+        self, rework_signals: tuple[ReworkSignal, ...]
+    ) -> list[tuple[datetime, str, str]]:
         """Every status transition that matches at least one rework signal.
 
         A transition ``T`` matches signal ``S`` iff
@@ -249,7 +249,7 @@ class Timeline:
         emitted exactly once even if multiple signals would match — the
         spec is explicit that each backward edge counts once.
         """
-        out: List[Tuple[datetime, str, str]] = []
+        out: list[tuple[datetime, str, str]] = []
         for t in self._status_transitions:
             for signal in rework_signals:
                 if (

@@ -26,6 +26,8 @@ from urllib.parse import urlparse
 import httpx
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from _sso_config import SsoConfig
 
 log = logging.getLogger("confluence_crawler.client")
@@ -159,12 +161,12 @@ class ConfluenceClient:
     @classmethod
     def from_sso_cookies(
         cls,
-        sso_config: "SsoConfig",
+        sso_config: SsoConfig,
         *,
         concurrency: int = DEFAULT_CONCURRENCY,
         min_delay_ms: int = DEFAULT_MIN_DELAY_MS,
         timeout_s: float = DEFAULT_TIMEOUT_S,
-    ) -> "ConfluenceClient":
+    ) -> ConfluenceClient:
         """Build a Data Center client authenticated by a captured SSO cookie jar.
 
         Resolves the jar via credbroker (fail-closed), filters it to the declared
@@ -230,7 +232,7 @@ class ConfluenceClient:
         self._lock = asyncio.Lock()
         return self
 
-    async def __aenter__(self) -> "ConfluenceClient":
+    async def __aenter__(self) -> ConfluenceClient:
         return self
 
     async def __aexit__(self, *exc: object) -> None:
@@ -290,7 +292,11 @@ class ConfluenceClient:
                     )
                 if resp.status_code == 429 or 500 <= resp.status_code < 600:
                     retry_after = resp.headers.get("Retry-After")
-                    delay = float(retry_after) if retry_after and retry_after.isdigit() else self._backoff(attempt)
+                    delay = (
+                        float(retry_after)
+                        if retry_after and retry_after.isdigit()
+                        else self._backoff(attempt)
+                    )
                     log.warning("HTTP %s on %s — retrying in %.1fs", resp.status_code, path, delay)
                     await asyncio.sleep(delay)
                     continue
@@ -425,17 +431,16 @@ class ConfluenceClient:
                     f"path (must be a path relative to the base host): {download_path!r}"
                 )
         dest.parent.mkdir(parents=True, exist_ok=True)
-        async with self._sem:
-            async with self._client.stream("GET", download_path) as resp:
-                if resp.status_code >= 400:
-                    raise ConfluenceError(
-                        f"HTTP {resp.status_code} downloading {download_path}"
-                    )
-                tmp = dest.with_suffix(dest.suffix + ".part")
-                with tmp.open("wb") as fh:
-                    async for chunk in resp.aiter_bytes():
-                        fh.write(chunk)
-                tmp.replace(dest)
+        async with self._sem, self._client.stream("GET", download_path) as resp:
+            if resp.status_code >= 400:
+                raise ConfluenceError(
+                    f"HTTP {resp.status_code} downloading {download_path}"
+                )
+            tmp = dest.with_suffix(dest.suffix + ".part")
+            with tmp.open("wb") as fh:
+                async for chunk in resp.aiter_bytes():
+                    fh.write(chunk)
+            tmp.replace(dest)
 
 
 def load_credentials() -> Credentials:
@@ -453,6 +458,8 @@ def load_credentials() -> Credentials:
     """
     from credbroker import (
         CredentialsMissingError,
+    )
+    from credbroker import (
         load_credentials as _resolver_load,
     )
 

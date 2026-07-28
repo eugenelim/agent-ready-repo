@@ -14,9 +14,8 @@ runs. Run with `python -m pytest` from this directory.
 """
 from __future__ import annotations
 
-import pytest
-
 import contract
+import pytest
 
 
 def _doc_fields():
@@ -33,8 +32,8 @@ def _doc_fields():
 def test_build_fields_is_the_source_build_frontmatter_emits():
     """build_frontmatter's YAML is exactly _yaml_block(build_fields(...)) — one
     source for the field set, so the YAML and JSONL paths cannot drift."""
-    kw = dict(tier=contract.TIER_2, extraction_confidence="high",
-              requires_review=False, fields=_doc_fields())
+    kw = {"tier": contract.TIER_2, "extraction_confidence": "high",
+              "requires_review": False, "fields": _doc_fields()}
     block = contract.build_fields(**kw)
     assert block["contract-version"] == "1.0"
     assert block["tier"] == contract.TIER_2

@@ -17,6 +17,7 @@ Rate limit: 5 000 req/hr for Personal API Keys; 429 + Retry-After respected.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import re
@@ -27,10 +28,8 @@ from typing import Any
 
 if __package__ in (None, "") and __spec__ is None:
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     _floor = Path("~/.agentbundle/lib").expanduser()
@@ -45,7 +44,7 @@ except ModuleNotFoundError as _import_exc:
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("linear.cli")
 
@@ -119,6 +118,8 @@ def _load_api_key() -> str:
     """
     from credbroker import (
         CredentialsMissingError,
+    )
+    from credbroker import (
         load_credentials as _resolver_load,
     )
 

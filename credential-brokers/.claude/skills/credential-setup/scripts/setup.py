@@ -63,7 +63,7 @@ except ModuleNotFoundError as exc:
         "    pip install -e ./packages/credbroker\n\n"
         "(run from the repo root), then re-run this script.\n"
     )
-    raise SystemExit(3)
+    raise SystemExit(3) from None
 
 
 RESERVED_NAMESPACES = frozenset({"sso"})

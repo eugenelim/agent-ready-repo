@@ -12,10 +12,9 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
+import _client
 import httpx
 import pytest
-
-import _client
 from _sso_config import SsoConfig
 
 pytest.importorskip("credbroker")

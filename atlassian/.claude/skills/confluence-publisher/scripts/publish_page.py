@@ -4,9 +4,11 @@ Invocation examples:
 
     python scripts/publish_page.py --check
     python scripts/publish_page.py --page-id 12345 --input report.md
-    python scripts/publish_page.py --url 'https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Foo' --input report.md
+    python scripts/publish_page.py \
+        --url 'https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Foo' --input report.md
     python scripts/publish_page.py --from-frontmatter --input crawled/handbook.md
-    python scripts/publish_page.py --space ENG --title 'Q3 Roadmap' --parent-id 555 --input roadmap.md
+    python scripts/publish_page.py \
+        --space ENG --title 'Q3 Roadmap' --parent-id 555 --input roadmap.md
     python scripts/publish_page.py --page-id 42 --input report.md --dry-run
 
 Credentials are resolved via the ``credbroker`` library
@@ -22,6 +24,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import re
 import sys
@@ -44,10 +47,8 @@ if __package__ in (None, "") and __spec__ is None:
     # its messages emit correctly. Guarded: a replaced stream (StringIO under
     # a test harness) or pythonw's None has no reconfigure().
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     # Vendored credbroker floor (~/.agentbundle/lib) at LOWEST precedence:
@@ -96,7 +97,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("confluence_publisher")
 
@@ -197,7 +198,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--from-frontmatter", action="store_true",
                         help="Read confluence_id (and optional version) from YAML frontmatter")
     parser.add_argument("--space", help="Space key for lookup-or-create mode")
-    parser.add_argument("--title", help="Page title for lookup-or-create mode (or to override on update)")
+    parser.add_argument(
+        "--title", help="Page title for lookup-or-create mode (or to override on update)"
+    )
     parser.add_argument("--parent-id", help="Parent page ID (lookup-or-create mode)")
 
     # Input.
@@ -309,8 +312,9 @@ def _resolve_existing_page(
         if len(matches) > 1:
             ids = ", ".join(m.id for m in matches)
             raise TargetResolutionError(
-                f"NEED-INPUT: multiple pages match space={target.space_key} title={target.title!r}: "
-                f"page IDs [{ids}] — pass --page-id to disambiguate"
+                f"NEED-INPUT: multiple pages match space={target.space_key}"
+                f" title={target.title!r}: page IDs [{ids}]"
+                " — pass --page-id to disambiguate"
             )
         return None
     raise TargetResolutionError("internal: target has no page_id and no space+title")
