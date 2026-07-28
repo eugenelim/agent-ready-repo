@@ -109,15 +109,19 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
 
 
 def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: drop symlinks with absolute targets.
+    """`shutil.copytree` ignore callback: drop symlinks with absolute targets
+    and Python bytecode cache directories.
 
     Relative symlinks (intra-skill cross-references) are preserved as
-    symlinks. Absolute symlinks always escape the tree and are a path-escape vector.
+    symlinks. Absolute symlinks always escape the tree and are a path-escape
+    vector. __pycache__ directories are excluded because .pyc files embed
+    absolute source paths and can never be byte-identical across machines.
     """
     base = Path(directory)
     return {
         name for name in names
-        if (base / name).is_symlink() and os.path.isabs(os.readlink(base / name))
+        if name == "__pycache__"
+        or ((base / name).is_symlink() and os.path.isabs(os.readlink(base / name)))
     }
 
 

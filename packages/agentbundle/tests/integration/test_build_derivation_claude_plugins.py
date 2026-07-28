@@ -285,12 +285,6 @@ def test_make_build_check_passes_post_migration(tmp_path):
         tmp_path / ".adapt-discovery.toml",
     )
 
-    # Remove any __pycache__ from the shadow copy — they would be flagged as
-    # unexpected projection artifacts by the self-host gate.
-    for pycache in packs_shadow.rglob("__pycache__"):
-        if pycache.is_dir():
-            shutil.rmtree(pycache, ignore_errors=True)
-
     # Populate the shadow working tree by running the real self-host
     # projection against it. --force bypasses the dirty-tree refusal
     # (tmp_path is not a git repo, so is_dirty_tree fails closed).

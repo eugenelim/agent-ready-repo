@@ -393,6 +393,12 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "dist/**",
     ".worktrees/**",
     "*.upstream.*",  # adopter-local upstream stash sidecars
+    # Python bytecode cache — generated at import time, never part of the
+    # projection contract. Pyc files embed the absolute source path so they
+    # can never be byte-identical across machines; excluding them prevents
+    # false-positive drift failures when a skill script is imported or run
+    # before build-check executes. See docs/backlog.md § pycache-drift.
+    "**/__pycache__/**",
 )
 
 
@@ -496,6 +502,8 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             continue
         for src in sorted(seeds_dir.rglob("*")):
             if not src.is_file():
+                continue
+            if "__pycache__" in src.parts:
                 continue
             # Underscore-prefixed files are *composition fragments*
             # (e.g. `_agents-footer.md`), not standalone projection
