@@ -107,8 +107,10 @@ Jira was not changed.
 
 **What "ready to pull" means:** An item is ready to pull when all four hold — it
 belongs to the selected team scope, is in an eligible backlog state, has no known
-unresolved blocker, and meets the team's story-readiness bar (the five-question
-bar below). It is **not** a silent `status = "To Do"`.
+unresolved blocker, and has minimum definition (non-empty description, not image-only,
+not a discovery artifact without ACs, and not wholly TBD). It is **not** a silent
+`status = "To Do"`. The five-question agent-execution bar is a separate, optional
+lens applied only when explicitly requested.
 
 **Check:** Does the number of ready items look right? If an item is missing or
 misclassified, ask why — the agent will explain what signal it couldn't read and

@@ -42,8 +42,8 @@ point. The earlier stages are always safe to run.
 stand-up view don't need write access. `jira-team-status` never modifies Jira — this
 is structural, not configurable.
 
-**Story review has a dedicated quality contract.** The five-question readiness bar is
-a fixed, team-independent standard. `jira-story-triage` applies it consistently and
+**Story review has a dedicated quality contract.** The five-question agent-execution readiness bar is
+a fixed, team-independent standard — it judges whether a story is ready for a coding agent or engineer to execute, not whether the team can begin work. `jira-story-triage` applies it consistently and
 explains *why* each item fails — which question and which gap — rather than returning
 a tier label. Keeping this separate from `jira-team-status` means the team-status
 view is always fast and read-only, while the quality review is thorough.

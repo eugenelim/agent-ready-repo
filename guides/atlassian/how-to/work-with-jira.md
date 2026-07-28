@@ -89,12 +89,12 @@ Current sprint in APP and API, or open backlog if no sprint is specified.
 **WHAT YOU GET**
 
 Items grouped as Quick (≤ half a day), Standard (1–2 days), or Involved (more),
-only those that pass all four readiness conditions:
+only those that pass all four team readiness conditions:
 
 1. In the selected team scope
 2. In an eligible backlog state (not already in progress or done)
 3. No known unresolved blocker
-4. Meets the [five-question story-readiness bar](#the-five-question-bar)
+4. Minimum definition — non-empty description, not image-only, not a discovery artifact without ACs, and not wholly TBD
 
 Items where any condition can't be determined are labelled **needs confirmation**,
 not asserted ready.
