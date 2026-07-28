@@ -4,6 +4,7 @@
 // move between radios). Copy button uses a small JS snippet that reads the
 // currently-checked radio to collect the active panel's commands.
 import Section from '../layout/Section.astro';
+import CopyButton from '../primitives/CopyButton.astro';
 
 const tabs = [
   { id: 'flagship', label: 'Flagship loop', lines: ['pip install agentbundle', 'agentbundle install --pack core'] },
@@ -21,19 +22,7 @@ const tabs = [
       <span class="terminal__dot" aria-hidden="true"></span>
       <span class="terminal__dot" aria-hidden="true"></span>
       <span class="terminal__dot" aria-hidden="true"></span>
-      <button
-        class="install-copy-btn"
-        aria-label="Copy install commands"
-        type="button"
-      >
-        <span class="install-copy-btn__icon" aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
-            <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <span class="install-copy-btn__label">Copy</span>
-      </button>
+      <CopyButton class="install-copy-btn" label="Copy install commands" />
     </div>
 
     <div class="tabs" role="group" aria-label="Install options">
@@ -70,8 +59,9 @@ const tabs = [
 </Section>
 
 <script>
+  // Sync data-copy-content on the CopyButton whenever the active tab changes.
+  // CopyButton's own script handles the actual clipboard write.
   const copyBtn = document.querySelector<HTMLButtonElement>('.install-copy-btn');
-  const label = copyBtn?.querySelector<HTMLElement>('.install-copy-btn__label');
 
   function getActiveCommands(): string {
     const checked = document.querySelector<HTMLInputElement>('.tabs__radio:checked');
@@ -84,21 +74,14 @@ const tabs = [
       .join('\n');
   }
 
-  copyBtn?.addEventListener('click', async () => {
-    const cmd = getActiveCommands();
-    try {
-      await navigator.clipboard.writeText(cmd);
-      if (label) {
-        label.textContent = 'Copied!';
-        copyBtn.classList.add('install-copy-btn--success');
-        setTimeout(() => {
-          label.textContent = 'Copy';
-          copyBtn.classList.remove('install-copy-btn--success');
-        }, 2000);
-      }
-    } catch {
-      // Clipboard API unavailable — commands are still visible and selectable.
-    }
+  function syncContent(): void {
+    if (copyBtn) copyBtn.dataset.copyContent = getActiveCommands();
+  }
+
+  // Sync on load and whenever a radio changes.
+  syncContent();
+  document.querySelectorAll<HTMLInputElement>('.tabs__radio').forEach((radio) => {
+    radio.addEventListener('change', syncContent);
   });
 </script>
 
@@ -130,42 +113,24 @@ const tabs = [
     background-color: var(--ds-hero-border-card);
   }
 
-  /* Copy button sits at the right end of the terminal bar. */
-  .install-copy-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ds-space-1);
+  /* Terminal-context overrides for CopyButton — dark surface, hero palette. */
+  .copy-btn.install-copy-btn {
     margin-left: auto;
     background-color: var(--ds-hero-elevated);
-    border: 1px solid var(--ds-hero-border-card);
-    border-radius: var(--ds-radius-sm);
+    border-color: var(--ds-hero-border-card);
     color: var(--ds-hero-fg-muted);
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    font-weight: var(--ds-weight-medium);
-    padding: 0.3rem 0.6rem;
-    cursor: pointer;
-    transition:
-      background-color var(--ds-dur-quick) var(--ds-ease-std),
-      color var(--ds-dur-quick) var(--ds-ease-std),
-      border-color var(--ds-dur-quick) var(--ds-ease-std);
   }
 
-  .install-copy-btn:hover {
+  .copy-btn.install-copy-btn:hover {
     background-color: var(--ds-accent-subtle-dk);
     border-color: var(--ds-accent);
     color: var(--ds-accent);
   }
 
-  .install-copy-btn--success {
+  .copy-btn.install-copy-btn.copy-btn--success {
     background-color: var(--ds-accent-subtle-dk);
     border-color: var(--ds-accent);
     color: var(--ds-accent);
-  }
-
-  .install-copy-btn__icon {
-    display: flex;
-    align-items: center;
   }
 
   /* ── CSS-only tabs ─────────────────────────────────────────────────── */

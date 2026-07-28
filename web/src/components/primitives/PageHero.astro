@@ -1,0 +1,139 @@
+---
+interface Action {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  title: string;
+  outcome: string;
+  primaryAction?: Action;
+  secondaryAction?: Action;
+  badge?: string;
+  proof?: string;
+}
+
+const { title, outcome, primaryAction, secondaryAction, badge, proof } = Astro.props;
+---
+
+<header class="page-hero">
+  <div class="page-hero__inner">
+    {badge && <span class="page-hero__badge">{badge}</span>}
+    <h1 class="page-hero__title">{title}</h1>
+    <p class="page-hero__outcome">{outcome}</p>
+    {(primaryAction || secondaryAction) && (
+      <div class="page-hero__actions">
+        {primaryAction && (
+          <a class="page-hero__action page-hero__action--primary" href={primaryAction.href}>
+            {primaryAction.label}
+          </a>
+        )}
+        {secondaryAction && (
+          <a class="page-hero__action page-hero__action--secondary" href={secondaryAction.href}>
+            {secondaryAction.label}
+          </a>
+        )}
+      </div>
+    )}
+    {proof && <p class="page-hero__proof">{proof}</p>}
+  </div>
+</header>
+
+<style>
+  .page-hero {
+    background-color: var(--ds-surface-alt);
+    border-bottom: 1px solid var(--ds-border);
+    padding-block: var(--ds-space-9);
+  }
+
+  .page-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+    padding-inline: var(--ds-content-pad-x);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-4);
+  }
+
+  .page-hero__badge {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent-deep);
+    background-color: var(--ds-accent-subtle);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    align-self: flex-start;
+  }
+
+  .page-hero__title {
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-on-surface);
+    letter-spacing: var(--ds-track-display);
+    line-height: var(--ds-lead-display);
+    margin: 0;
+  }
+
+  .page-hero__outcome {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    max-width: 60ch;
+    line-height: var(--ds-lead-body);
+    margin: 0;
+  }
+
+  .page-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-4);
+    align-items: center;
+  }
+
+  .page-hero__action {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.7rem 1.6rem;
+    border-radius: var(--ds-radius-pill);
+    font-weight: var(--ds-weight-semibold);
+    text-decoration: none;
+    min-height: 44px;
+    min-width: 44px;
+    transition: background-color var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .page-hero__action:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 3px;
+  }
+
+  .page-hero__action--primary {
+    background-color: var(--ds-cta-primary-bg);
+    color: var(--ds-cta-primary-fg);
+  }
+
+  .page-hero__action--primary:hover {
+    background-color: var(--ds-cta-primary-bg-hover);
+  }
+
+  .page-hero__action--secondary {
+    color: var(--ds-cta-ghost-light-fg);
+    border: 1px solid var(--ds-cta-ghost-light-border);
+  }
+
+  .page-hero__action--secondary:hover {
+    background-color: var(--ds-accent-subtle);
+  }
+
+  .page-hero__proof {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-hero__action { transition: none; }
+  }
+</style>

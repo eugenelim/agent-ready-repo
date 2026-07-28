@@ -10,7 +10,14 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "axe-core": "4.12.1",
+    "jsdom": "30.0.0",
+    "vitest": "4.1.10",
+    "@vitest/ui": "4.1.10"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.3",

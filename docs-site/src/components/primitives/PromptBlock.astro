@@ -1,0 +1,56 @@
+---
+import ReadWriteBadge from './ReadWriteBadge.astro';
+
+type ReadWriteMode = 'read-only' | 'draft' | 'proposed-write' | 'confirmed-write' | 'publish' | 'destructive';
+
+interface Props {
+  speaker?: string;
+  prompt: string;
+  mode?: ReadWriteMode;
+  context?: string;
+}
+
+const { speaker, prompt, mode, context } = Astro.props;
+---
+
+<aside class="prompt-block" aria-label={speaker ? `Prompt from ${speaker}` : 'Prompt'}>
+  {speaker && <span class="prompt-block__speaker">{speaker}</span>}
+  {mode && <ReadWriteBadge mode={mode} />}
+  <p class="prompt-block__text">{prompt}</p>
+  {context && <p class="prompt-block__context">{context}</p>}
+</aside>
+
+<style>
+  .prompt-block {
+    border-left: 3px solid var(--ds-accent);
+    border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+    background-color: var(--ds-accent-subtle);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+    margin: 0;
+  }
+
+  .prompt-block__speaker {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+  }
+
+  .prompt-block__text {
+    font-family: var(--ds-font-sans);
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface);
+    margin: 0;
+    line-height: var(--ds-lead-body);
+  }
+
+  .prompt-block__context {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+</style>

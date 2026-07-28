@@ -1,0 +1,39 @@
+---
+import StatusChip from './StatusChip.astro';
+
+type AccessState = 'granted' | 'missing' | 'unknown';
+
+interface Props {
+  access: AccessState;
+  permission: string;
+}
+
+const { access, permission } = Astro.props;
+
+const stateMap: Record<AccessState, { state: string; suffix: string }> = {
+  'granted': { state: 'success', suffix: '— access granted' },
+  'missing': { state: 'warn',    suffix: '— access required' },
+  'unknown': { state: 'neutral', suffix: '— access unknown' },
+};
+
+const { state, suffix } = stateMap[access];
+const label = `${permission} ${suffix}`;
+---
+
+<span class="permission-badge" data-access={access}>
+  <StatusChip label={permission} state={state} />
+  <span class="permission-badge__status" aria-label={label}>{suffix}</span>
+</span>
+
+<style>
+  .permission-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--ds-space-2);
+  }
+
+  .permission-badge__status {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+  }
+</style>

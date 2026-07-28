@@ -1,0 +1,318 @@
+---
+// noindex — development fixture page, not for production indexing
+import SiteLayout from '../components/layout/SiteLayout.astro';
+import AgentClarification from '../components/primitives/AgentClarification.astro';
+import CopyPrompt from '../components/primitives/CopyPrompt.astro';
+import CoverageBadge from '../components/primitives/CoverageBadge.astro';
+import DecisionBand from '../components/primitives/DecisionBand.astro';
+import ExpectedResult from '../components/primitives/ExpectedResult.astro';
+import JourneyRail from '../components/primitives/JourneyRail.astro';
+import NextAction from '../components/primitives/NextAction.astro';
+import PageHero from '../components/primitives/PageHero.astro';
+import PageMeta from '../components/primitives/PageMeta.astro';
+import PermissionBadge from '../components/primitives/PermissionBadge.astro';
+import PromptBlock from '../components/primitives/PromptBlock.astro';
+import ReadWriteBadge from '../components/primitives/ReadWriteBadge.astro';
+import SkillRecord from '../components/primitives/SkillRecord.astro';
+import StatusChip from '../components/primitives/StatusChip.astro';
+import TaskSwitcher from '../components/primitives/TaskSwitcher.astro';
+import WriteConfirmation from '../components/primitives/WriteConfirmation.astro';
+---
+
+<SiteLayout
+  title="Primitives Fixture"
+  description="Development fixture page for site-ui-primitives. Not indexed."
+>
+  <meta name="robots" content="noindex, nofollow" slot="head" />
+
+  <div class="fixture-page">
+    <div class="fixture-header">
+      <h1>UI Primitives Fixture</h1>
+      <p>Development-only. All 16 Phase 2C primitives in representative states.</p>
+    </div>
+
+    <!-- ── StatusChip ── -->
+    <section class="fixture-section">
+      <h2>StatusChip</h2>
+      <div class="fixture-row">
+        <StatusChip label="draft" />
+        <StatusChip label="confirmed" state="success" />
+        <StatusChip label="failed" state="danger" />
+        <StatusChip label="pending review" state="warn" />
+        <StatusChip label="read-only" state="info" />
+        <StatusChip label="unavailable" state="neutral" />
+        <StatusChip label="live update" state="info" live={true} />
+      </div>
+    </section>
+
+    <!-- ── ReadWriteBadge ── -->
+    <section class="fixture-section">
+      <h2>ReadWriteBadge</h2>
+      <div class="fixture-row">
+        <ReadWriteBadge mode="read-only" />
+        <ReadWriteBadge mode="draft" />
+        <ReadWriteBadge mode="proposed-write" />
+        <ReadWriteBadge mode="confirmed-write" />
+        <ReadWriteBadge mode="publish" />
+        <ReadWriteBadge mode="destructive" />
+      </div>
+    </section>
+
+    <!-- ── CoverageBadge ── -->
+    <section class="fixture-section">
+      <h2>CoverageBadge</h2>
+      <div class="fixture-column">
+        <CoverageBadge coverage="complete" />
+        <CoverageBadge coverage="filtered" />
+        <CoverageBadge coverage="partial" />
+        <CoverageBadge coverage="capped" />
+        <CoverageBadge coverage="permission-limited" />
+        <CoverageBadge coverage="filtered" detail="Filtered to open issues only" />
+      </div>
+    </section>
+
+    <!-- ── PermissionBadge ── -->
+    <section class="fixture-section">
+      <h2>PermissionBadge</h2>
+      <div class="fixture-column">
+        <PermissionBadge permission="issues:write" access="granted" />
+        <PermissionBadge permission="repo:admin" access="missing" />
+        <PermissionBadge permission="packages:read" access="unknown" />
+      </div>
+    </section>
+
+    <!-- ── PageMeta ── -->
+    <section class="fixture-section">
+      <h2>PageMeta</h2>
+      <PageMeta items={[
+        { type: 'mode', value: 'proposed-write' },
+        { type: 'coverage', value: 'partial' },
+        { type: 'permission', permission: 'issues:write', access: 'granted' },
+        { type: 'skill', name: 'new-issue' },
+        { type: 'prerequisite', label: 'GitHub token configured' },
+      ]} />
+    </section>
+
+    <!-- ── CopyPrompt ── -->
+    <section class="fixture-section">
+      <h2>CopyPrompt</h2>
+      <CopyPrompt prompt="Create a new issue titled 'Fix login bug' in the current repo." />
+    </section>
+
+    <!-- ── PromptBlock ── -->
+    <section class="fixture-section">
+      <h2>PromptBlock</h2>
+      <PromptBlock
+        speaker="Agent"
+        prompt="I'll check the open issues and create a summary report."
+        mode="read-only"
+        context="Running in read-only mode — no changes will be made."
+      />
+      <PromptBlock
+        speaker="User"
+        prompt="Create three issues from this list."
+        mode="proposed-write"
+      />
+    </section>
+
+    <!-- ── AgentClarification ── -->
+    <section class="fixture-section">
+      <h2>AgentClarification</h2>
+      <AgentClarification
+        question="Which project should I assign these issues to?"
+        options={['Project Alpha', 'Project Beta', 'No project']}
+        reason="Issues require a project assignment in this repo."
+      />
+      <AgentClarification
+        question="Missing required permission: issues:write."
+        blocked={true}
+      />
+    </section>
+
+    <!-- ── ExpectedResult / ResultPreview ── -->
+    <section class="fixture-section">
+      <h2>ExpectedResult</h2>
+      <ExpectedResult
+        summary="3 issues created in project Alpha"
+        status="Estimated: 30s"
+        records={[
+          { label: 'Fix login bug', value: '#1042' },
+          { label: 'Update README', value: '#1043' },
+          { label: 'Add dark mode', value: '#1044' },
+        ]}
+        warnings={['Rate limit: 2 requests remaining']}
+        followUp={[
+          { label: 'View issues', href: '/issues' },
+          { label: 'Run again', href: '/run' },
+        ]}
+      />
+    </section>
+
+    <!-- ── DecisionBand ── -->
+    <section class="fixture-section">
+      <h2>DecisionBand</h2>
+      <DecisionBand
+        summary="3 issues will be created and assigned immediately."
+        consequence="This cannot be undone without manually closing each issue."
+        primaryAction={{ label: 'Confirm', href: '/confirm' }}
+        secondaryAction={{ label: 'Cancel', href: '/cancel' }}
+        scope="Affects: Project Alpha, Project Beta"
+      />
+    </section>
+
+    <!-- ── WriteConfirmation ── -->
+    <section class="fixture-section">
+      <h2>WriteConfirmation</h2>
+      <WriteConfirmation
+        objects={['Issue #1042', 'Issue #1043']}
+        fields={[
+          { label: 'Status', value: 'Open' },
+          { label: 'Assignee', value: 'User A' },
+        ]}
+        protectedFields={['ID', 'Created at']}
+        writeCount={2}
+        consequence="Both issues will be updated immediately."
+        onConfirm="/confirm"
+        onCancel="/cancel"
+      />
+    </section>
+
+    <!-- ── PageHero ── -->
+    <section class="fixture-section">
+      <h2>PageHero</h2>
+      <PageHero
+        title="Automate your issue workflow"
+        outcome="Create, triage, and close GitHub issues with a single prompt."
+        primaryAction={{ label: 'Get started', href: '/get-started' }}
+        secondaryAction={{ label: 'See an example', href: '/example' }}
+        badge="Beta"
+        proof="Used in 200+ projects"
+      />
+    </section>
+
+    <!-- ── TaskSwitcher ── -->
+    <section class="fixture-section">
+      <h2>TaskSwitcher — nav</h2>
+      <TaskSwitcher
+        type="nav"
+        items={[
+          { id: 'overview', label: 'Overview', href: '#overview' },
+          { id: 'setup', label: 'Setup', href: '#setup' },
+          { id: 'reference', label: 'Reference', href: '#reference' },
+        ]}
+        activeId="overview"
+      />
+    </section>
+
+    <section class="fixture-section">
+      <h2>TaskSwitcher — tabs</h2>
+      <TaskSwitcher
+        type="tabs"
+        items={[
+          { id: 'tab-npm', label: 'npm' },
+          { id: 'tab-uvx', label: 'uvx' },
+        ]}
+        activeId="tab-npm"
+      >
+        <div slot="tab-npm"><code>npm install -g agentbundle</code></div>
+        <div slot="tab-uvx"><code>uvx agentbundle install</code></div>
+      </TaskSwitcher>
+    </section>
+
+    <!-- ── JourneyRail ── -->
+    <section class="fixture-section">
+      <h2>JourneyRail</h2>
+      <JourneyRail
+        stages={[
+          { id: 'connect', label: 'Connect', description: 'Authenticate your account', status: 'complete' },
+          { id: 'configure', label: 'Configure', description: 'Choose your settings', status: 'current' },
+          { id: 'run', label: 'Run', description: 'Execute the workflow', status: 'upcoming', isDecisionBoundary: true },
+          { id: 'review', label: 'Review', description: 'Confirm results', status: 'upcoming' },
+        ]}
+        currentId="configure"
+      />
+    </section>
+
+    <!-- ── SkillRecord ── -->
+    <section class="fixture-section">
+      <h2>SkillRecord</h2>
+      <SkillRecord
+        name="new-issue"
+        goals={['Create a GitHub issue', 'Assign to project']}
+        reads="Repository name, issue list"
+        writes="Issue title, body, labels, assignee"
+        returns="Issue URL and number"
+        limits="Rate-limited to 30 per minute"
+        followUp="Assign to milestone using update-issue"
+      />
+    </section>
+
+    <!-- ── NextAction ── -->
+    <section class="fixture-section">
+      <h2>NextAction</h2>
+      <div class="fixture-column">
+        <NextAction type="prompt" label="Assign all open issues to current milestone" />
+        <NextAction type="guide" label="How to set up GitHub authentication" href="/guides/github-auth" />
+        <NextAction type="stage" label="Move to review stage" href="/review" />
+        <NextAction type="decision" label="Choose a project before continuing" />
+        <NextAction
+          type="prompt"
+          label="Create a summary report"
+          prompt="Summarise all open issues created this week and group by label."
+        />
+      </div>
+    </section>
+  </div>
+</SiteLayout>
+
+<style>
+  .fixture-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .fixture-header {
+    margin-bottom: 3rem;
+    border-bottom: 2px solid var(--ds-accent);
+    padding-bottom: 1.5rem;
+  }
+
+  .fixture-header h1 {
+    font-size: var(--ds-type-h2);
+    margin: 0 0 0.5rem;
+  }
+
+  .fixture-header p {
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+
+  .fixture-section {
+    margin-bottom: 3rem;
+  }
+
+  .fixture-section h2 {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    margin: 0 0 1rem;
+    color: var(--ds-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    border-bottom: 1px solid var(--ds-border);
+    padding-bottom: 0.5rem;
+  }
+
+  .fixture-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .fixture-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+</style>

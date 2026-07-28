@@ -7,6 +7,7 @@
 // contracts → infra → governance → docs, then supporting tooling and connectors.
 import Section from '../layout/Section.astro';
 import { withBase } from '../../lib/paths';
+import StatusChip from '../primitives/StatusChip.astro';
 
 const loops = [
   {
@@ -65,7 +66,7 @@ const repoPacks = [
       <li class="loop-card">
         <div class="loop-card__head">
           <h3 class="loop-card__name">{p.name}</h3>
-          <span class="scope-chip">{p.scope}</span>
+          <StatusChip label={p.scope} />
         </div>
         <p class="loop-card__desc">{p.desc}</p>
         <p class="loop-card__install"><code>{p.install}</code></p>
@@ -81,7 +82,7 @@ const repoPacks = [
     </summary>
 
     <div class="catalogue__group">
-      <h3 class="catalogue__group-title">Install once, works across all your repos <span class="scope-chip">user</span></h3>
+      <h3 class="catalogue__group-title">Install once, works across all your repos <StatusChip label="user" /></h3>
       <ul class="pack-grid">
         {userPacks.map((p) => (
           <li class="pack-card">
@@ -93,7 +94,7 @@ const repoPacks = [
     </div>
 
     <div class="catalogue__group">
-      <h3 class="catalogue__group-title">Install per project <span class="scope-chip">repo</span></h3>
+      <h3 class="catalogue__group-title">Install per project <StatusChip label="repo" /></h3>
       <ul class="pack-grid">
         {repoPacks.map((p) => (
           <li class="pack-card">
@@ -115,19 +116,6 @@ const repoPacks = [
     font-size: var(--ds-type-body-lg);
     max-width: 60ch;
     margin-bottom: var(--ds-space-7);
-  }
-
-  .scope-chip {
-    display: inline-block;
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
-    vertical-align: middle;
   }
 
   /* ── Tier 1 — the three loops ──────────────────────────────────────── */

@@ -1,0 +1,120 @@
+---
+interface Action {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  summary: string;
+  consequence: string;
+  primaryAction: Action;
+  secondaryAction?: Action;
+  scope?: string;
+}
+
+const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.props;
+---
+
+<section class="decision-band" aria-label="Decision required">
+  <div class="decision-band__body">
+    <p class="decision-band__summary">{summary}</p>
+    <p class="decision-band__consequence">{consequence}</p>
+    {scope && <p class="decision-band__scope">{scope}</p>}
+  </div>
+  <div class="decision-band__actions">
+    <a class="decision-band__primary" href={primaryAction.href ?? '#'}>
+      {primaryAction.label}
+    </a>
+    {secondaryAction && (
+      <a class="decision-band__secondary" href={secondaryAction.href ?? '#'}>
+        {secondaryAction.label}
+      </a>
+    )}
+  </div>
+</section>
+
+<style>
+  .decision-band {
+    border-left: 4px solid var(--ds-accent);
+    border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+    background-color: var(--ds-state-warn-bg);
+    border-top: 1px solid var(--ds-state-warn-border);
+    border-right: 1px solid var(--ds-state-warn-border);
+    border-bottom: 1px solid var(--ds-state-warn-border);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-4);
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .decision-band__body {
+    flex: 1 1 20rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+  }
+
+  .decision-band__summary {
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-state-warn-fg);
+    margin: 0;
+    font-size: var(--ds-type-body);
+  }
+
+  .decision-band__consequence {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+
+  .decision-band__scope {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+
+  .decision-band__actions {
+    display: flex;
+    gap: var(--ds-space-3);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .decision-band__primary {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-state-warn-fg);
+    text-decoration: none;
+    padding: var(--ds-space-2) var(--ds-space-4);
+    border: 1px solid var(--ds-state-warn-border);
+    border-radius: var(--ds-radius-sm);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .decision-band__secondary {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+    color: var(--ds-on-surface-muted);
+    text-decoration: none;
+    padding: var(--ds-space-2) var(--ds-space-3);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .decision-band__primary:hover,
+  .decision-band__secondary:hover {
+    text-decoration: underline;
+  }
+
+  .decision-band__primary:focus-visible,
+  .decision-band__secondary:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
+    border-radius: var(--ds-radius-sm);
+  }
+</style>

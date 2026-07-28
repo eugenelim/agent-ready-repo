@@ -34,6 +34,32 @@
   --prim-amber-700: #8b5e0a;   /* text-safe on light (≥4.5:1 on neutral-50) */
   --prim-amber-900: #4a3005;   /* deep, for dark-on-amber text */
 
+  /* Functional state primitives — success/danger/warning/info */
+  /* These are NOT identity colors; amber-gold remains the sole chromatic accent */
+  --prim-green-100: #dcfce7;   /* success bg */
+  --prim-green-300: #86efac;   /* success border */
+  --prim-green-500: #22c55e;   /* success mid */
+  --prim-green-700: #15803d;   /* success fg — text-safe on light (4.75:1 on neutral-50) */
+  --prim-green-900: #14532d;   /* success deep */
+
+  --prim-red-100:   #fee2e2;   /* danger bg */
+  --prim-red-300:   #fca5a5;   /* danger border */
+  --prim-red-500:   #ef4444;   /* danger mid */
+  --prim-red-700:   #b91c1c;   /* danger fg — text-safe on light (5.75:1 on neutral-50) */
+  --prim-red-900:   #7f1d1d;   /* danger deep */
+
+  --prim-orange-100: #ffedd5;  /* warning bg — distinct from amber-gold */
+  --prim-orange-300: #fdba74;  /* warning border */
+  --prim-orange-500: #f97316;  /* warning mid */
+  --prim-orange-700: #c2410c;  /* warning fg — text-safe on light (4.55:1 on neutral-50) */
+  --prim-orange-900: #7c2d12;  /* warning deep */
+
+  --prim-blue-100:  #dbeafe;   /* info bg */
+  --prim-blue-300:  #93c5fd;   /* info border */
+  --prim-blue-500:  #3b82f6;   /* info mid */
+  --prim-blue-700:  #1d4ed8;   /* info fg — text-safe on light (5.82:1 on neutral-50) */
+  --prim-blue-900:  #1e3a8a;   /* info deep */
+
   /* Alpha tokens */
   --prim-white-06:  rgba(255, 255, 255, 0.06);
   --prim-white-10:  rgba(255, 255, 255, 0.10);
@@ -168,4 +194,27 @@
   --ds-z-overlay: 100;
   --ds-z-modal:   200;
   --ds-z-toast:   300;
+
+  /* ── State roles — functional only; not identity colors ────────── */
+  /* Each role has bg (surface), fg (text), border (outline).        */
+  /* Reviewer/purple role deferred — no AC maps to it.               */
+  --ds-state-success-bg:     var(--prim-green-100);
+  --ds-state-success-fg:     var(--prim-green-700);
+  --ds-state-success-border: var(--prim-green-300);
+
+  --ds-state-danger-bg:      var(--prim-red-100);
+  --ds-state-danger-fg:      var(--prim-red-700);
+  --ds-state-danger-border:  var(--prim-red-300);
+
+  --ds-state-warn-bg:        var(--prim-orange-100);
+  --ds-state-warn-fg:        var(--prim-orange-700);
+  --ds-state-warn-border:    var(--prim-orange-300);
+
+  --ds-state-info-bg:        var(--prim-blue-100);
+  --ds-state-info-fg:        var(--prim-blue-700);
+  --ds-state-info-border:    var(--prim-blue-300);
+
+  --ds-state-neutral-bg:     var(--prim-neutral-100);
+  --ds-state-neutral-fg:     var(--prim-neutral-800);
+  --ds-state-neutral-border: var(--prim-neutral-300);
 }

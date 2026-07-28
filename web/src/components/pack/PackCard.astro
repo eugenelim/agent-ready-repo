@@ -2,6 +2,7 @@
 // Pack card used on /packs/ index grid. Shows name, scope badge, tagline; links
 // to the pack detail page.
 import { withBase } from '../../lib/paths';
+import StatusChip from '../primitives/StatusChip.astro';
 
 interface Props {
   slug: string;
@@ -17,7 +18,7 @@ const { slug, name, scope, tagline } = Astro.props;
   <a class="pack-card__link" href={withBase(`/packs/${slug}/`)}>
     <div class="pack-card__head">
       <h3 class="pack-card__name">{name}</h3>
-      <span class="scope-chip">{scope}</span>
+      <StatusChip label={scope} />
     </div>
     <p class="pack-card__tagline">{tagline}</p>
     <span class="pack-card__cta" aria-hidden="true">Explore →</span>
@@ -55,19 +56,6 @@ const { slug, name, scope, tagline } = Astro.props;
   .pack-card__name {
     font-size: var(--ds-type-h3);
     color: var(--ds-on-surface);
-  }
-
-  .scope-chip {
-    display: inline-block;
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
-    flex-shrink: 0;
   }
 
   .pack-card__tagline {

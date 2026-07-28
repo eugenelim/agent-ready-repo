@@ -23,6 +23,21 @@ framework prescribed to adopters (see RFC-0061's charter-neutrality analysis).
 No CSS framework (Tailwind, Bootstrap, UnoCSS): the `--ds-*` token system in
 `src/styles/` is the sole color/spacing authority (platform-site spec, Boundaries).
 
+## Test dependencies
+
+Added for `site-ui-primitives` Phase 2C (T1). All are `devDependencies` — zero
+runtime impact.
+
+| Dependency | Version | Why |
+| --- | --- | --- |
+| [`vitest`](https://vitest.dev) | pinned `4.1.10` | Unit test runner; replaces no prior runner |
+| [`@vitest/ui`](https://vitest.dev/guide/ui) | pinned `4.1.10` | Optional browser UI for vitest |
+| [`jsdom`](https://github.com/jsdom/jsdom) | pinned `30.0.0` | DOM environment for vitest tests of `.astro`-rendered HTML |
+| [`axe-core`](https://github.com/dequelabs/axe-core) | pinned `4.12.1` | Accessibility engine; used directly in tests via `import axe from 'axe-core'` |
+
+Note: `@axe-core/vitest` does not exist on npm (verified 2026-07-28). `axe-core`
+is used directly. Test runner entry point: `npm test` (`vitest run`).
+
 ## Build
 
 - `npm run build` emits into `../build/` (repo root), NOT `web/dist/`

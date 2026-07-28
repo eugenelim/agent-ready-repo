@@ -1,0 +1,102 @@
+---
+interface Props {
+  type: 'prompt' | 'guide' | 'stage' | 'decision';
+  label: string;
+  href?: string;
+  prompt?: string;
+}
+
+const { type, label, href, prompt } = Astro.props;
+
+const typeLabels: Record<string, string> = {
+  prompt: 'Next prompt',
+  guide: 'Read guide',
+  stage: 'Next stage',
+  decision: 'Decision needed',
+};
+---
+
+<div class:list={['next-action', `next-action--${type}`]}>
+  <span class="next-action__type-label" aria-hidden="true">{typeLabels[type]}</span>
+  {href ? (
+    <a class="next-action__link" href={href}>
+      {label}
+    </a>
+  ) : (
+    <p class="next-action__label">{label}</p>
+  )}
+  {prompt && (
+    <p class="next-action__prompt">{prompt}</p>
+  )}
+</div>
+
+<style>
+  .next-action {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    border-left: 4px solid var(--ds-accent);
+    background-color: var(--ds-surface-alt);
+  }
+
+  .next-action--decision {
+    border-left-color: var(--ds-state-warn-border);
+    background-color: var(--ds-state-warn-bg);
+  }
+
+  .next-action__type-label {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+  }
+
+  .next-action--decision .next-action__type-label {
+    color: var(--ds-state-warn-fg);
+  }
+
+  .next-action__link {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    text-decoration: none;
+  }
+
+  .next-action__link:hover {
+    text-decoration: underline;
+  }
+
+  .next-action__link:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .next-action__label {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    margin: 0;
+  }
+
+  .next-action--decision .next-action__label {
+    color: var(--ds-state-warn-fg);
+  }
+
+  .next-action__prompt {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    color: var(--ds-on-surface-2);
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-sm);
+    padding: var(--ds-space-2) var(--ds-space-3);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+</style>

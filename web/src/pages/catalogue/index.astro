@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
+import StatusChip from '../../components/primitives/StatusChip.astro';
 
 const MARKETPLACE = 'agent-ready-repo';
 
@@ -86,7 +87,7 @@ const packs = allPacks
           <a class="cat-card__head" href={pack.detailUrl}>
             <div class="cat-card__name-row">
               <h3 class="cat-card__name">{pack.name}</h3>
-              <span class="scope-chip">{pack.scope}</span>
+              <StatusChip label={pack.scope} />
             </div>
             <p class="cat-card__tagline">{pack.tagline}</p>
             <div class="cat-card__meta">
@@ -262,19 +263,6 @@ const packs = allPacks
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-on-surface);
     letter-spacing: var(--ds-track-heading);
-  }
-
-  .scope-chip {
-    display: inline-block;
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
-    flex-shrink: 0;
   }
 
   .cat-card__tagline {

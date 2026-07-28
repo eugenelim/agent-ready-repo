@@ -1,0 +1,240 @@
+---
+interface WriteField {
+  label: string;
+  value: string;
+  protected?: boolean;
+}
+
+interface Props {
+  objects: string[];
+  fields: WriteField[];
+  protectedFields?: string[];
+  writeCount: number;
+  consequence: string;
+  onConfirm?: string;
+  onCancel?: string;
+}
+
+const {
+  objects,
+  fields,
+  protectedFields = [],
+  writeCount,
+  consequence,
+  onConfirm = '#',
+  onCancel = '#',
+} = Astro.props;
+
+const unprotectedFields = fields.filter((f) => !f.protected);
+const protectedFieldItems = fields.filter((f) => f.protected);
+---
+
+<section class="write-confirmation" role="region" aria-label="Confirm write operation">
+  <header class="write-confirmation__header">
+    <span class="write-confirmation__count" aria-label={`${writeCount} write${writeCount === 1 ? '' : 's'} pending`}>
+      {writeCount} write{writeCount === 1 ? '' : 's'}
+    </span>
+    <p class="write-confirmation__consequence">{consequence}</p>
+  </header>
+
+  <div class="write-confirmation__body">
+    {objects.length > 0 && (
+      <div class="write-confirmation__objects">
+        <h3 class="write-confirmation__section-label">Objects</h3>
+        <ul class="write-confirmation__object-list">
+          {objects.map((obj) => <li>{obj}</li>)}
+        </ul>
+      </div>
+    )}
+
+    {unprotectedFields.length > 0 && (
+      <div class="write-confirmation__fields">
+        <h3 class="write-confirmation__section-label">Fields</h3>
+        <dl class="write-confirmation__field-list">
+          {unprotectedFields.map((field) => (
+            <>
+              <dt class="write-confirmation__field-label">{field.label}</dt>
+              <dd class="write-confirmation__field-value">{field.value}</dd>
+            </>
+          ))}
+        </dl>
+      </div>
+    )}
+
+    {(protectedFieldItems.length > 0 || protectedFields.length > 0) && (
+      <div class="write-confirmation__protected">
+        <h3 class="write-confirmation__section-label">
+          Protected — will not be changed
+        </h3>
+        <ul class="write-confirmation__protected-list">
+          {protectedFields.map((f) => <li>{f}</li>)}
+          {protectedFieldItems.map((f) => <li>{f.label}</li>)}
+        </ul>
+      </div>
+    )}
+  </div>
+
+  <footer class="write-confirmation__actions">
+    <a class="write-confirmation__cancel" href={onCancel}>Cancel</a>
+    <a class="write-confirmation__confirm" href={onConfirm}>Confirm write</a>
+  </footer>
+</section>
+
+<style>
+  .write-confirmation {
+    border: 1px solid var(--ds-state-warn-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    background-color: var(--ds-state-warn-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .write-confirmation__header {
+    padding: var(--ds-space-4) var(--ds-space-5);
+    border-bottom: 1px solid var(--ds-state-warn-border);
+    display: flex;
+    align-items: baseline;
+    gap: var(--ds-space-3);
+    flex-wrap: wrap;
+  }
+
+  .write-confirmation__count {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    background-color: var(--ds-state-warn-border);
+    color: var(--ds-state-warn-fg);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    flex-shrink: 0;
+  }
+
+  .write-confirmation__consequence {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-state-warn-fg);
+    font-weight: var(--ds-weight-medium);
+    margin: 0;
+  }
+
+  .write-confirmation__body {
+    padding: var(--ds-space-4) var(--ds-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-4);
+    background-color: var(--ds-surface);
+  }
+
+  .write-confirmation__section-label {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    margin: 0 0 var(--ds-space-2);
+  }
+
+  .write-confirmation__object-list,
+  .write-confirmation__protected-list {
+    margin: 0;
+    padding-left: var(--ds-space-5);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-1);
+  }
+
+  .write-confirmation__field-list {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: var(--ds-space-1) var(--ds-space-4);
+    margin: 0;
+    font-size: var(--ds-type-sm);
+  }
+
+  .write-confirmation__field-label {
+    font-weight: var(--ds-weight-medium);
+    color: var(--ds-on-surface-muted);
+    align-self: start;
+  }
+
+  .write-confirmation__field-value {
+    color: var(--ds-on-surface-2);
+    margin: 0;
+  }
+
+  .write-confirmation__protected-list {
+    color: var(--ds-on-surface-muted);
+    list-style: none;
+    padding: 0;
+  }
+
+  .write-confirmation__actions {
+    display: flex;
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    border-top: 1px solid var(--ds-border);
+    background-color: var(--ds-surface);
+    flex-wrap: wrap;
+  }
+
+  /* Cancel first in DOM = first in focus order */
+  .write-confirmation__cancel {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+    color: var(--ds-on-surface-muted);
+    text-decoration: none;
+    padding: var(--ds-space-2) var(--ds-space-4);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-sm);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .write-confirmation__cancel:hover {
+    background-color: var(--ds-surface-alt);
+  }
+
+  .write-confirmation__confirm {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-state-warn-fg);
+    text-decoration: none;
+    padding: var(--ds-space-2) var(--ds-space-4);
+    border: 1px solid var(--ds-state-warn-border);
+    border-radius: var(--ds-radius-sm);
+    background-color: var(--ds-state-warn-bg);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .write-confirmation__confirm:hover {
+    filter: brightness(0.95);
+  }
+
+  .write-confirmation__cancel:focus-visible,
+  .write-confirmation__confirm:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 600px) {
+    .write-confirmation__field-list {
+      grid-template-columns: 1fr;
+    }
+
+    .write-confirmation__actions {
+      flex-direction: column;
+    }
+
+    .write-confirmation__cancel,
+    .write-confirmation__confirm {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
