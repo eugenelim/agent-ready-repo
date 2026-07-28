@@ -70,3 +70,7 @@ consumption) need no rendering directive. The directive is for the
 inline in chat (e.g., a `new-adr` or `new-rfc` key–value summary confirming
 what was created), the receipt portion warrants the appropriate directive
 (`Key–value / one record`) even though the primary deliverable is a file.
+
+## See also
+
+[Skill UX patterns](skill-ux-patterns.md) — craft-depth companion: column alignment rules, truncation limits per column type, persistent command bar, delete-gate box template, card format for one-by-one review flows, and per-surface rendering splits. Covers the *how* once you've declared the *what* above.

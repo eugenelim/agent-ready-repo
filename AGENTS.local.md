@@ -119,7 +119,6 @@ Editing them directly trips `make build-check`. Full workflow: [`packs/AGENTS.md
 `docs/knowledge/patterns.jsonl`, `docs/rfc/README.md`, `docs/adr/README.md`,
 `docs/guides/**/README.md`.
 
-**Exception: `.claude/skills/README.md` is canonical (not projected) — edit directly.**
 
 ## `docs/guides/` is organized by pack in this repo
 
