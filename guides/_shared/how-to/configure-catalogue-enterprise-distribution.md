@@ -86,4 +86,4 @@ to the packaged default source.
 
 ## See also
 
-- [`agentbundle` reference](../reference/agentbundle.md) — full source-resolution chain and all env vars.
+- [`agentbundle` reference — source resolution and env vars](../reference/agentbundle.md#catalogue-source-resolution)

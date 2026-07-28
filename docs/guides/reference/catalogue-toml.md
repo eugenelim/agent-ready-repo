@@ -47,17 +47,45 @@ adapters = ["claude-code"]
 Run `agentbundle catalogue sync-defaults --root .` to sync these values into the self-hosted adapters'
 install manifests.
 
-### `[catalogue.packaging]`
+### `[catalogue.package]`
 
-Controls archive output paths for `agentbundle catalogue package`.
+Controls which packs are included in a packaged archive.
 
 ```toml
-[catalogue.packaging]
-output-root = "dist/artifactory"
-bundle      = "engineering"
-release     = "1.0.0"
-channel     = "stable"
+[catalogue.package]
+include  = []                              # default: all packs
+required = ["LICENSE-APACHE", "LICENSE-MIT"]
 ```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `include` | array of strings | `[]` (all packs) | Pack paths to include in a packaged archive. An empty list includes all packs. |
+| `required` | array of strings | `["LICENSE-APACHE", "LICENSE-MIT"]` | Required root-level file paths. Overrides the default `LICENSE-APACHE` / `LICENSE-MIT` constraint when set. Absent or empty means use the default requirement. |
+
+### `[distribution.agentbundle.artifactory]`
+
+Configures the Artifactory org bootstrap. When present and `enabled = true`, `agentbundle catalogue sync-defaults --write` bakes these coordinates into `_data/install-defaults.toml` so that developers who install your wheel resolve the catalogue from Artifactory automatically — no per-developer `config set source` step.
+
+```toml
+[distribution.agentbundle.artifactory]
+enabled    = true
+base-url   = "https://artifactory.example.com"
+repository = "agentbundle-catalogues"
+bundle     = "engineering"
+channel    = "stable"
+```
+
+All five fields are required when `enabled = true`. No credentials go in this file — authenticate via [`AGENTBUNDLE_HTTP_BEARER_TOKEN`](../../guides/_shared/reference/agentbundle.md#environment-variables).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `enabled` | boolean | Whether the Artifactory bootstrap is active. Set `false` to revert to the public catalogue. |
+| `base-url` | string | Artifactory base URL (`https://` only; no embedded credentials). |
+| `repository` | string | Artifactory repository name. Must match `[A-Za-z0-9._-]+`. |
+| `bundle` | string | Catalogue bundle name. Must match `[A-Za-z0-9._-]+`. |
+| `channel` | string | Channel name (e.g. `stable`, `preview`). Must match `[A-Za-z0-9._-]+`. |
+
+See [Configure a catalogue for enterprise distribution](../../guides/_shared/how-to/configure-catalogue-enterprise-distribution.md) for the step-by-step setup guide.
 
 ## Valid values
 
@@ -71,6 +99,13 @@ channel     = "stable"
 | `maintainers[].name` | string | required when maintainer present |
 | `maintainers[].email` | string | optional |
 | `keywords` | array of strings | free text |
+| `catalogue.package.include` | array of strings | pack paths; empty = all packs |
+| `catalogue.package.required` | array of strings | root-level file paths; absent = `["LICENSE-APACHE", "LICENSE-MIT"]` |
+| `distribution.agentbundle.artifactory.enabled` | boolean | `true` or `false` |
+| `distribution.agentbundle.artifactory.base-url` | string | `https://` only, no credentials |
+| `distribution.agentbundle.artifactory.repository` | string | `[A-Za-z0-9._-]+` |
+| `distribution.agentbundle.artifactory.bundle` | string | `[A-Za-z0-9._-]+` |
+| `distribution.agentbundle.artifactory.channel` | string | `[A-Za-z0-9._-]+` |
 
 ## Example
 
@@ -90,4 +125,15 @@ stable  = "https://registry.acme.example/agentbundle/stable.json"
 [catalogue.install-defaults]
 packs    = ["core", "security-baseline"]
 adapters = ["claude-code", "cursor"]
+
+[catalogue.package]
+include  = []                              # empty = all packs
+required = ["LICENSE-APACHE", "LICENSE-MIT"]
+
+[distribution.agentbundle.artifactory]
+enabled    = false
+base-url   = "https://artifactory.example.com"
+repository = "agentbundle-catalogues"
+bundle     = "acme-platform"
+channel    = "stable"
 ```
