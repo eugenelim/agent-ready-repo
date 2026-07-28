@@ -482,16 +482,15 @@ def test_ac17_broker_lives_at_canonical_path():
     assert BROKER_PY.parent.name == "adapter-root-bins"
 
 
-def test_stdio_utf8_hardening_present():
-    """Windows cp1252 console hardening must be present and correctly ordered.
+# ----------------------------------------------------------------------
+# Windows cp1252 console hardening.
+# ----------------------------------------------------------------------
 
-    Source-asserted (not behavioral): reproducing a cp1252 console is not
+
+def test_stdio_utf8_hardening_present() -> None:
+    """Source-asserted (not behavioral): reproducing a cp1252 console is not
     portable, but the structure — reconfigure inside the file-path-invocation
-    gate, before any output — is verifiable from source bytes.
-
-    Mirrors the pattern in figma/test_exit_codes.py and
-    atlassian/test_exit_codes.py for the other credentialed CLIs.
-    """
+    gate, before any output — is verifiable from source bytes."""
     src = BROKER_PY.read_text(encoding="utf-8")
     assert 'reconfigure(encoding="utf-8")' in src, (
         "stdout/stderr UTF-8 hardening missing from sso-broker.py"
