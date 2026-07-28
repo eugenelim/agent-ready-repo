@@ -1,23 +1,27 @@
 [pack]
 name = "product-documentation"
 version = "0.1.0"
-description = "Create, revise, retrofit, audit, and verify catalogue-facing product documentation. Supports Diátaxis as a page contract (not a mandatory folder scaffold). Portable across adopter repositories."
+description = "Product documentation authoring: create, revise, retrofit, audit, and verify catalogue-facing guides, pack READMEs, and journeys using Diátaxis as a page contract."
 readme = "README.md"
 display_name = "Product Documentation"
 license = "Apache-2.0 OR MIT"
 categories = ["documentation"]
-keywords = ["documentation", "diataxis", "product-docs", "guides", "tutorials"]
+keywords = ["diataxis", "guides", "documentation", "pack-readme", "journey"]
 
 [pack.adapter-contract]
 version = "0.8"
 
 [pack.install]
 default-scope = "repo"
-allowed-scopes = ["user", "repo"]
+allowed-scopes = ["repo", "user"]
 
+# pack-activation-evals: author-product-docs is a judgment/authoring skill
+# (create, revise, retrofit, audit, verify — no deterministic artifact output),
+# so it ships a Tier-A activation eval and a Tier-4 LLM-judge rubric.
 [pack.evals]
 skills = ["author-product-docs"]
 
+# enriched-pack-manifest: catalogue-facing links.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
@@ -31,12 +35,12 @@ email = "eugenelim@users.noreply.github.com"
 audience-posture = "non-technical"
 surfaces         = ["claude-code"]
 prerequisites    = []
-verification     = "Ask the agent to write a how-to guide for [task]. It should state mode, audience, and artifact type, then draft a task-first guide."
-recovery         = "If the skill does not activate, confirm product-documentation is installed and try: 'Create a guide explaining how to [specific task].'"
+verification     = "Ask 'What documentation does this pack need?' and confirm the agent proposes a pack README and guide structure based on the pack's actual skills."
+recovery         = "If the skill does not activate, confirm product-documentation is installed and try: 'help me write product documentation for [pack name]'."
 level-b          = true
 writes-to-repo   = true
-starter-task     = "Create or improve product documentation"
-starter-prompt   = "Write a how-to guide explaining how to [your most common user task]."
-expected-result  = "A documentation plan stating mode, audience, and artifact type, followed by a task-first guide draft ready for review."
-next-action      = "Review the draft. Ask the agent to create a companion explanation page or improve the pack README."
-safety-gate      = "For create, revise, and retrofit modes, the skill shows its documentation contract (mode, audience, artifact) before writing. You confirm before any files change."
+starter-task     = "Create product documentation for this project's main pack"
+starter-prompt   = "Help me create product documentation for the main pack in this project — starting with the pack README."
+expected-result  = "A draft pack README that leads with what the pack helps users accomplish, natural-language starter prompts, and links to deeper guides."
+next-action      = "Ask the agent to create a how-to guide for the pack's primary user task."
+safety-gate      = "The skill shows you the planned artifact and its location before writing. Confirm before it creates anything."

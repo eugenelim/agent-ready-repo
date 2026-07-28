@@ -1,20 +1,21 @@
 ---
 name: author-product-docs
-description: "Create, revise, retrofit, audit, or verify product documentation — pack READMEs, journeys, tutorials, how-to guides, reference pages, and explanations. Use when asked to write, improve, restructure, or verify user-facing docs or pack landing pages so readers reach an outcome without learning internal skill names first. Do NOT use for product or feature specifications (use `new-spec`), cross-cutting proposals (use `new-rfc`), architecture decisions (use `new-adr`), product or market strategy, frontend implementation by itself, internal maintainer procedures with no product-documentation concern, or arbitrary prose editing with no guide purpose."
+description: "Create, revise, retrofit, audit, or verify product documentation — pack READMEs, journeys, tutorials, how-to guides, reference pages, and explanations. Use when asked to write, improve, restructure, audit, or verify user-facing documentation, fix a pack README, create a guide for a feature, update a journey page, or check whether docs match shipped behavior. Infers the mode from the request. Do NOT use for feature specifications (use new-spec), cross-cutting proposals (use new-rfc), decisions (use new-adr), product or market strategy, frontend implementation alone, internal maintainer runbooks without user-facing concern, or arbitrary prose editing with no documentation purpose."
 ---
 
 # Product documentation authoring
 
-**Diátaxis determines where information lives. User intent determines how
-readers enter it.**
+**Diátaxis determines what a page does for the reader. Canonical behavior determines what it says.**
 
-A reader who does not know any pack or skill names must still be able to begin
-a real task from the first screen.
+A reader who does not know any pack or skill names must still be able to begin a real task from the first screen.
+
+Create or work with product documentation — pack READMEs, journeys, and Diátaxis guides — grounded in what the product actually ships today.
 
 ## Output rendering
 
-Rationale — Use short ## headings and 2–3 sentence paragraphs.
-Key–value — For a single record's fields, use an aligned key: value list.
+Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
+Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
+Status list — Lead each row with a status glyph (● running, ✓ done, ○ idle, ⚠ blocked).
 
 ## Procedure
 
@@ -22,165 +23,171 @@ Key–value — For a single record's fields, use an aligned key: value list.
 
 Infer the mode from the request. Do not require the user to name it.
 
-| Signal | Mode |
+| Mode | Signals |
 |---|---|
-| "write", "create", "new", "add docs for" | **Create** |
-| "revise", "improve", "update", "rewrite", "simplify", "restructure" | **Revise** |
-| "retrofit", "reorganize across", "connect", "unify the journey" | **Retrofit** |
-| "audit", "check", "review docs for", "find inventory-first writing" | **Audit** |
-| "verify", "confirm docs match", "check against shipped behavior" | **Verify** |
+| **Create** | "write a guide", "new tutorial", "create a README", "document this feature" |
+| **Revise** | "improve", "update", "rewrite", "restructure", "fix", "simplify" |
+| **Retrofit** | "connect these pages", "fix the journey", "reorganize the docs", "make it coherent" |
+| **Audit** | "audit", "review", "what's missing", "what's wrong", "check quality" |
+| **Verify** | "does this match what ships", "check accuracy", "verify against behavior" |
 
-For **Audit** mode: produce evidence-based findings without editing unless
-implementation was requested.
-
-For **Verify** mode: confirm documentation matches canonical behavior and works
-in its rendered form. Use `references/rendered-verification.md` for proportionate
-scope.
+When a request is ambiguous between create and revise, read the target file first. If it exists and is substantive, treat as revise. If absent or near-empty, treat as create.
 
 ### Step 2 — Resolve the documentation audience
 
-| Audience | Location |
-|---|---|
-| External catalogue or product user | `guides/<pack>/` (this catalogue) or adopter's configured docs root |
-| Internal maintainer or contributor | `docs/guides/` (this catalogue) or adopter's configured internal docs |
+Before drafting anything, confirm the documentation is for an external catalogue or product user — not internal maintainer guidance. The two ownership trees are distinct:
 
-Do not route internal maintainer guidance into the public guide tree. When the
-host is an adopter repo (not this catalogue), inspect the host's existing
-documentation locations rather than assuming either path.
+- **External audience (product users):** document in `guides/<pack>/` (this catalogue) or the adopter's configured guide root.
+- **Internal audience (repo maintainers/contributors):** document in `docs/guides/` (this catalogue) or the adopter's internal docs location.
+
+If the request describes a maintainer workflow (CI debugging, seed authoring, adapter maintenance, internal tooling), it belongs in `docs/guides/` — not `guides/`. See [`references/repository-ownership.md`](references/repository-ownership.md).
 
 ### Step 3 — Resolve the target artifact
 
-Use `references/artifact-model.md` to determine whether the request calls for:
-pack README, journey, tutorial, how-to, reference, explanation, landing/index
-page, or a connected retrofit across several of these.
+Identify the specific artifact:
 
-Default to one artifact. Do not create sibling pages to fill other Diátaxis
-kinds. Do not create empty category directories.
+| Artifact | Use when |
+|---|---|
+| **Pack README** | Primary landing and discovery doc for a pack |
+| **Journey** | Complete user flow from first request to final outcome |
+| **Tutorial** | Beginner needs a guaranteed working result from scratch |
+| **How-to guide** | Competent reader has a specific named problem to solve |
+| **Reference** | Reader needs authoritative, dry, complete fact lookup |
+| **Explanation** | Reader wants to understand why something works the way it does |
+| **Guide index / landing** | Entry surface linking into related guides |
+
+For retrofit mode, identify the connected set: entry surfaces, related guides, pack README, and journey.
+
+When the artifact is ambiguous, record a defensible assumption and continue — do not add a mandatory checkpoint unless uncertainty would materially change audience, behavior, target artifact, a destructive claim, or the canonical source.
 
 ### Step 4 — Inspect canonical behavior before drafting
 
-Read the sources that govern what the artifact must describe:
+Before writing any product claim, read the authoritative sources:
 
-- `pack.toml` — name, version, scope, dependencies, first-value block
-- Actual skill and command sources
-- Schemas, permissions, read/write behavior, result limits
-- Current README, current journey, related user guides
-- Relevant DESIGN material (maintainer-facing; read to verify facts, do not
-  author by default)
+- `pack.toml` — name, description, version, scope, dependencies, first-value
+- Actual `.apm/skills/<name>/SKILL.md` — modes, inputs, outputs, read/write behavior
+- Schemas, permissions, and result limits in the skill source
+- `README.md` (current) — what exists already
+- Journey files (`JOURNEY.md` if present)
+- Related user guides
+- `DESIGN.md` if present — for verified architecture claims only
 
-### Step 5 — Establish the documentation contract
+Do not make product claims about what a skill "can do" without reading its source. A claim that survives without this inspection is not a product claim — it is a hallucination.
 
-Record internally (do not always emit to the user unless the request is
-ambiguous):
+### Step 5 — Write the documentation contract
+
+Before drafting, write a short internal contract. This is not a mandatory user checkpoint — record it as a comment block in your reasoning, not as a human-confirmation gate (unless uncertainty about audience or behavior is blocking you).
 
 ```
-mode:              <create|revise|retrofit|audit|verify>
-audience:          <external user|maintainer>
-situation:         <what the user is trying to accomplish right now>
-primary job:       <the one thing this artifact must enable>
-natural first ask: <the exact words a reader would use to begin>
-expected result:   <the concrete thing the reader gets back>
-human decision:    <what the reader decides before or after>
-read/write:        <what the skill reads vs. may change>
-sources:           <which pack.toml, skill files, schemas were read>
-page kind:         <tutorial|how-to|reference|explanation|README|journey|index>
-journey:           <which journey this feeds into, if any>
-next action:       <the most likely reader follow-up>
+mode: <create | revise | retrofit | audit | verify>
+audience: <external product user | internal maintainer>
+situation: <what the reader is in the middle of>
+primary job: <the specific thing they are trying to accomplish>
+natural start: <the exact natural-language request they would use>
+expected result: <the concrete thing they get back>
+human decision: <what remains theirs to decide>
+read/write boundary: <what the skill reads vs. what it may change>
+canonical sources inspected: <list the files you read>
+page kind: <pack README | journey | tutorial | how-to | reference | explanation | index>
+journey association: <what journey this page belongs to, if any>
+likely next: <the most likely next request after this artifact>
 ```
 
-Ask for clarification **only** when uncertainty would materially change:
-- the audience (internal vs. external)
-- the documented product behavior
-- the target artifact
-- a destructive or remote-write claim
-- the canonical source being edited
+### Step 6 — Assign the page kind via the Diátaxis compass
 
-Record a defensible assumption and continue when the request and sources are
-sufficiently clear.
+For guide artifacts, assign one kind from reader posture — what the reader is doing right now, not what topic they are reading about:
 
-### Step 6 — Use the Diátaxis compass
-
-Assign one page kind using reader posture, not topic:
-
-| Reader posture | Kind |
+| Reader's posture right now | Kind |
 |---|---|
-| Action + learning → | Tutorial |
-| Action + application → | How-to |
-| Cognition + application → | Reference |
-| Cognition + learning → | Explanation |
+| On rails, attentive, wants a guaranteed working result | tutorial |
+| Has a named problem, wants the recipe | how-to |
+| In a hurry, scanning for the authoritative answer | reference |
+| Away from the keyboard, wants to understand why | explanation |
 
-For pack READMEs and journey pages, load `references/page-contracts.md` sections
-"Pack page" and "Journey page".
-
-This is a contract, not a folder choice. Do not create empty quadrant directories.
+This is a page contract, not a directory choice. Load the matching contract from [`references/page-contracts.md`](references/page-contracts.md) and apply it throughout drafting.
 
 ### Step 7 — Select the minimum useful artifact set
 
-One artifact is the default. Update a README, index, or journey only when the
-new work materially changes discovery or the canonical flow.
+Default to ONE artifact. Do not:
+- Create sibling pages merely to fill the other Diátaxis kinds
+- Create empty category directories
+- Update a README, index, or journey unless the new work materially changes discovery or the canonical flow
 
-### Step 8 — Determine the write destination
+A single well-executed how-to is more useful than four thin quadrant stubs.
 
-**This catalogue:**
-- Catalogue-facing guides → `guides/<pack>/`
-- Internal maintainer guides → `docs/guides/`
-- Pack README → `packs/<pack>/README.md`
-- Journey → `packs/<pack>/JOURNEY.md` (proposed; see `references/repository-ownership.md`)
+### Step 8 — Resolve the write destination
 
-**Adopter repository:** inspect the host's configured and existing documentation
-locations. Do not impose `guides/` or `docs/guides/` on a host that has a
-different layout.
+Determine where to write the artifact. This skill is portable — it must not hardcode this catalogue's specific paths.
 
-Load `references/repository-ownership.md` for the full ownership contract.
+**For this catalogue (agent-ready-repo):**
+- External product guides: `guides/<pack>/<kind>/<slug>.md`
+- Pack README: `packs/<pack>/README.md`
+- Journey: `packs/<pack>/JOURNEY.md` (if convention is established)
+- Internal maintainer guides: `docs/guides/<kind>/<slug>.md`
 
-### Step 9 — Author task-first product documentation
+**For adopter repositories:** inspect existing guide locations first. Ask once if structure is absent and the write destination would determine the artifact's type. Write to the structure the repo already uses; don't impose this catalogue's layout.
 
-Structure around what the user can accomplish:
+See [`references/repository-ownership.md`](references/repository-ownership.md) for the full ownership model.
 
-- **What the user can say or do** — copyable, not paraphrased
-- **What the system inspects or changes**
-- **What result they receive**
-- **What decision remains theirs**
-- **What they can do next**
+### Step 9 — Draft task-first
 
-Load `references/conversation-first.md` for the eight sequencing rules. The
-first actionable example must appear within the first 120 words.
+Structure the core task flow for user-facing documentation:
 
-Load `references/clear-prose.md` and apply the density checklist.
+- **What the user can accomplish** — the goal, in the user's own language
+- **What to say or do** — the natural-language request or action
+- **What the system reads or changes** — the read/write boundary
+- **What result the user receives** — concrete, verifiable
+- **What decision remains theirs** — human in the loop
+- **What to do next** — the likely follow-up
 
-### Step 10 — Keep reference material structured and compact
+Put a realistic user request within the first 120 words. No more than two product-specific terms before it.
 
-On reference pages, use structured tables or lists. Move narrative to
-explanation pages and link out.
+Load [`references/conversation-first.md`](references/conversation-first.md) and apply its eight sequencing rules.
 
-### Step 11 — Cross-link only existing artifacts
+### Step 10 — Format reference material compactly
 
-Link only artifacts that exist or are created in the same change. Use
-placeholder comments for planned siblings: `<!-- TODO: link to … once created -->`.
+For reference pages, keep lookup material structured and scannable: aligned key-value lists for single records, tables for sets of comparable items. Apply the contracts from [`references/page-contracts.md`](references/page-contracts.md).
 
-### Step 12 — Render and verify
+### Step 11 — Edit for density
 
-When a renderer is available, run it and verify the output.
-Load `references/rendered-verification.md` for proportionate scope by change type.
+Load [`references/clear-prose.md`](references/clear-prose.md) and edit. Cut hedges, uniform rhythm, throat-clearing openers, inflated verbs. Check structural tells: treadmill effect, symmetrical padding, false precision.
 
-### Step 13 — Report
+### Step 12 — Cross-link only existing artifacts
 
-State:
-- mode
-- artifact decision and page kind
-- canonical sources inspected
-- files changed
-- verification performed
-- unverified behavior
-- deliberately omitted artifacts
+Link to existing files or files created in the same change. Verify file existence before writing a link. Surface missing sibling links as `<!-- TODO: link to … -->` rather than writing broken links.
+
+For pack READMEs: link to the pack's guide home. For guides: link to related siblings that exist. For journeys: link to the pack README and relevant how-to guides.
+
+### Step 13 — Render and verify
+
+When a renderer is available, build the documentation and verify the output before reporting done. Apply proportionate verification from [`references/rendered-verification.md`](references/rendered-verification.md):
+- Content-only edits: link check only
+- Navigation changes: route check
+- Page-layout changes: visual review of rendered output
+
+For **audit mode**: produce evidence-based findings without editing the source. List specific files, lines, and what was found. Do not edit unless implementation was explicitly requested alongside the audit.
+
+For **verify mode**: read canonical behavior sources, then check each documentation claim against them. List verified claims, unverified claims, and claims that contradict current behavior.
+
+### Step 14 — Report
+
+At the end, report:
+- Mode used and why it was inferred
+- Artifact decision (kind, slug, destination)
+- Canonical sources inspected
+- Files changed
+- Verification performed
+- Unverified behavior (claims you could not confirm)
+- Deliberately omitted artifacts
 
 ## Anti-patterns to refuse
 
-- **Hardcoding `docs/guides/` as the output path.** Inspect the host layout.
-- **Creating four empty quadrant directories.** The kind is a page contract, not
-  a folder structure.
-- **Writing one page of each Diátaxis kind without need.** Default to one artifact.
-- **Leading with a skill or pack inventory.** The reader came with a goal.
-- **Drafting before sources are inspected.** Read pack.toml and skill files first.
-- **Claiming rendered verification without running the renderer.**
-- **Activating for specs, RFCs, ADRs, product strategy, or arbitrary prose editing.**
+- **Making product claims without inspecting the canonical source.** Read the skill source before writing what it "can do."
+- **Writing to `docs/guides/` for external product users.** `docs/guides/` is for repo maintainers. External guides live in `guides/`.
+- **Imposing `guides/tutorials/`, `guides/how-to/` etc. in an adopter repo that doesn't use that structure.** Inspect first; match what exists.
+- **Creating four Diátaxis pages when one was asked for.** Select the minimum useful artifact. One complete page beats four thin stubs.
+- **Creating empty category directories.** Write the artifact, not the container.
+- **Picking the Diátaxis kind by topic instead of reader posture.** "Authentication" is a topic. Whether the reader is on rails (tutorial), has a problem (how-to), needs a fact (reference), or wants to understand (explanation) determines the kind.
+- **Drafting before knowing the audience.** Internal maintainer guidance written to `guides/` ends up shipped to adopters.
+- **Editing rendered output.** The source is the canonical artifact. Edits to `web/` or `docs-site/` generated output don't survive the next build.
+- **Claiming rendered verification without running the renderer.** Only report verification that actually ran.

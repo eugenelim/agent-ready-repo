@@ -1,7 +1,7 @@
 {
   "name": "user-guide-diataxis",
   "version": "0.3.0",
-  "description": "Deprecated compatibility shim. Depends on product-documentation. Install product-documentation directly for all new work.",
+  "description": "Deprecated compatibility pack. Installs product-documentation and exposes a new-guide shim that routes to author-product-docs. Install product-documentation directly going forward.",
   "hooks": {
     "SessionStart": [
       {
@@ -24,8 +24,9 @@
   "repository": "https://github.com/eugenelim/agent-ready-repo",
   "keywords": [
     "diataxis",
+    "guides",
     "documentation",
     "deprecated"
   ],
-  "displayName": "User Guide (Di\u00e1taxis) [Deprecated \u2014 use product-documentation]"
+  "displayName": "User Guide (Di\u00e1taxis) \u2014 Deprecated"
 }

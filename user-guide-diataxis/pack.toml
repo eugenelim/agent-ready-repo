@@ -1,12 +1,12 @@
 [pack]
 name = "user-guide-diataxis"
 version = "0.3.0"
-description = "Deprecated compatibility shim. Depends on product-documentation. Install product-documentation directly for all new work."
+description = "Deprecated compatibility pack. Installs product-documentation and exposes a new-guide shim that routes to author-product-docs. Install product-documentation directly going forward."
 readme = "README.md"
-display_name = "User Guide (Diátaxis) [Deprecated — use product-documentation]"
+display_name = "User Guide (Diátaxis) — Deprecated"
 license = "Apache-2.0 OR MIT"
 categories = ["documentation"]
-keywords = ["diataxis", "documentation", "deprecated"]
+keywords = ["diataxis", "guides", "documentation", "deprecated"]
 
 [pack.adapter-contract]
 version = "0.8"
@@ -15,16 +15,17 @@ version = "0.8"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
-# Compat shim: depends on the canonical pack. agentbundle does NOT auto-install
-# this dependency — a bare `install --pack user-guide-diataxis` will error with
-# "install product-documentation first". Install product-documentation first,
-# then install this shim only if you need the legacy new-guide redirect skill.
-# New installs should use product-documentation directly.
+# No evals: the new-guide shim has no live authoring implementation to eval.
+# author-product-docs (from the product-documentation dependency) ships its own evals.
+
+# This pack installs product-documentation as a required dependency.
+# Installing user-guide-diataxis gives you product-documentation and its author-product-docs skill.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "product-documentation"
 version = "^0.1"
 
+# enriched-pack-manifest
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
@@ -33,17 +34,3 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
-
-[pack.first-value]
-audience-posture = "non-technical"
-surfaces         = ["claude-code"]
-prerequisites    = ["product-documentation pack installed"]
-verification     = "Install product-documentation instead. This shim is deprecated."
-recovery         = "Install product-documentation: agentbundle install --pack product-documentation <catalogue>"
-level-b          = false
-writes-to-repo   = false
-starter-task     = "Install product-documentation instead"
-starter-prompt   = "Install product-documentation and use author-product-docs."
-expected-result  = "Redirect to product-documentation pack."
-next-action      = "agentbundle install --pack product-documentation <catalogue>"
-safety-gate      = "This pack is a deprecated shim with no seeds. Install product-documentation directly."

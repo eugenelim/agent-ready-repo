@@ -1,65 +1,52 @@
 # Product Documentation
 
-Create, revise, retrofit, audit, and verify product documentation.
-The `author-product-docs` skill works across five modes and uses Diátaxis as a
-page contract — not a mandatory folder scaffold. Install at repo or user scope;
-no directory skeleton is written on install.
+Create, revise, retrofit, audit, and verify product documentation — pack READMEs, user guides, journeys, and Diátaxis pages — grounded in what your pack actually ships.
 
-## What you can do
+## What this helps you do
 
-- **Create** a new guide, pack README, journey, or explanation page from
-  canonical source behavior.
-- **Revise** an existing artifact while preserving or deliberately correcting its
-  role.
-- **Retrofit** a connected documentation experience across entry surfaces and
-  related pages.
-- **Audit** for inventory-first writing, audience drift, or stale behavior claims.
-- **Verify** that documentation matches current shipped behavior and renders
-  correctly.
-
-## First request
-
-Ask your agent:
-
-> Write a how-to guide explaining how to [your most common user task].
-
-The skill reads the relevant pack sources, proposes a documentation contract
-(mode, audience, artifact type), and drafts a task-first guide. You confirm
-before any files change.
-
-## The Diátaxis compass
-
-`author-product-docs` assigns one page kind per artifact — tutorial, how-to,
-reference, or explanation — by reader posture, not by topic. You do not need to
-name the kind; the skill infers it. You do not need four empty quadrant folders;
-the kind is a contract, not a directory.
-
-| Reader posture | Page kind |
-|---|---|
-| On rails, wants a guaranteed result | Tutorial |
-| Named problem, wants the recipe | How-to |
-| Scanning for an authoritative answer | Reference |
-| Away from keyboard, wants to understand *why* | Explanation |
+- **Write a pack README** that leads with outcomes rather than a skill inventory
+- **Create a guide** — tutorial, how-to, reference, or explanation — for any user-facing behavior
+- **Retrofit connected pages** around a coherent user journey
+- **Audit existing docs** for inventory-first writing, audience mismatch, or unverified behavior claims
+- **Verify documentation** against current canonical behavior before you ship
 
 ## Install
 
-```
-agentbundle install --pack product-documentation <catalogue>
+```bash
+agentbundle install --pack product-documentation
 ```
 
-Repo scope is the default. For user-scope install (skill available across all
-your repos):
+Scope options: `--scope repo` (default) or `--scope user` (available across all repos).
+
+## Get started
 
 ```
-agentbundle install --scope user --pack product-documentation <catalogue>
+Help me create product documentation for [pack name]
 ```
+
+```
+Write a how-to guide for rotating a credential token
+```
+
+```
+Audit the existing docs for this pack and tell me what's missing
+```
+
+The skill infers what you need (create, revise, retrofit, audit, or verify) from your request. You do not need to name a mode.
+
+## How it works
+
+The skill inspects canonical behavior — `pack.toml`, actual skill sources, schemas, and permissions — before making any product claim. It selects the minimum useful artifact set. It does not create empty category directories or sibling pages for their own sake.
+
+Diátaxis is an authoring contract, not a required directory structure. The four kinds (tutorial, how-to, reference, explanation) determine what a page does for the reader — not where it must live.
 
 ## Guides
 
-Product documentation guides live at
-[`guides/product-documentation/`](../../guides/product-documentation/).
+Full documentation for this pack: [guides/product-documentation/](../../guides/product-documentation/)
 
-## Migrating from user-guide-diataxis
+- [How to use author-product-docs](../../guides/product-documentation/how-to/use-author-product-docs.md)
+- [About the Diátaxis framework](../../guides/product-documentation/explanation/the-diataxis-framework.md)
 
-`user-guide-diataxis` is now a deprecated compatibility shim that depends on
-this pack. Install `product-documentation` directly for all new work.
+## Replaces
+
+This pack supersedes `user-guide-diataxis`. The `user-guide-diataxis@0.3.0` compatibility pack installs `product-documentation` as a dependency. If you have `user-guide-diataxis` installed, you already have this pack.
