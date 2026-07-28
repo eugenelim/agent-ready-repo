@@ -58,9 +58,10 @@ class PackManifestShapeTests(unittest.TestCase):
         # guide-home `documentation` link) → 0.1.3 (missing-credbroker guard +
         # credentials_shim→credbroker description fix) → 0.2.0 (credbroker SSO
         # consumer family, RFC-0035: load_sso_cookies + confinement primitives)
-        # → 0.2.1 (first-value adoption contract, RFC-0064 Amendment #4);
+        # → 0.2.1 (first-value adoption contract, RFC-0064 Amendment #4)
+        # → 0.2.2 (ruff/mypy violation fixes, de41a345);
         # adapter-contract unchanged.
-        self.assertEqual(pack["version"], "0.2.1")
+        self.assertEqual(pack["version"], "0.2.2")
 
     def test_description_names_the_three_artefacts(self) -> None:
         # The description names the artefacts the pack ships. Since RFC-0023 the
