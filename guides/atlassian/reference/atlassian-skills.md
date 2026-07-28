@@ -75,16 +75,14 @@ when the user explicitly asks to set a field — with the payload confirmed firs
 
 **Returns**
 
-A five-section snapshot:
+A header block (scope, coverage, read-only confirmation, and summary counts) followed by grouped sections:
 1. Ready to pull (grouped Quick / Standard / Involved)
-2. In progress
+2. Needs story work (items lacking minimum definition)
 3. Blocked
-4. Unassigned
-5. Needs detail (product attention)
+4. In progress
+5. Unassigned and stale cross-cutting flags
 
-Plus a recently-changed note, stale markers, and a summary line disclosing scope
-and coverage. Followed by a read-only pick-up hand-off (start-delivery routing or
-route to `jira-story-triage`).
+Followed by a read-only pick-up hand-off (start-delivery routing or route to `jira-story-triage`).
 
 **Coverage**
 
@@ -117,7 +115,7 @@ An item is **ready to pull** only when all four hold:
 1. In the selected team scope.
 2. In an eligible backlog state — default `statusCategory = "To Do"` (spans Backlog / To Do / Selected for Development / Open). Teams override by naming explicit statuses.
 3. No known unresolved blocker — Flagged field set, an unresolved "is blocked by" link, or status in a team-declared blocked set.
-4. Meets the five-question readiness bar.
+4. Minimum definition — non-empty, non-image-only description, not a discovery issuetype without ACs, and not wholly TBD language.
 
 When any condition can't be determined, the item is labelled **needs confirmation**,
 not asserted ready or blocked.
@@ -172,7 +170,7 @@ Per-item findings:
 - Expected readiness after the draft
 - Confirmation that no Jira write occurred
 
-**The five-question readiness bar**
+**The five-question agent-execution readiness bar**
 
 > A story is actionable when all five are true:
 > **(Q1)** it is a **self-contained code/config/doc change** — not discovery, design,
@@ -190,7 +188,7 @@ Per-item findings:
 
 | Outcome | Condition |
 | --- | --- |
-| Ready for engineering | All five questions pass |
+| Ready for agent execution | All five questions pass |
 | Gated (external) | Exactly one failure, and it is a specific named external dependency (not a content gap) |
 | Not ready — needs shaping | Any content failure: Q1 wrong type, Q2 missing scope, Q3 missing ACs, Q4 open design question, Q5 too large |
 | Needs detail | Empty description, image-only description, or discovery issuetype with no ACs |
