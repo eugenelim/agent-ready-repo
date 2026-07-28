@@ -25,6 +25,7 @@ def _write_pack(tmp_path: Path, categories_line: str) -> Path:
         'description = "Demo pack."\n'
         f"{categories_line}\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 

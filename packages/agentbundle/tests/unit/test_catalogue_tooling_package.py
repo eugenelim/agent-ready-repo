@@ -43,29 +43,29 @@ def _make_catalogue(
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
     (pack_dir / "pack.toml").write_text(
-        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
-    (pack_dir / "SKILL.md").write_text("# skill\n", encoding="utf-8")
+    (pack_dir / "SKILL.md").write_text("# skill\n", encoding="utf-8", newline="\n")
 
     # Profile
     profiles_dir = root / "profiles"
     profiles_dir.mkdir()
-    (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8")
+    (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8", newline="\n")
 
     if with_agents_md:
-        (root / "AGENTS.md").write_text("# Catalogue Agent Context\n", encoding="utf-8")
+        (root / "AGENTS.md").write_text("# Catalogue Agent Context\n", encoding="utf-8", newline="\n")
 
-    (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8")
+    (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8", newline="\n")
 
     if with_license_apache:
-        (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
+        (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8", newline="\n")
     if with_license_mit:
-        (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+        (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8", newline="\n")
 
     if with_marketplace:
         cp_dir = root / ".claude-plugin"
         cp_dir.mkdir()
-        (cp_dir / "marketplace.json").write_text('{"packs": ["core"]}\n', encoding="utf-8")
+        (cp_dir / "marketplace.json").write_text('{"packs": ["core"]}\n', encoding="utf-8", newline="\n")
 
     return root
 
@@ -449,7 +449,7 @@ def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
     for denied in [".git", "tools", "packages", "dist", "__pycache__"]:
         d = root / denied
         d.mkdir()
-        (d / "stub.txt").write_text("should be excluded\n", encoding="utf-8")
+        (d / "stub.txt").write_text("should be excluded\n", encoding="utf-8", newline="\n")
 
     output = tmp_path / "out"
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
@@ -533,13 +533,13 @@ def _make_two_pack_catalogue(tmp_path: Path) -> Path:
         pack_dir = root / "packs" / pack_name
         pack_dir.mkdir(parents=True)
         (pack_dir / "pack.toml").write_text(
-            f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\n', encoding="utf-8"
+            f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
         )
-    (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
-    (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+    (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8", newline="\n")
+    (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8", newline="\n")
     cp_dir = root / ".claude-plugin"
     cp_dir.mkdir()
-    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8")
+    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8", newline="\n")
     return root
 
 
@@ -565,15 +565,15 @@ def test_scan_content_nonpack_dirs_always_included(tmp_path: Path) -> None:
     pack_dir = root / "packs" / "pack-alpha"
     pack_dir.mkdir(parents=True)
     (pack_dir / "pack.toml").write_text(
-        '[pack]\nname = "pack-alpha"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "pack-alpha"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
     (root / "profiles").mkdir()
     (root / "profiles" / "default.toml").write_text(
-        '[profile]\nname = "default"\n', encoding="utf-8"
+        '[profile]\nname = "default"\n', encoding="utf-8", newline="\n"
     )
     (root / "contracts").mkdir()
     (root / "contracts" / "adapter.toml").write_text(
-        '[contract]\nversion = "1"\n', encoding="utf-8"
+        '[contract]\nversion = "1"\n', encoding="utf-8", newline="\n"
     )
     paths = _scan_content(root, pack_include=["packs/pack-alpha"])
     posix = [p.relative_to(root).as_posix() for p in paths]
@@ -602,7 +602,7 @@ def test_check_required_custom_license(tmp_path: Path) -> None:
     root = tmp_path / "catalogue"
     root.mkdir()
     (root / "packs").mkdir()
-    (root / "LICENSE").write_text("Custom license\n", encoding="utf-8")
+    (root / "LICENSE").write_text("Custom license\n", encoding="utf-8", newline="\n")
     paths = [root / "LICENSE"]
     err = _check_required_files(root, paths, required_override=["LICENSE"])
     assert err is None
@@ -651,14 +651,14 @@ def test_package_honours_include_config(tmp_path: Path) -> None:
         pack_dir = root / "packs" / pack_name
         pack_dir.mkdir(parents=True)
         (pack_dir / "pack.toml").write_text(
-            f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\n', encoding="utf-8"
+            f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
         )
-    (root / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8")
-    (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
-    (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+    (root / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8", newline="\n")
+    (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8", newline="\n")
+    (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8", newline="\n")
     cp_dir = root / ".claude-plugin"
     cp_dir.mkdir()
-    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8")
+    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8", newline="\n")
     output = tmp_path / "out"
 
     with (
@@ -690,13 +690,13 @@ def test_package_custom_required_no_apache_license(tmp_path: Path) -> None:
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
     (pack_dir / "pack.toml").write_text(
-        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
-    (root / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8")
-    (root / "LICENSE").write_text("Proprietary license\n", encoding="utf-8")
+    (root / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8", newline="\n")
+    (root / "LICENSE").write_text("Proprietary license\n", encoding="utf-8", newline="\n")
     cp_dir = root / ".claude-plugin"
     cp_dir.mkdir()
-    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8")
+    (cp_dir / "marketplace.json").write_text('{"packs": []}\n', encoding="utf-8", newline="\n")
     output = tmp_path / "out"
 
     with (

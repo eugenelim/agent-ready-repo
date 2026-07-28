@@ -28,7 +28,7 @@ def _make_skill_source(tmp: Path) -> tuple[Path, Path]:
     source_dir = tmp / "source"
     source_skill = source_dir / "my-skill"
     source_skill.mkdir(parents=True)
-    (source_skill / "SKILL.md").write_text("# My Skill\n", encoding="utf-8")
+    (source_skill / "SKILL.md").write_text("# My Skill\n", encoding="utf-8", newline="\n")
     (source_skill / "secret-link").symlink_to("/etc/passwd")
 
     target_dir = tmp / "target"
@@ -105,7 +105,7 @@ class TestCodexNestedSymlinkDropped(unittest.TestCase):
             pack = tmp / "pack"
             skill_dir = pack / ".apm" / "skills" / "my-skill"
             skill_dir.mkdir(parents=True)
-            (skill_dir / "SKILL.md").write_text("# My Skill\n", encoding="utf-8")
+            (skill_dir / "SKILL.md").write_text("# My Skill\n", encoding="utf-8", newline="\n")
             (skill_dir / "secret-link").symlink_to("/etc/passwd")
 
             output = tmp / "output"

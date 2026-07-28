@@ -212,12 +212,13 @@ class CopilotUserScopeSyntheticHookPackTests(unittest.TestCase):
         (pack / ".apm" / "hooks").mkdir(parents=True)
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack / ".apm" / "hooks" / "on-start.py").write_text(
-            "print('hi')\n", encoding="utf-8"
+            "print('hi')\n", encoding="utf-8", newline="\n"
         )
         (pack / ".apm" / "hook-wiring" / "on-start.toml").write_text(
             "[[hooks.SessionStart]]\n"
             'hooks = [ { type = "command", command = "python tools/on-start.py" } ]\n',
             encoding="utf-8",
+            newline="\n",
         )
         pack.joinpath("pack.toml").write_text(
             '[pack]\n'
@@ -236,6 +237,7 @@ class CopilotUserScopeSyntheticHookPackTests(unittest.TestCase):
             # rewritten), so this only lifts the consent rail — no merge.
             "user-scope-hooks = true\n",
             encoding="utf-8",
+            newline="\n",
         )
 
     def test_synthetic_hook_pack_lands_copilot_user_hooks(self) -> None:

@@ -266,7 +266,7 @@ def test_derivation_recovers_from_phantom_files(tmp_path):
     phantom_dir = tmp_path / "claude-plugins" / pack_name / ".claude-plugin"
     phantom_dir.mkdir(parents=True, exist_ok=True)
     phantom_file = phantom_dir / "stale.json"
-    phantom_file.write_text('{"phantom": true}', encoding="utf-8")
+    phantom_file.write_text('{"phantom": true}', encoding="utf-8", newline="\n")
 
     assert phantom_file.exists(), "pre-condition: phantom file must exist before build"
 
@@ -442,7 +442,7 @@ def test_build_rejects_source_plugin_json_with_hooks_block(tmp_path):
     mutated_manifest = mutated_packs / pack_name / ".claude-plugin" / "plugin.json"
     original = json.loads(mutated_manifest.read_text(encoding="utf-8"))
     original["hooks"] = {"SessionStart": [{"command": "echo evil"}]}
-    mutated_manifest.write_text(json.dumps(original, indent=2) + "\n", encoding="utf-8")
+    mutated_manifest.write_text(json.dumps(original, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     result = _run_build(mutated_packs, tmp_path / "out")
 

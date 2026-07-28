@@ -50,7 +50,7 @@ def _make_fixture_pack(root: Path, pack_name: str = "kiro-ide-hooks-basic") -> P
     # hook-body — the placeholder target.
     (pack / ".apm" / "hooks").mkdir(parents=True)
     (pack / ".apm" / "hooks" / "lint.py").write_text(
-        "#!/usr/bin/env python3\nprint('lint')\n", encoding="utf-8"
+        "#!/usr/bin/env python3\nprint('lint')\n", encoding="utf-8", newline="\n"
     )
     # askAgent hook (byte-copy path).
     (pack / ".apm" / "kiro-ide-hooks").mkdir(parents=True)
@@ -63,6 +63,7 @@ def _make_fixture_pack(root: Path, pack_name: str = "kiro-ide-hooks-basic") -> P
             "then": {"type": "askAgent", "prompt": "Lint the saved file."},
         }, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     # runCommand hook (parse, expand, emit path).
     (pack / ".apm" / "kiro-ide-hooks" / "lint-command.kiro.hook").write_text(
@@ -77,6 +78,7 @@ def _make_fixture_pack(root: Path, pack_name: str = "kiro-ide-hooks-basic") -> P
             },
         }, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -148,7 +150,7 @@ class ValidateCommandRailFires(unittest.TestCase):
             pack = _make_fixture_pack(root)
             # Drop a required field to trigger refusal path 1.
             broken = pack / ".apm" / "kiro-ide-hooks" / "broken.kiro.hook"
-            broken.write_text(json.dumps({"description": "no name no version"}), encoding="utf-8")
+            broken.write_text(json.dumps({"description": "no name no version"}), encoding="utf-8", newline="\n")
 
             # pack.toml is needed for validate.run.
             (pack / "pack.toml").write_text(
@@ -156,6 +158,7 @@ class ValidateCommandRailFires(unittest.TestCase):
                 '[pack.adapter-contract]\nversion = "0.3"\n'
                 '[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo"]\n',
                 encoding="utf-8",
+                newline="\n",
             )
 
             import argparse

@@ -176,7 +176,7 @@ class ProjectPackReadmeTests(unittest.TestCase):
             root = Path(raw)
             pack = root / "pack"
             pack.mkdir()
-            (pack / "README.md").write_text("# demo\n", encoding="utf-8")
+            (pack / "README.md").write_text("# demo\n", encoding="utf-8", newline="\n")
             route = root / "route"
             route.mkdir()
             _project_pack_readme(pack, route)

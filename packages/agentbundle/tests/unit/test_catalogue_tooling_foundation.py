@@ -193,7 +193,7 @@ def _dict_to_toml(d: dict, prefix: str = "") -> str:
 
 def _write_toml(tmp_path: Path, content: str) -> Path:
     f = tmp_path / "catalogue.toml"
-    f.write_text(content, encoding="utf-8")
+    f.write_text(content, encoding="utf-8", newline="\n")
     return tmp_path
 
 

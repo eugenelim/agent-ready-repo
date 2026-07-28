@@ -92,7 +92,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
         return target.read_text(encoding="utf-8")
 
     def _write(self, body: str) -> None:
-        (self.source / "agent.md").write_text(body, encoding="utf-8")
+        (self.source / "agent.md").write_text(body, encoding="utf-8", newline="\n")
 
     def test_trivial_round_trip(self) -> None:
         self._write(
@@ -241,6 +241,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
         (self.source / "agent.md").write_text(
             "---\nname: foo\nsummary: it's a summary\n---\nBody.\n",
             encoding="utf-8",
+            newline="\n",
         )
         project_codex_agent_toml(self.source, self.output, RULE, custom_mapping)
         target = self.output / ".codex" / "agents" / "agent.toml"
@@ -277,10 +278,10 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
     def test_multiple_files_sorted(self) -> None:
         """Multiple agent.md files each project independently."""
         (self.source / "b.md").write_text(
-            "---\nname: b\ndescription: B\n---\nB body.\n", encoding="utf-8"
+            "---\nname: b\ndescription: B\n---\nB body.\n", encoding="utf-8", newline="\n"
         )
         (self.source / "a.md").write_text(
-            "---\nname: a\ndescription: A\n---\nA body.\n", encoding="utf-8"
+            "---\nname: a\ndescription: A\n---\nA body.\n", encoding="utf-8", newline="\n"
         )
         project_codex_agent_toml(
             self.source, self.output, RULE, CODEX_AGENT_FRONTMATTER_V08
@@ -291,7 +292,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
 
     def test_non_md_files_ignored(self) -> None:
         """Files without ``.md`` suffix are skipped."""
-        (self.source / "skip.txt").write_text("ignored", encoding="utf-8")
+        (self.source / "skip.txt").write_text("ignored", encoding="utf-8", newline="\n")
         self._write("---\nname: foo\n---\nBody.\n")
         self._run()
         # If `skip.txt` had been processed we'd get .codex/agents/skip.toml;

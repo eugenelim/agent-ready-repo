@@ -38,13 +38,13 @@ def _make_pack(
         kiro_dir.mkdir(parents=True)
         for filename, body in kiro_ide_hooks.items():
             (kiro_dir / filename).write_text(
-                json.dumps(body, indent=2) + "\n", encoding="utf-8"
+                json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n"
             )
     if hook_bodies is not None:
         body_dir = pack / ".apm" / "hooks"
         body_dir.mkdir(parents=True)
         for filename, content in hook_bodies.items():
-            (body_dir / filename).write_text(content, encoding="utf-8")
+            (body_dir / filename).write_text(content, encoding="utf-8", newline="\n")
     return pack
 
 
@@ -353,6 +353,7 @@ class EmptyBareNameRefuses(unittest.TestCase):
                     "then": {"type": "askAgent", "prompt": "x"},
                 }) + "\n",
                 encoding="utf-8",
+                newline="\n",
             )
             with self.assertRaises(kiro_ide_hook.KiroIdeHookRefusal) as cm:
                 kiro_ide_hook.project(

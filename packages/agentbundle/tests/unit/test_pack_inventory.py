@@ -19,15 +19,15 @@ def _make_pack(root: Path) -> Path:
     # Two well-formed skills (out of alphabetical order on disk).
     for name in ("zeta", "alpha"):
         (skills / name).mkdir(parents=True)
-        (skills / name / "SKILL.md").write_text("# skill\n", encoding="utf-8")
+        (skills / name / "SKILL.md").write_text("# skill\n", encoding="utf-8", newline="\n")
     # A directory with no SKILL.md — not a skill (AC2).
     (skills / "not-a-skill").mkdir(parents=True)
-    (skills / "not-a-skill" / "README.md").write_text("x\n", encoding="utf-8")
+    (skills / "not-a-skill" / "README.md").write_text("x\n", encoding="utf-8", newline="\n")
     # Agents: two .md files, plus a non-.md file and a subdir to ignore.
     agents.mkdir(parents=True)
-    (agents / "beta.md").write_text("# agent\n", encoding="utf-8")
-    (agents / "aardvark.md").write_text("# agent\n", encoding="utf-8")
-    (agents / "notes.txt").write_text("ignore me\n", encoding="utf-8")
+    (agents / "beta.md").write_text("# agent\n", encoding="utf-8", newline="\n")
+    (agents / "aardvark.md").write_text("# agent\n", encoding="utf-8", newline="\n")
+    (agents / "notes.txt").write_text("ignore me\n", encoding="utf-8", newline="\n")
     (agents / "nested").mkdir()
     return pack
 

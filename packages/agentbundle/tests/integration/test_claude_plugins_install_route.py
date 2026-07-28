@@ -119,7 +119,7 @@ def pack_root_factory(tmp_path):
             default-scope = {json.dumps(allowed_scopes[0])}
             allowed-scopes = {json.dumps(allowed_scopes)}
         """).lstrip()
-        (plugin_root / "pack.toml").write_text(pack_toml_content, encoding="utf-8")
+        (plugin_root / "pack.toml").write_text(pack_toml_content, encoding="utf-8", newline="\n")
 
         # Write settings files based on opt_in_at
         for scope in opt_in_at:
@@ -130,6 +130,7 @@ def pack_root_factory(tmp_path):
                 settings_file.write_text(
                     json.dumps({"enabledPlugins": [name]}),
                     encoding="utf-8",
+                    newline="\n",
                 )
             elif scope == "project":
                 settings_dir = project_dir / ".claude"
@@ -138,6 +139,7 @@ def pack_root_factory(tmp_path):
                 settings_file.write_text(
                     json.dumps({"enabledPlugins": [name]}),
                     encoding="utf-8",
+                    newline="\n",
                 )
             elif scope == "user":
                 settings_dir = home / ".claude"
@@ -146,6 +148,7 @@ def pack_root_factory(tmp_path):
                 settings_file.write_text(
                     json.dumps({"enabledPlugins": [name]}),
                     encoding="utf-8",
+                    newline="\n",
                 )
 
         return plugin_root, plugin_data, home, project_dir
@@ -346,7 +349,7 @@ def test_scope_malformed_local_json_falls_through_to_project(pack_root_factory):
     )
     # Overwrite local settings with garbage.
     local_settings = project_dir / ".claude" / "settings.local.json"
-    local_settings.write_text("{not valid json", encoding="utf-8")
+    local_settings.write_text("{not valid json", encoding="utf-8", newline="\n")
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -508,7 +511,7 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
     # We need to add "local" opt-in for pack-b in the project_dir settings.
     local_settings = project_dir / ".claude" / "settings.local.json"
     # Update to include both packs.
-    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8")  # noqa: E501
+    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8", newline="\n")  # noqa: E501
 
     # Set up the sitecustomize.py that crashes os.replace on first call.
     sitecustomize_dir = tmp_path / "sitecustomize_crash"
@@ -528,6 +531,7 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
             _os.replace = _crashing_replace
         """),
         encoding="utf-8",
+        newline="\n",
     )
 
     env_b_crash = _make_env(
@@ -602,6 +606,7 @@ def test_hash_file_not_written_when_marker_write_fails(tmp_path, pack_root_facto
             _os.replace = _perm_replace
         """),
         encoding="utf-8",
+        newline="\n",
     )
 
     env_fail = _make_env(
@@ -671,7 +676,7 @@ def test_detection_keep_data_reinstall_writes(pack_root_factory):
     # Pre-seed the hash file with the correct hash.
     import hashlib
     current_hash = hashlib.sha256((plugin_root / "pack.toml").read_bytes()).hexdigest()
-    (plugin_data / "pack-manifest-hash").write_text(current_hash + "\n", encoding="utf-8")
+    (plugin_data / "pack-manifest-hash").write_text(current_hash + "\n", encoding="utf-8", newline="\n")
 
     # Marker file is absent (simulates --keep-data reinstall).
     env = _make_env(
@@ -740,7 +745,7 @@ def test_two_writers_sequential_both_entries_present(pack_root_factory):
     # Make pack-a settings visible in the shared project_dir.
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8")  # noqa: E501
+    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8", newline="\n")  # noqa: E501
 
     env_a = _make_env(
         plugin_root=plugin_root_a, plugin_data=plugin_data_a, home=home, project_dir=project_dir
@@ -817,7 +822,7 @@ def test_cli_to_claude_plugins_handoff_preserves_datetime(tmp_path, pack_root_fa
     # Make the project dir settings include plugins-pack.
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8")
+    local_settings.write_text(json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8", newline="\n")
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -887,7 +892,7 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
     )
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8")  # noqa: E501
+    local_settings.write_text(json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8", newline="\n")  # noqa: E501
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -942,7 +947,7 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
         installed-at = {old_ts.strftime("%Y-%m-%dT%H:%M:%SZ")}
         install-route = "claude-plugins"
     """).lstrip()
-    marker_path.write_text(old_content, encoding="utf-8")
+    marker_path.write_text(old_content, encoding="utf-8", newline="\n")
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -1093,7 +1098,7 @@ def test_cli_seed_unresolved_markers_and_new_companions_survive_rewrite(
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
     local_settings.write_text(
-        json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8"
+        json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8", newline="\n"
     )
 
     env = _make_env(
@@ -1192,6 +1197,7 @@ def test_writer_drops_entries_with_malformed_name_or_version(tmp_path, pack_root
         f"installed-at = {ts}\n"
         'install-route = "cli"\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     plugin_root, plugin_data, _, _ = pack_root_factory(
@@ -1202,7 +1208,7 @@ def test_writer_drops_entries_with_malformed_name_or_version(tmp_path, pack_root
     )
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["third-pack"]}), encoding="utf-8")
+    local_settings.write_text(json.dumps({"enabledPlugins": ["third-pack"]}), encoding="utf-8", newline="\n")
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -1309,13 +1315,13 @@ def test_writer_refuses_pack_name_with_control_chars(tmp_path):
         'default-scope = "repo"\n'
         'allowed-scopes = ["repo"]\n'
     )
-    (plugin_root / "pack.toml").write_text(pack_toml_content, encoding="utf-8")
+    (plugin_root / "pack.toml").write_text(pack_toml_content, encoding="utf-8", newline="\n")
 
     # Opt in at local scope.
     settings_dir = project_dir / ".claude"
     settings_dir.mkdir(parents=True, exist_ok=True)
     (settings_dir / "settings.local.json").write_text(
-        _json.dumps({"enabledPlugins": [bad_name]}), encoding="utf-8"
+        _json.dumps({"enabledPlugins": [bad_name]}), encoding="utf-8", newline="\n"
     )
 
     env = _make_env(
@@ -1389,7 +1395,7 @@ def test_malformed_pack_toml_exits_nonzero_with_stderr(tmp_path):
     """Concern-18: garbage pack.toml → exit 1 with stderr mentioning 'pack.toml'."""
     plugin_root = tmp_path / "plugin_root"
     plugin_root.mkdir()
-    (plugin_root / "pack.toml").write_text("not valid toml {{{{", encoding="utf-8")
+    (plugin_root / "pack.toml").write_text("not valid toml {{{{", encoding="utf-8", newline="\n")
 
     plugin_data = tmp_path / "plugin_data"
     plugin_data.mkdir()
@@ -1443,6 +1449,7 @@ def test_hash_file_write_failure_self_heals(tmp_path, pack_root_factory):
             _os.replace = _selective_replace
         """),
         encoding="utf-8",
+        newline="\n",
     )
 
     env_fail = _make_env(

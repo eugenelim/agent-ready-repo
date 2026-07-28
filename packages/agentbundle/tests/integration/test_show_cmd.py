@@ -53,13 +53,13 @@ def _make_catalogue(root: Path, *, name: str = "demo",
     if meta:
         toml += 'version = "1.2.3"\ndescription = "Demo fixture pack"\n'
     (pack).mkdir(parents=True)
-    (pack / "pack.toml").write_text(toml, encoding="utf-8")
+    (pack / "pack.toml").write_text(toml, encoding="utf-8", newline="\n")
     for s in skills:
         (pack / ".apm" / "skills" / s).mkdir(parents=True)
-        (pack / ".apm" / "skills" / s / "SKILL.md").write_text("# s\n", encoding="utf-8")
+        (pack / ".apm" / "skills" / s / "SKILL.md").write_text("# s\n", encoding="utf-8", newline="\n")
     for a in agents:
         (pack / ".apm" / "agents").mkdir(parents=True, exist_ok=True)
-        (pack / ".apm" / "agents" / f"{a}.md").write_text("# a\n", encoding="utf-8")
+        (pack / ".apm" / "agents" / f"{a}.md").write_text("# a\n", encoding="utf-8", newline="\n")
     return root
 
 
@@ -88,7 +88,7 @@ def test_primary_via_default_source_chain(tmp_path, capsys):
     # .claude-plugin/marketplace.json (layer-1 overrides skip this check).
     marker = cat / ".claude-plugin" / "marketplace.json"
     marker.parent.mkdir(parents=True)
-    marker.write_text("{}\n", encoding="utf-8")
+    marker.write_text("{}\n", encoding="utf-8", newline="\n")
     args = SimpleNamespace(
         pack="demo", catalogue=None, format="json", root=".",
         _user_config=SimpleNamespace(source=str(cat)),
@@ -266,7 +266,7 @@ def test_degrade_legacy_state_scope_warned_not_fatal(
     names the skipped scope — mirroring `list-installed`."""
     # Repo scope: a legacy-schema state file that `load_state` refuses.
     (tmp_path / ".agentbundle-state.toml").write_text(
-        'schema-version = "0.3"\n', encoding="utf-8"
+        'schema-version = "0.3"\n', encoding="utf-8", newline="\n"
     )
     # User scope: a valid state carrying the installed pack.
     _write_state(

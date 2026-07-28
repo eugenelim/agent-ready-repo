@@ -158,9 +158,9 @@ class ScanForPackArtifactsTests(unittest.TestCase):
         with TemporaryDirectory() as raw:
             root = Path(raw)
             (root / ".claude" / "skills" / "demo").mkdir(parents=True)
-            (root / ".claude" / "skills" / "demo" / "SKILL.md").write_text("x")
+            (root / ".claude" / "skills" / "demo" / "SKILL.md").write_text("x", encoding="utf-8", newline="\n")
             (root / ".claude" / "agents").mkdir(parents=True)
-            (root / ".claude" / "agents" / "a.md").write_text("y")
+            (root / ".claude" / "agents" / "a.md").write_text("y", encoding="utf-8", newline="\n")
             found = safety.scan_for_pack_artifacts(root, [".claude/"])
             relpaths = sorted(p.relative_to(root).as_posix() for p in found)
             self.assertEqual(
@@ -174,9 +174,9 @@ class ScanForPackArtifactsTests(unittest.TestCase):
         with TemporaryDirectory() as raw:
             root = Path(raw)
             (root / ".claude" / "skills").mkdir(parents=True)
-            (root / ".claude" / "skills" / "x.md").write_text("x")
+            (root / ".claude" / "skills" / "x.md").write_text("x", encoding="utf-8", newline="\n")
             (root / ".agentbundle").mkdir(parents=True)
-            (root / ".agentbundle" / "state.toml").write_text("y")
+            (root / ".agentbundle" / "state.toml").write_text("y", encoding="utf-8", newline="\n")
             found = safety.scan_for_pack_artifacts(
                 root, [".claude/", ".agentbundle/"]
             )
@@ -188,7 +188,7 @@ class ScanForPackArtifactsTests(unittest.TestCase):
         with TemporaryDirectory() as raw:
             root = Path(raw)
             (root / ".claude" / "skills").mkdir(parents=True)
-            (root / ".claude" / "skills" / "x.md").write_text("x")
+            (root / ".claude" / "skills" / "x.md").write_text("x", encoding="utf-8", newline="\n")
             # .kiro/ doesn't exist — skipped, not an error.
             found = safety.scan_for_pack_artifacts(
                 root, [".claude/", ".kiro/"]
@@ -202,7 +202,7 @@ class ScanForPackArtifactsTests(unittest.TestCase):
         with TemporaryDirectory() as raw:
             root = Path(raw)
             (root / ".claude" / "skills").mkdir(parents=True)
-            (root / ".claude" / "skills" / "x.md").write_text("x")
+            (root / ".claude" / "skills" / "x.md").write_text("x", encoding="utf-8", newline="\n")
             before = sorted(p.relative_to(root).as_posix() for p in root.rglob("*"))
             safety.scan_for_pack_artifacts(root, [".claude/"])
             after = sorted(p.relative_to(root).as_posix() for p in root.rglob("*"))

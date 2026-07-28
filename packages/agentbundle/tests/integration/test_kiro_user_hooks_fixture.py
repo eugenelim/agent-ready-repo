@@ -63,6 +63,7 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
                 indent=2,
             ) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
 
     def test_user_scope_round_trip(self) -> None:
@@ -110,7 +111,7 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
 
         # Create a concrete hook body the substituted command will dispatch.
         hook_body = self.tmp / "stub.sh"
-        hook_body.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        hook_body.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n")
         hook_body.chmod(0o755)
 
         # Simulate T8b's resolver: substitute the placeholder in the

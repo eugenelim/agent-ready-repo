@@ -81,16 +81,16 @@ def _make_hook_wiring_pack(
     pack = root / name
     pack.mkdir(parents=True, exist_ok=True)
     (pack / "pack.toml").write_text(
-        _PACK_TOML_V08_REPO.format(name=name), encoding="utf-8"
+        _PACK_TOML_V08_REPO.format(name=name), encoding="utf-8", newline="\n"
     )
     wiring_dir = pack / ".apm" / "hook-wiring"
     wiring_dir.mkdir(parents=True, exist_ok=True)
     for fname, content in wiring_files.items():
-        (wiring_dir / fname).write_text(content, encoding="utf-8")
+        (wiring_dir / fname).write_text(content, encoding="utf-8", newline="\n")
     agents_dir = pack / ".apm" / "agents"
     agents_dir.mkdir(parents=True, exist_ok=True)
     for stem in (agent_files or []):
-        (agents_dir / f"{stem}.md").write_text(f"# {stem}\n", encoding="utf-8")
+        (agents_dir / f"{stem}.md").write_text(f"# {stem}\n", encoding="utf-8", newline="\n")
     return pack
 
 
@@ -212,7 +212,7 @@ def test_validate_still_refuses_on_hook_wiring_symlink(tmp_path, capsys):
     # Create a symlink instead of a regular file in hook-wiring/
     wiring_dir = pack / ".apm" / "hook-wiring"
     target = tmp_path / "real_file.toml"
-    target.write_text("[[hooks.agentSpawn]]\ncommand = \"x\"\n", encoding="utf-8")
+    target.write_text("[[hooks.agentSpawn]]\ncommand = \"x\"\n", encoding="utf-8", newline="\n")
     (wiring_dir / "sym.toml").symlink_to(target)
 
     rc = _run(pack)
@@ -302,6 +302,7 @@ def test_validate_still_refuses_on_allowed_adapters_violation(tmp_path, capsys):
         'allowed-scopes = ["repo"]\n'
         'allowed-adapters = ["totally-unknown-adapter-xyz"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     rc = _run(pack)
     captured = capsys.readouterr()

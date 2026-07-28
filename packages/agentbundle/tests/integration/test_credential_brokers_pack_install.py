@@ -215,7 +215,7 @@ class SeedsRefusalRailTests(_BaseInstall):
         # Inject a seeds/ directory with one file post-copy.
         seeds = self.cat / "packs" / "credential-brokers" / "seeds"
         seeds.mkdir()
-        (seeds / "README.md").write_text("# injected fixture\n", encoding="utf-8")
+        (seeds / "README.md").write_text("# injected fixture\n", encoding="utf-8", newline="\n")
 
     def test_install_refuses_with_pinned_message(self) -> None:
         args = argparse.Namespace(
@@ -407,7 +407,7 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
             self.skipTest(f"{entry} not present in this checkout")
         stub = self.tmp / "httpxstub"
         stub.mkdir()
-        (stub / "httpx.py").write_text("# stub: import-only\n", encoding="utf-8")
+        (stub / "httpx.py").write_text("# stub: import-only\n", encoding="utf-8", newline="\n")
 
         # Make the floor the *only* credbroker. `-S` (no site-packages) does
         # that — but only apply it when a credbroker is actually installed in

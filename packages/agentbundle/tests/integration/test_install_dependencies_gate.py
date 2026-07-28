@@ -32,7 +32,7 @@ def _stage_pack(catalogue_root: Path, pack_name: str, toml_text: str) -> Path:
     """Create a minimal pack under catalogue_root/packs/<pack_name>/."""
     pack = catalogue_root / "packs" / pack_name
     pack.mkdir(parents=True)
-    (pack / "pack.toml").write_text(toml_text, encoding="utf-8")
+    (pack / "pack.toml").write_text(toml_text, encoding="utf-8", newline="\n")
     (pack / ".apm").mkdir()  # empty projection
     return pack
 
@@ -66,13 +66,13 @@ def _pre_install_core(
 
     if scope == "repo":
         state_path = target / ".agentbundle-state.toml"
-        state_path.write_text(dump_state(state), encoding="utf-8")
+        state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
     else:
         assert fake_home is not None, "fake_home required for user-scope pre-seed"
         user_dir = fake_home / ".agentbundle"
         user_dir.mkdir(parents=True, exist_ok=True)
         state_path = user_dir / "state.toml"
-        state_path.write_text(dump_state(state), encoding="utf-8")
+        state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 # ---------------------------------------------------------------------------

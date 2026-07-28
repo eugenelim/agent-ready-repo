@@ -221,7 +221,7 @@ def test_load_pack_config_user_override(tmp_path):
     from agentbundle.config import load_pack_config, pack_dir
 
     d = pack_dir("atlassian", home=tmp_path)
-    (d / "config.toml").write_text('url = "https://custom.example.com/"', encoding="utf-8")
+    (d / "config.toml").write_text('url = "https://custom.example.com/"', encoding="utf-8", newline="\n")
     result = load_pack_config("atlassian", home=tmp_path)
 
     assert result.get("url") == "https://custom.example.com/"
@@ -231,7 +231,7 @@ def test_load_pack_config_malformed_user_toml(tmp_path):
     from agentbundle.config import load_pack_config, pack_dir
 
     d = pack_dir("atlassian", home=tmp_path)
-    (d / "config.toml").write_text("not valid toml ][", encoding="utf-8")
+    (d / "config.toml").write_text("not valid toml ][", encoding="utf-8", newline="\n")
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         result = load_pack_config("atlassian", home=tmp_path)
@@ -244,7 +244,7 @@ def test_load_pack_config_path_override(tmp_path):
     from agentbundle.config import load_pack_config
 
     custom_config = tmp_path / "myconfig.toml"
-    custom_config.write_text('key = "value"', encoding="utf-8")
+    custom_config.write_text('key = "value"', encoding="utf-8", newline="\n")
 
     result = load_pack_config("atlassian", path=custom_config, home=tmp_path)
 

@@ -40,7 +40,7 @@ def _make_args(**kw) -> SimpleNamespace:
 
 def _write_state(path: Path, state: State) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(dump_state(state), encoding="utf-8")
+    path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 def _write_catalogue(root: Path, versions: dict[str, str]) -> Path:
@@ -49,7 +49,7 @@ def _write_catalogue(root: Path, versions: dict[str, str]) -> Path:
         pd = root / "packs" / name
         pd.mkdir(parents=True, exist_ok=True)
         (pd / "pack.toml").write_text(
-            f'[pack]\nname = "{name}"\nversion = "{version}"\n', encoding="utf-8"
+            f'[pack]\nname = "{name}"\nversion = "{version}"\n', encoding="utf-8", newline="\n"
         )
     return root
 
@@ -230,7 +230,7 @@ def test_resolve_per_source_pack_absent_version(tmp_path):
     """pack.toml present but no 'version' → unparseable-catalogue-version, not pack-not-found."""
     pd = tmp_path / "cat" / "packs" / "core"
     pd.mkdir(parents=True)
-    (pd / "pack.toml").write_text('[pack]\nname = "core"\n', encoding="utf-8")
+    (pd / "pack.toml").write_text('[pack]\nname = "core"\n', encoding="utf-8", newline="\n")
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
          "_pack_state": PackState(installed_version="1.0.0", source=str(tmp_path / "cat"))},
@@ -243,7 +243,7 @@ def test_resolve_per_source_malformed_catalogue(tmp_path):
     """ConfigError on load_pack_toml → malformed-catalogue."""
     pd = tmp_path / "cat" / "packs" / "core"
     pd.mkdir(parents=True)
-    (pd / "pack.toml").write_text("NOT VALID TOML {{{}}} \x00\x01", encoding="utf-8")
+    (pd / "pack.toml").write_text("NOT VALID TOML {{{}}} \x00\x01", encoding="utf-8", newline="\n")
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
          "_pack_state": PackState(installed_version="1.0.0", source=str(tmp_path / "cat"))},
@@ -260,6 +260,7 @@ def test_resolve_per_source_incompatible_contract(tmp_path):
         '[pack]\nname = "core"\nversion = "1.0.0"\n'
         '[pack.adapter-contract]\nversion = "99.0"\n',
         encoding="utf-8",
+        newline="\n",
     )
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
@@ -277,6 +278,7 @@ def test_resolve_per_source_adapter_not_supported(tmp_path):
         '[pack]\nname = "core"\nversion = "1.0.0"\n'
         '[pack.install]\nallowed-adapters = ["some-other-adapter"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
@@ -291,7 +293,7 @@ def test_resolve_per_source_no_adapter_contract_is_compatible(tmp_path):
     pd = tmp_path / "cat" / "packs" / "core"
     pd.mkdir(parents=True)
     (pd / "pack.toml").write_text(
-        '[pack]\nname = "core"\nversion = "1.0.0"\n', encoding="utf-8"
+        '[pack]\nname = "core"\nversion = "1.0.0"\n', encoding="utf-8", newline="\n"
     )
     rows = [
         {"scope": "repo", "pack": "core", "adapter": "claude-code",
@@ -711,7 +713,7 @@ def test_json_drift_count_integer_with_flag(tmp_path, capsys):
 
     rel = ".claude/skills/x/SKILL.md"
     (tmp_path / ".claude/skills/x").mkdir(parents=True)
-    (tmp_path / rel).write_text("orig\n", encoding="utf-8")
+    (tmp_path / rel).write_text("orig\n", encoding="utf-8", newline="\n")
     sha = sha256_bytes(b"orig\n")
     _write_state(
         tmp_path / ".agentbundle-state.toml",
@@ -722,7 +724,7 @@ def test_json_drift_count_integer_with_flag(tmp_path, capsys):
         }),
     )
     # Edit the file to cause drift
-    (tmp_path / rel).write_text("edited\n", encoding="utf-8")
+    (tmp_path / rel).write_text("edited\n", encoding="utf-8", newline="\n")
 
     args = _make_args(root=str(tmp_path), no_check=True, format="json", check_drift=True)
     li.run(args)
@@ -1023,7 +1025,7 @@ def test_table_drift_column_rendered_with_flag(tmp_path, capsys):
 
     rel = ".claude/skills/x/SKILL.md"
     (tmp_path / ".claude/skills/x").mkdir(parents=True)
-    (tmp_path / rel).write_text("orig\n", encoding="utf-8")
+    (tmp_path / rel).write_text("orig\n", encoding="utf-8", newline="\n")
     sha = sha256_bytes(b"orig\n")
     _write_state(
         tmp_path / ".agentbundle-state.toml",
@@ -1033,7 +1035,7 @@ def test_table_drift_column_rendered_with_flag(tmp_path, capsys):
             )
         }),
     )
-    (tmp_path / rel).write_text("edited\n", encoding="utf-8")
+    (tmp_path / rel).write_text("edited\n", encoding="utf-8", newline="\n")
     args = _make_args(root=str(tmp_path), no_check=True, check_drift=True, scope="repo")
     li.run(args)
     out = capsys.readouterr().out
@@ -1065,7 +1067,7 @@ installed-version = "0.5.0"
 
 def _write_golden_state(tmp_path: Path) -> None:
     state_path = tmp_path / ".agentbundle-state.toml"
-    state_path.write_text(_GOLDEN_STATE_TOML, encoding="utf-8")
+    state_path.write_text(_GOLDEN_STATE_TOML, encoding="utf-8", newline="\n")
 
 
 def test_table_golden_80col(tmp_path, capsys):
@@ -1139,7 +1141,7 @@ def test_table_long_pack_name_no_broken_structure(tmp_path, capsys):
         f'[pack."{long_name}".adapters.codex]\n'
         f'installed-version = "1.0.0"\n'
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(state_toml, encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(state_toml, encoding="utf-8", newline="\n")
     args = _make_args(root=str(tmp_path), scope="repo", no_check=True)
     li.run(args)
     out = capsys.readouterr().out
@@ -1160,7 +1162,7 @@ def test_subprocess_exit_0_on_catalogue_failure(tmp_path):
         'installed-version = "1.0.0"\n'
         'source = "git+ssh://example.test/repo"\n'
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(state_toml, encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(state_toml, encoding="utf-8", newline="\n")
     proc = subprocess.run(
         [sys.executable, "-m", "agentbundle", "list-installed",
          "--scope", "repo", "--format", "json", "--root", str(tmp_path)],

@@ -47,7 +47,7 @@ def _seed_wiring(root: Path, name: str, content: str) -> Path:
     hw_dir = root / ".apm" / "hook-wiring"
     hw_dir.mkdir(parents=True, exist_ok=True)
     p = hw_dir / f"{name}.toml"
-    p.write_text(content, encoding="utf-8")
+    p.write_text(content, encoding="utf-8", newline="\n")
     return p
 
 

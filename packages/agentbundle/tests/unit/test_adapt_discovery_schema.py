@@ -108,7 +108,7 @@ accepted-at      = 2026-05-22T10:00:00Z
 
 def _write_toml(tmp_path: Path, content: str) -> Path:
     p = tmp_path / ".adapt-discovery.toml"
-    p.write_text(content, encoding="utf-8")
+    p.write_text(content, encoding="utf-8", newline="\n")
     return p
 
 
@@ -244,7 +244,7 @@ def test_findings_round_trip_preserves_fields(tmp_path):
 
     toml_text = adapt_discovery_to_toml(original)
     p = tmp_path / ".adapt-discovery.toml"
-    p.write_text(toml_text, encoding="utf-8")
+    p.write_text(toml_text, encoding="utf-8", newline="\n")
 
     reparsed = load_adapt_discovery_typed(p, scope="repo")
     assert reparsed.schema_version == original.schema_version
@@ -276,6 +276,7 @@ def test_marker_key_must_follow_lowercase_hyphen_grammar(tmp_path):
         'discovery-schema-version = "0.1"\n'
         '[markers]\nProjectName = "x"\n',  # UPPER prefix violates ^[a-z]...
         encoding="utf-8",
+        newline="\n",
     )
     with pytest.raises(ConfigError, match="lowercase-hyphen grammar"):
         load_adapt_discovery_typed(bad, scope="repo")
@@ -286,6 +287,7 @@ def test_marker_key_must_follow_lowercase_hyphen_grammar(tmp_path):
         'discovery-schema-version = "0.1"\n'
         '[markers]\nproject_name = "x"\n',
         encoding="utf-8",
+        newline="\n",
     )
     with pytest.raises(ConfigError, match="lowercase-hyphen grammar"):
         load_adapt_discovery_typed(bad2, scope="repo")

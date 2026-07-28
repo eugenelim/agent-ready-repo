@@ -801,7 +801,7 @@ def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
             outside_rel: {"sha": installed_sha, "from-pack-version": "0.1.0"},
         },
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(s), encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(s), encoding="utf-8", newline="\n")
     # On-disk: user has edited the outside-prefix file (different from installed sha)
     (tmp_path / "outside-prefix").mkdir()
     (tmp_path / outside_rel).write_bytes(b"user edited\n")
@@ -978,7 +978,7 @@ def test_missing_pack_version_errors(tmp_path, capsys, pack_toml_body):
     cat = tmp_path / "noversion_cat"
     pack_dir = cat / "packs" / "core"
     pack_dir.mkdir(parents=True)
-    (pack_dir / "pack.toml").write_text(pack_toml_body, encoding="utf-8")
+    (pack_dir / "pack.toml").write_text(pack_toml_body, encoding="utf-8", newline="\n")
     rc = _run_upgrade(pack="core", catalogue=str(cat), root=str(tmp_path))
     assert rc != 0
     assert "declares no [pack] version" in capsys.readouterr().err
@@ -1035,7 +1035,7 @@ def test_reapply_with_local_edit_notice_and_companion_recap(tmp_path, capsys):
     state = load_state(tmp_path / ".agentbundle-state.toml")
     ps = state.row("core", "claude-code")
     edited_relpath = sorted(ps.files)[0]
-    (tmp_path / edited_relpath).write_text("# local edit\n", encoding="utf-8")
+    (tmp_path / edited_relpath).write_text("# local edit\n", encoding="utf-8", newline="\n")
 
     rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=True)
     assert rc == 0
@@ -1059,7 +1059,7 @@ def test_per_primitive_upgrade_suppresses_whole_pack_drift_notice(tmp_path, caps
     # Edit an installed file so a whole-pack run *would* notice drift.
     state = load_state(tmp_path / ".agentbundle-state.toml")
     ps = state.row("core", "claude-code")
-    (tmp_path / sorted(ps.files)[0]).write_text("# local edit\n", encoding="utf-8")
+    (tmp_path / sorted(ps.files)[0]).write_text("# local edit\n", encoding="utf-8", newline="\n")
     capsys.readouterr()
 
     rc = _run_upgrade(

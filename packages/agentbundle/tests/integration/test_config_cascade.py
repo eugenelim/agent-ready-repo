@@ -82,7 +82,7 @@ def test_subprocess_fail_soft_against_malformed_config() -> None:
 
     cfg_path = _user_config_path()
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    cfg_path.write_text('[settings]\nadapter = "unterminated\n')
+    cfg_path.write_text('[settings]\nadapter = "unterminated\n', encoding="utf-8", newline="\n")
 
     # `config path` works — main() unconditionally loads the config
     # before dispatch, but the loader is fail-soft (returns
@@ -113,7 +113,7 @@ def test_in_process_resolver_honors_user_config(tmp_path: Path) -> None:
     # Write a real config file under the sandbox.
     cfg_path = _user_config_path()
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    cfg_path.write_text('[settings]\nadapter = "codex"\n')
+    cfg_path.write_text('[settings]\nadapter = "codex"\n', encoding="utf-8", newline="\n")
 
     loaded = load_user_config()
     assert loaded.adapter == "codex"

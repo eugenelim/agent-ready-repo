@@ -93,7 +93,7 @@ def test_schema_invalid_pack_exits_1(tmp_path, capsys):
     from agentbundle.commands import validate as validate_mod
 
     (tmp_path / "pack.toml").write_text(
-        '[not_the_right_key]\nfoo = "bar"\n', encoding="utf-8"
+        '[not_the_right_key]\nfoo = "bar"\n', encoding="utf-8", newline="\n"
     )
     rc = validate_mod.run(_args(tmp_path))
     captured = capsys.readouterr()
@@ -123,6 +123,7 @@ def test_known_recipe_passes(tmp_path):
     (tmp_path / "pack.toml").write_text(
         '[pack]\nname = "r"\nversion = "0.1"\nrecipes = ["per-pack-claude-plugin"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     rc, stderr = _run(tmp_path)
     assert rc == 0, f"Expected 0, got {rc}. stderr: {stderr!r}"
@@ -138,7 +139,7 @@ def test_strict_without_fixtures_warns_and_exits_0(tmp_path, capsys):
     from agentbundle.commands import validate as validate_mod
 
     (tmp_path / "pack.toml").write_text(
-        '[pack]\nname = "s"\nversion = "0.1"\n', encoding="utf-8"
+        '[pack]\nname = "s"\nversion = "0.1"\n', encoding="utf-8", newline="\n"
     )
 
     # Patch _conformance_fixtures_dir to return a non-existent path.
@@ -272,12 +273,13 @@ def test_kiro_cli_pack_with_unknown_attach_to_agent_exits_1(tmp_path):
     pack = tmp_path / "cli-hooks"
     (pack / ".apm" / "agents").mkdir(parents=True)
     (pack / ".apm" / "agents" / "reviewer.md").write_text(
-        "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+        "---\nname: reviewer\n---\nbody\n", encoding="utf-8", newline="\n"
     )
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
     (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
         'attach-to-agent = "no-such-agent"\n\n[[hooks.agentSpawn]]\ncommand = "x"\n',
         encoding="utf-8",
+        newline="\n",
     )
     (pack / "pack.toml").write_text(
         '[pack]\nname = "cli-hooks"\nversion = "0.1.0"\n\n'
@@ -286,6 +288,7 @@ def test_kiro_cli_pack_with_unknown_attach_to_agent_exits_1(tmp_path):
         'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
         'allowed-adapters = ["kiro-cli"]\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     rc, stderr = _run(pack)
@@ -303,12 +306,13 @@ def test_kiro_legacy_alias_pack_validate_stays_strict(tmp_path):
     pack = tmp_path / "legacy-kiro-hooks"
     (pack / ".apm" / "agents").mkdir(parents=True)
     (pack / ".apm" / "agents" / "reviewer.md").write_text(
-        "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+        "---\nname: reviewer\n---\nbody\n", encoding="utf-8", newline="\n"
     )
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
     (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
         'attach-to-agent = "no-such-agent"\n\n[[hooks.agentSpawn]]\ncommand = "x"\n',
         encoding="utf-8",
+        newline="\n",
     )
     (pack / "pack.toml").write_text(
         '[pack]\nname = "legacy-kiro-hooks"\nversion = "0.1.0"\n\n'
@@ -317,6 +321,7 @@ def test_kiro_legacy_alias_pack_validate_stays_strict(tmp_path):
         'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
         'allowed-adapters = ["kiro"]\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     rc, stderr = _run(pack)

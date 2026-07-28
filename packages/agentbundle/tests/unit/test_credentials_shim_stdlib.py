@@ -41,7 +41,7 @@ class ShimStdlibOnlySubprocessTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         pkg = self.tmp / "fixture_skill"
         pkg.mkdir()
-        (pkg / "__init__.py").write_text("", encoding="utf-8")
+        (pkg / "__init__.py").write_text("", encoding="utf-8", newline="\n")
         for fname in (
             "credentials_shim.py",
             "_keychain_macos.py",

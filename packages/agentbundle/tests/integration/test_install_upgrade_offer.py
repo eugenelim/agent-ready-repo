@@ -195,7 +195,7 @@ def test_install_run_forwards_resolved_adapter_when_multi_adapter_and_no_cli_ada
         }
     )
     (agentbundle_dir / "state.toml").write_text(
-        dump_state(two_adapter_state), encoding="utf-8"
+        dump_state(two_adapter_state), encoding="utf-8", newline="\n"
     )
     shutil.copytree(converters_src, cat / "packs" / "converters")
     (tmp_path / "repo").mkdir()

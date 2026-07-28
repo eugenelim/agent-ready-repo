@@ -216,6 +216,7 @@ def test_install_marker_resists_prior_installed_at_string_injection(
         "unresolved-markers = []\n"
         "new-companions = []\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     _append_install_marker(
@@ -293,6 +294,7 @@ def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
         f"installed-at = {ts}\n"
         'install-route = "claude-plugins"\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     # CLI installs a different pack.
@@ -383,6 +385,7 @@ def test_cli_install_coerces_malformed_unresolved_markers_field(tmp_path) -> Non
         'unresolved-markers = "bad-string-not-a-list"\n'
         "new-companions = []\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     # Should not raise; CLI install for a different pack must succeed.

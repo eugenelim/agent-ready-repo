@@ -29,7 +29,7 @@ ALL_BROKERS = ("env", "cli", "creds", "sso-cookie")
 def _write_skill(root: Path, name: str, body_frontmatter: str) -> None:
     skill_dir = root / ".claude" / "skills" / name
     skill_dir.mkdir(parents=True, exist_ok=True)
-    (skill_dir / "SKILL.md").write_text(body_frontmatter, encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text(body_frontmatter, encoding="utf-8", newline="\n")
 
 
 def _run_lint(root: Path) -> list:

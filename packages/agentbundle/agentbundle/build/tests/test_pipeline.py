@@ -33,17 +33,19 @@ def _seed_pack(root: Path, name: str = "demo") -> Path:
     (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
         "---\ndescription: foo\n---\n# foo\n",
         encoding="utf-8",
+        newline="\n",
     )
     (pack / ".apm" / "agents").mkdir(parents=True)
-    (pack / ".apm" / "agents" / "bar.md").write_text("---\nname: bar\n---\n", encoding="utf-8")
+    (pack / ".apm" / "agents" / "bar.md").write_text("---\nname: bar\n---\n", encoding="utf-8", newline="\n")
     (pack / ".apm" / "hooks").mkdir(parents=True)
-    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
     (pack / ".apm" / "commands").mkdir(parents=True)
-    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8")
+    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
 
     (pack / "pack.toml").write_text(
         f'[pack]\nname = "{name}"\nversion = "0.1.0"\ndescription = "demo pack"\n',
         encoding="utf-8",
+        newline="\n",
     )
     (pack / ".claude-plugin").mkdir(parents=True)
     (pack / ".claude-plugin" / "plugin.json").write_text(
@@ -51,6 +53,7 @@ def _seed_pack(root: Path, name: str = "demo") -> Path:
             {"name": name, "version": "0.1.0", "description": "demo plugin"}, indent=2
         ),
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -138,7 +141,7 @@ class PackInternalCollisionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             pack_path = _seed_pack(tmp_path / "packs", "core")
             (pack_path / ".apm" / "skills" / "foo").mkdir(exist_ok=True)
-            (pack_path / ".apm" / "skills" / "foo.md").write_text("dup\n", encoding="utf-8")
+            (pack_path / ".apm" / "skills" / "foo.md").write_text("dup\n", encoding="utf-8", newline="\n")
             with self.assertRaises(ValueError) as caught:
                 validate_pack_uniqueness(Pack(name="core", path=pack_path))
             self.assertIn("duplicate primitive", str(caught.exception))
@@ -219,9 +222,9 @@ class Rfc0002RecipeLoadTests(unittest.TestCase):
             pack_one = _seed_pack(packs_dir, "core")
             pack_two = _seed_pack(packs_dir, "extras")
             (pack_one / "seeds").mkdir()
-            (pack_one / "seeds" / "AGENTS.fragment.md").write_text("core fragment\n", encoding="utf-8")
+            (pack_one / "seeds" / "AGENTS.fragment.md").write_text("core fragment\n", encoding="utf-8", newline="\n")
             (pack_two / "seeds").mkdir()
-            (pack_two / "seeds" / "AGENTS.fragment.md").write_text("extras fragment\n", encoding="utf-8")
+            (pack_two / "seeds" / "AGENTS.fragment.md").write_text("extras fragment\n", encoding="utf-8", newline="\n")
             result = run_recipe(
                 recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract
             )

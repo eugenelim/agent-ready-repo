@@ -179,6 +179,7 @@ class TestCodexProjectRoutesAgentToBuildPipeline(unittest.TestCase):
             (pack / ".apm" / "agents" / "foo.md").write_text(
                 "---\nname: foo\ndescription: a foo agent\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             codex.project(pack, contract, out)

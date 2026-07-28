@@ -43,10 +43,10 @@ def _seed(root: Path, canonical_block: str, agents_block: str) -> None:
     skill = root / ".claude" / "skills" / "work-loop"
     skill.mkdir(parents=True)
     (skill / "SKILL.md").write_text(
-        "# Skill: work-loop\n\n" + canonical_block, encoding="utf-8"
+        "# Skill: work-loop\n\n" + canonical_block, encoding="utf-8", newline="\n"
     )
     (root / "AGENTS.md").write_text(
-        "# AGENTS.md\n\n" + agents_block, encoding="utf-8"
+        "# AGENTS.md\n\n" + agents_block, encoding="utf-8", newline="\n"
     )
     (root / "CLAUDE.md").symlink_to("AGENTS.md")
 
@@ -98,6 +98,7 @@ class RiskBlockEqualityTests(unittest.TestCase):
                     "<!-- risk-triggers:end -->\n", ""
                 ),
                 encoding="utf-8",
+                newline="\n",
             )
             result = _run_linter(tmp_path)
             self.assertIn(_DRIFT_MARKER, result.stderr)
@@ -107,7 +108,7 @@ class RiskBlockEqualityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             (tmp_path / "AGENTS.md").write_text(
-                "# AGENTS.md\n\nNo risk-trigger block here.\n", encoding="utf-8"
+                "# AGENTS.md\n\nNo risk-trigger block here.\n", encoding="utf-8", newline="\n"
             )
             (tmp_path / "CLAUDE.md").symlink_to("AGENTS.md")
             result = _run_linter(tmp_path)

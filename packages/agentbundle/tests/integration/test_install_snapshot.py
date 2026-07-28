@@ -147,7 +147,7 @@ def _compare_or_update_paths_golden(pack_name: str, actual_paths: list[str]) -> 
 
     if os.environ.get("UPDATE_GOLDEN") == "1":
         golden.parent.mkdir(parents=True, exist_ok=True)
-        golden.write_text(actual_text, encoding="utf-8")
+        golden.write_text(actual_text, encoding="utf-8", newline="\n")
         return
 
     assert golden.exists(), (

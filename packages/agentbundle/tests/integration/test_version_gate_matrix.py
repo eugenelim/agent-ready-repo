@@ -37,6 +37,7 @@ version = "0.1.0"
 version = "99.0"
 """,
         encoding="utf-8",
+        newline="\n",
     )
     (FIXTURE_PACK.parent / "packs").mkdir(parents=True, exist_ok=True)
     # Symlink into a packs/<name>/ layout for subcommands that take

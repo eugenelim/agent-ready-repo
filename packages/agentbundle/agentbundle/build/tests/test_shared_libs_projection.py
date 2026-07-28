@@ -59,12 +59,13 @@ def _write_pack(
     (pack / "pack.toml").write_text(
         f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
         encoding="utf-8",
+        newline="\n",
     )
     if shared_libs_files:
         sl = pack / ".apm" / "shared-libs"
         sl.mkdir(parents=True)
         for fname, text in shared_libs_files.items():
-            (sl / fname).write_text(text, encoding="utf-8")
+            (sl / fname).write_text(text, encoding="utf-8", newline="\n")
     return pack
 
 

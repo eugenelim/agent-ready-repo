@@ -51,7 +51,7 @@ def _write_state(path: Path, files: dict[str, str], scope: str = "repo") -> None
         adapter="claude-code",
     )
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(dump_state(state), encoding="utf-8")
+    path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 def _stage_companion(root: Path, relpath: str, content: bytes, companion_content: bytes) -> None:
@@ -210,25 +210,27 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
     target_rel = ".claude/skills/foo/SKILL.md"
     target = fake_home / target_rel
     target.parent.mkdir(parents=True)
-    target.write_text("project=<adapt:project-name>", encoding="utf-8")
+    target.write_text("project=<adapt:project-name>", encoding="utf-8", newline="\n")
     _write_state(user_dir / "state.toml", {target_rel: "00"}, scope="user")
 
     # User-scope discovery: canonical v0.1 shape, no [markers] (markers
     # are repo-only per RFC-0004). Plus a repo-scope discovery carrying
     # the marker value the substitution needs.
     (user_dir / ".adapt-discovery.toml").write_text(
-        'discovery-schema-version = "0.1"\n', encoding="utf-8"
+        'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
     )
     (repo_root / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n'
         '[markers]\nproject-name = "demo"\n',
         encoding="utf-8",
+        newline="\n",
     )
     # Counter-fixture at the BARE user path (must be ignored).
     (fake_home / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n'
         '[markers]\nproject-name = "WRONG"\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     _write_state(repo_root / ".agentbundle-state.toml", {})
@@ -237,7 +239,7 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
     # when no --values-from is passed; we want to confirm the discovery
     # values are consulted alongside).
     values_file = tmp_path / "values.toml"
-    values_file.write_text('[values]\n# only sets unrelated keys\n', encoding="utf-8")
+    values_file.write_text('[values]\n# only sets unrelated keys\n', encoding="utf-8", newline="\n")
 
     args = argparse.Namespace(
         values_from=str(values_file), ci=False, root=str(repo_root)

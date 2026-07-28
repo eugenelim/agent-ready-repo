@@ -140,12 +140,13 @@ class MultiPackUninstallPrecisionTests(_UninstallBase):
         pack_b_dir = self.cat / "packs" / "pack-b"
         (pack_b_dir / ".apm" / "hooks").mkdir(parents=True)
         (pack_b_dir / ".apm" / "hooks" / "on-prompt-b.sh").write_text(
-            "#!/bin/sh\nexit 0\n", encoding="utf-8"
+            "#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n"
         )
         (pack_b_dir / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack_b_dir / ".apm" / "hook-wiring" / "on-prompt-b.toml").write_text(
             '[[hooks.UserPromptSubmit]]\ncommand = "do-b"\nmatcher = ""\n',
             encoding="utf-8",
+            newline="\n",
         )
         (pack_b_dir / "pack.toml").write_text(
             '[pack]\nname = "pack-b"\nversion = "0.1.0"\n\n'
@@ -153,6 +154,7 @@ class MultiPackUninstallPrecisionTests(_UninstallBase):
             '[pack.install]\ndefault-scope = "user"\n'
             'allowed-scopes = ["user"]\nuser-scope-hooks = true\n',
             encoding="utf-8",
+            newline="\n",
         )
         for entry in pack_b_dir.rglob("*.sh"):
             entry.chmod(0o755)
@@ -255,6 +257,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
         data["notes"] = "adopter-added"
         agent_json.write_text(
             json.dumps(data, indent=2) + "\n", encoding="utf-8",
+            newline="\n",
         )
 
         rc, err = _run_uninstall(_uninstall_args(
@@ -306,7 +309,7 @@ class LegacyKiroJsonUninstallMigrationTests(_UninstallBase):
         old_row = state.packs.pop(("kiro-user-hooks", "kiro-cli"))
         old_row.adapter = "kiro"
         state.packs[("kiro-user-hooks", "kiro")] = old_row
-        state_path.write_text(dump_state(state), encoding="utf-8")
+        state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
         rc, err = _run_uninstall(_uninstall_args(
             pack="kiro-user-hooks",

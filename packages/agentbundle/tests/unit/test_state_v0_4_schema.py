@@ -22,7 +22,7 @@ def _write_tmp(test: unittest.TestCase, text: str) -> Path:
     fd_dir = tempfile.mkdtemp()
     test.addCleanup(__import__("shutil").rmtree, fd_dir, ignore_errors=True)
     path = Path(fd_dir) / ".agentbundle-state.toml"
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding="utf-8", newline="\n")
     return path
 
 

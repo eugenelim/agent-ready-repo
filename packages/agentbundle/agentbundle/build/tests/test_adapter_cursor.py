@@ -33,7 +33,7 @@ def _seed_agent(pack: Path, name: str, *, tools: str | None, model: str | None =
         lines.append(f"model: {model}")
     lines.append("---")
     lines.append("agent body")
-    (pack / ".apm" / "agents" / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (pack / ".apm" / "agents" / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def _seed_session_start_wiring(pack: Path) -> None:
@@ -42,6 +42,7 @@ def _seed_session_start_wiring(pack: Path) -> None:
         "[[hooks.SessionStart]]\n"
         'hooks = [\n  { type = "command", command = "python tools/hooks/session-start.py" },\n]\n',
         encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -140,11 +141,11 @@ class CursorProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
             (pack / ".apm" / "skills" / "my-skill").mkdir(parents=True)
-            (pack / ".apm" / "skills" / "my-skill" / "SKILL.md").write_text("x", encoding="utf-8")
+            (pack / ".apm" / "skills" / "my-skill" / "SKILL.md").write_text("x", encoding="utf-8", newline="\n")
             (pack / ".apm" / "commands").mkdir(parents=True)
-            (pack / ".apm" / "commands" / "do-thing.md").write_text("cmd", encoding="utf-8")
+            (pack / ".apm" / "commands" / "do-thing.md").write_text("cmd", encoding="utf-8", newline="\n")
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "on-start.py").write_text("#!py", encoding="utf-8")
+            (pack / ".apm" / "hooks" / "on-start.py").write_text("#!py", encoding="utf-8", newline="\n")
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)
             self.assertTrue((out / ".agents" / "skills" / "my-skill" / "SKILL.md").exists())
@@ -217,6 +218,7 @@ class CursorProjectionTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "from-file.md").write_text(
                 "---\ndescription: no name field\ntools: Read, Grep\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)
@@ -258,6 +260,7 @@ class CursorProjectionTests(unittest.TestCase):
                     }
                 ),
                 encoding="utf-8",
+                newline="\n",
             )
             cursor.project(pack, self.contract, out)
             data = json.loads(target.read_text())
@@ -277,6 +280,7 @@ class CursorProjectionTests(unittest.TestCase):
                 "[[hooks.SessionStart]]\n"
                 'hooks = [ { type = "command", command = "echo y" } ]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)  # must not raise
@@ -297,6 +301,7 @@ class CursorProjectionTests(unittest.TestCase):
                 'hooks = [ { type = "command" }, '
                 '{ type = "command", command = "python tools/hooks/ok.py" } ]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)  # must not raise
@@ -326,9 +331,9 @@ class CursorProjectionTests(unittest.TestCase):
             pack = tmp_path / "pack"
             skill = pack / ".apm" / "skills" / "s"
             skill.mkdir(parents=True)
-            (skill / "SKILL.md").write_text("ok", encoding="utf-8")
+            (skill / "SKILL.md").write_text("ok", encoding="utf-8", newline="\n")
             secret = tmp_path / "secret.txt"
-            secret.write_text("SECRET", encoding="utf-8")
+            secret.write_text("SECRET", encoding="utf-8", newline="\n")
             os.symlink(secret, skill / "leak.txt")
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)
@@ -348,6 +353,7 @@ class CursorInstallDispatchTests(unittest.TestCase):
         (pack / ".apm" / "agents" / "foo.md").write_text(
             "---\nname: foo\ndescription: a foo agent\ntools: Read, Grep\n---\nBody.\n",
             encoding="utf-8",
+            newline="\n",
         )
         return pack
 

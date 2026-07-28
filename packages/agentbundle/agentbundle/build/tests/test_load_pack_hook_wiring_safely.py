@@ -39,12 +39,12 @@ def _make_pack(
 
     for stem, body in (wiring or {}).items():
         (pack / ".apm" / "hook-wiring" / f"{stem}.toml").write_text(
-            body, encoding="utf-8"
+            body, encoding="utf-8", newline="\n"
         )
 
     for stem in agents or []:
         (pack / ".apm" / "agents" / f"{stem}.md").write_text(
-            f"# {stem}\n", encoding="utf-8"
+            f"# {stem}\n", encoding="utf-8", newline="\n"
         )
 
     # Create dangling symlinks to simulate the security-rail case.
@@ -163,7 +163,7 @@ class TestLoadPackHookWiringSafely(unittest.TestCase):
             pack = tmp / "no-wiring-pack"
             # Only create .apm/ with agents — no hook-wiring/ subdir.
             (pack / ".apm" / "agents").mkdir(parents=True, exist_ok=True)
-            (pack / ".apm" / "agents" / "work-loop.md").write_text("# work-loop\n", encoding="utf-8")
+            (pack / ".apm" / "agents" / "work-loop.md").write_text("# work-loop\n", encoding="utf-8", newline="\n")
             result = helper(pack, "no-wiring-pack")
             self.assertIsInstance(result, tuple)
             wiring_tomls, agent_basenames = result

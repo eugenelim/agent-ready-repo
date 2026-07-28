@@ -35,7 +35,7 @@ class EmptyFileTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             owned = project(
                 target_path=target,
                 pack_name="personal-reviewers",
@@ -83,6 +83,7 @@ class EmptyFileTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"theme": "dark", "model": "opus", "env": {"K": "V"}}),
                 encoding="utf-8",
+                newline="\n",
             )
             project(
                 target_path=target,
@@ -107,7 +108,7 @@ class IdempotencyTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             wiring = {"on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}}
             project(target, "p", wiring)
             first = target.read_bytes()
@@ -121,7 +122,7 @@ class IdempotencyTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             project(target, "a", {"x": {"hooks": {"E": [{"command": "1"}]}}})
             project(target, "b", {"y": {"hooks": {"E": [{"command": "2"}]}}})
             project(target, "a", {"x": {"hooks": {"E": [{"command": "1"}]}}})  # reinstall a
@@ -142,7 +143,7 @@ class TwoPacksOverlappingEventTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             project(target, "alpha", {"hk": {"hooks": {"E": [{"command": "a"}]}}})
             project(target, "beta", {"hk": {"hooks": {"E": [{"command": "b"}]}}})
             data = json.loads(target.read_text(encoding="utf-8"))
@@ -163,7 +164,7 @@ class UninstallTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             project(target, "alpha", {"hk": {"hooks": {"E": [{"command": "a"}]}}})
             project(target, "beta", {"hk": {"hooks": {"E": [{"command": "b"}]}}})
             unproject(target, [("E", "alpha:hk")])
@@ -176,7 +177,7 @@ class UninstallTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             project(target, "a", {"h": {"hooks": {"E": [{"command": "1"}]}}})
             project(target, "b", {"h": {"hooks": {"E": [{"command": "2"}]}}})
             project(target, "c", {"h": {"hooks": {"E": [{"command": "3"}]}}})
@@ -191,7 +192,7 @@ class UninstallTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{}", encoding="utf-8")
+            target.write_text("{}", encoding="utf-8", newline="\n")
             project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
             unproject(target, [("E", "p:h")])
             data = json.loads(target.read_text(encoding="utf-8"))
@@ -226,6 +227,7 @@ class AdopterCollisionTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"hooks": {"UserPromptSubmit": [{"command": "do-x"}]}}),
                 encoding="utf-8",
+                newline="\n",
             )
             with self.assertRaises(UserMergeRefusal) as ctx:
                 project(
@@ -251,6 +253,7 @@ class AdopterCollisionTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"hooks": {"E": [{"command": "  do-x   "}]}}),
                 encoding="utf-8",
+                newline="\n",
             )
             with self.assertRaises(UserMergeRefusal):
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "do-x"}]}}})
@@ -265,6 +268,7 @@ class AdopterCollisionTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"hooks": {"E": [{"command": "do-x"}]}}),
                 encoding="utf-8",
+                newline="\n",
             )
             project(
                 target,
@@ -287,6 +291,7 @@ class AdopterCollisionTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"hooks": {"E": [{"command": "manual-thing"}]}}),
                 encoding="utf-8",
+                newline="\n",
             )
             project(target, "p", {"h": {"hooks": {"E": [{"command": "pack-thing"}]}}})
             data = json.loads(target.read_text(encoding="utf-8"))
@@ -307,7 +312,7 @@ class UnparseableJsonTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text("{not valid json", encoding="utf-8")
+            target.write_text("{not valid json", encoding="utf-8", newline="\n")
             before = target.read_bytes()
             with self.assertRaises(UserMergeRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
@@ -332,7 +337,7 @@ class WrongShapeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text(json.dumps({"hooks": ["wrong"]}), encoding="utf-8")
+            target.write_text(json.dumps({"hooks": ["wrong"]}), encoding="utf-8", newline="\n")
             with self.assertRaises(UserMergeRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
             self.assertIn("hooks has unexpected shape", str(ctx.exception))
@@ -348,6 +353,7 @@ class WrongShapeTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"hooks": {"E": "wrong-shape"}}),
                 encoding="utf-8",
+                newline="\n",
             )
             with self.assertRaises(UserMergeRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
@@ -365,7 +371,7 @@ class AutoInitTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "settings.json"
-            target.write_text(json.dumps({"theme": "dark"}), encoding="utf-8")
+            target.write_text(json.dumps({"theme": "dark"}), encoding="utf-8", newline="\n")
             project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
             data = json.loads(target.read_text(encoding="utf-8"))
             self.assertIn("hooks", data)
@@ -379,6 +385,7 @@ class AutoInitTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"hooks": {"Other": [{"command": "y"}]}}),
                 encoding="utf-8",
+                newline="\n",
             )
             project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
             data = json.loads(target.read_text(encoding="utf-8"))

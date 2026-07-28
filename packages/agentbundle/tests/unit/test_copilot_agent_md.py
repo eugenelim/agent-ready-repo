@@ -69,7 +69,7 @@ class TestCopilotAgentMdSerialiser(unittest.TestCase):
         self._tmpdir.cleanup()
 
     def _write(self, body: str, name: str = "agent.md") -> None:
-        (self.source / name).write_text(body, encoding="utf-8")
+        (self.source / name).write_text(body, encoding="utf-8", newline="\n")
 
     def _run(self, stem: str = "agent") -> str:
         project_copilot_agent_md(

@@ -35,7 +35,7 @@ def _two_adapter_state() -> State:
 
 def _write_repo_state(root: Path) -> None:
     (root / ".agentbundle-state.toml").write_text(
-        dump_state(_two_adapter_state()), encoding="utf-8"
+        dump_state(_two_adapter_state()), encoding="utf-8", newline="\n"
     )
 
 
@@ -71,7 +71,7 @@ def test_diff_disambiguator_includes_versions(tmp_path, capsys):
     pack_dir = tmp_path / "pack"
     pack_dir.mkdir()
     (pack_dir / "pack.toml").write_text(
-        '[pack]\nname = "foo"\nversion = "0.9.0"\n', encoding="utf-8"
+        '[pack]\nname = "foo"\nversion = "0.9.0"\n', encoding="utf-8", newline="\n"
     )
     args = SimpleNamespace(
         pack_path=str(pack_dir), root=str(tmp_path), scope="repo", adapter=None,

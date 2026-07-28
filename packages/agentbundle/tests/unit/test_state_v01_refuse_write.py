@@ -38,7 +38,7 @@ primitives = ["skill"]
 
 def _v01(tmp_path: Path) -> Path:
     p = tmp_path / ".agentbundle-state.toml"
-    p.write_text(V01_STATE, encoding="utf-8")
+    p.write_text(V01_STATE, encoding="utf-8", newline="\n")
     return p
 
 
@@ -65,7 +65,7 @@ def test_install_refuses_v01_state(tmp_path):
     pack = tmp_path / "catalogue" / "demo"
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(
-        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
     (pack / ".apm").mkdir()  # empty apm so render is a no-op
 
@@ -96,7 +96,7 @@ def test_upgrade_refuses_v01_state(tmp_path):
     pack = tmp_path / "catalogue" / "core"
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(
-        '[pack]\nname = "core"\nversion = "0.2.0"\n', encoding="utf-8"
+        '[pack]\nname = "core"\nversion = "0.2.0"\n', encoding="utf-8", newline="\n"
     )
     (pack / ".apm").mkdir()
     args = argparse.Namespace(
@@ -122,7 +122,7 @@ def test_init_state_without_migrate_refuses_v01(tmp_path):
     pack = tmp_path / "packs" / "demo"
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(
-        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
     args = argparse.Namespace(
         pack="demo",
@@ -162,7 +162,7 @@ def test_diff_refuses_legacy_state_gracefully(tmp_path):
     pack = tmp_path / "packs" / "demo"
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(
-        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
     args = argparse.Namespace(
         pack_path=str(pack), root=str(tmp_path), scope=None, adapter=None

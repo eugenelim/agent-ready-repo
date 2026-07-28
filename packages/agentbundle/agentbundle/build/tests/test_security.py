@@ -62,7 +62,7 @@ class SymlinkProjectionTests(unittest.TestCase):
             pack = tmp_path / "pack"
             skill = pack / ".apm" / "skills" / "foo"
             skill.mkdir(parents=True)
-            (skill / "SKILL.md").write_text("ok\n", encoding="utf-8")
+            (skill / "SKILL.md").write_text("ok\n", encoding="utf-8", newline="\n")
             evil = skill / "leak.txt"
             os.symlink("/etc/passwd", evil)
 
@@ -81,6 +81,7 @@ class PluginManifestValidationTests(unittest.TestCase):
             path.write_text(
                 '{"name": "x", "version": "0.1.0", "description": "d"}',
                 encoding="utf-8",
+                newline="\n",
             )
             validate_plugin_manifest(path)  # no raise
 
@@ -90,6 +91,7 @@ class PluginManifestValidationTests(unittest.TestCase):
             path.write_text(
                 '{"version": "0.1.0", "description": "d"}',
                 encoding="utf-8",
+                newline="\n",
             )
             with self.assertRaises(ValueError) as caught:
                 validate_plugin_manifest(path)

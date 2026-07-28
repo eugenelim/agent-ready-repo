@@ -45,7 +45,7 @@ def test_mutual_exclusion(tmp_path: Path) -> None:
 def test_stale_lock_reclaimed(tmp_path: Path) -> None:
     state_path = tmp_path / "state.toml"
     lock_path = state_path.with_name(state_path.name + ".lock")
-    lock_path.write_text("99999", encoding="utf-8")
+    lock_path.write_text("99999", encoding="utf-8", newline="\n")
     # Backdate the lockfile beyond the stale threshold.
     import os
     old = time.time() - 120
@@ -96,7 +96,7 @@ def test_persist_state_locked_merges_concurrent_rows(tmp_path: Path) -> None:
         installed_version="1.0.0", adapter="claude-code", scope="repo",
         files={".claude/skills/x/SKILL.md": {"sha": "1"}},
     )
-    state_path.write_text(config.dump_state(seed), encoding="utf-8")
+    state_path.write_text(config.dump_state(seed), encoding="utf-8", newline="\n")
 
     def add_codex(state: config.State) -> None:
         state.packs[("research", "codex")] = config.PackState(

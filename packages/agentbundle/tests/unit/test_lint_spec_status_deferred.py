@@ -30,7 +30,7 @@ def test_workspace_only_slug_passes_check(tmp_path: Path) -> None:
     lint = _load_lint_module()
 
     workspace = tmp_path / "workspace.toml"
-    workspace.write_text('[backlog]\nopen = [{slug = "my-ws-only-slug"}]\n', encoding="utf-8")
+    workspace.write_text('[backlog]\nopen = [{slug = "my-ws-only-slug"}]\n', encoding="utf-8", newline="\n")
 
     specs = tmp_path / "docs" / "specs" / "my-spec"
     specs.mkdir(parents=True)
@@ -38,6 +38,7 @@ def test_workspace_only_slug_passes_check(tmp_path: Path) -> None:
         "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
         "- [ ] do thing (deferred: my-ws-only-slug)\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     hard, _warn = lint.check(tmp_path, base_ref=None)
@@ -57,8 +58,9 @@ def test_slug_absent_from_workspace_is_hard_violation(tmp_path: Path) -> None:
         "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
         "- [ ] do thing (deferred: nonexistent-slug)\n",
         encoding="utf-8",
+        newline="\n",
     )
-    (tmp_path / "workspace.toml").write_text("[backlog]\nopen = []\n", encoding="utf-8")
+    (tmp_path / "workspace.toml").write_text("[backlog]\nopen = []\n", encoding="utf-8", newline="\n")
 
     hard, _warn = lint.check(tmp_path, base_ref=None)
     assert any("nonexistent-slug" in v for v in hard)
@@ -80,6 +82,7 @@ def test_malformed_toml_falls_back_via_backlog_open_slugs(tmp_path: Path) -> Non
     workspace.write_text(
         '[backlog]\nopen = [\n  {slug = "alpha"},\n  invalid syntax here\n]\n',
         encoding="utf-8",
+        newline="\n",
     )
     slugs = lint.backlog_open_slugs(workspace)
     assert "alpha" in slugs

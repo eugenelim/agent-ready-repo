@@ -31,7 +31,7 @@ def _minimal_contract() -> dict:
 def _seed(working_tree: Path, discovery_body: str) -> None:
     """Write the discovery file and a stub packs dir for the run."""
     (working_tree / ".adapt-discovery.toml").write_text(
-        discovery_body, encoding="utf-8"
+        discovery_body, encoding="utf-8", newline="\n"
     )
 
 
@@ -115,7 +115,7 @@ def test_canonical_markers_table_loads(tmp_path, capsys):
 def test_lowercase_hyphen_marker_substitutes(tmp_path):
     """``resolve_markers`` substitutes ``<adapt:project-name>`` (AC14)."""
     target = tmp_path / "AGENTS.md"
-    target.write_text("name: <adapt:project-name>\n", encoding="utf-8")
+    target.write_text("name: <adapt:project-name>\n", encoding="utf-8", newline="\n")
     modified = self_host.resolve_markers(
         tmp_path, {"project-name": "demo"}, extra_paths=[Path("AGENTS.md")]
     )
@@ -126,7 +126,7 @@ def test_lowercase_hyphen_marker_substitutes(tmp_path):
 def test_upper_snake_marker_left_in_place_with_warning(tmp_path, capsys):
     """Legacy ``<adapt:PROJECT_NAME>`` is left in place; warning emitted."""
     target = tmp_path / "AGENTS.md"
-    target.write_text("name: <adapt:PROJECT_NAME>\n", encoding="utf-8")
+    target.write_text("name: <adapt:PROJECT_NAME>\n", encoding="utf-8", newline="\n")
     modified = self_host.resolve_markers(
         tmp_path,
         {"PROJECT_NAME": "WRONG", "project-name": "demo"},

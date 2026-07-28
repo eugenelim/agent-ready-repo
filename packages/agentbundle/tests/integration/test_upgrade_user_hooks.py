@@ -144,10 +144,10 @@ class UpgradeAddsHookEntryTests(_UpgradeBase):
         # Mutate the catalogue: add a second wiring TOML to the pack.
         pack_in_cat = self.cat / "packs" / "cc-user-hooks"
         (pack_in_cat / ".apm" / "hook-wiring" / "on-session.toml").write_text(
-            '[[hooks.SessionStart]]\ncommand = "session-cmd"\n', encoding="utf-8"
+            '[[hooks.SessionStart]]\ncommand = "session-cmd"\n', encoding="utf-8", newline="\n"
         )
         (pack_in_cat / ".apm" / "hooks" / "on-session.sh").write_text(
-            "#!/bin/sh\nexit 0\n", encoding="utf-8"
+            "#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n"
         )
         (pack_in_cat / ".apm" / "hooks" / "on-session.sh").chmod(0o755)
 
@@ -183,10 +183,10 @@ class UpgradeRemovesHookEntryTests(_UpgradeBase):
         pack_in_cat = self.cat / "packs" / "cc-user-hooks"
         # Add an extra wiring TOML before install so we can drop it on upgrade.
         (pack_in_cat / ".apm" / "hook-wiring" / "on-session.toml").write_text(
-            '[[hooks.SessionStart]]\ncommand = "session-cmd"\n', encoding="utf-8"
+            '[[hooks.SessionStart]]\ncommand = "session-cmd"\n', encoding="utf-8", newline="\n"
         )
         (pack_in_cat / ".apm" / "hooks" / "on-session.sh").write_text(
-            "#!/bin/sh\nexit 0\n", encoding="utf-8"
+            "#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n"
         )
         (pack_in_cat / ".apm" / "hooks" / "on-session.sh").chmod(0o755)
         self.assertEqual(_run_install(_install_args(
@@ -243,10 +243,10 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         old_row = state.packs.pop(("kiro-user-hooks", "kiro-cli"))
         old_row.adapter = "kiro"
         state.packs[("kiro-user-hooks", "kiro")] = old_row
-        state_path.write_text(dump_state(state), encoding="utf-8")
+        state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
         pt = (pack_dst / "pack.toml").read_text(encoding="utf-8")
         (pack_dst / "pack.toml").write_text(
-            pt.replace('["kiro-cli"]', '["kiro"]'), encoding="utf-8"
+            pt.replace('["kiro-cli"]', '["kiro"]'), encoding="utf-8", newline="\n"
         )
 
         rc, err = _run_upgrade(_upgrade_args(
@@ -290,10 +290,10 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         old_row = state.packs.pop(("kiro-user-hooks", "kiro-cli"))
         old_row.adapter = "kiro"
         state.packs[("kiro-user-hooks", "kiro")] = old_row
-        state_path.write_text(dump_state(state), encoding="utf-8")
+        state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
         pt = (pack_dst / "pack.toml").read_text(encoding="utf-8")
         (pack_dst / "pack.toml").write_text(
-            pt.replace('["kiro-cli"]', '["kiro"]'), encoding="utf-8"
+            pt.replace('["kiro-cli"]', '["kiro"]'), encoding="utf-8", newline="\n"
         )
 
         rc, err = _run_upgrade(_upgrade_args(

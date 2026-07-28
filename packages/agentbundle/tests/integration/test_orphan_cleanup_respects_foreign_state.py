@@ -95,6 +95,7 @@ def _stage_pack(
             """
         ),
         encoding="utf-8",
+        newline="\n",
     )
     apm = pack_dir / ".apm"
     apm.mkdir()
@@ -104,6 +105,7 @@ def _stage_pack(
         (sd / "SKILL.md").write_text(
             f"---\nname: {skill}\ndescription: from-{name}\n---\nBody from {name}.",
             encoding="utf-8",
+            newline="\n",
         )
     return pack_dir
 

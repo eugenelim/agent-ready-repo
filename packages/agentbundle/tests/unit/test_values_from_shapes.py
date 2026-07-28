@@ -12,7 +12,7 @@ from agentbundle.config import ConfigError, load_values_from
 
 def _write(tmp_path, body: str):
     p = tmp_path / "values.toml"
-    p.write_text(body, encoding="utf-8")
+    p.write_text(body, encoding="utf-8", newline="\n")
     return p
 
 

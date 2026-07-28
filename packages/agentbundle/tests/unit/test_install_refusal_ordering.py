@@ -85,12 +85,14 @@ def _make_pack(
             """
         ),
         encoding="utf-8",
+        newline="\n",
     )
     skill_dir = pack_dir / ".apm" / "skills" / f"{name}-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
         f"---\nname: {name}-skill\ndescription: {name}\n---\nBody.",
         encoding="utf-8",
+        newline="\n",
     )
     return pack_dir
 

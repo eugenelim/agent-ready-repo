@@ -285,12 +285,12 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
     def _stage_pack(self, root: Path) -> Path:
         pack = root / "packs" / "dual-warn"
         pack.mkdir(parents=True)
-        (pack / "pack.toml").write_text(self.PACK_TOML, encoding="utf-8")
+        (pack / "pack.toml").write_text(self.PACK_TOML, encoding="utf-8", newline="\n")
         (pack / ".apm" / "commands").mkdir(parents=True)
         # Ship a command — codex drops this; the warning must name it
         # at BOTH scopes when the dual-scope path fires.
         (pack / ".apm" / "commands" / "do-thing.md").write_text(
-            "# do-thing\n", encoding="utf-8"
+            "# do-thing\n", encoding="utf-8", newline="\n"
         )
         return pack
 

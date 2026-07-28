@@ -175,12 +175,12 @@ def test_symlinked_seed_file_is_not_delivered(tmp_path):
     """Defence-in-depth: a pack-shipped symlinked seed must not be read through
     and delivered (it could point at a host secret)."""
     secret = tmp_path / "secret.txt"
-    secret.write_text("TOP SECRET HOST FILE\n", encoding="utf-8")
+    secret.write_text("TOP SECRET HOST FILE\n", encoding="utf-8", newline="\n")
 
     packs_dir = tmp_path / "packs"
     seeds = packs_dir / "evil" / "seeds"
     seeds.mkdir(parents=True)
-    (seeds / "AGENTS.md").write_text("# ok\n", encoding="utf-8")
+    (seeds / "AGENTS.md").write_text("# ok\n", encoding="utf-8", newline="\n")
     _symlink_or_skip(secret, seeds / "leak.md")
 
     output = tmp_path / "out"
@@ -195,12 +195,12 @@ def test_symlinked_seed_directory_is_not_traversed(tmp_path):
     Python 3.11/3.12 rglob-recurses-into-symlinks gap (os.walk followlinks=False)."""
     external = tmp_path / "external"
     external.mkdir()
-    (external / "secret.txt").write_text("HOST SECRET\n", encoding="utf-8")
+    (external / "secret.txt").write_text("HOST SECRET\n", encoding="utf-8", newline="\n")
 
     packs_dir = tmp_path / "packs"
     seeds = packs_dir / "evil" / "seeds"
     seeds.mkdir(parents=True)
-    (seeds / "AGENTS.md").write_text("# ok\n", encoding="utf-8")
+    (seeds / "AGENTS.md").write_text("# ok\n", encoding="utf-8", newline="\n")
     _symlink_or_skip(external, seeds / "evildir")
 
     output = tmp_path / "out"
@@ -285,7 +285,7 @@ def test_init_state_refuses_path_jail_escape(tmp_path, monkeypatch):
     packs_dir = tmp_path / "packs"
     pack = packs_dir / "core"
     (pack).mkdir(parents=True)
-    (pack / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1"\n', encoding="utf-8")
+    (pack / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1"\n', encoding="utf-8", newline="\n")
 
     def _refuse(root, relpath, content):
         raise safety.PathJailError("refusing to write outside repo root: /etc")

@@ -75,12 +75,14 @@ def _stage_pack(
             {aa_line}"""
         ),
         encoding="utf-8",
+        newline="\n",
     )
     skill_dir = pack_dir / ".apm" / "skills" / f"{pack_name}-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
         f"---\nname: {pack_name}-skill\ndescription: {pack_name}\n---\nBody.",
         encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -413,7 +415,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         # Seed legacy state manually.
         state = _state_with_row("demo", "claude-code", "agent-ready-repo")
         state_path = self.repo / ".agentbundle-state.toml"
-        state_path.write_text(dump_state(state), encoding="utf-8")
+        state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
         rc, _, err = self._install(catalogue=self.cat_a, adapter="kiro")
         self.assertNotEqual(rc, 0)
@@ -439,7 +441,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         # Plant dist-tree files.
         dist_tree_file = self.repo / "claude-plugins" / "demo" / "plugin.json"
         dist_tree_file.parent.mkdir(parents=True)
-        dist_tree_file.write_text("{}", encoding="utf-8")
+        dist_tree_file.write_text("{}", encoding="utf-8", newline="\n")
 
         rc2, _, err2 = self._install(
             catalogue=self.cat_b, adapter="claude-code", force=True, yes=True
@@ -574,6 +576,7 @@ def _stage_pack_both_scopes(catalogue_root: Path, pack_name: str) -> None:
             """
         ),
         encoding="utf-8",
+        newline="\n",
     )
     (pack_dir / ".apm").mkdir(exist_ok=True)
 

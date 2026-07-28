@@ -63,7 +63,7 @@ def test_user_scope_probe_across_three_adapters(upstream, adapter_dir, monkeypat
         home_path = Path(home)
         script = home_path / adapter_dir / "skills" / "jira" / "scripts" / "jira.py"
         script.parent.mkdir(parents=True)
-        script.write_text("# stub\n")
+        script.write_text("# stub\n", encoding="utf-8", newline="\n")
 
         monkeypatch.setenv("HOME", str(home_path))
         if sys.platform == "win32":
@@ -82,7 +82,7 @@ def test_project_scope_probe_across_three_adapters(upstream, adapter_dir, monkey
         proj_path = Path(proj)
         script = proj_path / adapter_dir / "skills" / "jira" / "scripts" / "jira.py"
         script.parent.mkdir(parents=True)
-        script.write_text("# stub\n")
+        script.write_text("# stub\n", encoding="utf-8", newline="\n")
 
         # Empty HOME so user-scope candidates don't accidentally match.
         monkeypatch.setenv("HOME", str(Path(home)))
@@ -103,11 +103,11 @@ def test_env_override_wins_over_user_scope(upstream, monkeypatch):
         # were the env override absent.
         decoy = home_path / ".claude" / "skills" / "jira" / "scripts" / "jira.py"
         decoy.parent.mkdir(parents=True)
-        decoy.write_text("# decoy\n")
+        decoy.write_text("# decoy\n", encoding="utf-8", newline="\n")
 
         # The override target.
         override_path = Path(override) / "jira.py"
-        override_path.write_text("# override\n")
+        override_path.write_text("# override\n", encoding="utf-8", newline="\n")
 
         monkeypatch.setenv("HOME", str(home_path))
         monkeypatch.setenv("FLOW_METRICS_JIRA_SCRIPT", str(override_path))
