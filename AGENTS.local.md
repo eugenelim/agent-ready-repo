@@ -5,8 +5,10 @@ Repo-local addendum for maintainers of this checkout. Shared agent instructions 
 
 - **Pack and skill development** (version bumps, projection, skill authoring, eval coverage, plugin format):
   [`packs/AGENTS.md`](packs/AGENTS.md).
-- **Python package development** (install-test rules, Windows compatibility, release coupling):
+- **Python package development** (install-test rules, Windows compatibility, test conventions):
   [`packages/AGENTS.md`](packages/AGENTS.md).
+- **Release coupling** (PyPI release requirements, version bump workflow, tagging):
+  [`packages/AGENTS.local.md`](packages/AGENTS.local.md).
 
 ## Design against the adopter's projected state, not this repo's internal state
 

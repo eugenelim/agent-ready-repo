@@ -38,7 +38,8 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
 3. **Strip** (deny-by-default, both modes) — copy the running-repo pack content
    while excluding: catalogue-governance (`docs/rfc/`, `docs/adr/`,
    `docs/specs/`, `docs/backlog.md`), the running repo's own
-   `CHARTER`/`CONVENTIONS`/`AGENTS.local.md`, the internal doc site, and
+   `CHARTER`/`CONVENTIONS`/`**/AGENTS.local.md` (root and all subdirectories),
+   `**/README-pypi.md`, the internal doc site, and
    build/scan/release tooling. Strip runs on the running-repo content copy only;
    seeds (step 4) are planted fresh afterward and are not affected.
 4. **Plant seeds.** For each projected tool (core, governance-extras) and any

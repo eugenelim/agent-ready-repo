@@ -1,11 +1,15 @@
 # agentbundle
 
+[![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/)
+[![Python](https://img.shields.io/pypi/pyversions/agentbundle)](https://pypi.org/project/agentbundle/)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](https://github.com/eugenelim/agent-ready-repo#license)
+
 **The installer for [agent-ready-repo](https://github.com/eugenelim/agent-ready-repo).** Think npm, but for the skills, subagents, and hooks your coding agent runs on. One pack, one command, every major agent — Claude Code, Codex, Cursor, Copilot, Gemini, and Kiro (both the CLI and the IDE).
 
 ## Quick start
 
 ```bash
-pip install -e packages/agentbundle
+pip install agentbundle
 ```
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
@@ -204,7 +208,7 @@ agentbundle catalogue lint --root .
 For full [agentskills.io spec](https://agentskills.io/specification) compliance (frontmatter key set, description policy, encoding, evals schema), install the `lint` extra and run with `--deep`:
 
 ```bash
-pip install -e 'packages/agentbundle[lint]'
+pip install 'agentbundle[lint]'
 agentbundle catalogue lint --root . --deep
 ```
 
@@ -250,7 +254,7 @@ agentbundle oplog clear my-pack                 # wipe history (asks first)
 
 ## Credentials
 
-`agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](../credbroker/README.md), a standalone resolver that keeps cleartext out of the model's reach.
+`agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach.
 
 ## Learn more
 

@@ -1,5 +1,9 @@
 # credbroker
 
+[![PyPI](https://img.shields.io/pypi/v/credbroker)](https://pypi.org/project/credbroker/)
+[![Python](https://img.shields.io/pypi/pyversions/credbroker)](https://pypi.org/project/credbroker/)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](https://github.com/eugenelim/agent-ready-repo#license)
+
 **Resolve secrets for agent skills without leaking them to the model.**
 
 `credbroker` is a standalone, pip-installable credential resolver. It reads a secret in-process, walks three tiers, and never lets a cleartext value cross a process boundary to the LLM. The core is stdlib-only, with no third-party dependency.
@@ -7,8 +11,8 @@
 ## Install
 
 ```bash
-pip install -e packages/credbroker              # stdlib-only core
-pip install -e 'packages/credbroker[crypto]'    # + encrypted-at-rest vault
+pip install credbroker              # stdlib-only core
+pip install 'credbroker[crypto]'    # + encrypted-at-rest vault
 ```
 
 ## Use

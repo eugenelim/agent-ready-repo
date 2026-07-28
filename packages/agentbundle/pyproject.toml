@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = []
 authors = [{ name = "eugenelim", email = "eugenelim@users.noreply.github.com" }]
 license = { text = "Apache-2.0 OR MIT" }
-readme = "README.md"
+readme = "README-pypi.md"
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: Apache Software License",
