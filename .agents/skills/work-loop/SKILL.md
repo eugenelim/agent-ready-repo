@@ -947,3 +947,29 @@ unattended doesn't mean *unconsidered*, it means *pre-considered*.
   in-session pass first to validate the approach.
 - **Looping without capturing learnings.** Every loop that ends without updating
   *some* doc, skill, or note is a loop whose lessons are lost.
+
+## Fidelity ladder
+
+When a task needs local-infra-equivalents — a fake, an emulator, a container —
+choose the level that fits the budget: **push up the ladder as high as a sub-5-minute
+local budget tolerates.**
+
+| Tier | Levels | Budget | Notes |
+|------|--------|--------|-------|
+| Always in-loop | L0 (in-memory fake), L1 (contract test) | < 1–10 s | Never skip these |
+| Inner-loop ceiling | L2 (Docker Compose), L3 (Testcontainers / LocalStack) | < 60 s – 3 min | Right ceiling for most services |
+| Outer-loop territory | L4 (k8s namespace), L4+ (vCluster), L5 (cloud sandbox) | minutes+ | CI-managed; not local builds |
+| Human-supervised | L6 (staging / pre-prod) | n/a | Never autonomous-zone |
+
+When a dependency cannot be represented at L0–L3 within budget, defer the integration
+test to the outer loop (the CI-managed ephemeral environment) rather than cutting the
+test or inflating the budget.
+
+The full ladder specification — per-level coverage, isolation gaps, the three-dimension
+outer-loop qualification test, and the provability classification — is in the
+`operational-safety` skill's `fidelity-ladder` reference module.
+
+**Build-pack handoff:** when a build pack ships a fidelity-ladder scaffold reference
+(Testcontainers templates, LocalStack bootstrap, Docker Compose service templates), it
+extends this section with tool-specific detail. Check the installed build pack first;
+fall back to the reference module's technology examples if none is installed.
