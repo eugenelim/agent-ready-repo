@@ -200,7 +200,8 @@ ALLOWED_MODULES = frozenset({
     # `argparse` admitted by apm-install-route-parity AC1 (one-entry growth in
     # the import allow-list) for the `--install-route` flag.
     "argparse",
-    "contextlib", "datetime", "hashlib", "json", "os", "pathlib", "re", "sys", "tempfile", "tomllib",
+    "contextlib", "datetime", "hashlib", "json", "os", "pathlib",
+    "re", "sys", "tempfile", "tomllib",
 })
 
 
