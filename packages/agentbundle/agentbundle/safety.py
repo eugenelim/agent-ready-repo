@@ -22,6 +22,7 @@ from __future__ import annotations
 import enum
 import hashlib
 import os
+import re as _re
 import shutil
 import tempfile
 from pathlib import Path
@@ -649,3 +650,81 @@ def user_state_path(home: Path | None = None) -> Path:
             f"refusing to use it"
         )
     return base / "state.toml"
+
+
+# Pack slug pattern — must match agentbundle.config._PACK_NAME_RE.
+_PACK_SLUG_RE = _re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_RESERVED_PACK_SLUGS: frozenset[str] = frozenset({"bin", "state", "credentials", "state.toml"})
+
+
+def make_pack_dir(
+    base: Path,
+    pack_name: str,
+    *,
+    home: Path | None = None,
+    create: bool = True,
+) -> Path:
+    """Return (and optionally create) the user-scope directory for *pack_name*.
+
+    Security guarantees (mirrors ``user_state_path``):
+    - ``pack_name`` must match ``^[a-z0-9][a-z0-9-]*$``; ``ValueError`` otherwise.
+    - ``pack_name`` must not be in the reserved slug list; ``ValueError`` otherwise.
+    - ``base`` must resolve under ``Path.home()`` (or *home* when given); ``OSError`` otherwise.
+    - A pre-existing symlink at ``<base>/<pack_name>`` is refused (``OSError``).
+    - Created with mode ``0o700``; pre-existing directories are not chmod'd.
+    - Calling twice is idempotent.
+
+    When *create* is ``False``, skip the ``mkdir`` call and the symlink check —
+    useful for read-only paths that must not create side-effecting directories.
+
+    The *home* argument exists for testing — production callers omit it.
+    """
+    import os
+    import stat as _stat
+
+    if not _PACK_SLUG_RE.match(pack_name):
+        raise ValueError(
+            f"pack_name {pack_name!r} must match ^[a-z0-9][a-z0-9-]*$"
+        )
+    if pack_name in _RESERVED_PACK_SLUGS:
+        raise ValueError(
+            f"pack_name {pack_name!r} is reserved "
+            f"({sorted(_RESERVED_PACK_SLUGS)})"
+        )
+    # Confirm base is under home (home-confinement).
+    effective_home = home if home is not None else Path.home()
+    try:
+        resolved_base = base.resolve()
+    except OSError as exc:
+        raise OSError(f"cannot resolve base {base}: {exc}") from exc
+    try:
+        resolved_home = effective_home.resolve()
+    except OSError as exc:
+        raise OSError(f"cannot resolve home {effective_home}: {exc}") from exc
+    if not resolved_base.is_relative_to(resolved_home):
+        raise OSError(
+            f"base {base} resolves to {resolved_base} which is outside "
+            f"home {resolved_home}; refusing to create pack directory outside home"
+        )
+
+    target = base / pack_name
+    if not create:
+        return target
+
+    try:
+        target.mkdir(parents=True, exist_ok=True, mode=0o700)
+    except OSError as exc:
+        raise OSError(
+            f"cannot create pack directory {target}: {exc}"
+        ) from exc
+    # Refuse a pre-existing symlink or non-directory.
+    try:
+        st = os.lstat(target)
+    except OSError as exc:
+        raise OSError(f"cannot stat pack directory {target}: {exc}") from exc
+    if _stat.S_ISLNK(st.st_mode) or not _stat.S_ISDIR(st.st_mode):
+        raise OSError(
+            f"pack directory {target} is not a regular directory; "
+            f"refusing to use it"
+        )
+    return target

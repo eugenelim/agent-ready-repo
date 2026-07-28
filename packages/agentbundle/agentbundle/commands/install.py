@@ -276,6 +276,21 @@ def run(args: argparse.Namespace) -> int:
     except CatalogueError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
+
+    # Load catalogue.toml for operator-declared user-dir (RFC-0074 / ADR-0058).
+    # Absent catalogue.toml → user_dir stays at the default "~/.agentbundle".
+    _catalogue_user_dir = "~/.agentbundle"
+    try:
+        from agentbundle.catalogue_tooling.config import (
+            CatalogueConfigError,
+            load_catalogue_config,
+        )
+        _cat_config = load_catalogue_config(catalogue_dir)
+        if _cat_config is not None:
+            _catalogue_user_dir = _cat_config.user_dir
+    except Exception:
+        pass  # catalogue_tooling optional at install time; default stays
+
     pack_dir = _locate_pack(catalogue_dir, pack_name)
     if pack_dir is None:
         print(
@@ -1120,6 +1135,9 @@ def run(args: argparse.Namespace) -> int:
             primitives=_collect_primitives(pack_dir),
             files={},
             primitive_versions=dict(prior.primitive_versions) if prior else {},
+            # RFC-0074 / ADR-0058: write user-root from catalogue.user-dir so
+            # pack_dir() can resolve the correct user-scope directory at runtime.
+            user_root=_catalogue_user_dir,
         )
 
         for relpath, content in sorted(projection.items()):

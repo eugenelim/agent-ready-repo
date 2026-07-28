@@ -97,6 +97,16 @@ def compile_defaults(config: CatalogueConfig) -> str:
         parts.append("\n")
         parts.append(_emit_section("defaults", defaults_rows))
 
+    # [pack-defaults.<pack>] — sorted by pack name, then by key within each section.
+    for pack_name in sorted(config.pack_defaults):
+        kv = config.pack_defaults[pack_name]
+        rows: list[tuple[str, str]] = sorted(
+            (k, _emit_str(v)) for k, v in kv.items()
+        )
+        if rows:
+            parts.append("\n")
+            parts.append(_emit_section(f"pack-defaults.{pack_name}", rows))
+
     return "".join(parts)
 
 
