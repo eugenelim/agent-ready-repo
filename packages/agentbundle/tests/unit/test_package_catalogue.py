@@ -26,12 +26,12 @@ import pytest
 from agentbundle import cli
 from agentbundle.commands import package_catalogue
 from agentbundle.commands.package_catalogue import (
-    _build_archive,
     _compute_file_digests,
     _generate_manifest,
     _read_content_files,
     _scan_content,
     _validate_content,
+    _write_archive,
     _write_channel_descriptor,
     run,
 )
@@ -374,7 +374,7 @@ def test_validate_content_invalid_profile_toml_rejected(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# T2: _compute_file_digests, _generate_manifest, _build_archive
+# T2: _compute_file_digests, _generate_manifest, _write_archive
 # ---------------------------------------------------------------------------
 
 
@@ -509,36 +509,42 @@ def test_generate_manifest_accepts_fixed_generated_at() -> None:
     assert json.loads(manifest_bytes)["generated_at"] == ts
 
 
-def test_build_archive_deterministic() -> None:
+def test_write_archive_deterministic(tmp_path: Path) -> None:
     file_bytes = {"packs/core/pack.toml": b"[pack]\nname='core'\nversion='0.1.0'\n"}
     manifest = b'{"schema": 1}'
-    a1 = _build_archive(file_bytes, manifest)
-    a2 = _build_archive(file_bytes, manifest)
-    assert hashlib.sha256(a1).digest() == hashlib.sha256(a2).digest()
+    d1 = tmp_path / "a1.tar.gz"
+    d2 = tmp_path / "a2.tar.gz"
+    _write_archive(file_bytes, manifest, d1)
+    _write_archive(file_bytes, manifest, d2)
+    assert hashlib.sha256(d1.read_bytes()).digest() == hashlib.sha256(d2.read_bytes()).digest()
 
 
-def test_build_archive_gzip_mtime_zero() -> None:
-    archive_bytes = _build_archive({"a.txt": b"hello"}, b"{}")
+def test_write_archive_gzip_mtime_zero(tmp_path: Path) -> None:
+    dest = tmp_path / "out.tar.gz"
+    _write_archive({"a.txt": b"hello"}, b"{}", dest)
+    archive_bytes = dest.read_bytes()
     # gzip header bytes 4-7 are the modification time field
     assert archive_bytes[4:8] == b"\x00\x00\x00\x00"
 
 
-def test_build_archive_members_sorted() -> None:
+def test_write_archive_members_sorted(tmp_path: Path) -> None:
     file_bytes = {
         "z/last.txt": b"last",
         "a/first.txt": b"first",
         "m/middle.txt": b"middle",
     }
-    archive_bytes = _build_archive(file_bytes, b"{}")
-    with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
+    dest = tmp_path / "out.tar.gz"
+    _write_archive(file_bytes, b"{}", dest)
+    with tarfile.open(fileobj=io.BytesIO(dest.read_bytes()), mode="r:gz") as tf:
         names = tf.getnames()
     # catalogue-manifest.json sorts between 'a' and 'd' ('c' = 0x63)
     assert names == sorted(names)
 
 
-def test_build_archive_member_metadata_files() -> None:
-    archive_bytes = _build_archive({"test.txt": b"data"}, b"{}")
-    with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
+def test_write_archive_member_metadata_files(tmp_path: Path) -> None:
+    dest = tmp_path / "out.tar.gz"
+    _write_archive({"test.txt": b"data"}, b"{}", dest)
+    with tarfile.open(fileobj=io.BytesIO(dest.read_bytes()), mode="r:gz") as tf:
         for member in tf.getmembers():
             assert member.uid == 0
             assert member.gid == 0
@@ -546,31 +552,32 @@ def test_build_archive_member_metadata_files() -> None:
             assert member.mode == 0o644
 
 
-def test_build_archive_contains_manifest() -> None:
+def test_write_archive_contains_manifest(tmp_path: Path) -> None:
     manifest_content = b'{"schema": 1, "bundle": "test"}'
-    archive_bytes = _build_archive({}, manifest_content)
-    with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
+    dest = tmp_path / "out.tar.gz"
+    _write_archive({}, manifest_content, dest)
+    with tarfile.open(fileobj=io.BytesIO(dest.read_bytes()), mode="r:gz") as tf:
         names = tf.getnames()
         assert "catalogue-manifest.json" in names
         f = tf.extractfile("catalogue-manifest.json")
         assert f is not None
         data = json.loads(f.read())
-        assert data["schema"] == 1  # build_archive stores bytes as-is; schema in bytes is 1
+        assert data["schema"] == 1  # _write_archive stores bytes as-is; schema in bytes is 1
 
 
-def test_build_archive_rejects_traversal_member_name() -> None:
+def test_write_archive_rejects_traversal_member_name(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="unsafe"):
-        _build_archive({"../evil": b"x"}, b"{}")
+        _write_archive({"../evil": b"x"}, b"{}", tmp_path / "out.tar.gz")
 
 
-def test_build_archive_rejects_absolute_member_name() -> None:
+def test_write_archive_rejects_absolute_member_name(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="unsafe"):
-        _build_archive({"/etc/passwd": b"x"}, b"{}")
+        _write_archive({"/etc/passwd": b"x"}, b"{}", tmp_path / "out.tar.gz")
 
 
-def test_build_archive_rejects_drive_letter_member_name() -> None:
+def test_write_archive_rejects_drive_letter_member_name(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="unsafe"):
-        _build_archive({"C:evil": b"x"}, b"{}")
+        _write_archive({"C:evil": b"x"}, b"{}", tmp_path / "out.tar.gz")
 
 
 # ---------------------------------------------------------------------------

@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 # Re-export all helpers from the new engine so tests importing from here
 # continue to work.
 from agentbundle.catalogue_tooling.package import (  # noqa: F401
-    _build_archive,
     _check_required_files,
     _compute_file_digests,
     _generate_manifest,
@@ -24,6 +23,7 @@ from agentbundle.catalogue_tooling.package import (  # noqa: F401
     _scan_content,
     _validate_content,
     _validate_flag_value,
+    _write_archive,
     _write_channel_descriptor,
     package_catalogue,
 )
