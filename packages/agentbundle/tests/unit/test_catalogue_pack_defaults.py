@@ -94,8 +94,14 @@ def test_schema_accepts_user_dir():
             "description": "D",
             "minimum-agentbundle-version": "0.1.0",
             "user-dir": "~/custom",
-            "paths": {"packs": "p", "profiles": "r", "contracts": "c", "marketplace": "m.json", "build-output": "b"},
-            "build": {"recipes": ["default"], "self-host": False, "claude-plugin-branch": "main", "marketplace-description": ""},
+            "paths": {
+                "packs": "p", "profiles": "r", "contracts": "c",
+                "marketplace": "m.json", "build-output": "b",
+            },
+            "build": {
+                "recipes": ["default"], "self-host": False,
+                "claude-plugin-branch": "main", "marketplace-description": "",
+            },
             "package": {"include": [], "required": []},
         },
         "distribution": {
@@ -125,8 +131,14 @@ def test_schema_accepts_pack_defaults():
             "display-name": "T",
             "description": "D",
             "minimum-agentbundle-version": "0.1.0",
-            "paths": {"packs": "p", "profiles": "r", "contracts": "c", "marketplace": "m.json", "build-output": "b"},
-            "build": {"recipes": ["default"], "self-host": False, "claude-plugin-branch": "main", "marketplace-description": ""},
+            "paths": {
+                "packs": "p", "profiles": "r", "contracts": "c",
+                "marketplace": "m.json", "build-output": "b",
+            },
+            "build": {
+                "recipes": ["default"], "self-host": False,
+                "claude-plugin-branch": "main", "marketplace-description": "",
+            },
             "package": {"include": [], "required": []},
         },
         "distribution": {
@@ -154,8 +166,14 @@ def test_schema_rejects_unknown_top_level():
             "display-name": "T",
             "description": "D",
             "minimum-agentbundle-version": "0.1.0",
-            "paths": {"packs": "p", "profiles": "r", "contracts": "c", "marketplace": "m.json", "build-output": "b"},
-            "build": {"recipes": ["default"], "self-host": False, "claude-plugin-branch": "main", "marketplace-description": ""},
+            "paths": {
+                "packs": "p", "profiles": "r", "contracts": "c",
+                "marketplace": "m.json", "build-output": "b",
+            },
+            "build": {
+                "recipes": ["default"], "self-host": False,
+                "claude-plugin-branch": "main", "marketplace-description": "",
+            },
             "package": {"include": [], "required": []},
         },
         "distribution": {
@@ -393,7 +411,6 @@ def test_packstate_user_root_serialization():
 
 
 def test_packstate_user_root_deserialization():
-    import os
     import tempfile
 
     from agentbundle.config import STATE_SCHEMA_VERSION, load_state
@@ -410,7 +427,9 @@ primitives = []
 
 [pack.atlassian.adapters.claude-code.files]
 """
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False, encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".toml", delete=False, encoding="utf-8"
+    ) as f:
         f.write(toml)
         fpath = f.name
     try:
@@ -418,11 +437,10 @@ primitives = []
         ps = state.packs[("atlassian", "claude-code")]
         assert ps.user_root == "~/custom"
     finally:
-        os.unlink(fpath)
+        Path(fpath).unlink()
 
 
 def test_packstate_user_root_default_on_missing_key():
-    import os
     import tempfile
 
     from agentbundle.config import STATE_SCHEMA_VERSION, load_state
@@ -438,7 +456,9 @@ primitives = []
 
 [pack.atlassian.adapters.claude-code.files]
 """
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False, encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".toml", delete=False, encoding="utf-8"
+    ) as f:
         f.write(toml)
         fpath = f.name
     try:
@@ -446,7 +466,7 @@ primitives = []
         ps = state.packs[("atlassian", "claude-code")]
         assert ps.user_root == "~/.agentbundle"
     finally:
-        os.unlink(fpath)
+        Path(fpath).unlink()
 
 
 # ---------------------------------------------------------------------------

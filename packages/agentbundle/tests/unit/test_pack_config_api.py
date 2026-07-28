@@ -409,7 +409,10 @@ def _run_cli(args: list[str], env_home: Path) -> tuple[int, str, str]:
 
 
 def test_cli_pack_config_set_and_show(tmp_path):
-    rc, _, _ = _run_cli(["pack-config", "set", "atlassian", "url", "https://jira.example.com/"], tmp_path)
+    rc, _, _ = _run_cli(
+        ["pack-config", "set", "atlassian", "url", "https://jira.example.com/"],
+        tmp_path,
+    )
     assert rc == 0
 
     rc, out, _ = _run_cli(["pack-config", "show", "atlassian"], tmp_path)

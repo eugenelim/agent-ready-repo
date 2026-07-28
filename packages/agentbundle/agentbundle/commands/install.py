@@ -281,10 +281,7 @@ def run(args: argparse.Namespace) -> int:
     # Absent catalogue.toml → user_dir stays at the default "~/.agentbundle".
     _catalogue_user_dir = "~/.agentbundle"
     try:
-        from agentbundle.catalogue_tooling.config import (
-            CatalogueConfigError,
-            load_catalogue_config,
-        )
+        from agentbundle.catalogue_tooling.config import load_catalogue_config
         _cat_config = load_catalogue_config(catalogue_dir)
         if _cat_config is not None:
             _catalogue_user_dir = _cat_config.user_dir
