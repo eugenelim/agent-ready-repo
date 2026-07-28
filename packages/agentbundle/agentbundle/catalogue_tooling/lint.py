@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import re
 import sys
 import tomllib
@@ -1352,17 +1353,21 @@ class _PackRules:
         if not seeds_dir.is_dir():
             return []
         diags: list[Diagnostic] = []
-        for path in sorted(seeds_dir.rglob("*")):
-            if not path.is_file():
-                continue
-            for violation in _seeds_check_file(path, seeds_dir):
-                diags.append(_diag(
-                    DiagnosticCode.CAT_L029,
-                    Severity.ERROR,
-                    violation,
-                    pack=self._name,
-                    path=str(path),
-                ))
+        # os.walk(followlinks=False) avoids traversing into symlinked
+        # directories, which rglob does on Python 3.11/3.12 (3.13 fixed it).
+        for dirpath_str, _dirs, filenames in os.walk(seeds_dir, followlinks=False):
+            for fname in sorted(filenames):
+                path = Path(dirpath_str) / fname
+                if path.is_symlink():
+                    continue
+                for violation in _seeds_check_file(path, seeds_dir):
+                    diags.append(_diag(
+                        DiagnosticCode.CAT_L029,
+                        Severity.ERROR,
+                        violation,
+                        pack=self._name,
+                        path=str(path),
+                    ))
         return diags
 
     def _check_first_value(self) -> list[Diagnostic]:

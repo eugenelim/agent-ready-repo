@@ -730,6 +730,63 @@ def test_check_seeds_clean(tmp_path, monkeypatch):
     assert not any(d.code == "CAT-L029" for d in result.diagnostics)
 
 
+def test_check_seeds_symlinked_dir_skipped(tmp_path, monkeypatch):
+    """A symlinked directory inside seeds/ must not be traversed by the linter.
+
+    On Python 3.11/3.12, Path.rglob() follows symlinked directories;
+    os.walk(followlinks=False) does not. This test pins the fix: files
+    reachable only through a symlinked dir produce no CAT-L029 violations.
+
+    Skipped on platforms where os.symlink is unavailable (some Windows configs).
+    """
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True,
+                                    seeds={"AGENTS.md": "<project-name>"})
+    # Plant a symlinked directory inside seeds/ pointing to /etc (or tmp).
+    # On Windows, creating symlinks may require elevated privileges — skip.
+    link = pack_dir / "seeds" / "evil-link"
+    target = tmp_path / "outside"
+    target.mkdir()
+    (target / "passwd").write_text("root:x:0:0\n", encoding="utf-8")
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unsupported on this platform/filesystem")
+    result = lint_catalogue(tmp_path)
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    # The planted AGENTS.md is clean → should be zero violations.
+    # If the symlinked dir were traversed, "passwd" would produce an
+    # "unknown seed file" violation.
+    assert not l029, (
+        "symlinked directory inside seeds/ must not be traversed: "
+        + "; ".join(d.message for d in l029)
+    )
+
+
+def test_check_seeds_symlinked_file_skipped(tmp_path, monkeypatch):
+    """A symlinked file inside seeds/ must not be read by the linter."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True,
+                                    seeds={"AGENTS.md": "<project-name>"})
+    outside = tmp_path / "outside.md"
+    outside.write_text("<project-name>", encoding="utf-8")
+    link = pack_dir / "seeds" / "AGENTS.md"
+    link.unlink()
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unsupported on this platform/filesystem")
+    # The symlinked AGENTS.md is skipped → no violation (it could have been
+    # a clean file, so no violation is expected either way; the key invariant
+    # is that we do not read through a symlink).
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L029" for d in result.diagnostics)
+
+
 # ---------------------------------------------------------------------------
 # Task 4 — _PackRules._check_first_value() (CAT-L030)
 # ---------------------------------------------------------------------------

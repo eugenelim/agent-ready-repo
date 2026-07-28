@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.3.0] — 2026-07-27
+
+### Fixed
+
+- **`sso-broker` Windows console hardening.** The companion `sso-broker.py`
+  script now reconfigures stdout and stderr to UTF-8 inside its
+  file-path-invocation bootstrap gate. On a Windows cp1252 console, the
+  previous code raised `UnicodeEncodeError` when the script emitted em-dash
+  messages before the Python import guard ran. The fix mirrors the pattern
+  applied to the other credentialed CLIs (figma, confluence-crawler,
+  confluence-publisher, jira, jira-align) in agentbundle 0.20.1.
+
 ## [0.2.0] — 2026-06-16
 
 ### Added
