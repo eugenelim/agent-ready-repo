@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [Unreleased]
+## [0.22.1] — 2026-07-28
 
 ### Added
 
@@ -29,6 +29,18 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 - `compile_defaults` no longer emits `channel = ""` when Artifactory is enabled. The
   previous hardcoded empty value made every Artifactory-enabled install-defaults.toml
   unusable at runtime.
+
+### Changed
+
+- **`agentbundle catalogue package`** now honours `catalogue.package.include`
+  and `catalogue.package.required` from `catalogue.toml`. When `include` is
+  non-empty, only those pack directories are archived (non-pack dirs such as
+  `profiles/`, `contracts/`, and `.claude-plugin/` are always included). When
+  `required` is set, it replaces the default `LICENSE-APACHE` / `LICENSE-MIT`
+  constraint; absent or empty `required` preserves existing behavior.
+  Path-traversal entries in `include` are rejected before any filesystem access.
+  (`catalogue_tooling/package.py`, `catalogue_tooling/config.py`,
+  `_data/catalogue.schema.json`, `contracts/catalogue.schema.json`)
 
 ### Documentation
 

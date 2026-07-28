@@ -92,26 +92,60 @@ def _validate_flag_value(flag: str, value: str) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _scan_content(root: Path) -> list[Path]:
+def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Path]:
     """Return sorted list of regular (non-symlink) files from the content allowlist.
 
-    Uses _DEFAULT_INCLUDE_DIRS and _DEFAULT_INCLUDE_ROOT_FILES; applies
-    _IMPLICIT_DENY_DIRS to skip denied top-level directories even if they appear
-    inside an allowed dir (unlikely but defensive).
+    When pack_include is non-empty, only the listed pack directories are walked;
+    non-pack dirs (profiles/, contracts/, .claude-plugin/) are always included.
+    An empty or absent pack_include includes all packs (default behavior).
     """
     collected: list[Path] = []
 
-    for dir_parts in _DEFAULT_INCLUDE_DIRS:
-        d = root.joinpath(*dir_parts)
-        if not d.is_dir() or d.is_symlink():
-            continue
-        for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
-            dp = Path(dirpath)
-            for fname in filenames:
-                p = dp / fname
-                if p.is_file() and not p.is_symlink():
-                    collected.append(p)
-            dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+    if pack_include:
+        for entry in pack_include:
+            parts = Path(entry).parts
+            if not entry.startswith("packs/") or ".." in parts:
+                raise ValueError(
+                    f"pack_include entry {entry!r} must start with 'packs/' and must not "
+                    f"contain path traversal components"
+                )
+            d = root / entry
+            if not d.is_dir():
+                raise ValueError(
+                    f"pack_include entry {entry!r} does not exist on disk at {d}"
+                )
+            for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
+                dp = Path(dirpath)
+                for fname in filenames:
+                    p = dp / fname
+                    if p.is_file() and not p.is_symlink():
+                        collected.append(p)
+                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+        for dir_parts in _DEFAULT_INCLUDE_DIRS:
+            if dir_parts[0] == "packs":
+                continue
+            d = root.joinpath(*dir_parts)
+            if not d.is_dir() or d.is_symlink():
+                continue
+            for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
+                dp = Path(dirpath)
+                for fname in filenames:
+                    p = dp / fname
+                    if p.is_file() and not p.is_symlink():
+                        collected.append(p)
+                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+    else:
+        for dir_parts in _DEFAULT_INCLUDE_DIRS:
+            d = root.joinpath(*dir_parts)
+            if not d.is_dir() or d.is_symlink():
+                continue
+            for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
+                dp = Path(dirpath)
+                for fname in filenames:
+                    p = dp / fname
+                    if p.is_file() and not p.is_symlink():
+                        collected.append(p)
+                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
 
     for fname in _DEFAULT_INCLUDE_ROOT_FILES:
         p = root / fname
@@ -121,10 +155,18 @@ def _scan_content(root: Path) -> list[Path]:
     return sorted(collected, key=lambda p: p.relative_to(root).as_posix())
 
 
-def _check_required_files(root: Path, content_paths: list[Path]) -> str | None:
-    """Return error string if any required path is missing, else None."""
+def _check_required_files(
+    root: Path,
+    content_paths: list[Path],
+    required_override: list[str] | None = None,
+) -> str | None:
+    """Return error string if any required path is missing, else None.
+
+    When required_override is not None, checks those paths instead of _REQUIRED_PATHS.
+    """
+    required = required_override if required_override is not None else _REQUIRED_PATHS
     posix_set = {p.relative_to(root).as_posix() for p in content_paths}
-    for req in _REQUIRED_PATHS:
+    for req in required:
         if req.endswith("/"):
             # Directory check
             if not (root / req.rstrip("/")).is_dir():
@@ -479,10 +521,30 @@ def package_catalogue(
         )
         return _err(f"pre-package verify failed: {msgs}")
 
-    # --- Scan and validate content ---
-    content_paths = _scan_content(root)
+    # --- Load catalogue.toml for package config ---
+    pack_include: list[str] = []
+    required_override: list[str] | None = None
+    catalogue_name: str | None = None
+    catalogue_display_name: str | None = None
+    min_version_manifest = minimum_agentbundle_version
+    try:
+        from agentbundle.catalogue_tooling.config import load_catalogue_config
+        config = load_catalogue_config(root)
+        if config is not None:
+            catalogue_name = config.name
+            catalogue_display_name = config.display_name
+            if min_version_manifest is None:
+                min_version_manifest = config.minimum_agentbundle_version
+            pack_include = config.package.include or []
+            if config.package.required:
+                required_override = config.package.required
+    except Exception:
+        pass
 
-    req_err = _check_required_files(root, content_paths)
+    # --- Scan and validate content ---
+    content_paths = _scan_content(root, pack_include=pack_include)
+
+    req_err = _check_required_files(root, content_paths, required_override=required_override)
     if req_err is not None:
         return _err(req_err)
 
@@ -533,21 +595,6 @@ def package_catalogue(
 
     if published_at is None:
         published_at = datetime.now(UTC).replace(microsecond=0).isoformat()
-
-    # --- Read catalogue.toml metadata for manifest ---
-    catalogue_name: str | None = None
-    catalogue_display_name: str | None = None
-    min_version_manifest = minimum_agentbundle_version
-    try:
-        from agentbundle.catalogue_tooling.config import load_catalogue_config
-        config = load_catalogue_config(root)
-        if config is not None:
-            catalogue_name = config.name
-            catalogue_display_name = config.display_name
-            if min_version_manifest is None:
-                min_version_manifest = config.minimum_agentbundle_version
-    except Exception:
-        pass
 
     # --- Compute marketplace_digest ---
     marketplace_digest: str | None = None

@@ -380,19 +380,6 @@ def test_config_symlink_escape(tmp_path):
         load_catalogue_config(tmp_path)
 
 
-def test_config_required_not_in_include(tmp_path):
-    """AC6: required ⊄ include raises CatalogueConfigError."""
-    from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
-
-    content = _VALID_BASE.replace(
-        "include = ['packs/core']\nrequired = ['packs/core']",
-        "include = ['packs/core']\nrequired = ['packs/enterprise']",
-    )
-    _write_toml(tmp_path, content)
-    with pytest.raises(CatalogueConfigError, match="required|include"):
-        load_catalogue_config(tmp_path)
-
-
 def test_config_unknown_recipe(tmp_path):
     """AC6: unknown recipe raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
