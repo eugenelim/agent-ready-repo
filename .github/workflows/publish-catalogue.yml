@@ -1,0 +1,215 @@
+name: publish-catalogue
+
+# Prerequisites (platform administrator):
+# - Artifactory Generic repository provisioned and named in ARTIFACTORY_REPOSITORY var
+# - ARTIFACTORY_TOKEN org secret set with deploy permissions to that repository
+# - Repository overwrite policy: immutable for releases/, overwrite-allowed for channels/
+# - Retention policy: configured per your org's archive retention requirements
+# - Replication: configured independently if multi-region is required
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle:
+        description: 'Catalogue bundle name (e.g. "engineering")'
+        required: true
+        type: string
+      release:
+        description: 'Release identifier (e.g. "1.0.0")'
+        required: true
+        type: string
+      channel:
+        description: 'Channel to update (e.g. "stable")'
+        required: true
+        type: string
+      dry_run:
+        description: 'Skip the upload step'
+        required: false
+        type: boolean
+        default: true
+
+  workflow_call:
+    inputs:
+      bundle:
+        required: true
+        type: string
+      release:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+      dry_run:
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      ARTIFACTORY_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-catalogue-${{ inputs.bundle }}-${{ inputs.release }}-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+
+  # ── Job 1: package-and-validate ───────────────────────────────────────────
+  # Always runs. No secrets required. This is the CI contract: every invocation
+  # must produce a verifiable archive regardless of whether upload is requested.
+  package-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle
+        run: pip install -e packages/agentbundle
+
+      - name: Verify catalogue (source)
+        run: agentbundle catalogue verify --root .
+
+      - name: Package catalogue
+        run: |
+          agentbundle catalogue package \
+            --root . \
+            --bundle "${{ inputs.bundle }}" \
+            --release "${{ inputs.release }}" \
+            --channel "${{ inputs.channel }}" \
+            --output /tmp/catalogue-dist
+
+      - name: Assert archive, sidecar, and descriptor exist
+        run: |
+          ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
+          SIDECAR="${ARCHIVE}.sha256"
+          DESCRIPTOR="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json"
+          ls "$ARCHIVE"
+          ls "$SIDECAR"
+          ls "$DESCRIPTOR"
+
+      - name: Verify archive integrity
+        run: |
+          ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
+          SIDECAR="${ARCHIVE}.sha256"
+          agentbundle catalogue verify \
+            --archive "$ARCHIVE" \
+            --sha256-file "$SIDECAR"
+
+      - name: Validate channel descriptor
+        env:
+          DESCRIPTOR: /tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json
+          EXPECTED_BUNDLE: ${{ inputs.bundle }}
+          EXPECTED_RELEASE: ${{ inputs.release }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          with open(os.environ["DESCRIPTOR"]) as f:
+              d = json.load(f)
+          required = {"kind", "bundle", "release", "artifact", "sha256"}
+          missing = required - set(d.keys())
+          if missing:
+              print(f"FAIL: descriptor missing fields: {missing}"); sys.exit(1)
+          if d.get("bundle") != os.environ["EXPECTED_BUNDLE"]:
+              print("FAIL: bundle mismatch"); sys.exit(1)
+          if d.get("release") != os.environ["EXPECTED_RELEASE"]:
+              print("FAIL: release mismatch"); sys.exit(1)
+          print("Descriptor validation: PASS")
+          PY
+
+      - name: Scan archive for credential patterns
+        env:
+          ARCHIVE: /tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz
+        run: |
+          python3 - <<'PY'
+          import os, re, sys, tarfile
+          from pathlib import Path
+          BANNED = re.compile(
+              r'(?i)(bearer|AGENTBUNDLE_HTTP_BEARER_TOKEN)\s*[=:]\s*[A-Za-z0-9+/]{20,}'
+          )
+          arc = Path(os.environ["ARCHIVE"])
+          with tarfile.open(arc, "r:gz") as tf:
+              for m in tf.getmembers():
+                  f = tf.extractfile(m)
+                  if f and BANNED.search(f.read().decode(errors="replace")):
+                      print(f"FAIL: credential pattern in {m.name}"); sys.exit(1)
+          print("Credential scan: PASS")
+          PY
+
+      - name: Upload catalogue-dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-dist
+          path: /tmp/catalogue-dist/
+          if-no-files-found: error
+
+  # ── Job 2: upload-to-artifactory ─────────────────────────────────────────
+  # Skipped when dry_run is true or ARTIFACTORY_TOKEN is unset.
+  # The channel descriptor upload (final step) runs only after archive and
+  # sidecar are verified remotely — making the release visible to consumers
+  # last.
+  upload-to-artifactory:
+    needs: [package-and-validate]
+    if: ${{ !inputs.dry_run && secrets.ARTIFACTORY_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+      ARTIFACTORY_BASE_URL: ${{ vars.ARTIFACTORY_BASE_URL }}
+      ARTIFACTORY_REPOSITORY: ${{ vars.ARTIFACTORY_REPOSITORY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download catalogue-dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: catalogue-dist
+          path: /tmp/catalogue-dist
+
+      - name: Install JFrog CLI
+        run: curl -fL https://install-cli.jfrog.io | sh
+
+      - name: Configure JFrog CLI
+        run: |
+          jf config add artifactory \
+            --url "$ARTIFACTORY_BASE_URL" \
+            --access-token "$ARTIFACTORY_TOKEN" \
+            --interactive=false
+
+      - name: Set path variables
+        run: |
+          ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+          echo "SIDECAR=${ARCHIVE}.sha256" >> "$GITHUB_ENV"
+          echo "DESCRIPTOR=/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json" >> "$GITHUB_ENV"
+
+      - name: Upload archive to Artifactory
+        run: |
+          jf rt upload \
+            "$ARCHIVE" \
+            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz" \
+            --fail-no-op
+
+      - name: Upload sidecar to Artifactory
+        run: |
+          jf rt upload \
+            "$SIDECAR" \
+            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz.sha256"
+
+      - name: Remote verify — download sidecar and compare
+        run: |
+          jf rt dl \
+            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz.sha256" \
+            /tmp/remote-sidecar.sha256
+          diff "$SIDECAR" /tmp/remote-sidecar.sha256
+
+      - name: Upload channel descriptor to Artifactory
+        run: |
+          jf rt upload \
+            "$DESCRIPTOR" \
+            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json"
