@@ -6,6 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.20.3] — 2026-07-27
+
+### Changed
+
+- **Ruff + mypy CI gates.** `build-check.yml` and `build-check-windows.yml` now
+  run `ruff check` and `mypy` on every push and pull request. Ruff enforces
+  style, imports, common-bug, and pathlib rules (E, W, F, I, UP, B, SIM, C4,
+  PIE, RET, PTH). Mypy type-checks the two typed packages
+  (`agentbundle`, `credbroker`) with strict import discipline.
+
+### Fixed
+
+- **Internal type annotations.** `commands/upgrade.py` now uses precise
+  `Path | None` and `UserConfig | None` parameter types (was `object`),
+  eliminating all mypy errors in that module. Other catalogue-tooling modules
+  (`build.py`, `verify.py`, `lint.py`) carry targeted `# type: ignore`
+  suppressions for dynamic module attributes and YAML duck-typing that mypy
+  cannot resolve at import time.
+- **Ruff violations.** All PTH, B904, SIM, UP, RET, and C4 rule violations
+  across internal scripts are resolved — `os.*` calls replaced with
+  `pathlib.Path` equivalents, exception re-raises carry `from exc`, and
+  ternaries replace equivalent if/else blocks where they simplify reading.
+
 ## [0.20.2] — 2026-07-27
 
 ### Fixed
