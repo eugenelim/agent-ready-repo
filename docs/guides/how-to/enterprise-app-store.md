@@ -122,4 +122,4 @@ secrets or a credentials broker.
 |---|---|
 | `AGENTBUNDLE_HTTP_BEARER_TOKEN` | Bearer token for authenticated HTTPS catalogue sources. Never forwarded across origins; not logged. |
 | `AGENTBUNDLE_NO_REMOTE` | When set to `1`, skips the Artifactory org bootstrap (Layer 3) and editable-install detection (Layer 4). Useful for offline and air-gapped deployments. |
-| `AGENTBUNDLE_CA_BUNDLE` | Path to a PEM CA bundle for corporate TLS. (Upcoming — not yet implemented.) |
+| `AGENTBUNDLE_CA_BUNDLE` | Path to a PEM file containing one or more CA certificates. Use when your Artifactory instance uses a private or self-signed CA. Example: `export AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem` |

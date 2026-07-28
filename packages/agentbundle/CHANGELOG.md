@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [Unreleased]
+
+### Added
+
+- **`AGENTBUNDLE_CA_BUNDLE` environment variable** (`https_catalogue.py`): when set to a path,
+  `_build_opener` loads a custom PEM CA bundle into an `ssl.SSLContext` and passes it to
+  `HTTPSHandler`. Raises `CatalogueError` with a clear message if the path does not exist.
+  When the variable is absent, behavior is unchanged. Enables HTTPS catalogue sources behind
+  a corporate or self-signed CA without modifying the system trust store.
+
 ## [0.22.1] — 2026-07-28
 
 ### Added
