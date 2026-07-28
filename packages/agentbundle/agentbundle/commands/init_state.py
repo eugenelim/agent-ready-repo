@@ -216,7 +216,7 @@ def _run_migrate(args: argparse.Namespace) -> int:
     return 1
 
 
-import re as _re
+import re as _re  # noqa: E402
 
 # Match the top-level ``schema-version = "X.Y"`` line. The pattern
 # anchors to *file* start (``\A``) with optional leading blank lines —

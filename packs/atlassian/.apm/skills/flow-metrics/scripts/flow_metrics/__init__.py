@@ -13,9 +13,9 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 
 PYTHON_FLOOR = (3, 10)
 
@@ -31,7 +31,7 @@ def _check_python_version(version_info=None) -> None:
         floor = ".".join(str(x) for x in PYTHON_FLOOR)
         have = ".".join(str(info[i]) for i in range(min(3, len(info))))
         print(
-            "flow-metrics requires Python {} or later; running under {}".format(floor, have),
+            f"flow-metrics requires Python {floor} or later; running under {have}",
             file=sys.stderr,
         )
         sys.exit(EXIT_VALIDATION)
@@ -43,6 +43,8 @@ def _check_python_version(version_info=None) -> None:
 # The stdlib imports above are 3.7-safe; siblings below need the guard
 # to print a friendly message instead of a SyntaxError on 3.9 and older.
 _check_python_version()
+
+import contextlib  # noqa: E402
 
 from . import clock  # noqa: E402  (intentionally after version guard)
 from .jql import compose_jql as compose_jql  # noqa: E402  (canonical iteration-order anchor)
@@ -85,10 +87,7 @@ def _is_under_system_root(p: Path) -> bool:
     roots = _POSIX_SYSTEM_ROOTS
     if sys.platform == "darwin":
         roots = roots + _DARWIN_RESOLVED_ROOTS
-    for r in roots:
-        if s == r or s.startswith(r + "/"):
-            return True
-    return False
+    return any(s == r or s.startswith(r + "/") for r in roots)
 
 
 def validate_path(p: str, label: str) -> Path:
@@ -98,17 +97,15 @@ def validate_path(p: str, label: str) -> Path:
     sneak past via /private/etc on darwin or via symlinks).
     """
     if "\x00" in p:
-        raise ValidationError("--{}: path contains a null byte".format(label))
+        raise ValidationError(f"--{label}: path contains a null byte")
     raw = Path(p)
     candidates = [raw]
-    try:
+    with contextlib.suppress(OSError):
         candidates.append(raw.resolve())
-    except OSError:
-        pass
     for c in candidates:
         if _is_under_system_root(c):
             raise ValidationError(
-                "--{}: path '{}' is under a system root and is refused".format(label, p)
+                f"--{label}: path '{p}' is under a system root and is refused"
             )
     return raw
 
@@ -128,16 +125,16 @@ class Window:
 def _parse_iso_date(s: str, label: str) -> date:
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
-    except ValueError:
+    except ValueError as exc:
         raise ValidationError(
-            "--{}: invalid date '{}'; expected YYYY-MM-DD".format(label, s)
-        )
+            f"--{label}: invalid date '{s}'; expected YYYY-MM-DD"
+        ) from exc
 
 
 def parse_window(
-    from_str: Optional[str],
-    to_str: Optional[str],
-    now: Optional[datetime] = None,
+    from_str: str | None,
+    to_str: str | None,
+    now: datetime | None = None,
 ) -> Window:
     """Resolve the window.
 
@@ -152,25 +149,16 @@ def parse_window(
     # Treat naive datetimes as UTC rather than letting astimezone() interpret
     # them as local-tz; clock.today_utc() always returns tz-aware UTC, but
     # tests / future callers might pass naive instants by mistake.
-    if src.tzinfo is None:
-        src = src.replace(tzinfo=timezone.utc)
-    else:
-        src = src.astimezone(timezone.utc)
+    src = src.replace(tzinfo=UTC) if src.tzinfo is None else src.astimezone(UTC)
     today = src.date()
-    if to_str is None:
-        to_d = today
-    else:
-        to_d = _parse_iso_date(to_str, "to")
-    if from_str is None:
-        from_d = to_d - timedelta(days=90)
-    else:
-        from_d = _parse_iso_date(from_str, "from")
+    to_d = today if to_str is None else _parse_iso_date(to_str, "to")
+    from_d = to_d - timedelta(days=90) if from_str is None else _parse_iso_date(from_str, "from")
     if from_d > to_d:
         raise ValidationError(
-            "--from ({}) must be <= --to ({})".format(from_d.isoformat(), to_d.isoformat())
+            f"--from ({from_d.isoformat()}) must be <= --to ({to_d.isoformat()})"
         )
-    from_utc = datetime(from_d.year, from_d.month, from_d.day, tzinfo=timezone.utc)
-    to_excl = datetime(to_d.year, to_d.month, to_d.day, tzinfo=timezone.utc) + timedelta(days=1)
+    from_utc = datetime(from_d.year, from_d.month, from_d.day, tzinfo=UTC)
+    to_excl = datetime(to_d.year, to_d.month, to_d.day, tzinfo=UTC) + timedelta(days=1)
     return Window(from_date=from_d, to_date=to_d, from_utc=from_utc, to_exclusive_utc=to_excl)
 
 
@@ -203,7 +191,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Scope (exactly one of project / program-id / portfolio-id required;
     # validated manually so we can also enforce --team coupling).
-    parser.add_argument("--project", help="Jira project key. Mutually exclusive with --program-id / --portfolio-id.")
+    parser.add_argument(
+        "--project",
+        help="Jira project key. Mutually exclusive with --program-id / --portfolio-id.",
+    )
     parser.add_argument("--team", help="Sub-scope within a --project. Only valid with --project.")
     parser.add_argument("--program-id", dest="program_id", help="Jira Align program ID.")
     parser.add_argument("--portfolio-id", dest="portfolio_id", help="Jira Align portfolio ID.")
@@ -215,20 +206,31 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Window end (inclusive). Default: today (UTC).")
 
     # Filters
-    parser.add_argument("--jql", help="Extra JQL ANDed into the scope query. Always parenthesized.")
+    parser.add_argument(
+        "--jql", help="Extra JQL ANDed into the scope query. Always parenthesized."
+    )
     parser.add_argument("--align-filter", dest="align_filter",
                         help="Extra OData ANDed into Jira Align queries. Always parenthesized.")
     parser.add_argument("--cohort-jql", dest="cohort_jql",
                         help="JQL marking matching issues with cohort: true.")
 
     # Output selection
-    parser.add_argument("--metrics", help="Comma list. Default: all. Names: " + ", ".join(ALL_METRICS))
+    parser.add_argument(
+        "--metrics", help="Comma list. Default: all. Names: " + ", ".join(ALL_METRICS)
+    )
 
     # Config files
-    parser.add_argument("--state-config", dest="state_config",
-                        help="JSON state-mapping config. Defaults to shipped references/states.default.json.")
-    parser.add_argument("--issuetype-config", dest="issuetype_config",
-                        help="JSON issuetype-bucket config. Defaults to shipped references/issuetypes.default.json.")
+    parser.add_argument(
+        "--state-config", dest="state_config",
+        help="JSON state-mapping config. Defaults to shipped references/states.default.json.",
+    )
+    parser.add_argument(
+        "--issuetype-config", dest="issuetype_config",
+        help=(
+            "JSON issuetype-bucket config. Defaults to"
+            " shipped references/issuetypes.default.json."
+        ),
+    )
 
     # Overrides
     parser.add_argument("--team-field-override", dest="team_field_override",
@@ -237,19 +239,25 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Override the Jira <-> Jira Align join field.")
     parser.add_argument("--align-teams-path", dest="align_teams_path",
                         help="Override the Jira Align teams enumeration path.")
-    parser.add_argument("--include-subtasks", dest="include_subtasks", action="store_true",
-                        help="Include subtasks in throughput / cycle / lead / flow_efficiency / rework_rate.")
+    parser.add_argument(
+        "--include-subtasks", dest="include_subtasks", action="store_true",
+        help="Include subtasks in throughput / cycle / lead / flow_efficiency / rework_rate.",
+    )
 
     # Output format
     parser.add_argument("--format", choices=("json", "csv"), default="json", help="Output format.")
-    parser.add_argument("--output", help="Write to file instead of stdout. Required for --per-issue.")
+    parser.add_argument(
+        "--output", help="Write to file instead of stdout. Required for --per-issue."
+    )
     parser.add_argument("--per-issue", dest="per_issue", action="store_true",
                         help="Emit one JSONL row per issue. Requires --output.")
     parser.add_argument("--yes", action="store_true",
                         help="Overwrite --output without prompting.")
 
     # Cache / debug
-    parser.add_argument("--no-cache", dest="no_cache", action="store_true", help="Bypass the on-disk cache.")
+    parser.add_argument(
+        "--no-cache", dest="no_cache", action="store_true", help="Bypass the on-disk cache."
+    )
     parser.add_argument("--verbose", action="store_true", help="Debug logging.")
 
     return parser
@@ -318,9 +326,9 @@ def confirm_overwrite(
     path: Path,
     *,
     yes: bool,
-    stdin_isatty: Optional[bool] = None,
-    stdout_isatty: Optional[bool] = None,
-    prompt_response: Optional[str] = None,
+    stdin_isatty: bool | None = None,
+    stdout_isatty: bool | None = None,
+    prompt_response: str | None = None,
 ) -> bool:
     """Return True iff overwrite is allowed.
 
@@ -340,7 +348,7 @@ def confirm_overwrite(
         return False
     if prompt_response is None:
         try:
-            prompt_response = input("Overwrite {} ? [y/N] ".format(path))
+            prompt_response = input(f"Overwrite {path} ? [y/N] ")
         except EOFError:
             return False
     return prompt_response.strip().lower() in ("y", "yes")
@@ -365,7 +373,7 @@ def _format_team_id_literal(team_id: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def _build_scope_clause(args: argparse.Namespace, state_config, teams) -> Optional[str]:
+def _build_scope_clause(args: argparse.Namespace, state_config, teams) -> str | None:
     """Compose the bare scope JQL (no user clause, no ORDER BY).
 
     Project scope returns ``project = <KEY>`` optionally narrowed by
@@ -382,7 +390,7 @@ def _build_scope_clause(args: argparse.Namespace, state_config, teams) -> Option
                 # literal so a --team value containing either renders as
                 # valid JQL rather than truncating the clause early.
                 team_lit = args.team.replace("\\", "\\\\").replace('"', '\\"')
-                clause += ' AND "{}" = "{}"'.format(tf.id, team_lit)
+                clause += f' AND "{tf.id}" = "{team_lit}"'
         return clause
     # program / portfolio
     if not teams:
@@ -390,7 +398,7 @@ def _build_scope_clause(args: argparse.Namespace, state_config, teams) -> Option
     from .align import require_align_join_field
     align_join_field = require_align_join_field(state_config, args.align_join_field)
     rendered = ", ".join(_format_team_id_literal(t.id) for t in teams)
-    return '"{}" in ({})'.format(align_join_field, rendered)
+    return f'"{align_join_field}" in ({rendered})'
 
 
 def _scope_kind_and_value(args: argparse.Namespace):
@@ -418,7 +426,7 @@ def _resolve_metrics(args: argparse.Namespace):
     return [m.strip() for m in args.metrics.split(",") if m.strip()]
 
 
-def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
+def _run_pipeline(args: argparse.Namespace, window: Window) -> int:
     """Drive the full pipeline end-to-end. Returns a process exit code.
 
     Orchestration only — every computation step lives in a per-stage module.
@@ -431,26 +439,27 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
     # scaffold's stub-only paths (--help, validation errors) don't pay the full
     # module-graph cost.
     from dataclasses import replace as _replace
-    from .config import ConfigError, TeamField, load_issuetype_config, load_state_config
-    from .upstream import JiraAlignClient, JiraClient, discover_skill_path
+
+    from .aggregate import aggregate
     from .align import (
         AlignScope,
         compute_sources,
         teams_for_scope,
         validate_align_teams_path,
     )
+    from .cache import cache_key, cleanup_stale_tmps, read_cache, write_cache_tee
+    from .cohort import build_cohort_breakdown, resolve_cohort_keys
+    from .config import ConfigError, TeamField, load_issuetype_config, load_state_config
+    from .meta import build_meta, resolve_caller
+    from .notes import NotesCollector
+    from .output import Report, render_csv, render_json, render_jsonl
     from .per_issue import iter_per_issue_rows
     from .per_team import (
         bucket_by_team,
         per_team_double_counted,
         per_team_rollup,
     )
-    from .aggregate import aggregate
-    from .cohort import build_cohort_breakdown, resolve_cohort_keys
-    from .notes import NotesCollector
-    from .meta import build_meta, resolve_caller
-    from .output import Report, render_csv, render_json, render_jsonl
-    from .cache import cache_key, read_cache, write_cache_tee, cleanup_stale_tmps
+    from .upstream import JiraAlignClient, JiraClient, discover_skill_path
 
     # --align-teams-path: validate up-front so a bad value lands as exit 2
     # before any subprocess fires.
@@ -466,7 +475,7 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
             Path(args.issuetype_config) if args.issuetype_config else None
         )
     except ConfigError as e:
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
 
     # --team-field-override replaces only the id; kind is preserved (or
@@ -485,7 +494,7 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
     # 2. Upstream discovery ----------------------------------------------
     jira_script = discover_skill_path("jira")
     jira = JiraClient(jira_script)
-    align: Optional[JiraAlignClient] = None
+    align: JiraAlignClient | None = None
     if scope_kind in ("program", "portfolio"):
         align_script = discover_skill_path("jira-align")
         align = JiraAlignClient(align_script)
@@ -545,10 +554,7 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
                 issuetype_config,
                 window,
             )
-            if args.no_cache:
-                rows = list(stream)
-            else:
-                rows = list(write_cache_tee(cache_dir, key, stream))
+            rows = list(stream) if args.no_cache else list(write_cache_tee(cache_dir, key, stream))
 
     notes = NotesCollector()
 
@@ -642,7 +648,7 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
     # 11. Render + write --------------------------------------------------
     if args.per_issue:
         out_path = Path(args.output)
-        with open(out_path, "wb") as f:
+        with out_path.open("wb") as f:
             for line in render_jsonl(iter(rows)):
                 f.write(line)
         return EXIT_OK
@@ -655,13 +661,10 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
         cohort_breakdown=cohort_breakdown_dict,
         per_team=per_team_rows,
     )
-    if args.format == "json":
-        payload = render_json(report)
-    else:
-        payload = render_csv(report)
+    payload = render_json(report) if args.format == "json" else render_csv(report)
 
     if args.output:
-        with open(args.output, "wb") as f:
+        with Path(args.output).open("wb") as f:
             f.write(payload)
     else:
         sys.stdout.buffer.write(payload)
@@ -673,7 +676,7 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -681,7 +684,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         validate_args(args)
         window = parse_window(args.from_date, args.to_date)
     except ValidationError as e:
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
     except (AllowlistError, UpstreamNotFoundError) as e:
         # Upstream-wrapper test seam — these exceptions are raised by the
@@ -689,7 +692,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # production, but the upstream wrapper's test_main_catches_*
         # contract tests monkeypatch validate_args to inject them and
         # assert main()'s exit-code mapping.
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
     except JiraError:
         return EXIT_UPSTREAM
@@ -700,37 +703,37 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         out_path = Path(args.output)
         if not confirm_overwrite(out_path, yes=args.yes):
             print(
-                "error: --output {} exists and overwrite was not confirmed".format(out_path),
+                f"error: --output {out_path} exists and overwrite was not confirmed",
                 file=sys.stderr,
             )
             return EXIT_USER_ABORT
 
     # Locally-imported exception types — keep the catch list explicit so
     # Python picks the right branch by isinstance, not by clause order.
-    from .timeline import UnmappedStatusError as _UnmappedStatusError
     from .align import AlignResponseError as _AlignResponseError
     from .meta import CallerResolutionError as _CallerResolutionError
+    from .timeline import UnmappedStatusError as _UnmappedStatusError
 
     try:
         return _run_pipeline(args, window)
     except ValidationError as e:
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
     except (AllowlistError, UpstreamNotFoundError) as e:
         # Wrapper-boundary refusals (disallowed verbs, missing upstream
         # skill) are validation-class failures.
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
     except _UnmappedStatusError as e:
         # Unmapped-status policy: data-dependent exit 2 naming the
         # offending raw status. The exception message already does so.
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
     except ValueError as e:
         # require_align_join_field / validate_align_teams_path /
         # compose_program_scope_jql raise ValueError on bad inputs the
         # spec maps to exit 2.
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
     except JiraError:
         # Upstream stderr was already forwarded inside the wrapper; here
@@ -739,7 +742,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except (_AlignResponseError, _CallerResolutionError) as e:
         # Upstream-side data-shape errors — subprocess exited zero but
         # the payload was unusable. Spec maps to exit 3.
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_UPSTREAM
 
 

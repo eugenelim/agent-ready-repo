@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 REF_DIR = REPO_ROOT / "guides" / "_shared" / "reference"
 REF_PAGE = REF_DIR / "agentbundle.md"

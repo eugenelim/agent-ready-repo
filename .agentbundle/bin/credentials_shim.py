@@ -45,6 +45,7 @@ projection only.
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import os
 import pathlib
@@ -53,6 +54,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+
 
 class CredentialsMissingError(Exception):
     """Raised when a required credential key cannot be resolved at any tier.
@@ -495,12 +497,10 @@ def _dotfile_write(
         os.close(fd)
         if os.name == "nt":
             _verify_icacls(tmp_path, allow_permissive_acl=allow_permissive_acl)
-        os.replace(tmp_path, path)
+        tmp_path.replace(path)
     except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            tmp_path.unlink()
         raise
 
 
@@ -532,12 +532,10 @@ def _dotfile_delete(namespace: str, key: str) -> None:
         if os.name == "posix":
             os.fchmod(fd, 0o600)
         os.close(fd)
-        os.replace(tmp_path, path)
+        tmp_path.replace(path)
     except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            tmp_path.unlink()
         raise
 
 
@@ -731,7 +729,7 @@ _SKILL_MD_RE = re.compile(r"^\.claude/skills/([^/]+)/SKILL\.md$")
 
 
 def _relative_schema_path(
-    state: "object", pack: str, skill_name: str
+    state: object, pack: str, skill_name: str
 ) -> pathlib.Path:
     """Resolve the *state-relative* ``creds-schema.toml`` path.
 

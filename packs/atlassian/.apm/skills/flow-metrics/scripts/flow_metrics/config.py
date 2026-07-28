@@ -13,8 +13,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Tuple
-
+from typing import Any, Mapping
 
 EXIT_VALIDATION = 2
 
@@ -38,7 +37,7 @@ class ConfigError(Exception):
 # ---------------------------------------------------------------------------
 # Skill-root resolution
 # ---------------------------------------------------------------------------
-def _find_skill_root(start: Optional[Path] = None) -> Path:
+def _find_skill_root(start: Path | None = None) -> Path:
     """Walk up from ``start`` (default: this file) until a directory containing
     both ``SKILL.md`` and ``references/`` is found.
 
@@ -62,8 +61,8 @@ def _find_skill_root(start: Optional[Path] = None) -> Path:
         if (parent / "references").is_dir() and (parent / "scripts").is_dir():
             return parent
     raise ConfigError(
-        "could not locate flow-metrics skill root (no parent of {} contains "
-        "SKILL.md + references/ or scripts/ + references/)".format(here)
+        f"could not locate flow-metrics skill root (no parent of {here} contains "
+        "SKILL.md + references/ or scripts/ + references/)"
     )
 
 
@@ -91,31 +90,31 @@ def derive_sha(parsed: Any) -> str:
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ReworkSignal:
-    from_states: FrozenSet[str]
-    to_states: FrozenSet[str]
+    from_states: frozenset[str]
+    to_states: frozenset[str]
 
 
 @dataclass(frozen=True)
 class TeamField:
-    id: Optional[str]
-    kind: Optional[str]
+    id: str | None
+    kind: str | None
 
 
 @dataclass(frozen=True)
 class StateConfig:
-    canonical_states: Mapping[str, FrozenSet[str]]
-    active_states: FrozenSet[str]
-    wait_states: FrozenSet[str]
-    terminal_non_delivery_states: FrozenSet[str]
-    rework_signals: Tuple[ReworkSignal, ...]
+    canonical_states: Mapping[str, frozenset[str]]
+    active_states: frozenset[str]
+    wait_states: frozenset[str]
+    terminal_non_delivery_states: frozenset[str]
+    rework_signals: tuple[ReworkSignal, ...]
     commitment_state: str
     delivery_state: str
     team_field: TeamField
     sha: str
-    align_join_field: Optional[str] = None
+    align_join_field: str | None = None
     _raw_to_canonical: Mapping[str, str] = field(default_factory=dict, repr=False, compare=False)
 
-    def canonical_for(self, raw_status: str) -> Optional[str]:
+    def canonical_for(self, raw_status: str) -> str | None:
         """O(1) lookup from raw Jira status name to canonical state.
 
         Returns ``None`` if ``raw_status`` is not mapped under any
@@ -136,20 +135,16 @@ class StateConfig:
 def _require_type(value: Any, expected_type: type, label: str) -> None:
     if not isinstance(value, expected_type):
         raise ConfigError(
-            "state config: '{}' must be {}, got {}".format(
-                label, expected_type.__name__, type(value).__name__
-            )
+            f"state config: '{label}' must be {expected_type.__name__}, got {type(value).__name__}"
         )
 
 
-def _require_list_of_str(value: Any, label: str) -> List[str]:
+def _require_list_of_str(value: Any, label: str) -> list[str]:
     _require_type(value, list, label)
     for i, item in enumerate(value):
         if not isinstance(item, str):
             raise ConfigError(
-                "state config: '{}[{}]' must be string, got {}".format(
-                    label, i, type(item).__name__
-                )
+                f"state config: '{label}[{i}]' must be string, got {type(item).__name__}"
             )
     return list(value)
 
@@ -169,9 +164,7 @@ def validate_state_config(parsed: Any) -> None:
     """
     if not isinstance(parsed, dict):
         raise ConfigError(
-            "state config: top-level must be a JSON object, got {}".format(
-                type(parsed).__name__
-            )
+            f"state config: top-level must be a JSON object, got {type(parsed).__name__}"
         )
 
     canonical_states = parsed.get("canonical_states")
@@ -180,7 +173,7 @@ def validate_state_config(parsed: Any) -> None:
     for cname, raws in canonical_states.items():
         if not isinstance(cname, str):
             raise ConfigError("state config: 'canonical_states' keys must be strings")
-        _require_list_of_str(raws, "canonical_states.{}".format(cname))
+        _require_list_of_str(raws, f"canonical_states.{cname}")
     canonical_keys = set(canonical_states.keys())
 
     active = _require_list_of_str(parsed.get("active_states", []), "active_states")
@@ -197,81 +190,75 @@ def validate_state_config(parsed: Any) -> None:
 
     rework_signals_raw = parsed.get("rework_signals", [])
     _require_type(rework_signals_raw, list, "rework_signals")
-    rework_pairs: List[Tuple[List[str], List[str]]] = []
+    rework_pairs: list[tuple[list[str], list[str]]] = []
     for i, entry in enumerate(rework_signals_raw):
         if not isinstance(entry, dict):
             raise ConfigError(
-                "state config: 'rework_signals[{}]' must be an object".format(i)
+                f"state config: 'rework_signals[{i}]' must be an object"
             )
         froms = _require_list_of_str(
-            entry.get("from", []), "rework_signals[{}].from".format(i)
+            entry.get("from", []), f"rework_signals[{i}].from"
         )
         tos = _require_list_of_str(
-            entry.get("to", []), "rework_signals[{}].to".format(i)
+            entry.get("to", []), f"rework_signals[{i}].to"
         )
         rework_pairs.append((froms, tos))
 
     # Rule 1: commitment_state must be present in canonical_states.
     if commitment not in canonical_keys:
         raise ConfigError(
-            "state config: 'commitment_state' ({}) is not a key of 'canonical_states'".format(
-                commitment
-            )
+            f"state config: 'commitment_state' ({commitment}) is not a key of 'canonical_states'"
         )
     # Rule 2: delivery_state must be present in canonical_states.
     if delivery not in canonical_keys:
         raise ConfigError(
-            "state config: 'delivery_state' ({}) is not a key of 'canonical_states'".format(
-                delivery
-            )
+            f"state config: 'delivery_state' ({delivery}) is not a key of 'canonical_states'"
         )
     # Rule 3: commitment_state != delivery_state.
     if commitment == delivery:
         raise ConfigError(
             "state config: 'commitment_state' and 'delivery_state' must differ "
-            "(both = {})".format(commitment)
+            f"(both = {commitment})"
         )
     # Rule 4: delivery_state not in terminal_non_delivery_states.
     if delivery in terminal:
         raise ConfigError(
-            "state config: 'delivery_state' ({}) must not appear in "
-            "'terminal_non_delivery_states'".format(delivery)
+            f"state config: 'delivery_state' ({delivery}) must not appear in "
+            "'terminal_non_delivery_states'"
         )
     # Rule 5: commitment_state not in terminal_non_delivery_states.
     if commitment in terminal:
         raise ConfigError(
-            "state config: 'commitment_state' ({}) must not appear in "
-            "'terminal_non_delivery_states'".format(commitment)
+            f"state config: 'commitment_state' ({commitment}) must not appear in "
+            "'terminal_non_delivery_states'"
         )
     # Rule 6: active_states ∩ wait_states == ∅.
     overlap = set(active) & set(wait)
     if overlap:
         raise ConfigError(
             "state config: 'active_states' and 'wait_states' must be disjoint; "
-            "overlap = {}".format(sorted(overlap))
+            f"overlap = {sorted(overlap)}"
         )
     # Rule 7: delivery_state not in (active_states ∪ wait_states).
     if delivery in active or delivery in wait:
         raise ConfigError(
-            "state config: 'delivery_state' ({}) must not appear in "
-            "'active_states' or 'wait_states'".format(delivery)
+            f"state config: 'delivery_state' ({delivery}) must not appear in "
+            "'active_states' or 'wait_states'"
         )
     # Rule 8: every referenced canonical name is a key of canonical_states.
-    def _check_refs(refs: List[str], label: str) -> None:
+    def _check_refs(refs: list[str], label: str) -> None:
         for r in refs:
             if r not in canonical_keys:
                 raise ConfigError(
-                    "state config: '{}' references unknown canonical state '{}'".format(
-                        label, r
-                    )
+                    f"state config: '{label}' references unknown canonical state '{r}'"
                 )
 
     _check_refs(active, "active_states")
     _check_refs(wait, "wait_states")
     _check_refs(terminal, "terminal_non_delivery_states")
     for i, (froms, tos) in enumerate(rework_pairs):
-        _check_refs(froms, "rework_signals[{}].from".format(i))
-        _check_refs(tos, "rework_signals[{}].to".format(i))
+        _check_refs(froms, f"rework_signals[{i}].from")
+        _check_refs(tos, f"rework_signals[{i}].to")
 
     # team_field shape check. Rule 9's field-catalog lookup is deferred to
     # the upstream wrapper; here we enforce shape + the v2 deferral.
@@ -288,14 +275,13 @@ def validate_state_config(parsed: Any) -> None:
                 raise ConfigError("state config: 'team_field.kind' must be a string")
             if tf_kind in _DEFERRED_TEAM_FIELD_KINDS:
                 raise ConfigError(
-                    "state config: 'team_field.kind = {}' is deferred to v2; "
-                    "use 'single_value' or 'array' instead".format(tf_kind)
+                    f"state config: 'team_field.kind = {tf_kind}' is deferred to v2; "
+                    "use 'single_value' or 'array' instead"
                 )
             if tf_kind not in _ALLOWED_TEAM_FIELD_KINDS:
                 raise ConfigError(
-                    "state config: 'team_field.kind' must be one of {}; got '{}'".format(
-                        _ALLOWED_TEAM_FIELD_KINDS, tf_kind
-                    )
+                    f"state config: 'team_field.kind' must be one of"
+                    f" {_ALLOWED_TEAM_FIELD_KINDS}; got '{tf_kind}'"
                 )
         # A 'kind' without an 'id' has no anchor — the catalog check (rule 9)
         # would have nothing to validate. Treat as malformed.
@@ -312,18 +298,17 @@ def validate_state_config(parsed: Any) -> None:
 
 def _build_state_config(parsed: dict) -> StateConfig:
     canonical_states_raw = parsed["canonical_states"]
-    canonical_states: Dict[str, FrozenSet[str]] = {
+    canonical_states: dict[str, frozenset[str]] = {
         cname: frozenset(raws) for cname, raws in canonical_states_raw.items()
     }
 
-    raw_to_canonical: Dict[str, str] = {}
+    raw_to_canonical: dict[str, str] = {}
     for cname, raws in canonical_states_raw.items():
         for raw in raws:
             if raw in raw_to_canonical and raw_to_canonical[raw] != cname:
                 raise ConfigError(
-                    "state config: raw status '{}' is mapped to both '{}' and '{}'".format(
-                        raw, raw_to_canonical[raw], cname
-                    )
+                    f"state config: raw status '{raw}' is mapped to both"
+                    f" '{raw_to_canonical[raw]}' and '{cname}'"
                 )
             raw_to_canonical[raw] = cname
 
@@ -356,17 +341,17 @@ def _build_state_config(parsed: dict) -> StateConfig:
 def _read_json(path: Path, label: str) -> Any:
     try:
         text = path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise ConfigError("{}: file not found: {}".format(label, path))
+    except FileNotFoundError as exc:
+        raise ConfigError(f"{label}: file not found: {path}") from exc
     except OSError as e:
-        raise ConfigError("{}: cannot read {}: {}".format(label, path, e))
+        raise ConfigError(f"{label}: cannot read {path}: {e}") from e
     try:
         return json.loads(text)
     except json.JSONDecodeError as e:
-        raise ConfigError("{}: invalid JSON in {}: {}".format(label, path, e))
+        raise ConfigError(f"{label}: invalid JSON in {path}: {e}") from e
 
 
-def load_state_config(path: Optional[Path] = None) -> StateConfig:
+def load_state_config(path: Path | None = None) -> StateConfig:
     """Load and validate a state config. ``None`` resolves to the shipped default."""
     resolved = Path(path) if path is not None else _default_path(DEFAULT_STATE_CONFIG_NAME)
     parsed = _read_json(resolved, "state config")
@@ -379,14 +364,14 @@ def load_state_config(path: Optional[Path] = None) -> StateConfig:
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class IssuetypeConfig:
-    buckets: Mapping[str, FrozenSet[str]]
+    buckets: Mapping[str, frozenset[str]]
     sha: str
     _raw_to_bucket: Mapping[str, str] = field(default_factory=dict, repr=False, compare=False)
 
     def __hash__(self) -> int:
         return hash(self.sha)
 
-    def bucket_for(self, raw_issuetype: str) -> Optional[str]:
+    def bucket_for(self, raw_issuetype: str) -> str | None:
         """Return the bucket name for ``raw_issuetype``, or ``None`` if unmapped.
 
         Unmapped issuetypes are bucketed as ``"other"`` by the consumer
@@ -412,31 +397,31 @@ def validate_issuetype_config(parsed: Any) -> None:
             # reserved; a user-configured `other` bucket collides with the
             # sink semantics, so reject at startup.
             raise ConfigError(
-                "issuetype config: bucket '{}' is reserved for unmapped "
-                "issuetypes; remove or rename it".format(bucket)
+                f"issuetype config: bucket '{bucket}' is reserved for unmapped "
+                "issuetypes; remove or rename it"
             )
         if not isinstance(raws, list):
             raise ConfigError(
-                "issuetype config: bucket '{}' must map to a list".format(bucket)
+                f"issuetype config: bucket '{bucket}' must map to a list"
             )
         for i, raw in enumerate(raws):
             if not isinstance(raw, str):
                 raise ConfigError(
-                    "issuetype config: bucket '{}'[{}] must be a string".format(bucket, i)
+                    f"issuetype config: bucket '{bucket}'[{i}] must be a string"
                 )
 
 
 def _build_issuetype_config(parsed: dict) -> IssuetypeConfig:
-    buckets: Dict[str, FrozenSet[str]] = {
+    buckets: dict[str, frozenset[str]] = {
         bucket: frozenset(raws) for bucket, raws in parsed.items()
     }
-    raw_to_bucket: Dict[str, str] = {}
+    raw_to_bucket: dict[str, str] = {}
     for bucket, raws in parsed.items():
         for raw in raws:
             if raw in raw_to_bucket and raw_to_bucket[raw] != bucket:
                 raise ConfigError(
-                    "issuetype config: raw issuetype '{}' is mapped to both "
-                    "'{}' and '{}'".format(raw, raw_to_bucket[raw], bucket)
+                    f"issuetype config: raw issuetype '{raw}' is mapped to both "
+                    f"'{raw_to_bucket[raw]}' and '{bucket}'"
                 )
             raw_to_bucket[raw] = bucket
     return IssuetypeConfig(
@@ -446,7 +431,7 @@ def _build_issuetype_config(parsed: dict) -> IssuetypeConfig:
     )
 
 
-def load_issuetype_config(path: Optional[Path] = None) -> IssuetypeConfig:
+def load_issuetype_config(path: Path | None = None) -> IssuetypeConfig:
     resolved = Path(path) if path is not None else _default_path(DEFAULT_ISSUETYPE_CONFIG_NAME)
     parsed = _read_json(resolved, "issuetype config")
     validate_issuetype_config(parsed)
@@ -458,7 +443,7 @@ def load_issuetype_config(path: Optional[Path] = None) -> IssuetypeConfig:
 # ---------------------------------------------------------------------------
 def validate_team_field_against_catalog(
     state_config: StateConfig,
-    override: Optional[str],
+    override: str | None,
     jira: Any,
 ) -> None:
     """Spec rule 9: the configured ``team_field.id`` must exist in Jira's
@@ -484,5 +469,5 @@ def validate_team_field_against_catalog(
                 known.add(item["id"])
     if target_id not in known:
         raise ConfigError(
-            "team_field.id {!r} not found in Jira's field catalog".format(target_id)
+            f"team_field.id {target_id!r} not found in Jira's field catalog"
         )

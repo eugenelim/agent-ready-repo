@@ -21,6 +21,7 @@ Security invariants:
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -32,7 +33,7 @@ import tempfile
 import urllib.error
 import urllib.request
 from pathlib import Path
-from urllib.parse import urljoin, urlunsplit, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from agentbundle.catalogue import CatalogueError
 
@@ -49,7 +50,9 @@ _HTTP_TIMEOUT = 30                                 # seconds
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
-_DESCRIPTOR_REQUIRED_FIELDS = ("schema", "kind", "bundle", "channel", "release", "artifact", "sha256")
+_DESCRIPTOR_REQUIRED_FIELDS = (
+    "schema", "kind", "bundle", "channel", "release", "artifact", "sha256"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +218,8 @@ def _parse_descriptor(data: bytes) -> dict:
     sha256_val = obj["sha256"]
     if not isinstance(sha256_val, str) or not _SHA256_RE.fullmatch(sha256_val):
         raise CatalogueError(
-            f"channel descriptor sha256 must be exactly 64 lowercase hex characters; got {sha256_val!r}"
+            "channel descriptor sha256 must be exactly 64 lowercase hex characters; "
+            f"got {sha256_val!r}"
         )
     return obj
 
@@ -251,8 +255,8 @@ def _resolve_artifact_url(descriptor_url: str, artifact_field: str) -> str:
 
     if _origin(parsed) != _origin(orig):
         raise CatalogueError(
-            f"cross-origin artifact URL rejected: artifact origin does not match "
-            f"channel descriptor origin (scheme+host+port must all match)"
+            "cross-origin artifact URL rejected: artifact origin does not match "
+            "channel descriptor origin (scheme+host+port must all match)"
         )
     return resolved
 
@@ -322,18 +326,17 @@ def _stream_and_verify(
         hasher = hashlib.sha256()
         total = 0
         try:
-            with opener.open(req, timeout=timeout) as resp:
-                with os.fdopen(tmp_fd, "wb") as tmp_file:
-                    tmp_fd = -1  # fd now owned by tmp_file
-                    while True:
-                        chunk = resp.read(65536)
-                        if not chunk:
-                            break
-                        total += len(chunk)
-                        if total > _MAX_ARCHIVE_BYTES:
-                            raise CatalogueError(
-                                f"archive from {url!r} exceeds {_MAX_ARCHIVE_BYTES} byte limit"
-                            )
+            with opener.open(req, timeout=timeout) as resp, os.fdopen(tmp_fd, "wb") as tmp_file:
+                tmp_fd = -1  # fd now owned by tmp_file
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > _MAX_ARCHIVE_BYTES:
+                        raise CatalogueError(
+                            f"archive from {url!r} exceeds {_MAX_ARCHIVE_BYTES} byte limit"
+                        )
                         hasher.update(chunk)
                         tmp_file.write(chunk)
         except CatalogueError:
@@ -353,14 +356,10 @@ def _stream_and_verify(
     except Exception:
         # Close the fd if it was never handed to fdopen
         if tmp_fd >= 0:
-            try:
+            with contextlib.suppress(OSError):
                 os.close(tmp_fd)
-            except OSError:
-                pass
-        try:
+        with contextlib.suppress(OSError):
             tmp_path.unlink(missing_ok=True)
-        except OSError:
-            pass
         raise
 
 
@@ -378,10 +377,8 @@ def _safe_extract(archive_path: Path, dest: Path) -> None:
     """
     try:
         with tarfile.open(archive_path, "r:gz") as tf:
-            member_count = 0
             expanded_bytes = 0
-            for member in tf.getmembers():
-                member_count += 1
+            for member_count, member in enumerate(tf.getmembers(), start=1):
                 if member_count > _MAX_MEMBERS:
                     raise CatalogueError(
                         f"archive contains more than {_MAX_MEMBERS} members; rejected"
@@ -390,9 +387,10 @@ def _safe_extract(archive_path: Path, dest: Path) -> None:
                 name = member.name
                 if ".." in name.split("/") or name.startswith("/"):
                     raise CatalogueError(
-                        f"archive member {name!r} has unsafe path (traversal or absolute); rejected"
+                        f"archive member {name!r} has unsafe path "
+                        f"(traversal or absolute); rejected"
                     )
-                if os.path.isabs(name):
+                if Path(name).is_absolute():
                     raise CatalogueError(
                         f"archive member {name!r} has absolute path; rejected"
                     )
@@ -452,7 +450,7 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
     ``ProxyHandler()``, not from ``env``.
     """
     if env is None:
-        env = os.environ
+        env = os.environ  # type: ignore[assignment]
     token = env.get("AGENTBUNDLE_HTTP_BEARER_TOKEN")
 
     if source_uri.startswith("catalogue+https://"):
@@ -467,7 +465,9 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
             descriptor = _parse_descriptor(raw)
             _check_client_version(descriptor.get("minimum_agentbundle_version"))
             artifact_url = _resolve_artifact_url(channel_url, descriptor["artifact"])
-            archive_path = _stream_and_verify(artifact_url, descriptor["sha256"], opener, _HTTP_TIMEOUT)
+            archive_path = _stream_and_verify(
+                artifact_url, descriptor["sha256"], opener, _HTTP_TIMEOUT
+            )
             dest = Path(tempfile.mkdtemp(prefix="agentbundle-"))
             _safe_extract(archive_path, dest)
             return dest
@@ -475,10 +475,8 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
             if archive_path is not None:
-                try:
+                with contextlib.suppress(OSError):
                     archive_path.unlink(missing_ok=True)
-                except OSError:
-                    pass
             raise
 
     elif source_uri.startswith("archive+https://"):
@@ -506,10 +504,8 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
             if dest is not None:
                 shutil.rmtree(str(dest), ignore_errors=True)
             if archive_path is not None:
-                try:
+                with contextlib.suppress(OSError):
                     archive_path.unlink(missing_ok=True)
-                except OSError:
-                    pass
             raise
 
     else:

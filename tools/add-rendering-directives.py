@@ -64,7 +64,9 @@ SKILLS: dict[str, list[str]] = {
     # core
     "workspace-status":             ["status-list", "table", "mermaid", "progress"],
     "frontend-engineering":         ["table"],
-    "work-loop":                    ["status-list", "severity-list", "table", "narrative", "progress"],
+    "work-loop": [
+        "status-list", "severity-list", "table", "narrative", "progress"
+    ],
     "receive-brief":                ["table", "key-value"],
     "contract-acquisition":         ["table", "key-value", "narrative"],
     "capture-work":                 ["table", "key-value"],

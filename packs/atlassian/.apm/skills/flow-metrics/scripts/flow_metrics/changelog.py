@@ -37,11 +37,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Iterator, List, Mapping, Optional
+from datetime import UTC, datetime
+from typing import Any, Iterator, Mapping
 
 from .upstream import JiraClient
-
 
 # Fields per-issue derivation consumes. Other field changes (labels, assignee, custom
 # fields) are filtered out at this layer so per-issue memory stays
@@ -90,16 +89,12 @@ def _parse_jira_timestamp(s: str) -> datetime:
         text = text[:-1] + "+00:00"
     m = _TRAILING_OFFSET_NO_COLON.search(text)
     if m:
-        text = text[: m.start()] + "{}{}:{}".format(m.group(1), m.group(2), m.group(3))
+        text = text[: m.start()] + f"{m.group(1)}{m.group(2)}:{m.group(3)}"
     dt = datetime.fromisoformat(text)
-    if dt.tzinfo is None:
-        # Spec is UTC-throughout; a no-offset timestamp is treated as UTC
-        # rather than rejected. Server's older changelog responses
-        # occasionally drop the offset.
-        dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    return dt
+    # Spec is UTC-throughout; a no-offset timestamp is treated as UTC
+    # rather than rejected. Server's older changelog responses
+    # occasionally drop the offset.
+    return dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +120,7 @@ def _author_name(author: Any) -> str:
 # ---------------------------------------------------------------------------
 # Envelope helpers
 # ---------------------------------------------------------------------------
-def _histories(envelope: Any) -> List[dict]:
+def _histories(envelope: Any) -> list[dict]:
     """Return the list of history records from a changelog envelope.
 
     Cloud's ``/search/jql``-style follow-up payload may use ``values``
@@ -190,7 +185,7 @@ def _entries_from_history(history: Mapping[str, Any]) -> Iterator[ChangelogEntry
 # ---------------------------------------------------------------------------
 # Pagination detection
 # ---------------------------------------------------------------------------
-def _detect_pagination_mode(envelope: Mapping[str, Any], drained: int) -> Optional[str]:
+def _detect_pagination_mode(envelope: Mapping[str, Any], drained: int) -> str | None:
     """Return ``"server"`` / ``"cloud"`` / ``None`` per the priority signals.
 
     ``drained`` is the count of records walked through ``_histories(envelope)``
@@ -257,7 +252,7 @@ def iter_issue_changelog(
     if mode is None:
         return
 
-    path = "issue/{}/changelog".format(issue_key)
+    path = f"issue/{issue_key}/changelog"
 
     if mode == "server":
         # Server / DC: advance ``startAt`` by the count of history
@@ -296,7 +291,7 @@ def iter_issue_changelog(
     # or no further ``nextPageToken``. Initial token comes from the
     # inline envelope; subsequent tokens from each follow-up response.
     initial_token = envelope.get("nextPageToken")
-    token: Optional[str] = initial_token if isinstance(initial_token, str) else None
+    token: str | None = initial_token if isinstance(initial_token, str) else None
     while True:
         params: dict = {}
         if token:

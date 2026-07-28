@@ -1482,7 +1482,7 @@ def run_build_check_drift_gates(
                     except _PARITY_EXPECTED_EXC as exc:
                         source_out = f"<{type(exc).__name__}: {exc}>"
                     try:
-                        template_out: object = template_emit(test_input)
+                        template_out: object = template_emit(test_input)  # type: ignore[operator]
                     except _PARITY_EXPECTED_EXC as exc:
                         template_out = f"<{type(exc).__name__}: {exc}>"
                     if source_out != template_out:

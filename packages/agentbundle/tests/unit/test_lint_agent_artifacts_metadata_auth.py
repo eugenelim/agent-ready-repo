@@ -41,13 +41,12 @@ class TestMetadataAuthAdmission(unittest.TestCase):
 
     def test_each_broker_id_admitted(self) -> None:
         for broker in ALL_BROKERS:
-            with self.subTest(broker=broker):
-                with tempfile.TemporaryDirectory() as tmp:
+            with self.subTest(broker=broker), tempfile.TemporaryDirectory() as tmp:
                     root = Path(tmp)
                     _write_skill(root, f"ok-{broker}", textwrap.dedent(f"""\
                         ---
                         name: ok-{broker}
-                        description: A credentialed skill declaring auth={broker}; lint must accept it.
+                        description: Credentialed skill with auth={broker}; lint must accept it.
                         metadata:
                           credentialed: true
                           auth: {broker}

@@ -9,7 +9,6 @@ membership fail-closed check.
 from __future__ import annotations
 
 import pytest
-
 from credbroker import _sso
 from credbroker._sso import SsoConfigError
 

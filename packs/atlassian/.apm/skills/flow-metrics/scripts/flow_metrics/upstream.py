@@ -20,6 +20,7 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -27,7 +28,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, Iterator, Mapping
 
 
 # ---------------------------------------------------------------------------
@@ -48,11 +49,11 @@ class JiraError(Exception):
     to exit 3 (upstream-skill error) and relay the stderr verbatim.
     """
 
-    def __init__(self, returncode: int, stderr: bytes, *, argv: Optional[List[str]] = None) -> None:
+    def __init__(self, returncode: int, stderr: bytes, *, argv: list[str] | None = None) -> None:
         self.returncode = returncode
         self.stderr = stderr or b""
         self.argv = list(argv) if argv is not None else []
-        msg = "upstream returned exit {}".format(returncode)
+        msg = f"upstream returned exit {returncode}"
         if self.stderr:
             msg += ": " + self.stderr.decode("utf-8", errors="replace").strip()
         super().__init__(msg)
@@ -65,7 +66,7 @@ class UpstreamNotFoundError(Exception):
     error message can name each one tried.
     """
 
-    def __init__(self, name: str, tried: List[Path]) -> None:
+    def __init__(self, name: str, tried: list[Path]) -> None:
         self.name = name
         self.tried = list(tried)
         msg = (
@@ -88,7 +89,7 @@ def exit_code_for(exc: BaseException) -> int:
         return EXIT_UPSTREAM
     if isinstance(exc, (AllowlistError, UpstreamNotFoundError)):
         return EXIT_VALIDATION
-    raise TypeError("exit_code_for: unsupported exception type {}".format(type(exc).__name__))
+    raise TypeError(f"exit_code_for: unsupported exception type {type(exc).__name__}")
 
 
 # ---------------------------------------------------------------------------
@@ -116,10 +117,12 @@ def _module_name_for_script(name: str) -> str:
     return name.replace("-", "_")
 
 
-_USER_SCOPE_CAPABLE_ADAPTER_DIRS: Tuple[str, ...] = (".claude", ".kiro", ".agents")
+_USER_SCOPE_CAPABLE_ADAPTER_DIRS: tuple[str, ...] = (".claude", ".kiro", ".agents")
 
 
-def discover_skill_path(name: str, *, env: Optional[Mapping[str, str]] = None, cwd: Optional[Path] = None) -> Path:
+def discover_skill_path(
+    name: str, *, env: Mapping[str, str] | None = None, cwd: Path | None = None
+) -> Path:
     """Locate the upstream skill's CLI entry script.
 
     Probe order:
@@ -149,9 +152,9 @@ def discover_skill_path(name: str, *, env: Optional[Mapping[str, str]] = None, c
     """
     e = env if env is not None else os.environ
     base_cwd = cwd if cwd is not None else Path.cwd()
-    script = "{}.py".format(_module_name_for_script(name))
+    script = f"{_module_name_for_script(name)}.py"
 
-    candidates: List[Tuple[str, Path]] = []
+    candidates: list[tuple[str, Path]] = []
 
     # 1. Env override appended as a candidate. The `is_file()` check
     #    below means a typo'd override falls through to the next
@@ -172,13 +175,19 @@ def discover_skill_path(name: str, *, env: Optional[Mapping[str, str]] = None, c
     #    order in `_resolve_user_scope_target_adapter`.
     for adapter_dir in _USER_SCOPE_CAPABLE_ADAPTER_DIRS:
         candidates.append(
-            ("user:" + adapter_dir, Path.home() / adapter_dir / "skills" / name / "scripts" / script)
+            (
+                "user:" + adapter_dir,
+                Path.home() / adapter_dir / "skills" / name / "scripts" / script,
+            )
         )
 
     # 4. Project scope — same three adapter directories.
     for adapter_dir in _USER_SCOPE_CAPABLE_ADAPTER_DIRS:
         candidates.append(
-            ("project:" + adapter_dir, base_cwd / adapter_dir / "skills" / name / "scripts" / script)
+            (
+                "project:" + adapter_dir,
+                base_cwd / adapter_dir / "skills" / name / "scripts" / script,
+            )
         )
 
     for _kind, path in candidates:
@@ -201,7 +210,7 @@ def _forward_stderr(b: bytes) -> None:
         sys.stderr.flush()
 
 
-def _run_capture(argv: List[str]) -> Tuple[int, bytes, bytes]:
+def _run_capture(argv: list[str]) -> tuple[int, bytes, bytes]:
     """Run argv to completion, capture stdout+stderr. List-form only.
 
     No ``shell=True``; ``env`` is the full inherited ``os.environ`` per
@@ -242,7 +251,7 @@ class JiraClient:
 
     # Exact regex patterns; not prefixes. ``project/PROJ/components`` is
     # rejected even though it starts with ``project/``.
-    _ALLOWED_RAW_PATTERNS: Tuple[re.Pattern, ...] = (
+    _ALLOWED_RAW_PATTERNS: tuple[re.Pattern, ...] = (
         re.compile(r"^field$"),
         re.compile(r"^project/[A-Z][A-Z0-9_]+/statuses$"),
         re.compile(r"^issue/[A-Z][A-Z0-9_]+-[0-9]+/changelog$"),
@@ -260,7 +269,7 @@ class JiraClient:
     def whoami(self) -> Any:
         return self._invoke(["whoami"])
 
-    def get_issue(self, key: str, fields: Optional[str] = None, expand: Optional[str] = None) -> Any:
+    def get_issue(self, key: str, fields: str | None = None, expand: str | None = None) -> Any:
         sub = ["get-issue", key]
         if fields is not None:
             sub += ["--fields", fields]
@@ -271,19 +280,19 @@ class JiraClient:
     def get_project(self, key: str) -> Any:
         return self._invoke(["get-project", key])
 
-    def raw_get(self, path: str, params: Optional[Mapping[str, str]] = None) -> Any:
+    def raw_get(self, path: str, params: Mapping[str, str] | None = None) -> Any:
         self._validate_raw_get(path)
         sub = ["raw", "GET", path]
         for k, v in (params or {}).items():
-            sub += ["--param", "{}={}".format(k, v)]
+            sub += ["--param", f"{k}={v}"]
         return self._invoke(sub)
 
     def search(
         self,
         jql: str,
-        fields: Optional[str] = None,
-        expand: Optional[str] = None,
-        page_size: Optional[int] = None,
+        fields: str | None = None,
+        expand: str | None = None,
+        page_size: int | None = None,
     ) -> Iterator[dict]:
         """Stream ``jira: search`` rows one at a time via ``Popen``.
 
@@ -307,7 +316,7 @@ class JiraClient:
     def _validate_verb(self, verb: str) -> None:
         if verb not in self._ALLOWED_VERBS:
             raise AllowlistError(
-                "jira verb {!r} is not in the read-only allowlist".format(verb)
+                f"jira verb {verb!r} is not in the read-only allowlist"
             )
 
     def _validate_raw_get(self, path: str) -> None:
@@ -315,10 +324,12 @@ class JiraClient:
             if pat.match(path):
                 return
         raise AllowlistError(
-            "jira raw GET path {!r} is not in the read-only allowlist".format(path)
+            f"jira raw GET path {path!r} is not in the read-only allowlist"
         )
 
-    def _argv(self, sub_argv: List[str], *, fmt: str = "json", output: Optional[str] = None) -> List[str]:
+    def _argv(
+        self, sub_argv: list[str], *, fmt: str = "json", output: str | None = None
+    ) -> list[str]:
         # jira.py expects ``--format`` and ``--output`` as global flags
         # BEFORE the subcommand, per its argparse layout.
         argv = [sys.executable, str(self._script), "--format", fmt]
@@ -327,7 +338,7 @@ class JiraClient:
         argv += sub_argv
         return argv
 
-    def _invoke(self, sub_argv: List[str]) -> Any:
+    def _invoke(self, sub_argv: list[str]) -> Any:
         verb = sub_argv[0]
         self._validate_verb(verb)
         argv = self._argv(sub_argv, fmt="json")
@@ -337,7 +348,7 @@ class JiraClient:
             raise JiraError(rc, stderr, argv=argv)
         return _parse_json_or_none(stdout)
 
-    def _stream(self, sub_argv: List[str]) -> Iterator[dict]:
+    def _stream(self, sub_argv: list[str]) -> Iterator[dict]:
         verb = sub_argv[0]
         self._validate_verb(verb)
         argv = self._argv(sub_argv, fmt="jsonl", output="-")
@@ -354,7 +365,7 @@ class JiraAlignClient:
 
     _ALLOWED_VERBS: frozenset = frozenset({"raw"})
 
-    _ALLOWED_RAW_PATTERNS: Tuple[re.Pattern, ...] = (
+    _ALLOWED_RAW_PATTERNS: tuple[re.Pattern, ...] = (
         re.compile(r"^programs/[0-9]+$"),
         re.compile(r"^programs/[0-9]+/teams$"),
         re.compile(r"^portfolios/[0-9]+$"),
@@ -364,17 +375,17 @@ class JiraAlignClient:
     def __init__(self, script_path: Path) -> None:
         self._script = Path(script_path)
 
-    def raw_get(self, path: str, params: Optional[Mapping[str, str]] = None) -> Any:
+    def raw_get(self, path: str, params: Mapping[str, str] | None = None) -> Any:
         self._validate_raw_get(path)
         sub = ["raw", "GET", path]
         for k, v in (params or {}).items():
-            sub += ["--param", "{}={}".format(k, v)]
+            sub += ["--param", f"{k}={v}"]
         return self._invoke(sub)
 
     def _validate_verb(self, verb: str) -> None:
         if verb not in self._ALLOWED_VERBS:
             raise AllowlistError(
-                "jira-align verb {!r} is not in the read-only allowlist".format(verb)
+                f"jira-align verb {verb!r} is not in the read-only allowlist"
             )
 
     def _validate_raw_get(self, path: str) -> None:
@@ -382,13 +393,13 @@ class JiraAlignClient:
             if pat.match(path):
                 return
         raise AllowlistError(
-            "jira-align raw GET path {!r} is not in the read-only allowlist".format(path)
+            f"jira-align raw GET path {path!r} is not in the read-only allowlist"
         )
 
-    def _argv(self, sub_argv: List[str]) -> List[str]:
+    def _argv(self, sub_argv: list[str]) -> list[str]:
         return [sys.executable, str(self._script), "--format", "json"] + sub_argv
 
-    def _invoke(self, sub_argv: List[str]) -> Any:
+    def _invoke(self, sub_argv: list[str]) -> Any:
         verb = sub_argv[0]
         self._validate_verb(verb)
         argv = self._argv(sub_argv)
@@ -403,7 +414,7 @@ class JiraAlignClient:
 # Streaming helper (top-level so the search() generator below it remains
 # a single function call rather than nesting Popen inside the generator).
 # ---------------------------------------------------------------------------
-def _popen_stream(argv: List[str]) -> Iterator[dict]:
+def _popen_stream(argv: list[str]) -> Iterator[dict]:
     """Spawn ``argv`` and yield one JSON dict per line of stdout.
 
     Stderr is captured to a temporary file rather than a pipe to avoid
@@ -418,7 +429,7 @@ def _popen_stream(argv: List[str]) -> Iterator[dict]:
     forwarded to this process's stderr regardless of exit code so that
     permission-undercount and similar diagnostic notes reach the user.
     """
-    stderr_file = tempfile.TemporaryFile()
+    stderr_file = tempfile.TemporaryFile()  # noqa: SIM115
     try:
         proc = subprocess.Popen(
             argv,
@@ -438,25 +449,20 @@ def _popen_stream(argv: List[str]) -> Iterator[dict]:
                 line = raw_line.strip()
                 if not line:
                     continue
-                if isinstance(line, bytes):
-                    text = line.decode("utf-8", errors="replace")
-                else:
-                    text = line
+                text = line.decode("utf-8", errors="replace") if isinstance(line, bytes) else line
                 yield json.loads(text)
     finally:
         # Close stdout BEFORE wait() so an upstream still trying to
         # emit rows after the consumer aborted gets SIGPIPE / EPIPE
         # and exits, instead of blocking our wait() forever.
         if proc.stdout is not None:
-            try:
+            with contextlib.suppress(Exception):
                 proc.stdout.close()
-            except Exception:
-                pass
 
         # wait() should never raise on POSIX; on Windows it can if the
         # handle is invalid. Capture and re-raise after we've drained
         # stderr so the tempfile doesn't leak.
-        wait_error: Optional[BaseException] = None
+        wait_error: BaseException | None = None
         try:
             proc.wait()
         except BaseException as exc:
@@ -467,10 +473,8 @@ def _popen_stream(argv: List[str]) -> Iterator[dict]:
             stderr = stderr_file.read() or b""
         except Exception:
             stderr = b""
-        try:
+        with contextlib.suppress(Exception):
             stderr_file.close()
-        except Exception:
-            pass
 
         _forward_stderr(stderr)
 

@@ -46,6 +46,9 @@ if TYPE_CHECKING:
 # enumerate_event_dropped_wirings is imported at module level so it is
 # patchable from tests (the mock target is
 # ``agentbundle.commands.install.enumerate_event_dropped_wirings``).
+import contextlib
+from datetime import UTC
+
 from agentbundle.commands._drop_warning import enumerate_event_dropped_wirings
 
 
@@ -63,7 +66,7 @@ class _ScopePlan:
     root: Path  # absolute path of the scope's root
     state_path: Path  # absolute path of the scope's state file
     allowed_prefixes: list[str] | None
-    state: "State"  # the loaded state at this scope (read-only mode)
+    state: State  # the loaded state at this scope (read-only mode)
     already_installed: bool
     # `.upstream.<ext>` companion relpaths written during this scope's
     # step-9 projection loop. Threaded to the install marker so the
@@ -74,7 +77,7 @@ class _ScopePlan:
 
 
 def _check_source_conflict(
-    pack_name: str, scope: str, state: "State | None", source_uri: str
+    pack_name: str, scope: str, state: State | None, source_uri: str
 ) -> str | None:
     """Return an error message string if a source conflict is detected, else None.
 
@@ -100,11 +103,15 @@ def _check_source_conflict(
             or existing_canonical is None
             or existing_canonical != incoming_canonical
         ):
-            display = existing_canonical if existing_canonical is not None else "unknown/legacy source"
+            display = (
+                existing_canonical if existing_canonical is not None else "unknown/legacy source"
+            )
             conflicts.append((adapter, display))
     if not conflicts:
         return None
-    incoming_display = incoming_canonical if incoming_canonical is not None else "unknown/legacy source"
+    incoming_display = (
+        incoming_canonical if incoming_canonical is not None else "unknown/legacy source"
+    )
     lines = [
         f"{pack_name}: source conflict at {scope} scope \u2014 "
         f"incoming source {incoming_display!r} differs from existing installation(s):",
@@ -119,12 +126,15 @@ def _check_source_conflict(
     )
     return "\n".join(lines)
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle install``.
 
     Returns 0 on success, non-zero on any failure. See module docstring
     for the dual-scope contract.
     """
+    from agentbundle import safety
+    from agentbundle import scope as scope_mod
+    from agentbundle.build import scope_rails
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import (
         check_spec_version_gate,
@@ -138,13 +148,10 @@ def run(args: "argparse.Namespace") -> int:
         ConfigError,
         PackState,
         canonicalize_source,
-        dump_state,
         load_pack_toml,
         load_state,
     )
     from agentbundle.render import render_pack
-    from agentbundle import safety, scope as scope_mod
-    from agentbundle.build import scope_rails
 
     # pack-profiles (RFC-0034): `install --profile <name>` dispatches to the
     # batch orchestrator. The CLI mutex guarantees exactly one of --pack /
@@ -180,7 +187,7 @@ def run(args: "argparse.Namespace") -> int:
     # hand (tests) or for any code path that bypasses main(). The
     # pre-flight in `_resolve_target_adapter` no-ops when this is None,
     # so legacy callers see exactly today's behavior.
-    user_config: "UserConfig | None" = getattr(args, "_user_config", None)
+    user_config: UserConfig | None = getattr(args, "_user_config", None)
     # Org preferred-adapter hint — read once, used at every _resolve_target_adapter
     # call site below.  A blank or absent [organization].preferred_adapter yields
     # None and leaves all existing behaviour unchanged.  A present but invalid
@@ -413,7 +420,7 @@ def run(args: "argparse.Namespace") -> int:
     # dep errors surface even when another early-exit would fire).
     from agentbundle.config import State as _State
 
-    _effective_user_state: "State" = user_state if user_state is not None else _State()
+    _effective_user_state: State = user_state if user_state is not None else _State()
     try:
         validate_dependencies_required(
             pack_toml,
@@ -491,7 +498,7 @@ def run(args: "argparse.Namespace") -> int:
         # (None) and Step 7 re-renders to surface the canonical error; any
         # other render exception propagates here exactly as it did from
         # Step 7 before this change (no new swallowing).
-        _orphan_filter_relpaths: "set[str] | None" = None
+        _orphan_filter_relpaths: set[str] | None = None
         try:
             _, _early_repo_projection = _render_for_repo_scope(
                 pack_dir,
@@ -634,12 +641,9 @@ def run(args: "argparse.Namespace") -> int:
     # Determine which scopes this run will write to. Dual-scope is the
     # --force-and-pack-already-at-other-scope case; everything else is
     # single-scope. Pre-flight all of them before any write.
-    scopes_to_install: list[str] = []
-    if force and other_already:
-        # Dual-scope path: repo first, then user (spec § *Output*).
-        scopes_to_install = ["repo", "user"]
-    else:
-        scopes_to_install = [requested_scope]
+    scopes_to_install: list[str] = (
+        ["repo", "user"] if force and other_already else [requested_scope]
+    )
 
     # Probe per-adapter scope metadata (for allowed-prefixes at user
     # scope). The Claude Code adapter ships a [scope] block from
@@ -1574,7 +1578,7 @@ def _assert_user_floor_dirs_safe(root: Path) -> str | None:
                 candidates.append(Path(dirpath))
     for d in candidates:
         if d.is_dir():
-            mode = os.stat(d).st_mode & 0o777
+            mode = d.stat().st_mode & 0o777
             if mode & 0o022:
                 return (
                     f"refusing user-scope delivery: {d} is group/world-writable "
@@ -1602,9 +1606,9 @@ def _harden_floor_dir_modes(root: Path) -> None:
         if not d.is_dir():
             continue
         for dirpath, _dirnames, _filenames in os.walk(d):
-            cur = os.stat(dirpath).st_mode & 0o777
+            cur = Path(dirpath).stat().st_mode & 0o777
             if cur & 0o022:
-                os.chmod(dirpath, cur & ~0o022)
+                Path(dirpath).chmod(cur & ~0o022)
 
 
 def _deliver_user_scope_floor(
@@ -1781,6 +1785,7 @@ def _enumerate_dropped_primitives(
     """
     if contract is None:
         import tomllib as _tomllib
+
         from agentbundle.build.main import _read_bundled
 
         contract = _tomllib.loads(_read_bundled("adapter.toml"))
@@ -1818,9 +1823,7 @@ def _is_junk_name(name: str) -> bool:
     if name in _JUNK_NAMES:
         return True
     # Editor swap / backup suffixes.
-    if name.endswith(("~", ".swp", ".bak")):
-        return True
-    return False
+    return bool(name.endswith(("~", ".swp", ".bak")))
 
 
 def _count_primitive_entries(source_dir: Path, ptype: str) -> int:
@@ -1873,6 +1876,7 @@ def _enumerate_compatible_primitives(
     declaration order for stable output."""
     if contract is None:
         import tomllib as _tomllib
+
         from agentbundle.build.main import _read_bundled
 
         contract = _tomllib.loads(_read_bundled("adapter.toml"))
@@ -1956,6 +1960,7 @@ def _maybe_emit_dropped_warning(
 
     # Load the contract once for both enumerators so we don't hit disk twice.
     import tomllib as _tomllib
+
     from agentbundle.build.main import _read_bundled
     contract = _tomllib.loads(_read_bundled("adapter.toml"))
 
@@ -2009,12 +2014,12 @@ def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
 
 
 def _offer_upgrade(
-    args: "argparse.Namespace",
+    args: argparse.Namespace,
     *,
     pack_name: str,
     scope: str,
     catalogue_uri: str,
-    resolved_adapter: "str | None" = None,
+    resolved_adapter: str | None = None,
 ) -> int:
     """Hand off an already-installed `install` to `upgrade` (CLI-hygiene AC11/12).
 
@@ -2064,12 +2069,12 @@ def _classify_pre_rfc0012_state(
     output_root: Path,
     pack_name: str,
     pack_dir: Path,
-    repo_state: "State",
+    repo_state: State,
     repo_target_adapter: str,
     allowed_prefixes_repo: list[str],
     force: bool,
     yes: bool = False,
-    projection_relpaths: "set[str] | None" = None,
+    projection_relpaths: set[str] | None = None,
 ) -> int | None:
     """RFC-0012 AC24: in-band detection of pre-RFC-0012 state.
 
@@ -2169,10 +2174,8 @@ def _classify_pre_rfc0012_state(
                 for top in ("claude-plugins", "apm"):
                     subtree = output_root / top / pack_name
                     if subtree.exists():
-                        try:
+                        with contextlib.suppress(OSError):
                             shutil.rmtree(subtree)
-                        except OSError:
-                            pass
                 repo_state.packs.pop((pack_name, repo_target_adapter), None)
                 state_path = output_root / ".agentbundle-state.toml"
                 if state_path.exists():
@@ -2271,7 +2274,7 @@ def _classify_pre_rfc0012_state(
             # no row yet, so even same-pack rows are "other".
             for other_state in repo_state.packs.values():
                 foreign_owned.update(
-                    _canon_relpath(rel) for rel in other_state.files.keys()
+                    _canon_relpath(rel) for rel in other_state.files
                 )
             if foreign_owned:
                 orphans = [
@@ -2310,10 +2313,8 @@ def _classify_pre_rfc0012_state(
                     _INBAND_DETECTION_SEEN.discard(key)
                     return 1
                 for orphan in orphans:
-                    try:
+                    with contextlib.suppress(OSError):
                         orphan.unlink()
-                    except OSError:
-                        pass
                 return None
             print(
                 f"install: unrecognized files at projection paths not "
@@ -2356,7 +2357,7 @@ _PACK_VERSION_RE = re.compile(
 def _assert_pack_metadata_shape(
     pack_toml: dict,
     *,
-    projection: "dict[str, bytes] | None" = None,
+    projection: dict[str, bytes] | None = None,
 ) -> None:
     """Defence-in-depth: refuse a pack whose manifest or projection
     relpaths fall outside the canonical TOML-safe grammars.
@@ -2447,8 +2448,7 @@ def _strip_markdown_code(text: str) -> str:
         r"(?ms)^[ \t]*(`{3,}|~{3,}).*?(?:^[ \t]*\1[ \t]*$|\Z)", "", text
     )
     # Inline code: a run of N backticks to the next run of exactly N backticks.
-    no_inline = re.sub(r"(`+)(?:.|\n)*?\1", "", no_fences)
-    return no_inline
+    return re.sub(r"(`+)(?:.|\n)*?\1", "", no_fences)
 
 
 def _collect_unresolved_markers(projection: dict) -> list[str]:
@@ -2493,9 +2493,8 @@ def _append_install_marker(
     Per spec AC19a: scope is encoded by the file's location, not as a
     field — the path is the source of truth.
     """
-    import os
     import tomllib
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from agentbundle import safety
 
@@ -2559,10 +2558,7 @@ def _append_install_marker(
                     _val = e.get(_field)
                     if _val is not None and not isinstance(_val, str):
                         _label = e.get("name") if _field != "name" else "<unnamed>"
-                        if isinstance(_label, str):
-                            _label_str = _label
-                        else:
-                            _label_str = "<unnamed>"
+                        _label_str = _label if isinstance(_label, str) else "<unnamed>"
                         print(
                             f"install: warning: marker entry at {marker_path} "
                             f"has non-string {_field} "
@@ -2614,7 +2610,7 @@ def _append_install_marker(
         # Store as a `datetime` (not a strftime'd string) so the emit loop
         # has a single uniform type to handle for both new and re-read
         # entries, with the canonical strftime applied at emission time.
-        "installed-at": datetime.now(timezone.utc),
+        "installed-at": datetime.now(UTC),
         "unresolved-markers": unresolved_markers,
         "new-companions": new_companions,
     }
@@ -2979,7 +2975,7 @@ def _render_for_user_scope(
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
-    user_config: "UserConfig | None" = None,
+    user_config: UserConfig | None = None,
     preferred_adapter: str | None = None,
 ) -> dict[str, bytes]:
     """Project a pack via the Claude Code / Kiro / Codex adapter
@@ -3096,7 +3092,7 @@ def _render_for_repo_scope(
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
-    user_config: "UserConfig | None" = None,
+    user_config: UserConfig | None = None,
     preferred_adapter: str | None = None,
 ) -> tuple[str, dict[str, bytes]]:
     """Project a pack via the resolved adapter (RFC-0011 + RFC-0012
@@ -3227,6 +3223,7 @@ def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
     projection) is refused.
     """
     import tomllib
+
     from agentbundle.build.main import _read_bundled
 
     contract = tomllib.loads(_read_bundled("adapter.toml"))
@@ -3268,7 +3265,7 @@ class _AdapterResolutionRefused(Exception):
     """
 
 
-def _user_scope_adapter_probes() -> dict[str, "Callable[[Path], bool]"]:
+def _user_scope_adapter_probes() -> dict[str, Callable[[Path], bool]]:
     """Per-adapter CLI-home presence probe. Explicit table (not a
     single `Path.home() / f".{ide}"` interpolation) because codex is
     an OR-probe: either `~/.codex/` exists (Codex CLI installed) or
@@ -3297,7 +3294,7 @@ def _resolve_target_adapter(
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
-    user_config: "UserConfig | None" = None,
+    user_config: UserConfig | None = None,
     preferred_adapter: str | None = None,
 ) -> str:
     """Resolve the adapter that an install/upgrade targets at *scope*
@@ -3728,7 +3725,9 @@ def _merge_user_scope_hook_wiring(
 
     # Kiro CLI: group wiring by attach-to-agent; one merge call per agent.
     from agentbundle import safety
-    from agentbundle.build.projections.merge_into_agent_json import project as _project
+    from agentbundle.build.projections.merge_into_agent_json import (  # type: ignore[assignment]
+        project as _project,
+    )
 
     # Defence-in-depth on the merge target path: a malicious
     # ``attach-to-agent`` value (e.g. ``"../../../tmp/escape"``) would
@@ -3805,6 +3804,7 @@ def _adapter_allowed_prefixes_user(adapter_name: str) -> list[str]:
     directory.
     """
     import tomllib
+
     from agentbundle.build.main import _read_bundled
 
     contract = tomllib.loads(_read_bundled("adapter.toml"))
@@ -3829,6 +3829,7 @@ def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
     rooted at the adapter's documented repo-scope directory.
     """
     import tomllib
+
     from agentbundle.build.main import _read_bundled
 
     contract = tomllib.loads(_read_bundled("adapter.toml"))
@@ -3848,7 +3849,7 @@ def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
         return defaults.get(adapter_name, [".agentbundle/"])
 
 
-import functools as _functools
+import functools as _functools  # noqa: E402
 
 
 @_functools.lru_cache(maxsize=1)
@@ -3858,6 +3859,7 @@ def _shared_prefix_cohorts() -> dict[str, list[str]]:
     contract predates the registry (RFC-0052). Memoised: the bundled contract
     is immutable for the process lifetime."""
     import tomllib
+
     from agentbundle.build.main import _read_bundled
 
     contract = tomllib.loads(_read_bundled("adapter.toml"))
@@ -3880,7 +3882,7 @@ _ADAPTER_NATIVE_DIR = {
 
 
 def _shared_prefix_disclosure(
-    pack_name: str, adapter: str, scope: str, written_relpaths: "set[str]"
+    pack_name: str, adapter: str, scope: str, written_relpaths: set[str]
 ) -> str | None:
     """Build the install-time cross-adapter disclosure (RFC-0052 Decision 7).
 
@@ -3936,10 +3938,10 @@ def _classify_for_install(
     relpath: str,
     root: Path,
     incoming_content: bytes,
-    state: "State",
+    state: State,
     *,
     pack_name: str = "",
-) -> "Tier":
+) -> Tier:
     """Classify a projected relpath for the install command.
 
     Unlike ``safety.classify``, this function treats every incoming projected
@@ -3992,9 +3994,9 @@ def _locate_pack(catalogue_dir: Path, pack_name: str) -> Path | None:
 def validate_dependencies_required(
     pack_toml: dict,
     *,
-    repo_state: "State",
-    user_state: "State",
-    also_installing: "set[str] | None" = None,
+    repo_state: State,
+    user_state: State,
+    also_installing: set[str] | None = None,
 ) -> None:
     """Enforce [pack.dependencies.required] before any file write.
 
@@ -4088,11 +4090,11 @@ def validate_dependencies_required(
             inst_major = int(parts[0]) if len(parts) > 0 else 0
             inst_minor = int(parts[1]) if len(parts) > 1 else 0
             inst_patch = int(parts[2]) if len(parts) > 2 else 0
-        except (ValueError, IndexError):
+        except (ValueError, IndexError) as exc:
             raise RuntimeError(
                 f"install: pack {pack_name!r} requires {dep_name!r} "
                 f"(version {dep_range}); install {dep_name} first"
-            )
+            ) from exc
 
         # Satisfy: major must match AND version >= X.Y.0 AND < (X+1).0.0.
         satisfies = (
@@ -4130,7 +4132,7 @@ def _profile_pack_allowed_adapters(pack_toml: dict) -> list[str] | None:
     return None
 
 
-def _run_profile(args: "argparse.Namespace") -> int:
+def _run_profile(args: argparse.Namespace) -> int:
     """Install a curated, single-scope set of packs in one command (RFC-0034).
 
     A thin orchestrator over single-pack ``run()``: it pins one scope and one
@@ -4146,12 +4148,12 @@ def _run_profile(args: "argparse.Namespace") -> int:
     import contextlib
     import io
 
+    from agentbundle import safety
+    from agentbundle import scope as scope_mod
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import resolve_catalogue_uri
     from agentbundle.commands.profile import ProfileError, load_profile
     from agentbundle.config import ConfigError, load_pack_toml, load_state
-    from agentbundle import safety
-    from agentbundle import scope as scope_mod
 
     profile_id: str = args.profile
     # RFC-0046: a bare `install --profile X` (no catalogue) resolves through the
@@ -4163,7 +4165,9 @@ def _run_profile(args: "argparse.Namespace") -> int:
         return 1
     cli_adapter: str | None = getattr(args, "adapter", None)
     user_config = getattr(args, "_user_config", None)
-    from agentbundle.source_defaults import read_packaged_preferred_adapter as _read_pref_adapter_profile
+    from agentbundle.source_defaults import (
+        read_packaged_preferred_adapter as _read_pref_adapter_profile,
+    )
     try:
         _org_preferred_adapter: str | None = _read_pref_adapter_profile()
     except CatalogueError as exc:
@@ -4318,7 +4322,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
             return 1
 
     # ── Per-pack args factory (catalogue pre-resolved to avoid re-cloning) ────
-    def _pack_args(name: str, *, dry_run: bool) -> "argparse.Namespace":
+    def _pack_args(name: str, *, dry_run: bool) -> argparse.Namespace:
         ns = argparse.Namespace()
         ns.pack = name
         ns.profile = None  # so run()'s dispatch does not recurse

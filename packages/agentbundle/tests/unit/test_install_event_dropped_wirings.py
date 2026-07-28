@@ -13,7 +13,6 @@ T3 + T4 tests colocated here because both helpers live in
 from __future__ import annotations
 
 import tempfile
-import tomllib
 import unittest
 from pathlib import Path
 
@@ -22,7 +21,6 @@ from agentbundle.commands._drop_warning import (
     format_drop_message,
 )
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -30,6 +28,7 @@ from agentbundle.commands._drop_warning import (
 def _load_contract() -> dict:
     """Load the bundled adapter.toml contract."""
     import tomllib as _tomllib
+
     from agentbundle.build.main import _read_bundled
 
     return _tomllib.loads(_read_bundled("adapter.toml"))

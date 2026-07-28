@@ -144,7 +144,6 @@ def test_per_primitive_upgrade_moves_only_matching_files(
     from agentbundle.commands.upgrade import _filter_for_primitive
     from agentbundle.config import load_state
     from agentbundle.render import render_pack
-    from agentbundle import safety
 
     rc = _install_v1(tmp_path)
     assert rc == 0
@@ -166,7 +165,7 @@ def test_per_primitive_upgrade_moves_only_matching_files(
         if (tmp_path / rp).exists()
     }
 
-    kwargs: dict = dict(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
+    kwargs: dict = {"pack": "core", "catalogue": str(CAT_V2), "root": str(tmp_path)}
     kwargs[flag_attr] = prim_name
     rc = _run_upgrade(**kwargs)
     assert rc == 0, f"per-primitive upgrade --{flag_attr} {prim_name} must succeed"
@@ -254,11 +253,11 @@ def test_primitive_not_found_exits_nonzero(tmp_path, capsys, flag_attr):
     rc = _install_v1(tmp_path)
     assert rc == 0
 
-    kwargs = dict(
-        pack="core",
-        catalogue=str(CAT_V2),
-        root=str(tmp_path),
-    )
+    kwargs = {
+        "pack": "core",
+        "catalogue": str(CAT_V2),
+        "root": str(tmp_path),
+    }
     kwargs[flag_attr] = "foo"
     rc = _run_upgrade(**kwargs)
     assert rc != 0, f"--{flag_attr} foo must exit non-zero"
@@ -565,8 +564,8 @@ def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
     """The companion notice also fires on a per-primitive (`--skill`) upgrade —
     the same shared walk handles both shapes. Edit a projected work-loop skill
     file, upgrade just that skill, and assert the companion + notice. [AC2]"""
-    from agentbundle.commands.upgrade import _filter_for_primitive
     from agentbundle import safety
+    from agentbundle.commands.upgrade import _filter_for_primitive
     from agentbundle.render import render_pack
 
     rc = _install_v1(tmp_path)
@@ -783,6 +782,7 @@ def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
     """AC4: non-dry-run upgrade refuses before writing when a Tier-2 path is outside
     allowed_prefixes — probe-all-before-write behavioral change."""
     from unittest import mock
+
     from agentbundle import safety
     from agentbundle.config import PackState, State, dump_state
 

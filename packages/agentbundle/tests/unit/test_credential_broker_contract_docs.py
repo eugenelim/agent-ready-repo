@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import pathlib
 
-
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 
 
@@ -69,7 +68,9 @@ def test_ac42_roadmap_entry_carries_manual_qa_matrix():
 def test_ac43_guide_walks_broker_first():
     """AC43: the how-to guide replaces 'pick a primitive class' with
     'pick a broker' as the first step."""
-    guide = (REPO_ROOT / "guides" / "credential-brokers" / "how-to" / "add-a-credentialed-skill.md").read_text(encoding="utf-8")
+    guide = (
+        REPO_ROOT / "guides" / "credential-brokers" / "how-to" / "add-a-credentialed-skill.md"
+    ).read_text(encoding="utf-8")
     pick_broker_idx = guide.find("## Step 1 — Pick a broker")
     assert pick_broker_idx > 0, "guide does not start with 'Pick a broker'"
     # Primitive-class step still exists but comes later (as orthogonal).
@@ -93,7 +94,9 @@ def test_ac44_skill_secrets_footer_present():
 def test_ac45_distribution_adapters_changelog_bullet_present():
     """AC45: docs/specs/distribution-adapters/spec.md carries the
     new dated bullet naming the two new primitive classes."""
-    spec = (REPO_ROOT / "docs" / "specs" / "distribution-adapters" / "spec.md").read_text(encoding="utf-8")
+    spec = (
+        REPO_ROOT / "docs" / "specs" / "distribution-adapters" / "spec.md"
+    ).read_text(encoding="utf-8")
     # Locate the Changelog section.
     start = spec.find("## Changelog")
     assert start > 0

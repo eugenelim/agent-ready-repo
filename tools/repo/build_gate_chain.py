@@ -66,7 +66,7 @@ def _run_chain(steps: list[Step]) -> int:
 
 def _handler_step(label: str, func: Callable[[argparse.Namespace], int], **ns_kwargs) -> Step:
     """Wrap an in-process handler call as a chain step."""
-    def _thunk(func=func, ns=argparse.Namespace(**ns_kwargs)) -> int:
+    def _thunk(func=func, ns=argparse.Namespace(**ns_kwargs)) -> int:  # noqa: B008
         return int(func(ns))
 
     return (label, _thunk)
@@ -172,7 +172,10 @@ def _build_parser() -> argparse.ArgumentParser:
     bs = sub.add_parser("build-self", help="catalogue self-host (write or check).")
     bs.add_argument("--dry-run", action="store_true", help="Check mode (read-only).")
     bs.add_argument("--force", action="store_true", help="Force overwrite existing projections.")
-    bs.add_argument("--no-symlink", action="store_true", help="Ignored (handled by agentbundle internally).")
+    bs.add_argument(
+        "--no-symlink", action="store_true",
+        help="Ignored (handled by agentbundle internally).",
+    )
     bs.add_argument("--packs-dir", default="packs", help="Ignored (resolved via --root .).")
     bs.set_defaults(func=build_self)
 

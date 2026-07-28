@@ -13,10 +13,12 @@ from __future__ import annotations
 
 import re
 
-_STOP = frozenset("""
-a an the to of for and or in on with use used using this that do not when it
-your you our their its as at by from into is are be than then use-when
-""".split())
+_STOP = frozenset([
+    "a", "an", "the", "to", "of", "for", "and", "or", "in", "on",
+    "with", "use", "used", "using", "this", "that", "do", "not",
+    "when", "it", "your", "you", "our", "their", "its", "as", "at",
+    "by", "from", "into", "is", "are", "be", "than", "then", "use-when",
+])
 
 
 def tokens(desc: str) -> set[str]:
@@ -31,7 +33,9 @@ def similarity(a: str, b: str) -> float:
     return len(ta & tb) / len(ta | tb)  # Jaccard
 
 
-def collisions(new_desc: str, existing: dict[str, str], *, threshold: float = 0.5) -> list[tuple[str, float]]:
+def collisions(
+    new_desc: str, existing: dict[str, str], *, threshold: float = 0.5
+) -> list[tuple[str, float]]:
     """Return (skill-name, score) pairs whose description overlaps `new_desc` at
     or above `threshold`, most-similar first. Non-empty ⇒ surface to the operator
     with the colliding skill named; do not land silently."""

@@ -124,10 +124,10 @@ def test_collect_rows_sorted_across_scopes(tmp_path):
 
 
 def _make_args(**kw) -> SimpleNamespace:
-    base = dict(
-        catalogue=None, root=".", scope=None, no_check=False, check_drift=False,
-        format="table", updates_only=False, _user_config=None,
-    )
+    base = {
+        "catalogue": None, "root": ".", "scope": None, "no_check": False, "check_drift": False,
+        "format": "table", "updates_only": False, "_user_config": None,
+    }
     base.update(kw)
     return SimpleNamespace(**base)
 

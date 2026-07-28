@@ -46,7 +46,9 @@ def _copy_fixture(src: Path, dst: Path) -> None:
         entry.chmod(0o755)
 
 
-def _install_args(pack: str, catalogue: str, output: str, scope: str | None = None, adapter: str | None = None):
+def _install_args(
+    pack: str, catalogue: str, output: str, scope: str | None = None, adapter: str | None = None
+):
     return argparse.Namespace(
         pack=pack,
         catalogue=catalogue,

@@ -16,10 +16,9 @@ Stdlib only. Python >= 3.10.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Mapping, Sequence
 
 from .output import CANONICAL_METRICS_ORDER
-
 
 # schema_version is pinned at "1.0" for the v1 wire format. Future major
 # versions bump this; the renderer does not interpret the value, so the
@@ -73,11 +72,11 @@ def resolve_caller(whoami_payload: Any) -> str:
 
 def _format_scope(
     *,
-    project: Optional[str] = None,
-    team: Optional[str] = None,
-    program_id: Optional[str] = None,
-    portfolio_id: Optional[str] = None,
-) -> Dict[str, Any]:
+    project: str | None = None,
+    team: str | None = None,
+    program_id: str | None = None,
+    portfolio_id: str | None = None,
+) -> dict[str, Any]:
     """Build the ``meta.scope`` dict matching the spec example shape.
 
     Exactly one of ``project`` / ``program_id`` / ``portfolio_id``
@@ -87,7 +86,7 @@ def _format_scope(
     test that pins meta.scope passthrough.
     """
     if project is not None:
-        out: Dict[str, Any] = {"project": project}
+        out: dict[str, Any] = {"project": project}
         if team:
             out["team"] = team
         return out
@@ -98,7 +97,7 @@ def _format_scope(
     return {}
 
 
-def _format_window(window: Any) -> Dict[str, str]:
+def _format_window(window: Any) -> dict[str, str]:
     """Render ``window`` as the ``{from, to}`` shape the renderer emits.
 
     Accepts either a :class:`flow_metrics.Window` (the runtime type
@@ -128,7 +127,7 @@ def _iso_date(value: Any) -> str:
     return str(value)
 
 
-def _canonical_metrics(metrics: Sequence[str]) -> List[str]:
+def _canonical_metrics(metrics: Sequence[str]) -> list[str]:
     """Sort+dedup ``metrics`` against the canonical ``--metrics`` order.
 
     Mirrors :func:`flow_metrics.output._sort_metrics_requested` (which
@@ -138,7 +137,7 @@ def _canonical_metrics(metrics: Sequence[str]) -> List[str]:
     single source of truth, and meta must stay consistent with it.
     """
     seen: set = set()
-    out: List[str] = []
+    out: list[str] = []
     canonical = list(CANONICAL_METRICS_ORDER)
     index = {m: i for i, m in enumerate(canonical)}
     for m in metrics:
@@ -159,8 +158,8 @@ def build_meta(
     issuetype_config_sha: str,
     generated_at: datetime,
     per_team_double_counted: bool,
-    cohort_jql: Optional[str] = None,
-) -> Dict[str, Any]:
+    cohort_jql: str | None = None,
+) -> dict[str, Any]:
     """Assemble the canonical ``meta`` dict.
 
     Keyword-only so callers can't accidentally swap ``state_config_sha``
@@ -190,7 +189,7 @@ def build_meta(
       be absent, not null, not "". The renderer also drops null / empty
       values; this is the first line of defence.
     """
-    meta: Dict[str, Any] = {
+    meta: dict[str, Any] = {
         "caller": caller,
         "scope": dict(scope),
         "window": _format_window(window),

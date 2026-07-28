@@ -16,12 +16,8 @@ Monkeypatching strategy:
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
-import pytest
-
 import agentbundle.catalogue_tooling.defaults as _defaults_module
+import pytest
 from agentbundle.catalogue_tooling.config import (
     AgentbundleDistribution,
     ArtifactoryConfig,
@@ -37,7 +33,6 @@ from agentbundle.catalogue_tooling.defaults import (
     compile_defaults,
     write_defaults,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -96,7 +91,7 @@ def _make_config(
 
 
 def test_compile_minimal():
-    """Minimal config (no artifactory, no default source) → header + [organization] + [organization.artifactory]."""
+    """Minimal config (no artifactory, no default source) → header + [organization] + [organization.artifactory]."""  # noqa: E501
     config = _make_config(preferred_adapter="claude-code")
     output = compile_defaults(config)
     # Header must be present
@@ -120,7 +115,7 @@ def test_compile_with_org():
 
 
 def test_compile_with_artifactory():
-    """Artifactory enabled → [organization.artifactory] emits base-url, repository, bundle, channel."""
+    """Artifactory enabled → [organization.artifactory] emits base-url, repository, bundle, channel."""  # noqa: E501
     config = _make_config(
         art_enabled=True,
         art_base_url="https://art.example.com",
@@ -159,7 +154,7 @@ def test_check_no_catalogue_toml(tmp_path):
 
 
 def test_check_absent_file(tmp_path, monkeypatch):
-    """catalogue.toml present (via mock) but install-defaults.toml missing → ok=False, CAT-SD-002."""
+    """catalogue.toml present (via mock) but install-defaults.toml missing → ok=False, CAT-SD-002."""  # noqa: E501
     config = _make_config()
     monkeypatch.setattr(
         _defaults_module, "load_catalogue_config", lambda root: config
@@ -171,7 +166,7 @@ def test_check_absent_file(tmp_path, monkeypatch):
 
 
 def test_check_drift(tmp_path, monkeypatch):
-    """install-defaults.toml exists but content differs from compile_defaults → ok=False, CAT-SD-003."""
+    """install-defaults.toml exists but content differs from compile_defaults → ok=False, CAT-SD-003."""  # noqa: E501
     config = _make_config()
     monkeypatch.setattr(
         _defaults_module, "load_catalogue_config", lambda root: config

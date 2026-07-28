@@ -73,7 +73,7 @@ class MergeIntoAgentJsonTests(unittest.TestCase):
             self.assertEqual(data["name"], "reviewer")
             self.assertEqual(data["description"], "Reviews pending work.")
             # Hooks merged.
-            self.assertEqual(data["hooks"]["userPromptSubmit"][0]["id"], "clipboard-summary:on-prompt")
+            self.assertEqual(data["hooks"]["userPromptSubmit"][0]["id"], "clipboard-summary:on-prompt")  # noqa: E501
             self.assertEqual(data["hooks"]["userPromptSubmit"][0]["command"], "x")
             self.assertEqual(owned, [("userPromptSubmit", "clipboard-summary:on-prompt")])
 
@@ -333,7 +333,7 @@ class EventVocabularyRailTests(unittest.TestCase):
         refusal = check_kiro_event_vocabulary(
             pack_name="demo",
             wiring_tomls={
-                "first": {"hooks": {"GoodEvent": [{"command": "x"}], "BadOne": [{"command": "y"}]}},
+                "first": {"hooks": {"GoodEvent": [{"command": "x"}], "BadOne": [{"command": "y"}]}},  # noqa: E501
                 "second": {"hooks": {"AlsoBad": [{"command": "z"}]}},
             },
             vocabulary=["GoodEvent"],

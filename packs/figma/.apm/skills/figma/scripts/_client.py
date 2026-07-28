@@ -53,12 +53,7 @@ def _is_allowed_download_host(host: str) -> bool:
     host = host.lower()
     if host == "figma.com" or host.endswith(".figma.com"):
         return True
-    if (
-        host.startswith("figma-alpha-api.s3.")
-        and host.endswith(".amazonaws.com")
-    ):
-        return True
-    return False
+    return bool(host.startswith("figma-alpha-api.s3.") and host.endswith(".amazonaws.com"))
 
 
 class FigmaError(Exception):
@@ -114,7 +109,7 @@ class FigmaClient:
         import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
         self._sem = asyncio.Semaphore(concurrency)
 
-    async def __aenter__(self) -> "FigmaClient":
+    async def __aenter__(self) -> FigmaClient:
         return self
 
     async def __aexit__(self, *exc: object) -> None:
@@ -474,8 +469,8 @@ class FigmaClient:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Figma credentials through the in-process ``credbroker`` (Tier 1 env → Tier 2 OS keyring → Tier 3
-    dotfile).
+    """Resolve Figma credentials through the in-process ``credbroker``
+    (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile).
 
     Namespace: ``figma``. Required key: ``API_TOKEN``.
 
@@ -488,6 +483,8 @@ def load_credentials() -> Credentials:
     """
     from credbroker import (
         CredentialsMissingError,
+    )
+    from credbroker import (
         load_credentials as _resolver_load,
     )
 

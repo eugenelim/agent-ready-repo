@@ -19,7 +19,6 @@ import argparse
 from pathlib import Path
 
 import pytest
-
 from agentbundle.build import self_host
 from agentbundle.commands import adapt
 from agentbundle.config import PackState, State, dump_state
@@ -87,10 +86,7 @@ def test_consumer_refuses_legacy_shape(
     _seed_repo(tmp_path)
     (tmp_path / ".adapt-discovery.toml").write_text(body, encoding="utf-8")
 
-    if consumer == "cli":
-        rc = _run_cli(tmp_path)
-    else:
-        rc = _run_self_host(tmp_path)
+    rc = _run_cli(tmp_path) if consumer == "cli" else _run_self_host(tmp_path)
     assert rc != 0
     first = capsys.readouterr().err.splitlines()[0]
     assert first == expected_first_line
@@ -109,10 +105,7 @@ def test_consumer_accepts_canonical_markers_shape(consumer: str, tmp_path, capsy
         'discovery-schema-version = "0.1"\n[markers]\nowner = "x"\n',
         encoding="utf-8",
     )
-    if consumer == "cli":
-        rc = _run_cli(tmp_path)
-    else:
-        rc = _run_self_host(tmp_path)
+    rc = _run_cli(tmp_path) if consumer == "cli" else _run_self_host(tmp_path)
     # No legacy-prefix line on stderr.
     err = capsys.readouterr().err
     for line in err.splitlines():

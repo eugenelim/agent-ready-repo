@@ -12,9 +12,8 @@ import importlib.util
 import os
 import stat
 
-import pytest
-
 import credbroker
+import pytest
 from credbroker import _core
 
 _HAS_CRYPTO = (
@@ -104,4 +103,7 @@ def test_store_in_vault_round_trips(home, monkeypatch):
     credbroker.store_in_vault("jira", "API_TOKEN", "vault-secret", master="master-pw")
     from credbroker import _vault
 
-    assert _vault.read_credential("jira", "API_TOKEN", master="master-pw", path=_core._vault_path()) == "vault-secret"
+    assert (
+        _vault.read_credential("jira", "API_TOKEN", master="master-pw", path=_core._vault_path())
+        == "vault-secret"
+    )

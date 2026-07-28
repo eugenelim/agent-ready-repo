@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import os
 import sys
 import tempfile
 import unittest
@@ -221,7 +220,7 @@ class MissingScriptTest(unittest.TestCase):
     def test_missing_script_step_fails_and_short_circuits(self):
         ran_after: list[str] = []
         with tempfile.TemporaryDirectory() as tmp:
-            missing = os.path.join(tmp, "nope.py")  # does not exist
+            missing = Path(tmp) / "nope.py"  # does not exist
             steps = [
                 gc._script_step("missing", missing),
                 ("after", lambda: (ran_after.append("after"), 0)[1]),

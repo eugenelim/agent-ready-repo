@@ -8,11 +8,9 @@ scheme never lands; a traversal/symlink cannot escape the destination pack)."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
-
 import ssrf_check as S
 import write_jail as W
 
@@ -67,7 +65,7 @@ def test_symlinked_source_dir_cannot_redirect_the_land(tmp_path: Path) -> None:
     outside.mkdir()
     link = dest_root / "sneaky"
     try:
-        os.symlink(outside, link)
+        link.symlink_to(outside)
     except (OSError, NotImplementedError):
         pytest.skip("symlinks unsupported on this platform")
     # a destination path routed through the symlink resolves outside → refused

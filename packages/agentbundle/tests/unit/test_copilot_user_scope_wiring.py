@@ -55,8 +55,8 @@ class TestCopilotUserScopeCapability(unittest.TestCase):
 
 class TestCopilotUserScopePathJail(unittest.TestCase):
     def test_jail_accepts_copilot_user_targets(self) -> None:
-        from agentbundle.commands.install import _adapter_allowed_prefixes_user
         from agentbundle import safety
+        from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
         prefixes = _adapter_allowed_prefixes_user("copilot")
         with tempfile.TemporaryDirectory() as tmp:
@@ -74,19 +74,18 @@ class TestCopilotUserScopePathJail(unittest.TestCase):
     def test_jail_rejects_github_under_home(self) -> None:
         # The bug AC10b's rewrite prevents: an unrewritten `.github/…` path
         # would resolve under `~/.github/…`, outside the user prefixes.
-        from agentbundle.commands.install import _adapter_allowed_prefixes_user
         from agentbundle import safety
+        from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
         prefixes = _adapter_allowed_prefixes_user("copilot")
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(safety.PathJailError):
-                safety.write_jailed(
-                    Path(tmp),
-                    ".github/agents/x.agent.md",
-                    b"x",
-                    scope="user",
-                    allowed_prefixes=prefixes,
-                )
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(safety.PathJailError):
+            safety.write_jailed(
+                Path(tmp),
+                ".github/agents/x.agent.md",
+                b"x",
+                scope="user",
+                allowed_prefixes=prefixes,
+            )
 
 
 class TestRewriteCopilotUserScopePaths(unittest.TestCase):

@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from io import StringIO
-import sys
 
 from agentbundle import render
 from agentbundle.commands import diff

@@ -127,7 +127,7 @@ class ShimTier3Tests(_ShimImportBase):
             encoding="utf-8",
         )
         if os.name == "posix":
-            os.chmod(dotfile, 0o600)
+            dotfile.chmod(0o600)
         creds = self.shim.load_credentials("shimns", required_keys=["API_TOKEN"])
         self.assertEqual(creds.API_TOKEN, "tier3-value")
 

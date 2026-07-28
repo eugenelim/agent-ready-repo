@@ -9,13 +9,12 @@ the parseable-only write validation (no scheme gate at write time), the
 from __future__ import annotations
 
 import pytest
-
 from agentbundle.commands.config import _effective_value
 from agentbundle.scope import shipped_adapters_from_contract
 from agentbundle.source_defaults import resolve_default_source
 from agentbundle.user_config import (
-    UserConfig,
     _KNOWN_KEYS,
+    UserConfig,
     read_user_config,
     unset_setting,
     write_setting,

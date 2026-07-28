@@ -23,7 +23,6 @@ signal — gets diluted in a future edit.
 from __future__ import annotations
 
 import importlib.util
-import io
 import json
 import re
 import unittest
@@ -134,9 +133,11 @@ class PerplexityRetrieverConformance(unittest.TestCase):
             def __exit__(self, *exc) -> None:
                 return None
 
-        with patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}):
-            with patch.object(module.urllib.request, "urlopen", return_value=FakeResp(canned_body)):
-                result = module.retrieve("anything")
+        with (
+            patch.dict("os.environ", {"PERPLEXITY_API_KEY": "test-key"}),
+            patch.object(module.urllib.request, "urlopen", return_value=FakeResp(canned_body)),
+        ):
+            result = module.retrieve("anything")
 
         self.assertIsInstance(result, dict)
         self.assertEqual(set(result.keys()), REQUIRED_KEYS)
@@ -151,9 +152,8 @@ class PerplexityRetrieverConformance(unittest.TestCase):
         # would still inherit ambient env in some shells.
         import os
 
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(RuntimeError):
-                module.retrieve("anything")
+        with patch.dict(os.environ, {}, clear=True), self.assertRaises(RuntimeError):
+            module.retrieve("anything")
 
 
 class ResearchSkillDescriptionRegression(unittest.TestCase):

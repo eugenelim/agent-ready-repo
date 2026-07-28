@@ -24,9 +24,8 @@ import pytest
 
 yaml = pytest.importorskip("yaml", reason="PyYAML not installed; skip deep lint tests")
 
-from agentbundle.catalogue_tooling.results import Severity
-from agentbundle.catalogue_tooling.skill_spec_lint import lint_skill_spec
-
+from agentbundle.catalogue_tooling.results import Severity  # noqa: E402
+from agentbundle.catalogue_tooling.skill_spec_lint import lint_skill_spec  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -317,7 +316,7 @@ def _build_tree_broken(root: Path) -> None:
 
     filler = "\n".join(f"filler line {i}" for i in range(1100))
     _write(skills / "body-too-long" / "SKILL.md",
-           f"---\nname: body-too-long\ndescription: Body exceeds 1000 lines — must error.\n---\n\n{filler}\n")
+           f"---\nname: body-too-long\ndescription: Body exceeds 1000 lines — must error.\n---\n\n{filler}\n")  # noqa: E501
     _write(skills / "body-too-long" / "scripts" / "noop.py", "# not lint-relevant\n")
 
     _write(skills / "unblessed-dir" / "SKILL.md", textwrap.dedent("""\
@@ -596,7 +595,7 @@ def _build_tree_warns(root: Path) -> None:
 
     filler = "\n".join(f"filler line {i}" for i in range(600))
     _write(skills / "body-warn-only" / "SKILL.md",
-           f"---\nname: body-warn-only\ndescription: Body sits at 600 lines — must warn, not error.\n---\n\n{filler}\n")
+           f"---\nname: body-warn-only\ndescription: Body sits at 600 lines — must warn, not error.\n---\n\n{filler}\n")  # noqa: E501
 
     _write(skills / "loose-file" / "SKILL.md", textwrap.dedent("""\
         ---
@@ -769,7 +768,7 @@ def test_tree_e_symlink_loop(tmp_path):
     skill_dir = tmp_path / ".claude" / "skills" / "symlink-loop"
     skill_dir.mkdir(parents=True)
     try:
-        os.symlink("SKILL.md", skill_dir / "SKILL.md")
+        (skill_dir / "SKILL.md").symlink_to("SKILL.md")
     except (OSError, NotImplementedError):
         pytest.skip("symlink creation unavailable")
 

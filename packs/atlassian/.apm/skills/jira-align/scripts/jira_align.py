@@ -19,6 +19,7 @@ Tier 2 OS keyring → Tier 3 dotfile); run ``credential-setup`` skill to populat
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import json
 import logging
@@ -43,10 +44,8 @@ if __package__ in (None, "") and __spec__ is None:
     # its messages emit correctly. Guarded: a replaced stream (StringIO under
     # a test harness) or pythonw's None has no reconfigure().
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     # Vendored credbroker floor (~/.agentbundle/lib) at LOWEST precedence:
@@ -76,7 +75,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
-    raise SystemExit(2)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("jira_align.cli")
 
@@ -344,14 +343,14 @@ async def _cmd_check(client: JiraAlignClient) -> int:
     return EXIT_OK
 
 
-async def _cmd_whoami(client: JiraAlignClient, writer: "OutputWriter") -> int:
+async def _cmd_whoami(client: JiraAlignClient, writer: OutputWriter) -> int:
     info = await client.whoami()
     writer.emit_single(info)
     return EXIT_OK
 
 
 async def _cmd_get(
-    client: JiraAlignClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraAlignClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     item = await client.get_one(args.resource, args.item_id, expand=args.expand)
     writer.emit_single(item)
@@ -361,7 +360,7 @@ async def _cmd_get(
 async def _cmd_list(
     client: JiraAlignClient,
     args: argparse.Namespace,
-    writer: "OutputWriter",
+    writer: OutputWriter,
     *,
     filter_expr: str | None,
 ) -> int:
@@ -383,7 +382,7 @@ async def _cmd_list(
 
 
 async def _cmd_create(
-    client: JiraAlignClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraAlignClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     try:
         body = _load_body(args)
@@ -402,7 +401,7 @@ async def _cmd_create(
 
 
 async def _cmd_update(
-    client: JiraAlignClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraAlignClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     try:
         body = _load_body(args)
@@ -440,7 +439,7 @@ async def _cmd_delete(
 
 
 async def _cmd_raw(
-    client: JiraAlignClient, args: argparse.Namespace, writer: "OutputWriter"
+    client: JiraAlignClient, args: argparse.Namespace, writer: OutputWriter
 ) -> int:
     params: dict[str, str] = {}
     for pair in args.param:

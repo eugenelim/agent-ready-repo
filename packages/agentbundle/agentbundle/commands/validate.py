@@ -420,10 +420,7 @@ def _dir_has_any_file(directory: Path, suffix: str) -> bool:
     through `check_kiro_wiring`, which mirrors rail C's symlink refusal."""
     if not directory.exists():
         return False
-    for entry in directory.iterdir():
-        if entry.is_file() and entry.suffix == suffix:
-            return True
-    return False
+    return any(entry.is_file() and entry.suffix == suffix for entry in directory.iterdir())
 
 
 def _dir_has_any_kiro_ide_hook(directory: Path) -> bool:

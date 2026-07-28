@@ -5,9 +5,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 import ledger as L
+import pytest
 
 SALT = "fixed-test-salt"
 
@@ -56,7 +55,9 @@ def test_schema_rejects_control_chars_no_toml_injection(tmp_path: Path) -> None:
         L.append_entry("https://x/repo", evil, base=tmp_path, salt=SALT)
     # a benign entry after the refusal still round-trips
     L.append_entry("https://x/repo", _entry("gamma"), base=tmp_path, salt=SALT)
-    assert [e["name"] for e in L.read_entries("https://x/repo", base=tmp_path, salt=SALT)] == ["gamma"]
+    assert [
+        e["name"] for e in L.read_entries("https://x/repo", base=tmp_path, salt=SALT)
+    ] == ["gamma"]
 
 
 def test_durable_marker_dated_append_and_baseline(tmp_path: Path) -> None:

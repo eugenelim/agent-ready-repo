@@ -8,39 +8,32 @@ from __future__ import annotations
 
 import io
 import json
-import sys
-from contextlib import redirect_stderr, redirect_stdout
-from dataclasses import dataclass, field
+from contextlib import redirect_stderr, redirect_stdout, suppress
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Imports under test
 # ---------------------------------------------------------------------------
-
 import agentbundle.cli as cli_module
+import pytest
+from agentbundle.catalogue import CatalogueError
 from agentbundle.commands.upgrade import (
-    _BulkRow,
     _apply_all,
     _apply_order,
     _apply_single_row,
     _assign_pre_apply_outcomes,
-    _build_json_doc,
+    _BulkRow,
     _classify_row,
-    _finalize,
-    _print_plan_table,
     _redact_credentials,
     _run_all,
     _run_preflight,
     _run_source_version_preflight,
     _was_dist_tree_install,
 )
-from agentbundle.catalogue import CatalogueError
 from agentbundle.config import ConfigError, PackState, State
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -49,9 +42,9 @@ from agentbundle.config import ConfigError, PackState, State
 
 def _make_pack_state(
     installed_version: str = "0.13.6",
-    source: "str | None" = "git+https://example.test/packs",
+    source: str | None = "git+https://example.test/packs",
     adapter: str = "claude-code",
-    files: "dict | None" = None,
+    files: dict | None = None,
 ) -> PackState:
     return PackState(
         installed_version=installed_version,
@@ -62,7 +55,7 @@ def _make_pack_state(
 
 
 def _make_state(
-    rows: "list[tuple[str, str, str, str]]",
+    rows: list[tuple[str, str, str, str]],
 ) -> State:
     """Build a State from (pack, adapter, source, version) tuples."""
     state = State()
@@ -79,7 +72,7 @@ def _make_row(
     pack: str = "core",
     adapter: str = "claude-code",
     installed_version: str = "0.13.6",
-    source: "str | None" = "git+https://example.test/packs",
+    source: str | None = "git+https://example.test/packs",
 ) -> _BulkRow:
     ps = _make_pack_state(installed_version=installed_version, source=source, adapter=adapter)
     return _BulkRow(pack=pack, adapter=adapter, scope="repo", pack_state=ps)
@@ -94,12 +87,12 @@ class _Result:
 
 
 def _make_args(
-    scope: "str | None" = "repo",
+    scope: str | None = "repo",
     yes: bool = False,
     dry_run: bool = False,
     fmt: str = "table",
-    adapter: "str | None" = None,
-    catalogue: "str | None" = None,
+    adapter: str | None = None,
+    catalogue: str | None = None,
     root: str = ".",
 ) -> Any:
     """Build an args-like namespace for _run_all."""
@@ -129,7 +122,7 @@ def _run_all_capture(args: Any, root: Path) -> _Result:
     return _Result(rc, rows_out, buf_out.getvalue(), buf_err.getvalue())
 
 
-def _parse_args(argv: "list[str]") -> Any:
+def _parse_args(argv: list[str]) -> Any:
     p = cli_module._build_parser()
     return p.parse_args(argv)
 
@@ -364,11 +357,11 @@ def test_preflight_source_resolved_once_per_invocation(tmp_path):
         call_count["n"] += 1
         raise Exception("stop")  # don't need actual resolution
 
-    with patch("agentbundle.commands.upgrade.resolve_catalogue", side_effect=_mock_resolve):
-        try:
-            _run_source_version_preflight(state, scope="repo", root=tmp_path)
-        except Exception:
-            pass
+    with (
+        patch("agentbundle.commands.upgrade.resolve_catalogue", side_effect=_mock_resolve),
+        suppress(Exception),
+    ):
+        _run_source_version_preflight(state, scope="repo", root=tmp_path)
     # May be called once even if it raises — the second row reuses the map
     # For our mock it raises so both rows get source-unavailable, but resolve was only called once
     assert call_count["n"] == 1
@@ -801,7 +794,7 @@ def test_json_summary_invariant_non_dry_run(tmp_path):
 
     doc = json.loads(result.stdout)
     s = doc["summary"]
-    assert s["completed"] + s["skipped"] + s["blocked"] + s["failed"] + s["not_attempted"] == s["total"]
+    assert s["completed"] + s["skipped"] + s["blocked"] + s["failed"] + s["not_attempted"] == s["total"]  # noqa: E501
     assert s["planned"] == 0
 
 
@@ -1005,7 +998,7 @@ def test_table_unicode_identifier(tmp_path):
 
 def test_table_long_source_truncated(tmp_path):
     """AC35: Long source URIs are truncated gracefully."""
-    long_source = "agent-ready-repo"  # canonicalize_source -> None; triggers default-chain fallback
+    long_source = "agent-ready-repo"  # canonicalize_source -> None; triggers default-chain fallback  # noqa: E501
     state = _make_state([("core", "claude-code", long_source, "0.13.6")])
     _write_state_toml(tmp_path, state)
     with patch(
@@ -1093,20 +1086,20 @@ def _make_single_pack_args():
     return ns
 
 
-def _setup_state(root: Path, rows: "list[tuple]") -> None:
+def _setup_state(root: Path, rows: list[tuple]) -> None:
     state = _make_state(rows)
     _write_state_toml(root, state)
 
 
 def _write_state_toml(root: Path, state: State) -> None:
-    from agentbundle.config import dump_state
     from agentbundle.commands._common import resolve_state_path
+    from agentbundle.config import dump_state
     state_path = resolve_state_path("repo", root)
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(dump_state(state), encoding="utf-8")
 
 
-from contextlib import contextmanager
+from contextlib import contextmanager  # noqa: E402
 
 
 @contextmanager

@@ -10,12 +10,10 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 
 def compose_jql(
     scope_clause: str,
-    user_clause: Optional[str],
+    user_clause: str | None,
     *,
     order_by_key: bool = True,
 ) -> str:
@@ -29,7 +27,7 @@ def compose_jql(
     parenthesization rule.
     """
     if user_clause is not None and user_clause.strip() != "":
-        body = "({}) AND ({})".format(scope_clause, user_clause)
+        body = f"({scope_clause}) AND ({user_clause})"
     else:
         body = scope_clause
     if order_by_key:

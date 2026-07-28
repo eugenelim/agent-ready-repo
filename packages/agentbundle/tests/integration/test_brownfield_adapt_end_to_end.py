@@ -19,7 +19,6 @@ from agentbundle.commands import adapt
 from agentbundle.config import PackState, State, dump_state
 from agentbundle.safety import sha256_bytes
 
-
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 BROWNFIELD = FIXTURES / "brownfield-adapt"
 EXPECTED = FIXTURES / "brownfield-adapt-expected"

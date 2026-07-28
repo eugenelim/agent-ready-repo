@@ -91,6 +91,15 @@ jobs:
         # below anyway).
         run: pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
 
+      - name: Install ruff + mypy
+        run: pip install ruff mypy
+
+      - name: ruff lint
+        run: python tools/lint-ruff.py
+
+      - name: mypy type-check (typed packages only)
+        run: python tools/lint-mypy.py
+
       - name: Run bundler build (populates dist/ for build-check drift gates)
         # The drift gates added by docs/specs/claude-plugins-install-route/
         # (writer-template byte-identity vs canonical) cross-validate

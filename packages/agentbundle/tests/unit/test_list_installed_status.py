@@ -18,7 +18,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-
 from agentbundle.commands import list_installed as li
 from agentbundle.config import PackState, State, dump_state
 
@@ -31,10 +30,10 @@ FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "list-installed"
 
 
 def _make_args(**kw) -> SimpleNamespace:
-    base = dict(
-        catalogue=None, root=".", scope=None, no_check=False, check_drift=False,
-        format="table", updates_only=False, _user_config=None,
-    )
+    base = {
+        "catalogue": None, "root": ".", "scope": None, "no_check": False, "check_drift": False,
+        "format": "table", "updates_only": False, "_user_config": None,
+    }
     base.update(kw)
     return SimpleNamespace(**base)
 
@@ -65,7 +64,7 @@ def test_compute_status_pair_up_to_date():
 
 
 def test_compute_status_pair_upgrade_available():
-    assert li._compute_status_pair("1.1.0", "1.2.0", reason_ctx=None) == ("upgrade-available", None)
+    assert li._compute_status_pair("1.1.0", "1.2.0", reason_ctx=None) == ("upgrade-available", None)  # noqa: E501
 
 
 def test_compute_status_pair_ahead():
@@ -83,7 +82,7 @@ def test_compute_status_pair_equal_zero_padded():
 
 def test_compute_status_pair_reason_ctx_wins():
     # reason_ctx wins regardless of version values
-    assert li._compute_status_pair("1.2.0", "1.2.0", reason_ctx="source-unknown") == ("unknown", "source-unknown")
+    assert li._compute_status_pair("1.2.0", "1.2.0", reason_ctx="source-unknown") == ("unknown", "source-unknown")  # noqa: E501
 
 
 @pytest.mark.parametrize("code", [
@@ -164,7 +163,9 @@ def test_resolve_per_source_single_ok(tmp_path):
          "_pack_state": PackState(installed_version="1.0.0", source=str(cat))},
     ]
     call_count = [0]
-    real_resolve = __import__("agentbundle.catalogue", fromlist=["resolve_catalogue"]).resolve_catalogue
+    real_resolve = (
+        __import__("agentbundle.catalogue", fromlist=["resolve_catalogue"]).resolve_catalogue
+    )
 
     def mock_resolve(uri):
         call_count[0] += 1
@@ -312,7 +313,9 @@ def test_resolve_per_source_resolve_once_per_source(tmp_path):
          "_pack_state": PackState(installed_version="0.8.0", source=str(cat))},
     ]
     call_count = [0]
-    real_resolve = __import__("agentbundle.catalogue", fromlist=["resolve_catalogue"]).resolve_catalogue
+    real_resolve = (
+        __import__("agentbundle.catalogue", fromlist=["resolve_catalogue"]).resolve_catalogue
+    )
 
     def mock_resolve(uri):
         call_count[0] += 1
@@ -520,7 +523,7 @@ def test_json_all_top_level_fields_present():
     row = _make_row(status="up-to-date")
     out = li._render_json([row], [], scope_val="repo", updates_only=False, check=True)
     result = json.loads(out)
-    for field in ("schema_version", "command", "scope", "updates_only", "sources", "rows", "summary"):
+    for field in ("schema_version", "command", "scope", "updates_only", "sources", "rows", "summary"):  # noqa: E501
         assert field in result, f"missing top-level field: {field}"
 
 
@@ -671,7 +674,7 @@ def test_json_source_null_for_unknown_provenance():
 def test_json_sources_array_resolved_and_failed():
     sources = [
         {"source": "a-src", "resolved": True, "error_code": None, "error_message": None},
-        {"source": "b-src", "resolved": False, "error_code": "catalogue-error", "error_message": "err"},
+        {"source": "b-src", "resolved": False, "error_code": "catalogue-error", "error_message": "err"},  # noqa: E501
     ]
     row = _make_row(status="up-to-date")
     out = li._render_json([row], sources, scope_val="all", updates_only=False, check=True)
@@ -845,7 +848,7 @@ def test_table_source_truncated_to_40_visible_chars(tmp_path, capsys):
     assert "SOURCE" in out
     # Find source cells in data rows (skip header and separator)
     lines = [ln for ln in out.splitlines() if "core" in ln or "arch" in ln]
-    for line in lines:
+    for _line in lines:
         # The source cell is a token in the line
         # We can't trivially extract the column, but we can check no cell
         # is longer than 40 characters (including the ellipsis character)

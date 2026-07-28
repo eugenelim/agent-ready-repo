@@ -15,8 +15,8 @@ import unittest
 from pathlib import Path
 
 from agentbundle.build.projections.copilot_agent_md import (
-    project_copilot_agent_md,
     _KNOWN_TOOLS,
+    project_copilot_agent_md,
 )
 
 
@@ -28,7 +28,7 @@ def test_known_tools_matches_spec_allow_list() -> None:
     # Copilot's `web` tool on the CLI + app (docs/specs/copilot-skills-and-web /
     # RFC-0024 § Errata E1; only the cloud agent lacks it), so they are
     # known-and-recorded, not unknown.
-    assert _KNOWN_TOOLS == frozenset(
+    assert frozenset(
         {
             "Read",
             "Grep",
@@ -40,7 +40,7 @@ def test_known_tools_matches_spec_allow_list() -> None:
             "WebFetch",
             "WebSearch",
         }
-    )
+    ) == _KNOWN_TOOLS
 
 # The contract's `[frontmatter-mapping."copilot-agent-frontmatter-v0.10"]`
 # after T3; mirrored here as a literal for unit isolation. `tools` is handled

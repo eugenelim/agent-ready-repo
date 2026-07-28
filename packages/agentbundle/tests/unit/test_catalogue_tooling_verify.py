@@ -18,18 +18,16 @@ Monkeypatching strategy:
 from __future__ import annotations
 
 import json
-import sys
 import subprocess
+import sys
 
 import pytest
-
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity, VerifyResult
 from agentbundle.catalogue_tooling.verify import (
     render_json,
     render_table,
     verify_catalogue,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -163,7 +161,9 @@ def test_render_json_contains_all_fields():
     """render_json output contains all VerifyResult fields."""
     result = _make_result(ok=False, diagnostics=[_make_error_diag()])
     doc = json.loads(render_json(result))
-    for key in ("schema_version", "command", "operation", "agentbundle_version", "ok", "diagnostics"):
+    for key in (
+        "schema_version", "command", "operation", "agentbundle_version", "ok", "diagnostics"
+    ):
         assert key in doc, f"missing key {key!r} in render_json output"
 
 
@@ -340,6 +340,7 @@ def test_step_agent_artifacts_no_module_scope_yaml():
 def test_step_agent_artifacts_pipeline_integration(tmp_path):
     """_step_agent_artifacts on the in-repo .claude/ returns clean AND >=1 artifact inspected."""
     import pathlib
+
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
 
     repo_root = pathlib.Path(__file__).resolve().parents[4]
@@ -407,6 +408,7 @@ def test_step_plugin_manifests_clean(tmp_path):
 def test_step_plugin_manifests_pipeline_integration(tmp_path):
     """build then step 13: in-repo catalogue produces >=1 manifest, no errors."""
     import pathlib
+
     from agentbundle.catalogue_tooling.config import load_catalogue_config
     from agentbundle.catalogue_tooling.verify import _step_build_output, _step_plugin_manifests
 

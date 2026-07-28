@@ -19,11 +19,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import os
 from pathlib import Path
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -164,11 +160,11 @@ def test_install_refuses_missing_required(tmp_path):
     target.mkdir()
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc != 0, "install must refuse when required dep is missing"
     first_line = err.strip().splitlines()[0] if err.strip() else ""
-    assert first_line == "install: pack 'addon' requires 'core' (version ^0.1); install core first", (
+    assert first_line == "install: pack 'addon' requires 'core' (version ^0.1); install core first", (  # noqa: E501
         f"unexpected stderr first line: {first_line!r}"
     )
 
@@ -189,7 +185,7 @@ def test_install_proceeds_when_required_at_repo_scope(tmp_path):
     _pre_install_core(cat, target, version="0.1.0", scope="repo")
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     # Gate must not fire — install may fail for other reasons (e.g. render),
     # but the gate-specific message must NOT appear.
@@ -221,7 +217,7 @@ def test_install_proceeds_when_required_at_user_scope(tmp_path, monkeypatch):
     )
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope="repo", force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": False}  # noqa: E501
     )
     assert "requires 'core'" not in err, (
         f"gate fired unexpectedly on user-scope dep; stderr: {err!r}"
@@ -252,10 +248,10 @@ def test_install_proceeds_when_required_at_user_scope_repo_only_addon(
     )
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert "requires 'core'" not in err, (
-        f"repo-only addon gate fired spuriously when core is at user scope; stderr: {err!r}"
+        f"repo-only addon gate fired spuriously when core is at user scope; stderr: {err!r}"  # noqa: E501
     )
 
 
@@ -275,11 +271,11 @@ def test_install_refuses_out_of_range_required(tmp_path):
     _pre_install_core(cat, target, version="0.0.5", scope="repo")
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc != 0, "install must refuse when required dep version is out of range"
     first_line = err.strip().splitlines()[0] if err.strip() else ""
-    assert first_line == "install: pack 'addon' requires 'core' (version ^0.1); install core first", (
+    assert first_line == "install: pack 'addon' requires 'core' (version ^0.1); install core first", (  # noqa: E501
         f"unexpected stderr first line: {first_line!r}"
     )
 
@@ -297,11 +293,11 @@ def test_install_refuses_unsupported_range_grammar(tmp_path):
     target.mkdir()
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert rc != 0, "install must refuse with unsupported range grammar"
     first_line = err.strip().splitlines()[0] if err.strip() else ""
-    expected = "install: unsupported version range '~0.1' for required pack 'core'; only ^X.Y is supported"
+    expected = "install: unsupported version range '~0.1' for required pack 'core'; only ^X.Y is supported"  # noqa: E501
     assert first_line == expected, f"unexpected stderr first line: {first_line!r}"
 
 
@@ -318,7 +314,7 @@ def test_install_no_required_table_proceeds(tmp_path):
     target.mkdir()
 
     rc, _, err = _install(
-        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
     assert "requires" not in err, (
         f"unexpected gate message when no required table: {err!r}"

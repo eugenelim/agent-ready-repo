@@ -4,10 +4,7 @@ Run with `python -m pytest` from this directory.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
-
 import split_image
 
 

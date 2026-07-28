@@ -13,21 +13,21 @@ Python 3.11 stdlib only.
 
 from __future__ import annotations
 
+import contextlib
 import gzip
 import hashlib
 import io
 import json
 import os
 import re
-import sys
 import tarfile
 import tomllib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from agentbundle.config import ConfigError, load_pack_toml
 from agentbundle.catalogue_tooling.results import Diagnostic, PackageResult, Severity
+from agentbundle.config import ConfigError, load_pack_toml
 
 if TYPE_CHECKING:
     pass
@@ -130,10 +130,8 @@ def _check_required_files(root: Path, content_paths: list[Path]) -> str | None:
             if not (root / req.rstrip("/")).is_dir():
                 return f"error: required path missing: {req}"
         else:
-            if req not in posix_set:
-                # Check if the required file exists at all
-                if not (root / req).exists():
-                    return f"error: required file missing: {req}"
+            if req not in posix_set and not (root / req).exists():
+                return f"error: required file missing: {req}"
     return None
 
 
@@ -179,7 +177,7 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
             dp = Path(dirpath)
             for entry in list(dirnames) + list(filenames):
                 full = dp / entry
-                if os.path.islink(str(full)):
+                if full.is_symlink():
                     return f"error: symlink not allowed: {full}"
 
     # 5. Hard-link detection (POSIX only)
@@ -377,7 +375,11 @@ def _write_channel_descriptor(
         descriptor["minimum_agentbundle_version"] = minimum_agentbundle_version
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(descriptor, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n")
+    path.write_text(
+        json.dumps(descriptor, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -393,10 +395,8 @@ def _staging_path(final_path: Path) -> Path:
 def _cleanup_staged(*paths: Path) -> None:
     """Remove any staged files, ignoring errors (best-effort cleanup)."""
     for p in paths:
-        try:
+        with contextlib.suppress(OSError):
             p.unlink(missing_ok=True)
-        except OSError:
-            pass
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +460,9 @@ def package_catalogue(
             return _err(flag_err)
 
     # --- Output path layout ---
-    archive_path = output / "catalogues" / bundle / "releases" / release / f"catalogue-{release}.tar.gz"
+    archive_path = (
+        output / "catalogues" / bundle / "releases" / release / f"catalogue-{release}.tar.gz"
+    )
     sidecar_path = archive_path.parent / (archive_path.name + ".sha256")
     channel_path = output / "catalogues" / bundle / "channels" / f"{channel}.json"
 
@@ -472,7 +474,9 @@ def package_catalogue(
     from agentbundle.catalogue_tooling.verify import verify_catalogue
     verify_result = verify_catalogue(root)
     if not verify_result.ok:
-        msgs = "; ".join(d.message for d in verify_result.diagnostics if d.severity == Severity.ERROR)
+        msgs = "; ".join(
+            d.message for d in verify_result.diagnostics if d.severity == Severity.ERROR
+        )
         return _err(f"pre-package verify failed: {msgs}")
 
     # --- Scan and validate content ---
@@ -517,16 +521,18 @@ def package_catalogue(
     if generated_at is None:
         epoch_val = os.environ.get("SOURCE_DATE_EPOCH")
         if epoch_val is None or epoch_val == "":
-            generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+            generated_at = datetime.now(UTC).replace(microsecond=0).isoformat()
         else:
             try:
                 epoch_int = int(epoch_val)
             except ValueError:
                 return _err(f"SOURCE_DATE_EPOCH is not a valid integer: {epoch_val!r}")
-            generated_at = datetime.fromtimestamp(epoch_int, tz=timezone.utc).replace(microsecond=0).isoformat()
+            generated_at = (
+                datetime.fromtimestamp(epoch_int, tz=UTC).replace(microsecond=0).isoformat()
+            )
 
     if published_at is None:
-        published_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        published_at = datetime.now(UTC).replace(microsecond=0).isoformat()
 
     # --- Read catalogue.toml metadata for manifest ---
     catalogue_name: str | None = None
@@ -583,11 +589,15 @@ def package_catalogue(
 
         # --- Step 5: Self-verify staged archive + sidecar ---
         if _verify_archive_fn is None:
-            from agentbundle.catalogue_tooling.archive import verify_archive as _verify_archive_fn  # type: ignore[assignment]
+            from agentbundle.catalogue_tooling.archive import (
+                verify_archive as _verify_archive_fn,  # type: ignore[assignment]
+            )
         verify_arch = _verify_archive_fn(staged_archive, sha256_file=staged_sidecar)
         if not verify_arch.ok:
             _cleanup_staged(staged_archive, staged_sidecar)
-            msgs = "; ".join(d.message for d in verify_arch.diagnostics if d.severity == Severity.ERROR)
+            msgs = "; ".join(
+                d.message for d in verify_arch.diagnostics if d.severity == Severity.ERROR
+            )
             return _err(f"staged archive self-verification failed: {msgs}")
 
         # --- Step 6: Atomic place archive ---

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.build import build_catalogue
 
     root = Path(getattr(args, "root", ".")).resolve()

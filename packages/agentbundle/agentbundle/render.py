@@ -26,12 +26,11 @@ to the registry adds it to `agentbundle list-targets` automatically.
 from __future__ import annotations
 
 import tempfile
+import tomllib
 from pathlib import Path
 from typing import Sequence
 
 from agentbundle.build import adapters as _adapters
-import tomllib
-
 from agentbundle.build.main import (
     DEFAULT_RECIPES,
     Pack,

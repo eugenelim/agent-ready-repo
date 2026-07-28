@@ -216,7 +216,7 @@ def test_core_readme_disclosure_substrings_share_one_section(tmp_path):
     # eight required substrings.
     window_size = 1000
     found_window = False
-    for start in range(0, max(1, len(body) - window_size + 1)):
+    for start in range(max(1, len(body) - window_size + 1)):
         window = body[start : start + window_size]
         if all(s in window for s in needed):
             found_window = True

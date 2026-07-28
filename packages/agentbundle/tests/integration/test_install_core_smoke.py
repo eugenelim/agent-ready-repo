@@ -27,7 +27,6 @@ from pathlib import Path
 
 from agentbundle.commands import install
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 REAL_CORE = REPO_ROOT / "packs" / "core"
 

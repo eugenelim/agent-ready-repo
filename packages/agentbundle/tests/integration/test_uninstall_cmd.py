@@ -13,8 +13,6 @@ from __future__ import annotations
 import types
 from pathlib import Path
 
-import pytest
-
 # Fixture catalogue reused from the install tests.
 FIXTURE_CATALOGUE = (
     Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
@@ -58,7 +56,10 @@ def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
     state = State()
     state.packs[(pack_name, "claude-code")] = PackState(
         installed_version="0.1.0",
-        files={relpath: {"sha": sha, "from-pack-version": "0.1.0"} for relpath, sha in files.items()},
+        files={
+            relpath: {"sha": sha, "from-pack-version": "0.1.0"}
+            for relpath, sha in files.items()
+        },
     )
     (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
@@ -163,8 +164,8 @@ def test_tier3_file_byte_identical_before_and_after(tmp_path):
 def test_multi_pack_uninstall_a_preserves_b(tmp_path):
     """Install alpha and seed a second pack 'beta' in state. Uninstalling
     alpha must not touch [pack.beta] or any of beta's files."""
-    from agentbundle.config import PackState, State, dump_state, load_state
     from agentbundle import safety
+    from agentbundle.config import PackState, dump_state, load_state
 
     # Install alpha normally.
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
@@ -256,7 +257,7 @@ def test_dry_run_previews_and_writes_nothing(tmp_path, capsys):
     assert "Nothing written." in out
     # Every projected file is previewed as `remove tier-1`.
     for relpath in render_pack(ALPHA_PACK_DIR):
-        assert f"remove" in out and relpath in out
+        assert "remove" in out and relpath in out
 
     assert _snapshot_tree(tmp_path) == before, "dry-run must write nothing"
 

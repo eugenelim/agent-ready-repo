@@ -13,9 +13,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 import safe_io
-
 
 # --- XXE-safe XML ------------------------------------------------------
 
@@ -100,9 +98,8 @@ def test_zip_read_member_traversal_name_refused(tmp_path):
     """A `../`-prefixed entry name never yields a filesystem path — refused."""
     z = tmp_path / "trav.zip"
     _write_zip(z, {"../evil": b"pwned"})
-    with safe_io.open_safe_zip(z) as sz:
-        with pytest.raises(safe_io.ZipBombError):
-            sz.read_member("../evil")
+    with safe_io.open_safe_zip(z) as sz, pytest.raises(safe_io.ZipBombError):
+        sz.read_member("../evil")
 
 
 def test_zip_read_member_nested_archive_refused(tmp_path):
@@ -111,9 +108,8 @@ def test_zip_read_member_nested_archive_refused(tmp_path):
     _write_zip(inner, {"a.txt": b"x"})
     z = tmp_path / "outer.zip"
     _write_zip(z, {"nested.zip": inner.read_bytes()}, compression=zipfile.ZIP_STORED)
-    with safe_io.open_safe_zip(z) as sz:
-        with pytest.raises(safe_io.ZipBombError):
-            sz.read_member("nested.zip")
+    with safe_io.open_safe_zip(z) as sz, pytest.raises(safe_io.ZipBombError):
+        sz.read_member("nested.zip")
 
 
 def test_zip_member_byte_cap_catches_understated_size(tmp_path):
@@ -121,9 +117,11 @@ def test_zip_member_byte_cap_catches_understated_size(tmp_path):
     # per-member cap is what fires.
     z = tmp_path / "ok.zip"
     _write_zip(z, {"m.bin": os.urandom(10_000)}, compression=zipfile.ZIP_STORED)
-    with safe_io.open_safe_zip(z, max_member_bytes=1000) as sz:
-        with pytest.raises(safe_io.ZipBombError):
-            sz.read_member("m.bin")
+    with (
+        safe_io.open_safe_zip(z, max_member_bytes=1000) as sz,
+        pytest.raises(safe_io.ZipBombError),
+    ):
+        sz.read_member("m.bin")
 
 
 def test_zip_cumulative_actual_read_cap(tmp_path):
@@ -136,10 +134,9 @@ def test_zip_cumulative_actual_read_cap(tmp_path):
                compression=zipfile.ZIP_STORED)
     sz = safe_io.SafeZip(zipfile.ZipFile(z), max_member_bytes=4000,
                          max_total_uncompressed=5000)
-    with sz:
-        with pytest.raises(safe_io.ZipBombError):
-            for i in range(5):
-                sz.read_member(f"m{i}.bin")
+    with sz, pytest.raises(safe_io.ZipBombError):
+        for i in range(5):
+            sz.read_member(f"m{i}.bin")
 
 
 def test_harden_untrusted_reads_all_members_and_scans_dtd(tmp_path):
@@ -159,17 +156,18 @@ def test_harden_untrusted_refuses_dtd_in_any_member(tmp_path):
             b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><r/>'
         ),
     })
-    with safe_io.open_safe_zip(z) as sz:
-        with pytest.raises(safe_io.XmlSafetyError):
-            sz.harden_untrusted()
+    with safe_io.open_safe_zip(z) as sz, pytest.raises(safe_io.XmlSafetyError):
+        sz.harden_untrusted()
 
 
 def test_harden_untrusted_enforces_member_cap(tmp_path):
     z = tmp_path / "bomb.zip"
     _write_zip(z, {"big.bin": os.urandom(10_000)}, compression=zipfile.ZIP_STORED)
-    with safe_io.open_safe_zip(z, max_member_bytes=1000) as sz:
-        with pytest.raises(safe_io.ZipBombError):
-            sz.harden_untrusted()
+    with (
+        safe_io.open_safe_zip(z, max_member_bytes=1000) as sz,
+        pytest.raises(safe_io.ZipBombError),
+    ):
+        sz.harden_untrusted()
 
 
 # --- output-path confinement -----------------------------------------

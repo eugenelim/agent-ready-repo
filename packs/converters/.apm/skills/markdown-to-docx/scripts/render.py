@@ -128,7 +128,7 @@ def build_context(text: str) -> dict:
             i += 1
             continue
 
-        if current is not None and (stripped.startswith("- ") or stripped.startswith("* ")):
+        if current is not None and (stripped.startswith(("- ", "* "))):
             current["bullets"].append(stripped[2:].strip())
             i += 1
             continue
@@ -146,7 +146,9 @@ def build_context(text: str) -> dict:
             i += 2
             while i < len(lines) and lines[i].strip().startswith("|"):
                 cells = cell_split(lines[i])
-                body_rows.append({header[k]: (cells[k] if k < len(cells) else "") for k in range(len(header))})
+                body_rows.append(
+                    {header[k]: (cells[k] if k < len(cells) else "") for k in range(len(header))}
+                )
                 i += 1
             current["table"] = {"header": header, "rows": body_rows}
             continue

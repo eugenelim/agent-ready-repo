@@ -53,8 +53,7 @@ def unknown_categories(declared: object) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for entry in declared:
-        if isinstance(entry, str) and entry not in DEFAULT_CATEGORIES:
-            if entry not in seen:
-                seen.add(entry)
-                out.append(entry)
+        if isinstance(entry, str) and entry not in DEFAULT_CATEGORIES and entry not in seen:
+            seen.add(entry)
+            out.append(entry)
     return out

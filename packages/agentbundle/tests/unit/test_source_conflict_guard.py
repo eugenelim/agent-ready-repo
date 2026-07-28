@@ -10,7 +10,6 @@ import argparse
 import contextlib
 import io
 import os
-import sys
 import textwrap
 import unittest
 from pathlib import Path
@@ -18,7 +17,6 @@ from unittest.mock import patch
 
 from agentbundle.commands.install import _check_source_conflict
 from agentbundle.config import PackState, State
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -210,7 +208,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_source_conflict_legacy_literal_refused(self):
-        """source='agent-ready-repo' (legacy sentinel) with concrete incoming → refused (AC7, AC8)."""
+        """source='agent-ready-repo' (legacy sentinel) with concrete incoming → refused (AC7, AC8)."""  # noqa: E501
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat = Path(d) / "catalogue"
@@ -249,7 +247,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             cat_b = Path(d) / "catB"
             cat_b.mkdir()
             # repo_state has a conflicting row (different source)
-            repo_state = _state_with_row("mypack", "claude-code", str(cat_a))
+            _state_with_row("mypack", "claude-code", str(cat_a))
             # user_state is empty for this pack
             user_state = State()
             # Guard called with user_state (requested_scope="user" scenario)
@@ -461,7 +459,6 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         the guard checks user_state (empty for this pack) → allows.
         Repo row's source is unchanged after user-scope install.
         """
-        import os
         fake_home = self.tmp / "home"
         fake_home.mkdir()
 
@@ -502,7 +499,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
             self.assertEqual(rc3, 0, f"user-scope cross-source install refused: {err3!r}")
 
             # Repo row's source is unchanged: canonicalize(cat_c).
-            from agentbundle.config import load_state, canonicalize_source
+            from agentbundle.config import canonicalize_source, load_state
             repo_state = load_state(self.repo / ".agentbundle-state.toml")
             repo_row = repo_state.row("demo-user", "claude-code")
             self.assertIsNotNone(repo_row)

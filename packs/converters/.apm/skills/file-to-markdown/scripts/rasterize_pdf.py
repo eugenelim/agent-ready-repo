@@ -37,6 +37,7 @@ in the output dir, ready for the text-table read + ``reconcile.py``.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import sys
 from pathlib import Path
@@ -101,10 +102,8 @@ def _cleanup(paths: list[Path]) -> None:
     """Remove partial page PNGs written before a mid-render ceiling refusal, so a
     retry against the same work dir doesn't start dirty."""
     for p in paths:
-        try:
+        with contextlib.suppress(OSError):
             p.unlink()
-        except OSError:
-            pass
 
 
 def rasterize(

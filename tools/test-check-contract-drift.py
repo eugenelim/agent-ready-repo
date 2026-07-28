@@ -119,7 +119,7 @@ def test_a_identical() -> None:
     label = "A (four identical copies → exit 0)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        _write_tree(root, {p: CANONICAL for p in ANCHOR_PATHS})
+        _write_tree(root, dict.fromkeys(ANCHOR_PATHS, CANONICAL))
         code, out = _run(root)
         if code != 0:
             fail(label, f"expected exit 0, got {code}", out)
@@ -130,7 +130,7 @@ def test_b_schema_version_mismatch() -> None:
     label = "B (schema-version mismatch in one copy → exit 1, names pack)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         contents["core"] = CANONICAL.replace('schema-version: "1.0"', 'schema-version: "2.0"')
         _write_tree(root, contents)
         code, out = _run(root)
@@ -142,10 +142,13 @@ def test_b_schema_version_mismatch() -> None:
 
 
 def test_c_tier_annotation_value_changed() -> None:
-    label = "C (tier annotation value changed explore+ → pilot+ in one copy → exit 1, names drifting pack)"
+    label = (
+        "C (tier annotation value changed explore+ → pilot+"
+        " in one copy → exit 1, names drifting pack)"
+    )
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         # Change "Target User and Context" annotation from explore+ to pilot+ in PS copy
         contents["product-strategy"] = CANONICAL.replace(
             "### Target User and Context\n<!-- Required: explore+ -->",
@@ -166,7 +169,7 @@ def test_d_required_annotation_missing() -> None:
     label = "D (Required annotation missing on one field → exit 1)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         # Remove the Required annotation for Thin Slice in the PE copy
         contents["product-engineering"] = CANONICAL.replace(
             "### Thin Slice\n<!-- Required: pilot+ -->",
@@ -183,7 +186,7 @@ def test_e_extra_h3_in_one_copy() -> None:
     label = "E (extra h3 header in one copy → exit 1, names extra header)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         # Insert an extra field in the XD copy
         contents["experience-design"] = CANONICAL.replace(
             "## Frontend Engineering [owner: core]",
@@ -203,7 +206,7 @@ def test_f_missing_h3_in_one_copy() -> None:
     label = "F (h3 header missing from one copy → exit 1)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         # Remove Primary Journey from XD copy
         contents["experience-design"] = CANONICAL.replace(
             "\n### Primary Journey\n<!-- Required: explore+ -->",
@@ -235,7 +238,7 @@ def test_h_different_order() -> None:
     label = "H (h3 headers in different order in one copy → exit 1)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         # Swap order of Opportunity and Bet + Thin Slice in PE copy
         contents["product-engineering"] = CANONICAL.replace(
             "### Opportunity and Bet\n<!-- Required: explore+ -->\n\n"
@@ -254,9 +257,11 @@ def test_i_no_parseable_frontmatter() -> None:
     label = "I (one copy has no frontmatter → exit 1, clean error not AttributeError)"
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        contents = {p: CANONICAL for p in ANCHOR_PATHS}
+        contents = dict.fromkeys(ANCHOR_PATHS, CANONICAL)
         # Strip frontmatter from PS copy
-        contents["product-strategy"] = "# Digital Experience Contract: no-frontmatter\n\nJust content."
+        contents["product-strategy"] = (
+            "# Digital Experience Contract: no-frontmatter\n\nJust content."
+        )
         _write_tree(root, contents)
         code, out = _run(root)
         if code == 0:

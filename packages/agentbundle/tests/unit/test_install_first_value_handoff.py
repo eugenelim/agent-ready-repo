@@ -43,13 +43,13 @@ _LEVEL_B_DATA = {
     "audience-posture": "non-technical",
     "surfaces": ["claude-code"],
     "prerequisites": [],
-    "verification": "Ask the agent about your architecture — it should reply with structural context.",
+    "verification": "Ask the agent about your architecture — it should reply with structural context.",  # noqa: E501
     "recovery": "If the agent does not respond, re-run adapt-to-project.",
     "level-b": True,
     "starter-task": "Get a plain-language map of how this codebase is organized",
-    "starter-prompt": "Describe the architecture of this codebase and create a reference.md snapshot.",
+    "starter-prompt": "Describe the architecture of this codebase and create a reference.md snapshot.",  # noqa: E501
     "expected-result": "A docs/architecture/reference.md file with the codebase's key components.",
-    "next-action": "On your next design question, ask: 'Does this approach align with our reference architecture?'",
+    "next-action": "On your next design question, ask: 'Does this approach align with our reference architecture?'",  # noqa: E501
 }
 
 _LEVEL_A_DATA = {
@@ -226,17 +226,17 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
     def _install(
         self, pack: str, *, extra: dict | None = None
     ) -> tuple[int, str, str]:
-        kwargs = dict(
-            pack=pack,
-            catalogue=str(self.cat),
-            output=str(self.repo),
-            scope="repo",
-            force=False,
-            force_merge=False,
-            adapter=None,
-            dry_run=False,
-            yes=False,
-        )
+        kwargs = {
+            "pack": pack,
+            "catalogue": str(self.cat),
+            "output": str(self.repo),
+            "scope": "repo",
+            "force": False,
+            "force_merge": False,
+            "adapter": None,
+            "dry_run": False,
+            "yes": False,
+        }
         if extra:
             kwargs.update(extra)
         return _run_install(argparse.Namespace(**kwargs))

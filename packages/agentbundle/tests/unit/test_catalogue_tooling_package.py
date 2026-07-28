@@ -10,21 +10,17 @@ import hashlib
 import io
 import json
 import os
-import sys
 import tarfile
-import tempfile
 from pathlib import Path
 from unittest import mock
 
 import pytest
-
 from agentbundle.catalogue_tooling.package import (
-    package_catalogue,
+    _check_required_files,
     _generate_manifest,
     _scan_content,
-    _check_required_files,
+    package_catalogue,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -76,14 +72,14 @@ def _make_catalogue(
 
 def _make_args(root: Path, output: Path, **kwargs) -> object:
     """Return a namespace-like object for package_catalogue."""
-    defaults = dict(
-        bundle="engineering",
-        release="0.1.0",
-        channel="stable",
-        source_revision=None,
-        minimum_agentbundle_version=None,
-        published_at=None,
-    )
+    defaults = {
+        "bundle": "engineering",
+        "release": "0.1.0",
+        "channel": "stable",
+        "source_revision": None,
+        "minimum_agentbundle_version": None,
+        "published_at": None,
+    }
     defaults.update(kwargs)
     return mock.SimpleNamespace(root=str(root), output=str(output), **defaults)
 
@@ -108,7 +104,9 @@ def test_package_produces_three_file_layout(tmp_path: Path) -> None:
 
     assert result.ok, [d.message for d in result.diagnostics]
 
-    archive = output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    archive = (
+        output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    )
     sidecar = archive.parent / "catalogue-0.1.0.tar.gz.sha256"
     descriptor = output / "catalogues" / "engineering" / "channels" / "stable.json"
 
@@ -161,7 +159,9 @@ def test_no_generic_license_required(tmp_path: Path) -> None:
     output = tmp_path / "out"
 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        result = package_catalogue(root=root, bundle="b", release="0.1.0", channel="c", output=output)
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
 
     assert result.ok, [d.message for d in result.diagnostics]
 
@@ -182,7 +182,9 @@ def test_catalogue_toml_excluded_from_archive(tmp_path: Path) -> None:
     # Also verify the packaged archive doesn't include it.
     output = tmp_path / "out"
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        result = package_catalogue(root=root, bundle="b", release="0.1.0", channel="c", output=output)
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
 
     assert result.ok, [d.message for d in result.diagnostics]
 
@@ -242,7 +244,9 @@ def test_deterministic_under_source_date_epoch(tmp_path: Path) -> None:
 
     assert r1.ok and r2.ok
 
-    def _arc(out): return (out / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz").read_bytes()
+    def _arc(out):
+        path = out / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+        return path.read_bytes()
     assert hashlib.sha256(_arc(out1)).digest() == hashlib.sha256(_arc(out2)).digest()
 
 
@@ -298,7 +302,7 @@ def test_staged_cleanup_on_verify_failure(tmp_path: Path) -> None:
     # No staged .tmp files remain
     if output.exists():
         for f in output.rglob("*.tmp"):
-            assert False, f"staged file not cleaned up: {f}"
+            raise AssertionError(f"staged file not cleaned up: {f}")
     # Final archive not written
     archive = output / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
     assert not archive.exists()
@@ -317,7 +321,9 @@ def test_manifest_schema_v2_fields(tmp_path: Path) -> None:
     output = tmp_path / "out"
 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        result = package_catalogue(root=root, bundle="b", release="0.1.0", channel="c", output=output)
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
 
     assert result.ok
 
@@ -348,6 +354,7 @@ def test_compat_alias_deprecation_warning(tmp_path: Path) -> None:
     output = tmp_path / "out"
 
     import types as _types
+
     from agentbundle.commands.package_catalogue import run
     args = _types.SimpleNamespace(
         root=str(root),
@@ -361,9 +368,11 @@ def test_compat_alias_deprecation_warning(tmp_path: Path) -> None:
     )
 
     stderr_buf = io.StringIO()
-    with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        with contextlib.redirect_stderr(stderr_buf):
-            rc = run(args)
+    with (
+        mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}),
+        contextlib.redirect_stderr(stderr_buf),
+    ):
+        rc = run(args)
 
     assert rc == 0
     assert "deprecated" in stderr_buf.getvalue().lower()
@@ -380,7 +389,9 @@ def test_extracted_archive_valid_local_catalogue(tmp_path: Path) -> None:
     output = tmp_path / "out"
 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        result = package_catalogue(root=root, bundle="b", release="0.1.0", channel="c", output=output)
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
 
     assert result.ok
 
@@ -413,7 +424,9 @@ def test_archive_layout_no_wrapper_directory(tmp_path: Path) -> None:
     output = tmp_path / "out"
 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        result = package_catalogue(root=root, bundle="b", release="0.1.0", channel="c", output=output)
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
 
     assert result.ok
 
@@ -440,7 +453,9 @@ def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
 
     output = tmp_path / "out"
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
-        result = package_catalogue(root=root, bundle="b", release="0.1.0", channel="c", output=output)
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
 
     assert result.ok
 
@@ -463,9 +478,8 @@ def test_cli_catalogue_package_help() -> None:
     from agentbundle import cli
 
     stdout_buf = io.StringIO()
-    with pytest.raises(SystemExit) as exc_info:
-        with contextlib.redirect_stdout(stdout_buf):
-            cli.main(["catalogue", "package", "--help"])
+    with pytest.raises(SystemExit) as exc_info, contextlib.redirect_stdout(stdout_buf):
+        cli.main(["catalogue", "package", "--help"])
     assert exc_info.value.code == 0
     help_text = stdout_buf.getvalue()
     for flag in ["--root", "--bundle", "--release", "--channel", "--output",

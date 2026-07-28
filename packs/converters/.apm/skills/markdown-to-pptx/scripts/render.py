@@ -109,7 +109,7 @@ def parse_markdown(text: str) -> dict:
                 i += 1
                 continue
 
-        if current is not None and (stripped.startswith("- ") or stripped.startswith("* ")):
+        if current is not None and (stripped.startswith(("- ", "* "))):
             current["bullets"].append(stripped[2:].strip())
             i += 1
             continue

@@ -64,15 +64,18 @@ class _UpgradeBase(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"; self.home.mkdir()
-        self.repo = self.tmp / "repo"; self.repo.mkdir()
+        self.home = self.tmp / "home"
+        self.home.mkdir()
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
         self._env = patch.dict(
             os.environ,
             {"HOME": str(self.home), "AGENTBUNDLE_USER_ROOT": str(self.home)},
         )
         self._env.start()
         self.addCleanup(self._env.stop)
-        self.cat = self.tmp / "cat"; (self.cat / "packs").mkdir(parents=True)
+        self.cat = self.tmp / "cat"
+        (self.cat / "packs").mkdir(parents=True)
 
 
 class UpgradeThenUninstallTests(_UpgradeBase):
@@ -263,7 +266,8 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
 
     @unittest.expectedFailure
     def test_legacy_kiro_upgrade_orphans_stale_json_known_limitation(self):
-        """KNOWN LIMITATION (workspace.toml [backlog] slug: upgrade-orphan-removal-on-projection-shape-change):
+        """KNOWN LIMITATION (workspace.toml [backlog] slug:
+        upgrade-orphan-removal-on-projection-shape-change):
         `upgrade` has no orphan-removal step, so when an agent's projected file
         SHAPE changes across the upgrade (legacy kiro `.json` → kiro-ide `.md`),
         the new file is written but the stale `.json` is left on disk. For

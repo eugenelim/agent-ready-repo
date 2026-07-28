@@ -23,12 +23,11 @@ import hashlib
 import re
 import tomllib
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlsplit
 from urllib.request import url2pathname
-
 
 _WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 _CREDENTIAL_SUBSTRINGS = ("token", "key", "secret", "password", "auth")
@@ -179,7 +178,7 @@ class State:
         """Return the adapters *name* is installed for, sorted."""
         return sorted(a for (p, a) in self.packs if p == name)
 
-    def row(self, name: str, adapter: str) -> "PackState | None":
+    def row(self, name: str, adapter: str) -> PackState | None:
         """Return the ``(name, adapter)`` row, or None if absent."""
         return self.packs.get((name, adapter))
 
@@ -218,7 +217,7 @@ class State:
 # ---------------------------------------------------------------------------
 
 
-import enum as _enum
+import enum as _enum  # noqa: E402
 
 
 class FootprintVerdict(_enum.Enum):
@@ -346,7 +345,9 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     return state
 
 
-def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any], default_scope: str = "repo") -> "PackState":
+def _parse_adapter_row(
+    name: str, adapter: str, body: dict[str, Any], default_scope: str = "repo"
+) -> PackState:
     """Parse one ``[pack.<name>.adapters.<adapter>]`` row into a PackState.
 
     The adapter is part of the table key, so it is passed in rather than
@@ -373,7 +374,11 @@ def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any], default_sc
             }
 
     raw_scope = body.get("scope")
-    scope = raw_scope if isinstance(raw_scope, str) and raw_scope in ("repo", "user") else default_scope
+    scope = (
+        raw_scope
+        if isinstance(raw_scope, str) and raw_scope in ("repo", "user")
+        else default_scope
+    )
 
     raw_target = body.get("target-file")
     if isinstance(raw_target, str):
@@ -470,7 +475,7 @@ def canonicalize_source(value: str | None) -> str | None:
         return None
 
     # Rule 7 — credential substrings in query or fragment
-    from urllib.parse import parse_qsl, SplitResult
+    from urllib.parse import SplitResult, parse_qsl
     for key, _val in parse_qsl(parsed.query):
         if any(cred in key.lower() for cred in _CREDENTIAL_SUBSTRINGS):
             return None
@@ -791,7 +796,7 @@ def _parse_findings(entries: list[Any], *, accepted: bool) -> list[Finding]:
         ts_raw = entry.get(ts_key)
         recorded_at: datetime | None = None
         if isinstance(ts_raw, datetime):
-            recorded_at = ts_raw if ts_raw.tzinfo is not None else ts_raw.replace(tzinfo=timezone.utc)
+            recorded_at = ts_raw if ts_raw.tzinfo is not None else ts_raw.replace(tzinfo=UTC)
 
         out.append(
             Finding(

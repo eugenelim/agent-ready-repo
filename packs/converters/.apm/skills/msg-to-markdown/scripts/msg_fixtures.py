@@ -19,7 +19,7 @@ This is test infrastructure, not a runtime path of the converter.
 from __future__ import annotations
 
 import struct
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SIG = bytes.fromhex("D0CF11E0A1B11AE1")
@@ -71,7 +71,7 @@ def _spec_to_entries(spec, storage_name=None):
            embedded: {att_index: sub_spec}}."""
     kids = [_Entry(n, T_STREAM, d) for n, d in spec.get("top", {}).items()]
     for i, rec in enumerate(spec.get("recipients", [])):
-        kids.append(_Entry("__recip_version1.0_#%08X" % i, T_STORAGE,
+        kids.append(_Entry(f"__recip_version1.0_#{i:08X}", T_STORAGE,
                            children=[_Entry(n, T_STREAM, d) for n, d in rec.items()]))
     embedded = spec.get("embedded", {})
     for i, att in enumerate(spec.get("attachments", [])):
@@ -80,7 +80,7 @@ def _spec_to_entries(spec, storage_name=None):
             # An embedded message: AttachMethod=5 + a PtypObject storage holding
             # the nested message's streams (real MSG layout for afEmbeddedMessage).
             akids.append(_spec_to_entries(embedded[i], "__substg1.0_3701000D"))
-        kids.append(_Entry("__attach_version1.0_#%08X" % i, T_STORAGE, children=akids))
+        kids.append(_Entry(f"__attach_version1.0_#{i:08X}", T_STORAGE, children=akids))
     if storage_name is None:
         return kids
     return _Entry(storage_name, T_STORAGE, children=kids)
@@ -218,7 +218,7 @@ def _pack_free():
 # --- MAPI property-tag helpers (real Outlook tags) --------------------------
 
 def substg(prop_id_hex, type_hex):
-    return "__substg1.0_%s%s" % (prop_id_hex.upper(), type_hex.upper())
+    return f"__substg1.0_{prop_id_hex.upper()}{type_hex.upper()}"
 
 
 def u16(s):
@@ -226,8 +226,8 @@ def u16(s):
 
 
 def filetime(dt):
-    epoch = datetime(1601, 1, 1, tzinfo=timezone.utc)
-    delta = dt.astimezone(timezone.utc) - epoch
+    epoch = datetime(1601, 1, 1, tzinfo=UTC)
+    delta = dt.astimezone(UTC) - epoch
     return struct.pack("<Q", int(delta.total_seconds() * 10_000_000))
 
 
@@ -343,9 +343,9 @@ def corpus():
     the ground truth this corpus asserts against (the strong, portable AC3 gate);
     the Node `msgreader` cross-check is the independent oracle over the same bytes.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    dt = datetime(2024, 3, 1, 12, 30, tzinfo=timezone.utc)
+    dt = datetime(2024, 3, 1, 12, 30, tzinfo=UTC)
     items = []
 
     items.append(("plain", message_spec(
@@ -404,8 +404,9 @@ def corpus():
 
 
 if __name__ == "__main__":  # smoke check
-    import olefile
     import tempfile
+
+    import olefile
 
     p = write_msg(str(Path(tempfile.mkdtemp()) / "fx.msg"), message_spec(
         subject="Hi", sender_name="A", sender_email="a@x.com", body="hello",

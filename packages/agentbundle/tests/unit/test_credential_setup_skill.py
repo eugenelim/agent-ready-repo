@@ -9,7 +9,6 @@ Verifies:
 
 from __future__ import annotations
 
-import io
 import os
 import pathlib
 import shutil
@@ -17,7 +16,6 @@ import subprocess
 import sys
 
 import pytest
-
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 SETUP_SKILL = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "skills" / "credential-setup"
@@ -52,7 +50,7 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
     """AC19: setup.py refuses the reserved `sso` namespace; stderr names
     the reserved set. Run the script via subprocess against the projected
     sibling shim under a tmp_path skill dir."""
-    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:
+    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
         pytest.skip("credbroker not installed")
     # Build a tmp skill dir with the shim siblings + setup.py so the
     # relative import (`from .credentials_shim ...`) resolves.
@@ -92,7 +90,7 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
             capture_output=True, text=True,
             env={**os.environ, "PYTHONPATH": str(tmp_path)},
         )
-    assert res.returncode == 2, f"expected exit 2 for reserved sso, got {res.returncode}\nstderr: {res.stderr}\nstdout: {res.stdout}"
+    assert res.returncode == 2, f"expected exit 2 for reserved sso, got {res.returncode}\nstderr: {res.stderr}\nstdout: {res.stdout}"  # noqa: E501
     assert "sso" in res.stderr
     assert "reserved" in res.stderr
 
@@ -100,7 +98,7 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
 def test_ac18_argv_ban_refused(tmp_path):
     """AC18 / argv-ban: setup.py refuses --token / --api-token / etc.
     on the command line."""
-    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:
+    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
         pytest.skip("credbroker not installed")
     skill_dir = tmp_path / "credential_setup"
     skill_dir.mkdir()
@@ -124,7 +122,7 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
     """AC18: when the user enters a secret, it never appears on stdout —
     only stderr announcements. We simulate via in-process import after
     projecting the shim siblings into a temp package."""
-    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:
+    if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
         pytest.skip("credbroker not installed")
     skill_dir = tmp_path / "credential_setup"
     skill_dir.mkdir()
@@ -162,7 +160,7 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
         env={**os.environ, "PYTHONPATH": str(tmp_path), "HOME": str(tmp_path / "fake_home")},
     )
     # Non-tty stdin: setup refuses with exit 3; stdout stays empty.
-    assert res.returncode == 3, f"expected exit 3 (non-tty refuse), got {res.returncode}\nstderr={res.stderr}"
+    assert res.returncode == 3, f"expected exit 3 (non-tty refuse), got {res.returncode}\nstderr={res.stderr}"  # noqa: E501
     assert "secret-token-MARKER-XYZ" not in res.stdout
     assert "secret-token-MARKER-XYZ" not in res.stderr
     assert "stdin-not-tty" in res.stderr

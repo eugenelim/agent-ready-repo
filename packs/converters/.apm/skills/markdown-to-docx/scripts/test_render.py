@@ -19,7 +19,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 import render
 
 HERE = Path(__file__).resolve().parent

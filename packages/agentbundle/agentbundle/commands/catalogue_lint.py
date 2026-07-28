@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.lint import lint_catalogue, render_json, render_table
 
     root = Path(getattr(args, "root", ".")).resolve()

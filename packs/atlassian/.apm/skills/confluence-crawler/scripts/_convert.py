@@ -10,10 +10,9 @@ import html
 import logging
 import re
 
+from _links import LinkTargets, attachment_href, page_href
 from lxml import etree
 from markdownify import markdownify
-
-from _links import LinkTargets, attachment_href, page_href
 
 log = logging.getLogger("confluence_crawler.convert")
 
@@ -288,7 +287,7 @@ def _transform_in_place(
         if el.getparent() is None:
             continue
         tag = el.tag if isinstance(el.tag, str) else ""
-        if tag.startswith(f"{{{AC_NS}}}") or tag.startswith(f"{{{RI_NS}}}"):
+        if tag.startswith((f"{{{AC_NS}}}", f"{{{RI_NS}}}")):
             _replace(el, "")
 
 

@@ -24,10 +24,9 @@ from __future__ import annotations
 
 import contextlib
 import io
+
 import pytest
-
 from agentbundle import cli
-
 
 # A minimal set of "valid trailing args" per subcommand so the parse
 # reaches the --scope token rather than failing earlier on a missing

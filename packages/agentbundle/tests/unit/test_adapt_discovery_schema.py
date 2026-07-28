@@ -11,12 +11,10 @@ Per docs/specs/adapt-to-project/plan.md T1 and spec.md AC2/AC8/AC9/AC16.
 
 from __future__ import annotations
 
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
 from agentbundle.config import (
     AdaptDiscovery,
     ConfigError,
@@ -25,7 +23,6 @@ from agentbundle.config import (
     finding_id_for,
     load_adapt_discovery_typed,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures (inline TOML strings)
@@ -219,7 +216,7 @@ def test_finding_id_input_includes_pack_and_kind():
 
 def test_findings_round_trip_preserves_fields(tmp_path):
     """Build an AdaptDiscovery, serialise to TOML, reparse, assert field equality."""
-    ts = datetime(2026, 5, 22, 10, 0, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 5, 22, 10, 0, 0, tzinfo=UTC)
     f_acc = Finding(
         finding_id="core/restructure:7a3f2c91",
         kind="restructure",

@@ -57,7 +57,10 @@ _CASES = 0
 def _render(areas: dict[int, tuple[str, str]], *, weight_col: bool) -> str:
     """Render a minimal reference file carrying a taxonomy table."""
     if weight_col:
-        head = "| # | Area | The question it answers | Weight | Consult it when… |\n|---|---|---|---|---|\n"
+        head = (
+            "| # | Area | The question it answers | Weight | Consult it when… |\n"
+            "|---|---|---|---|---|\n"
+        )
         rows = "".join(
             f"| {n} | {name} | {q} | primary | when… |\n" for n, (name, q) in areas.items()
         )
@@ -133,14 +136,19 @@ def main() -> int:
     _expect("A parity", _run(canon_md(), review_md(), pe_md()), code=0)
 
     # B — reworded question in the frame-intent copy for shared area 1.
-    drifted_pe = dict(subset); drifted_pe[1] = (CANON[1][0], "What do the words mean?")
+    drifted_pe = dict(subset)
+    drifted_pe[1] = (CANON[1][0], "What do the words mean?")
     _expect("B reworded pe", _run(canon_md(), review_md(), pe_md(drifted_pe)),
             code=1, needle="area #1 diverged")
 
     # C — renamed area in the canonical copy (shared area 2).
-    drifted_canon = dict(full); drifted_canon[2] = ("Application landscape", CANON[2][1])
-    _expect("C renamed canonical", _run(_render(drifted_canon, weight_col=False), review_md(), pe_md()),
-            code=1, needle="area #2 diverged")
+    drifted_canon = dict(full)
+    drifted_canon[2] = ("Application landscape", CANON[2][1])
+    _expect(
+        "C renamed canonical",
+        _run(_render(drifted_canon, weight_col=False), review_md(), pe_md()),
+        code=1, needle="area #2 diverged",
+    )
 
     # D — frame-intent carries an extra area (3), breaking the subset.
     extra_pe = {n: CANON[n] for n in (1, 2, 3, 4, 8)}
@@ -149,8 +157,11 @@ def main() -> int:
 
     # E — canonical dropped an area (only 1..7), breaking the canonical set.
     short = {n: CANON[n] for n in range(1, 8)}
-    _expect("E canonical incomplete", _run(_render(short, weight_col=False), review_md(short), pe_md()),
-            code=1, needle="canonical) areas")
+    _expect(
+        "E canonical incomplete",
+        _run(_render(short, weight_col=False), review_md(short), pe_md()),
+        code=1, needle="canonical) areas",
+    )
 
     # F — a missing file is an error, not a traceback.
     cp = _run(canon_md(), review_md(), None)
@@ -159,22 +170,29 @@ def main() -> int:
         _FAILURES.append("F missing file: linter raised a traceback instead of a clean error")
 
     # G — the architect-review copy drifts (reworded question for shared area 4).
-    drifted_review = dict(review); drifted_review[4] = (CANON[4][0], "How does it run in prod?")
+    drifted_review = dict(review)
+    drifted_review[4] = (CANON[4][0], "How does it run in prod?")
     _expect("G review drift", _run(canon_md(), review_md(drifted_review), pe_md()),
             code=1, needle="area #4 diverged")
 
     # H — a copy carries an area outside the canonical set (a phantom area 9).
     # Caught by invariant (2) (set != expected), not (3) (which only compares
     # shared areas) — pins that out-of-canon areas are guarded.
-    out_of_canon = dict(review); out_of_canon[9] = ("Phantom area", "Does this exist?")
+    out_of_canon = dict(review)
+    out_of_canon[9] = ("Phantom area", "Does this exist?")
     _expect("H out-of-canon area", _run(canon_md(), review_md(out_of_canon), pe_md()),
             code=1, needle="architect-review reference areas")
 
     # I — the architect-diagram copy drifts (reworded question for shared area 5).
     # Mirrors G: pins that the fourth copy is guarded too.
-    drifted_diagram = _render({**CANON, 5: (CANON[5][0], "What rules constrain me?")}, weight_col=False)
-    _expect("I diagram drift", _run(canon_md(), review_md(), pe_md(), diagram_text=drifted_diagram),
-            code=1, needle="area #5 diverged")
+    drifted_diagram = _render(
+        {**CANON, 5: (CANON[5][0], "What rules constrain me?")}, weight_col=False
+    )
+    _expect(
+        "I diagram drift",
+        _run(canon_md(), review_md(), pe_md(), diagram_text=drifted_diagram),
+        code=1, needle="area #5 diverged",
+    )
 
     if _FAILURES:
         for f in _FAILURES:

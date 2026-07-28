@@ -16,13 +16,11 @@ The test fixture pack ships:
 
 from __future__ import annotations
 
-import copy
 import json
 import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 V0_3_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
@@ -99,7 +97,7 @@ class KiroAdapterDispatchesKiroIdeHook(unittest.TestCase):
             kiro_adapter.project(pack, contract, output)
 
             # askAgent — byte-copy preserves source exactly.
-            ask_path = output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-prompt.kiro.hook"
+            ask_path = output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-prompt.kiro.hook"  # noqa: E501
             self.assertTrue(ask_path.exists())
             ask_body = json.loads(ask_path.read_text(encoding="utf-8"))
             self.assertEqual(ask_body["then"]["type"], "askAgent")
@@ -107,7 +105,7 @@ class KiroAdapterDispatchesKiroIdeHook(unittest.TestCase):
 
             # runCommand — placeholder expanded to ./tools/hooks/lint.py
             # (Kiro adapter's legacy hook-body target is tools/hooks/).
-            cmd_path = output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-command.kiro.hook"
+            cmd_path = output / ".kiro" / "hooks" / "kiro-ide-hooks-basic" / "lint-command.kiro.hook"  # noqa: E501
             self.assertTrue(cmd_path.exists())
             cmd_body = json.loads(cmd_path.read_text(encoding="utf-8"))
             self.assertEqual(cmd_body["then"]["command"], "./tools/hooks/lint.py")
@@ -143,7 +141,6 @@ class ValidateCommandRailFires(unittest.TestCase):
 
     def test_malformed_kiro_ide_hook_refused_via_validate_command(self) -> None:
         import io
-        import sys
         from contextlib import redirect_stderr
 
         with TemporaryDirectory() as raw:
@@ -161,8 +158,9 @@ class ValidateCommandRailFires(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            from agentbundle.commands.validate import run as validate_run
             import argparse
+
+            from agentbundle.commands.validate import run as validate_run
             ns = argparse.Namespace(pack_path=str(pack), strict=False)
 
             buf = io.StringIO()

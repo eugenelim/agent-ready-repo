@@ -237,7 +237,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             )
             self.assertFalse(
                 any(
-                    p.startswith("claude-plugins/") or p.startswith("apm/")
+                    p.startswith(("claude-plugins/", "apm/"))
                     for p in files_recorded
                 ),
                 f"state.files still tracks dist-tree paths: {files_recorded!r}",

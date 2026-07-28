@@ -14,15 +14,13 @@ v0.1 state file at the repo root before the call.
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import io
-import argparse
 from pathlib import Path
 
 import pytest
-
-from agentbundle.commands import install, uninstall, upgrade, init_state, adapt, diff
-
+from agentbundle.commands import adapt, diff, init_state, install, uninstall, upgrade
 
 V01_STATE = """
 schema-version = "0.1"

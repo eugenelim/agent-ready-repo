@@ -12,11 +12,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 import convert
 import mapi
 import msg_fixtures as fx
+import pytest
 
 HERE = Path(__file__).resolve().parent
 
@@ -255,6 +254,8 @@ def test_check_exit_codes(tmp_path):
     r = subprocess.run([sys.executable, str(HERE / "convert.py"), "--check", "olefile"],
                        capture_output=True, text=True)
     assert r.returncode == 0                      # olefile installed in CI
-    r2 = subprocess.run([sys.executable, str(HERE / "convert.py"), "--check", "nonexistent_lib_xyz"],
-                        capture_output=True, text=True)
+    r2 = subprocess.run(
+        [sys.executable, str(HERE / "convert.py"), "--check", "nonexistent_lib_xyz"],
+        capture_output=True, text=True,
+    )
     assert r2.returncode == 2

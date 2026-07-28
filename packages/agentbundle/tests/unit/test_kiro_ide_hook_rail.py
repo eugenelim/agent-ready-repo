@@ -18,7 +18,6 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-
 # E3 vocabulary — closed by RFC-0022 via static analysis of
 # extension.js IDEListenableEvent enum (2026-06-01). Supersedes the
 # RFC-0005 best-guess list (fileSave/fileEdit/manualTrigger).

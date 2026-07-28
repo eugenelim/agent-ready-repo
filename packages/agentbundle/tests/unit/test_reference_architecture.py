@@ -60,8 +60,7 @@ def _slugify(heading: str) -> str:
     slug = heading.strip().lower()
     slug = slug.replace("`", "")
     slug = re.sub(r"[^\w\s-]", "", slug)
-    slug = re.sub(r"\s+", "-", slug)
-    return slug
+    return re.sub(r"\s+", "-", slug)
 
 
 def _heading_slugs(md_path: Path) -> set[str]:

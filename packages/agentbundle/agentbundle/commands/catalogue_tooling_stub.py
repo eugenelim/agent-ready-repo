@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     sub = getattr(args, "catalogue_sub", None) or getattr(args, "lint_sub", None) or ""
     print(
         f"agentbundle catalogue {sub} not yet implemented — see ini-005 Wave 2-4 specs".rstrip(),

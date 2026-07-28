@@ -30,7 +30,6 @@ kept in sync manually (both excluded from self-host drift comparison).
 
 from __future__ import annotations
 
-import copy
 import json
 import tomllib
 import unittest
@@ -41,7 +40,9 @@ CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 ADAPTER_SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 PACK_SCHEMA_PATH = REPO_ROOT / "contracts" / "pack.schema.json"
 PLUGIN_MANIFEST_SCHEMA_PATH = REPO_ROOT / "contracts" / "plugin-manifest.schema.json"
-PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
+PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = (
+    REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
+)
 
 KIRO_EVENTS = ["agentSpawn", "userPromptSubmit", "preToolUse", "postToolUse", "stop"]
 
@@ -265,7 +266,7 @@ class ScopeConditionalTargetSchemaTests(unittest.TestCase):
         from agentbundle.build.validate import validate
 
         skeleton = _v03_skeleton()
-        skeleton["adapter"]["kiro"]["projections"]["hook-body"]["target"] = ".kiro/hooks/<name>.{sh,py}"
+        skeleton["adapter"]["kiro"]["projections"]["hook-body"]["target"] = ".kiro/hooks/<name>.{sh,py}"  # noqa: E501
         errors = validate(skeleton, _load_adapter_schema())
         self.assertEqual(errors, [], f"bare-string target rejected: {errors}")
 
@@ -499,7 +500,7 @@ allowed-scopes = ["repo"]
         self.assertEqual(errors, [], f"v0.3 pack with install rejected: {errors}")
 
     def test_v03_pack_without_install_refused(self) -> None:
-        """The v0.2 invariant — install required when adapter-contract.version is current — applies to v0.3."""
+        """The v0.2 invariant — install required when adapter-contract.version is current — applies to v0.3."""  # noqa: E501
         from agentbundle.build.validate import validate
 
         instance = _parse_pack(
@@ -590,7 +591,7 @@ class BundledCopiesMatchTests(unittest.TestCase):
     def test_adapter_schema_copies_match(self) -> None:
         a = (self._data_dir() / "adapter.schema.json").read_bytes()
         b = ADAPTER_SCHEMA_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/adapter.schema.json and contracts/adapter.schema.json differ")
+        self.assertEqual(a, b, "_data/adapter.schema.json and contracts/adapter.schema.json differ")  # noqa: E501
 
     def test_pack_schema_copies_match(self) -> None:
         a = (self._data_dir() / "pack.schema.json").read_bytes()

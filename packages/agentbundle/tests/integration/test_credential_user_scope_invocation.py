@@ -32,7 +32,6 @@ import sys
 
 import pytest
 
-
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 PACKS = REPO_ROOT / "packs"
 SHIM_SOURCE = PACKS / "credential-brokers" / ".apm" / "shared-libs"

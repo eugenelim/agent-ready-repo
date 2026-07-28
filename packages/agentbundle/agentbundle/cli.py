@@ -35,7 +35,6 @@ from typing import Sequence
 
 from agentbundle.version import CLI_VERSION, SPEC_VERSION
 
-
 # Path-bearing argparse-attribute names. The set is curated rather than
 # "every string attribute" so a future flag carrying a content string
 # with a literal backslash (a regex fragment, a message body) is not
@@ -137,12 +136,13 @@ class _VerbAwareSubParsersAction(argparse._SubParsersAction):
                 # Calls _VerbAwareParser.error on the subparser; that
                 # path rewrites to the spec's stderr contract.
                 subparser.error(f"unrecognized arguments: {bare}")
-                return  # unreachable — error() raises SystemExit
+                return None  # unreachable — error() raises SystemExit
         # No spec-flag extras — re-propagate everything for argparse's
         # default unrecognised-args path on the main parser.
         if extras:
             vars(namespace).setdefault("_unrecognized_args", [])
-            getattr(namespace, "_unrecognized_args").extend(extras)
+            namespace._unrecognized_args.extend(extras)
+        return None
 
 
 def _version_string() -> str:
@@ -240,7 +240,10 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- list-targets --- (no flags; queries the adapter registry)
     sp = subparsers.add_parser(
         "list-targets",
-        help="List adapter targets the CLI supports (claude-code, kiro-ide, kiro-cli, kiro (deprecated → kiro-ide), copilot, codex).",
+        help=(
+            "List adapter targets the CLI supports "
+            "(claude-code, kiro-ide, kiro-cli, kiro (deprecated → kiro-ide), copilot, codex)."
+        ),
     )
     sp.set_defaults(func=_lazy("list_targets"))
 
@@ -484,7 +487,10 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- render ---
     sp = subparsers.add_parser(
         "render",
-        help="Render a pack to --output via the F-build pipeline (byte-identical to `make build`).",
+        help=(
+            "Render a pack to --output via the F-build pipeline "
+            "(byte-identical to `make build`)."
+        ),
     )
     sp.add_argument("pack_path", help="Path to a pack directory.")
     sp.add_argument("--output", required=True)
@@ -720,7 +726,10 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- package-catalogue --- (maintainer/CI only; RFC-0072 D1/D5)
     sp = subparsers.add_parser(
         "package-catalogue",
-        help="Package a catalogue repository into an Artifactory artifact layout (maintainer/CI only).",
+        help=(
+            "Package a catalogue repository into an Artifactory artifact layout "
+            "(maintainer/CI only)."
+        ),
     )
     sp.add_argument("--root", required=True, help="Catalogue repository root directory.")
     sp.add_argument("--bundle", required=True, help="Bundle name (e.g. engineering).")
@@ -761,40 +770,84 @@ def _build_parser() -> argparse.ArgumentParser:
     cat_subs = cat_parser.add_subparsers(dest="catalogue_sub", metavar="<sub>")
 
     # catalogue lint
-    _lint_p = cat_subs.add_parser("lint", help="Lint catalogue packs (profiles, seeds, first-value contract, credentialed-skill conventions).")
+    _lint_p = cat_subs.add_parser(
+        "lint",
+        help=(
+            "Lint catalogue packs (profiles, seeds, first-value contract, "
+            "credentialed-skill conventions)."
+        ),
+    )
     _lint_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _lint_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
-    _lint_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
-    _lint_p.add_argument("--deep", action="store_true", default=False,
-                         help="Run full agentskills.io spec-compliance lint (requires PyYAML: pip install 'agentbundle[lint]').")
+    _lint_p.add_argument(
+        "--format", choices=("table", "json"), default="table", help="Output format."
+    )
+    _lint_p.add_argument(
+        "--deep",
+        action="store_true",
+        default=False,
+        help=(
+            "Run full agentskills.io spec-compliance lint "
+            "(requires PyYAML: pip install 'agentbundle[lint]')."
+        ),
+    )
     _lint_p.set_defaults(func=_lazy("catalogue_lint"))
 
     # catalogue verify
-    _ver_p = cat_subs.add_parser("verify", help="Verify catalogue against contracts (18-step pipeline, including agent-artifact lint and plugin manifest validation).")
+    _ver_p = cat_subs.add_parser(
+        "verify",
+        help=(
+            "Verify catalogue against contracts (18-step pipeline, including "
+            "agent-artifact lint and plugin manifest validation)."
+        ),
+    )
     _ver_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _ver_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
-    _ver_p.add_argument("--archive", default=None, help="Verify a packaged .tar.gz archive instead of source tree.")
-    _ver_p.add_argument("--sha256-file", default=None, dest="sha256_file", help="SHA-256 sidecar file for archive verification.")
-    _ver_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _ver_p.add_argument(
+        "--archive",
+        default=None,
+        help="Verify a packaged .tar.gz archive instead of source tree.",
+    )
+    _ver_p.add_argument(
+        "--sha256-file",
+        default=None,
+        dest="sha256_file",
+        help="SHA-256 sidecar file for archive verification.",
+    )
+    _ver_p.add_argument(
+        "--format", choices=("table", "json"), default="table", help="Output format."
+    )
     _ver_p.set_defaults(func=_lazy("catalogue_verify"))
 
     # catalogue build
     _build_p = cat_subs.add_parser("build", help="Build catalogue dist tree.")
     _build_p.add_argument("--root", default=".", help="Catalogue root directory.")
-    _build_p.add_argument("--output", default=None, help="Output directory (overrides catalogue.toml).")
+    _build_p.add_argument(
+        "--output", default=None, help="Output directory (overrides catalogue.toml)."
+    )
     _build_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
     _build_p.add_argument("--recipe", default=None, help="Recipe name or .toml path.")
-    _build_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _build_p.add_argument(
+        "--format", choices=("table", "json"), default="table", help="Output format."
+    )
     _build_p.set_defaults(func=_lazy("catalogue_build"))
 
     # catalogue self-host
     _sh_p = cat_subs.add_parser("self-host", help="Manage self-host projection.")
     _sh_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _sh_excl = _sh_p.add_mutually_exclusive_group()
-    _sh_excl.add_argument("--check", action="store_true", default=False, help="Dry-run check (read-only).")
-    _sh_excl.add_argument("--write", action="store_true", default=False, help="Write self-host projection.")
-    _sh_p.add_argument("--force", action="store_true", default=False, help="Force write even on dirty tree.")
-    _sh_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
+    _sh_excl.add_argument(
+        "--check", action="store_true", default=False, help="Dry-run check (read-only)."
+    )
+    _sh_excl.add_argument(
+        "--write", action="store_true", default=False, help="Write self-host projection."
+    )
+    _sh_p.add_argument(
+        "--force", action="store_true", default=False, help="Force write even on dirty tree."
+    )
+    _sh_p.add_argument(
+        "--format", choices=("table", "json"), default="table", help="Output format."
+    )
     _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
 
     # catalogue package
@@ -804,17 +857,36 @@ def _build_parser() -> argparse.ArgumentParser:
     _pkg_p.add_argument("--release", required=True, help="Release version string.")
     _pkg_p.add_argument("--channel", required=True, help="Channel name (e.g. 'stable').")
     _pkg_p.add_argument("--output", required=True, help="Output directory for Artifactory layout.")
-    _pkg_p.add_argument("--source-revision", default=None, dest="source_revision", help="VCS revision.")
-    _pkg_p.add_argument("--minimum-agentbundle-version", default=None, dest="minimum_agentbundle_version", help="Minimum agentbundle version required.")
-    _pkg_p.add_argument("--published-at", default=None, dest="published_at", help="Published-at timestamp (ISO-8601).")
+    _pkg_p.add_argument(
+        "--source-revision", default=None, dest="source_revision", help="VCS revision."
+    )
+    _pkg_p.add_argument(
+        "--minimum-agentbundle-version",
+        default=None,
+        dest="minimum_agentbundle_version",
+        help="Minimum agentbundle version required.",
+    )
+    _pkg_p.add_argument(
+        "--published-at",
+        default=None,
+        dest="published_at",
+        help="Published-at timestamp (ISO-8601).",
+    )
     _pkg_p.set_defaults(func=_lazy("catalogue_package"))
 
     # catalogue sync-defaults
     _sd_p = cat_subs.add_parser("sync-defaults", help="Sync install-defaults from catalogue.toml.")
     _sd_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _sd_excl = _sd_p.add_mutually_exclusive_group()
-    _sd_excl.add_argument("--check", action="store_true", default=False, help="Check for drift (read-only).")
-    _sd_excl.add_argument("--write", action="store_true", default=False, help="Regenerate install-defaults.toml.")
+    _sd_excl.add_argument(
+        "--check", action="store_true", default=False, help="Check for drift (read-only)."
+    )
+    _sd_excl.add_argument(
+        "--write",
+        action="store_true",
+        default=False,
+        help="Regenerate install-defaults.toml.",
+    )
     _sd_p.set_defaults(func=_lazy("catalogue_sync_defaults"))
 
     # --- lint packs --- (Wave 2; implemented)
@@ -829,9 +901,18 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     packs_p.add_argument("--root", default=".", help="Catalogue root directory.")
     packs_p.add_argument("--pack", default=None, help="Limit to a single pack name.")
-    packs_p.add_argument("--format", choices=("table", "json"), default="table", help="Output format.")
-    packs_p.add_argument("--deep", action="store_true", default=False,
-                         help="Run full agentskills.io spec-compliance lint (requires PyYAML: pip install 'agentbundle[lint]').")
+    packs_p.add_argument(
+        "--format", choices=("table", "json"), default="table", help="Output format."
+    )
+    packs_p.add_argument(
+        "--deep",
+        action="store_true",
+        default=False,
+        help=(
+            "Run full agentskills.io spec-compliance lint "
+            "(requires PyYAML: pip install 'agentbundle[lint]')."
+        ),
+    )
     packs_p.set_defaults(func=_lazy("catalogue_lint"))
 
     # --- pack <sub> --- (pack evals run)

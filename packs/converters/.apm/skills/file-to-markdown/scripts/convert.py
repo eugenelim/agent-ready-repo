@@ -242,7 +242,7 @@ def _open_office(path: Path, content_type: str):
         return _defensive_result(content_type, f"not a valid Office (zip) file: {exc}")
 
 
-def _harden_for_lib(sz: "safe_io.SafeZip", content_type: str) -> ExtractResult | None:
+def _harden_for_lib(sz: safe_io.SafeZip, content_type: str) -> ExtractResult | None:
     """Before an ordinary Office library re-opens the raw file, fully validate
     every member through SafeZip — the per-member + cumulative decompression
     caps and the whole-buffer DTD refusal that the library path would otherwise
@@ -342,7 +342,7 @@ def _extract_xlsx(path: Path) -> ExtractResult:
     return ExtractResult(body, contract.TIER_0, "xlsx", confidence, truncated)
 
 
-def _extract_xlsx_stdlib(sz: "safe_io.SafeZip") -> tuple[str, str, bool]:
+def _extract_xlsx_stdlib(sz: safe_io.SafeZip) -> tuple[str, str, bool]:
     # Shared strings table (cells with t="s" index into it).
     shared: list[str] = []
     if sz.has_member("xl/sharedStrings.xml"):
@@ -437,7 +437,6 @@ class _TextHTMLParser:
     def __init__(self) -> None:
         from html.parser import HTMLParser
 
-        outer = self
 
         class _P(HTMLParser):
             def __init__(self) -> None:
@@ -706,12 +705,12 @@ def _extract_docling(
 ) -> ExtractResult:
     try:
         from docling.document_converter import DocumentConverter
-    except ImportError:
+    except ImportError as exc:
         raise RuntimeError(
             "docling is not installed and no Tier-0 extractor handles "
             f"'{input_path.suffix}'. Install docling (pip install docling) or "
             "convert to a Tier-0 format (PDF/Office/HTML/EPUB/CSV/ODF/EML)."
-        )
+        ) from exc
 
     is_image = input_path.suffix.lower() in IMAGE_EXTS
     tmp_dir = None

@@ -242,7 +242,9 @@ class CrossAdapterIndependenceTests(unittest.TestCase):
             self.assertTrue((out / ".kiro" / "agents" / "reviewer.json").exists())
             # Claude Code's settings (if any) live elsewhere — and
             # critically, never touch the Kiro agent JSON.
-            kiro_agent_text = (out / ".kiro" / "agents" / "reviewer.json").read_text(encoding="utf-8")
+            kiro_agent_text = (
+                out / ".kiro" / "agents" / "reviewer.json"
+            ).read_text(encoding="utf-8")
             self.assertNotIn(
                 "do-thing",
                 kiro_agent_text,

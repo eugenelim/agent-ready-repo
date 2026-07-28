@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from agentbundle.safety import Tier
 
 
-def resolve_catalogue_uri(args: "argparse.Namespace") -> str:
+def resolve_catalogue_uri(args: argparse.Namespace) -> str:
     """Resolve the catalogue URI for ``install`` / ``upgrade``.
 
     Applies the four-layer default chain (RFC-0046 / ADR-0036) when the
@@ -204,7 +204,9 @@ def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
     return None
 
 
-def load_pack_and_gate(pack_path: Path) -> tuple[dict[str, Any], int] | tuple[dict[str, Any], None]:
+def load_pack_and_gate(
+    pack_path: Path,
+) -> tuple[dict[str, Any], int] | tuple[dict[str, Any], None]:
     """Load a pack's `pack.toml` and apply the spec-version gate.
 
     Returns `(pack_toml, None)` on accept and `(pack_toml, 1)` on refusal.
@@ -224,7 +226,7 @@ def _major(version: str) -> str:
     return v.split(".")[0]
 
 
-def format_adapter_versions(rows: "dict[str, PackState]") -> str:
+def format_adapter_versions(rows: dict[str, PackState]) -> str:
     """Render sorted ``adapter (version)`` pairs for a multi-adapter
     disambiguator message (RFC-0052).
 
@@ -239,7 +241,7 @@ def format_adapter_versions(rows: "dict[str, PackState]") -> str:
     )
 
 
-def count_drifted_files(pack_state: "PackState", root: Path) -> int:
+def count_drifted_files(pack_state: PackState, root: Path) -> int:
     """Count *pack_state*'s files whose on-disk SHA differs from the recorded SHA.
 
     Row-scoped drift (Tier-2): compares each file against this row's own
@@ -274,7 +276,7 @@ def count_drifted_files(pack_state: "PackState", root: Path) -> int:
 _PLAN_ACTIONS: tuple[str, ...] = ("create", "overwrite", "companion")
 
 
-def plan_action(tier: "Tier", *, on_disk: bool) -> str:
+def plan_action(tier: Tier, *, on_disk: bool) -> str:
     """Map a classified ``Tier`` + on-disk presence to a dry-run plan verb.
 
     The verb mirrors what a real run would do at that file:

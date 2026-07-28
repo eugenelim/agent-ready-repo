@@ -158,13 +158,18 @@ class ClaudeCodeDetector:
 
     adapter = "claude-code"
 
-    def project(self, pack_path: pathlib.Path, output_root: pathlib.Path, catalogue_root: pathlib.Path | None = None) -> None:
+    def project(
+        self,
+        pack_path: pathlib.Path,
+        output_root: pathlib.Path,
+        catalogue_root: pathlib.Path | None = None,
+    ) -> None:
         # Lazy import so the pure functions above (and their unit tests) do
         # not require agentbundle to be importable.
         from agentbundle.build.adapters.claude_code import project
         from agentbundle.build.contract import load as load_contract
 
-        root = catalogue_root or pathlib.Path(".")
+        root = catalogue_root or pathlib.Path()
         contract = load_contract(root / "contracts" / "adapter.toml")
         project(pack_path, contract, output_root)
 
@@ -537,7 +542,7 @@ def run_eval(
     directory instead of invoking agentbundle.
     """
     if repo_root is None:
-        repo_root = pathlib.Path(".")
+        repo_root = pathlib.Path()
     if detector is None:
         detector = get_detector(ClaudeCodeDetector.adapter)
     _safe_segment("pack name", pack_name)
@@ -649,7 +654,7 @@ def grade_reports(
     invoked here — the dispatch is the driver's job; this is pure grading.
     """
     if repo_root is None:
-        repo_root = pathlib.Path(".")
+        repo_root = pathlib.Path()
     _validate_reports(reports)
     _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
@@ -796,7 +801,7 @@ def grade_behavior(
     workspace or malformed entry **fails closed** (graded errored, never a pass).
     """
     if repo_root is None:
-        repo_root = pathlib.Path(".")
+        repo_root = pathlib.Path()
     if not isinstance(results, dict):
         raise ValueError("results must be a JSON object {skill: {eval_id: {...}}}")
     _safe_segment("pack name", pack_name)
@@ -925,7 +930,7 @@ def grade_judge(
     unparseable verdict / missing artifact **fails closed** (errored, not PASS).
     `judge` is injectable so the parse/grade is testable without a live model."""
     if repo_root is None:
-        repo_root = pathlib.Path(".")
+        repo_root = pathlib.Path()
     _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
     pack_workspace = repo_root / EVAL_WORKSPACE / pack_name
@@ -1055,7 +1060,6 @@ def _print_report(summary: dict) -> None:
 
 def run(args) -> int:
     """Entry point for 'agentbundle pack evals run' subcommand."""
-    import pathlib as _pl
     if not hasattr(args, "catalogue_root"):
         args.catalogue_root = "."
     return _run_from_args(args)
@@ -1155,27 +1159,38 @@ def _run_from_args(args) -> int:
             evals = read_output_evals(pack_dir, skill)
             ev = next((e for e in evals if str(e.get("id")) == eval_id), None)
             if ev is None:
-                parser.error(f"--prepare-workspace: no eval {eval_id!r} in {skill}")
+                print(
+                    f"run-pack-evals: error: --prepare-workspace: no eval {eval_id!r} in {skill}",
+                    file=sys.stderr,
+                )
+                return 2
             ws = seed_workspace(pack_dir / ".apm" / "skills" / skill, ev.get("files") or [])
         except (ValueError, OSError) as exc:
-            parser.error(f"--prepare-workspace: {exc}")
+            print(f"run-pack-evals: error: --prepare-workspace: {exc}", file=sys.stderr)
+            return 2
         print(ws)
         return 0
 
     if args.mode == "judge":
         if not args.artifacts:
-            parser.error("--mode judge requires --artifacts <path>")
+            print(
+                "run-pack-evals: error: --mode judge requires --artifacts <path>",
+                file=sys.stderr,
+            )
+            return 2
         try:
             artifacts = json.loads(pathlib.Path(args.artifacts).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            parser.error(f"--artifacts {args.artifacts!r}: {exc}")
+            print(f"run-pack-evals: error: --artifacts {args.artifacts!r}: {exc}", file=sys.stderr)
+            return 2
         backends = load_judge_config(
             pathlib.Path(args.judge_config) if args.judge_config else None
         )
         try:
             judge = get_judge(args.judge_adapter, args.model, backends)
         except ValueError as exc:
-            parser.error(str(exc))
+            print(f"run-pack-evals: error: {exc}", file=sys.stderr)
+            return 2
         # The PATH check is the backend's own launcher (first command token).
         binname = judge.spec["command"][0]
         if shutil.which(binname) is None:
@@ -1184,25 +1199,36 @@ def _run_from_args(args) -> int:
                 file=sys.stderr,
             )
             return 1
-        summary = grade_judge(args.pack, artifacts, judge=judge, timeout=args.timeout, repo_root=catalogue_root)
+        summary = grade_judge(
+            args.pack, artifacts, judge=judge, timeout=args.timeout, repo_root=catalogue_root
+        )
         _print_report(summary)
         return 0
 
     if args.mode == "in-harness":
         # In-harness grades results the driver already collected — no model call.
         if not args.reports:
-            parser.error("--mode in-harness requires --reports <path>")
+            print(
+                "run-pack-evals: error: --mode in-harness requires --reports <path>",
+                file=sys.stderr,
+            )
+            return 2
         try:
             payload = json.loads(
                 pathlib.Path(args.reports).read_text(encoding="utf-8")
             )
         except (OSError, json.JSONDecodeError) as exc:
-            parser.error(f"--reports {args.reports!r}: {exc}")
+            print(f"run-pack-evals: error: --reports {args.reports!r}: {exc}", file=sys.stderr)
+            return 2
         if args.check == "behavior":
             # Split the driver's payload into attested verdicts + the per-eval
             # working dirs the runner re-derives deterministic checks from.
             if not isinstance(payload, dict):
-                parser.error("--reports must be a JSON object for --check behavior")
+                print(
+                    "run-pack-evals: error: --reports must be a JSON object for --check behavior",
+                    file=sys.stderr,
+                )
+                return 2
             results: dict = {}
             workspaces: dict = {}
             for skill, by_eval in payload.items():
@@ -1213,7 +1239,9 @@ def _run_from_args(args) -> int:
                     if ws is not None:
                         workspaces[f"{skill}/{eid}"] = ws
                     results[skill][eid] = entry
-            summary = grade_behavior(args.pack, results, workspaces=workspaces, repo_root=catalogue_root)
+            summary = grade_behavior(
+                args.pack, results, workspaces=workspaces, repo_root=catalogue_root
+            )
         else:
             summary = grade_reports(args.pack, payload, repo_root=catalogue_root)
         _print_report(summary)

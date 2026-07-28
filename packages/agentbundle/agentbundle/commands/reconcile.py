@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:  # noqa: ARG001
+def run(args: argparse.Namespace) -> int:  # noqa: ARG001
     """Entry point for ``agentbundle reconcile``.
 
     The report surface is user-scope only (RFC-0005). The old ``--scope``

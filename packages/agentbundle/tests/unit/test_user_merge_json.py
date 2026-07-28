@@ -24,7 +24,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # AC8 — empty file → write hooks.<event> arrays with id-tagged entries
 # ---------------------------------------------------------------------------

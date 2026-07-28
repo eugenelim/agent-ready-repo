@@ -69,7 +69,10 @@ def test_valid_passes() -> None:
         j = pathlib.Path(tmp)
         _write(j, "alpha.md", _VALID)
         r = _run(j)
-        _assert(r.returncode == 0, f"expected exit 0 for valid journey; got {r.returncode}\n{r.stderr}")
+        _assert(
+            r.returncode == 0,
+            f"expected exit 0 for valid journey; got {r.returncode}\n{r.stderr}",
+        )
 
 
 def test_missing_contract_key() -> None:
@@ -77,7 +80,10 @@ def test_missing_contract_key() -> None:
         j = pathlib.Path(tmp)
         _write(j, "alpha.md", _VALID.replace('  youReceive: "an artifact"\n', ""))
         r = _run(j)
-        _assert(r.returncode == 1, f"expected exit 1 when a contract key is missing; got {r.returncode}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 when a contract key is missing; got {r.returncode}",
+        )
         _assert("youReceive" in r.stderr, f"expected missing-key message; got:\n{r.stderr}")
 
 
@@ -86,25 +92,43 @@ def test_stage_missing_output() -> None:
         j = pathlib.Path(tmp)
         _write(j, "alpha.md", _VALID.replace("- **Output:** an agreed plan.\n", ""))
         r = _run(j)
-        _assert(r.returncode == 1, f"expected exit 1 when a stage lacks Output; got {r.returncode}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 when a stage lacks Output; got {r.returncode}",
+        )
         _assert("Output" in r.stderr, f"expected missing-Output message; got:\n{r.stderr}")
 
 
 def test_unknown_actor() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         j = pathlib.Path(tmp)
-        _write(j, "alpha.md", _VALID.replace("- **Agent does:** writes the plan.", "- **Team does:** writes the plan."))
+        _write(
+            j, "alpha.md",
+            _VALID.replace(
+                "- **Agent does:** writes the plan.",
+                "- **Team does:** writes the plan.",
+            ),
+        )
         r = _run(j)
-        _assert(r.returncode == 1, f"expected exit 1 for an unknown actor token; got {r.returncode}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 for an unknown actor token; got {r.returncode}",
+        )
         _assert("Team" in r.stderr, f"expected unknown-actor message; got:\n{r.stderr}")
 
 
 def test_surviving_old_heading() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         j = pathlib.Path(tmp)
-        _write(j, "alpha.md", _VALID.replace("### 2. Build and verify", "## Stage 2 — Build and verify"))
+        _write(
+            j, "alpha.md",
+            _VALID.replace("### 2. Build and verify", "## Stage 2 — Build and verify"),
+        )
         r = _run(j)
-        _assert(r.returncode == 1, f"expected exit 1 for a surviving `## Stage N —` heading; got {r.returncode}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 for a surviving `## Stage N —` heading; got {r.returncode}",
+        )
         _assert("old-format" in r.stderr.lower(), f"expected old-format message; got:\n{r.stderr}")
 
 

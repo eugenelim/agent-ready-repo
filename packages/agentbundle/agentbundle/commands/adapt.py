@@ -101,7 +101,7 @@ def _diff_summary(original: Path, companion: Path) -> str:
     delta = len(comp_lines) - len(orig_lines)
     sign = "+" if delta >= 0 else ""
     first_diff_line: str | None = None
-    for i, (ol, cl) in enumerate(zip(orig_lines, comp_lines)):
+    for i, (ol, cl) in enumerate(zip(orig_lines, comp_lines, strict=False)):
         if ol != cl:
             first_diff_line = f"line {i + 1}: original={ol[:60]!r} upstream={cl[:60]!r}"
             break
@@ -141,7 +141,7 @@ def _apply_markers(text: str, values: dict[str, str], *, src_label: str) -> str:
     return _MARKER_RE.sub(_replace, text)
 
 
-def _resolve_scopes(args: "argparse.Namespace") -> list[_Scope]:
+def _resolve_scopes(args: argparse.Namespace) -> list[_Scope]:
     """Return the per-scope artifact descriptions adapt walks.
 
     The repo scope is always present (rooted at ``args.root``). The
@@ -186,14 +186,19 @@ def _resolve_scopes(args: "argparse.Namespace") -> list[_Scope]:
     return scopes
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle adapt``.
 
     Returns 0 on success; 1 on ``--ci`` with pending companions or
     path-jail refusal at write time.
     """
-    from agentbundle.config import ConfigError, load_adapt_discovery_typed, load_state, load_values_from
     from agentbundle import safety
+    from agentbundle.config import (
+        ConfigError,
+        load_adapt_discovery_typed,
+        load_state,
+        load_values_from,
+    )
 
     scopes = _resolve_scopes(args)
 

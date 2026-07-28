@@ -13,7 +13,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 from agentbundle import config, statelock
 
 
@@ -31,8 +30,10 @@ def test_mutual_exclusion(tmp_path: Path) -> None:
 
     t1 = threading.Thread(target=worker, args=("a",))
     t2 = threading.Thread(target=worker, args=("b",))
-    t1.start(); t2.start()
-    t1.join(); t2.join()
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
 
     # Whoever entered first must exit before the other enters — no interleave.
     assert events[0].startswith("enter-")
@@ -69,9 +70,11 @@ def test_timeout_when_held(tmp_path: Path) -> None:
     t.start()
     held.wait(timeout=5.0)
     try:
-        with pytest.raises(statelock.StateLockTimeout):
-            with statelock.state_lock(state_path, timeout=0.2, stale_after=999):
-                pass
+        with (
+            pytest.raises(statelock.StateLockTimeout),
+            statelock.state_lock(state_path, timeout=0.2, stale_after=999),
+        ):
+            pass
     finally:
         release.set()
         t.join()

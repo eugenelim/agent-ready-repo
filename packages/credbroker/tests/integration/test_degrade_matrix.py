@@ -22,10 +22,8 @@ fail-loud path is pinned in test_master_sourcing (T5), not here.
 from __future__ import annotations
 
 import importlib.util
-import os
 
 import pytest
-
 from credbroker import _core
 
 _HAS_CRYPTO = (

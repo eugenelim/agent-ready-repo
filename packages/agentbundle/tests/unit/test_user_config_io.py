@@ -8,18 +8,15 @@ that call `load_user_config()` without a path.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import pytest
-
 from agentbundle.user_config import (
     UserConfig,
     read_user_config,
     unset_setting,
     write_setting,
 )
-
 
 # ---------------------------------------------------------------------------
 # read_user_config

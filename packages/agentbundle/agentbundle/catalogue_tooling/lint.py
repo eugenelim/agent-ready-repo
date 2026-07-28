@@ -19,9 +19,7 @@ import ast
 import json
 import os
 import re
-import sys
 import tomllib
-from dataclasses import asdict
 from pathlib import Path
 
 from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
@@ -433,7 +431,9 @@ _CS_SSO_BROKER_PARENT = "." + "agentbundle"
 _CS_SSO_BROKER_BIN_DIR = "bin"
 _CS_SSO_BROKER_BASENAME = "sso-broker" + ".py"
 _CS_SSO_BROKER_TAIL = (_CS_SSO_BROKER_PARENT, _CS_SSO_BROKER_BIN_DIR, _CS_SSO_BROKER_BASENAME)
-_CS_SHIM_BASENAMES = frozenset({"credentials_shim.py", "_keychain_macos.py", "_credman_windows.py"})
+_CS_SHIM_BASENAMES = frozenset({
+    "credentials_shim.py", "_keychain_macos.py", "_credman_windows.py"
+})
 _CS_REQUIRED_PHRASES_BY_BROKER = {
     "cli": (
         "**Never** read that store, print it, or echo the token",
@@ -710,25 +710,19 @@ def _cs_env_reads(py_path: Path):
                     yield slice_node.value
         if isinstance(node, ast.Call):
             func = node.func
-            if isinstance(func, ast.Attribute):
-                if (
-                    func.attr == "get"
-                    and isinstance(func.value, ast.Attribute)
-                    and func.value.attr == "environ"
-                    and isinstance(func.value.value, ast.Name)
-                    and func.value.value.id == "os"
-                ):
-                    if node.args and isinstance(node.args[0], ast.Constant) \
+            if isinstance(func, ast.Attribute) and ((
+                func.attr == "get"
+                and isinstance(func.value, ast.Attribute)
+                and func.value.attr == "environ"
+                and isinstance(func.value.value, ast.Name)
+                and func.value.value.id == "os"
+            ) or (
+                func.attr == "getenv"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "os"
+            )) and node.args and isinstance(node.args[0], ast.Constant) \
                             and isinstance(node.args[0].value, str):
-                        yield node.args[0].value
-                elif (
-                    func.attr == "getenv"
-                    and isinstance(func.value, ast.Name)
-                    and func.value.id == "os"
-                ):
-                    if node.args and isinstance(node.args[0], ast.Constant) \
-                            and isinstance(node.args[0].value, str):
-                        yield node.args[0].value
+                yield node.args[0].value
 
 
 def _cs_path_chain_components(node: ast.expr) -> tuple[str | None, list[str]]:
@@ -745,16 +739,18 @@ def _cs_path_chain_components(node: ast.expr) -> tuple[str | None, list[str]]:
         cur = cur.left
     if isinstance(cur, ast.Call):
         callee = cur.func
-        if isinstance(callee, ast.Attribute) and callee.attr == "home" \
-                and isinstance(callee.value, ast.Name) and callee.value.id == "Path":
+        if (isinstance(callee, ast.Attribute) and callee.attr == "home"
+                and isinstance(callee.value, ast.Name) and callee.value.id == "Path"):
             return "home", components
-        if isinstance(callee, ast.Attribute) and callee.attr == "expanduser" \
-                and isinstance(callee.value, ast.Attribute) \
-                and callee.value.attr == "path" \
-                and isinstance(callee.value.value, ast.Name) \
-                and callee.value.value.id == "os":
-            if cur.args and isinstance(cur.args[0], ast.Constant) and cur.args[0].value == "~":
-                return "home", components
+        if (isinstance(callee, ast.Attribute) and callee.attr == "expanduser"
+                and isinstance(callee.value, ast.Attribute)
+                and callee.value.attr == "path"
+                and isinstance(callee.value.value, ast.Name)
+                and callee.value.value.id == "os"
+                and cur.args
+                and isinstance(cur.args[0], ast.Constant)
+                and cur.args[0].value == "~"):
+            return "home", components
         if isinstance(callee, ast.Attribute) and callee.attr == "expanduser" \
                 and isinstance(callee.value, ast.Call) \
                 and isinstance(callee.value.func, ast.Name) \
@@ -833,7 +829,7 @@ def _cs_sso_broker_call_targets(py_path: Path):
     for node in ast.walk(tree):
         if id(node) in consumed:
             continue
-        seed_kind, components = _cs_path_chain_components(node)
+        seed_kind, components = _cs_path_chain_components(node)  # type: ignore[arg-type]
         if seed_kind is None or not components:
             continue
         _consume_descendants(node)
@@ -1031,7 +1027,8 @@ class _CatalogueRules:
                 diags.append(_diag(
                     DiagnosticCode.CAT_L003,
                     Severity.ERROR,
-                    f"duplicate pack identity {pack_name!r}: found in {seen_names[pack_name]!r} and {entry.name!r}",
+                    f"duplicate pack identity {pack_name!r}:"
+                    f" found in {seen_names[pack_name]!r} and {entry.name!r}",
                     pack=entry.name,
                     remediation="Each pack must have a unique [pack].name.",
                 ))
@@ -1283,7 +1280,7 @@ class _PackRules:
                 diags.append(_diag(
                     DiagnosticCode.CAT_L011,
                     Severity.ERROR,
-                    f"SKILL.md missing frontmatter",
+                    "SKILL.md missing frontmatter",
                     pack=self._name,
                     path=str(skill_md),
                     remediation="Add --- frontmatter with name and description.",
@@ -1623,7 +1620,9 @@ class _PackRules:
                     )
 
             # AC25: broker-specific checks
-            consumer_py_files = [p for p in py_files if not _cs_is_canonical_shim(p, shim_source_dir)]
+            consumer_py_files = [
+                p for p in py_files if not _cs_is_canonical_shim(p, shim_source_dir)
+            ]
 
             if auth == "creds":
                 found_resolver_import = any(
@@ -1795,10 +1794,7 @@ def lint_catalogue(root: Path, pack: str | None = None, *, deep: bool = False) -
     diagnostics.extend(cat_rules.collect(pack))
 
     # Step 3: determine packs dir
-    if config is not None:
-        packs_dir = root / config.paths.packs
-    else:
-        packs_dir = root / "packs"
+    packs_dir = root / config.paths.packs if config is not None else root / "packs"
 
     # Step 4+5: per-pack rules
     if packs_dir.is_dir():

@@ -18,7 +18,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from agentbundle.commands.install import (
     _AdapterResolutionRefused,
     _resolve_target_adapter,

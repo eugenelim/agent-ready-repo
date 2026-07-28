@@ -41,13 +41,13 @@ Stdlib only. Python >= 3.10.
 """
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
-from typing import List, Sequence, Tuple
+from typing import Sequence
 
 from . import ValidationError
-
 
 # Pinned for the CLI dispatch + the SKILL.md docs to reference.
 GENERATED_AT_ENV_VAR = "AI_ADOPTION_REPORT_GENERATED_AT"
@@ -70,12 +70,10 @@ def derive_sidecar_path(markdown_path: Path) -> Path:
         raise ValidationError(
             "--output is treated as the Markdown-shaped path; the JSON "
             "sidecar is derived from it by replacing .md with .json. A "
-            "path ending in .json would collide with itself (got {}). "
+            f"path ending in .json would collide with itself (got {markdown_path}). "
             "Rename --output to use .md (or no extension) — under "
             "--format=json the Markdown file is not written, but the "
-            "sidecar still derives from the Markdown-shaped path.".format(
-                markdown_path
-            )
+            "sidecar still derives from the Markdown-shaped path."
         )
     if suffix == ".md":
         return markdown_path.with_suffix(".json")
@@ -86,7 +84,7 @@ def derive_sidecar_path(markdown_path: Path) -> Path:
 
 
 def write_outputs(
-    targets: Sequence[Tuple[Path, str]],
+    targets: Sequence[tuple[Path, str]],
     *,
     overwrite: bool,
 ) -> None:
@@ -107,7 +105,7 @@ def write_outputs(
         return
 
     if not overwrite:
-        colliding: List[str] = [str(p) for p, _ in targets if p.exists()]
+        colliding: list[str] = [str(p) for p, _ in targets if p.exists()]
         if colliding:
             raise ValidationError(
                 "output file(s) already exist (use --overwrite): {}".format(
@@ -136,12 +134,12 @@ def _atomic_write(target: Path, contents: str) -> None:
     the replace so atomicity is preserved (the rename is the visible
     transition; the file's mode is already correct at that point).
     """
-    tmp = tempfile.NamedTemporaryFile(
+    tmp = tempfile.NamedTemporaryFile(  # noqa: SIM115
         mode="w",
         encoding="utf-8",
         dir=str(target.parent),
         delete=False,
-        prefix=".{}.".format(target.name),
+        prefix=f".{target.name}.",
         suffix=".tmp",
     )
     try:
@@ -149,13 +147,11 @@ def _atomic_write(target: Path, contents: str) -> None:
         tmp.flush()
         os.fsync(tmp.fileno())
         tmp.close()
-        os.chmod(tmp.name, _umask_mode())
-        os.replace(tmp.name, target)
+        Path(tmp.name).chmod(_umask_mode())
+        Path(tmp.name).replace(target)
     except Exception:
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            Path(tmp.name).unlink()
         raise
 
 

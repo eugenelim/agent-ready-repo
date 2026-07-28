@@ -21,19 +21,17 @@ Stdlib only. Python >= 3.10.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Literal, Optional
-
 from datetime import date
 from pathlib import Path
+from typing import Literal
 
 from . import ValidationError
 from .aggregation import aggregate_cohort_side, aggregate_non_cohort
 from .delta import compute_deltas
-from .inputs import InputFile, load_input, collect_mixed_major_note
+from .inputs import InputFile, collect_mixed_major_note, load_input
 from .notes import Note
 from .program_discovery import canonical_scope_repr as _program_scope_repr
 from .program_discovery import discover_inputs
-
 
 # ---------------------------------------------------------------------------
 # Canonical scope representation
@@ -52,7 +50,7 @@ def canonical_scope_repr(scope: dict, kind: str) -> str:
     order is fixed by the spec and does NOT follow the input dict's
     insertion order.
     """
-    parts = ["kind={}".format(kind)]
+    parts = [f"kind={kind}"]
     for f in _SCOPE_FIELDS:
         parts.append("{}={}".format(f, scope.get(f, "")))
     return ";".join(parts)
@@ -82,19 +80,19 @@ class ReportData:
 
     mode: Literal["baseline", "cohort", "program"]
     header_line: str
-    inputs: List[InputFile]
+    inputs: list[InputFile]
     deltas: dict
-    cohort_deltas: Optional[dict] = None
-    per_scope_rows: Optional[list] = None
-    program_aggregates: Optional[dict] = None
-    notes: List[str] = field(default_factory=list)
+    cohort_deltas: dict | None = None
+    per_scope_rows: list | None = None
+    program_aggregates: dict | None = None
+    notes: list[str] = field(default_factory=list)
     # Side labels for ``cohort_deltas`` cells. Carries the
     # ``(a_label, b_label)`` tuple that the originating ``compute_deltas``
     # call used so the renderer can label the Cohort breakdown table columns
     # accurately (baseline+cohort uses ``("baseline-cohort",
     # "current-cohort")``; program mode uses ``("control", "cohort")``).
     # ``None`` whenever ``cohort_deltas`` is ``None``.
-    cohort_side_labels: Optional[tuple] = None
+    cohort_side_labels: tuple | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +108,7 @@ def run_baseline(args) -> ReportData:
     baseline = load_input(args.baseline)
     current = load_input(args.current)
     inputs = [baseline, current]
-    notes: List[str] = []
+    notes: list[str] = []
 
     # Cross-input note (mixed schema majors). Same call pattern program
     # discovery uses in program mode, kept here for the baseline pair so the
@@ -122,8 +120,8 @@ def run_baseline(args) -> ReportData:
     # Exact dict equality on meta.scope is required in baseline mode.
     if baseline.scope != current.scope:
         raise ValidationError(
-            "baseline-mode scope mismatch: baseline scope {} vs current "
-            "scope {}".format(baseline.scope, current.scope)
+            f"baseline-mode scope mismatch: baseline scope {baseline.scope} vs current "
+            f"scope {current.scope}"
         )
 
     # baseline.window.to must be <= current.window.from.
@@ -131,11 +129,9 @@ def run_baseline(args) -> ReportData:
     # (string equality is the official match rule).
     if baseline.window_to > current.window_from:
         raise ValidationError(
-            "baseline-mode window overlap: baseline {}..{} overlaps "
-            "current {}..{}".format(
-                baseline.window_from, baseline.window_to,
-                current.window_from, current.window_to,
-            )
+            f"baseline-mode window overlap: baseline"
+            f" {baseline.window_from}..{baseline.window_to}"
+            f" overlaps current {current.window_from}..{current.window_to}"
         )
 
     # Config-SHA drift emits a note; deltas still compute.
@@ -172,8 +168,8 @@ def run_baseline(args) -> ReportData:
     )
     notes.extend(primary.notes)
 
-    cohort_deltas: Optional[dict] = None
-    cohort_side_labels: Optional[tuple] = None
+    cohort_deltas: dict | None = None
+    cohort_side_labels: tuple | None = None
     if getattr(args, "include_cohort_breakdown", False):
         cohort_deltas, cohort_notes = _baseline_cohort_section(baseline, current)
         notes.extend(cohort_notes)
@@ -185,15 +181,9 @@ def run_baseline(args) -> ReportData:
             cohort_side_labels = ("baseline-cohort", "current-cohort")
 
     header_line = (
-        "**Baseline window:** {bf}..{bt} | "
-        "**Current window:** {cf}..{ct} | "
-        "**Scope:** {scope}"
-    ).format(
-        bf=baseline.window_from,
-        bt=baseline.window_to,
-        cf=current.window_from,
-        ct=current.window_to,
-        scope=canonical_scope_repr(baseline.scope, baseline.scope_kind),
+        f"**Baseline window:** {baseline.window_from}..{baseline.window_to} | "
+        f"**Current window:** {current.window_from}..{current.window_to} | "
+        f"**Scope:** {canonical_scope_repr(baseline.scope, baseline.scope_kind)}"
     )
 
     return ReportData(
@@ -211,7 +201,7 @@ def run_baseline(args) -> ReportData:
 def _baseline_cohort_section(
     baseline: InputFile,
     current: InputFile,
-) -> tuple[Optional[dict], List[str]]:
+) -> tuple[dict | None, list[str]]:
     """Return ``(cohort_deltas, notes)`` for the optional cohort section.
 
     Three branches:
@@ -222,7 +212,7 @@ def _baseline_cohort_section(
     3. Both present and JQLs match → compute deltas across the
        cohort/control pair across the two windows (NOT within-window).
     """
-    notes: List[str] = []
+    notes: list[str] = []
     missing_basenames = [
         inp.basename for inp in (baseline, current) if inp.cohort_breakdown is None
     ]
@@ -271,7 +261,7 @@ def run_cohort(args) -> ReportData:
             "cohort_breakdown block present"
         )
 
-    notes: List[str] = []
+    notes: list[str] = []
     result = compute_deltas(
         inp.cohort_breakdown.get("control", {}),
         inp.cohort_breakdown.get("cohort", {}),
@@ -337,7 +327,7 @@ def run_program(args) -> ReportData:
         include_cohort_breakdown=getattr(args, "include_cohort_breakdown", False),
     )
 
-    notes: List[str] = list(program_inputs.notes)
+    notes: list[str] = list(program_inputs.notes)
 
     global_agg, non_cohort_notes = aggregate_non_cohort(program_inputs.scopes)
     notes.extend(non_cohort_notes)
@@ -363,8 +353,8 @@ def run_program(args) -> ReportData:
             # the upstream bug.
             pass
 
-    cohort_deltas: Optional[dict] = None
-    cohort_side_labels: Optional[tuple] = None
+    cohort_deltas: dict | None = None
+    cohort_side_labels: tuple | None = None
     if getattr(args, "include_cohort_breakdown", False):
         cohort_agg, cohort_notes = aggregate_cohort_side(
             program_inputs.scopes, "cohort"

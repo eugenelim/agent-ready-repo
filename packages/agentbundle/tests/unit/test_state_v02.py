@@ -10,15 +10,14 @@ covers the command-level surfaces and the user-scope state path.)
 from __future__ import annotations
 
 import argparse
-import io
 import contextlib
+import io
 import os
 import stat
 from pathlib import Path
 
 from agentbundle import config, safety
 from agentbundle.commands import init_state
-
 
 V01_FIXTURE = """
 schema-version = "0.1"

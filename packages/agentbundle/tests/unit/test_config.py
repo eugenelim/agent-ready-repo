@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
 
+import pytest
 from agentbundle import config
 
 
@@ -167,7 +167,7 @@ def test_load_state_rejects_non_string_schema_version(tmp_path):
 def test_load_state_rejects_pack_not_a_table(tmp_path):
     p = tmp_path / "state.toml"
     p.write_text(
-        'schema-version = "0.1"\n[pack]\nlooks-like-a-table-but-isnt = "nope"\n[pack.x]\ninstalled-version = ""\n',
+        'schema-version = "0.1"\n[pack]\nlooks-like-a-table-but-isnt = "nope"\n[pack.x]\ninstalled-version = ""\n',  # noqa: E501
         encoding="utf-8",
     )
     # The above IS a valid TOML structure; for an actually-broken case:

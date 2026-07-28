@@ -22,7 +22,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).parent.parent.parent.parent.parent
 SKILL_BODY = (
     REPO_ROOT

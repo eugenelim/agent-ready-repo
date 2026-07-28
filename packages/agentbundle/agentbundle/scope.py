@@ -27,7 +27,6 @@ This module is import-cheap (no I/O at import time) so the CLI's
 
 from __future__ import annotations
 
-import os
 import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
@@ -281,7 +280,7 @@ def user_scope_capable_adapters_from_contract() -> tuple[str, ...]:
 _PRE_HOOK_WIRING_CONTRACT_VERSIONS: frozenset[str] = frozenset({"0.1", "0.2"})
 
 
-def configured_adapter(user_config: "UserConfig | None") -> str | None:
+def configured_adapter(user_config: UserConfig | None) -> str | None:
     """Report the user-configured adapter when set and known by the
     bundled adapter contract.
 

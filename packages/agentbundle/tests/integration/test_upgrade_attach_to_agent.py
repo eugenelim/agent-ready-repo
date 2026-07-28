@@ -57,15 +57,18 @@ class AttachToAgentRenameTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"; self.home.mkdir()
-        self.repo = self.tmp / "repo"; self.repo.mkdir()
+        self.home = self.tmp / "home"
+        self.home.mkdir()
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
         self._env = patch.dict(
             os.environ,
             {"HOME": str(self.home), "AGENTBUNDLE_USER_ROOT": str(self.home)},
         )
         self._env.start()
         self.addCleanup(self._env.stop)
-        self.cat = self.tmp / "cat"; (self.cat / "packs").mkdir(parents=True)
+        self.cat = self.tmp / "cat"
+        (self.cat / "packs").mkdir(parents=True)
 
     def test_upgrade_renames_attach_to_agent(self):
         # Install kiro-user-hooks (attach-to-agent = "reviewer").

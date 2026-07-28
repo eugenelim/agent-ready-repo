@@ -50,10 +50,7 @@ def _skip_by_ext(p: Path) -> bool:
 def _in_attribution(rel: str, allowed: set[str]) -> bool:
     """Exact-file match OR under a listed directory prefix — so an operator can
     list either `legal/NOTICE` or `legal/` and have it work."""
-    for a in allowed:
-        if rel == a or rel.startswith(a.rstrip("/") + "/"):
-            return True
-    return False
+    return any(rel == a or rel.startswith(a.rstrip("/") + "/") for a in allowed)
 
 
 def verify(
@@ -72,7 +69,11 @@ def verify(
     (stated bound), and binary artifacts are out of scope by extension."""
     target = Path(target)
     allowed = {str(a) for a in (attribution_paths or [])}
-    needles = {name: val.lower().encode("utf-8", "surrogatepass") for name, val in anchors.items() if val}
+    needles = {
+        name: val.lower().encode("utf-8", "surrogatepass")
+        for name, val in anchors.items()
+        if val
+    }
     violations: list[Violation] = []
     for p in sorted(target.rglob("*")):
         if not p.is_file() or _skip_by_ext(p):

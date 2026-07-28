@@ -24,14 +24,13 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
+import subprocess
 import sys
 import textwrap
 import tomllib
 from pathlib import Path
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Source template path — tests project copies of this into fixture pack roots
@@ -69,7 +68,7 @@ def _write_pack_toml(
     *,
     name: str = "core",
     version: str = "0.1.0",
-    allowed_scopes: "list[str] | None" = None,
+    allowed_scopes: list[str] | None = None,
 ) -> None:
     if allowed_scopes is None:
         allowed_scopes = ["repo", "user"]
@@ -92,8 +91,8 @@ def _run_writer(
     env: dict,
     cwd: Path,
     install_route: str = "apm",
-    extra_args: "list[str] | None" = None,
-) -> "subprocess.CompletedProcess":
+    extra_args: list[str] | None = None,
+) -> subprocess.CompletedProcess:
     import subprocess
     args = [sys.executable, str(projected_writer), "--install-route", install_route]
     if extra_args:
@@ -108,7 +107,7 @@ def _run_writer(
     )
 
 
-def _base_env(extra: "dict | None" = None) -> dict:
+def _base_env(extra: dict | None = None) -> dict:
     env = {"PATH": os.environ.get("PATH", "")}
     if extra:
         env.update({k: str(v) for k, v in extra.items()})
@@ -158,7 +157,7 @@ def test_writer_imports_argparse_only_added_to_allowlist():
 
 
 def test_install_route_flag_claude_plugins_records_claude_plugins(tmp_path):
-    """AC2 (a): --install-route claude-plugins → marker carries install-route = "claude-plugins"."""
+    """AC2 (a): --install-route claude-plugins → marker carries install-route = "claude-plugins"."""  # noqa: E501
     pack_root = tmp_path / "pack_root"
     pack_root.mkdir()
     _write_pack_toml(pack_root, name="core", version="0.1.0", allowed_scopes=["repo"])
@@ -335,7 +334,7 @@ def test_data_dir_claude_plugin_data_wins_when_all_set(tmp_path):
     cpd_hash = Path(env["CLAUDE_PLUGIN_DATA"]) / "pack-manifest-hash"
     pr_hash = pack_root / ".data" / "pack-manifest-hash"
     assert cpd_hash.exists(), "CLAUDE_PLUGIN_DATA must win precedence"
-    assert not pr_hash.exists(), "PLUGIN_ROOT/.data must NOT be used when CLAUDE_PLUGIN_DATA is set"
+    assert not pr_hash.exists(), "PLUGIN_ROOT/.data must NOT be used when CLAUDE_PLUGIN_DATA is set"  # noqa: E501
 
 
 def test_data_dir_plugin_root_wins_over_cursor_plugin_root(tmp_path):
@@ -438,7 +437,7 @@ def test_apm_scope_resolves_symlinks_on_both_sides(tmp_path):
     link_dir.mkdir()
     link = link_dir / "install-marker.py"
     try:
-        os.symlink(real_writer, link)
+        link.symlink_to(real_writer)
     except OSError:
         pytest.skip("symlink creation forbidden")
     home = tmp_path / "home"
@@ -555,7 +554,7 @@ def test_route_flag_dispatches_claude_plugins_scope_detection(tmp_path):
     assert result.returncode == 0, result.stderr
     user_marker = home / ".agentbundle" / ".adapt-install-marker.toml"
     assert user_marker.exists(), (
-        "enabledPlugins-driven (user-scope) detection must win under --install-route claude-plugins"
+        "enabledPlugins-driven (user-scope) detection must win under --install-route claude-plugins"  # noqa: E501
     )
     assert not (cwd / ".adapt-install-marker.toml").exists()
 
@@ -708,7 +707,6 @@ def test_lockfile_replay_replaces_entry(tmp_path):
     home.mkdir()
 
     # Pre-seed the marker with an older entry for the same pack.
-    import datetime
     pre_seeded = (
         'marker-schema-version = "0.1"\n'
         "\n"

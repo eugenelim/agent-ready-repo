@@ -11,8 +11,6 @@ from __future__ import annotations
 import contextlib
 import io
 
-import pytest
-
 from agentbundle import cli
 
 

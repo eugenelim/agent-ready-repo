@@ -32,7 +32,7 @@ import io
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional
+from typing import Any, Iterable, Iterator, Mapping
 
 from .aggregate import (
     FLOW_DISTRIBUTION_BUCKETS,
@@ -70,7 +70,7 @@ CANONICAL_METRICS_ORDER: tuple = (
     "flow_distribution",
     "defect_ratio",
 )
-_METRIC_INDEX: Dict[str, int] = {m: i for i, m in enumerate(CANONICAL_METRICS_ORDER)}
+_METRIC_INDEX: dict[str, int] = {m: i for i, m in enumerate(CANONICAL_METRICS_ORDER)}
 
 # Percentile-bearing metrics (CSV emits p50/p75/p90/n).
 _PERCENTILE_METRICS = frozenset({"cycle_time", "lead_time", "flow_time", "flow_efficiency"})
@@ -103,10 +103,10 @@ class Report:
 
     aggregate: AggregateBlock
     meta: Mapping[str, Any]
-    notes: List[str] = field(default_factory=list)
-    metrics_requested: List[str] = field(default_factory=lambda: list(CANONICAL_METRICS_ORDER))
-    cohort_breakdown: Optional[Mapping[str, AggregateBlock]] = None
-    per_team: List[Any] = field(default_factory=list)  # list[PerTeamRow]
+    notes: list[str] = field(default_factory=list)
+    metrics_requested: list[str] = field(default_factory=lambda: list(CANONICAL_METRICS_ORDER))
+    cohort_breakdown: Mapping[str, AggregateBlock] | None = None
+    per_team: list[Any] = field(default_factory=list)  # list[PerTeamRow]
     # Note: per-issue rows are not carried on Report — :func:`render_jsonl`
     # takes its own ``Iterable[PerIssueRow]`` directly so the streaming
     # path is independent of the aggregate Report (no risk of holding the
@@ -116,7 +116,7 @@ class Report:
 # ---------------------------------------------------------------------------
 # Pipeline → wire-dict conversion
 # ---------------------------------------------------------------------------
-def _percentile_to_dict(stat: PercentileStat) -> Dict[str, Any]:
+def _percentile_to_dict(stat: PercentileStat) -> dict[str, Any]:
     """Spec wire shape: ``{p50, p75, p90, n}``. Percentile fields are
     ``None`` when ``n < 2`` and emit as JSON ``null`` downstream.
     """
@@ -125,7 +125,7 @@ def _percentile_to_dict(stat: PercentileStat) -> Dict[str, Any]:
 
 def _aggregates_to_dict(
     block: AggregateBlock, metrics_requested: Iterable[str]
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Project the :class:`AggregateBlock` down to a wire dict honouring
     ``--metrics`` filtering.
 
@@ -135,7 +135,7 @@ def _aggregates_to_dict(
     metrics are absent (not emitted as ``null``).
     """
     requested = set(metrics_requested)
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     if "cycle_time" in requested:
         out["cycle_time_hours"] = _percentile_to_dict(block.cycle_time_hours)
     if "lead_time" in requested:
@@ -163,7 +163,7 @@ def _aggregates_to_dict(
     return out
 
 
-def _sort_metrics_requested(metrics: Iterable[str]) -> List[str]:
+def _sort_metrics_requested(metrics: Iterable[str]) -> list[str]:
     """Sort by canonical ``--metrics`` enumeration order, not lex.
 
     Also dedupes (a metric appearing twice in the input list emits once
@@ -176,7 +176,7 @@ def _sort_metrics_requested(metrics: Iterable[str]) -> List[str]:
     defence.
     """
     seen: set = set()
-    canonical: List[str] = []
+    canonical: list[str] = []
     for m in metrics:
         if m in _METRIC_INDEX and m not in seen:
             seen.add(m)
@@ -185,8 +185,8 @@ def _sort_metrics_requested(metrics: Iterable[str]) -> List[str]:
 
 
 def _meta_to_dict(
-    meta: Mapping[str, Any], metrics_requested: List[str]
-) -> Dict[str, Any]:
+    meta: Mapping[str, Any], metrics_requested: list[str]
+) -> dict[str, Any]:
     """Build the meta wire dict, applying the defensive resorts.
 
     The caller is supposed to pre-sort ``meta.sources`` lex and
@@ -204,7 +204,7 @@ def _meta_to_dict(
     ``generated_at``, ``caller``, ``per_team_double_counted``,
     optionally ``cohort_jql``) pass through as-is.
     """
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for k, v in meta.items():
         if k == "metrics_requested":
             continue  # Report-level field wins
@@ -222,7 +222,7 @@ def _meta_to_dict(
     return out
 
 
-def _build_report_dict(report: Report) -> Dict[str, Any]:
+def _build_report_dict(report: Report) -> dict[str, Any]:
     """Compose the canonical top-level dict for :func:`render_json`.
 
     Block order in the dict doesn't matter (the serializer sorts keys
@@ -233,7 +233,7 @@ def _build_report_dict(report: Report) -> Dict[str, Any]:
     more than one distinct team value; the caller decides; we just emit
     what's there).
     """
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "meta": _meta_to_dict(report.meta, list(report.metrics_requested)),
         "aggregates": _aggregates_to_dict(report.aggregate, report.metrics_requested),
         "notes": sorted(report.notes),
@@ -326,7 +326,7 @@ def _serialize(obj: Any) -> bytes:
     if obj is False:
         return b"false"
     if isinstance(obj, _BucketMap):
-        parts: List[bytes] = []
+        parts: list[bytes] = []
         emitted: set = set()
         for k in BUCKET_ORDER:
             if k in obj:
@@ -335,13 +335,13 @@ def _serialize(obj: Any) -> bytes:
         # Defensive: a future custom-bucket extension might add keys not
         # in BUCKET_ORDER. Emit those after the canonical block in
         # codepoint order rather than dropping them silently.
-        leftover = sorted(k for k in obj.keys() if k not in emitted)
+        leftover = sorted(k for k in obj if k not in emitted)
         for k in leftover:
             parts.append(_json_str(k) + b":" + _serialize(obj[k]))
         return b"{" + b",".join(parts) + b"}"
     if isinstance(obj, dict):
         keys = sorted(obj.keys())
-        parts2: List[bytes] = []
+        parts2: list[bytes] = []
         for k in keys:
             parts2.append(_json_str(k) + b":" + _serialize(obj[k]))
         return b"{" + b",".join(parts2) + b"}"
@@ -363,7 +363,7 @@ def _serialize(obj: Any) -> bytes:
         return _json_str(obj)
     if isinstance(obj, datetime):
         return _json_str(obj.isoformat())
-    raise TypeError("flow_metrics output: unserialisable type {!r}".format(type(obj).__name__))
+    raise TypeError(f"flow_metrics output: unserialisable type {type(obj).__name__!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +409,7 @@ def render_jsonl(rows: Iterable[PerIssueRow]) -> Iterator[bytes]:
         yield _serialize(rounded) + b"\n"
 
 
-def _per_issue_row_to_dict(row: PerIssueRow) -> Dict[str, Any]:
+def _per_issue_row_to_dict(row: PerIssueRow) -> dict[str, Any]:
     """Per-issue wire dict.
 
     ``wip_samples`` is omitted — it's an internal flow_load aggregation
@@ -425,7 +425,7 @@ def _per_issue_row_to_dict(row: PerIssueRow) -> Dict[str, Any]:
     Cohort-field presence is bound to cohort-jql mode; absence is the
     documented signal for "no cohort".
     """
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "key": row.key,
         "issue_created": row.issue_created,
         "first_commitment_at": row.first_commitment_at,
@@ -498,12 +498,12 @@ def _csv_cell_float(value: Any) -> str:
 
 
 def _emit_aggregate_rows(
-    rows_out: List[List[str]],
+    rows_out: list[list[str]],
     scope_str: str,
     cohort_label: str,
     team_label: str,
     block: AggregateBlock,
-    metrics_requested: List[str],
+    metrics_requested: list[str],
 ) -> None:
     """Append one CSV row per metric in canonical order.
 
@@ -544,7 +544,7 @@ def _emit_aggregate_rows(
         elif metric == "flow_distribution":
             for bucket in FLOW_DISTRIBUTION_BUCKETS:
                 rows_out.append([
-                    "flow_distribution.{}".format(bucket),
+                    f"flow_distribution.{bucket}",
                     scope_str,
                     cohort_label,
                     team_label,
@@ -592,7 +592,7 @@ def render_csv(report: Report) -> bytes:
     scope_str = _format_scope(report.meta.get("scope", {}))
     metrics = list(report.metrics_requested)
 
-    rows: List[List[str]] = []
+    rows: list[list[str]] = []
     _emit_aggregate_rows(rows, scope_str, "all", "", report.aggregate, metrics)
     # Mirror the JSON-side contract: only emit cohort / control rows
     # when both sides are present (spec lines 406-428). Partial

@@ -353,11 +353,11 @@ def test_agent_from_relpath_extension_agnostic():
 
 def test_show_run_writes_no_files(tmp_path, capsys):
     _make_catalogue(tmp_path / "cat")
-    before = {p for p in (tmp_path / "cat").rglob("*")}
+    before = set((tmp_path / "cat").rglob("*"))
     rc = show.run(_args("demo", catalogue=str(tmp_path / "cat"), fmt="json",
                         root=str(tmp_path)))
     capsys.readouterr()
-    after = {p for p in (tmp_path / "cat").rglob("*")}
+    after = set((tmp_path / "cat").rglob("*"))
     assert rc == 0
     assert before == after  # nothing created/removed under the catalogue
     # And no repo-scope state file was written by the read-only command.

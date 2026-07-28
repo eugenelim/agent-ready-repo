@@ -335,7 +335,7 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
             self.skipTest("POSIX mode bits; the DACL model differs on Windows")
         floor = self.home / ".agentbundle" / "lib"
         floor.mkdir(parents=True)
-        os.chmod(floor, 0o777)
+        floor.chmod(0o777)
         args = argparse.Namespace(
             pack="credential-brokers",
             catalogue=str(self.cat),

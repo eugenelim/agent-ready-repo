@@ -5,10 +5,7 @@ Tests check_self_host and write_self_host.
 
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import call, patch
-
-import pytest
+from unittest.mock import patch
 
 from agentbundle.catalogue_tooling.results import SelfHostResult
 from agentbundle.catalogue_tooling.self_host import check_self_host, write_self_host

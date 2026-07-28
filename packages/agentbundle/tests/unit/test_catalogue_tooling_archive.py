@@ -20,11 +20,7 @@ import json
 import tarfile
 from pathlib import Path
 
-import pytest
-
 from agentbundle.catalogue_tooling.archive import check_members, verify_archive
-from agentbundle.catalogue_tooling.results import Severity
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -209,7 +205,7 @@ def test_archive_sidecar_mismatch_early_exit(tmp_path):
     """Sidecar .sha256 file with wrong hash → CAT-V-ARC-001, early return."""
     archive_path = _make_valid_archive(tmp_path)
     sidecar = tmp_path / "test.tar.gz.sha256"
-    sidecar.write_text("0000000000000000000000000000000000000000000000000000000000000000  test.tar.gz\n")
+    sidecar.write_text("0000000000000000000000000000000000000000000000000000000000000000  test.tar.gz\n")  # noqa: E501
 
     result = verify_archive(archive_path, sha256_file=sidecar)
     assert not result.ok

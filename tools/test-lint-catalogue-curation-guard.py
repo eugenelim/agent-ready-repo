@@ -106,12 +106,22 @@ with tempfile.TemporaryDirectory() as td:
         d.mkdir(parents=True)
         (d / "ssrf_check.py").write_text("SAME\n", encoding="utf-8")
     (base / "export-catalogue" / "scripts").mkdir(parents=True)
-    (base / "assimilate-primitive" / "scripts" / "write_jail.py").write_text("A\n", encoding="utf-8")
+    (base / "assimilate-primitive" / "scripts" / "write_jail.py").write_text(
+        "A\n", encoding="utf-8"
+    )
     (base / "assimilate-repo" / "scripts" / "write_jail.py").write_text("A\n", encoding="utf-8")
-    (base / "export-catalogue" / "scripts" / "write_jail.py").write_text("DRIFTED\n", encoding="utf-8")
+    (base / "export-catalogue" / "scripts" / "write_jail.py").write_text(
+        "DRIFTED\n", encoding="utf-8"
+    )
     viols = guard.check_dup_sync(root)
-    check("dup-sync passes identical ssrf_check copies", not any("ssrf_check.py" in v for v in viols))
-    check("dup-sync flags drifted write_jail copy", any("write_jail.py" in v and "drifted" in v for v in viols))
+    check(
+        "dup-sync passes identical ssrf_check copies",
+        not any("ssrf_check.py" in v for v in viols),
+    )
+    check(
+        "dup-sync flags drifted write_jail copy",
+        any("write_jail.py" in v and "drifted" in v for v in viols),
+    )
 
 if _failures:
     for f in _failures:

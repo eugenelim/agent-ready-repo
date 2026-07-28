@@ -26,15 +26,13 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
 
 from .notes import Note
-
 
 # ---------------------------------------------------------------------------
 # Canonical orderings
 # ---------------------------------------------------------------------------
-CANONICAL_METRIC_ORDER: Tuple[str, ...] = (
+CANONICAL_METRIC_ORDER: tuple[str, ...] = (
     "throughput",
     "wip",
     "flow_load",
@@ -60,8 +58,8 @@ CANONICAL_METRIC_ORDER: Tuple[str, ...] = (
     "flow_distribution.other",
 )
 
-PERCENTILES: Tuple[str, ...] = ("p50", "p75", "p90")
-FLOW_DISTRIBUTION_BUCKETS: Tuple[str, ...] = (
+PERCENTILES: tuple[str, ...] = ("p50", "p75", "p90")
+FLOW_DISTRIBUTION_BUCKETS: tuple[str, ...] = (
     "feature",
     "defect",
     "debt",
@@ -73,7 +71,7 @@ FLOW_DISTRIBUTION_BUCKETS: Tuple[str, ...] = (
 # (metric_name, kind) in canonical metric-iteration order. ``kind`` is
 # one of ``"scalar" | "distribution" | "bucket"`` and dispatches to the
 # right row-emission / n-rule branch.
-_METRIC_DISPATCH: Tuple[Tuple[str, str], ...] = (
+_METRIC_DISPATCH: tuple[tuple[str, str], ...] = (
     ("throughput", "scalar"),
     ("wip", "scalar"),
     ("flow_load", "scalar"),
@@ -87,7 +85,7 @@ _METRIC_DISPATCH: Tuple[Tuple[str, str], ...] = (
 )
 
 
-Number = Union[int, float]
+Number = int | float
 
 
 # ---------------------------------------------------------------------------
@@ -109,10 +107,10 @@ class DeltaRow:
     """
 
     metric_label: str
-    a: Optional[Number]
-    b: Optional[Number]
-    abs_delta: Optional[Number]
-    pct_delta: Optional[float]
+    a: Number | None
+    b: Number | None
+    abs_delta: Number | None
+    pct_delta: float | None
 
 
 @dataclass
@@ -127,8 +125,8 @@ class DeltaResult:
     sorts and dedupes the final list.
     """
 
-    rows: List[DeltaRow] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)
+    rows: list[DeltaRow] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         """Render the ``deltas`` subtree for the JSON sidecar.
@@ -167,7 +165,7 @@ def compute_deltas(
     a: Mapping[str, object],
     b: Mapping[str, object],
     *,
-    side_labels: Tuple[str, str],
+    side_labels: tuple[str, str],
 ) -> DeltaResult:
     """Compare two aggregate-shaped dicts and emit per-metric deltas.
 
@@ -261,7 +259,7 @@ def _emit_absent_side(
         for p in PERCENTILES:
             result.rows.append(
                 DeltaRow(
-                    metric_label="{} {}".format(metric, p),
+                    metric_label=f"{metric} {p}",
                     a=a_block.get(p),
                     b=b_block.get(p),
                     abs_delta=None,
@@ -275,7 +273,7 @@ def _emit_absent_side(
     for bucket in FLOW_DISTRIBUTION_BUCKETS:
         result.rows.append(
             DeltaRow(
-                metric_label="{}.{}".format(metric, bucket),
+                metric_label=f"{metric}.{bucket}",
                 a=a_block.get(bucket),
                 b=b_block.get(bucket),
                 abs_delta=None,
@@ -330,11 +328,11 @@ def _emit_distribution(
             result, metric, a_val, b_val, a_label, b_label, null_noted
         )
         abs_delta, pct_delta = _delta_pair(
-            "{} {}".format(metric, p), a_val, b_val, result.notes
+            f"{metric} {p}", a_val, b_val, result.notes
         )
         result.rows.append(
             DeltaRow(
-                metric_label="{} {}".format(metric, p),
+                metric_label=f"{metric} {p}",
                 a=a_val,
                 b=b_val,
                 abs_delta=abs_delta,
@@ -363,7 +361,7 @@ def _emit_bucket(
     a_block = _as_mapping(a[metric])
     b_block = _as_mapping(b[metric])
     for bucket in FLOW_DISTRIBUTION_BUCKETS:
-        label = "{}.{}".format(metric, bucket)
+        label = f"{metric}.{bucket}"
         a_val = a_block.get(bucket)
         b_val = b_block.get(bucket)
         _maybe_emit_null_note(
@@ -395,10 +393,10 @@ def _emit_bucket(
 # ---------------------------------------------------------------------------
 def _delta_pair(
     metric_label: str,
-    a_val: Optional[Number],
-    b_val: Optional[Number],
-    notes: List[str],
-) -> Tuple[Optional[Number], Optional[float]]:
+    a_val: Number | None,
+    b_val: Number | None,
+    notes: list[str],
+) -> tuple[Number | None, float | None]:
     """Compute ``(abs_delta, pct_delta)`` for two known values.
 
     Appends a ``metric_zero_both_sides`` note when both sides are zero.
@@ -423,8 +421,8 @@ def _delta_pair(
 def _maybe_emit_null_note(
     result: DeltaResult,
     metric: str,
-    a_val: Optional[Number],
-    b_val: Optional[Number],
+    a_val: Number | None,
+    b_val: Number | None,
     a_label: str,
     b_label: str,
     null_noted: set,

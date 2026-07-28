@@ -17,10 +17,8 @@ from __future__ import annotations
 import tomllib
 
 import pytest
-
 from agentbundle.commands.install import _append_layout_section
 from agentbundle.safety import PathJailError
-
 
 # ---------------------------------------------------------------------------
 # never-create / never-overwrite (AC9)

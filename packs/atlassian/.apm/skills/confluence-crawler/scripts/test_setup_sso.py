@@ -7,10 +7,6 @@ config is rejected *before* register is invoked.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 import setup_sso
 from _sso_config import SsoConfig
 
@@ -38,7 +34,9 @@ def test_build_register_argv_carries_connection_params_no_cookie(tmp_path):
     assert "corp.example.com" in argv and "jira.corp.example.com" in argv
     assert argv[argv.index("--ttl-hint-minutes") + 1] == "480"
     # No cookie *value* shape anywhere on argv (path-not-value).
-    assert not any(token in part for part in argv for token in ("JSESSIONID", "Cookie:", "crowd.token"))
+    assert not any(
+        token in part for part in argv for token in ("JSESSIONID", "Cookie:", "crowd.token")
+    )
 
 
 def test_main_creds_default_is_noop(monkeypatch):

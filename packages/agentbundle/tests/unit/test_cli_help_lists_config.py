@@ -31,7 +31,7 @@ def test_config_subparser_has_four_actions() -> None:
     parser = _build_parser()
     sub = _find_subparsers_action(parser)
     config = sub.choices["config"]
-    sub_actions = _find_subparsers_action(config) if any(
+    _find_subparsers_action(config) if any(
         isinstance(a, argparse._SubParsersAction) for a in config._actions
     ) else None
     # `config` uses a positional `choices=` argument, NOT sub-subparsers.

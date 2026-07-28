@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 # --- Skill-owned resource ceilings (AC10) -----------------------------------
 
@@ -163,7 +163,7 @@ def _decode_time(data: bytes) -> str | None:
     if val == 0:
         return None
     try:
-        dt = datetime(1601, 1, 1, tzinfo=timezone.utc) + timedelta(microseconds=val / 10)
+        dt = datetime(1601, 1, 1, tzinfo=UTC) + timedelta(microseconds=val / 10)
     except (OverflowError, OSError, ValueError):
         return None                      # garbage FILETIME → fail soft (AC9)
     return dt.isoformat(timespec="seconds")
@@ -182,7 +182,7 @@ class _Reader:
                 f"OLE2 container has {len(self._paths)} entries, over the "
                 f"{MAX_OLE_ENTRIES} stream/storage cap"
             )
-        self._streams = [p for p in ole.listdir(streams=True)]
+        self._streams = list(ole.listdir(streams=True))
 
     def _children(self, prefix: list[str]):
         """Immediate child stream {name: path} and storage-name set under prefix."""
@@ -261,7 +261,10 @@ class _Reader:
         m = EmailModel()
 
         m.subject = self._get_str(props, P_SUBJECT)
-        m.sender_name = self._get_str(props, P_SENDER_NAME) or self._get_str(props, P_SENT_REPR_NAME)
+        m.sender_name = (
+            self._get_str(props, P_SENDER_NAME)
+            or self._get_str(props, P_SENT_REPR_NAME)
+        )
         m.sender_email = (self._get_str(props, P_SENDER_SMTP)
                           or self._get_str(props, P_SENDER_EMAIL)
                           or self._get_str(props, P_SENT_REPR_SMTP))

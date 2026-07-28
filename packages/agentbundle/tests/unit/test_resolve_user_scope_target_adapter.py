@@ -20,10 +20,9 @@ and the bundled contract read.
 
 from __future__ import annotations
 
-import pytest
-
 from pathlib import Path
 
+import pytest
 from agentbundle.commands.install import (
     _AdapterResolutionRefused,
     _resolve_target_adapter,
@@ -669,7 +668,7 @@ def test_deprecation_alias_fires_warning():
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        value = getattr(scope_mod, "DEFAULT_USER_SCOPE_ADAPTER")
+        value = scope_mod.DEFAULT_USER_SCOPE_ADAPTER
     assert value == scope_mod.DEFAULT_ADAPTER
     assert any(issubclass(w.category, DeprecationWarning) for w in caught), (
         "expected DeprecationWarning on access of DEFAULT_USER_SCOPE_ADAPTER"

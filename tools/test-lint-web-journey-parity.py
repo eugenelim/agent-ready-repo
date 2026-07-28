@@ -15,7 +15,6 @@ import subprocess
 import sys
 import tempfile
 
-
 _SCRIPT = pathlib.Path(__file__).parent / "lint-web-journey-parity.py"
 
 
@@ -58,7 +57,10 @@ def test_all_in_parity() -> None:
         _make_journey(j, "alpha.md", "alpha", ["skill-a", "skill-b"])
         _make_pack_skills(p, "alpha", ["skill-a", "skill-b"])
         r = _run(j, p)
-        _assert(r.returncode == 0, f"expected exit 0 for in-parity case; got {r.returncode}\n{r.stderr}")
+        _assert(
+            r.returncode == 0,
+            f"expected exit 0 for in-parity case; got {r.returncode}\n{r.stderr}",
+        )
 
 
 def test_drift_detected() -> None:
@@ -78,9 +80,14 @@ def test_missing_pack_field() -> None:
         j = pathlib.Path(tmp) / "journeys"
         p = pathlib.Path(tmp) / "packs"
         j.mkdir()
-        (j / "broken.md").write_text("---\nscope: user\nskills:\n  - name: foo\n    humanTouches: 0\n---\n")
+        (j / "broken.md").write_text(
+            "---\nscope: user\nskills:\n  - name: foo\n    humanTouches: 0\n---\n"
+        )
         r = _run(j, p)
-        _assert(r.returncode == 1, f"expected exit 1 when pack: field is absent; got {r.returncode}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 when pack: field is absent; got {r.returncode}",
+        )
 
 
 def test_missing_skills_dir() -> None:
@@ -90,7 +97,10 @@ def test_missing_skills_dir() -> None:
         j.mkdir()
         _make_journey(j, "no-pack.md", "ghost-pack", ["skill-a"])
         r = _run(j, p)
-        _assert(r.returncode == 1, f"expected exit 1 when pack directory is absent; got {r.returncode}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 when pack directory is absent; got {r.returncode}",
+        )
 
 
 def test_multiple_journeys_one_drifted() -> None:
@@ -103,9 +113,18 @@ def test_multiple_journeys_one_drifted() -> None:
         _make_journey(j, "bad.md", "bad-pack", ["s1"])
         _make_pack_skills(p, "bad-pack", ["s1", "s2", "s3"])
         r = _run(j, p)
-        _assert(r.returncode == 1, f"expected exit 1 when one of several journeys drifts; got {r.returncode}")
-        _assert("bad.md" in r.stderr, f"expected drifted file named in stderr; got:\n{r.stderr}")
-        _assert("good.md" not in r.stderr, f"expected clean file absent from stderr; got:\n{r.stderr}")
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 when one of several journeys drifts; got {r.returncode}",
+        )
+        _assert(
+            "bad.md" in r.stderr,
+            f"expected drifted file named in stderr; got:\n{r.stderr}",
+        )
+        _assert(
+            "good.md" not in r.stderr,
+            f"expected clean file absent from stderr; got:\n{r.stderr}",
+        )
 
 
 def main() -> None:

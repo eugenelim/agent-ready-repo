@@ -14,7 +14,6 @@ import os
 import sys
 
 import pytest
-
 from credbroker import _core
 
 _HAS_CRYPTO = (
@@ -72,7 +71,7 @@ def test_file_used_when_no_keyring_no_env(home, monkeypatch):
     f = _master_file(home)
     f.write_text("from-file\n")  # trailing newline tolerated
     if os.name == "posix":
-        os.chmod(f, 0o600)
+        f.chmod(0o600)
     assert _core._source_vault_master() == "from-file"
 
 
@@ -82,7 +81,7 @@ def test_permissive_master_file_refused(home, monkeypatch):
     monkeypatch.setattr(_core, "_tier2_backend", None)
     f = _master_file(home)
     f.write_text("from-file")
-    os.chmod(f, 0o644)  # group/other-readable — the key to everything
+    f.chmod(0o644)  # group/other-readable — the key to everything
     from credbroker import VaultUnavailableError
 
     with pytest.raises(VaultUnavailableError) as exc:

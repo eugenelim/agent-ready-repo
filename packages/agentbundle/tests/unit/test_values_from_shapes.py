@@ -7,7 +7,6 @@ Spec: docs/specs/adapt-to-project/spec.md AC15.
 from __future__ import annotations
 
 import pytest
-
 from agentbundle.config import ConfigError, load_values_from
 
 

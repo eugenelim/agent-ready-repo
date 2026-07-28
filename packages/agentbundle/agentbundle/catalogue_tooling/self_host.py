@@ -9,7 +9,6 @@ write uses dry_run=False.
 
 from __future__ import annotations
 
-from argparse import Namespace
 from pathlib import Path
 
 from agentbundle.catalogue_tooling.config import load_catalogue_config

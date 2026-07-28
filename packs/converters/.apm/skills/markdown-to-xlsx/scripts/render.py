@@ -192,7 +192,7 @@ def _write_table(wb, table: dict) -> tuple[int, list[str]]:
     could break a chart that reads it). Overflow rows are truncated with a
     warning.
     """
-    from openpyxl.utils.cell import range_boundaries, get_column_letter
+    from openpyxl.utils.cell import get_column_letter, range_boundaries
 
     target_ws = target_tbl = None
     for ws in wb.worksheets:

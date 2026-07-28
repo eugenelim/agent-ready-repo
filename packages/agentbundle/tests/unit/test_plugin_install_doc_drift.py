@@ -81,7 +81,7 @@ def test_site_install_md_uses_marketplace_qualifier():
     )
     stale = _find_stale_installs(text)
     assert not stale, (
-        "docs-site/src/content/docs/getting-started/install.md contains stale plugin install forms "
+        "docs-site/src/content/docs/getting-started/install.md contains stale plugin install forms "  # noqa: E501
         f"without @marketplace qualifier: {stale!r}. "
         "Use: claude plugin install <pack>@agent-ready-repo"
     )

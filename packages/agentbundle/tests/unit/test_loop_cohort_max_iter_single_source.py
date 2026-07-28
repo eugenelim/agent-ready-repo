@@ -14,7 +14,9 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-LOOP_COHORT = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
+LOOP_COHORT = (
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
+)
 TEMPLATE = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "assets" / "state.json"
 
 

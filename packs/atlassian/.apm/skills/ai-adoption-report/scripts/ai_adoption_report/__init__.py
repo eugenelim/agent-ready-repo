@@ -14,9 +14,9 @@ import argparse
 import os
 import re
 import sys
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Iterator, Optional, Sequence, Tuple
+from typing import Iterator, Sequence
 
 PYTHON_FLOOR = (3, 10)
 
@@ -31,9 +31,7 @@ def _check_python_version(version_info=None) -> None:
         floor = ".".join(str(x) for x in PYTHON_FLOOR)
         have = ".".join(str(info[i]) for i in range(min(3, len(info))))
         print(
-            "ai-adoption-report requires Python {} or later; running under {}".format(
-                floor, have
-            ),
+            f"ai-adoption-report requires Python {floor} or later; running under {have}",
             file=sys.stderr,
         )
         sys.exit(EXIT_VALIDATION)
@@ -55,7 +53,7 @@ class ValidationError(Exception):
 _ISO_DATE_RE = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
 
 
-def parse_window_flag(s: str) -> Tuple[str, str]:
+def parse_window_flag(s: str) -> tuple[str, str]:
     """Parse `--window FROM..TO` into two YYYY-MM-DD strings.
 
     Returns the two strings verbatim — no normalization. String equality
@@ -64,21 +62,19 @@ def parse_window_flag(s: str) -> Tuple[str, str]:
     parts = s.split("..")
     if len(parts) != 2 or not parts[0] or not parts[1]:
         raise argparse.ArgumentTypeError(
-            "--window must be FROM..TO with both YYYY-MM-DD dates present; got '{}'".format(s)
+            f"--window must be FROM..TO with both YYYY-MM-DD dates present; got '{s}'"
         )
     for side, value in (("from", parts[0]), ("to", parts[1])):
         if not _ISO_DATE_RE.match(value):
             raise argparse.ArgumentTypeError(
-                "--window {} '{}' is not YYYY-MM-DD (no time component allowed)".format(
-                    side, value
-                )
+                f"--window {side} '{value}' is not YYYY-MM-DD (no time component allowed)"
             )
         try:
             date.fromisoformat(value)
-        except ValueError:
+        except ValueError as exc:
             raise argparse.ArgumentTypeError(
-                "--window {} '{}' is not a valid calendar date".format(side, value)
-            )
+                f"--window {side} '{value}' is not a valid calendar date"
+            ) from exc
     return parts[0], parts[1]
 
 
@@ -96,22 +92,20 @@ def validate_local_path(path: str, *, role: str) -> Path:
     paths, or paths that resolve outside ``Path.cwd()``.
     """
     if "\x00" in path:
-        raise ValidationError("--{}: path contains a null byte".format(role))
+        raise ValidationError(f"--{role}: path contains a null byte")
     try:
         resolved = Path(path).resolve()
     except OSError as e:
         raise ValidationError(
-            "--{}: cannot resolve path '{}': {}".format(role, path, e)
-        )
+            f"--{role}: cannot resolve path '{path}': {e}"
+        ) from e
     cwd = Path.cwd().resolve()
     try:
         resolved.relative_to(cwd)
-    except ValueError:
+    except ValueError as exc:
         raise ValidationError(
-            "--{}: path '{}' resolves outside the current working directory ({})".format(
-                role, path, cwd
-            )
-        )
+            f"--{role}: path '{path}' resolves outside the current working directory ({cwd})"
+        ) from exc
     return resolved
 
 
@@ -258,7 +252,7 @@ def build_parser() -> argparse.ArgumentParser:
 # ---------------------------------------------------------------------------
 # Flag-combo / path-safety validation. Runs before any file read.
 # ---------------------------------------------------------------------------
-def _path_roles_for_mode(args: argparse.Namespace) -> Iterator[Tuple[str, str]]:
+def _path_roles_for_mode(args: argparse.Namespace) -> Iterator[tuple[str, str]]:
     yield ("output", args.output)
     if args.mode == "baseline":
         yield ("baseline", args.baseline)
@@ -272,7 +266,7 @@ def _path_roles_for_mode(args: argparse.Namespace) -> Iterator[Tuple[str, str]]:
         # three above. Any other value means a subparser was added without
         # updating this dispatch — fail loudly instead of silently
         # skipping path validation.
-        raise ValidationError("unknown mode '{}'".format(args.mode))
+        raise ValidationError(f"unknown mode '{args.mode}'")
 
 
 def validate_args(args: argparse.Namespace) -> None:
@@ -291,7 +285,7 @@ def validate_args(args: argparse.Namespace) -> None:
 # program is still stubbed for program discovery + aggregation.
 # ---------------------------------------------------------------------------
 def _default_title(mode: str) -> str:
-    return "AI-adoption report — {}".format(mode)
+    return f"AI-adoption report — {mode}"
 
 
 def _resolve_generated_at() -> str:
@@ -313,7 +307,7 @@ def _resolve_generated_at() -> str:
     if pinned:
         return pinned
     return (
-        datetime.now(timezone.utc)
+        datetime.now(UTC)
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z")
     )
@@ -400,14 +394,14 @@ _DISPATCH = {
 }
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
         validate_args(args)
         return _DISPATCH[args.mode](args)
     except ValidationError as e:
-        print("error: {}".format(e), file=sys.stderr)
+        print(f"error: {e}", file=sys.stderr)
         return EXIT_VALIDATION
 
 

@@ -13,7 +13,6 @@ import importlib.resources
 import tomllib
 
 import pytest
-
 from agentbundle.catalogue import CatalogueError
 from agentbundle.source_defaults import (
     _is_valid_source,

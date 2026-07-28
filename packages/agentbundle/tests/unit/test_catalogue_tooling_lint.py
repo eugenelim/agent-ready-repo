@@ -23,13 +23,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 import agentbundle.build.lint_packs as _lp_module
 import agentbundle.catalogue_tooling.lint as _lint_module
+import pytest
 from agentbundle.catalogue_tooling.lint import lint_catalogue, render_json, render_table
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
-
 
 # ---------------------------------------------------------------------------
 # Shared filesystem helpers
@@ -436,7 +434,7 @@ def test_check_profiles_no_profiles_dir(tmp_path, monkeypatch):
 
 
 def test_check_profiles_invalid_scope_value(tmp_path, monkeypatch):
-    """Profile with invalid scope value → CAT-L028 mentioning 'invalid scope' or 'scope must be'."""
+    """Profile with invalid scope value → CAT-L028 mentioning 'invalid scope' or 'scope must be'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
@@ -475,7 +473,7 @@ def test_check_profiles_pack_not_found(tmp_path, monkeypatch):
 
 
 def test_check_profiles_scope_homogeneity_violation(tmp_path, monkeypatch):
-    """Profile scope 'user' but pack only allows 'repo' → CAT-L028 mentioning 'does not allow scope'."""
+    """Profile scope 'user' but pack only allows 'repo' → CAT-L028 mentioning 'does not allow scope'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
@@ -531,7 +529,7 @@ def test_check_profiles_order_invalid(tmp_path, monkeypatch):
 
 
 def test_check_profiles_unsupported_range_grammar(tmp_path, monkeypatch):
-    """Pack dep uses unsupported range grammar → CAT-L028 mentioning 'unsupported version range'."""
+    """Pack dep uses unsupported range grammar → CAT-L028 mentioning 'unsupported version range'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
@@ -609,7 +607,9 @@ def test_check_seeds_opt_out(tmp_path, monkeypatch):
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
-    _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=False, seeds={"AGENTS.md": "<project-name>"})
+    _add_pack_with_seeds(
+        tmp_path, "pack-a", lint_seeds=False, seeds={"AGENTS.md": "<project-name>"}
+    )
     result = lint_catalogue(tmp_path)
     assert not any(d.code == "CAT-L029" for d in result.diagnostics)
 
@@ -1047,7 +1047,7 @@ No security section here.
 
 
 def test_check_credentialed_skills_argv_ban(tmp_path, monkeypatch):
-    """Credentialed skill script uses banned argv flag → CAT-L031 mentioning 'argv-borne credential flag'."""
+    """Credentialed skill script uses banned argv flag → CAT-L031 mentioning 'argv-borne credential flag'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
@@ -1099,7 +1099,9 @@ def test_check_credentialed_skills_denyset_incomplete(tmp_path, monkeypatch):
         "import argparse\n"
         "_DENY_FLAGS = frozenset({'--token', '--api-key'})\n"
     )
-    _add_credentialed_skill(pack_dir, "cli-skill", skill_md_content=skill_md, script_content=script)
+    _add_credentialed_skill(
+        pack_dir, "cli-skill", skill_md_content=skill_md, script_content=script
+    )
     result = lint_catalogue(tmp_path)
     l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
     assert l031, "expected CAT-L031 for deny-set incomplete"
@@ -1107,19 +1109,21 @@ def test_check_credentialed_skills_denyset_incomplete(tmp_path, monkeypatch):
 
 
 def test_check_credentialed_skills_dotfile_read(tmp_path, monkeypatch):
-    """D3: script reads .agentbundle/credentials.env via AST path chain → CAT-L031 mentioning 'dotfile'."""
+    """D3: script reads .agentbundle/credentials.env via AST path chain → CAT-L031 mentioning 'dotfile'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     # auth: cli avoids env-read enforcement (just D1 + D3 checks apply)
     skill_md = _CLI_SKILL_MD_TEMPLATE.format(name="dotfile-skill")
-    # Script reads credentials dotfile inline (path chain must be on the same expression as read_text)
+    # Script reads credentials dotfile inline (path chain must be on the same expression as read_text)  # noqa: E501
     script = (
         "from pathlib import Path\n"
         "content = (Path.home() / '.agentbundle' / 'credentials.env').read_text()\n"
     )
-    _add_credentialed_skill(pack_dir, "dotfile-skill", skill_md_content=skill_md, script_content=script)
+    _add_credentialed_skill(
+        pack_dir, "dotfile-skill", skill_md_content=skill_md, script_content=script
+    )
     result = lint_catalogue(tmp_path)
     l031 = [d for d in result.diagnostics if d.code == "CAT-L031"]
     assert l031, "expected CAT-L031 for dotfile read"

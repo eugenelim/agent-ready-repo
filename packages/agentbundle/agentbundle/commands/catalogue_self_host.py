@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: argparse.Namespace) -> int:
     from agentbundle.catalogue_tooling.self_host import check_self_host, write_self_host
 
     root = Path(getattr(args, "root", ".")).resolve()
@@ -25,10 +25,7 @@ def run(args: "argparse.Namespace") -> int:
         print("catalogue self-host: specify --check or --write", file=sys.stderr)
         return 2
 
-    if do_write:
-        result = write_self_host(root, force=force)
-    else:
-        result = check_self_host(root)
+    result = write_self_host(root, force=force) if do_write else check_self_host(root)
 
     if fmt == "json":
         doc = {
@@ -43,6 +40,7 @@ def run(args: "argparse.Namespace") -> int:
         print(json.dumps(doc, indent=2))
     else:
         status = "ok" if result.ok else "FAIL"
-        print(f"catalogue self-host --{'write' if do_write else 'check'}: {status}", file=sys.stderr)
+        verb = "write" if do_write else "check"
+        print(f"catalogue self-host --{verb}: {status}", file=sys.stderr)
 
     return 0 if result.ok else 1
