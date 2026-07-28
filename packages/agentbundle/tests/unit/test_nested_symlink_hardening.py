@@ -16,6 +16,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 
 def _make_skill_source(tmp: Path) -> tuple[Path, Path]:
     """Return (source_dir, target_dir) with a nested symlink fixture.
@@ -29,7 +31,10 @@ def _make_skill_source(tmp: Path) -> tuple[Path, Path]:
     source_skill = source_dir / "my-skill"
     source_skill.mkdir(parents=True)
     (source_skill / "SKILL.md").write_text("# My Skill\n", encoding="utf-8", newline="\n")
-    (source_skill / "secret-link").symlink_to("/etc/passwd")
+    try:
+        (source_skill / "secret-link").symlink_to("/etc/passwd")
+    except OSError:
+        pytest.skip("symlink creation requires elevated privileges on Windows")
 
     target_dir = tmp / "target"
     target_dir.mkdir()
@@ -106,7 +111,10 @@ class TestCodexNestedSymlinkDropped(unittest.TestCase):
             skill_dir = pack / ".apm" / "skills" / "my-skill"
             skill_dir.mkdir(parents=True)
             (skill_dir / "SKILL.md").write_text("# My Skill\n", encoding="utf-8", newline="\n")
-            (skill_dir / "secret-link").symlink_to("/etc/passwd")
+            try:
+                (skill_dir / "secret-link").symlink_to("/etc/passwd")
+            except OSError:
+                pytest.skip("symlink creation requires elevated privileges on Windows")
 
             output = tmp / "output"
             output.mkdir()

@@ -372,7 +372,10 @@ def test_config_symlink_escape(tmp_path):
     target = tmp_path.parent / "outside_dir"
     target.mkdir(exist_ok=True)
     link = tmp_path / "escape_link"
-    link.symlink_to(target)
+    try:
+        link.symlink_to(target)
+    except OSError:
+        pytest.skip("symlink creation requires elevated privileges on Windows")
 
     content = _VALID_BASE.replace("packs = 'packs'", "packs = 'escape_link'")
     _write_toml(tmp_path, content)
