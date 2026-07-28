@@ -1,5 +1,7 @@
 # AGENTS.local.md — `packages/` (insider context; not exported with catalogue init)
 
+**Read before modifying `packages/`:** version bump rule is in [`packages/AGENTS.md`](AGENTS.md#version-bump-rule); PyPI release coupling is below.
+
 ## Release Coupling
 
 Changes to `packages/agentbundle/` that alter a public CLI verb, add or remove a subcommand, or change
