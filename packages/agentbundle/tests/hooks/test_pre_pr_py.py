@@ -31,6 +31,7 @@ def _load_hook():
     spec.loader.exec_module(mod)
     return mod
 
+
 REPO_ROOT = Path(__file__).resolve().parents[4]
 HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "pre-pr.py"
 CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"

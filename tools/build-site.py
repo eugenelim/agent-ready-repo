@@ -33,6 +33,7 @@ REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 
+
 def discover_packs(root: Path, site_toml: Path) -> list[dict]:
     """Return packs ordered by site.toml groups, ungrouped packs appended alphabetically.
 
@@ -93,6 +94,7 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Frontmatter injection
 # ---------------------------------------------------------------------------
+
 
 def _inject_frontmatter(text: str, path: Path) -> str:
     """Prepend minimal Starlight frontmatter (title: ) if none present.

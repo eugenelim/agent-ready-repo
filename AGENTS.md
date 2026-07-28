@@ -127,17 +127,17 @@ tasks, not most — the work-loop skill covers when it's the right tool.
 <!-- Keep this short. Detailed command reference goes in docs/. -->
 
 ```bash
-<install command>           # one-time setup
-<test command>              # run tests for the package you're in
-<test all command>          # run all tests (slow — usually CI's job)
-<lint command>              # lint + format check
-<build command>             # produce build artifacts
+pip install -e packages/agentbundle 'packages/credbroker[crypto]' ruff mypy pytest  # one-time setup
+python3 -m pytest packages/<pkg>/tests/ -q  # run tests for the package you're in
+make test                                    # run all tests (slow — usually CI's job)
+python3 tools/lint-ruff.py                  # lint + format check
+make build-self                             # sync projected files after touching packs/
 ```
 
 ## Code style
 
 We don't list style rules here — the linter does that job better than prose can.
-Run `<lint command>` and follow what it tells you. If something is genuinely
+Run `python3 tools/lint-ruff.py` and follow what it tells you. If something is genuinely
 ambiguous to a linter (naming, file organization, error handling philosophy),
 it's covered in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 

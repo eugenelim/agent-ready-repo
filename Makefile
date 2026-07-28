@@ -4,7 +4,7 @@
 # § Always do calls for.
 
 PYTHON ?= python3
-PYTHONPATH := packages/agentbundle:$(PYTHONPATH)
+PYTHONPATH := packages/agentbundle:packages/credbroker:$(PYTHONPATH)
 PACKS_DIR ?= packs
 OUTPUT_DIR ?= dist
 PACK ?=

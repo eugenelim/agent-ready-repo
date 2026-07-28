@@ -116,7 +116,6 @@ def parse_status(spec_text: str) -> str | None:
     return None
 
 
-
 def _regex_backlog_slugs(workspace_text: str) -> set[str]:
     """Extract [backlog].open slugs from workspace.toml text via regex fallback.
 

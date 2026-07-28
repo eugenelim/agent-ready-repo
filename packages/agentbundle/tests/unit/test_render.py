@@ -73,6 +73,7 @@ def test_render_pack_to_dir_byte_identical_to_make_build(tmp_path):
     }
     # Render only ran on one pack, so marketplace.json may have a single
     # entry vs make's multi-entry. Compare per-pack outputs separately.
+
     def drop_marketplace(d):
         return {k: v for k, v in d.items() if k != "claude-plugins/marketplace.json"}
     assert drop_marketplace(via_render_core) == drop_marketplace(via_make_core)

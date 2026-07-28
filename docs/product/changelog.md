@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Converted to a deprecated compatibility shim.** Depends on `product-documentation`. Seeds removed. `new-guide` skill replaced with a thin redirect naming `author-product-docs` as the canonical skill. Install `product-documentation` directly for all new work. Note: a bare `agentbundle install --pack user-guide-diataxis` will fail unless `product-documentation` is already installed.
 
+## [agentbundle][0.23.0] — 2026-07-28
+
+### Changed
+
+- **Ruff preview-mode spacing rules enforced.** `catalogue_tooling/` whitespace-only pass; no behaviour change.
+
 ## [catalogue-curation][0.1.6] — 2026-07-28
 
 ### Changed

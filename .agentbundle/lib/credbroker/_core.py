@@ -116,6 +116,7 @@ class SchemaError(Exception):
     canonical path).
     """
 
+
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -191,6 +192,7 @@ def parse_env_file(path: pathlib.Path) -> dict[str, str]:
             )
         result[key] = value
     return result
+
 
 # Tier-2 backend dispatch at module-load time. If a platform's backend
 # module is absent, the try/except yields ``None`` and the resolver skips

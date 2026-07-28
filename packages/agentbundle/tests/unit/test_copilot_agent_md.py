@@ -42,6 +42,7 @@ def test_known_tools_matches_spec_allow_list() -> None:
         }
     ) == _KNOWN_TOOLS
 
+
 # The contract's `[frontmatter-mapping."copilot-agent-frontmatter-v0.10"]`
 # after T3; mirrored here as a literal for unit isolation. `tools` is handled
 # by the mode's allow-list pass-through, not a rename rule, so it is absent.

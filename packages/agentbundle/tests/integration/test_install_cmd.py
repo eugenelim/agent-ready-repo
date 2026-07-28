@@ -222,7 +222,6 @@ def _mock_urlopen_returning_alpha(url_capture: list):
         def __exit__(self, *args):
             pass
 
-
     def _fake_urlopen(url, **kwargs):
         url_capture.append(url)
         # Return a fresh buf each time.
