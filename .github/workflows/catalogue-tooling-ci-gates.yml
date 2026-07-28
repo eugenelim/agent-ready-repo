@@ -228,7 +228,24 @@ jobs:
           [catalogue]
           name                        = "test-catalogue"
           display-name                = "Test Catalogue"
+          description                 = "Enterprise distribution smoke test — example.test values only."
           minimum-agentbundle-version = "0.21.0"
+
+          [catalogue.paths]
+          packs        = "packs"
+          profiles     = "profiles"
+          contracts    = "contracts"
+          marketplace  = ".claude-plugin/marketplace.json"
+          build-output = "dist"
+
+          [catalogue.build]
+          recipes                 = ["default"]
+          self-host               = false
+          claude-plugin-branch    = "main"
+          marketplace-description = "Enterprise distribution smoke test."
+
+          [catalogue.package]
+          include = []
 
           [distribution.agentbundle]
           install-defaults-output = "install-defaults.toml"
@@ -410,10 +427,10 @@ jobs:
         env:
           AGENTBUNDLE_NO_REMOTE: "1"
         run: |
-          agentbundle install core \
-            --source local:/tmp/disconnected/extracted \
+          agentbundle install --pack core \
+            /tmp/disconnected/extracted \
             --scope repo \
-            --repo /tmp/offline-repo
+            --output /tmp/offline-repo
 
   # ── Gate F: repository rewiring correctness ───────────────────────────────
   catalogue-repo-rewire:
