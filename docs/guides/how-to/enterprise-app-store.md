@@ -16,6 +16,23 @@ The workflow has two sides:
 - Artifactory repository accessible from the connected host.
 - Bundle identifier, release version, and channel name agreed with your platform team.
 
+## Configuration
+
+Add the Artifactory block to `catalogue.toml`:
+
+```toml
+[distribution.agentbundle.artifactory]
+enabled = true
+base-url = "https://artifactory.example.com"
+repository = "agentbundle-catalogues"
+bundle = "engineering"
+channel = "stable"
+```
+
+Run `agentbundle catalogue sync-defaults --write` after adding or updating this block.
+The generated `install-defaults.toml` baked into the wheel will contain the channel value,
+so downstream installs resolve the correct Artifactory path.
+
 ## Step 1 — Build the dist tree
 
 ```bash
@@ -45,10 +62,10 @@ agentbundle catalogue package \
 Output layout:
 
 ```
-dist/artifactory/catalogues/engineering/releases/1.2.0/stable/
-  engineering-1.2.0.tar.gz
-  engineering-1.2.0.tar.gz.sha256
-  channel.json
+dist/catalogues/engineering/releases/1.2.0/
+  catalogue-1.2.0.tar.gz
+  catalogue-1.2.0.tar.gz.sha256
+  channels/stable.json
 ```
 
 ## Step 4 — Upload to Artifactory
@@ -98,3 +115,11 @@ For automated packaging in CI:
 
 Never embed production Artifactory URLs, credentials, or bearer tokens in workflow YAML. Use
 secrets or a credentials broker.
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | Bearer token for authenticated HTTPS catalogue sources. Never forwarded across origins; not logged. |
+| `AGENTBUNDLE_NO_REMOTE` | When set to `1`, skips the Artifactory org bootstrap (Layer 3) and editable-install detection (Layer 4). Useful for offline and air-gapped deployments. |
+| `AGENTBUNDLE_CA_BUNDLE` | Path to a PEM CA bundle for corporate TLS. (Upcoming — not yet implemented.) |

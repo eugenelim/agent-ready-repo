@@ -84,8 +84,7 @@ def compile_defaults(config: CatalogueConfig) -> str:
         art_rows.append(("base-url", _emit_str(art.base_url or "")))
         art_rows.append(("repository", _emit_str(art.repository or "")))
         art_rows.append(("bundle", _emit_str(art.bundle or "")))
-        # channel is not in ArtifactoryConfig dataclass — emit empty when enabled
-        art_rows.append(("channel", _emit_str("")))
+        art_rows.append(("channel", _emit_str(art.channel or "")))
     parts.append(_emit_section("organization.artifactory", art_rows))
 
     # [defaults]

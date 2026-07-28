@@ -171,6 +171,10 @@
                 "bundle": {
                   "type": "string",
                   "description": "Catalogue bundle name (required when enabled)."
+                },
+                "channel": {
+                  "type": "string",
+                  "description": "Artifactory channel name (required when enabled = true)."
                 }
               }
             }

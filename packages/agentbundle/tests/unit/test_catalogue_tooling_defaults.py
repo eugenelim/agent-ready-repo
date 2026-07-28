@@ -47,6 +47,7 @@ def _make_config(
     art_base_url: str | None = None,
     art_repository: str | None = None,
     art_bundle: str | None = None,
+    art_channel: str | None = None,
 ) -> CatalogueConfig:
     """Construct a minimal CatalogueConfig for use in tests."""
     return CatalogueConfig(
@@ -79,6 +80,7 @@ def _make_config(
                     base_url=art_base_url,
                     repository=art_repository,
                     bundle=art_bundle,
+                    channel=art_channel,
                 ),
             )
         ),
@@ -129,6 +131,27 @@ def test_compile_with_artifactory():
     assert 'repository = "my-repo"' in output
     assert 'bundle = "my-bundle"' in output
     assert 'channel = ""' in output
+
+
+def test_compile_defaults_channel_emitted():
+    """compile_defaults emits channel = "stable" when ArtifactoryConfig.channel = "stable"."""
+    config = _make_config(
+        art_enabled=True,
+        art_base_url="https://art.example.com",
+        art_repository="my-repo",
+        art_bundle="my-bundle",
+        art_channel="stable",
+    )
+    output = compile_defaults(config)
+    assert 'channel = "stable"' in output
+
+
+def test_compile_defaults_artifactory_disabled_no_channel_required():
+    """compile_defaults with enabled = false succeeds; no channel line emitted."""
+    config = _make_config(art_enabled=False)
+    output = compile_defaults(config)
+    assert "enabled = false" in output
+    assert "channel" not in output
 
 
 def test_compile_with_defaults_source():

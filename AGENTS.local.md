@@ -122,17 +122,22 @@ Editing them directly trips `make build-check`. Full workflow: [`packs/AGENTS.md
 `docs/guides/**/README.md`.
 
 
-## `docs/guides/` is organized by pack in this repo
+## Two guide trees — maintainer vs adopter
 
-This catalogue organizes user docs **by pack**: `docs/guides/<pack>/{tutorials,how-to,reference,explanation}/`
-for pack-specific guides; `docs/guides/_shared/{quadrant}/` for cross-cutting ones. The four-type Diátaxis
-discipline holds within each pack's subtree. Write guides under the owning pack, or `_shared/` if not
-specific to one pack.
+| Tree | Audience | Ships to adopters? |
+|---|---|---|
+| `docs/guides/` | **Repo maintainers only.** Covers the catalogue's internal tooling, CLI developer workflows, and repo-specific how-tos. Never projected. | No |
+| `guides/` | **Adopters.** Cross-cutting guides live in `guides/_shared/{quadrant}/`; pack-specific guides in `guides/<pack>/{quadrant}/`. Projected by the build pipeline. | Yes |
+
+Write new user-facing guides under `guides/_shared/how-to/` (or the owning pack's subtree).
+Write maintainer-facing guides (tooling, repo setup, CI) under `docs/guides/`.
+
+`docs/guides/` inside this repo uses the older flat `{quadrant}/` layout (pre-by-pack convention).
+The `new-guide` skill is layout-aware and writes under `guides/` by default; pass `--internal` to target `docs/guides/`.
 
 The adopter-facing `user-guide-diataxis` seed scaffold ships a by-quadrant `docs/guides/{quadrant}/` tree
 (an adopter is one product, not a catalogue); `docs/CONVENTIONS.md` §5c is projected and stays
-by-quadrant for adopters. The `new-guide` skill is layout-aware and writes per-pack when the repo
-is organized that way.
+by-quadrant for adopters.
 
 ## Install-test coverage rule
 

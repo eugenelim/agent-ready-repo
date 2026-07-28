@@ -78,6 +78,7 @@ class ArtifactoryConfig:
     base_url: str | None = None
     repository: str | None = None
     bundle: str | None = None
+    channel: str | None = None
 
 
 @dataclass
@@ -446,9 +447,21 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
                     f"catalogue.toml: distribution.agentbundle.artifactory.{seg_name} "
                     f"must match [A-Za-z0-9._-]+, got {seg_val!r}"
                 )
+        channel = art_raw.get("channel")
+        if not channel or not isinstance(channel, str) or not channel.strip():
+            raise CatalogueConfigError(
+                "catalogue.toml: distribution.agentbundle.artifactory.channel "
+                "is required when enabled = true (e.g. channel = \"stable\")"
+            )
+        if not _SAFE_SEGMENT_RE.match(channel):
+            raise CatalogueConfigError(
+                f"catalogue.toml: distribution.agentbundle.artifactory.channel "
+                f"must match [A-Za-z0-9._-]+, got {channel!r}"
+            )
         art.base_url = base_url
         art.repository = repository
         art.bundle = bundle
+        art.channel = channel
 
     agentbundle_dist = AgentbundleDistribution(
         install_defaults_output=install_defaults_output,

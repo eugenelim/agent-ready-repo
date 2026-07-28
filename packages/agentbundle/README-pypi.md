@@ -153,6 +153,11 @@ Developers installing from your fork get the internal channel without a manual
 A malformed `enabled = true` config fails closed — no silent fallback to the public
 source.
 
+**Offline and air-gapped hosts:** set `AGENTBUNDLE_NO_REMOTE=1` to skip the org
+Artifactory bootstrap and editable-install detection entirely. `agentbundle` falls
+straight through to the packaged default, so hosts without network access to Artifactory
+still resolve a source without errors.
+
 See the full enterprise adoption guide at
 `docs/guides/_shared/how-to/use-an-artifactory-catalogue.md` for all six flows
 (org bootstrap, repo-scope CI upgrade, user-scope MDM, source-conflict remediation,
