@@ -1,6 +1,12 @@
-# About the Diátaxis framework
+---
+title: "About the Diátaxis framework"
+summary: "Why the product-documentation pack assigns every page to one of four kinds, and why that one rule does most of the work."
+pack: product-documentation
+kind: explanation
+status: stable
+---
 
-> Why the `product-documentation` pack sorts every page into one of four kinds, and why that one rule does most of the work. This page is for readers who want the model, not a procedure. To create documentation, see [How to use author-product-docs](../how-to/use-author-product-docs.md).
+> This page is for readers who want the model, not a procedure. To write a page, see [How to write a guide](../how-to/write-a-guide.md).
 
 ## The question this page answers
 

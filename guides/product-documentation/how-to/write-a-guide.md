@@ -1,4 +1,10 @@
-# How to write a guide
+---
+title: "How to write a guide"
+summary: "Document a shipped feature in the right Diátaxis kind — tutorial, how-to, reference, or explanation — from the first page."
+pack: product-documentation
+kind: how-to
+status: stable
+---
 
 **Use this when:** a feature already ships and you need to document it in
 the right Diátaxis kind — tutorial, how-to, reference, or explanation — from

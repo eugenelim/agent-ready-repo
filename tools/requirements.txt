@@ -2,3 +2,4 @@
 # linters parse YAML frontmatter via PyYAML. CI installs from this file;
 # contributors run `pip install -r tools/requirements.txt` once.
 pyyaml>=6.0
+jsonschema>=4.0  # guide frontmatter validation (validate_guides.py)

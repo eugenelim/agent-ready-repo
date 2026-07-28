@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Guide frontmatter",
+  "description": "YAML frontmatter schema for catalogue-facing guide files under guides/.",
+  "type": "object",
+  "required": ["title", "summary", "pack", "kind"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Page title — used by the docs-site renderer as the heading."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One-sentence description of what the reader gains from this page."
+    },
+    "pack": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Pack ID (matches a packs/ directory name) or '_shared' for cross-cutting guides."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["tutorial", "how-to", "reference", "explanation"],
+      "description": "Diátaxis kind — a page contract, not a directory requirement."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^guides/[a-z0-9_][a-z0-9_/-]*$",
+      "description": "Override the public URL slug. Must start with 'guides/' to prevent clobbering non-guide pages. When present, build-site.py writes the file at this path regardless of physical source location."
+    },
+    "journey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional journey association (slug of the journey page this guide belongs to)."
+    },
+    "order": {
+      "type": "integer",
+      "description": "Optional sort weight within a pack group for navigation generation."
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^guides/[a-z0-9_][a-z0-9_/-]*$"
+      },
+      "description": "Former public slugs (must start with 'guides/') that should redirect to this page. build-site.py generates a meta-refresh redirect stub at each alias path."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "review", "stable", "deprecated"],
+      "description": "Optional publication status. Defaults to 'stable' when absent."
+    }
+  },
+  "additionalProperties": false
+}

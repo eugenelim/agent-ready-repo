@@ -29,9 +29,18 @@ import sys
 import tomllib
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
+SITE_BASE = "/agent-ready-repo/docs"
+
+# Guide-specific frontmatter fields that are stripped before writing to the
+# docs-site. These are understood by validate_guides.py but not by Starlight.
+_GUIDE_ONLY_FIELDS = frozenset({
+    "pack", "kind", "summary", "slug", "aliases", "status", "journey", "order",
+})
 
 
 def discover_packs(root: Path, site_toml: Path) -> list[dict]:
@@ -117,6 +126,174 @@ def _inject_frontmatter(text: str, path: Path) -> str:
         title = path.stem.replace("-", " ").replace("_", " ").title()
         body = text
     return f'---\ntitle: "{title}"\n---\n\n' + body
+
+
+# ---------------------------------------------------------------------------
+# Guide frontmatter helpers (for catalogue-facing guide routing)
+# ---------------------------------------------------------------------------
+
+def _parse_frontmatter(text: str) -> dict:
+    """Parse YAML frontmatter from a file's text; return {} if absent or invalid."""
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    yaml_block = text[3:end]
+    try:
+        data = yaml.safe_load(yaml_block)
+    except yaml.YAMLError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _strip_guide_metadata(text: str) -> str:
+    """Remove guide-specific frontmatter fields before writing to the docs-site.
+
+    Keeps Starlight-required/compatible fields (title, description, sidebar, etc.).
+    Preserves H1 headings in the body (guide authors who add explicit frontmatter
+    are responsible for removing the H1 if they don't want it duplicated by Starlight).
+    """
+    if not text.startswith("---"):
+        return text
+    end = text.find("\n---", 3)
+    if end == -1:
+        return text
+    yaml_block = text[3:end]
+    try:
+        data = yaml.safe_load(yaml_block)
+    except yaml.YAMLError:
+        return text
+    if not isinstance(data, dict):
+        return text
+
+    # Exclude None values so yaml.safe_dump doesn't emit `key: null` noise.
+    cleaned = {
+        k: v for k, v in data.items()
+        if k not in _GUIDE_ONLY_FIELDS and v is not None
+    }
+    if cleaned == {k: v for k, v in data.items() if v is not None}:
+        return text  # nothing to strip
+
+    # Reconstruct frontmatter
+    if not cleaned:
+        # All fields were guide-only; keep an empty frontmatter block so Starlight
+        # doesn't inject a duplicate title from H1 (injection only fires when no ---)
+        return "---\n---\n\n" + text[end + 4:].lstrip("\n")
+
+    fm_body = yaml.safe_dump(
+        cleaned, default_flow_style=False, sort_keys=False, allow_unicode=True,
+    ).rstrip("\n")
+    fm_text = "---\n" + fm_body + "\n---"
+    body = text[end + 4:]
+    return fm_text + "\n\n" + body.lstrip("\n")
+
+
+def _make_redirect_stub(target_url: str) -> str:
+    """Generate a Starlight-compatible page with a meta-refresh redirect."""
+    return (
+        '---\ntitle: "Redirecting..."\n---\n\n'
+        f'<meta http-equiv="refresh" content="0; url={target_url}">\n\n'
+        f'This page has moved. [Click here]({target_url}) '
+        "if you are not redirected automatically.\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Guide-aware mirror (replaces the bare mirror_dir call for guides/)
+# ---------------------------------------------------------------------------
+
+def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
+    """Mirror src/ into site_docs/guides/ with frontmatter-aware routing.
+
+    - Files with ``slug:`` frontmatter are written to site_docs/<slug>.md
+      (overriding the default path-based placement).
+    - Files with ``aliases:`` frontmatter get meta-refresh redirect stubs.
+    - Guide-specific metadata (pack, kind, summary, slug, aliases, status,
+      journey, order) is stripped before writing so Starlight doesn't see it.
+    - Files without frontmatter receive the existing title-injection treatment.
+    - docs/guides/ is not the src here and is never mirrored.
+    """
+    guides_out = site_docs / "guides"
+    count = 0
+    if not src.exists():
+        src_display = (
+            src.relative_to(REPO_ROOT) if src.is_relative_to(REPO_ROOT) else src
+        )
+        print(f"  warn  source dir missing: {src_display}", file=sys.stderr)
+        return 0
+    for path in sorted(src.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(src)
+        rel_parts = list(rel.parts)
+        if rel_parts[-1] == "README.md":
+            rel_parts[-1] = "index.md"
+
+        if path.suffix != ".md":
+            target = guides_out / Path(*rel_parts)
+            if dry_run:
+                print(f"  copy  {_relpath(path)} → {_relpath(target)}")
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+            count += 1
+            continue
+
+        text = path.read_text(encoding="utf-8")
+        text = _rewrite_guide(text, path)
+        fm = _parse_frontmatter(text)
+
+        # Determine canonical slug and output path
+        if fm and fm.get("slug"):
+            canonical_slug = fm["slug"]
+            target = site_docs / (canonical_slug + ".md")
+        else:
+            # Derive slug from the (possibly renamed) relative parts
+            slug_parts = list(rel_parts)
+            if slug_parts[-1].endswith(".md"):
+                slug_parts[-1] = slug_parts[-1][:-3]
+            canonical_slug = "guides/" + "/".join(slug_parts)
+            target = guides_out / Path(*rel_parts)
+
+        # Strip guide-specific metadata; fall through to title injection if needed
+        if fm:
+            text = _strip_guide_metadata(text)
+
+        if not text.startswith("---"):
+            text = _inject_frontmatter(text, path)
+
+        if dry_run:
+            action = "rename" if path.name == "README.md" else "copy"
+            if fm and fm.get("slug"):
+                action = "route"
+            print(f"  {action} {_relpath(path)} → {_relpath(target)}")
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8")
+        count += 1
+
+        # Generate redirect stubs for aliases
+        aliases = fm.get("aliases") if fm else None
+        if aliases:
+            canonical_url = f"{SITE_BASE}/{canonical_slug}/"
+            for alias in aliases:
+                stub_target = site_docs / (alias + ".md")
+                stub_content = _make_redirect_stub(canonical_url)
+                if dry_run:
+                    print(f"  stub  {alias} → {canonical_slug}")
+                else:
+                    stub_target.parent.mkdir(parents=True, exist_ok=True)
+                    stub_target.write_text(stub_content, encoding="utf-8")
+
+    return count
+
+
+def _relpath(p: Path) -> str:
+    try:
+        return str(p.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(p)
 
 
 # ---------------------------------------------------------------------------
@@ -461,7 +638,7 @@ def main() -> None:
     generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run)
 
     print("build-site: mirroring guides …")
-    n = mirror_dir(guides_src, guides_out, rewriter=_rewrite_guide, dry_run=args.dry_run)
+    n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
     print(f"  {n} files from guides/")
 
     print("build-site: copying changelog …")
