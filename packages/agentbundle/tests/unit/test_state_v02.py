@@ -34,7 +34,7 @@ primitives = ["skill"]
 
 
 def _write(p: Path, text: str) -> Path:
-    p.write_text(text, encoding="utf-8")
+    p.write_text(text, encoding="utf-8", newline="\n")
     return p
 
 
@@ -51,7 +51,7 @@ def test_init_state_refuses_legacy_state_file(tmp_path):
     pack = packs_dir / "demo"
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(
-        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "demo"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
     args = argparse.Namespace(
         pack="demo", packs_dir=str(packs_dir), root=str(tmp_path), migrate=False,

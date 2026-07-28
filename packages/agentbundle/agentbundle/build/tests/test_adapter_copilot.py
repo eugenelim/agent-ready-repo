@@ -19,20 +19,21 @@ def _seed_pack(root: Path) -> Path:
     (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
         "---\ndescription: foo skill\n---\nfoo body\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     (pack / ".apm" / "agents").mkdir(parents=True)
-    (pack / ".apm" / "agents" / "bar.md").write_text("agent body\n", encoding="utf-8")
+    (pack / ".apm" / "agents" / "bar.md").write_text("agent body\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "hooks").mkdir(parents=True)
-    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\necho hi\n", encoding="utf-8")
-    (pack / ".apm" / "hooks" / "baz.py").write_text("print('hi')\n", encoding="utf-8")
+    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\necho hi\n", encoding="utf-8", newline="\n")
+    (pack / ".apm" / "hooks" / "baz.py").write_text("print('hi')\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
-    (pack / ".apm" / "hook-wiring" / "baz.toml").write_text("[hooks]\n", encoding="utf-8")
+    (pack / ".apm" / "hook-wiring" / "baz.toml").write_text("[hooks]\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "commands").mkdir(parents=True)
-    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8")
+    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
     return pack
 
 

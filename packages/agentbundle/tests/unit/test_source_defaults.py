@@ -60,12 +60,12 @@ def _make_markers(root: Path) -> None:
     (root / "packs").mkdir(parents=True, exist_ok=True)
     cp = root / ".claude-plugin"
     cp.mkdir(parents=True, exist_ok=True)
-    (cp / "marketplace.json").write_text("{}", encoding="utf-8")
+    (cp / "marketplace.json").write_text("{}", encoding="utf-8", newline="\n")
 
 
 def _make_git(root: Path, *, as_file: bool = False) -> None:
     if as_file:
-        (root / ".git").write_text("gitdir: /elsewhere/.git/worktrees/wt\n", encoding="utf-8")
+        (root / ".git").write_text("gitdir: /elsewhere/.git/worktrees/wt\n", encoding="utf-8", newline="\n")
     else:
         (root / ".git").mkdir(parents=True, exist_ok=True)
 

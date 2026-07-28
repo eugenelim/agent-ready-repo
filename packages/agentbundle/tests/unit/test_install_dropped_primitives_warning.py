@@ -50,31 +50,31 @@ def _seed_pack(
         for name in skills:
             (pack / ".apm" / "skills" / name).mkdir(parents=True)
             (pack / ".apm" / "skills" / name / "SKILL.md").write_text(
-                f"# {name}\n", encoding="utf-8"
+                f"# {name}\n", encoding="utf-8", newline="\n"
             )
     if agents:
         (pack / ".apm" / "agents").mkdir(parents=True, exist_ok=True)
         for name in agents:
             (pack / ".apm" / "agents" / f"{name}.md").write_text(
-                f"# {name}\n", encoding="utf-8"
+                f"# {name}\n", encoding="utf-8", newline="\n"
             )
     if hook_bodies:
         (pack / ".apm" / "hooks").mkdir(parents=True, exist_ok=True)
         for name in hook_bodies:
             (pack / ".apm" / "hooks" / f"{name}.sh").write_text(
-                f"# {name}\n", encoding="utf-8"
+                f"# {name}\n", encoding="utf-8", newline="\n"
             )
     if hook_wirings:
         (pack / ".apm" / "hook-wiring").mkdir(parents=True, exist_ok=True)
         for name in hook_wirings:
             (pack / ".apm" / "hook-wiring" / f"{name}.toml").write_text(
-                "[hooks]\n", encoding="utf-8"
+                "[hooks]\n", encoding="utf-8", newline="\n"
             )
     if commands:
         (pack / ".apm" / "commands").mkdir(parents=True, exist_ok=True)
         for name in commands:
             (pack / ".apm" / "commands" / f"{name}.md").write_text(
-                f"# {name}\n", encoding="utf-8"
+                f"# {name}\n", encoding="utf-8", newline="\n"
             )
     return pack
 
@@ -159,9 +159,9 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         pack = self.tmp_path / "pack"
         (pack / ".apm" / "commands").mkdir(parents=True)
         # One real command (.md), plus junk files.
-        (pack / ".apm" / "commands" / "real.md").write_text("# real\n", encoding="utf-8")
-        (pack / ".apm" / "commands" / ".DS_Store").write_text("junk", encoding="utf-8")
-        (pack / ".apm" / "commands" / "README.txt").write_text("not a command", encoding="utf-8")
+        (pack / ".apm" / "commands" / "real.md").write_text("# real\n", encoding="utf-8", newline="\n")
+        (pack / ".apm" / "commands" / ".DS_Store").write_text("junk", encoding="utf-8", newline="\n")
+        (pack / ".apm" / "commands" / "README.txt").write_text("not a command", encoding="utf-8", newline="\n")
         # Stray subdirectory — shouldn't count toward .md commands.
         (pack / ".apm" / "commands" / "subdir").mkdir()
         result = _enumerate_dropped_primitives(pack, "codex")
@@ -174,8 +174,8 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         # so the dropped-count is absent regardless of suffix. Name preserved.
         pack = self.tmp_path / "pack"
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
-        (pack / ".apm" / "hook-wiring" / "real.toml").write_text("[hooks]\n", encoding="utf-8")
-        (pack / ".apm" / "hook-wiring" / "stray.md").write_text("not a wiring", encoding="utf-8")
+        (pack / ".apm" / "hook-wiring" / "real.toml").write_text("[hooks]\n", encoding="utf-8", newline="\n")
+        (pack / ".apm" / "hook-wiring" / "stray.md").write_text("not a wiring", encoding="utf-8", newline="\n")
         result = _enumerate_dropped_primitives(pack, "copilot")
         self.assertNotIn("hook-wiring", result)
 
@@ -590,6 +590,7 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
         (hw_dir / "session-start.toml").write_text(
             '[[hooks.SessionStart]]\nhooks = [{type = "command", command = "x"}]\n',
             encoding="utf-8",
+            newline="\n",
         )
 
         captured = StringIO()

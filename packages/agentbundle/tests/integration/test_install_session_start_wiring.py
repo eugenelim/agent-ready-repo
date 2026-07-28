@@ -58,14 +58,14 @@ def _stage_synthetic_pack(catalogue_root: Path) -> None:
     """
     pack = catalogue_root / "packs" / "test-core"
     pack.mkdir(parents=True)
-    (pack / "pack.toml").write_text(PACK_TOML, encoding="utf-8")
+    (pack / "pack.toml").write_text(PACK_TOML, encoding="utf-8", newline="\n")
     apm = pack / ".apm"
     (apm / "hooks").mkdir(parents=True)
     # Empty stub: hook-body projection is direct-file; content doesn't
     # matter for the wiring-shape assertion.
-    (apm / "hooks" / "session-start.py").write_text("", encoding="utf-8")
+    (apm / "hooks" / "session-start.py").write_text("", encoding="utf-8", newline="\n")
     (apm / "hook-wiring").mkdir()
-    (apm / "hook-wiring" / "session-start.toml").write_text(WIRING_TOML, encoding="utf-8")
+    (apm / "hook-wiring" / "session-start.toml").write_text(WIRING_TOML, encoding="utf-8", newline="\n")
 
 
 def _install(args_dict) -> tuple[int, str, str]:

@@ -37,6 +37,7 @@ def _make_fixture_pack(
         f'[pack.install]\ndefault-scope = "user"\n'
         f'allowed-scopes = ["user", "repo"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     if bins:
         bins_dir = pack / ".apm" / "adapter-root-bins"

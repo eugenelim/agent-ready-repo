@@ -26,6 +26,7 @@ def _seed_agent_pack(root: Path, tools: str = "Read, Grep", model: str | None = 
     (pack / ".apm" / "agents" / "bar.md").write_text(
         f"---\nname: bar\ntools: {tools}{model_line}\n---\nagent body\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -94,6 +95,7 @@ class KiroIdeAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "bar.md").write_text(
                 "---\nname: bar\nresources: [file://README.md]\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -196,7 +198,7 @@ class KiroIdeAdapterTests(unittest.TestCase):
                 "then": {"type": "askAgent", "prompt": "Run lint."},
             }
             (hooks_dir / "on-save.kiro.hook").write_text(
-                json.dumps(hook_body), encoding="utf-8"
+                json.dumps(hook_body), encoding="utf-8", newline="\n"
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)

@@ -218,7 +218,7 @@ def test_copy_jailed_refuses_reserved_name(tmp_path):
     guard runs on it too, so an install-time `cp` of pack content
     cannot land a `CON.md` on a Windows adopter."""
     source = tmp_path / "src.md"
-    source.write_text("x\n", encoding="utf-8")
+    source.write_text("x\n", encoding="utf-8", newline="\n")
     with pytest.raises(safety.PathJailError, match="reserved"):
         safety.copy_jailed(tmp_path, source, "CON.md")
 

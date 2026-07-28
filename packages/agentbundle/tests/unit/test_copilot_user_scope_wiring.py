@@ -135,6 +135,7 @@ class TestRenderForUserScopeDispatchesCopilot(unittest.TestCase):
             (pack / ".apm" / "agents" / "foo.md").write_text(
                 "---\nname: foo\ndescription: a foo agent\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             projection = _render_for_user_scope(
                 pack,

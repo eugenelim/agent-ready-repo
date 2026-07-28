@@ -31,25 +31,27 @@ def _multi_primitive_pack(root: Path) -> Path:
     pack = root / "pack"
     (pack / ".apm" / "skills" / "demo").mkdir(parents=True)
     (pack / ".apm" / "skills" / "demo" / "SKILL.md").write_text(
-        "# demo\n", encoding="utf-8"
+        "# demo\n", encoding="utf-8", newline="\n"
     )
     (pack / ".apm" / "agents").mkdir(parents=True)
     (pack / ".apm" / "agents" / "reviewer.md").write_text(
         "---\nname: reviewer\ndescription: Demo agent.\ntools: Read\n---\nbody\n",
         encoding="utf-8",
+        newline="\n",
     )
     (pack / ".apm" / "hooks").mkdir(parents=True)
     (pack / ".apm" / "hooks" / "on-spawn.sh").write_text(
-        "#!/bin/sh\nexit 0\n", encoding="utf-8"
+        "#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n"
     )
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
     (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
         'attach-to-agent = "reviewer"\n\n'
         '[[hooks.agentSpawn]]\ncommand = "$HOOK_BODY_PATH"\n',
         encoding="utf-8",
+        newline="\n",
     )
     (pack / ".apm" / "commands").mkdir(parents=True)
-    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8")
+    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
     return pack
 
 
@@ -134,6 +136,7 @@ class PhaseOrderExecutionTests(unittest.TestCase):
                 "[[hooks.SessionStart]]\n"
                 'hooks = [ { type = "command", command = "echo hi" } ]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             order = self._run_with_recorder(copilot, pack, Path(tmp) / "out")
             self._assert_phase_order(order, "copilot")
@@ -224,13 +227,13 @@ class CrossAdapterIndependenceTests(unittest.TestCase):
             pack_kiro = tmp_path / "pack-kiro"
             (pack_kiro / ".apm" / "agents").mkdir(parents=True)
             (pack_kiro / ".apm" / "agents" / "reviewer.md").write_text(
-                "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+                "---\nname: reviewer\n---\nbody\n", encoding="utf-8", newline="\n"
             )
 
             pack_cc = tmp_path / "pack-cc"
             (pack_cc / ".apm" / "hook-wiring").mkdir(parents=True)
             (pack_cc / ".apm" / "hook-wiring" / "on-prompt.toml").write_text(
-                '[hooks]\nUserPromptSubmit = ["do-thing"]\n', encoding="utf-8"
+                '[hooks]\nUserPromptSubmit = ["do-thing"]\n', encoding="utf-8", newline="\n"
             )
 
             out = tmp_path / "out"

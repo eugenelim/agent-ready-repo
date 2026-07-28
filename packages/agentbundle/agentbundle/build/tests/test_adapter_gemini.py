@@ -37,7 +37,7 @@ def _write_command(pack: Path, rel: str, *, description: str | None, body: str) 
     if description is not None:
         lines += ["---", f"description: {description}", "---"]
     lines.append(body)
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def _seed_agent(pack: Path, name: str, *, tools: str | None, model: str | None = None) -> None:
@@ -49,7 +49,7 @@ def _seed_agent(pack: Path, name: str, *, tools: str | None, model: str | None =
         lines.append(f"model: {model}")
     lines.append("---")
     lines.append("agent body")
-    (pack / ".apm" / "agents" / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (pack / ".apm" / "agents" / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def _seed_session_start_wiring(pack: Path) -> None:
@@ -58,6 +58,7 @@ def _seed_session_start_wiring(pack: Path) -> None:
         "[[hooks.SessionStart]]\n"
         'hooks = [\n  { type = "command", command = "python tools/hooks/session-start.py" },\n]\n',
         encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -131,7 +132,7 @@ class GeminiCommandTomlTests(unittest.TestCase):
             (pack / ".apm" / "commands").mkdir(parents=True)
             secret_dir = tmp / "outside"
             secret_dir.mkdir()
-            (secret_dir / "leak.md").write_text("---\ndescription: x\n---\nSECRET", encoding="utf-8")
+            (secret_dir / "leak.md").write_text("---\ndescription: x\n---\nSECRET", encoding="utf-8", newline="\n")
             os.symlink(secret_dir, pack / ".apm" / "commands" / "evil")
             _write_command(pack, "ok.md", description="d", body="ok")
             commands = self._project(tmp)
@@ -248,10 +249,10 @@ class GeminiProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
             (pack / ".apm" / "skills" / "my-skill").mkdir(parents=True)
-            (pack / ".apm" / "skills" / "my-skill" / "SKILL.md").write_text("x", encoding="utf-8")
+            (pack / ".apm" / "skills" / "my-skill" / "SKILL.md").write_text("x", encoding="utf-8", newline="\n")
             _write_command(pack, "do-thing.md", description="d", body="cmd")
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "on-start.py").write_text("#!py", encoding="utf-8")
+            (pack / ".apm" / "hooks" / "on-start.py").write_text("#!py", encoding="utf-8", newline="\n")
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
             self.assertTrue((out / ".agents" / "skills" / "my-skill" / "SKILL.md").exists())
@@ -332,7 +333,7 @@ class GeminiProjectionTests(unittest.TestCase):
             pack = tmp_path / "pack"
             (pack / ".apm" / "agents").mkdir(parents=True)
             (pack / ".apm" / "agents" / "from-file.md").write_text(
-                "---\ndescription: no name\ntools: Read, Grep\n---\nBody.\n", encoding="utf-8"
+                "---\ndescription: no name\ntools: Read, Grep\n---\nBody.\n", encoding="utf-8", newline="\n"
             )
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
@@ -355,9 +356,9 @@ class GeminiProjectionTests(unittest.TestCase):
             pack = tmp_path / "pack"
             skill = pack / ".apm" / "skills" / "s"
             skill.mkdir(parents=True)
-            (skill / "SKILL.md").write_text("ok", encoding="utf-8")
+            (skill / "SKILL.md").write_text("ok", encoding="utf-8", newline="\n")
             secret = tmp_path / "secret.txt"
-            secret.write_text("SECRET", encoding="utf-8")
+            secret.write_text("SECRET", encoding="utf-8", newline="\n")
             os.symlink(secret, skill / "leak.txt")
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
@@ -421,6 +422,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
                     for src in ("SessionStart", "SessionEnd", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop")
                 ),
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
@@ -442,6 +444,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"theme": "keep-me", "hooks": {"AfterAgent": [{"hooks": []}]}}),
                 encoding="utf-8",
+                newline="\n",
             )
             gemini.project(pack, self.contract, out)
             data = self._settings(out)
@@ -458,6 +461,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
             (pack / ".apm" / "hook-wiring" / "w.toml").write_text(
                 '[[hooks.NoSuchEvent]]\nhooks = [ { type = "command", command = "echo x" } ]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             with self.assertRaises(ValueError):
@@ -473,6 +477,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
                 '[[hooks.PreToolUse]]\nmatcher = "Bash"\n'
                 'hooks = [ { type = "command", command = "echo x" } ]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
@@ -492,6 +497,7 @@ class GeminiInstallDispatchTests(unittest.TestCase):
         (pack / ".apm" / "agents" / "foo.md").write_text(
             "---\nname: foo\ndescription: a foo agent\ntools: Read, Grep\n---\nBody.\n",
             encoding="utf-8",
+            newline="\n",
         )
         return pack
 
@@ -528,7 +534,7 @@ class GeminiInstallDispatchTests(unittest.TestCase):
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "session-start.py").write_text("#!py", encoding="utf-8")
+            (pack / ".apm" / "hooks" / "session-start.py").write_text("#!py", encoding="utf-8", newline="\n")
             _seed_session_start_wiring(pack)
             projection = _render_for_user_scope(
                 pack, adapter="gemini", allowed_adapters=["gemini"],

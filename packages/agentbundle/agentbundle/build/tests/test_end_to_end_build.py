@@ -130,7 +130,7 @@ class CheckCommandTests(unittest.TestCase):
             # fail-fast (spec AC14) doesn't reject the call. Canonical
             # v0.1 shape per adapt-to-project AC9.
             (working / ".adapt-discovery.toml").write_text(
-                'discovery-schema-version = "0.1"\n', encoding="utf-8"
+                'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
             )
 
             from agentbundle.build.adapters import ADAPTERS
@@ -204,7 +204,7 @@ class ScaffoldCommandTests(unittest.TestCase):
             shutil.copytree(FIXTURES_PACKS, packs_clone)
             (packs_clone / "core" / "seeds").mkdir()
             (packs_clone / "core" / "seeds" / "AGENTS.md").write_text(
-                "# seeded\n", encoding="utf-8"
+                "# seeded\n", encoding="utf-8", newline="\n"
             )
             output_dir = workspace_path / "out"
 

@@ -52,6 +52,7 @@ class KiroRepoHooksFixtureTests(unittest.TestCase):
                 indent=2,
             ) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
 
     def test_fixture_round_trip_install_uninstall(self) -> None:

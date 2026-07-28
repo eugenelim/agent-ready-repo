@@ -72,12 +72,12 @@ def _make_pack(root: Path, pack_name: str = "test-pack",
     hooks_dir = pack / ".apm" / "kiro-ide-hooks"
     hooks_dir.mkdir(parents=True)
     for filename, body in (hooks or {}).items():
-        (hooks_dir / filename).write_text(json.dumps(body), encoding="utf-8")
+        (hooks_dir / filename).write_text(json.dumps(body), encoding="utf-8", newline="\n")
     if hook_bodies:
         body_dir = pack / ".apm" / "hooks"
         body_dir.mkdir(parents=True)
         for filename in hook_bodies:
-            (body_dir / filename).write_text("#!/bin/sh\n", encoding="utf-8")
+            (body_dir / filename).write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
     return pack
 
 

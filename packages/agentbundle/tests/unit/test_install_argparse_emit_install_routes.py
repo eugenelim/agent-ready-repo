@@ -104,7 +104,7 @@ def _make_minimal_pack(root: Path, name: str = "demo", default_scope: str = "rep
         allowed-adapters = ["claude-code", "kiro"]
         """
     )
-    (pack_dir / "pack.toml").write_text(pack_toml, encoding="utf-8")
+    (pack_dir / "pack.toml").write_text(pack_toml, encoding="utf-8", newline="\n")
     return pack_dir
 
 

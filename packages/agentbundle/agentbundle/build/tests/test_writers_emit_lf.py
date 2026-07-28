@@ -13,6 +13,9 @@ Scope: the walk covers the inner `agentbundle/` package only. The sibling
 canonical copy `packages/agentbundle/templates/install-marker.py` is outside
 it — that copy writes via `os.write(fd, bytes)` (byte-safe), so it carries no
 text writer to guard today; a text writer added there would not be caught here.
+Test helpers (files under ``tests/``) are also excluded by design: they write
+fixture data whose exact bytes are under test control and are never projected
+onto a user's filesystem.
 
 See `docs/specs/lf-line-endings/spec.md`.
 """

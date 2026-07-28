@@ -84,6 +84,7 @@ def _make_minimal_pack(packs_dir: Path, pack_name: str = "alpha") -> Path:
         f'description = "Drift-gate test pack."\n'
         f'[pack.install]\nallowed-scopes = ["repo"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     plugin_dir = pack_dir / ".claude-plugin"
     plugin_dir.mkdir(parents=True, exist_ok=True)
@@ -92,6 +93,7 @@ def _make_minimal_pack(packs_dir: Path, pack_name: str = "alpha") -> Path:
             {"name": pack_name, "version": "0.1.0", "description": "Drift-gate test."}
         ),
         encoding="utf-8",
+        newline="\n",
     )
     return pack_dir
 
@@ -214,7 +216,7 @@ def test_make_build_check_catches_emit_basic_string_drift(tmp_path, monkeypatch)
     )
 
     mutated_path = tmp_path / "install-marker-mutated.py"
-    mutated_path.write_text(mutated_text, encoding="utf-8")
+    mutated_path.write_text(mutated_text, encoding="utf-8", newline="\n")
 
     monkeypatch.setattr(
         self_host_mod,
@@ -281,7 +283,7 @@ def test_make_build_check_fails_on_source_hooks_block(tmp_path):
     plugin_json_path = pack_dir / ".claude-plugin" / "plugin.json"
     manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
     manifest["hooks"] = {}
-    plugin_json_path.write_text(json.dumps(manifest), encoding="utf-8")
+    plugin_json_path.write_text(json.dumps(manifest), encoding="utf-8", newline="\n")
 
     output_dir = tmp_path / "workspace"
     output_dir.mkdir()

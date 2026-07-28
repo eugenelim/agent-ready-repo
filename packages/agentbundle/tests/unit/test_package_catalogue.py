@@ -63,40 +63,40 @@ def _make_fixture_catalogue(
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
     (pack_dir / "pack.toml").write_text(
-        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
-    (pack_dir / "SKILL.md").write_text("# skill\n", encoding="utf-8")
+    (pack_dir / "SKILL.md").write_text("# skill\n", encoding="utf-8", newline="\n")
 
     if with_profiles:
         profiles_dir = root / "profiles"
         profiles_dir.mkdir()
-        (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8")  # noqa: E501
+        (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8", newline="\n")  # noqa: E501
 
     if with_contracts:
         contracts_dir = root / "contracts"
         contracts_dir.mkdir(parents=True)
-        (contracts_dir / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8")  # noqa: E501
+        (contracts_dir / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8", newline="\n")  # noqa: E501
 
-    (root / "AGENTS.md").write_text("# Test Catalogue Agent Context\n", encoding="utf-8")
+    (root / "AGENTS.md").write_text("# Test Catalogue Agent Context\n", encoding="utf-8", newline="\n")
 
     if with_readme:
-        (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8")
+        (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8", newline="\n")
 
     if with_license:
-        (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8")
-        (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8")
+        (root / "LICENSE-APACHE").write_text("Apache-2.0\n", encoding="utf-8", newline="\n")
+        (root / "LICENSE-MIT").write_text("MIT\n", encoding="utf-8", newline="\n")
 
     if with_marketplace:
         claude_plugin_dir = root / ".claude-plugin"
         claude_plugin_dir.mkdir()
         (claude_plugin_dir / "marketplace.json").write_text(
-            '{"packs": ["core"]}\n', encoding="utf-8"
+            '{"packs": ["core"]}\n', encoding="utf-8", newline="\n"
         )
 
     for extra in extra_dirs or []:
         extra_dir = root / extra
         extra_dir.mkdir(parents=True, exist_ok=True)
-        (extra_dir / "file.txt").write_text("excluded\n", encoding="utf-8")
+        (extra_dir / "file.txt").write_text("excluded\n", encoding="utf-8", newline="\n")
 
     return root
 
@@ -162,7 +162,7 @@ def test_scan_content_excludes_symlinks(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(tmp_path)
     # Create a symlink inside packs/core/
     target = root / "packs" / "core" / "real.md"
-    target.write_text("real\n", encoding="utf-8")
+    target.write_text("real\n", encoding="utf-8", newline="\n")
     symlink = root / "packs" / "core" / "link.md"
     symlink.symlink_to(target)
 
@@ -207,7 +207,7 @@ def test_validate_content_valid_catalogue_returns_none(tmp_path: Path) -> None:
 def test_validate_content_missing_packs_dir_rejected(tmp_path: Path) -> None:
     root = tmp_path / "no_packs"
     root.mkdir()
-    (root / "README.md").write_text("hi\n", encoding="utf-8")
+    (root / "README.md").write_text("hi\n", encoding="utf-8", newline="\n")
     err = _validate_content(root, [])
     assert err is not None
     assert "packs" in err
@@ -216,7 +216,7 @@ def test_validate_content_missing_packs_dir_rejected(tmp_path: Path) -> None:
 def test_validate_content_symlink_file_rejected(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(tmp_path)
     target = root / "packs" / "core" / "real.md"
-    target.write_text("real\n", encoding="utf-8")
+    target.write_text("real\n", encoding="utf-8", newline="\n")
     symlink = root / "packs" / "core" / "link.md"
     symlink.symlink_to(target)
     # _scan_content skips symlinks, but _validate_content must still catch them
@@ -230,7 +230,7 @@ def test_validate_content_symlink_dir_rejected(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(tmp_path)
     real_dir = tmp_path / "real_subdir"
     real_dir.mkdir()
-    (real_dir / "file.md").write_text("content\n", encoding="utf-8")
+    (real_dir / "file.md").write_text("content\n", encoding="utf-8", newline="\n")
     symlink_dir = root / "packs" / "core" / "subdir"
     symlink_dir.symlink_to(real_dir)
     paths = _scan_content(root)
@@ -244,7 +244,7 @@ def test_validate_content_top_level_dir_symlink_rejected(tmp_path: Path) -> None
     real_packs.mkdir()
     pack_dir = real_packs / "core"
     pack_dir.mkdir()
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")  # noqa: E501
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n")  # noqa: E501
 
     root = tmp_path / "cat"
     root.mkdir()
@@ -261,14 +261,14 @@ def test_validate_content_intermediate_dir_symlink_rejected(tmp_path: Path) -> N
     real_docs = tmp_path / "real_docs"
     contracts = real_docs / "contracts"
     contracts.mkdir(parents=True)
-    (contracts / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8")
+    (contracts / "adapter.toml").write_text('[contract]\nversion = "1"\n', encoding="utf-8", newline="\n")
 
     root = tmp_path / "cat"
     root.mkdir()
     # packs/ must exist for packs-dir check not to fire first
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")  # noqa: E501
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n")  # noqa: E501
 
     symlink_docs = root / "docs"
     symlink_docs.symlink_to(real_docs)
@@ -282,7 +282,7 @@ def test_validate_content_root_file_symlink_rejected(tmp_path: Path) -> None:
     """README.md that is a symlink at root is rejected."""
     root = _make_fixture_catalogue(tmp_path, with_readme=False)
     real_readme = tmp_path / "real_readme.md"
-    real_readme.write_text("# real\n", encoding="utf-8")
+    real_readme.write_text("# real\n", encoding="utf-8", newline="\n")
     (root / "README.md").symlink_to(real_readme)
     paths = _scan_content(root)
     err = _validate_content(root, paths)
@@ -309,10 +309,10 @@ def test_validate_content_traversal_rejected(tmp_path: Path) -> None:
     (root / "packs").mkdir()
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir()
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8")  # noqa: E501
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n")  # noqa: E501
 
     outside = tmp_path / "outside.txt"
-    outside.write_text("evil\n", encoding="utf-8")
+    outside.write_text("evil\n", encoding="utf-8", newline="\n")
 
     # Patch .resolve() on a path to return a location outside root
     fake_path = mock.MagicMock(spec=Path)
@@ -329,7 +329,7 @@ def test_validate_content_invalid_pack_toml_rejected(tmp_path: Path) -> None:
     root.mkdir()
     bad_pack = root / "packs" / "bad"
     bad_pack.mkdir(parents=True)
-    (bad_pack / "pack.toml").write_text("not valid toml ][", encoding="utf-8")
+    (bad_pack / "pack.toml").write_text("not valid toml ][", encoding="utf-8", newline="\n")
     err = _validate_content(root, [])
     assert err is not None
     assert "bad" in err or "pack.toml" in err
@@ -340,7 +340,7 @@ def test_validate_content_pack_toml_missing_version_rejected(tmp_path: Path) -> 
     root.mkdir()
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
-    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\n', encoding="utf-8")
+    (pack_dir / "pack.toml").write_text('[pack]\nname = "core"\n', encoding="utf-8", newline="\n")
     err = _validate_content(root, [])
     assert err is not None
     assert "version" in err
@@ -350,7 +350,7 @@ def test_validate_content_invalid_profile_toml_rejected(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(tmp_path, with_profiles=False)
     profiles_dir = root / "profiles"
     profiles_dir.mkdir()
-    (profiles_dir / "bad.toml").write_text("not valid toml ][", encoding="utf-8")
+    (profiles_dir / "bad.toml").write_text("not valid toml ][", encoding="utf-8", newline="\n")
     paths = _scan_content(root)
     err = _validate_content(root, paths)
     assert err is not None

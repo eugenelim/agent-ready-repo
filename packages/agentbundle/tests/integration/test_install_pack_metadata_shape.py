@@ -58,6 +58,7 @@ def _write_pack(
         f"name = {_emit_basic_string(manifest_name)}\n"
         f"version = {_emit_basic_string(manifest_version)}\n",
         encoding="utf-8",
+        newline="\n",
     )
 
 

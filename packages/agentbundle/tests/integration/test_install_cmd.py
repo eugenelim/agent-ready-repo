@@ -157,7 +157,7 @@ def test_state_file_merge_preserves_existing_pack(tmp_path):
         files={"some/file.md": {"sha": "abc", "from-pack-version": "1.0.0"}},
     )
     state_path = tmp_path / ".agentbundle-state.toml"
-    state_path.write_text(dump_state(state), encoding="utf-8")
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0

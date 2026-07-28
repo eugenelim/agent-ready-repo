@@ -56,9 +56,9 @@ def _seed_tree(
 ) -> None:
     contracts = root / "contracts"
     contracts.mkdir(parents=True)
-    (contracts / "adapter.toml").write_text(contract_body, encoding="utf-8")
+    (contracts / "adapter.toml").write_text(contract_body, encoding="utf-8", newline="\n")
 
-    (root / "AGENTS.md").write_text(agents_md_body, encoding="utf-8")
+    (root / "AGENTS.md").write_text(agents_md_body, encoding="utf-8", newline="\n")
     (root / "CLAUDE.md").symlink_to("AGENTS.md")
 
 

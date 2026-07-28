@@ -70,7 +70,7 @@ def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
         adapter="claude-code",
     )
     (tmp_path / ".agentbundle-state.toml").write_text(
-        dump_state(state), encoding="utf-8"
+        dump_state(state), encoding="utf-8", newline="\n"
     )
 
 
@@ -133,10 +133,10 @@ def test_adapt_pending_md_lists_companions(tmp_path):
 
     # Place two .upstream companions.
     (tmp_path / "AGENTS.upstream.md").write_text(
-        "# AGENTS UPSTREAM\nExtra line.\n", encoding="utf-8"
+        "# AGENTS UPSTREAM\nExtra line.\n", encoding="utf-8", newline="\n"
     )
     (tmp_path / "docs" / "CHARTER.upstream.md").write_text(
-        "# CHARTER UPSTREAM\n", encoding="utf-8"
+        "# CHARTER UPSTREAM\n", encoding="utf-8", newline="\n"
     )
 
     rc = _run(root=str(tmp_path))
@@ -153,7 +153,7 @@ def test_adapt_pending_md_includes_diff_summary(tmp_path):
     upstream_content = "line1\nline2\nline3\n"
 
     _setup_projected(tmp_path, {"AGENTS.md": original_content})
-    (tmp_path / "AGENTS.upstream.md").write_text(upstream_content, encoding="utf-8")
+    (tmp_path / "AGENTS.upstream.md").write_text(upstream_content, encoding="utf-8", newline="\n")
 
     rc = _run(root=str(tmp_path))
     assert rc == 0
@@ -229,7 +229,7 @@ def test_adapt_discovery_accepted_entries_applied(tmp_path):
 
 def test_ci_with_companions_exits_nonzero(tmp_path, capsys):
     """``adapt --ci`` exits 1 when any .upstream.* companion is on disk."""
-    (tmp_path / "AGENTS.upstream.md").write_text("upstream", encoding="utf-8")
+    (tmp_path / "AGENTS.upstream.md").write_text("upstream", encoding="utf-8", newline="\n")
 
     rc = _run(root=str(tmp_path), ci=True)
     assert rc == 1, "--ci should exit 1 when companions present"
@@ -240,10 +240,10 @@ def test_ci_with_companions_exits_nonzero(tmp_path, capsys):
 
 def test_ci_with_companions_lists_all_on_stderr(tmp_path, capsys):
     """``adapt --ci`` lists every pending companion on stderr."""
-    (tmp_path / "AGENTS.upstream.md").write_text("upstream1", encoding="utf-8")
+    (tmp_path / "AGENTS.upstream.md").write_text("upstream1", encoding="utf-8", newline="\n")
     docs = tmp_path / "docs"
     docs.mkdir()
-    (docs / "CHARTER.upstream.md").write_text("upstream2", encoding="utf-8")
+    (docs / "CHARTER.upstream.md").write_text("upstream2", encoding="utf-8", newline="\n")
 
     rc = _run(root=str(tmp_path), ci=True)
     assert rc == 1
@@ -260,7 +260,7 @@ def test_ci_with_companions_lists_all_on_stderr(tmp_path, capsys):
 def test_ci_clean_exits_zero(tmp_path):
     """``adapt --ci`` exits 0 when no .upstream.* companions exist."""
     # No companions; only a normal file.
-    (tmp_path / "AGENTS.md").write_text("# normal file", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text("# normal file", encoding="utf-8", newline="\n")
 
     rc = _run(root=str(tmp_path), ci=True)
     assert rc == 0, "--ci should exit 0 with no companions"
@@ -269,7 +269,7 @@ def test_ci_clean_exits_zero(tmp_path):
 def test_ci_clean_after_companions_removed_exits_zero(tmp_path):
     """``adapt --ci`` exits 0 when a previously present companion has been removed."""
     companion = tmp_path / "AGENTS.upstream.md"
-    companion.write_text("upstream", encoding="utf-8")
+    companion.write_text("upstream", encoding="utf-8", newline="\n")
     companion.unlink()  # simulate human having resolved it
 
     rc = _run(root=str(tmp_path), ci=True)
@@ -295,7 +295,7 @@ def test_binary_file_skipped_without_error(tmp_path):
         files={"data.bin": {"sha": sha256_bytes(binary_content), "from-pack-version": "0.1.0"}},
         adapter="claude-code",
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
     (tmp_path / "data.bin").write_bytes(binary_content)
 
     values_path = ADAPT_FIXTURES / "values.toml"

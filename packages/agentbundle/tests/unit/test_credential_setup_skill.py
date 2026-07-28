@@ -56,10 +56,10 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
     # relative import (`from .credentials_shim ...`) resolves.
     skill_dir = tmp_path / "credential-setup"
     skill_dir.mkdir()
-    (skill_dir / "__init__.py").write_text("")
+    (skill_dir / "__init__.py").write_text("", encoding="utf-8", newline="\n")
     scripts_dir = skill_dir / "scripts"
     scripts_dir.mkdir()
-    (scripts_dir / "__init__.py").write_text("")
+    (scripts_dir / "__init__.py").write_text("", encoding="utf-8", newline="\n")
     shutil.copy(SETUP_PY, scripts_dir / "setup.py")
     for shim_file in SHIM_SOURCE.iterdir():
         if shim_file.is_file() and shim_file.suffix == ".py":
@@ -79,7 +79,7 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
         # We need a Python package layout — use underscored name.
         skill_dir2 = tmp_path / "credential_setup"
         skill_dir2.mkdir()
-        (skill_dir2 / "__init__.py").write_text("")
+        (skill_dir2 / "__init__.py").write_text("", encoding="utf-8", newline="\n")
         shutil.copy(SETUP_PY, skill_dir2 / "setup.py")
         for shim_file in SHIM_SOURCE.iterdir():
             if shim_file.is_file() and shim_file.suffix == ".py":
@@ -102,7 +102,7 @@ def test_ac18_argv_ban_refused(tmp_path):
         pytest.skip("credbroker not installed")
     skill_dir = tmp_path / "credential_setup"
     skill_dir.mkdir()
-    (skill_dir / "__init__.py").write_text("")
+    (skill_dir / "__init__.py").write_text("", encoding="utf-8", newline="\n")
     shutil.copy(SETUP_PY, skill_dir / "setup.py")
     for shim_file in SHIM_SOURCE.iterdir():
         if shim_file.is_file() and shim_file.suffix == ".py":
@@ -126,7 +126,7 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
         pytest.skip("credbroker not installed")
     skill_dir = tmp_path / "credential_setup"
     skill_dir.mkdir()
-    (skill_dir / "__init__.py").write_text("")
+    (skill_dir / "__init__.py").write_text("", encoding="utf-8", newline="\n")
     shutil.copy(SETUP_PY, skill_dir / "setup.py")
     for shim_file in SHIM_SOURCE.iterdir():
         if shim_file.is_file() and shim_file.suffix == ".py":
@@ -138,6 +138,7 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
         '[namespace]\nname = "ns_test"\n\n'
         '[[namespace.keys]]\nname = "API_TOKEN"\nlabel = "API token"\nsecret = true\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     # Force HOME to a tmp dir so any Tier-2 backend write is sandboxed.

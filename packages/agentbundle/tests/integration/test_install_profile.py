@@ -68,10 +68,11 @@ def _stage_pack(cat, name, *, version="0.1.0", scope="repo", deps=None,
             f'pack = "{dep_name}"',
             f'version = "{dep_range}"',
         ]
-    (pdir / "pack.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (pdir / "pack.toml").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     (skill / "SKILL.md").write_text(
         f"---\ndescription: fixture skill for {name}.\n---\n\n# {name}\n",
         encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -81,7 +82,7 @@ def _stage_profile(cat, name, scope, packs):
     body = [f'scope = "{scope}"', 'description = "fixture profile"']
     for p in packs:
         body += ["[[packs]]", f'pack = "{p}"']
-    (pdir / f"{name}.toml").write_text("\n".join(body) + "\n", encoding="utf-8")
+    (pdir / f"{name}.toml").write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
 
 
 def _three_pack_repo_catalogue(cat):
@@ -177,7 +178,7 @@ def test_profile_skips_already_installed(tmp_path):
     state.packs[("pf-core", "claude-code")] = PackState(
         installed_version="0.4.9", scope="repo", adapter="claude-code"
     )
-    (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
     assert rc == 0, f"profile install failed: {err}"
@@ -307,7 +308,7 @@ def test_profile_refuses_when_dep_preinstalled_at_unsatisfying_version(tmp_path)
     state.packs[("pf-core", "claude-code")] = PackState(
         installed_version="0.0.1", scope="repo", adapter="claude-code"
     )
-    (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
     assert rc != 0
@@ -364,12 +365,13 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
         '[pack.adapter-contract]\nversion = "0.6"\n'
         '[pack.install]\ndefault-scope = "user"\nallowed-scopes = ["user", "repo"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     (cat / "packs" / "pf-tool" / ".apm" / "skills" / "pf-tool-skill").mkdir(
         parents=True, exist_ok=True
     )
     (cat / "packs" / "pf-tool" / ".apm" / "skills" / "pf-tool-skill" / "SKILL.md").write_text(
-        "---\ndescription: fixture.\n---\n\n# pf-tool\n", encoding="utf-8"
+        "---\ndescription: fixture.\n---\n\n# pf-tool\n", encoding="utf-8", newline="\n"
     )
     _stage_profile(cat, "userset", "user", ["pf-tool"])
 
@@ -378,7 +380,7 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
     repo_state.packs[("pf-tool", "claude-code")] = PackState(
         installed_version="0.1.0", scope="repo", adapter="claude-code"
     )
-    (target / ".agentbundle-state.toml").write_text(dump_state(repo_state), encoding="utf-8")
+    (target / ".agentbundle-state.toml").write_text(dump_state(repo_state), encoding="utf-8", newline="\n")
 
     rc, out, err = _run_install(["--profile", "userset", str(cat), "--output", str(target)])
     assert rc == 1

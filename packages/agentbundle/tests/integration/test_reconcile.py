@@ -115,7 +115,7 @@ class OrphanInFileTests(_ReconcileBase):
             {"id": "ghost-pack:session", "command": "echo hi"}
         )
         settings.write_text(
-            json.dumps(data, indent=2) + "\n", encoding="utf-8"
+            json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
 
         rc, stdout, _err = _run_reconcile()
@@ -142,7 +142,7 @@ class OrphanInStateTests(_ReconcileBase):
         data = json.loads(settings.read_text(encoding="utf-8"))
         data["hooks"]["UserPromptSubmit"] = []
         settings.write_text(
-            json.dumps(data, indent=2) + "\n", encoding="utf-8"
+            json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
 
         rc, stdout, _err = _run_reconcile()
@@ -173,7 +173,7 @@ class GroupedByAdapterTests(_ReconcileBase):
         data["hooks"].setdefault("Other", []).append(
             {"id": "ghost-cc:x", "command": "x"}
         )
-        settings.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        settings.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
 
         agent_json = self.home / ".kiro" / "agents" / "reviewer.json"
         agent = json.loads(agent_json.read_text(encoding="utf-8"))
@@ -181,7 +181,7 @@ class GroupedByAdapterTests(_ReconcileBase):
             {"id": "ghost-kiro:y", "command": "y"}
         )
         agent_json.write_text(
-            json.dumps(agent, indent=2) + "\n", encoding="utf-8"
+            json.dumps(agent, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
 
         rc, stdout, _err = _run_reconcile()

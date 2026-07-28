@@ -198,6 +198,7 @@ def test_check_drift(tmp_path, monkeypatch):
     (tmp_path / "install-defaults.toml").write_text(
         "# stale content\n[organization]\npreferred_adapter = \"old-adapter\"\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = check_defaults(tmp_path)
     assert result.ok is False
@@ -211,7 +212,7 @@ def test_check_ok(tmp_path, monkeypatch):
         _defaults_module, "load_catalogue_config", lambda root: config
     )
     expected = compile_defaults(config)
-    (tmp_path / "install-defaults.toml").write_text(expected, encoding="utf-8")
+    (tmp_path / "install-defaults.toml").write_text(expected, encoding="utf-8", newline="\n")
     result = check_defaults(tmp_path)
     assert result.ok is True
     assert result.diagnostics == []

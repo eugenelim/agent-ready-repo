@@ -34,7 +34,7 @@ _MISSING_SUBSTR = "is missing Diátaxis subdirectories"
 
 
 def _seed_common(root: Path) -> None:
-    (root / "AGENTS.md").write_text("# AGENTS.md\n", encoding="utf-8")
+    (root / "AGENTS.md").write_text("# AGENTS.md\n", encoding="utf-8", newline="\n")
     (root / "CLAUDE.md").symlink_to("AGENTS.md")
     (root / "guides").mkdir(parents=True, exist_ok=True)
 
@@ -43,7 +43,7 @@ def _make_quadrants(base: Path) -> None:
     for q in QUADRANTS:
         d = base / q
         d.mkdir(parents=True, exist_ok=True)
-        (d / "README.md").write_text("# quadrant\n", encoding="utf-8")
+        (d / "README.md").write_text("# quadrant\n", encoding="utf-8", newline="\n")
 
 
 def _run_linter(cwd: Path) -> subprocess.CompletedProcess[str]:

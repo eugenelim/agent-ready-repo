@@ -81,6 +81,7 @@ class OrphanRefusalTests(unittest.TestCase):
                 """
             ),
             encoding="utf-8",
+            newline="\n",
         )
         # Minimal skill so the projection lands something.
         skill_dir = pack_dir / ".apm" / "skills" / "demo-skill"
@@ -88,6 +89,7 @@ class OrphanRefusalTests(unittest.TestCase):
         (skill_dir / "SKILL.md").write_text(
             "---\nname: demo-skill\ndescription: demo\n---\nBody.",
             encoding="utf-8",
+            newline="\n",
         )
         return pack_dir
 
@@ -114,7 +116,7 @@ class OrphanRefusalTests(unittest.TestCase):
             # projected relpath, so the issue-#190 filter keeps it an orphan.
             orphan = adopter / ".claude" / "skills" / "demo-skill" / "STALE.md"
             orphan.parent.mkdir(parents=True)
-            orphan.write_text("stale", encoding="utf-8")
+            orphan.write_text("stale", encoding="utf-8", newline="\n")
             # No state row recorded.
 
             parser = _build_parser()
@@ -157,7 +159,7 @@ class OrphanRefusalTests(unittest.TestCase):
             # Genuine non-projection orphan (see the without-force test).
             orphan = adopter / ".claude" / "skills" / "demo-skill" / "STALE.md"
             orphan.parent.mkdir(parents=True)
-            orphan.write_text("stale", encoding="utf-8")
+            orphan.write_text("stale", encoding="utf-8", newline="\n")
 
             parser = _build_parser()
             args = parser.parse_args(
@@ -196,7 +198,7 @@ class OrphanRefusalTests(unittest.TestCase):
         adopter.mkdir()
         orphan = adopter / ".claude" / "skills" / "demo-skill" / "STALE.md"
         orphan.parent.mkdir(parents=True)
-        orphan.write_text("stale", encoding="utf-8")
+        orphan.write_text("stale", encoding="utf-8", newline="\n")
         return packs_dir, adopter, orphan
 
     def _argv(self, adopter: Path, packs_dir: Path, *, yes: bool = False) -> list[str]:

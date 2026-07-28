@@ -26,6 +26,7 @@ def _seed_pack(root: Path) -> Path:
     (pack / ".apm" / "agents" / "foo.md").write_text(
         "---\nname: foo\ntools: Read\n---\nbody\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 

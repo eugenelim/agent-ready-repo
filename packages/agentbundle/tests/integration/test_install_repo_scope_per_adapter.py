@@ -304,6 +304,7 @@ def _plant_state_row(
             {adapter_line}"""
         ),
         encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -374,6 +375,7 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             (claude_dir / "SKILL.md").write_text(
                 "---\nname: marker\ndescription: claude-state\n---\nBody.",
                 encoding="utf-8",
+                newline="\n",
             )
 
             # Step 3: upgrade.
@@ -643,11 +645,11 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
             # now irrelevant because the v0.3 state file itself refuses.
             (adopter / "claude-plugins" / "core").mkdir(parents=True)
             (adopter / "claude-plugins" / "core" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
             (adopter / "apm" / "core").mkdir(parents=True)
             (adopter / "apm" / "core" / "pack.toml").write_text(
-                "", encoding="utf-8"
+                "", encoding="utf-8", newline="\n"
             )
 
             rc, stdout, stderr = _run_install(

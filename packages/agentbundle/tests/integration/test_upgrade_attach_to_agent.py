@@ -94,6 +94,7 @@ class AttachToAgentRenameTests(unittest.TestCase):
             'attach-to-agent = "code-reviewer"\n\n'
             '[[hooks.agentSpawn]]\ncommand = "$HOOK_BODY_PATH"\nmatcher = ""\n',
             encoding="utf-8",
+            newline="\n",
         )
 
         rc, err = _run_upgrade(argparse.Namespace(

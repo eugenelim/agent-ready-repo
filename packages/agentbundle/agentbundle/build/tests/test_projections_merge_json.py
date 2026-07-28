@@ -43,7 +43,7 @@ class TestProjectMergeJson(unittest.TestCase):
 
     def test_empty_managed_key_writes_nothing(self) -> None:
         """TOML file present but managed-key payload is empty → no output."""
-        (self.source / "one.toml").write_text("[hooks]\n", encoding="utf-8")
+        (self.source / "one.toml").write_text("[hooks]\n", encoding="utf-8", newline="\n")
         project_merge_json(self.source, self.output, self._rule())
         self.assertFalse((self.output / ".target" / "hooks.json").exists())
 
@@ -53,6 +53,7 @@ class TestProjectMergeJson(unittest.TestCase):
             '[hooks]\n'
             '"SessionStart" = [{ matcher = "*", hooks = [{ type = "command", command = "echo hi" }] }]\n',
             encoding="utf-8",
+            newline="\n",
         )
         project_merge_json(self.source, self.output, self._rule())
         target = self.output / ".target" / "hooks.json"
@@ -68,9 +69,10 @@ class TestProjectMergeJson(unittest.TestCase):
         target.write_text(
             json.dumps({"other-key": {"keep": "this"}, "hooks": {"X": ["old"]}}),
             encoding="utf-8",
+            newline="\n",
         )
         (self.source / "one.toml").write_text(
-            '[hooks]\n"Y" = ["new"]\n', encoding="utf-8"
+            '[hooks]\n"Y" = ["new"]\n', encoding="utf-8", newline="\n"
         )
         project_merge_json(self.source, self.output, self._rule())
         data = json.loads(target.read_text(encoding="utf-8"))
@@ -82,10 +84,10 @@ class TestProjectMergeJson(unittest.TestCase):
     def test_multiple_toml_files_merge_in_sorted_order(self) -> None:
         """Source files are iterated sorted; later overrides earlier."""
         (self.source / "a.toml").write_text(
-            '[hooks]\n"X" = ["from-a"]\n', encoding="utf-8"
+            '[hooks]\n"X" = ["from-a"]\n', encoding="utf-8", newline="\n"
         )
         (self.source / "b.toml").write_text(
-            '[hooks]\n"X" = ["from-b"]\n', encoding="utf-8"
+            '[hooks]\n"X" = ["from-b"]\n', encoding="utf-8", newline="\n"
         )
         project_merge_json(self.source, self.output, self._rule())
         target = self.output / ".target" / "hooks.json"
@@ -95,7 +97,7 @@ class TestProjectMergeJson(unittest.TestCase):
     def test_output_serialisation_shape(self) -> None:
         """Output uses indent=2, sort_keys=True, trailing newline (idempotency)."""
         (self.source / "one.toml").write_text(
-            '[hooks]\n"Y" = ["y"]\n"X" = ["x"]\n', encoding="utf-8"
+            '[hooks]\n"Y" = ["y"]\n"X" = ["x"]\n', encoding="utf-8", newline="\n"
         )
         project_merge_json(self.source, self.output, self._rule())
         target = self.output / ".target" / "hooks.json"
@@ -108,9 +110,9 @@ class TestProjectMergeJson(unittest.TestCase):
 
     def test_non_toml_files_ignored(self) -> None:
         """Files without .toml suffix are skipped."""
-        (self.source / "skip.md").write_text("ignored", encoding="utf-8")
+        (self.source / "skip.md").write_text("ignored", encoding="utf-8", newline="\n")
         (self.source / "one.toml").write_text(
-            '[hooks]\n"X" = ["x"]\n', encoding="utf-8"
+            '[hooks]\n"X" = ["x"]\n', encoding="utf-8", newline="\n"
         )
         project_merge_json(self.source, self.output, self._rule())
         target = self.output / ".target" / "hooks.json"
@@ -123,6 +125,7 @@ class TestProjectMergeJson(unittest.TestCase):
         (self.source / "one.toml").write_text(
             '[hooks]\n"SessionStart" = [{matcher="*", hooks=[{type="command", command="x"}]}]\n',
             encoding="utf-8",
+            newline="\n",
         )
         project_merge_json(
             self.source, self.output, self._rule(target_path=".codex/hooks.json")

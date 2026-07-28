@@ -74,7 +74,7 @@ def test_verify_empty_dir_passes(tmp_path):
 def test_verify_no_tools_dir_needed(tmp_path):
     """External catalogue portability (T5): no Makefile or tools/ dir required → ok=True."""
     # A minimal directory that has no build tooling at all.
-    (tmp_path / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8", newline="\n")
     result = verify_catalogue(tmp_path)
     assert result.ok, [d.message for d in result.diagnostics]
 
@@ -245,7 +245,7 @@ def test_step_agent_artifacts_skill_missing_name(tmp_path):
     skill_dir = tmp_path / ".claude" / "skills" / "my-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\ndescription: A skill\n---\nBody text.\n", encoding="utf-8"
+        "---\ndescription: A skill\n---\nBody text.\n", encoding="utf-8", newline="\n"
     )
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert any(
@@ -262,6 +262,7 @@ def test_step_agent_artifacts_agent_missing_model(tmp_path):
     (agents_dir / "my-agent.md").write_text(
         "---\nname: my-agent\ndescription: An agent\n---\nAgent body.\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-011" for d in result)
@@ -275,6 +276,7 @@ def test_step_agent_artifacts_credentialed_skill_bad_auth(tmp_path):
     (skill_dir / "SKILL.md").write_text(
         "---\nname: cred-skill\ndescription: A skill\nmetadata:\n  auth: bad-broker\n---\nBody.\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-011" for d in result)
@@ -288,6 +290,7 @@ def test_step_agent_artifacts_unknown_skill_key(tmp_path):
     (skill_dir / "SKILL.md").write_text(
         "---\nname: my-skill\ndescription: A skill\nunknown-key: value\n---\nBody.\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-011" for d in result)
@@ -301,6 +304,7 @@ def test_step_agent_artifacts_broken_link(tmp_path):
     (skill_dir / "SKILL.md").write_text(
         "---\nname: my-skill\ndescription: A skill\n---\nSee [this](missing.md).\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-011" for d in result)
@@ -359,6 +363,7 @@ def test_step_agent_artifacts_clean(tmp_path):
     (skill_dir / "SKILL.md").write_text(
         "---\nname: my-skill\ndescription: A clean skill\n---\nBody.\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = _step_agent_artifacts(tmp_path, None, None, tmp_path)
     assert result == []
@@ -381,7 +386,7 @@ def test_step_plugin_manifests_invalid_manifest(tmp_path):
     from agentbundle.catalogue_tooling.verify import _step_plugin_manifests
     plugin_dir = tmp_path / "dist" / "claude-plugins" / "my-pack.claude-plugin"
     plugin_dir.mkdir(parents=True)
-    (plugin_dir / "plugin.json").write_text(json.dumps({}), encoding="utf-8")
+    (plugin_dir / "plugin.json").write_text(json.dumps({}), encoding="utf-8", newline="\n")
     result = _step_plugin_manifests(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-013" for d in result)
 
@@ -392,7 +397,7 @@ def test_step_plugin_manifests_marketplace_with_hooks(tmp_path):
     dist_dir = tmp_path / "dist" / "claude-plugins"
     dist_dir.mkdir(parents=True)
     marketplace = {"plugins": [{"name": "my-pack", "hooks": {"PostInstall": []}}]}
-    (dist_dir / "marketplace.json").write_text(json.dumps(marketplace), encoding="utf-8")
+    (dist_dir / "marketplace.json").write_text(json.dumps(marketplace), encoding="utf-8", newline="\n")
     result = _step_plugin_manifests(tmp_path, None, None, tmp_path)
     assert any(d.code == "CAT-V-013" for d in result)
 

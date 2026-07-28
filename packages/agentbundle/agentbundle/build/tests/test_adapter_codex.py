@@ -28,25 +28,27 @@ def _seed_pack(root: Path, name: str = "pack", skill_prefix: str = "") -> Path:
     (pack / ".apm" / "skills" / f"{skill_prefix}foo" / "SKILL.md").write_text(
         f"---\ndescription: {skill_prefix}foo skill description\n---\n# foo\n",
         encoding="utf-8",
+        newline="\n",
     )
     (pack / ".apm" / "skills" / f"{skill_prefix}alpha").mkdir(parents=True)
     (pack / ".apm" / "skills" / f"{skill_prefix}alpha" / "SKILL.md").write_text(
         f"---\ndescription: {skill_prefix}alpha skill description\n---\n# alpha\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     (pack / ".apm" / "agents").mkdir(parents=True)
-    (pack / ".apm" / "agents" / "bar.md").write_text("agent body\n", encoding="utf-8")
+    (pack / ".apm" / "agents" / "bar.md").write_text("agent body\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "hooks").mkdir(parents=True)
-    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\necho hi\n", encoding="utf-8")
-    (pack / ".apm" / "hooks" / "baz.py").write_text("print('hi')\n", encoding="utf-8")
+    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\necho hi\n", encoding="utf-8", newline="\n")
+    (pack / ".apm" / "hooks" / "baz.py").write_text("print('hi')\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
-    (pack / ".apm" / "hook-wiring" / "baz.toml").write_text("[hooks]\n", encoding="utf-8")
+    (pack / ".apm" / "hook-wiring" / "baz.toml").write_text("[hooks]\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "commands").mkdir(parents=True)
-    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8")
+    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
     return pack
 
 
@@ -90,6 +92,7 @@ class CodexAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "bar.md").write_text(
                 "---\nname: bar\ndescription: a bar agent\n---\nAgent body.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -119,6 +122,7 @@ class CodexAdapterTests(unittest.TestCase):
                 "---\n"
                 "Body.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -147,6 +151,7 @@ class CodexAdapterTests(unittest.TestCase):
                 '[hooks]\n'
                 '"SessionStart" = [{matcher = "*", hooks = [{type = "command", command = "echo hi"}]}]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -165,7 +170,7 @@ class CodexAdapterTests(unittest.TestCase):
             pack = tmp_path / "pack"
             (pack / ".apm" / "commands").mkdir(parents=True)
             (pack / ".apm" / "commands" / "qux.md").write_text(
-                "# qux command\n", encoding="utf-8"
+                "# qux command\n", encoding="utf-8", newline="\n"
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -192,6 +197,7 @@ def _seed_two_skill_pack(root: Path, name: str = "two-skill") -> Path:
     (flat / "SKILL.md").write_text(
         "---\ndescription: flat skill\n---\n# flat\nbody\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     nested = pack / ".apm" / "skills" / "nested"
@@ -200,14 +206,17 @@ def _seed_two_skill_pack(root: Path, name: str = "two-skill") -> Path:
     (nested / "SKILL.md").write_text(
         "---\ndescription: nested skill\n---\n# nested\nbody\n",
         encoding="utf-8",
+        newline="\n",
     )
     (nested / "scripts" / "run.sh").write_text(
         "#!/bin/sh\necho run\n",
         encoding="utf-8",
+        newline="\n",
     )
     (nested / "references" / "notes.md").write_text(
         "# Notes\nReference content.\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -219,6 +228,7 @@ def _seed_symlinked_pack(root: Path, name: str = "symlinked") -> Path:
     (pack / ".apm" / "assets" / "shared.md").write_text(
         "# Shared\nContent.\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     linker = pack / ".apm" / "skills" / "linker"
@@ -226,6 +236,7 @@ def _seed_symlinked_pack(root: Path, name: str = "symlinked") -> Path:
     (linker / "SKILL.md").write_text(
         "---\ndescription: linker skill\n---\n# linker\n",
         encoding="utf-8",
+        newline="\n",
     )
     (linker / "references" / "shared.md").symlink_to(Path("../../../assets/shared.md"))
     return pack
@@ -235,7 +246,7 @@ def _seed_same_name_pack(root: Path, name: str, body: str) -> Path:
     pack = root / name
     skill_dir = pack / ".apm" / "skills" / "same-name"
     skill_dir.mkdir(parents=True)
-    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8", newline="\n")
     return pack
 
 
@@ -318,7 +329,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
             tmp_path = Path(tmp)
             external = tmp_path / "external-secrets"
             external.mkdir()
-            (external / "secret.txt").write_text("DO NOT LEAK\n", encoding="utf-8")
+            (external / "secret.txt").write_text("DO NOT LEAK\n", encoding="utf-8", newline="\n")
 
             pack = tmp_path / "pack"
             skills_dir = pack / ".apm" / "skills"
@@ -328,7 +339,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
             # And a legitimate skill — that one must still project.
             legit = skills_dir / "legit"
             legit.mkdir()
-            (legit / "SKILL.md").write_text("# legit\n", encoding="utf-8")
+            (legit / "SKILL.md").write_text("# legit\n", encoding="utf-8", newline="\n")
 
             out = tmp_path / "out"
 
@@ -357,7 +368,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
 
             external = tmp_path / "external"
             external.mkdir()
-            (external / "anchor").write_text("keep me\n", encoding="utf-8")
+            (external / "anchor").write_text("keep me\n", encoding="utf-8", newline="\n")
             (target / "flat").symlink_to(external, target_is_directory=True)
 
             project_packs([pack], self.contract, out)
@@ -398,6 +409,7 @@ def _seed_named_skills_pack(root: Path, pack_name: str, skill_names: list[str]) 
         (skill_dir / "SKILL.md").write_text(
             f"# {skill_name}\nfrom {pack_name}\n",
             encoding="utf-8",
+            newline="\n",
         )
     return pack
 
@@ -451,7 +463,7 @@ class TestCodexOrphanSweep(unittest.TestCase):
             pack = _seed_named_skills_pack(tmp_path, "pack", ["a"])
             external = tmp_path / "external"
             external.mkdir()
-            (external / "anchor").write_text("keep me\n", encoding="utf-8")
+            (external / "anchor").write_text("keep me\n", encoding="utf-8", newline="\n")
             out = tmp_path / "out"
             target = out / ".agents" / "skills"
             target.mkdir(parents=True)
@@ -508,7 +520,7 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             pack = _seed_two_skill_pack(tmp_path)
             out = tmp_path / "out"
             out.mkdir()
-            (out / "AGENTS.md").write_text(populated, encoding="utf-8")
+            (out / "AGENTS.md").write_text(populated, encoding="utf-8", newline="\n")
 
             project_packs([pack], self.contract, out)
 
@@ -527,7 +539,7 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             pack = _seed_two_skill_pack(tmp_path)
             out = tmp_path / "out"
             out.mkdir()
-            (out / "AGENTS.md").write_text(clean, encoding="utf-8")
+            (out / "AGENTS.md").write_text(clean, encoding="utf-8", newline="\n")
 
             project_packs([pack], self.contract, out)
 
@@ -543,7 +555,7 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             pack = _seed_two_skill_pack(tmp_path)
             out = tmp_path / "out"
             out.mkdir()
-            (out / "AGENTS.md").write_text(self._populated(), encoding="utf-8")
+            (out / "AGENTS.md").write_text(self._populated(), encoding="utf-8", newline="\n")
 
             project_packs([pack], self.contract, out)
             first = (out / "AGENTS.md").read_bytes()
@@ -566,7 +578,7 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             pack = _seed_two_skill_pack(tmp_path)
             out = tmp_path / "out"
             out.mkdir()
-            (out / "AGENTS.md").write_text(body, encoding="utf-8")
+            (out / "AGENTS.md").write_text(body, encoding="utf-8", newline="\n")
 
             project_packs([pack], self.contract, out)
 

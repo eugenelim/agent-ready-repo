@@ -82,7 +82,7 @@ def _write_pack_toml(
         default-scope = {json.dumps(allowed_scopes[0])}
         allowed-scopes = {json.dumps(allowed_scopes)}
     """).lstrip()
-    (pack_root / "pack.toml").write_text(content, encoding="utf-8")
+    (pack_root / "pack.toml").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _run_writer(
@@ -169,7 +169,7 @@ def test_install_route_flag_claude_plugins_records_claude_plugins(tmp_path):
     settings_dir = project_dir / ".claude"
     settings_dir.mkdir()
     (settings_dir / "settings.local.json").write_text(
-        json.dumps({"enabledPlugins": ["core"]}), encoding="utf-8"
+        json.dumps({"enabledPlugins": ["core"]}), encoding="utf-8", newline="\n"
     )
     plugin_data = tmp_path / "data"
     plugin_data.mkdir()
@@ -536,7 +536,7 @@ def test_route_flag_dispatches_claude_plugins_scope_detection(tmp_path):
     settings_dir = home / ".claude"
     settings_dir.mkdir()
     (settings_dir / "settings.json").write_text(
-        json.dumps({"enabledPlugins": ["core"]}), encoding="utf-8"
+        json.dumps({"enabledPlugins": ["core"]}), encoding="utf-8", newline="\n"
     )
     plugin_data = tmp_path / "data"
     plugin_data.mkdir()
@@ -576,7 +576,7 @@ def test_route_flag_dispatches_apm_scope_detection(tmp_path):
     settings_dir = home / ".claude"
     settings_dir.mkdir()
     (settings_dir / "settings.json").write_text(
-        json.dumps({"enabledPlugins": ["core"]}), encoding="utf-8"
+        json.dumps({"enabledPlugins": ["core"]}), encoding="utf-8", newline="\n"
     )
 
     env = _base_env({"PLUGIN_ROOT": pack_root, "HOME": home})
@@ -716,7 +716,7 @@ def test_lockfile_replay_replaces_entry(tmp_path):
         "installed-at = 2026-05-20T10:00:00Z\n"
         'install-route = "apm"\n'
     )
-    (cwd / ".adapt-install-marker.toml").write_text(pre_seeded, encoding="utf-8")
+    (cwd / ".adapt-install-marker.toml").write_text(pre_seeded, encoding="utf-8", newline="\n")
 
     env = _base_env({"PLUGIN_ROOT": pack_root, "HOME": home})
     result = _run_writer(projected, env=env, cwd=cwd)

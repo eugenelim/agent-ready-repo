@@ -196,7 +196,7 @@ class StateReadWithoutProvenanceFieldsTests(unittest.TestCase):
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         state_path = tmp / ".agentbundle-state.toml"
-        state_path.write_text(state_toml, encoding="utf-8")
+        state_path.write_text(state_toml, encoding="utf-8", newline="\n")
 
         state = load_state(state_path)
         ps = state.row("converters", "claude-code")

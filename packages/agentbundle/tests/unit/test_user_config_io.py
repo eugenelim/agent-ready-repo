@@ -32,7 +32,7 @@ def test_read_missing_file_returns_empty(tmp_path: Path, capsys) -> None:
 
 def test_read_valid_adapter(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\nadapter = "codex"\n')
+    cfg_path.write_text('[settings]\nadapter = "codex"\n', encoding="utf-8", newline="\n")
     assert read_user_config(cfg_path) == UserConfig(adapter="codex")
 
 
@@ -40,7 +40,7 @@ def test_read_malformed_toml_warns_and_returns_empty(
     tmp_path: Path, capsys
 ) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\nadapter = "unterminated\n')  # missing close quote
+    cfg_path.write_text('[settings]\nadapter = "unterminated\n', encoding="utf-8", newline="\n")  # missing close quote
     result = read_user_config(cfg_path)
     assert result == UserConfig(adapter=None)
     captured = capsys.readouterr()
@@ -52,7 +52,7 @@ def test_read_invalid_adapter_warns_and_nullifies(
     tmp_path: Path, capsys
 ) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\nadapter = "obsolete-name"\n')
+    cfg_path.write_text('[settings]\nadapter = "obsolete-name"\n', encoding="utf-8", newline="\n")
     result = read_user_config(cfg_path)
     assert result == UserConfig(adapter=None)
     captured = capsys.readouterr()
@@ -101,7 +101,7 @@ def test_write_refuses_unknown_key(tmp_path: Path) -> None:
 
 def test_write_refuses_non_settings_table(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[future]\nx = 1\n')
+    cfg_path.write_text('[future]\nx = 1\n', encoding="utf-8", newline="\n")
     original = cfg_path.read_bytes()
     with pytest.raises(ValueError) as excinfo:
         write_setting(cfg_path, "adapter", "codex")
@@ -111,7 +111,7 @@ def test_write_refuses_non_settings_table(tmp_path: Path) -> None:
 
 def test_write_refuses_non_string_settings_value(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\ntags = ["a", "b"]\n')
+    cfg_path.write_text('[settings]\ntags = ["a", "b"]\n', encoding="utf-8", newline="\n")
     original = cfg_path.read_bytes()
     with pytest.raises(ValueError) as excinfo:
         write_setting(cfg_path, "adapter", "codex")
@@ -121,7 +121,7 @@ def test_write_refuses_non_string_settings_value(tmp_path: Path) -> None:
 
 def test_write_refuses_nested_settings_table(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings.future]\nx = 1\n')
+    cfg_path.write_text('[settings.future]\nx = 1\n', encoding="utf-8", newline="\n")
     original = cfg_path.read_bytes()
     with pytest.raises(ValueError) as excinfo:
         write_setting(cfg_path, "adapter", "codex")
@@ -144,7 +144,7 @@ def test_unset_only_adapter_deletes_file(tmp_path: Path) -> None:
 
 def test_unset_preserves_unknown_settings_keys(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\nadapter = "codex"\nfuture_str = "x"\n')
+    cfg_path.write_text('[settings]\nadapter = "codex"\nfuture_str = "x"\n', encoding="utf-8", newline="\n")
     unset_setting(cfg_path, "adapter")
     # File still exists; future_str preserved.
     assert cfg_path.exists()
@@ -174,7 +174,7 @@ def test_unset_refuses_unknown_key(tmp_path: Path) -> None:
 
 def test_unset_refuses_non_settings_table(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[future]\nx = 1\n')
+    cfg_path.write_text('[future]\nx = 1\n', encoding="utf-8", newline="\n")
     original = cfg_path.read_bytes()
     with pytest.raises(ValueError) as excinfo:
         unset_setting(cfg_path, "adapter")
@@ -184,7 +184,7 @@ def test_unset_refuses_non_settings_table(tmp_path: Path) -> None:
 
 def test_unset_refuses_non_string_settings_value(tmp_path: Path) -> None:
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\ntags = ["a", "b"]\nadapter = "codex"\n')
+    cfg_path.write_text('[settings]\ntags = ["a", "b"]\nadapter = "codex"\n', encoding="utf-8", newline="\n")
     original = cfg_path.read_bytes()
     with pytest.raises(ValueError) as excinfo:
         unset_setting(cfg_path, "adapter")
@@ -195,6 +195,6 @@ def test_unset_refuses_non_string_settings_value(tmp_path: Path) -> None:
 def test_unset_empty_settings_after_remove_deletes_file(tmp_path: Path) -> None:
     # File starts with only [settings] adapter; unset → empty → deleted.
     cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text('[settings]\nadapter = "codex"\n')
+    cfg_path.write_text('[settings]\nadapter = "codex"\n', encoding="utf-8", newline="\n")
     unset_setting(cfg_path, "adapter")
     assert not cfg_path.exists()

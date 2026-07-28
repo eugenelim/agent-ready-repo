@@ -47,7 +47,7 @@ def test_never_overwrite_leaves_existing_section_byte_identical(tmp_path):
         '[research]\n'
         'parent = "~/my-research"  # custom\n'
     )
-    layout.write_text(original, encoding="utf-8")
+    layout.write_text(original, encoding="utf-8", newline="\n")
     _append_layout_section(
         tmp_path,
         "repo",
@@ -62,7 +62,7 @@ def test_appends_missing_section_when_file_exists(tmp_path):
     """A pre-existing file missing `[research]` gains it (the other section
     survives)."""
     layout = tmp_path / "agentbundle-layout.toml"
-    layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8")
+    layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8", newline="\n")
     _append_layout_section(
         tmp_path,
         "repo",
@@ -89,7 +89,7 @@ def test_scope_keyed_selection_repo_vs_user(tmp_path):
     }
     # Repo scope.
     repo_layout = tmp_path / "agentbundle-layout.toml"
-    repo_layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8")
+    repo_layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8", newline="\n")
     _append_layout_section(
         tmp_path, "repo", pack_name="research", pack_layout=pack_layout,
         allowed_prefixes=None,
@@ -100,7 +100,7 @@ def test_scope_keyed_selection_repo_vs_user(tmp_path):
     home = tmp_path / "home"
     (home / ".agentbundle").mkdir(parents=True)
     user_layout = home / ".agentbundle" / "agentbundle-layout.toml"
-    user_layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8")
+    user_layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8", newline="\n")
     _append_layout_section(
         home, "user", pack_name="research", pack_layout=pack_layout,
         allowed_prefixes=[".agentbundle/"],
@@ -115,7 +115,7 @@ def test_omit_user_subtable_is_user_scope_no_op(tmp_path):
     (home / ".agentbundle").mkdir(parents=True)
     user_layout = home / ".agentbundle" / "agentbundle-layout.toml"
     original = '[architect]\nparent = "docs/design"\n'
-    user_layout.write_text(original, encoding="utf-8")
+    user_layout.write_text(original, encoding="utf-8", newline="\n")
     _append_layout_section(
         home,
         "user",
@@ -131,7 +131,7 @@ def test_no_layout_table_is_no_op(tmp_path):
     every pack)."""
     layout = tmp_path / "agentbundle-layout.toml"
     original = '[architect]\nparent = "docs/design"\n'
-    layout.write_text(original, encoding="utf-8")
+    layout.write_text(original, encoding="utf-8", newline="\n")
     _append_layout_section(
         tmp_path, "repo", pack_name="core", pack_layout={}, allowed_prefixes=None,
     )
@@ -147,7 +147,7 @@ def test_injection_safe_roundtrip_of_default_parent(tmp_path):
     """A `[pack.layout]` default containing `"`, `]`, newline, and `../`
     round-trips intact and well-formed; no smuggled sibling table materialises."""
     layout = tmp_path / "agentbundle-layout.toml"
-    layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8")
+    layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8", newline="\n")
     hostile = 'a"b]c\n[evil]\nx = "../../etc"'
     _append_layout_section(
         tmp_path, "repo", pack_name="research",
@@ -167,6 +167,7 @@ def test_reemit_drops_tampered_existing_parent(tmp_path):
     layout.write_text(
         '[architect]\nparent = 42\n\n[oldpack]\nparent = ["x"]\n',
         encoding="utf-8",
+        newline="\n",
     )
     _append_layout_section(
         tmp_path, "repo", pack_name="research",
@@ -184,7 +185,7 @@ def test_malformed_file_left_untouched(tmp_path):
     never corrupted by an append."""
     layout = tmp_path / "agentbundle-layout.toml"
     original = "this is not = valid toml ] [\n"
-    layout.write_text(original, encoding="utf-8")
+    layout.write_text(original, encoding="utf-8", newline="\n")
     _append_layout_section(
         tmp_path, "repo", pack_name="research",
         pack_layout={"repo": {"parent": ".context/research"}},
@@ -204,7 +205,7 @@ def test_user_scope_write_succeeds_against_real_prefix_list(tmp_path):
     home = tmp_path / "home"
     (home / ".agentbundle").mkdir(parents=True)
     user_layout = home / ".agentbundle" / "agentbundle-layout.toml"
-    user_layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8")
+    user_layout.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8", newline="\n")
     _append_layout_section(
         home,
         "user",
@@ -223,7 +224,7 @@ def test_symlink_layout_file_fails_closed(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
     real_target = outside / "agentbundle-layout.toml"
-    real_target.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8")
+    real_target.write_text('[architect]\nparent = "docs/design"\n', encoding="utf-8", newline="\n")
 
     repo = tmp_path / "repo"
     repo.mkdir()

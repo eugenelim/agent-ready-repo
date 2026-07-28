@@ -56,7 +56,7 @@ allowed-scopes = ["repo", "user"]
 def _stage_pack(catalogue_root: Path, pack_name: str, toml_text: str) -> Path:
     pack = catalogue_root / "packs" / pack_name
     pack.mkdir(parents=True)
-    (pack / "pack.toml").write_text(toml_text, encoding="utf-8")
+    (pack / "pack.toml").write_text(toml_text, encoding="utf-8", newline="\n")
     (pack / ".apm").mkdir()  # empty apm → empty projection
     return pack
 

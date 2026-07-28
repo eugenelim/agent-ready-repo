@@ -35,7 +35,7 @@ def _seed_repo(root: Path, files: dict[str, str]) -> None:
     state.packs[("core", "claude-code")] = PackState(
         installed_version="0.1.0", files=file_entries, adapter="claude-code"
     )
-    (root / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (root / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 def _ns(root: Path, values_from: Path | None = None) -> argparse.Namespace:
@@ -52,6 +52,7 @@ def test_markers_table_substitutes(tmp_path):
     (tmp_path / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n[markers]\nowner = "octocat"\n',
         encoding="utf-8",
+        newline="\n",
     )
     rc = adapt.run(_ns(tmp_path, values_from=tmp_path / ".adapt-discovery.toml"))
     assert rc == 0
@@ -62,7 +63,7 @@ def test_legacy_accepted_refused_with_prefix(tmp_path, capsys):
     """Legacy top-level ``[accepted]`` refused with stderr ``adapt: `` prefix."""
     _seed_repo(tmp_path, {"AGENTS.md": "x\n"})
     (tmp_path / ".adapt-discovery.toml").write_text(
-        '[accepted]\nowner = "octocat"\n', encoding="utf-8"
+        '[accepted]\nowner = "octocat"\n', encoding="utf-8", newline="\n"
     )
     rc = adapt.run(_ns(tmp_path))
     assert rc == 1
@@ -81,6 +82,7 @@ def test_unknown_schema_version_refused_with_prefix(tmp_path, capsys):
     (tmp_path / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "9.9"\n[markers]\nowner = "x"\n',
         encoding="utf-8",
+        newline="\n",
     )
     rc = adapt.run(_ns(tmp_path))
     assert rc == 1
@@ -93,7 +95,7 @@ def test_lowercase_hyphen_markers_match(tmp_path):
     """``<adapt:project-name>`` substitutes (canonical form, AC14)."""
     _seed_repo(tmp_path, {"AGENTS.md": "project=<adapt:project-name>\n"})
     values = tmp_path / "values.toml"
-    values.write_text('[markers]\nproject-name = "demo"\n', encoding="utf-8")
+    values.write_text('[markers]\nproject-name = "demo"\n', encoding="utf-8", newline="\n")
     rc = adapt.run(_ns(tmp_path, values_from=values))
     assert rc == 0
     assert (tmp_path / "AGENTS.md").read_text(encoding="utf-8") == "project=demo\n"
@@ -108,6 +110,7 @@ def test_upper_snake_markers_no_longer_substituted(tmp_path, capsys):
     values.write_text(
         '[markers]\nPROJECT_NAME = "WRONG"\nproject-name = "demo"\n',
         encoding="utf-8",
+        newline="\n",
     )
     rc = adapt.run(_ns(tmp_path, values_from=values))
     assert rc == 0

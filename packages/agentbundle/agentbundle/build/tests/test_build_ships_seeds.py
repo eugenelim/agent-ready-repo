@@ -28,20 +28,23 @@ def _make_seed_pack(packs_dir: Path) -> None:
     (skill / "SKILL.md").write_text(
         "---\nname: demo\ndescription: A demo skill for the seed-ship build test.\n---\n\nBody.\n",
         encoding="utf-8",
+        newline="\n",
     )
     (pack / "pack.toml").write_text(
         '[pack]\nname = "seedpack"\nversion = "0.1.0"\ndescription = "seed-ship test pack."\n',
         encoding="utf-8",
+        newline="\n",
     )
     (pack / ".claude-plugin").mkdir()
     (pack / ".claude-plugin" / "plugin.json").write_text(
         json.dumps({"name": "seedpack", "version": "0.1.0", "description": "seed-ship test pack."}) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     docs = pack / "seeds" / "docs"
     docs.mkdir(parents=True)
-    (pack / "seeds" / "AGENTS.md").write_text("# seedpack agents\n", encoding="utf-8")
-    (docs / "CHARTER.md").write_text("# seedpack charter\n", encoding="utf-8")
+    (pack / "seeds" / "AGENTS.md").write_text("# seedpack agents\n", encoding="utf-8", newline="\n")
+    (docs / "CHARTER.md").write_text("# seedpack charter\n", encoding="utf-8", newline="\n")
 
 
 class BuildShipsSeedsTests(unittest.TestCase):

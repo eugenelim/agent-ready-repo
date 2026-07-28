@@ -33,7 +33,7 @@ def _local_catalogue(tmp_path: Path) -> Path:
     shutil.copytree(REAL_CORE, cat / "packs" / "core", symlinks=False)
     cp = cat / ".claude-plugin"
     cp.mkdir()
-    (cp / "marketplace.json").write_text("{}", encoding="utf-8")
+    (cp / "marketplace.json").write_text("{}", encoding="utf-8", newline="\n")
     return cat
 
 
@@ -172,6 +172,7 @@ def test_bare_list_profiles_resolves_default_source(tmp_path):
     (profiles_dir / "sample.toml").write_text(
         'scope = "repo"\ndescription = "a sample profile"\n\n[[packs]]\npack = "core"\n',
         encoding="utf-8",
+        newline="\n",
     )
     args = argparse.Namespace(catalogue=None, _user_config=UserConfig(source=str(cat)))
     out, err = io.StringIO(), io.StringIO()

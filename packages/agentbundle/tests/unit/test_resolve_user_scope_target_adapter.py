@@ -55,7 +55,7 @@ def _make_pack(tmp_path: Path, name: str = "demo", with_agents: bool = False) ->
     if with_agents:
         agents = pack / ".apm" / "agents"
         agents.mkdir()
-        (agents / "alpha.md").write_text("dummy", encoding="utf-8")
+        (agents / "alpha.md").write_text("dummy", encoding="utf-8", newline="\n")
     return pack
 
 

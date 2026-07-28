@@ -94,7 +94,7 @@ def test_init_state_merge_preserves_other_pack(tmp_path):
         files={"some/path.md": {"sha": "deadbeef", "from-pack-version": "1.0.0"}},
     )
     (tmp_path / ".agentbundle-state.toml").write_text(
-        config.dump_state(pre_state), encoding="utf-8"
+        config.dump_state(pre_state), encoding="utf-8", newline="\n"
     )
 
     _project_pack_into(CORE_PACK, tmp_path)
@@ -171,6 +171,7 @@ def test_init_state_refuses_pack_without_version(tmp_path):
     (pack_dir / "pack.toml").write_text(
         '[pack]\nname = "anon"\n',  # no version
         encoding="utf-8",
+        newline="\n",
     )
 
     args = _make_args(pack="anon", root=str(tmp_path))

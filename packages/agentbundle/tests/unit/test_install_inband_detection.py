@@ -67,12 +67,14 @@ def _make_pack(
             {aa_line}"""
         ),
         encoding="utf-8",
+        newline="\n",
     )
     skill_dir = pack_dir / ".apm" / "skills" / f"{name}-skill"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
         f"---\nname: {name}-skill\ndescription: {name}\n---\nBody.",
         encoding="utf-8",
+        newline="\n",
     )
     return pack_dir
 
@@ -111,6 +113,7 @@ def _plant_state(
             """
         ),
         encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -152,11 +155,11 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             # Plant dist-tree files (pre-RFC-0012 shape).
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
             (adopter / "apm" / "demo").mkdir(parents=True)
             (adopter / "apm" / "demo" / "pack.toml").write_text(
-                "", encoding="utf-8"
+                "", encoding="utf-8", newline="\n"
             )
 
             rc, stderr = _run_install(
@@ -189,7 +192,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
 
             # `--yes` so the new force-cleanup confirm (CLI-hygiene AC7) does
@@ -299,7 +302,7 @@ class CrossAdapterCoexistenceTests(unittest.TestCase):
             _plant_state(adopter, pack_name="demo", adapter="claude-code", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
 
             # Same adapter (claude-code) install → (b) fires on the legacy shape.
@@ -341,7 +344,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             _plant_state(adopter, pack_name="apack", source=str(packs_dir))
             (adopter / "claude-plugins" / "apack").mkdir(parents=True)
             (adopter / "claude-plugins" / "apack" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
             # Pack B: no state row but a GENUINE non-projection orphan under
             # its skill dir → (c) should fire when installing B. Issue #190 —
@@ -350,7 +353,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             # not a projected relpath, so it stays an orphan.
             orphan = adopter / ".claude" / "skills" / "bpack-skill" / "STALE.md"
             orphan.parent.mkdir(parents=True)
-            orphan.write_text("stale", encoding="utf-8")
+            orphan.write_text("stale", encoding="utf-8", newline="\n")
 
             # Install pack A first — (b) fires.
             rc_a, stderr_a = _run_install(
@@ -401,7 +404,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
                 adopter / ".claude" / "skills" / "apack-skill" / "SKILL.md"
             )
             a_orphan.parent.mkdir(parents=True)
-            a_orphan.write_text("stale apack content", encoding="utf-8")
+            a_orphan.write_text("stale apack content", encoding="utf-8", newline="\n")
 
             # Install pack B. (c) must NOT fire on pack A's leftovers.
             rc, stderr = _run_install(
@@ -436,7 +439,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
 
             rc1, stderr1 = _run_install(
@@ -473,7 +476,7 @@ class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
             _plant_state(adopter, pack_name="demo", source=str(packs_dir))
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
-                "{}", encoding="utf-8"
+                "{}", encoding="utf-8", newline="\n"
             )
 
             rc, stderr = _run_install(
@@ -508,7 +511,7 @@ class ForceCleanupConfirmTests(unittest.TestCase):
         _plant_state(adopter, pack_name="demo", source=str(packs_dir))
         (adopter / "claude-plugins" / "demo").mkdir(parents=True)
         (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
-            "{}", encoding="utf-8"
+            "{}", encoding="utf-8", newline="\n"
         )
         return packs_dir, adopter
 

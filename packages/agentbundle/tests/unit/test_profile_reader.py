@@ -23,7 +23,7 @@ def _write(catalogue: Path, name: str, body: str) -> Path:
     pdir = catalogue / "profiles"
     pdir.mkdir(parents=True, exist_ok=True)
     path = pdir / name
-    path.write_text(body, encoding="utf-8")
+    path.write_text(body, encoding="utf-8", newline="\n")
     return path
 
 

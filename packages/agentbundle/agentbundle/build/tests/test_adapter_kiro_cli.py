@@ -26,6 +26,7 @@ def _seed_agent_pack(root: Path, tools: str = "Read, Grep, Glob, Bash") -> Path:
     (pack / ".apm" / "agents" / "bar.md").write_text(
         f"---\nname: bar\ntools: {tools}\n---\nagent body\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -110,6 +111,7 @@ class KiroCliAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "bar.md").write_text(
                 "---\nname: bar\nresources: [file://README.md]\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)

@@ -213,6 +213,7 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
             f'default-scope = "repo"\n'
             f'allowed-scopes = ["repo"]\n',
             encoding="utf-8",
+            newline="\n",
         )
         # A minimal skill so the projection is non-empty.
         skill_dir = pack_dir / ".apm" / "skills" / "dummy"
@@ -220,6 +221,7 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
         (skill_dir / "SKILL.md").write_text(
             "---\ndescription: Scratch skill.\n---\nScratch skill body.\n",
             encoding="utf-8",
+            newline="\n",
         )
         return pack_dir
 

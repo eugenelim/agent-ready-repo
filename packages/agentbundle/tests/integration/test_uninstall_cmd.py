@@ -61,7 +61,7 @@ def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
             for relpath, sha in files.items()
         },
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ def test_multi_pack_uninstall_a_preserves_b(tmp_path):
         installed_version="1.0.0",
         files={"docs/beta_readme.md": {"sha": beta_sha, "from-pack-version": "1.0.0"}},
     )
-    state_path.write_text(dump_state(state), encoding="utf-8")
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
     # Uninstall alpha.
     rc = _run_uninstall("alpha", str(tmp_path))
@@ -215,7 +215,7 @@ def test_missing_pack_exits_nonzero(tmp_path, capsys):
     from agentbundle.config import State, dump_state
 
     state_path = tmp_path / ".agentbundle-state.toml"
-    state_path.write_text(dump_state(State()), encoding="utf-8")
+    state_path.write_text(dump_state(State()), encoding="utf-8", newline="\n")
 
     rc = _run_uninstall("nonexistent", str(tmp_path))
     assert rc != 0, "uninstall of missing pack must exit non-zero"

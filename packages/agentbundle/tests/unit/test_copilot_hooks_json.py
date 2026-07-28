@@ -37,7 +37,7 @@ class TestCopilotHooksJsonSerialiser(unittest.TestCase):
         self._tmpdir.cleanup()
 
     def _write(self, name: str, body: str) -> None:
-        (self.source / name).write_text(body, encoding="utf-8")
+        (self.source / name).write_text(body, encoding="utf-8", newline="\n")
 
     def _run(self) -> None:
         project_copilot_hooks_json(self.source, self.output, RULE)

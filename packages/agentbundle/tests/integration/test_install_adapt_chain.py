@@ -40,7 +40,7 @@ allowed-scopes = ["repo"]
 def _stage_pack(catalogue_root: Path, name: str, body: str) -> Path:
     pack = catalogue_root / "packs" / name
     pack.mkdir(parents=True)
-    (pack / "pack.toml").write_text(body, encoding="utf-8")
+    (pack / "pack.toml").write_text(body, encoding="utf-8", newline="\n")
     (pack / ".apm").mkdir()
     return pack
 
@@ -61,10 +61,11 @@ def _stage_pack_with_skill(catalogue_root: Path, name: str, body: str) -> Path:
     Tier-2 collision in install.py:_classify_for_install)."""
     pack = catalogue_root / "packs" / name
     (pack / ".apm" / "skills" / name).mkdir(parents=True)
-    (pack / "pack.toml").write_text(body, encoding="utf-8")
+    (pack / "pack.toml").write_text(body, encoding="utf-8", newline="\n")
     (pack / ".apm" / "skills" / name / "SKILL.md").write_text(
         f"---\nname: {name}\ndescription: x\n---\nbody-from-bundle\n",
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -86,7 +87,7 @@ def test_install_marker_records_new_companions(tmp_path):
     collision_relpath = "claude-plugins/demo/.claude/skills/demo/SKILL.md"
     collision_full = target / collision_relpath
     collision_full.parent.mkdir(parents=True)
-    collision_full.write_text("adopter-edited\n", encoding="utf-8")
+    collision_full.write_text("adopter-edited\n", encoding="utf-8", newline="\n")
 
     rc, _, _ = _install(
         {"pack": "demo", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
@@ -206,7 +207,7 @@ def test_install_chained_adapt_failure_returns_nonzero_preserves_marker(tmp_path
     target.mkdir()
     # Pre-seed a malformed discovery file (legacy [accepted] table).
     (target / ".adapt-discovery.toml").write_text(
-        '[accepted]\nowner = "x"\n', encoding="utf-8"
+        '[accepted]\nowner = "x"\n', encoding="utf-8", newline="\n"
     )
 
     rc, _, err = _install(
@@ -238,6 +239,7 @@ def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
     (pack / ".apm" / "skills" / "demo" / "SKILL.md").write_text(
         "---\nname: demo\ndescription: x\n---\nowner=<adapt:owner>\n",
         encoding="utf-8",
+        newline="\n",
     )
     target = tmp_path / "repo"
     target.mkdir()
@@ -245,6 +247,7 @@ def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
     (target / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n[markers]\nowner = "octocat"\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     # Trap any subprocess invocation. If the chain shells out, this raises.
@@ -367,6 +370,7 @@ def test_user_scope_only_install_chains_adapt_against_args_output(tmp_path, monk
     (target / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n[markers]\nowner = "octocat"\n',
         encoding="utf-8",
+        newline="\n",
     )
     fake_home = tmp_path / "home"
     fake_home.mkdir()

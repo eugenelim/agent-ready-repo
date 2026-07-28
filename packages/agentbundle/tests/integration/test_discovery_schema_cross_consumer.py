@@ -28,7 +28,7 @@ from agentbundle.safety import sha256_bytes
 def _seed_repo(root: Path) -> None:
     state = State()
     p = root / "AGENTS.md"
-    p.write_text("x\n", encoding="utf-8")
+    p.write_text("x\n", encoding="utf-8", newline="\n")
     state.packs[("core", "claude-code")] = PackState(
         installed_version="0.1.0",
         files={
@@ -40,7 +40,7 @@ def _seed_repo(root: Path) -> None:
         adapter="claude-code",
     )
     (root / ".agentbundle-state.toml").write_text(
-        dump_state(state), encoding="utf-8"
+        dump_state(state), encoding="utf-8", newline="\n"
     )
 
 
@@ -84,7 +84,7 @@ def test_consumer_refuses_legacy_shape(
     """Each consumer refuses its respective legacy shape with the
     spec-mandated prefixed first stderr line."""
     _seed_repo(tmp_path)
-    (tmp_path / ".adapt-discovery.toml").write_text(body, encoding="utf-8")
+    (tmp_path / ".adapt-discovery.toml").write_text(body, encoding="utf-8", newline="\n")
 
     rc = _run_cli(tmp_path) if consumer == "cli" else _run_self_host(tmp_path)
     assert rc != 0
@@ -104,6 +104,7 @@ def test_consumer_accepts_canonical_markers_shape(consumer: str, tmp_path, capsy
     (tmp_path / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n[markers]\nowner = "x"\n',
         encoding="utf-8",
+        newline="\n",
     )
     rc = _run_cli(tmp_path) if consumer == "cli" else _run_self_host(tmp_path)
     # No legacy-prefix line on stderr.

@@ -36,7 +36,7 @@ def test_noop_on_missing_target(tmp_path: Path) -> None:
 def test_ignores_root_files(tmp_path: Path) -> None:
     (tmp_path / "a").mkdir()
     readme = tmp_path / "README.md"
-    readme.write_text("hello\n", encoding="utf-8")
+    readme.write_text("hello\n", encoding="utf-8", newline="\n")
 
     sweep_orphans(tmp_path, set())
 
@@ -48,7 +48,7 @@ def test_ignores_root_files(tmp_path: Path) -> None:
 def test_symlink_safe_sweep(tmp_path: Path) -> None:
     external = tmp_path / "outside"
     external.mkdir()
-    (external / "anchor").write_text("keep me\n", encoding="utf-8")
+    (external / "anchor").write_text("keep me\n", encoding="utf-8", newline="\n")
 
     target = tmp_path / "skills"
     target.mkdir()

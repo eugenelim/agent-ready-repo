@@ -58,6 +58,7 @@ def _write_minimal_pack(pack_dir: Path, name: str = "fixture-pack") -> None:
     (pack_dir / "pack.toml").write_text(
         f'[pack]\nname = "{name}"\nversion = "0.0.1"\n',
         encoding="utf-8",
+        newline="\n",
     )
 
 # The repo-checked-in fixture lives under tests/fixtures/lint_packs/.
@@ -91,8 +92,9 @@ def _materialise_with_reserved_fixture(root: Path) -> Path:
         'default-scope = "repo"\n'
         'allowed-scopes = ["repo"]\n',
         encoding="utf-8",
+        newline="\n",
     )
-    (pack / "seeds" / "CON.md").write_text("reserved\n", encoding="utf-8")
+    (pack / "seeds" / "CON.md").write_text("reserved\n", encoding="utf-8", newline="\n")
     return pack
 
 
@@ -124,8 +126,9 @@ class LintPackTests(unittest.TestCase):
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "linky"\nversion = "0.0.1"\n',
                 encoding="utf-8",
+                newline="\n",
             )
-            (pack / "seeds" / "target.md").write_text("target\n", encoding="utf-8")
+            (pack / "seeds" / "target.md").write_text("target\n", encoding="utf-8", newline="\n")
             (pack / "seeds" / "alias.md").symlink_to("target.md")
             findings = lint_pack(pack)
             self.assertEqual(len(findings), 1, findings)
@@ -139,8 +142,9 @@ class LintPackTests(unittest.TestCase):
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "linky-apm"\nversion = "0.0.1"\n',
                 encoding="utf-8",
+                newline="\n",
             )
-            (pack / ".apm" / "skills" / "real.md").write_text("x\n", encoding="utf-8")
+            (pack / ".apm" / "skills" / "real.md").write_text("x\n", encoding="utf-8", newline="\n")
             (pack / ".apm" / "skills" / "link.md").symlink_to("real.md")
             findings = lint_pack(pack)
             self.assertTrue(any("symlink" in f for f in findings))
@@ -160,8 +164,9 @@ class LintPackTests(unittest.TestCase):
             (clean / "pack.toml").write_text(
                 '[pack]\nname = "clean"\nversion = "0.0.1"\n',
                 encoding="utf-8",
+                newline="\n",
             )
-            (clean / "seeds" / "ok.md").write_text("ok\n", encoding="utf-8")
+            (clean / "seeds" / "ok.md").write_text("ok\n", encoding="utf-8", newline="\n")
             _materialise_with_reserved_fixture(packs_dir)
             results = lint_all_packs(packs_dir)
         self.assertIn("clean", results)
@@ -176,6 +181,7 @@ class LintPackTests(unittest.TestCase):
             (packs / "real-pack" / "pack.toml").write_text(
                 '[pack]\nname = "real-pack"\nversion = "0.0.1"\n',
                 encoding="utf-8",
+                newline="\n",
             )
             (packs / "not-a-pack").mkdir()  # no pack.toml
             results = lint_all_packs(packs)
@@ -210,14 +216,15 @@ class LintPackTests(unittest.TestCase):
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "multi-violation"\nversion = "0.0.1"\n',
                 encoding="utf-8",
+                newline="\n",
             )
             # Three deliberate violations across two segments. The
             # sorted relpaths are: NUL.md, alpha/CON.md, beta/PRN.md.
-            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8")
+            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8", newline="\n")
             (pack / "seeds" / "alpha").mkdir()
-            (pack / "seeds" / "alpha" / "CON.md").write_text("x\n", encoding="utf-8")
+            (pack / "seeds" / "alpha" / "CON.md").write_text("x\n", encoding="utf-8", newline="\n")
             (pack / "seeds" / "beta").mkdir()
-            (pack / "seeds" / "beta" / "PRN.md").write_text("x\n", encoding="utf-8")
+            (pack / "seeds" / "beta" / "PRN.md").write_text("x\n", encoding="utf-8", newline="\n")
             findings = lint_pack(pack)
             self.assertEqual(len(findings), 3)
             relpaths = [f.rsplit(": ", 1)[-1] for f in findings]
@@ -253,7 +260,7 @@ class LintPackVocabTests(unittest.TestCase):
             lines.append(f"description: {description}")
         lines.append("---")
         lines.append("Body.")
-        (skill_dir / "SKILL.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (skill_dir / "SKILL.md").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         return skill_dir / "SKILL.md"
 
     def _build_agent(
@@ -274,7 +281,7 @@ class LintPackVocabTests(unittest.TestCase):
         lines.append("---")
         lines.append("Body.")
         path = agents_dir / f"{stem}.md"
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         return path
 
     # ------------------------------------------------------------------
@@ -345,6 +352,7 @@ class LintPackVocabTests(unittest.TestCase):
             (skill_dir / "SKILL.md").write_text(
                 "---\ndescription: >\n  folded\n  multi-line\nmodel: opus\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             findings = lint_pack(pack, constraints=constraints)
             ml_findings = [
@@ -397,6 +405,7 @@ class LintPackVocabTests(unittest.TestCase):
             (agents_dir / "valid-agent.md").write_text(
                 "---\ndescription: |\n  folded\nmodel: opus\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             findings = lint_pack(pack, constraints=constraints)
             ml_findings = [
@@ -434,7 +443,7 @@ class LintPackVocabTests(unittest.TestCase):
             pack = Path(tmp) / "mix-pack"
             _write_minimal_pack(pack, name="mix-pack")
             (pack / "seeds").mkdir(parents=True, exist_ok=True)
-            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8")
+            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8", newline="\n")
             self._build_skill(pack, "Bad_Name")
             findings = lint_pack(pack, constraints=constraints)
             relpaths = [f.rsplit(": ", 1)[-1] for f in findings]
@@ -457,10 +466,10 @@ class LintPackVocabTests(unittest.TestCase):
             pack = Path(tmp) / "cross-subtree"
             _write_minimal_pack(pack, name="cross-subtree")
             (pack / "seeds").mkdir(parents=True, exist_ok=True)
-            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8")
+            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8", newline="\n")
             agents_dir = pack / ".apm" / "agents"
             agents_dir.mkdir(parents=True, exist_ok=True)
-            (agents_dir / "CON.md").write_text("x\n", encoding="utf-8")
+            (agents_dir / "CON.md").write_text("x\n", encoding="utf-8", newline="\n")
             findings = lint_pack(pack, constraints=constraints)
             relpaths = [f.rsplit(": ", 1)[-1] for f in findings]
         # `.apm/agents/CON.md` sorts before `seeds/NUL.md` alphabetically.
@@ -520,6 +529,7 @@ class LintPackVocabTests(unittest.TestCase):
             (skill_dir / "SKILL.md").write_text(
                 "---\nname: >\n  Bad_Name\ndescription: short.\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             findings = lint_pack(pack, constraints=constraints)
             ml_findings = [
@@ -539,6 +549,7 @@ class LintPackVocabTests(unittest.TestCase):
             (agents_dir / "valid-agent.md").write_text(
                 "---\nname: |\n  Bad_Name\ndescription: short.\nmodel: opus\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             findings = lint_pack(pack, constraints=constraints)
             ml_findings = [
@@ -577,6 +588,7 @@ class LintPackVocabTests(unittest.TestCase):
             (skill_dir / "SKILL.md").write_text(
                 "﻿---\ndescription: " + long_desc + "\n---\nBody.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             findings = lint_pack(pack, constraints=constraints)
             desc_findings = [
@@ -598,7 +610,7 @@ class LintPackVocabTests(unittest.TestCase):
             _write_minimal_pack(packs_dir / "p", name="p")
             vocab_dir = root / "contracts"
             vocab_dir.mkdir(parents=True)
-            (vocab_dir / "target-vocab.toml").write_text(body, encoding="utf-8")
+            (vocab_dir / "target-vocab.toml").write_text(body, encoding="utf-8", newline="\n")
             args = argparse.Namespace(packs_dir=str(packs_dir))
             buf = io.StringIO()
             with redirect_stderr(buf):
@@ -665,10 +677,10 @@ class LintPackVocabTests(unittest.TestCase):
             pack = Path(tmp) / "no-constraints-mix"
             _write_minimal_pack(pack, name="no-constraints-mix")
             (pack / "seeds").mkdir(parents=True, exist_ok=True)
-            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8")
+            (pack / "seeds" / "NUL.md").write_text("x\n", encoding="utf-8", newline="\n")
             agents_dir = pack / ".apm" / "agents"
             agents_dir.mkdir(parents=True, exist_ok=True)
-            (agents_dir / "CON.md").write_text("x\n", encoding="utf-8")
+            (agents_dir / "CON.md").write_text("x\n", encoding="utf-8", newline="\n")
             findings = lint_pack(pack)
             relpaths = [f.rsplit(": ", 1)[-1] for f in findings]
         self.assertEqual(relpaths, sorted(relpaths))
@@ -690,6 +702,7 @@ class LintPackVocabTests(unittest.TestCase):
                 '[target.beta]\nname-pattern = "^[A-Z][A-Z0-9-]*$"\n'
                 'description-max-length = 1024\n',
                 encoding="utf-8",
+                newline="\n",
             )
             args = argparse.Namespace(packs_dir=str(packs_dir))
             buf = io.StringIO()

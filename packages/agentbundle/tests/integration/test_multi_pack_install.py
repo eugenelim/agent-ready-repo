@@ -285,7 +285,7 @@ def _drop_pack_from_state(adopter: Path, pack_name: str) -> None:
     keys_to_drop = [(n, a) for (n, a) in state.packs if n == pack_name]
     for key in keys_to_drop:
         del state.packs[key]
-    state_path.write_text(dump_state(state), encoding="utf-8")
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 # ---------------------------------------------------------------------------

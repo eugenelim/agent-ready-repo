@@ -93,7 +93,7 @@ allowed-scopes = ["user"]
 def _stage_pack(catalogue_root: Path, name: str, toml: str) -> Path:
     pack = catalogue_root / "packs" / name
     pack.mkdir(parents=True)
-    (pack / "pack.toml").write_text(toml, encoding="utf-8")
+    (pack / "pack.toml").write_text(toml, encoding="utf-8", newline="\n")
     (pack / ".apm").mkdir()
     return pack
 

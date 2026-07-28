@@ -119,6 +119,7 @@ def test_repo_scope_dirty_state_porcelain_detects_uncommitted_edit(tmp_path: Pat
     target.write_text(
         target.read_text(encoding="utf-8") + "\n# adopter-edited\n",
         encoding="utf-8",
+        newline="\n",
     )
     dirty = _porcelain(work)
     assert dirty != "", (
@@ -152,7 +153,7 @@ def test_repo_scope_dirty_state_porcelain_lists_untracked_seed(tmp_path: Path):
     (work / "EXPECTED_TREE.md").unlink()
     _init_git_repo(work)
 
-    (work / "NOTES.md").write_text("scratch\n", encoding="utf-8")
+    (work / "NOTES.md").write_text("scratch\n", encoding="utf-8", newline="\n")
     dirty = _porcelain(work)
     assert "NOTES.md" in dirty, (
         f"porcelain must surface untracked files by path; got: {dirty!r}"

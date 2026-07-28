@@ -50,6 +50,7 @@ def _make_pack_source(
             """
         ),
         encoding="utf-8",
+        newline="\n",
     )
     apm = pack_dir / ".apm"
     apm.mkdir()
@@ -59,12 +60,13 @@ def _make_pack_source(
         (skill_dir / "SKILL.md").write_text(
             f"---\nname: {skill_name}\ndescription: x\n---\nBody.",
             encoding="utf-8",
+            newline="\n",
         )
     for agent_name in (agents or []):
         agents_dir = apm / "agents"
         agents_dir.mkdir(exist_ok=True)
         (agents_dir / f"{agent_name}.md").write_text(
-            "agent body", encoding="utf-8"
+            "agent body", encoding="utf-8", newline="\n"
         )
     return pack_dir
 
@@ -73,7 +75,7 @@ def _plant(root: Path, relpath: str, content: str = "x") -> Path:
     """Plant a file at ``root/<relpath>``; create parent dirs as needed."""
     target = root / relpath
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
+    target.write_text(content, encoding="utf-8", newline="\n")
     return target
 
 
@@ -257,6 +259,7 @@ class PerPackScopingTests(unittest.TestCase):
             (pack_dir / "pack.toml").write_text(
                 '[pack]\nname = "bpack"\nversion = "0.1.0"\n',
                 encoding="utf-8",
+                newline="\n",
             )
             adopter = tmp / "adopter"
             adopter.mkdir()
@@ -387,7 +390,7 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             _make_pack_source(packs, name="bpack", skills=["bpack-skill"])
             # Plant noise under .apm/skills/.
             (packs / "bpack" / ".apm" / "skills" / "__pycache__").mkdir()
-            (packs / "bpack" / ".apm" / "skills" / ".DS_Store").write_text("")
+            (packs / "bpack" / ".apm" / "skills" / ".DS_Store").write_text("", encoding="utf-8", newline="\n")
 
             primitives, _ = _collect_pack_owned_names(
                 packs / "bpack", "bpack"
@@ -409,9 +412,9 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             pack_dir = tmp / "broker"
             apm = pack_dir / ".apm"
             (apm / "shared-libs").mkdir(parents=True)
-            (apm / "shared-libs" / "credentials_shim.py").write_text("x")
+            (apm / "shared-libs" / "credentials_shim.py").write_text("x", encoding="utf-8", newline="\n")
             (apm / "adapter-root-bins").mkdir(parents=True)
-            (apm / "adapter-root-bins" / "sso-broker.py").write_text("x")
+            (apm / "adapter-root-bins" / "sso-broker.py").write_text("x", encoding="utf-8", newline="\n")
 
             primitives, _ = _collect_pack_owned_names(pack_dir, "broker")
             self.assertIn(

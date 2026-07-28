@@ -36,11 +36,13 @@ def _catalogue(tmp_path):
         'scope = "user"\ndescription = "Architect toolkit"\n'
         '[[packs]]\npack = "architect"\n[[packs]]\npack = "research"\n',
         encoding="utf-8",
+        newline="\n",
     )
     (pdir / "full-ceremony.toml").write_text(
         'scope = "repo"\ndescription = "Full governance bundle"\n'
         '[[packs]]\npack = "core"\n',
         encoding="utf-8",
+        newline="\n",
     )
     return tmp_path
 

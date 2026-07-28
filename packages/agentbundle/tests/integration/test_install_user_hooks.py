@@ -223,7 +223,7 @@ class ForceMergeFlagBindingTests(unittest.TestCase):
             pack = tmp / "catalogue" / "packs" / "repo-default"
             (pack / ".apm" / "skills" / "x").mkdir(parents=True)
             (pack / ".apm" / "skills" / "x" / "SKILL.md").write_text(
-                "# x\n", encoding="utf-8"
+                "# x\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "repo-default"\nversion = "0.1.0"\n\n'
@@ -231,6 +231,7 @@ class ForceMergeFlagBindingTests(unittest.TestCase):
                 '[pack.install]\ndefault-scope = "repo"\n'
                 'allowed-scopes = ["repo"]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             (tmp / "repo").mkdir()
             args = _install_args(
@@ -260,11 +261,11 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
         # a merge target there; the refusal lives on the merge path
         # (kiro-cli), guarded by the pre-flight rail + in-merge grammar.
         (pack / ".apm" / "agents" / "evil.md").write_text(
-            "---\nname: evil\n---\nbody\n", encoding="utf-8"
+            "---\nname: evil\n---\nbody\n", encoding="utf-8", newline="\n"
         )
         (pack / ".apm" / "hooks").mkdir(parents=True)
         (pack / ".apm" / "hooks" / "on-spawn.sh").write_text(
-            "#!/bin/sh\nexit 0\n", encoding="utf-8"
+            "#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n"
         )
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
@@ -272,6 +273,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
             'attach-to-agent = "../../../tmp/escape"\n\n'
             '[[hooks.agentSpawn]]\ncommand = "x"\n',
             encoding="utf-8",
+            newline="\n",
         )
         (pack / "pack.toml").write_text(
             '[pack]\nname = "evil-pack"\nversion = "0.1.0"\n\n'
@@ -280,6 +282,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
             'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
             'allowed-adapters = ["kiro-cli"]\n',
             encoding="utf-8",
+            newline="\n",
         )
         for entry in pack.rglob("*.sh"):
             entry.chmod(0o755)
@@ -315,17 +318,18 @@ class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
         pack = self.cat / "packs" / name
         (pack / ".apm" / "agents").mkdir(parents=True)
         (pack / ".apm" / "agents" / "reviewer.md").write_text(
-            "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+            "---\nname: reviewer\n---\nbody\n", encoding="utf-8", newline="\n"
         )
         (pack / ".apm" / "hooks").mkdir(parents=True)
         (pack / ".apm" / "hooks" / "on-spawn.sh").write_text(
-            "#!/bin/sh\nexit 0\n", encoding="utf-8"
+            "#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n"
         )
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
             'attach-to-agent = "reviewer"\n\n'
             '[[hooks.agentSpawn]]\ncommand = "x"\n',
             encoding="utf-8",
+            newline="\n",
         )
         (pack / "pack.toml").write_text(
             f'[pack]\nname = "{name}"\nversion = "0.1.0"\n\n'
@@ -334,6 +338,7 @@ class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
             'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
             f'allowed-adapters = ["{adapter}"]\n',
             encoding="utf-8",
+            newline="\n",
         )
         for entry in pack.rglob("*.sh"):
             entry.chmod(0o755)
@@ -378,12 +383,13 @@ class RailBStillRefusesPacksWithoutOptInTests(_UserScopeInstallBase):
         # Synthesise a pack that ships hooks but lacks the opt-in flag.
         pack_dir = self.cat / "packs" / "no-opt-in"
         (pack_dir / ".apm" / "hooks").mkdir(parents=True)
-        (pack_dir / ".apm" / "hooks" / "x.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+        (pack_dir / ".apm" / "hooks" / "x.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
         (pack_dir / "pack.toml").write_text(
             "[pack]\nname = \"no-opt-in\"\nversion = \"0.1.0\"\n"
             "[pack.adapter-contract]\nversion = \"0.3\"\n"
             "[pack.install]\ndefault-scope = \"user\"\nallowed-scopes = [\"user\"]\n",
             encoding="utf-8",
+            newline="\n",
         )
         args = _install_args(
             pack="no-opt-in",

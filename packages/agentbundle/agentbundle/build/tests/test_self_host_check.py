@@ -47,10 +47,12 @@ def _seed_pack(root: Path, name: str = "core") -> Path:
     (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
         "---\ndescription: foo\n---\n# foo\n",
         encoding="utf-8",
+        newline="\n",
     )
     (pack / "pack.toml").write_text(
         f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -61,10 +63,12 @@ def _seed_pack_with_skill(root: Path, name: str, skill: str, description: str) -
     (pack / ".apm" / "skills" / skill / "SKILL.md").write_text(
         f"---\ndescription: {description}\n---\n# {skill}\n",
         encoding="utf-8",
+        newline="\n",
     )
     (pack / "pack.toml").write_text(
         f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
         encoding="utf-8",
+        newline="\n",
     )
     return pack
 
@@ -82,6 +86,7 @@ def _add_agent(pack: Path, name: str, body: str = "Do the work.\n") -> Path:
         "---\n"
         f"{body}",
         encoding="utf-8",
+        newline="\n",
     )
     return agent_path
 
@@ -93,7 +98,7 @@ def _seed_discovery(tree: Path) -> Path:
     table needed for the no-marker case.
     """
     path = tree / ".adapt-discovery.toml"
-    path.write_text('discovery-schema-version = "0.1"\n', encoding="utf-8")
+    path.write_text('discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n")
     return path
 
 
@@ -178,7 +183,7 @@ class DryRunCleanTreeTests(unittest.TestCase):
             _git_commit_all(working_tree, "seed")
 
             target = working_tree / ".claude" / "skills" / "foo" / "SKILL.md"
-            target.write_text("drift!\n", encoding="utf-8")
+            target.write_text("drift!\n", encoding="utf-8", newline="\n")
 
             buf = io.StringIO()
             with redirect_stderr(buf):
@@ -211,9 +216,9 @@ class DirtyTreeRefusalTests(unittest.TestCase):
             working_tree.mkdir()
             _git_init(working_tree)
             _seed_discovery(working_tree)
-            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
+            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8", newline="\n")
             _git_commit_all(working_tree, "seed")
-            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")
+            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8", newline="\n")
             self.assertTrue(is_dirty_tree(working_tree))
 
             exit_code = run_self_host(
@@ -235,9 +240,9 @@ class DirtyTreeRefusalTests(unittest.TestCase):
             working_tree.mkdir()
             _git_init(working_tree)
             _seed_discovery(working_tree)
-            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
+            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8", newline="\n")
             _git_commit_all(working_tree, "seed")
-            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")
+            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8", newline="\n")
 
             exit_code = run_self_host(
                 working_tree=working_tree,
@@ -264,6 +269,7 @@ class MarkerResolutionTests(unittest.TestCase):
             (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
                 "---\ndescription: <adapt:project-name>\n---\nHello <adapt:project-name>.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
@@ -272,6 +278,7 @@ class MarkerResolutionTests(unittest.TestCase):
             (working_tree / ".adapt-discovery.toml").write_text(
                 'discovery-schema-version = "0.1"\n[markers]\nproject-name = "demo"\n',
                 encoding="utf-8",
+                newline="\n",
             )
 
             exit_code = run_self_host(
@@ -297,6 +304,7 @@ class MarkerResolutionTests(unittest.TestCase):
             (tmp_path / "AGENTS.md").write_text(
                 "Hello <adapt:name>, also <adapt:unknown>!\n",
                 encoding="utf-8",
+                newline="\n",
             )
             count = resolve_markers(tmp_path, {"name": "World"})
             self.assertEqual(count, 1)
@@ -324,6 +332,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             (pack / ".apm" / "hook-wiring" / "baz.toml").write_text(
                 '[hooks]\nbaz = "tools/hooks/baz.sh"\n',
                 encoding="utf-8",
+                newline="\n",
             )
 
             working_tree = tmp_path / "tree"
@@ -335,6 +344,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             settings_path.write_text(
                 json.dumps({"otherKey": {"preserved": True}}),
                 encoding="utf-8",
+                newline="\n",
             )
 
             exit_code = run_self_host(
@@ -361,6 +371,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             (core / "seeds" / "AGENTS.md").write_text(
                 "# Custom AGENTS.md\n\nDo not lose me.\n",
                 encoding="utf-8",
+                newline="\n",
             )
 
             working_tree = tmp_path / "tree"
@@ -413,7 +424,7 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             working_tree.mkdir()
             _git_init(working_tree)
             _seed_discovery(working_tree)
-            (working_tree / ".keep").write_text("", encoding="utf-8")
+            (working_tree / ".keep").write_text("", encoding="utf-8", newline="\n")
             _git_commit_all(working_tree, "init")
 
             # Register a sentinel adapter into ADAPTERS, registry, and the
@@ -459,7 +470,7 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             working_tree.mkdir()
             _git_init(working_tree)
             _seed_discovery(working_tree)
-            (working_tree / ".keep").write_text("", encoding="utf-8")
+            (working_tree / ".keep").write_text("", encoding="utf-8", newline="\n")
             _git_commit_all(working_tree, "init")
 
             sentinel_module = MagicMock()
@@ -513,6 +524,7 @@ class SelfHostCodexProjectionTests(unittest.TestCase):
             (core / ".apm" / "hook-wiring" / "reviewer.toml").write_text(
                 '[hooks]\nreviewer = "tools/hooks/reviewer.sh"\n',
                 encoding="utf-8",
+                newline="\n",
             )
 
             working_tree = tmp_path / "tree"
@@ -564,10 +576,10 @@ class AgentsMdCompositionTests(unittest.TestCase):
             )
             (core / "seeds").mkdir()
             (core / "seeds" / "AGENTS.md").write_text(
-                "# Body\n\nBody source.\n", encoding="utf-8"
+                "# Body\n\nBody source.\n", encoding="utf-8", newline="\n"
             )
             (core / "seeds" / "_agents-footer.md").write_text(
-                "> Footer source.\n", encoding="utf-8"
+                "> Footer source.\n", encoding="utf-8", newline="\n"
             )
 
             working_tree = tmp_path / "tree"
@@ -619,16 +631,16 @@ class AgentsMdCompositionTests(unittest.TestCase):
             core = _seed_pack(packs_dir, "core")
             (core / "seeds").mkdir()
             (core / "seeds" / "AGENTS.md").write_text(
-                "# Seed body\n", encoding="utf-8"
+                "# Seed body\n", encoding="utf-8", newline="\n"
             )
             (core / "seeds" / "_agents-footer.md").write_text(
-                "> Seed footer.\n", encoding="utf-8"
+                "> Seed footer.\n", encoding="utf-8", newline="\n"
             )
 
             output = tmp_path / "out"
             output.mkdir()
             adopter_content = "# Adopter's filled-in AGENTS.md\n\nLive content.\n"
-            (output / "AGENTS.md").write_text(adopter_content, encoding="utf-8")
+            (output / "AGENTS.md").write_text(adopter_content, encoding="utf-8", newline="\n")
 
             result = _compose_agents_md(packs_dir, output, self.contract)
 
@@ -694,11 +706,12 @@ class SelfHostPackFilterTests(unittest.TestCase):
                 pack = packs_dir / name
                 (pack / "seeds" / "docs").mkdir(parents=True)
                 (pack / "seeds" / "docs" / f"{name}.md").write_text(
-                    f"# {name}\n", encoding="utf-8"
+                    f"# {name}\n", encoding="utf-8", newline="\n"
                 )
                 (pack / "pack.toml").write_text(
                     f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
                     encoding="utf-8",
+                    newline="\n",
                 )
             output = tmp_path / "out"
             output.mkdir()
@@ -830,10 +843,10 @@ class SeedProjectionTests(unittest.TestCase):
             pack = packs_dir / "core"
             (pack / "seeds" / "docs").mkdir(parents=True)
             (pack / "seeds" / "docs" / "CHARTER.md").write_text(
-                "# Charter\n", encoding="utf-8"
+                "# Charter\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()
@@ -870,10 +883,10 @@ class SeedProjectionTests(unittest.TestCase):
             (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
             # Placeholder seed (what ships to adopters).
             (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
-                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8"
+                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             (output / "docs" / "specs").mkdir(parents=True)
@@ -882,6 +895,7 @@ class SeedProjectionTests(unittest.TestCase):
             (output / "docs" / "specs" / "README.md").write_text(
                 "# Specs\n\n| Spec | Status |\n| --- | --- |\n| foo | Draft |\n",
                 encoding="utf-8",
+                newline="\n",
             )
 
             _project_seeds(packs_dir, output)
@@ -913,10 +927,10 @@ class SeedProjectionTests(unittest.TestCase):
             # Blank seed template (what ships to adopters on fresh install).
             (pack / "seeds").mkdir()
             (pack / "seeds" / "workspace.toml").write_text(
-                "[backlog]\nopen = []\n", encoding="utf-8"
+                "[backlog]\nopen = []\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()
@@ -925,7 +939,7 @@ class SeedProjectionTests(unittest.TestCase):
                 '[backlog]\nopen = [{slug = "my-deferred-item"}]\n\n'
                 '["ini-001"]\nname = "Platform Core"\n'
             )
-            (output / "workspace.toml").write_text(curated, encoding="utf-8")
+            (output / "workspace.toml").write_text(curated, encoding="utf-8", newline="\n")
 
             _project_seeds(packs_dir, output)
 
@@ -945,10 +959,10 @@ class SeedProjectionTests(unittest.TestCase):
             pack = packs_dir / "core"
             (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
             (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
-                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8"
+                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()  # No pre-existing docs/specs/README.md
@@ -979,11 +993,12 @@ class SeedProjectionTests(unittest.TestCase):
             pack = packs_dir / "user-guide-diataxis"
             (pack / "seeds" / "guides" / "tutorials").mkdir(parents=True)
             (pack / "seeds" / "guides" / "tutorials" / "README.md").write_text(
-                "# Tutorials\n", encoding="utf-8"
+                "# Tutorials\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "user-guide-diataxis"\nversion = "0.1.0"\n',
                 encoding="utf-8",
+                newline="\n",
             )
             output = tmp_path / "out"
             output.mkdir()  # No pre-existing guides tree
@@ -1006,11 +1021,12 @@ class SeedProjectionTests(unittest.TestCase):
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "_templates").mkdir(parents=True)
                 (pack / "seeds" / "docs" / "_templates" / fname).write_text(
-                    f"# {fname}\n", encoding="utf-8"
+                    f"# {fname}\n", encoding="utf-8", newline="\n"
                 )
                 (pack / "pack.toml").write_text(
                     f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
                     encoding="utf-8",
+                    newline="\n",
                 )
             output = tmp_path / "out"
             output.mkdir()
@@ -1030,10 +1046,11 @@ class SeedProjectionTests(unittest.TestCase):
             for name, content in [("core", "v1\n"), ("governance-extras", "v2\n")]:
                 pack = packs_dir / name
                 (pack / "seeds").mkdir(parents=True)
-                (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8")
+                (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8", newline="\n")
                 (pack / "pack.toml").write_text(
                     f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
                     encoding="utf-8",
+                    newline="\n",
                 )
             output = tmp_path / "out"
             output.mkdir()
@@ -1071,11 +1088,12 @@ class SeedProjectionTests(unittest.TestCase):
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "architecture").mkdir(parents=True)
                 (pack / "seeds" / "docs" / "architecture" / "reference.md").write_text(
-                    content, encoding="utf-8"
+                    content, encoding="utf-8", newline="\n"
                 )
                 (pack / "pack.toml").write_text(
                     f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
                     encoding="utf-8",
+                    newline="\n",
                 )
             output = tmp_path / "out"
             output.mkdir()
@@ -1127,13 +1145,13 @@ class SeedProjectionTests(unittest.TestCase):
             pack = packs_dir / "core"
             (pack / "seeds").mkdir(parents=True)
             (pack / "seeds" / "_agents-footer.md").write_text(
-                "> footer\n", encoding="utf-8"
+                "> footer\n", encoding="utf-8", newline="\n"
             )
             (pack / "seeds" / "AGENTS.md").write_text(
-                "# AGENTS\n", encoding="utf-8"
+                "# AGENTS\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()
@@ -1160,10 +1178,12 @@ class MarketplaceAggregationTests(unittest.TestCase):
                 (pack / ".claude-plugin" / "plugin.json").write_text(
                     json.dumps({"name": name, "version": "0.1.0"}),
                     encoding="utf-8",
+                    newline="\n",
                 )
                 (pack / "pack.toml").write_text(
                     f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
                     encoding="utf-8",
+                    newline="\n",
                 )
             output = tmp_path / "out"
             output.mkdir()
@@ -1190,10 +1210,12 @@ class MarketplaceAggregationTests(unittest.TestCase):
                 (pack / ".claude-plugin" / "plugin.json").write_text(
                     json.dumps({"name": name, "version": "0.1.0"}),
                     encoding="utf-8",
+                    newline="\n",
                 )
                 (pack / "pack.toml").write_text(
                     f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
                     encoding="utf-8",
+                    newline="\n",
                 )
             output_a = tmp_path / "out_a"
             output_a.mkdir()
@@ -1216,7 +1238,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             _recreate_claude_symlink(tree)
             link = tree / "CLAUDE.md"
             self.assertTrue(link.is_symlink())
@@ -1227,7 +1249,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             (tree / "CLAUDE.md").symlink_to("AGENTS.md")
             _recreate_claude_symlink(tree)  # should not raise
             self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
@@ -1237,7 +1259,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             (tree / "CLAUDE.md").symlink_to("other.md")
             _recreate_claude_symlink(tree)
             self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
@@ -1285,7 +1307,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("# agents canonical\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("# agents canonical\n", encoding="utf-8", newline="\n")
             claude = _recreate_claude_symlink(tree, force_copy=True)
             self.assertFalse(claude.is_symlink())
             self.assertTrue(claude.is_file())
@@ -1298,7 +1320,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("content\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("content\n", encoding="utf-8", newline="\n")
             (tree / "CLAUDE.md").symlink_to("AGENTS.md")
             _recreate_claude_symlink(tree, force_copy=True)
             claude = tree / "CLAUDE.md"
@@ -1318,7 +1340,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("hello\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("hello\n", encoding="utf-8", newline="\n")
             buf = io.StringIO()
             with redirect_stderr(buf):
                 _recreate_claude_symlink(tree, force_copy=True)
@@ -1339,7 +1361,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             buf = io.StringIO()
             with patch("agentbundle.build.self_host.sys.platform", "win32"):
                 with redirect_stderr(buf):
@@ -1359,7 +1381,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
-            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             _recreate_claude_symlink(tree)
             link = tree / "CLAUDE.md"
             self.assertTrue(link.is_symlink())
@@ -1434,7 +1456,7 @@ class DriftSourceNamingTests(unittest.TestCase):
 
             # Introduce drift on a projected path.
             target = working_tree / ".claude" / "skills" / "foo" / "SKILL.md"
-            target.write_text("drift!\n", encoding="utf-8")
+            target.write_text("drift!\n", encoding="utf-8", newline="\n")
 
             buf = io.StringIO()
             with redirect_stderr(buf):
@@ -1486,7 +1508,7 @@ class InfoLineUnclassifiedTests(unittest.TestCase):
 
             # Introduce an unclassified path: not under any Excluded pattern,
             # not in Projected set.
-            (working_tree / "stray-note.md").write_text("note\n", encoding="utf-8")
+            (working_tree / "stray-note.md").write_text("note\n", encoding="utf-8", newline="\n")
             _git_commit_all(working_tree, "seed + stray")
 
             buf = io.StringIO()
@@ -1520,6 +1542,7 @@ class ForwardFlowIntegrationTests(unittest.TestCase):
             (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
                 "---\ndescription: foo\n---\n# foo v1\n",
                 encoding="utf-8",
+                newline="\n",
             )
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
@@ -1543,6 +1566,7 @@ class ForwardFlowIntegrationTests(unittest.TestCase):
             (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
                 "---\ndescription: foo\n---\n# foo v2\n",
                 encoding="utf-8",
+                newline="\n",
             )
 
             # Re-projection picks up the new content.
@@ -1586,9 +1610,9 @@ class DirtyTreeStderrMessageTests(unittest.TestCase):
             working_tree.mkdir()
             _git_init(working_tree)
             _seed_discovery(working_tree)
-            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
+            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8", newline="\n")
             _git_commit_all(working_tree, "seed")
-            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")
+            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8", newline="\n")
 
             buf = io.StringIO()
             with redirect_stderr(buf):
@@ -1623,11 +1647,13 @@ class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
             (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
                 "---\ndescription: foo\n---\nHello <adapt:project-name>.\n",
                 encoding="utf-8",
+                newline="\n",
             )
             (pack / ".claude-plugin").mkdir()
             (pack / ".claude-plugin" / "plugin.json").write_text(
                 json.dumps({"name": "core", "version": "0.1.0", "description": "x"}),
                 encoding="utf-8",
+                newline="\n",
             )
             output_dir = tmp_path / "dist"
             run_recipe(
@@ -1708,8 +1734,8 @@ class FileModeBitsTests(unittest.TestCase):
             tree = Path(tmp) / "tree"
             shadow.mkdir()
             tree.mkdir()
-            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
+            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
             os.chmod(shadow / "hook.sh", 0o755)
             os.chmod(tree / "hook.sh", 0o644)
 
@@ -1724,8 +1750,8 @@ class FileModeBitsTests(unittest.TestCase):
             tree = Path(tmp) / "tree"
             shadow.mkdir()
             tree.mkdir()
-            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
+            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
             os.chmod(shadow / "hook.sh", 0o755)
             os.chmod(tree / "hook.sh", 0o755)
 
@@ -1773,8 +1799,8 @@ class SymlinkTargetTests(unittest.TestCase):
             tree = Path(tmp) / "tree"
             shadow.mkdir()
             tree.mkdir()
-            (shadow / "AGENTS.md").write_text("body", encoding="utf-8")
-            (tree / "AGENTS.md").write_text("body", encoding="utf-8")
+            (shadow / "AGENTS.md").write_text("body", encoding="utf-8", newline="\n")
+            (tree / "AGENTS.md").write_text("body", encoding="utf-8", newline="\n")
             os.symlink("AGENTS.md", shadow / "alias.md")
             os.symlink("AGENTS.md", tree / "alias.md")
 
@@ -1793,11 +1819,11 @@ class SymlinkTargetTests(unittest.TestCase):
             shadow.mkdir()
             tree.mkdir()
             # Create a target so shadow's symlink "looks" valid in isolation.
-            (shadow / "target.md").write_text("body", encoding="utf-8")
+            (shadow / "target.md").write_text("body", encoding="utf-8", newline="\n")
             os.symlink("target.md", shadow / "alias.md")
             # On-disk: a regular file with identical content.
-            (tree / "target.md").write_text("body", encoding="utf-8")
-            (tree / "alias.md").write_text("body", encoding="utf-8")
+            (tree / "target.md").write_text("body", encoding="utf-8", newline="\n")
+            (tree / "alias.md").write_text("body", encoding="utf-8", newline="\n")
 
             drifts = diff_against_working_tree(shadow, tree)
             type_mismatch = [d for d in drifts if "alias.md" in d and "expected symlink" in d]
@@ -1847,8 +1873,8 @@ class StrengthenedDiffRegressionIntegrationTests(unittest.TestCase):
 
             # Rule (b) regression: an executable hook script whose
             # +x bit gets dropped on disk.
-            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
+            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
             os.chmod(shadow / "hook.sh", 0o755)
             os.chmod(tree / "hook.sh", 0o644)
 
@@ -1857,10 +1883,10 @@ class StrengthenedDiffRegressionIntegrationTests(unittest.TestCase):
             # gate must not follow the symlinks — read_bytes would
             # accidentally compare AGENTS.md vs README.md content and
             # might have hidden the regression.
-            (shadow / "AGENTS.md").write_text("agents-body", encoding="utf-8")
-            (shadow / "README.md").write_text("readme-body", encoding="utf-8")
-            (tree / "AGENTS.md").write_text("agents-body", encoding="utf-8")
-            (tree / "README.md").write_text("readme-body", encoding="utf-8")
+            (shadow / "AGENTS.md").write_text("agents-body", encoding="utf-8", newline="\n")
+            (shadow / "README.md").write_text("readme-body", encoding="utf-8", newline="\n")
+            (tree / "AGENTS.md").write_text("agents-body", encoding="utf-8", newline="\n")
+            (tree / "README.md").write_text("readme-body", encoding="utf-8", newline="\n")
             os.symlink("AGENTS.md", shadow / "CLAUDE.md")
             os.symlink("README.md", tree / "CLAUDE.md")
 
@@ -1894,7 +1920,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
         symlink to AGENTS.md (the POSIX shadow shape)."""
         shadow = tree / "shadow"
         shadow.mkdir()
-        (shadow / "AGENTS.md").write_text("body\n", encoding="utf-8")
+        (shadow / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
         (shadow / "CLAUDE.md").symlink_to("AGENTS.md")
         return shadow
 
@@ -1903,8 +1929,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
         regular-file copy of AGENTS.md (the Windows shadow shape)."""
         shadow = tree / "shadow"
         shadow.mkdir()
-        (shadow / "AGENTS.md").write_text("body\n", encoding="utf-8")
-        (shadow / "CLAUDE.md").write_text("body\n", encoding="utf-8")
+        (shadow / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+        (shadow / "CLAUDE.md").write_text("body\n", encoding="utf-8", newline="\n")
         return shadow
 
     def test_symlink_shadow_against_symlink_disk_no_drift(self) -> None:
@@ -1913,7 +1939,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
             (disk / "CLAUDE.md").symlink_to("AGENTS.md")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
@@ -1925,8 +1951,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
-            (disk / "CLAUDE.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+            (disk / "CLAUDE.md").write_text("body\n", encoding="utf-8", newline="\n")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
     def test_symlink_shadow_against_materialised_disk_no_drift(self) -> None:
@@ -1937,8 +1963,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
-            (disk / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+            (disk / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8", newline="\n")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
     def test_copy_shadow_against_symlink_disk_no_drift(self) -> None:
@@ -1950,7 +1976,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_copy_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
             (disk / "CLAUDE.md").symlink_to("AGENTS.md")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
@@ -1964,8 +1990,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_copy_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
-            (disk / "CLAUDE.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+            (disk / "CLAUDE.md").write_text("body\n", encoding="utf-8", newline="\n")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
     def test_copy_shadow_against_materialised_disk_no_drift(self) -> None:
@@ -1978,8 +2004,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_copy_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
-            (disk / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+            (disk / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8", newline="\n")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
     def test_clause_b_routes_through_lf_normalisation(self) -> None:
@@ -1999,12 +2025,12 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             # CRLF difference on disk is non-trivial (a one-line file
             # ending in \n vs \r\n is indistinguishable after strip).
             (shadow / "AGENTS.md").write_text(
-                "line one\nline two\n", encoding="utf-8"
+                "line one\nline two\n", encoding="utf-8", newline="\n"
             )
             disk = tree / "disk"
             disk.mkdir()
             (disk / "AGENTS.md").write_text(
-                "line one\nline two\n", encoding="utf-8"
+                "line one\nline two\n", encoding="utf-8", newline="\n"
             )
             (disk / "CLAUDE.md").write_bytes(b"line one\r\nline two\r\n")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
@@ -2019,7 +2045,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
             (disk / "CLAUDE.md").write_bytes(b"AGENTS.md\r\n")
             self.assertEqual(diff_against_working_tree(shadow, disk), [])
 
@@ -2034,9 +2060,9 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
             (disk / "CLAUDE.md").write_text(
-                "AGENTS.md\nmore words\n", encoding="utf-8"
+                "AGENTS.md\nmore words\n", encoding="utf-8", newline="\n"
             )
             drifts = diff_against_working_tree(shadow, disk)
             claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
@@ -2054,8 +2080,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
-            (disk / "CLAUDE.md").write_text("tampered\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+            (disk / "CLAUDE.md").write_text("tampered\n", encoding="utf-8", newline="\n")
             drifts = diff_against_working_tree(shadow, disk)
             claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
             self.assertEqual(len(claude_drifts), 1, drifts)
@@ -2073,8 +2099,8 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
-            (disk / "CLAUDE.md").write_text("evil\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
+            (disk / "CLAUDE.md").write_text("evil\n", encoding="utf-8", newline="\n")
             drifts = diff_against_working_tree(shadow, disk)
             claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
             self.assertEqual(len(claude_drifts), 1, drifts)
@@ -2086,7 +2112,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
             shadow = self._shadow_with_symlink_claude(tree)
             disk = tree / "disk"
             disk.mkdir()
-            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
             drifts = diff_against_working_tree(shadow, disk)
             claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
             self.assertEqual(len(claude_drifts), 1, drifts)
@@ -2104,7 +2130,7 @@ class RecreateClaudeBridgeInvariantTests(unittest.TestCase):
     "The shadow side is trusted by construction ...")."""
 
     def _seed(self, tmp: Path, force_copy: bool) -> Path:
-        (tmp / "AGENTS.md").write_text("body\n", encoding="utf-8")
+        (tmp / "AGENTS.md").write_text("body\n", encoding="utf-8", newline="\n")
         _recreate_claude_symlink(tmp, force_copy=force_copy)
         return tmp
 
@@ -2158,6 +2184,7 @@ class SelfHostAdapterRoutingTests(unittest.TestCase):
                 'default-scope = "repo"\n'
                 'allowed-scopes = ["repo"]\n',
                 encoding="utf-8",
+                newline="\n",
             )
             (packs_dir / "core" / ".apm").mkdir()
             out = tmp_path / "out"

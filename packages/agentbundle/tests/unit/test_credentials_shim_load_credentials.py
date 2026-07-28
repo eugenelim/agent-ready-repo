@@ -48,7 +48,7 @@ class _ShimImportBase(unittest.TestCase):
         self.addCleanup(self._env.stop)
         pkg = self.tmp / "fixture_pkg"
         pkg.mkdir()
-        (pkg / "__init__.py").write_text("", encoding="utf-8")
+        (pkg / "__init__.py").write_text("", encoding="utf-8", newline="\n")
         for fname in (
             "credentials_shim.py",
             "_keychain_macos.py",
@@ -125,6 +125,7 @@ class ShimTier3Tests(_ShimImportBase):
         dotfile.write_text(
             "SHIMNS_API_TOKEN=tier3-value\n",
             encoding="utf-8",
+            newline="\n",
         )
         if os.name == "posix":
             dotfile.chmod(0o600)
@@ -138,6 +139,7 @@ class ShimTier3Tests(_ShimImportBase):
         dotfile.write_text(
             'SHIMNS_API_TOKEN="value with spaces"\n',
             encoding="utf-8",
+            newline="\n",
         )
         creds = self.shim.load_credentials("shimns", required_keys=["API_TOKEN"])
         self.assertEqual(creds.API_TOKEN, "value with spaces")
@@ -148,13 +150,13 @@ class ShimEnvParseSurfaceTests(_ShimImportBase):
 
     def test_basic_parse(self) -> None:
         tmp = self.tmp / "fixture.env"
-        tmp.write_text("KEY=value\n# comment\nOTHER=other\n", encoding="utf-8")
+        tmp.write_text("KEY=value\n# comment\nOTHER=other\n", encoding="utf-8", newline="\n")
         out = self.shim.parse_env_file(tmp)
         self.assertEqual(out, {"KEY": "value", "OTHER": "other"})
 
     def test_refuses_export_prefix(self) -> None:
         tmp = self.tmp / "fixture.env"
-        tmp.write_text("export KEY=value\n", encoding="utf-8")
+        tmp.write_text("export KEY=value\n", encoding="utf-8", newline="\n")
         with self.assertRaises(self.shim.EnvParseError):
             self.shim.parse_env_file(tmp)
 

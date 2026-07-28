@@ -22,26 +22,29 @@ def _seed_pack(root: Path) -> Path:
     (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
         "# foo skill\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     (pack / ".apm" / "agents").mkdir(parents=True)
     (pack / ".apm" / "agents" / "bar.md").write_text(
         "---\nname: bar\ntools: Read\n---\nagent body\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     (pack / ".apm" / "hooks").mkdir(parents=True)
-    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\necho hi\n", encoding="utf-8")
-    (pack / ".apm" / "hooks" / "baz.py").write_text("print('hi')\n", encoding="utf-8")
+    (pack / ".apm" / "hooks" / "baz.sh").write_text("#!/bin/sh\necho hi\n", encoding="utf-8", newline="\n")
+    (pack / ".apm" / "hooks" / "baz.py").write_text("print('hi')\n", encoding="utf-8", newline="\n")
 
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
     (pack / ".apm" / "hook-wiring" / "baz.toml").write_text(
         '[hooks]\nbaz = "tools/hooks/baz.sh"\n',
         encoding="utf-8",
+        newline="\n",
     )
 
     (pack / ".apm" / "commands").mkdir(parents=True)
-    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8")
+    (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
     return pack
 
 
@@ -99,14 +102,17 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "opus-agent.md").write_text(
                 "---\nname: opus-agent\nmodel: opus\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             (pack / ".apm" / "agents" / "sonnet-agent.md").write_text(
                 "---\nname: sonnet-agent\nmodel: sonnet\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             (pack / ".apm" / "agents" / "haiku-agent.md").write_text(
                 "---\nname: haiku-agent\nmodel: haiku\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -131,6 +137,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "mystery.md").write_text(
                 "---\nname: mystery\nmodel: gpt-5-turbo\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             buf = io.StringIO()
@@ -153,6 +160,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "no-model.md").write_text(
                 "---\nname: no-model\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -172,6 +180,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "list-model.md").write_text(
                 "---\nname: list-model\nmodel: [opus]\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             buf = io.StringIO()
@@ -193,6 +202,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "multi.md").write_text(
                 "---\nname: multi\ntools: Read, Grep, Glob, Bash\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -209,6 +219,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "one.md").write_text(
                 "---\nname: one\ntools: Read\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -227,6 +238,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "bracketed.md").write_text(
                 "---\nname: bracketed\ntools: [Read, Grep]\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -244,6 +256,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "web.md").write_text(
                 "---\nname: web\ntools: Read, WebFetch, WebSearch\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
@@ -261,6 +274,7 @@ class KiroAdapterTests(unittest.TestCase):
             (pack / ".apm" / "agents" / "nb.md").write_text(
                 "---\nname: nb\ntools: Read, NotebookEdit\n---\nbody\n",
                 encoding="utf-8",
+                newline="\n",
             )
             out = tmp_path / "out"
             stderr = io.StringIO()
@@ -323,7 +337,7 @@ def _seed_minimal_pack(root: Path, name: str, skill_name: str, body: str) -> Pat
     pack = root / name
     skill_dir = pack / ".apm" / "skills" / skill_name
     skill_dir.mkdir(parents=True)
-    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8", newline="\n")
     return pack
 
 
@@ -404,6 +418,7 @@ def _seed_named_skills_pack(root: Path, pack_name: str, skill_names: list[str]) 
         (skill_dir / "SKILL.md").write_text(
             f"# {skill_name}\nfrom {pack_name}\n",
             encoding="utf-8",
+            newline="\n",
         )
     return pack
 

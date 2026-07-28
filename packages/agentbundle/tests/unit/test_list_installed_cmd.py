@@ -134,7 +134,7 @@ def _make_args(**kw) -> SimpleNamespace:
 
 def _write_state(path: Path, state: State) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(dump_state(state), encoding="utf-8")
+    path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 def _write_catalogue(root: Path, versions: dict[str, str]) -> Path:
@@ -143,7 +143,7 @@ def _write_catalogue(root: Path, versions: dict[str, str]) -> Path:
         pd = root / "packs" / name
         pd.mkdir(parents=True, exist_ok=True)
         (pd / "pack.toml").write_text(
-            f'[pack]\nname = "{name}"\nversion = "{version}"\n', encoding="utf-8"
+            f'[pack]\nname = "{name}"\nversion = "{version}"\n', encoding="utf-8", newline="\n"
         )
     return root
 
@@ -229,7 +229,7 @@ def test_legacy_state_in_one_scope_is_skipped_not_fatal(tmp_path, capsys):
     # An incompatible (legacy-schema) repo state file is warned-and-skipped,
     # not a hard abort -- list-installed still exits 0.
     (tmp_path / ".agentbundle-state.toml").write_text(
-        'schema-version = "0.1"\n', encoding="utf-8"
+        'schema-version = "0.1"\n', encoding="utf-8", newline="\n"
     )
     args = _make_args(root=str(tmp_path), scope="repo", no_check=True)
     rc = li.run(args)
@@ -317,7 +317,7 @@ def test_cli_populated_table_and_check_drift_via_subprocess(tmp_path):
     # A clean install: file on disk matches the recorded SHA.
     rel = ".claude/skills/x/SKILL.md"
     (tmp_path / ".claude/skills/x").mkdir(parents=True)
-    (tmp_path / rel).write_text("orig\n", encoding="utf-8")
+    (tmp_path / rel).write_text("orig\n", encoding="utf-8", newline="\n")
     sha = sha256_bytes(b"orig\n")
     _write_state(
         tmp_path / ".agentbundle-state.toml",
@@ -330,7 +330,7 @@ def test_cli_populated_table_and_check_drift_via_subprocess(tmp_path):
         ),
     )
     # Edit the file so it drifts.
-    (tmp_path / rel).write_text("edited\n", encoding="utf-8")
+    (tmp_path / rel).write_text("edited\n", encoding="utf-8", newline="\n")
 
     proc = subprocess.run(
         [sys.executable, "-m", "agentbundle", "list-installed",

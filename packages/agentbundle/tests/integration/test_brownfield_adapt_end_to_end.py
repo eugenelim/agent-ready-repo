@@ -46,7 +46,7 @@ def _setup_brownfield(tmp_path: Path) -> Path:
         installed_version="0.1.0", files=files, adapter="claude-code"
     )
     (work / ".agentbundle-state.toml").write_text(
-        dump_state(state), encoding="utf-8"
+        dump_state(state), encoding="utf-8", newline="\n"
     )
     # Hand-write the canonical discovery file with [markers].
     (work / ".adapt-discovery.toml").write_text(
@@ -56,6 +56,7 @@ def _setup_brownfield(tmp_path: Path) -> Path:
         'owner = "octocat"\n'
         'repo-url = "https://example.com/myproject"\n',
         encoding="utf-8",
+        newline="\n",
     )
     return work
 
@@ -152,11 +153,11 @@ def test_pending_report_byte_identical_with_multiple_companions(tmp_path):
     }
     files: dict = {}
     for rel, body in bodies.items():
-        (work / rel).write_text(body, encoding="utf-8")
+        (work / rel).write_text(body, encoding="utf-8", newline="\n")
         comp_rel = companion_path(Path(rel)).as_posix()
         (work / comp_rel).parent.mkdir(parents=True, exist_ok=True)
         (work / comp_rel).write_text(
-            f"upstream variant of {rel}\n", encoding="utf-8"
+            f"upstream variant of {rel}\n", encoding="utf-8", newline="\n"
         )
         files[rel] = {
             "sha": sha256_bytes(body.encode("utf-8")),
@@ -168,10 +169,10 @@ def test_pending_report_byte_identical_with_multiple_companions(tmp_path):
         installed_version="0.1.0", files=files, adapter="claude-code"
     )
     (work / ".agentbundle-state.toml").write_text(
-        dump_state(state), encoding="utf-8"
+        dump_state(state), encoding="utf-8", newline="\n"
     )
     (work / ".adapt-discovery.toml").write_text(
-        'discovery-schema-version = "0.1"\n[markers]\n', encoding="utf-8"
+        'discovery-schema-version = "0.1"\n[markers]\n', encoding="utf-8", newline="\n"
     )
 
     assert adapt.run(_ns(work)) == 0

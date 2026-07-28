@@ -41,7 +41,7 @@ def _seed_agent_json(target: Path, extra: dict | None = None) -> None:
     if extra:
         body.update(extra)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8")
+    target.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +210,7 @@ class FailureModeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "reviewer.json"
-            target.write_text("{not valid", encoding="utf-8")
+            target.write_text("{not valid", encoding="utf-8", newline="\n")
             before = target.read_bytes()
             with self.assertRaises(AgentJsonRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
@@ -226,7 +226,7 @@ class FailureModeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "reviewer.json"
-            target.write_text(json.dumps({"name": "x", "hooks": ["wrong"]}), encoding="utf-8")
+            target.write_text(json.dumps({"name": "x", "hooks": ["wrong"]}), encoding="utf-8", newline="\n")
             with self.assertRaises(AgentJsonRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
             self.assertIn("hooks has unexpected shape", str(ctx.exception))
@@ -242,6 +242,7 @@ class FailureModeTests(unittest.TestCase):
             target.write_text(
                 json.dumps({"name": "x", "hooks": {"E": "wrong"}}),
                 encoding="utf-8",
+                newline="\n",
             )
             with self.assertRaises(AgentJsonRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})

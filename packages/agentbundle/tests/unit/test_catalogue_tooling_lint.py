@@ -39,7 +39,7 @@ def _setup_markers(root: Path) -> None:
     (root / "packs").mkdir(parents=True, exist_ok=True)
     (root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
     (root / ".claude-plugin" / "marketplace.json").write_text(
-        "{}", encoding="utf-8"
+        "{}", encoding="utf-8", newline="\n"
     )
 
 
@@ -54,9 +54,9 @@ def _add_pack(
     pack_dir = root / "packs" / dir_name
     pack_dir.mkdir(parents=True, exist_ok=True)
     if pack_toml is not None:
-        (pack_dir / "pack.toml").write_text(pack_toml, encoding="utf-8")
+        (pack_dir / "pack.toml").write_text(pack_toml, encoding="utf-8", newline="\n")
     if plugin_json is not None:
-        (pack_dir / "plugin.json").write_text(plugin_json, encoding="utf-8")
+        (pack_dir / "plugin.json").write_text(plugin_json, encoding="utf-8", newline="\n")
     return pack_dir
 
 
@@ -281,6 +281,7 @@ def test_cat_l011_skill_missing_frontmatter_key(tmp_path, monkeypatch):
     (skill_dir / "SKILL.md").write_text(
         "---\ndescription: Does something useful\n---\n\nBody.\n",
         encoding="utf-8",
+        newline="\n",
     )
     result = lint_catalogue(tmp_path)
     codes = [d.code for d in result.diagnostics]
@@ -390,7 +391,7 @@ def _setup_profile(root: Path, name: str, content: str) -> Path:
     """Write a profile TOML file under root/profiles/."""
     (root / "profiles").mkdir(parents=True, exist_ok=True)
     p = root / "profiles" / f"{name}.toml"
-    p.write_text(content, encoding="utf-8")
+    p.write_text(content, encoding="utf-8", newline="\n")
     return p
 
 
@@ -420,6 +421,7 @@ def _add_pack_full(
         f'[pack]\nname = "{name}"\nversion = "{version}"\n'
         f'{install_section}{deps_section}\n',
         encoding="utf-8",
+        newline="\n",
     )
     return pack_dir
 
@@ -593,12 +595,13 @@ def _add_pack_with_seeds(
     (pack_dir / "pack.toml").write_text(
         f'[pack]\nname = "{pack_name}"\nversion = "0.1.0"\nlint-seeds = {flag}\n',
         encoding="utf-8",
+        newline="\n",
     )
     if seeds:
         for rel, content in seeds.items():
             seed_path = pack_dir / "seeds" / rel
             seed_path.parent.mkdir(parents=True, exist_ok=True)
-            seed_path.write_text(content, encoding="utf-8")
+            seed_path.write_text(content, encoding="utf-8", newline="\n")
     return pack_dir
 
 
@@ -706,11 +709,12 @@ def test_check_seeds_patterns_jsonl_nonempty(tmp_path, monkeypatch):
     (pack_dir / "pack.toml").write_text(
         '[pack]\nname = "pack-a"\nversion = "0.1.0"\nlint-seeds = true\n',
         encoding="utf-8",
+        newline="\n",
     )
     for rel, content in seeds.items():
         p = pack_dir / "seeds" / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
+        p.write_text(content, encoding="utf-8", newline="\n")
     result = lint_catalogue(tmp_path)
     l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
     assert l029, "expected CAT-L029 for non-empty patterns.jsonl"
@@ -749,7 +753,7 @@ def test_check_seeds_symlinked_dir_skipped(tmp_path, monkeypatch):
     link = pack_dir / "seeds" / "evil-link"
     target = tmp_path / "outside"
     target.mkdir()
-    (target / "passwd").write_text("root:x:0:0\n", encoding="utf-8")
+    (target / "passwd").write_text("root:x:0:0\n", encoding="utf-8", newline="\n")
     try:
         link.symlink_to(target, target_is_directory=True)
     except (OSError, NotImplementedError):
@@ -773,7 +777,7 @@ def test_check_seeds_symlinked_file_skipped(tmp_path, monkeypatch):
     pack_dir = _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True,
                                     seeds={"AGENTS.md": "<project-name>"})
     outside = tmp_path / "outside.md"
-    outside.write_text("<project-name>", encoding="utf-8")
+    outside.write_text("<project-name>", encoding="utf-8", newline="\n")
     link = pack_dir / "seeds" / "AGENTS.md"
     link.unlink()
     try:
@@ -810,6 +814,7 @@ def _add_pack_fv(root: Path, name: str, *, pack_toml_extra: str = "") -> Path:
         f'[pack.install]\nallowed-adapters = ["claude"]\n'
         f'{pack_toml_extra}\n',
         encoding="utf-8",
+        newline="\n",
     )
     return pack_dir
 
@@ -943,11 +948,11 @@ def _add_credentialed_skill(
     """Add a credentialed skill to pack_dir/.apm/skills/<skill_name>/."""
     skill_dir = pack_dir / ".apm" / "skills" / skill_name
     skill_dir.mkdir(parents=True, exist_ok=True)
-    (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8", newline="\n")
     if script_content is not None:
         scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
-        (scripts_dir / "run.py").write_text(script_content, encoding="utf-8")
+        (scripts_dir / "run.py").write_text(script_content, encoding="utf-8", newline="\n")
 
 
 _CLEAN_SKILL_MD = """\

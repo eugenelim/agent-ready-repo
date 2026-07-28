@@ -20,6 +20,7 @@ version = "0.1.0"
 version = "0.1"
 """,
         encoding="utf-8",
+        newline="\n",
     )
     parsed = config.load_pack_toml(pack_toml)
     assert parsed["pack"]["name"] == "core"
@@ -28,7 +29,7 @@ version = "0.1"
 
 def test_load_pack_toml_raises_typed_error_on_malformed(tmp_path):
     pack_toml = tmp_path / "pack.toml"
-    pack_toml.write_text("this = is = not toml", encoding="utf-8")
+    pack_toml.write_text("this = is = not toml", encoding="utf-8", newline="\n")
     with pytest.raises(config.ConfigError, match="not valid TOML"):
         config.load_pack_toml(pack_toml)
 
@@ -62,6 +63,7 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 "docs/CHARTER.md" = { sha = "def456", from-pack-version = "0.2.0" }
 """,
         encoding="utf-8",
+        newline="\n",
     )
 
     state = config.load_state(state_toml)
@@ -101,6 +103,7 @@ primitives = ["skill"]
 version = "0.3.0"
 """,
         encoding="utf-8",
+        newline="\n",
     )
     state = config.load_state(state_toml)
     assert state.row("core", "claude-code").primitive_versions == {
@@ -115,7 +118,7 @@ version = "0.3.0"
 
 def test_load_state_raises_on_malformed_toml(tmp_path):
     p = tmp_path / "state.toml"
-    p.write_text("not = = toml", encoding="utf-8")
+    p.write_text("not = = toml", encoding="utf-8", newline="\n")
     with pytest.raises(config.ConfigError, match="not valid TOML"):
         config.load_state(p)
 
@@ -129,6 +132,7 @@ PROJECT_NAME = "demo"
 OWNER = "octocat"
 """,
         encoding="utf-8",
+        newline="\n",
     )
     values = config.load_values_from(p)
     assert values == {"PROJECT_NAME": "demo", "OWNER": "octocat"}
@@ -142,13 +146,14 @@ def test_load_values_from_rejects_non_string(tmp_path):
 COUNT = 3
 """,
         encoding="utf-8",
+        newline="\n",
     )
     with pytest.raises(config.ConfigError, match="must be a string"):
         config.load_values_from(p)
 
 
 def _write(path: Path, content: str) -> Path:
-    path.write_text(content, encoding="utf-8")
+    path.write_text(content, encoding="utf-8", newline="\n")
     return path
 
 
@@ -159,7 +164,7 @@ def _write(path: Path, content: str) -> Path:
 
 def test_load_state_rejects_non_string_schema_version(tmp_path):
     p = tmp_path / "state.toml"
-    p.write_text("schema-version = 42\n", encoding="utf-8")
+    p.write_text("schema-version = 42\n", encoding="utf-8", newline="\n")
     with pytest.raises(config.ConfigError, match="schema-version"):
         config.load_state(p)
 
@@ -169,12 +174,14 @@ def test_load_state_rejects_pack_not_a_table(tmp_path):
     p.write_text(
         'schema-version = "0.1"\n[pack]\nlooks-like-a-table-but-isnt = "nope"\n[pack.x]\ninstalled-version = ""\n',  # noqa: E501
         encoding="utf-8",
+        newline="\n",
     )
     # The above IS a valid TOML structure; for an actually-broken case:
     p.write_text(
         'schema-version = "0.4"\n[pack.x.adapters.claude-code]\n'
         'installed-version = ""\nfiles = "not-a-table"\n',
         encoding="utf-8",
+        newline="\n",
     )
     with pytest.raises(config.ConfigError, match="files"):
         config.load_state(p)

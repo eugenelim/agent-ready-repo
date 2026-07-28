@@ -121,7 +121,7 @@ def _plant_credbroker(parent: pathlib.Path) -> pathlib.Path:
     pkg = parent / "credbroker"
     pkg.mkdir(parents=True)
     init = pkg / "__init__.py"
-    init.write_text(_FAKE_CREDBROKER, encoding="utf-8")
+    init.write_text(_FAKE_CREDBROKER, encoding="utf-8", newline="\n")
     return init
 
 

@@ -984,7 +984,7 @@ def test_table_unicode_identifier(tmp_path):
     state = _make_state([("núcleo", "claude-code", "agent-ready-repo", "0.1.0")])
     # Create an empty state file so _run_all doesn't fail with FileNotFoundError
     state_path = tmp_path / ".agentbundle-state.toml"
-    state_path.write_text('schema-version = "0.4"\n', encoding="utf-8")
+    state_path.write_text('schema-version = "0.4"\n', encoding="utf-8", newline="\n")
     with (
         patch("agentbundle.commands.upgrade.load_state", return_value=state),
         patch(
@@ -1096,7 +1096,7 @@ def _write_state_toml(root: Path, state: State) -> None:
     from agentbundle.config import dump_state
     state_path = resolve_state_path("repo", root)
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(dump_state(state), encoding="utf-8")
+    state_path.write_text(dump_state(state), encoding="utf-8", newline="\n")
 
 
 from contextlib import contextmanager  # noqa: E402

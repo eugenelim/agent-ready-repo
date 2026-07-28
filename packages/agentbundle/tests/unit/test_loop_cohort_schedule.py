@@ -195,7 +195,7 @@ import sys  # noqa: E402
 
 def _schedule(tmp_path, plan_text):
     plan = tmp_path / "plan.md"
-    plan.write_text(plan_text)
+    plan.write_text(plan_text, encoding="utf-8", newline="\n")
     return subprocess.run(
         [sys.executable, str(LC_PATH), "schedule", str(tmp_path), "--plan", str(plan)],
         capture_output=True, text=True,
@@ -391,7 +391,7 @@ def _mk_repo(tmp_path):
     _git(repo, "init", "-q", "-b", "main")
     _git(repo, "config", "user.email", "a@x")
     _git(repo, "config", "user.name", "a")
-    (repo / "base.py").write_text("BASE = 1\n")
+    (repo / "base.py").write_text("BASE = 1\n", encoding="utf-8", newline="\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "base")
     return repo
@@ -401,7 +401,7 @@ def _branch(repo, name, relpath, content="X = 1\n", *, modify=False):
     _git(repo, "checkout", "-q", "-b", name, "main")
     f = repo / relpath
     f.parent.mkdir(parents=True, exist_ok=True)
-    f.write_text(content)
+    f.write_text(content, encoding="utf-8", newline="\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", name)
     _git(repo, "checkout", "-q", "main")
@@ -446,7 +446,7 @@ def test_verb_auto_unresolvable_base_fails_closed(tmp_path):
     repo = _mk_repo(tmp_path)
     _branch(repo, "p", "feat_p/p.py")
     _git(repo, "checkout", "-q", "--orphan", "orphan")  # no common ancestor
-    (repo / "o.py").write_text("O = 1\n")
+    (repo / "o.py").write_text("O = 1\n", encoding="utf-8", newline="\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "orphan")
     _git(repo, "checkout", "-q", "main")

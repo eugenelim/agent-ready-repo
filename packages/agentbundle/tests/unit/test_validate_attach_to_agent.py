@@ -188,13 +188,13 @@ class FilesystemWrapperTests(unittest.TestCase):
         (pack / ".apm" / "hook-wiring").mkdir(parents=True, exist_ok=True)
         for name, body in wiring.items():
             (pack / ".apm" / "hook-wiring" / f"{name}.toml").write_text(
-                body, encoding="utf-8"
+                body, encoding="utf-8", newline="\n"
             )
         if agents:
             (pack / ".apm" / "agents").mkdir(parents=True, exist_ok=True)
             for name in agents:
                 (pack / ".apm" / "agents" / f"{name}.md").write_text(
-                    f"# {name}\n", encoding="utf-8"
+                    f"# {name}\n", encoding="utf-8", newline="\n"
                 )
         return pack
 

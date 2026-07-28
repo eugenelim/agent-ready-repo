@@ -247,7 +247,7 @@ default-source = "git+https://github.com/example/catalogue"
 [distribution.agentbundle.artifactory]
 enabled = false
 """
-    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8")
+    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8", newline="\n")
 
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
@@ -292,7 +292,7 @@ default-source = "git+https://github.com/example/catalogue"
 [distribution.agentbundle.artifactory]
 enabled = false
 """
-    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8")
+    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8", newline="\n")
 
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
@@ -338,7 +338,7 @@ enabled = false
 [pack-defaults.bin]
 something = "value"
 """
-    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8")
+    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8", newline="\n")
 
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
@@ -515,7 +515,7 @@ def test_load_catalogue_config_rejects_traversal_user_dir(tmp_path):
         "[catalogue.paths]",
         'user-dir = "~/../../etc"\n\n[catalogue.paths]',
     )
-    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8")
+    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8", newline="\n")
 
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
@@ -529,7 +529,7 @@ def test_load_catalogue_config_pack_defaults_parsed(tmp_path):
         _FIXTURE_TOML_BASE
         + "\n[pack-defaults.atlassian]\nurl = \"https://jira.example.com/\"\n"
     )
-    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8")
+    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8", newline="\n")
 
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
@@ -553,7 +553,7 @@ def test_check_defaults_pack_defaults_drift(tmp_path, monkeypatch):
     # Write a baked file with a hand-edited extra key — drifted from compile_defaults output.
     correct = compile_defaults(config)
     drifted = correct + "\nextra-key = \"injected\"\n"
-    (tmp_path / "install-defaults.toml").write_text(drifted, encoding="utf-8")
+    (tmp_path / "install-defaults.toml").write_text(drifted, encoding="utf-8", newline="\n")
 
     result = check_defaults(tmp_path)
     assert result.ok is False
@@ -575,7 +575,7 @@ def test_install_user_root_plumbing(tmp_path):
         "[catalogue.paths]",
         'user-dir = "~/custom-install"\n\n[catalogue.paths]',
     )
-    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8")
+    (tmp_path / "catalogue.toml").write_text(toml_content, encoding="utf-8", newline="\n")
 
     from agentbundle.catalogue_tooling.config import load_catalogue_config
     from agentbundle.config import PackState, State, dump_state
