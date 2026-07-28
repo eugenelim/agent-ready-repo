@@ -430,15 +430,15 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Create, revise, retrofit, audit, and verify catalogue-facing product documentation. Supports Di\u00e1taxis as a page contract (not a mandatory folder scaffold). Portable across adopter repositories.",
+      "description": "Product documentation authoring: create, revise, retrofit, audit, and verify catalogue-facing guides, pack READMEs, and journeys using Di\u00e1taxis as a page contract.",
       "displayName": "Product Documentation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
-        "documentation",
         "diataxis",
-        "product-docs",
         "guides",
-        "tutorials"
+        "documentation",
+        "pack-readme",
+        "journey"
       ],
       "license": "Apache-2.0 OR MIT",
       "name": "product-documentation",
@@ -537,11 +537,12 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Deprecated compatibility shim. Depends on product-documentation. Install product-documentation directly for all new work.",
-      "displayName": "User Guide (Di\u00e1taxis) [Deprecated \u2014 use product-documentation]",
+      "description": "Deprecated compatibility pack. Installs product-documentation and exposes a new-guide shim that routes to author-product-docs. Install product-documentation directly going forward.",
+      "displayName": "User Guide (Di\u00e1taxis) \u2014 Deprecated",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
         "diataxis",
+        "guides",
         "documentation",
         "deprecated"
       ],

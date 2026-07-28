@@ -167,8 +167,8 @@ def test_product_documentation_install_table():
     assert install.get("default-scope") == "repo", (
         f"product-documentation: default-scope must be \"repo\"; got {install!r}"
     )
-    assert install.get("allowed-scopes") == ["user", "repo"], (
-        f"product-documentation: allowed-scopes must be [\"user\", \"repo\"]; got {install!r}"
+    assert install.get("allowed-scopes") == ["repo", "user"], (
+        f"product-documentation: allowed-scopes must be [\"repo\", \"user\"]; got {install!r}"
     )
     assert not data.get("pack", {}).get("dependencies"), (
         "product-documentation: must have no core dependency (user scope requires it)"

@@ -10,7 +10,7 @@
 # deps-first ordered (core before its dependents).
 
 scope = "repo"
-description = "A repo's full governance setup: the core workflow plus RFC/ADR ceremony, Diataxis guides, and monorepo conventions."
+description = "A repo's full governance setup: the core workflow plus RFC/ADR ceremony, product documentation, and monorepo conventions."
 
 [[packs]]
 pack = "core"

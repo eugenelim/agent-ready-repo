@@ -1,73 +1,108 @@
 # Artifact model
 
+Defines the documentation artifacts this skill can create or update, their ownership boundaries, and when to create each.
+
 ## Artifact types
 
-### Pack README — `packs/<pack>/README.md`
+### Pack README (`packs/<pack>/README.md`)
 
-The pack's canonical landing and discovery document. Owned by the pack
-maintainer. Explains what the pack helps a user accomplish, the first useful
-request, major jobs, install and trust information, and links to deeper
-documentation. Machine facts (version, scope, dependencies) should be generated
-or validated against `pack.toml`.
+The pack's canonical landing and discovery document.
 
-**Authored by default:** yes, when asked to improve or create a pack README.
-**Audience:** external catalogue users installing or evaluating the pack.
+**Owned by:** pack maintainers. Authored and updated by this skill.  
+**Purpose:** explain what the pack helps a user accomplish, its natural first request, major jobs, install and trust information, and links to deeper documentation.  
+**Must not:** list skill names as the first thing the reader encounters. Must not include machine facts (version, scope, dependencies) that are already authoritative in `pack.toml`.  
+**Update when:** the pack's user-facing behavior changes, new major capabilities ship, or the current README leads with implementation vocabulary instead of outcomes.
 
-### Journey — `packs/<pack>/JOURNEY.md`
+### Journey (`packs/<pack>/JOURNEY.md` — proposed optional)
 
-The proposed optional canonical first-value journey for a pack. Walks one
-complete user flow from first request to final outcome. Each stage has a "you
-say / agent does / you get / decision" block.
+The canonical first-value journey for the pack. Reserved for the optional first-value narrative: a start-to-finish sequence from the reader's opening request to their first meaningful outcome.
 
-**Authored by default:** yes, when asked to write or improve a pack journey.
-**Audience:** external users following their first complete use of the pack.
-**Status:** reserved as the proposed canonical location; do not migrate existing
-journey files from other locations in Phase 1.
+**Owned by:** pack maintainers. Authored by this skill when the journey convention is established.  
+**Purpose:** walk a complete user flow — each stage has a user request, what the agent does, what the user gets, and the decision the user makes.  
+**Must not:** describe internal skill mechanics in the main flow. Link out to how-to guides for variations.  
+**Update when:** the primary user flow changes or the pack's first-value path is redefined.
 
-### Guide — `guides/<pack>/<kind>/<slug>.md`
+### Tutorial (`guides/<pack>/tutorials/<slug>.md`)
 
-Catalogue-facing product documentation. Tutorials, how-to guides, reference
-pages, and explanation pages intended for users of the catalogue and its packs.
-Lives in the top-level `guides/` tree, organized by pack.
+A learning-oriented artifact for beginners. Guarantees a working result.
 
-**Authored by default:** yes, for all four Diátaxis kinds.
-**Audience:** external catalogue users.
+**Owned by:** guide authors. Authored by this skill.  
+**Purpose:** take the reader from nothing to a small, verified success. Every step produces an observable result. The reader finishes with something real.  
+**Must not:** offer choices mid-tutorial. Must not insert explanations of why without linking out.  
+**Update when:** the described steps no longer produce the promised result.
 
-### Guide index — `guides/<pack>/README.md`
+### How-to guide (`guides/<pack>/how-to/<slug>.md`)
 
-The landing page for a pack's guide section. Lists available guides organized
-by kind. Update only when the new work materially changes what the reader needs
-to discover first.
+A task-oriented recipe for a competent reader with a specific problem.
 
-**Authored by default:** conditional — update when a new artifact materially
-changes the pack's discovery entry or canonical flow.
+**Owned by:** guide authors. Authored by this skill.  
+**Purpose:** help the reader solve one specific named problem. Covers the common path and realistic variations. Links to reference for exhaustive options.  
+**Must not:** reteach basics the reader already knows. Must not list every possible flag or option inline.  
+**Update when:** the procedure for the task changes.
 
-### Maintainer DESIGN input — `packs/<pack>/DESIGN.md`
+### Reference (`guides/<pack>/reference/<slug>.md`)
 
-Maintainer-facing design and architecture. May be read to verify facts when
-authoring product documentation; do not author it by default as a product-
-documentation output.
+Authoritative, dry, complete description of interfaces, commands, schema fields, or configuration.
 
-**Authored by default:** no. Read-only input for fact verification.
+**Owned by:** guide authors. Authored by this skill.  
+**Purpose:** answer "what exactly does this do / accept / return?" for a reader scanning for one fact.  
+**Must not:** editorialize. Must not omit options because they are "rarely used." Must be consistent in structure across sibling entries.  
+**Update when:** any described parameter, output, or behavior changes. A code change → reference update in the same PR is the rule.
+
+### Explanation (`guides/<pack>/explanation/<slug>.md`)
+
+Understanding-oriented discussion of why something works the way it does.
+
+**Owned by:** guide authors. Authored by this skill.  
+**Purpose:** give the reader a mental model. Cover trade-offs, design reasoning, and how components fit together. Bounded by an "About <topic>" frame.  
+**Must not:** contain step-by-step procedures. Must not have open-ended scope.  
+**Update when:** the design rationale changes, or the explanation contains outdated motivations.
+
+### Guide index / landing (`guides/<pack>/README.md`)
+
+Entry surface linking into the pack's guides.
+
+**Owned by:** guide authors. Updated by this skill when the set of available guides changes materially.  
+**Purpose:** orient the reader and route them to the right guide. Lists available guides by user goal, not by quadrant name.  
+**Update when:** a new guide is added, an existing guide is removed, or the primary user goal changes.
+
+### Maintainer DESIGN input (`packs/<pack>/DESIGN.md`)
+
+Maintainer-facing design and architecture record.
+
+**Owned by:** pack maintainers. Read by this skill for verified architecture claims.  
+**This skill does not author DESIGN.md by default.** It reads DESIGN.md during audit and verify modes to cross-check product claims.
 
 ---
 
-## Mandatory versus conditional artifacts
+## Mandatory vs. conditional artifacts
 
-| Situation | Mandatory | Conditional |
-|---|---|---|
-| New pack in catalogue | Pack README | Journey, first guide |
-| New user-facing feature | How-to or tutorial (pick by reader posture) | Reference, explanation |
-| Breaking behavior change | Update all affected docs | Update journey if flow changes |
-| Audit or retrofit request | Findings report (Audit) / restructured pages (Retrofit) | Updated index/landing |
+| Artifact | Status |
+|---|---|
+| Pack README | Mandatory for every pack |
+| Guide index (README) | Conditional — create when ≥2 guides exist |
+| Tutorial | Conditional — when a beginner needs an on-rails path |
+| How-to | Conditional — when a competent reader needs a named-problem recipe |
+| Reference | Conditional — when there is interface detail to look up |
+| Explanation | Conditional — when users need a mental model |
+| Journey | Optional — reserved for the pack's first-value narrative |
 
-## When to update related entry surfaces
+Default to ONE artifact. Do not create all six because the Diátaxis framework has four quadrants.
 
-Update a README, index, or journey when **all three** of these are true:
-1. The new artifact changes what a reader should discover first.
-2. The current entry surface does not name or link the new artifact.
-3. Adding the link is not a build-system or renderer concern (do not edit
-   generated outputs — link to source).
+---
 
-If only one or two are true, note the potential update as a follow-on in the
-report rather than making it part of the current change.
+## When to update entry surfaces
+
+Update the pack README when:
+- A new major capability ships that changes the primary user job
+- The current README leads with skill names or implementation vocabulary
+- The natural first request changes
+
+Update a guide index when:
+- A new guide is added that the index should link to
+- An existing guide is removed
+- The primary user goal changes enough to change the recommended entry point
+
+Update a journey when:
+- The primary user flow changes end-to-end
+- A stage no longer produces the described result

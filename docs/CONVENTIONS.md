@@ -525,17 +525,16 @@ right now?"
 ### 5c. `guides/` — for users
 
 The user-facing documentation, organized by [Diátaxis](https://diataxis.fr/).
-Four kinds of content, each in its own subdirectory, each serving a
-different user need. **Mixing kinds is the most common cause of bad
-docs** — see [`guides/README.md`](../guides/README.md) for the framework
-in detail.
+Four kinds of content, each serving a different reader need. **Mixing kinds
+is the most common cause of bad docs.** The four kinds are:
 
-- `tutorials/` — *learning-oriented.* Lessons that take a beginner from
-  nothing to a small complete success.
-- `how-to/` — *task-oriented.* Recipes for solving specific problems.
-- `reference/` — *information-oriented.* Authoritative, dry, complete
+- **tutorial** — *learning-oriented.* An on-rails lesson: one path, one
+  guaranteed outcome, no detours.
+- **how-to** — *task-oriented.* A recipe for a reader who has a specific
+  named problem to solve.
+- **reference** — *information-oriented.* Authoritative, dry, complete
   description of interfaces, config, commands.
-- `explanation/` — *understanding-oriented.* Why a design works the way
+- **explanation** — *understanding-oriented.* Why a design works the way
   it does, what concepts mean, how systems fit together.
 
 **Each piece of content belongs in exactly one of these.** When a tutorial
@@ -543,12 +542,17 @@ wants to explain *why*, link out to an explanation page. When a how-to
 wants to enumerate every option, link out to reference. The "link out"
 discipline is the whole framework.
 
+The four kinds are authoring contracts, not mandatory directory names.
+How you organize the `guides/` tree is a local decision — by pack, by
+topic, by quadrant, or flat. The contracts govern what each page promises
+its reader regardless of where the file lives.
+
 **Specs become user docs when features ship.** A shipped feature's spec
 is the team's permanent record of the contract. Its *user-facing*
-documentation lands in `guides/reference/` (the authoritative description),
-`guides/how-to/` (if users will need recipes for it), and possibly
-`guides/explanation/` (if it introduces a concept). The spec workflow is
-not done until those are updated.
+documentation lands in the appropriate `guides/` location (reference for
+authoritative description, how-to if users need recipes, explanation if
+it introduces a concept). The spec workflow is not done until those are
+updated.
 
 **Lifecycle for all three:** updated whenever the code or product changes
 in a way that makes the description wrong. Keep them short — the goal is

@@ -1,141 +1,110 @@
-# Plan: Product Documentation Pack — Phase 1 Foundation
+# Plan: product-documentation pack (Phase 1)
 
-## T-01 — Create packs/product-documentation/ canonical pack (Lane B)
+## Task list
 
-**Verification:** Goal-based
-**Depends on:** none
-**Touches:** `packs/product-documentation/`
-
-**Done when:**
-- `packs/product-documentation/pack.toml` valid (version 0.1.0, no core dep, user+repo scopes)
-- `packs/product-documentation/.claude-plugin/plugin.json` present
-- `packs/product-documentation/README.md` leads with outcomes
-- `packs/product-documentation/.apm/skills/author-product-docs/SKILL.md` present with five modes
-- All six reference files present
-- `evals/eval_queries.json` ≥8 positive + ≥8 near-miss
-- `evals/evals.json` has strong + weak output fixtures
-
-**Tests:**
-- T-D4: install tree has no four-quadrant seed paths
-- T-D5: lint-skill-spec passes on canonical pack
+All tasks use **goal-based verification** except where noted.
 
 ---
 
-## T-02 — Convert packs/user-guide-diataxis/ to deprecated compat shim (Lane D)
-
-**Verification:** Goal-based
-**Depends on:** T-01
-**Touches:** `packs/user-guide-diataxis/`
-
-**Done when:**
-- pack.toml: version 0.3.0, display_name includes "(Deprecated)", dependency on `product-documentation`, `[pack.evals]` block removed
-- plugin.json version bumped to 0.3.0
-- README updated to deprecated notice with migration instructions
-- `seeds/` directory removed
-- `new-guide` SKILL.md replaced with thin compat redirect (≤30 lines, names author-product-docs, activates on legacy phrases only)
-- `new-guide/evals/` directory removed
-
-**Tests:**
-- T-D1: bare shim install errors with "install product-documentation first"
-- T-D3: shim install tree has no `seeds/guides/`
+### T1 — New canonical pack skeleton
+**Depends on:** none  
+**Lane:** B (integration owner executes all lanes sequentially)  
+**Files:** `packs/product-documentation/pack.toml`, `.claude-plugin/plugin.json`, `README.md`  
+**Done when:** `agentbundle catalogue verify --root .` passes on the new pack; `pack.toml` version is `0.1.0`, `allowed-scopes = ["repo", "user"]`, no `core` dependency.
 
 ---
 
-## T-03 — Update catalogue guides (Lane C)
-
-**Verification:** Goal-based
-**Depends on:** none (parallel with T-01)
-**Touches:** `guides/`, `docs/guides/how-to/`
-
-**Done when:**
-- `guides/product-documentation/` directory exists (renamed from `guides/user-guide-diataxis/`)
-- `guides/product-documentation/README.md` updated for new pack identity
-- `guides/product-documentation/explanation/the-diataxis-framework.md` updated (pack name refs)
-- `guides/product-documentation/how-to/write-a-guide.md` updated for `author-product-docs`
-- New `guides/product-documentation/how-to/author-product-docs.md` created (main skill guide)
-- `docs/guides/how-to/author-product-documentation.md` created (maintainer how-to)
-- `guides/README.md` updated
-- `guides/_shared/` references updated
-
-**Tests:** (no new tests; structural check via `make build-check`)
+### T2 — `author-product-docs` SKILL.md
+**Depends on:** T1  
+**Files:** `packs/product-documentation/.apm/skills/author-product-docs/SKILL.md`  
+**Done when:** SKILL.md contains five modes (create/revise/retrofit/audit/verify), 14-step procedure, correct destination logic (inspects repo structure, no hardcoded `docs/guides/`), activates on natural docs requests, does NOT activate on spec/RFC/ADR/strategy/implementation.
 
 ---
 
-## T-04 — Update manifests and cross-references (Integration)
-
-**Verification:** Goal-based
-**Depends on:** T-01, T-02, T-03
-**Touches:** `site.toml`, `profiles/`, `README.md`, `AGENTS.local.md`, `web/src/content/`, `docs-site/`, `workspace.toml`, `docs/architecture/`, `docs/product/changelog.md`
-
-**Done when:**
-- `site.toml` "Content and design" group: `product-documentation` in packs list
-- `profiles/full-ceremony.toml` updated to `product-documentation`
-- Root `README.md` table row updated
-- `AGENTS.local.md` `user-guide-diataxis`/`new-guide` refs updated
-- `web/src/content/packs/product-documentation.md` created; `user-guide-diataxis.md` updated to shim description
-- `web/src/content/journeys/product-documentation.md` created; `user-guide-diataxis.md` updated
-- `docs-site/astro.config.ts` slugs updated; section label updated
-- `docs-site/src/content/docs/index.mdx` table row updated
-- `docs/product/changelog.md` new entries at top (product-documentation 0.1.0 + user-guide-diataxis 0.3.0)
-- `workspace.toml` comment updated
-- `docs/architecture/overview.md` pack table row updated (if present)
-
-**Tests:** `grep -r "user-guide-diataxis" packs/ guides/ site.toml profiles/ README.md AGENTS.local.md --include="*.md" --include="*.toml"` returns only the shim's own files and frozen docs
+### T3 — Six reference files
+**Depends on:** T2  
+**Files:** `references/{artifact-model,page-contracts,repository-ownership,conversation-first,rendered-verification,clear-prose}.md`  
+**Done when:** all six exist; `artifact-model.md` defines pack README / journey / guide / guide-index / DESIGN / mandatory-vs-conditional; `repository-ownership.md` distinguishes guides/ vs docs/guides/ vs pack dirs vs adopter layouts; `page-contracts.md` defines four Diátaxis types without binding to physical dirs; `rendered-verification.md` defines proportionate verification levels; `conversation-first.md` preserved; `clear-prose.md` preserved and improved.
 
 ---
 
-## T-05 — Update agentbundle tests and tools (Lane D)
-
-**Verification:** Goal-based — `pytest packages/agentbundle` green
-**Depends on:** T-01, T-02
-**Touches:** `packages/agentbundle/`, `tools/`
-
-**Done when:**
-- All test constants/tuples updated: `user-guide-diataxis` → `product-documentation`
-- `packages/agentbundle/tests/fixtures/install_snapshot/product-documentation.paths.txt` created
-- Old `user-guide-diataxis.paths.txt` fixture removed
-- New T-D1/T-D2/T-D3/T-D4 deterministic tests added
-- `packages/agentbundle/agentbundle/build/self_host.py` `_DEFAULT_SELF_HOST_PACKS` updated (add `product-documentation`)
-- `packages/agentbundle/agentbundle/build/recipes/self-host.toml` `include` list updated (add `product-documentation`, keep `user-guide-diataxis`)
-- `tools/add-rendering-directives.py` comment and `"new-guide"` key updated to `"author-product-docs"`
-
-**Tests:** `pytest packages/agentbundle -x`
+### T4 — Evals
+**Depends on:** T2  
+**Files:** `evals/eval_queries.json`, `evals/evals.json`, `evals/files/` (3 fixtures)  
+**Done when:** `eval_queries.json` has ≥8 positive, ≥8 near-miss; `evals.json` has ≥2 judge prompts with strong+weak fixture assertions; fixture files exist.
 
 ---
 
-## T-06 — Draft ADR for future machine-ID migration
-
-**Verification:** Goal-based
-**Depends on:** T-01, T-02
-**Touches:** `docs/adr/`
-
-**Done when:**
-- ADR present at `docs/adr/NNNN-rename-user-guide-diataxis-to-product-documentation.md`
-- Documents the deprecation cycle, migration steps, and condition under which the machine ID can be retired
+### T5 — Compat pack update (`user-guide-diataxis@0.3.0`)
+**Depends on:** T1  
+**Files:** `packs/user-guide-diataxis/pack.toml`, `.claude-plugin/plugin.json`, `README.md`, `.apm/skills/new-guide/SKILL.md`; DELETE `packs/user-guide-diataxis/seeds/`  
+**Done when:** `pack.toml` has `version = "0.3.0"`, `display_name` includes "Deprecated", `[[pack.dependencies.required]] pack = "product-documentation"`, `lint-seeds` removed, `[pack.first-value]` removed; seeds/ directory gone; `new-guide` SKILL.md is a thin shim redirecting to `author-product-docs`; evals removed (compat pack has no live skill to eval).
 
 ---
 
-## T-07 — Run build-self + full gates
-
-**Verification:** All gates green
-**Depends on:** T-01 through T-06
-
-**Done when:**
-- `FORCE=1 make build-self` exits 0
-- `git status --short` shows no unexpected uncommitted changes in projected dirs
-- `make build-check` exits 0
-- `python3 tools/lint-skill-spec.py` exits 0
-- `python3 tools/lint-agent-artifacts.py` exits 0
-- `pytest packages/agentbundle -x` exits 0
+### T6 — Catalogue-facing guides (`guides/product-documentation/`)
+**Depends on:** T2  
+**Files:** `guides/product-documentation/README.md`, `guides/product-documentation/how-to/use-author-product-docs.md`, `guides/product-documentation/explanation/the-diataxis-framework.md`  
+**Done when:** README leads with outcomes; how-to walks the five modes with natural-language activations; explanation preserves and updates the Diátaxis framework description with new skill name.
 
 ---
 
-## Exit checklist
+### T7 — Maintainer how-to in `docs/guides/`
+**Depends on:** T2  
+**Files:** `docs/guides/how-to/author-product-documentation.md`  
+**Done when:** explains where public catalogue guides live (`guides/`), where internal guides live (`docs/guides/`), how to use `author-product-docs`, how to avoid editing generated outputs.
 
-- [ ] All T-01 through T-07 done
-- [ ] All AC-01 through AC-27 checked
-- [ ] Gates green (lint, build-self, build-check, pytest)
-- [ ] Adversarial reviewer returned `Clean — ready to commit.`
-- [ ] `git status` clean
-- [ ] `docs/specs/product-documentation-pack/spec.md` Status: Implementing → Shipped (after merge)
-- [ ] `workspace.toml` updated with shipped spec entry if spec path is in active queue
+---
+
+### T8 — `guides/README.md` update
+**Depends on:** T6  
+**Files:** `guides/README.md`  
+**Done when:** "All packs" table row for `user-guide-diataxis` replaced with `product-documentation` entry with updated description and link.
+
+---
+
+### T9 — Manifests: `site.toml`, `profiles/full-ceremony.toml`, `workspace.toml`
+**Depends on:** T1  
+**Files:** `site.toml`, `profiles/full-ceremony.toml`, `workspace.toml`  
+**Done when:** `site.toml` "Content and design" group has `"product-documentation"`; `full-ceremony.toml` has `pack = "product-documentation"`; `workspace.toml` shaping_queue description and any queue references updated.
+
+---
+
+### T10 — `AGENTS.local.md` and `docs/architecture/overview.md`
+**Depends on:** T1  
+**Files:** `AGENTS.local.md`, `docs/architecture/overview.md`  
+**Done when:** `AGENTS.local.md` "Two guide trees" section and "House style" section have correct skill/pack names, `--internal` flag mention removed; `docs/architecture/overview.md` pack table row updated.
+
+---
+
+### T11 — `packs/core/seeds/docs/CONVENTIONS.md` §5c update
+**Depends on:** none (independent)  
+**Files:** `packs/core/seeds/docs/CONVENTIONS.md`  
+**Done when:** §5c describes `guides/` purpose and Diátaxis kinds without mandating `tutorials/`, `how-to/`, `reference/`, `explanation/` as the directory structure; references `author-product-docs` skill; `docs/CONVENTIONS.md` will be re-projected by build-self.
+
+---
+
+### T12 — agentbundle fixture and self-host.toml updates
+**Depends on:** T1  
+**Files:** `packages/agentbundle/agentbundle/build/recipes/self-host.toml`, fixture pack directory rename, `packages/agentbundle/agentbundle/build/tests/fixtures/README.md`, `packages/agentbundle/tests/fixtures/brownfield-adapt/docs/guides/how-to/index.md`  
+**Done when:** self-host.toml `include` has `"product-documentation"` instead of `"user-guide-diataxis"`; fixture `packs/product-documentation/pack.toml` exists with correct name; fixture README updated; brownfield fixture reference updated.
+
+---
+
+### T13 — web/ content files
+**Depends on:** T6  
+**Files:** `web/src/content/packs/product-documentation.md` (from rename), `web/src/content/journeys/product-documentation.md` (from rename)  
+**Done when:** both files reference `product-documentation` pack identity and `author-product-docs` skill; old files deleted.
+
+---
+
+### T14 — Deterministic tests (Lane D)
+**Depends on:** T1, T5  
+**Files:** test script in `packages/agentbundle/tests/` or `tools/`  
+**Done when:** tests verify: no hardcoded `docs/guides/` path in shipped skill body, no seeds dir in product-documentation, skill references exist, compat pack has product-documentation dependency.
+
+---
+
+### T15 — build-self, gates, lint
+**Depends on:** T1–T14  
+**Done when:** `FORCE=1 make build-self` succeeds; `git status --short` confirms projection; `make build-check` green; `python3 tools/lint-skill-spec.py` green; `python3 tools/lint-agent-artifacts.py` green; `agentbundle catalogue verify --root .` green.
