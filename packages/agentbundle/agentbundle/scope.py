@@ -213,7 +213,7 @@ def resolve_user_root(home: Path | None = None) -> Path:
         raise UserScopeUnresolvable(
             f"could not resolve $HOME path {expanded}: {exc}"
         ) from exc
-    if str(normalised) == "/":
+    if normalised == normalised.parent:
         raise UserScopeUnresolvable("expanduser resolved to '/' ($HOME=/)")
     return normalised
 

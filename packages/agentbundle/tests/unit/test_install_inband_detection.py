@@ -95,7 +95,8 @@ def _plant_state(
     so that the source-conflict guard (RFC-0072 D3) allows the subsequent
     install when the same catalogue is used.
     """
-    source_line = f'source = "{source}"' if source else ""
+    from agentbundle.config import _emit_basic_string
+    source_line = f"source = {_emit_basic_string(source)}" if source else ""
     state_path = adopter / ".agentbundle-state.toml"
     state_path.write_text(
         textwrap.dedent(

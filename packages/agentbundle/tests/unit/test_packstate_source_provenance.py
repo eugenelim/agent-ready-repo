@@ -192,7 +192,9 @@ def test_canonicalize_query_api_key_rejected():
 
 
 def test_canonicalize_file_url_local(tmp_path):
-    result = canonicalize_source(f"file://{tmp_path}")
+    # as_uri() generates file:///C:/path on Windows (file://C:/path would have
+    # 'C' as netloc — rejected as a remote-host reference by canonicalize_source).
+    result = canonicalize_source(tmp_path.as_uri())
     assert result == str(tmp_path.resolve())
 
 
@@ -200,12 +202,11 @@ def test_canonicalize_file_url_percent_encoded(tmp_path):
     # Create a directory with a space in name
     d = tmp_path / "my dir"
     d.mkdir()
-    import urllib.parse
-    encoded = urllib.parse.quote(str(d))
-    result = canonicalize_source(f"file://{encoded}")
+    result = canonicalize_source(d.as_uri())
     assert result == str(d.resolve())
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="hardcoded POSIX /tmp path")
 def test_canonicalize_file_url_literal_percent(tmp_path):
     # %2520 should become %20 (single decode), NOT a space (double decode)
     # This discriminates single-decode from double-decode

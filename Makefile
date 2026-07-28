@@ -184,15 +184,7 @@ clean:
 	rm -rf $(OUTPUT_DIR)
 
 zipapp:
-	@mkdir -p $(OUTPUT_DIR)
-	$(PYTHON) -c "import shutil; shutil.rmtree('$(OUTPUT_DIR)/_zipapp_stage', ignore_errors=True)"
-	$(PYTHON) -c "import shutil; shutil.copytree('packages/agentbundle/agentbundle', '$(OUTPUT_DIR)/_zipapp_stage/agentbundle', ignore=shutil.ignore_patterns('__pycache__', 'tests', '*.pyc'))"
-	$(PYTHON) -m zipapp $(OUTPUT_DIR)/_zipapp_stage \
-		-o $(OUTPUT_DIR)/agentbundle.pyz \
-		-m agentbundle.cli:main \
-		-p '/usr/bin/env python3'
-	$(PYTHON) -c "import shutil; shutil.rmtree('$(OUTPUT_DIR)/_zipapp_stage', ignore_errors=True)"
-	@echo "built $(OUTPUT_DIR)/agentbundle.pyz"
+	$(PYTHON) tools/build_zipapp.py $(OUTPUT_DIR)
 
 release-preflight: lint-packs
 	@bash tools/release-check.sh

@@ -7,6 +7,8 @@ modes.
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 from agentbundle import scope
 
@@ -85,6 +87,7 @@ def test_resolve_user_root_refuses_root_slash():
         scope.resolve_user_root(home=Path("/"))
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="pwd module is POSIX-only")
 def test_resolve_user_root_refuses_literal_tilde(monkeypatch):
     """When ``expanduser`` returns literal ``~`` (no $HOME and no
     pwd entry), the helper refuses.
