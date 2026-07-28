@@ -33,11 +33,18 @@ def run(args: argparse.Namespace) -> int:
 
 
 def _ops_path(pack_name: str, args: argparse.Namespace, *, create: bool = True) -> Path:
+    import os
+
     from agentbundle import safety
     from agentbundle.config import load_state
     from agentbundle.config import pack_dir as _pack_dir
 
     home_arg = getattr(args, "home", None)
+    if not home_arg:
+        # On Windows, Path.home() reads USERPROFILE, not HOME.  Honour HOME
+        # explicitly so tests and container environments that set it redirect
+        # the storage root as expected on all platforms.
+        home_arg = os.environ.get("HOME")
     home = Path(home_arg) if home_arg else None
 
     state = None
