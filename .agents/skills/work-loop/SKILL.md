@@ -323,6 +323,8 @@ Don't keep it in your head — your context will turn over and you'll lose it.
 
 ### 2. EXECUTE — make the change
 
+**Spec status — bump to `Implementing` now.** If the active spec's `**Status:**` field is `Draft` or `Approved`, set it to `Implementing` before writing any code. Do not leave the spec in `Draft` while implementation is in progress.
+
 Match the discipline to the verification mode you picked during PLAN:
 
 - **TDD-mode tasks** — red-green-refactor:
@@ -774,8 +776,11 @@ mode below, then evaluate the terminal-state bullet last.
   - `git status` shows no uncommitted or untracked files (except
     gitignored scratch).
   - **Doc-drift invariants hold** (the four the `adversarial-reviewer`'s
-    "Spec drift" check names, against `CONVENTIONS.md` § 4): the touched spec's
-    status reflects the change; every Acceptance Criterion is `[x]` or carries
+    "Spec drift" check names, against `CONVENTIONS.md` § 4): **set the spec's
+    `**Status:**` field to `Shipped`** — use spec vocabulary only:
+    `Draft | Approved | Implementing | Shipped | Archived`; the plan vocabulary
+    (`Drafting`, `Executing`, `Done`) is invalid here and will fail
+    `lint-spec-status.py`; every Acceptance Criterion is `[x]` or carries
     `(deferred: <slug>)`; each deferral resolves in `workspace.toml
     [backlog].open`; intra-repo references the change touches resolve. Where you have
     Python, run `scripts/lint-spec-status.py` (this skill's sibling to
