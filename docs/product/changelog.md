@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [catalogue-curation][0.1.6] — 2026-07-28
+
+### Changed
+
+- **`export-catalogue` strip rules extended to subdirectories.** The strip list now uses `**/AGENTS.local.md` (was root-only `AGENTS.local.md`) and adds `**/README-pypi.md`, so forks produced by `export-catalogue` correctly exclude insider AGENTS context and PyPI-specific README files anywhere in the tree.
+
 ## [agentbundle][0.21.0] — 2026-07-28
 
 ### Added

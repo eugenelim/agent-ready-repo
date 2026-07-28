@@ -70,8 +70,6 @@ agentbundle catalogue self-host --root . --write --force
 
 **Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`, `pack.toml`), run `build-self --force` AFTER all edits — not between them. Safe pattern: all edits → `FORCE=1 make build-self` → `git status` → `make build-check` → commit.
 
-**Vendored copy:** `packs/credential-brokers/.apm/user-libs/credbroker/` is byte-synced from `packages/credbroker/credbroker/`. Edit the `packages/` source; never the `.apm/user-libs/` copy.
-
 ## Claude plugin JSON format
 
 Each pack's `.claude-plugin/plugin.json` is validated against `docs/contracts/plugin-manifest.schema.json` at build time. Non-compliant manifests block publishing.

@@ -30,7 +30,8 @@ Path/glob globs, removed in **both** `white-label` and `attributed` modes —
 attribution never re-admits governance:
 - Catalogue-governance: `docs/rfc/`, `docs/adr/`, `docs/specs/`, `docs/backlog.md`.
 - The catalogue's own working `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
-  `AGENTS.local.md`, `CONTRIBUTING.md`. (A *projected* CONVENTIONS template that
+  `**/AGENTS.local.md` (root and all subdirectories), `**/README-pypi.md`,
+  `CONTRIBUTING.md`. (A *projected* CONVENTIONS template that
   ships to adopters via the self-host recipe is a different artifact — it rides
   with the recipe; keep it.)
 - Build/scan/release tooling: `Makefile`, `.snyk`, scanner config, release
