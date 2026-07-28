@@ -26,6 +26,14 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 - **Provenance exposed in `list-installed --format json`**: the three new fields appear on each
   row as `artifact_uri`, `archive_sha256`, and `source_revision` (null when absent).
   (`commands/list_installed.py`)
+- **Documentation: source-resolution chain and env vars** (`guides/_shared/reference/agentbundle.md`):
+  added "Catalogue source resolution" section (five-layer table derived from `source_defaults.py`)
+  and "Environment variables" section covering `AGENTBUNDLE_HTTP_BEARER_TOKEN`,
+  `AGENTBUNDLE_CA_BUNDLE`, `AGENTBUNDLE_NO_REMOTE`, `HTTPS_PROXY`, and `NO_PROXY`.
+  Updated `docs/architecture/catalogue.md` to document the five-layer chain with Layer 3
+  (Artifactory bootstrap); updated `docs/guides/reference/catalogue-toml.md` to replace the
+  stale `[catalogue.packaging]` section with `[catalogue.package]` and add the missing
+  `[distribution.agentbundle.artifactory]` section.
 
 ## [0.22.1] — 2026-07-28
 

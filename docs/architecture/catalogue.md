@@ -38,7 +38,7 @@ metadata into it from the pack's `.claude-plugin/plugin.json`. How a pack's
 
 Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles`,
 `list-installed` — takes an optional trailing catalogue argument. When you
-omit it, the CLI resolves one through a four-layer, first-match-wins chain
+omit it, the CLI resolves one through a five-layer, first-match-wins chain
 (RFC-0046 / ADR-0036, in
 [`source_defaults.resolve_default_source`](../../packages/agentbundle/agentbundle/source_defaults.py)):
 
@@ -46,16 +46,19 @@ omit it, the CLI resolves one through a four-layer, first-match-wins chain
 | --- | --- | --- |
 | 1 | The explicit trailing argument | `agentbundle install core <catalogue>` — passed through verbatim |
 | 2 | User config `[settings].source` | `agentbundle config set source <catalogue>` |
-| 3 | Editable-install detection | `pip install -e <clone>` — auto-detected |
-| 4 | Packaged default | `_data/install-defaults.toml` — baked into the wheel |
+| 3 | Org Artifactory bootstrap | `[distribution.agentbundle.artifactory]` in `catalogue.toml`, baked into `_data/install-defaults.toml` |
+| 4 | Editable-install detection | `pip install -e <clone>` — auto-detected |
+| 5 | Packaged default | `_data/install-defaults.toml` — baked into the wheel |
 
-Layer 3 is the one that makes a local clone "just work": when `agentbundle`
+Layer 4 is the one that makes a local clone "just work": when `agentbundle`
 is installed editable, it reads its own PEP 610 `direct_url.json`, and walks
 up from the package directory — bounded by the enclosing `.git` root — to the
 first ancestor carrying both catalogue markers. So a developer working inside
 a clone gets that clone as their catalogue with no configuration.
 
-When no layer yields a source, the CLI refuses with a message naming all three
+Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4, falling through directly to Layer 5. See the [adopter reference](../guides/_shared/reference/agentbundle.md) for the full env var list.
+
+When no layer yields a source, the CLI refuses with a message naming the
 recovery paths rather than silently falling back to the current directory:
 
 ```
@@ -72,12 +75,12 @@ A catalogue source is either a **local path** (containing both markers) or a
 # Persist a default (layer 2) — survives across every verb, every repo.
 agentbundle config set source git+https://github.com/acme/agent-kit
 agentbundle config set source /abs/path/to/your/catalogue
-agentbundle config unset source          # clear it; fall back to layers 3–4
+agentbundle config unset source          # clear it; fall back to layers 3–5
 
 # One-off (layer 1) — a trailing argument beats the configured default.
 agentbundle install core git+https://github.com/acme/agent-kit
 
-# Bind to a working clone (layer 3) — no config needed.
+# Bind to a working clone (layer 4) — no config needed.
 pip install -e /abs/path/to/your/catalogue
 ```
 

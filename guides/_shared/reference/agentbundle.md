@@ -143,6 +143,30 @@ Upgrades preserve their existing adapter regardless of user-config. If you insta
 - Re-running against the version you already have is a **re-apply**, not an upgrade: it reports `re-applied: <pack> @ <scope> <version> (already current)` — or names the count of locally edited files it kept as `.upstream` companions, when there were edits. Before it acts, it tells you up front how many of your edits will be preserved.
 - A pack installed for **more than one adapter** at a scope needs `--adapter` to disambiguate; the refusal lists each adapter with its installed version, e.g. `pass --adapter to pick one: claude-code (0.9.0), codex (0.9.0)`. The same applies to `diff` and `uninstall`.
 
+## Catalogue source resolution
+
+Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles`, `list-installed` — takes an optional trailing catalogue argument. When you omit it, the CLI resolves one through a five-layer, first-match-wins chain:
+
+| Layer | Source | Set by |
+| ----- | ------ | ------ |
+| 1 | Explicit catalogue argument | `agentbundle install --pack <name> <catalogue>` — passed through verbatim, no validation |
+| 2 | User config `[settings].source` | `agentbundle config set source <catalogue>` |
+| 3 | Org Artifactory bootstrap | `[distribution.agentbundle.artifactory]` in `catalogue.toml`, baked into the wheel by `agentbundle catalogue sync-defaults --write` |
+| 4 | Editable-install detection | `pip install -e <clone>` — auto-detected via PEP 610 `direct_url.json`; walks up to the enclosing `.git` root |
+| 5 | Packaged default | `_data/install-defaults.toml` `[defaults].source` — baked into the wheel at publish time |
+
+Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory bootstrap and editable-install detection), falling through directly to Layer 5. See [`AGENTBUNDLE_NO_REMOTE`](#environment-variables) below.
+
+## Environment variables
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Bearer token sent as `Authorization: Bearer <token>` on `catalogue+https://` and `archive+https://` requests. **Secret — do not log or persist to version control.** Example: `AGENTBUNDLE_HTTP_BEARER_TOKEN=<token> agentbundle install --pack core` |
+| `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification of HTTPS catalogue sources. Set when your Artifactory instance uses a corporate or self-signed certificate. Raises `CatalogueError` if the path does not exist. Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
+| `AGENTBUNDLE_NO_REMOTE` | unset | When set to any non-empty value, skips Layer 3 (org Artifactory bootstrap) and Layer 4 (editable-install detection), falling through to Layer 5. Use on hosts that cannot reach Artifactory, or in CI pipelines that resolve a local catalogue. Example: `AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue` |
+| `HTTPS_PROXY` | unset | Proxy URL for outbound HTTPS requests. Read automatically by Python's `urllib.request.ProxyHandler`; no `agentbundle`-specific wiring needed. Example: `HTTPS_PROXY=http://proxy.example.com:3128 agentbundle install --pack core` |
+| `NO_PROXY` | unset | Comma-separated list of hostnames that bypass the HTTPS proxy. Read automatically by Python's `urllib.request.ProxyHandler`. Example: `NO_PROXY=internal.example.com,localhost` |
+
 ## Other subcommands
 
 See `agentbundle --help` for the full set (`list-packs`, `list-profiles`, `list-targets`, `list-installed`, `validate`, `render`, `adapt`, `diff`, `upgrade`, `uninstall`, `reconcile`, etc.). Each has its own `--help` page documenting its flags.

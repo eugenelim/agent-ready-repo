@@ -4,7 +4,7 @@
 
 ## Pages
 
-- [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack, configure the default adapter.
+- [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack, configure the default adapter, source-resolution chain, environment variables.
 - [`agentskills-io-standard.md`](agentskills-io-standard.md) — the agentskills.io specification applied: frontmatter keys, description rules, directory layout, independent installation, and OWASP AST01–AST10 mapping.
 - [`adapter-support.md`](adapter-support.md) — the per-tool support matrix: which primitives each agent tool receives (skill / subagent / command / hook) and the runtime caveats, sourced from the adapter contract.
 - [`tracker-vocabulary.md`](tracker-vocabulary.md) — how brief and spec levels map to GitHub, Linear, Jira, and Jira Align objects; brief-intake skill routing table.

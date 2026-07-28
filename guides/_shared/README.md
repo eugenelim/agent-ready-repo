@@ -15,7 +15,7 @@ Guides about the catalogue itself — installing it, upgrading it, seeing what e
 
 ## Reference
 
-- [`agentbundle` reference](reference/agentbundle.md) — install the CLI, install a pack, configure the default adapter.
+- [`agentbundle` reference](reference/agentbundle.md) — install the CLI, install a pack, configure the default adapter, source-resolution chain, environment variables.
 - [Adapter support matrix](reference/adapter-support.md) — which primitives each agent tool receives, and where it degrades.
 - [Tracker vocabulary](reference/tracker-vocabulary.md) — how brief and spec levels map across GitHub, Linear, Jira, and Jira Align; skill routing table.
 - [Output rendering directives](reference/output-rendering.md) — the canonical directive catalog: which shape to declare in `## Output rendering` (Table, Status list, Severity list, Diagram, etc.) and when to omit.
