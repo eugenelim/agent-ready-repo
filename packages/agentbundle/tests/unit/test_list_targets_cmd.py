@@ -22,6 +22,7 @@ from unittest.mock import patch
 # Subprocess smoke-test
 # ---------------------------------------------------------------------------
 
+
 def test_list_targets_subprocess_exit0_and_all_adapters(tmp_path):
     """Invoking `python -m agentbundle list-targets` exits 0 and lists all four
     canonical adapter names."""

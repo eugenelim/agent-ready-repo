@@ -34,7 +34,7 @@ OTHER_BUCKET = "other"
 
 
 _round = round  # rebound here so percentile-rounding can be monkey-patched
-                # independently of the per-metric scalar rounds below.
+# independently of the per-metric scalar rounds below.
 
 
 @dataclass(frozen=True)

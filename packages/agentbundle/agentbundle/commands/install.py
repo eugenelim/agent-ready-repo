@@ -75,7 +75,6 @@ class _ScopePlan:
     new_companions: list[str] = field(default_factory=list)
 
 
-
 def _check_source_conflict(
     pack_name: str, scope: str, state: State | None, source_uri: str
 ) -> str | None:
@@ -125,6 +124,7 @@ def _check_source_conflict(
         f"('agentbundle uninstall --pack {pack_name}') then reinstall."
     )
     return "\n".join(lines)
+
 
 def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle install``.
@@ -3290,10 +3290,10 @@ def _user_scope_adapter_probes() -> dict[str, Callable[[Path], bool]]:
     """
     return {
         "claude-code": lambda home: (home / ".claude").exists(),
-        "kiro":        lambda home: (home / ".kiro").exists(),
-        "kiro-ide":    lambda home: (home / ".kiro").exists(),
-        "kiro-cli":    lambda home: (home / ".kiro").exists(),
-        "codex":       lambda home: (
+        "kiro": lambda home: (home / ".kiro").exists(),
+        "kiro-ide": lambda home: (home / ".kiro").exists(),
+        "kiro-cli": lambda home: (home / ".kiro").exists(),
+        "codex": lambda home: (
             (home / ".codex").exists()
             or (home / ".agents" / "skills").exists()
         ),
@@ -3559,8 +3559,6 @@ def _resolve_target_adapter(
     # presence ``"kiro"`` hint was a guess about pack-author intent;
     # an explicit downstream ``DEFAULT_ADAPTER`` is authoritative.
     return DEFAULT_ADAPTER
-
-
 
 
 def _rewrite_user_scope_hook_paths(

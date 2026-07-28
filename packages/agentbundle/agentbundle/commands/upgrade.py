@@ -69,11 +69,11 @@ from agentbundle.version import SPEC_VERSION
 # The source-dir segment is the subdirectory name under ``.apm/`` that holds
 # the primitive (used by ``_filter_for_primitive`` to scope path matches).
 _PRIMITIVE_FLAG_MAP: dict[str, tuple[str, str]] = {
-    "skill":   ("skill",        "skills"),
-    "agent":   ("agent",        "agents"),
-    "hook":    ("hook-body",    "hooks"),
-    "seed":    ("seed",         "seeds"),
-    "command": ("command",      "commands"),
+    "skill":   ("skill", "skills"),
+    "agent":   ("agent", "agents"),
+    "hook":    ("hook-body", "hooks"),
+    "seed":    ("seed", "seeds"),
+    "command": ("command", "commands"),
 }
 
 

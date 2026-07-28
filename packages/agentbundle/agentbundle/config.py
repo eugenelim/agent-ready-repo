@@ -563,7 +563,6 @@ def _parse_adapter_row(
     )
 
 
-
 def canonicalize_source(value: str | None) -> str | None:
     """Normalize a pack source URI to a canonical, credential-free form.
 

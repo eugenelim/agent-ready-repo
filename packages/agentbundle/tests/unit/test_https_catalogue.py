@@ -913,6 +913,7 @@ def test_timeout_passed_to_opener():
 
     class _CapturingOpener:
         _bearer_token = None
+
         def open(self, req, timeout=None):
             captured["timeout"] = timeout
             return _MockResponse(data)

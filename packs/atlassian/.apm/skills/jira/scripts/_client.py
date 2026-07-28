@@ -46,7 +46,7 @@ DEFAULT_TIMEOUT_S = 30.0
 MAX_RETRIES = 5
 PAGE_SIZE_DEFAULT = 50
 PAGE_SIZE_MAX = 100  # Practical cap; Cloud /search/jql allows up to 5000 but
-                    #  large pages are slower and easier to throttle.
+#  large pages are slower and easier to throttle.
 
 FLAVOR_CLOUD = "cloud"
 FLAVOR_SERVER = "server"

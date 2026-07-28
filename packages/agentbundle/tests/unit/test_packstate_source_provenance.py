@@ -16,6 +16,7 @@ from agentbundle.config import (
 
 # ── T1: PackState.source field, _parse_adapter_row, dump_state ───────────────
 
+
 def test_pack_state_source_default_is_none():
     ps = PackState(installed_version="1.0")
     assert ps.source is None

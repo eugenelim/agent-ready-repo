@@ -19,3 +19,7 @@ PyPI release before downstream repos can consume them.
 - Adding tests or improving error messages without changing exit codes.
 
 After bumping: tag `agentbundle-vX.Y.Z` and push to PyPI via the standard release process.
+
+## Engine-Change-RFC requirement
+
+Any changeset touching `packages/agentbundle/agentbundle/` (engine behaviour) or `packs/credential-brokers/**` must include the literal string `Engine-Change-RFC:` somewhere in its commit messages — without it, `tools/lint-catalogue-curation-guard.py --base origin/main` fails in CI. Whitespace-only passes are still subject to the gate; add the marker to the commit message even when the change carries no logic.

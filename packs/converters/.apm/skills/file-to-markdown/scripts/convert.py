@@ -437,7 +437,6 @@ class _TextHTMLParser:
     def __init__(self) -> None:
         from html.parser import HTMLParser
 
-
         class _P(HTMLParser):
             def __init__(self) -> None:
                 super().__init__(convert_charrefs=True)

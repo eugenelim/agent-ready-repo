@@ -92,12 +92,12 @@ def main() -> int:
     print("pre-pr: ✓ catalogue verify")
 
     # Step 2: repo-specific gates (catalogue-internal checks + adopter-facing hook).
-    _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
+    _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
     _run("skill-spec lint",
          [py, "-m", "agentbundle", "catalogue", "lint", "--root", ".", "--deep"],
          env=_agentbundle_env())
-    _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
-    _run("build lint",          [py, "tools/lint-build.py"])
+    _run("knowledge lint", [py, "tools/lint-knowledge.py"])
+    _run("build lint", [py, "tools/lint-build.py"])
     _run("sso-config lint", [py, "tools/lint-sso-config.py"])
     _run("sso-config lint self-test", [py, "tools/test-lint-sso-config.py"])
     _run("knowledge-surface parity", [py, "tools/lint-knowledge-surface-parity.py"])

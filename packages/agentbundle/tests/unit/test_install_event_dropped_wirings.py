@@ -25,6 +25,7 @@ from agentbundle.commands._drop_warning import (
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_contract() -> dict:
     """Load the bundled adapter.toml contract."""
     import tomllib as _tomllib

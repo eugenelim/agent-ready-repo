@@ -22,6 +22,7 @@ from agentbundle.config import PackState, State
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _state_with_row(
     pack_name: str,
     adapter: str,

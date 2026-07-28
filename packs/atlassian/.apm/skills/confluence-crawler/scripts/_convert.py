@@ -302,6 +302,7 @@ def to_markdown(
     root = _parse(storage_xhtml)
     _transform_in_place(root, page_id, targets)
     cleaned_html = _inner_xml(root)
+
     def _lang(tag: object) -> str:
         cls = getattr(tag, "get", lambda _k: None)("class") or ""
         if isinstance(cls, list):

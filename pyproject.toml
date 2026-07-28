@@ -35,13 +35,6 @@ select = [
 #   UP035 — deprecated typing imports may be version-guarded; unsafe-fix only
 ignore = [
     "UP035",
-    # Alignment/spacing rules that fire in preview mode on intentional style
-    # already present throughout the codebase (column-aligned constants, compact
-    # blank-line conventions in scripts). Suppressed to preserve existing intent;
-    # would need a bulk reformat to adopt, which is out of scope here.
-    "E116", "E117", "E221",  # multiple spaces before operator / unexpected indent
-    "E226", "E241", "E261", "E272",  # spacing after comma/operator/comment/keyword
-    "E302", "E303", "E305", "E306",  # blank-line conventions
 ]
 
 [tool.ruff.lint.per-file-ignores]

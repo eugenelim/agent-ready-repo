@@ -336,6 +336,7 @@ def test_ac10_register_writes_canonical_profile_toml(broker, monkeypatch):
         def new_page(self):
             class _P:
                 url = "https://jira.acme.com/secure/dashboard"
+
                 def goto(self, *a, **k): pass
                 def wait_for_timeout(self, *a, **k): pass
             return _P()
@@ -355,6 +356,7 @@ def test_ac10_register_writes_canonical_profile_toml(broker, monkeypatch):
 
     class _FakePw:
         chromium = _FakeChromium()
+
         def __enter__(self): return self
         def __exit__(self, *a): pass
 
@@ -534,6 +536,7 @@ def test_do_test_accepts_https_url_scheme(broker, monkeypatch):
 
     class _Resp:
         status = 200
+
         def __enter__(self): return self
         def __exit__(self, *a): pass
 

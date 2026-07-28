@@ -50,12 +50,12 @@ YAML_LEADING_INDICATORS = "#[]{}|>&*@`%!?"
 FOLDED_LITERAL_MARKERS = (">", "|", ">-", "|-", ">+", "|+")
 
 # Diagnostic codes for skill-spec findings (CAT-S series)
-_CODE_PARSE   = "CAT-S001"   # parse / read failure
-_CODE_FM      = "CAT-S002"   # frontmatter shape / key violation
-_CODE_BODY    = "CAT-S003"   # body content violation
-_CODE_LAYOUT  = "CAT-S004"   # directory layout violation (WARN)
-_CODE_EVALS   = "CAT-S005"   # evals/ schema violation
-_CODE_TOML    = "CAT-S006"   # pack.toml [pack.evals] cross-ref violation
+_CODE_PARSE = "CAT-S001"   # parse / read failure
+_CODE_FM = "CAT-S002"   # frontmatter shape / key violation
+_CODE_BODY = "CAT-S003"   # body content violation
+_CODE_LAYOUT = "CAT-S004"   # directory layout violation (WARN)
+_CODE_EVALS = "CAT-S005"   # evals/ schema violation
+_CODE_TOML = "CAT-S006"   # pack.toml [pack.evals] cross-ref violation
 
 
 # ---------------------------------------------------------------------------

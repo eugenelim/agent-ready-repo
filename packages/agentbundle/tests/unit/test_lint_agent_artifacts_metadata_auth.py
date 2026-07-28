@@ -42,24 +42,24 @@ class TestMetadataAuthAdmission(unittest.TestCase):
     def test_each_broker_id_admitted(self) -> None:
         for broker in ALL_BROKERS:
             with self.subTest(broker=broker), tempfile.TemporaryDirectory() as tmp:
-                    root = Path(tmp)
-                    _write_skill(root, f"ok-{broker}", textwrap.dedent(f"""\
-                        ---
-                        name: ok-{broker}
-                        description: Credentialed skill with auth={broker}; lint must accept it.
-                        metadata:
-                          credentialed: true
-                          auth: {broker}
-                        ---
+                root = Path(tmp)
+                _write_skill(root, f"ok-{broker}", textwrap.dedent(f"""\
+                    ---
+                    name: ok-{broker}
+                    description: Credentialed skill with auth={broker}; lint must accept it.
+                    metadata:
+                      credentialed: true
+                      auth: {broker}
+                    ---
 
-                        Body.
-                        """))
-                    result = _run_lint(root)
-                    self.assertEqual(
-                        result, [],
-                        f"broker={broker} should lint clean; "
-                        f"errors={[d.message for d in result]}",
-                    )
+                    Body.
+                    """))
+                result = _run_lint(root)
+                self.assertEqual(
+                    result, [],
+                    f"broker={broker} should lint clean; "
+                    f"errors={[d.message for d in result]}",
+                )
 
 
 class TestMetadataAuthRefusalShape(unittest.TestCase):

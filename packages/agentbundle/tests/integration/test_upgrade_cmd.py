@@ -126,11 +126,11 @@ def test_whole_pack_upgrade_updates_version_and_content(tmp_path):
 @pytest.mark.parametrize(
     "flag_attr, prim_name, prim_type, src_dir",
     [
-        ("skill",   "work-loop",  "skill",        "skills"),
-        ("agent",   "reviewer",   "agent",        "agents"),
-        ("hook",    "pre-commit", "hook-body",    "hooks"),
-        ("seed",    None,         "seed",         "seeds"),   # skip; no seeds in fixture
-        ("command", "deploy",     "command",      "commands"),
+        ("skill", "work-loop", "skill", "skills"),
+        ("agent", "reviewer", "agent", "agents"),
+        ("hook", "pre-commit", "hook-body", "hooks"),
+        ("seed", None, "seed", "seeds"),   # skip; no seeds in fixture
+        ("command", "deploy", "command", "commands"),
     ],
 )
 def test_per_primitive_upgrade_moves_only_matching_files(
