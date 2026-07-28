@@ -967,6 +967,67 @@ def _build_parser() -> argparse.ArgumentParser:
                               help="JSON path for --mode in-harness.")
     evals_run_p.set_defaults(func=_lazy("pack_evals"))
 
+    # --- pack-config --- (RFC-0074: per-pack configuration)
+    pc_parser = subparsers.add_parser(
+        "pack-config",
+        help="Per-pack configuration (get, set, unset, show).",
+    )
+    pc_subs = pc_parser.add_subparsers(dest="pack_config_sub", metavar="<sub>")
+
+    pc_get = pc_subs.add_parser("get", help="Print the effective value for a key.")
+    pc_get.add_argument("pack", help="Pack name.")
+    pc_get.add_argument("key", help="Configuration key.")
+    pc_get.set_defaults(func=_lazy("pack_config_cmd"))
+
+    pc_set = pc_subs.add_parser("set", help="Write a key to user config.toml.")
+    pc_set.add_argument("pack", help="Pack name.")
+    pc_set.add_argument("key", help="Configuration key.")
+    pc_set.add_argument("value", help="Value to set.")
+    pc_set.set_defaults(func=_lazy("pack_config_cmd"))
+
+    pc_unset = pc_subs.add_parser("unset", help="Remove a key from user config.toml.")
+    pc_unset.add_argument("pack", help="Pack name.")
+    pc_unset.add_argument("key", help="Configuration key.")
+    pc_unset.set_defaults(func=_lazy("pack_config_cmd"))
+
+    pc_show = pc_subs.add_parser(
+        "show", help="Show all keys with (baked default) / (user override) labels."
+    )
+    pc_show.add_argument("pack", help="Pack name.")
+    pc_show.set_defaults(func=_lazy("pack_config_cmd"))
+
+    pc_parser.set_defaults(func=_lazy("pack_config_cmd"))
+
+    # --- oplog --- (RFC-0074: operation log)
+    ol_parser = subparsers.add_parser(
+        "oplog",
+        help="Pack operation log (show, clear).",
+    )
+    ol_subs = ol_parser.add_subparsers(dest="oplog_sub", metavar="<sub>")
+
+    ol_show = ol_subs.add_parser(
+        "show", help="Print the last 50 entries from a pack's ops.jsonl."
+    )
+    ol_show.add_argument("pack", help="Pack name.")
+    ol_show.add_argument(
+        "--since",
+        default=None,
+        help="ISO-8601 timestamp; only entries at or after this time are printed.",
+    )
+    ol_show.set_defaults(func=_lazy("oplog_cmd"))
+
+    ol_clear = ol_subs.add_parser("clear", help="Truncate a pack's ops.jsonl.")
+    ol_clear.add_argument("pack", help="Pack name.")
+    ol_clear.add_argument(
+        "--yes",
+        action="store_true",
+        default=False,
+        help="Required: confirm you want to clear the log.",
+    )
+    ol_clear.set_defaults(func=_lazy("oplog_cmd"))
+
+    ol_parser.set_defaults(func=_lazy("oplog_cmd"))
+
     return parser
 
 

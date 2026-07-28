@@ -16,12 +16,21 @@ from __future__ import annotations
 import json
 import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
 # Bundled recipe IDs that are always valid without a path on disk.
 _BUNDLED_RECIPES: frozenset[str] = frozenset({"default"})
+
+# Pack slug pattern (must match agentbundle.config._PACK_NAME_RE).
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+# Reserved slugs that collide with well-known user-scope paths.
+_RESERVED_SLUGS: frozenset[str] = frozenset({"bin", "state", "credentials", "state.toml"})
+
+# Default user-scope pack directory.
+_DEFAULT_USER_DIR = "~/.agentbundle"
 
 # Safe identifier pattern for catalogue names.
 _SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]*$")
@@ -95,6 +104,9 @@ class CatalogueConfig:
     build: CatalogueBuild
     package: CataloguePackage
     distribution: DistributionConfig
+    # RFC-0074: per-pack config defaults and user-scope directory.
+    user_dir: str = _DEFAULT_USER_DIR
+    pack_defaults: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 def _load_schema() -> dict:
@@ -446,6 +458,52 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     )
     distribution = DistributionConfig(agentbundle=agentbundle_dist)
 
+    # --- RFC-0074: user-dir and pack-defaults ---
+
+    user_dir_raw = cat.get("user-dir", _DEFAULT_USER_DIR)
+    if not isinstance(user_dir_raw, str):
+        raise CatalogueConfigError(
+            f"catalogue.toml: catalogue.user-dir must be a string, "
+            f"got {type(user_dir_raw).__name__}"
+        )
+    # Must start with ~/ (home-relative). Absolute paths outside $HOME are rejected.
+    if not user_dir_raw.startswith("~/"):
+        raise CatalogueConfigError(
+            f"catalogue.toml: catalogue.user-dir must start with ~/ (home-relative); "
+            f"got {user_dir_raw!r}. Absolute paths outside $HOME are not allowed."
+        )
+    # Reject path traversal sequences (e.g. ~/../../etc).
+    from pathlib import PurePosixPath
+
+    if ".." in PurePosixPath(user_dir_raw[2:]).parts:
+        raise CatalogueConfigError(
+            f"catalogue.toml: catalogue.user-dir must not contain '..' path components; "
+            f"got {user_dir_raw!r}"
+        )
+
+    raw_pack_defaults = raw.get("pack-defaults", {}) or {}
+    if not isinstance(raw_pack_defaults, dict):
+        raise CatalogueConfigError(
+            "catalogue.toml: pack-defaults must be a table"
+        )
+    pack_defaults: dict[str, dict[str, str]] = {}
+    for slug, kv in raw_pack_defaults.items():
+        if not _SLUG_RE.match(slug):
+            raise CatalogueConfigError(
+                f"catalogue.toml: pack-defaults key {slug!r} must match "
+                f"^[a-z0-9][a-z0-9-]*$"
+            )
+        if slug in _RESERVED_SLUGS:
+            raise CatalogueConfigError(
+                f"catalogue.toml: pack-defaults key {slug!r} is reserved "
+                f"({sorted(_RESERVED_SLUGS)})"
+            )
+        if not isinstance(kv, dict):
+            raise CatalogueConfigError(
+                f"catalogue.toml: pack-defaults.{slug} must be a table"
+            )
+        pack_defaults[slug] = {str(k): str(v) for k, v in kv.items()}
+
     return CatalogueConfig(
         schema=schema_val,
         name=name,
@@ -456,4 +514,6 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
         build=build,
         package=package,
         distribution=distribution,
+        user_dir=user_dir_raw,
+        pack_defaults=pack_defaults,
     )

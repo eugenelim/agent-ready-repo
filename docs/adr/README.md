@@ -58,6 +58,14 @@
 | 0050 | [Astro for the marketing site, co-deployed with MkDocs in one GitHub Pages origin](0050-astro-marketing-site-toolchain-and-deploy.md) | Accepted |
 | 0051 | [workspace.toml — TOML format, main-branch coordination, and schema evolution](0051-workspace-toml-toml-format-and-main-branch-coordination.md) | Accepted |
 | 0052 | [Nine experience-pack skill renames — live surface renamed, frozen governance bridged, no install-time alias](0052-nine-experience-pack-skill-renames.md) | Accepted |
+| 0053 | [product-strategy pack — scope and discipline boundaries](0053-product-strategy-pack-scope-and-discipline-boundaries.md) | Accepted |
+| 0054 | [Session-arc verb taxonomy and pack-type classification for skill naming](0054-session-arc-verb-taxonomy-and-pack-type-classification.md) | Accepted |
+| 0055a | [Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline](0055-starlight-replaces-mkdocs-for-reference-docs.md) | Accepted |
+| 0055b | [Wave 1 docs restructure — lift contracts/ and guides/ to repo root](0055-wave1-docs-restructure-contracts-and-guides-to-repo-root.md) | Accepted |
+| 0056 | [catalogue\_tooling as the portable catalogue engine module](0056-catalogue-tooling-as-portable-engine-module.md) | Accepted |
+| 0057 | [Promote `frontend-engineering` to first-class pack; delete core resident to resolve footprint conflict](0057-frontend-engineering-pack-promotion-and-resident-deletion.md) | Accepted |
+| 0058 | [Per-pack config root (`user-root`) stored as an optional field on `PackState` adapter rows in user-scope `state.toml`](0058-per-pack-config-root-in-packstate-adapter-rows.md) | Accepted |
+| 0059 | [Pack config uses a three-source cascade baked into `_data/install-defaults.toml` at catalogue build time](0059-pack-config-cascade-via-install-defaults-baking.md) | Accepted |
 
 ## Adding a new ADR
 

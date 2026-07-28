@@ -220,6 +220,38 @@ agentbundle pack evals run --pack <pack-name> --catalogue-root .
 
 See the [pack layout reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/architecture/pack-layout.md) and [authoring a skill](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/how-to/author-a-skill.md).
 
+## Catalogue defaults and pack config API
+
+**Catalogue defaults** let operators ship sensible starting values for every pack they distribute. Add a `[pack-defaults.<pack-name>]` table to `catalogue.toml` and the defaults are baked in at publish time. They slot into the three-layer cascade: pack-source defaults → operator defaults → user config. A custom install root is also supported via `[catalogue] user-dir = "~/custom/path"`.
+
+**Pack scripts** can resolve their user-scope directory and read the merged config at runtime using the `agentbundle.config` API:
+
+```python
+from agentbundle.config import pack_dir, load_pack_config
+
+directory = pack_dir("my-pack")                 # ~/.agentbundle/my-pack/
+config = load_pack_config("my-pack")            # merged dict: pack defaults + operator + user
+```
+
+**Operation log** — scripts can append structured JSONL records to `<pack_dir>/ops.jsonl` for lightweight audit trails:
+
+```python
+from agentbundle.oplog import write_entry
+
+write_entry("my-pack", "install", src="git+https://example.com/my-pack")
+```
+
+**CLI commands** to read, write, and inspect pack config and operation logs:
+
+```bash
+agentbundle pack-config show my-pack            # all config values for a pack
+agentbundle pack-config get  my-pack api-key    # single value
+agentbundle pack-config set  my-pack api-key v  # write to user config.toml
+
+agentbundle oplog show  my-pack                 # JSONL operation history
+agentbundle oplog clear my-pack                 # wipe history (asks first)
+```
+
 ## Credentials
 
 `agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach.

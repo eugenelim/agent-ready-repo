@@ -144,6 +144,10 @@ class PackState:
     adapter: str = "claude-code"
     target_file: str | None = None
     hook_wiring_owned: list[dict[str, str]] = field(default_factory=list)
+    # RFC-0074 / ADR-0058: user-scope pack directory root for this adapter row.
+    # Absent rows default to "~/.agentbundle" on read. Written at install time
+    # from catalogue.user-dir.
+    user_root: str = "~/.agentbundle"
 
     def file_sha(self, relpath: str) -> str | None:
         entry = self.files.get(relpath)
@@ -210,6 +214,144 @@ class State:
         for ps in self.packs.values():
             out.update(ps.files.keys())
         return out
+
+
+# ---------------------------------------------------------------------------
+# Pack directory resolution and config loading (RFC-0074 / ADR-0058, ADR-0059)
+# ---------------------------------------------------------------------------
+
+
+class PackRootConflict(ValueError):
+    """Raised when adapter rows for the same pack disagree on user-root.
+
+    Attributes:
+        pack_name: The pack slug whose rows disagree.
+        paths: The distinct user-root values found.
+        adapters: The adapters contributing the conflicting values.
+    """
+
+    def __init__(self, pack_name: str, paths: list[str], adapters: list[str]) -> None:
+        self.pack_name = pack_name
+        self.paths = paths
+        self.adapters = adapters
+        paths_str = " vs ".join(f"{a!r}={p!r}" for a, p in zip(adapters, paths, strict=True))
+        super().__init__(
+            f"pack {pack_name!r} has conflicting user-root values across adapters: "
+            f"{paths_str} — uninstall conflicting adapters or set a uniform user-dir "
+            f"in catalogue.toml"
+        )
+
+
+def pack_dir(
+    pack_name: str,
+    *,
+    state: State | None = None,
+    home: Path | None = None,
+    create: bool = True,
+) -> Path:
+    """Return (and optionally create) the user-scope directory for *pack_name*.
+
+    Resolution order (ADR-0058):
+    1. If rows for *pack_name* exist in *state*, read ``user_root`` from them.
+       All rows must agree; raise ``PackRootConflict`` if they disagree.
+    2. If no rows exist, fall back to ``~/.agentbundle`` (or the
+       ``user_state_path(home).parent`` equivalent when *home* is given).
+
+    When *create* is ``False``, the directory is not created — used for
+    read-only paths (e.g. ``oplog show``, ``pack-config get``) that must
+    not create side-effecting directories.
+
+    The *home* kwarg overrides the home directory for both state-path
+    fallback and user-root tilde expansion. Production callers omit it.
+    """
+    from agentbundle import safety
+
+    effective_home = home if home is not None else Path.home()
+
+    if state is not None:
+        rows = state.rows_for_pack(pack_name)
+        if rows:
+            roots = {ps.user_root for ps in rows.values()}
+            if len(roots) > 1:
+                adapters = sorted(rows)
+                paths_list = [rows[a].user_root for a in adapters]
+                raise PackRootConflict(pack_name, paths_list, adapters)
+            user_root_raw = next(iter(roots))
+            # Expand ~ relative to effective_home.
+            if user_root_raw.startswith("~/"):
+                base = effective_home / user_root_raw[2:]
+            else:
+                base = Path(user_root_raw).expanduser()
+        else:
+            base = effective_home / ".agentbundle"
+    else:
+        base = effective_home / ".agentbundle"
+
+    return safety.make_pack_dir(base, pack_name, home=effective_home, create=create)
+
+
+def load_pack_config(
+    pack_name: str,
+    *,
+    path: Path | None = None,
+    state: State | None = None,
+    home: Path | None = None,
+) -> dict:
+    """Return the merged configuration dict for *pack_name*.
+
+    Two-layer cascade (ADR-0059):
+    1. Baked layer: ``_data/install-defaults.toml [pack-defaults.<pack>]``
+       (catalogue operator defaults, baked at build time).
+    2. User layer: ``<pack_dir>/config.toml`` (user overrides). When
+       *path* is given, that file is used instead.
+
+    Shallow merge: user wins on key collision. Malformed user config →
+    ``RuntimeWarning`` + baked-only result.
+    """
+    import importlib.resources
+    import warnings
+
+    baked: dict = {}
+    try:
+        resource = importlib.resources.files("agentbundle").joinpath(
+            "_data/install-defaults.toml"
+        )
+        if resource.is_file():
+            raw_baked = tomllib.loads(resource.read_text(encoding="utf-8"))
+            baked = raw_baked.get("pack-defaults", {}).get(pack_name, {})
+    except Exception:
+        # Fallback: filesystem path (editable install)
+        here = Path(__file__).resolve()
+        defaults_path = here.parent / "_data" / "install-defaults.toml"
+        if defaults_path.exists():
+            try:
+                raw_baked = tomllib.loads(
+                    defaults_path.read_text(encoding="utf-8")
+                )
+                baked = raw_baked.get("pack-defaults", {}).get(pack_name, {})
+            except Exception:
+                pass
+
+    if path is None:
+        try:
+            pack_path = pack_dir(pack_name, state=state, home=home)
+            path = pack_path / "config.toml"
+        except (ValueError, OSError):
+            pass
+
+    user: dict = {}
+    if path is not None and path.exists():
+        try:
+            user = tomllib.loads(path.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, UnicodeDecodeError, OSError) as exc:
+            warnings.warn(
+                f"load_pack_config: malformed config.toml for pack {pack_name!r} "
+                f"at {path}: {exc}; using baked defaults only",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
+    return {**baked, **user}
 
 
 # ---------------------------------------------------------------------------
@@ -401,6 +543,11 @@ def _parse_adapter_row(
                 k: str(v) for k, v in entry.items() if isinstance(v, str)
             })
 
+    raw_user_root = body.get("user-root")
+    user_root: str = (
+        raw_user_root if isinstance(raw_user_root, str) else "~/.agentbundle"
+    )
+
     return PackState(
         installed_version=body.get("installed-version", ""),
         source=body.get("source"),
@@ -412,6 +559,7 @@ def _parse_adapter_row(
         adapter=adapter,
         target_file=target_file,
         hook_wiring_owned=hook_wiring_owned,
+        user_root=user_root,
     )
 
 
@@ -519,6 +667,10 @@ def dump_state(state: State) -> str:
             lines.append(f"source = {_emit_basic_string(ps.source)}")
         lines.append(f"install-route = {_emit_basic_string(ps.install_route)}")
         lines.append(f"scope = {_emit_basic_string(ps.scope)}")
+        # user-root: always emit so round-trip is byte-stable. Default value
+        # is "~/.agentbundle"; catalogues with custom user-dir write a
+        # different value here (ADR-0058).
+        lines.append(f"user-root = {_emit_basic_string(ps.user_root)}")
         # ``target-file`` is emitted when set (even if it equals the
         # claude-code default) so round-trip is byte-stable for
         # explicit-default rows the install/upgrade writers may produce.

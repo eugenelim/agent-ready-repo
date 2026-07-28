@@ -12,6 +12,14 @@
       "description": "Schema version — must be 1.",
       "enum": [1]
     },
+    "pack-defaults": {
+      "type": "object",
+      "description": "Per-pack configuration defaults baked into install-defaults.toml at build time.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
+    },
     "catalogue": {
       "type": "object",
       "additionalProperties": false,
@@ -25,6 +33,10 @@
         "package"
       ],
       "properties": {
+        "user-dir": {
+          "type": "string",
+          "description": "User-scope pack directory root (must start with ~/). Defaults to ~/.agentbundle when absent."
+        },
         "name": {
           "type": "string",
           "description": "Safe identifier — [A-Za-z0-9][A-Za-z0-9_-]*.",

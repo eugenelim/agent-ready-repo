@@ -146,3 +146,5 @@ No shared `references/` directory exists. References are copied per-skill; each 
 
 - **Intra-pack**: source copy says `> Note: this reference is intentionally duplicated into \`<skill>\`'s \`references/<file>\`.`; receiving copy says `duplicated from`. Copies stay byte-identical except the note wording.
 - **Cross-pack** (e.g. `digital-experience-contract.md`): file carries `schema-version:` in YAML frontmatter; all copies byte-identical. When updating, grep for the filename and update every copy in the same commit.
+
+**Pack config API** — pack scripts can resolve a user-scope directory, read operator-declared config, and write structured operation log entries. See [`guides/_shared/reference/pack-config-api.md`](../guides/_shared/reference/pack-config-api.md) for the full reference: `pack_dir`, `load_pack_config`, `write_entry`, catalogue `[pack-defaults.*]` setup, and the `agentbundle pack-config` / `agentbundle oplog` CLI.

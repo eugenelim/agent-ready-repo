@@ -199,9 +199,9 @@ def _read_marker(marker_path: Path) -> dict:
 ALLOWED_MODULES = frozenset({
     # `argparse` admitted by apm-install-route-parity AC1 (one-entry growth in
     # the import allow-list) for the `--install-route` flag.
-    "argparse",
-    "contextlib", "datetime", "hashlib", "json", "os", "pathlib",
-    "re", "sys", "tempfile", "tomllib",
+    # `contextlib` admitted for the atomic-marker-write pattern.
+    "argparse", "contextlib",
+    "datetime", "hashlib", "json", "os", "pathlib", "re", "sys", "tempfile", "tomllib",
 })
 
 
