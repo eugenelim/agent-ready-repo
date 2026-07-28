@@ -1,0 +1,91 @@
+---
+interface Props {
+  name: string;
+  goals: string[];
+  reads: string;
+  writes: string;
+  returns: string;
+  limits?: string;
+  followUp?: string;
+}
+
+const { name, goals, reads, writes, returns, limits, followUp } = Astro.props;
+
+const rows = [
+  { label: 'Goals', value: goals.join('; ') },
+  { label: 'Reads', value: reads },
+  { label: 'Writes', value: writes },
+  { label: 'Returns', value: returns },
+  ...(limits ? [{ label: 'Limits', value: limits }] : []),
+  ...(followUp ? [{ label: 'Follow-up', value: followUp }] : []),
+];
+---
+
+<section class="skill-record" aria-label={`Skill: ${name}`}>
+  <h3 class="skill-record__name">{name}</h3>
+  <dl class="skill-record__rows">
+    {rows.map((row) => (
+      <>
+        <dt class="skill-record__label">{row.label}</dt>
+        <dd class="skill-record__value">{row.value}</dd>
+      </>
+    ))}
+  </dl>
+</section>
+
+<style>
+  .skill-record {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5);
+    background-color: var(--ds-surface-alt);
+  }
+
+  .skill-record__name {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    background-color: var(--ds-accent-subtle);
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    margin-bottom: var(--ds-space-4);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+  }
+
+  .skill-record__rows {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: var(--ds-space-2) var(--ds-space-4);
+    margin: 0;
+  }
+
+  .skill-record__label {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    align-self: start;
+    padding-top: 0.15rem;
+  }
+
+  .skill-record__value {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .skill-record__rows {
+      grid-template-columns: 1fr;
+    }
+
+    .skill-record__label {
+      padding-top: var(--ds-space-3);
+    }
+  }
+</style>

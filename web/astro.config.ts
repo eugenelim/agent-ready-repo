@@ -16,5 +16,7 @@ export default defineConfig({
   site: 'https://eugenelim.github.io/agent-ready-repo',
   base: '/agent-ready-repo',
   outDir: '../build',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({ filter: (page) => !page.includes('primitives-fixture') }),
+  ],
 });

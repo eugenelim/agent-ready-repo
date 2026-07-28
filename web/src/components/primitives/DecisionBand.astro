@@ -1,0 +1,132 @@
+---
+interface Action {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  summary: string;
+  consequence: string;
+  primaryAction: Action;
+  secondaryAction?: Action;
+  scope?: string;
+}
+
+const { summary, consequence, primaryAction, secondaryAction, scope } = Astro.props;
+---
+
+<section class="decision-band" aria-label={`Decision: ${summary}`}>
+  <div class="decision-band__inner">
+    <div class="decision-band__content">
+      <p class="decision-band__summary">{summary}</p>
+      <p class="decision-band__consequence">{consequence}</p>
+      {scope && (
+        <p class="decision-band__scope">Protected / unchanged: {scope}</p>
+      )}
+    </div>
+    <div class="decision-band__actions">
+      <a class="decision-band__action decision-band__action--primary" href={primaryAction.href ?? '#'}>
+        {primaryAction.label}
+      </a>
+      {secondaryAction && (
+        <a class="decision-band__action decision-band__action--secondary" href={secondaryAction.href ?? '#'}>
+          {secondaryAction.label}
+        </a>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .decision-band {
+    border-left: 4px solid var(--ds-accent);
+    background-color: var(--ds-state-warn-bg);
+    padding: var(--ds-space-5) var(--ds-space-6);
+    border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+  }
+
+  .decision-band__inner {
+    display: flex;
+    gap: var(--ds-space-6);
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .decision-band__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+  }
+
+  .decision-band__summary {
+    font-size: var(--ds-type-body-lg);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    margin: 0;
+  }
+
+  .decision-band__consequence {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-bold);
+    color: var(--ds-state-warn-fg);
+    margin: 0;
+  }
+
+  .decision-band__scope {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+
+  .decision-band__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+    flex-shrink: 0;
+  }
+
+  .decision-band__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 1.4rem;
+    border-radius: var(--ds-radius-pill);
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-sm);
+    text-decoration: none;
+    min-height: 44px;
+    min-width: 44px;
+    transition: background-color var(--ds-dur-quick) var(--ds-ease-std);
+  }
+
+  .decision-band__action:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 3px;
+  }
+
+  .decision-band__action--primary {
+    background-color: var(--ds-cta-primary-bg);
+    color: var(--ds-cta-primary-fg);
+  }
+
+  .decision-band__action--primary:hover {
+    background-color: var(--ds-cta-primary-bg-hover);
+  }
+
+  .decision-band__action--secondary {
+    background-color: transparent;
+    color: var(--ds-on-surface-2);
+    border: 1px solid var(--ds-border);
+  }
+
+  .decision-band__action--secondary:hover {
+    border-color: var(--ds-accent);
+    color: var(--ds-accent-deep);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .decision-band__action { transition: none; }
+  }
+</style>

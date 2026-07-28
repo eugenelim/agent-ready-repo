@@ -1,0 +1,103 @@
+---
+interface Props {
+  content?: string;
+  label?: string;
+  successLabel?: string;
+  class?: string;
+}
+
+const {
+  content = '',
+  label = 'Copy',
+  successLabel = 'Copied!',
+  class: className,
+} = Astro.props;
+---
+
+<button
+  class:list={['copy-btn', className]}
+  type="button"
+  aria-label={label}
+  data-copy-content={content}
+  data-copy-label={label}
+  data-copy-success={successLabel}
+>
+  <span class="copy-btn__icon" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+      <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+    </svg>
+  </span>
+  <span class="copy-btn__label">{label}</span>
+  <span class="copy-btn__live" aria-live="polite" aria-atomic="true"></span>
+</button>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((btn) => {
+    const lbl = btn.querySelector<HTMLElement>('.copy-btn__label');
+    const live = btn.querySelector<HTMLElement>('.copy-btn__live');
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.copyContent ?? '';
+      try {
+        await navigator.clipboard.writeText(text);
+        const success = btn.dataset.copySuccess ?? 'Copied!';
+        if (lbl) lbl.textContent = success;
+        if (live) live.textContent = success;
+        btn.classList.add('copy-btn--success');
+        setTimeout(() => {
+          if (lbl) lbl.textContent = btn.dataset.copyLabel ?? 'Copy';
+          if (live) live.textContent = '';
+          btn.classList.remove('copy-btn--success');
+        }, 2000);
+      } catch { /* clipboard unavailable — content remains selectable */ }
+    });
+  });
+</script>
+
+<style>
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    background: transparent;
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-sm);
+    color: var(--ds-on-surface-muted);
+    font-size: var(--ds-type-xs);
+    font-family: var(--ds-font-mono);
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition: color var(--ds-dur-quick) var(--ds-ease-std),
+                border-color var(--ds-dur-quick) var(--ds-ease-std);
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .copy-btn:hover {
+    color: var(--ds-accent-deep);
+    border-color: var(--ds-accent);
+  }
+
+  .copy-btn:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 3px;
+  }
+
+  .copy-btn--success {
+    color: var(--ds-state-success-fg);
+    border-color: var(--ds-state-success-border);
+  }
+
+  .copy-btn__live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .copy-btn { transition: none; }
+  }
+</style>

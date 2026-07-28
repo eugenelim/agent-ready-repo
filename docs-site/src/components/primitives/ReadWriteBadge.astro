@@ -1,0 +1,26 @@
+---
+import StatusChip from './StatusChip.astro';
+
+type Mode = 'read-only' | 'draft' | 'proposed-write' | 'confirmed-write' | 'publish' | 'destructive';
+
+interface Props {
+  mode: Mode;
+}
+
+const { mode } = Astro.props;
+
+const config: Record<Mode, { state: string; label: string }> = {
+  'read-only':       { state: 'info',    label: 'Read only' },
+  'draft':           { state: 'neutral', label: 'Draft — no changes' },
+  'proposed-write':  { state: 'warn',    label: 'Review before writing' },
+  'confirmed-write': { state: 'success', label: 'Writing confirmed' },
+  'publish':         { state: 'success', label: 'Publishing now' },
+  'destructive':     { state: 'danger',  label: 'Destructive — cannot undo' },
+};
+
+const { state, label } = config[mode];
+---
+
+<span class="read-write-badge" data-mode={mode}>
+  <StatusChip label={label} state={state} />
+</span>

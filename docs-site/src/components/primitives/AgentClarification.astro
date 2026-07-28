@@ -1,0 +1,64 @@
+---
+interface Props {
+  question: string;
+  options?: string[];
+  reason?: string;
+  blocked?: boolean;
+}
+
+const { question, options, reason, blocked = false } = Astro.props;
+---
+
+<div class:list={['agent-clarification', { 'agent-clarification--blocked': blocked }]}>
+  <p class="agent-clarification__question">{question}</p>
+  {options && options.length > 0 && (
+    <ul class="agent-clarification__options">
+      {options.map((opt) => <li>{opt}</li>)}
+    </ul>
+  )}
+  {reason && <p class="agent-clarification__reason">{reason}</p>}
+</div>
+
+<style>
+  .agent-clarification {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    background-color: var(--ds-surface-alt);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+  }
+
+  .agent-clarification--blocked {
+    border-color: var(--ds-state-warn-border);
+    background-color: var(--ds-state-warn-bg);
+  }
+
+  .agent-clarification__question {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-medium);
+    color: var(--ds-on-surface);
+    margin: 0;
+  }
+
+  .agent-clarification--blocked .agent-clarification__question {
+    color: var(--ds-state-warn-fg);
+  }
+
+  .agent-clarification__options {
+    margin: 0;
+    padding-left: var(--ds-space-5);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-1);
+  }
+
+  .agent-clarification__reason {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+</style>

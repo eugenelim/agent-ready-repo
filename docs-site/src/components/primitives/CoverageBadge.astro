@@ -1,0 +1,42 @@
+---
+import StatusChip from './StatusChip.astro';
+
+type CoverageState = 'complete' | 'filtered' | 'partial' | 'capped' | 'permission-limited';
+
+interface Props {
+  coverage: CoverageState;
+  detail?: string;
+}
+
+const { coverage, detail } = Astro.props;
+
+const config: Record<CoverageState, { state: string; label: string; defaultDetail: string }> = {
+  'complete':           { state: 'success', label: 'Complete', defaultDetail: 'All items returned' },
+  'filtered':           { state: 'info',    label: 'Filtered', defaultDetail: 'Results filtered by query' },
+  'partial':            { state: 'warn',    label: 'Partial',  defaultDetail: 'Some items may be missing' },
+  'capped':             { state: 'warn',    label: 'Capped',   defaultDetail: 'Results limited by cap' },
+  'permission-limited': { state: 'warn',    label: 'Permission limited', defaultDetail: 'Some items hidden due to missing permissions' },
+};
+
+const { state, label, defaultDetail } = config[coverage];
+const description = detail ?? defaultDetail;
+---
+
+<span class="coverage-badge" data-coverage={coverage}>
+  <StatusChip label={label} state={state} />
+  <span class="coverage-badge__detail">{description}</span>
+</span>
+
+<style>
+  .coverage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    vertical-align: middle;
+  }
+
+  .coverage-badge__detail {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+  }
+</style>

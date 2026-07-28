@@ -3,6 +3,7 @@
 // pages — task instruction: "all journey pages are light zone #fafaf9 with
 // amber-bordered gate cards"). Amber accents provide visual weight.
 import { withBase } from '../../lib/paths';
+import StatusChip from '../primitives/StatusChip.astro';
 
 interface Props {
   name: string;
@@ -21,7 +22,7 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
 <header class="journey-hero">
   <div class="journey-hero__inner">
     <div class="journey-hero__meta">
-      <span class="scope-chip">{scope}</span>
+      <StatusChip label={scope} />
     </div>
     <h1 class="journey-hero__name">{name}</h1>
     <p class="journey-hero__tagline">{tagline}</p>
@@ -54,18 +55,6 @@ const { name, scope, tagline, skillCount, humanTouches, wallClockMinutes, packUr
 
   .journey-hero__meta {
     margin-bottom: var(--ds-space-4);
-  }
-
-  .scope-chip {
-    display: inline-block;
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
   }
 
   .journey-hero__name {

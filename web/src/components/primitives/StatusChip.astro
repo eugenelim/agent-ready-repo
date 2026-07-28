@@ -1,0 +1,85 @@
+---
+interface Props {
+  label: string;
+  state?: string;
+  live?: boolean;
+}
+
+const { label, state, live = false } = Astro.props;
+---
+
+<span
+  class="status-chip"
+  data-state={state}
+  role={live ? 'status' : undefined}
+  aria-live={live ? 'polite' : undefined}
+>{label}</span>
+
+<style>
+  .status-chip {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    flex-shrink: 0;
+    vertical-align: middle;
+    /* Default appearance: amber-gold scope chip (no state) */
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+  }
+
+  /* State variants — override default when data-state is set */
+  .status-chip[data-state="success"],
+  .status-chip[data-state="confirmed-write"],
+  .status-chip[data-state="complete"],
+  .status-chip[data-state="publish"] {
+    background-color: var(--ds-state-success-bg);
+    color: var(--ds-state-success-fg);
+    outline: 1px solid var(--ds-state-success-border);
+    outline-offset: -1px;
+  }
+
+  .status-chip[data-state="danger"],
+  .status-chip[data-state="blocked"],
+  .status-chip[data-state="failed"],
+  .status-chip[data-state="destructive"] {
+    background-color: var(--ds-state-danger-bg);
+    color: var(--ds-state-danger-fg);
+    outline: 1px solid var(--ds-state-danger-border);
+    outline-offset: -1px;
+  }
+
+  .status-chip[data-state="warn"],
+  .status-chip[data-state="proposed-write"],
+  .status-chip[data-state="partial"],
+  .status-chip[data-state="approval-required"],
+  .status-chip[data-state="capped"],
+  .status-chip[data-state="permission-limited"] {
+    background-color: var(--ds-state-warn-bg);
+    color: var(--ds-state-warn-fg);
+    outline: 1px solid var(--ds-state-warn-border);
+    outline-offset: -1px;
+  }
+
+  .status-chip[data-state="info"],
+  .status-chip[data-state="informational"],
+  .status-chip[data-state="read-only"],
+  .status-chip[data-state="filtered"] {
+    background-color: var(--ds-state-info-bg);
+    color: var(--ds-state-info-fg);
+    outline: 1px solid var(--ds-state-info-border);
+    outline-offset: -1px;
+  }
+
+  .status-chip[data-state="neutral"],
+  .status-chip[data-state="draft"],
+  .status-chip[data-state="unavailable"] {
+    background-color: var(--ds-state-neutral-bg);
+    color: var(--ds-state-neutral-fg);
+    outline: 1px solid var(--ds-state-neutral-border);
+    outline-offset: -1px;
+  }
+</style>

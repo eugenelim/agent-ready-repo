@@ -238,6 +238,7 @@ queue   = [
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
   # ---- Independent skill improvements ----
   # spec/new-guide-conversation-first — moved to shipped above (spec.md=Shipped; superseded by product-documentation Phase 1)
+  "spec/site-ui-primitives",                            # Phase 2C: 16 reusable documentation/catalogue UI primitives across web/ + docs-site/; semantic state tokens; WCAG 2.2 AA; Playwright baselines
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

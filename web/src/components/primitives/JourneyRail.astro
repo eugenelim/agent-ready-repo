@@ -1,0 +1,302 @@
+---
+interface Stage {
+  id: string;
+  label: string;
+  description?: string;
+  status?: 'complete' | 'current' | 'upcoming';
+  isDecisionBoundary?: boolean;
+}
+
+interface Props {
+  stages: Stage[];
+  currentId?: string;
+}
+
+const { stages, currentId } = Astro.props;
+
+function resolveStatus(stage: Stage, idx: number): 'complete' | 'current' | 'upcoming' {
+  if (stage.status) return stage.status;
+  const currentIdx = stages.findIndex((s) => s.id === currentId);
+  if (stage.id === currentId) return 'current';
+  if (currentIdx > -1 && idx < currentIdx) return 'complete';
+  return 'upcoming';
+}
+---
+
+<nav class="journey-rail" aria-label="Journey stages">
+  <!-- Desktop: horizontal ordered list (≥768px) -->
+  <ol class="journey-rail__desktop">
+    {stages.map((stage, i) => {
+      const status = resolveStatus(stage, i);
+      return (
+        <li
+          class:list={[
+            'journey-rail__step',
+            `journey-rail__step--${status}`,
+            { 'journey-rail__step--decision': stage.isDecisionBoundary },
+          ]}
+          aria-current={status === 'current' ? 'step' : undefined}
+        >
+          <div class="journey-rail__step-inner">
+            <span class="journey-rail__index" aria-hidden="true">
+              {status === 'complete' ? '✓' : i + 1}
+            </span>
+            <span class="journey-rail__label">{stage.label}</span>
+            {stage.description && <span class="journey-rail__desc">{stage.description}</span>}
+          </div>
+          {i < stages.length - 1 && (
+            <span
+              class:list={[
+                'journey-rail__connector',
+                { 'journey-rail__connector--complete': status === 'complete' },
+                { 'journey-rail__connector--decision': stages[i + 1]?.isDecisionBoundary },
+              ]}
+              aria-hidden="true"
+            ></span>
+          )}
+        </li>
+      );
+    })}
+  </ol>
+
+  <!-- Mobile: accordion with <details>/<summary> per stage (<768px) -->
+  <div class="journey-rail__mobile">
+    {stages.map((stage, i) => {
+      const status = resolveStatus(stage, i);
+      return (
+        <details
+          class:list={[
+            'journey-rail__accordion',
+            `journey-rail__accordion--${status}`,
+            { 'journey-rail__accordion--decision': stage.isDecisionBoundary },
+          ]}
+          open={status === 'current'}
+        >
+          <summary class="journey-rail__summary">
+            <span class="journey-rail__index" aria-hidden="true">
+              {status === 'complete' ? '✓' : i + 1}
+            </span>
+            {stage.label}
+            {status === 'current' && <span class="journey-rail__current-badge">Current</span>}
+            {stage.isDecisionBoundary && <span class="journey-rail__decision-badge">Decision</span>}
+          </summary>
+          {stage.description && (
+            <p class="journey-rail__accordion-desc">{stage.description}</p>
+          )}
+        </details>
+      );
+    })}
+  </div>
+</nav>
+
+<style>
+  /* --- Desktop (≥768px) --- */
+  .journey-rail__desktop {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .journey-rail__desktop {
+      display: flex;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      align-items: stretch;
+      border-bottom: 1px solid var(--ds-border);
+    }
+
+    .journey-rail__mobile {
+      display: none;
+    }
+  }
+
+  .journey-rail__step {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    border-bottom: 3px solid transparent;
+  }
+
+  .journey-rail__step-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-1);
+    padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-3) 0;
+    flex: 1;
+  }
+
+  /* Status variants */
+  .journey-rail__step--current {
+    border-bottom-color: var(--ds-accent);
+  }
+
+  .journey-rail__step--complete {
+    border-bottom-color: var(--ds-state-success-border);
+  }
+
+  .journey-rail__step--decision {
+    border-left: 2px dashed var(--ds-state-warn-border);
+  }
+
+  /* Index circle */
+  .journey-rail__index {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .journey-rail__step--current .journey-rail__index {
+    background-color: var(--ds-accent);
+    color: var(--ds-cta-primary-fg);
+    border-color: var(--ds-accent);
+  }
+
+  .journey-rail__step--complete .journey-rail__index {
+    background-color: var(--ds-state-success-bg);
+    color: var(--ds-state-success-fg);
+    border-color: var(--ds-state-success-border);
+  }
+
+  /* Labels */
+  .journey-rail__label {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .journey-rail__step--current .journey-rail__label {
+    color: var(--ds-accent-deep);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .journey-rail__step--complete .journey-rail__label {
+    color: var(--ds-state-success-fg);
+  }
+
+  .journey-rail__desc {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+  }
+
+  /* Connector line between steps */
+  .journey-rail__connector {
+    display: flex;
+    align-items: flex-start;
+    padding-top: calc(var(--ds-space-3) + 0.5rem);
+    flex-shrink: 0;
+    width: 1.5rem;
+    position: relative;
+  }
+
+  .journey-rail__connector::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: var(--ds-border);
+    position: absolute;
+    top: calc(var(--ds-space-3) + 0.75rem);
+    left: 0;
+  }
+
+  .journey-rail__connector--complete::before {
+    background-color: var(--ds-state-success-border);
+  }
+
+  .journey-rail__connector--decision::before {
+    background-color: var(--ds-state-warn-border);
+    height: 2px;
+    border-top: 2px dashed var(--ds-state-warn-border);
+    background: none;
+  }
+
+  /* --- Mobile (<768px) --- */
+  .journey-rail__mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+  }
+
+  .journey-rail__accordion {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    overflow: hidden;
+  }
+
+  .journey-rail__accordion--current {
+    border-color: var(--ds-accent);
+  }
+
+  .journey-rail__accordion--complete {
+    border-color: var(--ds-state-success-border);
+  }
+
+  .journey-rail__accordion--decision {
+    border-style: dashed;
+    border-color: var(--ds-state-warn-border);
+  }
+
+  .journey-rail__summary {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-3) var(--ds-space-4);
+    cursor: pointer;
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+    list-style: none;
+    user-select: none;
+  }
+
+  .journey-rail__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .journey-rail__accordion--current .journey-rail__summary {
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+  }
+
+  .journey-rail__accordion--complete .journey-rail__summary {
+    background-color: var(--ds-state-success-bg);
+    color: var(--ds-state-success-fg);
+  }
+
+  .journey-rail__current-badge,
+  .journey-rail__decision-badge {
+    margin-left: auto;
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .journey-rail__current-badge {
+    color: var(--ds-accent-deep);
+    background-color: var(--ds-accent-subtle);
+  }
+
+  .journey-rail__decision-badge {
+    color: var(--ds-state-warn-fg);
+    background-color: var(--ds-state-warn-bg);
+  }
+
+  .journey-rail__accordion-desc {
+    margin: 0;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+    border-top: 1px solid var(--ds-border);
+  }
+</style>

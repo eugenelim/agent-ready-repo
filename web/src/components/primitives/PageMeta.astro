@@ -1,0 +1,68 @@
+---
+import ReadWriteBadge from './ReadWriteBadge.astro';
+import CoverageBadge from './CoverageBadge.astro';
+import PermissionBadge from './PermissionBadge.astro';
+
+type ReadWriteMode = 'read-only' | 'draft' | 'proposed-write' | 'confirmed-write' | 'publish' | 'destructive';
+type CoverageState = 'complete' | 'filtered' | 'partial' | 'capped' | 'permission-limited';
+type AccessState = 'granted' | 'missing' | 'unknown';
+
+type PageMetaItem =
+  | { type: 'mode'; value: ReadWriteMode }
+  | { type: 'coverage'; value: CoverageState; detail?: string }
+  | { type: 'permission'; permission: string; access: AccessState }
+  | { type: 'skill'; name: string }
+  | { type: 'prerequisite'; label: string };
+
+interface Props {
+  items: PageMetaItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="page-meta" role="list" aria-label="Page metadata">
+  {items.map((item) => (
+    <span class="page-meta__item" role="listitem">
+      {item.type === 'mode' && <ReadWriteBadge mode={item.value} />}
+      {item.type === 'coverage' && <CoverageBadge coverage={item.value} detail={item.detail} />}
+      {item.type === 'permission' && <PermissionBadge permission={item.permission} access={item.access} />}
+      {item.type === 'skill' && (
+        <span class="page-meta__skill">{item.name}</span>
+      )}
+      {item.type === 'prerequisite' && (
+        <span class="page-meta__prereq">{item.label}</span>
+      )}
+    </span>
+  ))}
+</div>
+
+<style>
+  .page-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-3);
+    align-items: center;
+  }
+
+  .page-meta__item {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .page-meta__skill {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    color: var(--ds-accent-deep);
+    background-color: var(--ds-accent-subtle);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+  }
+
+  .page-meta__prereq {
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+  }
+</style>

@@ -1,0 +1,129 @@
+---
+interface ResultRecord {
+  label: string;
+  value: string;
+}
+
+interface FollowUpAction {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  summary: string;
+  records?: ResultRecord[];
+  status?: string;
+  warnings?: string[];
+  followUp?: FollowUpAction[];
+}
+
+const { summary, records = [], status, warnings = [], followUp = [] } = Astro.props;
+---
+
+<section class="expected-result" aria-label={`Expected result: ${summary}`}>
+  <p class="expected-result__summary">{summary}</p>
+  {status && <p class="expected-result__status">{status}</p>}
+  {records.length > 0 && (
+    <div class="expected-result__table-wrap">
+      <table class="expected-result__table">
+        <thead>
+          <tr>
+            <th scope="col">Field</th>
+            <th scope="col">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((rec) => (
+            <tr>
+              <td>{rec.label}</td>
+              <td>{rec.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+  {warnings.length > 0 && (
+    <ul class="expected-result__warnings" aria-label="Warnings">
+      {warnings.map((w) => <li>{w}</li>)}
+    </ul>
+  )}
+  {followUp.length > 0 && (
+    <div class="expected-result__followup">
+      {followUp.map((a) => (
+        <a class="expected-result__followup-action" href={a.href}>{a.label}</a>
+      ))}
+    </div>
+  )}
+</section>
+
+<style>
+  .expected-result {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5);
+    background-color: var(--ds-surface-alt);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-4);
+  }
+
+  .expected-result__summary {
+    font-weight: var(--ds-weight-semibold);
+    margin: 0;
+  }
+
+  .expected-result__status {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    margin: 0;
+  }
+
+  .expected-result__table-wrap {
+    overflow-x: auto;
+  }
+
+  .expected-result__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--ds-type-sm);
+  }
+
+  .expected-result__table th,
+  .expected-result__table td {
+    padding: var(--ds-space-2) var(--ds-space-3);
+    border-bottom: 1px solid var(--ds-border);
+    text-align: left;
+  }
+
+  .expected-result__table th {
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .expected-result__warnings {
+    margin: 0;
+    padding-left: var(--ds-space-5);
+    color: var(--ds-state-warn-fg);
+    font-size: var(--ds-type-sm);
+  }
+
+  .expected-result__followup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-3);
+    border-top: 1px solid var(--ds-border);
+    padding-top: var(--ds-space-4);
+  }
+
+  .expected-result__followup-action {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    text-decoration: none;
+  }
+
+  .expected-result__followup-action:hover {
+    text-decoration: underline;
+  }
+</style>

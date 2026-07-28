@@ -1,0 +1,68 @@
+---
+import CopyPrompt from './CopyPrompt.astro';
+import ReadWriteBadge from './ReadWriteBadge.astro';
+
+type ReadWriteMode = 'read-only' | 'draft' | 'proposed-write' | 'confirmed-write' | 'publish' | 'destructive';
+
+interface Props {
+  speaker?: string;
+  prompt: string;
+  mode?: ReadWriteMode;
+  context?: string;
+}
+
+const { speaker, prompt, mode, context } = Astro.props;
+---
+
+<aside class="prompt-block" aria-label={speaker ? `Prompt from ${speaker}` : 'Agent prompt'}>
+  {speaker && (
+    <span class="prompt-block__speaker" aria-hidden="true">{speaker}</span>
+  )}
+  {mode && (
+    <div class="prompt-block__badge">
+      <ReadWriteBadge mode={mode} />
+    </div>
+  )}
+  {context && (
+    <p class="prompt-block__context">{context}</p>
+  )}
+  <div class="prompt-block__body">
+    <CopyPrompt prompt={prompt} />
+  </div>
+</aside>
+
+<style>
+  .prompt-block {
+    border-left: 3px solid var(--ds-accent);
+    background-color: var(--ds-accent-subtle);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+    font-family: var(--ds-font-sans);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+  }
+
+  .prompt-block__speaker {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+  }
+
+  .prompt-block__badge {
+    display: flex;
+  }
+
+  .prompt-block__context {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    line-height: var(--ds-lead-body);
+    margin: 0;
+  }
+
+  .prompt-block__body {
+    display: flex;
+  }
+</style>

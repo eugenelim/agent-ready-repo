@@ -1,6 +1,8 @@
 ---
 // Header section for /packs/[slug] detail pages. Light zone — pack detail pages
 // do not use a dark hero band; amber accents provide the visual anchor.
+import StatusChip from '../primitives/StatusChip.astro';
+
 interface Props {
   name: string;
   scope: 'user' | 'repo';
@@ -14,7 +16,7 @@ const { name, scope, tagline, skillCount } = Astro.props;
 <header class="pack-hero">
   <div class="pack-hero__inner">
     <div class="pack-hero__meta">
-      <span class="scope-chip">{scope}</span>
+      <StatusChip label={scope} />
       <span class="skill-count">{skillCount} {skillCount === 1 ? 'skill' : 'skills'}</span>
     </div>
     <h1 class="pack-hero__name">{name}</h1>
@@ -40,18 +42,6 @@ const { name, scope, tagline, skillCount } = Astro.props;
     align-items: center;
     gap: var(--ds-space-3);
     margin-bottom: var(--ds-space-4);
-  }
-
-  .scope-chip {
-    display: inline-block;
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
   }
 
   .skill-count {

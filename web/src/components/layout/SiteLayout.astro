@@ -46,6 +46,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
     <meta property="og:url" content={canonicalUrl} />
 
     <!-- Fonts are self-hosted via Fontsource — imported in src/styles/global.css. -->
+    <slot name="head" />
   </head>
   <body>
     <a class="skip-nav" href="#main">Skip to content</a>

@@ -1,0 +1,36 @@
+---
+import CopyButton from './CopyButton.astro';
+
+interface Props {
+  prompt: string;
+}
+
+const { prompt } = Astro.props;
+---
+
+<span class="copy-prompt">
+  <code class="copy-prompt__text">{prompt}</code>
+  <CopyButton content={prompt} label="Copy prompt" />
+</span>
+
+<style>
+  .copy-prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-sm);
+    padding: var(--ds-space-2) var(--ds-space-3);
+    max-width: 100%;
+  }
+
+  .copy-prompt__text {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    color: var(--ds-on-surface-2);
+    overflow-x: auto;
+    white-space: pre;
+    flex: 1;
+  }
+</style>
