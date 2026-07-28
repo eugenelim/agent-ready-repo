@@ -15,6 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [release-engineering][0.1.5] — 2026-07-27
+
+### Added
+
+- **Six new RFC-0072 doctrine sections in `release-loop/SKILL.md`.** Adds the G4
+  handoff package schema (`release-handoff.yaml` — all mandatory fields), a four-phase
+  deploy ordering protocol (infra-apply → service-deploy → smoke → canary), canary
+  analysis defaults with four-outcome protocol (PROMOTE / ROLLBACK / PAUSE / HALT) and
+  traffic steps 5%→25%→50%→100%, feature flag lifecycle (six states: created →
+  deployed-off → enabled-pct → full-rollout → deprecated → removed), service vs. IaC
+  rollback procedures, and SLSA L2 artifact provenance verification with cosign/keyless
+  signing.
+- **New `define-slo` skill.** Produces an OpenSLO v1 YAML document (`slos/<service>.yaml`)
+  with an `error_budget_policy` block (halt_at / warn_at / postmortem_at / trailing_window).
+  The release-loop PRR gate reads this artifact to resolve the `error-budget` field to one
+  of four states: `not-defined`, `within-budget`, `warning: <N>% remaining`, or
+  `exhausted: halt-releases`. Includes authoring-time query validation protocol and
+  toolchain translation notes (Sloth, Pyrra, Nobl9, Datadog).
+- **PRR error-budget paragraph updated.** Replaces the "supplied by a follow-on
+  SLO-authoring capability (home provisional)" paragraph with the four-state resolution
+  protocol referencing `define-slo`.
+
 ## [frontend-engineering][0.1.2] — 2026-07-27
 
 ### Changed

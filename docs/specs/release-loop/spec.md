@@ -255,7 +255,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   primitives** — **ephemeral environments + feature flags + auto-rollback** — as
   what turns deploy from a one-way door into a two-way door, *which is what lets
   the outer loop run autonomously*, harness-neutrally, with omnigent as the
-  reference for each primitive.
+  reference for each primitive. (→ RFC-0072 D4 for feature flag lifecycle; D3 for
+  canary analysis defaults; D5 for rollback procedure — the concrete doctrine for each primitive.)
 - [x] **AC6 — convergence by policy (RFC-0049 D6).** Promotion up to the human
   gate is judged by **automated policy** — canary metric analysis
   (success / error / latency SLOs) **+** e2e coverage of the **changed surface**
@@ -266,7 +267,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   changed-but-unasserted element promotes); the adopter may tighten the bar but
   not waive it. **DORA** (deploy frequency, lead time, change-fail rate, MTTR, +
   the 2025 rework rate) is named as the **health signal**, explicitly *not* a
-  per-promotion gate.
+  per-promotion gate. (→ RFC-0072 D3 for canary metric threshold defaults — the
+  concrete "success / error / latency SLOs" bar this AC requires.)
 - [x] **AC6b — the release-readiness gate (the launch PRR before G5).** Before
   surfacing the **G5** prod-ship consent gate, `release-lead` assembles a
   **readiness record** consolidating, for the changed surface: the **AC6
@@ -295,7 +297,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   visible*, not silently omitted — distinguishing it from a satisfied record),
   never a silent pass. This is the *launch* PRR (pre-prod, in scope here); ongoing
   error-budget monitoring + on-call ownership belong to the future operate/incident
-  loop, not this spec.
+  loop, not this spec. (→ RFC-0073 D1–D5 for SLO schema, error_budget_policy block,
+  and PRR field resolution — the sibling RFC that settles the provisional scope call.)
 - [x] **AC7 — the inner↔outer feedback seam + sidecar consumption.** A deployed
   finding is written to the **sidecar blackboard** and fed back to `work-loop` as
   a build task (observability-driven, **no human relay**); the loop then
@@ -311,6 +314,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   loop deploys the **digest-pinned artifact the inner loop verified** — a
   substituted or rebuilt artifact between G4 and deploy is detectable (artifact
   provenance across the handoff; OWASP 2025 supply-chain), not assumed identical.
+  (→ RFC-0072 D1 for G4 handoff package schema; D2 for deploy ordering doctrine; D6
+  for SLSA L2 provenance verification at deploy time.)
 - [x] **AC8 — the outer cap + cost budget (RFC-0049; RFC-0053 D4 mirror).** The
   sidecar `meta` block carries `round`, `round_cap`, `cost_budget`, and
   `cost_spent`; the loop increments `round` by **exactly one at the start of each
@@ -390,7 +395,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   promote↔rollback oscillations** — an **attempt threshold independent of, and
   additional to, the AC8 cost cap**, so a flapping canary is bounded by **attempts**
   even when it stays under budget (the cost cap alone would let a cheap flap churn);
-  oscillations also count against the cost budget; **(f) teardown guarantee** — ephemeral envs are
+  oscillations also count against the cost budget (→ RFC-0072 D3 for canary analysis
+  defaults — traffic steps, thresholds, and the four-outcome protocol including HALT); **(f) teardown guarantee** — ephemeral envs are
   torn down on cycle end, and a non-torn-down env surfaces (the cost-sprawl
   lever); **(g) deploy-credential tiering** — deploy credentials are
   **broker-mediated through AGENTS.md's blessed credential-broker boundary** (the
