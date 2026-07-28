@@ -128,7 +128,7 @@ Verification mode: **goal-based check** for skill content (activate eval self-co
 - [x] AC18. Existing agent-ready behavior remains available through an explicit lens (not removed).
 - [x] AC19. The five-question bar is labeled agent-execution readiness in jira-story-triage; jira-team-status uses the new team readiness rule by default.
 - [x] AC20. Projection, build-check, lint, and adversarial review pass.
-- [x] AC21. Guide page retrofit (atlassian-docs-retrofit six pages) was NOT pulled into this phase.
+- [x] AC21. Guide page retrofit (atlassian-docs-retrofit six pages) completed in Phase 3 (PR #786).
 
 ## Assumptions
 
