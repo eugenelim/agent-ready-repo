@@ -4,6 +4,10 @@ Guidance for developing Python packages in this directory. The primary package i
 (`packages/agentbundle/`). This file covers package-specific rules; catalogue and skill authoring
 guidance lives in [`packs/AGENTS.md`](../packs/AGENTS.md).
 
+## Version bump rule
+
+Non-cosmetic package changes require bumping `version.py` and `pyproject.toml`. CLI-surface changes also require a PyPI release — see [`packages/AGENTS.local.md`](AGENTS.local.md#release-coupling) for what always requires one.
+
 ## Install-test coverage rule
 
 Tests that exercise an on-disk projection layout, the per-pack orphan scanner, or the install

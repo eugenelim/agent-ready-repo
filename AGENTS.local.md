@@ -10,6 +10,8 @@ Repo-local addendum for maintainers of this checkout. Shared agent instructions 
 - **Release coupling** (PyPI release requirements, version bump workflow, tagging):
   [`packages/AGENTS.local.md`](packages/AGENTS.local.md).
 
+**Read before modifying:** `packs/` → read [`packs/AGENTS.md`](packs/AGENTS.md) first — version bump rule requires both `pack.toml` + `.claude-plugin/plugin.json`. `packages/` → read [`packages/AGENTS.local.md`](packages/AGENTS.local.md) first — covers when a PyPI release is required.
+
 ## Design against the adopter's projected state, not this repo's internal state
 
 This repo is a **pack catalogue**: packs ship into other repositories via APM, Claude
