@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.21.0] — 2026-07-28
+
+### Added
+
+- **Catalogue pack defaults** (`catalogue.toml`): a `[pack-defaults.<pack-name>]` table now lets
+  catalogue operators declare default config values for any pack they distribute. These are baked
+  into `_data/install-defaults.toml` by `agentbundle catalogue self-host --write` and merged with
+  user config at runtime so every `load_pack_config` call resolves the three-layer cascade
+  (pack-source defaults → operator defaults → user config).
+- **Custom user directory** (`catalogue.toml`): `[catalogue] user-dir = "~/custom/path"` overrides
+  the default `~/.agentbundle` root for the entire catalogue; `agentbundle install` persists the
+  override as `user-root` in `state.toml` and every subsequent `pack_dir` call honours it.
+- **Pack config API** (`agentbundle.config`): `pack_dir(pack_name)` resolves the user-scope
+  directory for a pack; `load_pack_config(pack_name)` returns the merged three-layer config dict.
+  Both honour any custom `user-root` stored in `state.toml`.
+- **Operation log** (`agentbundle.oplog`): `write_entry(pack_name, action, src, ...)` appends a
+  JSONL record to `<pack_dir>/ops.jsonl` using `O_CREAT|O_APPEND` (POSIX) or the state-file
+  mutex (Windows). Each entry is bounded to 4096 bytes; oversized extras are silently truncated
+  with a `"_truncated": true` marker.
+- **`agentbundle pack-config` CLI**: `get <pack> <key>`, `set <pack> <key> <value>`,
+  `show <pack>`, and `path <pack>` subcommands for reading and writing pack config entries.
+- **`agentbundle oplog` CLI**: `append <pack>`, `show <pack>`, and `clear <pack>` subcommands
+  for managing the per-pack operation log.
+
 ## [0.20.3] — 2026-07-27
 
 ### Changed

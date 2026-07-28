@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.21.0] — 2026-07-28
+
+### Added
+
+- **Catalogue pack defaults**: catalogue operators can declare per-pack config defaults in
+  `catalogue.toml` under `[pack-defaults.<pack>]`; these are baked in at publish time and
+  merged with user config when a pack reads its settings.
+- **Custom user directory**: `[catalogue] user-dir` overrides the default `~/.agentbundle`
+  install root; the override persists in `state.toml` and is honoured by all CLI commands.
+- **Pack config API**: `pack_dir` and `load_pack_config` in `agentbundle.config` for resolving
+  per-pack directories and reading the three-layer config cascade from pack scripts.
+- **Operation log API**: `write_entry` in `agentbundle.oplog` for appending JSONL operation
+  records to `<pack_dir>/ops.jsonl` with atomic append semantics.
+- **`agentbundle pack-config` CLI**: `get`, `set`, `show`, and `path` subcommands.
+- **`agentbundle oplog` CLI**: `append`, `show`, and `clear` subcommands.
+
 ## [release-engineering][0.1.6] — 2026-07-27
 
 ### Added
