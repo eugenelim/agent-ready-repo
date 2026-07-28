@@ -105,9 +105,18 @@ def main() -> int:
          [py, "tools/test-lint-knowledge-surface-parity.py"])
     _run("pack-evals runner self-test", [py, "tools/test-run-pack-evals.py"])
     _run("pack-evals workflow posture", [py, "tools/test-pack-evals-workflow.py"])
+    _run("pack-journey sync", [py, "tools/build-site.py", "--journeys-only"])
     _run("web-journey parity", [py, "tools/lint-web-journey-parity.py"])
     _run("web-journey parity self-test",
          [py, "tools/test-lint-web-journey-parity.py"])
+    _run("pack-journey lint", [py, "tools/lint-pack-journeys.py"])
+    _run("pack-journey lint self-test", [py, "tools/test-lint-pack-journeys.py"])
+    # lint-journey-contract live run deferred: atlassian.md and user-guide-diataxis.md
+    # have pre-existing label failures unrelated to Phase 2B; fix those first, then add:
+    #   _run("journey-contract lint", [py, "tools/lint-journey-contract.py"])
+    # Tracked: workspace.toml [backlog] slug "pack-journeys-lint-contract-gate"
+    _run("journey-contract lint self-test",
+         [py, "tools/test-lint-journey-contract.py"])
 
     # Delegate to the shipped adopter-facing hook for the work-loop caps gate.
     result = subprocess.run(

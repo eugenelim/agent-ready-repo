@@ -60,6 +60,11 @@ const journeys = defineCollection({
     packUrl: z.string(),
     relatedJourneys: z.array(z.string()).default([]),
     goodOutputDescription: z.string().optional(),
+    // Phase 2B: pack-local JOURNEY.md additions (optional for legacy compatibility)
+    journey_id: z.string().optional(),
+    start_state: z.string().optional(),
+    end_state: z.string().optional(),
+    generated: z.boolean().optional(),
   }),
 });
 

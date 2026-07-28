@@ -29,8 +29,6 @@ import sys
 import tomllib
 from pathlib import Path
 
-import yaml
-
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
@@ -134,6 +132,7 @@ def _inject_frontmatter(text: str, path: Path) -> str:
 
 def _parse_frontmatter(text: str) -> dict:
     """Parse YAML frontmatter from a file's text; return {} if absent or invalid."""
+    import yaml
     if not text.startswith("---"):
         return {}
     end = text.find("\n---", 3)
@@ -154,6 +153,7 @@ def _strip_guide_metadata(text: str) -> str:
     Preserves H1 headings in the body (guide authors who add explicit frontmatter
     are responsible for removing the H1 if they don't want it duplicated by Starlight).
     """
+    import yaml
     if not text.startswith("---"):
         return text
     end = text.find("\n---", 3)
@@ -562,6 +562,107 @@ def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) ->
         index_md.write_text(content, encoding="utf-8")
 
 
+def _fm_split(text: str) -> tuple[str, str]:
+    """Return (frontmatter_body, rest). Empty string if no frontmatter block."""
+    if not text.startswith("---"):
+        return "", text
+    end = text.find("\n---", 3)
+    if end == -1:
+        return "", text
+    return text[3:end], text[end + 4:]
+
+
+def _fm_scalar(fm: str, key: str) -> str | None:
+    """Extract a simple scalar value from raw frontmatter text."""
+    m = re.search(rf"^{re.escape(key)}:\s*(.+)$", fm, re.MULTILINE)
+    return m.group(1).strip() if m else None
+
+
+def _inject_generated_marker(text: str) -> str:
+    """Inject or set generated: true in the JOURNEY.md frontmatter block."""
+    if not text.startswith("---\n"):
+        return text
+    fm_end = text.find("\n---", 3)
+    if fm_end == -1:
+        return text
+    fm = text[3:fm_end]
+    if re.search(r"^generated:", fm, re.MULTILINE):
+        fm = re.sub(r"^generated:.*$", "generated: true", fm, flags=re.MULTILINE)
+        return "---" + fm + text[fm_end:]
+    return "---\ngenerated: true" + text[3:]
+
+
+def sync_pack_journeys(
+    packs_dir: Path,
+    journey_dir: Path,
+    dry_run: bool = False,
+) -> int:
+    """Generate central journey files from packs/*/JOURNEY.md.
+
+    Performs dual-ownership checks before writing. Returns count of files synced.
+    """
+    sources = sorted(packs_dir.glob("*/JOURNEY.md"))
+    if not sources:
+        return 0
+
+    central: dict[str, tuple[str, str]] = {}
+    if journey_dir.exists():
+        for jf in journey_dir.glob("*.md"):
+            cfm, _ = _fm_split(jf.read_text(encoding="utf-8"))
+            central[jf.stem] = (
+                _fm_scalar(cfm, "pack") or "",
+                _fm_scalar(cfm, "generated") or "",
+            )
+
+    count = 0
+    for src in sources:
+        pack_name = src.parent.name
+        text = src.read_text(encoding="utf-8")
+        fm, _ = _fm_split(text)
+
+        journey_id = _fm_scalar(fm, "journey_id")
+        if not journey_id:
+            print(f"error  {src}: missing journey_id — cannot sync", file=sys.stderr)
+            sys.exit(1)
+
+        for stem, (cf_pack, cf_generated) in central.items():
+            if cf_generated == "true":
+                continue
+            if stem == journey_id:
+                print(
+                    f"error  dual canonical ownership: {src} (journey_id={journey_id!r})"
+                    f" and non-generated central file '{stem}.md' share the same slug",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if cf_pack == pack_name:
+                print(
+                    f"error  dual canonical ownership: {src} and non-generated"
+                    f" central file '{stem}.md' both claim pack {pack_name!r}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
+        target = journey_dir / f"{journey_id}.md"
+        out_text = _inject_generated_marker(text)
+
+        if dry_run:
+            print(
+                f"  sync  {src.relative_to(REPO_ROOT)}"
+                f" → {target.relative_to(REPO_ROOT)}"
+            )
+        else:
+            journey_dir.mkdir(parents=True, exist_ok=True)
+            target.write_text(out_text, encoding="utf-8")
+            print(
+                f"  sync  {src.relative_to(REPO_ROOT)}"
+                f" → {target.relative_to(REPO_ROOT)}"
+            )
+        count += 1
+
+    return count
+
+
 def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False) -> None:
     """Write docs-site/src/sidebar-config.json — an array of Starlight sidebar groups."""
     groups_seen: list[str] = []
@@ -600,9 +701,24 @@ def main() -> None:
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--clean", action="store_true")
+    parser.add_argument(
+        "--journeys-only",
+        action="store_true",
+        help="Sync pack-local JOURNEY.md files only; skip Starlight aggregation.",
+    )
     args = parser.parse_args()
 
     packs_dir = REPO_ROOT / "packs"
+
+    if args.journeys_only:
+        journey_dir = REPO_ROOT / "web" / "src" / "content" / "journeys"
+        n = sync_pack_journeys(packs_dir, journey_dir, dry_run=args.dry_run)
+        print(
+            f"build-site: synced {n} pack journey(s)"
+            + (" (dry run)" if args.dry_run else "")
+        )
+        return
+
     packs_out = SITE_DOCS / "packs"
     guides_src = REPO_ROOT / "guides"
     guides_out = SITE_DOCS / "guides"
@@ -632,6 +748,15 @@ def main() -> None:
 
     print("build-site: generating packs/index.md …")
     build_pack_index(packs, packs_out, dry_run=args.dry_run)
+
+    print("build-site: syncing pack journeys …")
+    _n_journeys = sync_pack_journeys(
+        packs_dir,
+        REPO_ROOT / "web" / "src" / "content" / "journeys",
+        dry_run=args.dry_run,
+    )
+    if _n_journeys:
+        print(f"  {_n_journeys} pack-local JOURNEY.md files synced")
 
     print("build-site: generating sidebar-config.json …")
     sidebar_out = REPO_ROOT / "docs-site" / "src" / "sidebar-config.json"

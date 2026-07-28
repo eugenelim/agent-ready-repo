@@ -35,12 +35,14 @@ CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive", "yourDecisions")
 ACTORS = ("Agent", "Reviewer", "Loop")
 
 # label -> rank (fixed order). Actor labels are handled separately.
+# "State" (rank 5) is optional — pack-local JOURNEY.md uses it; legacy files do not.
 FIXED_RANK = {
     "You provide": 0,
     "<Actor> does": 1,
     "You do": 2,
     "You decide": 3,
     "Output": 4,
+    "State": 5,
 }
 
 # Stages are h3 (`### N.`), subordinate to the section's "The journey" h2.
