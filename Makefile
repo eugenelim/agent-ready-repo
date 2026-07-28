@@ -12,7 +12,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr package sast print-sast-dirs print-sast-config validate clean zipapp release-preflight
+.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr package sast print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -188,6 +188,30 @@ zipapp:
 
 release-preflight: lint-packs
 	@bash tools/release-check.sh
+
+# ── Static analysis + tests ──────────────────────────────────────────────────
+# Requires: pip install -e packages/agentbundle ruff mypy pytest
+#           pip install -e 'packages/credbroker[crypto]'
+#           pip install -r tools/requirements-sast.txt  (for build-check SAST leg; or SKIP_SAST=1)
+
+lint-ruff:
+	@command -v ruff >/dev/null 2>&1 || { echo "make lint-ruff: ruff not found — run: pip install ruff" >&2; exit 1; }
+	$(PYTHON) tools/lint-ruff.py
+
+lint-mypy:
+	@command -v mypy >/dev/null 2>&1 || { echo "make lint-mypy: mypy not found — run: pip install mypy" >&2; exit 1; }
+	$(PYTHON) tools/lint-mypy.py
+
+# Core package + tools tests. Full CI test matrix (38 suites) runs on GitHub Actions.
+test:
+	$(PYTHON) -m pytest packages/agentbundle/tests/ packages/agentbundle/agentbundle/build/tests/ -q
+	$(PYTHON) -m pytest packages/credbroker/ -q
+	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py -q
+
+# Local CI gate — mirrors build-check.yml + docs.yml on Linux/macOS.
+# Windows-specific jobs (build-check-windows.yml) run on GitHub Actions only.
+# Skip SAST: SKIP_SAST=1 make ci
+ci: build-check pre-pr lint-ruff lint-mypy test
 
 # ── Site publishing ──────────────────────────────────────────────────────────
 # Requires: npm ci --prefix docs-site (one-time setup)
