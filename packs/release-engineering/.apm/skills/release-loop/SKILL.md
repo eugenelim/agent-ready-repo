@@ -167,12 +167,24 @@ can (pre-filling the record from validated telemetry + reviewer verdicts) and
 **surfaces** the irreducible. The gate is a **consolidation of checks the loop
 already runs + the error-budget input**, not a new reviewer or engine.
 
-The error-budget **artifact** is supplied by a follow-on SLO-authoring capability
-(home provisional — a follow-on capability). **Until it exists, the record carries
-an explicit `error-budget: not-defined` field the human sees** — the absence is
-*recorded and visible*, never a silent pass, and is distinguishable from a
-satisfied record. This is the launch PRR (pre-prod); ongoing error-budget
-monitoring + on-call ownership belong to the future operate/incident loop.
+The error-budget artifact is produced by the **`define-slo` skill** (in this pack) —
+an OpenSLO v1 document committed to `slos/<service>.yaml`. At gate-check time the
+release-lead queries the telemetry backend using a trailing-window query derived from the
+SLO document's metric expressions and resolves the field to one of **four states**:
+
+| State | Condition |
+|---|---|
+| `not-defined` | No `slos/<service>.yaml` found — absence is *recorded and visible*, never a silent pass |
+| `within-budget` | Budget consumption below warn threshold; passes cleanly |
+| `warning: <N>% remaining` | Below warn threshold but not exhausted — surfaces in PRR, non-blocking by default |
+| `exhausted: halt-releases` | Budget fully consumed — **surfaces to human as a blocking item at G5**; halt per Google's error-budget policy |
+| `query-failed` | Telemetry backend unreachable at gate time — surfaces, not a silent pass |
+
+The `warn_at` and `halt_at` thresholds are read from the SLO document's
+`error_budget_policy` block (defaults: halt at 100% consumed, warn below 25% remaining).
+When the SLO document is absent, the record carries `error-budget: not-defined` — the
+`define-slo` skill creates it. This is the launch PRR (pre-prod); ongoing error-budget
+monitoring and on-call ownership belong to the future operate/incident loop.
 
 ## The inner↔outer feedback seam + sidecar consumption
 
@@ -368,3 +380,230 @@ shape mirrors `discovery-loop`'s contract, extended for the deploy boundary):
 - **Churning past the cap.** On cap-with-unconverged, write the stall record and
   surface.
 - **Forking the sidecar schema.** Consume the produced instances by convention.
+
+## The G4 handoff package
+
+The inner loop commits a `release-handoff.yaml` file to the repository at G4 — the
+"build done" marker that is the outer loop's entry point. The outer loop reads it
+before touching the deploy target. It is read-only from commit time onward.
+
+**Mandatory fields** (all required; outer loop surfaces if any is absent):
+
+```yaml
+schema_version: "1.0"          # semver; outer loop reads this first
+                                # unknown version → surface to human, not crash
+built_at: <RFC3339>             # inner loop's G4 completion timestamp
+built_by: <CI run identifier>   # e.g. "github-actions/runs/12345" — opaque string
+
+component_manifest:             # one entry per deployable component
+  - name: <string>
+    image_ref: "<registry>/<repo>:<tag>@sha256:<64-hex>"  # combined form always
+
+provenance_ref:                 # reference to the SLSA provenance attestation
+  type: oci-referrer            # "oci-referrer" | "file"
+  subject_digest: "sha256:<hex>"
+
+iac_plan_ref:                   # reference to the IaC plan snapshot
+  type: file                    # "file" | "artifact-url"
+  path: path/to/plan.json
+
+test_evidence_summary:          # pass/fail record from the inner loop at G4
+  unit: pass | fail
+  integration: pass | fail
+  lint: pass | fail
+  security_scan: pass | fail
+
+changelog_delta:                # commits since last release tag
+  since_ref: <git tag or SHA>
+  entries:
+    - id: <issue/PR id>
+      summary: <one line>
+
+deploy_phases:                  # ordered deploy phase list — see Deploy ordering below
+  - phase: infra-apply
+    ...
+```
+
+**Tolerant reader.** Unknown fields are ignored — the outer loop reads what it knows
+and surfaces a warning for unknown `schema_version` values rather than hard-failing.
+Adopters may extend the schema with additional fields.
+
+The combined `registry/repo:tag@sha256:<hex>` image reference form is mandatory. A
+tag-only reference is mutable (no immutability guarantee); a digest-only reference is
+opaque to humans. The combined form satisfies both.
+
+## Deploy ordering protocol
+
+The `deploy_phases` field encodes the canonical deploy ordering as an ordered list
+the outer loop executes phase-by-phase. The **four standard phases** are the
+non-waivable ordering floor:
+
+| Phase | Tool hint | Gate | `on_failure` |
+|---|---|---|---|
+| `infra-apply` | terraform / pulumi / cdk | auto | surface (IaC rollback is non-automatic — see Rollback) |
+| `service-deploy` | argocd-sync / helm-upgrade / kubectl-apply | auto | rollback |
+| `smoke` | \<test runner\> | auto | rollback |
+| `canary` | \<traffic controller\> | auto (metric-gated) or manual | rollback |
+
+The ordering is not arbitrary: services reference infra outputs (database URLs, IAM role
+ARNs, VPC IDs) — `infra-apply` must precede `service-deploy`. Smoke gates the canary.
+These are invariants of the deploy topology, not adopter preferences.
+
+The `tool` field is a **hint** — the outer loop translates it to the actual orchestrator
+at deploy time. Adopters may add phases before, between, or after the standard four; they
+may not reorder the standard four relative to each other. Each phase's `depends_on` list
+(optional) makes multi-component fan-out explicit.
+
+## Canary analysis defaults
+
+Progressive traffic shift is what turns the canary phase from a one-shot deploy into a
+two-way door. The following are **conservative floors — not production baselines**.
+Tighten per service class before going to prod.
+
+**Traffic steps (default):** 5% → 25% → 50% → 100%
+
+**Pause per step:** 2 min minimum; 5 min recommended (catches issues that manifest under
+sustained load).
+
+**Analysis thresholds by service class:**
+
+| Metric | Default | Stateful / Payment | Interactive API |
+|---|---|---|---|
+| Success rate floor | ≥ 95% | ≥ 99% | ≥ 99% |
+| Error rate ceiling | ≤ 5% | ≤ 1% | ≤ 1% |
+| Latency p99 ceiling | ≤ 500 ms | ≤ 200 ms | ≤ 200 ms |
+
+Thresholds derive from SLO targets where a `define-slo` document is present — tighten
+to match the service's defined reliability objective.
+
+**Failure limit:** 3 consecutive analysis failures per step → automatic ROLLBACK.
+
+**Four canary outcomes:**
+
+- **PROMOTE** — all metric checks pass for the full step duration; no failure-limit hit.
+  Advance to the next traffic step automatically.
+- **ROLLBACK** — failure limit (≥ 3 consecutive) reached, or a `critical` metric
+  immediately breaches. Revert traffic to 0% canary. Trigger rollback procedure.
+- **PAUSE-for-human** — metric score falls in the ambiguous band (75–95 Spinnaker-equivalent
+  percentile), or the phase list contains an explicit `pause: {}` step. Resume only on
+  human `approve` — this is a consent gate (control (a)).
+- **HALT** — oscillation circuit-breaker: **N ≥ 3 consecutive promote↔rollback cycles**.
+  Halt promotion entirely; write a stall record to the decision log; surface to human;
+  count against the cost cap (AC10(e)). A cheap flapping canary that stays under budget
+  is still bounded by attempt count.
+
+## Feature flag lifecycle
+
+Feature flags are the mechanism that decouples **deploy** (code ships to servers) from
+**release** (users see the feature). The deploy→release decoupling invariant:
+
+> Code is merged to main behind a flag in `deployed-off` state. The flag advances to
+> `enabled-pct` only **after smoke passes** — not at deploy time, at convergence time.
+> Full rollout (100%) happens after canary promotion.
+
+**Six lifecycle states (harness-neutral):**
+
+| State | Meaning | Transition trigger |
+|---|---|---|
+| `created` | Flag defined in management system; code not yet deployed | Flag registered |
+| `deployed-off` | Code deployed; flag evaluates to `false`/default; no user exposure | Code merged behind flag |
+| `enabled-pct` | Flag enabled for N% of users (progressive rollout) | Smoke passed; canary begins |
+| `full-rollout` | Flag enabled for 100% of users | Canary promoted |
+| `deprecated` | Feature is live; flag no longer needed; code cleanup begun | Decision to remove |
+| `removed` | Flag and all code references deleted | Code references confirmed gone |
+
+**Four flag types with expected lifetimes:**
+
+- **release** (progressive delivery): ≤ 90 days created → removed. The primary flag type
+  for this loop.
+- **experiment** (A/B / metrics-gated): ≤ 90 days. Cleaned up when the experiment
+  concludes.
+- **operational** (kill-switch / circuit-breaker): indefinite; must be explicitly tagged
+  `permanent`. These are not release flags — they are always-on infrastructure controls.
+- **permission** (user/role scoped): service-dependent lifetime; must be documented in
+  the SLO document or a companion policy record.
+
+OpenFeature (CNCF incubating project) provides the harness-neutral provider API. The lifecycle
+states above are independent of any specific flag management system (LaunchDarkly,
+Unleash, or a custom system). **A `release` flag stuck at `deprecated` beyond 90 days
+is flag debt — surface it in the PRR.**
+
+## Rollback procedure
+
+Rollback is not one thing. Service rollback and IaC rollback have different safety
+profiles and different gate types.
+
+### Service rollback (automatic)
+
+Re-deploying a previous immutable digest is always safe to attempt.
+
+1. **Trigger:** ROLLBACK outcome from canary analysis, or smoke failure.
+2. **Action:** Route 100% traffic back to the stable image; re-deploy the previous
+   `image_ref` from the G4 component manifest (or the most recent prior release
+   tag's manifest).
+3. **Rollback verification (three-step, non-waivable):**
+   - **Step 1 — Traffic confirmed.** Canary weight = 0%, stable = 100%. Observable
+     via service mesh telemetry or load-balancer metrics within seconds.
+   - **Step 2 — Metric recovery.** Monitor error rate and latency for 2 full analysis
+     intervals (minimum 2 × pause-per-step) to confirm the recovery curve.
+   - **Step 3 — Smoke probe passes.** Run the smoke phase against the stable endpoint;
+     every smoke assertion must pass. A failed smoke after rollback = surface to human.
+
+### IaC rollback (non-automatic — consent-gated)
+
+IaC rollback is **re-convergence to a prior desired state**, not a re-deploy. Terraform,
+Pulumi, and CDK have no native rollback command. The mechanism is `git revert` of the
+config commit + `apply`. This may not be achievable if real-world state diverged (data
+was written, a managed certificate was provisioned, a DNS record propagated). **IaC
+rollback is a `one-way-door` reversibility class — it requires a human consent gate.**
+
+Protocol:
+1. Surface to human with the IaC plan snapshot from `iac_plan_ref` for review.
+2. Human confirms the prior state is achievable (no destructive or irreversible resource
+   changes in the diff).
+3. `git revert` the config commit. Run `plan` first; review the plan output. Only apply
+   after the plan confirms intent matches.
+4. Rollback verification: run `plan` again after `apply` — output should show no changes
+   (converged). Run smoke phase.
+
+**Always plan before apply on any IaC rollback path.** An IaC rollback that involves
+deletions, DNS changes, certificate renewals, or data modifications is itself a
+`one-way-door` — escalate to the human, never proceed autonomously.
+
+## Artifact provenance verification
+
+Before the outer loop deploys, it verifies the G4 artifact has not been substituted or
+tampered with between G4 commit time and deploy time. This fulfills AC7's "detectable"
+claim. A failed verification is a supply-chain integrity failure — it is a
+**consent gate crossing**, not a warning.
+
+**Three-step verification (run before `infra-apply` phase):**
+
+1. **Digest re-check.** Re-fetch the image manifest from the registry using the
+   `image_ref` digest. Confirm the fetched manifest digest equals the digest in
+   `component_manifest[].image_ref`. A mismatch means the registry content changed after
+   G4 — surface immediately; do not deploy.
+
+2. **Provenance assertion.** Verify the SLSA provenance attestation at `provenance_ref`:
+   - If `type: oci-referrer`: verify via cosign/keyless or equivalent — e.g.
+     `cosign verify-attestation --type slsaprovenance \
+       --certificate-identity <workflow-identity-san> \
+       --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+       <registry>/<repo>@<image_ref_digest>`
+     (or the harness's equivalent guarantee). The verification checks the DSSE
+     signature against the Sigstore root of trust, the payload digest, and the
+     Rekor transparency log entry.
+   - If `type: file`: verify the DSSE envelope signature independently.
+   - The attestation's `subject[].digest` must match `component_manifest[].image_ref`.
+
+3. **Level check.** Confirm the attestation meets **SLSA L2 minimum**: the provenance
+   is signed by a hosted build platform (not a local workstation); cosign keyless signing
+   via GitHub Actions OIDC + Fulcio satisfies L2. **SLSA L3** (isolated build environment
+   + signing key inaccessible to build steps) raises the bar further and is the aspiration
+   for prod-bound artifacts. If the attestation is absent or L1-only, surface to human
+   with severity `one-way-door` — the human decides whether to override.
+
+**Failure action:** Write a `status: provenance-check-failed` entry to the decision log;
+surface to human with the specific mismatch detail (which check failed, what the digests
+were); do not proceed to `infra-apply`. Override requires explicit human consent and is
+recorded in the decision log with `ratified_by: human` via the control-(a) attested channel.

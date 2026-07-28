@@ -15,6 +15,9 @@ skills:
   - name: release-loop
     description: "The release supervisor. Deploys to ephemeral env, runs e2e, feeds findings back to the inner loop, iterates to convergence, then surfaces for prod ship approval."
     humanTouches: 1
+  - name: define-slo
+    description: "Authors an OpenSLO v1 YAML document for a service. Produces the SLO artifact the release-loop PRR gate reads to populate the error-budget status field."
+    humanTouches: 0
 humanGates:
   - id: G5
     globalGate: "G5"
