@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.6.3"
+version = "0.7.0"
 description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, jira-align-brief-intake, jira-story-triage, and jira-team-status workflows that compose them."
 readme = "README.md"
 display_name = "Atlassian"
@@ -53,7 +53,7 @@ prerequisites    = ["Atlassian API token or SSO credentials via the credential-b
 verification     = "Ask the agent 'List my open Jira issues' and confirm it returns results without an authentication error."
 recovery         = "If authentication fails, run the credential-brokers setup to configure your Atlassian API token; if your org uses SSO, run the sso-broker flow first."
 level-b          = true
-starter-task     = "See your open Jira issues without opening a browser"
-starter-prompt   = "Show me the Jira issues currently assigned to me that are open or in progress."
-expected-result  = "A formatted list of your assigned Jira issues with status, priority, and issue keys."
-next-action      = "Ask the agent to draft a comment updating the status of your most urgent issue."
+starter-task     = "See what your team can work on next — without opening a browser"
+starter-prompt   = "Show me what Team Atlas can work on next. Start read-only and tell me if the result is incomplete."
+expected-result  = "A team status report showing ready, blocked, in-progress, and needs-story-work items — with scope, completeness disclosure, and recommended next candidates."
+next-action      = "Ask the agent to improve a weak story: 'Make ATLAS-204 actionable but do not update Jira yet.'"

@@ -1,165 +1,203 @@
-# `jira-team-status` — worked examples
+# jira-team-status — examples
 
-## Example 1: Stand-up status snapshot with pick-up hand-off
+## Example 1: One project, one sprint, complete result
 
-**Invocation:** "Give me a team status for stand-up — the PLATFORM team, sprint 8."
+**Prompt:** Show the team status for PLATFORM sprint 12.
 
-**Skill behaviour:**
+---
 
-1. Runs `jira: check` → exit 0.
-2. Detects `git remote -v` → `https://github.com/acme/platform-core` → **Invocation repo: `github.com/acme/platform-core`**.
-3. Runs:
-   ```
-   jira: search "project = PLATFORM AND sprint = 'Sprint 8' AND statusCategory != Done"
-         --fields "summary,description,issuetype,status,statusCategory,assignee,updated,priority,labels,issuelinks,customfield_*"
-         --limit 100
-   ```
-4. Receives 8 items. Classifies each into a primary dimension; computes cross-cutting views.
+**Team status — PLATFORM sprint 12 · 2026-07-28**
 
-**Output:**
+> Scope: `project = PLATFORM AND sprint = "Sprint 12" AND statusCategory != Done`
+> Projects / boards: PLATFORM
+> Sprint / filter: Sprint 12
+> Coverage: **Complete — 8 items**
+> Read-only: Jira was not changed by this run.
 
-```
-Invocation repo: github.com/acme/platform-core (detected)
-Scope: project = PLATFORM AND sprint = "Sprint 8"
-Coverage: all 8 items (not truncated)
-```
+**Summary:** 8 items — Ready to pull: 3 (Quick 2 / Std 1 / Inv 0) · Needs story work: 2 · Blocked: 1 · In progress: 2 · Other: 0 | Unassigned: 4 · Stale: 1 · Needs confirmation: 0
 
 ---
 
 ### §1 — Ready to pull
 
-Meets the ready-to-pull rule (eligible state · no blocker · passes the readiness bar).
-
-**Quick** (≤ 2pts)
-
-| Key | Summary | Priority | Complexity | Updated (⚠ if stale) | Invocation repo match? |
+| Key | Summary | Priority | Complexity | Updated | Repo match? |
 |---|---|---|---|---|---|
-| PLATFORM-201 | Remove deprecated `FeatureFlags.LEGACY_AUTH` constant | High | Quick | yesterday | Yes |
-| PLATFORM-202 | Update `platform-core` agent frontmatter to claude-sonnet-5 | Medium | Quick | 3 days ago | Yes |
+| PLATFORM-201 | Add dotenv support to the API service | Medium | Quick | 2d | Yes |
+| PLATFORM-202 | Rename metric key in config | Low | Quick | 3d | Unknown |
+| PLATFORM-206 | Retrofit telemetry onto renamed pack | Medium | Standard | 5d | Yes |
 
-**Standard** (3–5pts)
+Can run concurrently: PLATFORM-201, PLATFORM-202 (distinct scopes; no stated dependency).
 
-| Key | Summary | Priority | Complexity | Updated (⚠ if stale) | Invocation repo match? |
-|---|---|---|---|---|---|
-| PLATFORM-206 | Add structured logging to the credential rotation hook | High | Standard | 2 days ago | Yes |
+### §2 — Needs story work
 
-Can run concurrently: **PLATFORM-201, PLATFORM-202, PLATFORM-206** (distinct scopes; no stated dependency).
-
----
-
-### §2 — In progress
-
-| Key | Summary | Assignee | Updated |
-|---|---|---|---|
-| PLATFORM-207 | Retrofit telemetry onto the renamed `ce-ai-enablement-pack` | @dev-mira | 4h ago |
-| PLATFORM-208 | Migrate CI pipeline from Jenkins to GitHub Actions | @dev-omar | ⚠ 18 days ago (stale) |
-
----
+| Key | Summary | What's missing | Confidence | Fix with |
+|---|---|---|---|---|
+| PLATFORM-204 | Update the agents | Empty description; vague title | High | jira-story-triage |
+| PLATFORM-208 | Integrate with partner API | "TBD — awaiting partner decision" throughout | High | jira-story-triage |
 
 ### §3 — Blocked
 
-| Key | Summary | Blocker (which signal) | Owner hint |
-|---|---|---|---|
-| PLATFORM-203 | Enable mTLS for service-to-service calls | "is blocked by" PLATFORM-190 (cert provisioning), unresolved | @infra-lead |
+| Key | Summary | Blocker signal | Owner | Dependency risk? |
+|---|---|---|---|---|
+| PLATFORM-215 | Fix auth token refresh | Flagged (impediment set) | @alice | No |
+
+### §4 — In progress
+
+| Key | Summary | Assignee | Updated | Priority |
+|---|---|---|---|---|
+| PLATFORM-198 | Migrate legacy config format | @bob | 1d | High |
+| PLATFORM-199 | Add retry logic to export | @carol | 16d ⚠ stale | Medium |
+
+### §5 — Other open work
+
+None in this scope.
 
 ---
 
-### §4 — Unassigned
+**Cross-cutting flags:**
 
-| Key | Summary | Primary dimension | Status |
-|---|---|---|---|
-| PLATFORM-201 | Remove deprecated `FeatureFlags.LEGACY_AUTH` constant | Ready to pull | To Do |
-| PLATFORM-202 | Update `platform-core` agent frontmatter to claude-sonnet-5 | Ready to pull | To Do |
-| PLATFORM-206 | Add structured logging to the credential rotation hook | Ready to pull | Selected for Dev |
-| PLATFORM-204 | Investigate options for distributed tracing | Needs detail | To Do |
-
-(Ready-to-pull items are expected to be unassigned; the signal to watch is that no
-*in-progress* item is orphaned here.)
+- **Unassigned:** PLATFORM-201 (Ready), PLATFORM-202 (Ready), PLATFORM-204 (Needs story work), PLATFORM-208 (Needs story work)
+- **Stale:** PLATFORM-199 (In progress, 16d — last touched 2026-07-12)
+- **Risks and data-quality gaps:**
+  - PLATFORM-199 is in progress but stale (16d); no update from @carol. May need attention.
+  - PLATFORM-215 blocked (Flagged) with no stated blocker resolution path.
 
 ---
 
-### §5 — Needs detail (product attention)
+### §6 — Recommended next candidates
 
-| Key | Summary | What's missing (coarse) | Fix with |
-|---|---|---|---|
-| PLATFORM-204 | Investigate options for distributed tracing | Discovery-shaped; no repo/ACs | `jira-story-triage` |
-| PLATFORM-205 | !arch-diagram.png! | Image-only description | `jira-story-triage` |
+- **PLATFORM-201** — Quick complexity, unassigned, no known blockers, repo scope matches invocation repo. Recommended first pickup.
+- **PLATFORM-202** — Quick complexity, unassigned, no known blockers. Second pickup.
+- **PLATFORM-206** — Standard complexity, unassigned. Ready if capacity allows.
 
----
+### §7 — Likely follow-up actions
 
-**Recently changed:** PLATFORM-207 (4h ago), PLATFORM-201 (yesterday), PLATFORM-206 (2 days ago).
-
-```
-Team status: 8 items.  Ready to pull: 3 (Quick 2 / Std 1 / Inv 0).
-In progress: 2.  Blocked: 1.  Unassigned: 4.  Needs detail: 2.  Stale: 1.
-Scope: project = PLATFORM AND sprint = "Sprint 8".  Coverage: all 8.  Invocation repo: github.com/acme/platform-core.
-```
+- **Needs story work (2 items):** Use `jira-story-triage` to review PLATFORM-204 and PLATFORM-208 — it will explain exactly what's missing and draft a fix for approval.
+- **Blocked:** PLATFORM-215 is flagged — escalate if the blocker hasn't resolved.
+- **Stale:** PLATFORM-199 in progress for 16d — check in with @carol or re-assign.
 
 ---
 
-### Pick-up hand-off (read-only)
+*Pick-up hand-off:*
 
-**Option A — Start delivery:**
-
-> "Ready to start delivery? Suggested: **PLATFORM-201** — Remove deprecated `FeatureFlags.LEGACY_AUTH` constant (Quick, High priority, scope matches invocation repo).
-> [yes / pick another / skip]"
-
-**User:** yes
-
-> "PLATFORM-201 is a Task — routing to `new-spec` to scope the delivery."
-> → `new-spec` skill loads with PLATFORM-201 context.
-
-**Option B — Improve an item that needs detail:**
-
-> "Want to make a not-ready item actionable — draft acceptance criteria, clarify the outcome? Suggested: **PLATFORM-204** — Investigate options for distributed tracing.
-> [yes / pick another / skip]"
-
-**User:** yes
-
-> "Routing to `jira-story-triage` for PLATFORM-204 — it will explain exactly what's
-> missing and draft a fix you approve before anything is written to Jira."
-> → `jira-story-triage` loads scoped to PLATFORM-204.
-
-This skill runs no rewrite of its own — improvement lives in `jira-story-triage`.
+> Ready to start delivery? Suggested: **PLATFORM-201** — "Add dotenv support to the API service."
+> [yes / pick another / skip]
 
 ---
 
-## Example 2: "What is blocked / unassigned?" across the whole backlog
+## Example 2: More than 100 issues — full pagination
 
-**Invocation:** "Show me the entire ALPHA backlog — what's blocked and what's sitting unassigned?"
+**Prompt:** Show me the full DEVKIT backlog.
 
-**Skill behaviour:**
+---
 
-1. `jira: check` → exit 0.
-2. Whole-backlog scope requested → drops the open-sprints default:
-   ```
-   jira: search "project = ALPHA AND statusCategory != Done" --fields "...,assignee,updated,issuelinks,statusCategory,..." --limit 100
-   ```
-3. Result exceeds `--limit` → discloses coverage.
+**Team status — DEVKIT open backlog · 2026-07-28**
 
-**Output (abridged to the asked dimensions):**
+> Scope: `project = DEVKIT AND statusCategory != Done`
+> Projects / boards: DEVKIT
+> Sprint / filter: open backlog (whole-backlog scope requested)
+> Coverage: **Complete — 137 items (2 pages, Cloud cursor-based pagination)**
+> Read-only: Jira was not changed by this run.
 
-```
-Scope: project = ALPHA (whole backlog, statusCategory != Done)
-Coverage: truncated at 100 — total 137 items (narrow scope or ask to paginate for the rest)
-```
+**Summary:** 137 items — Ready to pull: 41 (Quick 18 / Std 19 / Inv 4) · Needs story work: 52 · Blocked: 8 · In progress: 31 · Other: 5 | Unassigned: 67 · Stale: 14
 
-### §3 — Blocked
+[... grouped sections follow ...]
 
-| Key | Summary | Blocker (which signal) | Owner hint |
+---
+
+## Example 3: Ambiguous team scope — compact clarification
+
+**Prompt:** Show me the Team Atlas backlog.
+
+---
+
+I found two possible Atlas scopes:
+
+1. The **Atlas Jira board** (board ID 42, 15 issues in current sprint)
+2. Issues whose **Team field is Atlas** (returns 23 issues across projects APP and API)
+
+Which should I use?
+
+---
+
+*After user selects option 2:*
+
+**Team status — Team field = Atlas · 2026-07-28**
+
+> Scope: `"Team" = "Atlas" AND statusCategory != Done`
+> Projects / boards: APP, API
+> Coverage: **Complete — 23 items**
+> Read-only: Jira was not changed by this run.
+> Note: Scope resolved using Team field (option 2).
+
+[... grouped sections follow ...]
+
+---
+
+## Example 4: Explicit agent-execution readiness lens
+
+**Prompt:** Show me agent-ready work in ATLAS sprint 12 — which items can a coding agent take?
+
+---
+
+**Team status — ATLAS sprint 12 · 2026-07-28 (agent-execution lens active)**
+
+> Scope: `project = ATLAS AND sprint = "Sprint 12" AND statusCategory != Done`
+> Coverage: **Complete — 10 items**
+> Read-only: Jira was not changed by this run.
+> Note: Agent-execution lens active (explicit request). Items filtered further by the five-question bar.
+
+**Summary:** 10 items total. Agent-ready (all 5 Q): 3 · Team-ready (not all Q): 4 · Needs story work: 2 · Blocked: 1
+
+### Agent-ready (explicit lens — all five Q pass)
+
+| Key | Summary | Priority | Complexity |
 |---|---|---|---|
-| ALPHA-031 | Deploy new auth middleware to staging | Flagged (impediment set) | @sec-lead |
-| ALPHA-044 | Wire billing webhook | "is blocked by" ALPHA-040, unresolved | — |
-| ALPHA-052 | Migrate session store | needs confirmation — blocker field not in response | — |
+| ATLAS-201 | Add dotenv support to API service | Medium | Quick |
+| ATLAS-202 | Rename metric key in config | Low | Quick |
+| ATLAS-207 | Fix auth token refresh | High | Standard |
 
-### §4 — Unassigned
+### Ready to pull — team (does not pass all Q for agent execution)
 
-| Key | Summary | Primary dimension | Status |
+| Key | Summary | Complexity | Barrier |
 |---|---|---|---|
-| ALPHA-028 | Make the API faster | Needs detail | Backlog |
-| ALPHA-033 | Add rate-limit headers | Ready to pull | To Do |
-| ALPHA-047 | Refund flow edge cases | In progress | In Progress |
+| ATLAS-210 | Update product briefing template | Standard | Q2: no repo named |
+| ATLAS-213 | Review API partner onboarding flow | Standard | Q1: coordination work, not a code change |
+| ATLAS-218 | Migrate legacy config format | Involved | Q5: multi-week scope, needs decomposition |
+| ATLAS-222 | Expand reporting coverage | Standard | Q2: no repo named |
 
-ALPHA-047 is **in progress but unassigned** — the kind of orphaned WIP §4 exists to
-surface. ALPHA-052's blocker state couldn't be read, so it is **needs confirmation**,
-not asserted unblocked.
+*These items are ready for the team; they need further refinement before a coding agent can take them.*
+
+[... §2 Needs story work, §3 Blocked follow ...]
+
+---
+
+## Example 5: Stand-up request, no historical comparison
+
+**Prompt:** Give me a stand-up summary for PLATFORM sprint 9. What changed since yesterday?
+
+---
+
+**Team status — PLATFORM sprint 9 stand-up · 2026-07-28**
+
+> Scope: `project = PLATFORM AND sprint = "Sprint 9" AND statusCategory != Done`
+> Coverage: Complete — 12 items
+> Read-only: Jira was not changed by this run.
+
+**Progress** *(historical comparison unavailable — Cloud does not store a prior snapshot. Showing items updated in the last 24 hours as a proxy.)*
+- PLATFORM-198: @bob updated description (1h ago); status unchanged
+- PLATFORM-206: moved from To Do → In Progress (22h ago)
+- PLATFORM-199: no update (stale — 17d)
+
+**Blocked**
+- PLATFORM-215: Flagged, 3d since last update. Blocker reason not stated. Escalate?
+
+**Risks**
+- PLATFORM-199: in progress 17d, no recent update — possible stall.
+- PLATFORM-204 and PLATFORM-208: still in Needs story work; `jira-story-triage` session recommended before sprint end.
+
+**Ready next**
+- PLATFORM-201 (Quick, unassigned, repo match) — recommended for immediate pickup.
+- PLATFORM-202 (Quick, unassigned) — second pickup.
+
+*Read-only confirmed. To publish this summary to Confluence, start a separate Confluence Publisher session.*

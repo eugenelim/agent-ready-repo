@@ -1,8 +1,8 @@
 {
   "id": "jira-story-triage",
   "name": "Jira Story Triage",
-  "version": "1.1.0",
-  "description": "Review a Jira backlog, sprint, or JQL-scoped set of work items for readiness to hand to engineering, and improve the weak ones. For every item that is not ready, the output explains why — which of the five-question bar's questions failed and the specific gap — not merely a tier label. On request, drafts the fix (acceptance criteria, a clearer outcome, a tighter scope) and writes it back to Jira via update-issue only after the user approves the exact drafted payload. Read-only until an approval; the write flow is opt-in and per-item.",
+  "version": "2.0.0",
+  "description": "Review Jira work items for readiness (using the agent-execution readiness bar — five questions for coding-agent or engineer handoff), explain why each weak item is not ready (which question failed and the specific gap), surface unresolved human questions that must be answered before improvement, draft proposed rewrites and acceptance criteria, and write back to Jira only after the user approves the exact payload. Read-only until approval; the write flow is opt-in, per-item, shows old/new values, lists protected fields, and reports partial failures with a recovery path. Triggers on 'which stories are not ready', 'which stories need more detail', 'improve these weak stories', 'make tickets actionable', 'draft better acceptance criteria', 'explain why these items are not ready'. For team backlog status and pick-up hand-off (ready/blocked/unassigned/stand-up), use jira-team-status.",
   "category": "workflows",
   "tags": ["jira", "triage", "backlog", "readiness", "actionability", "story-quality", "acceptance-criteria", "sprint-planning"],
   "license": "MIT",
@@ -23,7 +23,7 @@
   },
   "output": {
     "artifacts": [
-      "A reason-first Markdown readiness review: one row per item with an outcome (Ready for engineering / Gated / Not ready — needs shaping / Needs detail), complexity for Ready items, and a 'Why not ready' column naming the failed question(s) and specific gap. Followed by an opt-in improve flow that drafts fixes and writes them back via update-issue only after per-item approval."
+      "A read-only readiness review header (scope, items reviewed, Jira-not-changed confirmation) followed by a reason-first Markdown table: one row per item with outcome (Ready for agent execution / Gated / Not ready — needs shaping / Needs detail), complexity for Ready items, 'Why not ready' column (failed Q + specific gap), and 'Unresolved human questions'. Footer with counts and Jira-not-changed confirmation. Followed by an opt-in improve flow: surfaces unresolved human questions first, then drafts per-item payload (with expected readiness after draft), shows old/new values and protected fields, confirms before any write, reports partial failures with recovery action."
     ]
   },
   "targets": {

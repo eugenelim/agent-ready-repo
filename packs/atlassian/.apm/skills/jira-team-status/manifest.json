@@ -1,8 +1,8 @@
 {
   "id": "jira-team-status",
   "name": "Jira Team Status",
-  "version": "1.1.0",
-  "description": "A read-only status view of a team's Jira work, organized by the dimensions people ask about — Ready to pull, In progress, Blocked, Unassigned, and Needs detail (product attention), plus recently-changed and stale markers — for sprint, stand-up, and team-status summaries. 'Ready to pull' is a documented, team-overridable rule (in scope + eligible backlog state, default statusCategory=To Do + no known blocker + meets the five-question readiness bar); undeterminable signals are labelled 'needs confirmation' rather than asserted. Ends in a read-only pick-up hand-off: start delivery on a ready item (routing to jira-defect-flow for bugs or new-spec for tasks/stories), or route an item that needs detail to jira-story-triage. Read-only by default; its only write is a confirmed bare pass-through to the jira skill's update-issue when the user explicitly asks to set a field.",
+  "version": "2.0.0",
+  "description": "Team backlog status view for sprint, stand-up, and team-orientation — what the team can pick up next, what is ready, blocked, in progress, unassigned, stale, or needs story work. Two readiness concepts are distinct: team readiness (default — scope + eligible state + no blocker + minimum definition) and agent-execution readiness (explicit optional lens using the five-question bar, activated only when the user asks for agent-ready or one-PR work). Output starts with scope, coverage, read-only confirmation, and summary counts before grouped sections. Paginates to completeness; always discloses coverage state. Triggers on 'show the team backlog', 'what can the team pick up', 'what is blocked', 'sprint status', 'stand-up summary', 'stale team work'. Routes story improvement to jira-story-triage; routes approved field changes to jira update-issue with explicit per-issue confirmation.",
   "category": "workflows",
   "tags": ["jira", "team", "sprint", "backlog", "stand-up", "team-status", "blocked", "unassigned", "sprint-planning", "session-start"],
   "license": "MIT",
@@ -38,7 +38,7 @@
   },
   "output": {
     "artifacts": [
-      "A read-only team status snapshot in five sections: §1 Ready to pull (grouped Quick/Standard/Involved), §2 In progress, §3 Blocked, §4 Unassigned, §5 Needs detail (product attention) — plus a recently-changed note, stale markers, and a coverage-disclosing summary line. Followed by a read-only pick-up hand-off: start-delivery routing (jira-defect-flow / new-spec) or a route to jira-story-triage for improvement. A confirmed bare pass-through update-issue only on an explicit user request."
+      "A team status report starting with a header block (scope, coverage, Jira-not-changed confirmation, summary counts), followed by grouped sections: §1 Ready to pull (team-ready; or agent-ready sub-group when that lens is explicitly active), §2 Needs story work, §3 Blocked, §4 In progress, §5 Other open work — plus cross-cutting flags (unassigned, stale, missing owner, dependency risk), §6 recommended next candidates with reasons, and §7 likely follow-up actions. Pick-up hand-off routes to jira-defect-flow (bugs) or new-spec (tasks/stories); story improvement routes to jira-story-triage. Confirmed bare pass-through update-issue for a single field on explicit user request only."
     ]
   },
   "targets": {
