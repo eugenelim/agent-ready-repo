@@ -242,7 +242,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   data-isolated from prod **and from each other**, hold **no real user data**, and
   **cannot reach prod state** — a deploy target that cannot be proven isolated is
   itself a **consent-gate crossing** (it is no longer reversible), not an
-  autonomous-zone action.
+  autonomous-zone action. (→ RFC-0074 for the qualification test and provability
+  classification per isolation level)
 - [x] **AC4 — the carve, human zone (RFC-0049 D2).** The skill binds to **human
   consent gates**: first promotion to **real users or real data**; **data
   migrations** (schema / destructive); **spend over a pre-agreed threshold**;
@@ -349,6 +350,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   sound and the loop surfaces the gap** (the same fail-closed posture as AC2's
   detect-and-degrade and AC10(c)'s no-lens surface), while cross-repo *artifact
   referencing* uses ADR-0022 (RFC-0049 OQ1; RFC-0048 § Amendments 2026-06-28).
+  (→ RFC-0075 for the fleet manifest schema, e2e host repo definition, and
+  deploy sequencing vocabulary that specify the "value-stream cross-repo mechanism")
 - [x] **AC10 — the security & integrity contract (mirrors RFC-0053, extended for
   the deploy boundary).** The skill / agent specify, as first-class controls:
   **(a) verdict write-authority** — the prod / irreversible consent verdict is
@@ -417,7 +420,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   **(h) ephemeral-env isolation is a carve precondition** — the AC3 isolation
   conditions (no prod reachability, no real data, isolated from other ephemeral
   envs) are the security floor under the "reversible" label, not just a reviewer
-  lens; **(i) sidecar data-classification + state-branch integrity (mirrors
+  lens (→ RFC-0074 D2 / D5 for the L5 isolation floor and the three-dimension
+  qualification test); **(i) sidecar data-classification + state-branch integrity (mirrors
   RFC-0053 control 7, the LINDDUN leg).** The release boundary reads **live
   telemetry, e2e output, canary signals, and log lines** — which on a real-data or
   regulated-tier deploy can carry PII, customer identifiers, or secrets — so each

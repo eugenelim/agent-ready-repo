@@ -15,6 +15,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [release-engineering][0.1.6] — 2026-07-27
+
+### Added
+
+- **Ephemeral environment qualification** (`release-loop` skill): outer-loop ephemeral
+  environments must meet the L5 isolation floor (dedicated cloud account/project, or an
+  L4/L4+ k8s namespace/vCluster that passes a three-dimension policy audit — prod
+  reachability, data isolation, inter-env isolation). An environment below the floor is
+  a consent-gate crossing; L4/L4+ qualifies only after the policy audit passes.
+- **Polyrepo / value-stream topology** (`release-loop` skill): fleet manifest
+  (`release-fleet.yaml`) schema, canonical e2e host repo definition (Must/Must-NOT rules),
+  five-term harness-neutral deploy sequencing vocabulary (Component / Stage / Gate /
+  Depends-on / Release manifest), and a collect-then-validate pre-deploy phase that
+  runs RFC-0072 D6 provenance verification for every component before `infra-apply`.
+
+## [core][0.15.5] — 2026-07-27
+
+### Added
+
+- **`fidelity-ladder` reference module** (`operational-safety/references/`): seven-level
+  EXECUTE/QUALIFY reference (L0 in-memory fake through L6 staging) with per-level
+  coverage, gaps, budget heuristics, the three-dimension outer-loop qualification test,
+  and an isolation provability classification (self-evident / requires-policy-audit /
+  programmatically-auditable). Companion to the existing `environment-isolation` REVIEW
+  module; new module is constructive (how to choose / build), existing is audit (does it
+  meet the bar).
+- **Fidelity-ladder section** (`work-loop` skill): inner-loop budget heuristic (sub-5-min
+  rule; L0–L1 always; L2–L3 ceiling for most services), seven-level summary table,
+  cross-reference to `operational-safety/references/fidelity-ladder.md`, and a build-pack
+  handoff note.
+
 ## [release-engineering][0.1.5] — 2026-07-27
 
 ### Added

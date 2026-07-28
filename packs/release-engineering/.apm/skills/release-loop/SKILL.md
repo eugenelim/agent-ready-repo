@@ -607,3 +607,163 @@ claim. A failed verification is a supply-chain integrity failure — it is a
 surface to human with the specific mismatch detail (which check failed, what the digests
 were); do not proceed to `infra-apply`. Override requires explicit human consent and is
 recorded in the decision log with `ratified_by: human` via the control-(a) attested channel.
+
+## Ephemeral environment qualification
+
+Run this qualification step at outer-loop cycle start — before the collect phase (or before
+`infra-apply` in the single-component case). The check is a precondition for entering the
+autonomous zone; a single `false` is a consent-gate crossing.
+
+**The L5 floor.** An ephemeral environment must meet **L5** (dedicated cloud account /
+project, or an L4/L4+ k8s namespace or vCluster that has passed the three-dimension policy
+audit below) for the "reversible" label to hold under the minimum-regret carve. An environment
+below this floor is a consent-gate crossing — surface to human; do not proceed with
+autonomous deploy.
+
+**The three-dimension qualification test:**
+
+| Dimension | Condition | How to test |
+|-----------|-----------|-------------|
+| **Prod reachability** | No route from the ephemeral env to prod endpoints, prod databases, or prod identity stores | Network policy or security group audit: no ingress/egress to prod CIDR / prod account; credential scoping: session cannot assume prod IAM roles |
+| **Data isolation** | No real user data accessible from the ephemeral env | Data classification review: env storage contains only synthetic, anonymized, or purpose-generated data; no prod snapshot was restored here |
+| **Inter-env isolation** | This ephemeral env cannot affect other running ephemeral or shared staging envs | Env resources (namespaces, accounts, VPCs, state backends) are unique to this cycle; no shared mutable state with other concurrent envs |
+
+**Provability classification — cost of the qualification step:**
+
+- **Self-evident (L0–L3):** isolation is structural; the test passes trivially. Not relevant
+  to the outer loop's ephemeral envs, but noted for the inner/outer boundary.
+- **Requires policy audit (L4 namespace, L4+ vCluster):** NetworkPolicy + RBAC must be
+  verified per deployment. A namespace without verified NetworkPolicy is not qualified —
+  treat as a consent gate. The implementing agent reads and confirms the policy config
+  before each cycle.
+- **Programmatically auditable (L5 dedicated account/project):** SCP/org policies enforcing
+  the account/project boundary are queryable via API. Run the policy check at cycle start.
+
+**L4/L4+ conditional path:** an L4 or L4+ environment qualifies only after the three-dimension
+policy audit passes. "Namespace isolation" without a confirmed NetworkPolicy is L2-equivalent
+blast radius — it does not qualify. If the audit has not been performed this cycle, surface to
+human before proceeding.
+
+The full ladder specification — level descriptors, per-level gaps, inner-loop budget
+heuristic, and LocalStack licensing note — is in the `operational-safety` skill's
+`fidelity-ladder` reference module.
+
+## Polyrepo topology
+
+In a **single-product monorepo** the build repo is the integrated whole: no fleet manifest,
+no e2e host repo. The collect phase below is a no-op (one component). The single-component
+G4 handoff package (see `## The G4 handoff package`) is sufficient.
+
+In a **polyrepo / value-stream topology** — multiple component repos each producing their
+own G4 package — use the artifacts and steps below.
+
+### Fleet manifest (`release-fleet.yaml`)
+
+The fleet manifest is the cross-component release coordination artifact. It lives in the
+e2e host repo, is committed by a bot PR from each component repo's CI, and is read-only
+from merge time onward. It is the "courier snapshot" from the courier snapshot pattern
+(ADR-0022 applied to the release loop): the per-component G4 package is the authority;
+the fleet manifest carries versioned references to them and does not fork component G4
+packages.
+
+Mandatory schema:
+
+```yaml
+schema_version: "1.0"           # outer loop reads this first; unknown version → surface to human
+fleet_name: <string>             # e.g. "billing-platform"
+assembled_at: <RFC3339>          # timestamp of fleet assembly
+
+components:                      # one entry per deployable component
+  - name: <string>               # e.g. "auth-service"
+    repo: <org/repo>             # harness-neutral identifier
+    g4_package_ref: <path or URL> # path to the component's release-handoff.yaml at the pinned commit
+    image_ref: "<registry>/<repo>:<tag>@sha256:<hex>"  # must match g4_package's component_manifest
+
+deploy_sequence:                 # optional; defaults to parallel if absent
+  - component: auth-service
+    depends_on: []
+    gate: auto
+  - component: billing-api
+    depends_on: [auth-service]   # waits for auth-service's gate to pass
+    gate: auto
+  - component: web-frontend
+    depends_on: [billing-api]
+    gate: manual                 # explicit human gate before this component advances
+
+e2e_suite_ref:                   # reference to the e2e test suite in this host repo
+  path: tests/e2e/
+  runner: <string>               # hint: "playwright" | "cypress" | "k6" | "karate"
+```
+
+Schema compatibility: the outer loop reads `schema_version` first. Tolerant reader rule:
+unknown fields are ignored; adopters may extend with additional fields.
+
+### Canonical e2e host repo
+
+**Must contain:**
+- `release-fleet.yaml` (fleet manifest — outer loop entry point).
+- A composition file (`docker-compose.yaml`, Helm umbrella chart, or Kustomize overlay)
+  referencing image digests from the fleet manifest.
+- An e2e test suite treating the composed system as a black box (every assertion goes through
+  service APIs or UI surfaces, never internal component APIs).
+- CI configuration triggering the outer loop on fleet manifest merge or registry-event webhook.
+
+**Must NOT contain:**
+- Component application source code (any component source).
+- Per-component unit or integration tests (those belong in the component repo's inner loop).
+- Credentials or secrets in source (all secrets broker-mediated per AC10(g)).
+
+**Must install:** `core` + `release-engineering` at repo scope — the same precondition as
+any component repo that runs the outer loop.
+
+### Five-term harness-neutral vocabulary
+
+| Term | Definition | ArgoCD | Flux | Spinnaker / GHA |
+|------|-----------|--------|------|-----------------|
+| **Component** | A deployable unit with its own repo and version stream | `Application` | `Kustomization` / `HelmRelease` | stage target / service |
+| **Stage** | A named deploy target (staging, canary, production) | project / cluster | namespace | pipeline environment |
+| **Gate** | A blocking decision point (automated or human) | health check / sync status | readiness gate | `Check Preconditions` / `Manual Judgment` |
+| **Depends-on** | Component B must not deploy until component A passes its gate in the same stage | sync wave ordering | `HelmRelease.spec.dependsOn` | Pipeline sub-stage + wait |
+| **Release manifest** | A file recording the pinned version of every component for this release | `Application` image tag | image policy marker | `Release` artifact |
+
+The `deploy_sequence[].depends_on` field in the fleet manifest carries the intent; the
+adopter's orchestrator translates it to tool-specific primitives.
+
+### Collect-then-validate pre-deploy step
+
+Before `infra-apply`, run a **collect phase** for each component in the fleet manifest:
+
+```
+Collect phase (before infra-apply):
+  for each component in fleet_manifest.components:
+    1. Fetch the component's release-handoff.yaml from g4_package_ref.
+    2. Run RFC-0072 D6 provenance verification against the component's image_ref.
+    3. Confirm the image_ref in the fleet manifest matches the image_ref in the
+       component's G4 package (fleet manifest courier snapshot must be consistent
+       with current registry state).
+    4. If any component fails steps 1–3: surface to human with the specific mismatch;
+       do not proceed to infra-apply.
+  On all-pass: advance to infra-apply with the verified fleet.
+```
+
+In the monorepo/single-component case the collect phase is a no-op.
+
+### Triggering conventions
+
+(a) **Bot PR approach:** each component repo's CI opens a PR bumping
+`components[N].image_ref` to the new digest; the adopter's merge policy merges it.
+(b) **Scheduled reconciliation:** a scheduled loop queries each component registry for the
+latest passing-gate version and assembles a new fleet manifest. Use (b) when components
+release continuously.
+
+The trigger implementation is adopter toolchain — the doctrine does not prescribe
+`repository_dispatch` or any specific mechanism.
+
+### Distinction from ADR-0022
+
+ADR-0022 covers the **product-engineering meta-repo** — feature coordination across repos,
+per-component brief slicing, and shared contract versioning (the upstream discovery/build
+layer). This RFC-0075 mechanism covers the **release-loop's cross-repo coordination** —
+fleet assembly, version validation, and deploy sequencing after G4 packages are produced.
+The two are parallel, not redundant. Both apply the "reference-by-version + read-only
+courier snapshot" pattern to different layers.
