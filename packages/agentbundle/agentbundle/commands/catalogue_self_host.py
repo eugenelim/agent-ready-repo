@@ -18,12 +18,21 @@ def run(args: argparse.Namespace) -> int:
     root = Path(getattr(args, "root", ".")).resolve()
     do_check = getattr(args, "check", False)
     do_write = getattr(args, "write", False)
+    do_windows = getattr(args, "windows", False)
     force = getattr(args, "force", False)
     fmt = getattr(args, "format", "table")
 
     if not do_check and not do_write:
         print("catalogue self-host: specify --check or --write", file=sys.stderr)
         return 2
+
+    if do_windows and not do_check:
+        print("catalogue self-host: --windows requires --check", file=sys.stderr)
+        return 2
+
+    if do_windows:
+        from agentbundle.catalogue_tooling.self_host_windows import run_windows_compat
+        return run_windows_compat(root)
 
     result = write_self_host(root, force=force) if do_write else check_self_host(root)
 

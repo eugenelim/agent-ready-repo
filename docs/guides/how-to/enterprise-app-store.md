@@ -98,9 +98,15 @@ workflow.
 
 ## CI integration
 
-For automated packaging in CI:
+### Linux / macOS (base suite)
+
+The base CI job verifies the catalogue and packages it for distribution. Run on
+`ubuntu-latest` or `macos-latest`:
 
 ```yaml
+- name: Install agentbundle
+  run: pip install agentbundle
+
 - name: Package catalogue
   run: |
     agentbundle catalogue verify --root .
@@ -112,6 +118,37 @@ For automated packaging in CI:
       --output dist/artifactory \
       --source-revision ${{ github.sha }}
 ```
+
+### Windows (portability check)
+
+Add a separate Windows job to prove the catalogue builds and validates on native
+Windows — path separators, hook scripts, and encoding behave correctly. The base
+suite handles packaging; the Windows job runs the verify pipeline only:
+
+```yaml
+build-check-windows:
+  runs-on: windows-latest
+  env:
+    PYTHONUTF8: "1"
+    PYTHONIOENCODING: "utf-8"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install agentbundle
+      run: pip install agentbundle
+
+    - name: Verify catalogue (Windows)
+      run: agentbundle catalogue verify --root .
+```
+
+Set `PYTHONUTF8: "1"` and `PYTHONIOENCODING: "utf-8"` so Python's stdio does not
+default to Windows code page 1252 when the verify pipeline emits `✓`/`✖` glyphs.
+Without these, the job fails on encoding, not a catalogue problem.
 
 Never embed production Artifactory URLs, credentials, or bearer tokens in workflow YAML. Use
 secrets or a credentials broker.

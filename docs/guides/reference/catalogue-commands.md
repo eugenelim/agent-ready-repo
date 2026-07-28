@@ -64,7 +64,7 @@ commands) from `.apm/` sources into the adapter-expected layout.
 
 ```
 agentbundle catalogue self-host [--root ROOT] [--check | --write] [--force]
-                                [--format {table,json}]
+                                [--windows] [--format {table,json}]
 ```
 
 | Flag | Default | Description |
@@ -73,9 +73,10 @@ agentbundle catalogue self-host [--root ROOT] [--check | --write] [--force]
 | `--check` | — | Dry-run; exits non-zero if projection is out of date |
 | `--write` | — | Write projected files |
 | `--force` | `false` | Write even on a dirty working tree |
+| `--windows` | `false` | With `--check`: run the Windows-portability compat suite (bundler build, drift gates, path-sensitive tests, experience lint, pre-pr). Requires `--check`. |
 | `--format` | `table` | Output format |
 
-One of `--check` or `--write` is required.
+One of `--check` or `--write` is required. `--windows` is only valid with `--check`.
 
 ## `agentbundle catalogue package`
 
