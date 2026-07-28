@@ -39,6 +39,16 @@ import urllib.request
 # ``_sso_*`` modules' ``from .credentials_shim import Tier2HardFailError``
 # resolves under user-scope install.
 if __package__ in (None, "") and __spec__ is None:
+    # Windows console hardening: stdout defaults to errors="strict" — a
+    # non-ASCII write (em-dash messages, cookie-jar data) raises
+    # UnicodeEncodeError on a legacy cp1252 console. Reconfigure both streams
+    # before any output, including the platform-backend import below. Guarded:
+    # a StringIO test-harness replacement or pythonw's None has no reconfigure().
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     _here = pathlib.Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name

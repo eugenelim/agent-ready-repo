@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.20.2] — 2026-07-27
+
+### Fixed
+
+- **Seeds-lint symlink hardening.** `catalogue lint` with `lint-seeds = true`
+  now uses `os.walk(followlinks=False)` instead of `Path.rglob("*")` for the
+  seeds walk. On Python 3.11/3.12, `rglob` traverses into symlinked
+  directories and reads their contents; `os.walk` with `followlinks=False`
+  does not, closing a traversal gap for packs that ship a symlinked directory
+  under `seeds/`.
+- **`sso-broker.py` Windows console hardening.** The broker script
+  (`packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`) now
+  reconfigures stdout and stderr to UTF-8 inside the file-path-invocation
+  bootstrap gate, matching the fix applied to the other credentialed CLIs in
+  0.20.1. Without this, em-dash messages on a Windows cp1252 console raised
+  `UnicodeEncodeError` before the script could run.
+
 ## [0.20.1] — 2026-07-27
 
 ### Fixed
