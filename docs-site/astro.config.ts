@@ -483,6 +483,7 @@ export default defineConfig({
               label: 'Product Documentation',
               items: [
                 { label: 'Overview', slug: 'guides/product-documentation' },
+                { label: 'Getting Started', slug: 'guides/product-documentation/getting-started' },
                 {
                   label: 'Explanation',
                   items: [

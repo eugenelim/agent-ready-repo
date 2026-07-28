@@ -1,4 +1,10 @@
-# How to author product docs
+---
+title: "How to author product docs"
+summary: "Create, revise, retrofit, audit, or verify product documentation — pack READMEs, journeys, tutorials, how-to guides, reference pages, or explanations."
+pack: product-documentation
+kind: how-to
+status: stable
+---
 
 **Use this when:** you need to create, revise, retrofit, audit, or verify
 product documentation — pack READMEs, journeys, tutorials, how-to guides,

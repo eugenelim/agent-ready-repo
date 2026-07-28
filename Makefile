@@ -202,11 +202,12 @@ lint-mypy:
 	@command -v mypy >/dev/null 2>&1 || { echo "make lint-mypy: mypy not found — run: pip install mypy" >&2; exit 1; }
 	$(PYTHON) tools/lint-mypy.py
 
+# Dev-time Python deps beyond agentbundle: jsonschema>=4.0, PyYAML  (see tools/requirements.txt)
 # Core package + tools tests. Full CI test matrix (38 suites) runs on GitHub Actions.
 test:
 	$(PYTHON) -m pytest packages/agentbundle/tests/ packages/agentbundle/agentbundle/build/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
-	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py -q
+	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_build_site_routing.py -q
 
 # Local CI gate — mirrors build-check.yml + docs.yml on Linux/macOS.
 # Windows-specific jobs (build-check-windows.yml) run on GitHub Actions only.
