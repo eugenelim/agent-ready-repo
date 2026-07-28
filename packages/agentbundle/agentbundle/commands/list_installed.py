@@ -313,6 +313,7 @@ def _render_json(
     # Build per-row JSON dicts with exactly nine contract keys
     json_rows = []
     for row in display_rows:
+        ps = row.get("_pack_state")
         json_rows.append({
             "pack": row["pack"],
             "adapter": row["adapter"],
@@ -323,6 +324,9 @@ def _render_json(
             "status": row.get("status"),
             "status_reason": row.get("status_reason"),
             "drift_count": row.get("drift"),  # None when --check-drift not active
+            "artifact_uri": ps.artifact_uri if ps is not None else None,
+            "archive_sha256": ps.archive_sha256 if ps is not None else None,
+            "source_revision": ps.source_revision if ps is not None else None,
         })
 
     result = {

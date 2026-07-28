@@ -127,8 +127,14 @@ def test_skill_names_are_distinct():
     """
     compat_skill_dir = COMPAT_PACK / ".apm" / "skills"
     product_skill_dir = PRODUCT_DOC_PACK / ".apm" / "skills"
-    compat_names = {p.name for p in compat_skill_dir.iterdir() if p.is_dir()} if compat_skill_dir.exists() else set()
-    product_names = {p.name for p in product_skill_dir.iterdir() if p.is_dir()} if product_skill_dir.exists() else set()
+    compat_names = (
+        {p.name for p in compat_skill_dir.iterdir() if p.is_dir()}
+        if compat_skill_dir.exists() else set()
+    )
+    product_names = (
+        {p.name for p in product_skill_dir.iterdir() if p.is_dir()}
+        if product_skill_dir.exists() else set()
+    )
     collision = compat_names & product_names
     assert not collision, (
         f"user-guide-diataxis and product-documentation share skill dir name(s): "

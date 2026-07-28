@@ -15,6 +15,17 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   `HTTPSHandler`. Raises `CatalogueError` with a clear message if the path does not exist.
   When the variable is absent, behavior is unchanged. Enables HTTPS catalogue sources behind
   a corporate or self-signed CA without modifying the system trust store.
+- **Exact provenance fields on `PackState`** (`artifact_uri`, `archive_sha256`, `source_revision`):
+  after `agentbundle install` or `agentbundle upgrade` from a `catalogue+https://` or
+  `archive+https://` source, `.agentbundle-state.toml` now records the resolved archive URL,
+  the verified SHA-256 digest, and the optional `source_revision` from the channel descriptor.
+  Operators can correlate any installed pack row to a specific archive artifact for audit or
+  incident response. Local-directory installs leave all three fields absent. Existing state
+  files that predate this change are read without error; the missing fields default to `None`.
+  (`config.py`, `https_catalogue.py`, `commands/install.py`, `commands/upgrade.py`)
+- **Provenance exposed in `list-installed --format json`**: the three new fields appear on each
+  row as `artifact_uri`, `archive_sha256`, and `source_revision` (null when absent).
+  (`commands/list_installed.py`)
 
 ## [0.22.1] — 2026-07-28
 

@@ -148,6 +148,12 @@ class PackState:
     # Absent rows default to "~/.agentbundle" on read. Written at install time
     # from catalogue.user-dir.
     user_root: str = "~/.agentbundle"
+    # Exact provenance of the archive that produced this install. All three are
+    # None for local-directory sources; populated for catalogue+https:// and
+    # archive+https:// sources. Absent fields in existing state files read as None.
+    artifact_uri: str | None = None
+    archive_sha256: str | None = None
+    source_revision: str | None = None
 
     def file_sha(self, relpath: str) -> str | None:
         entry = self.files.get(relpath)
@@ -548,6 +554,10 @@ def _parse_adapter_row(
         raw_user_root if isinstance(raw_user_root, str) else "~/.agentbundle"
     )
 
+    raw_artifact_uri = body.get("artifact-uri")
+    raw_archive_sha256 = body.get("archive-sha256")
+    raw_source_revision = body.get("source-revision")
+
     return PackState(
         installed_version=body.get("installed-version", ""),
         source=body.get("source"),
@@ -560,6 +570,9 @@ def _parse_adapter_row(
         target_file=target_file,
         hook_wiring_owned=hook_wiring_owned,
         user_root=user_root,
+        artifact_uri=raw_artifact_uri if isinstance(raw_artifact_uri, str) else None,
+        archive_sha256=raw_archive_sha256 if isinstance(raw_archive_sha256, str) else None,
+        source_revision=raw_source_revision if isinstance(raw_source_revision, str) else None,
     )
 
 
@@ -664,6 +677,12 @@ def dump_state(state: State) -> str:
         lines.append(f"installed-version = {_emit_basic_string(ps.installed_version)}")
         if ps.source is not None:
             lines.append(f"source = {_emit_basic_string(ps.source)}")
+        if ps.artifact_uri is not None:
+            lines.append(f"artifact-uri = {_emit_basic_string(ps.artifact_uri)}")
+        if ps.archive_sha256 is not None:
+            lines.append(f"archive-sha256 = {_emit_basic_string(ps.archive_sha256)}")
+        if ps.source_revision is not None:
+            lines.append(f"source-revision = {_emit_basic_string(ps.source_revision)}")
         lines.append(f"install-route = {_emit_basic_string(ps.install_route)}")
         lines.append(f"scope = {_emit_basic_string(ps.scope)}")
         # user-root: always emit so round-trip is byte-stable. Default value
