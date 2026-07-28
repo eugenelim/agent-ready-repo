@@ -928,7 +928,7 @@ def _main_apm(args: argparse.Namespace) -> int:
     home = pathlib.Path(home_str)
 
     # --- Resolve data directory per AC3 precedence ---
-    plugin_data = _resolve_data_dir(env)
+    plugin_data = _resolve_data_dir(env)  # type: ignore[arg-type]
     if plugin_data is None:
         # No-match fall-through (no APM data-directory token set); exit 0
         # without writing marker or hash file (the no-partial-state rail).

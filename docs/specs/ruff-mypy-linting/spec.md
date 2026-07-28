@@ -1,5 +1,5 @@
 ---
-**Status:** In Progress
+**Status:** Shipped
 **Mode:** Full (multi-feature, dependent tasks, new tooling)
 ---
 
@@ -60,12 +60,12 @@ run on them.
 ## Acceptance Criteria
 
 - [x] Root `pyproject.toml` exists with `[tool.ruff]` (line-length=99) and `[tool.mypy]` config
-- [ ] `tools/lint-ruff.py` wrapper exists and exits 0 on clean, 1 on violations
-- [ ] `tools/lint-mypy.py` wrapper exists and exits 0 on clean, 1 on violations
-- [ ] `ruff check .` exits 0 (all violations fixed or config-suppressed with rationale)
-- [ ] `mypy packages/agentbundle/agentbundle packages/credbroker/credbroker` exits 0
-- [ ] Both wired into `.github/workflows/build-check.yml` (or a new `lint.yml`)
-- [ ] No existing tests broken by the fixes
+- [x] `tools/lint-ruff.py` wrapper exists and exits 0 on clean, 1 on violations
+- [x] `tools/lint-mypy.py` wrapper exists and exits 0 on clean, 1 on violations
+- [x] `ruff check .` exits 0 (all violations fixed or config-suppressed with rationale)
+- [x] `mypy packages/agentbundle/agentbundle packages/credbroker/credbroker` exits 0
+- [x] Both wired into `.github/workflows/build-check.yml` (or a new `lint.yml`)
+- [x] No existing tests broken by the fixes
 
 ## Config decisions (rationale)
 

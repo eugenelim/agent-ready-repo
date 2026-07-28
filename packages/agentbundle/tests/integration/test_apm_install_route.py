@@ -124,7 +124,7 @@ def _read_marker(marker_path: Path) -> dict:
 
 
 ALLOWED_POST_EDIT_MODULES = frozenset({
-    "argparse", "datetime", "hashlib", "json", "os", "pathlib",
+    "argparse", "contextlib", "datetime", "hashlib", "json", "os", "pathlib",
     "re", "sys", "tempfile", "tomllib",
 })
 

@@ -602,7 +602,7 @@ def _dotfile_write(
     try:
         os.write(fd, content.encode("utf-8"))
         if os.name == "posix":
-            os.fchmod(fd, 0o600)
+            os.fchmod(fd, 0o600)  # type: ignore[attr-defined]
         os.close(fd)
         if os.name == "nt":
             _verify_icacls(tmp_path, allow_permissive_acl=allow_permissive_acl)
@@ -639,7 +639,7 @@ def _dotfile_delete(namespace: str, key: str) -> None:
     try:
         os.write(fd, content.encode("utf-8"))
         if os.name == "posix":
-            os.fchmod(fd, 0o600)
+            os.fchmod(fd, 0o600)  # type: ignore[attr-defined]
         os.close(fd)
         pathlib.Path(tmp_path).replace(path)
     except Exception:
@@ -962,7 +962,7 @@ def store_vault_master(master: str) -> None:
         while mv:
             mv = mv[os.write(fd, mv):]
         if os.name == "posix":
-            os.fchmod(fd, 0o600)
+            os.fchmod(fd, 0o600)  # type: ignore[attr-defined]
         os.fsync(fd)
         os.close(fd)
         if os.name == "nt":
