@@ -337,8 +337,8 @@ def _stream_and_verify(
                         raise CatalogueError(
                             f"archive from {url!r} exceeds {_MAX_ARCHIVE_BYTES} byte limit"
                         )
-                        hasher.update(chunk)
-                        tmp_file.write(chunk)
+                    hasher.update(chunk)
+                    tmp_file.write(chunk)
         except CatalogueError:
             raise
         except urllib.error.URLError as exc:

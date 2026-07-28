@@ -308,7 +308,7 @@ class Vault:
             while mv:
                 mv = mv[os.write(fd, mv):]
             if os.name == "posix":
-                os.fchmod(fd, 0o600)
+                os.fchmod(fd, 0o600)  # type: ignore[attr-defined]
             os.fsync(fd)
             os.close(fd)
             if os.name == "nt":

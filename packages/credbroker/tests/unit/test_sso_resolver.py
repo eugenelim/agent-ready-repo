@@ -124,4 +124,4 @@ def test_subprocess_run_is_the_only_spawn() -> None:
 
 
 def test_version_bumped_to_0_2_0() -> None:
-    assert credbroker.__version__ == "0.2.0"
+    assert credbroker.__version__ == "0.4.0"
