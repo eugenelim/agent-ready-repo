@@ -22,6 +22,10 @@ import os
 import warnings
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from agentbundle.config import State
 
 _POSIX = os.name == "posix"
 
@@ -84,7 +88,7 @@ def write_entry(
     dst: str | None = None,
     *,
     extra: dict | None = None,
-    state: object = None,
+    state: State | None = None,
     home: Path | None = None,
 ) -> None:
     """Append one structured operation entry to ``<pack_dir>/ops.jsonl``.
