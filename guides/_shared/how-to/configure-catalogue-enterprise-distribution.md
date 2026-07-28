@@ -53,25 +53,18 @@ agentbundle catalogue sync-defaults --root . --check
 when they diverge. Add this to your CI pipeline so a stale `install-defaults.toml` fails
 the build before the wheel ships.
 
-## Step 4 — Commit and build
+## Step 4 — Commit and rebuild
 
-Commit `install-defaults.toml` alongside the `catalogue.toml` change, then build your
-agentbundle wheel as usual:
-
-```bash
-cd packages/agentbundle
-python -m build --wheel
-```
-
-Publish `dist/agentbundle-<version>-py3-none-any.whl` to your internal package index.
-Developers install it once:
+Commit `install-defaults.toml` alongside the `catalogue.toml` change, then rebuild and
+republish your agentbundle wheel as usual. Once the updated wheel is on your internal
+index, developers get the right source automatically:
 
 ```bash
-pip install agentbundle --index-url https://pypi.example.com/simple/
+agentbundle install --pack core
 ```
 
-From that point, `agentbundle install --pack core` resolves your Artifactory channel
-automatically. No `config set source` needed.
+No `config set source` needed. A developer who has set `[settings].source` in their user
+config keeps that value (it takes priority at Layer 2).
 
 ## Offline and air-gapped environments
 
@@ -82,8 +75,8 @@ AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue
 ```
 
 This skips the org Artifactory bootstrap and editable-install detection, falling through
-to the packaged default source or an explicit catalogue argument. Set it in the host's
-shell profile, a CI environment variable, or a wrapper script — no config file needed.
+to the packaged default source or an explicit catalogue argument. Set it in the shell
+profile, a CI environment variable, or a wrapper script — no config file needed.
 
 ## Disabling the bootstrap
 
@@ -93,6 +86,4 @@ to the packaged default source.
 
 ## See also
 
-- [How to package a catalogue for enterprise app-store distribution](../../../docs/guides/how-to/enterprise-app-store.md) — building and uploading the Artifactory release archive.
-- [Flow E — fully disconnected host](../../../docs/guides/how-to/flow-e-disconnected.md) — receive-side extraction and install for air-gapped machines.
 - [`agentbundle` reference](../reference/agentbundle.md) — full source-resolution chain and all env vars.
