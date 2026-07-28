@@ -45,6 +45,11 @@ is used directly. Test runner entry point: `npm test` (`vitest run`).
 - `astro build` cleans `outDir` on every run — this `web/` build MUST run before
   the `docs-site/` Starlight build writes into `build/docs/`. See
   `.github/workflows/pages.yml`.
+- Some files in `web/src/content/journeys/` are generated from `packs/*/JOURNEY.md`
+  by `tools/build-site.py --journeys-only`. Running `npm run build --prefix web`
+  without first running `python tools/build-site.py --journeys-only` (or
+  `make site-build`) will fail if generated files are absent. The `pages.yml` CI
+  job runs the sync step before the Astro build automatically.
 
 ## Development
 

@@ -15,6 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [Unreleased]
+
+### Added
+
+- **Pack-owned canonical journeys (Phase 2B).** Packs can now define their primary
+  journey in `packs/<pack>/JOURNEY.md`, the canonical source that generates the
+  central Astro content file. `tools/build-site.py --journeys-only` syncs pack-local
+  journeys before the web build; `pages.yml` runs this step automatically in CI.
+- **`lint-pack-journeys.py`** — new validator for `packs/*/JOURNEY.md` files;
+  enforces `journey_id`, skill existence and count, state vocabulary, write-stage
+  `You decide` requirement, dual-ownership detection, and duplicate ID detection.
+- **State vocabulary** — nine machine-readable state values (`read-only`, `draft`,
+  `proposed-write`, `confirmed-write`, `publish`, `destructive`, `no-action-required`,
+  `decision-required`, `blocked`) with enforcement in `lint-pack-journeys.py`.
+- **`product-documentation` pilot migration** — `packs/product-documentation/JOURNEY.md`
+  is the first pack-owned journey. The central file is now generated from the pack source;
+  the URL (`/journeys/product-documentation/`) is unchanged.
+- **Maintainer how-to** at `guides/_shared/how-to/pack-journey-authoring.md` — covers
+  when to add `JOURNEY.md`, the full frontmatter contract, stage contract, state
+  vocabulary, skill validation, route preservation, installation exclusion, migration
+  procedure, and dual-ownership rules.
+
 ## [product-documentation][0.1.0] — 2026-07-28
 
 ### Added

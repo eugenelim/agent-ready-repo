@@ -53,6 +53,17 @@ jobs:
       - name: Install web dependencies
         run: npm ci --prefix web
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Sync pack journeys
+        run: python tools/build-site.py --journeys-only
+
       - name: Build Astro marketing site
         run: npm run build --prefix web  # writes build/ at repo root
         env:

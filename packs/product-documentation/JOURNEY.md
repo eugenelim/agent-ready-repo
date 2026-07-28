@@ -1,5 +1,8 @@
 ---
+journey_id: product-documentation
 pack: product-documentation
+start_state: read-only
+end_state: confirmed-write
 scope: repo
 tagline: "Create, revise, retrofit, audit, and verify product documentation."
 prerequisitePacks: []
@@ -60,6 +63,7 @@ relatedJourneys:
 - **You do:** check that the inferred page kind fits your intent.
 - **You decide:** confirm the Diátaxis page kind.
 - **Output:** a confirmed page kind, mode, and destination path.
+- **State:** read-only
 
 ---
 
@@ -71,6 +75,7 @@ relatedJourneys:
   - **verify** — checks that the rendered page matches the skill or pack behavior it describes.
 - **You do:** for create/revise/retrofit, read the draft as a first-time reader; if you find yourself re-reading a sentence to extract the action it asks for, flag it. For audit, check that you agree with the contract cited for each finding.
 - **Output:** a draft, revision, retrofit plan, audit report, or verification result.
+- **State:** draft
 
 ---
 
@@ -79,3 +84,4 @@ relatedJourneys:
 - **You do:** read the output as the intended reader. For create/revise: does the page have a clear entry state, a clear exit, and no sentence that serves a different Diátaxis kind? For audit: is every finding actionable without needing to re-read the original doc?
 - **You decide:** review the output — gate passes when page kind, voice, and structure are consistent.
 - **Output:** a review-gate-passed artifact; the agent opens a PR after approval.
+- **State:** confirmed-write
