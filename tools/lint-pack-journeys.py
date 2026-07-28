@@ -116,7 +116,10 @@ def _check_stages(body: str) -> list[str]:
             findings.append(f"stage {heading!r}: missing **Output:** label")
 
         if "State" not in label_values:
-            findings.append(f"stage {heading!r}: missing **State:** label (required in pack-local JOURNEY.md stages)")
+            findings.append(
+                f"stage {heading!r}: missing **State:** label"
+                " (required in pack-local JOURNEY.md stages)"
+            )
 
         state_val = label_values.get("State")
         if state_val is not None:
