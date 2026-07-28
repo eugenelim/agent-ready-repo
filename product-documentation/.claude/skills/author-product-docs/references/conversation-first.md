@@ -1,12 +1,11 @@
 # Conversation-first structure
 
 Diátaxis determines where information lives. User intent determines how readers
-enter it. These are page-level sequencing rules — they sit above the word-level
-checklist in `clear-prose.md` and govern the order of what the reader encounters
-before the detail starts.
+enter it. These are page-level sequencing rules — they govern the order of what
+the reader encounters before the detail starts.
 
-A reader who does not know any pack or skill names must still be able to begin a
-real task from the first screen.
+A reader who does not know any pack or skill names must still be able to begin
+a real task from the first screen.
 
 ## Rules
 
@@ -46,3 +45,15 @@ real task from the first screen.
    that enumerates every flag, a tutorial that lists every configuration key — both
    interrupt the reader's task with detail they did not ask for. Link to the
    reference; do not embed it.
+
+## Coverage and truncation
+
+Product documentation does not need to cover every edge case. The goal is the
+common path that serves the reader's stated job. Name what is out of scope and
+where to look; do not embed every variation in the main procedure.
+
+## Inventory-after-outcome ordering
+
+Skill and command inventories serve a reader who already accomplished the first
+task and wants to explore further. Place them after at least one complete
+task — "you say / agent does / you get / what next" — not before.

@@ -1,21 +1,13 @@
 [pack]
 name = "user-guide-diataxis"
-version = "0.2.1"
-description = "Di\u00e1taxis-shaped user-guide skeleton: guides/ + tutorials/how-to/reference/explanation seed READMEs, new-guide skill."
+version = "0.3.0"
+description = "Deprecated compatibility shim. Depends on product-documentation. Install product-documentation directly for all new work."
 readme = "README.md"
-display_name = "User Guide (Diátaxis)"
+display_name = "User Guide (Diátaxis) [Deprecated — use product-documentation]"
 license = "Apache-2.0 OR MIT"
 categories = ["documentation"]
-keywords = ["diataxis", "tutorials", "how-to", "reference"]
+keywords = ["diataxis", "documentation", "deprecated"]
 
-# Opt into the catalogue seed lint (RFC-0047 Decision 6 / ADR-0037 D4): a
-# first-party scaffold pack, so `tools/lint-catalogue-seeds.py` enforces the
-# RFC-0002 placeholder contract here. Catalogue-internal — not projected.
-lint-seeds = true
-
-# RFC-0004 v0.2 contract metadata. Scaffolds `docs/guides/` for *this*
-# project's users \u2014 no project, no scaffolding target \u2014 so the pack is
-# repo-only.
 [pack.adapter-contract]
 version = "0.8"
 
@@ -23,48 +15,35 @@ version = "0.8"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
-# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
-# coverage allowlist. The covered skill ships evals/eval_queries.json and is
-# measured by tools/run-pack-evals.py. new-guide is a user-triggered
-# judgment/authoring skill (it drafts Diátaxis guides — no deterministic
-# artifact), so it also ships a Tier-4 LLM-judge rubric (evals/evals.json,
-# graded via --mode judge); there is no Tier-B-lite layer (nothing
-# deterministic to re-derive). The pack has no reviewer-internal / non-prompt
-# skill to exclude.
-[pack.evals]
-skills = ["new-guide"]
-
-# Per adapt-to-project AC17/AC18.
+# Compat shim: depends on the canonical pack. agentbundle does NOT auto-install
+# this dependency — a bare `install --pack user-guide-diataxis` will error with
+# "install product-documentation first". Install product-documentation first,
+# then install this shim only if you need the legacy new-guide redirect skill.
+# New installs should use product-documentation directly.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
-pack = "core"
+pack = "product-documentation"
 version = "^0.1"
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
-# + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/user-guide-diataxis/"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-documentation/"
 
 [[pack.maintainers]]
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
 
-# Level B: non-technical audience (technical writers, PMs); docs scaffold is structural repo record with preview-confirm gate.
-# safety-gate describes the install-time scaffold creation preview (pack seeds → docs/guides/ directory),
-# not the new-guide skill's conversation-contract gate. The conversation contract fires when a guide page
-# is actually authored (new-guide Step 3); the starter-task here is the earlier scaffold step. Intentional.
 [pack.first-value]
 audience-posture = "non-technical"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed at repo scope"]
-verification     = "Ask the agent 'What Diátaxis documentation types should this project have?' and confirm it replies with the four quadrants."
-recovery         = "If the skill does not activate, confirm user-guide-diataxis is installed at repo scope and re-run adapt-to-project."
-level-b          = true
-writes-to-repo   = true
-starter-task     = "Set up a Diátaxis documentation structure for your project"
-starter-prompt   = "Create the initial Diátaxis documentation scaffold for this project, organized into tutorials, how-to guides, reference, and explanation sections."
-expected-result  = "A docs/guides/ directory with a README and empty folders for tutorials, how-to, reference, and explanation — ready to fill in."
-next-action      = "Start with the tutorials section: ask the agent to help you write a tutorial for your most important user task."
-safety-gate      = "The skill shows you the planned directory structure and file list before creating anything. Confirm the preview before the scaffold is written."
+prerequisites    = ["product-documentation pack installed"]
+verification     = "Install product-documentation instead. This shim is deprecated."
+recovery         = "Install product-documentation: agentbundle install --pack product-documentation <catalogue>"
+level-b          = false
+writes-to-repo   = false
+starter-task     = "Install product-documentation instead"
+starter-prompt   = "Install product-documentation and use author-product-docs."
+expected-result  = "Redirect to product-documentation pack."
+next-action      = "agentbundle install --pack product-documentation <catalogue>"
+safety-gate      = "This pack is a deprecated shim with no seeds. Install product-documentation directly."

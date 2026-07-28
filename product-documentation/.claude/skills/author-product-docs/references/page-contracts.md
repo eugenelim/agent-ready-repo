@@ -1,26 +1,27 @@
 # Page contracts
 
-Each section below is the contract for one surface type. Load only the section
-that matches the page you are writing or revising. The contract answers three
-questions for each type: what the first screen must make obvious, what content
-is required, and what to move lower or link out.
+Each section is the contract for one page kind. Load only the section that
+matches the page you are writing or revising. The contract answers: what the
+first screen must make obvious, what content is required, and what to move lower
+or link out.
 
-## Choosing the right surface type
+The Diátaxis kinds are page contracts — not physical directory requirements.
+Assign the kind by reader posture; organize files however the host repository
+already organizes them.
 
-For the four Diátaxis types, choose by reader posture — what the reader is doing
-right now, not what topic they are reading about. The same person, on different
-days, will land in different quadrants.
+## Choosing the right kind
 
-| Reader's posture right now | Surface |
-| --- | --- |
+Choose by what the reader is doing right now, not by the topic they are reading
+about. The same person, on different days, lands in different kinds.
+
+| Reader posture | Kind |
+|---|---|
 | On rails, attentive, wants a guaranteed working result | **Tutorial** |
 | Has a named problem, wants the recipe | **How-to** |
 | In a hurry, scanning for the authoritative answer | **Reference** |
 | Away from the keyboard, wants to understand *why* | **Explanation** |
 
-Pack pages and journey pages are chosen by context: if the page describes what a
-pack does and how to start, it is a Pack page. If the page walks through a
-complete user flow from first request to final outcome, it is a Journey page.
+Pack READMEs and journey pages are chosen by context.
 
 ---
 
@@ -36,9 +37,9 @@ complete user flow from first request to final outcome, it is a Journey page.
 - Each step says what to do and what the reader should observe
 
 **Move lower or link out:**
-- Alternatives and variations (→ How-to)
-- Architecture and design decisions (→ Explanation)
-- Exhaustive option lists (→ Reference)
+- Alternatives and variations → How-to
+- Architecture and design decisions → Explanation
+- Exhaustive option lists → Reference
 - Prerequisites beyond the minimum needed to start
 
 **Anti-patterns to refuse:**
@@ -61,9 +62,9 @@ complete user flow from first request to final outcome, it is a Journey page.
 - The most likely follow-up request after the task completes
 
 **Move lower or link out:**
-- Theory and background (→ Explanation)
-- Exhaustive field-by-field reference (→ Reference)
-- Step-by-step setup a beginner needs (→ Tutorial)
+- Theory and background → Explanation
+- Exhaustive field-by-field reference → Reference
+- Step-by-step setup a beginner needs → Tutorial
 - Options the reader will never vary
 
 **Anti-patterns to refuse:**
@@ -86,16 +87,18 @@ complete user flow from first request to final outcome, it is a Journey page.
 - Limits: caps, timeouts, pagination, rate limits
 
 **Move lower or link out:**
-- Narrative walkthroughs (→ How-to or Tutorial)
-- Explanation of why the design works this way (→ Explanation)
-- Getting-started instructions (→ Tutorial)
+- Narrative walkthroughs → How-to or Tutorial
+- Explanation of why the design works this way → Explanation
+- Getting-started instructions → Tutorial
 
 **Anti-patterns to refuse:**
 - Editorializing ("this is the recommended option…")
 - Entries of the same kind shaped differently from their siblings
 - Skipping an option because it is "rarely used"
 
-**Sync discipline:** Reference rots when the code drifts. A code change → reference update in the same PR is the rule, not a nice-to-have. For auto-generated sections, mark them with a comment pointing to the source data so readers know not to hand-edit the copy.
+**Sync discipline:** Reference rots when the code drifts. A code change →
+reference update in the same PR. For auto-generated sections, mark them with a
+comment pointing to the source data.
 
 ---
 
@@ -110,9 +113,9 @@ complete user flow from first request to final outcome, it is a Journey page.
 - Boundaries — what this concept is and is not
 
 **Move lower or link out:**
-- Step-by-step procedures (→ How-to)
-- Exhaustive parameter lists (→ Reference)
-- Guaranteed-outcome walkthroughs (→ Tutorial)
+- Step-by-step procedures → How-to
+- Exhaustive parameter lists → Reference
+- Guaranteed-outcome walkthroughs → Tutorial
 
 **Anti-patterns to refuse:**
 - Step-by-step instructions embedded in the explanation
@@ -121,20 +124,20 @@ complete user flow from first request to final outcome, it is a Journey page.
 
 ---
 
-## Pack page
+## Pack README
 
 **First screen must answer:** "What can this help me do?"
 
 **Required content:**
-- Job cards — what a reader with a concrete goal can accomplish
-- Natural-language prompts — the exact words to use, not skill names
-- Result previews — what the agent returns for each task
-- The common journey — a start-to-finish sequence for the primary use case
+- What the reader can accomplish — job cards, outcome-first
+- Natural-language first request — copyable, not a skill name
+- What result the reader receives
+- Install information and trust boundary
+- Links to deeper documentation
 
 **Move lower or link out:**
-- The full skill inventory (names, flags, schema)
-- Installation and setup details
-- Architecture of how the pack is composed
+- Full skill inventory → Reference guide
+- Setup details → Tutorial
 
 **Anti-patterns to refuse:**
 - Opening with a skill or command list

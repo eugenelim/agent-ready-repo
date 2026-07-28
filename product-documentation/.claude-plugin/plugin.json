@@ -1,7 +1,7 @@
 {
-  "name": "user-guide-diataxis",
-  "version": "0.3.0",
-  "description": "Deprecated compatibility shim. Depends on product-documentation. Install product-documentation directly for all new work.",
+  "name": "product-documentation",
+  "version": "0.1.0",
+  "description": "Create, revise, retrofit, audit, and verify catalogue-facing product documentation. Supports Di\u00e1taxis as a page contract (not a mandatory folder scaffold). Portable across adopter repositories.",
   "hooks": {
     "SessionStart": [
       {
@@ -23,9 +23,11 @@
   "homepage": "https://github.com/eugenelim/agent-ready-repo",
   "repository": "https://github.com/eugenelim/agent-ready-repo",
   "keywords": [
-    "diataxis",
     "documentation",
-    "deprecated"
+    "diataxis",
+    "product-docs",
+    "guides",
+    "tutorials"
   ],
-  "displayName": "User Guide (Di\u00e1taxis) [Deprecated \u2014 use product-documentation]"
+  "displayName": "Product Documentation"
 }
