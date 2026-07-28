@@ -62,6 +62,10 @@ jobs:
   package-and-validate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      BUNDLE: ${{ inputs.bundle }}
+      RELEASE: ${{ inputs.release }}
+      CHANNEL: ${{ inputs.channel }}
     steps:
       - uses: actions/checkout@v4
 
@@ -79,23 +83,23 @@ jobs:
         run: |
           agentbundle catalogue package \
             --root . \
-            --bundle "${{ inputs.bundle }}" \
-            --release "${{ inputs.release }}" \
-            --channel "${{ inputs.channel }}" \
+            --bundle "$BUNDLE" \
+            --release "$RELEASE" \
+            --channel "$CHANNEL" \
             --output /tmp/catalogue-dist
 
       - name: Assert archive, sidecar, and descriptor exist
         run: |
-          ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
+          ARCHIVE="/tmp/catalogue-dist/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz"
           SIDECAR="${ARCHIVE}.sha256"
-          DESCRIPTOR="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json"
+          DESCRIPTOR="/tmp/catalogue-dist/catalogues/$BUNDLE/channels/$CHANNEL.json"
           ls "$ARCHIVE"
           ls "$SIDECAR"
           ls "$DESCRIPTOR"
 
       - name: Verify archive integrity
         run: |
-          ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
+          ARCHIVE="/tmp/catalogue-dist/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz"
           SIDECAR="${ARCHIVE}.sha256"
           agentbundle catalogue verify \
             --archive "$ARCHIVE" \
@@ -160,6 +164,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
+      BUNDLE: ${{ inputs.bundle }}
+      RELEASE: ${{ inputs.release }}
+      CHANNEL: ${{ inputs.channel }}
       ARTIFACTORY_BASE_URL: ${{ vars.ARTIFACTORY_BASE_URL }}
       ARTIFACTORY_REPOSITORY: ${{ vars.ARTIFACTORY_REPOSITORY }}
     steps:
@@ -202,11 +209,11 @@ jobs:
       - if: steps.guard.outputs.configured == 'true'
         name: Set path variables
         run: |
-          ARCHIVE="/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz"
+          ARCHIVE="/tmp/catalogue-dist/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz"
           {
             echo "ARCHIVE=$ARCHIVE"
             echo "SIDECAR=${ARCHIVE}.sha256"
-            echo "DESCRIPTOR=/tmp/catalogue-dist/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json"
+            echo "DESCRIPTOR=/tmp/catalogue-dist/catalogues/$BUNDLE/channels/$CHANNEL.json"
           } >> "$GITHUB_ENV"
 
       - if: steps.guard.outputs.configured == 'true'
@@ -214,7 +221,7 @@ jobs:
         run: |
           jf rt upload \
             "$ARCHIVE" \
-            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz" \
+            "$ARTIFACTORY_REPOSITORY/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz" \
             --fail-no-op
 
       - if: steps.guard.outputs.configured == 'true'
@@ -222,13 +229,13 @@ jobs:
         run: |
           jf rt upload \
             "$SIDECAR" \
-            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz.sha256"
+            "$ARTIFACTORY_REPOSITORY/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz.sha256"
 
       - if: steps.guard.outputs.configured == 'true'
         name: Remote verify — download sidecar and compare
         run: |
           jf rt dl \
-            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/releases/${{ inputs.release }}/catalogue-${{ inputs.release }}.tar.gz.sha256" \
+            "$ARTIFACTORY_REPOSITORY/catalogues/$BUNDLE/releases/$RELEASE/catalogue-$RELEASE.tar.gz.sha256" \
             /tmp/remote-sidecar.sha256
           diff "$SIDECAR" /tmp/remote-sidecar.sha256
 
@@ -237,4 +244,4 @@ jobs:
         run: |
           jf rt upload \
             "$DESCRIPTOR" \
-            "$ARTIFACTORY_REPOSITORY/catalogues/${{ inputs.bundle }}/channels/${{ inputs.channel }}.json"
+            "$ARTIFACTORY_REPOSITORY/catalogues/$BUNDLE/channels/$CHANNEL.json"
