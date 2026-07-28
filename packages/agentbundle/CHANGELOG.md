@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.21.1] — 2026-07-28
+
+### Fixed
+
+- **Windows path validation** (`catalogue_tooling/build.py`). `_validate_recipe_path`
+  now recognises Unix-style absolute paths (e.g. `/etc/foo.toml`) on Windows, where
+  `Path.is_absolute()` returns `False` for drive-relative paths. An explicit
+  `startswith("/")` guard rejects them with the correct "absolute" error on all platforms.
+
 ## [0.21.0] — 2026-07-28
 
 ### Added
