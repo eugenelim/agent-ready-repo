@@ -19,13 +19,23 @@ name: build-check-windows
 # unfiltered and authoritative, so any projected-doc drift is still
 # caught there.
 
-# This job's sole purpose is Python-script / bundler portability on Windows,
-# so it skips surfaces that cannot affect that: docs, the Makefile (the job
-# invokes `python` directly, never `make`), and root-level markdown. Nested
-# pack content (e.g. packs/**/*.md) is deliberately NOT ignored — it feeds the
-# bundler the job exercises. `.github/**` is also NOT ignored, so an edit to a
-# workflow (including this one) still triggers the job that validates it. The
-# Linux required check stays unfiltered (windows-ci-bundler spec § Never do).
+# The Windows compat suite is driven by a single command:
+#
+#   agentbundle catalogue self-host --check --windows --root .
+#
+# That command encapsulates the bundler build, the self-host drift gates,
+# and the path-sensitive / encoding-sensitive pytest suite that this job
+# exists to verify. The canonical test list lives in
+# agentbundle/catalogue_tooling/self_host_windows.py — edit it there,
+# not here — so adding a new Windows-specific test requires only a Python
+# change, not a YAML edit.
+#
+# Core agentbundle verify tasks (the full pytest suite in build-check.yml)
+# remain Linux-only and are not duplicated here.
+# Paths-ignore note: `.github/**` is intentionally NOT listed so an edit to
+# any workflow (including this one) still triggers the job that validates it.
+# The Linux build-check.yml job remains unfiltered — it is the required status
+# check on main and must never be gated.
 on:
   pull_request:
     branches: [main]
@@ -41,22 +51,6 @@ on:
       - "*.md"
 
 jobs:
-  # Runs the Python-portable subset of the Linux job: the bundler build
-  # check, the converters install/uninstall integration test, the hook
-  # smoke tests, and the pre-pr aggregator (which chains the five
-  # artifact linters in the same order an adopter would run them).
-  #
-  # Deliberately omitted on Windows: the `sudo apt-get install ripgrep`
-  # step, the two `rg`-based scrub steps (source-attribution, Rail-C
-  # marker), and the `evals.json` carry-over step (its bash for-loop +
-  # `[ -f ]` tests aren't portable as-is). Porting those is tracked as
-  # follow-up PRs in the Windows-support action plan; keeping them
-  # Linux-only here keeps this diff small and the Linux job untouched.
-  #
-  # `runs-on: windows-latest` runs PowerShell by default. Every command
-  # below is a single-shot Python invocation, so the default shell is
-  # fine — no `shell: bash` (which would force git-bash and re-introduce
-  # the very portability problem this PR exists to verify away).
   build-check-windows:
     name: make build-check (windows)
     runs-on: windows-latest
@@ -69,9 +63,6 @@ jobs:
       # mode (text I/O default is UTF-8 regardless of locale);
       # PYTHONIOENCODING is a belt-and-braces for any path that
       # bypasses the UTF-8-mode default.
-      # Adopter-side fix (scripts reconfiguring their own stdio so
-      # this isn't needed in PowerShell either) is tracked as a
-      # follow-up in the Windows-support action plan.
       PYTHONUTF8: "1"
       PYTHONIOENCODING: "utf-8"
     steps:
@@ -87,107 +78,16 @@ jobs:
             packages/agentbundle/pyproject.toml
             packages/credbroker/pyproject.toml
 
-      - name: Install agentbundle (editable) + pytest
-        # Installed first so `python -m agentbundle.build` resolves on
-        # the Windows job, which doesn't go through `make` (the Linux
-        # job's Makefile prepends packages/agentbundle to PYTHONPATH;
-        # path-separator differences make replicating that fragile on
-        # Windows, and `pip install -e` is needed for the pytest steps
-        # below anyway).
-        run: pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
-
-      - name: Run bundler build (populates dist/ for build-check drift gates)
-        # The drift gates added by docs/specs/claude-plugins-install-route/
-        # (writer-template byte-identity vs canonical) cross-validate
-        # source packs against the built dist/ tree. The Linux Makefile
-        # target `build-check` depends on `build`; on Windows we mirror
-        # that dependency explicitly so the gate doesn't fail loudly on
-        # a missing dist/.
-        run: python -m agentbundle.build build --packs-dir packs --output-dir dist
-
-      - name: Run bundler build-check
-        # Mirror of the Linux `make build-check` step — `make` shells to
-        # `python3 -m agentbundle.build check`, and `python` is the safe
-        # cross-platform invocation (Windows has no `python3` on PATH).
-        run: python -m agentbundle.build check --packs-dir packs
-
-      - name: pytest converters install/uninstall (AC6a)
-        working-directory: packages/agentbundle
-        run: python -m pytest tests/integration/test_install_converters_user_scope.py
-
-      # credbroker T9: standing net for the retired shared-libs projection
-      # (no shim copy reappears under a consumer scripts/; companion source
-      # retained). Run on Windows too — the test globs the real pack tree
-      # and walks for the repo root, both path-sensitive.
-      - name: pytest shared-libs projection retirement (credbroker T9)
-        working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
-
-      # self_host derives SELF_HOST_PACKS / SELF_HOST_ADAPTERS from the recipe by
-      # resolving its path; run on Windows too since that resolution is
-      # path-sensitive. make build-check runs no pytest, so wire it explicitly.
-      - name: pytest self-host recipe config (externalize-self-host-config)
-        working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
-
-      # The fixture-overwrite guard protects the make-free Windows entry; run
-      # its test on Windows too (as_posix path matching is platform-sensitive).
-      - name: pytest self-host fixture guard (windows-build-self-entry)
-        working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
-
-      # credbroker-user-scope T3: prove the vendored credbroker floor projects
-      # and is importable on Windows too — the projection's path handling +
-      # file modes are platform-sensitive, and the floor must import
-      # cross-platform. The [crypto] extra is not installed on the Windows job,
-      # so the floor-purity subprocess proves the base import is stdlib-only
-      # with the third-party deps simply absent.
-      - name: pytest user-libs vendored floor (credbroker-user-scope T3)
-        working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_user_libs_projection.py
-
-      # credbroker-user-scope T4: prove the user-scope install delivers the
-      # floor + sso-broker rail and a real consumer resolves `import credbroker`
-      # from `~/.agentbundle/lib` on Windows too. The lib floor must be
-      # importable cross-platform (the layer-1 resolution AC asserts on Windows
-      # CI); the POSIX-only mode-bit + chmod-refusal tests self-skip here.
-      - name: pytest user-scope floor delivery (credbroker-user-scope T4)
-        working-directory: packages/agentbundle
-        run: python -m pytest tests/integration/test_credential_brokers_pack_install.py
-
-      - name: pytest hook parity-net suite (windows-hooks-phase3)
-        working-directory: packages/agentbundle
-        run: python -m pytest tests/hooks/
-        # The bash test_session_start.sh sibling is intentionally skipped
-        # on Windows — pytest discovery only picks up test_*.py.
-
-      # atlassian-sso-cookie (RFC-0035): the cookie-path security suites must
-      # gate on Windows too — corporate-SSO dev machines are commonly Windows,
-      # and the fake-broker subprocess + asyncio + SSL-context wiring are
-      # path/platform-sensitive. credbroker is pip-installed here so the suites
-      # actually run (their `importorskip("credbroker")` would otherwise skip).
-      - name: pip install credbroker + httpx for the atlassian SSO suites (RFC-0035)
-        run: pip install -e ./packages/credbroker "httpx>=0.27"
-      - name: pytest jira SSO suites (atlassian-sso-cookie)
-        working-directory: packs/atlassian/.apm/skills/jira/scripts
-        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
-      - name: pytest confluence-crawler SSO suites (atlassian-sso-cookie)
-        working-directory: packs/atlassian/.apm/skills/confluence-crawler/scripts
-        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
-
-      - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
-        # RFC-0033: proves the experience agnosticism linter (renamed from
-        # design-craft, ADR-0038) behaves on Windows. `python` (not `python3`)
-        # is the safe cross-platform invocation — Windows has no `python3` on
-        # PATH. The (design-craft-pack AC8) tag stays pinned (frozen-spec cite).
+      - name: Install dependencies
+        # agentbundle is installed editable so `agentbundle catalogue self-host
+        # --check --windows` resolves. credbroker + httpx are required by the
+        # atlassian SSO suites that the Windows compat suite drives.
         run: |
-          python tools/test-lint-experience-agnostic.py
-          python tools/lint-experience-agnostic.py
+          pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
+          pip install -e ./packages/credbroker "httpx>=0.27"
 
-      - name: pre-pr aggregator (linters + spec termination check)
-        # Same script adopters run locally; the canonical parity oracle.
-        # Chains the artifact linters pre-pr.py invokes in order, then
-        # loop-cohort per-spec checks. The exact linter set is owned by
-        # pre-pr.py itself (PR #94 retired lint-skill-deps); list the
-        # comment intentionally vague so this doesn't drift again.
-        run: python tools/hooks/pre-pr.py
+      - name: Windows compat build-check
+        # Drives agentbundle/catalogue_tooling/self_host_windows.py:
+        # catalogue build → self-host drift check → path-sensitive pytest suite
+        # → experience lint → pre-pr aggregator. Stops on first failure.
+        run: agentbundle catalogue self-host --check --windows --root .

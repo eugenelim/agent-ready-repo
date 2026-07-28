@@ -19,6 +19,7 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Added
 
+- **`agentbundle catalogue self-host --check --windows`**: new `--windows` flag on the `self-host` subcommand. When combined with `--check`, runs the Windows-portability compat suite (`catalogue_tooling/self_host_windows.py`) — bundler build, self-host drift gates, path-sensitive and encoding-sensitive pytest steps — instead of the standard drift-only check. Rejected with exit 2 if used without `--check`. Drives the `build-check-windows` CI job, replacing its 20-step inline YAML. (`cli.py`, `commands/catalogue_self_host.py`, `catalogue_tooling/self_host_windows.py`)
 - **`AGENTBUNDLE_CA_BUNDLE` environment variable** (`https_catalogue.py`): when set to a path,
   `_build_opener` loads a custom PEM CA bundle into an `ssl.SSLContext` and passes it to
   `HTTPSHandler`. Raises `CatalogueError` with a clear message if the path does not exist.

@@ -217,6 +217,14 @@ pip install 'agentbundle[lint]'
 agentbundle catalogue lint --root . --deep
 ```
 
+**Check self-host projection drift** — verifies that adapter-projected files (skills, agents, hooks) match their `.apm/` sources without writing anything:
+
+```bash
+agentbundle catalogue self-host --check --root .
+```
+
+Exits non-zero if any projected file is out of date. Safe to run in CI as a required check; use `--write` locally to regenerate.
+
 **Run Tier-A activation evals** to measure whether each covered skill fires on the prompts it should:
 
 ```bash

@@ -846,6 +846,17 @@ def _build_parser() -> argparse.ArgumentParser:
         "--force", action="store_true", default=False, help="Force write even on dirty tree."
     )
     _sh_p.add_argument(
+        "--windows",
+        action="store_true",
+        default=False,
+        help=(
+            "With --check: run the Windows-portability compat suite instead of the "
+            "standard drift-only check. Drives the bundler build, self-host drift "
+            "gates, and the path-sensitive pytest suite used in the Windows CI job. "
+            "Rejected without --check."
+        ),
+    )
+    _sh_p.add_argument(
         "--format", choices=("table", "json"), default="table", help="Output format."
     )
     _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
