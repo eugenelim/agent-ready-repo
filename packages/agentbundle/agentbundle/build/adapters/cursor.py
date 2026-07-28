@@ -134,7 +134,8 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
 
 
 def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member.
+    """`shutil.copytree` ignore callback: skip every symlink member and
+    Python bytecode cache directories.
 
     Drops **nested** symlinks during the copy so they are never reproduced in
     the output tree. Without this, a symlink inside a skill subdir would be
@@ -144,10 +145,11 @@ def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
     `is_symlink()` skip in `_project_direct_directory` only covers the skill
     root; this covers the subtree. (Build runs on trusted `packs/`; this is
     the install-from-untrusted-catalogue defense — mirrored in all five
-    direct-directory adapters.)
+    direct-directory adapters.) __pycache__ is excluded because .pyc files
+    embed absolute source paths and would cause drift on any other machine.
     """
     base = Path(directory)
-    return {name for name in names if (base / name).is_symlink()}
+    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
 
 
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:

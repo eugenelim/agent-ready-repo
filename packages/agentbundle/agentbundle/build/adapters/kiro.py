@@ -370,14 +370,16 @@ def _project_hook_wiring_to_agent_json(
 
 
 def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member.
+    """`shutil.copytree` ignore callback: skip every symlink member and
+    Python bytecode cache directories.
 
     Drops nested symlinks so they are never reproduced in the output
     tree. The top-level `is_symlink()` skip in `_project_direct_directory`
-    covers the skill root; this covers the subtree.
+    covers the skill root; this covers the subtree. __pycache__ is excluded
+    because .pyc files embed absolute source paths and would cause drift.
     """
     base = Path(directory)
-    return {name for name in names if (base / name).is_symlink()}
+    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
 
 
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:

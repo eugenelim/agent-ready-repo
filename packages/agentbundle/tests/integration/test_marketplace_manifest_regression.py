@@ -183,9 +183,6 @@ class TestRunAggregateMarketplaceName:
         """Run `agentbundle build` against the real packs and return marketplace.json."""
         packs_shadow = tmp_path / "packs"
         shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
-        for pycache in packs_shadow.rglob("__pycache__"):
-            if pycache.is_dir():
-                shutil.rmtree(pycache, ignore_errors=True)
 
         result = subprocess.run(
             [

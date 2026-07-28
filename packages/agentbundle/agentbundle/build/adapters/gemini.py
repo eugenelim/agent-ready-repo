@@ -133,11 +133,13 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
 
 
 def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member (drops nested
-    symlinks so the install walker can't read through them to embed out-of-tree
-    content). The cursor.py precedent."""
+    """`shutil.copytree` ignore callback: skip every symlink member and
+    Python bytecode cache directories (drops nested symlinks so the install
+    walker can't read through them to embed out-of-tree content; drops
+    __pycache__ because .pyc files embed absolute source paths and drift).
+    The cursor.py precedent."""
     base = Path(directory)
-    return {name for name in names if (base / name).is_symlink()}
+    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
 
 
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
