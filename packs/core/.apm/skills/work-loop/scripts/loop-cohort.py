@@ -764,7 +764,7 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         report_path = Path(args.report)
         if not report_path.exists():
             return stop(f"report not found at {report_path}")
-        report_text = report_path.read_text()
+        report_text = report_path.read_text(encoding="utf-8")
         if "Clean — ready to commit." in report_text:
             fingerprints = []
         else:
@@ -889,7 +889,7 @@ def cmd_worktree_record(args: argparse.Namespace) -> int:
     report_src = Path(args.report)
     if not report_src.exists():
         return stop(f"report not found at {report_src}")
-    report_text = report_src.read_text()
+    report_text = report_src.read_text(encoding="utf-8")
 
     # Match first — confirm the report's heading references the task ID
     # we were told to record. Never write under an unvalidated name.

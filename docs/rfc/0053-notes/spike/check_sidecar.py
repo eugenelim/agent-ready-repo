@@ -19,7 +19,7 @@ def check_traceability(path: Path):
     """Orphan = a node missing a required edge along the chain.
     root (the vision) is exempt from needing an in-edge; leaf_kind (component) is exempt
     from needing an out-edge. Everything else needs both."""
-    g = json.loads(path.read_text())
+    g = json.loads(path.read_text(encoding="utf-8"))
     root, leaf_kind = g["root"], g["leaf_kind"]
     ids = {n["id"]: n for n in g["nodes"]}
     has_in = {e["to"] for e in g["edges"]}
@@ -40,7 +40,7 @@ def check_traceability(path: Path):
 
 def check_open_questions(path: Path):
     """Saturation OQ-clause: count rows whose status is open/routed (unsettled)."""
-    rows = [r for r in path.read_text().splitlines() if r.startswith("| OQ-")]
+    rows = [r for r in path.read_text(encoding="utf-8").splitlines() if r.startswith("| OQ-")]
     unsettled = []
     for r in rows:
         cells = [c.strip() for c in r.strip("|").split("|")]

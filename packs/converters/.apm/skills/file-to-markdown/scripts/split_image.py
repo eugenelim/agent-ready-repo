@@ -508,7 +508,7 @@ def main() -> None:
             fp = Path(args.focus_regions)
             if not fp.exists():
                 sys.exit(f"ERROR: Focus regions file not found: {fp}")
-            focus = json.loads(fp.read_text())
+            focus = json.loads(fp.read_text(encoding="utf-8"))
 
         m = generate_detail_tiles(
             Path(args.input), Path(args.output_dir),

@@ -1,6 +1,7 @@
 [tool.ruff]
 line-length = 99
 target-version = "py311"
+preview = true
 exclude = [
     ".agentbundle",   # projected build output; source lives in packs/
     ".agents",        # projected skill scripts; source lives in packs/ and .claude/
@@ -23,7 +24,8 @@ select = [
     "C4",   # flake8-comprehensions
     "PIE",  # flake8-pie
     "RET",  # flake8-return
-    "PTH",  # flake8-use-pathlib
+    "PTH",     # flake8-use-pathlib
+    "PLW1514", # open()/Path.open() without explicit encoding= (Windows cp1252 vs UTF-8)
 ]
 # Excluded rules (documented rationale):
 #   T20  — print() is the output mechanism in CLI scripts/tools; suppressed
@@ -31,7 +33,16 @@ select = [
 #   ARG  — pytest fixture arguments are intentionally unused by caller;
 #          test files excluded below; lambda _x: patterns are intentional
 #   UP035 — deprecated typing imports may be version-guarded; unsafe-fix only
-ignore = ["UP035"]
+ignore = [
+    "UP035",
+    # Alignment/spacing rules that fire in preview mode on intentional style
+    # already present throughout the codebase (column-aligned constants, compact
+    # blank-line conventions in scripts). Suppressed to preserve existing intent;
+    # would need a bulk reformat to adopt, which is out of scope here.
+    "E116", "E117", "E221",  # multiple spaces before operator / unexpected indent
+    "E226", "E241", "E261", "E272",  # spacing after comma/operator/comment/keyword
+    "E302", "E303", "E305", "E306",  # blank-line conventions
+]
 
 [tool.ruff.lint.per-file-ignores]
 # CLI tools and lint scripts use print() as their output mechanism

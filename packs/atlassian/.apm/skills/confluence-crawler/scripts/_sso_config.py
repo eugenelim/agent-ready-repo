@@ -178,4 +178,3 @@ def _select_auth_path(
     if sso_config is not None:
         return ("sso-cookie", sso_config)
     return ("token", None)
-
