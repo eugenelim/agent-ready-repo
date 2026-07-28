@@ -52,6 +52,9 @@ jobs:
         run: pip install 'pyyaml>=6.0'
       - name: Run full agentbundle test suite
         working-directory: packages/agentbundle
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
         run: python -m pytest tests/ agentbundle/build/tests/ -q
 
   # ── Gate B: external catalogue portability ────────────────────────────────
