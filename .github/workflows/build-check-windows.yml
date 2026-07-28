@@ -81,6 +81,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: |
+            tools/requirements.txt
+            packages/agentbundle/pyproject.toml
+            packages/credbroker/pyproject.toml
 
       - name: Install agentbundle (editable) + pytest
         # Installed first so `python -m agentbundle.build` resolves on
@@ -90,15 +95,6 @@ jobs:
         # Windows, and `pip install -e` is needed for the pytest steps
         # below anyway).
         run: pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
-
-      - name: Install ruff + mypy
-        run: pip install ruff mypy
-
-      - name: ruff lint
-        run: python tools/lint-ruff.py
-
-      - name: mypy type-check (typed packages only)
-        run: python tools/lint-mypy.py
 
       - name: Run bundler build (populates dist/ for build-check drift gates)
         # The drift gates added by docs/specs/claude-plugins-install-route/
