@@ -18,6 +18,7 @@ import io
 import json
 import os
 import re
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -874,7 +875,7 @@ def test_bearer_token_passed_to_opener():
 
     captured_env = {}
 
-    def fake_build_opener(token, original_url):
+    def fake_build_opener(token, original_url, **kwargs):
         captured_env["token"] = token
         return _MockOpener(b"", token=token)
 
@@ -1030,3 +1031,49 @@ def test_resolve_catalogue_http_error_is_https_only_message():
     msg = str(exc.value)
     assert "https" in msg.lower()
     assert "catalogue+https://" in msg or "archive+https://" in msg
+
+
+# ---------------------------------------------------------------------------
+# T2 — AGENTBUNDLE_CA_BUNDLE support in _build_opener
+# ---------------------------------------------------------------------------
+
+
+def test_build_opener_custom_ca_bundle(tmp_path: Path):
+    """AGENTBUNDLE_CA_BUNDLE: custom CA path is passed to ssl.SSLContext.load_verify_locations."""
+    ca_file = tmp_path / "corp-ca.pem"
+    ca_file.write_bytes(b"")
+
+    mock_ctx = mock.MagicMock()
+    with mock.patch("ssl.SSLContext", return_value=mock_ctx) as mock_ssl_ctx:
+        opener = _build_opener(
+            None,
+            "https://example.test/stable.json",
+            env={"AGENTBUNDLE_CA_BUNDLE": str(ca_file)},
+        )
+
+    mock_ssl_ctx.assert_called_once_with(ssl.PROTOCOL_TLS_CLIENT)
+    mock_ctx.load_verify_locations.assert_called_once_with(cafile=str(ca_file))
+    https_handlers = [h for h in opener.handlers if isinstance(h, urllib.request.HTTPSHandler)]
+    assert len(https_handlers) == 1
+
+
+def test_build_opener_missing_ca_file_raises():
+    """AGENTBUNDLE_CA_BUNDLE with non-existent path raises CatalogueError naming the file."""
+    missing = "/nonexistent/corp-ca.pem"
+    with pytest.raises(CatalogueError) as exc:
+        _build_opener(
+            None,
+            "https://example.test/stable.json",
+            env={"AGENTBUNDLE_CA_BUNDLE": missing},
+        )
+    assert missing in str(exc.value)
+
+
+def test_build_opener_no_ca_bundle_uses_default():
+    """Without AGENTBUNDLE_CA_BUNDLE, HTTPSHandler is built without a custom context."""
+    real_handler = urllib.request.HTTPSHandler
+    with mock.patch.object(urllib.request, "HTTPSHandler", wraps=real_handler) as mock_handler:
+        _build_opener(None, "https://example.test/stable.json", env={})
+
+    # Our code path must call HTTPSHandler() with no arguments (default SSL context)
+    mock_handler.assert_called_once_with()

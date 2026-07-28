@@ -27,6 +27,7 @@ import json
 import os
 import re
 import shutil
+import ssl
 import sys
 import tarfile
 import tempfile
@@ -101,7 +102,12 @@ class _OriginLockingRedirectHandler(urllib.request.HTTPRedirectHandler):
 # ---------------------------------------------------------------------------
 
 
-def _build_opener(token: str | None, original_url: str) -> urllib.request.OpenerDirector:
+def _build_opener(
+    token: str | None,
+    original_url: str,
+    *,
+    env: dict | None = None,
+) -> urllib.request.OpenerDirector:
     """Build a custom opener with proxy support, redirect enforcement, HTTPS only.
 
     - ``ProxyHandler()`` (no args) reads HTTPS_PROXY / NO_PROXY from
@@ -110,10 +116,22 @@ def _build_opener(token: str | None, original_url: str) -> urllib.request.Opener
     - ``_OriginLockingRedirectHandler`` rejects cross-origin redirects before
       they are followed; same-origin redirects forward ``Authorization`` intact.
     - Bearer token is added as ``Authorization: Bearer <token>`` when present.
+    - ``env`` defaults to ``os.environ``; injectable for testing.
     """
     redirect_handler = _OriginLockingRedirectHandler(original_url)
     proxy_handler = urllib.request.ProxyHandler()
-    https_handler = urllib.request.HTTPSHandler()
+
+    ca_bundle = (env if env is not None else os.environ).get("AGENTBUNDLE_CA_BUNDLE")
+    if ca_bundle:
+        if not Path(ca_bundle).exists():
+            raise CatalogueError(
+                f"AGENTBUNDLE_CA_BUNDLE path does not exist: {ca_bundle!r}"
+            )
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ctx.load_verify_locations(cafile=ca_bundle)
+        https_handler = urllib.request.HTTPSHandler(context=ctx)
+    else:
+        https_handler = urllib.request.HTTPSHandler()
 
     opener = urllib.request.OpenerDirector()
     opener.addheaders = []  # prevent default User-Agent from leaking in some paths
@@ -456,7 +474,7 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
     if source_uri.startswith("catalogue+https://"):
         # Strip the "catalogue+" prefix to get the actual HTTPS URL
         channel_url = source_uri[len("catalogue+"):]
-        opener = _build_opener(token, channel_url)
+        opener = _build_opener(token, channel_url, env=env)
 
         dest = None
         archive_path = None
@@ -491,7 +509,7 @@ def fetch_catalogue_archive(source_uri: str, *, env: dict | None = None) -> Path
         expected_sha256 = fragment[len("sha256="):]
         # Remove fragment from URL for actual request
         archive_url = urlunsplit(parsed._replace(fragment=""))
-        opener = _build_opener(token, archive_url)
+        opener = _build_opener(token, archive_url, env=env)
 
         dest = None
         archive_path = None
