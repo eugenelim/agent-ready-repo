@@ -31,7 +31,9 @@ def main() -> None:
         ignore=shutil.ignore_patterns("__pycache__", "tests", "*.pyc"),
     )
 
-    subprocess.run(
+    # shell=False (default) — list args pass directly to execvp without shell
+    # interpretation, so user-supplied argv[1] cannot inject shell commands.
+    subprocess.run(  # nosemgrep
         [
             sys.executable, "-m", "zipapp", str(stage),
             "-o", str(output_dir / "agentbundle.pyz"),
