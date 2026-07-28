@@ -106,17 +106,20 @@ jobs:
   # Requires full test suite + install-defaults staleness check before PyPI
   # publication.  Runs on tags only; wired as a dependency of publish-pypi.
   pre-release-gates:
-    name: "Gate H — pre-release gates"
+    name: "Gate H — pre-release gates (Python ${{ matrix.python }})"
     needs: [build-and-smoke]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python }}
 
       - name: Install agentbundle (editable) + optional extras + pytest
         run: pip install -e 'packages/agentbundle[lint]' -e packages/credbroker pytest
@@ -130,6 +133,165 @@ jobs:
         # a stale defaults file means the released wheel would install the
         # wrong packs by default.
         run: agentbundle catalogue sync-defaults --root . --check
+
+      - name: "Enterprise smoke — write example.test catalogue.toml"
+        run: |
+          mkdir -p /tmp/gate-h-enterprise-cat
+          cat > /tmp/gate-h-enterprise-cat/catalogue.toml <<'TOML'
+          schema = 1
+
+          [catalogue]
+          name                        = "test-catalogue"
+          display-name                = "Test Catalogue"
+          description                 = "Enterprise distribution smoke test — example.test values only."
+          minimum-agentbundle-version = "0.21.0"
+
+          [catalogue.paths]
+          packs        = "packs"
+          profiles     = "profiles"
+          contracts    = "contracts"
+          marketplace  = ".claude-plugin/marketplace.json"
+          build-output = "dist"
+
+          [catalogue.build]
+          recipes                 = ["default"]
+          self-host               = false
+          claude-plugin-branch    = "main"
+          marketplace-description = "Enterprise distribution smoke test."
+
+          [catalogue.package]
+          include = []
+
+          [distribution.agentbundle]
+          install-defaults-output = "install-defaults.toml"
+          preferred-adapter        = "claude-code"
+          default-source           = "git+https://artifactory.example.test/agentbundle-catalogues/engineering"
+
+          [distribution.agentbundle.artifactory]
+          enabled    = true
+          base-url   = "https://artifactory.example.test/artifactory"
+          repository = "agentbundle-generic-local"
+          bundle     = "engineering"
+          channel    = "stable"
+          TOML
+
+      - name: "Enterprise smoke — sync-defaults --write"
+        run: agentbundle catalogue sync-defaults --root /tmp/gate-h-enterprise-cat --write
+
+      - name: "Enterprise smoke — sync-defaults --check"
+        run: agentbundle catalogue sync-defaults --root /tmp/gate-h-enterprise-cat --check
+
+      - name: "Enterprise smoke — assert channel = stable in install-defaults.toml"
+        run: grep 'channel = "stable"' /tmp/gate-h-enterprise-cat/install-defaults.toml
+
+      - name: "Enterprise smoke — build wheel"
+        run: |
+          pip install --upgrade build
+          python -m build packages/agentbundle --outdir /tmp/gate-h-dist
+
+      - name: "Enterprise smoke — assert channel = stable in packaged wheel"
+        run: |
+          python3 -c "
+          import zipfile, sys
+          from pathlib import Path
+          whl = next(Path('/tmp/gate-h-dist').glob('*.whl'))
+          with zipfile.ZipFile(whl) as z:
+              data = z.read('agentbundle/_data/install-defaults.toml').decode()
+          if 'channel = \"stable\"' not in data:
+              print('FAIL: channel not found in packaged install-defaults.toml')
+              print(data)
+              sys.exit(1)
+          "
+
+      - name: "Package-config test — create two-pack catalogue"
+        run: |
+          mkdir -p /tmp/gate-h-pkg/packs/pack-a /tmp/gate-h-pkg/packs/pack-b
+          mkdir -p /tmp/gate-h-pkg/profiles /tmp/gate-h-pkg/contracts
+          cat > /tmp/gate-h-pkg/packs/pack-a/pack.toml <<'TOML'
+          [pack]
+          name = "pack-a"
+          version = "0.1.0"
+          description = "Gate H test pack A."
+          TOML
+          cat > /tmp/gate-h-pkg/packs/pack-b/pack.toml <<'TOML'
+          [pack]
+          name = "pack-b"
+          version = "0.1.0"
+          description = "Gate H test pack B."
+          TOML
+          touch /tmp/gate-h-pkg/LICENSE-APACHE /tmp/gate-h-pkg/LICENSE-MIT
+          mkdir -p /tmp/gate-h-pkg/.claude-plugin
+          echo '{"name":"gate-h","description":"test","owner":{"name":"ci"},"plugins":[]}' \
+            > /tmp/gate-h-pkg/.claude-plugin/marketplace.json
+          cat > /tmp/gate-h-pkg/catalogue.toml <<'TOML'
+          schema = 1
+          [catalogue]
+          name        = "gate-h-pkg"
+          display-name = "Gate H Package Test"
+          description = "Package-config gate."
+          minimum-agentbundle-version = "0.21.0"
+          [catalogue.paths]
+          packs       = "packs"
+          profiles    = "profiles"
+          contracts   = "contracts"
+          marketplace = ".claude-plugin/marketplace.json"
+          build-output = "dist"
+          [catalogue.build]
+          recipes = ["default"]
+          self-host = false
+          claude-plugin-branch = "main"
+          marketplace-description = "test"
+          [catalogue.package]
+          include = ["packs/pack-a"]
+          TOML
+
+      - name: "Package-config test — run catalogue package"
+        run: |
+          agentbundle catalogue package \
+            --root /tmp/gate-h-pkg \
+            --bundle gate-h \
+            --release 0.1.0 \
+            --channel stable \
+            --output /tmp/gate-h-pkg-out
+
+      - name: "Package-config test — assert pack-a present, pack-b absent"
+        run: |
+          python3 -c "
+          import tarfile, sys
+          from pathlib import Path
+          arc = Path('/tmp/gate-h-pkg-out/catalogues/gate-h/releases/0.1.0/catalogue-0.1.0.tar.gz')
+          with tarfile.open(arc, 'r:gz') as tf:
+              names = [m.name for m in tf.getmembers()]
+          has_a = any('pack-a' in n for n in names)
+          has_b = any('pack-b' in n for n in names)
+          if not has_a:
+              print('FAIL: pack-a missing from archive'); sys.exit(1)
+          if has_b:
+              print('FAIL: pack-b present despite being excluded'); sys.exit(1)
+          "
+
+      - name: "Archive round-trip — verify (source)"
+        run: agentbundle catalogue verify --root .
+
+      - name: "Archive round-trip — package"
+        run: |
+          agentbundle catalogue package \
+            --root . \
+            --bundle reference \
+            --release 0.0.0-gate-h \
+            --channel stable \
+            --output /tmp/gate-h-roundtrip
+
+      - name: "Archive round-trip — verify (archive)"
+        run: |
+          agentbundle catalogue verify \
+            --archive /tmp/gate-h-roundtrip/catalogues/reference/releases/0.0.0-gate-h/catalogue-0.0.0-gate-h.tar.gz \
+            --sha256-file /tmp/gate-h-roundtrip/catalogues/reference/releases/0.0.0-gate-h/catalogue-0.0.0-gate-h.tar.gz.sha256
+
+      - name: "Schema copy sync — assert contracts/ and _data/ are identical"
+        run: |
+          diff contracts/catalogue.schema.json \
+              packages/agentbundle/agentbundle/_data/catalogue.schema.json
 
   publish-pypi:
     needs: [build-and-smoke, pre-release-gates]
