@@ -1,0 +1,137 @@
+{
+  "skill_name": "jira-story-triage",
+  "evals": [
+    {
+      "id": 1,
+      "fixture": "draft-only-triage",
+      "prompt": "Which stories are not ready for engineering in DEVKIT sprint 14? Show me what is missing but do not update Jira.",
+      "context": "DEVKIT sprint 14: DEVKIT-110 (Story, no repo named, no ACs), DEVKIT-115 (Task, good description, passes all Q), DEVKIT-118 (Spike, no ACs), DEVKIT-121 (Story, 'awaiting decision from @pm'), DEVKIT-125 (Story, image-only description).",
+      "expected_output": "Read-only review of 5 items. Header includes 'Jira not changed: confirmed'. Table: DEVKIT-115 Ready (Quick), DEVKIT-121 Gated (Q4 external: decision pending from @pm), DEVKIT-110 Not ready (Q2: no repo, Q3: no ACs), DEVKIT-118 Needs detail (Spike without ACs), DEVKIT-125 Needs detail (image-only). Footer confirms counts and Jira not changed. Agent does not write anything.",
+      "assertions": [
+        "Header block contains 'Jira not changed: confirmed'",
+        "Footer contains 'Jira not changed: confirmed'",
+        "DEVKIT-115 appears as Ready for agent execution",
+        "DEVKIT-121 appears as Gated with reason 'Q4 (external): decision pending from @pm'",
+        "DEVKIT-110 appears as Not ready with reason naming Q2 and Q3 failures",
+        "DEVKIT-118 appears as Needs detail (Spike issuetype without ACs)",
+        "DEVKIT-125 appears as Needs detail (image-only description)",
+        "Agent does not invoke jira: update-issue at any point",
+        "Agent does not ask 'shall I write this?' unless user explicitly requested improvement"
+      ]
+    },
+    {
+      "id": 2,
+      "fixture": "confirmed-write-selected-fields",
+      "prompt": "Update APP-206, APP-219, and API-104 with the approved drafts. Leave every other issue unchanged. Do not change status, assignee, priority, sprint, or labels.",
+      "context": "User has previously received draft payloads for APP-206 (new description + ACs), APP-219 (new description), API-104 (new ACs only). Three other items in scope: APP-200 (no changes requested), API-100 (no changes requested), API-110 (no changes requested).",
+      "expected_output": "Agent shows a proposed write summary for all three issues before writing: exact issues (APP-206, APP-219, API-104), exact fields, old values, proposed values, protected fields (status, assignee, priority, sprint, labels — not changing), total writes = 3. User confirms. Agent writes each issue separately (not in bulk). Reports success per issue. Does not touch APP-200, API-100, API-110.",
+      "assertions": [
+        "Agent shows proposed write payload for all three issues before any write",
+        "Payload includes old values (where available) and proposed values for each field",
+        "Payload lists protected fields explicitly: status, assignee, priority, sprint, labels — not changing",
+        "Agent writes each issue via jira: update-issue in separate calls",
+        "Agent does NOT touch APP-200, API-100, or API-110",
+        "Agent does NOT change status, assignee, priority, sprint, or labels on any issue",
+        "Agent reports success/failure per issue after writing",
+        "If one write fails, agent reports which succeeded and which failed, and does not auto-retry"
+      ]
+    },
+    {
+      "id": 3,
+      "fixture": "protected-field-enforcement",
+      "prompt": "Update the description on PROJ-99 with the approved draft. Also move it to Done and reassign it to @alice.",
+      "context": "User has approved a description draft for PROJ-99. They are also asking to change status to Done and assignee to @alice.",
+      "expected_output": "Agent applies the description update (approved draft). Agent refuses to change status to Done (protected field unless explicitly in the write plan; a bulk request like this with new action = must confirm separately). Agent flags: 'Status and assignee changes were not in the approved draft — I did not change them. To change status, use jira: transition; to change assignee, use jira: update-issue with assignee field separately confirmed.'",
+      "assertions": [
+        "Agent applies only the description change that was in the approved draft",
+        "Agent does NOT change status to Done",
+        "Agent does NOT change assignee to @alice",
+        "Agent explicitly explains that status/assignee changes were not in the approved draft",
+        "Agent provides guidance on how to make those changes separately if needed"
+      ]
+    },
+    {
+      "id": 4,
+      "fixture": "partial-write-failure",
+      "prompt": "Apply the approved drafts to APP-206, APP-219, and API-104.",
+      "context": "APP-206 write succeeds. APP-219 write fails (403 — user lacks permission to edit that issue). API-104 write succeeds.",
+      "expected_output": "Agent reports: APP-206 — updated successfully. APP-219 — failed (403: permission denied; no change made). API-104 — updated successfully. Total: 2 of 3 succeeded. Recovery action for APP-219: 'Ask a Jira admin to grant edit permission, or have a project owner apply the change manually. Here is the exact payload: <payload>.' Agent does not auto-retry APP-219.",
+      "assertions": [
+        "Agent reports success for APP-206 and API-104",
+        "Agent reports failure for APP-219 with the specific error (403)",
+        "Agent provides the exact unwritten payload for APP-219 as a recovery action",
+        "Agent does NOT auto-retry APP-219",
+        "Agent does NOT claim all three were written successfully"
+      ]
+    },
+    {
+      "id": 5,
+      "fixture": "unresolved-human-questions",
+      "prompt": "Make PROJ-99 actionable. Draft improved acceptance criteria.",
+      "context": "PROJ-99: summary = 'Update the agents', description = 'We need to update the agents somehow. TBD which ones and what changes are needed.' No repo named, no ACs. This story cannot be improved without knowing which agents and what changes.",
+      "expected_output": "Agent surfaces unresolved human questions before drafting: 'Before I can draft an improvement for PROJ-99, these questions need human answers: (1) Which agents should be updated? (2) What specific changes are expected — what will each agent do differently? (3) Is this a code change or a configuration change?' Agent does not invent answers. Offers to draft once the questions are answered.",
+      "assertions": [
+        "Agent names specific unresolved human questions (which agents, what changes)",
+        "Agent does NOT invent answers to those questions",
+        "Agent does NOT produce a fabricated draft that guesses at scope",
+        "Agent explicitly waits for human answers before drafting",
+        "Agent does NOT write to Jira"
+      ]
+    },
+    {
+      "id": 6,
+      "fixture": "expected-readiness-after-draft",
+      "prompt": "Improve DEVKIT-110 and show me what it would look like after the changes.",
+      "context": "DEVKIT-110: Story, no repo named (Q2 fails), no ACs (Q3 fails). Title: 'Add dotenv support'. Description: 'We need dotenv support.' Agent can infer from invocation repo that the target is the dashboard service.",
+      "expected_output": "Agent drafts improved description naming the repo/service and adds concrete acceptance criteria. Shows expected readiness: 'With these changes, DEVKIT-110 would pass Q1, Q2, and Q3 — it would reach Ready for agent execution (Quick complexity).' Shows full proposed payload before asking to write.",
+      "assertions": [
+        "Agent states which Q each draft change addresses",
+        "Agent states the expected outcome label (Ready for agent execution) after the draft is accepted",
+        "Agent states the expected complexity after the draft",
+        "Agent shows the full proposed payload (new summary, description, ACs) before asking to write",
+        "Agent does not write until the user confirms 'yes'"
+      ]
+    },
+    {
+      "id": 7,
+      "fixture": "stand-up-sprint-summary-near-miss",
+      "prompt": "Give me a stand-up summary for DEVKIT sprint 5.",
+      "context": "User wants team status, not story triage.",
+      "expected_output": "This skill does NOT handle team status or stand-up summaries. Agent redirects: 'For a team status and stand-up summary, use jira-team-status.'",
+      "assertions": [
+        "Agent does NOT produce a team status snapshot",
+        "Agent does NOT list all items by status group",
+        "Agent redirects to jira-team-status",
+        "Agent does NOT run the story-triage scoring flow on all sprint items"
+      ]
+    },
+    {
+      "id": 8,
+      "fixture": "weak-output-hidden-write",
+      "prompt": "Improve the weak stories in DEVKIT sprint 14.",
+      "context": "DEVKIT sprint 14: 4 not-ready items. Agent improves all four without showing payloads and writes them directly.",
+      "expected_output": "WEAK output: agent writes improved descriptions to Jira for all 4 items without showing payloads or asking for confirmation. STRONG output: agent shows review first, then offers to improve, then shows exact draft payload per item, then asks for confirmation before any write.",
+      "assertions": [
+        "STRONG: Agent shows the readiness review table before offering to improve",
+        "STRONG: For each item, agent shows the exact proposed payload before writing",
+        "STRONG: Agent asks 'Write this to Jira for <KEY>? [yes / no]' for each item",
+        "STRONG: Agent writes only after receiving 'yes'",
+        "WEAK (must fail): Agent writes improved descriptions without showing payloads",
+        "WEAK (must fail): Agent applies changes to all items at once without per-item confirmation"
+      ]
+    },
+    {
+      "id": 9,
+      "fixture": "weak-output-agent-bar-as-team-bar",
+      "prompt": "Which stories are not ready in PROJ sprint 4?",
+      "context": "PROJ sprint 4: 8 stories. 3 pass all five Q (agent-execution ready). 5 have adequate descriptions for the team to begin but fail Q2 (no repo) or Q5 (large). 0 have empty/TBD descriptions.",
+      "expected_output": "STRONG output: the 5 stories are reviewed and their agent-execution-specific gaps are named clearly (Q2/Q5 failures). Output labels the bar explicitly as the agent-execution readiness bar. Does NOT claim those 5 stories are 'not ready' in the general sense — they may be ready for the team. WEAK output: presents all 5 as 'not ready' without distinguishing team readiness from agent-execution readiness, implying they are unsuitable for any work.",
+      "assertions": [
+        "STRONG: Output labels the bar as the agent-execution readiness bar (or five-question bar)",
+        "STRONG: Failed items' gaps are specific to agent-execution (Q2: no repo, Q5: too large) not generic team quality",
+        "STRONG: Output does not claim items are 'not ready for the team' when they only fail agent-execution criteria",
+        "WEAK (must fail): Output says items are 'not ready' without distinguishing team vs. agent-execution readiness"
+      ]
+    }
+  ]
+}

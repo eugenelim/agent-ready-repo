@@ -1,110 +1,167 @@
-# `jira-story-triage` — worked examples
+# jira-story-triage — examples
 
-## Example 1: Reason-first readiness review
+## Example 1: Draft-only triage (read-only, no Jira write)
 
-**Invocation:** "Which stories are not ready for engineering in DEVKIT sprint 14?"
+**Prompt:** Which stories are not ready for engineering in DEVKIT sprint 14? Show me what is missing but do not update Jira.
 
-**Skill behaviour:**
-
-1. Runs `jira: check` → exit 0.
-2. Detects `git remote -v` → `https://gitlab.org/express-ai/dev-kit` → Invocation repo: `gitlab.org/express-ai/dev-kit`.
-3. Runs: `jira: search "project = DEVKIT AND sprint = 'Sprint 14'" --fields "summary,description,issuetype,status,priority,labels,customfield_*"`
-4. Receives 12 items. Applies the pre-check, then Q1–Q5, then records a reason for every not-ready item.
-
-**Pre-check (Needs-detail items, evaluated first):**
-- DEVKIT-106: description = `!image-agent-map.png!` → **Needs detail** (image-only; agent fetches raw content to confirm).
-- DEVKIT-109: issuetype = "Solution Design", no ACs → **Needs detail** (discovery issuetype).
-
-**Output:**
+---
 
 ```
-Invocation repo: gitlab.org/express-ai/dev-kit (detected)
-Review scope: project = DEVKIT AND sprint = "Sprint 14"
+Invocation repo: github.com/example-org/devkit-service (detected)
+Review scope: project = DEVKIT AND sprint = "Sprint 14" AND statusCategory != Done
 Items reviewed: 12
+Jira not changed: confirmed
 ```
 
-| Key | Summary | Outcome | Complexity | Why not ready (failed question + gap) |
-|---|---|---|---|---|
-| **— Ready · Quick —** | | | | |
-| DEVKIT-101 | Update DevKit agent frontmatter to claude-sonnet-5 | Ready | Quick | — |
-| DEVKIT-103 | Remove duplicate Jira skill from power pack | Ready | Quick | — |
-| DEVKIT-112 | Delete unused telemetry helper function | Ready | Quick | — |
-| **— Ready · Standard —** | | | | |
-| DEVKIT-104 | Add dotenv support to telemetry dashboard | Ready | Standard | — |
-| DEVKIT-107 | Retrofit telemetry onto renamed ce-ai-enablement-pack | Ready | Standard | — |
-| DEVKIT-108 | Npm scope rename for @sdlc-ai | Gated | — | Q4 (external): new scope name pending from @owner |
-| DEVKIT-110 | Update the agents | Not ready | — | Q1: vague, not a concrete change; Q2: no repo named; Q3: no acceptance criteria |
-| DEVKIT-111 | Explore options for credential management | Not ready | — | Q1: discovery language ("explore options"); Q2: no repo; Q3: no ACs; Q4: open design question |
-| DEVKIT-113 | Migrate all agents and skills to new CI pipeline | Not ready | — | Q5: 22pts — too large for one PR, decompose into per-pack stories |
-| DEVKIT-114 | Add error handling to telemetry collector | Not ready | — | Q3: acceptance criteria contain "TBD — decide error format" |
-| DEVKIT-106 | !image-agent-map.png! | Needs detail | — | Image-only description — no text to judge |
-| DEVKIT-109 | Solution Design: Auth middleware | Needs detail | — | Discovery issuetype (Solution Design), no acceptance criteria |
+| Key | Summary | Outcome | Complexity | Why not ready (failed Q + gap) | Unresolved human questions |
+|---|---|---|---|---|---|
+| DEVKIT-115 | Add dotenv support to API service | Ready | Quick | — | — |
+| DEVKIT-119 | Rename metric key in config | Ready | Quick | — | — |
+| DEVKIT-122 | Retrofit telemetry onto renamed pack | Ready | Standard | — | — |
+| DEVKIT-130 | New API scope pending from @pm | Gated | — | Q4 (external): scope decision pending from @pm | When will @pm decide? |
+| DEVKIT-110 | Add dotenv support | Not ready | — | Q2: no repo or file named; Q3: no acceptance criteria | — |
+| DEVKIT-112 | Update the agents | Not ready | — | Q1: vague — not a concrete change; Q2: no repo; Q3: no ACs | Which agents? What changes? |
+| DEVKIT-118 | !image-solution-design.png! | Needs detail | — | Image-only description — no text to judge | Provide a text description |
+| DEVKIT-125 | Explore new auth flow | Needs detail | — | Discovery issuetype without acceptance criteria | — |
+
+*[... 4 more rows ...]*
 
 ```
-Ready for engineering: 5  (Quick: 3, Standard: 2, Involved: 0)
-Gated: 1   Not ready — needs shaping: 4   Needs detail: 2
+Ready for agent execution: 3  (Quick: 2, Standard: 1, Involved: 0)
+Gated: 1   Not ready — needs shaping: 2   Needs detail: 2   (skipped: 4 Done)
+Jira not changed: confirmed
 ```
-
-The point of the table is the **Why not ready** column — a reader knows exactly what
-to fix, not just that an item scored low.
 
 ---
 
-## Example 2: Improve a weak item — draft, approve, write
+> "Want to make any of these ready? I can draft acceptance criteria, clarify the outcome, and tighten the scope — then show you the exact change before anything is written to Jira. Which item (or 'top N', or 'skip')?"
 
-**Invocation (continuing from Example 1):** "Make DEVKIT-110 actionable."
+---
 
-**Skill behaviour:**
+## Example 2: Draft → confirm → write loop
 
-1. Restates the reason DEVKIT-110 is not ready: *Q1 vague, Q2 no repo named, Q3 no acceptance criteria.*
-2. Reads the current content:
-   > **Summary:** Update the agents
-   > **Description:** The agents need updating.
-   > **Acceptance Criteria:** (none)
-3. Drafts the fix field by field, addressing each failed question (Q1 concrete change, Q2 repo/file scope, Q3 checkable ACs).
-4. Presents the complete drafted payload:
+**Prompt:** Improve DEVKIT-110. Then apply the change.
 
-   > **Summary:** Update DevKit agent frontmatter model IDs to `claude-sonnet-5`
-   > **Description:** In `gitlab.org/express-ai/dev-kit`, update the `model:` field in every agent under `.apm/agents/*.md` from the legacy id to `claude-sonnet-5`.
-   > **Acceptance Criteria:**
-   > - [ ] Every `.apm/agents/*.md` file's frontmatter `model:` reads `claude-sonnet-5`.
-   > - [ ] No agent file retains a legacy model id (grep is clean).
-   > - [ ] `make build-check` passes.
-   >
-   > **Write this to Jira for DEVKIT-110? [yes / no]"**
+---
 
-**User:** yes
+**Step 1 — Review DEVKIT-110:**
 
-> Running: `jira: update-issue DEVKIT-110 --field summary="Update DevKit agent frontmatter model IDs to claude-sonnet-5" --field description="In gitlab.org/express-ai/dev-kit, update the model: field ... Acceptance Criteria: ..."`
+DEVKIT-110 is "Not ready" because:
+- Q2 fails: no repo or file named — a coding agent cannot locate the change without a follow-up meeting.
+- Q3 fails: no acceptance criteria — nothing to verify against.
+
+**Unresolved human questions:** None — the invocation repo (devkit-service) is a reasonable scope assumption given the sprint context.
+
+**Step 2 — Draft:**
+
+> Proposed for DEVKIT-110:
 >
-> Updated. DEVKIT-110 now passes Q1, Q2, and Q3 — it is ready for engineering.
-
-The write is per-item and gated on the explicit `yes`. A batch request ("draft
-acceptance criteria for the top three not-ready items") repeats this draft → confirm →
-write loop once per item, confirming each write separately — never a bulk write.
+> **Summary:** Add dotenv support to devkit-service API
+>
+> **Description:** The devkit-service API currently requires all config to be baked into the image. Add dotenv support so local and CI environments can set config via a `.env` file without image rebuilds.
+>
+> **Acceptance Criteria:**
+> - [ ] `dotenv` package is installed and loads `.env` at startup if present.
+> - [ ] Existing environment variables take precedence over `.env` values.
+> - [ ] A `.env.example` file documents all supported variables.
+> - [ ] Existing config tests pass with no changes.
+> - [ ] `.env` is in `.gitignore`.
+>
+> **Expected readiness after draft:** DEVKIT-110 would pass Q1, Q2, Q3, Q4, and Q5 — it would reach **Ready for agent execution (Quick complexity)**.
 
 ---
 
-## Example 3: Invocation-repo-unknown scenario
-
-**Invocation:** "Show me what's missing before changing the PLATFORM backlog" (agent is not in a git repo).
-
-**Skill behaviour:**
-
-1. `jira: check` → exit 0.
-2. `git remote -v` → no git repo detected. Agent surfaces:
-   > "Optionally supply a repo URL or name — this helps verify whether items reference a reachable scope. Enter to skip."
-3. User presses Enter (skips).
-4. Proceeds with "Invocation repo: unknown".
-
-**Output header:**
+**Proposed write for DEVKIT-110:**
 ```
-Invocation repo: unknown (no git repo detected; supply a repo URL to improve scope verification)
-Review scope: project = PLATFORM AND sprint in openSprints() AND statusCategory != Done
-Items reviewed: 8
+  Issue: DEVKIT-110
+  Fields changing:
+    Summary: "Add dotenv support" → "Add dotenv support to devkit-service API"
+    Description: (new — see above)
+    Acceptance Criteria: (new — see above)
+  Protected fields (not changing): status, assignee, sprint, priority, labels
+  Old summary: "Add dotenv support"
+  Total writes: 1 issue, 3 fields
 ```
 
-The reason-first review is produced as normal. The Q2 check (repo/file scope) operates
-on the item's own description rather than cross-referencing the invocation repo. The
-output notes: "Q2 verification is limited — invocation repo unknown, so this skill
-cannot confirm whether named repos are reachable from the agent's context."
+**Write this to Jira for DEVKIT-110? [yes / no / display only]**
+
+*User: yes*
+
+Updated. DEVKIT-110 now passes Q1, Q2, Q3, Q4, and Q5 — it is **Ready for agent execution (Quick)**.
+
+---
+
+## Example 3: Unresolved human questions block improvement
+
+**Prompt:** Make PROJ-99 actionable — draft improved acceptance criteria.
+
+---
+
+Before I can draft an improvement for PROJ-99 ("Update the agents"), these questions need human answers:
+
+1. **Which agents should be updated?** The current description says "the agents" without naming them.
+2. **What specific changes are expected?** What will each agent do differently after this change?
+3. **Is this a code change, a configuration change, or both?** This determines Q1 (self-contained code/config change vs. discovery work).
+
+Once you answer these, I can draft acceptance criteria, clarify the scope, and name the repo so an agent or engineer can pick this up without a meeting. Jira was not changed.
+
+---
+
+## Example 4: Confirmed write with protected fields
+
+**Prompt:** Update APP-206, APP-219, and API-104 with the approved drafts. Leave every other issue unchanged. Do not change status, assignee, priority, sprint, or labels.
+
+---
+
+**Proposed writes:**
+
+```
+APP-206 — 2 fields:
+  Description: (approved draft)
+  Acceptance Criteria: (approved draft)
+  Protected (not changing): status, assignee, sprint, priority, labels
+
+APP-219 — 1 field:
+  Description: (approved draft)
+  Protected (not changing): status, assignee, sprint, priority, labels
+
+API-104 — 1 field:
+  Acceptance Criteria: (approved draft)
+  Protected (not changing): status, assignee, sprint, priority, labels
+
+Total writes: 3 issues, 4 fields
+```
+
+**Apply these writes? [yes / no]**
+
+*User: yes*
+
+- APP-206: updated (description + ACs) ✓
+- APP-219: updated (description) ✓
+- API-104: updated (ACs) ✓
+
+No other issues were changed.
+
+---
+
+## Example 5: Partial write failure
+
+**Prompt:** Apply the approved drafts to APP-206, APP-219, and API-104.
+
+---
+
+Results:
+- APP-206: updated successfully ✓
+- APP-219: **failed** — 403 Permission denied (you may not have edit access to this issue)
+- API-104: updated successfully ✓
+
+**2 of 3 succeeded.**
+
+Recovery action for APP-219: Ask a Jira project admin to grant you edit access, or have a project owner apply this change manually. Here is the exact payload that was not applied:
+
+```
+APP-219 — 1 field:
+  Description: <exact approved draft>
+```
+
+APP-219 was not changed. No auto-retry was attempted.
