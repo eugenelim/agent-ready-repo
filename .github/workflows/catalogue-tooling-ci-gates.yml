@@ -24,12 +24,8 @@ jobs:
   agentbundle-tests:
     name: "Gate A — agentbundle tests (${{ matrix.os }} / py${{ matrix.python }})"
     # Windows runs a curated portable subset (same paths as build-check-windows.yml)
-    # rather than the full suite. The full 2773-test run has 50+ pre-existing
-    # compat failures (CRLF, cp1252, symlinks, pwd module) that make the signal
-    # hard to read; the curated list covers path-sensitive and Windows-specific
-    # tests that are known to pass. continue-on-error is kept while the curated
-    # list is still being validated.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    # rather than the full suite. The curated list is validated — gate is now
+    # blocking on all platforms.
     strategy:
       fail-fast: false
       matrix:
