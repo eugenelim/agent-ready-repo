@@ -42,7 +42,9 @@ assert WRITER.exists(), f"Writer not found at {WRITER}"
 # ---------------------------------------------------------------------------
 
 
-def _run_writer(env: dict, *, install_route: str = "claude-plugins") -> subprocess.CompletedProcess:  # noqa: E501
+def _run_writer(
+    env: dict, *, install_route: str = "claude-plugins"
+) -> subprocess.CompletedProcess:  # noqa: E501
     """Invoke the writer in subprocess.
 
     Pass ``--install-route claude-plugins`` by default — the apm-install-route-parity
@@ -50,6 +52,7 @@ def _run_writer(env: dict, *, install_route: str = "claude-plugins") -> subproce
     exercise the claude-plugins branch unless they explicitly opt into ``"apm"``.
     """
     import subprocess
+
     return subprocess.run(
         [sys.executable, str(WRITER), "--install-route", install_route],
         env=env,
@@ -167,6 +170,7 @@ def _make_env(
 ) -> dict:
     """Build a clean os.environ dict for subprocess runs."""
     import os
+
     env = {
         "PATH": os.environ.get("PATH", ""),
         "CLAUDE_PLUGIN_ROOT": str(plugin_root),
@@ -203,14 +207,24 @@ ALLOWED_MODULES = frozenset({
     # `argparse` admitted by apm-install-route-parity AC1 (one-entry growth in
     # the import allow-list) for the `--install-route` flag.
     # `contextlib` admitted for the atomic-marker-write pattern.
-    "argparse", "contextlib",
-    "datetime", "hashlib", "json", "os", "pathlib", "re", "sys", "tempfile", "tomllib",
+    "argparse",
+    "contextlib",
+    "datetime",
+    "hashlib",
+    "json",
+    "os",
+    "pathlib",
+    "re",
+    "sys",
+    "tempfile",
+    "tomllib",
 })
 
 
 def test_writer_is_stdlib_only():
     """AC1: the writer imports only modules from the allow-list."""
     import re
+
     content = WRITER.read_text(encoding="utf-8")
     pattern = re.compile(r"^(?:import|from)\s+(\S+)", re.MULTILINE)
     imported = {m.group(1).split(".")[0] for m in pattern.finditer(content)}
@@ -219,9 +233,7 @@ def test_writer_is_stdlib_only():
     # typing module members used via "from typing import" are stdlib.
     imported.discard("typing")
     forbidden = imported - ALLOWED_MODULES
-    assert not forbidden, (
-        f"Writer imports modules outside the allow-list: {sorted(forbidden)}"
-    )
+    assert not forbidden, f"Writer imports modules outside the allow-list: {sorted(forbidden)}"
 
 
 def test_writer_docstring_names_spec():
@@ -413,7 +425,7 @@ def test_refuse_repo_only_pack_at_user_scope(pack_root_factory):
         name="core",
         version="0.1.0",
         allowed_scopes=["repo"],  # repo only
-        opt_in_at=["user"],       # but opted in at user scope
+        opt_in_at=["user"],  # but opted in at user scope
     )
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -435,8 +447,8 @@ def test_refuse_user_only_pack_at_project_scope(pack_root_factory):
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="converters",
         version="0.1.0",
-        allowed_scopes=["user"],   # user only
-        opt_in_at=["project"],     # but opted in at project scope
+        allowed_scopes=["user"],  # user only
+        opt_in_at=["project"],  # but opted in at project scope
     )
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -458,7 +470,7 @@ def test_refuse_user_only_pack_at_local_scope(pack_root_factory):
         name="converters",
         version="0.1.0",
         allowed_scopes=["user"],  # user only
-        opt_in_at=["local"],      # opted in at local scope
+        opt_in_at=["local"],  # opted in at local scope
     )
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -511,7 +523,9 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
     # We need to add "local" opt-in for pack-b in the project_dir settings.
     local_settings = project_dir / ".claude" / "settings.local.json"
     # Update to include both packs.
-    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8", newline="\n")  # noqa: E501
+    local_settings.write_text(
+        json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8", newline="\n"
+    )  # noqa: E501
 
     # Set up the sitecustomize.py that crashes os.replace on first call.
     sitecustomize_dir = tmp_path / "sitecustomize_crash"
@@ -675,8 +689,11 @@ def test_detection_keep_data_reinstall_writes(pack_root_factory):
 
     # Pre-seed the hash file with the correct hash.
     import hashlib
+
     current_hash = hashlib.sha256((plugin_root / "pack.toml").read_bytes()).hexdigest()
-    (plugin_data / "pack-manifest-hash").write_text(current_hash + "\n", encoding="utf-8", newline="\n")
+    (plugin_data / "pack-manifest-hash").write_text(
+        current_hash + "\n", encoding="utf-8", newline="\n"
+    )
 
     # Marker file is absent (simulates --keep-data reinstall).
     env = _make_env(
@@ -745,7 +762,9 @@ def test_two_writers_sequential_both_entries_present(pack_root_factory):
     # Make pack-a settings visible in the shared project_dir.
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8", newline="\n")  # noqa: E501
+    local_settings.write_text(
+        json.dumps({"enabledPlugins": ["pack-a", "pack-b"]}), encoding="utf-8", newline="\n"
+    )  # noqa: E501
 
     env_a = _make_env(
         plugin_root=plugin_root_a, plugin_data=plugin_data_a, home=home, project_dir=project_dir
@@ -808,6 +827,7 @@ def test_cli_to_claude_plugins_handoff_preserves_datetime(tmp_path, pack_root_fa
     cli_entries = [e for e in data.get("packs-installed", []) if e.get("name") == "cli-pack"]
     assert len(cli_entries) == 1
     import datetime as dt
+
     assert isinstance(cli_entries[0]["installed-at"], dt.datetime), (
         "CLI entry installed-at did not round-trip as datetime.datetime"
     )
@@ -822,7 +842,9 @@ def test_cli_to_claude_plugins_handoff_preserves_datetime(tmp_path, pack_root_fa
     # Make the project dir settings include plugins-pack.
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8", newline="\n")
+    local_settings.write_text(
+        json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8", newline="\n"
+    )
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -892,7 +914,9 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
     )
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8", newline="\n")  # noqa: E501
+    local_settings.write_text(
+        json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8", newline="\n"
+    )  # noqa: E501
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -937,6 +961,7 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
     # Pre-seed marker with the old version.
     marker_path = project_dir / ".adapt-install-marker.toml"
     import datetime as dt
+
     old_ts = dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.UTC)
     old_content = textwrap.dedent(f"""
         marker-schema-version = "0.1"
@@ -957,9 +982,7 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
 
     data = _read_marker(marker_path)
     core_entries = [e for e in data.get("packs-installed", []) if e.get("name") == "core"]
-    assert len(core_entries) == 1, (
-        f"Expected exactly 1 entry for 'core', got {len(core_entries)}"
-    )
+    assert len(core_entries) == 1, f"Expected exactly 1 entry for 'core', got {len(core_entries)}"
     assert core_entries[0]["version"] == "0.2.0"
 
 
@@ -991,11 +1014,13 @@ def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
     # Resolve the jail so _assert_under receives a pre-resolved path
     # (matching the contract _marker_path guarantees).
     import pathlib
+
     resolved_jail = pathlib.Path(os.path.realpath(jail_dir))
 
     outside_path = foreign_dir / ".adapt-install-marker.toml"
 
     import datetime as dt
+
     new_entry = {
         "name": "core",
         "version": "0.1.0",
@@ -1007,9 +1032,7 @@ def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
         mod._write_marker(outside_path, new_entry, resolved_jail)
 
     # The foreign marker file must not have been created.
-    assert not outside_path.exists(), (
-        "Writer wrote to a path outside the jail — jail check failed"
-    )
+    assert not outside_path.exists(), "Writer wrote to a path outside the jail — jail check failed"
 
 
 # ---------------------------------------------------------------------------
@@ -1141,8 +1164,18 @@ def test_emit_basic_string_parity_with_source():
     vendored_fn = mod._emit_basic_string
 
     corpus = [
-        " ", "", "hello", 'a"b', "a\\b", "\n", "\x00", "\x01", "\x1f", "\x7f",
-        "café", "🚀",
+        " ",
+        "",
+        "hello",
+        'a"b',
+        "a\\b",
+        "\n",
+        "\x00",
+        "\x01",
+        "\x1f",
+        "\x7f",
+        "café",
+        "🚀",
     ]
     for value in corpus:
         source_out = source_fn(value)
@@ -1208,7 +1241,9 @@ def test_writer_drops_entries_with_malformed_name_or_version(tmp_path, pack_root
     )
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
-    local_settings.write_text(json.dumps({"enabledPlugins": ["third-pack"]}), encoding="utf-8", newline="\n")
+    local_settings.write_text(
+        json.dumps({"enabledPlugins": ["third-pack"]}), encoding="utf-8", newline="\n"
+    )
 
     env = _make_env(
         plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir
@@ -1307,7 +1342,7 @@ def test_writer_refuses_pack_name_with_control_chars(tmp_path):
     bad_name = "core\nevil"
     pack_toml_content = (
         "[pack]\n"
-        f'name = {_json.dumps(bad_name)}\n'
+        f"name = {_json.dumps(bad_name)}\n"
         'version = "0.1.0"\n'
         'description = "Adversarial pack."\n'
         "\n"
@@ -1330,7 +1365,9 @@ def test_writer_refuses_pack_name_with_control_chars(tmp_path):
     result = _run_writer(env)
 
     # (a) exit 0.
-    assert result.returncode == 0, f"Expected exit 0; got {result.returncode}. stderr: {result.stderr!r}"  # noqa: E501
+    assert result.returncode == 0, (
+        f"Expected exit 0; got {result.returncode}. stderr: {result.stderr!r}"
+    )  # noqa: E501
     # (b) no marker file.
     assert not (project_dir / ".adapt-install-marker.toml").exists(), (
         "Writer wrote a marker for a pack with an invalid name"
@@ -1484,6 +1521,4 @@ def test_hash_file_write_failure_self_heals(tmp_path, pack_root_factory):
     # Final marker: exactly one entry for the pack (upgrade-replace, no duplication).
     data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
     core_entries = [e for e in data.get("packs-installed", []) if e["name"] == "core"]
-    assert len(core_entries) == 1, (
-        f"Expected exactly 1 entry for 'core', got {len(core_entries)}"
-    )
+    assert len(core_entries) == 1, f"Expected exactly 1 entry for 'core', got {len(core_entries)}"

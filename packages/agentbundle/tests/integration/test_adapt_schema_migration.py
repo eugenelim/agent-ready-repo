@@ -35,7 +35,9 @@ def _seed_repo(root: Path, files: dict[str, str]) -> None:
     state.packs[("core", "claude-code")] = PackState(
         installed_version="0.1.0", files=file_entries, adapter="claude-code"
     )
-    (root / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
+    (root / ".agentbundle-state.toml").write_text(
+        dump_state(state), encoding="utf-8", newline="\n"
+    )
 
 
 def _ns(root: Path, values_from: Path | None = None) -> argparse.Namespace:

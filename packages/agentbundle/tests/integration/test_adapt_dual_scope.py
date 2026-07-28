@@ -113,9 +113,7 @@ def test_adapt_writes_per_scope_pending_reports(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "case", ["repo_only", "user_only", "both"]
-)
+@pytest.mark.parametrize("case", ["repo_only", "user_only", "both"])
 def test_adapt_ci_or_across_scopes(tmp_path, monkeypatch, case):
     fake_home = tmp_path / "home"
     user_dir = fake_home / ".agentbundle"
@@ -220,15 +218,13 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
         'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
     )
     (repo_root / ".adapt-discovery.toml").write_text(
-        'discovery-schema-version = "0.1"\n'
-        '[markers]\nproject-name = "demo"\n',
+        'discovery-schema-version = "0.1"\n[markers]\nproject-name = "demo"\n',
         encoding="utf-8",
         newline="\n",
     )
     # Counter-fixture at the BARE user path (must be ignored).
     (fake_home / ".adapt-discovery.toml").write_text(
-        'discovery-schema-version = "0.1"\n'
-        '[markers]\nproject-name = "WRONG"\n',
+        'discovery-schema-version = "0.1"\n[markers]\nproject-name = "WRONG"\n',
         encoding="utf-8",
         newline="\n",
     )
@@ -239,11 +235,11 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
     # when no --values-from is passed; we want to confirm the discovery
     # values are consulted alongside).
     values_file = tmp_path / "values.toml"
-    values_file.write_text('[values]\n# only sets unrelated keys\n', encoding="utf-8", newline="\n")
-
-    args = argparse.Namespace(
-        values_from=str(values_file), ci=False, root=str(repo_root)
+    values_file.write_text(
+        "[values]\n# only sets unrelated keys\n", encoding="utf-8", newline="\n"
     )
+
+    args = argparse.Namespace(values_from=str(values_file), ci=False, root=str(repo_root))
     rc = adapt.run(args)
     assert rc == 0
     # The marker should have been resolved to "demo" (namespaced discovery).

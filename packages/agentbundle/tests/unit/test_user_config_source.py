@@ -68,7 +68,9 @@ def test_source_and_adapter_are_independent_failsoft(tmp_path):
     # A non-string `source` is dropped (warned) without dropping a valid adapter.
     adapter = sorted(shipped_adapters_from_contract())[0]
     p = tmp_path / "config.toml"
-    p.write_text(f'[settings]\nadapter = "{adapter}"\nsource = 42\n', encoding="utf-8", newline="\n")
+    p.write_text(
+        f'[settings]\nadapter = "{adapter}"\nsource = 42\n', encoding="utf-8", newline="\n"
+    )
     cfg = read_user_config(p)
     assert cfg.adapter == adapter
     assert cfg.source is None

@@ -65,7 +65,9 @@ def _stage_synthetic_pack(catalogue_root: Path) -> None:
     # matter for the wiring-shape assertion.
     (apm / "hooks" / "session-start.py").write_text("", encoding="utf-8", newline="\n")
     (apm / "hook-wiring").mkdir()
-    (apm / "hook-wiring" / "session-start.toml").write_text(WIRING_TOML, encoding="utf-8", newline="\n")
+    (apm / "hook-wiring" / "session-start.toml").write_text(
+        WIRING_TOML, encoding="utf-8", newline="\n"
+    )
 
 
 def _install(args_dict) -> tuple[int, str, str]:
@@ -82,15 +84,13 @@ def test_install_writes_nested_session_start_binding(tmp_path):
     target = tmp_path / "repo"
     target.mkdir()
 
-    rc, _stdout, stderr = _install(
-        {
-            "pack": "test-core",
-            "catalogue": str(cat),
-            "output": str(target),
-            "scope": None,
-            "force": False,
-        }
-    )
+    rc, _stdout, stderr = _install({
+        "pack": "test-core",
+        "catalogue": str(cat),
+        "output": str(target),
+        "scope": None,
+        "force": False,
+    })
     assert rc == 0, f"install failed: {stderr}"
 
     # Repo-scope install produces the dist-tree Claude-plugin layout:
@@ -120,9 +120,7 @@ def test_install_writes_nested_session_start_binding(tmp_path):
     # literal command string Claude Code expects.
     inner = outer.get("hooks", [])
     assert len(inner) == 1, f"expected 1 inner hook, got {inner!r}"
-    assert inner[0]["type"] == "command", (
-        f"inner hook type must be 'command'; got {inner[0]!r}"
-    )
+    assert inner[0]["type"] == "command", f"inner hook type must be 'command'; got {inner[0]!r}"
     assert inner[0]["command"] == "python tools/hooks/session-start.py", (
         f"inner hook command mismatch; got {inner[0]!r}"
     )

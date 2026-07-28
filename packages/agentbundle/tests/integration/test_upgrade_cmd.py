@@ -63,18 +63,22 @@ def _args_upgrade(
 def _args_install(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
     # RFC-0012: dist-tree fixtures need `emit_install_routes=True`.
     return types.SimpleNamespace(
-        pack=pack, catalogue=catalogue, output=output,
+        pack=pack,
+        catalogue=catalogue,
+        output=output,
         emit_install_routes=True,
     )
 
 
 def _run_upgrade(**kwargs) -> int:
     from agentbundle.commands.upgrade import run
+
     return run(_args_upgrade(**kwargs))
 
 
 def _run_install(pack: str, catalogue: str, output: str) -> int:
     from agentbundle.commands.install import run
+
     return run(_args_install(pack, catalogue, output))
 
 
@@ -129,7 +133,7 @@ def test_whole_pack_upgrade_updates_version_and_content(tmp_path):
         ("skill", "work-loop", "skill", "skills"),
         ("agent", "reviewer", "agent", "agents"),
         ("hook", "pre-commit", "hook-body", "hooks"),
-        ("seed", None, "seed", "seeds"),   # skip; no seeds in fixture
+        ("seed", None, "seed", "seeds"),  # skip; no seeds in fixture
         ("command", "deploy", "command", "commands"),
     ],
 )
@@ -153,16 +157,12 @@ def test_per_primitive_upgrade_moves_only_matching_files(
     prim_paths = set(_filter_for_primitive(v2_projection, prim_name, src_dir).keys())
     # --hook co-moves the matching hook-wiring of the same name (spec AC #10).
     if flag_attr == "hook":
-        prim_paths |= set(
-            _filter_for_primitive(v2_projection, prim_name, "hook-wiring").keys()
-        )
+        prim_paths |= set(_filter_for_primitive(v2_projection, prim_name, "hook-wiring").keys())
     non_prim_paths = set(v1_projection.keys()) - prim_paths
 
     # Capture v1 content for non-matching paths before upgrade.
     non_prim_before = {
-        rp: (tmp_path / rp).read_bytes()
-        for rp in non_prim_paths
-        if (tmp_path / rp).exists()
+        rp: (tmp_path / rp).read_bytes() for rp in non_prim_paths if (tmp_path / rp).exists()
     }
 
     kwargs: dict = {"pack": "core", "catalogue": str(CAT_V2), "root": str(tmp_path)}
@@ -233,9 +233,7 @@ def test_mixed_version_warning_on_whole_pack_after_per_primitive(tmp_path, capsy
     assert "mixed-version" in captured.err, (
         "stderr must contain 'mixed-version' when pack has per-primitive overrides"
     )
-    assert "work-loop" in captured.err, (
-        "stderr must name the mixed-version primitive"
-    )
+    assert "work-loop" in captured.err, "stderr must name the mixed-version primitive"
 
 
 # ---------------------------------------------------------------------------
@@ -384,13 +382,9 @@ def test_whole_pack_upgrade_prints_success_recap(tmp_path, capsys):
     assert rc == 0
 
     captured = capsys.readouterr()
-    assert captured.out.strip(), (
-        "whole-pack upgrade must print a non-empty recap to stdout"
-    )
+    assert captured.out.strip(), "whole-pack upgrade must print a non-empty recap to stdout"
     last = captured.out.strip().splitlines()[-1]
-    assert last.startswith("upgraded:"), (
-        f"recap must start with 'upgraded:'; got: {last!r}"
-    )
+    assert last.startswith("upgraded:"), f"recap must start with 'upgraded:'; got: {last!r}"
     assert "core" in last and "0.2.0" in last, (
         f"recap must name pack and target version; got: {last!r}"
     )
@@ -412,13 +406,9 @@ def test_per_primitive_upgrade_prints_success_recap(tmp_path, capsys):
     assert rc == 0
 
     captured = capsys.readouterr()
-    assert captured.out.strip(), (
-        "per-primitive upgrade must print a non-empty recap to stdout"
-    )
+    assert captured.out.strip(), "per-primitive upgrade must print a non-empty recap to stdout"
     last = captured.out.strip().splitlines()[-1]
-    assert last.startswith("upgraded:"), (
-        f"recap must start with 'upgraded:'; got: {last!r}"
-    )
+    assert last.startswith("upgraded:"), f"recap must start with 'upgraded:'; got: {last!r}"
     assert "core" in last and "work-loop" in last and "0.2.0" in last, (
         f"recap must name pack, primitive, and target version; got: {last!r}"
     )
@@ -436,6 +426,7 @@ def test_filter_for_primitive_refuses_ambiguous_name():
         "apm/core/.apm/skills/foo.md": b"file form",
     }
     import pytest
+
     with pytest.raises(ValueError, match="ambiguous"):
         _filter_for_primitive(projection, "foo", "skills")
 
@@ -480,9 +471,7 @@ def test_upgrade_tier2_collision_surfaces_companion_path(tmp_path, capsys):
     adopter_bytes = b"# adopter edits -- do not clobber\n"
     (tmp_path / target_rel).write_bytes(adopter_bytes)  # forces Tier-2
 
-    rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path)
-    )
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
     assert rc == 0, "upgrade over a Tier-2 collision must still succeed"
 
     # Never clobbered: the adopter's edit survives at the original path.
@@ -516,9 +505,7 @@ def test_upgrade_without_collision_emits_no_companion_notice(tmp_path, capsys):
     assert rc == 0
     capsys.readouterr()  # drop install output
 
-    rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path)
-    )
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
     assert rc == 0
 
     err = capsys.readouterr().err
@@ -544,9 +531,7 @@ def test_upgrade_multiple_tier2_collisions_counts_and_lists_all(tmp_path, capsys
     for rp in targets:
         (tmp_path / rp).write_bytes(f"# adopter edit of {rp}\n".encode())
 
-    rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path)
-    )
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
     assert rc == 0
 
     err = capsys.readouterr().err
@@ -582,8 +567,10 @@ def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
     (tmp_path / target_rel).write_bytes(b"# adopter-edited skill body\n")
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2),
-        root=str(tmp_path), skill="work-loop",
+        pack="core",
+        catalogue=str(CAT_V2),
+        root=str(tmp_path),
+        skill="work-loop",
     )
     assert rc == 0
 
@@ -610,9 +597,7 @@ def _snapshot_tree(root: Path) -> dict[str, bytes]:
     }
 
 
-def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(
-    tmp_path, capsys
-):
+def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(tmp_path, capsys):
     """AC1/AC4/AC6: a dry-run upgrade over an adopter-edited file previews the
     `companion`/tier-2 line (with the `-> *.upstream` target), exits 0, and
     leaves the tree + state byte-identical with no companion on disk."""
@@ -636,8 +621,10 @@ def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(
     before = _snapshot_tree(tmp_path)
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2),
-        root=str(tmp_path), dry_run=True,
+        pack="core",
+        catalogue=str(CAT_V2),
+        root=str(tmp_path),
+        dry_run=True,
     )
     assert rc == 0, "dry-run upgrade must exit 0 even with a Tier-2 collision"
 
@@ -652,9 +639,7 @@ def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(
 
     # No-write invariant: tree + state byte-identical, no companion on disk.
     assert _snapshot_tree(tmp_path) == before, "dry-run upgrade must write nothing"
-    assert not (tmp_path / companion_rel).exists(), (
-        "dry-run must not drop the .upstream companion"
-    )
+    assert not (tmp_path / companion_rel).exists(), "dry-run must not drop the .upstream companion"
 
 
 def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, capsys):
@@ -667,8 +652,10 @@ def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, ca
     before = _snapshot_tree(tmp_path)
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2),
-        root=str(tmp_path), dry_run=True,
+        pack="core",
+        catalogue=str(CAT_V2),
+        root=str(tmp_path),
+        dry_run=True,
     )
     assert rc == 0
 
@@ -698,8 +685,11 @@ def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys
     before = _snapshot_tree(tmp_path)
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2),
-        root=str(tmp_path), skill="work-loop", dry_run=True,
+        pack="core",
+        catalogue=str(CAT_V2),
+        root=str(tmp_path),
+        skill="work-loop",
+        dry_run=True,
     )
     assert rc == 0
     out = capsys.readouterr().out
@@ -717,8 +707,11 @@ def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys
 
     # Primitive-not-found passes through as a non-zero pre-render refusal.
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2),
-        root=str(tmp_path), skill="bogus", dry_run=True,
+        pack="core",
+        catalogue=str(CAT_V2),
+        root=str(tmp_path),
+        skill="bogus",
+        dry_run=True,
     )
     assert rc != 0, "a --dry-run for a missing primitive must still exit non-zero"
     assert _snapshot_tree(tmp_path) == before
@@ -768,8 +761,10 @@ def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
     malicious = {"../../evil_dry_run.txt": b"evil"}
     with mock.patch("agentbundle.render.render_pack", return_value=malicious):
         rc = _run_upgrade(
-            pack="core", catalogue=str(CAT_V2),
-            root=str(tmp_path), dry_run=True,
+            pack="core",
+            catalogue=str(CAT_V2),
+            root=str(tmp_path),
+            dry_run=True,
         )
     assert rc != 0, "dry-run must surface the path-jail pre-flight failure"
     assert not (tmp_path / ".." / ".." / "evil_dry_run.txt").resolve().exists(), (
@@ -801,7 +796,9 @@ def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
             outside_rel: {"sha": installed_sha, "from-pack-version": "0.1.0"},
         },
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(s), encoding="utf-8", newline="\n")
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        dump_state(s), encoding="utf-8", newline="\n"
+    )
     # On-disk: user has edited the outside-prefix file (different from installed sha)
     (tmp_path / "outside-prefix").mkdir()
     (tmp_path / outside_rel).write_bytes(b"user edited\n")
@@ -850,9 +847,7 @@ def test_per_primitive_recap_shows_from_to(tmp_path, capsys):
     assert _install_v1(tmp_path) == 0
     capsys.readouterr()
 
-    rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop"
-    )
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop")
     assert rc == 0
     recap = capsys.readouterr().out.strip().splitlines()[-1]
     assert recap == "upgraded: core skill/work-loop @ repo 0.1.0 -> 0.2.0", recap
@@ -952,8 +947,11 @@ def test_dry_run_no_prompt_no_write(tmp_path, capsys, monkeypatch):
 
     monkeypatch.setattr("builtins.input", _boom)
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path),
-        dry_run=True, yes=False,
+        pack="core",
+        catalogue=str(CAT_V2),
+        root=str(tmp_path),
+        dry_run=True,
+        yes=False,
     )
     assert rc == 0
     assert _snapshot_tree(tmp_path) == before
@@ -963,8 +961,8 @@ def test_dry_run_no_prompt_no_write(tmp_path, capsys, monkeypatch):
     "pack_toml_body",
     [
         '[pack]\nname = "core"\ndescription = "no version"\nseeds = []\n',  # missing key
-        '[pack]\nname = "core"\nversion = 2\nseeds = []\n',                  # non-string
-        '[other]\nx = 1\n',                                                  # no [pack] table
+        '[pack]\nname = "core"\nversion = 2\nseeds = []\n',  # non-string
+        "[other]\nx = 1\n",  # no [pack] table
     ],
     ids=["missing-key", "non-string", "no-pack-table"],
 )
@@ -989,14 +987,16 @@ def test_per_primitive_from_uses_recorded_override(tmp_path, capsys):
     override (0.2.0), not installed_version (0.1.0)."""
     assert _install_v1(tmp_path) == 0
     # First per-primitive upgrade → records skill/work-loop @ 0.2.0.
-    assert _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop"
-    ) == 0
+    assert (
+        _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop")
+        == 0
+    )
     capsys.readouterr()
     # Second per-primitive upgrade → from is the recorded override 0.2.0.
-    assert _run_upgrade(
-        pack="core", catalogue=str(CAT_V3), root=str(tmp_path), skill="work-loop"
-    ) == 0
+    assert (
+        _run_upgrade(pack="core", catalogue=str(CAT_V3), root=str(tmp_path), skill="work-loop")
+        == 0
+    )
     recap = capsys.readouterr().out.strip().splitlines()[-1]
     assert recap == "upgraded: core skill/work-loop @ repo 0.2.0 -> 0.3.0", recap
 
@@ -1062,9 +1062,7 @@ def test_per_primitive_upgrade_suppresses_whole_pack_drift_notice(tmp_path, caps
     (tmp_path / sorted(ps.files)[0]).write_text("# local edit\n", encoding="utf-8", newline="\n")
     capsys.readouterr()
 
-    rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop"
-    )
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop")
     assert rc == 0
     assert "have local edits" not in capsys.readouterr().err
 

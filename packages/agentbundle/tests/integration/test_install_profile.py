@@ -41,8 +41,7 @@ def _isolate_home_and_caches(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def _stage_pack(cat, name, *, version="0.1.0", scope="repo", deps=None,
-                allowed_adapters=None):
+def _stage_pack(cat, name, *, version="0.1.0", scope="repo", deps=None, allowed_adapters=None):
     pdir = cat / "packs" / name
     skill = pdir / ".apm" / "skills" / f"{name}-skill"
     skill.mkdir(parents=True)
@@ -58,9 +57,7 @@ def _stage_pack(cat, name, *, version="0.1.0", scope="repo", deps=None,
         f'allowed-scopes = ["{scope}"]',
     ]
     if allowed_adapters is not None:
-        lines.append(
-            "allowed-adapters = [" + ", ".join(f'"{a}"' for a in allowed_adapters) + "]"
-        )
+        lines.append("allowed-adapters = [" + ", ".join(f'"{a}"' for a in allowed_adapters) + "]")
     for dep_name, dep_range in deps or []:
         lines += [
             "[[pack.dependencies.required]]",
@@ -178,7 +175,9 @@ def test_profile_skips_already_installed(tmp_path):
     state.packs[("pf-core", "claude-code")] = PackState(
         installed_version="0.4.9", scope="repo", adapter="claude-code"
     )
-    (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
+    (target / ".agentbundle-state.toml").write_text(
+        dump_state(state), encoding="utf-8", newline="\n"
+    )
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
     assert rc == 0, f"profile install failed: {err}"
@@ -201,8 +200,9 @@ def test_profile_refuses_when_a_pack_disallows_the_pinned_adapter(tmp_path):
     target.mkdir()
     # pf-core legacy (→ claude-code default); pf-addon-b only allows codex.
     _stage_pack(cat, "pf-core", version="0.4.9", scope="repo")
-    _stage_pack(cat, "pf-addon-b", scope="repo", deps=[("pf-core", "^0.1")],
-                allowed_adapters=["codex"])
+    _stage_pack(
+        cat, "pf-addon-b", scope="repo", deps=[("pf-core", "^0.1")], allowed_adapters=["codex"]
+    )
     _stage_profile(cat, "split", "repo", ["pf-core", "pf-addon-b"])
 
     rc, out, err = _run_install(["--profile", "split", str(cat), "--output", str(target)])
@@ -308,7 +308,9 @@ def test_profile_refuses_when_dep_preinstalled_at_unsatisfying_version(tmp_path)
     state.packs[("pf-core", "claude-code")] = PackState(
         installed_version="0.0.1", scope="repo", adapter="claude-code"
     )
-    (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
+    (target / ".agentbundle-state.toml").write_text(
+        dump_state(state), encoding="utf-8", newline="\n"
+    )
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
     assert rc != 0
@@ -380,7 +382,9 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
     repo_state.packs[("pf-tool", "claude-code")] = PackState(
         installed_version="0.1.0", scope="repo", adapter="claude-code"
     )
-    (target / ".agentbundle-state.toml").write_text(dump_state(repo_state), encoding="utf-8", newline="\n")
+    (target / ".agentbundle-state.toml").write_text(
+        dump_state(repo_state), encoding="utf-8", newline="\n"
+    )
 
     rc, out, err = _run_install(["--profile", "userset", str(cat), "--output", str(target)])
     assert rc == 1

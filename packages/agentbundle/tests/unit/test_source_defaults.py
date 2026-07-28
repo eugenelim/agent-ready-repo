@@ -65,7 +65,9 @@ def _make_markers(root: Path) -> None:
 
 def _make_git(root: Path, *, as_file: bool = False) -> None:
     if as_file:
-        (root / ".git").write_text("gitdir: /elsewhere/.git/worktrees/wt\n", encoding="utf-8", newline="\n")
+        (root / ".git").write_text(
+            "gitdir: /elsewhere/.git/worktrees/wt\n", encoding="utf-8", newline="\n"
+        )
     else:
         (root / ".git").mkdir(parents=True, exist_ok=True)
 
@@ -345,9 +347,7 @@ def test_invalid_packaged_default_skipped():
 
 def test_all_layers_empty_raises_with_recovery_paths():
     with pytest.raises(CatalogueError) as exc:
-        resolve_default_source(
-            None, config_source=None, dist=None, read_packaged=lambda: None
-        )
+        resolve_default_source(None, config_source=None, dist=None, read_packaged=lambda: None)
     msg = str(exc.value)
     assert (
         "no catalogue source: pass a catalogue argument, run 'agentbundle config "
@@ -362,9 +362,7 @@ def test_no_implicit_cwd_fallback(tmp_path, monkeypatch):
     _make_markers(tmp_path)
     monkeypatch.chdir(tmp_path)
     with pytest.raises(CatalogueError):
-        resolve_default_source(
-            None, config_source=None, dist=None, read_packaged=lambda: None
-        )
+        resolve_default_source(None, config_source=None, dist=None, read_packaged=lambda: None)
 
 
 def test_editable_detected_but_no_root_falls_through_to_layer4(tmp_path, capsys):
@@ -399,18 +397,23 @@ def test_resolution_writes_nothing(tmp_path, monkeypatch):
 
     clone, pkg = _clone(tmp_path)
     # layer 2 hit
-    resolve_default_source(None, config_source="git+https://github.com/x/y", dist=None,
-                           read_packaged=lambda: None)
+    resolve_default_source(
+        None, config_source="git+https://github.com/x/y", dist=None, read_packaged=lambda: None
+    )
     # layer 3 hit
-    resolve_default_source(None, config_source=None, dist=_FakeDist(_direct_url(pkg)),
-                           read_packaged=lambda: None)
+    resolve_default_source(
+        None, config_source=None, dist=_FakeDist(_direct_url(pkg)), read_packaged=lambda: None
+    )
     # editable-deferred + layer 4
-    resolve_default_source(None, config_source="http://bad", dist=None,
-                           read_packaged=lambda: "git+https://github.com/a/b")
+    resolve_default_source(
+        None,
+        config_source="http://bad",
+        dist=None,
+        read_packaged=lambda: "git+https://github.com/a/b",
+    )
     # all-layers-empty error path
     with pytest.raises(CatalogueError):
-        resolve_default_source(None, config_source=None, dist=None,
-                               read_packaged=lambda: None)
+        resolve_default_source(None, config_source=None, dist=None, read_packaged=lambda: None)
     assert cfg.read_bytes() == before
 
 
@@ -495,7 +498,10 @@ def test_read_packaged_preferred_adapter_valid_returns_value(monkeypatch):
         lambda _t: "cursor",
     )
     from agentbundle import scope as _scope
-    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))  # noqa: E501
+
+    monkeypatch.setattr(
+        _scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code")
+    )  # noqa: E501
     result = read_packaged_preferred_adapter()
     assert result == "cursor"
 
@@ -508,7 +514,10 @@ def test_read_packaged_preferred_adapter_invalid_raises(monkeypatch):
         lambda _t: "not-an-adapter",
     )
     from agentbundle import scope as _scope
-    monkeypatch.setattr(_scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code"))  # noqa: E501
+
+    monkeypatch.setattr(
+        _scope, "shipped_adapters_from_contract", lambda: ("cursor", "claude-code")
+    )  # noqa: E501
     with pytest.raises(CatalogueError, match="not-an-adapter"):
         read_packaged_preferred_adapter()
 
@@ -557,6 +566,7 @@ def test_load_distribution_prefers_record_bearing_dist(monkeypatch):
     other = _D("requests", None)
 
     import importlib.metadata as md
+
     # egg-info first in iteration order — the record-bearing dist must still win.
     monkeypatch.setattr(md, "distributions", lambda: iter([other, egg, distinfo]))
     assert _load_distribution() is distinfo

@@ -38,26 +38,19 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[4]
 # packages/agentbundle/tests/integration/ → parents[2] = packages/agentbundle/
 FIXTURES_PACKS = (
-    Path(__file__).resolve().parents[2]
-    / "agentbundle"
-    / "build"
-    / "tests"
-    / "fixtures"
-    / "packs"
+    Path(__file__).resolve().parents[2] / "agentbundle" / "build" / "tests" / "fixtures" / "packs"
 )
 TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
 
 # Expected canonical command in the derived plugin.json.
 EXPECTED_COMMAND = (
     'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
-    ' --install-route claude-plugins'
+    " --install-route claude-plugins"
 )
 
 # All fixture packs — parametrisation covers multi-pack derivation (Concern-5).
 FIXTURE_PACK_NAMES = [
-    p.name
-    for p in sorted(FIXTURES_PACKS.iterdir())
-    if p.is_dir() and (p / "pack.toml").exists()
+    p.name for p in sorted(FIXTURES_PACKS.iterdir()) if p.is_dir() and (p / "pack.toml").exists()
 ]
 
 
@@ -130,9 +123,7 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
-    derived_json = (
-        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
-    )
+    derived_json = tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
     assert derived_json.exists(), f"[{pack_name}] derived plugin.json missing"
 
     manifest = json.loads(derived_json.read_text(encoding="utf-8"))
@@ -149,7 +140,9 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
         f"(Claude Code 2.1.209+ contract); got keys: {list(entry.keys())}"
     )
     inner = entry["hooks"]
-    assert isinstance(inner, list) and len(inner) == 1, f"[{pack_name}] inner hooks must be 1-element list"  # noqa: E501
+    assert isinstance(inner, list) and len(inner) == 1, (
+        f"[{pack_name}] inner hooks must be 1-element list"
+    )  # noqa: E501
     assert inner[0]["type"] == "command", f"[{pack_name}] inner hook type must be 'command'"
     assert inner[0]["command"] == EXPECTED_COMMAND, (
         f"[{pack_name}] SessionStart command mismatch:\n"
@@ -165,9 +158,7 @@ def test_derivation_preserves_source_fields(tmp_path, pack_name):
     assert result.returncode == 0, result.stderr
 
     source_json = FIXTURES_PACKS / pack_name / ".claude-plugin" / "plugin.json"
-    derived_json = (
-        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
-    )
+    derived_json = tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
 
     source = json.loads(source_json.read_text(encoding="utf-8"))
     derived = json.loads(derived_json.read_text(encoding="utf-8"))
@@ -193,11 +184,7 @@ def test_derivation_idempotent(tmp_path):
     derived_root = tmp_path / "claude-plugins"
 
     def _snapshot(base: Path) -> dict[str, bytes]:
-        return {
-            str(p.relative_to(base)): p.read_bytes()
-            for p in base.rglob("*")
-            if p.is_file()
-        }
+        return {str(p.relative_to(base)): p.read_bytes() for p in base.rglob("*") if p.is_file()}
 
     snap1 = _snapshot(derived_root)
 
@@ -225,11 +212,7 @@ def test_derivation_cold_rebuild_byte_identical(tmp_path):
     derived_root = tmp_path / "claude-plugins"
 
     def _snapshot(base: Path) -> dict[str, bytes]:
-        return {
-            str(p.relative_to(base)): p.read_bytes()
-            for p in base.rglob("*")
-            if p.is_file()
-        }
+        return {str(p.relative_to(base)): p.read_bytes() for p in base.rglob("*") if p.is_file()}
 
     snap1 = _snapshot(derived_root)
 
@@ -390,9 +373,7 @@ def test_shell_exec_quoting_survives_space_in_root(tmp_path):
     assert result.returncode == 0, result.stderr
 
     pack_name = FIXTURE_PACK_NAMES[0]
-    derived_json = (
-        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
-    )
+    derived_json = tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
     manifest = json.loads(derived_json.read_text(encoding="utf-8"))
     # Command is now nested: hooks.SessionStart[0].hooks[0].command
     command = manifest["hooks"]["SessionStart"][0]["hooks"][0]["command"]
@@ -442,7 +423,9 @@ def test_build_rejects_source_plugin_json_with_hooks_block(tmp_path):
     mutated_manifest = mutated_packs / pack_name / ".claude-plugin" / "plugin.json"
     original = json.loads(mutated_manifest.read_text(encoding="utf-8"))
     original["hooks"] = {"SessionStart": [{"command": "echo evil"}]}
-    mutated_manifest.write_text(json.dumps(original, indent=2) + "\n", encoding="utf-8", newline="\n")
+    mutated_manifest.write_text(
+        json.dumps(original, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
 
     result = _run_build(mutated_packs, tmp_path / "out")
 
@@ -475,9 +458,7 @@ def test_claude_plugins_hook_command_now_passes_flag(tmp_path):
     assert result.returncode == 0, result.stderr
 
     pack_name = FIXTURE_PACK_NAMES[0]
-    derived_json = (
-        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
-    )
+    derived_json = tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
     manifest = json.loads(derived_json.read_text(encoding="utf-8"))
     # Command is now nested: hooks.SessionStart[0].hooks[0].command
     command = manifest["hooks"]["SessionStart"][0]["hooks"][0]["command"]
@@ -533,9 +514,7 @@ def test_derived_plugin_json_has_no_marketplace_only_fields(tmp_path, pack_name)
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
-    derived_json = (
-        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
-    )
+    derived_json = tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
     manifest = json.loads(derived_json.read_text(encoding="utf-8"))
     for field in ("source", "category"):
         assert field not in manifest, (

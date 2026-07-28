@@ -62,9 +62,7 @@ class MergeIntoAgentJsonTests(unittest.TestCase):
                 wiring_tomls={
                     "on-prompt": {
                         "attach-to-agent": "reviewer",
-                        "hooks": {
-                            "userPromptSubmit": [{"command": "x", "matcher": ""}]
-                        },
+                        "hooks": {"userPromptSubmit": [{"command": "x", "matcher": ""}]},
                     }
                 },
             )
@@ -73,7 +71,9 @@ class MergeIntoAgentJsonTests(unittest.TestCase):
             self.assertEqual(data["name"], "reviewer")
             self.assertEqual(data["description"], "Reviews pending work.")
             # Hooks merged.
-            self.assertEqual(data["hooks"]["userPromptSubmit"][0]["id"], "clipboard-summary:on-prompt")  # noqa: E501
+            self.assertEqual(
+                data["hooks"]["userPromptSubmit"][0]["id"], "clipboard-summary:on-prompt"
+            )  # noqa: E501
             self.assertEqual(data["hooks"]["userPromptSubmit"][0]["command"], "x")
             self.assertEqual(owned, [("userPromptSubmit", "clipboard-summary:on-prompt")])
 
@@ -226,7 +226,9 @@ class FailureModeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "reviewer.json"
-            target.write_text(json.dumps({"name": "x", "hooks": ["wrong"]}), encoding="utf-8", newline="\n")
+            target.write_text(
+                json.dumps({"name": "x", "hooks": ["wrong"]}), encoding="utf-8", newline="\n"
+            )
             with self.assertRaises(AgentJsonRefusal) as ctx:
                 project(target, "p", {"h": {"hooks": {"E": [{"command": "x"}]}}})
             self.assertIn("hooks has unexpected shape", str(ctx.exception))
@@ -264,9 +266,7 @@ class EventVocabularyRailTests(unittest.TestCase):
 
         refusal = check_kiro_event_vocabulary(
             pack_name="demo",
-            wiring_tomls={
-                "on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}
-            },
+            wiring_tomls={"on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}},
             vocabulary=["agentSpawn", "userPromptSubmit", "preToolUse"],
             target_adapters={"kiro"},
             adapter_name="kiro",
@@ -280,9 +280,7 @@ class EventVocabularyRailTests(unittest.TestCase):
 
         refusal = check_kiro_event_vocabulary(
             pack_name="demo",
-            wiring_tomls={
-                "on-prompt": {"hooks": {"userPromptSubmit": [{"command": "x"}]}}
-            },
+            wiring_tomls={"on-prompt": {"hooks": {"userPromptSubmit": [{"command": "x"}]}}},
             vocabulary=["agentSpawn", "userPromptSubmit", "preToolUse"],
             target_adapters={"kiro"},
             adapter_name="kiro",
@@ -298,9 +296,7 @@ class EventVocabularyRailTests(unittest.TestCase):
 
         refusal = check_kiro_event_vocabulary(
             pack_name="demo",
-            wiring_tomls={
-                "on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}
-            },
+            wiring_tomls={"on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}},
             vocabulary=None,  # adapter doesn't declare it
             target_adapters={"claude-code"},
             adapter_name="claude-code",
@@ -314,9 +310,7 @@ class EventVocabularyRailTests(unittest.TestCase):
 
         refusal = check_kiro_event_vocabulary(
             pack_name="demo",
-            wiring_tomls={
-                "on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}
-            },
+            wiring_tomls={"on-prompt": {"hooks": {"UserPromptSubmit": [{"command": "x"}]}}},
             vocabulary=["agentSpawn"],
             target_adapters={"claude-code"},
             adapter_name="kiro",
@@ -334,7 +328,9 @@ class EventVocabularyRailTests(unittest.TestCase):
         refusal = check_kiro_event_vocabulary(
             pack_name="demo",
             wiring_tomls={
-                "first": {"hooks": {"GoodEvent": [{"command": "x"}], "BadOne": [{"command": "y"}]}},  # noqa: E501
+                "first": {
+                    "hooks": {"GoodEvent": [{"command": "x"}], "BadOne": [{"command": "y"}]}
+                },  # noqa: E501
                 "second": {"hooks": {"AlsoBad": [{"command": "z"}]}},
             },
             vocabulary=["GoodEvent"],

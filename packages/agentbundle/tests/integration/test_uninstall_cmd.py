@@ -14,9 +14,7 @@ import types
 from pathlib import Path
 
 # Fixture catalogue reused from the install tests.
-FIXTURE_CATALOGUE = (
-    Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
-)
+FIXTURE_CATALOGUE = Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
 ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 
 
@@ -27,26 +25,35 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 
 def _run_install(pack: str, catalogue: str, output: str) -> int:
     from agentbundle.commands.install import run
+
     # Test fixtures predate RFC-0012's per-IDE projection at repo scope;
     # pass `emit_install_routes=True` to keep the dist-tree shape these
     # tests assert against. The per-IDE projection path is covered by
     # the new `test_install_repo_scope_per_adapter.py` integration suite.
-    return run(types.SimpleNamespace(
-        pack=pack, catalogue=catalogue, output=output,
-        emit_install_routes=True,
-    ))
+    return run(
+        types.SimpleNamespace(
+            pack=pack,
+            catalogue=catalogue,
+            output=output,
+            emit_install_routes=True,
+        )
+    )
 
 
-def _run_uninstall(
-    pack: str, root: str, *, yes: bool = True, dry_run: bool = False
-) -> int:
+def _run_uninstall(pack: str, root: str, *, yes: bool = True, dry_run: bool = False) -> int:
     from agentbundle.commands.uninstall import run
+
     # `yes=True` by default so the pre-existing non-prompt tests don't block on
     # input(); the confirmation-flow tests pass yes=False and monkeypatch
     # input/isatty (mirrors test_upgrade_cmd.py's `_run_upgrade`).
-    return run(types.SimpleNamespace(
-        pack=pack, root=root, yes=yes, dry_run=dry_run,
-    ))
+    return run(
+        types.SimpleNamespace(
+            pack=pack,
+            root=root,
+            yes=yes,
+            dry_run=dry_run,
+        )
+    )
 
 
 def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
@@ -57,11 +64,12 @@ def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
     state.packs[(pack_name, "claude-code")] = PackState(
         installed_version="0.1.0",
         files={
-            relpath: {"sha": sha, "from-pack-version": "0.1.0"}
-            for relpath, sha in files.items()
+            relpath: {"sha": sha, "from-pack-version": "0.1.0"} for relpath, sha in files.items()
         },
     )
-    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8", newline="\n")
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        dump_state(state), encoding="utf-8", newline="\n"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -221,9 +229,7 @@ def test_missing_pack_exits_nonzero(tmp_path, capsys):
     assert rc != 0, "uninstall of missing pack must exit non-zero"
 
     captured = capsys.readouterr()
-    assert "nonexistent" in captured.err, (
-        "stderr must mention the missing pack name"
-    )
+    assert "nonexistent" in captured.err, "stderr must mention the missing pack name"
 
 
 # ---------------------------------------------------------------------------
@@ -234,9 +240,7 @@ def test_missing_pack_exits_nonzero(tmp_path, capsys):
 def _snapshot_tree(root: Path) -> dict[str, bytes]:
     """Map every file under `root` to its bytes (for write-nothing assertions)."""
     return {
-        str(p.relative_to(root)): p.read_bytes()
-        for p in sorted(root.rglob("*"))
-        if p.is_file()
+        str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()
     }
 
 

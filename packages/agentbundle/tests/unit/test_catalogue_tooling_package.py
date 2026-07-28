@@ -50,10 +50,14 @@ def _make_catalogue(
     # Profile
     profiles_dir = root / "profiles"
     profiles_dir.mkdir()
-    (profiles_dir / "default.toml").write_text('[profile]\nname = "default"\n', encoding="utf-8", newline="\n")
+    (profiles_dir / "default.toml").write_text(
+        '[profile]\nname = "default"\n', encoding="utf-8", newline="\n"
+    )
 
     if with_agents_md:
-        (root / "AGENTS.md").write_text("# Catalogue Agent Context\n", encoding="utf-8", newline="\n")
+        (root / "AGENTS.md").write_text(
+            "# Catalogue Agent Context\n", encoding="utf-8", newline="\n"
+        )
 
     (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8", newline="\n")
 
@@ -65,7 +69,9 @@ def _make_catalogue(
     if with_marketplace:
         cp_dir = root / ".claude-plugin"
         cp_dir.mkdir()
-        (cp_dir / "marketplace.json").write_text('{"packs": ["core"]}\n', encoding="utf-8", newline="\n")
+        (cp_dir / "marketplace.json").write_text(
+            '{"packs": ["core"]}\n', encoding="utf-8", newline="\n"
+        )
 
     return root
 
@@ -209,6 +215,7 @@ def test_channel_descriptor_written_last(tmp_path: Path) -> None:
     def _spy_verify(archive_path, *, sha256_file=None):
         write_order.append("verify_archive")
         from agentbundle.catalogue_tooling.archive import verify_archive
+
         return verify_archive(archive_path, sha256_file=sha256_file)
 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
@@ -247,6 +254,7 @@ def test_deterministic_under_source_date_epoch(tmp_path: Path) -> None:
     def _arc(out):
         path = out / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
         return path.read_bytes()
+
     assert hashlib.sha256(_arc(out1)).digest() == hashlib.sha256(_arc(out2)).digest()
 
 
@@ -278,14 +286,26 @@ def test_staged_cleanup_on_verify_failure(tmp_path: Path) -> None:
 
     def _failing_verify(archive_path, *, sha256_file=None):
         from agentbundle.catalogue_tooling.results import Diagnostic, Severity, VerifyResult
+
         return VerifyResult(
             ok=False,
-            diagnostics=[Diagnostic(
-                code="TEST", severity=Severity.ERROR, pack=None, path=None,
-                line=None, col=None, message="injected failure", remediation=None,
-            )],
-            schema_version=1, command="test", operation="test",
-            agentbundle_version="0.0.0", catalogue_schema_version=1,
+            diagnostics=[
+                Diagnostic(
+                    code="TEST",
+                    severity=Severity.ERROR,
+                    pack=None,
+                    path=None,
+                    line=None,
+                    col=None,
+                    message="injected failure",
+                    remediation=None,
+                )
+            ],
+            schema_version=1,
+            command="test",
+            operation="test",
+            agentbundle_version="0.0.0",
+            catalogue_schema_version=1,
         )
 
     with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
@@ -356,6 +376,7 @@ def test_compat_alias_deprecation_warning(tmp_path: Path) -> None:
     import types as _types
 
     from agentbundle.commands.package_catalogue import run
+
     args = _types.SimpleNamespace(
         root=str(root),
         bundle="b",
@@ -409,6 +430,7 @@ def test_extracted_archive_valid_local_catalogue(tmp_path: Path) -> None:
                     dest.write_bytes(fobj.read())
 
     from agentbundle.catalogue_tooling.verify import verify_catalogue
+
     verify_result = verify_catalogue(extract_dir)
     assert verify_result.ok, [d.message for d in verify_result.diagnostics]
 
@@ -482,8 +504,15 @@ def test_cli_catalogue_package_help() -> None:
         cli.main(["catalogue", "package", "--help"])
     assert exc_info.value.code == 0
     help_text = stdout_buf.getvalue()
-    for flag in ["--root", "--bundle", "--release", "--channel", "--output",
-                 "--source-revision", "--minimum-agentbundle-version"]:
+    for flag in [
+        "--root",
+        "--bundle",
+        "--release",
+        "--channel",
+        "--output",
+        "--source-revision",
+        "--minimum-agentbundle-version",
+    ]:
         assert flag in help_text, f"missing flag {flag!r} in help text"
 
 
@@ -623,6 +652,7 @@ def test_check_required_none_uses_defaults(tmp_path: Path) -> None:
 
 def _ok_verify_result():
     from agentbundle.catalogue_tooling.results import VerifyResult
+
     return VerifyResult(
         ok=True,
         diagnostics=[],
