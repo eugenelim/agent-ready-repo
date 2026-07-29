@@ -18,6 +18,7 @@ from pathlib import Path
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity, VerifyResult
 
 _MANIFEST_NAME = "catalogue-manifest.json"
+_SOURCE_MANIFEST_NAME = "self-hosted-source-manifest.json"
 _MAX_MEMBERS = 50_000
 _MAX_COMPRESSED_BYTES = 500 * 1024 * 1024   # 500 MB
 _MAX_EXPANDED_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
@@ -336,6 +337,20 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
 
     with tarfile.open(archive, "r:gz") as tf:
         members = tf.getmembers()
+
+        # Refuse source-distribution archives before any further processing (B4).
+        member_names = {m.name for m in members}
+        prefix = _detect_prefix(members)
+        source_manifest_present = (
+            _SOURCE_MANIFEST_NAME in member_names
+            or f"{prefix}{_SOURCE_MANIFEST_NAME}" in member_names
+        )
+        if source_manifest_present:
+            return _make_result([_err(
+                "CAT-V-ARC-016",
+                "archive kind is agentbundle-self-hosted-source — "
+                "this is a source distribution, not an installable catalogue archive",
+            )], "archive")
 
         diags.extend(check_members(members))
         diags.extend(_check_expanded_size(members))

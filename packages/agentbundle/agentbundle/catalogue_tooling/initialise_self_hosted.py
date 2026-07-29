@@ -17,11 +17,12 @@ Python 3.11 stdlib only.  No network, no subprocess, no third-party deps.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
-import shutil
 import sys
+import tempfile
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,6 +34,14 @@ from agentbundle.catalogue_tooling.identity import (
     check_ci_boundary,
     verify,
 )
+from agentbundle.catalogue_tooling.initialise import (
+    PlannedFile,
+    atomic_write,
+    classify_conflicts,
+    commit_files,
+    rollback,
+)
+from agentbundle.catalogue_tooling.results import FileAction
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -41,7 +50,7 @@ from agentbundle.catalogue_tooling.identity import (
 _SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]*$")
 _URL_RE = re.compile(r"^https?://\S+$")
 # Reject userinfo (credentials) in URLs: https://user:pass@host is disallowed.
-_URL_USERINFO_RE = re.compile(r"^https?://[^/@]*@")
+_URL_USERINFO_RE = re.compile(r"^https?://[^/@]*@", re.IGNORECASE)
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Packs never copied to the target (they're tooling, not catalogue content).
@@ -62,6 +71,26 @@ _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
 # ---------------------------------------------------------------------------
 
 @dataclass
+class SelfHostedSource:
+    """Logical source identity for self-hosted catalogue init."""
+
+    name: str
+    display_name: str
+    release: str | None = None
+    archive_uri: str | None = None
+    sha256: str | None = None
+    revision: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "display_name": self.display_name,
+            "release": self.release,
+            "archive_uri": self.archive_uri,
+        }
+
+
+@dataclass
 class SelfHostedInitConfig:
     target: Path
     source: Path
@@ -75,6 +104,7 @@ class SelfHostedInitConfig:
     owner_email: str | None = None
     preferred_adapter: str | None = None
     repository_url: str | None = None
+    archive_uri: str | None = None  # B3/B12: source archive URI for provenance
     packs: list[str] | None = None  # None = all; explicit list = filtered
     adapters: list[str] | None = None
     profiles: list[str] | None = None
@@ -90,6 +120,18 @@ class SelfHostedInitResult:
     diagnostics: list[str] = field(default_factory=list)
     violations: list[Violation] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
+    # B12 additional fields
+    preset: str = "self-hosted"
+    tooling_mode: str = "external"
+    attribution_mode: str = "white-label"
+    selected_packs: list[str] = field(default_factory=list)
+    selected_profiles: list[str] = field(default_factory=list)
+    selected_adapters: list[str] = field(default_factory=list)
+    field_collection_mode: str = "default"
+    identity_replacements: list[dict] = field(default_factory=list)
+    leak_scan_result: dict = field(default_factory=lambda: {"ok": True, "violation_count": 0})
+    source: SelfHostedSource | None = None
+    summary: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -99,6 +141,17 @@ class SelfHostedInitResult:
             "ok": self.ok,
             "dry_run": self.dry_run,
             "name": self.name,
+            "preset": self.preset,
+            "tooling_mode": self.tooling_mode,
+            "attribution_mode": self.attribution_mode,
+            "source": self.source.to_dict() if self.source else None,
+            "selected_packs": self.selected_packs,
+            "selected_profiles": self.selected_profiles,
+            "selected_adapters": self.selected_adapters,
+            "field_collection_mode": self.field_collection_mode,
+            "identity_replacements": self.identity_replacements,
+            "leak_scan_result": self.leak_scan_result,
+            "summary": self.summary,
             "files_written": [{"action": a, "path": p} for a, p in self.files_written],
             "diagnostics": self.diagnostics,
             "violations": [
@@ -113,13 +166,21 @@ class SelfHostedInitResult:
 class SelfHostOwnershipState:
     """Tracks which paths were written so future updates only remove our files."""
 
-    schema_version: str = "1"
-    managed_paths: list[str] = field(default_factory=list)
+    schema_version: str = "2"
+    managed_paths: list[dict] = field(default_factory=list)  # [{path, sha256}]
+    adapters: list[str] = field(default_factory=list)
+    managed_target_path: str = ""
+    source_pack_identity: str = ""
+    source_root_kind: str = "self-hosted-source"
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
-            "managed_paths": sorted(self.managed_paths),
+            "managed_paths": sorted(self.managed_paths, key=lambda x: x.get("path", "")),
+            "adapters": sorted(self.adapters),
+            "managed_target_path": self.managed_target_path,
+            "source_pack_identity": self.source_pack_identity,
+            "source_root_kind": self.source_root_kind,
         }
 
 
@@ -137,6 +198,28 @@ def _read_source_catalogue(source: Path) -> tuple[dict[str, Any] | None, str | N
     except Exception as exc:
         return None, f"failed to parse source catalogue.toml: {exc}"
     return data, None
+
+
+def resolve_source(source: Path, tooling: str) -> tuple[SelfHostedSource | None, str | None]:
+    """Validate source path and return SelfHostedSource or (None, error).
+
+    For vendored mode, the source must contain packages/agentbundle/.
+    """
+    source_meta, err = _read_source_catalogue(source)
+    if err:
+        return None, err
+    cat = source_meta.get("catalogue", {})
+    if tooling == "vendored":
+        agentbundle_pkg = source / "packages" / "agentbundle"
+        if not agentbundle_pkg.is_dir() or agentbundle_pkg.is_symlink():
+            return None, (
+                "source is missing packages/agentbundle/ — "
+                "vendored mode requires a self-hosted source catalogue, not a runtime archive"
+            )
+    return SelfHostedSource(
+        name=cat.get("name", ""),
+        display_name=cat.get("display_name", ""),
+    ), None
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +294,7 @@ def collect_fields(
         owner_email=owner_email,
         preferred_adapter=preferred_adapter,
         repository_url=cfg.repository_url,
+        archive_uri=cfg.archive_uri,
         packs=cfg.packs,
         adapters=cfg.adapters,
         profiles=cfg.profiles,
@@ -234,6 +318,10 @@ def validate_fields(cfg: SelfHostedInitConfig) -> list[str]:
             errors.append(
                 f"repository-url {cfg.repository_url!r} must not contain credentials"
             )
+    if cfg.archive_uri and _URL_USERINFO_RE.match(cfg.archive_uri):
+        errors.append(
+            f"archive-uri {cfg.archive_uri!r} must not contain credentials"
+        )
     if cfg.owner_email and not _EMAIL_RE.match(cfg.owner_email):
         errors.append(
             f"owner-email {cfg.owner_email!r} does not look like a valid email address"
@@ -290,41 +378,33 @@ def _select_profiles(source: Path, explicit: list[str] | None) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# File copy helpers
+# In-memory file collection
 # ---------------------------------------------------------------------------
 
-def _copy_dir(
+def _collect_dir_bytes(
     src_dir: Path,
-    dst_dir: Path,
+    dst_prefix: str,
+    file_bytes: dict[str, bytes],
+    file_kinds: dict[str, str],
     *,
-    dry_run: bool,
-    written: list[tuple[str, str]],
-    target_root: Path,
+    kind: str = "file",
 ) -> None:
-    """Recursively copy src_dir into dst_dir, following no symlinks."""
+    """Recursively collect bytes from src_dir into file_bytes under dst_prefix."""
     for dirpath, dirnames, filenames in os.walk(str(src_dir), followlinks=False):
         dp = Path(dirpath)
-        # Prune symlink dirs.
         dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
         rel_to_src = dp.relative_to(src_dir)
-        out_dir = dst_dir / rel_to_src
-        if not dry_run:
-            out_dir.mkdir(parents=True, exist_ok=True)
         for fname in filenames:
             src_file = dp / fname
             if src_file.is_symlink():
                 continue
-            dst_file = out_dir / fname
-            rel_from_target = str(dst_file.relative_to(target_root))
-            action = "already-present" if dst_file.exists() else "create"
-            if not dry_run:
-                dst_file.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(str(src_file), str(dst_file))
-            written.append((action, rel_from_target))
+            rel_path = (Path(dst_prefix) / rel_to_src / fname).as_posix()
+            file_bytes[rel_path] = src_file.read_bytes()
+            file_kinds[rel_path] = kind
 
 
 # ---------------------------------------------------------------------------
-# Identity transformation
+# Identity transformation (in-memory)
 # ---------------------------------------------------------------------------
 
 def _build_anchors(source_meta: dict[str, Any]) -> dict[str, str]:
@@ -372,7 +452,6 @@ def _transform_text(content: str, anchors: dict[str, str], cfg: SelfHostedInitCo
     if src_repo and cfg.repository_url and src_repo != cfg.repository_url:
         replacements.append((src_repo, cfg.repository_url))
     elif src_repo and not cfg.repository_url:
-        # Remove the URL without a replacement — use a placeholder.
         replacements.append((src_repo, "https://example.com/my-catalogue"))
 
     src_homepage = anchors.get("link_homepage", "")
@@ -390,28 +469,81 @@ def _transform_text(content: str, anchors: dict[str, str], cfg: SelfHostedInitCo
     return content
 
 
-def _apply_identity_transform(
-    target: Path,
+def _apply_identity_transform_bytes(
+    file_bytes: dict[str, bytes],
     anchors: dict[str, str],
     cfg: SelfHostedInitConfig,
-) -> None:
-    """Walk target tree and apply identity replacement in text files."""
+) -> list[dict]:
+    """Apply identity replacement in-memory over file_bytes dict.
+
+    Returns list of {from, to} replacement dicts (for B12 identity_replacements).
+    Only operates on white-label mode; attributed mode is a no-op.
+    """
     if cfg.attribution == "attributed":
-        return  # attributed mode keeps anchors intact
-    for dirpath, dirnames, filenames in os.walk(str(target), followlinks=False):
-        dp = Path(dirpath)
-        dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
-        for fname in filenames:
-            fp = dp / fname
-            if fp.is_symlink() or fp.suffix.lower() in BINARY_EXT:
-                continue
-            try:
-                content = fp.read_text(encoding="utf-8", errors="replace")
-                new_content = _transform_text(content, anchors, cfg)
-                if new_content != content:
-                    fp.write_text(new_content, encoding="utf-8", newline="\n")
-            except OSError:
-                continue
+        return []
+
+    applied: set[tuple[str, str]] = set()
+    for rel_path in list(file_bytes.keys()):
+        if Path(rel_path).suffix.lower() in BINARY_EXT:
+            continue
+        try:
+            content = file_bytes[rel_path].decode("utf-8", errors="replace")
+            new_content = _transform_text(content, anchors, cfg)
+            if new_content != content:
+                file_bytes[rel_path] = new_content.encode("utf-8")
+                # Capture what actually changed for B12 reporting
+                for anchor_name, anchor_val in anchors.items():
+                    if anchor_val in content and anchor_val not in new_content:
+                        applied.add(
+                            (anchor_val, _get_replacement_for(anchor_name, anchor_val, cfg))
+                        )
+        except Exception:
+            continue
+
+    return [{"from": old, "to": new} for old, new in sorted(applied)]
+
+
+def _get_replacement_for(anchor_name: str, anchor_val: str, cfg: SelfHostedInitConfig) -> str:
+    """Return the replacement string for a given anchor."""
+    mapping = {
+        "name": cfg.name or "",
+        "display_name": cfg.display_name or "",
+        "description": cfg.description or "",
+        "maintainer_email": cfg.owner_email or "",
+        "maintainer_name": cfg.owner_name or "",
+        "link_repository": cfg.repository_url or "https://example.com/my-catalogue",
+        "link_homepage": cfg.repository_url or "https://example.com/my-catalogue",
+    }
+    return mapping.get(anchor_name, "")
+
+
+# ---------------------------------------------------------------------------
+# Leak verification on in-memory bytes (tmpdir verify)
+# ---------------------------------------------------------------------------
+
+def _verify_bytes_in_tmpdir(
+    file_bytes: dict[str, bytes],
+    anchors: dict[str, str],
+    cfg: SelfHostedInitConfig,
+) -> tuple[list[Violation], list[Violation]]:
+    """Write planned bytes to a tmpdir and run verify + check_ci_boundary.
+
+    Returns (identity_violations, ci_violations).
+    """
+    with tempfile.TemporaryDirectory(prefix="agentbundle-sh-verify-") as tmpdir:
+        tmppath = Path(tmpdir)
+        for rel_path, content in file_bytes.items():
+            dest = tmppath / rel_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(content)
+        attribution_paths: list[str] | None = None
+        if cfg.attribution == "attributed":
+            attribution_paths = _ATTRIBUTION_SURFACES
+        identity_violations = verify(
+            tmppath, anchors, mode=cfg.attribution, attribution_paths=attribution_paths
+        )
+        ci_violations = check_ci_boundary(tmppath)
+        return identity_violations, ci_violations
 
 
 # ---------------------------------------------------------------------------
@@ -444,26 +576,151 @@ def _generate_catalogue_toml(cfg: SelfHostedInitConfig) -> str:
     ]
     if cfg.owner_email:
         lines.append(f'email = "{cfg.owner_email}"')
+
+    # B6: Vendored tooling mode writes [catalogue.tooling] section.
+    if cfg.tooling == "vendored":
+        adapters = cfg.adapters or [cfg.preferred_adapter or "claude-code"]
+        adapters_toml = "[" + ", ".join(f'"{a}"' for a in adapters) + "]"
+        lines += [
+            "",
+            "[catalogue.tooling]",
+            'pack-roots = [".agentbundle/tooling/packs"]',
+            'self-host-packs = ["catalogue-curation"]',
+            f"adapters = {adapters_toml}",
+        ]
+
     return "\n".join(lines) + "\n"
 
 
 # ---------------------------------------------------------------------------
-# Ownership state
+# Ownership state persistence
 # ---------------------------------------------------------------------------
 
-def _write_ownership_state(
-    target: Path,
-    managed_paths: list[str],
-    *,
-    dry_run: bool,
-) -> None:
-    state = SelfHostOwnershipState(managed_paths=managed_paths)
+def _load_ownership_state(target: Path) -> dict | None:
+    """Read existing ownership state from target. Returns None if absent/unreadable."""
     state_path = target / _OWNERSHIP_STATE_FILE
-    if not dry_run:
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        state_path.write_text(
-            json.dumps(state.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
+    if not state_path.is_file():
+        return None
+    try:
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def _migrate_managed_paths(old_state: dict) -> list[dict]:
+    """Convert schema-1 managed_paths (list[str]) to list[{path, sha256}]."""
+    raw = old_state.get("managed_paths", [])
+    result: list[dict] = []
+    for entry in raw:
+        if isinstance(entry, str):
+            result.append({"path": entry, "sha256": None})
+        elif isinstance(entry, dict) and "path" in entry:
+            result.append(entry)
+    return result
+
+
+def _remove_stale_owned_paths(
+    target: Path,
+    old_state: dict,
+    current_paths: set[str],
+) -> tuple[list[str], list[str]]:
+    """Remove stale owned paths (in old state, not in new plan) with guards.
+
+    Path confinement: rejects entries whose resolved path escapes target.
+    SHA guard: skips entries whose on-disk sha256 differs from recorded
+    (user-modified), or whose recorded sha256 is None (schema-1 migration).
+
+    Returns (removed_paths, warning_messages).
+    """
+    removed: list[str] = []
+    warnings: list[str] = []
+
+    paths_with_sha = _migrate_managed_paths(old_state)
+    target_resolved = target.resolve()
+
+    for entry in paths_with_sha:
+        rel_path = entry.get("path", "")
+        recorded_sha = entry.get("sha256")
+
+        if not rel_path or rel_path in current_paths:
+            continue
+
+        # Path confinement guard.
+        try:
+            candidate = (target / rel_path).resolve()
+            candidate.relative_to(target_resolved)
+        except (ValueError, OSError):
+            warnings.append(
+                f"skipped removal of {rel_path!r}: path resolves outside target directory"
+            )
+            continue
+
+        target_file = target / rel_path
+        if not target_file.exists():
+            continue
+
+        # SHA guard: skip if no recorded sha256 (migrated from schema 1).
+        if recorded_sha is None:
+            warnings.append(
+                f"skipped removal of {rel_path!r}: "
+                "no recorded sha256 (migrated from schema 1 — cannot verify ownership)"
+            )
+            continue
+
+        # SHA guard: skip if on-disk content differs (user edited the file).
+        try:
+            on_disk_sha = hashlib.sha256(target_file.read_bytes()).hexdigest()
+        except OSError:
+            continue
+        if on_disk_sha != recorded_sha:
+            warnings.append(
+                f"skipped removal of {rel_path!r}: "
+                "on-disk sha256 differs from recorded value (file may have been modified)"
+            )
+            continue
+
+        try:
+            target_file.unlink()
+            removed.append(rel_path)
+        except OSError as exc:
+            warnings.append(f"failed to remove {rel_path!r}: {exc}")
+
+    return removed, warnings
+
+
+def _write_ownership_state(target: Path, state: SelfHostOwnershipState) -> None:
+    state_path = target / _OWNERSHIP_STATE_FILE
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps(state.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Next-steps builder
+# ---------------------------------------------------------------------------
+
+def _build_next_steps(cfg: SelfHostedInitConfig, pack_names: list[str]) -> list[str]:
+    """Build post-init next steps for the result."""
+    steps: list[str] = []
+    if cfg.tooling == "external":
+        # B7: library-level curation install plan per adapter.
+        adapters = cfg.adapters or [cfg.preferred_adapter or "claude-code"]
+        for adapter in adapters:
+            steps.append(
+                f"agentbundle install catalogue-curation --scope repo --adapter {adapter}"
+            )
+    else:
+        steps.append(
+            f"Vendored tooling at {_VENDORED_TOOLING_ROOT}/agentbundle/ — "
+            "run: pip install -e .agentbundle/tooling/agentbundle/"
         )
+    steps.append(
+        f"Run: agentbundle catalogue verify --root {cfg.target} "
+        "to confirm the target catalogue is well-formed"
+    )
+    return steps
 
 
 # ---------------------------------------------------------------------------
@@ -479,65 +736,89 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     """
     diagnostics: list[str] = []
 
-    # 1. Validate source.
-    source_meta, err = _read_source_catalogue(cfg.source)
-    if err:
-        return SelfHostedInitResult(ok=False, dry_run=cfg.dry_run, name="", diagnostics=[err])
-
-    # 2. Collect fields (TTY prompts + defaults).
-    cfg = collect_fields(cfg, source_meta)
-
-    # 3. Validate fields.
-    errors = validate_fields(cfg)
-    if errors:
+    def _fail(*msgs: str, violations: list[Violation] | None = None) -> SelfHostedInitResult:
         return SelfHostedInitResult(
-            ok=False, dry_run=cfg.dry_run, name=cfg.name or "", diagnostics=errors
+            ok=False,
+            dry_run=cfg.dry_run,
+            name=cfg.name or "",
+            diagnostics=list(msgs),
+            violations=violations or [],
         )
 
-    # 4. Select packs and profiles.
+    # 1. Validate source (read catalogue.toml).
+    source_meta, err = _read_source_catalogue(cfg.source)
+    if err:
+        return _fail(err)
+
+    # 2. Check for outdated export-catalogue skill (B7 AC5).
+    export_cat_path = (
+        cfg.source / "packs" / "catalogue-curation"
+        / ".apm" / "skills" / "export-catalogue"
+    )
+    if export_cat_path.is_dir():
+        return _fail(
+            "source contains outdated catalogue-curation with export-catalogue — "
+            "update source to 0.2.0 or later"
+        )
+
+    # 3. Vendored mode source validation (B3 AC3).
+    if cfg.tooling == "vendored":
+        agentbundle_src = cfg.source / "packages" / "agentbundle"
+        if not agentbundle_src.is_dir() or agentbundle_src.is_symlink():
+            return _fail(
+                "source is missing packages/agentbundle/ — "
+                "vendored mode requires a self-hosted source catalogue, not a runtime archive"
+            )
+
+    # Build source provenance from source_meta for B12 JSON output.
+    cat_meta = source_meta.get("catalogue", {})
+    source_provenance = SelfHostedSource(
+        name=cat_meta.get("name", ""),
+        display_name=cat_meta.get("display_name", ""),
+    )
+
+    # 4. Collect fields (TTY prompts + defaults).
+    # Capture whether any field was already supplied before defaults are filled in.
+    field_collection_mode = "explicit" if any(
+        [cfg.name, cfg.display_name, cfg.description, cfg.owner_name, cfg.owner_email]
+    ) else "default"
+    cfg = collect_fields(cfg, source_meta)
+
+    # 5. Validate fields.
+    errors = validate_fields(cfg)
+    if errors:
+        return _fail(*errors)
+
+    # 6. Select packs and profiles.
     try:
         pack_names = select_packs(cfg.source, cfg.packs)
         profile_names = _select_profiles(cfg.source, cfg.profiles)
     except ValueError as exc:
-        return SelfHostedInitResult(
-            ok=False, dry_run=cfg.dry_run, name=cfg.name, diagnostics=[str(exc)]
-        )
+        return _fail(str(exc))
 
-    # 5. Build file plan.
-    files_written: list[tuple[str, str]] = []
-    target = cfg.target
-
-    if not cfg.dry_run:
-        target.mkdir(parents=True, exist_ok=True)
+    # 7. Build in-memory file content plan.
+    file_bytes: dict[str, bytes] = {}
+    file_kinds: dict[str, str] = {}
 
     # Copy packs.
     for pack_name in pack_names:
         src_pack = cfg.source / "packs" / pack_name
-        dst_pack = target / "packs" / pack_name
-        _copy_dir(
-            src_pack, dst_pack,
-            dry_run=cfg.dry_run, written=files_written, target_root=target,
-        )
+        _collect_dir_bytes(src_pack, f"packs/{pack_name}", file_bytes, file_kinds, kind="pack")
 
     # Copy profiles.
     for profile_name in profile_names:
         src_profile = cfg.source / "profiles" / f"{profile_name}.toml"
-        dst_profile = target / "profiles" / f"{profile_name}.toml"
         if src_profile.is_file() and not src_profile.is_symlink():
-            action = "already-present" if dst_profile.exists() else "create"
-            if not cfg.dry_run:
-                dst_profile.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(str(src_profile), str(dst_profile))
-            files_written.append((action, str(dst_profile.relative_to(target))))
+            rel = f"profiles/{profile_name}.toml"
+            file_bytes[rel] = src_profile.read_bytes()
+            file_kinds[rel] = "profile"
 
     # Copy guides/_shared/ if requested.
     if cfg.guides == "selected":
         src_guides = cfg.source / "guides" / "_shared"
         if src_guides.is_dir() and not src_guides.is_symlink():
-            dst_guides = target / "guides" / "_shared"
-            _copy_dir(
-                src_guides, dst_guides,
-                dry_run=cfg.dry_run, written=files_written, target_root=target,
+            _collect_dir_bytes(
+                src_guides, "guides/_shared", file_bytes, file_kinds, kind="guide"
             )
         else:
             diagnostics.append("guides/_shared/ not found in source; skipping guide copy")
@@ -545,23 +826,21 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     # Vendored mode: copy agentbundle source and catalogue-curation.
     if cfg.tooling == "vendored":
         src_agentbundle = cfg.source / "packages" / "agentbundle"
-        if src_agentbundle.is_dir() and not src_agentbundle.is_symlink():
-            dst_agentbundle = target / _VENDORED_TOOLING_ROOT / "agentbundle"
-            _copy_dir(
-                src_agentbundle, dst_agentbundle,
-                dry_run=cfg.dry_run, written=files_written, target_root=target,
-            )
-        else:
-            diagnostics.append(
-                "packages/agentbundle/ not found in source; skipping vendored agentbundle copy"
-            )
-
+        _collect_dir_bytes(
+            src_agentbundle,
+            f"{_VENDORED_TOOLING_ROOT}/agentbundle",
+            file_bytes,
+            file_kinds,
+            kind="vendored",
+        )
         src_curation = cfg.source / "packs" / "catalogue-curation"
         if src_curation.is_dir() and not src_curation.is_symlink():
-            dst_curation = target / _VENDORED_TOOLING_ROOT / "packs" / "catalogue-curation"
-            _copy_dir(
-                src_curation, dst_curation,
-                dry_run=cfg.dry_run, written=files_written, target_root=target,
+            _collect_dir_bytes(
+                src_curation,
+                f"{_VENDORED_TOOLING_ROOT}/packs/catalogue-curation",
+                file_bytes,
+                file_kinds,
+                kind="vendored",
             )
         else:
             diagnostics.append(
@@ -570,76 +849,158 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
 
     # Generate catalogue.toml.
     cat_toml_content = _generate_catalogue_toml(cfg)
-    cat_toml_path = target / "catalogue.toml"
-    action = "already-present" if cat_toml_path.exists() else "create"
-    if not cfg.dry_run:
-        cat_toml_path.write_text(cat_toml_content, encoding="utf-8", newline="\n")
-    files_written.append((action, "catalogue.toml"))
+    file_bytes["catalogue.toml"] = cat_toml_content.encode("utf-8")
+    file_kinds["catalogue.toml"] = "catalogue"
 
-    # 6. Identity transformation (white-label: replace anchors; attributed: skip).
-    if not cfg.dry_run:
-        anchors = _build_anchors(source_meta)
-        _apply_identity_transform(target, anchors, cfg)
+    # 8. Apply identity transform in-memory (white-label mode only).
+    anchors = _build_anchors(source_meta)
+    identity_replacements = _apply_identity_transform_bytes(file_bytes, anchors, cfg)
 
-        # 7. Leak check.
-        attribution_paths: list[str] | None = None
-        if cfg.attribution == "attributed":
-            attribution_paths = _ATTRIBUTION_SURFACES
-        violations = verify(
-            target, anchors, mode=cfg.attribution, attribution_paths=attribution_paths
-        )
-        ci_violations = check_ci_boundary(target)
-        all_violations = violations + ci_violations
+    # 9. Leak check (in-memory via tmpdir).
+    if not cfg.dry_run:
+        id_violations, ci_violations = _verify_bytes_in_tmpdir(file_bytes, anchors, cfg)
+        all_violations = id_violations + ci_violations
+        if all_violations:
+            return SelfHostedInitResult(
+                ok=False,
+                dry_run=cfg.dry_run,
+                name=cfg.name,
+                files_written=[],
+                diagnostics=diagnostics,
+                violations=all_violations,
+                preset="self-hosted",
+                tooling_mode=cfg.tooling,
+                attribution_mode=cfg.attribution,
+                selected_packs=pack_names,
+                selected_profiles=profile_names,
+                selected_adapters=cfg.adapters or [cfg.preferred_adapter or "claude-code"],
+                field_collection_mode=field_collection_mode,
+                identity_replacements=identity_replacements,
+                leak_scan_result={
+                    "ok": False,
+                    "violation_count": len(all_violations),
+                },
+                source=source_provenance,
+                summary="self-hosted init failed: identity leak check found violations",
+            )
+        leak_scan_result: dict = {"ok": True, "violation_count": 0}
     else:
-        anchors = _build_anchors(source_meta)
         all_violations = []
+        leak_scan_result = {"ok": True, "violation_count": 0}
 
-    # 8. Rollback on violation — remove files we created before surfacing the error.
-    if all_violations and not cfg.dry_run:
-        for file_action, rel_path in files_written:
-            if file_action == "create":
-                (target / rel_path).unlink(missing_ok=True)
-        return SelfHostedInitResult(
-            ok=False,
-            dry_run=cfg.dry_run,
-            name=cfg.name,
-            files_written=files_written,
-            diagnostics=diagnostics,
-            violations=all_violations,
+    # 10. Load old ownership state; split planned files into owned vs new.
+    old_state = _load_ownership_state(cfg.target)
+    old_owned_paths: set[str] = set()
+    if old_state:
+        for entry in _migrate_managed_paths(old_state):
+            if isinstance(entry, dict) and "path" in entry:
+                old_owned_paths.add(entry["path"])
+
+    owned_planned: list[tuple[str, bytes]] = [
+        (rp, file_bytes[rp]) for rp in sorted(file_bytes) if rp in old_owned_paths
+    ]
+    new_planned_files: list[PlannedFile] = [
+        PlannedFile(rel_path=rp, kind=file_kinds.get(rp, "file"), content=file_bytes[rp])
+        for rp in sorted(file_bytes) if rp not in old_owned_paths
+    ]
+
+    files_written: list[tuple[str, str]] = []
+
+    if cfg.dry_run:
+        # Dry run: populate plan without touching disk.
+        for rp, _ in owned_planned:
+            files_written.append(("update", rp))
+        for pf in new_planned_files:
+            files_written.append(("create", pf.rel_path))
+        # Ownership state entry (not written in dry run).
+        files_written.append(("create", _OWNERSHIP_STATE_FILE))
+    else:
+        # 11. Classify conflicts for new files only (owned files always overwrite).
+        file_plan = (
+            classify_conflicts(cfg.target, new_planned_files) if new_planned_files else []
         )
+        conflict_plans = [fp for fp in file_plan if fp.action == FileAction.CONFLICT]
+        if conflict_plans:
+            msgs = [fp.conflict_reason for fp in conflict_plans if fp.conflict_reason]
+            return _fail(*(msgs or ["conflict detected in target directory"]))
 
-    # Write ownership state (only on success — no violations).
-    managed = [p for _, p in files_written]
-    managed.append(_OWNERSHIP_STATE_FILE)
-    _write_ownership_state(target, managed, dry_run=cfg.dry_run)
-    if not cfg.dry_run:
+        target_was_new = not cfg.target.exists()
+        cfg.target.mkdir(parents=True, exist_ok=True)
+
+        created_new_files: list[str] = []
+        created_new_dirs: list[str] = []
+        try:
+            # Write owned files (overwrite).
+            for rp, content in owned_planned:
+                dest = cfg.target / rp
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                atomic_write(dest, content)
+                files_written.append(("update", rp))
+
+            # Write new files using commit_files from initialise.py.
+            if new_planned_files:
+                created_new_files, created_new_dirs = commit_files(
+                    cfg.target, new_planned_files, file_plan
+                )
+                for rp in created_new_files:
+                    files_written.append(("create", rp))
+                for fp in file_plan:
+                    if fp.action == FileAction.ALREADY_PRESENT:
+                        files_written.append(("already-present", fp.path))
+        except Exception as exc:
+            rollback(cfg.target, created_new_files, created_new_dirs, target_was_new)
+            return _fail(f"write failed: {exc}")
+
+        # 12. Remove stale owned paths (only after new files are safely written).
+        if old_state:
+            _removed, skip_warnings = _remove_stale_owned_paths(
+                cfg.target, old_state, set(file_bytes.keys())
+            )
+            diagnostics.extend(skip_warnings)
+
+        # 13. Write ownership state (includes sha256 for each file).
+        sha_map = {
+            rp: hashlib.sha256(content).hexdigest()
+            for rp, content in file_bytes.items()
+        }
+        adapters = cfg.adapters or [cfg.preferred_adapter or "claude-code"]
+        new_state = SelfHostOwnershipState(
+            managed_paths=[
+                {"path": rp, "sha256": sha_map[rp]}
+                for rp in sorted(sha_map.keys())
+            ],
+            adapters=adapters,
+            managed_target_path=str(cfg.target),
+            source_pack_identity=source_meta.get("catalogue", {}).get("name", ""),
+            source_root_kind="self-hosted-source",
+        )
+        _write_ownership_state(cfg.target, new_state)
         files_written.append(("create", _OWNERSHIP_STATE_FILE))
 
-    # 9. Build next steps.
-    next_steps: list[str] = []
-    if cfg.tooling == "external":
-        next_steps.append(
-            "Install catalogue-curation: pip install agentbundle && "
-            "agentbundle install catalogue-curation --scope repo"
-        )
-    else:
-        next_steps.append(
-            f"Vendored tooling at {_VENDORED_TOOLING_ROOT}/agentbundle/ — "
-            "run: pip install -e .agentbundle/tooling/agentbundle/"
-        )
-    next_steps.append(
-        f"Run: agentbundle catalogue verify --root {target} "
-        "to confirm the target catalogue is well-formed"
-    )
-    if all_violations:
-        next_steps = []  # violations supersede next steps
+    # 14. Build next steps.
+    next_steps = _build_next_steps(cfg, pack_names)
 
+    n_written = sum(1 for a, _ in files_written if a in ("create", "update"))
     return SelfHostedInitResult(
-        ok=not bool(all_violations),
+        ok=True,
         dry_run=cfg.dry_run,
         name=cfg.name,
         files_written=files_written,
         diagnostics=diagnostics,
         violations=all_violations,
         next_steps=next_steps,
+        preset="self-hosted",
+        tooling_mode=cfg.tooling,
+        attribution_mode=cfg.attribution,
+        selected_packs=pack_names,
+        selected_profiles=profile_names,
+        selected_adapters=cfg.adapters or [cfg.preferred_adapter or "claude-code"],
+        field_collection_mode=field_collection_mode,
+        identity_replacements=identity_replacements,
+        leak_scan_result=leak_scan_result,
+        source=source_provenance,
+        summary=(
+            f"self-hosted init {'(dry run) ' if cfg.dry_run else ''}complete: "
+            f"{n_written} file(s) written to {cfg.name}"
+        ),
     )

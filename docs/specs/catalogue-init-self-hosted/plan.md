@@ -1,6 +1,6 @@
 # Plan: catalogue-init-self-hosted
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Tasks
@@ -142,7 +142,7 @@ Tests:
 - Re-run removes only own tracked paths; untouched files survive.
 - Externally installed repo-scope skill survives self-host of unrelated packs.
 
-### T10 — Version bumps, changelog, projections, gates
+### T10 — Version bumps, changelog, projections, gates (Phase 1)
 **Depends on:** all above
 **Verification:** Goal-based — `make build-check` green; `agentbundle catalogue self-host --write` clean.
 
@@ -153,3 +153,141 @@ Approach:
 - Run `agentbundle catalogue self-host --root . --write` to regenerate all projections.
 - Run `SKIP_SAST=1 make build-check` (or equivalent test suite).
 - Lint spec status.
+
+---
+
+## Phase 2 — Deferred ACs (0.26.0)
+
+### T11 — SelfHostedSource dataclass + credential validation (B3, B12)
+**Depends on:** none
+**Verification:** TDD
+
+Tests:
+- `resolve_source()` returns error when source directory is missing.
+- `resolve_source()` returns error for vendored mode when `packages/agentbundle/` is absent.
+- `SelfHostedSource` dataclass fields accessible (name, display_name, release, archive_uri, sha256, revision).
+- `validate_fields()` refuses `archive_uri` with embedded credentials (`user:pass@host`).
+- `validate_fields()` accepts clean `archive_uri`.
+
+Approach:
+- Add `SelfHostedSource` dataclass with fields: `name`, `display_name`, `release`, `archive_uri: str | None`, `sha256: str | None`, `revision: str | None`.
+- Add `resolve_source(source, tooling)` → returns `(SelfHostedSource | None, str | None)`. For vendored mode, check `packages/agentbundle/` is present; if absent, return error.
+- Extend `validate_fields()` to apply `_URL_USERINFO_RE` to `cfg.archive_uri` (new optional field on `SelfHostedInitConfig`).
+
+### T12 — Source manifest: include in tar + packs/policy fields (B4)
+**Depends on:** none
+**Verification:** TDD
+
+Tests:
+- `package_source_flavour()` — archive member list includes `self-hosted-source-manifest.json`.
+- Manifest (extracted from archive) contains `packs` list with `{name, version}` entries.
+- Manifest contains `archive_generation_policy_version: "1"`.
+- `export-catalogue` absent from source archive members.
+
+Approach:
+- In `package_source_flavour()`, build the manifest dict before tar construction.
+- Add `packs` field: enumerate `packs/<name>/pack.toml` in collected files, extract `{name, version}`.
+- Add `archive_generation_policy_version: "1"`.
+- Include serialized manifest bytes as a tar member at `self-hosted-source-manifest.json`.
+- Sidecar manifest on disk is written from the same bytes (no drift).
+
+### T13 — Source archive install refusal + verify refusal (B4)
+**Depends on:** T12 (manifest must be in tar for detection signal)
+**Verification:** TDD
+
+Tests:
+- `agentbundle install` with extracted source archive dir fails with "agentbundle-self-hosted-source" in stderr/diagnostic.
+- `verify_archive()` returns error with "agentbundle-self-hosted-source" when archive contains `self-hosted-source-manifest.json`.
+
+Approach:
+- In `install.py`, after the `catalogue_dir` is resolved (both HTTPS and local paths converge at ~line 295), add: if `(catalogue_dir / "self-hosted-source-manifest.json").exists()` → print diagnostic and return 1.
+- In `archive.py` `verify_archive()`, at the top of archive member scanning: if `self-hosted-source-manifest.json` is a member → return error result.
+
+### T14 — Reuse conflict classifier + atomic commit primitives (B5)
+**Depends on:** none
+**Verification:** TDD
+
+Tests:
+- CONFLICT detected when a non-owned file already exists with different content.
+- No CONFLICT when a file in old ownership state already exists with different content (owned-path overwrite).
+- Files written using `atomic_write` (`.abtmp` temp → rename).
+
+Approach:
+- Promote private symbols in `initialise.py`: add public aliases `atomic_write`, `commit_files`, `rollback` (thin wrappers or renames, keeping `_`-prefixed originals as deprecated aliases).
+- In `init_self_hosted()`: collect all file content as `{rel_path: bytes}` in memory; apply identity transform on bytes before any write; read old ownership state; build `PlannedFile` list; split into owned/new; call `classify_conflicts` on new-only; abort on CONFLICT; write all using `atomic_write` from `initialise.py`; use `rollback` from `initialise.py` on failure.
+
+### T15 — Vendored [catalogue.tooling] section (B6, B8)
+**Depends on:** none
+**Verification:** TDD
+
+Tests:
+- `_generate_catalogue_toml()` with `tooling="vendored"` includes `[catalogue.tooling]` section.
+- `pack-roots` = `[".agentbundle/tooling/packs"]`.
+- `self-host-packs` = `["catalogue-curation"]`.
+- `adapters` = `["claude-code"]` when not specified; matches `cfg.adapters` when specified.
+- After vendored `init_self_hosted()`, `catalogue.toml` is parseable as valid TOML with `[catalogue.tooling]`.
+
+Approach:
+- Modify `_generate_catalogue_toml(cfg)` to append `[catalogue.tooling]` block when `cfg.tooling == "vendored"`.
+- Adapters list serialized as TOML inline array.
+
+### T16 — Export-catalogue refusal + library-level curation planning (B7)
+**Depends on:** none
+**Verification:** TDD
+
+Tests:
+- `init_self_hosted()` returns error when source has `packs/catalogue-curation/.apm/skills/export-catalogue/`.
+- External mode `next_steps` contains structured install command with `agentbundle install catalogue-curation`.
+- External mode `next_steps` has one command per adapter in `cfg.adapters` (or default).
+
+Approach:
+- At the start of `init_self_hosted()`, after reading source meta: check `source / "packs/catalogue-curation/.apm/skills/export-catalogue/"` exists → return failure with diagnostic "source contains outdated catalogue-curation with export-catalogue — update source to 0.2.0 or later".
+- Replace the single-string next_step for external mode with per-adapter structured commands: `agentbundle install catalogue-curation --scope repo --adapter <adapter>` for each adapter.
+
+### T17 — Enriched SelfHostOwnershipState + removal logic with guards (B9)
+**Depends on:** none
+**Verification:** TDD
+
+Tests:
+- After init, state file has `schema_version: "2"`.
+- `managed_paths` is list of `{path, sha256}` dicts.
+- Re-run removes stale paths (in old state, not in new plan).
+- Re-run does NOT remove stale paths whose on-disk sha256 differs from recorded (user-edited); emits warning in diagnostics.
+- Re-run does NOT remove paths with sha256=None (migrated from schema-1).
+- Path confinement: a crafted state entry with `../escape` does not escape target on removal.
+- Externally installed `.claude/skills/some-skill/SKILL.md` survives self-hosting.
+
+Approach:
+- Bump `SelfHostOwnershipState.schema_version` to `"2"`.
+- Add fields: `adapters: list[str]`, `managed_target_path: str`, `source_pack_identity: str`, `source_root_kind: str`.
+- Change `managed_paths` type to `list[dict]` with `{path: str, sha256: str | None}`.
+- `to_dict()` serializes new schema.
+- `_load_ownership_state(target)` → reads existing state; migrates schema-1 (list[str]) to list[dict] with sha256=None.
+- Before writing new files: load old state → compute stale = old paths not in new plan → for each stale entry: (a) validate path resolves within target (skip if not), (b) compare on-disk sha256 to recorded (skip-and-warn if mismatch or recorded sha256 is None), (c) unlink.
+- Write new state with sha256 for each managed file.
+
+### T18 — JSON output field completeness (B12)
+**Depends on:** T11 (SelfHostedSource), T15 (tooling_mode), T16, T17
+**Verification:** TDD
+
+Tests:
+- `result.to_dict()` includes `preset`, `tooling_mode`, `attribution_mode`.
+- `result.to_dict()` includes `selected_packs`, `selected_profiles`, `selected_adapters`.
+- `result.to_dict()` includes `field_collection_mode`, `identity_replacements` (list of {from, to}).
+- `result.to_dict()` includes `leak_scan_result` with ok/violations count.
+
+Approach:
+- Add fields to `SelfHostedInitResult`: `preset`, `tooling_mode`, `attribution_mode`, `selected_packs`, `selected_profiles`, `selected_adapters`, `field_collection_mode`, `identity_replacements`, `leak_scan_result`.
+- Update `to_dict()` to include all new fields.
+- Populate from `init_self_hosted()`.
+
+### T19 — Version bump, CHANGELOG, spec check-off (Phase 2 gates)
+**Depends on:** T11–T18 all passing
+**Verification:** Goal-based — `SKIP_SAST=1 make build-check` green; all deferred ACs checked off in spec.
+
+Approach:
+- Bump `packages/agentbundle/pyproject.toml` version to `0.26.0`.
+- Update `CHANGELOG.md` `[Unreleased]` → `[0.26.0]` with Phase 2 changes summary.
+- Check off all `(deferred: catalogue-init-sh-phase2)` ACs in spec.md.
+- Run `SKIP_SAST=1 make build-check`.
+- Run full pytest suite.

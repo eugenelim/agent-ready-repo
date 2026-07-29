@@ -732,6 +732,7 @@ def package_source_flavour(
     release: str,
     output: Path,
     source_revision: str | None = None,
+    generated_at: str | None = None,
 ) -> SourcePackageResult:
     """Package a source distribution for self-hosted enterprise catalogues.
 
@@ -819,18 +820,70 @@ def package_source_flavour(
         file_digests[key] = hashlib.sha256(fp.read_bytes()).hexdigest()
 
     from datetime import UTC, datetime
-    generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if generated_at is None:
+        epoch = os.environ.get("SOURCE_DATE_EPOCH")
+        if epoch:
+            generated_at = datetime.fromtimestamp(int(epoch), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Build archive.
+    # Extract pack inventory for manifest (B4 AC).
+    from agentbundle.config import ConfigError, load_pack_toml
+    packs_inventory: list[dict[str, str]] = []
+    for key in sorted(file_digests.keys()):
+        parts = key.split("/")
+        if len(parts) == 3 and parts[0] == "packs" and parts[2] == "pack.toml":
+            try:
+                pack_data = load_pack_toml(root / key)
+                packs_inventory.append({
+                    "name": pack_data["pack"]["name"],
+                    "version": pack_data["pack"]["version"],
+                })
+            except (ConfigError, KeyError):
+                pass
+
+    from agentbundle.version import CLI_VERSION
+    file_entries: list[dict[str, str]] = sorted(
+        [{"path": k, "sha256": v} for k, v in file_digests.items()],
+        key=lambda x: x["path"],
+    )
+    manifest: dict = {
+        "kind": "agentbundle-self-hosted-source",
+        "schema_version": "1",
+        "bundle": bundle,
+        "release": release,
+        "generated_at": generated_at,
+        "agentbundle_version": CLI_VERSION,
+        "source_revision": source_revision,
+        "archive": archive_name,
+        # sha256 is patched below after the archive is built.
+        "packs": sorted(packs_inventory, key=lambda x: x["name"]),
+        "archive_generation_policy_version": "1",
+        "files": file_entries,
+    }
+
+    # Build archive (include self-hosted-source-manifest.json as a member so
+    # install-time kind detection can fire without the sidecar).
+    # sha256 is not yet known; use a placeholder that is replaced after the
+    # archive is written.  The sidecar on disk is written from the same final dict.
+    _MANIFEST_PLACEHOLDER = b"__SHA256_PLACEHOLDER__"
+    manifest["sha256"] = _MANIFEST_PLACEHOLDER.decode()
+    manifest_bytes_placeholder = json.dumps(manifest, indent=2).encode("utf-8")
+
     buf = io.BytesIO()
     with (
         gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz,
         tarfile.TarFile(fileobj=gz, mode="w") as tar,  # type: ignore[arg-type]
     ):
+        members: list[tuple[str, bytes]] = []
         for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix()):
             arcname = fp.relative_to(root).as_posix()
+            members.append((arcname, fp.read_bytes()))
+        # Include manifest as a tar member.
+        members.append(("self-hosted-source-manifest.json", manifest_bytes_placeholder))
+        members.sort(key=lambda x: x[0])
+        for arcname, data in members:
             info = tarfile.TarInfo(name=arcname)
-            data = fp.read_bytes()
             info.size = len(data)
             info.mtime = 0
             tar.addfile(info, io.BytesIO(data))
@@ -840,24 +893,8 @@ def package_source_flavour(
     archive_path.write_bytes(archive_bytes)
     sidecar_path.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
 
-    # Write source manifest.
-    from agentbundle.version import CLI_VERSION
-    file_entries: list[dict[str, str]] = sorted(
-        [{"path": k, "sha256": v} for k, v in file_digests.items()],
-        key=lambda x: x["path"],
-    )
-    manifest = {
-        "kind": "agentbundle-self-hosted-source",
-        "schema_version": "1",
-        "bundle": bundle,
-        "release": release,
-        "generated_at": generated_at,
-        "agentbundle_version": CLI_VERSION,
-        "source_revision": source_revision,
-        "archive": archive_name,
-        "sha256": sha256_hex,
-        "files": file_entries,
-    }
+    # Write sidecar source manifest with the real sha256.
+    manifest["sha256"] = sha256_hex
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     return SourcePackageResult(
