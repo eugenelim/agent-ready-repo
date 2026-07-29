@@ -1,3 +1,10 @@
+---
+title: Your first release
+summary: A complete walkthrough of a release cycle from deploy-ready build to ratified prod ship — deploy, converge, and ratify G5.
+pack: release-engineering
+kind: tutorial
+---
+
 # Your first release
 
 **What you'll build:** a ratified prod ship of a concrete scenario — a payment refund endpoint with a database migration — walked through all six stages of the release loop.

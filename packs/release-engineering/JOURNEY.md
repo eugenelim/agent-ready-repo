@@ -1,5 +1,8 @@
 ---
+journey_id: release-engineering
 pack: release-engineering
+start_state: read-only
+end_state: confirmed-write
 scope: repo
 tagline: "Deploy. Verify. Converge. Then ship."
 prerequisitePacks:
@@ -47,6 +50,7 @@ relatedJourneys:
 - **Agent does:** activates release-loop on completion of the inner build loop (work-loop + adversarial review clean); deploys the integrated whole to an ephemeral environment.
 - **You do:** watch the initial deploy log to confirm the right branch and config are targeted; if the deploy target looks wrong, stop it early — a mid-cycle redirect costs more than catching it at the first log line.
 - **Output:** a running ephemeral deployment.
+- **State:** read-only
 
 ---
 
@@ -55,6 +59,7 @@ relatedJourneys:
 - **Loop does:** runs end-to-end tests against the deployed environment, observes telemetry, feeds deployed findings back to the inner loop, redeploys after each inner-loop fix, and iterates until convergence — e2e clean, telemetry stable.
 - **You do:** check in at the end of each outer loop iteration — skim the e2e results and telemetry snapshot; flag anomalies the agent might not catch (an assertion too weak to detect a real failure, a telemetry spike marked as noise); provide judgment on what "stable" means for your service.
 - **Output:** a converged deployed state — e2e clean, telemetry stable.
+- **State:** read-only
 
 ---
 
@@ -64,3 +69,4 @@ relatedJourneys:
 - **You do:** read the full release readiness record, not just the summary; the borderline gates section matters most — these are the agent's "close enough" calls you may decide differently.
 - **You decide:** approve the prod ship — ratify if satisfied, or reject with a one-line reason to re-enter the loop.
 - **Output:** a prod-ship decision; after this gate the change reaches real users or real data.
+- **State:** confirmed-write

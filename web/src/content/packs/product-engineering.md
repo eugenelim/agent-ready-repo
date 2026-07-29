@@ -14,7 +14,7 @@ skills:
   - plan-validation
 installCommand: "agentbundle install --pack product-engineering --scope user"
 docsUrl: /guides/product-engineering/
-journeyUrl: /journeys/discovery/
+journeyUrl: /journeys/product-engineering/
 ---
 
 Product Engineering installs upstream of the build loop. The `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief: diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks. `frame-intent`, `de-risk-intent`, and `decompose-intent` run as habits over a recursive intent hierarchy. `ux-writing` adds the content layer.

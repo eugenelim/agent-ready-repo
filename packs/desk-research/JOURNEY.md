@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: desk-research
 pack: desk-research
 start_state: read-only

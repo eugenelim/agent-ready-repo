@@ -1,8 +1,3 @@
----
-title: Frontend Engineering
-description: Guides for the frontend-engineering pack — building web surfaces from design handoff to shipped component.
----
-
 # Frontend Engineering guides
 
 This guide tree covers the `frontend-engineering` pack: how to build web

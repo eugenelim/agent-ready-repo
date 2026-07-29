@@ -1,6 +1,8 @@
 ---
 title: Frontend Engineering Pack
-description: Reference — all 9 skills and the frontend-reviewer agent in the frontend-engineering pack.
+summary: Reference — all 9 skills and the frontend-reviewer agent in the frontend-engineering pack.
+pack: frontend-engineering
+kind: reference
 ---
 
 # `frontend-engineering` — the skills and the reviewer

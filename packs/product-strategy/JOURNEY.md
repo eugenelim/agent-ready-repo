@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: product-strategy
 pack: product-strategy
 start_state: read-only
