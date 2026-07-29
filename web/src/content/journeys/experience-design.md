@@ -109,7 +109,7 @@ humanGates:
     whatToCheck:
       - "Did the reviewer flag any handle-all-states violations? (Missing empty, loading, error, or success states are the most common finding.)"
       - "Are all WCAG 2.2 AA requirements met — color contrast, label associations, focus order?"
-      - "Is reduced-motion handled — are transitions guarded with prefers-reduced-motion?"
+      - "Is reduced-motion handled — are transitions guarded for users who have requested reduced animation?"
       - "Are the screens consistent with the approved aesthetic direction — or did any screen introduce its own visual language?"
     whatGoodLooksLike: "A design set that the independent reviewer marks clean — all states handled, accessibility floor met, aesthetic direction consistently applied across every screen."
     whatBadLooksLike: "Screens that look good in the happy-path state but have no designed empty state, loading state, or error recovery. Or screens that pass visually but fail the accessibility audit."
