@@ -51,6 +51,7 @@ my-catalogue/
     _shared/
       reference/
         catalogue-ci-contract.md
+        catalogue-authoring-standards.md
 ```
 
 `init` is **additive and idempotent** — it never overwrites existing files.

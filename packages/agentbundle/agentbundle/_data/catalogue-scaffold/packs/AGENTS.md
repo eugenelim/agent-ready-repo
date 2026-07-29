@@ -29,6 +29,9 @@ installed, and are not included in packaged archives. See `packs/README.md`.
 
 ## pack.toml schema map
 
+> The machine source of truth for pack.toml format is `contracts/pack.schema.json`.
+> The table below is a navigational summary; the JSON Schema is normative.
+
 | Table | Required fields | Notable optional fields |
 |-------|----------------|------------------------|
 | `[pack]` | `name`, `version` | `description`, `display_name`, `adapter-contract`, `categories`, `keywords`, `maintainers`, `links`, `readme` |

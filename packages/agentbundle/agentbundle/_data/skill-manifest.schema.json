@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "skill-manifest.schema.json",
+  "type": "object",
+  "required": ["id", "name", "version", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string"},
+    "name": {"type": "string"},
+    "version": {"type": "string"},
+    "description": {"type": "string", "maxLength": 1024},
+    "category": {"type": "string"},
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "license": {"type": "string"},
+    "deps": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pip": {"type": "array", "items": {"type": "string"}},
+        "npm": {"type": "array", "items": {"type": "string"}},
+        "cargo": {"type": "array", "items": {"type": "string"}},
+        "go": {"type": "array", "items": {"type": "string"}},
+        "system": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {"type": "string"},
+        "setup": {"type": "string"},
+        "schema": {"type": "string"}
+      }
+    },
+    "input": {"type": "object"},
+    "output": {"type": "object"},
+    "targets": {"type": "object"}
+  }
+}

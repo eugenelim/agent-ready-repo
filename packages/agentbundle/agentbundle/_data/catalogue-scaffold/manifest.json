@@ -1,8 +1,9 @@
 {
   "files": {
+    "guides/_shared/reference/catalogue-authoring-standards.md": "1460ca857abf4e71facae6a512fb025a93d7b1534623b87aee83f65dfc7bbe62",
     "guides/_shared/reference/catalogue-ci-contract.md": "fae793ab47989b6dd3c731afcb0b4cda21c7d08bbe7fa40fca6d3abb3d158141",
-    "packs/AGENTS.md": "3e44c630187d616e5c90ba9bd756243087a2169a731d82c69984529bf0abb906",
-    "packs/README.md": "21aa30db8edeb71d755c94b7360c48f1530f4194499d8069f426874978fac96d",
+    "packs/AGENTS.md": "dbb8b0a93a17258d1c69f2e6a437887c546b3592d868b1cbc7506d2e37e39fbd",
+    "packs/README.md": "68a141500fed78988dbfe7400ea9b8fa0b7d97186d420a93dfe40763272b69ee",
     "packs/_example/.apm/skills/example-skill/SKILL.md": "33be8cbf4b2c014a5a63e788b7d0b350ad8061c6c4b2579369a3e984135bf9f1",
     "packs/_example/.claude-plugin/plugin.json": "d38c8456640d5e2f9296361f7e3e675e368ddd3eb22a6245267560f460155f41",
     "packs/_example/README.md": "ef130c9c1f97a75a07cc59fc55fc5b3bf71846dd2f06c3cddf5a1154023b6ef6",

@@ -135,6 +135,10 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _script_step("pre-pr-catalogue", "tools", "catalogue", "pre_pr_catalogue.py"),
         _script_step(
+            "check-contract-parity",
+            "tools", "catalogue", "check_contract_parity.py",
+        ),
+        _script_step(
             "test-lint-spec-status",
             ".claude", "skills", "work-loop", "scripts", "test-lint-spec-status.py",
         ),

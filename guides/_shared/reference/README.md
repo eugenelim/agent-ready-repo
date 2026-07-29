@@ -4,6 +4,7 @@
 
 ## Pages
 
+- [`catalogue-authoring-standards.md`](catalogue-authoring-standards.md) — routing table for every catalogue authoring standard: pack and skill schemas, profile format, lint and verify commands, CI contract, packaging.
 - [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack, configure the default adapter, source-resolution chain, environment variables.
 - [`agentskills-io-standard.md`](agentskills-io-standard.md) — the agentskills.io specification applied: frontmatter keys, description rules, directory layout, independent installation, and OWASP AST01–AST10 mapping.
 - [`adapter-support.md`](adapter-support.md) — the per-tool support matrix: which primitives each agent tool receives (skill / subagent / command / hook) and the runtime caveats, sourced from the adapter contract.

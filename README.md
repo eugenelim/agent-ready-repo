@@ -129,7 +129,7 @@ Three packs form the operating model. The rest are curated kits — each distill
 
 A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `desk-research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](guides/_shared/how-to/install-a-profile.md).
 
-Adopt the catalogue as-is, or fork it as your own. Write your conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — identical across every machine and every agent. The same bundler works for any domain, not just software delivery. [How to build your org's catalogue →](docs/architecture/catalogue.md)
+Run `agentbundle catalogue init` to create a new catalogue from the managed scaffold. Write your conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — identical across every machine and every agent. The same bundler works for any domain, not just software delivery. [How to build your org's catalogue →](guides/_shared/how-to/create-a-catalogue.md)
 
 ## Ecosystem
 

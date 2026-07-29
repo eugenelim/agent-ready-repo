@@ -61,6 +61,10 @@ _SYNC_PAIRS: list[tuple[Path, str]] = [
         _REPO_ROOT / "guides" / "_shared" / "reference" / "catalogue-ci-contract.md",
         "guides/_shared/reference/catalogue-ci-contract.md",
     ),
+    (
+        _REPO_ROOT / "guides" / "_shared" / "reference" / "catalogue-authoring-standards.md",
+        "guides/_shared/reference/catalogue-authoring-standards.md",
+    ),
 ]
 
 
