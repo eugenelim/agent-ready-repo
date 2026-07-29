@@ -1,5 +1,22 @@
 # release-engineering
 
+Deploy the integrated whole to an ephemeral environment, run end-to-end tests, converge, and surface a release-readiness record for the human prod-ship gate (G5).
+
+---
+
+## Start here
+
+After `work-loop` reaches G4 — build done, component ready — hand it to `release-lead`:
+
+```text
+Run the release loop on the integrated whole — deploy to an ephemeral env,
+run e2e, and iterate until it converges, then surface the prod ship for me to ratify.
+```
+
+The agent deploys, runs e2e, observes telemetry, feeds findings back to the inner loop without a human relay, redeploys, and iterates until the deployed whole converges. It then stops and presents a **release-readiness record** — a structured go/no-go recommendation — for you to ratify (G5). **The prod ship is always yours.**
+
+---
+
 The **SRE/ops outer loop** — deployed end-to-end validation above `work-loop`'s
 inner build loop. This pack completes the **company OS**: product (discovery, the
 `product-engineering` pack) → engineering (build, `work-loop`) → **SRE/ops

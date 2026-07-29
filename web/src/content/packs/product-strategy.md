@@ -1,7 +1,7 @@
 ---
 name: Product Strategy
 scope: user
-tagline: "The strategy seat — market, UX, and content strategy upstream of the build."
+tagline: "Answer the committed strategic questions upstream of every initiative."
 skills:
   - run-swot
   - run-porters-five-forces
@@ -16,4 +16,4 @@ installCommand: "agentbundle install --pack product-strategy --scope user"
 docsUrl: /guides/product-strategy/
 ---
 
-Product Strategy is the seat upstream of product engineering and experience design. Three pillars: **market & competitive strategy** (SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder-research synthesis) that produce committed artifacts in `docs/product/shaping/` and feed the PE pack's shaping queue; **UX strategy** (experience vision, goals/measures, plan) upstream of journey-mapping; and **content strategy** — the Halvorson quad (Purpose · Process · Structure · Governance) that sits above per-surface content design. Pure method: it references the canonical frameworks by name and applies them to your context — no growth tooling, no stack tokens.
+Start with the strategic question you're trying to answer — "Who should we serve first?", "Which problem should we commit to?", "Why would users switch?" — and the pack selects the method. Every run produces a committed artifact in `docs/product/shaping/` (a PRFAQ, situation picture, portfolio position, OKR cascade, or strategic narrative) that the `product-engineering` shaping queue or `experience-design` can act on directly. Methods include SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder-research synthesis, UX strategy, and content strategy. No growth or marketing execution tooling.

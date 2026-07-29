@@ -13,7 +13,7 @@ skills:
   - css-architecture
   - fe-status
 installCommand: "agentbundle install --pack frontend-engineering --scope user"
-docsUrl: /docs/guides/frontend-engineering/
+docsUrl: /guides/frontend-engineering/
 ---
 
 Frontend Engineering installs 9 skills covering the full build journey from design handoff to shipped component: the create/retrofit/audit/verify workflow (`frontend-engineering`), CSS token system architecture (`token-architecture`), deep accessibility engineering beyond automated tooling (`a11y-engineering`), Core Web Vitals measurement and remediation (`fe-performance`), rendering strategy selection (`rendering-strategy`), component API design (`component-contract`), responsive layout craft (`responsive-layout`), CSS architecture at scale (`css-architecture`), and surface orientation (`fe-status`). A forked-context `frontend-reviewer` agent provides a diff-level review for HTML/CSS/JS diffs covering CSS token drift, ARIA mutation completeness, state coverage regression, and the two WCAG 2.2 manual-verification items automated tooling misses.

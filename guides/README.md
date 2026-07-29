@@ -65,6 +65,10 @@ Each loop is autonomous where the work is reversible, and surfaces to a human wh
 | [`governance-extras`](governance-extras/) | [home](governance-extras/) | A written trail for decisions — `new-rfc`, `new-adr`, `update-conventions`. |
 | [`monorepo-extras`](monorepo-extras/) | [home](monorepo-extras/) | Monorepo scaffolding — `new-package` and a package template. |
 | [`product-documentation`](product-documentation/) | [home](product-documentation/) | Product documentation authoring — create, revise, retrofit, audit, and verify guides, pack READMEs, and journeys using `author-product-docs`. |
+| [`product-strategy`](product-strategy/) | [home](product-strategy/) | Answer the committed strategic questions upstream of every initiative — `write-prfaq`, `run-swot`, `run-pestle-analysis`, `run-porters-five-forces`, `run-bcg-matrix`, `run-okr-cascade`, `synthesize-stakeholder-research`, `define-ux-strategy`, `define-content-strategy`. |
+| [`frontend-engineering`](frontend-engineering/) | [home](frontend-engineering/) | Build, audit, and ship production-quality web surfaces — `frontend-engineering` (four modes), `token-architecture`, `a11y-engineering`, `fe-performance`, `rendering-strategy`, `component-contract`, `responsive-layout`, `css-architecture`, `fe-status`, and the `frontend-reviewer` agent. |
+| [`iac-terraform`](iac-terraform/) | [home](iac-terraform/) | Governed Terraform from plain-language intent — `generate-iac` (ADR gate → spec → plan, stops before apply) and `reconcile-iac` (drift audit). Opt-in, repo-scope. |
+| [`catalogue-curation`](catalogue-curation/) | [home](catalogue-curation/) | Grow and maintain a catalogue — `assimilate-primitive`, `assimilate-repo`, `propose-catalogue-pack`, `export-catalogue`. For catalogue maintainers. |
 
 ---
 
@@ -82,14 +86,49 @@ Cross-cutting topics — about the catalogue itself, not any single pack — liv
 
 ## For guide authors — the four Diátaxis kinds
 
-Within every pack (and within `_shared/`), guides are sorted into the four Diátaxis kinds. Each piece of content belongs in **exactly one** — mixing kinds is the most common cause of docs that frustrate everyone.
+Each guide has exactly one `kind` — declared as frontmatter metadata, not derived from its directory. Mixing kinds is the most common cause of docs that frustrate everyone.
 
 |  | Practical (you *do* something) | Theoretical (you *understand* something) |
 | --- | --- | --- |
-| **Learning** (acquiring a skill) | **tutorials/** — *lessons.* "Take me through it from the start." | **explanation/** — *discussions.* "Help me understand why." |
-| **Task** (getting something done) | **how-to/** — *recipes.* "Help me solve this specific problem." | **reference/** — *information.* "Tell me exactly what this does." |
+| **Learning** (acquiring a skill) | `kind: tutorial` — *lessons.* "Take me through it from the start." | `kind: explanation` — *discussions.* "Help me understand why." |
+| **Task** (getting something done) | `kind: how-to` — *recipes.* "Help me solve this specific problem." | `kind: reference` — *information.* "Tell me exactly what this does." |
 
-The discipline that makes it work is **link out**: when a tutorial wants to explain *why*, it links to an explanation instead of digressing; when a how-to wants to list every option, it links to the reference. Each quadrant's writing rules live in the per-quadrant READMEs under [`_shared/`](_shared/) — read the matching one before you write a guide (or run `author-product-docs`, which applies the contract automatically).
+### Source layout
+
+New guides are **flat by default**:
+
+```
+guides/<pack>/<slug>.md
+```
+
+Topic-first grouping is permitted where a user perceives a real domain:
+
+```
+guides/<pack>/<topic>/<slug>.md
+```
+
+Physical quadrant directories (`tutorials/`, `how-to/`, `reference/`, `explanation/`) are a migration-compatible legacy structure — they still work, but **new guides do not require them**. Do not create four empty quadrant directories. Do not create one guide of each type. Let the reader's need determine what you write.
+
+### Required frontmatter
+
+Every new guide needs four fields:
+
+```yaml
+---
+title: "What this guide is called"
+summary: "One sentence for navigation surfaces."
+pack: core                  # must match a directory in packs/
+kind: how-to                # tutorial | how-to | reference | explanation
+---
+```
+
+Optional: `slug` (overrides the output path), `aliases` (generates redirect stubs), `journey`, `order`, `status`.
+
+The `author-product-docs` skill applies the correct page contract automatically. The `validate_guides.py` tool checks frontmatter compliance. Navigation in the docs site derives from reader needs and metadata — not from physical folder structure.
+
+### What belongs in `docs/guides/`?
+
+`docs/guides/` is **internal maintainer documentation** — how-tos for repo contributors, not for pack adopters. It is not published as public documentation.
 
 ## How this fits with the rest of the repo
 
