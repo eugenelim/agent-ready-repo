@@ -204,6 +204,11 @@ preferred_adapter = "cursor"
 
 The org hint fires after the user-config but before the on-disk IDE probe — so `--adapter`, user-config, and upgrade state-hints all take priority. An invalid value exits 1 before writing anything. See the [`agentbundle` reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/reference/agentbundle.md#org-adapter-default) for the full cascade.
 
+**Bundled contracts** — the wheel ships the machine contracts used for offline validation:
+`pack.schema.json`, `skill.schema.json`, `guide.schema.json`, `skill-manifest.schema.json`,
+`profile.schema.json`, `catalogue.schema.json`, `target-vocab.toml`, and the adapter
+contract files. All are available without network access via `importlib.resources`.
+
 **Lint your catalogue** — shallow structural checks run without extra dependencies:
 
 ```bash
