@@ -4,7 +4,7 @@
 Each JOURNEY.md in packs/<pack>/JOURNEY.md must:
   - carry a unique journey_id
   - reference only skills that exist in packs/<pack>/.apm/skills/<name>/
-  - list exactly as many skills as the pack has .apm/skills/ directories
+  - reference only skills that exist in the pack (subset is permitted; unlisted skills are allowed)
   - use only STATE_VOCAB values for **State:**, start_state, and end_state
   - include **You decide:** in any stage whose state is in WRITE_STATES
   - include **Output:** in every stage
@@ -174,13 +174,6 @@ def _validate_journey(
         if skills_dir.exists()
         else []
     )
-
-    if len(skill_names) != len(pack_skill_dirs):
-        findings.append(
-            f"{path}: skill count mismatch — "
-            f"JOURNEY.md lists {len(skill_names)}, "
-            f"pack has {len(pack_skill_dirs)}"
-        )
 
     for name in skill_names:
         if name not in pack_skill_dirs:

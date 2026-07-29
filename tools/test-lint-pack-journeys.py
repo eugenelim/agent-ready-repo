@@ -362,7 +362,56 @@ packUrl: /packs/test/
         (pack / "JOURNEY.md").write_text(fm, encoding="utf-8")
         jd = p / "journeys"
         jd.mkdir()
-        _fail("test_skill_count_mismatch", _run(p / "packs", jd), "skill count")
+        # After removing count-parity: the failure is reference-validity (skill-b not in pack)
+        _fail("test_skill_count_mismatch", _run(p / "packs", jd), "not found")
+
+
+def test_journey_may_omit_pack_skills() -> None:
+    """A primary journey listing a subset of pack skills must pass.
+
+    Regression for the count-parity rule that was removed in Phase 2E:
+    a journey should reference only the skills its stages use, not every
+    skill in the pack.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        p = pathlib.Path(td)
+        pack = p / "packs" / "bigpack"
+        # Pack has three skills
+        for skill in ("skill-a", "skill-b", "skill-c"):
+            _make_skill(pack, skill)
+        # JOURNEY.md lists only 2 of the 3 — a valid primary journey subset
+        fm = """\
+---
+journey_id: bigpack
+pack: bigpack
+scope: user
+tagline: "Test journey — primary subset"
+contract:
+  useItWhen: "test"
+  youProvide: "input"
+  youReceive: "output"
+  yourDecisions: ["confirm"]
+skills:
+  - name: skill-a
+    description: "First skill used by this journey"
+    humanTouches: 1
+  - name: skill-b
+    description: "Second skill used by this journey"
+    humanTouches: 1
+humanGates: []
+typicalSession:
+  agentTurns: "3"
+  humanTouches: 1
+  wallClockMinutes: "15"
+docsUrl: /guides/test/
+packUrl: /packs/test/
+---
+
+""" + _DEFAULT_STAGES
+        (pack / "JOURNEY.md").write_text(fm, encoding="utf-8")
+        jd = p / "journeys"
+        jd.mkdir()
+        _pass("test_journey_may_omit_pack_skills", _run(p / "packs", jd))
 
 
 def test_duplicate_journey_id() -> None:
@@ -539,6 +588,7 @@ def main() -> int:
         test_invalid_end_state,
         test_nonexistent_skill,
         test_skill_count_mismatch,
+        test_journey_may_omit_pack_skills,
         test_duplicate_journey_id,
         test_dual_ownership_same_slug,
         test_dual_ownership_same_pack_diff_slug,
