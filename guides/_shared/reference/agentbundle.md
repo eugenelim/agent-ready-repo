@@ -167,6 +167,14 @@ Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory boot
 | `HTTPS_PROXY` | unset | Proxy URL for outbound HTTPS requests. Read automatically by Python's `urllib.request.ProxyHandler`; no `agentbundle`-specific wiring needed. Example: `HTTPS_PROXY=http://proxy.example.com:3128 agentbundle install --pack core` |
 | `NO_PROXY` | unset | Comma-separated list of hostnames that bypass the HTTPS proxy. Read automatically by Python's `urllib.request.ProxyHandler`. Example: `NO_PROXY=internal.example.com,localhost` |
 
+## Catalogue CI
+
+`agentbundle catalogue lint`, `agentbundle catalogue verify`, and
+`agentbundle catalogue package` are the portable commands for validating and
+packaging a catalogue in CI. For the full pipeline contract — publication
+ordering, exit codes, responsibility boundaries, and JSON output shapes — see
+the [Catalogue CI contract](catalogue-ci-contract.md).
+
 ## Other subcommands
 
 See `agentbundle --help` for the full set (`list-packs`, `list-profiles`, `list-targets`, `list-installed`, `validate`, `render`, `adapt`, `diff`, `upgrade`, `uninstall`, `reconcile`, etc.). Each has its own `--help` page documenting its flags.

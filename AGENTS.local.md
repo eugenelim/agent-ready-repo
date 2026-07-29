@@ -9,6 +9,8 @@ Repo-local addendum for maintainers of this checkout. Shared agent instructions 
   [`packages/AGENTS.md`](packages/AGENTS.md).
 - **Release coupling** (PyPI release requirements, version bump workflow, tagging):
   [`packages/AGENTS.local.md`](packages/AGENTS.local.md).
+- **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
+  [`guides/_shared/reference/catalogue-ci-contract.md`](guides/_shared/reference/catalogue-ci-contract.md).
 
 **Read before modifying:** `packs/` → read [`packs/AGENTS.md`](packs/AGENTS.md) first — version bump rule requires both `pack.toml` + `.claude-plugin/plugin.json`. `packages/` → read [`packages/AGENTS.local.md`](packages/AGENTS.local.md) first — covers when a PyPI release is required.
 

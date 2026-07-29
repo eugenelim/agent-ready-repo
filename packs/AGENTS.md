@@ -49,6 +49,8 @@ Home-repository additional gate (not required for external catalogues):
 make build-check   # agentbundle catalogue verify + repo governance + SAST
 ```
 
+For CI pipeline orchestration beyond the dev loop — publication ordering, exit codes, JSON output contract — see [`guides/_shared/reference/catalogue-ci-contract.md`](../guides/_shared/reference/catalogue-ci-contract.md).
+
 ## Version bump rule
 
 Every **non-cosmetic** change to pack content requires a version bump in both:

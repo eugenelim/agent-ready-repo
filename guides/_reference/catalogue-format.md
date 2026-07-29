@@ -38,3 +38,7 @@ agentbundle catalogue verify --root .
 ```
 Runs the full 18-step pipeline including schema validation, pack lint,
 post-build artifact checks, and self-host drift detection.
+
+For CI pipeline patterns using `verify`, `lint`, and `package` — including
+publication ordering, exit codes, and JSON output shapes — see the
+[Catalogue CI contract](../_shared/reference/catalogue-ci-contract.md).
