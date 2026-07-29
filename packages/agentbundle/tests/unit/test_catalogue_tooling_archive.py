@@ -254,3 +254,43 @@ def test_archive_not_gzip(tmp_path):
     assert not result.ok
     codes = [d.code for d in result.diagnostics]
     assert "CAT-V-ARC-002" in codes
+
+
+def _make_source_archive(path: Path, *, prefixed: bool = False) -> None:
+    """Write a minimal source-distribution tar.gz containing self-hosted-source-manifest.json."""
+    import gzip
+
+    manifest_name = (
+        "catalogue-source-1.0.0/self-hosted-source-manifest.json"
+        if prefixed
+        else "self-hosted-source-manifest.json"
+    )
+    buf = io.BytesIO()
+    with (
+        gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz,
+        tarfile.open(fileobj=gz, mode="w") as tar,  # type: ignore[arg-type]
+    ):
+        _add_member(tar, manifest_name, b'{"kind":"agentbundle-self-hosted-source"}')
+    path.write_bytes(buf.getvalue())
+
+
+def test_verify_archive_refuses_source_distribution_no_prefix(tmp_path):
+    """verify_archive() on a source archive (flat manifest) → CAT-V-ARC-016."""
+    archive = tmp_path / "source.tar.gz"
+    _make_source_archive(archive, prefixed=False)
+
+    result = verify_archive(archive)
+    assert not result.ok
+    codes = [d.code for d in result.diagnostics]
+    assert "CAT-V-ARC-016" in codes
+
+
+def test_verify_archive_refuses_source_distribution_prefixed(tmp_path):
+    """verify_archive() on a source archive (prefixed manifest) → CAT-V-ARC-016."""
+    archive = tmp_path / "source.tar.gz"
+    _make_source_archive(archive, prefixed=True)
+
+    result = verify_archive(archive)
+    assert not result.ok
+    codes = [d.code for d in result.diagnostics]
+    assert "CAT-V-ARC-016" in codes

@@ -556,6 +556,16 @@ def _rollback(
 
 
 # ---------------------------------------------------------------------------
+# Public aliases — importable by sibling modules without crossing the _-prefix
+# boundary. Thin aliases; the originals remain authoritative for in-module use.
+# ---------------------------------------------------------------------------
+
+atomic_write = _atomic_write
+commit_files = _commit_files
+rollback = _rollback
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 

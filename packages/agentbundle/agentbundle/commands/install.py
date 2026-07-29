@@ -293,6 +293,16 @@ def run(args: argparse.Namespace) -> int:
             print(f"install: {exc}", file=sys.stderr)
             return 1
 
+    # Refuse source-distribution archives (B4 AC): kind=agentbundle-self-hosted-source.
+    # Detected by the presence of self-hosted-source-manifest.json in the resolved dir.
+    if catalogue_dir.is_dir() and (catalogue_dir / "self-hosted-source-manifest.json").exists():
+        print(
+            "install: archive kind is agentbundle-self-hosted-source — "
+            "this is a source distribution, not an installable catalogue archive",
+            file=sys.stderr,
+        )
+        return 1
+
     # Load catalogue.toml for operator-declared user-dir (RFC-0074 / ADR-0058).
     # Absent catalogue.toml → user_dir stays at the default "~/.agentbundle".
     _catalogue_user_dir = "~/.agentbundle"
@@ -4217,6 +4227,16 @@ def _run_profile(args: argparse.Namespace) -> int:
     except CatalogueError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
+
+    # Refuse source-distribution archives (B4 AC).
+    if catalogue_dir.is_dir() and (catalogue_dir / "self-hosted-source-manifest.json").exists():
+        print(
+            "install: archive kind is agentbundle-self-hosted-source — "
+            "this is a source distribution, not an installable catalogue archive",
+            file=sys.stderr,
+        )
+        return 1
+
     try:
         profile = load_profile(catalogue_dir, profile_id)
     except ProfileError as exc:

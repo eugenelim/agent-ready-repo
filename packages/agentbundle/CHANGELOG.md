@@ -8,6 +8,49 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.26.0]
+
+### Added
+
+- **Self-hosted init — Phase 2 deferred ACs** (`catalogue_tooling/initialise_self_hosted.py`):
+  - `SelfHostedSource` dataclass (name, display_name, release, archive_uri, sha256, revision);
+    `resolve_source()` validates source for the requested tooling mode.
+  - Vendored mode now refuses a source missing `packages/agentbundle/` with a clear
+    diagnostic (B3 AC3).
+  - Identity transform applied in-memory before writing; leak check runs in a tmpdir
+    so no files are written on violation (B5).
+  - Reuses `classify_conflicts`, `atomic_write`, `commit_files`, `rollback` from
+    `initialise.py`; owned files (from prior run) overwrite without conflict (B5).
+  - Vendored mode writes `[catalogue.tooling]` section (pack-roots, self-host-packs,
+    adapters) to the generated `catalogue.toml` (B6).
+  - Source containing `packs/catalogue-curation/.apm/skills/export-catalogue/` is
+    refused with a diagnostic (B7 AC5).
+  - External mode `next_steps` emits one `agentbundle install catalogue-curation` command
+    per adapter (B7 AC2 — library-level planning, no subprocess).
+  - `SelfHostOwnershipState` bumped to schema version 2: per-path sha256, adapter list,
+    managed_target_path, source_pack_identity, source_root_kind (B9).
+  - Re-run removes stale owned paths with sha256 guard (skip user-modified files) and
+    path confinement (B9 AC2/3).
+  - `SelfHostedInitResult.to_dict()` extended with preset, tooling_mode, attribution_mode,
+    selected_packs, selected_profiles, selected_adapters, field_collection_mode,
+    identity_replacements, leak_scan_result (B12).
+- **Source manifest in tar** (`catalogue_tooling/package.py`): `self-hosted-source-manifest.json`
+  is now included as a tar member (in addition to the sidecar), plus `packs` inventory and
+  `archive_generation_policy_version: "1"` fields (B4 AC).
+- **Source archive install refusal** (`catalogue_tooling/archive.py`, `commands/install.py`):
+  `verify_archive()` and the `agentbundle install` resolution path both refuse archives
+  whose members include `self-hosted-source-manifest.json` with a clear "wrong kind"
+  diagnostic (B4 AC6 / B4 AC; install path Blocker fix).
+- Public aliases `atomic_write`, `commit_files`, `rollback` added to
+  `catalogue_tooling/initialise.py` for use by sibling modules.
+
+### Changed
+
+- `SelfHostOwnershipState.schema_version` promoted from `"1"` to `"2"`; migration from
+  schema-1 state files is handled transparently (sha256=None entries skipped on removal).
+- Vendored mode source validation is now a hard failure (`ok=False`) when
+  `packages/agentbundle/` is absent, rather than a soft diagnostic.
+
 ## [0.25.0]
 
 ### Added
