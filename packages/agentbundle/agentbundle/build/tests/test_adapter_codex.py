@@ -696,7 +696,10 @@ class TestCodexProjectsEveryShippedSkill(unittest.TestCase):
     def test_every_shipped_skill_projects_with_equal_bytes(self) -> None:
         packs_root = REPO_ROOT / "packs"
         self.assertTrue(packs_root.is_dir())
-        pack_paths = sorted(p for p in packs_root.iterdir() if p.is_dir())
+        pack_paths = sorted(
+            p for p in packs_root.iterdir()
+            if p.is_dir() and not p.name.startswith("_")
+        )
 
         # Collect every source skill across every pack. Tracks the
         # "winning" source path for same-name collisions so byte-equal

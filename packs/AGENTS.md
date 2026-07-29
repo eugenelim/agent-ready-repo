@@ -35,6 +35,7 @@ installed, and are not included in packaged archives. See `packs/README.md`.
 | `[pack.adapter-contract]` | `version` | — |
 | `[pack.install]` | `default-scope` | `allowed-scopes`, `user-scope-hooks`, `allowed-adapters` |
 | `[pack.evals]` | — | `skills` (array of covered skill names) |
+| `[pack.recipes.*]` | `description` | `steps`, `adapter` |
 | `[pack.dependencies]` | — | `required`, `recommended`, `conflicts` (arrays) |
 | `[pack.seeds]` | — | Seed path configuration |
 | `[pack.layout]` | — | Per-scope layout overrides |
@@ -89,6 +90,11 @@ Non-compliant manifests block publishing.
 `source` (`{source, repo, branch, directory}`).
 
 `additionalProperties: false` — any unknown key fails validation.
+
+## Authoring README.md
+
+**README** states the pack's intent and the user journey it serves — not a contributor capability
+reference, not a skill inventory.
 
 ## Authoring or editing a skill
 

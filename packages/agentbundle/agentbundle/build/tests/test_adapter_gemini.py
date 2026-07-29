@@ -597,7 +597,10 @@ class GeminiAllPacksAdmissibleTests(unittest.TestCase):
     def test_every_pack_admits_gemini_both_scopes(self) -> None:
         from agentbundle.commands.install import _resolve_target_adapter
 
-        pack_dirs = sorted(p for p in self.PACKS_DIR.iterdir() if (p / "pack.toml").exists())
+        pack_dirs = sorted(
+            p for p in self.PACKS_DIR.iterdir()
+            if not p.name.startswith("_") and (p / "pack.toml").exists()
+        )
         self.assertTrue(pack_dirs, "no packs discovered under packs/ — pack lookup is broken")
         # Count-independent by design: don't pin the number of packs (every new
         # pack would break an unrelated adapter test). Assert gemini resolution

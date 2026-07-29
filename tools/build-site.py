@@ -53,6 +53,8 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
     packs_by_slug: dict[str, dict] = {}
     for pack_toml in sorted((root / "packs").glob("*/pack.toml")):
         slug = pack_toml.parent.name
+        if slug.startswith("_"):
+            continue
         with pack_toml.open("rb") as f:
             data = tomllib.load(f)
         p = data.get("pack", {})
