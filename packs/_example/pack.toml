@@ -1,0 +1,20 @@
+[pack]
+name            = "example-pack"
+version         = "0.1.0"
+description     = "A minimal example pack demonstrating the standard authoring layout."
+display_name    = "Example Pack"
+categories      = ["productivity"]
+keywords        = ["example", "template"]
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope    = "repo"
+allowed-scopes   = ["repo", "user"]
+
+[pack.evals]
+skills = ["example-skill"]
+
+[pack.links]
+documentation = "https://example.com/docs"

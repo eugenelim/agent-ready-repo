@@ -110,6 +110,8 @@ def _step_pack_schema(
 
     diags: list[Diagnostic] = []
     for pack_dir in sorted(packs_dir.iterdir()):
+        if pack_dir.name.startswith("_"):
+            continue  # reserved authoring asset
         if not pack_dir.is_dir():
             continue
         if pack and pack_dir.name != pack:
@@ -140,6 +142,8 @@ def _step_plugin_validation(
 
     diags: list[Diagnostic] = []
     for pack_dir in sorted(packs_dir.iterdir()):
+        if pack_dir.name.startswith("_"):
+            continue  # reserved authoring asset
         if not pack_dir.is_dir():
             continue
         if pack and pack_dir.name != pack:
@@ -165,6 +169,8 @@ def _step_version_parity(
 
     diags: list[Diagnostic] = []
     for pack_dir in sorted(packs_dir.iterdir()):
+        if pack_dir.name.startswith("_"):
+            continue  # reserved authoring asset
         if not pack_dir.is_dir():
             continue
         if pack and pack_dir.name != pack:

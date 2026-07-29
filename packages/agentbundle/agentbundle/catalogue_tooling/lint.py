@@ -181,6 +181,8 @@ def _profile_load_packs(packs_dir: Path) -> dict[str, dict]:
     if not packs_dir.is_dir():
         return out
     for pack_dir in sorted(packs_dir.iterdir()):
+        if pack_dir.name.startswith("_"):
+            continue  # reserved authoring asset
         toml_path = pack_dir / "pack.toml"
         if not toml_path.exists():
             continue
@@ -1016,6 +1018,8 @@ class _CatalogueRules:
         seen_names: dict[str, str] = {}
         diags: list[Diagnostic] = []
         for entry in sorted(packs_dir.iterdir()):
+            if entry.name.startswith("_"):
+                continue  # reserved authoring asset
             if not entry.is_dir() or not (entry / "pack.toml").exists():
                 continue
             try:
@@ -1799,6 +1803,8 @@ def lint_catalogue(root: Path, pack: str | None = None, *, deep: bool = False) -
     # Step 4+5: per-pack rules
     if packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
+            if pack_dir.name.startswith("_"):
+                continue  # reserved authoring asset
             if not pack_dir.is_dir() or not (pack_dir / "pack.toml").exists():
                 continue
             pack_name = pack_dir.name

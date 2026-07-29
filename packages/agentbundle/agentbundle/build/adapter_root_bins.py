@@ -91,7 +91,9 @@ def collect_sources(packs_dir: Path) -> dict[str, Path]:
     """
     sources: dict[str, Path] = {}
     for pack in sorted(packs_dir.iterdir()):
-        if not pack.is_dir() or not (pack / "pack.toml").exists():
+        if not pack.is_dir() or pack.name.startswith("_"):
+            continue
+        if not (pack / "pack.toml").exists():
             continue
         bins = pack / SOURCE_SUBDIR
         if not bins.is_dir():
@@ -116,7 +118,9 @@ def _packs_with_adapter_root_bins(packs_dir: Path) -> list[Path]:
     """
     out: list[Path] = []
     for pack in sorted(packs_dir.iterdir()):
-        if not pack.is_dir() or not (pack / "pack.toml").exists():
+        if not pack.is_dir() or pack.name.startswith("_"):
+            continue
+        if not (pack / "pack.toml").exists():
             continue
         bins = pack / SOURCE_SUBDIR
         if not bins.is_dir():

@@ -505,7 +505,7 @@ def lint_all_packs(
     if not packs_dir.exists():
         return result
     for entry in sorted(packs_dir.iterdir()):
-        if not entry.is_dir():
+        if not entry.is_dir() or entry.name.startswith("_"):
             continue
         if not (entry / "pack.toml").exists():
             continue

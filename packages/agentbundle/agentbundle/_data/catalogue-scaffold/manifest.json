@@ -1,0 +1,16 @@
+{
+  "files": {
+    "packs/AGENTS.md": "8db0f1fedbd50939eb0193e7de23262345a021eeb5462dfab36511068c95a8d8",
+    "packs/README.md": "21aa30db8edeb71d755c94b7360c48f1530f4194499d8069f426874978fac96d",
+    "packs/_example/.apm/skills/example-skill/SKILL.md": "33be8cbf4b2c014a5a63e788b7d0b350ad8061c6c4b2579369a3e984135bf9f1",
+    "packs/_example/.claude-plugin/plugin.json": "d38c8456640d5e2f9296361f7e3e675e368ddd3eb22a6245267560f460155f41",
+    "packs/_example/README.md": "ef130c9c1f97a75a07cc59fc55fc5b3bf71846dd2f06c3cddf5a1154023b6ef6",
+    "packs/_example/evals/eval_queries.json": "f41ecda0834a22f3b4823c81ab02e58b0e4beba610e3b40c185579abff9cfeee",
+    "packs/_example/pack.toml": "94e2c7fd25d4d115858728c7ecb8f739adfd0f594b29596c106daba0791a4b94",
+    "profiles/AGENTS.md": "8950438d9e0f57c13613104c88c90b598b53196c91bfdced6d63e4e01b5e9254",
+    "profiles/README.md": "a0b0268edc57fc575f7fea08f3363ba7da9f6e67dc4a0a6f8bd38c9668c97922",
+    "profiles/_example/README.md": "164494df049ddce3e57cb44ed604cb3d39be0a6ec2072e609ea3fa4bbfc74c72",
+    "profiles/_example/profile.toml": "68af18cf50fa0327a9776b029c92bb1cf82710c649691b3ac889eb8537b8eac7"
+  },
+  "version": 1
+}

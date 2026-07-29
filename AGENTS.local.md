@@ -16,6 +16,25 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
 
 **Read before modifying:** `packs/` → read [`packs/AGENTS.md`](packs/AGENTS.md) first — version bump rule requires both `pack.toml` + `.claude-plugin/plugin.json`. `packages/` → read [`packages/AGENTS.local.md`](packages/AGENTS.local.md) first — covers when a PyPI release is required.
 
+## Catalogue authoring scaffold — release-impact policy
+
+The catalogue authoring scaffold is bundled into the `agentbundle` wheel as package data under
+`agentbundle/_data/catalogue-scaffold/`. Any change to the scaffold files listed below is
+an **agentbundle engine change** and requires:
+
+1. Bumping `packages/agentbundle/pyproject.toml` `version`.
+2. Including an `Engine-Change-RFC:` footer in the commit message.
+3. Running `python3 tools/catalogue/sync_authoring_scaffold.py --write` before committing.
+4. Verifying `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0.
+
+**Scaffold files (changes require bump + Engine-Change-RFC marker):**
+- `packs/README.md`, `packs/AGENTS.md`
+- `packs/_example/` (any file under it)
+- `profiles/README.md`, `profiles/AGENTS.md`
+- `profiles/_example/` (any file under it)
+
+`build-check` runs `sync_authoring_scaffold.py --check` and fails on drift.
+
 ## House style for internal docs
 
 Applies to prose that stays in this repo and never ships: this file, `docs/architecture/`, `docs/specs/`,
