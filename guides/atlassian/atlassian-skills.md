@@ -11,6 +11,10 @@ status: stable
 
 Look up what a skill reads, what it writes, what requires confirmation, and what its limits are. Use the intent index to find the right skill by what you want to accomplish.
 
+:::tip[TRY ASKING]
+Show me the whole Atlas team backlog across APP and API. Do not change Jira.
+:::
+
 ## Intent index
 
 | I want to… | Use |

@@ -159,6 +159,7 @@ Some issues have questions only the product owner can answer. APP-206 has one. Y
 1. Given a client exceeds the rate limit, when the API returns 429, then the response includes Retry-After: \<integer seconds\>
 2. Given the token-bucket drain time is known, when 429 is returned, then Retry-After value equals ceil(drain\_seconds)
 3. Given drain time is unavailable, when 429 is returned, then Retry-After value is 30
+4. Given any 429 response, then body contains {"error": "rate\_limited", "retry\_after\_seconds": \<integer\>}
 
 **Unresolved question:** None.
 

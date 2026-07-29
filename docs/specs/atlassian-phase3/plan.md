@@ -1,6 +1,6 @@
 # Atlassian Phase 3 — Implementation Plan
 
-## Status: Executing
+## Status: Done
 
 ## Tasks
 
@@ -47,7 +47,7 @@
 - Old subdirectory guide files deleted
 - `web/src/content/journeys/atlassian.md` (hand-authored) deleted
 - `docs-site/astro.config.ts` sidebar updated
-- `packs/atlassian/pack.toml` version = `0.8.0`
+- `packs/atlassian/pack.toml` version unchanged at 0.7.0 (documentation-only change; AC24 user-confirmed no bump)
 - `python tools/build-site.py --journeys-only` exits 0 and generates `web/src/content/journeys/atlassian.md`
 - `python tools/build-site.py` exits 0
 - `make build-check` exits 0

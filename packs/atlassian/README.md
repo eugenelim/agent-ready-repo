@@ -42,7 +42,7 @@ Get: per-story analysis — which readiness question failed, a proposed descript
 
 ```
 Update APP-206 and API-104 with the approved drafts.
-Do not change status, assignee, or labels.
+Do not change status, assignee, priority, sprint, or labels.
 ```
 
 Get: a preview of the exact fields, current and proposed values, and protected fields — then confirmation before any write. **Writes only after you confirm.** Protected fields are never touched.
@@ -88,7 +88,7 @@ The Jira and Confluence skills authenticate with either an API token (Atlassian 
 
 Install the `credential-brokers` pack, then say **"set up credentials"** — the agent prompts for the right credential type and stores it in your OS keychain (or a `0600` dotfile on Linux). Secrets never go on the command line and never enter the repo. See the [`credential-brokers` README](../credential-brokers/README.md).
 
-If your organisation uses SSO-only access, see the [SSO authentication guide](../../guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md) for the SSO-broker setup.
+If your organisation uses SSO-only access, see the [SSO authentication guide](/agent-ready-repo/docs/guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies/) for the SSO-broker setup.
 
 ## Scope and permissions
 
