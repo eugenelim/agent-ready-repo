@@ -87,7 +87,7 @@ implementation into the AgentBundle library.
 - [x] `agentbundle catalogue package --flavor source` produces `dist/artificory/catalogue-sources/<bundle>/releases/<release>/catalogue-source-<release>.tar.gz` and `.sha256`.
 - [x] `--channel` is rejected when `--flavor source` is used (exit 2).
 - [x] Source archive includes `catalogue.toml`, `packs/`, `profiles/`, `guides/_shared/`, `.claude-plugin/marketplace.json`, `self-hosted-source-manifest.json`; excludes `.github/workflows/`, `packages/`, `tools/`, `dist/`.
-- [ ] `self-hosted-source-manifest.json` contains schema version, kind `agentbundle-self-hosted-source`, source catalogue name, included pack names/versions, scaffold paths+digests, archive-generation policy version, all-member file+SHA-256 listing. (deferred: catalogue-init-sh-phase2 — kind + sha256 + files present; pack inventory, policy version, scaffold digests deferred)
+- [ ] `self-hosted-source-manifest.json` contains schema version, kind `agentbundle-self-hosted-source`, source catalogue name, included pack names/versions, scaffold paths+digests, archive-generation policy version, all-member file+SHA-256 listing. (deferred: catalogue-init-sh-phase2) <!-- kind + sha256 + files shipped; pack inventory, policy version, scaffold digests deferred -->
 - [x] Archive is deterministic (no absolute paths, no machine timestamps, deterministic member ordering).
 - [ ] Source archive is refused by `agentbundle install` (wrong kind). (deferred: catalogue-init-sh-phase2)
 - [ ] Tests confirm `export-catalogue` is absent from source archive. (deferred: catalogue-init-sh-phase2)
@@ -122,7 +122,7 @@ implementation into the AgentBundle library.
 
 ### Bucket 9 — Self-host ownership state
 
-- [ ] `SelfHostOwnershipState` records schema version, adapter, managed target path, source pack identity, source root kind, generated SHA-256. (deferred: catalogue-init-sh-phase2 — current schema records schema_version + managed_paths only)
+- [ ] `SelfHostOwnershipState` records schema version, adapter, managed target path, source pack identity, source root kind, generated SHA-256. (deferred: catalogue-init-sh-phase2) <!-- current schema records schema_version + managed_paths only -->
 - [ ] Self-host removes only paths recorded in prior state. (deferred: catalogue-init-sh-phase2)
 - [ ] Self-host never removes normally installed skills, user-created skills, or unknown files. (deferred: catalogue-init-sh-phase2)
 - [ ] A test confirms externally installed repo-scope curation survives self-hosting unrelated catalogue packs. (deferred: catalogue-init-sh-phase2)
@@ -145,7 +145,7 @@ implementation into the AgentBundle library.
 ### Bucket 12 — Safety, transaction, output
 
 - [x] `--dry-run` shows the complete file plan without writing.
-- [ ] JSON output (`--format json`) includes `preset`, `tooling_mode`, `source` provenance, `attribution_mode`, selected packs/profiles/adapters, field-collection mode, identity replacements, leak-scan result, summary, diagnostics. (deferred: catalogue-init-sh-phase2 — current output includes operation, ok, files_written, diagnostics, violations; full field set deferred)
+- [ ] JSON output (`--format json`) includes `preset`, `tooling_mode`, `source` provenance, `attribution_mode`, selected packs/profiles/adapters, field-collection mode, identity replacements, leak-scan result, summary, diagnostics. (deferred: catalogue-init-sh-phase2) <!-- current output: operation, ok, files_written, diagnostics, violations; full field set deferred -->
 - [x] Exit 0 on success or exact no-op; exit 1 on failure; exit 2 on usage error.
 - [x] Plain-init JSON contract is unchanged (no extra fields added to plain-mode output).
 
