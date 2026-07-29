@@ -26,19 +26,18 @@ The `assimilate-primitive` skill handles both.
 
 ## The curation pack's own arc
 
-The four skills in the pack form a natural progression:
+The three skills in the pack form a natural progression:
 
 | Stage | Skill | Output |
 |---|---|---|
 | Discover | `assimilate-repo` | Ledger of candidates with verdicts |
 | Scaffold | `propose-catalogue-pack` | Pack shell + RFC draft |
 | Fill | `assimilate-primitive` × N | Shaped skills and subagents in the pack |
-| Publish | `export-catalogue` | Redistributable fork or profile update |
 
 Each stage's output is the input to the next.
 The survey's ledger determines what gets proposed.
 The proposed pack's shell determines where primitives land.
-The filled pack is what gets exported or profiled.
+The filled pack is what gets profiled or released via `agentbundle catalogue package`.
 
 A single-primitive intake enters at Fill, skipping Discover and Scaffold.
 A maintenance update skips Scaffold (the pack already exists) and re-fills from a re-run survey.

@@ -6,7 +6,11 @@ Grow and maintain an agent-skill catalogue — bring in new skills, survey exter
 
 ## Start here
 
-Decide what you're trying to do, then describe it.
+| Skill | The catalogue job it serves |
+| --- | --- |
+| **`propose-catalogue-pack`** | Stand up a **new pack** — justify it's additive and fits the catalogue's charter, scaffold the shell, and emit an RFC (or reject it). |
+| **`assimilate-primitive`** | Bring **one** external skill / subagent / hook (or a small bundle) in from a local path or URL — safely, then **reshaped to our craft** (activation, progressive disclosure, anti-pattern steering), or rejected. |
+| **`assimilate-repo`** | Survey a **whole external repo/catalogue** into a reviewable RFC of per-candidate verdicts, resumable across sessions and worktrees via a ledger. |
 
 ```text
 I found a well-crafted research skill in an external repo.
@@ -54,12 +58,9 @@ Produces a redistributable copy of the catalogue with upstream identity either s
 
 ## Guardrails
 
-- **All changes are local** — no remote publish, no direct commit to a shared branch; you approve the diff, then commit.
-- **Preview before any write** — every assimilation and export shows a diff and waits for your approval.
-- **RFC gate** — `propose-catalogue-pack` always emits an RFC; a new pack cannot land without it.
-- **Ingested code runs gates** — skills brought in via `assimilate-primitive` pass the repo's lint + CodeQL/Snyk before landing.
-- **Protected paths are blocked** — a path-gate prevents any skill from mutating the `agentbundle` engine or `credential-brokers` pack absent a human-authored RFC.
-- **Fail-closed export** — `export-catalogue` hard-fails if any upstream identity would leak to the derivative.
+- **Never** mutates the `agentbundle` engine or `credential-brokers` through any skill — a path-gate blocks protected-tree changes absent a deliberate, human-authored RFC.
+- **Ingested code runs the repo's own gates** (lints + CodeQL/Snyk) before it lands, and known anti-patterns (a script that triggers a skill/agent, a misused agent, a flooding "skill") are steered to our shape or rejected — never laundered in.
+- **No new engine, no new dependency** — skills plus declarative manifests only.
 
 ---
 
@@ -69,36 +70,4 @@ Produces a redistributable copy of the catalogue with upstream identity either s
 
 For internal procedures and how-tos, see [`docs/guides/`](../../docs/guides/) (maintainer documentation, not published as adopter-first content).
 
-For users who want to install and use skills from the catalogue, see the [catalogue guide](../../guides/README.md).
-
----
-
-## Installation and trust
-
-- **Scope:** repo — operates within the catalogue repo; not a portable user skill
-- **Reads:** external repos, pack metadata, existing skill sources (read-only during survey and review steps)
-- **Local writes:** new skill files, pack scaffolding, RFC documents — only after you approve
-- **Remote reads:** public URLs provided by you (for `assimilate-primitive` and `assimilate-repo`)
-- **Remote writes:** none
-- **Requires:** `core` and `governance-extras` installed at repo scope
-
-```bash
-agentbundle install --pack catalogue-curation
-```
-
----
-
-## Skills included — under the hood
-
-| Skill | The catalogue job it serves |
-|-------|---------------------------|
-| `assimilate-primitive` | Bring one external skill / agent / hook in from a local path or URL |
-| `assimilate-repo` | Survey a whole external repo into a reviewable per-candidate verdict ledger |
-| `propose-catalogue-pack` | Stand up a new pack — justify fit, scaffold the shell, emit an RFC |
-| `export-catalogue` | Produce a redistributable derivative (white-label or attributed mode) |
-
----
-
-## Go deeper
-
-→ [`guides/catalogue-curation/`](../../guides/catalogue-curation/)
+Repo-scope, opt-in; not in any default profile. For derived or enterprise catalogues, use `agentbundle catalogue init --preset self-hosted` instead.

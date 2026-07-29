@@ -40,6 +40,6 @@ makes a protected-tree change require a deliberate, human-authored exemption and
 show up loudly in review. Its residual — an assimilated *hook* runs before a diff
 is gated — is covered by the ingest-time hook confirm, not the path-gate.
 
-`export-catalogue` re-homing a *target copy's* engine anchors (default adapter,
-self-host set, blanked source) is **not** a guard violation — the guard protects
-*this* repo's engine, not a forked copy.
+The `agentbundle catalogue init --preset self-hosted` command performing bounded
+identity transformation on a target copy is **not** a guard violation — the guard
+protects *this* repo's engine, not a target catalogue's copy.

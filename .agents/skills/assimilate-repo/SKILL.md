@@ -73,9 +73,10 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
 ## Canonical workflow
 
 Run `assimilate-repo` **from inside the target catalogue**, not from the source.
-`export-catalogue` writes a `docs/CHARTER.md` stub and projects core +
-governance-extras + catalogue-curation as local tools into the fork before you
-start surveying — so the fork is survey-ready from day one. Running from the
-source catalogue anchors verdicts against the wrong charter.
+If you are starting a new or derived catalogue, use `agentbundle catalogue init`
+(or `--preset self-hosted` for an enterprise-derived catalogue) first — it
+establishes the catalogue scaffold and installs curation tools before you start
+surveying. Running from the source catalogue anchors verdicts against the wrong
+charter.
 
-_Depends on `core` + `governance-extras`. Repo-scope; not in any default profile._
+_Repo-scope; not in any default profile._

@@ -9,8 +9,8 @@ a symlink inside a fetched source cannot escape the jail root (`packs/` for
 assimilate, the target root for export). Consuming the engine's public safety
 helper read-only is sanctioned reuse, not a D6 engine change.
 
-**Duplicated, by design.** `assimilate-primitive`, `assimilate-repo`, and
-`export-catalogue` each carry a byte-identical copy under their own `scripts/`;
+**Duplicated, by design.** `assimilate-primitive` and `assimilate-repo`
+each carry a byte-identical copy under their own `scripts/`;
 `tools/lint-catalogue-curation-guard.py` enforces the copies stay in sync.
 """
 

@@ -59,6 +59,8 @@ _PATH_BEARING_ATTRS = frozenset(
         "path",
         # `target` is the catalogue-init positional: the directory to initialize.
         "target",
+        # `source` is the catalogue-init --source flag: path to source catalogue root.
+        "source",
     }
 )
 
@@ -862,6 +864,17 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="published_at",
         help="Published-at timestamp (ISO-8601).",
     )
+    _pkg_p.add_argument(
+        "--flavor",
+        choices=("runtime", "source"),
+        default="runtime",
+        help=(
+            "Package flavor. 'runtime' (default): standard distributable runtime archive. "
+            "'source': source distribution for self-hosted enterprise catalogues — includes "
+            "catalogue.toml, packs/, profiles/, and guides/_shared/; produces a "
+            "self-hosted-source-manifest.json alongside the archive."
+        ),
+    )
     _pkg_p.set_defaults(func=_lazy("catalogue_package"))
 
     # catalogue sync-defaults
@@ -926,6 +939,98 @@ def _build_parser() -> argparse.ArgumentParser:
             "Preferred adapter identifier (e.g. claude-code, kiro-ide). "
             "Default: from install-defaults.toml, or 'claude-code'."
         ),
+    )
+    _init_p.add_argument(
+        "--preset",
+        choices=("self-hosted",),
+        default=None,
+        help=(
+            "Initialization preset. 'self-hosted' creates an enterprise-derived catalogue "
+            "from an existing source catalogue. Requires --source."
+        ),
+    )
+    _init_p.add_argument(
+        "--tooling",
+        choices=("external", "vendored"),
+        default=None,
+        dest="tooling",
+        help=(
+            "Self-hosted tooling mode (requires --preset self-hosted). "
+            "'external': catalogue-curation is installed repo-scope from PyPI/registry. "
+            "'vendored': agentbundle source and curation are copied into the target."
+        ),
+    )
+    _init_p.add_argument(
+        "--source",
+        default=None,
+        help=(
+            "Path to the source catalogue root (requires --preset self-hosted). "
+            "The directory containing catalogue.toml, packs/, profiles/, etc."
+        ),
+    )
+    _init_p.add_argument(
+        "--adapter",
+        action="append",
+        dest="adapters",
+        default=None,
+        metavar="ADAPTER",
+        help=(
+            "Adapter to include (repeatable). Self-hosted preset only. "
+            "Default: all adapters from the source catalogue."
+        ),
+    )
+    _init_p.add_argument(
+        "--pack",
+        action="append",
+        dest="packs",
+        default=None,
+        metavar="PACK",
+        help=(
+            "Pack to include in the target (repeatable). Self-hosted preset only. "
+            "Default: all packs except catalogue-curation."
+        ),
+    )
+    _init_p.add_argument(
+        "--profile",
+        action="append",
+        dest="profiles",
+        default=None,
+        metavar="PROFILE",
+        help=(
+            "Profile to include in the target (repeatable). Self-hosted preset only. "
+            "Default: all profiles from the source catalogue."
+        ),
+    )
+    _init_p.add_argument(
+        "--guides",
+        choices=("none", "selected"),
+        default=None,
+        help=(
+            "Guide inclusion mode (self-hosted preset only). "
+            "'none': no guides copied. 'selected': guides/_shared/ copied."
+        ),
+    )
+    _init_p.add_argument(
+        "--attribution",
+        choices=("white-label", "attributed"),
+        default=None,
+        help=(
+            "Identity mode for the self-hosted catalogue. "
+            "'white-label': zero upstream trace in the output. "
+            "'attributed': upstream declared in designated attribution surfaces only."
+        ),
+    )
+    _init_p.add_argument(
+        "--repository-url",
+        default=None,
+        dest="repository_url",
+        help="Repository URL for the self-hosted catalogue (e.g. https://example.com/my-catalogue).",
+    )
+    _init_p.add_argument(
+        "--owner-email",
+        default=None,
+        dest="owner_email",
+        help="Maintainer e-mail address for the self-hosted catalogue.",
     )
     _init_p.add_argument(
         "--dry-run",

@@ -2,8 +2,8 @@
 """Guard lint for the ``catalogue-curation`` pack (RFC-0059 D6, spec AC group
 "D6 guard").
 
-The ``catalogue-curation`` skills ingest external code and export catalogue
-derivatives. RFC-0059's hard constraint: **they must never change this repo's
+The ``catalogue-curation`` skills ingest external code from outside this repo.
+RFC-0059's hard constraint: **they must never change this repo's
 ``agentbundle`` engine behaviour or the ``credential-brokers`` pack.** A skill
 body is LLM-executed prose, so a lint cannot decide whether prose "sanctions a
 write" (the credentialed-lint substring trap is the cautionary case). This guard
@@ -12,8 +12,7 @@ is therefore **two honest layers**, neither of them intent-detection:
   1. **Presence layer (pure tree check).** Every ``catalogue-curation`` skill
      carries an explicit refusal clause naming the two protected trees, scoped to
      the *running* repo. This lint asserts the clause is *present* — a structural
-     fact — not that the prose is obeyed. ``export-catalogue`` carries the scoped
-     (target-vs-upstream carve-out) form.
+     fact — not that the prose is obeyed.
 
   2. **Path-gate layer (changeset check).** A changeset that touches the engine's
      *behavioural* code (``packages/agentbundle/**``) or ``packs/credential-brokers/**``
@@ -94,7 +93,7 @@ REFUSAL_TOKENS = ("packages/agentbundle/", "packs/credential-brokers/")
 # helper filename + the skill dirs whose scripts/ carry a copy.
 DUP_GROUPS = {
     "ssrf_check.py": ["assimilate-primitive", "assimilate-repo"],
-    "write_jail.py": ["assimilate-primitive", "assimilate-repo", "export-catalogue"],
+    "write_jail.py": ["assimilate-primitive", "assimilate-repo"],
 }
 
 

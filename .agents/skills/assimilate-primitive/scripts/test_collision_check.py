@@ -11,8 +11,8 @@ def test_near_duplicate_flags() -> None:
             "Use to summarize a long email thread into a short digest"
             " of decisions and action items."
         ),
-        "export-catalogue": (
-            "Use to produce a redistributable derivative of the catalogue at a target path."
+        "propose-catalogue-pack": (
+            "Use to propose a new pack for the catalogue from a set of candidate skills."
         ),
     }
     new = (
