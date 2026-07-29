@@ -406,7 +406,7 @@ export default defineConfig({
                 {
                   label: 'Explanation',
                   items: [
-                    { label: 'The Atlassian Pack', slug: 'guides/atlassian/explanation/atlassian-pack' },
+                    { label: 'How the Atlassian Pack Works', slug: 'guides/atlassian/explanation/atlassian-pack' },
                     { label: 'Measuring AI Adoption', slug: 'guides/atlassian/explanation/ai-adoption-measurement' },
                   ],
                 },

@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: atlassian
 pack: atlassian
 start_state: read-only
