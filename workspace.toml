@@ -1166,3 +1166,103 @@ queue   = [
   # ci-gates needs all Wave 4+5 specs; Gate F specifically needs rewire
   {path = "spec/catalogue-tooling-ci-gates", needs = "work:spec/catalogue-tooling-package-enhanced,work:spec/catalogue-tooling-rewire"},
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ini-006 · Catalogue CI Contract
+#
+# Create one canonical, provider-neutral catalogue CI contract at
+# guides/_shared/catalogue-ci-contract.md. The contract defines the portable
+# commands, outputs, exit behavior, publication ordering, evidence, and
+# responsibility boundaries that any organization can implement in its chosen
+# CI system.
+#
+# The contract must not prescribe, generate, copy, or depend on CI workflows
+# or a particular CI provider.
+#
+# Responsibility boundary:
+#   AgentBundle owns: valid catalogue definition, portable lint/verify/package,
+#     deterministic archive, stable JSON and exit-code contracts.
+#   Organization CI owns: when commands run, secrets, upload, publication
+#     serialization, artifact retention, rollback approval.
+#   Host repository owns: CI workflow implementation, trigger config, internal
+#     governance, tests proving the portable contract works.
+#
+# Non-goals: agentbundle catalogue init, self-hosted preset, CI workflow
+#   generators, Artifactory upload command, complete export-catalogue replacement,
+#   top-level catalogue/ directory.
+#
+# Source brief: .context/attachments/7w1trN/pasted_text_2026-07-28_18-19-01.txt
+# ─────────────────────────────────────────────────────────────────────────────
+["ini-006"]
+name      = "Catalogue CI Contract"
+status    = "active"
+milestone = "M1 · Provider-Neutral CI Contract"
+
+["ini-006".shaping_queue]
+active  = []
+backlog = []
+
+["ini-006".work]
+active  = []
+shipped = ["spec/catalogue-ci-contract-guide"]
+queue   = [
+  # M1 · Core guide + command verification + agent guidance
+  # Problem: no canonical document defines the portable commands, exit behavior,
+  #   publication ordering, evidence requirements, and responsibility boundaries
+  #   for a catalogue CI pipeline. Adopters reverse-engineer these from host CI
+  #   workflows, which are not portable catalogue content.
+  # Deliver: guides/_shared/catalogue-ci-contract.md (Catalogue CI Contract v1,
+  #   pack: _shared, kind: reference, status: stable); lifecycle diagram; 6
+  #   contract phases — (1) tool acquisition: externally managed + vendored
+  #   tooling models; (2) change validation: `agentbundle catalogue verify --root .
+  #   --format json` as required admission command, optional `catalogue lint`;
+  #   (3) release packaging: `catalogue package` with re-verification at immutable
+  #   boundary, deterministic archive + checksum sidecar + mutable channel
+  #   descriptor; (4) publication: upload ordering — immutable archive → checksum
+  #   → channel descriptor last; (5) post-publication verification: clean-consumer
+  #   check, optional smoke-test pack install; (6) evidence retention; secrets/TLS/
+  #   proxy responsibility boundary; exit-code contract (0/1/2) verified against
+  #   current HEAD for catalogue lint/verify/package with fixes or tracked follow-ups
+  #   where behavior diverges; focused command-contract tests parsing JSON output
+  #   via json.loads, verifying stderr/stdout separation and exit codes;
+  #   AGENTS.local.md and packs/AGENTS.md updated — CI workflows are host-local,
+  #   portable admission command is `agentbundle catalogue verify --root .`, public
+  #   JSON and exit-code contract changes require release review; host CI dogfood
+  #   confirmation that public AgentBundle commands are invoked.
+  # Done: guide validates under current guide contract; all documented command
+  #   behavior is tested and matches implementation; AGENTS guidance updated;
+  #   host CI dogfood check passes; all existing tests pass.
+  # M2a · Export boundary update
+  # Problem: export-catalogue skill may pass CI workflow implementation to target
+  #   catalogues, and may not include the neutral CI contract guide. Adopters
+  #   receive host-specific CI as if it were portable catalogue content.
+  # Deliver: export-catalogue skill updated so guides/_shared/catalogue-ci-contract.md
+  #   is eligible for export; all CI workflow and pipeline implementation excluded —
+  #   workflow definitions, trigger config, release/deployment automation,
+  #   package-publication automation, CI-specific helper scripts, workflow badges,
+  #   provider-specific secret names; exclusion is provider-neutral (positive allowlist
+  #   preferred over filename denylist); export guidance states: target chooses CI
+  #   system, receives neutral contract, no CI workflow is generated or copied, no
+  #   credentials are transported, no CI provider is assumed; export-boundary tests —
+  #   neutral guide is eligible, CI implementation is excluded, workflow badges and
+  #   host secret names don't escape, policy does not rely solely on known provider
+  #   filenames, white-label behavior remains fail-closed.
+  # Done: export-boundary tests pass; white-label behavior verified fail-closed.
+  {path = "spec/catalogue-ci-export-boundary", needs = "work:spec/catalogue-ci-contract-guide"},
+
+  # M2b · Documentation integration
+  # Problem: guides/_shared/README.md, guides/README.md, Artifactory packaging and
+  #   publication guides, AgentBundle CLI reference, disconnected-operation guidance,
+  #   and enterprise distribution guidance don't reference the new contract. Adopters
+  #   can't discover canonical CI orchestration guidance from existing entry points.
+  # Deliver: guides/_shared/README.md and guides/README.md link to the new guide;
+  #   Artifactory packaging and publication guides link to contract (no duplication);
+  #   CLI reference links to contract; disconnected-operation and enterprise
+  #   distribution guides updated; site regenerated through normal rendering system
+  #   (no hand-editing generated output); all internal links validated;
+  #   documentation tests — guide appears in rendered site output, internal links
+  #   resolve, related Artifactory pages link to it, doc generation leaves repo clean,
+  #   no CI workflow implementation appears in portable catalogue output.
+  # Done: site regenerated and clean; all documentation tests pass; no broken links.
+  {path = "spec/catalogue-ci-documentation", needs = "work:spec/catalogue-ci-contract-guide"},
+]
