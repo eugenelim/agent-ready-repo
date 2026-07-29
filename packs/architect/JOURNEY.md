@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: architect
 pack: architect
 start_state: read-only

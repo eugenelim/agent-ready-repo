@@ -1,6 +1,8 @@
 ---
 title: Run an Audit
-description: How to run the full frontend-engineering audit on an existing surface — what to run, in what order, what each gate catches, how to read the output, and what to record in the evidence manifest.
+summary: How to run the full frontend-engineering audit on an existing surface — what to run, in what order, what each gate catches, how to read the output, and what to record in the evidence manifest.
+pack: frontend-engineering
+kind: how-to
 ---
 
 # How-to: Run a frontend-engineering audit

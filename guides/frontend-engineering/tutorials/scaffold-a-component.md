@@ -1,6 +1,8 @@
 ---
 title: Scaffold a Component
-description: A worked tutorial — receive a screen brief, run the pre-flight, write the HTML/CSS, implement all states, run the gates, and produce an evidence manifest.
+summary: A worked tutorial — receive a screen brief, run the pre-flight, write the HTML/CSS, implement all states, run the gates, and produce an evidence manifest.
+pack: frontend-engineering
+kind: tutorial
 ---
 
 # Tutorial: Scaffold a component from a screen brief

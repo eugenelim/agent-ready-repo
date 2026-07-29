@@ -1,3 +1,10 @@
+---
+title: Run a release
+summary: Step-by-step guide for running the release loop from a deploy-ready artifact to a ratified prod ship.
+pack: release-engineering
+kind: how-to
+---
+
 # Run a release
 
 **Use this when:** `work-loop` has produced a deploy-ready artifact and you need to run it through the release loop to a ratified prod ship.

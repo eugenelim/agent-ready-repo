@@ -1,3 +1,10 @@
+---
+title: Release Engineering guides
+summary: Index of guides for the release-engineering pack — tutorials, how-to recipes, reference, and explanation covering the full arc from deploy-ready artifact to ratified prod ship.
+pack: release-engineering
+kind: reference
+---
+
 # `release-engineering` — guides
 
 `release-engineering` is the SRE/ops outer loop: deployed end-to-end validation above `work-loop`'s inner build loop. Where `core` validates that code works locally — it compiles, tests pass, the diff is clean — `release-engineering` validates that the **deployed whole** works: the integrated artifact, running in a real environment, observed through real telemetry.

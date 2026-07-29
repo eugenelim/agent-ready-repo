@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: experience-design
 pack: experience-design
 start_state: read-only

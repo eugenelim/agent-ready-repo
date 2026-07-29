@@ -1,3 +1,10 @@
+---
+title: Release-readiness record
+summary: Field reference for the release-readiness record — sections, verdicts, and when G5 is available.
+pack: release-engineering
+kind: reference
+---
+
 # Release-readiness record
 
 The release-readiness record is the structured output `release-lead` surfaces at G5 — the convergence assessment a human reads before ratifying the prod ship. It is not a go/no-go; it is a structured snapshot of the release's health at the moment convergence was declared.

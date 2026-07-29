@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: governance-extras
 pack: governance-extras
 start_state: read-only

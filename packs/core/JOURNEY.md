@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: core
 pack: core
 start_state: read-only

@@ -1,3 +1,10 @@
+---
+title: The release loop explained
+summary: Why a deploy-verify-converge outer loop closes the gap between passing tests and working in production — and why the reversibility carve is the key design decision.
+pack: release-engineering
+kind: explanation
+---
+
 # The release loop explained
 
 ## The problem it solves

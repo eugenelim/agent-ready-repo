@@ -1,5 +1,4 @@
 ---
-generated: true
 journey_id: iac-terraform
 pack: iac-terraform
 start_state: read-only

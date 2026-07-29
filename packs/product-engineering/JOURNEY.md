@@ -1,5 +1,8 @@
 ---
+journey_id: product-engineering
 pack: product-engineering
+start_state: read-only
+end_state: confirmed-write
 scope: user
 tagline: "Raw idea → build-ready decision brief."
 prerequisitePacks: []
@@ -144,6 +147,7 @@ Ratify framing? ›
 
 - **You decide:** G0 — ratify the framing before the loop diverges. A vague problem means the loop explores the wrong space.
 - **Output:** an intent document with a specific problem, named user, and measurable outcome.
+- **State:** draft
 
 ---
 
@@ -162,6 +166,7 @@ explore-options
 ```
 
 - **Output:** a set of candidate product shapes with distinct tradeoff profiles — each with a named riskiest assumption.
+- **State:** draft
 
 ---
 
@@ -181,6 +186,7 @@ discovery-reliability-reviewer
 ```
 
 - **Output:** a filtered candidate set with review findings attached; candidates with Blockers are eliminated.
+- **State:** read-only
 
 ---
 
@@ -202,6 +208,7 @@ Mid-discovery check — confirm candidates? ›
 
 - **You decide:** G1.5 — confirm the surviving candidates or direct a re-exploration. This is the last cheap moment to expand the option space.
 - **Output:** a confirmed candidate field ready for convergence.
+- **State:** draft
 
 ---
 
@@ -219,6 +226,7 @@ de-risk-intent
 ```
 
 - **Output:** a de-risked candidate with a predeclared kill condition and a named validation hook; then a decomposition into delivery briefs.
+- **State:** draft
 
 ---
 
@@ -240,3 +248,4 @@ Reconcile? ›
 
 - **You decide:** G2 — is the brief complete? Then G3 — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
 - **Output:** a ratified decision brief with a connected hypothesis and validation hooks — ready for the delivery loop.
+- **State:** confirmed-write
