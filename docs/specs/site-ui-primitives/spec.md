@@ -1,6 +1,6 @@
 # Spec: site-ui-primitives
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none <!-- ADR-NNNN, RFC-NNNN, or "none" -->
@@ -109,87 +109,87 @@ provides the source content that these primitives render.
 
 ## Acceptance Criteria
 
-- [ ] AC1: All sixteen primitives (PageHero, PageMeta, TaskSwitcher,
+- [x] AC1: All sixteen primitives (PageHero, PageMeta, TaskSwitcher,
   PromptBlock, CopyPrompt, AgentClarification, ExpectedResult/ResultPreview,
   StatusChip, ReadWriteBadge, CoverageBadge, PermissionBadge, DecisionBand,
   JourneyRail, SkillRecord, WriteConfirmation, NextAction) have explicit
   content models and interaction contracts implemented in web/ and/or
   docs-site/.
 
-- [ ] AC2: Shared semantic state tokens — informational, read-only, draft,
+- [x] AC2: Shared semantic state tokens — informational, read-only, draft,
   proposed-write, confirmed-write, approval-required, complete, partial,
   blocked, failed, unavailable — are defined in tokens.css and applied
   consistently across all badge and status components in both renderers.
 
-- [ ] AC3: PromptBlock is visually distinct from a code block: different
+- [x] AC3: PromptBlock is visually distinct from a code block: different
   background, left-border treatment, speaker label, and font rendering; a
   reviewer shown both in isolation can identify which is which without
   instructions.
 
-- [ ] AC4: ReadWriteBadge communicates read-write consequence in visible text
+- [x] AC4: ReadWriteBadge communicates read-write consequence in visible text
   (not icon or color alone) for all six states: Read-only, Draft only,
   Proposed write, Confirmed write, Publish, Destructive action.
 
-- [ ] AC5: CoverageBadge provides a visible explanation or accessible
+- [x] AC5: CoverageBadge provides a visible explanation or accessible
   description for all five states: Complete result, Filtered result, Partial
   result, Capped result, Permission-limited result.
 
-- [ ] AC6: DecisionBand is visually more prominent than adjacent explanatory
+- [x] AC6: DecisionBand is visually more prominent than adjacent explanatory
   content (e.g. greater background contrast, left border, or colored band)
   and includes decision summary, consequence text, primary action, safe
   secondary action, and protected/unchanged scope indicator.
 
-- [ ] AC7: WriteConfirmation shows exact objects, exact fields, protected
+- [x] AC7: WriteConfirmation shows exact objects, exact fields, protected
   fields, total write count, consequence statement, cancel, and confirm; the
   in-flow panel form is used unless a modal interruption is explicitly
   justified.
 
-- [ ] AC8: JourneyRail at desktop (≥768px) shows connected stages with
+- [x] AC8: JourneyRail at desktop (≥768px) shows connected stages with
   current, completed, and upcoming states and visible decision boundaries; at
   mobile (<768px) it renders as an accessible accordion or sequential stage
   list — not a compressed desktop rail. Screenshots verified at 1440px, 1024px,
   390px, and at least 430px (material mobile risk).
 
-- [ ] AC9: SkillRecord uses aligned rows or compact records (not large
+- [x] AC9: SkillRecord uses aligned rows or compact records (not large
   equal-weight cards) to display skill name, natural user goals, reads,
   writes, returns, limits, and likely follow-up.
 
-- [ ] AC10: Each primitive is authorable through one supported Astro-native
+- [x] AC10: Each primitive is authorable through one supported Astro-native
   syntax per renderer (Astro component props for web/; Astro component props
   or Starlight aside/MDX for docs-site/); no raw HTML is required for common
   authoring use. Verified by T23 (maintainer guide includes authoring examples
   that are actually used in the fixture page and docs-site components).
 
-- [ ] AC11: A deterministic fixture page at `web/src/pages/primitives-fixture.astro`
+- [x] AC11: A deterministic fixture page at `web/src/pages/primitives-fixture.astro`
   renders all sixteen primitives across their material states (including long
   content, partial results, errors, read/write states) and carries
   `<meta name="robots" content="noindex">` and is excluded from the sitemap.
 
-- [ ] AC12: Automated axe-core accessibility checks pass on the fixture page
+- [x] AC12: Automated axe-core accessibility checks pass on the fixture page
   (T19), at least one existing public web page (T20), and at least one built
   documentation page (T21) with no critical violations; confirmed exceptions
   (if any) are documented in this spec with the specific violation and reason.
 
-- [ ] AC13: All components verified at 1440px, 1024px, and 390px viewports
+- [x] AC13: All components verified at 1440px, 1024px, and 390px viewports
   via Playwright screenshots; components with material mobile risk additionally
   verified at 375px and 430px. Screenshots committed under
   `docs/specs/site-ui-primitives/notes/screenshots/`.
 
-- [ ] AC14: Keyboard-only navigation is verified for TaskSwitcher, PromptBlock
+- [x] AC14: Keyboard-only navigation is verified for TaskSwitcher, PromptBlock
   copy action, JourneyRail accordion, WriteConfirmation, and DecisionBand
   actions — each documented in notes with the input sequence and observed
   result.
 
-- [ ] AC15: Neither astro build for web/ nor docs-site/ introduces new
+- [x] AC15: Neither astro build for web/ nor docs-site/ introduces new
   console errors, network errors, or layout shift relative to the pre-change
   baseline.
 
-- [ ] AC16: Maintainer documentation exists under `docs/guides/` covering
+- [x] AC16: Maintainer documentation exists under `docs/guides/` covering
   when to use each primitive, card-use rules, source syntax, state semantics,
   responsive expectations, accessibility expectations, and common
   anti-patterns with examples.
 
-- [ ] AC17: No public page content has been broadly rewritten; the scope of
+- [x] AC17: No public page content has been broadly rewritten; the scope of
   changes is strictly the new component files, the token extension, and
   wiring of new components into pages/docs that use them.
 

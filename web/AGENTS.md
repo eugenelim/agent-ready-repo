@@ -34,6 +34,7 @@ runtime impact.
 | [`@vitest/ui`](https://vitest.dev/guide/ui) | pinned `4.1.10` | Optional browser UI for vitest |
 | [`jsdom`](https://github.com/jsdom/jsdom) | pinned `30.0.0` | DOM environment for vitest tests of `.astro`-rendered HTML |
 | [`axe-core`](https://github.com/dequelabs/axe-core) | pinned `4.12.1` | Accessibility engine; used directly in tests via `import axe from 'axe-core'` |
+| [`@playwright/test`](https://playwright.dev) | pinned `1.62.0` | Browser automation for viewport screenshots and keyboard-navigation tests; config at `playwright.config.ts`; run with `npx playwright test` |
 
 Note: `@axe-core/vitest` does not exist on npm (verified 2026-07-28). `axe-core`
 is used directly. Test runner entry point: `npm test` (`vitest run`).
