@@ -12,10 +12,10 @@ contract:
     - "Whether each story draft is correct before approving the write"
     - "Which issues to update and which to leave unchanged"
     - "Whether to publish the Confluence update"
-whatChanges: "After installing the atlassian pack, Jira and Confluence are reachable from your agent session. You can ask for a team backlog summary, have stories reviewed against the five-question readiness bar, approve targeted updates to individual issues, and produce stand-up or Confluence output — all from a conversation. The credential resolves in-process via credential-brokers; it never reaches the model."
+whatChanges: "After installing the atlassian pack, Jira and Confluence are reachable from your agent session. You can ask for a team backlog summary, have stories reviewed for story-readiness gaps and improved as agent drafts, approve targeted updates to individual issues, and produce stand-up or Confluence output — all from a conversation. The credential resolves in-process via credential-brokers; it never reaches the model."
 skills:
   - name: jira-team-status
-    description: "A read-only status view of a team's Jira work, grouped by Ready to pull, In progress, Blocked, Unassigned, and Needs detail. 'Ready to pull' is a defined rule — in scope, eligible state, no unresolved blocker, and meets the five-question readiness bar — not a silent status check."
+    description: "A read-only status view of a team's Jira work, organized by Ready to pull, Needs story work, Blocked, In progress, and Other open work. 'Ready to pull' uses a four-clause rule — in scope, eligible state, no blocker, minimum definition met. The agent-execution readiness bar applies only when you explicitly ask for one-PR tasks."
     humanTouches: 1
   - name: jira-story-triage
     description: "Reviews a Jira backlog or JQL scope for story readiness using the five-question bar. Explains exactly why each item fails, proposes a rewrite, and writes to Jira only after you approve the exact drafted payload. Read-only until an approval."
@@ -110,34 +110,34 @@ goodOutputDescription: "A grouped backlog summary showing 12 issues across APP a
 
 ### 1. See the work
 
-- **You say:** "Show me the whole Acme team backlog across APP and API. Include the current sprint, open backlog, unassigned work, and blocked issues. Group everything into ready to pull, needs story work, blocked, in progress. Do not change Jira."
+- **You provide:** The team scope (Acme, across APP and API), a read-only instruction, and any grouping preference (sprint, backlog, unassigned, blocked).
 - **Agent does:** Checks credentials. Resolves scope — if two Acme scopes exist (board and team field), asks which to use. Reads all open issues across APP and API. Discloses scope searched, time horizon, issue count, and whether the result is complete or filtered.
-- **You get:** A summary: 12 issues inspected, 3 ready to pull, 3 needs story work, 2 blocked, 2 in progress, 2 unassigned. Top 5 candidates listed with readiness state. Jira not changed.
-- **You decide:** Does the ready count look right? If an item is missing or mislabelled, ask why — the agent will explain what signal it couldn't read.
+- **You decide:** Is the scope correct and the ready count right? If an item is missing or mislabelled, ask why — the agent will explain what signal it couldn't read.
+- **Output:** A summary: 12 issues inspected, 3 ready to pull, 3 needs story work, 2 blocked, 2 in progress, 2 unassigned. Top 5 candidates listed with readiness state. Jira not changed.
 
 ---
 
 ### 2. Improve weak stories
 
-- **You say:** "Take the items that need story work. Apply our five-question bar and show me why each fails, a proposed rewrite, any question the product owner still needs to answer, and whether the item would be ready after the change. Draft only. Do not update Jira."
-- **Agent does:** Applies the five-question readiness bar to APP-206, APP-219, and API-104. For each: names the failed questions and the specific gap, proposes a rewrite, flags any unresolved human question. No Jira write.
-- **You get:** Per-item findings — what is missing, why it prevents action, the proposed improvement, any unresolved question, and whether the item would pass after the draft. Jira not changed.
-- **You decide:** Is each draft correct? If a draft is wrong, say so and the agent revises. When satisfied with the three drafts, move to the approval step.
+- **You provide:** The triage request — which items to review (the needs-story-work group) and a draft-only instruction.
+- **Agent does:** Applies story-readiness analysis to APP-206, APP-219, and API-104. For each: names the failed questions and the specific gap, proposes a rewrite, flags any unresolved human question. No Jira write.
+- **You decide:** Is each draft correct? If a draft is wrong, say so and the agent revises. Confirm all three drafts before moving to the approval step.
+- **Output:** Per-item findings — what is missing, why it prevents action, the proposed improvement, any unresolved question, and whether the item would pass after the draft. Jira not changed.
 
 ---
 
 ### 3. Apply approved changes
 
-- **You say:** "Update APP-206, APP-219, and API-104 with the approved drafts. Leave every other issue unchanged. Do not change status, assignee, priority, sprint, or labels."
+- **You provide:** The exact issue keys (APP-206, APP-219, API-104) and the instruction to leave all other issues and protected fields unchanged.
 - **Agent does:** Shows a write-confirmation panel listing the exact issues, the field to change (description), the protected fields (status, assignee, priority, sprint, labels), and the total number of writes (3). Waits for your confirmation.
-- **You get:** After you say apply: a result showing what changed (APP-206, APP-219, API-104 descriptions updated), what remained unchanged (everything else), and links to each updated issue. Any failure reported explicitly with a retry path.
-- **You decide:** Review the write-confirmation panel before saying apply. This is the point of no return — everything up to here was read-only.
+- **You decide:** Review the write-confirmation panel. This is the point of no return — confirm only when you have verified the exact issues and fields. Everything up to here was read-only.
+- **Output:** After you confirm: a result showing what changed (APP-206, APP-219, API-104 descriptions updated), what remained unchanged (everything else), and links to each updated issue. Any failure reported explicitly with a per-issue retry path.
 
 ---
 
 ### 4. Share the result
 
-- **You say:** "Give me a stand-up summary for the Acme team. Include progress, blockers, risks, and what is ready next. Then prepare a concise weekly version suitable for the Acme Confluence space. Do not publish until I approve it."
+- **You provide:** The stand-up format request and any Confluence space or page constraints.
 - **Agent does:** Produces a stand-up block (in-progress, ready, blocked, risks) and a Confluence draft. Does not publish.
-- **You get:** A stand-up summary and a Confluence draft to review. The draft shows the target page and space.
-- **You decide:** Review the Confluence draft. When satisfied, say "Publish." The agent will not publish without your instruction.
+- **You decide:** Review the Confluence draft — confirm the target page, space, and content. Say "Publish" only when satisfied.
+- **Output:** A stand-up summary and a Confluence draft showing the target page and space. Published to Confluence only after your instruction.

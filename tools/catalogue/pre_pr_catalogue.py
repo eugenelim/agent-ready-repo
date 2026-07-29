@@ -111,10 +111,7 @@ def main() -> int:
          [py, "tools/test-lint-web-journey-parity.py"])
     _run("pack-journey lint", [py, "tools/lint-pack-journeys.py"])
     _run("pack-journey lint self-test", [py, "tools/test-lint-pack-journeys.py"])
-    # lint-journey-contract live run deferred: atlassian.md and user-guide-diataxis.md
-    # have pre-existing label failures unrelated to Phase 2B; fix those first, then add:
-    #   _run("journey-contract lint", [py, "tools/lint-journey-contract.py"])
-    # Tracked: workspace.toml [backlog] slug "pack-journeys-lint-contract-gate"
+    _run("journey-contract lint", [py, "tools/lint-journey-contract.py"])
     _run("journey-contract lint self-test",
          [py, "tools/test-lint-journey-contract.py"])
 

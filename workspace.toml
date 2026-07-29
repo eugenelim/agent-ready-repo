@@ -1110,21 +1110,9 @@ open = [
   {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
 
   # ── Pack-journey phase 2B follow-ons ─────────────────────────────────────────
-  # spec/pack-journeys-phase2b deferred AC11/AC14. Two legacy central journey files
-  # (atlassian.md, user-guide-diataxis.md) use non-standard labels (You say/You get)
-  # and missing Output labels, pre-existing before Phase 2B. These prevent wiring the
-  # full lint-journey-contract.py run into the pre-PR gate (only the self-test is wired).
-  # Also deferred: stage-presence (no stages → lint-pack-journeys silently passes) and
-  # label rank-order enforcement in lint-pack-journeys.py (only lint-journey-contract
-  # enforces order, and it's not live-gated yet).
-  # Fix: update atlassian.md and user-guide-diataxis.md to use the fixed label set
-  #   (You provide / Agent does / You do / You decide / Output / State); then uncomment
-  #   _run("journey-contract lint", ...) in tools/catalogue/pre_pr_catalogue.py; consider
-  #   adding rank-order and stage-presence checks to lint-pack-journeys.py.
-  # File: web/src/content/journeys/atlassian.md, user-guide-diataxis.md;
-  #   tools/catalogue/pre_pr_catalogue.py (line ~113 comment block).
-  # Unblocks when: atlassian.md and user-guide-diataxis.md are updated to fixed label set.
-  {slug = "pack-journeys-lint-contract-gate", source = "spec/pack-journeys-phase2b AC11 AC14"},
+  # pack-journeys-lint-contract-gate: resolved. atlassian.md and user-guide-diataxis.md
+  # updated to fixed label set (You provide / Agent does / You decide / Output); live gate
+  # enabled in tools/catalogue/pre_pr_catalogue.py. Closed by this PR.
 
   # ── Starlight migration follow-ons ─────────────────────────────────────────
   # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").

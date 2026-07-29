@@ -49,3 +49,9 @@ relatedJourneys:
 > **Deprecated.** This journey is preserved so existing `/journeys/user-guide-diataxis/` links continue to resolve. The canonical journey is [product-documentation](../../journeys/product-documentation/).
 
 Install `product-documentation` for new projects. The `new-guide` skill in existing installations routes to `author-product-docs` automatically — the workflow is unchanged.
+
+### 1. Use the compatibility shim
+
+- **You provide:** A guide-authoring request.
+- **Agent does:** Routes the request to `author-product-docs` (product-documentation pack) via the `new-guide` compatibility shim.
+- **Output:** Guide content authored by `author-product-docs`. Install `product-documentation` directly to access all five authoring modes without this compatibility layer.

@@ -224,8 +224,8 @@ CLI: `python -m agentbundle install --pack product-documentation --output "$tmpd
        in JOURNEY.md == 1 `.apm/skills/` directory).
 - [x] AC11 `lint-journey-contract.py` passes on the generated pilot file — `State` is
        now accepted as a valid optional rank-5 label; all legacy files unaffected.
-       Note: `atlassian.md` and `user-guide-diataxis.md` have pre-existing label failures
-       unrelated to Phase 2B; full gate wiring deferred to a follow-up that fixes those.
+       Note: `atlassian.md` and `user-guide-diataxis.md` had pre-existing label failures;
+       both updated to fixed label set and live gate wired in the vienna-v1 convergence PR.
 - [x] AC12 `agentbundle install --pack product-documentation --output "$tmpdir"` produces
        no JOURNEY.md anywhere in `$tmpdir` — verified by `find "$tmpdir" -name JOURNEY.md`.
 - [x] AC13 `guides/_shared/how-to/pack-journey-authoring.md` exists and covers: when to add
@@ -233,7 +233,7 @@ CLI: `python -m agentbundle install --pack product-documentation --output "$tmpd
        validation, route preservation (journey_id = slug), installation exclusion, migration
        procedure (step-by-step), and how to avoid duplicate canonical sources.
 - [x] AC14 All 16 non-pilot journey files pass `lint-web-journey-parity.py` unchanged.
-       `lint-journey-contract.py` gate wiring deferred (see AC11 note).
+       `lint-journey-contract.py` live gate enabled (see AC11 note — deferred gate closed by vienna-v1 convergence PR).
 - [x] AC15 `make build-check` and `make pre-pr` pass with all new gates wired.
 - [x] AC16 No journey other than `product-documentation` was migrated in this phase.
 
