@@ -864,10 +864,10 @@ def package_source_flavour(
 
     # Build archive (include self-hosted-source-manifest.json as a member so
     # install-time kind detection can fire without the sidecar).
-    # sha256 is not yet known; use a placeholder that is replaced after the
-    # archive is written.  The sidecar on disk is written from the same final dict.
-    _MANIFEST_PLACEHOLDER = b"__SHA256_PLACEHOLDER__"
-    manifest["sha256"] = _MANIFEST_PLACEHOLDER.decode()
+    # The embedded manifest has sha256=null: a manifest cannot attest its own
+    # archive's digest. The on-disk sidecar (written after the archive is built)
+    # carries the real sha256.
+    manifest["sha256"] = None
     manifest_bytes_placeholder = json.dumps(manifest, indent=2).encode("utf-8")
 
     buf = io.BytesIO()

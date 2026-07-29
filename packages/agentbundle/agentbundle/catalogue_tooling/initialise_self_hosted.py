@@ -775,6 +775,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     source_provenance = SelfHostedSource(
         name=cat_meta.get("name", ""),
         display_name=cat_meta.get("display_name", ""),
+        archive_uri=cfg.archive_uri,
     )
 
     # 4. Collect fields (TTY prompts + defaults).
@@ -856,37 +857,34 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     anchors = _build_anchors(source_meta)
     identity_replacements = _apply_identity_transform_bytes(file_bytes, anchors, cfg)
 
-    # 9. Leak check (in-memory via tmpdir).
-    if not cfg.dry_run:
-        id_violations, ci_violations = _verify_bytes_in_tmpdir(file_bytes, anchors, cfg)
-        all_violations = id_violations + ci_violations
-        if all_violations:
-            return SelfHostedInitResult(
-                ok=False,
-                dry_run=cfg.dry_run,
-                name=cfg.name,
-                files_written=[],
-                diagnostics=diagnostics,
-                violations=all_violations,
-                preset="self-hosted",
-                tooling_mode=cfg.tooling,
-                attribution_mode=cfg.attribution,
-                selected_packs=pack_names,
-                selected_profiles=profile_names,
-                selected_adapters=cfg.adapters or [cfg.preferred_adapter or "claude-code"],
-                field_collection_mode=field_collection_mode,
-                identity_replacements=identity_replacements,
-                leak_scan_result={
-                    "ok": False,
-                    "violation_count": len(all_violations),
-                },
-                source=source_provenance,
-                summary="self-hosted init failed: identity leak check found violations",
-            )
-        leak_scan_result: dict = {"ok": True, "violation_count": 0}
-    else:
-        all_violations = []
-        leak_scan_result = {"ok": True, "violation_count": 0}
+    # 9. Leak check (in-memory via tmpdir — runs in both real and dry-run mode
+    # so --dry-run correctly surfaces violations without any target writes).
+    id_violations, ci_violations = _verify_bytes_in_tmpdir(file_bytes, anchors, cfg)
+    all_violations = id_violations + ci_violations
+    if all_violations:
+        return SelfHostedInitResult(
+            ok=False,
+            dry_run=cfg.dry_run,
+            name=cfg.name,
+            files_written=[],
+            diagnostics=diagnostics,
+            violations=all_violations,
+            preset="self-hosted",
+            tooling_mode=cfg.tooling,
+            attribution_mode=cfg.attribution,
+            selected_packs=pack_names,
+            selected_profiles=profile_names,
+            selected_adapters=cfg.adapters or [cfg.preferred_adapter or "claude-code"],
+            field_collection_mode=field_collection_mode,
+            identity_replacements=identity_replacements,
+            leak_scan_result={
+                "ok": False,
+                "violation_count": len(all_violations),
+            },
+            source=source_provenance,
+            summary="self-hosted init failed: identity leak check found violations",
+        )
+    leak_scan_result: dict = {"ok": True, "violation_count": 0}
 
     # 10. Load old ownership state; split planned files into owned vs new.
     old_state = _load_ownership_state(cfg.target)

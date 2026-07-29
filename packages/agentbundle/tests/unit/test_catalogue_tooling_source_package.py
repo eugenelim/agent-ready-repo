@@ -259,3 +259,39 @@ def test_export_catalogue_absent_from_source_archive(tmp_path: Path) -> None:
     with tarfile.open(result.archive_path, "r:gz") as tar:
         members = tar.getnames()
     assert not any("export-catalogue" in m for m in members)
+
+
+# ---------------------------------------------------------------------------
+# B4 AC6: install.py refuses source-distribution archives
+# ---------------------------------------------------------------------------
+
+def _run_install_with_catalogue(catalogue_dir: Path, pack: str = "core") -> tuple[int, str]:
+    """Invoke install.run() against a local catalogue dir; return (rc, stderr)."""
+    import io
+    from contextlib import redirect_stderr
+
+    from agentbundle.cli import _build_parser
+    from agentbundle.commands import install as install_mod
+
+    parser = _build_parser()
+    args = parser.parse_args(["install", "--pack", pack, "--output", str(catalogue_dir / "out"),
+                               str(catalogue_dir)])
+    buf = io.StringIO()
+    with redirect_stderr(buf):
+        rc = install_mod.run(args)
+    return rc, buf.getvalue()
+
+
+def test_install_refuses_source_distribution_local_path(tmp_path: Path) -> None:
+    """install.run() exits 1 with agentbundle-self-hosted-source message for a source dir."""
+    source_dir = tmp_path / "catalogue"
+    source_dir.mkdir()
+    (source_dir / "self-hosted-source-manifest.json").write_text(
+        '{"kind": "agentbundle-self-hosted-source"}', encoding="utf-8"
+    )
+
+    rc, stderr = _run_install_with_catalogue(source_dir)
+
+    assert rc == 1
+    assert "agentbundle-self-hosted-source" in stderr
+    assert "source distribution" in stderr

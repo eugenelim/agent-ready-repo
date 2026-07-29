@@ -344,24 +344,26 @@ def test_generate_catalogue_toml_escapes_quotes(tmp_path: Path) -> None:
     assert '"quoted"' in parsed["catalogue"]["description"]
 
 
-def test_leak_check_failure_removes_created_files(tmp_path: Path) -> None:
+def test_leak_check_blocks_writes_on_attribution_violation(tmp_path: Path) -> None:
+    """Leak check must fire before any target write; no files written on violation.
+
+    Uses attribution=attributed so verify() does not strip anchors — the
+    upstream catalogue name placed outside the attribution surface surfaces
+    as a leak, and the init must fail with no files written to target.
+    """
     source = _make_source(tmp_path)
-    # Plant source name in a pack file so verify() will flag it.
-    pack_readme = source / "packs" / "core" / "README.md"
-    pack_readme.write_text(
-        "upstream-catalogue is described here.\n"
+    # Plant source catalogue name in a non-attribution-surface pack file.
+    (source / "packs" / "core" / "README.md").write_text(
         "upstream-catalogue upstream-catalogue upstream-catalogue\n",
         encoding="utf-8",
     )
-    # Use attribution=attributed so verify() actually fires on non-attribution surfaces.
     cfg = _base_cfg(tmp_path, source, attribution="attributed")
-    # The file should have the upstream name which verify will catch outside attribution.
     result = init_self_hosted(cfg)
-    if result.ok:
-        # Source name didn't appear in copied files (transform worked) — skip
-        return
-    # On violation: target directory should not contain the catalogue.toml we created.
-    assert not (cfg.target / "catalogue.toml").exists() or result.dry_run
+
+    # The leak check is a pre-write preflight — target must be empty regardless.
+    assert not result.ok
+    assert result.violations
+    assert not cfg.target.exists() or not list(cfg.target.iterdir())
 
 
 def test_transform_covers_description_anchor(tmp_path: Path) -> None:
