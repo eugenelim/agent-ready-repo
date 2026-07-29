@@ -1,0 +1,119 @@
+{
+  "_comment": "Canonical Team Atlas scenario — single source of truth for all Phase 3 documentation surfaces. Do not copy values into individual pages; reference this file or derive from it.",
+  "team": "Atlas",
+  "jira_scope": {
+    "projects": ["APP", "API"],
+    "includes": ["current sprint", "open backlog", "unassigned work", "blocked work"]
+  },
+  "canonical_opening_request": "Show me the whole Atlas team backlog across APP and API.\n\nInclude the current sprint, open backlog, unassigned work, and blocked issues.\n\nGroup everything into:\n\n- ready to pull\n- needs story work\n- blocked\n- in progress\n\nRecommend five items for the team to discuss next.\n\nDo not change Jira.",
+  "scope_clarification_prompt": "I found two possible Atlas scopes:\n\n1. The Atlas Jira board\n2. Issues whose Team field is Atlas\n\nWhich should I use?",
+  "result_summary": {
+    "total_inspected": 184,
+    "ready_to_pull": 17,
+    "needs_story_work": 26,
+    "blocked": 8,
+    "in_progress": 11,
+    "other_open_work": 122
+  },
+  "coverage_disclosure": "Complete — 184 items (APP: 127, API: 57 · Sprint 23 + open backlog · as of today)",
+  "jira_unchanged_statement": "Jira was not changed by this run.",
+  "canonical_issues": {
+    "APP-206": {
+      "key": "APP-206",
+      "title": "User cannot reset password when SSO is enabled",
+      "project": "APP",
+      "group": "needs_story_work",
+      "readiness_gap": "Missing: expected behaviour when SSO provider is unavailable; no acceptance criteria covering the SSO-unavailable path",
+      "gap_detail": "Fails Q2 (acceptance criteria) — the description covers the happy path but does not specify what happens when the identity provider returns an error or times out. Engineering cannot begin without knowing whether to show a fallback or block the reset.",
+      "proposed_description": "When a user attempts to reset their password and their account is SSO-enabled:\n\n- If the SSO provider is reachable: redirect to the SSO provider's reset flow.\n- If the SSO provider is unreachable or returns an error: display 'Your account uses single sign-on. Contact your IT administrator to reset your password.' Do not allow direct password reset as a fallback.\n- Log the provider error for the ops team.",
+      "proposed_acs": [
+        "Given SSO-enabled user requests password reset, when SSO provider is reachable, then user is redirected to SSO provider reset flow",
+        "Given SSO-enabled user requests password reset, when SSO provider is unreachable, then user sees the contact-IT message and cannot set a password directly",
+        "Given SSO provider returns an error, then the error is logged with provider name and HTTP status"
+      ],
+      "unresolved_question": "Should the system allow a temporary bypass for locked-out SSO admins? Needs product owner decision.",
+      "expected_readiness_after_draft": "APP-206 would pass Q1, Q2, and Q3 — it would reach Ready to pull once the product owner answers the bypass question."
+    },
+    "APP-219": {
+      "key": "APP-219",
+      "title": "Export to CSV drops custom field values",
+      "project": "APP",
+      "group": "needs_story_work",
+      "readiness_gap": "No acceptance criteria; no reproduction steps; scope of 'custom fields' is undefined",
+      "gap_detail": "Fails Q1 (clear outcome) and Q2 (acceptance criteria) — it is unclear which custom field types are affected (text, select, multi-select, date?), which export path (UI button vs API) is broken, and what 'drops' means (empty string, omitted column, null?).",
+      "proposed_description": "When a user exports issues to CSV from the issue list view:\n\n- All configured custom field columns must appear in the CSV header row.\n- Each row must include the field value for that issue, or an empty string if the field has no value for that issue.\n- Custom field types in scope: text, single select, multi-select (pipe-delimited), date (ISO 8601).\n- Out of scope for this ticket: API export endpoint and attachment fields.",
+      "proposed_acs": [
+        "Given an issue list with custom fields configured, when the user clicks Export to CSV, then the CSV header row includes all custom field names",
+        "Given an issue with a single-select custom field set, when exported to CSV, then the value appears in the correct column",
+        "Given an issue with a multi-select custom field set to two values, when exported to CSV, then both values appear pipe-delimited in the correct column",
+        "Given an issue with no value for a custom field, when exported to CSV, then an empty string appears in that column (not a missing column)"
+      ],
+      "unresolved_question": "Which custom field types are in scope — are lookup/user-picker fields included or deferred?",
+      "expected_readiness_after_draft": "APP-219 would pass Q1 and Q2 after the product owner confirms field-type scope. It would reach Needs story work → Ready to pull in one revision.",
+      "write_attempt_result": "write_failed",
+      "write_failure_reason": "403 Forbidden — your token does not have edit permission on APP-219 (reporter-only access). The proposed rewrite was NOT applied.",
+      "recovery_action": "Retry APP-219 manually via `jira: update-issue APP-219` with the description and acceptance criteria above once you have edit access, or ask the issue owner to apply the draft."
+    },
+    "API-104": {
+      "key": "API-104",
+      "title": "Rate-limit response should include Retry-After header",
+      "project": "API",
+      "group": "needs_story_work",
+      "readiness_gap": "Acceptance criteria are present but the retry interval is unspecified; no error response schema documented",
+      "gap_detail": "Fails Q2 partially — ACs mention the header but do not specify the format (seconds vs HTTP date), the value source (fixed vs dynamic), or what clients should do when the header is absent.",
+      "proposed_description": "When the API gateway returns HTTP 429 Too Many Requests:\n\n- The response MUST include a `Retry-After` header.\n- The value MUST be an integer number of seconds (e.g. `Retry-After: 60`).\n- The value MUST be sourced from the rate-limiter's token-bucket drain time, rounded up to the nearest second.\n- If the drain time is unavailable, use a fixed fallback of 30 seconds.\n- The response body MUST include `{\"error\": \"rate_limited\", \"retry_after_seconds\": <value>}`.",
+      "proposed_acs": [
+        "Given a client exceeds the rate limit, when the API returns 429, then the response includes Retry-After: <integer seconds>",
+        "Given the token-bucket drain time is known, when 429 is returned, then Retry-After value equals ceil(drain_seconds)",
+        "Given drain time is unavailable, when 429 is returned, then Retry-After value is 30",
+        "Given any 429 response, then body contains {\"error\": \"rate_limited\", \"retry_after_seconds\": <integer>}"
+      ],
+      "unresolved_question": null,
+      "expected_readiness_after_draft": "API-104 would pass all five questions — it would reach Ready to pull immediately after the draft is accepted."
+    }
+  },
+  "canonical_story_improvement_request": "Take the items that need story work.\n\nApply our story-readiness bar and show me:\n\n1. why each item is not actionable\n2. a proposed rewrite\n3. any question the product owner still needs to answer\n4. whether the item would be ready after the proposed change\n\nDraft only. Do not update Jira.",
+  "canonical_approval_request": "Update APP-206, APP-219, and API-104 with the approved drafts.\n\nLeave every other issue unchanged.\n\nDo not change status, assignee, priority, sprint, or labels.",
+  "write_preview": {
+    "issues": ["APP-206", "APP-219", "API-104"],
+    "fields": ["description", "acceptance_criteria"],
+    "protected_fields": ["status", "assignee", "sprint", "priority", "labels"],
+    "total_writes": 3,
+    "note": "APP-219 write fails with 403 — reporter-only access. APP-206 and API-104 succeed."
+  },
+  "write_result": {
+    "successful": ["APP-206", "API-104"],
+    "failed": [
+      {
+        "key": "APP-219",
+        "reason": "403 Forbidden — reporter-only access",
+        "recovery": "Retry via `jira: update-issue APP-219` once edit access is granted, or ask the issue owner to apply the draft shown above."
+      }
+    ],
+    "unchanged_protected_fields": ["status", "assignee", "sprint", "priority", "labels"],
+    "partial_success_note": "2 of 3 writes succeeded. APP-219 was not changed. The draft is preserved above for retry."
+  },
+  "canonical_communication_request": "Give me a stand-up summary for the Atlas team.\n\nInclude progress, blockers, risks, and what is ready next.\n\nThen prepare a concise weekly version suitable for the Atlas Confluence space.\n\nDo not publish until I approve it.",
+  "recommended_next_candidates": [
+    "API-104 — Rate-limit Retry-After header (draft accepted, ready to pull)",
+    "APP-206 — SSO password reset (draft accepted, one PO question remaining)",
+    "APP-312 — Session timeout on mobile (clear scope, no blockers)",
+    "APP-298 — Search index rebuild throttle (small, unblocked, unassigned)",
+    "API-117 — Deprecate v1 auth endpoint (agreed scope, engineering available)"
+  ],
+  "terminology": {
+    "whole_team_backlog": "All open work for the selected team scope across the configured projects, sprint, and backlog.",
+    "ready_to_pull": "Work that is in scope, in an eligible open-work state, has no known unresolved blocker, and has enough definition for the team to begin under the configured readiness criteria.",
+    "needs_story_work": "Work that is open but lacks enough definition to begin — missing acceptance criteria, unclear scope, or an unresolved question that blocks engineering.",
+    "blocked": "Work with a known unresolved dependency, external decision, or blocker that prevents the team from starting or continuing.",
+    "in_progress": "Work currently being actively worked on by a team member.",
+    "other_open_work": "Open work that does not fit the above categories — not ready, not blocked, not in progress, not assignable today.",
+    "needs_confirmation": "When readiness cannot be established — the status is unclear or the scope is ambiguous.",
+    "draft_improvement": "A proposed rewrite of a story's description or acceptance criteria, produced by jira-story-triage, that has not been written to Jira.",
+    "proposed_jira_update": "A Jira write that has been shown to the user (exact fields, old and new values) but not yet confirmed.",
+    "approved_jira_update": "A proposed Jira update that the user has explicitly confirmed; the write then occurs.",
+    "team_summary": "A read-only stand-up or status summary generated from the backlog data.",
+    "confluence_ready_draft": "A formatted draft of the team summary, prepared for Confluence but not yet published.",
+    "agent_ready": "An optional lens, only applied when explicitly requested: work that meets a five-question readiness bar suitable for autonomous coding-agent execution. Not the same as ready to pull."
+  }
+}

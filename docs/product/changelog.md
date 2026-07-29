@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Atlassian pack — complete Product Documentation pilot (Phase 3).** The `atlassian` pack is now the first end-to-end pilot of the Product Documentation architecture. Six connected public surfaces ship together: a 17-step tutorial (whole-team backlog → story improvements → Jira writes → stand-up summary), a 7-task how-to, a skills reference covering all 11 skills, a system-model explanation, a retrofitted pack README, and a four-stage JOURNEY.md. All six surfaces share one canonical Team Atlas scenario (184 issues, canonical IDs APP-206/APP-219/API-104) and use the Phase 2A flat-source-path model with `slug:` frontmatter to preserve public URLs. `packs/atlassian/JOURNEY.md` is the pack-owned journey source; version stays at 0.7.0 (documentation-only; no skill content changed).
 - **Pack-owned canonical journeys (Phase 2B).** Packs can now define their primary
   journey in `packs/<pack>/JOURNEY.md`, the canonical source that generates the
   central Astro content file. `tools/build-site.py --journeys-only` syncs pack-local
