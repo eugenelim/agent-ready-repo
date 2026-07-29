@@ -1,61 +1,126 @@
-# atlassian
+# ATLASSIAN
 
-Atlassian primitives plus the workflows that compose them. Credentialed CLIs —
-`jira`, `jira-align`, and `confluence-crawler`/`-publisher` — and workflow
-skills: `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`,
-`jira-brief-intake`, and `jira-align-brief-intake`.
+**Run Jira and Confluence from a conversation**
 
-## What's inside
+See what the team can work on, improve weak stories, apply only approved Jira changes, and prepare team updates — without starting from JQL or internal skill names.
 
-- Credentialed CLI primitives for Jira, Jira Align, and Confluence.
-- Workflow skills that turn those primitives into flow metrics, an
-  AI-adoption report, a Jira defect-flow analysis, a Jira epic → product-brief
-  intake, and a Jira Align Feature → product-brief intake — all feeding
-  `receive-brief`.
-- Team backlog skills: `jira-team-status` (a read-only team status view organized
-  by Ready to pull · Needs story work · Blocked · In progress — with scope and
-  completeness disclosure before grouped sections, cross-cutting flags for
-  unassigned and stale work, and a pick-up hand-off) and `jira-story-triage`
-  (reviews items against the agent-execution readiness bar, explains why each weak
-  item is not ready — which question failed and the specific gap — surfaces
-  unresolved human questions, drafts improvements, and writes back to Jira only
-  after per-item approval). "Ready to pull" means the item is in scope, in an
-  eligible open-work state, has no known blocker, and has enough definition for the
-  team to begin — not merely `statusCategory = To Do`. Unassigned is a cross-cutting
-  flag; an item can be Blocked and Unassigned simultaneously. Both skills activate
-  from natural team-and-backlog language; neither needs you to name the skill.
+**Starts read-only.** Jira data does not change until you confirm the exact fields.
+
+---
+
+Try this:
+
+```
+Show me the whole Atlas team backlog across APP and API. Include the sprint,
+open backlog, blocked work, and unassigned issues. Group into ready to pull,
+needs story work, blocked, and in progress. Do not change Jira.
+```
+
+You get: 184 issues inspected · 17 ready to pull · 26 need story work · 8 blocked · 11 in progress — with scope, completeness, and recommended next candidates.
+
+---
+
+## What you can do
+
+### 1. See what the team can work on
+
+```
+Show me the whole Atlas team backlog.
+```
+
+Get: a grouped, annotated view of the sprint and open backlog — ready to pull, needs story work, blocked, in progress — with scope and completeness disclosed upfront. **Read-only.** Nothing changes in Jira.
+
+### 2. Make the backlog actionable
+
+```
+Improve the stories that need work. Draft only, do not update Jira.
+```
+
+Get: per-story analysis — which readiness question failed, a proposed description and acceptance criteria rewrite, any unresolved human question, and expected readiness after the draft. **Draft-only.** Nothing changes in Jira until you approve.
+
+### 3. Update Jira safely
+
+```
+Update APP-206 and API-104 with the approved drafts.
+Do not change status, assignee, or labels.
+```
+
+Get: a preview of the exact fields, current and proposed values, and protected fields — then confirmation before any write. **Writes only after you confirm.** Protected fields are never touched.
+
+### 4. Share the result
+
+```
+Give me a stand-up summary and a Confluence-ready draft.
+Do not publish until I approve.
+```
+
+Get: a read-only stand-up summary, then a Confluence draft shown to you before publishing. **Confluence is never published automatically.**
+
+---
+
+## The common journey
+
+```
+Orient (read-only)  →  Improve (draft-only)  →  Approve and act  →  Communicate
+```
+
+Each stage is optional. You can stop after the backlog review, improve only selected stories, or skip directly to publishing a summary.
+
+---
 
 ## Install
 
-`atlassian` is **user-scope by default** (your Atlassian credentials are yours,
-not a project's).
+`atlassian` is **user-scope by default** — your Atlassian credentials are yours, not a project's.
+
+```bash
+agentbundle install --pack atlassian <catalogue>
+```
+
+Or install via the Claude plugin registry:
 
 ```
-agentbundle install --pack atlassian <catalogue>
+claude plugin install atlassian@agent-ready-repo
 ```
 
 ## Set up credentials
 
-The Jira / Confluence CLIs need an API token. Install the `credential-brokers`
-pack, then tell your agent **"set up credentials"** — the interactive
-`credential-setup` skill prompts you for each key and stores it in your OS
-keychain (or a `0600` dotfile on Linux). Secrets never go on the command line
-and never enter the repo. See the
-[`credential-brokers` README](../credential-brokers/README.md).
+The Jira and Confluence skills authenticate with either an API token (Atlassian Cloud personal access token) or SSO credentials (for enterprise instances that enforce corporate single sign-on instead of personal tokens).
 
-## Usage
+Install the `credential-brokers` pack, then say **"set up credentials"** — the agent prompts for the right credential type and stores it in your OS keychain (or a `0600` dotfile on Linux). Secrets never go on the command line and never enter the repo. See the [`credential-brokers` README](../credential-brokers/README.md).
 
-Once credentials are set up, ask your agent, for example:
+If your organisation uses SSO-only access, see the [SSO authentication guide](../../guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md) for the SSO-broker setup.
 
-- "Show me what Team Atlas can work on next. Start read-only and tell me if the result is incomplete."
-- "What is blocked in PLATFORM sprint 12?"
-- "Which stories are not ready for engineering in DEVKIT sprint 14?"
-- "Make ATLAS-204 actionable but do not update Jira yet."
-- "Pull this sprint's flow metrics from the PLATFORM Jira board."
-- "Crawl the ENG Confluence space and summarise the onboarding pages."
-- "Build the AI-adoption report for last quarter."
-- "Show the defect flow for project ORD over the last 30 days."
+## Scope and permissions
+
+- Read access is required to all projects you query.
+- Write access is required only for the specific issues you approve updating.
+- Confluence publish requires write access to the target space.
+- SSO-protected instances: see [Authenticate with SSO](/agent-ready-repo/docs/guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies/).
 
 ---
 
-→ **Go deeper:** the [`atlassian` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/atlassian/).
+## Skills included — under the hood
+
+You do not need to select these manually. They are named here for reference.
+
+| Skill | Purpose |
+|---|---|
+| `jira-team-status` | Read-only team backlog snapshot — grouped by readiness, with scope and completeness disclosure |
+| `jira-story-triage` | Story readiness review, draft improvements, optional write-back after approval |
+| `jira` | Read and write individual Jira issues; canonical write target for approved updates |
+| `confluence-publisher` | Publish Markdown reports to Confluence pages — always preview before write |
+| `confluence-crawler` | Mirror a Confluence space to Markdown |
+| `flow-metrics` | DORA / Flow Framework metrics from Jira changelogs — read-only |
+| `ai-adoption-report` | Compare flow-metrics outputs; produce an adoption report |
+| `jira-brief-intake` | Turn a Jira epic into a product brief |
+| `jira-align-brief-intake` | Turn a Jira Align Feature into a product brief |
+| `jira-defect-flow` | Fix a Jira defect end-to-end — pull, fix, PR, transition |
+| `jira-align` | Read and write Jira Align portfolio data |
+
+---
+
+→ [Full tutorial — Review your team backlog from start to finish](/agent-ready-repo/docs/guides/atlassian/tutorials/review-your-team-backlog/)\
+→ [How-to — common Jira tasks](/agent-ready-repo/docs/guides/atlassian/how-to/work-with-jira/)\
+→ [Skills reference — exact read, write, and approval contracts](/agent-ready-repo/docs/guides/atlassian/reference/atlassian-skills/)\
+→ [How the pack works — composition model](/agent-ready-repo/docs/guides/atlassian/explanation/atlassian-pack/)\
+→ [Journey — four-stage visual storyboard](/journeys/atlassian/)
