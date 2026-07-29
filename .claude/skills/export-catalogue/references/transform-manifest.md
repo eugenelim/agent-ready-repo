@@ -34,8 +34,25 @@ attribution never re-admits governance:
   `CONTRIBUTING.md`. (A *projected* CONVENTIONS template that
   ships to adopters via the self-host recipe is a different artifact — it rides
   with the recipe; keep it.)
-- Build/scan/release tooling: `Makefile`, `.snyk`, scanner config, release
-  workflows, `tools/*` self-tests.
+- Build/scan/release tooling: `Makefile`, `.snyk`, scanner config, `tools/*`
+  self-tests.
+- **CI workflow and pipeline implementation.** The export surface is bounded to
+  `guides/`, projected tools, and seeded scaffold — CI implementation files are
+  outside this surface; no credentials are transported. Stripped CI artifacts:
+  - `.github/workflows/` — GitHub Actions workflow definitions and any helper
+    scripts they reference. Note: `.github/skills/`, `.github/agents/`,
+    `.github/hooks/`, and `.github/instructions/` are legitimate Copilot adapter
+    projection targets and are NOT stripped when present in the export target.
+  - Root-level CI config files: `.gitlab-ci.yml`, `Jenkinsfile`, `.travis.yml`,
+    and equivalent provider files at the repo root.
+  - Any other provider-specific CI trigger config, pipeline definition, or
+    deployment/release automation not covered by the positive allowlist above.
+  - Workflow status badges (GitHub Actions badge URLs of the form
+    `https://github.com/<owner>/<repo>/actions/workflows/…`) embedded in any
+    guide or README file.
+  - Host-specific CI environment variable names (e.g. `ARTIFACTORY_TOKEN`,
+    `ANTHROPIC_API_KEY`) — these appear only inside CI workflow files and are
+    excluded transitively by path exclusion.
 - Provenance-only comments citing a stripped governance doc (keep comments that
   explain *why the code does what it does*).
 
@@ -67,10 +84,14 @@ catalogue) — this is the domain-repurposing lever.
 ## 4. GUIDES (per-pack, with _shared always)
 For each pack in the include-set, copy `guides/<pack-name>/` into the
 target at the same path. Always copy `guides/_shared/` (agentbundle
-infrastructure guides; adopter-facing, not catalogue-internal). Guides for
-packs outside the include-set are **omitted** (omit-not-leak). The SUBSTITUTE
-pass applies to all staged guide content; any identity references in `_shared/`
-guides survive into the target only in substituted form.
+infrastructure guides; adopter-facing, not catalogue-internal) — this includes
+`guides/_shared/reference/catalogue-ci-contract.md`, the portable provider-neutral
+CI contract the target organization receives. The contract is the adopter's
+canonical CI reference: the target chooses its own CI system; no CI workflow is
+generated or copied; no credentials are transported; no CI provider is assumed.
+Guides for packs outside the include-set are **omitted** (omit-not-leak). The
+SUBSTITUTE pass applies to all staged guide content; any identity references in
+`_shared/` guides survive into the target only in substituted form.
 
 ## 5. TOOL PROJECTION (core + governance-extras + catalogue-curation)
 After all content writes, project the three required packs from this
@@ -80,14 +101,22 @@ as catalogue packs in the fork's own `packs/`), so the fork can self-curate
 without inheriting the upstream pack catalogue. The SUBSTITUTE pass applies to
 projected files before they are written.
 
-## 6. VERIFY (fail-closed, mode-aware) — hard-fails the export
-- Grep the target for surviving upstream **URL, email, slug, owner** (all four
-  substitute anchors) — **case-insensitive**, over **text files** (binary out of
-  scope, declared), matching declared **literals only** after a normalization
-  pass (not case-folded-split / encoded / base64 derived forms; that blind spot
-  is stated, so the guarantee is honest).
+## 6. VERIFY (fail-closed, two checks) — hard-fails the export
+**Identity check** (`export_verify.verify()`): grep the target for surviving upstream
+**URL, email, slug, owner** (all four substitute anchors) — **case-insensitive**, over
+**text files** (binary out of scope, declared), matching declared **literals only** after
+a normalization pass (not case-folded-split / encoded / base64 derived forms; that blind
+spot is stated, so the guarantee is honest).
   - `white-label`: **zero** hits anywhere.
   - `attributed`: hits allowed **only** inside the declared attribution surface.
+
+**CI boundary check** (`export_verify.check_ci_boundary()`): scan the target for CI
+implementation files — `.github/workflows/` content, known root-level CI config files
+(`.gitlab-ci.yml`, `Jenkinsfile`, `.travis.yml`), files under unknown dot-directories,
+and GitHub Actions badge URLs in any text file. Any violation means CI workflow
+implementation reached the export target and must be removed before re-running.
+
+Both checks hard-fail the export on a non-empty result (omit-not-leak). Also fail on:
 - No dangling symlink (`CLAUDE.md` is a real file).
 - Target `install-defaults.toml` `source` is blank/absent.
 - All writes went through `agentbundle.safety.write_jailed`; the target path was

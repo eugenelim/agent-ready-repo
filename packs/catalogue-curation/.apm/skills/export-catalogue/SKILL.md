@@ -39,9 +39,16 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
    while excluding: catalogue-governance (`docs/rfc/`, `docs/adr/`,
    `docs/specs/`, `docs/backlog.md`), the running repo's own
    `CHARTER`/`CONVENTIONS`/`**/AGENTS.local.md` (root and all subdirectories),
-   `**/README-pypi.md`, the internal doc site, and
-   build/scan/release tooling. Strip runs on the running-repo content copy only;
-   seeds (step 4) are planted fresh afterward and are not affected.
+   `**/README-pypi.md`, the internal doc site, and build/scan/release tooling.
+   **CI workflow and pipeline implementation is also excluded from the export
+   surface.** The export surface is bounded to `guides/`, projected tools, and
+   seeded scaffold — CI implementation files are outside this surface; no
+   credentials are transported. Excluded CI artifacts include: `.github/workflows/`
+   (GitHub Actions; note `.github/skills|agents|hooks|instructions/` are legitimate
+   Copilot adapter paths and travel when projected), `.gitlab-ci.yml`, `Jenkinsfile`,
+   `.travis.yml`, provider-specific CI trigger config, CI-specific helper scripts
+   not part of the pack, and workflow status badges. Strip runs on the running-repo
+   content copy only; seeds (step 4) are planted fresh afterward and are not affected.
 4. **Plant seeds.** For each projected tool (core, governance-extras) and any
    pack in the include-set with a `seeds/` directory, copy the seed tree to the
    target repo root. Establishes the scaffold the skills navigate: `AGENTS.md`,
@@ -58,9 +65,13 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
    anchors all future `assimilate-repo` runs from within the fork.
 6. **Stage transportable guides.** For each pack in the include-set, copy
    `guides/<pack-name>/` into the target. Always include
-   `guides/_shared/`. Guides for packs outside the include-set are
-   omitted (omit-not-leak). The four-anchor substitution pass in step 7 covers
-   any identity references inside staged guide content.
+   `guides/_shared/` — this includes `guides/_shared/reference/catalogue-ci-contract.md`,
+   the portable CI contract the target organization receives. The contract is the
+   adopter's CI reference: the target chooses its own CI system; no CI workflow is
+   generated or copied; no credentials are transported; no CI provider is assumed.
+   Guides for packs outside the include-set are omitted (omit-not-leak). The
+   four-anchor substitution pass in step 7 covers any identity references inside
+   staged guide content.
 7. **Substitute** the four identity anchors from *this* catalogue's own sources
    (URL + slug + owner from `.adapt-discovery.toml`; email from `pack.toml`
    maintainer + git) — so the tooling carries no hardcoded upstream literal. URL
@@ -84,14 +95,20 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
    own catalogue — so the fork can self-curate from day one without inheriting
    agent-ready-repo's pack catalogue. Apply the four-anchor substitution to any
    projected file that still carries upstream identity.
-10. **Verify, fail-closed.** Grep the target for surviving upstream **URL, email,
-    slug, and owner** (the same four anchors, so verify and substitute agree),
-    **case-insensitively**, over **text files** (binary out of scope, declared),
-    matching declared **literals only** after a normalization pass. In
-    `white-label` mode: zero hits anywhere. In `attributed` mode: hits only inside
-    the declared attribution surface. Also fail on a dangling `CLAUDE.md` symlink
-    or a non-blank target `install-defaults.toml` source. Any hit **hard-fails the
-    export** — omit-not-leak.
+10. **Verify, fail-closed.** Run two checks; either failing hard-fails the export
+    (omit-not-leak):
+    - **Identity check** (`export_verify.verify()`): grep the target for surviving
+      upstream **URL, email, slug, and owner** (the same four anchors), case-insensitively,
+      over text files (binary out of scope, declared), matching declared literals only
+      after a normalization pass. In `white-label` mode: zero hits anywhere. In
+      `attributed` mode: hits only inside the declared attribution surface.
+    - **CI boundary check** (`export_verify.check_ci_boundary()`): scan the target
+      for CI implementation files — `.github/workflows/` content, known root-level CI
+      config files, files under unknown dot-directories, and GitHub Actions badge URLs
+      in text files. Any hit means CI workflow implementation reached the export
+      target and must be removed before re-running.
+    Also fail on a dangling `CLAUDE.md` symlink or a non-blank target
+    `install-defaults.toml` source.
 
 ## Never do
 

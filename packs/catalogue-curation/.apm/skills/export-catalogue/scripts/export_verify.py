@@ -20,6 +20,7 @@ Pure-stdlib; reads the target tree, writes nothing.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 # Extensions we treat as binary and skip (out-of-scope, declared).
@@ -51,6 +52,75 @@ def _in_attribution(rel: str, allowed: set[str]) -> bool:
     """Exact-file match OR under a listed directory prefix — so an operator can
     list either `legal/NOTICE` or `legal/` and have it work."""
     return any(rel == a or rel.startswith(a.rstrip("/") + "/") for a in allowed)
+
+
+# GitHub Actions badge URL pattern (owner+repo+/actions/workflows/ form).
+_BADGE_RE = re.compile(
+    r"https?://[^)\s]*github[^)\s]*/[^)\s]+/[^)\s]+/actions/workflows/",
+    re.IGNORECASE,
+)
+
+# Dot-directories legitimately projected by adapters into export targets.
+# .github is included: .github/workflows/ is caught by check_ci_boundary's
+# Check 1 (path-parts), and .github/skills|agents|hooks|instructions/ are
+# legitimate Copilot adapter projection paths.
+_ALLOWED_DOT_DIRS = frozenset({".claude", ".agents", ".github"})
+
+# Known root-level CI config file names (not directories).
+_CI_ROOT_FILES = frozenset({".gitlab-ci.yml", ".travis.yml", "Jenkinsfile"})
+
+
+def check_ci_boundary(target: Path) -> list[Violation]:
+    """Check for CI implementation files in the export output.
+
+    Returns Violations for:
+    - Files under .github/workflows/ (GitHub Actions; path-parts, cross-platform)
+    - Root-level known CI config files (.gitlab-ci.yml, Jenkinsfile, .travis.yml)
+    - Files under a dot-directory not in _ALLOWED_DOT_DIRS (structural
+      unknown-provider detection; len(parts) > 1 guard skips root dotfiles)
+    - Files containing a GitHub Actions badge URL (all text files)
+
+    Does NOT flag .github/skills/, .github/agents/, .github/hooks/, or
+    .github/instructions/ — legitimate Copilot adapter projection paths.
+    """
+    target = Path(target)
+    violations: list[Violation] = []
+    for p in sorted(target.rglob("*")):
+        if not p.is_file() or _skip_by_ext(p):
+            continue
+        rel = str(p.relative_to(target))
+        parts = Path(rel).parts
+        root = parts[0] if parts else ""
+
+        # Check 1: .github/workflows/ by path parts — cross-platform.
+        # str(p.relative_to(target)) is \-separated on Windows; parts[] is safe.
+        if len(parts) >= 2 and parts[0] == ".github" and parts[1] == "workflows":
+            violations.append(Violation(rel, "ci_path", 0))
+            continue
+
+        # Check 2: known root-level CI config files.
+        if root in _CI_ROOT_FILES:
+            violations.append(Violation(rel, "ci_path", 0))
+            continue
+
+        # Check 3: files *under* dot-directories not in the projected-tool allowlist.
+        # len(parts) > 1: root-level dotfiles (.gitignore, .editorconfig) are not
+        # CI suspects — only files inside an unknown dot-directory are.
+        if len(parts) > 1 and root.startswith(".") and root not in _ALLOWED_DOT_DIRS:
+            violations.append(Violation(rel, "ci_path", 0))
+            continue
+
+        # Check 4: GitHub Actions badge URL in any text file.
+        try:
+            content = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        m = _BADGE_RE.search(content)
+        if m:
+            lineno = content[: m.start()].count("\n") + 1
+            violations.append(Violation(rel, "ci_badge_url", lineno))
+
+    return violations
 
 
 def verify(
