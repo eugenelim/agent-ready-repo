@@ -583,6 +583,8 @@ def lint_skill_spec(root: Path, pack: str | None = None) -> list[Diagnostic]:
         if packs_root.exists():
             for p in sorted(packs_root.glob("*/.apm/skills")):
                 pack_name = p.parent.parent.name
+                if pack_name.startswith("_"):
+                    continue
                 walk_roots.append((p, pack_name))
 
     # ── Walk skills ───────────────────────────────────────────────────────
@@ -626,6 +628,8 @@ def lint_skill_spec(root: Path, pack: str | None = None) -> list[Diagnostic]:
         for pack_toml in sorted(packs_root.glob("*/pack.toml")):
             pack_dir = pack_toml.parent
             pn = pack_dir.name
+            if pn.startswith("_"):
+                continue
             try:
                 manifest = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
             except (OSError, tomllib.TOMLDecodeError) as exc:

@@ -89,7 +89,10 @@ def _discover_pack_dirs(catalogue_dir: Path) -> list[Path]:
     """
     packs_subdir = catalogue_dir / "packs"
     if packs_subdir.is_dir():
-        candidates = [p for p in packs_subdir.iterdir() if p.is_dir()]
+        candidates = [
+            p for p in packs_subdir.iterdir()
+            if p.is_dir() and not p.name.startswith("_")
+        ]
         found = [p for p in candidates if (p / "pack.toml").exists()]
         if found:
             return sorted(found, key=lambda p: p.name)
@@ -98,7 +101,7 @@ def _discover_pack_dirs(catalogue_dir: Path) -> list[Path]:
     if catalogue_dir.is_dir():
         fallback = [
             p for p in catalogue_dir.iterdir()
-            if p.is_dir() and (p / "pack.toml").exists()
+            if p.is_dir() and not p.name.startswith("_") and (p / "pack.toml").exists()
         ]
         return sorted(fallback, key=lambda p: p.name)
 

@@ -127,25 +127,40 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
             d = root.joinpath(*dir_parts)
             if not d.is_dir() or d.is_symlink():
                 continue
+            is_catalogue_root = dir_parts[0] in ("packs", "profiles")
             for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
                 dp = Path(dirpath)
                 for fname in filenames:
                     p = dp / fname
                     if p.is_file() and not p.is_symlink():
                         collected.append(p)
-                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+                if is_catalogue_root and dp == d:
+                    dirnames[:] = [
+                        dn for dn in dirnames
+                        if not dn.startswith("_") and not (dp / dn).is_symlink()
+                    ]
+                else:
+                    dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
     else:
         for dir_parts in _DEFAULT_INCLUDE_DIRS:
             d = root.joinpath(*dir_parts)
             if not d.is_dir() or d.is_symlink():
                 continue
+            is_catalogue_root = dir_parts[0] in ("packs", "profiles")
             for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
                 dp = Path(dirpath)
                 for fname in filenames:
                     p = dp / fname
                     if p.is_file() and not p.is_symlink():
                         collected.append(p)
-                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+                # At packs/ and profiles/ root level, exclude reserved authoring dirs.
+                if is_catalogue_root and dp == d:
+                    dirnames[:] = [
+                        dn for dn in dirnames
+                        if not dn.startswith("_") and not (dp / dn).is_symlink()
+                    ]
+                else:
+                    dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
 
     for fname in _DEFAULT_INCLUDE_ROOT_FILES:
         p = root / fname
@@ -242,6 +257,8 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
     for pack_dir in sorted(packs_dir.iterdir()):
         if not pack_dir.is_dir() or pack_dir.is_symlink():
             continue
+        if pack_dir.name.startswith("_"):
+            continue
         pack_toml_path = pack_dir / "pack.toml"
         try:
             pack_data = load_pack_toml(pack_toml_path)
@@ -258,6 +275,9 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
     if profiles_dir.is_dir() and not profiles_dir.is_symlink():
         for toml_file in sorted(profiles_dir.rglob("*.toml")):
             if toml_file.is_symlink():
+                continue
+            rel_parts = toml_file.relative_to(profiles_dir).parts
+            if rel_parts and rel_parts[0].startswith("_"):
                 continue
             try:
                 tomllib.loads(toml_file.read_text(encoding="utf-8"))

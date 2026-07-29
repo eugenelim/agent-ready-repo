@@ -1,0 +1,5 @@
+scope = "repo"
+description = "An example profile composing example-pack. Replace with your profile's description."
+
+[[packs]]
+pack = "example-pack"

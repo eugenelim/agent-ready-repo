@@ -362,6 +362,8 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
         return []
     packs: list[Pack] = []
     for entry in sorted(packs_dir.iterdir()):
+        if entry.name.startswith("_"):
+            continue  # reserved authoring asset — not catalogue payload
         if entry.is_dir() and (entry / "pack.toml").exists():
             validate_pack_metadata(entry / "pack.toml")
             packs.append(Pack(name=entry.name, path=entry))

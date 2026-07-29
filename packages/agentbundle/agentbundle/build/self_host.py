@@ -493,6 +493,8 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
     seen: dict[Path, Path] = {}
     allow = set(SELF_HOST_PACKS)
     for pack_path in sorted(packs_dir.iterdir()):
+        if pack_path.name.startswith("_"):
+            continue  # reserved authoring asset
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
             continue
         if pack_path.name not in allow:
@@ -575,6 +577,8 @@ def _aggregate_marketplace(
     `.adapt-discovery.toml` so adopters get their own."""
     entries: list[dict] = []
     for pack_path in sorted(packs_dir.iterdir()):
+        if pack_path.name.startswith("_"):
+            continue  # reserved authoring asset
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
             continue
         manifest = pack_path / ".claude-plugin" / "plugin.json"
@@ -1321,6 +1325,7 @@ def run_build_check_drift_gates(
             pack_dir
             for pack_dir in sorted(packs_dir.iterdir())
             if pack_dir.is_dir()
+            and not pack_dir.name.startswith("_")
             and (pack_dir / "pack.toml").exists()
             and (pack_dir / ".claude-plugin" / "plugin.json").exists()
         ]
@@ -1398,7 +1403,9 @@ def run_build_check_drift_gates(
         apm_packs = [
             pack_dir
             for pack_dir in sorted(packs_dir.iterdir())
-            if pack_dir.is_dir() and (pack_dir / "pack.toml").exists()
+            if pack_dir.is_dir()
+            and not pack_dir.name.startswith("_")
+            and (pack_dir / "pack.toml").exists()
         ]
         if apm_packs and not dist_apm.is_dir():
             failures.append(
@@ -1431,7 +1438,9 @@ def run_build_check_drift_gates(
     # ------------------------------------------------------------------
     if packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
-            if not pack_dir.is_dir() or not (pack_dir / "pack.toml").exists():
+            if not pack_dir.is_dir() or pack_dir.name.startswith("_"):
+                continue
+            if not (pack_dir / "pack.toml").exists():
                 continue
             plugin_json_path = pack_dir / ".claude-plugin" / "plugin.json"
             if not plugin_json_path.exists():

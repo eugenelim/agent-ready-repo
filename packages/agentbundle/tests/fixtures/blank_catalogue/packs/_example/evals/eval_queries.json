@@ -1,0 +1,42 @@
+[
+  {
+    "query": "run example",
+    "skill": "example-skill",
+    "should_trigger": true
+  },
+  {
+    "query": "show example skill output",
+    "skill": "example-skill",
+    "should_trigger": true
+  },
+  {
+    "query": "what does example-skill do",
+    "skill": "example-skill",
+    "should_trigger": true
+  },
+  {
+    "query": "demonstrate the example",
+    "skill": "example-skill",
+    "should_trigger": true
+  },
+  {
+    "query": "run the example skill now",
+    "skill": "example-skill",
+    "should_trigger": true
+  },
+  {
+    "query": "give me a demo",
+    "skill": "example-skill",
+    "should_trigger": false
+  },
+  {
+    "query": "show me a test run of architect-design",
+    "skill": "example-skill",
+    "should_trigger": false
+  },
+  {
+    "query": "how do I install a pack",
+    "skill": "example-skill",
+    "should_trigger": false
+  }
+]

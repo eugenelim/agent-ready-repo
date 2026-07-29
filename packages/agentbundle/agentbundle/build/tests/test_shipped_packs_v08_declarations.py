@@ -73,6 +73,8 @@ class TestShippedPacksDeclareV08(unittest.TestCase):
         explicitly so this test surfaces the new declaration."""
         v08_seen: list[str] = []
         for pack_dir in sorted(PACKS_DIR.iterdir()):
+            if pack_dir.name.startswith("_"):
+                continue
             pack_toml = pack_dir / "pack.toml"
             if not pack_toml.exists():
                 continue

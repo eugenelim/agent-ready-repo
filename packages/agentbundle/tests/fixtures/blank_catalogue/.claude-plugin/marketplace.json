@@ -1,0 +1,8 @@
+{
+  "description": "Blank fixture catalogue with zero packs and zero profiles.",
+  "name": "blank-catalogue",
+  "owner": {
+    "name": "example-maintainer"
+  },
+  "plugins": []
+}

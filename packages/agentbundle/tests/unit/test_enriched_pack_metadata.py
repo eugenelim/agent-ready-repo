@@ -25,7 +25,7 @@ PACKS_DIR = REPO_ROOT / "packs"
 def _all_packs() -> list[str]:
     return sorted(
         p.name for p in PACKS_DIR.iterdir()
-        if p.is_dir() and (p / "pack.toml").exists()
+        if p.is_dir() and not p.name.startswith("_") and (p / "pack.toml").exists()
     )
 
 
