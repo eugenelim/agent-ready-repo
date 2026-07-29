@@ -60,6 +60,7 @@ Bringing external work into the catalogue — safely, and shaped to convention.
 ### Reference
 
 - [The ledger and the engine guard](reference/ledger-and-guard.md) — where assimilation state lives, and what the guard blocks
+- [Catalogue CI contract](../_shared/reference/catalogue-ci-contract.md) — publication ordering, exit codes, and responsibility boundaries for CI-driven catalogue releases
 
 ### Explanation
 

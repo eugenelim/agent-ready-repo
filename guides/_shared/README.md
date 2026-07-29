@@ -12,6 +12,7 @@ Guides about the catalogue itself — installing it, upgrading it, seeing what e
 - [Author a skill](how-to/author-a-skill.md) — write a new skill for any pack, to the catalogue's standards.
 - [Author a browser-automation skill](how-to/browser-automation-skill.md) — persistent-profile auth, bearer token interception, probe files, and `ui-patterns.md` maintenance for skills that drive a browser.
 - [Choose a tracker integration](how-to/choose-a-tracker-integration.md) — pick the right brief-intake skill for your tracker (GitHub, Linear, Jira, Jira Align, or none).
+- [Create an external catalogue](how-to/create-external-catalogue.md) — scaffold a catalogue outside this repository, validate it, and publish it via CI.
 
 ## Reference
 
