@@ -1183,7 +1183,7 @@ queue   = [
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-006"]
 name      = "Catalogue CI Contract"
-status    = "active"
+status    = "complete"
 milestone = "M1 · Provider-Neutral CI Contract"
 
 ["ini-006".shaping_queue]
@@ -1194,6 +1194,7 @@ backlog = []
 active  = []
 shipped = [
   "spec/catalogue-ci-contract-guide",
+  "spec/catalogue-ci-export-boundary",
   "spec/catalogue-ci-documentation",
 ]
 queue   = [
@@ -1239,5 +1240,6 @@ queue   = [
   #   host secret names don't escape, policy does not rely solely on known provider
   #   filenames, white-label behavior remains fail-closed.
   # Done: export-boundary tests pass; white-label behavior verified fail-closed.
-  {path = "spec/catalogue-ci-export-boundary", needs = "work:spec/catalogue-ci-contract-guide"},
+  # spec/catalogue-ci-export-boundary — shipped (moved to shipped above)
+  # spec/catalogue-ci-documentation — shipped (moved to shipped above)
 ]
