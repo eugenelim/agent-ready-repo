@@ -113,8 +113,8 @@ class BuildCheckChainTest(unittest.TestCase):
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + 7 script steps = 8 total subprocess calls.
-        self.assertEqual(len(order), 8)
+        # 1 module step (catalogue build) + 8 script steps = 9 total subprocess calls.
+        self.assertEqual(len(order), 9)
 
     def test_first_step_is_catalogue_build(self):
         """The first step must invoke agentbundle catalogue build."""
@@ -190,6 +190,7 @@ class BuildCheckChainTest(unittest.TestCase):
             spawned,
             [
                 "tools/catalogue/pre_pr_catalogue.py",
+                "tools/catalogue/check_contract_parity.py",
                 ".claude/skills/work-loop/scripts/test-lint-spec-status.py",
                 ".claude/skills/work-loop/scripts/lint-spec-status.py",
                 ".claude/skills/receive-brief/scripts/test-lint-brief-coverage.py",
