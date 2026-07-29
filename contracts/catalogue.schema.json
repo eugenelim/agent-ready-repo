@@ -54,10 +54,22 @@
           "type": "string",
           "description": "Minimum agentbundle version required to use this catalogue."
         },
+        "owner": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "description": "Display/ownership metadata — not a registry publisher identity.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Display name of the catalogue owner (team, org, or individual)."
+            }
+          }
+        },
         "paths": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["packs", "profiles", "contracts", "marketplace", "build-output"],
+          "required": ["packs", "profiles", "marketplace", "build-output"],
           "properties": {
             "packs": {
               "type": "string",
@@ -69,7 +81,7 @@
             },
             "contracts": {
               "type": "string",
-              "description": "Relative path to the contracts directory."
+              "description": "Relative path to the contracts directory. Optional — when absent AgentBundle uses its bundled schemas."
             },
             "marketplace": {
               "type": "string",
@@ -133,15 +145,13 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "install-defaults-output",
             "preferred-adapter",
-            "default-source",
             "artifactory"
           ],
           "properties": {
             "install-defaults-output": {
               "type": "string",
-              "description": "Relative path for generated install-defaults.toml."
+              "description": "Relative path for generated install-defaults.toml. Optional — absent for external catalogues that do not vendor AgentBundle."
             },
             "preferred-adapter": {
               "type": "string",
@@ -149,7 +159,7 @@
             },
             "default-source": {
               "type": "string",
-              "description": "Default catalogue source URI (git+https:// or local path)."
+              "description": "Default catalogue source URI (git+https:// or local path). Optional — absent for newly initialized independent catalogues."
             },
             "artifactory": {
               "type": "object",

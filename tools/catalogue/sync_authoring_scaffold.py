@@ -11,7 +11,8 @@ Usage:
 The canonical source is always the repo root.  The _data/ copy is a projection
 that must be kept byte-identical to the source.  Run --write after any change
 to packs/README.md, packs/AGENTS.md, packs/_example/**, profiles/README.md,
-profiles/AGENTS.md, or profiles/_example/**.
+profiles/AGENTS.md, profiles/_example/**, or
+guides/_shared/reference/catalogue-ci-contract.md.
 
 `make build-self` and `make build-check` invoke this with --check to gate CI.
 """
@@ -56,6 +57,10 @@ _SYNC_PAIRS: list[tuple[Path, str]] = [
     (_REPO_ROOT / "profiles" / "AGENTS.md", "profiles/AGENTS.md"),
     (_REPO_ROOT / "profiles" / "_example" / "profile.toml", "profiles/_example/profile.toml"),
     (_REPO_ROOT / "profiles" / "_example" / "README.md", "profiles/_example/README.md"),
+    (
+        _REPO_ROOT / "guides" / "_shared" / "reference" / "catalogue-ci-contract.md",
+        "guides/_shared/reference/catalogue-ci-contract.md",
+    ),
 ]
 
 

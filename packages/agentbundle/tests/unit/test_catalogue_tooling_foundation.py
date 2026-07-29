@@ -523,11 +523,11 @@ def _run_agentbundle(*args: str) -> tuple[int, str, str]:
 
 
 def test_cli_catalogue_group_help():
-    """AC9: agentbundle catalogue --help exits non-zero and lists subcommands."""
+    """AC9: agentbundle catalogue --help exits 0 and lists subcommands (real impl)."""
     rc, stdout, stderr = _run_agentbundle("catalogue", "--help")
     combined = stdout + stderr
-    assert rc != 0, f"Expected non-zero exit for catalogue stub, got {rc}"
-    for sub in ("lint", "verify", "build", "self-host", "package", "sync-defaults"):
+    assert rc == 0, f"Expected zero exit for catalogue --help, got {rc}: {combined}"
+    for sub in ("lint", "verify", "build", "self-host", "package", "sync-defaults", "init"):
         assert sub in combined, f"'{sub}' not found in catalogue --help output"
 
 

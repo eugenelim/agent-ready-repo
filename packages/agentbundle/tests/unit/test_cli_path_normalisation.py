@@ -85,6 +85,7 @@ def test_allow_list_pins_path_bearing_attributes():
             "catalogue",
             "values_from",
             "path",
+            "target",  # catalogue init target directory
         }
     ) == _PATH_BEARING_ATTRS
 

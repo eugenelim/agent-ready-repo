@@ -14,8 +14,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+# Windows-reserved basenames (case-insensitive).
+_WINDOWS_RESERVED_NAMES: frozenset[str] = frozenset({
+    "con", "prn", "aux", "nul",
+    "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+    "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+})
 
 
 def scaffold_root() -> Path:
@@ -131,3 +139,105 @@ def materialize_to(dest: Path) -> None:
         dst = dest / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(str(src), str(dst))
+
+
+# ---------------------------------------------------------------------------
+# Extended API for catalogue init
+# ---------------------------------------------------------------------------
+
+def validate_manifest_paths(manifest: dict) -> list[str]:
+    """Validate every path in *manifest* for safety.
+
+    Returns a list of error strings (empty when all paths are safe).
+    Checks: no absolute paths, no ``..`` traversal, no duplicates,
+    no case-insensitive collisions, no Windows-reserved basenames.
+    """
+    errors: list[str] = []
+    files: dict = manifest.get("files", {})
+    seen_lower: dict[str, str] = {}
+
+    for rel in files:
+        # Must be a non-empty string
+        if not rel or not isinstance(rel, str):
+            errors.append(f"Invalid path in manifest: {rel!r}")
+            continue
+
+        # No absolute paths
+        if rel.startswith("/") or (len(rel) > 1 and rel[1] == ":"):
+            errors.append(f"Absolute path in manifest: {rel!r}")
+            continue
+
+        # No .. traversal
+        parts = PurePosixPath(rel).parts
+        if ".." in parts:
+            errors.append(f"Path traversal in manifest: {rel!r}")
+            continue
+
+        # No Windows-reserved basenames in any component
+        for part in parts:
+            stem = part.rsplit(".", 1)[0].lower() if "." in part else part.lower()
+            if stem in _WINDOWS_RESERVED_NAMES:
+                errors.append(f"Windows-reserved name in manifest path {rel!r}: {part!r}")
+
+        # Case-insensitive duplicate detection
+        lower = rel.lower()
+        if lower in seen_lower:
+            errors.append(
+                f"Case-insensitive collision in manifest: {rel!r} vs {seen_lower[lower]!r}"
+            )
+        else:
+            seen_lower[lower] = rel
+
+    return errors
+
+
+def list_files_with_hashes() -> dict[str, str]:
+    """Return ``{relative_path: sha256_hex}`` from the manifest, sorted by path."""
+    manifest = load_manifest()
+    files = manifest.get("files", {})
+    return dict(sorted(files.items()))
+
+
+def verify_hashes_detailed() -> dict[str, str | None]:
+    """Return per-file verification results.
+
+    Values: ``None`` = verified OK, ``str`` = error message (missing or hash mismatch).
+    """
+    manifest = load_manifest()
+    root = scaffold_root()
+    results: dict[str, str | None] = {}
+    for rel, expected in manifest.get("files", {}).items():
+        full = root / rel
+        if not full.exists():
+            results[rel] = f"missing: {full}"
+        else:
+            actual = hashlib.sha256(full.read_bytes()).hexdigest()
+            if actual != expected:
+                results[rel] = f"hash mismatch: expected {expected}, got {actual}"
+            else:
+                results[rel] = None
+    return results
+
+
+def find_unexpected_files() -> list[str]:
+    """Return relative paths of files present on disk but absent from the manifest.
+
+    Only inspects files under ``scaffold_root()``; does not descend into
+    subdirectories not reachable from a manifest entry.
+    """
+    root = scaffold_root()
+    manifest = load_manifest()
+    known = set(manifest.get("files", {}).keys())
+    # Do not include manifest.json itself
+    known.add("manifest.json")
+    unexpected: list[str] = []
+    for dirpath, _dirs, filenames in os.walk(root):
+        for fname in filenames:
+            full = Path(dirpath) / fname
+            try:
+                rel = str(full.relative_to(root)).replace(os.sep, "/")
+            except ValueError:
+                continue
+            if rel not in known:
+                unexpected.append(rel)
+    return sorted(unexpected)

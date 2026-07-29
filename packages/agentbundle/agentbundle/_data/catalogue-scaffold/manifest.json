@@ -1,5 +1,6 @@
 {
   "files": {
+    "guides/_shared/reference/catalogue-ci-contract.md": "fae793ab47989b6dd3c731afcb0b4cda21c7d08bbe7fa40fca6d3abb3d158141",
     "packs/AGENTS.md": "3e44c630187d616e5c90ba9bd756243087a2169a731d82c69984529bf0abb906",
     "packs/README.md": "21aa30db8edeb71d755c94b7360c48f1530f4194499d8069f426874978fac96d",
     "packs/_example/.apm/skills/example-skill/SKILL.md": "33be8cbf4b2c014a5a63e788b7d0b350ad8061c6c4b2579369a3e984135bf9f1",

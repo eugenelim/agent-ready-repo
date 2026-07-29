@@ -8,6 +8,40 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.24.0]
+
+### Added
+
+- **`agentbundle catalogue init [TARGET]`**: new subcommand that scaffolds a
+  plain AgentBundle catalogue directory. Writes `catalogue.toml`, an empty
+  `.claude-plugin/marketplace.json`, the full pack/profile authoring scaffold
+  (README, AGENTS, `_example/` templates), and the CI contract reference guide.
+  Additive and idempotent — never overwrites existing files. Dry-run mode
+  (`--dry-run`) shows the plan without touching the filesystem. All flags:
+  `--name`, `--display-name`, `--description`, `--owner-name`,
+  `--preferred-adapter`, `--dry-run`, `--format`.
+  (`cli.py`, `commands/catalogue_init.py`, `catalogue_tooling/initialise.py`,
+  `catalogue_tooling/toml_emit.py`)
+- **`catalogue.toml` schema v1 relaxations**: `catalogue.paths.contracts`,
+  `distribution.agentbundle.install-defaults-output`, and
+  `distribution.agentbundle.default-source` are now optional. Catalogues
+  without these fields are valid. Existing catalogues that have them are
+  unchanged. (`_data/catalogue.schema.json`, `catalogue_tooling/config.py`)
+- **`[catalogue.owner]` table**: new optional TOML table with a required `name`
+  field. Loaded into `CatalogueConfig.owner` as `CatalogueOwner`. Absent when
+  the key is not in `catalogue.toml`. (`catalogue_tooling/config.py`,
+  `catalogue_tooling/results.py`)
+- **Scaffold path-safety API** (`scaffold.py`): `validate_manifest_paths()`,
+  `list_files_with_hashes()`, `verify_hashes_detailed()`, `find_unexpected_files()`
+  — extended public API for the init engine.
+- **`sync-defaults` no-op guard**: when
+  `distribution.agentbundle.install-defaults-output` is absent, `check_defaults()`
+  and `write_defaults()` return `ok=True` with an INFO diagnostic instead of
+  failing. (`catalogue_tooling/defaults.py`)
+- **Catalogue CI contract guide in scaffold**: `guides/_shared/reference/catalogue-ci-contract.md`
+  is now included in the bundled scaffold and copied by `catalogue init`.
+- **How-to guide**: `guides/_shared/how-to/create-a-catalogue.md`.
+
 ### Changed
 
 - **`_build_archive` → `_write_archive`** (`catalogue_tooling/package.py`): the archive builder
