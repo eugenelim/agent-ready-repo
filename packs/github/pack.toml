@@ -1,6 +1,6 @@
 [pack]
 name = "github"
-version = "0.1.2"
+version = "0.1.3"
 description = "GitHub integration: `github-brief-intake` — turn a GitHub Milestone into a product brief and hand off to `receive-brief`."
 readme = "README.md"
 display_name = "GitHub"
@@ -30,13 +30,13 @@ documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/
 name = "eugenelim"
 email = "eugenelim@users.noreply.github.com"
 
-# Level B: mixed audience (developers + PMs); requires GitHub token for first run.
+# Level B: mixed audience (developers + PMs); requires gh CLI installed + authenticated.
 [pack.first-value]
 audience-posture = "mixed"
 surfaces         = ["claude-code"]
-prerequisites    = ["GitHub token with `repo` scope — configure via the credential-brokers pack"]
+prerequisites    = ["Install `gh` CLI (https://cli.github.com); for private repos: `gh auth login`"]
 verification     = "Run `github-brief-intake` on a GitHub Milestone and confirm a product brief draft is returned without an error."
-recovery         = "If authentication fails, reconfigure your GitHub token via the credential-brokers pack; ensure the token has `repo` scope and access to the target repository."
+recovery         = "If the `gh` CLI is not installed, install it from https://cli.github.com and run `gh auth login` before retrying."
 level-b          = true
 starter-task     = "Turn a GitHub Milestone into a product brief"
 starter-prompt   = "Use github-brief-intake to convert my most recent open GitHub milestone into a product brief."
