@@ -16,3 +16,38 @@ for dirty trees). Never edit it directly. A pack version bump requires both `pac
 
 `publish-claude-plugins.yml` is the upstream publish workflow; it runs only from `main` on
 a workflow-dispatch or tag event. Forks replace this with their own publish mechanism.
+
+## Design against the adopter's projected state
+
+Validate pack features against `core/.apm/skills/*/assets/` (template-shaped), not this repo's
+hand-authored `docs/specs/`. This repo is the self-host adopter — its internal corpus is a self-host
+edge case, not a requirement. Coverage that matters: the per-adapter projected layout and the installed
+runtime surface, not checkout-local state.
+
+## Adopter-facing materials ship; repo-specific tooling stays local-only
+
+`.apm/` and `seeds/` must reference only things that install into an adopter's tree. The enforcement
+gate (`make build-check`) runs in two tiers: portable checks via `agentbundle catalogue verify/lint`;
+repo-specific policy gates in `tools/catalogue/pre_pr_catalogue.py` (delegates to `tools/hooks/pre-pr.py`).
+Never reference `tools/lint-*`, `make build-self`, `docs/specs/`, or `.github/workflows/` from
+shipped content — those paths don't exist in an adopter's repo.
+
+Adding, removing, or renaming a `python -m agentbundle` subcommand is an adopter-surface change with
+a release implication — surface it before building. Governance-citation rules for `.apm/**`:
+[`AGENTS.md § Shipped pack content`](AGENTS.md#shipped-pack-content-carries-no-internal-governance-citations).
+
+## Self-hosting drift — source vs. projection
+
+Editing projected files directly trips `make build-check`. Workflow: [`AGENTS.md § Self-hosting projection`](AGENTS.md#self-hosting-projection).
+
+**Always-projected — edit the source:**
+
+| Target (do not edit) | Source |
+|----------------------|--------|
+| `docs/CONVENTIONS.md` | `core/seeds/docs/CONVENTIONS.md` |
+| All adapter skill projections | `<pack>/.apm/skills/<name>/**` |
+| All adapter agent/command/hook projections | `<pack>/.apm/{agents,commands,hooks}/...` |
+
+**Manual (edit directly):** `AGENTS.md`, `CLAUDE.md` (adopter-owned; `build-self` won't regenerate),
+`docs/CHARTER.md`, `docs/architecture/overview.md`, `docs/specs/README.md`,
+`docs/knowledge/patterns.jsonl`, `docs/rfc/README.md`, `docs/adr/README.md`, `docs/guides/**/README.md`.
