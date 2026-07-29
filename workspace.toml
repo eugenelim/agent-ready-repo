@@ -123,6 +123,7 @@ shipped = [
   "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
   "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
   "spec/new-guide-conversation-first",         # user-guide-diataxis 0.2.0: conversation-first doctrine (spec.md=Shipped; moved from queue)
+  "spec/site-ui-primitives",                  # Phase 2C: 16 reusable UI primitives — spec confirmed Shipped; moved from queue 2026-07-29
 ]
 queue   = [
   # ==================================================================
@@ -238,7 +239,6 @@ queue   = [
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
   # ---- Independent skill improvements ----
   # spec/new-guide-conversation-first — moved to shipped above (spec.md=Shipped; superseded by product-documentation Phase 1)
-  "spec/site-ui-primitives",                            # Phase 2C: 16 reusable documentation/catalogue UI primitives across web/ + docs-site/; semantic state tokens; WCAG 2.2 AA; Playwright baselines
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -556,6 +556,16 @@ backlog = []
 open = [
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
+
+  # profiles/AGENTS.md has no normative pointer to contracts/profile.schema.json.
+  # Wave 1 (catalogue-wave1-contract-convergence) added the pointer to packs/AGENTS.md
+  # and packs/README.md. This item mirrors that for profiles/.
+  # Fix: add "The machine source of truth for profile TOML format is
+  #   `contracts/profile.schema.json`." to profiles/AGENTS.md § schema map; verify
+  #   profiles/AGENTS.md remains ≤ 150 lines.
+  # File: profiles/AGENTS.md.
+  # Unblocks when: someone wants to close the profiles/ gap in a focused quick-win PR.
+  {slug = "profiles-agents-normative-pointer", source = "spec/catalogue-wave1-contract-convergence"},
 
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
@@ -1244,4 +1254,113 @@ queue   = [
   # Done: export-boundary tests pass; white-label behavior verified fail-closed.
   # spec/catalogue-ci-export-boundary — shipped (moved to shipped above)
   # spec/catalogue-ci-documentation — shipped (moved to shipped above)
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ini-007 · Catalogue Contracts, Composition, Semantics, and Discovery
+#
+# Create one converged catalogue information model and one clear discovery
+# system for five audiences: enterprise catalogue maintainers (including
+# air-gapped), marketing evaluators, platform engineers, repository engineers,
+# and coding agents. Introduces the optional [[pack.integrations]] convention,
+# a portable authoring-standards hub, a bundled-contract inspection surface,
+# a deterministic neutral catalogue index, and audience-specific information
+# architecture across the docs site, marketing site, and repository README.
+#
+# Governing RFC: RFC-0076 (to be authored and accepted before schema changes).
+# Source brief: .context/attachments/HZQyuH/pasted_text_2026-07-29_13-27-49.txt
+#
+# Non-goals: hosted registry, publisher namespaces, exact version selectors,
+# multi-version dependency solving, subjective trust scores, automatic
+# integration dispatch, executable `when` expressions, CI workflow generation.
+# ─────────────────────────────────────────────────────────────────────────────
+["ini-007"]
+name      = "Catalogue Contracts, Composition, Semantics, and Discovery"
+status    = "active"
+milestone = "M1 · Shaping + Contract Convergence"
+
+["ini-007".shaping_queue]
+# Audience research and contract inventory run first — no dependencies, fully parallel
+active = [
+  # Research: five-audience journey pressure test (enterprise maintainer, marketing
+  # evaluator, platform engineer, repository engineer, coding agent). Deliverable:
+  # docs/product/research/catalogue-audience-discovery.md. Navigation targets:
+  # ≤2 actions from any entry point to authoritative contract or authoring standards.
+  {slug = "catalogue-audience-discovery",          type = "research"},
+  # Research: inventory all machine contracts, generated projections, AGENTS summaries,
+  # README summaries, site data, and CLI consumers. Identify authority direction:
+  # contracts/ → _data/ → generated index → AGENTS/README guidance. Known gap:
+  # guide.schema.json, skill.schema.json, skill-manifest.schema.json, target-vocab.toml
+  # exist in contracts/ but are absent from agentbundle/_data/.
+  # Deliverable: docs/product/research/catalogue-contract-guidance-inventory.md.
+  {slug = "catalogue-contract-guidance-inventory", type = "research"},
+]
+backlog = [
+  # Shape: optional [[pack.integrations]] convention. Four kinds: input/augment/review/
+  # handoff. Required fallback. Unique IDs per pack. Absent target = verify still passes.
+  # Gated on contract inventory completing.
+  {slug = "optional-pack-integration-contract", type = "shape", needs = "research:catalogue-contract-guidance-inventory"},
+  # Shape: journey, lifecycle, effects, neutral catalogue-index.json, profile discovery
+  # metadata, content digests, same-version mutation refusal, release comparison.
+  # Keeps distinct: catalogue-index.json / catalogue-manifest.json / marketplace.json.
+  # Gated on contract inventory completing.
+  {slug = "catalogue-semantics-release-shape", type = "shape", needs = "research:catalogue-contract-guidance-inventory"},
+  # Design: "Build a Catalogue" docs-site section; /evaluate/ marketing route; root
+  # README routing; enterprise scaffold content; measurable navigation targets.
+  # Gated on audience research AND semantic shape completing.
+  {slug = "catalogue-discovery-information-architecture", type = "design", needs = ["research:catalogue-audience-discovery", "shape:catalogue-semantics-release-shape"]},
+]
+
+["ini-007".work]
+active  = []
+shipped = [
+  "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
+]
+queue   = [
+  # Wave 2 — Optional pack integrations. Gated on Wave 1 + integration shape.
+  # Deliver: [[pack.integrations]] schema + verifier; agentbundle show table+JSON;
+  # neutral index integration view; first-party pilots (core→FE, new-rfc→desk-research
+  # /product-engineering/architect); skill fallback procedures; behavior tests; authoring
+  # guidance; eval coverage; version bump + changelog.
+  {path = "spec/catalogue-wave2-pack-integrations", needs = ["work:spec/catalogue-wave1-contract-convergence", "shape:optional-pack-integration-contract"]},
+
+  # Wave 3 — Enterprise authoring discovery. Gated on Wave 2.
+  # Deliver: catalogue-authoring-standards.md in init scaffold; bundled-contract
+  # inspection CLI surface (agentbundle catalogue contracts list/show/export); offline
+  # navigation verified; init updated; link + cold-read tests pass.
+  {path = "spec/catalogue-wave3-enterprise-authoring-discovery", needs = "work:spec/catalogue-wave2-pack-integrations"},
+
+  # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + semantics shape.
+  # Parallel with Waves 2-3. Deliver: JOURNEY.md contract; skill-subset semantics;
+  # content/execution inventory; external-effect declarations; pack lifecycle field;
+  # profile discovery metadata; deterministic catalogue-index.json; integration views;
+  # archive inclusion; first-party migration.
+  {path = "spec/catalogue-wave4-semantic-contracts-index", needs = ["work:spec/catalogue-wave1-contract-convergence", "shape:catalogue-semantics-release-shape"]},
+
+  # Wave 5 — Release integrity. Gated on Wave 4.
+  # Deliver: pack/profile content digests; same-version mutation refusal; human+JSON
+  # release comparison; release evidence in catalogue-manifest.json; regression tests.
+  {path = "spec/catalogue-wave5-release-integrity", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
+
+  # Wave 6 — Technical docs information architecture. Gated on Wave 4 + IA design.
+  # Deliver: "Build a Catalogue" top-level docs-site section; generated field references;
+  # index consumption; "Use" vs "Build" home routes; sidebar links verified.
+  {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "shape:catalogue-discovery-information-architecture"]},
+
+  # Wave 7 — Marketing evaluator surfaces. Gated on Wave 6.
+  # Deliver: /evaluate/ page; catalogue+pack pages consume neutral-index facts;
+  # composition relationship view; no visual system redesign.
+  {path = "spec/catalogue-wave7-marketing-evaluator", needs = "work:spec/catalogue-wave6-technical-docs-ia"},
+
+  # Wave 8 — Repository README and contributing convergence. Gated on Wave 1.
+  # May run in parallel with Waves 4-7. Deliver: "Evaluate or build a catalogue"
+  # section; fork language replaced; pack table generated or flagship subset;
+  # CONTRIBUTING updated with portable authoring rules + integration authoring rule.
+  {path = "spec/catalogue-wave8-readme-contributing", needs = "work:spec/catalogue-wave1-contract-convergence"},
+
+  # Wave 9 — First-party migration and closeout. Gated on Waves 2, 5, 7, 8.
+  # Deliver: all packs+profiles migrated; drift fixes; strict-resolution policy;
+  # complete site projection; old external catalogues verified valid; security+
+  # quality reviews clean; workspace.toml closed out.
+  {path = "spec/catalogue-wave9-migration-closeout", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave5-release-integrity", "work:spec/catalogue-wave7-marketing-evaluator", "work:spec/catalogue-wave8-readme-contributing"]},
 ]

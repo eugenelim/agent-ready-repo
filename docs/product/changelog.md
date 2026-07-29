@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`agentbundle` 0.26.1 — bundled schemas**: the wheel now bundles
+  `guide.schema.json`, `skill.schema.json`, `skill-manifest.schema.json`, and
+  `target-vocab.toml` from the canonical `contracts/` source (plus corrected
+  `profile.schema.json` annotations). Enables offline skill and guide validation
+  without network access to the source catalogue.
+- **Catalogue authoring standards hub**: `guides/_shared/reference/catalogue-authoring-standards.md`
+  is now part of the init scaffold — a portable routing table to every authoritative
+  contract and authoring guide, available in every `agentbundle catalogue init`
+  output.
+- **Contract parity gate**: `tools/catalogue/check_contract_parity.py` added to the
+  `build-check` chain, verifying that every contract in `contracts/` is byte-identical
+  to its `agentbundle/_data/` counterpart on every PR.
 - **`agentbundle catalogue init --preset self-hosted`**: enterprise-derived catalogue
   initialization. Copies selected packs, profiles, and guides from a source catalogue;
   generates a new `catalogue.toml` with target identity fields; runs a fail-closed leak

@@ -99,6 +99,9 @@ For publication ordering, exit codes, and evidence requirements, see the provide
 
 ## Further reading
 
+- [`guides/_shared/reference/catalogue-authoring-standards.md`](../guides/_shared/reference/catalogue-authoring-standards.md) — unified authoring
+  standards hub: pack and skill schemas, profile format, lint and verify commands, CI
+  contract, packaging.
 - `packs/AGENTS.md` — agent-facing authoring contract (full schema map, version-bump rule,
   primitive directory list, evals, Windows-safe script requirements)
 - Agent-facing guidance loaded at session start by agents working in this directory
