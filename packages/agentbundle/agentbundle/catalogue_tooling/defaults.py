@@ -142,6 +142,23 @@ def check_defaults(root: Path) -> SyncDefaultsResult:
         )
         return _make_result(False, "check", [diag])
 
+    if config.distribution.agentbundle.install_defaults_output is None:
+        diag = Diagnostic(
+            code="CAT-SD-000",
+            severity=Severity.INFO,
+            pack=None,
+            path=None,
+            line=None,
+            col=None,
+            message=(
+                "Generated defaults are not configured "
+                "(distribution.agentbundle.install-defaults-output is absent). "
+                "No sync-defaults output to check."
+            ),
+            remediation=None,
+        )
+        return _make_result(True, "check", [diag])
+
     expected = compile_defaults(config)
     output_path = root / config.distribution.agentbundle.install_defaults_output
     if not output_path.exists():
@@ -181,6 +198,23 @@ def write_defaults(root: Path) -> SyncDefaultsResult:
         raise CatalogueConfigError(
             "write_defaults: catalogue.toml is absent; cannot generate install-defaults.toml"
         )
+
+    if config.distribution.agentbundle.install_defaults_output is None:
+        diag = Diagnostic(
+            code="CAT-SD-000",
+            severity=Severity.INFO,
+            pack=None,
+            path=None,
+            line=None,
+            col=None,
+            message=(
+                "Generated defaults are not configured "
+                "(distribution.agentbundle.install-defaults-output is absent). "
+                "Nothing to write."
+            ),
+            remediation=None,
+        )
+        return _make_result(True, "write", [diag])
 
     # Symlink guard must run on the raw (unresolved) path before .resolve()
     # follows the link — once resolved the symlink disappears.

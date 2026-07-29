@@ -57,6 +57,8 @@ _PATH_BEARING_ATTRS = frozenset(
         # `agentbundle render packs\core` and `python -m
         # agentbundle.build validate docs\contracts\adapter.toml`.
         "path",
+        # `target` is the catalogue-init positional: the directory to initialize.
+        "target",
     }
 )
 
@@ -161,20 +163,6 @@ def _shipped_adapters_choices() -> tuple[str, ...]:
     from agentbundle.scope import shipped_adapters_from_contract
 
     return shipped_adapters_from_contract()
-
-
-class _StubHelpAction(argparse.Action):
-    """A --help action for stub subcommand groups that exits 1 (not 0).
-
-    Used on the `catalogue` and `lint packs` parsers so callers can
-    distinguish "this group is not yet implemented" (exit 1) from a
-    normal help print (exit 0). Wave 2-4 specs replace these stubs with
-    real handlers; this action will be removed at that point.
-    """
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        parser.print_help()
-        parser.exit(1)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -753,19 +741,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("package_catalogue"))
 
-    # --- catalogue <sub> --- (Wave 2-4; lint/sync-defaults/build/self-host implemented)
+    # --- catalogue <sub> --- (Wave 2-4; lint/sync-defaults/build/self-host/init implemented)
     cat_parser = subparsers.add_parser(
         "catalogue",
         help="Portable catalogue engine commands.",
-        add_help=False,
-    )
-    cat_parser.add_argument(
-        "-h",
-        "--help",
-        action=_StubHelpAction,
-        default=argparse.SUPPRESS,
-        nargs=0,
-        help="show this help message and exit",
     )
     cat_subs = cat_parser.add_subparsers(dest="catalogue_sub", metavar="<sub>")
 
@@ -899,6 +878,69 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Regenerate install-defaults.toml.",
     )
     _sd_p.set_defaults(func=_lazy("catalogue_sync_defaults"))
+
+    # catalogue init
+    _init_p = cat_subs.add_parser(
+        "init",
+        help="Initialize a new catalogue directory with scaffold files.",
+    )
+    _init_p.add_argument(
+        "target",
+        nargs="?",
+        default=".",
+        help=(
+            "Target directory to initialize. Created if it does not exist. "
+            "Defaults to the current directory."
+        ),
+    )
+    _init_p.add_argument(
+        "--name",
+        default=None,
+        help=(
+            "Catalogue name (letters, digits, hyphens, underscores; starts with "
+            "letter or digit). Default: derived from the target directory basename."
+        ),
+    )
+    _init_p.add_argument(
+        "--display-name",
+        default=None,
+        dest="display_name",
+        help="Human-readable catalogue name. Default: title-cased from --name.",
+    )
+    _init_p.add_argument(
+        "--description",
+        default=None,
+        help="One-sentence catalogue description. Default: auto-generated from --name.",
+    )
+    _init_p.add_argument(
+        "--owner-name",
+        default=None,
+        dest="owner_name",
+        help="Catalogue owner name. Default: same as --display-name.",
+    )
+    _init_p.add_argument(
+        "--preferred-adapter",
+        default=None,
+        dest="preferred_adapter",
+        help=(
+            "Preferred adapter identifier (e.g. claude-code, kiro-ide). "
+            "Default: from install-defaults.toml, or 'claude-code'."
+        ),
+    )
+    _init_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        dest="dry_run",
+        help="Show what would be created without writing any files.",
+    )
+    _init_p.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="Output format: table (default, human-readable) or json (machine-readable).",
+    )
+    _init_p.set_defaults(func=_lazy("catalogue_init"))
 
     # --- lint packs --- (Wave 2; implemented)
     lint_parser = subparsers.add_parser(

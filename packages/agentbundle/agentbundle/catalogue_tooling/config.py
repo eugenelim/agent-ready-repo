@@ -50,12 +50,17 @@ class CatalogueConfigError(ValueError):
 
 
 @dataclass
+class CatalogueOwner:
+    name: str
+
+
+@dataclass
 class CataloguePaths:
     packs: str
     profiles: str
-    contracts: str
     marketplace: str
     build_output: str
+    contracts: str | None = None  # optional — absent for external catalogues
 
 
 @dataclass
@@ -83,10 +88,10 @@ class ArtifactoryConfig:
 
 @dataclass
 class AgentbundleDistribution:
-    install_defaults_output: str
     preferred_adapter: str
-    default_source: str
     artifactory: ArtifactoryConfig
+    install_defaults_output: str | None = None  # optional — absent for external catalogues
+    default_source: str | None = None  # optional — absent for newly initialized catalogues
 
 
 @dataclass
@@ -108,6 +113,7 @@ class CatalogueConfig:
     # RFC-0074: per-pack config defaults and user-scope directory.
     user_dir: str = _DEFAULT_USER_DIR
     pack_defaults: dict[str, dict[str, str]] = field(default_factory=dict)
+    owner: CatalogueOwner | None = None
 
 
 def _load_schema() -> dict:
@@ -325,17 +331,21 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     path_fields = {
         "packs": paths_raw.get("packs", ""),
         "profiles": paths_raw.get("profiles", ""),
-        "contracts": paths_raw.get("contracts", ""),
         "marketplace": paths_raw.get("marketplace", ""),
         "build-output": paths_raw.get("build-output", ""),
     }
     for field_key, path_val in path_fields.items():
         _validate_path(root, path_val, f"catalogue.paths.{field_key}")
 
+    # contracts is optional — absent for external catalogues
+    contracts_val: str | None = paths_raw.get("contracts")
+    if contracts_val is not None:
+        _validate_path(root, contracts_val, "catalogue.paths.contracts")
+
     paths = CataloguePaths(
         packs=path_fields["packs"],
         profiles=path_fields["profiles"],
-        contracts=path_fields["contracts"],
+        contracts=contracts_val,
         marketplace=path_fields["marketplace"],
         build_output=path_fields["build-output"],
     )
@@ -380,8 +390,9 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     ab_raw = dist_raw.get("agentbundle", {})
 
     preferred_adapter = ab_raw.get("preferred-adapter", "")
-    default_source = ab_raw.get("default-source", "")
-    install_defaults_output = ab_raw.get("install-defaults-output", "")
+    # Optional fields: None when absent in the TOML
+    default_source: str | None = ab_raw.get("default-source") or None
+    install_defaults_output: str | None = ab_raw.get("install-defaults-output") or None
 
     # Rule 7: preferred-adapter ∈ adapter contract (fail-closed)
     known_adapters = _load_adapter_names()
@@ -392,9 +403,10 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
             f"Known: {sorted(known_adapters)}"
         )
 
-    # Rules 8 & 10: default-source valid, no credentials
-    _check_no_credentials(default_source, "distribution.agentbundle.default-source")
-    _validate_source(default_source, "distribution.agentbundle.default-source")
+    # Rules 8 & 10: default-source valid, no credentials (only when configured)
+    if default_source:
+        _check_no_credentials(default_source, "distribution.agentbundle.default-source")
+        _validate_source(default_source, "distribution.agentbundle.default-source")
 
     # --- [distribution.agentbundle.artifactory] --- Rule 9
     art_raw = ab_raw.get("artifactory", {})
@@ -455,10 +467,10 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
         art.channel = channel
 
     agentbundle_dist = AgentbundleDistribution(
-        install_defaults_output=install_defaults_output,
         preferred_adapter=preferred_adapter,
-        default_source=default_source,
         artifactory=art,
+        install_defaults_output=install_defaults_output,
+        default_source=default_source,
     )
     distribution = DistributionConfig(agentbundle=agentbundle_dist)
 
@@ -508,6 +520,21 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
             )
         pack_defaults[slug] = {str(k): str(v) for k, v in kv.items()}
 
+    # --- [catalogue.owner] --- optional owner metadata
+    owner_raw = cat.get("owner")
+    owner: CatalogueOwner | None = None
+    if owner_raw is not None:
+        if not isinstance(owner_raw, dict):
+            raise CatalogueConfigError(
+                "catalogue.toml: catalogue.owner must be a table"
+            )
+        owner_name = owner_raw.get("name")
+        if not owner_name or not isinstance(owner_name, str):
+            raise CatalogueConfigError(
+                "catalogue.toml: catalogue.owner.name is required when owner table is present"
+            )
+        owner = CatalogueOwner(name=owner_name)
+
     return CatalogueConfig(
         schema=schema_val,
         name=name,
@@ -520,4 +547,5 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
         distribution=distribution,
         user_dir=user_dir_raw,
         pack_defaults=pack_defaults,
+        owner=owner,
     )

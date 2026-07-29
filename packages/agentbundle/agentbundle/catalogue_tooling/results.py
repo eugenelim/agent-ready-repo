@@ -7,7 +7,7 @@ Wave 2-4 specs populate the logic; this module defines the shape.
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class Severity(enum.IntEnum):
@@ -67,3 +67,62 @@ class PackageResult(CommandResult):
 @dataclass
 class SyncDefaultsResult(CommandResult):
     pass
+
+
+# ---------------------------------------------------------------------------
+# catalogue init types
+# ---------------------------------------------------------------------------
+
+class FileAction(enum.StrEnum):
+    CREATE = "create"
+    ALREADY_PRESENT = "already-present"
+    CONFLICT = "conflict"
+
+
+@dataclass
+class FilePlan:
+    path: str
+    kind: str  # "generated" | "scaffold"
+    action: FileAction
+    sha256: str
+    conflict_reason: str | None = None
+
+
+@dataclass
+class InitVerification:
+    ok: bool
+    diagnostic_count: int
+
+
+@dataclass
+class InitSummary:
+    create: int
+    already_present: int
+    conflict: int
+    total: int
+
+
+@dataclass
+class InitCatalogueMeta:
+    name: str
+    display_name: str
+    description: str
+    owner_name: str
+    preferred_adapter: str
+    minimum_agentbundle_version: str
+
+
+@dataclass
+class InitResult(CommandResult):
+    dry_run: bool = False
+    target: str = ""
+    catalogue: InitCatalogueMeta = field(
+        default_factory=lambda: InitCatalogueMeta("", "", "", "", "", "")
+    )
+    files: list[FilePlan] = field(default_factory=list)
+    verification: InitVerification = field(
+        default_factory=lambda: InitVerification(ok=False, diagnostic_count=0)
+    )
+    summary: InitSummary = field(
+        default_factory=lambda: InitSummary(0, 0, 0, 0)
+    )
