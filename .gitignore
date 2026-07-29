@@ -47,6 +47,9 @@ package-lock.json
 !web/package-lock.json
 !docs-site/package-lock.json
 
+# Virtual environments.
+.venv/
+
 # Python build artefacts.
 *.egg-info/
 *.pyc

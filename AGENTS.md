@@ -127,11 +127,14 @@ tasks, not most — the work-loop skill covers when it's the right tool.
 <!-- Keep this short. Detailed command reference goes in docs/. -->
 
 ```bash
-pip install -e packages/agentbundle 'packages/credbroker[crypto]' ruff mypy pytest  # one-time setup
-python3 -m pytest packages/<pkg>/tests/ -q  # run tests for the package you're in
-make test                                    # run all tests (slow — usually CI's job)
-python3 tools/lint-ruff.py                  # lint + format check
-make build-self                             # sync projected files after touching packs/
+pip install -e packages/agentbundle 'packages/credbroker[crypto]' ruff mypy pytest  # one-time
+pip install -r tools/requirements.txt          # jsonschema, pyyaml — one-time
+python3 -m pytest packages/<pkg>/tests/ -q    # test the package you're editing
+make lint-ruff                                 # lint + format
+make build-self                               # sync projected files after touching packs/
+make build-check                              # agentbundle verify + repo policy gates + SAST
+SKIP_SAST=1 make build-check                 # same, minus SAST (fast; for non-SAST changes)
+make ci                                       # full local CI: build-check + lint + test (Linux/macOS)
 ```
 
 ## Code style
@@ -215,6 +218,26 @@ PR titles, PR bodies, and PR comments are permanent record. Never use real servi
 vendor names as examples; use `example-service` or `[service type]` instead. When
 authoring governance docs (ADRs, RFCs, specs), populate author and decider fields from
 the project's established conventions only — do not infer them from session context.
+
+## Guide trees
+
+| Tree | Audience | Ships? |
+|---|---|---|
+| `docs/guides/` | Repo maintainers — internal tooling, CLI workflows, repo how-tos. | No |
+| `guides/` | Adopters — `guides/_shared/{quadrant}/`; pack-specific in `guides/<pack>/{quadrant}/`. | Yes |
+
+New user-facing guides → `guides/_shared/how-to/` (or the owning pack's subtree).
+New maintainer guides → `docs/guides/`. The `author-product-docs` skill routes by audience automatically.
+
+## AGENTS.md line caps
+
+CI enforces: root `AGENTS.md` ≤ 250 lines; subdirectory `AGENTS.md` ≤ 150 lines. Exceeding the cap
+blocks CI. Length equals token cost.
+
+## New tool scripts: Python, not bash
+
+New additions to `tools/` must be pure-stdlib Python (`.py`). Existing `.sh` files stay; the rule
+applies forward. Path triggers in `.github/workflows/docs.yml` must match `python3 <script>`.
 
 ## When this file is wrong
 
