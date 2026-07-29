@@ -409,7 +409,7 @@ def _apply_identity_transform(
                 content = fp.read_text(encoding="utf-8", errors="replace")
                 new_content = _transform_text(content, anchors, cfg)
                 if new_content != content:
-                    fp.write_text(new_content, encoding="utf-8")
+                    fp.write_text(new_content, encoding="utf-8", newline="\n")
             except OSError:
                 continue
 
@@ -462,7 +462,7 @@ def _write_ownership_state(
     if not dry_run:
         state_path.parent.mkdir(parents=True, exist_ok=True)
         state_path.write_text(
-            json.dumps(state.to_dict(), indent=2) + "\n", encoding="utf-8"
+            json.dumps(state.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
         )
 
 
@@ -573,7 +573,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     cat_toml_path = target / "catalogue.toml"
     action = "already-present" if cat_toml_path.exists() else "create"
     if not cfg.dry_run:
-        cat_toml_path.write_text(cat_toml_content, encoding="utf-8")
+        cat_toml_path.write_text(cat_toml_content, encoding="utf-8", newline="\n")
     files_written.append((action, "catalogue.toml"))
 
     # 6. Identity transformation (white-label: replace anchors; attributed: skip).

@@ -825,7 +825,7 @@ def package_source_flavour(
     buf = io.BytesIO()
     with (
         gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz,
-        tarfile.open(fileobj=gz, mode="w:") as tar,  # type: ignore[arg-type]
+        tarfile.TarFile(fileobj=gz, mode="w") as tar,  # type: ignore[arg-type]
     ):
         for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix()):
             arcname = fp.relative_to(root).as_posix()
@@ -838,10 +838,14 @@ def package_source_flavour(
     sha256_hex = hashlib.sha256(archive_bytes).hexdigest()
 
     archive_path.write_bytes(archive_bytes)
-    sidecar_path.write_text(sha256_hex + "\n", encoding="utf-8")
+    sidecar_path.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
 
     # Write source manifest.
     from agentbundle.version import CLI_VERSION
+    file_entries: list[dict[str, str]] = sorted(
+        [{"path": k, "sha256": v} for k, v in file_digests.items()],
+        key=lambda x: x["path"],
+    )
     manifest = {
         "kind": "agentbundle-self-hosted-source",
         "schema_version": "1",
@@ -852,12 +856,9 @@ def package_source_flavour(
         "source_revision": source_revision,
         "archive": archive_name,
         "sha256": sha256_hex,
-        "files": sorted(
-            [{"path": k, "sha256": v} for k, v in file_digests.items()],
-            key=lambda x: x["path"],
-        ),
+        "files": file_entries,
     }
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     return SourcePackageResult(
         ok=True,
