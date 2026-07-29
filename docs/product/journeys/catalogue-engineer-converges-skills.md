@@ -52,12 +52,13 @@ The assimilation ledger records what was surveyed, what was adopted, and what wa
 |---|---|---|---|
 | core | repo | current | `work-loop`, `new-spec`, governance gate |
 | governance-extras | repo | current | RFC tooling, spec mechanisms |
-| catalogue-curation | repo | current | `assimilate-repo`, `assimilate-primitive`, `propose-catalogue-pack`, `export-catalogue` |
+| catalogue-curation | repo | current | `assimilate-repo`, `assimilate-primitive`, `propose-catalogue-pack` |
 
 **Setup:**
-1. Install core and governance-extras at repo scope first — catalogue-curation requires both.
-2. Install catalogue-curation at repo scope: `agentbundle install catalogue-curation --scope repo`.
-3. Verify: `agentbundle show catalogue-curation` lists all four skills with their activation phrases.
+1. Install catalogue-curation at repo scope: `agentbundle install catalogue-curation --scope repo`.
+2. Verify: `agentbundle show catalogue-curation` lists all three skills with their activation phrases.
+
+For derived or enterprise catalogues, use `agentbundle catalogue init --preset self-hosted` instead of this pack.
 
 The catalogue-curation pack is repo-scope and off every default profile by design.
 It is an operator's tool, not a builder's tool.
@@ -73,27 +74,27 @@ sequenceDiagram
     participant PP as propose-catalogue-pack
     participant AP as assimilate-primitive
     participant EV as Pack evals
-    participant EC as export-catalogue
+    participant PKG as agentbundle catalogue package
 
-    Note over E,EC: Stage 1 — Orient and survey
+    Note over E,PKG: Stage 1 — Orient and survey
     E->>AR: survey-a-repo <source-url>
     AR-->>E: Ledger opened · candidates with verdict per primitive
 
-    Note over E,EC: Stage 2 — Evaluate candidates
+    Note over E,PKG: Stage 2 — Evaluate candidates
     E->>PP: propose-catalogue-pack (for needs-new-pack verdicts)
     PP-->>E: Charter check passed · RFC draft · pack shell scaffolded
 
-    Note over E,EC: Stage 3 — Assimilate primitives
+    Note over E,PKG: Stage 3 — Assimilate primitives
     E->>AP: assimilate-primitive <skill-or-agent-url>
     AP-->>E: Raw body shown · OWASP AST01–AST10 review · shaped to agentskills.io · written to pack
 
-    Note over E,EC: Stage 4 — Verify and sharpen
+    Note over E,PKG: Stage 4 — Verify and sharpen
     E->>EV: run-pack-evals --pack <name>
     EV-->>E: Activation eval results · sharpen description on miss
 
-    Note over E,EC: Stage 5 — Profile and publish
-    E->>EC: export-catalogue --mode white-label or attributed
-    EC-->>E: Redistributable fork · four-anchor verify clean
+    Note over E,PKG: Stage 5 — Package and publish
+    E->>PKG: agentbundle catalogue package --bundle <name> --release <ver>
+    PKG-->>E: Deterministic archive · SHA-256 checksum · channel descriptor
 ```
 
 ---
@@ -146,15 +147,15 @@ sequenceDiagram
 
 ---
 
-## Stage 5: Profile and Publish
+## Stage 5: Package and Publish
 
 ### Now
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Decides the publication path. **Profile route:** update or propose a profile so the adopted set installs in one command via `agentbundle install --profile <name>`. A new profile requires an RFC (profiles are first-party and catalogue-owned today). **Export route:** `export-catalogue` produces a redistributable fork in white-label mode (all upstream identity stripped) or attributed mode (upstream credit preserved in the declared attribution surface). The export's verify step is fail-closed — any surviving identity anchor stops the export before it completes. |
+| **Actions** | Decides the publication path. **Profile route:** update or propose a profile so the adopted set installs in one command via `agentbundle install --profile <name>`. A new profile requires an RFC (profiles are first-party and catalogue-owned today). **Package route:** `agentbundle catalogue package` produces a deterministic, versioned archive for Artifactory publication. For enterprise-derived (self-hosted) catalogues, use `agentbundle catalogue init --preset self-hosted` — this replaces the former `export-catalogue` skill with a deterministic CLI workflow that collects identity fields, copies selected packs, and runs a fail-closed leak check. |
 | **Emotions** | Satisfied (positive). The adopted primitives are packaged for reuse and the work persists beyond this session. |
-| **Remaining pains** | Adopter-authored profiles (where an org creates its own profile without an RFC) are deferred to a future design. Today, a new profile requires the RFC path. The export path produces a full catalogue fork — partial-pack export (shipping only a subset of packs) is not yet supported. |
+| **Remaining pains** | Adopter-authored profiles (where an org creates its own profile without an RFC) are deferred to a future design. Today, a new profile requires the RFC path. |
 
 ---
 
@@ -181,7 +182,8 @@ The pack arc — survey → scaffold → fill → ship — is the high-level arc
 - **Skill:** `propose-catalogue-pack` — charter test and RFC draft
 - **Skill:** `assimilate-primitive` — bring in one skill or subagent
 - **Tool:** `python tools/run-pack-evals.py --pack <name>` — activation eval run
-- **Skill:** `export-catalogue` — produce a redistributable fork
+- **CLI:** `agentbundle catalogue init --preset self-hosted` — create an enterprise-derived catalogue
+- **CLI:** `agentbundle catalogue package` — produce a versioned release archive
 - **Skill:** `workspace-status` — orient at session start; surface next assimilation task
 
 ---

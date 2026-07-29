@@ -208,7 +208,7 @@ Do not invoke the next skill automatically — name it and let the user choose.
 The summary has been saved to `<output-file>`.
 
 When you're ready:
-- Review the summary, then run `export-catalogue` to produce the redistributable bundle.
+- Review the summary, then update the pack's profile or run `agentbundle catalogue package` to produce a release archive.
 - Or run `workspace-status` to see the full queue before deciding what's next.
 ```
 

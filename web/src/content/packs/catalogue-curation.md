@@ -1,14 +1,13 @@
 ---
 name: Catalogue Curation
 scope: repo
-tagline: "Grow the catalogue — assimilate, survey, propose, export."
+tagline: "Grow the catalogue — assimilate, survey, propose."
 skills:
   - assimilate-primitive
   - assimilate-repo
   - propose-catalogue-pack
-  - export-catalogue
 installCommand: "agentbundle install --pack catalogue-curation"
 docsUrl: /guides/catalogue-curation/
 ---
 
-Catalogue Curation is the operator's seat — meta-tooling for growing and forking the catalogue itself, one level above governance-extras. `assimilate-primitive` folds an external skill or agent into a pack; `assimilate-repo` surveys a whole repo for reusable primitives; `propose-catalogue-pack` shapes a new pack proposal (emitting an RFC); and `export-catalogue` produces white-label or attributed derivatives of the catalogue. Repo-only ceremony; depends on `core` and `governance-extras`.
+Catalogue Curation is the operator's seat — meta-tooling for growing the catalogue, one meta-level above the skills themselves. `assimilate-primitive` folds an external skill or agent into a pack; `assimilate-repo` surveys a whole repo for reusable primitives; `propose-catalogue-pack` shapes a new pack proposal. To create a new or derived catalogue, use `agentbundle catalogue init`. Repo-only; no required dependencies.

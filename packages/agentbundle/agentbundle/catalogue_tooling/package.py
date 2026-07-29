@@ -22,6 +22,7 @@ import os
 import re
 import tarfile
 import tomllib
+from dataclasses import dataclass as _dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -695,4 +696,173 @@ def package_catalogue(
         operation="package",
         agentbundle_version=CLI_VERSION,
         catalogue_schema_version=1,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Source-flavor packaging
+# ---------------------------------------------------------------------------
+
+
+@_dataclass
+class SourcePackageResult:
+    ok: bool
+    archive_path: str
+    manifest_path: str
+    diagnostics: list[str]
+
+
+# Positive allowlist for source-flavor packaging.
+_SOURCE_INCLUDE_DIRS: tuple[str, ...] = ("packs", "profiles")
+_SOURCE_INCLUDE_SHARED_GUIDES: tuple[str, ...] = ("guides", "_shared")
+_SOURCE_INCLUDE_ROOT_FILES: tuple[str, ...] = (
+    "catalogue.toml",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+)
+_SOURCE_INCLUDE_PLUGIN: str = ".claude-plugin/marketplace.json"
+
+
+def package_source_flavour(
+    *,
+    root: Path,
+    bundle: str,
+    release: str,
+    output: Path,
+    source_revision: str | None = None,
+) -> SourcePackageResult:
+    """Package a source distribution for self-hosted enterprise catalogues.
+
+    Output layout:
+      <output>/catalogue-sources/<bundle>/releases/<release>/
+        catalogue-source-<release>.tar.gz
+        catalogue-source-<release>.tar.gz.sha256
+        self-hosted-source-manifest.json
+
+    The archive includes only:
+      - catalogue.toml
+      - packs/**
+      - profiles/**
+      - guides/_shared/**
+      - .claude-plugin/marketplace.json
+      - legal root files (README.md, LICENSE-*)
+    """
+    for flag, val in (("bundle", bundle), ("release", release)):
+        err_msg = _validate_flag_value(flag, val)
+        if err_msg:
+            return SourcePackageResult(
+                ok=False, archive_path="", manifest_path="", diagnostics=[err_msg]
+            )
+
+    if not root.is_dir():
+        return SourcePackageResult(
+            ok=False, archive_path="", manifest_path="",
+            diagnostics=[f"error: root directory not found: {root}"]
+        )
+
+    # Collect files from allowlist.
+    collected: list[Path] = []
+
+    for dir_name in _SOURCE_INCLUDE_DIRS:
+        d = root / dir_name
+        if d.is_dir() and not d.is_symlink():
+            for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
+                dp = Path(dirpath)
+                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+                for fname in filenames:
+                    fp = dp / fname
+                    if fp.is_file() and not fp.is_symlink():
+                        collected.append(fp)
+
+    # guides/_shared/
+    guides_shared = root.joinpath(*_SOURCE_INCLUDE_SHARED_GUIDES)
+    if guides_shared.is_dir() and not guides_shared.is_symlink():
+        for dirpath, dirnames, filenames in os.walk(str(guides_shared), followlinks=False):
+            dp = Path(dirpath)
+            dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+            for fname in filenames:
+                fp = dp / fname
+                if fp.is_file() and not fp.is_symlink():
+                    collected.append(fp)
+
+    # .claude-plugin/marketplace.json
+    mp = root / _SOURCE_INCLUDE_PLUGIN
+    if mp.is_file() and not mp.is_symlink():
+        collected.append(mp)
+
+    # Root files.
+    for fname in _SOURCE_INCLUDE_ROOT_FILES:
+        fp = root / fname
+        if fp.is_file() and not fp.is_symlink():
+            collected.append(fp)
+
+    if not collected:
+        return SourcePackageResult(
+            ok=False, archive_path="", manifest_path="",
+            diagnostics=["error: no source files found in root"]
+        )
+
+    # Build output paths.
+    release_dir = output / "catalogue-sources" / bundle / "releases" / release
+    archive_name = f"catalogue-source-{release}.tar.gz"
+    archive_path = release_dir / archive_name
+    sidecar_path = release_dir / f"{archive_name}.sha256"
+    manifest_path = release_dir / "self-hosted-source-manifest.json"
+    release_dir.mkdir(parents=True, exist_ok=True)
+
+    # Compute digests.
+    file_digests: dict[str, str] = {}
+    for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix()):
+        key = fp.relative_to(root).as_posix()
+        file_digests[key] = hashlib.sha256(fp.read_bytes()).hexdigest()
+
+    from datetime import UTC, datetime
+    generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Build archive.
+    buf = io.BytesIO()
+    with (
+        gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz,
+        tarfile.TarFile(fileobj=gz, mode="w") as tar,  # type: ignore[arg-type]
+    ):
+        for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix()):
+            arcname = fp.relative_to(root).as_posix()
+            info = tarfile.TarInfo(name=arcname)
+            data = fp.read_bytes()
+            info.size = len(data)
+            info.mtime = 0
+            tar.addfile(info, io.BytesIO(data))
+    archive_bytes = buf.getvalue()
+    sha256_hex = hashlib.sha256(archive_bytes).hexdigest()
+
+    archive_path.write_bytes(archive_bytes)
+    sidecar_path.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
+
+    # Write source manifest.
+    from agentbundle.version import CLI_VERSION
+    file_entries: list[dict[str, str]] = sorted(
+        [{"path": k, "sha256": v} for k, v in file_digests.items()],
+        key=lambda x: x["path"],
+    )
+    manifest = {
+        "kind": "agentbundle-self-hosted-source",
+        "schema_version": "1",
+        "bundle": bundle,
+        "release": release,
+        "generated_at": generated_at,
+        "agentbundle_version": CLI_VERSION,
+        "source_revision": source_revision,
+        "archive": archive_name,
+        "sha256": sha256_hex,
+        "files": file_entries,
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+    return SourcePackageResult(
+        ok=True,
+        archive_path=str(archive_path),
+        manifest_path=str(manifest_path),
+        diagnostics=[],
     )

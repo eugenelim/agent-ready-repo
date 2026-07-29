@@ -1,16 +1,19 @@
 [pack]
 name = "catalogue-curation"
-version = "0.1.7"
-description = "Catalogue-operator skills: assimilate external primitives, survey repos, propose packs, and export white-label / attributed derivatives of the catalogue."
+version = "0.2.0"
+description = "Catalogue-operator skills: assimilate external primitives, survey repos, and propose new packs — portable against any catalogue's own contracts."
 readme = "README.md"
 display_name = "Catalogue Curation"
 license = "Apache-2.0 OR MIT"
 categories = ["governance", "tooling"]
-keywords = ["catalogue", "assimilate", "white-label", "fork"]
+keywords = ["catalogue", "assimilate"]
 
-# RFC-0059: a catalogue-operator pack — meta-tooling for growing/forking the
-# catalogue itself, one meta-level above governance-extras. Repo-only ceremony;
-# ships instance content (not a placeholder scaffold), so lint-seeds stays off.
+# RFC-0059: a catalogue-operator pack — meta-tooling for growing the catalogue,
+# one meta-level above governance-extras. Repo-only ceremony; ships instance
+# content (not a placeholder scaffold), so lint-seeds stays off.
+# 0.2.0: removed export-catalogue skill (superseded by agentbundle catalogue init
+# --preset self-hosted); removed hard deps on core and governance-extras — skills
+# now operate portably against the target catalogue's own contracts.
 
 [pack.adapter-contract]
 version = "0.8"
@@ -18,20 +21,6 @@ version = "0.8"
 [pack.install]
 default-scope = "repo"
 allowed-scopes = ["repo"]
-
-# RFC-0059 D1: requires core (reviewers, adapt) AND governance-extras (two skills
-# emit RFCs). First pack-on-a-non-core dependency in the catalogue; resolves
-# compositionally under the existing dependency gate (governance-extras itself
-# gates core).
-[[pack.dependencies.required]]
-catalogue = "agent-ready-repo"
-pack = "core"
-version = "^0.1"
-
-[[pack.dependencies.required]]
-catalogue = "agent-ready-repo"
-pack = "governance-extras"
-version = "^0.1"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
@@ -46,6 +35,6 @@ email = "eugenelim@users.noreply.github.com"
 [pack.first-value]
 audience-posture = "technical"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed"]
+prerequisites    = ["agentbundle installed"]
 verification     = "Run assimilate-primitive on a test skill and confirm it is added to your catalogue."
 recovery         = "Check that the source pack path exists and is a valid pack.toml directory; re-run with --dry-run to preview changes before committing."

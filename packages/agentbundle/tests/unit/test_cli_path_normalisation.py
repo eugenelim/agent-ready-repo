@@ -85,7 +85,8 @@ def test_allow_list_pins_path_bearing_attributes():
             "catalogue",
             "values_from",
             "path",
-            "target",  # catalogue init target directory
+            "target",   # catalogue init target directory
+            "source",   # catalogue init --source (self-hosted preset)
         }
     ) == _PATH_BEARING_ATTRS
 

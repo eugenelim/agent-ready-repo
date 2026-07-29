@@ -480,18 +480,18 @@ jobs:
       - name: catalogue-curation skill-script tests (RFC-0059 security ACs)
         # The deterministic helpers behind the catalogue-curation skills:
         # SSRF allowlist + write-jail (assimilate-primitive), the resumable
-        # ledger (assimilate-repo), and the fail-closed export verify
-        # (export-catalogue). Pure-stdlib pytest; run from each scripts/ dir so
-        # the local modules import (agentbundle is on the path for write_jail).
-        # PYTHONDONTWRITEBYTECODE + -p no:cacheprovider so pytest leaves no
-        # __pycache__ in the pack source — otherwise the self-host drift gate
-        # would flag the projected .pyc (a known gotcha).
+        # ledger (assimilate-repo). Pure-stdlib pytest; run from each scripts/
+        # dir so the local modules import (agentbundle is on the path for
+        # write_jail). PYTHONDONTWRITEBYTECODE + -p no:cacheprovider so pytest
+        # leaves no __pycache__ in the pack source — otherwise the self-host
+        # drift gate would flag the projected .pyc (a known gotcha).
+        # export-catalogue removed in 0.2.0 (superseded by agentbundle catalogue
+        # init --preset self-hosted).
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           (cd packs/catalogue-curation/.apm/skills/assimilate-primitive/scripts && python -m pytest -q -p no:cacheprovider)
           (cd packs/catalogue-curation/.apm/skills/assimilate-repo/scripts && python -m pytest -q -p no:cacheprovider)
-          (cd packs/catalogue-curation/.apm/skills/export-catalogue/scripts && python -m pytest -q -p no:cacheprovider)
 
       - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
         # RFC-0033: the experience pack (renamed from design-craft, ADR-0038)

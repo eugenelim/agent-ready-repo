@@ -1118,6 +1118,22 @@ open = [
   # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
   # Mirrors RFC-0061 (web/) precedent.
   {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
+
+  # ── catalogue-init-self-hosted phase 2 ─────────────────────────────────────
+  # Several ACs from spec/catalogue-init-self-hosted were deferred to keep
+  # the 0.25.0 PR focused on the core path (export-catalogue removal, CLI contract,
+  # external/vendored init, source packaging). Phase 2 covers:
+  #   • SelfHostedSource dataclass + resolve_source() (Bucket 3 AC1/AC3)
+  #   • Source manifest completeness: pack inventory, policy version (Bucket 4 AC4)
+  #   • Source archive install-refusal by kind (Bucket 4 AC6/AC7)
+  #   • Self-hosted init reuses staging/atomic commit engine (Bucket 5 AC1)
+  #   • Vendored mode writes [catalogue.tooling] section (Bucket 6 AC3)
+  #   • External mode installs curation repo-scope per adapter (Bucket 7 AC2/AC4/AC5)
+  #   • self-host --check validates tooling projection (Bucket 8 AC4)
+  #   • Ownership-state schema enrichment + removal logic (Bucket 9 AC1-AC4)
+  #   • JSON output field completeness (Bucket 12 AC2)
+  # Unblocks when: ini-005 M2 milestone; no external dependency.
+  {slug = "catalogue-init-sh-phase2", source = "spec/catalogue-init-self-hosted"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

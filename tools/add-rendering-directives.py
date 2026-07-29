@@ -84,7 +84,6 @@ SKILLS: dict[str, list[str]] = {
     "architect-review":             ["severity-list"],
     # catalogue-curation
     "assimilate-primitive":         ["severity-list"],
-    "export-catalogue":             ["status-list"],
     "assimilate-repo":              ["table", "status-list", "narrative"],
     "propose-catalogue-pack":       ["table", "narrative"],
     # desk-research

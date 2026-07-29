@@ -52,21 +52,19 @@ For subagent-specific concerns, see [Your first subagent](../tutorials/your-firs
 A catalogue maintainer manages a full derived catalogue — a fork, a domain-specific adaptation, or an org-wide catalogue that multiple teams install from.
 Their work is a recurring loop: survey external sources, evaluate candidates, propose packs, assimilate approved primitives, and publish updates.
 
-### Pack arc: the four-stage progression
+### Pack arc: the three-stage progression
 
-The four skills form a natural arc:
+The three skills form a natural arc:
 
 | Stage | Skill | Output |
 |---|---|---|
 | Discover | `assimilate-repo` | Ledger of candidates with verdicts |
 | Scaffold | `propose-catalogue-pack` | Pack shell + RFC draft |
 | Fill | `assimilate-primitive` × N | Shaped skills and subagents in the pack |
-| Publish | `export-catalogue` | Redistributable fork or profile update |
 
 Each stage's output is the input to the next.
 The survey's ledger determines what gets proposed.
 The proposed pack's shell determines where primitives land.
-The filled pack is what gets exported or profiled.
 
 A single-primitive intake enters at Fill, skipping Discover and Scaffold entirely.
 A maintenance update skips Scaffold (the pack already exists) and re-fills from a re-run survey.
@@ -99,22 +97,20 @@ Between sessions, a new agent or a colleague can pick up exactly where the previ
 
 ### Profile and publish
 
-A catalogue that has grown through assimilation can be published three ways.
+A catalogue that has grown through assimilation can be published two ways.
 
 The first is a **profile update**: the maintained catalogue proposes a new profile (via RFC) so the adopted set installs in one command.
 A profile is a curated, single-scope manifest — see [Design a profile](../../_shared/how-to/design-a-profile.md) for the four design tests and worked examples.
 
-The second is an **export**: `export-catalogue` produces a redistributable fork in white-label mode (all upstream identity stripped) or attributed mode (upstream credit preserved in the declared attribution surface).
-The export's verify step is fail-closed — any surviving identity anchor stops the export.
-
-The third is a **CI packaging release**: `agentbundle catalogue package` bundles the catalogue into a versioned, reproducible archive for Artifactory publication — a distinct path from `export-catalogue`, which produces a fork rather than a release artifact.
+The second is a **CI packaging release**: `agentbundle catalogue package` bundles the catalogue into a versioned, reproducible archive for Artifactory publication.
 For publication ordering, exit codes, and the full CI pipeline contract, see the [Catalogue CI contract](../../_shared/reference/catalogue-ci-contract.md).
 
-**Primary touchpoints:** `assimilate-repo`, `propose-catalogue-pack`, `assimilate-primitive`, `export-catalogue`.
+To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init --preset self-hosted`. This replaces the former `export-catalogue` skill with a deterministic CLI workflow.
+
+**Primary touchpoints:** `assimilate-repo`, `propose-catalogue-pack`, `assimilate-primitive`.
 
 **Where to go next:**
 [Survey a repo](../how-to/survey-a-repo.md) ·
-[Export a fork](../how-to/export-a-fork.md) ·
 [The convergence model](the-convergence-model.md) ·
 [Design a profile](../../_shared/how-to/design-a-profile.md)
 

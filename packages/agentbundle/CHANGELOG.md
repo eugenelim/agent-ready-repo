@@ -8,6 +8,41 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.25.0]
+
+### Added
+
+- **`agentbundle catalogue init --preset self-hosted`**: new enterprise-derived
+  catalogue initialization. Accepts `--source`, `--tooling external|vendored`,
+  `--attribution white-label|attributed`, `--guides none|selected`, `--pack` (repeatable),
+  `--adapter` (repeatable), `--profile` (repeatable), `--repository-url`, `--owner-email`.
+  Copies selected packs, profiles, and guides from a source catalogue; generates a new
+  `catalogue.toml` with target identity; runs a fail-closed leak check using
+  `identity.verify()`. Vendored mode copies agentbundle source and catalogue-curation
+  into `.agentbundle/tooling/` for air-gapped deployments. Writes
+  `.agentbundle/self-host-state.json` to track managed files.
+  (`commands/catalogue_init.py`, `catalogue_tooling/initialise_self_hosted.py`,
+  `catalogue_tooling/identity.py`)
+- **`agentbundle catalogue package --flavor source`**: new source-distribution flavor
+  for self-hosted catalogues. Produces a `catalogue-source-<release>.tar.gz` from a
+  positive allowlist (catalogue.toml, packs/, profiles/, guides/_shared/,
+  .claude-plugin/marketplace.json, legal files). Emits a `self-hosted-source-manifest.json`
+  with `kind = agentbundle-self-hosted-source`, per-file SHA-256 digests, and provenance
+  fields.
+  (`commands/catalogue_package.py`, `catalogue_tooling/package.py`)
+- **`catalogue_tooling.identity`**: new module migrated from
+  `catalogue-curation/export-catalogue` scripts. Public API:
+  `verify(target, anchors, *, mode, attribution_paths)` and
+  `check_ci_boundary(target)`. Used by the self-hosted init engine.
+  (`catalogue_tooling/identity.py`)
+
+### Changed
+
+- **`catalogue-curation` pack 0.2.0**: removed `export-catalogue` skill (superseded by
+  `agentbundle catalogue init --preset self-hosted`). Removed hard dependencies on
+  `core` and `governance-extras` — the pack's three skills now operate portably against
+  the target catalogue's own contracts.
+
 ## [0.24.0]
 
 ### Added

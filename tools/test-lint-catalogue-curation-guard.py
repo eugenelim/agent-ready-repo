@@ -105,12 +105,10 @@ with tempfile.TemporaryDirectory() as td:
         d = base / skill / "scripts"
         d.mkdir(parents=True)
         (d / "ssrf_check.py").write_text("SAME\n", encoding="utf-8")
-    (base / "export-catalogue" / "scripts").mkdir(parents=True)
     (base / "assimilate-primitive" / "scripts" / "write_jail.py").write_text(
         "A\n", encoding="utf-8"
     )
-    (base / "assimilate-repo" / "scripts" / "write_jail.py").write_text("A\n", encoding="utf-8")
-    (base / "export-catalogue" / "scripts" / "write_jail.py").write_text(
+    (base / "assimilate-repo" / "scripts" / "write_jail.py").write_text(
         "DRIFTED\n", encoding="utf-8"
     )
     viols = guard.check_dup_sync(root)
