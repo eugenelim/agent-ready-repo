@@ -26,6 +26,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _CONTRACTS = _REPO_ROOT / "contracts"
 _DATA = _REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
 
+
 def main() -> int:
     failures: list[str] = []
 
@@ -51,7 +52,8 @@ def main() -> int:
         )
         return 1
 
-    print(f"check_contract_parity: ok — {len(contract_files)} contract file(s) synced and byte-identical.")
+    n = len(contract_files)
+    print(f"check_contract_parity: ok — {n} contract file(s) synced and byte-identical.")
     return 0
 
 
