@@ -1,6 +1,6 @@
 [pack]
 name = "linear"
-version = "0.1.5"
+version = "0.1.6"
 description = "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief."
 readme = "README.md"
 display_name = "Linear"
@@ -39,7 +39,7 @@ prerequisites    = ["Linear Personal API Key — configure via the credential-br
 verification     = "Run `linear check` to confirm your credentials are working and your workspace is accessible."
 recovery         = "If authentication fails, reconfigure your Linear API key via the credential-brokers pack; verify the key has read access to the correct Linear workspace."
 level-b          = true
-starter-task     = "Check your Linear credentials and see your open issues"
-starter-prompt   = "Run linear check to confirm my credentials, then show me the open issues assigned to me in Linear."
-expected-result  = "Confirmation that your Linear credentials are valid, followed by a list of your open assigned issues."
-next-action      = "Ask the agent to run linear-brief-intake on one of the issues to convert it into a product brief."
+starter-task     = "Verify your Linear credentials"
+starter-prompt   = "Run linear check to confirm my credentials."
+expected-result  = "Confirmation that your Linear credentials are valid — workspace name and your identity shown."
+next-action      = "Ask the agent to run linear-brief-intake on a Linear Issue ID (e.g. LIN-123) to convert it into a product brief."
