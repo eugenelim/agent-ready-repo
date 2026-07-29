@@ -301,7 +301,8 @@ def check_phase2c_ui_primitives() -> dict:
         checked = text.count("- [x]")
         evidence.append(f"Acceptance Criteria: {checked} checked, {unchecked} unchecked")
 
-        if "Implementing" in text[:500] or unchecked > 0:
+        is_shipped = "**Status:** Shipped" in text[:500]
+        if not is_shipped or unchecked > 0:
             evidence.append("Phase 2C spec is not yet Shipped — primitives are not implemented")
             return _check("phase2c-ui-primitives", status="fail", evidence=evidence)
     else:

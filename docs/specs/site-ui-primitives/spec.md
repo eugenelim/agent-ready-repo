@@ -1,6 +1,6 @@
 # Spec: site-ui-primitives
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none <!-- ADR-NNNN, RFC-NNNN, or "none" -->
@@ -170,7 +170,7 @@ provides the source content that these primitives render.
   documentation page (T21) with no critical violations; confirmed exceptions
   (if any) are documented in this spec with the specific violation and reason.
 
-- [ ] AC13: All components verified at 1440px, 1024px, and 390px viewports
+- [x] AC13: All components verified at 1440px, 1024px, and 390px viewports
   via Playwright screenshots; components with material mobile risk additionally
   verified at 375px and 430px. Screenshots committed under
   `docs/specs/site-ui-primitives/notes/screenshots/`.
