@@ -4,6 +4,7 @@ description: From zero to your first loop in under five minutes.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
+import PromptBlock from '../../../components/primitives/PromptBlock.astro';
 
 agent-ready-repo ships the complete AI operating model for software teams. This guide gets you from zero to your first loop in under five minutes.
 
@@ -81,9 +82,11 @@ This reads your repo's stack and conventions, then tailors the installed skills 
 
 Your first real task:
 
-```
-Implement <feature> with the work-loop.
-```
+<PromptBlock
+  speaker="You"
+  prompt="Implement <feature> with the work-loop."
+  mode="read-only"
+/>
 
 The build loop will:
 
