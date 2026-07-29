@@ -757,7 +757,7 @@ def init_catalogue(
     unexpected_diags: list[Diagnostic] = [
         Diagnostic(
             code="CAT-INIT-011",
-            severity=Severity.WARNING,
+            severity=Severity.INFO,
             pack=None,
             path=u,
             line=None,
