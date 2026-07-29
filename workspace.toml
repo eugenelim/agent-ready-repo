@@ -1282,29 +1282,22 @@ milestone = "M1 · Shaping + Contract Convergence"
 ["ini-007".shaping_queue]
 # Audience research and contract inventory run first — no dependencies, fully parallel
 active = [
-  # Research: five-audience journey pressure test (enterprise maintainer, marketing
-  # evaluator, platform engineer, repository engineer, coding agent). Deliverable:
-  # docs/product/research/catalogue-audience-discovery.md. Navigation targets:
-  # ≤2 actions from any entry point to authoritative contract or authoring standards.
+  # Research: five-audience journey pressure test. Deliverable: shipped to
+  # docs/product/research/catalogue-audience-discovery.md (Wave 1).
   {slug = "catalogue-audience-discovery",          type = "research"},
-  # Research: inventory all machine contracts, generated projections, AGENTS summaries,
-  # README summaries, site data, and CLI consumers. Identify authority direction:
-  # contracts/ → _data/ → generated index → AGENTS/README guidance. Known gap:
-  # guide.schema.json, skill.schema.json, skill-manifest.schema.json, target-vocab.toml
-  # exist in contracts/ but are absent from agentbundle/_data/.
-  # Deliverable: docs/product/research/catalogue-contract-guidance-inventory.md.
+  # Research: contract guidance inventory. Deliverable: shipped to
+  # docs/product/research/catalogue-contract-guidance-inventory.md (Wave 1).
   {slug = "catalogue-contract-guidance-inventory", type = "research"},
+  # Shape: optional [[pack.integrations]] convention. RFC-0076 D6 owns the candidate
+  # schema (10 fields, 4 kinds, first-party pilots). Deliverable: Wave 2 spec.
+  # frame-intent unavailable (PE pack not installed); shaping done via new-spec.
+  {slug = "optional-pack-integration-contract", type = "shape"},
+  # Shape: journey, lifecycle, effects, neutral catalogue-index.json, profile discovery
+  # metadata. RFC-0076 D7 owns the candidate schema. Deliverable: Wave 4 spec.
+  # frame-intent unavailable (PE pack not installed); shaping done via new-spec.
+  {slug = "catalogue-semantics-release-shape", type = "shape"},
 ]
 backlog = [
-  # Shape: optional [[pack.integrations]] convention. Four kinds: input/augment/review/
-  # handoff. Required fallback. Unique IDs per pack. Absent target = verify still passes.
-  # Gated on contract inventory completing.
-  {slug = "optional-pack-integration-contract", type = "shape", needs = "research:catalogue-contract-guidance-inventory"},
-  # Shape: journey, lifecycle, effects, neutral catalogue-index.json, profile discovery
-  # metadata, content digests, same-version mutation refusal, release comparison.
-  # Keeps distinct: catalogue-index.json / catalogue-manifest.json / marketplace.json.
-  # Gated on contract inventory completing.
-  {slug = "catalogue-semantics-release-shape", type = "shape", needs = "research:catalogue-contract-guidance-inventory"},
   # Design: "Build a Catalogue" docs-site section; /evaluate/ marketing route; root
   # README routing; enterprise scaffold content; measurable navigation targets.
   # Gated on audience research AND semantic shape completing.
@@ -1312,17 +1305,13 @@ backlog = [
 ]
 
 ["ini-007".work]
-active  = []
+active  = [
+  "spec/catalogue-wave2-pack-integrations",     # spec Approved — D6 integrations schema + verifier + show + pilots + hub
+]
 shipped = [
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
 ]
 queue   = [
-  # Wave 2 — Optional pack integrations. Gated on Wave 1 + integration shape.
-  # Deliver: [[pack.integrations]] schema + verifier; agentbundle show table+JSON;
-  # neutral index integration view; first-party pilots (core→FE, new-rfc→desk-research
-  # /product-engineering/architect); skill fallback procedures; behavior tests; authoring
-  # guidance; eval coverage; version bump + changelog.
-  {path = "spec/catalogue-wave2-pack-integrations", needs = ["work:spec/catalogue-wave1-contract-convergence", "shape:optional-pack-integration-contract"]},
 
   # Wave 3 — Enterprise authoring discovery. Gated on Wave 2.
   # Deliver: catalogue-authoring-standards.md in init scaffold; bundled-contract
