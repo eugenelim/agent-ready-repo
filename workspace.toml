@@ -1192,7 +1192,10 @@ backlog = []
 
 ["ini-006".work]
 active  = []
-shipped = ["spec/catalogue-ci-contract-guide"]
+shipped = [
+  "spec/catalogue-ci-contract-guide",
+  "spec/catalogue-ci-documentation",
+]
 queue   = [
   # M1 · Core guide + command verification + agent guidance
   # Problem: no canonical document defines the portable commands, exit behavior,
@@ -1237,20 +1240,4 @@ queue   = [
   #   filenames, white-label behavior remains fail-closed.
   # Done: export-boundary tests pass; white-label behavior verified fail-closed.
   {path = "spec/catalogue-ci-export-boundary", needs = "work:spec/catalogue-ci-contract-guide"},
-
-  # M2b · Documentation integration
-  # Problem: guides/_shared/README.md, guides/README.md, Artifactory packaging and
-  #   publication guides, AgentBundle CLI reference, disconnected-operation guidance,
-  #   and enterprise distribution guidance don't reference the new contract. Adopters
-  #   can't discover canonical CI orchestration guidance from existing entry points.
-  # Deliver: guides/_shared/README.md and guides/README.md link to the new guide;
-  #   Artifactory packaging and publication guides link to contract (no duplication);
-  #   CLI reference links to contract; disconnected-operation and enterprise
-  #   distribution guides updated; site regenerated through normal rendering system
-  #   (no hand-editing generated output); all internal links validated;
-  #   documentation tests — guide appears in rendered site output, internal links
-  #   resolve, related Artifactory pages link to it, doc generation leaves repo clean,
-  #   no CI workflow implementation appears in portable catalogue output.
-  # Done: site regenerated and clean; all documentation tests pass; no broken links.
-  {path = "spec/catalogue-ci-documentation", needs = "work:spec/catalogue-ci-contract-guide"},
 ]

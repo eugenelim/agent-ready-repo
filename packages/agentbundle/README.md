@@ -118,7 +118,7 @@ rollback. Never silently downgrades an `ahead` row.
 **Package your catalogue for Artifactory:**
 
 ```bash
-agentbundle package-catalogue \
+agentbundle catalogue package \
   --root /path/to/catalogue \
   --bundle my-packs \
   --release 1.0.0 \
@@ -129,6 +129,10 @@ agentbundle package-catalogue \
 Produces a deterministic, reproducible gzip archive (versioned) and a mutable channel
 descriptor JSON (`stable.json`), ready to upload to Artifactory. Identical inputs
 produce byte-identical archives (honors `SOURCE_DATE_EPOCH`).
+
+For the full CI pipeline contract — publication ordering, exit codes, and the responsibility
+boundary between the CLI and your CI system — see the
+[Catalogue CI contract](https://github.com/eugenelim/agent-ready-repo/blob/main/guides/_shared/reference/catalogue-ci-contract.md).
 
 **Org bootstrap — ship the default channel in your fork:**
 

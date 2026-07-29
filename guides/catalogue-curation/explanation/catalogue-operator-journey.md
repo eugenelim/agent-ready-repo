@@ -99,13 +99,16 @@ Between sessions, a new agent or a colleague can pick up exactly where the previ
 
 ### Profile and publish
 
-A catalogue that has grown through assimilation can be published two ways.
+A catalogue that has grown through assimilation can be published three ways.
 
 The first is a **profile update**: the maintained catalogue proposes a new profile (via RFC) so the adopted set installs in one command.
 A profile is a curated, single-scope manifest — see [Design a profile](../../_shared/how-to/design-a-profile.md) for the four design tests and worked examples.
 
 The second is an **export**: `export-catalogue` produces a redistributable fork in white-label mode (all upstream identity stripped) or attributed mode (upstream credit preserved in the declared attribution surface).
 The export's verify step is fail-closed — any surviving identity anchor stops the export.
+
+The third is a **CI packaging release**: `agentbundle catalogue package` bundles the catalogue into a versioned, reproducible archive for Artifactory publication — a distinct path from `export-catalogue`, which produces a fork rather than a release artifact.
+For publication ordering, exit codes, and the full CI pipeline contract, see the [Catalogue CI contract](../../_shared/reference/catalogue-ci-contract.md).
 
 **Primary touchpoints:** `assimilate-repo`, `propose-catalogue-pack`, `assimilate-primitive`, `export-catalogue`.
 

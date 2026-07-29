@@ -87,3 +87,4 @@ to the packaged default source.
 ## See also
 
 - [`agentbundle` reference — source resolution and env vars](../reference/agentbundle.md#catalogue-source-resolution)
+- [Catalogue CI contract](../reference/catalogue-ci-contract.md) — publication ordering, exit codes, and responsibility boundaries for packaging and publishing from CI.
