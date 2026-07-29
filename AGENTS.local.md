@@ -9,6 +9,8 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
   [`packages/AGENTS.md`](packages/AGENTS.md).
 - **Release coupling** (PyPI release requirements, version bump workflow, tagging):
   [`packages/AGENTS.local.md`](packages/AGENTS.local.md).
+- **Marketing site** (Astro build, Node.js deps, dev server, mobile viewport, link rules):
+  [`web/AGENTS.md`](web/AGENTS.md).
 - **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
   [`guides/_shared/reference/catalogue-ci-contract.md`](guides/_shared/reference/catalogue-ci-contract.md).
 
