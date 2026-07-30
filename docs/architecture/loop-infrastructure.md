@@ -1120,7 +1120,8 @@ On resume, the agent:
 10. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is
     mechanically guarded; re-run gates and fire the appropriate event.
 11. If `state == CODE-HUMAN-GATE` and `last_event == reviewers-clean` →
-    `review record --report` may not have run. Split by outcome:
+    wait for the human signal (step 4). After the human signal arrives, split by outcome:
+    `review record --report` may not have run.
     - **`done` branch:** `review_round_count` may be under-counted by one;
       this is audit-only and does not affect guard caps. Safe to proceed.
     - **`blocker-applied` branch:** additionally, `finding_fingerprints` may
