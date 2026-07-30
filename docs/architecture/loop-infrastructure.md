@@ -67,25 +67,30 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   (intentionally survives chat-session boundaries). The field list in this
   document is the authoritative Phase 1 reference; `references/state-schema.md`
   reflects the pre-Phase-1 model (per-session lifetime, shared `iteration_count`)
-  and is superseded by this document until rewritten. Schema includes
-  (`schema_version: 1` in Phase 1):
+  and is superseded by this document; it will be rewritten in PR #816. Schema includes
+  (`schema_version: 1` in Phase 1). The [State Ownership table](#state-ownership)
+  is the authoritative field list; the sub-bullets below are supplementary
+  descriptions. Active Phase-1 fields:
   `run_id`, `schema_version`, `feature`,
   `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`,
   `review_round_count`, `review_retry_count`, `max_review_retries`,
   `implementation_retry_count`, `max_implementation_retries`,
   `last_record_attempt_cycle_id`,
+  `finding_fingerprints`, `previous_finding_fingerprints`,
+  `plan_hash`, `schedule_waves`, `current_wave_index`.
+
+  *Disabled-verb fields — present in the schema but have no Phase-1 writer
+  (disabled verb groups: `worktree`, `dispatch-decision`, `auto-parallel`):*
+  `auto_parallel`, `last_commit_sha`, `worktrees`.
+
   *(Phase-2 reserved — no Phase-1 writer; guards treat as advisory/non-blocking):*
   `token_budget_used_pct`, `token_budget_cap_pct`,
   `consecutive_same_error_count`, `consecutive_same_error_threshold`,
-  `last_error_fingerprint`,
-  `finding_fingerprints`, `previous_finding_fingerprints`,
-  `auto_parallel`, `last_commit_sha`, `worktrees`,
-  `plan_hash`, `schedule_waves`, `current_wave_index`.
+  `last_error_fingerprint`.
 
-  *Phase-2 reserved fields have no defined Phase-1 writer. Guards that read them
-  treat them as advisory bounds (log but do not block). Implementers must not
-  wire a writer for these fields in Phase 1; they are listed here to reserve the
-  field names for Phase 2.*
+  *Phase-2 reserved fields are listed to reserve the name for Phase 2. Guards
+  that read them treat them as advisory bounds (log but do not block).
+  Implementers must not wire a writer for these fields in Phase 1.*
 
   - `review_round_count` — total CODE-REVIEW rounds; incremented by every
     `review record` call (both clean and findings). Audit only; not cap-guarded.
@@ -113,8 +118,11 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
     **point-in-time marker**: after `plan-approved`, spec.md is expected to
     undergo permitted status mutations (`Approved → Implementing → Shipped`)
     that change its raw bytes, making `approved_spec_hash` stale. Skill writes
-    `Status: Implementing` before calling `schedule`, and `Status: Shipped` before
-    the `reviewers-clean` transition (gate enforced by `check-spec-status.py`). The engine does
+    `Status: Implementing` *after* the `plan-approved` engine transition (on
+    entry to `CODE-IMPLEMENTATION`), not before `schedule` — spec.md is
+    byte-frozen from `approve-plan` through the `plan-approved` guard. Skill
+    writes `Status: Shipped` before the `reviewers-clean` transition (gate
+    enforced by `check-spec-status.py`). The engine does
     not re-check `approved_spec_hash` during CODE-* transitions. Subsequent
     spec-body integrity (acceptance criteria, scope, requirements) is a skill
     obligation in Phase 1. Phase 2 may introduce `approved_spec_contract_hash`
@@ -255,10 +263,11 @@ loop-cohort auto-parallel <spec-dir> [--off]
   `dispatch-decision`, `auto-parallel`) are carried over from loop-cohort's
   existing implementation. **All three parallel-wave verb groups (`worktree`,
   `dispatch-decision`, `auto-parallel`) are disabled in Phase 1** — parallel
-  waves have no FSM coupling and their sequencing is not specified here; the
-  verbs are present in the CLI surface but the skill must not invoke any of them.
-  A future spec will wire worktree sequencing against `wave-complete` and `wave
-  advance`, at which point these verbs will become supported gate inputs.
+  waves have no FSM coupling and their sequencing is not specified here. These
+  verbs must exit non-zero with a "disabled in Phase 1" message to prevent
+  accidental invocation from touching `state.json` fields (`worktrees`,
+  `auto_parallel`). A future spec will wire worktree sequencing against
+  `wave-complete` and `wave advance`.
 
 **Write contract:** all `loop-cohort` mutations write `state.json` via tempfile +
 `os.replace` (atomic swap, mirrors `loop-engine`'s write contract). Torn writes
@@ -602,12 +611,13 @@ being shipped.
 exits 0 iff `spec.md` contains `**Status:** Shipped`; exits non-zero with a
 one-line reason on stderr otherwise (missing, wrong status, or unparseable).
 It must reuse the same canonical status parser as `lint-spec-status.py` to avoid
-an independent regex. **Scope limitation:** the gate proves the string is present,
-not that *this run* wrote it — a stale `Shipped` from an abandoned prior run would
-pass. The reset pair (`loop-cohort reset` + `loop-engine reset`) deletes only the
-run-local scratch files and does NOT clear `spec.md`. The expected control: before
-reusing a spec dir after an abandoned run, manually reset `spec.md` Status to
-`Implementing`; a fresh spec dir will not have a stale `Shipped`. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
+an independent regex. **Scope limitation and named risk acceptance:** the gate
+proves the string is present, not that *this run* wrote it — a stale `Shipped`
+from an abandoned prior run would pass. The reset pair deletes only run-local
+scratch files and does NOT clear `spec.md`. Phase-2 resolution: a run-id-stamped
+marker or having the reset pair also rewrite `spec.md` Status. Phase-1 control:
+before reusing a spec dir after an abandoned run, manually reset `spec.md` Status
+to `Implementing`; a fresh spec dir will not have a stale `Shipped`. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
 (before G-pr, not at merge). This means
 a `blocker-applied` return leaves the spec with `Status: Shipped` while the PR
 continues iterating. This is intentional — per the project's "set final status
@@ -838,6 +848,15 @@ Phase-1 field set defined in the Scripts section above.
 `done` and `blocker-applied` carry no mechanical guard. `done` must not be
 fired without a confirmed merge. A merge-verification guard is deferred.
 
+**Named risk acceptance — `done` has no mechanical guards:** `done` skips both
+merge verification (deferred) and plan immutability. A mis-firing skill can
+terminate a run with an unmerged or plan-mutated tree and nothing catches it
+mechanically. This is an accepted Phase-1 gap: both omissions are individually
+justified (merge guard deferred; plan-check exempted to avoid stranding merged
+runs), but the combination leaves the only irreversible transition wholly
+trust-based. Merge verification and a post-merge plan-check exemption are
+Phase-2 items.
+
 `done` is **exempt from the `schedule check-current` pre-guard** (see Interaction
 Model step 1b). The PR is already merged when `done` fires; plan immutability has
 served its purpose and enforcing it there would strand a completed run for zero
@@ -864,10 +883,10 @@ cohort state only through designated read-only verbs.
 
 | File | Owner | Key fields |
 |---|---|---|
-| `state.json` | loop-cohort | `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `auto_parallel`, `last_commit_sha`, `worktrees`, `plan_hash`, `schedule_waves`, `current_wave_index` *(+ Phase-2 reserved: `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint`)* |
+| `state.json` | loop-cohort | **Active Phase-1:** `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `plan_hash`, `schedule_waves`, `current_wave_index` ∥ **Disabled-verb (no Phase-1 writer):** `auto_parallel`, `last_commit_sha`, `worktrees` ∥ **Phase-2 reserved (no Phase-1 writer):** `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint` |
 | `engine-state.json` | loop-engine | `schema_version`, `run_id`, `feature`, `mode`, `state`, `last_event`, `last_event_context`, `transition_sequence`, `last_transition_at` |
 
-*Phase-2 reserved fields listed above have no Phase-1 writer; guards treat them as advisory.*
+*This table is the authoritative field list. The field descriptions in the Scripts section above are supplementary. Phase-2 reserved and disabled-verb fields have no Phase-1 writer; guards treat Phase-2 reserved as advisory.*
 
 **`run_id`** is an immutable UUID generated at `loop-engine init`. Both files
 carry it; every transition verifies the pair via `loop-cohort identity`.
@@ -927,7 +946,9 @@ CODE-IMPLEMENTATION
     │  wave-complete
     │  guard: check --phase implement (advisory only)
     ▼
-CODE-VERIFICATION
+CODE-VERIFICATION   [skill branches: gates pass? → wave check --expect last
+    │                  last wave? → gates-clean; else → wave-passed
+    │                  gates fail? → gates-failed]
     ├── wave-passed (guard: wave check --expect more --wave-index <n>) ──► CODE-IMPLEMENTATION
     │     skill: wave advance --from-index <n>                                (next wave)
     ├── gates-clean (guard: wave check --expect last) ────► CODE-REVIEW
@@ -1013,11 +1034,13 @@ On resume, the agent:
 7. If `state == CODE-IMPLEMENTATION` and `last_event == findings-remain` →
    `review record --fingerprint` may not have run. This window is not idempotent
    in Phase 1 (no report-path pointer in `state.json` to enable safe replay). Surface
-   to human: report that `review_retry_count` may be under-counted by one and
-   `finding_fingerprints` may not reflect the latest round. **Proceed with
-   under-counted budget (Phase-1 accepted limitation)** — the under-count is
-   conservative (guard may allow one extra retry) and is the only safe default
-   given the report path is not durably stored. Do NOT auto-reissue `review record`.
+   to human: report two consequences — (a) `review_retry_count` may be under-counted
+   by one (conservative; guard may allow one extra retry), AND (b) `finding_fingerprints`
+   still holds the previous round's set, so the next `review inspect` stasis check
+   compares round N+1 against N-1 (a genuine N↔N+1 stasis is missed). The
+   `review_retry_count` cap is the sole remaining backstop for that round.
+   **Proceed with under-counted budget and stale fingerprint baseline (Phase-1
+   accepted limitation).** Do NOT auto-reissue `review record`.
 8. If `state == CODE-IMPLEMENTATION` and `last_event == gates-failed` →
    `record-attempt` may not have run. Reissue `loop-cohort record-attempt
    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` (idempotent:
