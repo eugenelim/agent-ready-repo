@@ -77,11 +77,12 @@ exist yet** — ask, or open an RFC. Don't guess. Lifecycle and mechanics
 
 ## How we work
 
-For anything beyond a one-line edit, follow the **plan → execute → verify →
-review** loop. The mechanics — verification modes, gate sequence, iteration
-cap, capture-learnings, specialist-reviewer pass — live in the
-`work-loop` skill. Load it before
-non-trivial work; that is the canonical source for *how* the loop runs.
+Skip the loop only when a change is cosmetic, tightly local, behavior-preserving,
+*and* obviously verifiable — a one-line authentication, migration, production-
+config, or public-interface change is not trivial. For everything else: follow
+the **plan → execute → verify → review** loop. The mechanics — verification
+modes, gate sequence, iteration cap, capture-learnings, specialist-reviewer pass
+— live in the `work-loop` skill; that is the canonical source for *how* the loop runs.
 [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#how-we-do-non-trivial-work)
 covers the *why*. Commits follow Conventional Commits — format and footer
 rules are in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits).

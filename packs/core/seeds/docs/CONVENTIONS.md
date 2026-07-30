@@ -661,10 +661,11 @@ must be noted in `CHANGELOG.md`.
 
 ## How we do non-trivial work
 
-For anything beyond a one-line edit, follow the **plan → execute → verify →
-review → iterate** loop. The mechanics are in the
-`work-loop` skill; this section is
-the why.
+Skip the loop only when a change is cosmetic, tightly local, behavior-preserving,
+*and* obviously verifiable — a one-line authentication, migration, production-
+config, or public-interface change is not trivial. For everything else, follow
+the **plan → execute → verify → review → iterate** loop. The mechanics are in
+the `work-loop` skill; this section is the why.
 
 **Why a loop, not a single pass.** LLM self-assessment is unreliable: agents
 declare victory when they *feel* done. Mechanical gates (lint, typecheck,
