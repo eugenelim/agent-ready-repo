@@ -1,5 +1,11 @@
 # Work-loop state
 
+> **SUPERSEDED.** This file describes the pre-Phase-1 `state.json` model
+> (per-session lifetime, shared `iteration_count`). It is superseded by
+> `docs/architecture/loop-infrastructure.md`, which is the authoritative Phase 1
+> field reference. This file will be rewritten as part of PR #816 (loop-engine
+> implementation). Do not use this file as a schema reference.
+
 A spec-driven loop carries a small amount of session-scoped state — how
 many iterations have run, what budget is left, what findings the last
 review surfaced. Putting that in prose ("we cap at 5 iterations…") leaves
