@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "0.15.6"
+version = "0.15.7"
 description = "Core: work-loop, new-spec, bug-fix, adapt-to-project, init-project, receive-brief, author-brief, capture-work, workspace-status, frontend-engineering, contract-acquisition, operational-safety, security-checklists skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md, CHARTER, CONVENTIONS, docs/architecture, docs/knowledge, docs/product, docs/specs, workspace.toml seeds."
 readme = "README.md"
 display_name = "Core"
@@ -63,3 +63,25 @@ surfaces         = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 prerequisites    = []
 verification     = "Run workspace-status and confirm your workspace.toml queue state is displayed."
 recovery         = "If workspace-status does not activate, re-run adapt-to-project to refresh your repo's skill index."
+
+[[pack.integrations]]
+id        = "frontend-preflight-augment"
+pack      = "frontend-engineering"
+kind      = "augment"
+role      = "Frontend pre-flight augmentation"
+consumers = ["skill:work-loop"]
+providers = ["skill:frontend-engineering"]
+when      = "The target repository declares HTML/CSS/JS as a primary output and the frontend-engineering pack is installed."
+purpose   = "Inline the frontend-engineering skill into the work-loop pre-EXECUTE gate when the build produces an HTML/CSS/JS primary artifact."
+fallback  = "If frontend-engineering is absent, work-loop records a named skip (FE pre-flight: skipped) and continues without the FE gate."
+
+[[pack.integrations]]
+id        = "frontend-cold-reviewer"
+pack      = "frontend-engineering"
+kind      = "review"
+role      = "Frontend cold reviewer"
+consumers = ["skill:work-loop"]
+providers = ["agent:frontend-reviewer"]
+when      = "The diff's primary output is HTML/CSS/JS and the frontend-engineering pack is installed."
+purpose   = "Run the frontend-reviewer agent during work-loop REVIEW for diffs whose primary output is HTML/CSS/JS."
+fallback  = "If frontend-engineering is absent, the REVIEW phase skips the frontend-reviewer and records a named skip."
