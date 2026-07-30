@@ -39,9 +39,10 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   (intentionally survives chat-session boundaries). See
   `references/state-schema.md` for the full field reference. Schema includes:
   `run_id`, `schema_version`, `feature`,
-  `plan_review_status`, `approved_plan_hash`,
-  `review_iteration_count`, `max_review_iterations`,
+  `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`,
+  `review_round_count`, `review_retry_count`, `max_review_retries`,
   `implementation_retry_count`, `max_implementation_retries`,
+  `last_record_attempt_cycle_id`,
   `token_budget_used_pct`†, `token_budget_cap_pct`†,
   `consecutive_same_error_count`†, `consecutive_same_error_threshold`†,
   `finding_fingerprints`, `previous_finding_fingerprints`,
@@ -52,48 +53,63 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   Phase 1 writer. A guard that compares them treats them as advisory bounds
   (log but do not block) until a writer is specified.*
 
-  - `review_iteration_count` / `max_review_iterations` — counts CODE-REVIEW
-    rounds; incremented by `review record`. The review-phase guard enforces this
-    cap. Separate from implementation retry budget.
+  - `review_round_count` — total CODE-REVIEW rounds; incremented by every
+    `review record` call (both clean and findings). Audit only; not cap-guarded.
+  - `review_retry_count` / `max_review_retries` — findings-only rounds;
+    incremented by `review record --fingerprint` (not by `--report`). The
+    `findings-remain` guard enforces this cap. Separates convergence retries from
+    clean reviews and human-blocker round-trips.
   - `implementation_retry_count` / `max_implementation_retries` — counts
     `gates-failed` back-edge repair cycles; incremented by `record-attempt
     --phase implement`. Successful scheduled-wave executions do NOT consume
-    this budget. The implement-phase guard enforces this cap.
+    this budget. The `gates-failed` guard enforces this cap.
+  - `last_record_attempt_cycle_id` — the last `--cycle-id` applied by
+    `record-attempt`. Enables `record-attempt` to be idempotent: a second call
+    with the same cycle ID returns success without incrementing the counter.
   - `finding_fingerprints` — fingerprints from the most recent review round,
     rotated by `review record`. `review inspect` compares incoming fingerprints
     against this field for stasis detection.
   - `previous_finding_fingerprints` — fingerprints from the round before the
     most recent, retained for audit.
+  - `approved_spec_hash` — sha256 of spec.md bytes at the time `approve-plan`
+    ran, binding the approval marker to a specific spec version.
   - `approved_plan_hash` — sha256 of plan.md bytes at the time `approve-plan`
     ran, binding the approval marker to a specific plan version.
   - `plan_hash` — sha256 of plan.md bytes at the time `schedule` ran.
-    `plan check-current` verifies this still matches the working copy.
+    `check --phase implement` verifies this matches the working copy (plan
+    immutability enforcement).
   - `schedule_waves`, `current_wave_index` — persisted by `schedule` for
     cross-run wave resumption.
 
 - Task DAG and wave scheduling — `schedule` reads plan.md, validates the DAG,
   computes topological waves, and persists `plan_hash`, `schedule_waves`,
   `current_wave_index: 0` to `state.json`. Exit non-zero on any DAG error.
-- Finding fingerprints — `review record` increments `review_iteration_count`,
-  rotates fingerprint lists. **Not idempotent** in Phase 1.
-- Attempt recording — `record-attempt --phase implement` increments
-  `implementation_retry_count`. Called by the skill only after `gates-failed`;
-  not called on successful scheduled-wave transitions.
-- Iteration and budget gates — `check --phase {implement,review}` enforces
-  the bounded counters for that phase. Advisory fields are checked but do not
-  block. Plan-phase approval is covered by `plan check-current`, not `check
-  --phase`.
+- Finding fingerprints — `review record --fingerprint` increments
+  `review_retry_count` and `review_round_count`, rotates fingerprint lists.
+  `review record --report` increments `review_round_count` only (clean round).
+  **Not idempotent** in Phase 1 for findings rounds.
+- Attempt recording — `record-attempt --phase implement --cycle-id
+  <run_id>:<transition_sequence>` increments `implementation_retry_count` and
+  stores the cycle ID in `last_record_attempt_cycle_id`. Idempotent: a second
+  call with the same `--cycle-id` returns success without incrementing.
+  Called by the skill only after `gates-failed`; not called on successful
+  scheduled-wave transitions.
+- Iteration and budget gates — `check --phase {implement,review,gates-failed}`
+  enforces the bounded counters for that phase or transition. Advisory fields
+  are checked but do not block. Plan-phase approval is covered by
+  `plan check-current --require-schedule` or `plan check-current`, not
+  `check --phase`.
 
 **Verb surface:**
 ```
 loop-cohort init <spec-dir> [--run-id <uuid>]
 loop-cohort identity <spec-dir> [--expect-run-id <uuid>] [--json]
-loop-cohort check <spec-dir> --phase {implement,review}
+loop-cohort check <spec-dir> --phase {implement,review,gates-failed}
 loop-cohort approve-plan <spec-dir>
-loop-cohort plan check-current <spec-dir>
+loop-cohort plan check-current <spec-dir> [--require-schedule]
 loop-cohort schedule <spec-dir>
-loop-cohort record-attempt <spec-dir> --phase implement [--error-fingerprint <hex>]
-loop-cohort wave check <spec-dir> --expect {more,last}
+loop-cohort record-attempt <spec-dir> --phase implement --cycle-id <id> [--error-fingerprint <hex>]
+loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
 loop-cohort wave advance <spec-dir> --from-index <n>
 loop-cohort review inspect <spec-dir> --report <path> [--json]
 loop-cohort review record <spec-dir> (--report <path> | --fingerprint <hex>...)
@@ -113,16 +129,22 @@ loop-cohort auto-parallel <spec-dir> [--off]
   before every code/spec-plan transition (see Guards) and as the cohort-present
   check during the init preflight.
 
-- **`plan check-current`** — read-only. Verifies: `plan_review_status ==
-  "approved"`, `approved_plan_hash == sha256(plan.md)`,
-  `plan_hash == approved_plan_hash`, `schedule_waves` non-empty,
-  `0 <= current_wave_index < len(schedule_waves)`. Exit non-zero with a
-  descriptive message on any failure.
+- **`plan check-current [--require-schedule]`** — read-only. Always verifies:
+  `plan_review_status == "approved"`, `approved_spec_hash == sha256(spec.md)`,
+  `approved_plan_hash == sha256(plan.md)`. With `--require-schedule`: also
+  verifies `plan_hash == approved_plan_hash`, `schedule_waves` non-empty,
+  `0 <= current_wave_index < len(schedule_waves)`. Without the flag: no schedule
+  check (spec-plan mode has no implementation waves). Exit non-zero with a
+  descriptive message on any failure. The engine selects the flag based on its
+  persisted mode; loop-cohort never infers mode from cohort state.
 
-- **`wave check --expect {more,last}`** — read-only. With `--expect more`:
-  exits 0 iff `current_wave_index < len(schedule_waves) - 1`. With `--expect
-  last`: exits 0 iff `current_wave_index == len(schedule_waves) - 1`. Guard
-  for `wave-passed` and `gates-clean` respectively.
+- **`wave check --expect {more,last} [--wave-index <n>]`** — read-only. With
+  `--expect more`: exits 0 iff `current_wave_index < len(schedule_waves) - 1`.
+  With `--expect last`: exits 0 iff `current_wave_index ==
+  len(schedule_waves) - 1`. With `--wave-index <n>`: additionally verifies
+  `current_wave_index == n`; refuses if the supplied index does not match the
+  stored index. Guard for `wave-passed` (with `--wave-index`) and `gates-clean`
+  respectively.
 
 - **`wave advance --from-index <n>`** — mutating; idempotent.
   - `current_wave_index == n` → set `n + 1`, exit 0.
@@ -186,6 +208,7 @@ assertions or the completion of any post-transition operation the skill performs
     "mode": "code | spec-plan",
     "state": "<phase name — see transition tables below>",
     "last_event": "<event name that entered this state, or null at init>",
+    "last_event_context": null,
     "transition_sequence": 0,
     "last_transition_at": "<ISO-8601 UTC>"
   }
@@ -195,9 +218,17 @@ assertions or the completion of any post-transition operation the skill performs
     `CODE-IMPLEMENTATION` (plan-approved, wave-passed, gates-failed,
     findings-remain, blocker-applied). Pure phase-tracker data; does not make
     A an orchestrator.
+  - `last_event_context` — event-specific payload stored alongside `last_event`.
+    Null for most events. For `wave-passed`: `{"completed_wave_index": <n>}`
+    where `n` is the zero-based index of the wave that just passed (supplied by
+    the skill via `--wave-index`). A resuming session uses this to reissue
+    `wave advance --from-index <n>` safely regardless of which crash window it
+    is in — before or after the advance completed.
   - `transition_sequence` — monotonically increasing counter, incremented on
-    every successful write. Supports supervisor staleness detection without
-    parsing timestamps.
+    every successful write. External supervisors (INI-003) use it to detect
+    stale callers. Concurrent transitions are outside Phase 1 scope; no
+    compare-and-swap mechanism is specified. Do not use `transition_sequence`
+    as a locking primitive.
 
 - Phase FSM — per-mode transition tables (see below). Events not in the table
   for the current mode × state pair are refused with a non-zero exit.
@@ -388,35 +419,44 @@ always read-only calls.
 
 | Event | Mode | Current state | Guard call | Purpose |
 |---|---|---|---|---|
-| `plan-approved` | code | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort plan check-current <spec-dir>` | Verifies approval + schedule bound to current plan.md |
-| `plan-approved` | spec-plan | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort plan check-current <spec-dir>` | Verifies approval bound to current spec/plan content |
-| `wave-complete` | code | `CODE-IMPLEMENTATION` | `loop-cohort check <spec-dir> --phase implement` | Implementation retry cap (advisory: token budget, same-error) |
-| `wave-passed` | code | `CODE-VERIFICATION` | `loop-cohort wave check <spec-dir> --expect more` | Mechanically verify more waves remain |
+| `plan-approved` | code | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort plan check-current <spec-dir> --require-schedule` | Verifies approval + schedule bound to current spec.md + plan.md |
+| `plan-approved` | spec-plan | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort plan check-current <spec-dir>` | Verifies approval bound to current spec.md + plan.md (no schedule) |
+| `wave-complete` | code | `CODE-IMPLEMENTATION` | `loop-cohort check <spec-dir> --phase implement` | Plan immutability (`plan_hash == sha256(plan.md)`); advisory: token budget, same-error |
+| `gates-failed` | code | `CODE-VERIFICATION` | `loop-cohort check <spec-dir> --phase gates-failed` | Retry cap: refuses if `implementation_retry_count >= max_implementation_retries` |
+| `wave-passed` | code | `CODE-VERIFICATION` | `loop-cohort wave check <spec-dir> --expect more --wave-index <n>` | Mechanically verify more waves remain; index matches persisted state |
 | `gates-clean` | code | `CODE-VERIFICATION` | `loop-cohort wave check <spec-dir> --expect last` | Mechanically verify current is the final wave |
-| `findings-remain` | code | `CODE-REVIEW` | `loop-cohort check <spec-dir> --phase review` | Review iteration cap (advisory: token budget, same-error) |
+| `findings-remain` | code | `CODE-REVIEW` | `loop-cohort check <spec-dir> --phase review` | Review retry cap (`review_retry_count`); advisory: token budget, same-error |
 | `reviewers-clean` | code | `CODE-REVIEW` | `check-spec-status.py <spec-dir>` | `**Status:** Shipped` before G-pr |
 
-**`plan check-current` scope (code):** verifies `plan_review_status == "approved"`,
+**`plan check-current` scope (code, `--require-schedule`):** verifies
+`plan_review_status == "approved"`, `approved_spec_hash == sha256(spec.md)`,
 `approved_plan_hash == sha256(plan.md)`, `plan_hash == approved_plan_hash`,
 `schedule_waves` non-empty, `0 <= current_wave_index < len(schedule_waves)`.
-Catches plan.md edited after approval or after scheduling.
+Catches spec.md or plan.md edited after approval, or plan.md edited after
+scheduling.
 
-**`plan check-current` scope (spec-plan):** verifies `plan_review_status ==
-"approved"` and `approved_plan_hash == sha256(plan.md bytes)`. No schedule
-check (spec-plan has no implementation waves). Note: `spec.md` edits after
-`approve-plan` are not caught by this guard — only `plan.md` is bound.
-If spec.md is materially revised after approval, re-run `approve-plan`.
+**`plan check-current` scope (spec-plan, no flag):** verifies
+`plan_review_status == "approved"`, `approved_spec_hash == sha256(spec.md)`,
+`approved_plan_hash == sha256(plan.md)`. No schedule check (spec-plan has no
+implementation waves). Both spec.md and plan.md are bound to the approval
+marker; a post-approval edit to either file causes this guard to refuse.
 
-**`wave-complete` guard scope:** enforces `implementation_retry_count <
-max_implementation_retries`. Token budget and same-error checks are advisory in
-Phase 1 (their writers are not yet specified; see State Ownership notes).
-Successful forward progress through scheduled waves does NOT consume retry
-budget — only `gates-failed` repair cycles do. The retry cap is global across
-the entire run (not per-wave); a long run with flaky gates can exhaust it
-across waves. Per-wave cap (reset on `wave advance`) is deferred.
+**`wave-complete` guard scope:** enforces plan immutability (`plan_hash ==
+sha256(plan.md)`) — a post-approval edit to plan.md causes this guard to
+refuse the transition. Token budget and same-error checks are advisory in Phase 1
+(their writers are not yet specified; see State Ownership notes). This guard
+does NOT enforce the implementation retry cap — that moves to `gates-failed`.
 
-**`findings-remain` guard scope:** enforces `review_iteration_count <
-max_review_iterations`. Token budget and same-error checks are advisory in Phase 1.
+**`gates-failed` guard scope:** enforces `implementation_retry_count <
+max_implementation_retries`. Fires before repair begins. Successful
+scheduled-wave executions do NOT consume retry budget — only `gates-failed`
+repair cycles do. The cap is global across the run (not per-wave); per-wave cap
+is deferred.
+
+**`findings-remain` guard scope:** enforces `review_retry_count <
+max_review_retries`. Counts findings-only rounds; clean reviews and
+human-blocker round-trips do not consume this budget. Token budget and same-error
+checks are advisory in Phase 1.
 
 **`reviewers-clean` in `SPEC-PLAN-REVIEW`** carries no guard — the spec is not
 being shipped.
@@ -483,32 +523,55 @@ re-run `approve-plan` and `schedule` on the corrected plan.
 **spec-plan mode:** calls `approve-plan` only. Does not call `schedule` (no
 implementation task DAG).
 
+### After `gates-failed` — code mode
+
+The skill calls `record-attempt` immediately after the `gates-failed` engine
+transition (not before `wave-complete`). The `cycle-id` is derived from
+`run_id:transition_sequence` where `transition_sequence` is the value just
+written by the `gates-failed` transition.
+
+```
+loop-engine transition <spec-dir> gates-failed   # guard: check --phase gates-failed (retry cap)
+# engine now at CODE-IMPLEMENTATION; transition_sequence incremented
+loop-cohort record-attempt <spec-dir> --phase implement \
+    --cycle-id <run_id>:<transition_sequence> [--error-fingerprint <hex>]
+# idempotent: same cycle-id on replay → no increment
+```
+
+If a crash occurs between `gates-failed` and `record-attempt`, `last_event:
+gates-failed` in engine-state.json tells the resuming session to reissue
+`record-attempt` with the same `cycle-id` (idempotent).
+
 ### Before `wave-complete` — code mode
 
-On a `gates-failed` repair cycle only (not on fresh wave entry or `wave-passed`):
+`wave-complete` fires when the wave's tasks are built and ready for verification.
+No `record-attempt` call at this point.
+
 ```
-loop-cohort record-attempt <spec-dir> --phase implement [--error-fingerprint <hex>]
-loop-engine transition <spec-dir> wave-complete   # guard: check --phase implement
+loop-engine transition <spec-dir> wave-complete   # guard: check --phase implement (plan immutability)
 ```
 
-On a fresh wave entry (from `plan-approved` or `wave-passed`): no `record-attempt` call.
-```
-loop-engine transition <spec-dir> wave-complete   # guard: check --phase implement
-```
-
-The guard always fires; only the repair cycle increments `implementation_retry_count`.
+The guard fires on every `wave-complete` regardless of whether the current entry
+was a fresh wave or a `gates-failed` repair. It enforces plan immutability only;
+the retry cap is guarded earlier at `gates-failed`.
 
 ### After `CODE-VERIFICATION + wave-passed`
 
+The skill supplies `--wave-index <n>` to the engine transition, where `n` is
+`current_wave_index` at the time of the call. The engine stores this in
+`last_event_context: {completed_wave_index: n}`.
+
 ```
-# n = current_wave_index at time of transition
+loop-engine transition <spec-dir> wave-passed   # guard: wave check --expect more --wave-index <n>
+# engine records last_event_context: {completed_wave_index: n}
 loop-cohort wave advance <spec-dir> --from-index <n>   # idempotent
 ```
 
 `wave advance` is idempotent: if a crash occurs between the engine writing
-`wave-passed` and the skill calling `wave advance`, re-issuing with the same
-`--from-index` is safe. The `last_event: wave-passed` in engine-state.json
-tells the resuming session that wave advance may need reissuing.
+`wave-passed` and the skill calling `wave advance`, the resuming session
+extracts `completed_wave_index` from `last_event_context` and reissues
+`wave advance --from-index <completed_wave_index>`. This is safe in both crash
+windows (before or after the advance completed).
 
 ### Stasis routing and CODE-REVIEW exit
 
@@ -532,24 +595,26 @@ failed call surfaces to the human; do not retry autonomously.
 ### `blocker-applied` — code mode
 
 No loop-cohort call. A human-returned blocker is not a review round;
-`review_iteration_count` is not incremented.
+`review_retry_count` is not incremented.
 
 ---
 
-## Plan Invalidation
+## Plan Immutability in Phase 1
 
-If `plan.md` changes after `CODE-IMPLEMENTATION` begins, the skill must detect
-this by running `loop-cohort plan check-current` before the next `wave-complete`.
-If it exits non-zero:
+After `plan-approved`, `plan.md` is immutable for the duration of the run. Any
+material change requires full reset (both files) and a new run. In-place
+replanning (rerun-schedule, G-plan renewal, wave migration) is deferred from
+Phase 1.
 
-- **In-scope correction** (task rewording, dependency fix): re-run `approve-plan`
-  and `schedule`; get G-plan sign-off on the change; continue.
-- **Scope-changing replan**: surface to human; return through G-plan as a new
-  planning cycle, or start a new run.
+`check --phase implement` at `wave-complete` mechanically enforces immutability
+by verifying `plan_hash == sha256(plan.md)`. A mismatch refuses the transition
+— the run must be reset and restarted from the drafting state, including the
+G-plan approval flow. Partial recovery is not supported in Phase 1.
 
-Without an explicit invalidation check, persisting `plan_hash` adds no
-determinism. The skill must run `plan check-current` before each
-`wave-complete` to enforce this.
+Deferred: in-place plan correction (task rewording, dependency fix) without a
+full restart. Supporting it would require a `replan-requested` transition, a
+human-wait planning state, rules for preserving or invalidating completed tasks,
+schedule migration semantics, and a new approved plan/schedule baseline.
 
 ---
 
@@ -594,8 +659,8 @@ cohort state only through designated read-only verbs.
 
 | File | Owner | Key fields |
 |---|---|---|
-| `state.json` | loop-cohort | `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_plan_hash`, `review_iteration_count`, `max_review_iterations`, `implementation_retry_count`, `max_implementation_retries`, `token_budget_used_pct`†, `token_budget_cap_pct`†, `consecutive_same_error_count`†, `consecutive_same_error_threshold`†, `finding_fingerprints`, `previous_finding_fingerprints`, `auto_parallel`, `last_commit_sha`, `worktrees`, `plan_hash`, `schedule_waves`, `current_wave_index` |
-| `engine-state.json` | loop-engine | `schema_version`, `run_id`, `feature`, `mode`, `state`, `last_event`, `transition_sequence`, `last_transition_at` |
+| `state.json` | loop-cohort | `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `token_budget_used_pct`†, `token_budget_cap_pct`†, `consecutive_same_error_count`†, `consecutive_same_error_threshold`†, `finding_fingerprints`, `previous_finding_fingerprints`, `auto_parallel`, `last_commit_sha`, `worktrees`, `plan_hash`, `schedule_waves`, `current_wave_index` |
+| `engine-state.json` | loop-engine | `schema_version`, `run_id`, `feature`, `mode`, `state`, `last_event`, `last_event_context`, `transition_sequence`, `last_transition_at` |
 
 *† Advisory in Phase 1: no Phase 1 writer defined.*
 
@@ -605,10 +670,13 @@ carry it; every transition verifies the pair via `loop-cohort identity`.
 **`feature`** is an immutable slug independently derived from the spec-dir
 basename. Never written by one script and read by the other.
 
-**Counters are separated by concern.** `review_iteration_count` counts review
-convergence cycles (incremented by `review record`). `implementation_retry_count`
-counts repair cycles after `gates-failed` (incremented by `record-attempt`).
-Successful scheduled-wave execution consumes neither budget.
+**Counters are separated by concern.** `review_round_count` counts all
+CODE-REVIEW rounds (incremented by every `review record`). `review_retry_count`
+counts findings-only rounds (incremented by `review record --fingerprint` only;
+clean rounds and human-blocker round-trips do not consume this budget).
+`implementation_retry_count` counts repair cycles after `gates-failed`
+(incremented by `record-attempt`). Successful scheduled-wave execution consumes
+neither budget.
 
 Both files are run-local and gitignored.
 
@@ -618,7 +686,7 @@ Both files are run-local and gitignored.
 
 | Mode | loop-cohort guards | spec-status guard | wave guards | Skill explicit calls |
 |---|---|---|---|---|
-| `code` | `plan-approved` (`plan check-current`), `wave-complete` (`check --phase implement`), `findings-remain` (`check --phase review`) | `reviewers-clean` at CODE-REVIEW | `wave-passed` (`wave check --expect more`), `gates-clean` (`wave check --expect last`) | init pair, `approve-plan` + `schedule` before `plan-approved`, `wave advance` after `wave-passed`, `record-attempt` on `gates-failed` repair cycles, `review inspect` before CODE-REVIEW routing, `review record` after each CODE-REVIEW exit |
+| `code` | `plan-approved` (`plan check-current --require-schedule`), `wave-complete` (`check --phase implement`), `gates-failed` (`check --phase gates-failed`), `findings-remain` (`check --phase review`) | `reviewers-clean` at CODE-REVIEW | `wave-passed` (`wave check --expect more --wave-index <n>`), `gates-clean` (`wave check --expect last`) | init pair, `approve-plan` + `schedule` before `plan-approved`, `wave advance` after `wave-passed`, `record-attempt` after `gates-failed`, `review inspect` before CODE-REVIEW routing, `review record` after each CODE-REVIEW exit |
 | `spec-plan` | `plan-approved` (`plan check-current`) | — | — | init pair, `approve-plan` before `plan-approved` |
 
 **Light mode** does not invoke loop-engine or loop-cohort.
@@ -647,16 +715,15 @@ SPEC-PLAN-DRAFTING ──spec-ready──► SPEC-PLAN-REVIEW
 ```
 CODE-IMPLEMENTATION
     │  wave-complete
-    │  (record-attempt only on gates-failed repair cycles)
-    │  guard: check --phase implement
+    │  guard: check --phase implement (plan immutability)
     ▼
 CODE-VERIFICATION
-    ├── wave-passed (guard: wave check --expect more) ────► CODE-IMPLEMENTATION
-    │     skill: wave advance --from-index <n>                 (next wave)
+    ├── wave-passed (guard: wave check --expect more --wave-index <n>) ──► CODE-IMPLEMENTATION
+    │     skill: wave advance --from-index <n>                                (next wave)
     ├── gates-clean (guard: wave check --expect last) ────► CODE-REVIEW
-    └── gates-failed ────────────────────────────────────► CODE-IMPLEMENTATION
-                                                           (repair; then record-attempt
-                                                            before retry's wave-complete)
+    └── gates-failed (guard: check --phase gates-failed) ──► CODE-IMPLEMENTATION
+                                                           (skill: record-attempt after
+                                                            engine transition; then repair)
 CODE-REVIEW
     │  (skill: review inspect --json first)
     ├── reviewers-clean (guard: check-spec-status.py) ──► CODE-HUMAN-GATE
@@ -669,11 +736,14 @@ CODE-REVIEW
 
 **Termination mechanisms:**
 
-1. **Review iteration cap** — `check --phase review` exits non-zero when
-   `review_iteration_count >= max_review_iterations`. Counts CODE-REVIEW rounds.
-2. **Implementation retry cap** — `check --phase implement` exits non-zero when
-   `implementation_retry_count >= max_implementation_retries`. Counts
-   `gates-failed` repair cycles only.
+1. **Review retry cap** — `check --phase review` exits non-zero when
+   `review_retry_count >= max_review_retries`. Counts findings-only CODE-REVIEW
+   rounds; clean rounds and human-blocker round-trips do not consume this budget.
+2. **Implementation retry cap** — `check --phase gates-failed` exits non-zero when
+   `implementation_retry_count >= max_implementation_retries`. Fires before repair
+   begins (not after), so a refused fifth `gates-failed` back-edge means four
+   complete repair cycles have been attempted. `check --phase implement` at
+   `wave-complete` enforces plan immutability only.
 3. **Stasis** — `review inspect` returns `matches_previous_round: true`; skill
    surfaces to human without advancing the FSM.
 4. **Token budget** *(advisory, Phase 1)* — no updater defined; guard treats as
@@ -708,11 +778,13 @@ On resume, the agent:
 1. Calls `loop-engine status --json <spec-dir>` → reads `state`, `last_event`,
    `pending_human_wait`.
 2. Calls `loop-cohort status --json <spec-dir>` → reads `current_wave_index`,
-   `schedule_waves`, `finding_fingerprints`, `review_iteration_count`,
+   `schedule_waves`, `finding_fingerprints`, `review_retry_count`,
    `implementation_retry_count`.
 3. If `pending_human_wait` → wait for the human signal before firing any exit event.
-4. If `state == CODE-IMPLEMENTATION` and `last_event == wave-passed` → check
-   whether `wave advance --from-index <n-1>` needs reissuing (idempotent).
+4. If `state == CODE-IMPLEMENTATION` and `last_event == wave-passed` → extract
+   `completed_wave_index` from `last_event_context`; reissue `loop-cohort wave
+   advance <spec-dir> --from-index <completed_wave_index>` (idempotent; safe in
+   both crash windows — before or after the advance completed).
 5. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is now
    mechanically guarded; re-run gates and fire the appropriate event.
 
@@ -804,9 +876,28 @@ guard makes this mechanically verifiable at transition time.
 
 A shared counter collapses forward progress through scheduled waves and repair
 cycles onto the same budget. A five-wave plan with a default cap of 5 would
-exhaust the budget before reaching code review. Separate `review_iteration_count`
-and `implementation_retry_count` counters, each with independent caps, correctly
-model distinct convergence concerns.
+exhaust the budget before reaching code review. Separate `review_round_count`
+(audit, all rounds), `review_retry_count` (findings-only cap), and
+`implementation_retry_count` counters correctly model distinct convergence
+concerns: successful waves consume no budget, clean reviews consume no findings
+budget, and human-blocker round-trips do not consume review retries.
+
+### Retry cap at `gates-failed` vs. at `wave-complete`
+
+A cap guard at `wave-complete` causes an off-by-one: the nth repair increments
+the counter and then the guard refuses before verification — so only n−1 repaired
+attempts can be verified. A guard at `gates-failed` fires before repair begins,
+so a refused nth back-edge means n−1 complete repair cycles have been attempted.
+`wave-complete` now enforces only plan immutability.
+
+### Single-writer scope in Phase 1
+
+`transition_sequence` supports external supervisor staleness detection (INI-003)
+but does not prevent a lost-update race (two concurrent callers both read and both
+write; the second silently wins). Atomic-file replacement prevents torn JSON but
+not lost updates. Concurrent callers are out of scope for Phase 1; the
+single-writer constraint is a skill-enforced convention. A compare-and-swap
+mechanism (`--expect-sequence <n>`) is deferred to Phase 2.
 
 ### wave-passed/gates-clean by arithmetic vs. guarded
 
@@ -827,23 +918,47 @@ uses its output for routing and passes the fingerprints to `review record`.
 Four independent test layers:
 
 1. **FSM table tests:** enumerate all legal transitions per mode, verify correct
-   next state, `last_event`, and `transition_sequence` increment; enumerate
-   illegal event/state pairs and verify non-zero exit with no file mutation.
+   next state, `last_event`, `last_event_context`, and `transition_sequence`
+   increment; enumerate illegal event/state pairs and verify non-zero exit with no
+   file mutation.
 
 2. **Guard-refusal tests:** stub each guard to exit non-zero; verify the
    transition is refused and `engine-state.json` is unchanged; verify the guard
-   receives the correct arguments. Include run_id preflight failure.
+   receives the correct arguments. Include run_id preflight failure and
+   `gates-failed` retry-cap refusal.
 
-3. **Init/reset and `run_id` coupling tests:** verify init with either file
-   present refuses; verify reset idempotency (run twice, verify both files absent
-   both times); verify corrupt-pair recovery; verify `transition` with mismatched
-   `run_id` refuses.
+3. **Init/reset and `run_id` coupling tests:** verify `loop-engine init` refuses
+   when `engine-state.json` is already present (tests the engine command in
+   isolation); verify the skill-level preflight refuses when cohort state exists
+   without engine state; verify reset idempotency (run twice, verify both files
+   absent both times); verify corrupt-pair recovery; verify `transition` with
+   mismatched `run_id` refuses.
 
-4. **Stasis, wave-routing, and plan-invalidation tests:** write known
-   fingerprints to `state.json`; verify `review inspect` returns
-   `matches_previous_round: true`; verify `wave check` exits correctly at each
-   boundary; verify `plan check-current` fails when `plan.md` is modified after
-   `approve-plan`.
+4. **High-risk behavioural tests** (highest crash-window risk from this design):
+   - **code vs. spec-plan `plan check-current`** — code mode: refuses when spec.md
+     changed after approval; spec.md change in spec-plan mode also refuses.
+   - **wave advance crash before advance** — engine in `CODE-IMPLEMENTATION` with
+     `last_event: wave-passed`, `last_event_context: {completed_wave_index: 2}`,
+     cohort `current_wave_index: 2`; verify `wave advance --from-index 2`
+     advances to 3.
+   - **wave advance crash after advance** — same engine state, cohort
+     `current_wave_index: 3`; verify `wave advance --from-index 2` returns
+     already-applied (success, no mutation).
+   - **fifth retry vs. sixth retry** (cap = 5) — four `gates-failed` transitions
+     succeed; fifth is allowed and records count 5; sixth is refused at the
+     `gates-failed` guard before repair begins.
+   - **`record-attempt` replay** — call with cycle-id A: increments count; call
+     again with cycle-id A: no increment; call with cycle-id B: increments.
+   - **clean review → human blocker → another review** — verify `review_retry_count`
+     is unchanged through the clean and blocker round; only a `--fingerprint` call
+     increments it.
+   - **plan mutation after some waves completed** — advance two waves; mutate
+     plan.md; verify `wave-complete` guard refuses.
+   - **plan mutation after final `wave-complete` but before `gates-clean`** — verify
+     `wave-complete` guard refuses at `CODE-VERIFICATION`.
+   - **stasis detection** — write known fingerprints to `state.json`; verify
+     `review inspect --json` returns `matches_previous_round: true`; verify an
+     empty-vs-empty comparison returns `matches_previous_round: false`.
 
 The proposed test file will live at
 `packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py`.

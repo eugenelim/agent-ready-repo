@@ -101,10 +101,11 @@ One file per non-trivial subsystem:
   (env / OS keyring / `~/.agentbundle/credentials.env`), the four
   brokers (`creds` / `env` / `cli` / `sso-cookie`), the
   credentialed-primitive contract, and the substring trap.
-- [`loop-infrastructure.md`](loop-infrastructure.md) — the work-loop's two
-  phase-tracking scripts (`loop-engine.py` and `loop-cohort.py`): what each
-  owns, the interaction model, FSM state tables for all three modes, guards
-  and side-effect wiring, and human-wait state / session-boundary rules.
+- [`loop-infrastructure.md`](loop-infrastructure.md) — proposed A-only
+  work-loop infrastructure: `loop-engine.py` owns phase state and read-only
+  guard enforcement; `loop-cohort.py` owns execution state and explicit
+  mutations. Covers `code` and `spec-plan` modes; `doc` mode and orchestration
+  (Option B) are deferred.
 
 ## Packages
 
