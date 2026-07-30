@@ -34,7 +34,7 @@ history — an append-only event log is a Phase-2 addition.
 |---|---|
 | Legal phase ordering and guard enforcement | `loop-engine.py` (phase FSM) |
 | Task execution state, counters, fingerprints | `loop-cohort.py` (execution state owner) |
-| Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) — idempotent for `wave-passed` and `gates-failed` windows; `findings-remain` window is non-idempotent (see Session Resumption step 7) |
+| Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) — idempotent for `wave-passed` and `gates-failed` windows; `findings-remain` window is non-idempotent (see Session Resumption step 7); and the `reviewers-clean` window (audit-only; see step 11) |
 | Bounded convergence of CODE-REVIEW and `gates-failed` repair cycles (retry caps, stasis detection) | `loop-cohort` counters + guards — the spec/plan drafting loop has no mechanical Phase-1 cap; it terminates on the human G-plan gate or LLM judgment. An advisory token or round counter for unattended spec-plan runs is a Phase-2 concern |
 
 **Phase 1 must guarantee:** legal phase ordering across all transitions; plan
@@ -94,9 +94,13 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
     against this field for stasis detection.
   - `previous_finding_fingerprints` — fingerprints from the round before the
     most recent, retained for audit.
-  - `approved_spec_hash` — sha256 of spec.md bytes at the time `approve-plan`
-    ran, binding the G-plan approval marker to a specific spec version. This is a
-    **point-in-time marker**: after `plan-approved`, spec.md is expected to
+  - `approved_spec_hash` — sha256 of spec.md bytes (raw, not canonicalized) at
+    the time `approve-plan` ran, binding the G-plan approval marker to a specific
+    spec version. Spec.md is raw-hashed because it is checked only once inside a
+    byte-frozen window (`approve-plan` through `plan-approved`); plan.md is
+    canonical-hashed (`sha256(canonical(plan.md))`) because `schedule check-current`
+    re-checks it at every CODE-* transition and must tolerate whitespace-only edits.
+    This is a **point-in-time marker**: after `plan-approved`, spec.md is expected to
     undergo permitted status mutations (`Approved → Implementing → Shipped`)
     that change its raw bytes, making `approved_spec_hash` stale. Skill writes
     `Status: Implementing` *after* the `plan-approved` engine transition (on
@@ -1110,8 +1114,8 @@ On resume, the agent:
    `record-attempt` may not have run. Reissue `loop-cohort record-attempt
    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` (idempotent:
    same cycle-id is a no-op).
-9. If `state == CODE-REVIEW` → no pending cohort mutation (the prior round's
-   `review record` completed before the FSM left `CODE-REVIEW`). Re-run
+9. If `state == CODE-REVIEW` → no pending cohort mutation (the only inbound
+   edge to CODE-REVIEW is `gates-clean`, which carries no `review record`). Re-run
    the reviewer fan-out and `review inspect`.
 10. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is
     mechanically guarded; re-run gates and fire the appropriate event.
@@ -1122,10 +1126,13 @@ On resume, the agent:
     - **`blocker-applied` branch:** additionally, `finding_fingerprints` may
       still hold the prior findings set (not rotated to `[]` by the missed
       clean record). The next `review inspect` will compare against a stale
-      pre-clean baseline — same hazard as step 7. **Recommended:** reissue
-      `review record --report --expect-run-id <run_id>` before firing
-      `blocker-applied` (safe: `--report` only rotates fingerprints to `[]`
-      and increments the audit counter; no cap impact).
+      pre-clean baseline — same hazard as step 7. **Recommended:** regenerate
+      a clean report (re-run the reviewer fan-out), then reissue `review record
+      --report --expect-run-id <run_id>` before firing `blocker-applied` (safe:
+      `--report` only rotates fingerprints to `[]` and increments the audit
+      counter; no cap impact). If regeneration is not possible (e.g. the working
+      tree has changed), fall back to the step-7 accepted limitation: proceed
+      with under-counted budget and stale fingerprint baseline.
 12. If `state ∈ {SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
     no pending cohort mutation in Phase 1 (spec-plan mutations are skill
     obligations, not tool-driven). Resume spec/plan work per skill prose.
