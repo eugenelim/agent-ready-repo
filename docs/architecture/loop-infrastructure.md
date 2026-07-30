@@ -547,6 +547,7 @@ packs/core/.apm/skills/work-loop/
 ├── assets/
 │   └── state.json                   # loop-cohort state template
 └── references/
+    ├── loop-infrastructure.md       # mode/checkpoint tables; agent-facing quick reference (new)
     └── state-schema.md              # state.json field reference
 ```
 
