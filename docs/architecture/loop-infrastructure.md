@@ -26,6 +26,8 @@ record), and invisible to supervisors. Note: Phase 1 provides inspectable
 *current* state (`state`, `last_event`, `transition_sequence`), not a transition
 history — an append-only event log is a Phase-2 addition.
 
+**FSM** = Finite State Machine throughout this document.
+
 **This design splits that into two scripts with a hard boundary:**
 
 | Goal | Delivered by |
@@ -50,8 +52,6 @@ legal phase ordering and runs read-only guards. All loop-cohort mutations are
 invoked explicitly by the skill. Option B (workflow orchestrator with durable
 side-effect semantics) is deferred until `review record` supports idempotency
 keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orchestrator-b).
-
-**FSM** = Finite State Machine throughout this document.
 
 ---
 
@@ -343,7 +343,9 @@ this path to capture the `run_id` for passing to `loop-cohort init`.
 `status --json` exposes all `engine-state.json` fields plus a
 `pending_human_wait` boolean. The states where this is `true` are listed in
 the [Human-Wait States and Session Boundaries](#human-wait-states-and-session-boundaries)
-section; it is `false` in all other states.
+section; it is `false` in all other states. `status` refuses with a descriptive
+error if `engine-state.json` carries `schema_version != 1` — the same forward
+guard applied by `transition`.
 
 `reset` — deletes only `engine-state.json`. Idempotent: tolerates
 already-absent.
@@ -687,6 +689,11 @@ re-run `approve-plan` and `schedule` on the corrected plan.
 No cohort cleanup is needed — `approve-plan`'s stored hashes are stale once the
 plan changes, and the `plan check-current` guard will refuse any transition using
 the old hashes. The stale approval is overwritten on the next `approve-plan` call.
+`plan-rejected` does NOT reset `spec.md` Status — `Status: Approved` may remain
+while the run is back in `SPEC-PLAN-DRAFTING`. Skill obligation: reset `spec.md`
+Status to `Drafting` (or the equivalent in-progress status) before re-drafting.
+Not mechanically enforced in Phase 1; `approve-plan` validates the file hash, not
+the current Status value.
 
 **spec-plan mode:** calls `approve-plan` only. Does not call `schedule` (no
 implementation task DAG).
@@ -835,7 +842,7 @@ Phase-1 field set defined in the Scripts section above.
 
 ### G-plan (plan approval)
 
-`plan-approved` fires only after all hold:
+`plan-approved` fires only after all hold, **in this order**:
 
 1. Adversarial reviewer returned clean on spec/plan. — *Skill obligation.*
 2. **`Status: Approved` is written to `spec.md` BEFORE calling `approve-plan`.**
@@ -844,14 +851,18 @@ Phase-1 field set defined in the Scripts section above.
    `approve-plan` and the engine transition refuses the guard. Writing
    `Status: Approved` after `approve-plan` deadlocks the happy path. spec.md is
    byte-frozen from the `approve-plan` call through the `plan-approved` transition.*
-3. `loop-cohort approve-plan` was called. — *Mechanically enforced: `plan
+3. Human G-plan sign-off received on the frozen spec + plan. — *Skill obligation;
+   not mechanically enforced. Sign-off must be obtained BEFORE `approve-plan` so
+   the human approves the exact version that `approve-plan` will hash. No
+   substantive edit to spec.md or plan.md may occur between sign-off and the
+   `approve-plan` call; any such edit changes the approval version.*
+4. `loop-cohort approve-plan` was called. — *Mechanically enforced: `plan
    check-current` verifies `plan_review_status == "approved"` and both
    `approved_spec_hash == sha256(spec.md)` and `approved_plan_hash == sha256(canonical(plan.md))`.*
-4. `loop-cohort schedule` exited 0. — *Mechanically enforced: `plan
+5. `loop-cohort schedule` exited 0. — *Mechanically enforced: `plan
    check-current` verifies `schedule_waves` non-empty and `plan_hash` matches.*
-5. Both `approved_plan_hash` and `plan_hash` equal `sha256(canonical(plan.md))`. —
+6. Both `approved_plan_hash` and `plan_hash` equal `sha256(canonical(plan.md))`. —
    *Mechanically enforced: `plan check-current`.*
-6. Human G-plan sign-off received. — *Skill obligation; not mechanically enforced.*
 
 ### G-pr (code review and merge)
 
@@ -1056,14 +1067,21 @@ On resume, the agent:
    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` (idempotent:
    same cycle-id is a no-op).
 9. If `state == CODE-REVIEW` → no pending cohort mutation (the prior round's
-   `review record` completed before the FSM left `CODE-IMPLEMENTATION`). Re-run
+   `review record` completed before the FSM left `CODE-REVIEW`). Re-run
    the reviewer fan-out and `review inspect`.
 10. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is
     mechanically guarded; re-run gates and fire the appropriate event.
 11. If `state == CODE-HUMAN-GATE` and `last_event == reviewers-clean` →
-    `review record --report` may not have run. `review_round_count` may be
-    under-counted by one; this is audit-only and does not affect guard caps.
-    Safe to proceed: fire `done` or `blocker-applied` per the human decision.
+    `review record --report` may not have run. Split by outcome:
+    - **`done` branch:** `review_round_count` may be under-counted by one;
+      this is audit-only and does not affect guard caps. Safe to proceed.
+    - **`blocker-applied` branch:** additionally, `finding_fingerprints` may
+      still hold the prior findings set (not rotated to `[]` by the missed
+      clean record). The next `review inspect` will compare against a stale
+      pre-clean baseline — same hazard as step 7. **Recommended:** reissue
+      `review record --report --expect-run-id <run_id>` before firing
+      `blocker-applied` (safe: `--report` only rotates fingerprints to `[]`
+      and increments the audit counter; no cap impact).
 12. If `state ∈ {SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
     no pending cohort mutation in Phase 1 (spec-plan mutations are skill
     obligations, not tool-driven). Resume spec/plan work per skill prose.
@@ -1214,7 +1232,10 @@ Four independent test layers:
    isolation); verify the skill-level preflight refuses when cohort state exists
    without engine state; verify reset idempotency (run twice, verify both files
    absent both times); verify corrupt-pair recovery; verify `transition` with
-   mismatched `run_id` refuses.
+   mismatched `run_id` refuses; **verify that after a successful init pair both
+   `engine-state.json` and `state.json` carry the same `run_id`** (positive-path
+   pairing check — confirms `loop-cohort init --run-id` stores the value and
+   `loop-cohort identity` returns a match).
 
 4. **High-risk behavioural tests** (highest crash-window risk from this design):
    - **code vs. spec-plan `plan check-current`** — code mode: refuses when spec.md
@@ -1248,6 +1269,11 @@ Four independent test layers:
    - **plan-rejected + re-approval** — approve a plan; fire `plan-rejected`;
      edit plan.md; call `approve-plan` again; verify new hashes are stored and
      the stale approval is overwritten (no cleanup command needed).
+   - **spec-plan absent-file precondition (positive-path)** — call `plan
+     check-current` in spec-plan mode (no `--require-schedule`) with spec.md
+     present and plan.md absent, then with plan.md present and spec.md absent;
+     verify exit non-zero with a descriptive message in both cases (spec-plan
+     requires both files before `approve-plan` is called).
    - **stasis detection** — write known fingerprints to `state.json`; verify
      `review inspect --json` returns `matches_previous_round: true`; verify an
      empty-vs-empty comparison returns `matches_previous_round: false`.
