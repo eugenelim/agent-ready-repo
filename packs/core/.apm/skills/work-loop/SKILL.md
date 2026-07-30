@@ -21,7 +21,7 @@ PLAN  ──►  EXECUTE  ──►  GATES  ──►  REVIEW  ──►  DECIDE
                                                     └── back to GATES
 ```
 
-**Self-coverage gate.** Between human gates, resolve everything a referent can resolve; surface only the irreducible. Three net-new obligations per loop: **(1)** conditional domain-grounding at PLAN (only when the build rests on an ungrounded domain claim); **(2)** resolve-vs-surface disposition record, opened at PLAN and closed at DECIDE, calibrated against [`references/self-coverage/resolve-vs-surface.md`](references/self-coverage/resolve-vs-surface.md); **(3)** done-checklist refusal — don't declare done until the record exists and every REVIEW finding is resolved. Full protocol: [`references/self-coverage/protocol.md`](references/self-coverage/protocol.md).
+**Self-coverage gate.** Between human gates, resolve everything a referent can resolve; surface only the irreducible. Three net-new obligations per loop: **(1)** conditional domain-grounding at PLAN (only when the build rests on an ungrounded domain claim); **(2)** resolve-vs-surface disposition record, opened at PLAN and closed at DECIDE; **(3)** done-checklist refusal — don't declare done until the record exists and every REVIEW finding is resolved. The obligations above are the operative runtime contract. Use [`references/self-coverage/resolve-vs-surface.md`](references/self-coverage/resolve-vs-surface.md) only when a disposition is ambiguous; [`references/self-coverage/protocol.md`](references/self-coverage/protocol.md) contains design rationale and calibration, not required normal-loop instructions.
 
 ## Output rendering
 
@@ -88,12 +88,13 @@ After orientation:
 
 ## Step 1. PLAN
 
-1. **Pick the mode first** (see [Select: light or full mode](#select-light-or-full-mode)). If any risk trigger fires, stop and run `new-spec` first — implementation without a contract drifts, and ACs + Testing Strategy are written during `new-spec`, not later. A spec with either section empty is not finished. In light mode, write the lean inline spec instead.
-2. Read existing `spec.md` and `plan.md`; use the plan's task list, don't invent one.
-3. Use extended thinking for architecturally significant work.
-4. Write the **assumption trio** — which files you'll touch, what tests demonstrate "done", what you are *not* changing. Below the trio, **name what you were tempted to add and declined** (one line each: temptation + reason). Non-trivial tasks always have something to name; common patterns: new abstractions, structural choices, new dependencies, defensive scaffolding, hypothetical configurability.
-5. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)).
-6. **Pick the verification mode for each task** before writing code:
+1. **Read the contract first when one exists.** If a spec path was supplied or resolved, read its `spec.md` and `plan.md`. Evaluate risk using the user request, the persisted contract, and repository context.
+2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). If no adequate persisted contract exists, run `new-spec`: full mode requires complete ACs and Testing Strategy; light mode uses the lean inline spec. Do not recreate or replace an adequate existing spec.
+3. Use the existing plan's task list; don't invent one.
+4. Use extended thinking for architecturally significant work.
+5. Write the **assumption trio** — which files you'll touch, what tests demonstrate "done", what you are *not* changing. Below the trio, **name what you were tempted to add and declined** (one line each: temptation + reason). Non-trivial tasks always have something to name; common patterns: new abstractions, structural choices, new dependencies, defensive scaffolding, hypothetical configurability.
+6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)).
+7. **Pick the verification mode for each task** before writing code:
    - **TDD** — compressible invariant (pure functions, state machines, protocols). ACs + Testing Strategy in spec; red stub in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
    - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
    - **Visual / manual QA** — any artifact a user invokes directly (CLI, library API, agent, UI, service endpoint). Exercise the real built artifact end-to-end through the documented happy path; record observed output (stdout, exit code, returned value, on-screen result). Never let a passing unit gate stand in for real invocation. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
@@ -101,9 +102,9 @@ After orientation:
 
    **Confirm the mechanism exists before claiming the mode — task zero if it doesn't.** Applies equally across all modes and light and full mode alike.
 
-7. **Write construction tests up front.** For every task, write `Tests:` in `plan.md` before EXECUTE begins. Can't write the test → task is too vague, sharpen first. For TDD tasks, materialize as a compilable red stub (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). Goal-based and manual-QA tasks record `no stub (mode)`. Light mode skips stubs.
+8. **Write construction tests up front.** For every task, write `Tests:` in `plan.md` before EXECUTE begins. Can't write the test → task is too vague, sharpen first. For TDD tasks, materialize as a compilable red stub (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). Goal-based and manual-QA tasks record `no stub (mode)`. Light mode skips stubs.
 
-8. **Fire pre-EXECUTE gates:**
+9. **Determine which pre-EXECUTE gates fire:**
 
    | Work shape | Gate | Reviewer |
    |-----------|------|---------|
@@ -116,9 +117,11 @@ After orientation:
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions and `approve-plan` gate: [`references/pre-execute-review.md`](references/pre-execute-review.md).
+10. **Full mode:** initialize state, then run `loop-cohort.py check docs/specs/<feature> --phase plan`. The initial exit 1 with `plan not approved` is the expected transition into pre-EXECUTE review — it does not trigger termination.
 
-9. **Initialize state file (full mode only).** Run `scripts/loop-cohort.py init docs/specs/<feature>`. Then `loop-cohort.py check docs/specs/<feature> --phase plan` — expect exit 1 (`plan not approved`) as the cue to run the pre-EXECUTE reviewer. After the reviewer is clean, run `loop-cohort.py approve-plan docs/specs/<feature>` and re-run check; exit 0 unlocks EXECUTE. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
+11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md).
+
+12. **Full mode:** run `loop-cohort.py approve-plan docs/specs/<feature>`, then re-run `check --phase plan`. Exit 0 unlocks EXECUTE; any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
 Write the plan to disk — don't keep it in memory across turns.
 
@@ -226,7 +229,7 @@ When gates are green and review is clean → proceed to [Finish checklist](#fini
 Stop when **any** of these is true:
 
 1. **Gates green AND review clean** — normal exit. Proceed to [Finish checklist](#finish-checklist).
-2. **`scripts/loop-cohort.py check` exits non-zero.** Fires on: iteration cap, token-budget cap, consecutive-error counter, pending plan approval (PLAN phase only), fingerprint stasis (REVIEW phase only). The exit message identifies which condition.
+2. **`scripts/loop-cohort.py check` exits non-zero** — except the expected initial `plan not approved` in PLAN (step 10 above), which is the cue to run pre-EXECUTE reviewers, not a stop signal. All other non-zero exits stop the current iteration and surface. Fires on: iteration cap, token-budget cap, consecutive-error counter, fingerprint stasis (REVIEW phase only). The exit message identifies which condition.
 3. **Diff is shrinking but findings aren't** — spot-fixing without addressing root cause. Stop and rethink the approach (back to PLAN).
 
 If you hit any of these and the work isn't done: stop, write down what you learned, re-plan. Never silently expand scope to make a finding go away.
@@ -237,7 +240,8 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this.
-- [ ] For each warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger above; `experience-reviewer` on user-facing surface diffs in full mode; `frontend-reviewer` on HTML/CSS/JS primary-output diffs in full mode): subagent returned `Clean — ready to commit.` **or** no matching subagent installed and the final summary names the missing review by its role label — **except missing `security-reviewer` on infra-flavored work, which blocks completion**. Silent skips are not allowed.
+- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs) returned `Clean — ready to commit.` or is a named skip — **except missing `security-reviewer` on infra-flavored work, which blocks**. Silent skips are not allowed.
+- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an `apply` or `defer` disposition; applied fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
@@ -252,7 +256,8 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 2. Make the smallest change that addresses it.
 3. Re-run GATES.
 4. **Full mode:** after any applied REVIEW finding, re-run the reviewer or reviewer set that produced it; continue until Clean.
-5. **Light mode:** non-Blocker fixes return to GATES only. A Blocker receives the one re-review permitted by the light-mode rules.
+5. **Light mode — non-Blocker fix:** return to GATES, then DECIDE/finish. Do not run a second adversarial pass.
+6. **Light mode — Blocker fix:** return to GATES, then run the single permitted re-review. A surviving Blocker escalates to full mode.
 
 ## Capture learnings
 
