@@ -37,10 +37,14 @@ history — an append-only event log is a Phase-2 addition.
 | Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) — idempotent for `wave-passed` and `gates-failed` windows; `findings-remain` window is non-idempotent (see Session Resumption step 7); and the `reviewers-clean` window (audit-only; see step 11) |
 | Bounded convergence of CODE-REVIEW and `gates-failed` repair cycles (retry caps, stasis detection) | `loop-cohort` counters + guards — the spec/plan drafting loop has no mechanical Phase-1 cap; it terminates on the human G-plan gate or LLM judgment. An advisory token or round counter for unattended spec-plan runs is a Phase-2 concern |
 
-**Phase 1 must guarantee:** legal phase ordering across all transitions; plan
-immutability from G-plan approval through the run; paired-state consistency
-(`run_id` in both files at all times); idempotent replay for the `wave-passed`
-and `gates-failed` crash windows.
+**Phase 1 guarantees:** legal phase ordering across all transitions; plan-hash
+enforcement on post-approval `CODE-*` transitions (except `done`); matching
+`run_id` identity after successful initialization, with mismatches blocking
+further transitions (initialization and reset have recoverable one-file windows);
+and idempotent recovery for the `wave-passed` and `gates-failed` crash windows.
+Phase state can be resumed without chat history; work-artifact resumption
+requires persisted notes or a sidecar. Review-record crash windows
+(`findings-remain`, `reviewers-clean`) are documented Phase-1 limitations.
 
 The work-loop skill's phase sequencing and task execution are designed to be
 implemented by two scripts. This document defines the boundary between them so
@@ -99,7 +103,7 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
     spec version. Spec.md is raw-hashed because it is checked only once inside a
     byte-frozen window (`approve-plan` through `plan-approved`); plan.md is
     canonical-hashed (`sha256(canonical(plan.md))`) because `schedule check-current`
-    re-checks it at every CODE-* transition and must tolerate whitespace-only edits.
+    re-checks it at every CODE-* transition and must tolerate trailing-whitespace-only and line-ending-only edits.
     This is a **point-in-time marker**: after `plan-approved`, spec.md is expected to
     undergo permitted status mutations (`Approved → Implementing → Shipped`)
     that change its raw bytes, making `approved_spec_hash` stale. Skill writes
@@ -264,11 +268,12 @@ loop-cohort auto-parallel <spec-dir> [--off]
   alone is not sufficient (the algorithm additionally requires a `:` and a digit in
   the citation). If the `adversarial-reviewer` output structure changes, the
   classification predicate and fingerprint format must be updated together.
-  `matches_previous_round` is `true` iff the computed fingerprint set equals
-  `state.finding_fingerprints`, compared order-insensitively (`sorted(computed) ==
-  sorted(state.finding_fingerprints)` or set equality) — a reordered but otherwise
-  identical finding list is still detected as stasis. The skill uses this as the
-  canonical stasis check before routing to `reviewers-clean` or `findings-remain`.
+  `matches_previous_round` is `true` iff `sorted(set(computed_fingerprints)) ==
+  sorted(set(state.finding_fingerprints))`. Both sides are deduplicated before
+  sorting, so duplicate report lines do not affect stasis behavior, serialized
+  state is deterministic, and a reordered but otherwise identical finding list
+  is still detected as stasis. The skill uses this as the canonical stasis check
+  before routing to `reviewers-clean` or `findings-remain`.
 
 - **`reset`** — deletes only `state.json`. Idempotent: tolerates already-absent.
   Paired with `loop-engine reset` (each owns only its own file). `loop-cohort
@@ -849,8 +854,8 @@ The mandatory `schedule check-current` pre-guard (step 1b) mechanically enforces
 immutability at every CODE-* transition except `done` by verifying `plan_hash ==
 sha256(canonical(plan.md))`. Phase-1 canonicalization: normalize CRLF to LF and
 strip trailing whitespace per line before hashing. Semantic edits (comments,
-task text, dependency rewording) still cause the guard to refuse; whitespace-only
-and line-ending-only changes do not.
+task text, dependency rewording) still cause the guard to refuse;
+trailing-whitespace-only and line-ending-only changes do not.
 
 Any semantic change to plan.md causes this guard to refuse, and the run must be
 reset and restarted. Partial recovery is not supported in Phase 1.
@@ -1094,8 +1099,12 @@ On resume, the agent:
    `schedule_waves`, `finding_fingerprints`, `review_retry_count`,
    `implementation_retry_count`.
 4. If `pending_human_wait` → wait for the human signal before firing any exit event.
-5. If `state == CODE-IMPLEMENTATION` and `last_event ∈ {plan-approved,
-   blocker-applied}` → no pending cohort mutation. Resume implementation directly.
+5. If `state == CODE-IMPLEMENTATION` and `last_event == plan-approved` →
+   `Status: Implementing` may not have been written. Ensure it is written before
+   resuming implementation (idempotent: safe to re-write).
+   If `state == CODE-IMPLEMENTATION` and `last_event == blocker-applied` →
+   resume implementation directly without rewriting status (`Status: Shipped`
+   intentionally remains during blocker repair).
 6. If `state == CODE-IMPLEMENTATION` and `last_event == wave-passed` → extract
    `completed_wave_index` from `last_event_context`; reissue `loop-cohort wave
    advance <spec-dir> --from-index <completed_wave_index> --expect-run-id <run_id>`
