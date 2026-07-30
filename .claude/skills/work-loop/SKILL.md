@@ -92,7 +92,7 @@ After orientation: if exactly one active item, strip the `spec/` prefix, then re
 5. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)).
 6. **Pick the verification mode for each task** before writing code:
    - **TDD** — compressible invariant (pure functions, state machines, protocols). ACs + Testing Strategy in spec; red stub in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
-   - **Goal-based** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
+   - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
    - **Visual / manual QA** — any artifact a user invokes directly (CLI, library API, agent, UI, service endpoint). Exercise the real built artifact end-to-end through the documented happy path; record observed output (stdout, exit code, returned value, on-screen result). Never let a passing unit gate stand in for real invocation. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
    - **infra/deploy** — layered GATES sequence: static preflight < plan/preview < idempotent convergent apply < active end-to-end smoke < rollback. Full doctrine: [`references/infra-verification.md`](references/infra-verification.md).
 
@@ -125,7 +125,7 @@ Write the plan to disk — don't keep it in memory across turns.
 
 Match discipline to verification mode:
 - **TDD** — red-green-refactor. If PLAN produced a stub, verify it's red and fill deferred assertions; don't rewrite from scratch.
-- **Goal-based** — write code, run the `Done when:` one-liner.
+- **Goal-based check** — write code, run the `Done when:` one-liner.
 - **Visual / manual QA** — implement, exercise the real artifact end-to-end, record observed output.
 - **infra/deploy** — implement, then drive the deploy and read real environment output (run apply, smoke probe, log pull, teardown; read their actual output — don't reason about what they'd say). Anti-pattern: a human pasting deploy errors back by hand. Craft in [`references/infra-verification.md`](references/infra-verification.md).
 
