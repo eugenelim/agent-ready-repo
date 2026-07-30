@@ -1409,7 +1409,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
-**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, `test-loop-cohort.py`, and `.claude/skills/work-loop/scripts/loop-engine.py` (projection parity with the existing `loop-cohort.py` trigger pattern); add CI steps for both `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` and `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py`.
+**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, `test-loop-cohort.py`, `.claude/skills/work-loop/scripts/loop-engine.py`, and `.claude/skills/work-loop/scripts/check-spec-status.py` (projection parity with the existing `loop-cohort.py` trigger pattern); add CI steps for both `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` and `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py`.
 
 **Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; `tools/test-loop-cohort.sh` rewritten to Phase-1 contracts; both `test-loop-engine.py` and `test-loop-cohort.py` CI steps pass.
 
@@ -1518,9 +1518,13 @@ Test files:
 
 The split is intentional: `test-loop-cohort.py` exercises cohort verbs in isolation
 (unit depth); `test-loop-engine.py` exercises the engine FSM and the full multi-component
-lifecycle (integration depth). Layer-4 behavioral tests appear in `test-loop-engine.py` as
-integration scenarios even when they invoke cohort mutations — they verify the end-to-end
-path, not mutation logic in isolation, so the overlap is deliberate.
+lifecycle (integration depth). Layer-4 items that exercise a single cohort verb in isolation
+— wave-advance edge cases, fingerprint canonicalization, stasis detection, `record-attempt`
+replay, `--expect-run-id` refusal, spec-plan absent-file — live in `test-loop-cohort.py`
+under T3. Layer-4 items that exercise the engine FSM end-to-end — plan mutation per CODE-*
+state, full lifecycle, retry-cap, `--wave-index` contract — live in `test-loop-engine.py`
+under T5. Each scenario has exactly one home; the layer-4 list in the Testing section labels
+which file each test belongs to through T3 vs. T5 task ownership.
 
 **Clean-substring contract:** both `review inspect` classification and stasis comparison depend
 on the `adversarial-reviewer` emitting the exact string `Clean — ready to commit.` (em-dash).
@@ -1550,9 +1554,10 @@ packs/core/.apm/skills/work-loop/
 
 tools/
 └── test-loop-cohort.sh              # existing CI harness (update — rewrite to Phase-1 schema/contracts)
+                                     # state.json key/schema self-test; distinct from test-loop-cohort.py (cohort verb units)
 
 .github/workflows/
-└── docs.yml                         # CI workflow (update — add path triggers and test-loop-engine step)
+└── docs.yml                         # CI workflow (update — add path triggers and both test steps)
 ```
 
 `engine-state.json` has no template file — its fields and allowed values are
