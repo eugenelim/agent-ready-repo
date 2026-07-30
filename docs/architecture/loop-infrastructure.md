@@ -1,10 +1,17 @@
 # Loop Infrastructure
 
+> **Target-state design — not current-state.** This document is in
+> `docs/architecture/` as the ratification artifact. It describes proposed,
+> not yet landed, infrastructure. The implementation moves from design
+> to current-state on PR #816 merge; until then, treat this as the
+> authoritative spec for what to build, not a description of what is built.
+
 **Status:** Proposed  
 **Implementation:** Not yet landed — design ratification is the precondition for
 implementation (PR #816).  
-**Supersedes:** the loop-engine design proposed in PR #816 (which mixed A-phase
-tracking with partial B side-effect wiring).  
+**Supersedes:** the earlier draft design on PR #816 (which mixed A-phase
+tracking with partial B side-effect wiring); the ratified design ships in the
+same PR.  
 **Phase 1 scope:** `code` and `spec-plan` modes only. `doc` mode is deferred
 pending an addressing-model decision — see
 [Deferred: doc mode](#deferred-doc-mode).
@@ -514,7 +521,7 @@ waves are scheduled.
       │
       └── reads and writes state.json exclusively
           loop-engine reads cohort state only via designated read-only verbs
-          (identity, plan check-current, wave check, check --phase)
+          (identity, plan check-current, schedule check-current, wave check, check --phase)
           [review inspect is skill-invoked preflight, not an engine guard]
 ```
 
@@ -590,7 +597,10 @@ being shipped.
 exits 0 iff `spec.md` contains `**Status:** Shipped`; exits non-zero with a
 one-line reason on stderr otherwise (missing, wrong status, or unparseable).
 It must reuse the same canonical status parser as `lint-spec-status.py` to avoid
-an independent regex. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
+an independent regex. **Scope limitation:** the gate proves the string is present,
+not that *this run* wrote it — a stale `Shipped` from an abandoned prior run would
+pass; the reset discipline (both files are gitignored run-local scratch) is the
+expected control. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
 (before G-pr, not at merge). This means
 a `blocker-applied` return leaves the spec with `Status: Shipped` while the PR
 continues iterating. This is intentional — per the project's "set final status
@@ -638,6 +648,11 @@ loop-cohort init <spec-dir> --run-id <run_id>
 
 ### Before `plan-approved` — code mode
 
+**Intended ordering:** human sign-off is received first; then `approve-plan` +
+`schedule`; then `plan-approved` transition. The `plan check-current` guard
+re-verifies the hashes at transition time, so editing spec.md or plan.md between
+human sign-off and the guard fires naturally refuses the transition.
+
 ```
 loop-cohort approve-plan <spec-dir> --expect-run-id <run_id>
     # sets plan_review_status, approved_spec_hash (spec.md), approved_plan_hash (plan.md)
@@ -649,6 +664,11 @@ loop-engine transition <spec-dir> plan-approved   # guard: plan check-current --
 A dependency cycle or missing task from `schedule` aborts the sequence. A
 `plan check-current` failure means plan.md was edited between the two calls —
 re-run `approve-plan` and `schedule` on the corrected plan.
+
+**`plan-rejected` cleanup:** `plan-rejected` returns to `SPEC-PLAN-DRAFTING`.
+No cohort cleanup is needed — `approve-plan`'s stored hashes are stale once the
+plan changes, and the `plan check-current` guard will refuse any transition using
+the old hashes. The stale approval is overwritten on the next `approve-plan` call.
 
 **spec-plan mode:** calls `approve-plan` only. Does not call `schedule` (no
 implementation task DAG).
@@ -751,6 +771,13 @@ whitespace — SHA-256 comparison is raw bytes) causes this guard to refuse, and
 the run must be reset and restarted. Partial recovery is not supported in Phase 1.
 Plan canonicalization (to allow whitespace-only edits without a reset) is deferred.
 
+**Operational risk — incidental edits:** a formatter, an IDE trailing-newline
+insertion, or a CRLF/LF normalization on `plan.md` will trip the guard and force
+a full restart including the human G-plan gate. Mitigation: add `plan.md` to
+`.gitattributes` with `eol=lf -text` and disable format-on-save for files in
+`docs/specs/`. The SKILL.md must warn of this at the point it captures the plan
+hash.
+
 Deferred: in-place plan correction (task rewording, dependency fix) without a
 full restart. Supporting it would require a `replan-requested` transition, a
 human-wait planning state, rules for preserving or invalidating completed tasks,
@@ -834,10 +861,11 @@ cohort state only through designated read-only verbs.
 **`run_id`** is an immutable UUID generated at `loop-engine init`. Both files
 carry it; every transition verifies the pair via `loop-cohort identity`.
 
-**`feature`** is an immutable slug: the exact basename of `<spec-dir>` (no
-case normalization, no whitespace stripping). Both `loop-engine init` and
-`loop-cohort init` derive it identically from the same argument; `run_id` is
-the pairing key, not `feature`. `feature` is informational only.
+**`feature`** is an immutable slug: the exact basename of `<spec-dir>` after
+stripping any trailing slash and resolving to an absolute path (i.e.
+`os.path.basename(os.path.realpath(spec_dir))`). Both `loop-engine init` and
+`loop-cohort init` derive it from the same argument using the same normalization;
+`run_id` is the pairing key, not `feature`. `feature` is informational only.
 
 **Counters are separated by concern.** `review_round_count` counts all
 CODE-REVIEW rounds (incremented by every `review record`). `review_retry_count`
@@ -975,10 +1003,11 @@ On resume, the agent:
    `review record --fingerprint` may not have run. This window is not idempotent
    in Phase 1. Surface to human: report that `review_retry_count` may be
    under-counted by one and `finding_fingerprints` may not reflect the latest
-   round. The human must decide: (a) reissue `review record --fingerprint
-   --expect-run-id <run_id>` (risks double-count if the record actually succeeded
-   before the crash), or (b) proceed with an under-counted budget as an accepted
-   Phase-1 limitation.
+   round. **Recommended:** option (b) proceed with an under-counted budget — the
+   under-count is conservative (the guard may allow one extra retry) and avoids
+   the double-count risk. Do NOT auto-reissue. Option (a) reissuing `review
+   record --fingerprint --expect-run-id <run_id>` is available if the human
+   is confident the prior record did not complete.
 8. If `state == CODE-IMPLEMENTATION` and `last_event == gates-failed` →
    `record-attempt` may not have run. Reissue `loop-cohort record-attempt
    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` (idempotent:
@@ -1162,6 +1191,9 @@ Four independent test layers:
    - **clean review → human blocker → another review** — verify `review_retry_count`
      is unchanged through the clean and blocker round; only a `--fingerprint` call
      increments it.
+   - **plan mutation in CODE-IMPLEMENTATION at `wave-complete`** — schedule a
+     run; mutate plan.md before `wave-complete`; verify `wave-complete` refuses
+     (`schedule check-current` fires at step 1b before the event-specific guard).
    - **plan mutation in CODE-VERIFICATION** — advance to CODE-VERIFICATION;
      mutate plan.md; verify `wave-passed`, `gates-clean`, and `gates-failed`
      all refuse (mandatory `schedule check-current` pre-guard fires).
@@ -1170,6 +1202,9 @@ Four independent test layers:
    - **plan mutation in CODE-HUMAN-GATE** — advance to CODE-HUMAN-GATE; mutate
      plan.md; verify `blocker-applied` refuses (`schedule check-current` fires);
      verify `done` succeeds (`done` is exempt from the pre-guard).
+   - **plan-rejected + re-approval** — approve a plan; fire `plan-rejected`;
+     edit plan.md; call `approve-plan` again; verify new hashes are stored and
+     the stale approval is overwritten (no cleanup command needed).
    - **stasis detection** — write known fingerprints to `state.json`; verify
      `review inspect --json` returns `matches_previous_round: true`; verify an
      empty-vs-empty comparison returns `matches_previous_round: false`.
