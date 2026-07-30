@@ -88,7 +88,7 @@ After orientation:
 
 ## Step 1. PLAN
 
-1. **Read the contract first when one exists.** If a spec path was supplied or resolved, read its `spec.md` and `plan.md`. Evaluate risk using the user request, the persisted contract, and repository context.
+1. **Read the contract first when one exists.** If a spec path was supplied or resolved and its contract is not already resident, read its `spec.md` and `plan.md`. Evaluate risk using the user request, the persisted contract, and repository context.
 2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). If no adequate persisted contract exists, run `new-spec`: full mode requires complete ACs and Testing Strategy; light mode uses the lean inline spec. Do not recreate or replace an adequate existing spec.
 3. Use the existing plan's task list; don't invent one.
 4. Use extended thinking for architecturally significant work.
@@ -117,7 +117,11 @@ After orientation:
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-10. **Full mode:** initialize state, then run `loop-cohort.py check docs/specs/<feature> --phase plan`. The initial exit 1 with `plan not approved` is the expected transition into pre-EXECUTE review — it does not trigger termination.
+10. **Full mode:** run
+    `scripts/loop-cohort.py init docs/specs/<feature>`, then run
+    `scripts/loop-cohort.py check docs/specs/<feature> --phase plan`.
+    The initial exit 1 with `plan not approved` is the expected transition
+    into pre-EXECUTE review — it does not trigger termination.
 
 11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md).
 
@@ -182,7 +186,10 @@ Don't move past a failing gate by editing the gate. On failure → FIX.
 
 After GATES pass and the simplify pass is done, select a subagent matching `adversarial-reviewer`. Pass the diff and spec path. Fallback if no subagent installed: proceed, note missing review in final summary.
 
-Findings come back grouped by severity (Blockers / Concerns / Nits), each with a one-sentence `Fix:`. Iterate until the agent returns `Clean — ready to commit.`
+Findings come back grouped by severity (Blockers / Concerns / Nits), each with a one-sentence `Fix:`.
+
+- **Full mode:** iterate `adversarial-reviewer` until it returns `Clean — ready to commit.`
+- **Light mode:** run the single bounded pass. After every finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single Blocker re-review allowed by the light-mode rules.
 
 **Record findings after each pass (full mode):**
 ```
@@ -193,7 +200,14 @@ loop-cohort.py check docs/specs/<feature> --phase review
 
 Drop the full report text from resident context after recording. Re-read from disk when a FIX needs a finding's detail. (There is no pre-filtered "open findings" file — which findings are still open is your DECIDE-phase routing call.)
 
-**Specialist reviewers — use after adversarial-reviewer is clean.** Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`"; absence = named skip in the final summary, **except `security-reviewer` on infra-flavored work: that reviewer is mandatory — its absence surfaces and blocks.**
+**Specialist reviewers — run after the adversarial requirement is satisfied:**
+
+- Full mode: the reviewer returned Clean, or its absence is an allowed named skip.
+- Light mode: the bounded pass completed and its findings were disposed, or its absence is an allowed named skip.
+
+An absent or non-Clean adversarial reviewer must not suppress another warranted reviewer. Missing `security-reviewer` on infra-flavored work still surfaces and blocks.
+
+Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`".
 
 **`quality-engineer` trigger:** full mode — every loop; light mode — only when `AGENTS.md` declares the external-quality-gate exception (e.g., SonarQube, CI-only coverage threshold). Act on the declaration; don't scan for config files.
 
@@ -222,13 +236,13 @@ Route each reviewer finding into `apply` (fix in this PR) or `defer` (capture as
 - **Nits** → `apply` if they meet the bundled-fixes gates (land in `Bundled fixes:`). Otherwise `defer` — one line in `Deferred:`. Every Nit resolves into one of the two; the `Deferred:` line is the acknowledgement that the loop saw it and chose not to fix.
 - **Deferred items** → before recording, ask: *"Could this be delivered in this PR without crossing scope or introducing unreviewed risk?"* Only defer if genuinely no. Record in `workspace.toml [backlog].open` as `{slug = "...", source = "spec/<name> ACn"}` with a cold-start-sufficient TOML comment. Add `(deferred: <slug>)` to the spec criterion that defers. PR description keeps only a one-line pointer in a standalone `Deferred:` section (alongside `Bundled fixes:`; append below standard template content, don't modify the template). After recording, prompt: *"Does this look like an RFC candidate or roadmap intent? If so, add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Skip if neither file exists.
 
-When gates are green and review is clean → proceed to [Finish checklist](#finish-checklist).
+When gates are green and the mode's review requirements are satisfied → proceed to [Finish checklist](#finish-checklist).
 
 ## Termination
 
 Stop when **any** of these is true:
 
-1. **Gates green AND review clean** — normal exit. Proceed to [Finish checklist](#finish-checklist).
+1. **Gates green AND the mode's review requirements are satisfied** — normal exit. Proceed to [Finish checklist](#finish-checklist).
 2. **`scripts/loop-cohort.py check` exits non-zero** — except the expected initial `plan not approved` in PLAN (step 10 above), which is the cue to run pre-EXECUTE reviewers, not a stop signal. All other non-zero exits stop the current iteration and surface. Fires on: iteration cap, token-budget cap, consecutive-error counter, fingerprint stasis (REVIEW phase only). The exit message identifies which condition.
 3. **Diff is shrinking but findings aren't** — spot-fixing without addressing root cause. Stop and rethink the approach (back to PLAN).
 
@@ -241,7 +255,7 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this.
 - [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs) returned `Clean — ready to commit.` or is a named skip — **except missing `security-reviewer` on infra-flavored work, which blocks**. Silent skips are not allowed.
-- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an `apply` or `defer` disposition; applied fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode.
+- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an `apply` or `defer` disposition; applied fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or is an allowed named skip.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
