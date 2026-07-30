@@ -85,11 +85,14 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   - `review_retry_count` / `max_review_retries` — findings-only rounds;
     incremented by `review record --fingerprint` (not by `--report`). The
     `findings-remain` guard enforces this cap. Separates convergence retries from
-    clean reviews and human-blocker round-trips.
+    clean reviews and human-blocker round-trips. **Phase-1 default: 5** (written
+    by `loop-cohort init` from `assets/state.json`; change the template to alter
+    the default for all new runs).
   - `implementation_retry_count` / `max_implementation_retries` — counts
     `gates-failed` back-edge repair cycles; incremented by `record-attempt
     --phase implement`. Successful scheduled-wave executions do NOT consume
-    this budget. The `gates-failed` guard enforces this cap.
+    this budget. The `gates-failed` guard enforces this cap. **Phase-1 default: 5**
+    (same template as above).
   - `last_record_attempt_cycle_id` — the last `--cycle-id` applied by
     `record-attempt`. Enables `record-attempt` to be idempotent: a second call
     with the same cycle ID returns success without incrementing the counter.
@@ -148,7 +151,7 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
 
 **Verb surface:**
 ```
-loop-cohort init <spec-dir> [--run-id <uuid>]
+loop-cohort init <spec-dir> --run-id <uuid>
 loop-cohort identity <spec-dir> [--expect-run-id <uuid>] [--json]
 loop-cohort check <spec-dir> --phase {implement,review,gates-failed}
 loop-cohort approve-plan <spec-dir> --expect-run-id <uuid>
@@ -163,20 +166,19 @@ loop-cohort review record <spec-dir> (--report <path> | --fingerprint <hex>...) 
 loop-cohort status <spec-dir> [--json]
 loop-cohort reset <spec-dir>
 loop-cohort worktree preflight|add|record|list|merge|cleanup <spec-dir> [...]
-loop-cohort dispatch-decision --branch <b> [--branch <b>...] [--category <c>...] [--base <ref>]
+loop-cohort dispatch-decision --branch <b> [--branch <b>...] [--category <c>...] [--base <ref>]   # no <spec-dir> — carried-over convention
 loop-cohort auto-parallel <spec-dir> [--off]
 ```
 
 **New verbs:**
 
 - **`identity [--expect-run-id <uuid>]`** — read-only. Returns `run_id` and
-  `schema_version` from `state.json`. Exit 0 if `state.json` is present; exit
-  non-zero if absent. With `--expect-run-id`, additionally exits non-zero if
-  the stored `run_id` does not match. Used as the run_id verification preflight
-  before every code/spec-plan transition (see Guards) and as the cohort-present
-  check during the init preflight. The engine's preflight also verifies that the
-  returned `schema_version` equals `1` (the Phase-1 supported value); an
-  unsupported version exits non-zero and blocks the transition.
+  `schema_version` from `state.json`. Exits non-zero if: `state.json` is absent;
+  `schema_version != 1` (the Phase-1 supported value); or, with `--expect-run-id`,
+  the stored `run_id` does not match. `identity` is the sole validator of
+  `schema_version` — the engine does not parse it separately. Used as the run_id
+  verification preflight before every code/spec-plan transition (see Guards) and
+  as the cohort-present check during the init preflight.
 
 - **`--expect-run-id <uuid>`** (mutating verbs) — `approve-plan`, `schedule`,
   `record-attempt`, `wave advance`, and `review record` each require this flag.
@@ -236,11 +238,11 @@ loop-cohort auto-parallel <spec-dir> [--off]
 
 - **Parallel-wave verbs** (`worktree preflight|add|record|list|merge|cleanup`,
   `dispatch-decision`, `auto-parallel`) are carried over from loop-cohort's
-  existing implementation. **`auto-parallel` is disabled in Phase 1** — parallel
-  waves have no FSM coupling and their sequencing is not specified here; the
-  verb is present in the CLI surface but the skill must not invoke it. A future
+  existing implementation. **All three are disabled in Phase 1** — parallel waves
+  have no FSM coupling and their sequencing is not specified here; the verbs are
+  present in the CLI surface but the skill must not invoke any of them. A future
   spec will wire worktree sequencing against `wave-complete` and `wave advance`,
-  at which point `auto-parallel` will become a supported gate input.
+  at which point these verbs will become supported gate inputs.
 
 **Write contract:** all `loop-cohort` mutations write `state.json` via tempfile +
 `os.replace` (atomic swap, mirrors `loop-engine`'s write contract). Torn writes
@@ -475,7 +477,7 @@ waves are scheduled.
       │
       ├── 0. run_id preflight (all code/spec-plan transitions):
       │       loop-cohort identity --expect-run-id <run_id>
-      │       (refuses if mismatch, file absent, or schema_version unsupported)
+      │       (refuses if file absent, schema_version != 1, or run_id mismatch)
       │
       ├── 1. validate event against FSM for current mode × state
       │       (refuses non-zero if invalid)
@@ -568,9 +570,12 @@ checks are advisory in Phase 1.
 **`reviewers-clean` in `SPEC-PLAN-REVIEW`** carries no guard — the spec is not
 being shipped.
 
-**`check-spec-status.py`** must reuse the same canonical status parser as
-`lint-spec-status.py` to avoid an independent regex. The gate fires at the
-`CODE-REVIEW → CODE-HUMAN-GATE` edge (before G-pr, not at merge). This means
+**`check-spec-status.py`** — CLI contract: `check-spec-status.py <spec-dir>`;
+exits 0 iff `spec.md` contains `**Status:** Shipped`; exits non-zero with a
+one-line reason on stderr otherwise (missing, wrong status, or unparseable).
+It must reuse the same canonical status parser as `lint-spec-status.py` to avoid
+an independent regex. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
+(before G-pr, not at merge). This means
 a `blocker-applied` return leaves the spec with `Status: Shipped` while the PR
 continues iterating. This is intentional — per the project's "set final status
 in impl PR" convention, the PR itself signals the proposed ship status. The gate
@@ -661,7 +666,8 @@ loop-engine transition <spec-dir> wave-complete   # guard: check --phase impleme
 ```
 
 The guard fires on every `wave-complete`. It enforces advisory bounds only
-(token budget, same-error — non-blocking in Phase 1). Plan immutability is
+(token budget, same-error — non-blocking in Phase 1 because their writers are
+Phase-2-reserved; effectively a pass-through in Phase 1). Plan immutability is
 enforced by the mandatory `schedule check-current` pre-guard (step 1b) that
 fires before the event-specific guard. The retry cap is guarded at `gates-failed`.
 
@@ -931,9 +937,9 @@ On resume, the agent:
    `last_event_context`, `run_id`, `pending_human_wait`. If this exits non-zero
    (`engine-state.json` absent or unreadable), the run has no resumable Phase-1
    state — see Corrupt-pair recovery; start a new run after the reset pair.
-2. Calls `loop-cohort identity <spec-dir> --expect-run-id <run_id>` → verifies the
-   pair and supported `schema_version` before any read or mutation. Surface if
-   identity fails; do not proceed.
+2. Calls `loop-cohort identity <spec-dir> --expect-run-id <run_id>` → verifies
+   `run_id` match, `schema_version == 1`, and file presence in one call. Surface
+   if identity exits non-zero; do not proceed.
 3. Calls `loop-cohort status --json <spec-dir>` → reads `current_wave_index`,
    `schedule_waves`, `finding_fingerprints`, `review_retry_count`,
    `implementation_retry_count`.
@@ -956,6 +962,10 @@ On resume, the agent:
    same cycle-id is a no-op).
 8. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is now
    mechanically guarded; re-run gates and fire the appropriate event.
+9. If `state == CODE-HUMAN-GATE` and `last_event == reviewers-clean` →
+   `review record --report` may not have run. `review_round_count` may be
+   under-counted by one; this is audit-only and does not affect guard caps.
+   Safe to proceed: fire `done` or `blocker-applied` per the human decision.
 
 `last_event` enables genuine work resumption without chat history. For durable
 pointers to review reports or gate-failure artifacts, the skill must record these
