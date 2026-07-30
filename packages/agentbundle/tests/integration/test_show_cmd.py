@@ -138,7 +138,10 @@ def test_json_exact_keys_sorted_arrays_source_catalogue(tmp_path, capsys):
     out = capsys.readouterr().out
     assert rc == 0
     obj = json.loads(out)  # parses as valid JSON
-    assert set(obj) == {"name", "version", "description", "skills", "agents", "source"}
+    # STUB: AC3 / AC14 — integrations key added; fails until show.py gains integrations param
+    assert set(obj) == {
+        "name", "version", "description", "skills", "agents", "source", "integrations"
+    }
     assert obj["source"] == "catalogue"
     assert obj["name"] == "demo"
     assert obj["skills"] == ["alpha", "zeta"]
@@ -405,3 +408,93 @@ def test_show_help_documents_format():
 def _write_state(path: Path, state: State) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dump_state(state), encoding="utf-8", newline="\n")
+
+
+def _make_catalogue_with_integrations(root: Path) -> Path:
+    """Build a catalogue fixture with one pack that declares [[pack.integrations]]."""
+    pack = root / "packs" / "demo"
+    pack.mkdir(parents=True)
+    toml = (
+        '[pack]\nname = "demo"\nversion = "1.2.3"\ndescription = "Demo"\n\n'
+        '[[pack.integrations]]\n'
+        'id = "test-int"\n'
+        'pack = "other-pack"\n'
+        'kind = "input"\n'
+        'role = "Test role"\n'
+        'consumers = ["skill:alpha"]\n'
+        'providers = ["skill:zeta"]\n'
+        'when = "When active."\n'
+        'purpose = "For testing."\n'
+        'fallback = "Skips gracefully."\n'
+    )
+    (pack / "pack.toml").write_text(toml, encoding="utf-8", newline="\n")
+    for s in ("alpha", "zeta"):
+        (pack / ".apm" / "skills" / s).mkdir(parents=True)
+        (pack / ".apm" / "skills" / s / "SKILL.md").write_text(
+            "# s\n", encoding="utf-8", newline="\n"
+        )
+    return root
+
+
+# ---------------------------------------------------------------------------
+# STUBS: AC13-AC16 — integrations in show output (Task 3 TDD)
+# All fail until show.py gains the `integrations` parameter on _emit().
+# ---------------------------------------------------------------------------
+
+
+# STUB: AC14 + AC15 — JSON includes integrations when declared; all ten keys present
+def test_show_integrations_json_present_when_declared(tmp_path, capsys):
+    cat = _make_catalogue_with_integrations(tmp_path)
+    rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
+    out = capsys.readouterr().out
+    assert rc == 0
+    obj = json.loads(out)
+    assert "integrations" in obj
+    assert len(obj["integrations"]) == 1
+    entry = obj["integrations"][0]
+    assert entry["id"] == "test-int"
+    # AC14: all ten contract keys must be present in each entry
+    assert set(entry) >= {
+        "id", "pack", "kind", "role", "consumers", "providers",
+        "when", "purpose", "fallback", "version",
+    }
+    # AC14: version is null when absent from the entry
+    assert entry["version"] is None
+
+
+# STUB: AC14 + AC16 — JSON has integrations: [] when not declared
+def test_show_integrations_json_empty_when_not_declared(tmp_path, capsys):
+    cat = _make_catalogue(tmp_path)  # no integrations in pack.toml
+    rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
+    out = capsys.readouterr().out
+    assert rc == 0
+    obj = json.loads(out)
+    assert "integrations" in obj
+    assert obj["integrations"] == []
+
+
+# STUB: AC13 + AC15 — table includes integrations row with id/kind/pack summary
+def test_show_integrations_table_row_when_declared(tmp_path, capsys):
+    cat = _make_catalogue_with_integrations(tmp_path)
+    rc = show.run(_args("demo", catalogue=str(cat)))
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "integrations" in out
+    assert "test-int" in out
+    # AC13 requires kind and target pack in summary
+    assert "input" in out
+    assert "other-pack" in out
+
+
+# STUB: AC13 + AC16 — table shows "-" for integrations when none declared
+def test_show_integrations_table_row_shows_dash_when_absent(tmp_path, capsys):
+    cat = _make_catalogue(tmp_path, skills=("alpha",), agents=())
+    rc = show.run(_args("demo", catalogue=str(cat)))
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "integrations" in out
+    # AC16: empty integrations row value renders as "-"
+    lines = out.splitlines()
+    integrations_line = next((ln for ln in lines if "integrations" in ln), None)
+    assert integrations_line is not None
+    assert "-" in integrations_line

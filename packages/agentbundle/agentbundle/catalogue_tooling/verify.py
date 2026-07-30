@@ -716,7 +716,183 @@ def _step_fixture_checks(
 
 
 # ---------------------------------------------------------------------------
-# 18-step verification table
+# Step 19 helpers
+# ---------------------------------------------------------------------------
+
+_SEMVER_ATOM_RE = re.compile(
+    r"^(?:[~^]|[<>]=?)?(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)(?:-[\w.]+)?)?)?$"
+)
+_SEMVER_HYPHEN_RE = re.compile(r"^\d[\d.]* - \d[\d.]*$")
+
+
+def _is_valid_semver_range(version: str) -> bool:
+    """Return True if *version* is a valid npm-compatible semver range.
+
+    Handles: exact versions, caret/tilde/comparison prefixes, hyphen ranges,
+    and ``||`` unions. No new dependencies — pure regex.
+    """
+    for part in version.split("||"):
+        part = part.strip()
+        if not part:
+            return False
+        if _SEMVER_HYPHEN_RE.match(part):
+            continue
+        for atom in part.split():
+            if not _SEMVER_ATOM_RE.match(atom):
+                return False
+    return True
+
+
+def _resolve_primitive_ref(ref: str, pack_dir: Path) -> bool:
+    """Return True if the type-qualified *ref* resolves in *pack_dir*'s .apm tree.
+
+    Mapping:
+      skill:<name>   → directory  pack_dir/.apm/skills/<name>/
+      agent:<name>   → file       pack_dir/.apm/agents/<name>.md
+      command:<name> → file       pack_dir/.apm/commands/<name>.md
+      hook:<name>    → any file   pack_dir/.apm/hooks/<name>.*  (stem match)
+    """
+    if ":" not in ref:
+        return False
+    type_str, name = ref.split(":", 1)
+    if type_str == "skill":
+        return (pack_dir / ".apm" / "skills" / name).is_dir()
+    if type_str == "agent":
+        return (pack_dir / ".apm" / "agents" / f"{name}.md").exists()
+    if type_str == "command":
+        return (pack_dir / ".apm" / "commands" / f"{name}.md").exists()
+    if type_str == "hook":
+        hooks_dir = pack_dir / ".apm" / "hooks"
+        if not hooks_dir.is_dir():
+            return False
+        return any(f.is_file() and f.stem == name for f in hooks_dir.iterdir())
+    return False
+
+
+def _step_integration_validation(
+    root: Path, config: object | None, pack: str | None, tmpdir: Path
+) -> list[Diagnostic]:
+    """Step 19: validate [[pack.integrations]] entries (Wave 2, RFC-0076).
+
+    Rules checked (schema-layer rules AC6/AC8 are NOT re-implemented here):
+      AC5  — id is unique within each declaring pack
+      AC7  — consumer primitive refs resolve in the declaring pack
+      AC9  — pack does not target itself
+      AC10 — version, when present, is a valid semver range
+      AC11 — absent target pack is not an error (portable across catalogues)
+      AC12 — provider primitive refs resolve in the target pack when present
+    """
+    try:
+        import tomllib
+    except ImportError:
+        import tomli as tomllib  # type: ignore[no-redef]
+
+    from agentbundle.catalogue_tooling.results import Severity
+
+    packs_path = getattr(getattr(config, "paths", None), "packs", None) or "packs"
+    packs_root = root / packs_path
+
+    if not packs_root.is_dir():
+        return []
+
+    def _err(message: str, declaring: str | None = None) -> Diagnostic:
+        return Diagnostic(
+            code="CAT-V-019",
+            severity=Severity.ERROR,
+            pack=declaring,
+            path=None,
+            line=None,
+            col=None,
+            message=message,
+            remediation=None,
+        )
+
+    # Pass 1: build full pack-name → pack-dir map (cross-reference for AC12)
+    all_pack_dirs: dict[str, Path] = {}
+    for candidate in packs_root.iterdir():
+        if not candidate.is_dir():
+            continue
+        toml_path = candidate / "pack.toml"
+        if not toml_path.exists():
+            continue
+        try:
+            data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        pack_name = data.get("pack", {}).get("name") or candidate.name
+        all_pack_dirs[pack_name] = candidate
+
+    diags: list[Diagnostic] = []
+
+    # Pass 2: validate integrations in each (optionally filtered) pack
+    for pack_name, pack_dir in all_pack_dirs.items():
+        if pack is not None and pack_name != pack:
+            continue
+        toml_path = pack_dir / "pack.toml"
+        try:
+            data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        integrations = data.get("pack", {}).get("integrations") or []
+        if not integrations:
+            continue
+
+        seen_ids: set[str] = set()  # reset per declaring pack (AC5 scopes to pack)
+        for entry in integrations:
+            entry_id = entry.get("id", "")
+
+            # AC5: duplicate id within this pack
+            if entry_id in seen_ids:
+                diags.append(_err(
+                    f"duplicate integration id {entry_id!r} in pack {pack_name!r}",
+                    declaring=pack_name,
+                ))
+            seen_ids.add(entry_id)
+
+            # AC7: consumer refs must resolve in declaring pack
+            for ref in entry.get("consumers", []):
+                if not _resolve_primitive_ref(ref, pack_dir):
+                    diags.append(_err(
+                        f"integration {entry_id!r}: consumer ref {ref!r} not found"
+                        f" in {pack_name!r}",
+                        declaring=pack_name,
+                    ))
+
+            # AC9: no self-targeting
+            target = entry.get("pack", "")
+            if target == pack_name:
+                diags.append(_err(
+                    f"integration {entry_id!r}: pack {pack_name!r} targets itself"
+                    f" (self-reference not allowed)",
+                    declaring=pack_name,
+                ))
+
+            # AC10: version, if present, must be a valid semver range
+            version = entry.get("version")
+            if version is not None and not _is_valid_semver_range(version):
+                diags.append(_err(
+                    f"integration {entry_id!r}: version range {version!r} is not"
+                    f" a valid semver range",
+                    declaring=pack_name,
+                ))
+
+            # AC11/AC12: if target is in this catalogue, check provider refs
+            if target in all_pack_dirs:
+                target_dir = all_pack_dirs[target]
+                for ref in entry.get("providers", []):
+                    if not _resolve_primitive_ref(ref, target_dir):
+                        diags.append(_err(
+                            f"integration {entry_id!r}: provider ref {ref!r} not"
+                            f" found in target pack {target!r}",
+                            declaring=pack_name,
+                        ))
+            # AC11: target absent → no error (portable across catalogues)
+
+    return diags
+
+
+# ---------------------------------------------------------------------------
+# 18-step verification table (plus step 19)
 # ---------------------------------------------------------------------------
 
 _VERIFY_STEPS = [
@@ -738,6 +914,7 @@ _VERIFY_STEPS = [
     (16, "sync-defaults check", _step_sync_defaults),
     (17, "package preflight", _step_package_preflight),
     (18, "deterministic fixture checks", _step_fixture_checks),
+    (19, "pack integration validation", _step_integration_validation),
 ]
 
 

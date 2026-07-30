@@ -1,6 +1,6 @@
 # Spec: catalogue-wave2-pack-integrations
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Constrained by:** [RFC-0076 D6](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 - **Contract:** `contracts/pack.schema.json` (adds `integrations` array — engine change), `packages/agentbundle/agentbundle/_data/pack.schema.json` (byte-parity sync)
@@ -107,7 +107,7 @@ and guidance — as a single cohesive surface rather than shipping the schema al
 
 **Schema structure**
 
-- [ ] AC1: `contracts/pack.schema.json` gains an `integrations` property on the `pack`
+- [x] AC1: `contracts/pack.schema.json` gains an `integrations` property on the `pack`
   object — an array of integration objects, optional (not in `required`). Each
   integration object has `additionalProperties: false` and declares the following
   properties:
@@ -125,15 +125,15 @@ and guidance — as a single cohesive surface rather than shipping the schema al
   - `fallback` (string, required, minLength 1)
   - `version` (string, optional): semver range
 
-- [ ] AC2: A `pack.toml` with no `[[pack.integrations]]` section validates against the
+- [x] AC2: A `pack.toml` with no `[[pack.integrations]]` section validates against the
   updated `contracts/pack.schema.json` without error (the array is optional).
 
-- [ ] AC3: A `pack.toml` with a valid `[[pack.integrations]]` entry validates without
+- [x] AC3: A `pack.toml` with a valid `[[pack.integrations]]` entry validates without
   error. A `pack.toml` with an integration entry missing a required field fails schema
   validation with a clear error. A `pack.toml` with `kind = "unknown"` fails schema
   validation.
 
-- [ ] AC4: `agentbundle/_data/pack.schema.json` is byte-identical to
+- [x] AC4: `agentbundle/_data/pack.schema.json` is byte-identical to
   `contracts/pack.schema.json` after the update. `python3 tools/catalogue/check_contract_parity.py`
   exits 0 on the updated repo.
 
@@ -141,34 +141,34 @@ and guidance — as a single cohesive surface rather than shipping the schema al
 
 **Validation rules**
 
-- [ ] AC5: `agentbundle catalogue verify` reports an error when two integration entries
+- [x] AC5: `agentbundle catalogue verify` reports an error when two integration entries
   in the same pack share the same `id`.
 
-- [ ] AC6: `agentbundle catalogue verify` reports an error when an integration
+- [x] AC6: `agentbundle catalogue verify` reports an error when an integration
   `kind` value is not one of `input`, `augment`, `review`, `handoff`.
 
-- [ ] AC7: `agentbundle catalogue verify` reports an error when a `consumers` entry
+- [x] AC7: `agentbundle catalogue verify` reports an error when a `consumers` entry
   references a primitive type/name combination that does not exist in the declaring
   pack's `.apm/` directory (e.g., `skill:nonexistent` when no such skill file exists).
 
-- [ ] AC8: `agentbundle catalogue verify` reports an error when `when`, `purpose`, or
+- [x] AC8: `agentbundle catalogue verify` reports an error when `when`, `purpose`, or
   `fallback` is an empty string.
 
-- [ ] AC9: `agentbundle catalogue verify` reports an error when an integration's
+- [x] AC9: `agentbundle catalogue verify` reports an error when an integration's
   `pack` field names the same pack as the declaring pack (self-target prohibition).
 
-- [ ] AC10: `agentbundle catalogue verify` reports an error when the `version` field
+- [x] AC10: `agentbundle catalogue verify` reports an error when the `version` field
   is present but its value is not a valid semver range string. Grammar: npm-compatible
   range syntax — caret (`^`), tilde (`~`), comparison operators (`>=`/`<=`/`>`/`<`),
   hyphen ranges, and `||` unions are all valid; exact `X.Y.Z` is always valid.
   Accept examples: `^1.0.0`, `>=2.0.0 <3.0.0`, `1.2.3`. Reject examples: `latest`,
   `@1`, `not-a-version`.
 
-- [ ] AC11: `agentbundle catalogue verify` exits 0 when an integration's target
+- [x] AC11: `agentbundle catalogue verify` exits 0 when an integration's target
   `pack` is not present in the catalogue (portable validation: absent target is not
   an error).
 
-- [ ] AC12: `agentbundle catalogue verify` reports an error when the integration's
+- [x] AC12: `agentbundle catalogue verify` reports an error when the integration's
   target pack is present in the catalogue and a `providers` entry names a primitive
   that does not exist in that target pack's `.apm/` directory. Absent-target catalogues
   skip this check (AC11).
@@ -177,24 +177,24 @@ and guidance — as a single cohesive surface rather than shipping the schema al
 
 **show command extension**
 
-- [ ] AC13: `agentbundle show <pack>` (table output) includes an "integrations" row
+- [x] AC13: `agentbundle show <pack>` (table output) includes an "integrations" row
   when the pack declares at least one `[[pack.integrations]]` entry. The row value
   lists integration IDs, their `kind`, and target `pack` in a readable summary form
   (e.g., `frontend-preflight-augment (augment → frontend-engineering)`). When no
   integrations are declared, the row shows "-".
 
-- [ ] AC14: `agentbundle show <pack> --format json` includes an `"integrations"` key
+- [x] AC14: `agentbundle show <pack> --format json` includes an `"integrations"` key
   in the output object. When integrations are present, the value is an array of
   objects, each containing at minimum `id`, `pack`, `kind`, `role`, `consumers`,
   `providers`, `when`, `purpose`, `fallback`, and `version` (null if absent). When no
   integrations are declared, the value is an empty array `[]`.
 
-- [ ] AC15: A pytest integration test calls `show.run()` with a fixture pack containing
+- [x] AC15: A pytest integration test calls `show.run()` with a fixture pack containing
   one `[[pack.integrations]]` entry (any valid entry). The test asserts the `integrations`
   key is present and non-empty in JSON output, and that the table output contains the
   integration ID string.
 
-- [ ] AC16: A pytest integration test calls `show.run()` with a fixture pack containing
+- [x] AC16: A pytest integration test calls `show.run()` with a fixture pack containing
   no `[[pack.integrations]]` section. The test asserts the JSON output has
   `"integrations": []` and the table output does not error.
 
@@ -202,7 +202,7 @@ and guidance — as a single cohesive surface rather than shipping the schema al
 
 **core pack.toml (core version must be bumped; governance-extras version must be bumped)**
 
-- [ ] AC17: `packs/core/pack.toml` gains exactly two `[[pack.integrations]]` entries:
+- [x] AC17: `packs/core/pack.toml` gains exactly two `[[pack.integrations]]` entries:
 
   1. `id = "frontend-preflight-augment"`, `pack = "frontend-engineering"`,
      `kind = "augment"`, `role = "Frontend pre-flight augmentation"`,
@@ -217,7 +217,7 @@ and guidance — as a single cohesive surface rather than shipping the schema al
   `packs/core/.claude-plugin/plugin.json` version is bumped in lockstep; `make build-self`
   is run to reproject `dist/claude-plugins/core/`.
 
-- [ ] AC18: `packs/governance-extras/pack.toml` gains exactly three `[[pack.integrations]]`
+- [x] AC18: `packs/governance-extras/pack.toml` gains exactly three `[[pack.integrations]]`
   entries:
 
   1. `id = "promoted-research-evidence"`, `pack = "desk-research"`, `kind = "input"`,
@@ -237,16 +237,16 @@ and guidance — as a single cohesive surface rather than shipping the schema al
   `packs/governance-extras/.claude-plugin/plugin.json` version is bumped in lockstep;
   `make build-self` is run to reproject `dist/claude-plugins/governance-extras/`.
 
-- [ ] AC19: `agentbundle catalogue verify --root .` exits 0 on the working-tree
+- [x] AC19: `agentbundle catalogue verify --root .` exits 0 on the working-tree
   catalogue after the pilot entries are added. All five consumer refs resolve to
   existing files in the declaring packs' `.apm/<type>s/` directories. All five provider
   ref groups resolve to existing files in the target packs' `.apm/<type>s/` directories.
 
-- [ ] AC20: `agentbundle show core --format json` returns an object where
+- [x] AC20: `agentbundle show core --format json` returns an object where
   `"integrations"` is a non-empty array containing entries with `"id":
   "frontend-preflight-augment"` and `"id": "frontend-cold-reviewer"`.
 
-- [ ] AC21: `agentbundle show governance-extras --format json` returns an object where
+- [x] AC21: `agentbundle show governance-extras --format json` returns an object where
   `"integrations"` is a non-empty array containing entries with `"id":
   "promoted-research-evidence"`, `"id": "design-proposal-product-engineering"`, and
   `"id": "design-proposal-architect"`.
@@ -255,7 +255,7 @@ and guidance — as a single cohesive surface rather than shipping the schema al
 
 **catalogue-authoring-standards.md section 11 (Wave 1 placeholder → full content)**
 
-- [ ] AC22: The unnumbered placeholder section "Optional pack integrations" in
+- [x] AC22: The unnumbered placeholder section "Optional pack integrations" in
   `guides/_shared/reference/catalogue-authoring-standards.md` is replaced by a
   numbered section "11. Optional pack integrations". The placeholder warning block is
   removed. The section includes:
@@ -270,25 +270,25 @@ and guidance — as a single cohesive surface rather than shipping the schema al
   - A lint/verify command snippet.
   - No RFC, ADR, or spec path citations.
 
-- [ ] AC23: The scaffold copy at
+- [x] AC23: The scaffold copy at
   `packages/agentbundle/agentbundle/_data/catalogue-scaffold/guides/_shared/reference/catalogue-authoring-standards.md`
   matches the updated live file after `python3 tools/catalogue/sync_authoring_scaffold.py --check`
   exits 0.
 
-- [ ] AC24: `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0 after
+- [x] AC24: `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0 after
   the authoring hub update.
 
-- [ ] AC25: The updated hub section contains no host CI workflow requirements, Make
+- [x] AC25: The updated hub section contains no host CI workflow requirements, Make
   target requirements, or internal governance citations.
 
 ### Phase F — Engine change + version bump + changelog
 
-- [ ] AC26: `packages/agentbundle/pyproject.toml` version is bumped to `0.27.0`.
+- [x] AC26: `packages/agentbundle/pyproject.toml` version is bumped to `0.27.0`.
   `packages/agentbundle/agentbundle/version.py` `CLI_VERSION` is set to `"0.27.0"` in
   lockstep. At least one commit in the PR contains `Engine-Change-RFC: RFC-0076` in
   its message (for the pack.schema.json + _data/ sync commit).
 
-- [ ] AC27: `docs/product/changelog.md` has an `[Unreleased]` or `0.27.0` entry
+- [x] AC27: `docs/product/changelog.md` has an `[Unreleased]` or `0.27.0` entry
   describing: (a) the new `[[pack.integrations]]` schema field in `pack.schema.json`,
   (b) the new validation rules in `agentbundle catalogue verify`, (c) the extended
   `agentbundle show` output, and (d) the five first-party pilot integration entries.
@@ -297,11 +297,11 @@ and guidance — as a single cohesive surface rather than shipping the schema al
 
 ### Regression
 
-- [ ] AC28: `SKIP_SAST=1 make build-check` exits 0 after all changes.
-- [ ] AC29: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0 after all
+- [x] AC28: `SKIP_SAST=1 make build-check` exits 0 after all changes.
+- [x] AC29: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0 after all
   changes.
-- [ ] AC30: `wc -l packs/AGENTS.md` ≤ 150 (CI enforces; verify after any edit).
-- [ ] AC31: `wc -l AGENTS.md` ≤ 250 (CI enforces; verify after any edit).
+- [x] AC30: `wc -l packs/AGENTS.md` ≤ 150 (CI enforces; verify after any edit).
+- [x] AC31: `wc -l AGENTS.md` ≤ 250 (CI enforces; verify after any edit).
 
 ## Assumptions
 

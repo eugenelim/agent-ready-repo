@@ -131,11 +131,58 @@ for the full pipeline sequence.
 
 ---
 
-## Optional pack integrations
+## 11. Optional pack integrations
 
-> **Not yet available.** Wave 2 of the catalogue-contracts initiative will define the
-> `[[pack.integrations]]` convention for declaring optional cross-pack composition.
-> This section will be filled in when that wave ships.
+**Contract:** `contracts/pack.schema.json` (`[[pack.integrations]]` array)
+
+A pack can declare optional behavior seams with other packs using the
+`[[pack.integrations]]` array table in `pack.toml`. The entire array is
+optional — packs without integrations remain fully valid and installable.
+
+**The ten fields** (all fields in each entry are required except `version`):
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | yes | Unique kebab-case identifier within this pack |
+| `pack` | string | yes | Name of the target pack |
+| `kind` | string | yes | One of: `input`, `augment`, `review`, `handoff` |
+| `role` | string | yes | Short user-facing label for this integration |
+| `consumers` | string[] | yes | Type-qualified primitive refs in the declaring pack |
+| `providers` | string[] | yes | Type-qualified primitive refs in the target pack |
+| `when` | string | yes | Human-readable conditions under which this seam activates |
+| `purpose` | string | yes | What the integration achieves when active |
+| `fallback` | string | yes | What the consuming skill does when the target pack is absent |
+| `version` | string | no | Semver range of the target pack version |
+
+**The four `kind` values:**
+
+- `input` — the target provides an artifact the declaring pack's skill reads
+- `augment` — the target pack's skill is inlined into the consuming skill's workflow
+- `review` — the target pack's agent or skill is invoked as a reviewer pass
+- `handoff` — the consuming skill passes control to the target at a defined boundary
+
+**What integrations are not:**
+
+No auto-install (declaring an integration does not install the target pack), no
+dependency closure (`[pack.dependencies]` owns hard requirements), no executable
+`when` expressions (the `when` field is explanatory text only).
+
+**The `fallback` requirement:**
+
+Every integration must declare what the consuming skill does when the target is
+absent. An agent reading the integration without the target installed needs to
+know how to proceed.
+
+**Lint and verify:**
+
+```bash
+agentbundle catalogue verify --root .
+```
+
+Primitive refs (e.g., `"skill:work-loop"`) are validated against the declaring
+and target packs' `.apm/` directories. An absent target pack does not fail
+verification — the check is portable across catalogues that may not include
+every optional pack.
 
 ---
 
