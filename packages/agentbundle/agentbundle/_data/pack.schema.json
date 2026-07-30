@@ -265,6 +265,34 @@
             "writes-to-repo": {"type": "boolean"},
             "safety-gate": {"type": "string"}
           }
+        },
+        "integrations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "pack", "kind", "role", "consumers", "providers", "when", "purpose", "fallback"],
+            "properties": {
+              "id":        {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+              "pack":      {"type": "string"},
+              "kind":      {"type": "string", "enum": ["input", "augment", "review", "handoff"]},
+              "role":      {"type": "string"},
+              "consumers": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "pattern": "^(skill|agent|command|hook):[a-z0-9][a-z0-9-]*$"}
+              },
+              "providers": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "pattern": "^(skill|agent|command|hook):[a-z0-9][a-z0-9-]*$"}
+              },
+              "when":      {"type": "string", "minLength": 1},
+              "purpose":   {"type": "string", "minLength": 1},
+              "fallback":  {"type": "string", "minLength": 1},
+              "version":   {"type": "string"}
+            }
+          }
         }
       },
       "if": {
