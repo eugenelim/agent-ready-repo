@@ -1,10 +1,10 @@
 # RFC-0064: INI-001 AI-Native Ecosystem — Platform Core
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-18
-- **Date closed:** —
+- **Date closed:** 2026-07-30
 - **Decision weight:** heavy
 - **Related:**
   - [docs/product/shaping/product-vision-INI-001.md](../product/shaping/product-vision-INI-001.md) — initiative vision and maturity model
@@ -119,8 +119,7 @@ If implementing a skill reveals the RFC's AC was wrong or too narrow, write an *
 
 ### M3–M6 ordering notes
 
-> **Superseded for remaining work by Amendment #3 (2026-07-20).** M1, M3, and M4
-> shipped under the original milestone cut. The *remaining* work (M2, M5, and the
+> **Superseded for remaining work by Amendment #3 (2026-07-20).** M1, M2, M3, M4, and M5 shipped under the original milestone cut. The *remaining* work (M2, M5, and the
 > M6 guides) is re-sequenced into **vertical journey-phase slices** — each a
 > per-repo **Project** bounded by a milestone, shipping its tooling *and* its
 > guides together. The "Documentation Wave" as a terminal milestone is dissolved:
@@ -472,15 +471,15 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 
 ### M2 · Strategic Shaping
 
-- [ ] RFC-00XX · pe-pack-strategic-shaping sub-RFC opened and accepted before any M2 skill implementation begins; boundaries for all overlap pairs are already decided (Known Unknowns, resolved 2026-07-18): `frame-intent` vs `frame-situation` — coexist (different scopes and output contracts); `explore-options` vs `diverge-solutions` — coexist (different output contracts); `de-risk-intent` vs `place-bet` — sequential, not overlapping (steps 3.5 and 5 respectively). Sub-RFC documents implementation guidance (when to reach for each skill) and governs remaining implementation details; it does not re-open boundary decisions. After sub-RFC is accepted, use `new-rfc` extension (M1.9) to prompt adding M2 implementation specs to `[work].queue` in `workspace.toml`.
-- [ ] `frame-situation` skill in PE pack: signal → typed finding → six-step route; Wardley capability maturity embedded
-- [ ] `identify-opportunities` skill in PE pack + opportunity assessment artifact seed; JTBD framing (functional / emotional / social jobs) embedded
-- [ ] `diverge-solutions` skill in PE pack; overlap with `explore-options` resolved per sub-RFC before this spec is authored
-- [ ] `place-bet` skill in PE pack: human commitment gate, betting table surface; overlap with `de-risk-intent` resolved per sub-RFC before this spec is authored
-- [ ] `map-capabilities` skill in PE pack: product vision → all capability areas in one pass
-- [ ] Initiative brief artifact using the `docs/product/initiatives/_template.md` seeded in Batch 5 (do not recreate — sole ownership is Batch 5)
+- [x] RFC-00XX · pe-pack-strategic-shaping sub-RFC opened and accepted before any M2 skill implementation begins; boundaries for all overlap pairs are already decided (Known Unknowns, resolved 2026-07-18): `frame-intent` vs `frame-situation` — coexist (different scopes and output contracts); `explore-options` vs `diverge-solutions` — coexist (different output contracts); `de-risk-intent` vs `place-bet` — sequential, not overlapping (steps 3.5 and 5 respectively). Sub-RFC documents implementation guidance (when to reach for each skill) and governs remaining implementation details; it does not re-open boundary decisions. After sub-RFC is accepted, use `new-rfc` extension (M1.9) to prompt adding M2 implementation specs to `[work].queue` in `workspace.toml`. (waived — boundaries pre-resolved in RFC Known Unknowns 2026-07-18; see Errata #5)
+- [x] `frame-situation` skill in PE pack: signal → typed finding → six-step route; Wardley capability maturity embedded
+- [x] `identify-opportunities` skill in PE pack + opportunity assessment artifact seed; JTBD framing (functional / emotional / social jobs) embedded
+- [x] `diverge-solutions` skill in PE pack; overlap with `explore-options` resolved per sub-RFC before this spec is authored
+- [x] `place-bet` skill in PE pack: human commitment gate, betting table surface; overlap with `de-risk-intent` resolved per sub-RFC before this spec is authored
+- [x] `map-capabilities` skill in PE pack: product vision → all capability areas in one pass
+- [x] Initiative brief artifact using the `docs/product/initiatives/_template.md` seeded in Batch 5 (do not recreate — sole ownership is Batch 5)
 - [x] JTBD framing embedded in `frame-intent` — this is a modification to a shipped skill; backward-compatibility impact assessed in its own spec (not bundled with other M2.6 items); existing `frame-intent` outputs remain valid
-- [ ] Lean Canvas initiative framing template
+- [x] Lean Canvas initiative framing template
 
 ### M3 · Findings & RFC Management
 
@@ -492,9 +491,9 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [x] `research-project-start` bug fix (D8): remove `parent = ".context/research"` from resolution order in the skill — `.context/` is gitignored ephemeral scratch; the M3 fix also adds `[research] output_dir` key to `agentbundle-layout.toml` (new key — does not exist before this fix); resolution order: (1) user-scope `~/.agentbundle/agentbundle-layout.toml [research] output_dir` — personal workspace; (2) repo-scope `agentbundle-layout.toml [research] output_dir` — team convention; (3) neither → two-branch elicitation: repo branch ("Commit to this repo? [`docs/product/research/`]" → writes repo-scope config) or personal branch ("Write to personal workspace? Enter path:" → writes user-scope config; no default — Obsidian has no universal vault path; skill uses `~/Documents/<VaultName>/efforts/research/` as illustrative example only); output always at `<output_dir>/<research-project-slug>/`; co-land a test asserting elicitation fires rather than `.context/` fallback
 - [x] `research` pack renamed to `desk-research` — canonical practitioner term (desk research in consulting / secondary research in design-UX practice); scope: AI-assisted synthesis of existing sources, finding summary schema, research project scaffolding; pack manifest, `plugin.json`, build-self run; migration path documented in pack `AGENTS.md`. (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level alias; migration is documentation-only via `packs/desk-research/AGENTS.md`. `agentbundle-layout.toml [research]` section key is an activity-type identifier and does not change. Assessed 2026-07-18, eugenelim.)
 - [x] `experience` pack renamed to `experience-design` — canonical agency term (Experience Design, abbreviated XD; used by frog, Fjord/Accenture Song, AKQA, Huge); zero-ambiguity alignment with practitioner taxonomy; same migration-alias assessment as desk-research rename. (Alias assessment: agentbundle alias mechanism is adapter-scoped only — no pack-level alias; migration is documentation-only via `packs/experience-design/AGENTS.md`. `agentbundle-layout.toml [experience]` section key is an activity-type identifier and does not change. Assessed 2026-07-18, eugenelim.)
-- [ ] `workspace.toml` gains a top-level `[backlog]` section (repo-durable, initiative-agnostic) — the single view of open work not scoped to an active initiative; `workspace-status` surfaces it alongside the queues
-- [ ] `docs/backlog.md` absorbed into `[backlog]`: all open items migrated with cold-start-sufficient comments; deferred-AC items carry `source = "spec/<name> ACn"`; `docs/backlog.md` reduced to an anchor-tombstone stub retaining only anchors linked by Frozen RFCs (RFC-0007/0023/0058/0065); editable references (CONTRIBUTING.md, `new-spec` template, `work-loop`, CONVENTIONS.md, `export-catalogue`) repointed
-- [ ] Deferral mechanism relocated: `(deferred: <slug>)` resolves to a `[backlog].open` entry (not a `docs/backlog.md` heading); deferral requires an inline justification and an explicit `work-loop` "is this deferral justified?" prompt; `lint-spec-status.py` invariant (iv) rewritten in both skill copies + pack source; `new-spec` template and CONVENTIONS.md updated
+- [x] `workspace.toml` gains a top-level `[backlog]` section (repo-durable, initiative-agnostic) — the single view of open work not scoped to an active initiative; `workspace-status` surfaces it alongside the queues
+- [x] `docs/backlog.md` absorbed into `[backlog]`: all open items migrated with cold-start-sufficient comments; deferred-AC items carry `source = "spec/<name> ACn"`; `docs/backlog.md` reduced to an anchor-tombstone stub retaining only anchors linked by Frozen RFCs (RFC-0007/0023/0058/0065); editable references (CONTRIBUTING.md, `new-spec` template, `work-loop`, CONVENTIONS.md, `export-catalogue`) repointed
+- [x] Deferral mechanism relocated: `(deferred: <slug>)` resolves to a `[backlog].open` entry (not a `docs/backlog.md` heading); deferral requires an inline justification and an explicit `work-loop` "is this deferral justified?" prompt; `lint-spec-status.py` invariant (iv) rewritten in both skill copies + pack source; `new-spec` template and CONVENTIONS.md updated
 - [x] `queue-add` skill (core pack): appends session-surfaced items to an active initiative's `[work].queue` or the repo-level `[backlog]`; infers `needs` from explicit sequencing only (never encodes a priority preference as a dependency); prioritizes (rubric-agnostic — order + comment rationale) and groups (independent batch / atomic bundle / suggest brief); escalation rubric suggests the right home when an item does not cleanly fit; writes cold-start-sufficient comments; user confirms before write. Spec: `docs/specs/queue-add/`
 - [ ] Research (shaping_queue): should `rfc-candidates.md` graduate into the `shaping_queue` (as research / strategy entries) rather than remain a separate register? Assess the intake taxonomy (findings registers vs `[backlog]` vs shaping queue) and recommend
 
@@ -508,27 +507,32 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 
 ### M5 · Tracker Integration
 
-- [ ] `github-brief-intake` skill: GitHub Issue / Milestone → brief with `Epic:` pointer (implement first — independent of linear pack, builds pattern confidence)
-- [ ] RFC-00XX · linear-pack sub-RFC opened and accepted before implementation begins; sub-RFC governs: (a) `linear-brief-sync` delta model (diff fields, PE-approval gate before write, lock when brief is `executing`); (b) AC export direction (`push-acs-to-linear` skill — write ACs back to Linear story for review round; stretch goal, sub-RFC decides scope); (c) field mapping between Linear and brief DoR fields
-- [ ] `linear` pack + `linear-brief-intake` skill: Linear Issue / Project → brief (first-time intake); `linear-brief-sync [LIN-123]` skill: re-fetch issue, diff against current brief, present delta for PE approval, write approved changes; refuse to update if brief `Status: Executing` (spec locked)
-- [ ] `jira-align-brief-intake` skill (atlassian pack): Jira Align Feature → brief; **1-way intake only** with configuration-guided field mapping for org-specific workflow states and PI cadences; generic portable sync is not a goal (see Known Unknowns — Unknowable)
-- [ ] Tracker decision tree and vocabulary mapping table in guides
+- [x] `github-brief-intake` skill: GitHub Issue / Milestone → brief with `Epic:` pointer (implement first — independent of linear pack, builds pattern confidence)
+- [x] RFC-0068 · linear-pack sub-RFC (Accepted 2026-07-21) opened and accepted before implementation begins; sub-RFC governs: (a) `linear-brief-sync` delta model (diff fields, PE-approval gate before write, lock when brief is `executing`); (b) AC export direction (`push-acs-to-linear` skill — write ACs back to Linear story for review round; stretch goal, sub-RFC decides scope); (c) field mapping between Linear and brief DoR fields
+- [x] `linear` pack + `linear-brief-intake` skill: Linear Issue / Project → brief (first-time intake); `linear-brief-sync [LIN-123]` skill: re-fetch issue, diff against current brief, present delta for PE approval, write approved changes; refuse to update if brief `Status: Executing` (spec locked)
+- [x] `jira-align-brief-intake` skill (atlassian pack): Jira Align Feature → brief; **1-way intake only** with configuration-guided field mapping for org-specific workflow states and PI cadences; generic portable sync is not a goal (see Known Unknowns — Unknowable)
+- [x] Tracker decision tree and vocabulary mapping table in guides
 
-### M6 · Documentation Wave
+### M6 · Documentation Wave → re-sequenced into P1–P5 journey-phase slices
 
-<!-- Re-sequenced by Amendment #3: the workspace.toml / PE / author-brief guide ACs
-     below are redistributed into their journey-phase Project (they ship with the
-     tooling they document). Only the live-demo guide and enterprise rollout playbook
-     remain a terminal phase. This section is retained for AC-tracking; the phase
-     grouping in Amendment #3 governs. -->
+<!-- Re-sequenced by Amendment #3: the "Documentation Wave" as a terminal milestone
+     is dissolved. Guide ACs were redistributed into the journey phases they document;
+     each phase shipped its tooling and guides together. The Diátaxis-specific guide
+     ACs (PE pack and workspace.toml) were dropped when `product-documentation`
+     replaced `user-guide-diataxis`. Only the terminal adoption artifacts remain. -->
 
-- [ ] `workspace.toml` Diátaxis guides: 1 tutorial (your-first-workspace), 2 how-tos (start-a-project, orient-at-session-start), 1 reference (workspace-toml schema), 1 explanation (two-room model — shaping vs. build)
-- [ ] PE pack Diátaxis guides: 2 tutorials, 4 how-tos, 2 reference, 2 explanation — named artifact list to be confirmed at M6 spec authoring time
-- [ ] `author-brief` documentation: how-to (intake-an-external-brief) + reference (DoR field definitions)
-- [ ] Astro site: project index view for non-engineer (PM) visibility — requires `docs/product/projects/` as a data source registered in the Astro build config; AC is complete when the index page renders project entries from committed `_template.md`-shaped files
-- [ ] Role journey section committed to `guides/`: PM / engineer / agent — how each uses the system at their altitude; derived from `docs/product/journeys/` living maps
-- [ ] Live-demo guide: scenario selection criteria (≥3 representative team types); pre-flight checklist (installs, auth, repo state); narration script targeting the full shaping → brief → spec flow on the org's own codebase in ≤30 minutes — primary M6 deliverable from the enterprise adoption path (surfaced by `team-evaluates-and-adopts` journey Stage 3)
-- [ ] Enterprise rollout playbook: champion → CTO → platform team → engineers adoption path; staged rollout phases (pilot team → wave → org-wide); rollout checklist and retrospective template
+**P1 · Orient + Capture — shipped**
+- [x] Workspace orientation guides + phase-slice planning doctrine — `spec/workspace-journey-guides-and-planning-doctrine` (Shipped)
+
+**P3 · Brief → Build — shipped**
+- [x] `author-brief` documentation: how-to (intake-an-external-brief) + DoR field definitions reference — `spec/author-brief-docs` (Shipped)
+
+**P5 · Adopt — in progress, gated on adopter-persona desk-research**
+- [ ] Astro site: project index view for non-engineer (PM) visibility — `spec/m6-astro-project-index`; `docs/product/projects/` contains only `_template.md`; no Astro page reads from it yet
+- [ ] Live-demo guide: ≥3 representative team types; pre-flight checklist; ≤30-min shaping→brief→spec narration on the org's own codebase — `spec/m6-live-demo-guide`
+- [ ] Enterprise rollout playbook: champion → CTO → platform team → engineers adoption arc; staged rollout phases (pilot → wave → org-wide); rollout checklist and retrospective template — `spec/m6-enterprise-rollout-playbook`; distinct from the technical catalogue enterprise-distribution guides already shipped
+
+All three P5 specs gate on `research:adopter-persona` completing (type = "research" desk-research project; personal vault, phase=capture; not a formal UX study — formative evaluation folds into the pilot transcripts and P5/rollout ACs).
 
 ## Sub-RFCs
 
@@ -616,6 +620,9 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 | 2 | 2026-07-20 | workspace-status integrity trust boundary | Documents session-fragmentation gap + two skill fixes (`new-rfc-followon-queue-write` shipped; `workspace-status-queue-reconciliation` queued) + manual workaround |
 | 3 | 2026-07-20 | Workflow-model reshape: capture front-door, all-mode `[backlog]`, phase-slice planning | One coherent reshape: (a) reframes `queue-add` as the universal capture-then-triage front-door (candidate rename → `capture-work`); (b) permits the front-door to **write** shaping-typed queue entries (revises D9's "produced by shaping skills" boundary); (c) mandates capability-detected, never-hard core→optional-pack hand-off; (d) confirms `[backlog]` as the repo-level view of **all** open work regardless of mode (resolves the build/shape scale-decoupling asymmetry, no new section); (e) re-sequences remaining work (M2, M5, M6 guides) into vertical journey-phase **Projects** — capability + its guide shipped together — dissolving M6-as-terminal; (f) adds a plan-by-phase-slice doctrine to the planning skills (`new-rfc`, `receive-brief`, canonical in CONVENTIONS). Container sizing fixed: a phase is a **Project**, not a Brief |
 | 4 | 2026-07-21 | Cross-pack first-value adoption overlay | Defines Level A/B pack obligations and a pilot-first rollout contract; adds five `["ini-002".work].queue` entries (contract, three pilot specs, agentbundle handoff) and two `["ini-002".shaping_queue].backlog` entries; complements P1–P5, may progress in parallel where dependencies allow, feeds P5 adoption evidence |
+| 5 | 2026-07-30 | M2 sub-RFC gate formally waived | RFC-0064 required pe-pack-strategic-shaping sub-RFC before any M2 implementation. Sub-RFC was never opened; all M2 skill boundaries were pre-resolved in Known Unknowns (2026-07-18). All M2 specs shipped without requiring revision. Gate waived retroactively; resolved boundaries stand as specified. |
+| 6 | 2026-07-30 | `capture-work` name + RFC-0068 as M5 sub-RFC | `capture-work` is the canonical shipped name for the skill authorised as `queue-add` in the M3 AC (Amendment #3 authorised the rename; implementing spec: `docs/specs/capture-work/`). RFC-0068 · linear-pack (Accepted 2026-07-21) is the operative M5 linear sub-RFC; all references to "RFC-00XX · linear-pack" resolve to RFC-0068. |
+| 7 | 2026-07-30 | Initiative numbering conflict | `workspace.toml` reuses INI-003, INI-005, INI-006, INI-007 for internal repo initiatives (Digital Experience Doctrine; AgentBundle Portable Catalogue Tooling; Catalogue CI Contract; Catalogue Contracts/Composition/Semantics/Discovery). These are a separate namespace from the ecosystem overview's INI-003 (Coding CLI Adapter Pack) through INI-006 (Control Plane), which remain unstarted and are not tracked in `workspace.toml`. |
 
 ### History / audit trail
 
@@ -811,3 +818,31 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   Implementation: five new `["ini-002".work].queue` entries and two new
   `["ini-002".shaping_queue].backlog` entries added in the same PR. See
   `workspace.toml` entry comments for details and dependency edges. eugenelim.
+
+- **2026-07-30 — M2 sub-RFC gate formally waived.** RFC-0064 required opening and
+  accepting RFC-00XX · pe-pack-strategic-shaping before any M2 skill implementation
+  began. No such RFC was opened. All M2 specs noted the outstanding gate and proceeded
+  under the resolved constraints documented in this RFC's Known Unknowns (2026-07-18),
+  which pre-decided every skill boundary in scope for that sub-RFC. All M2 specs shipped
+  without requiring any revision on sub-RFC acceptance. The gate is waived retroactively;
+  the resolved boundaries in the Known Unknowns section are the authoritative record.
+  eugenelim.
+
+- **2026-07-30 — `capture-work` name correction and RFC-0068 as M5 sub-RFC.** The M3
+  AC refers to the skill as `queue-add`; Amendment #3 authorised a rename but the AC
+  text was not updated. The shipped implementation is `capture-work`
+  (`docs/specs/capture-work/`), which extended the scope from "append to a known queue"
+  to "classify-then-triage front-door." RFC-0068 · linear-pack (opened and accepted
+  2026-07-21, explicitly cross-references RFC-0064 M5) is the operative M5 linear
+  sub-RFC; references to "RFC-00XX · linear-pack" throughout this RFC resolve to
+  RFC-0068. eugenelim.
+
+- **2026-07-30 — Initiative numbering conflict recorded.** `workspace.toml` assigns
+  INI-003 (Digital Experience Doctrine), INI-005 (AgentBundle Portable Catalogue
+  Tooling), INI-006 (Catalogue CI Contract, complete), and INI-007 (Catalogue Contracts,
+  Composition, Semantics, and Discovery) as internal repo initiatives. These identifiers
+  collide with the ecosystem overview's namespace where INI-003 = Coding CLI Adapter Pack
+  and INI-006 = Control Plane. The internal workspace.toml initiatives are a separate
+  namespace; the ecosystem framework's INI-003 through INI-006 are unstarted and not
+  tracked in `workspace.toml`. No change to the ecosystem overview's numbering; this
+  errata records the collision for future RFC authors. eugenelim.
