@@ -28,6 +28,7 @@ from pathlib import Path
 
 # ── Data types ────────────────────────────────────────────────────────────────
 
+
 @dataclasses.dataclass
 class WorkEntry:
     path: str    # e.g. "spec/m1-workspace-core"
@@ -152,7 +153,7 @@ def _parse_shaping_entry(raw) -> ShapingEntry:
 
 def parse_workspace(path: Path) -> dict:
     """Parse workspace.toml; return raw TOML dict. Raises on parse error."""
-    with open(path, "rb") as f:
+    with Path(path).open("rb") as f:
         return tomllib.load(f)
 
 
@@ -225,8 +226,7 @@ def extract_spec_status(spec_path: Path) -> str | None:
         # Try transition form first ("X → Y")
         m = _TRANSITION_RE.search(line)
         if m:
-            val = m.group(1).strip()
-            return val
+            return m.group(1).strip()
         m = _SIMPLE_RE.search(line)
         if m:
             return m.group(1).strip()

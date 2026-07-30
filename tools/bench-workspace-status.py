@@ -31,7 +31,8 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 # ── Fixture parameters ────────────────────────────────────────────────────────
 
 ACTIVE_INITIATIVES = 4          # ini-001..ini-004
-SPECS_PER_INI = 65              # per ini: 1 active + 65 spec + 12 queued = 78; × 4 + 1 untracked = 313
+# per ini: 1 active + 65 spec + 12 queued = 78; x4 + 1 untracked = 313
+SPECS_PER_INI = 65
 QUEUED_PER_INI = 12             # 4 × 12 = 48 queued entries (30–80 ✓)
 SHIPPED_PER_INI = 8
 ACTIVE_PER_INI = 1
@@ -66,7 +67,6 @@ def _build_workspace_toml(root: Path) -> None:
 
         queue_parts: list[str] = []
         for q in range(QUEUED_PER_INI):
-            spec_idx = SHIPPED_PER_INI + q
             if i == 1 and q == 0:
                 # Cross-initiative dep: blocked until ini-002-spec-0 ships
                 queue_parts.append(
@@ -200,7 +200,8 @@ def run_benchmark() -> dict:
             for c in cls[:5]:
                 tag = "READY" if c.is_ready else f"BLOCKED({', '.join(c.blocking_needs)})"
                 buf.write(f"    {c.entry.path}: {tag}\n")
-        buf.write(f"Reconciliation: T1={len(result.type1)} T2={len(result.type2)} T3={len(result.type3)}\n")
+        t1, t2, t3 = len(result.type1), len(result.type2), len(result.type3)
+        buf.write(f"Reconciliation: T1={t1} T2={t2} T3={t3}\n")
         buf.write(f"Files read by reconciliation: {result.files_read}\n")
         buf.write(f"Elapsed: {result.elapsed_s:.4f}s\n")
         output_text = buf.getvalue()
@@ -277,7 +278,9 @@ def main() -> int:
     if m["active_initiatives"] < 2:
         errors.append(f"AC4c: need ≥2 active initiatives, got {m['active_initiatives']}")
     if not m["cross_dep_blocked"]:
-        errors.append("AC4e: expected cross-initiative dep chain (blocked entry with cross-ini need)")
+        errors.append(
+            "AC4e: expected cross-initiative dep chain (blocked entry with cross-ini need)"
+        )
     if not m["has_untracked_approved"]:
         errors.append("AC4f: expected untracked Approved spec → Type 1 finding")
 
@@ -298,7 +301,7 @@ def main() -> int:
     print(f"  ✓  AC4g: measurements collected (files={m['files_read_by_reconciliation']}, "
           f"t={m['analysis_elapsed_s']:.4f}s, out={m['output_size_bytes']}b, "
           f"T1={m['type1_findings']} T2={m['type2_findings']} T3={m['type3_findings']})")
-    print(f"  ✓  AC4h: benchmark runs from python3 tools/bench-workspace-status.py")
+    print("  ✓  AC4h: benchmark runs from python3 tools/bench-workspace-status.py")
     print()
     print("Benchmark complete.")
     return 0

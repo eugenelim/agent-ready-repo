@@ -29,7 +29,6 @@ from workspace_status_engine import (
     extract_initiatives,
     extract_spec_status,
     get_active_specs,
-    is_need_satisfied,
     parse_workspace,
     run_reconciliation,
 )
@@ -54,7 +53,8 @@ def write_workspace(root: Path, content: str) -> None:
 def write_spec(root: Path, slug: str, status: str = "Draft") -> None:
     p = root / "docs" / "specs" / slug / "spec.md"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(f"# Spec: {slug}\n\n- **Status:** {status}\n\n## Acceptance Criteria\n\n- [ ] AC1\n", encoding="utf-8")
+    body = f"# Spec: {slug}\n\n- **Status:** {status}\n\n## Acceptance Criteria\n\n- [ ] AC1\n"
+    p.write_text(body, encoding="utf-8")
 
 
 # ── AC2a: Multiple active initiatives ────────────────────────────────────────
@@ -141,9 +141,9 @@ def case_paused_closed_initiatives() -> None:
         initiatives = extract_initiatives(ws)
         expect(len(initiatives) == 3, f"[AC2b] expected 3 initiatives, got {len(initiatives)}")
         by_status = {i.slug: i.status for i in initiatives}
-        expect(by_status.get("ini-001") == "active", f"[AC2b] ini-001 status wrong")
-        expect(by_status.get("ini-002") == "paused", f"[AC2b] ini-002 status wrong")
-        expect(by_status.get("ini-003") == "complete", f"[AC2b] ini-003 status wrong")
+        expect(by_status.get("ini-001") == "active", "[AC2b] ini-001 status wrong")
+        expect(by_status.get("ini-002") == "paused", "[AC2b] ini-002 status wrong")
+        expect(by_status.get("ini-003") == "complete", "[AC2b] ini-003 status wrong")
         # Paused/closed don't contribute to ready/blocked
         all_cls: list = []
         for ini in initiatives:
@@ -151,7 +151,10 @@ def case_paused_closed_initiatives() -> None:
                 all_cls.extend(classify_entries(ini, initiatives))
         paths = {c.entry.path for c in all_cls}
         expect("spec/active-feature" in paths, "[AC2b] active feature should be classified")
-        expect("spec/paused-feature" not in paths, "[AC2b] paused feature should not be classified")
+        expect(
+            "spec/paused-feature" not in paths,
+            "[AC2b] paused feature should not be classified",
+        )
 
 
 # ── AC2c: Ordered queues ─────────────────────────────────────────────────────
@@ -354,10 +357,13 @@ def case_spec_statuses() -> None:
         p.write_text("# T\n\n- **Status:** Approved → Shipped\n", encoding="utf-8")
 
         for status in ("Draft", "Approved", "Implementing", "Shipped", "Archived"):
-            extracted = extract_spec_status(root / "docs" / "specs" / f"spec-{status.lower()}" / "spec.md")
+            spec_file = root / "docs" / "specs" / f"spec-{status.lower()}" / "spec.md"
+            extracted = extract_spec_status(spec_file)
             expect(extracted == status, f"[AC2h] expected {status}, got {extracted}")
 
-        transition_status = extract_spec_status(root / "docs" / "specs" / "spec-transition" / "spec.md")
+        transition_status = extract_spec_status(
+            root / "docs" / "specs" / "spec-transition" / "spec.md"
+        )
         expect(transition_status == "Shipped",
                f"[AC2h] transition form should yield 'Shipped', got {transition_status}")
 
@@ -405,8 +411,10 @@ def case_missing_spec_paths() -> None:
 
         # Reconciliation: missing spec files silently skipped (no warning per SKILL.md)
         findings, _ = run_reconciliation(root, initiatives)
-        expect(len(findings) == 0,
-               f"[AC2i] missing spec files should be silently skipped, got {len(findings)} findings")
+        expect(
+            len(findings) == 0,
+            f"[AC2i] missing spec files should be silently skipped, got {len(findings)} findings",
+        )
 
 
 # ── AC2j: Missing dependency targets ─────────────────────────────────────────
@@ -631,7 +639,8 @@ def case_multiple_active_for_workloop() -> None:
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
         active_specs = get_active_specs(initiatives)
-        expect(len(active_specs) == 0, f"[AC2o] branch-0: expected 0 active, got {len(active_specs)}")
+        n = len(active_specs)
+        expect(n == 0, f"[AC2o] branch-0: expected 0 active, got {n}")
 
         # Branch 1: exactly one active
         write_workspace(root, """
@@ -650,7 +659,8 @@ def case_multiple_active_for_workloop() -> None:
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
         active_specs = get_active_specs(initiatives)
-        expect(len(active_specs) == 1, f"[AC2o] branch-1: expected 1 active, got {len(active_specs)}")
+        n = len(active_specs)
+        expect(n == 1, f"[AC2o] branch-1: expected 1 active, got {n}")
         expect(active_specs[0][1] == "spec/current-work", f"[AC2o] wrong path: {active_specs[0]}")
 
         # Branch 2+: multiple active (two in one initiative)
@@ -670,7 +680,8 @@ def case_multiple_active_for_workloop() -> None:
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
         active_specs = get_active_specs(initiatives)
-        expect(len(active_specs) == 2, f"[AC2o] branch-2+: expected 2 active, got {len(active_specs)}")
+        n = len(active_specs)
+        expect(n == 2, f"[AC2o] branch-2+: expected 2 active, got {n}")
 
         # Branch 2+: across two initiatives
         write_workspace(root, """
@@ -701,7 +712,8 @@ def case_multiple_active_for_workloop() -> None:
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
         active_specs = get_active_specs(initiatives)
-        expect(len(active_specs) == 2, f"[AC2o] cross-ini: expected 2 active, got {len(active_specs)}")
+        n = len(active_specs)
+        expect(n == 2, f"[AC2o] cross-ini: expected 2 active, got {n}")
 
 
 # ── AC2p: Deferred backlog anchors ───────────────────────────────────────────
@@ -881,11 +893,11 @@ def case_dag_all_needs_prefixes() -> None:
         cls = classify_entries(ini, initiatives)
         by_path = {c.entry.path: c for c in cls}
 
-        expect(by_path["spec/p-work"].is_ready,     "[AC3a] work: prefix satisfied")
-        expect(by_path["spec/p-shape"].is_ready,    "[AC3a] shape: prefix satisfied")
+        expect(by_path["spec/p-work"].is_ready, "[AC3a] work: prefix satisfied")
+        expect(by_path["spec/p-shape"].is_ready, "[AC3a] shape: prefix satisfied")
         expect(by_path["spec/p-research"].is_ready, "[AC3a] research: prefix (not in backlog)")
-        expect(by_path["spec/p-brief"].is_ready,    "[AC3a] brief: prefix satisfied")
-        expect(by_path["spec/p-cross"].is_ready,    "[AC3a] cross-ini prefix satisfied")
+        expect(by_path["spec/p-brief"].is_ready, "[AC3a] brief: prefix satisfied")
+        expect(by_path["spec/p-cross"].is_ready, "[AC3a] cross-ini prefix satisfied")
 
         # Unsatisfied variants
         write_workspace(root, """
@@ -929,11 +941,15 @@ def case_dag_all_needs_prefixes() -> None:
         cls2 = classify_entries(ini2, initiatives2)
         by_path2 = {c.entry.path: c for c in cls2}
 
-        expect(not by_path2["spec/p-work-bad"].is_ready,     "[AC3a] work: prefix unsatisfied")
-        expect(not by_path2["spec/p-research-bad"].is_ready, "[AC3a] research: in backlog → blocked")
-        expect(not by_path2["spec/p-brief-bad"].is_ready,    "[AC3a] brief: not in ready → blocked")
-        expect(not by_path2["spec/p-cross-bad"].is_ready,    "[AC3a] unknown ini → blocked")
-        expect(not by_path2["spec/p-backlog-bad"].is_ready,  "[AC3a][KD-01] backlog: prefix blocked")
+        expect(not by_path2["spec/p-work-bad"].is_ready, "[AC3a] work: prefix unsatisfied")
+        expect(
+            not by_path2["spec/p-research-bad"].is_ready, "[AC3a] research: in backlog -> blocked"
+        )
+        expect(not by_path2["spec/p-brief-bad"].is_ready, "[AC3a] brief: not in ready -> blocked")
+        expect(not by_path2["spec/p-cross-bad"].is_ready, "[AC3a] unknown ini -> blocked")
+        expect(
+            not by_path2["spec/p-backlog-bad"].is_ready, "[AC3a][KD-01] backlog: prefix blocked"
+        )
 
 
 # ── Integration: full analyze() on a multi-initiative workspace ───────────────
@@ -971,7 +987,7 @@ def case_full_analyze() -> None:
         """)
         write_spec(root, "in-progress", "Implementing")
         write_spec(root, "done", "Shipped")
-        write_spec(root, "ready-queued", "Approved")     # Type 2: still in queue but Shipped would be wrong; Approved is fine
+        write_spec(root, "ready-queued", "Approved")   # in queue with Approved status — not stale
         write_spec(root, "blocked-queued", "Draft")
         write_spec(root, "untracked-approved", "Approved")   # Type 1
 
@@ -998,26 +1014,26 @@ def case_full_analyze() -> None:
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
-    ("AC2a multiple_active_initiatives",     case_multiple_active_initiatives),
-    ("AC2b paused_closed_initiatives",       case_paused_closed_initiatives),
-    ("AC2c ordered_queues",                  case_ordered_queues),
-    ("AC2d local_work_deps",                 case_local_work_deps),
-    ("AC2e cross_initiative_deps",           case_cross_initiative_deps),
-    ("AC2f shape_research_brief_deps",       case_shape_research_brief_deps),
-    ("AC2g ready_and_transitively_blocked",  case_ready_and_transitively_blocked),
-    ("AC2h spec_statuses",                   case_spec_statuses),
-    ("AC2i missing_spec_paths",              case_missing_spec_paths),
-    ("AC2j missing_dep_targets",             case_missing_dep_targets),
-    ("AC2k dependency_cycles",               case_dependency_cycles),
-    ("AC2l type1_untracked_live_spec",       case_type1_untracked_live_spec),
-    ("AC2m type2_stale_entries",             case_type2_stale_entries),
-    ("AC2n type3_premature_shipped",         case_type3_premature_shipped),
-    ("AC2o multiple_active_for_workloop",    case_multiple_active_for_workloop),
-    ("AC2p deferred_backlog_anchors",        case_deferred_backlog_anchors),
-    ("AC3f shaping_item_guard",              case_shaping_item_guard),
-    ("AC3g done_step_mutation",              case_done_step_mutation),
-    ("AC3a dag_all_needs_prefixes",          case_dag_all_needs_prefixes),
-    ("integration full_analyze",             case_full_analyze),
+    ("AC2a multiple_active_initiatives", case_multiple_active_initiatives),
+    ("AC2b paused_closed_initiatives", case_paused_closed_initiatives),
+    ("AC2c ordered_queues", case_ordered_queues),
+    ("AC2d local_work_deps", case_local_work_deps),
+    ("AC2e cross_initiative_deps", case_cross_initiative_deps),
+    ("AC2f shape_research_brief_deps", case_shape_research_brief_deps),
+    ("AC2g ready_and_transitively_blocked", case_ready_and_transitively_blocked),
+    ("AC2h spec_statuses", case_spec_statuses),
+    ("AC2i missing_spec_paths", case_missing_spec_paths),
+    ("AC2j missing_dep_targets", case_missing_dep_targets),
+    ("AC2k dependency_cycles", case_dependency_cycles),
+    ("AC2l type1_untracked_live_spec", case_type1_untracked_live_spec),
+    ("AC2m type2_stale_entries", case_type2_stale_entries),
+    ("AC2n type3_premature_shipped", case_type3_premature_shipped),
+    ("AC2o multiple_active_for_workloop", case_multiple_active_for_workloop),
+    ("AC2p deferred_backlog_anchors", case_deferred_backlog_anchors),
+    ("AC3f shaping_item_guard", case_shaping_item_guard),
+    ("AC3g done_step_mutation", case_done_step_mutation),
+    ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
+    ("integration full_analyze", case_full_analyze),
 ]
 
 
