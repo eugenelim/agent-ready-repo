@@ -1,6 +1,6 @@
 ---
 name: work-loop
-description: Use when implementing a non-trivial repository change — a feature, a behavior-changing bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system change, a reversion, or implementing an approved spec under `docs/specs/`. Also activates on bare continuation commands ("resume", "continue", "keep going", "pick up where I left off", "let's get going") when conversation or workspace context identifies active build work. Excludes: shaping, research, strategy, product planning, design exploration, review-only, explanation-only, specification-authoring-only tasks, and cosmetic or local behavior-preserving edits.
+description: "Use when implementing a non-trivial repository change — a feature, a behavior-changing bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system change, a reversion, or implementing an approved spec under `docs/specs/`. Also activates on bare continuation commands ('resume', 'continue', 'keep going', 'pick up where I left off', 'let's get going') when conversation or workspace context identifies active build work. Excludes: shaping, research, strategy, product planning, design exploration, review-only, explanation-only, specification-authoring-only tasks, and cosmetic or local behavior-preserving edits."
 ---
 
 # Skill: work-loop
