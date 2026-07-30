@@ -26,7 +26,7 @@ history — an append-only event log is a Phase-2 addition.
 |---|---|
 | Legal phase ordering and guard enforcement | `loop-engine.py` (phase FSM) |
 | Task execution state, counters, fingerprints | `loop-cohort.py` (execution state owner) |
-| Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) — idempotent for `wave-passed` and `gates-failed` windows; `findings-remain` window is non-idempotent (see Session Resumption step 7); and the `reviewers-clean` window (audit-only; see step 11) |
+| Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) — idempotent for `wave-passed` and `gates-failed` windows; `findings-remain` window is non-idempotent (see Session Resumption step 7); `reviewers-clean` window is audit-only on the `done` continuation, but additionally risks a stale stasis baseline on the `blocker-applied` continuation (see step 11) |
 | Bounded convergence of CODE-REVIEW and `gates-failed` repair cycles (retry caps, stasis detection) | `loop-cohort` counters + guards — the spec/plan drafting loop has no mechanical Phase-1 cap; it terminates on the human G-plan gate or LLM judgment. An advisory token or round counter for unattended spec-plan runs is a Phase-2 concern |
 
 **Phase 1 guarantees:** legal phase ordering across all transitions; plan-hash
@@ -571,11 +571,11 @@ the immutable `run_id` pair.
 
 ## Guards
 
-Each transition has at most one event-specific guard, beyond two mandatory
+Each transition has at most one event-specific guard, plus up to two mandatory
 pre-guards: the run_id preflight (`loop-cohort identity`) fires for all
-code/spec-plan transitions; `loop-cohort schedule check-current` fires for every
-transition from a `CODE-*` state (plan immutability). Guards are always read-only
-calls.
+code/spec-plan transitions; `loop-cohort schedule check-current` additionally fires
+for every transition from a `CODE-*` state (plan immutability). `SPEC-PLAN-*`
+transitions carry only the run_id preflight. Guards are always read-only calls.
 
 | Event | Mode | Current state | Guard call | Purpose |
 |---|---|---|---|---|
@@ -708,7 +708,7 @@ Each obligation notes idempotency:
 | `wave advance --from-index <n>` | immediately after `wave-passed` transition | yes — `current_wave_index == n+1` returns success |
 | `review inspect` then route to `reviewers-clean` or `findings-remain` | at CODE-REVIEW before any FSM event | no — inspect is read-only; routing event is not |
 | `review record --fingerprint` | after `findings-remain` transition | no — non-idempotent; see Session Resumption step 7 |
-| `review record --report` | after `reviewers-clean` transition | no — non-idempotent; missed write is audit-only |
+| `review record --report` | after `reviewers-clean` transition | no — non-idempotent; on `done` continuation: missed write is audit-only; on `blocker-applied` continuation: also risks stale stasis baseline (see step 11) |
 | Write `Status: Shipped` | before `reviewers-clean` transition (enforced by `check-spec-status.py` guard) | yes — safe to re-write |
 | `done` only after confirmed merge | at CODE-HUMAN-GATE human G-pr approval | no — irreversible |
 
@@ -745,11 +745,11 @@ A dependency cycle or missing task from `schedule` aborts the sequence. A
 re-run `approve-plan` and `schedule` on the corrected plan.
 
 **`plan-rejected` cleanup:** `plan-rejected` returns to `SPEC-PLAN-DRAFTING`.
-No cohort cleanup is needed — `approve-plan` has not yet run when the human
-rejects the plan (rejection fires before step 4 in the G-plan sequence), so no
-stored hashes exist. Skill obligation: ensure spec.md Status reflects the
-in-progress drafting state before re-editing. Not mechanically enforced in
-Phase 1.
+No cohort cleanup command is needed. In the intended flow, rejection fires before
+step 4 (approve-plan) so no hashes are stored. If a prior cycle did store hashes,
+`approve-plan`'s unconditional overwrite makes them harmless. Skill obligation:
+ensure spec.md Status reflects the in-progress drafting state before re-editing.
+Not mechanically enforced in Phase 1.
 
 **spec-plan mode:** calls `approve-plan` only. Does not call `schedule` (no
 implementation task DAG).
@@ -933,8 +933,12 @@ Phase-1 field set defined in the Scripts section above.
 
 ### G-pr (code review and merge)
 
-`done` and `blocker-applied` carry no mechanical guard. `done` must not be
-fired without a confirmed merge. A merge-verification guard is deferred.
+`done` and `blocker-applied` carry no **event-specific** guard. `done` must not be
+fired without a confirmed merge. A merge-verification guard is deferred. Both
+pre-guards (`run_id` preflight and `schedule check-current`) still fire for
+`blocker-applied` — it is a `CODE-*` transition and is not exempt from plan
+immutability enforcement (see "blocker-applied is not exempt" below and the
+corresponding test). `done` alone is exempt from `schedule check-current`.
 
 **Named risk acceptance — `done` has no mechanical guards:** `done` skips both
 merge verification (deferred) and plan immutability. A mis-firing skill can
@@ -1103,9 +1107,10 @@ session in a human-wait state.
 On resume, the agent:
 
 1. Calls `loop-engine status <spec-dir> --json` → reads `state`, `last_event`,
-   `last_event_context`, `run_id`, `pending_human_wait`. If this exits non-zero
-   (`engine-state.json` absent or unreadable), the run has no resumable Phase-1
-   state — see Corrupt-pair recovery; start a new run after the reset pair.
+   `last_event_context`, `run_id`, `transition_sequence`, `pending_human_wait`.
+   If this exits non-zero (`engine-state.json` absent or unreadable), the run has
+   no resumable Phase-1 state — see Corrupt-pair recovery; start a new run after
+   the reset pair.
 2. Calls `loop-cohort identity <spec-dir> --expect-run-id <run_id>` → verifies
    `run_id` match, `schema_version == 1`, and file presence in one call. Surface
    if identity exits non-zero; do not proceed.
