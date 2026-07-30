@@ -226,24 +226,26 @@ loop-cohort auto-parallel <spec-dir> [--off]
     "matches_previous_round": false
   }
   ```
-  Classification is anchored on the `adversarial-reviewer` agent's actual output
-  contract (`## Blockers` / `## Concerns` / `## Nits` for findings; the bare line
-  `Clean — ready to commit.` for a clean report — no `## Findings` header is ever
-  emitted):
-  - `invalid`: report file absent or unreadable, OR the file contains neither the
-    literal clean line nor any line matching `FINDING_LINE_RE`. A report with
-    severity headers (`## Blockers`, etc.) but zero extractable fingerprints also
-    classifies `invalid` (surface to human — the format has changed or is malformed).
-  - `clean`: report contains the exact line `Clean — ready to commit.` (em-dash `—`)
-    and zero `FINDING_LINE_RE` matches.
-  - `findings`: ≥ 1 `FINDING_LINE_RE` match extracted. Note: a `findings` result
-    must contain ≥ 1 fingerprint; see `**findings-remain` floor`** below.
+  `review inspect` exits 0 and emits JSON for all report-content outcomes
+  (absent, unreadable, empty, malformed, clean, or findings) — the stasis-routing
+  table always reads the `classification` field from JSON output. Non-zero exit is
+  reserved for operational errors (`<spec-dir>` unresolvable, `state.json` unreadable).
 
-  Fingerprint computation reuses the existing `parse_findings` SHA-1 algorithm
-  and `FINDING_LINE_RE` from `loop-cohort.py` (lines 717–719), anchored on the
-  `**N. <title>.** \`file:line\`. … Fix: …` format. If the `adversarial-reviewer`
-  output structure changes, the classification predicate and fingerprint format
-  must be updated together. `matches_previous_round` is `true` iff the computed fingerprint set
+  Classification is derived entirely from `parse_findings()` output
+  (`loop-cohort.py` lines 723–751; `FINDING_LINE_RE` lines 717–719):
+  - `invalid`: report file absent or unreadable, OR (`parse_findings()` returns
+    `[]` AND the report does not contain the literal clean line). `matches_previous_round`
+    is `false` (no meaningful comparison).
+  - `clean`: `parse_findings()` returns `[]` AND the report contains the exact line
+    `Clean — ready to commit.` (em-dash `—`). `matches_previous_round` is always
+    `false` when the computed fingerprint set is empty.
+  - `findings`: `len(parse_findings()) >= 1`. See the **findings-remain floor** below.
+
+  `parse_findings()` is the single canonical extractor; `FINDING_LINE_RE` matching
+  alone is not sufficient (the algorithm additionally requires a `:` and a digit in
+  the citation). If the `adversarial-reviewer` output structure changes, the
+  classification predicate and fingerprint format must be updated together.
+  `matches_previous_round` is `true` iff the computed fingerprint set
   equals `state.finding_fingerprints`. The skill uses this as the canonical
   stasis check before routing to `reviewers-clean` or `findings-remain`.
 
