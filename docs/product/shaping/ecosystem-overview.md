@@ -14,7 +14,7 @@ Six initiatives that together enable AI-native engineering maturity. INI-002 sta
 | ID | Name | Scope | Status |
 |---|---|---|---|
 | INI-001 | AI-Native Ecosystem | Umbrella — coordinates the others; never directly built | Active (umbrella) |
-| INI-002 | Platform Core | Skills, packs, governance, workspace coordination, PE capabilities | Active — M1 |
+| INI-002 | Platform Core | Skills, packs, governance, workspace coordination, PE capabilities | Active — P5 (M1–M5 shipped) |
 | INI-003 | Coding CLI Adapter Pack | Headless CLI adapters: Claude Code `-p`, Codex CLI, Kiro CLI, Copilot CLI, Gemini CLI | Not started |
 | INI-004 | Remote Agent Runtime | Cloud/VM-hosted and orchestration harnesses: Devin, Manus, Omnigent, and pluggable sandbox providers | Not started |
 | INI-005 | Infra & Observability | State persistence, telemetry, monitoring, alerting | Not started |
