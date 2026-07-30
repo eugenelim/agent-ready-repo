@@ -45,7 +45,7 @@ An assimilated **hook/script** is code that runs on git/session events. So:
 
 Ingestion never bypasses the gates the repo runs on its own code:
 
-- **Lints** for the artifact kind: `agentbundle catalogue lint --deep`, `lint-agent-artifacts`.
+- **Lints** for the artifact kind: `agentbundle catalogue lint --deep`, `agentbundle catalogue verify`.
 - **SAST/SCA:** the repo's `.snyk` / dependency scan where runnable; CodeQL runs
   on the PR the change opens.
 - A lint or scanner failure **blocks the landing** or is surfaced for an explicit

@@ -58,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`catalogue-curation` pack 0.2.1**: `assimilate-primitive` lint gate updated from
+  `lint-agent-artifacts` (deleted at v0.13.0) to `agentbundle catalogue verify`; stale
+  `_Depends on core + governance-extras` footer removed (those deps were dropped in 0.2.0).
+
 - **`catalogue-curation` pack 0.2.0**: `export-catalogue` skill removed (superseded by
   `agentbundle catalogue init --preset self-hosted`). Hard dependencies on `core` and
   `governance-extras` removed — the three remaining skills operate portably against the

@@ -37,7 +37,7 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
    an explicit "yes, land this code" before proceeding.
 4. **Run the repo's own gates on the candidate.** Before it lands, run the
    internal lints that apply to the artifact kind (`agentbundle catalogue lint --deep`,
-   `lint-agent-artifacts`) and the SAST/SCA scanners (`.snyk` / dependency scan
+   `agentbundle catalogue verify`) and the SAST/SCA scanners (`.snyk` / dependency scan
    where runnable; CodeQL runs on the PR this opens). A failure **blocks the
    landing** or is surfaced for an explicit confirm — ingestion never bypasses
    the gates the repo runs on its own code.
@@ -119,4 +119,4 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
 - Write outside `agentbundle.safety.write_jailed`, or launder an anti-pattern
   (step 6) into the catalogue unshaped.
 
-_Depends on `core` + `governance-extras`. Repo-scope; not in any default profile._
+_Repo-scope; not in any default profile._
