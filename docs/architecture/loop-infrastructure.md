@@ -134,7 +134,11 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   `finding_fingerprints = []`, `review_round_count += 1`, `review_retry_count`
   unchanged. Both forms rotate `finding_fingerprints` to `[]` or the new set, so
   a subsequent `review inspect` compares against the current round's baseline —
-  not a stale pre-clean set. **Not idempotent** in Phase 1.
+  not a stale pre-clean set. **Not idempotent** in Phase 1. **Implementation note
+  (PR #816):** the existing `cmd_review_record --report` branch records reports
+  that contain findings and increments `iteration_count`; PR #816 must change it
+  to exit non-zero when `parse_findings()` returns ≥1 or the clean substring is
+  absent, and to increment `review_round_count` (never `review_retry_count`).
 - Attempt recording — `record-attempt --phase implement --cycle-id
   <run_id>:<transition_sequence>` increments `implementation_retry_count` and
   stores the cycle ID in `last_record_attempt_cycle_id`. Idempotent: a second
@@ -234,8 +238,10 @@ loop-cohort auto-parallel <spec-dir> [--off]
   table always reads the `classification` field from JSON output. Non-zero exit is
   reserved for operational errors (`<spec-dir>` unresolvable, `state.json` unreadable).
 
-  Classification is derived entirely from `parse_findings()` output
-  (`parse_findings()` / `FINDING_LINE_RE` in `loop-cohort.py`):
+  Classification is derived from `parse_findings()` output together with report
+  readability and the clean-substring check (`parse_findings()` / `FINDING_LINE_RE`
+  in `loop-cohort.py`). A report carrying both the clean substring and parseable
+  findings classifies as `findings` (findings take precedence):
   - `invalid`: report file absent or unreadable, OR (`parse_findings()` returns
     `[]` AND the report does not contain the clean substring). `matches_previous_round`
     is `false` (no meaningful comparison).
@@ -602,10 +608,17 @@ is deferred.
 **`findings-remain` guard scope:** enforces `review_retry_count <
 max_review_retries`. Counts findings-only rounds; clean reviews and
 human-blocker round-trips do not consume this budget. Token budget and same-error
-checks are advisory in Phase 1. **Implementation note:** the existing
-`loop-cohort cmd_check` performs a stasis comparison (`finding_fingerprints` vs
-`previous_finding_fingerprints`); that check must be removed from `check --phase
-review` and replaced by `review inspect` routing in the skill.
+checks are advisory in Phase 1. **Implementation note (PR #816 must make two
+changes to `_evaluate` / `cmd_check`):**
+(1) Remove the stasis comparison (`finding_fingerprints` vs
+`previous_finding_fingerprints`) from `check --phase review` — stasis routing
+moves to `review inspect` in the skill.
+(2) Rework the `_evaluate` cap logic to key `check --phase gates-failed` off
+`implementation_retry_count < max_implementation_retries` and `check --phase
+review` off `review_retry_count < max_review_retries`; drop the
+`iteration_count`/`max_iterations` cap entirely (`check --phase implement`
+becomes an advisory pass-through in Phase 1 — no blocking cap is specified for
+that phase).
 
 **`reviewers-clean` in `SPEC-PLAN-REVIEW`** carries no guard — the spec is not
 being shipped.
