@@ -23,7 +23,7 @@ hard to resume across crashes, impossible to audit, and invisible to supervisors
 | Legal phase ordering and guard enforcement | `loop-engine.py` (phase FSM) |
 | Task execution state, counters, fingerprints | `loop-cohort.py` (execution state owner) |
 | Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) |
-| Bounded convergence (retry caps, stasis detection) | `loop-cohort` counters + guards |
+| Bounded convergence of CODE-REVIEW and `gates-failed` repair cycles (retry caps, stasis detection) | `loop-cohort` counters + guards — the spec/plan drafting loop terminates on the human G-plan gate or LLM judgment, not a mechanical cap |
 
 **Phase 1 must guarantee:** legal phase ordering across all transitions; plan
 immutability from G-plan approval through the run; paired-state consistency
@@ -206,8 +206,10 @@ loop-cohort auto-parallel <spec-dir> [--off]
 - **`schedule check-current`** — read-only. Verifies `plan_hash == sha256(plan.md)`.
   Exit non-zero with a descriptive message if they differ. Called by the engine as
   a mandatory pre-guard for every transition from a `CODE-*` state (after run_id
-  preflight, before the event-specific guard). Makes plan immutability a run
-  invariant across all CODE-* transitions, not only at `wave-complete`.
+  preflight, before the event-specific guard), **except `done`**. Makes plan
+  immutability a run invariant across all active CODE-* transitions. `done` is
+  exempted because the PR is already merged at that point — plan immutability has
+  served its purpose and enforcing it on `done` would strand a completed run.
 
 - **`wave advance --from-index <n>`** — mutating; idempotent.
   - `current_wave_index == n` → set `n + 1`, exit 0.
@@ -234,10 +236,11 @@ loop-cohort auto-parallel <spec-dir> [--off]
 
 - **Parallel-wave verbs** (`worktree preflight|add|record|list|merge|cleanup`,
   `dispatch-decision`, `auto-parallel`) are carried over from loop-cohort's
-  existing implementation. They are out of scope for this Phase 1 FSM
-  specification — the phase-tracker layer does not constrain worktree lifecycle
-  beyond the `CODE-IMPLEMENTATION → CODE-VERIFICATION` boundary. A future spec
-  will wire worktree sequencing against `wave-complete` and `wave advance`.
+  existing implementation. **`auto-parallel` is disabled in Phase 1** — parallel
+  waves have no FSM coupling and their sequencing is not specified here; the
+  verb is present in the CLI surface but the skill must not invoke it. A future
+  spec will wire worktree sequencing against `wave-complete` and `wave advance`,
+  at which point `auto-parallel` will become a supported gate input.
 
 **Write contract:** all `loop-cohort` mutations write `state.json` via tempfile +
 `os.replace` (atomic swap, mirrors `loop-engine`'s write contract). Torn writes
@@ -360,7 +363,10 @@ At new loop-run initialization (not session resume — a resuming session calls
    a prior run was not reset. Ask user to run the reset pair.
 2. Skill calls `loop-engine init <spec-dir> --mode <mode> --json` — engine checks
    that `engine-state.json` is absent (its own file only), generates `run_id`,
-   writes `engine-state.json`, outputs `run_id`.
+   writes `engine-state.json`, outputs `run_id`. If `engine-state.json` is already
+   present (engine-orphan: a prior engine init completed but cohort init did not),
+   the engine refuses — run the reset pair (see Corrupt-pair recovery) before
+   retrying.
 3. Skill captures `run_id` from step 2.
 4. Skill calls `loop-cohort init <spec-dir> --run-id <run_id>` — cohort writes
    `state.json` with matching `run_id`.
@@ -474,9 +480,10 @@ waves are scheduled.
       ├── 1. validate event against FSM for current mode × state
       │       (refuses non-zero if invalid)
       │
-      ├── 1b. plan-hash check (CODE-* states only, after event validation):
+      ├── 1b. plan-hash check (CODE-* states only, except `done`; after event validation):
       │       loop-cohort schedule check-current <spec-dir>
-      │       (refuses if plan.md changed since schedule; skipped for SPEC-PLAN-* states)
+      │       (refuses if plan.md changed since schedule; skipped for SPEC-PLAN-* states
+      │        and for `done` — PR is already merged, no enforcement benefit)
       │
       ├── 2. fire event-specific guard (if one listed in Guards table):
       │       read-only call; refuses non-zero if guard exits non-zero
@@ -543,8 +550,8 @@ non-zero with a descriptive message (consistent with the global exit contract).
 **`wave-complete` guard scope:** enforces advisory bounds only — token budget and
 same-error checks (advisory: not blocked in Phase 1 because their writers are
 unspecified). Plan immutability is enforced by the mandatory `schedule check-current`
-pre-guard (step 1b in the Interaction Model) that fires for all CODE-* transitions,
-including `wave-complete`. This guard does NOT enforce the implementation retry cap
+pre-guard (step 1b in the Interaction Model) that fires for all CODE-* transitions
+except `done`. This guard does NOT enforce the implementation retry cap
 — that moves to `gates-failed`.
 
 **`gates-failed` guard scope:** enforces `implementation_retry_count <
@@ -716,11 +723,11 @@ replanning (rerun-schedule, G-plan renewal, wave migration) is deferred from
 Phase 1.
 
 The mandatory `schedule check-current` pre-guard (step 1b) mechanically enforces
-immutability at every CODE-* transition by verifying `plan_hash == sha256(plan.md)`.
-Any byte-level change to plan.md (including comments and whitespace — SHA-256
-comparison is raw bytes) causes this guard to refuse, and the run must be reset
-and restarted. Partial recovery is not supported in Phase 1. Plan canonicalization
-(to allow whitespace-only edits without a reset) is deferred.
+immutability at every CODE-* transition except `done` by verifying `plan_hash ==
+sha256(plan.md)`. Any byte-level change to plan.md (including comments and
+whitespace — SHA-256 comparison is raw bytes) causes this guard to refuse, and
+the run must be reset and restarted. Partial recovery is not supported in Phase 1.
+Plan canonicalization (to allow whitespace-only edits without a reset) is deferred.
 
 Deferred: in-place plan correction (task rewording, dependency fix) without a
 full restart. Supporting it would require a `replan-requested` transition, a
@@ -732,9 +739,13 @@ schedule migration semantics, and a new approved plan/schedule baseline.
 The implementation PR (PR #816) must remove or disable that path.
 
 **Migration:** a `state.json` written by the pre-Phase-1 model (per-session
-lifetime, `iteration_count` field, no `run_id`) will cause `loop-cohort identity`
-to exit non-zero on the first resume. This is safe: run the reset pair and start
-a new run. No partial migration is needed. PR #816 must also update
+lifetime, `iteration_count` field, no `run_id`) fails at Session Resumption step
+1 — a pre-Phase-1 run never created `engine-state.json`, so `loop-engine status`
+exits non-zero before `loop-cohort identity` is even called. If for some reason
+`engine-state.json` is present but `state.json` is pre-Phase-1 format, step 2
+(`loop-cohort identity --expect-run-id`) fails instead. Either way, run the
+reset pair and start a new run. No partial migration is needed. PR #816 must
+also update
 `assets/state.json` (the template written by `loop-cohort init`) to the
 Phase-1 field set defined in the Scripts section above.
 
@@ -767,10 +778,11 @@ Phase-1 field set defined in the Scripts section above.
 `done` and `blocker-applied` carry no mechanical guard. `done` must not be
 fired without a confirmed merge. A merge-verification guard is deferred.
 
-If plan.md changes after a merge but before `done` fires (e.g. during cleanup),
-the mandatory `schedule check-current` pre-guard will refuse `done`. Recovery:
-run the reset pair. This is safe because both state files are gitignored
-run-local scratch — the actual work is already merged.
+`done` is **exempt from the `schedule check-current` pre-guard** (see Interaction
+Model step 1b). The PR is already merged when `done` fires; plan immutability has
+served its purpose and enforcing it there would strand a completed run for zero
+protective benefit. `blocker-applied` is not exempt: it returns to
+CODE-IMPLEMENTATION, where plan immutability continues to matter.
 
 ```
 CODE-REVIEW → reviewers-clean → CODE-HUMAN-GATE
@@ -882,7 +894,10 @@ CODE-REVIEW
    plan immutability is enforced by the mandatory `schedule check-current`
    pre-guard.
 3. **Stasis** — `review inspect` returns `matches_previous_round: true`; skill
-   surfaces to human without advancing the FSM.
+   surfaces to human without advancing the FSM. Stasis is a single-round
+   lookback: an A→B→A oscillation never matches the immediately-prior round
+   and is not flagged. Oscillating findings terminate only via the
+   `review_retry_count` cap; the retry cap is the backstop, not stasis detection.
 4. **Token budget** *(advisory, Phase 1)* — no updater defined; guard treats as
    advisory.
 5. **Consecutive-same-error** *(advisory, Phase 1)* — `record-attempt` accepts
@@ -913,7 +928,9 @@ session in a human-wait state.
 On resume, the agent:
 
 1. Calls `loop-engine status --json <spec-dir>` → reads `state`, `last_event`,
-   `last_event_context`, `run_id`, `pending_human_wait`.
+   `last_event_context`, `run_id`, `pending_human_wait`. If this exits non-zero
+   (`engine-state.json` absent or unreadable), the run has no resumable Phase-1
+   state — see Corrupt-pair recovery; start a new run after the reset pair.
 2. Calls `loop-cohort identity <spec-dir> --expect-run-id <run_id>` → verifies the
    pair and supported `schema_version` before any read or mutation. Surface if
    identity fails; do not proceed.
@@ -1042,7 +1059,7 @@ attempts can be verified. A guard at `gates-failed` fires before repair begins,
 so a refused nth back-edge means n−1 complete repair cycles have been attempted.
 `wave-complete`'s event-specific guard (`check --phase implement`) is advisory
 only; plan immutability is enforced by the mandatory `schedule check-current`
-pre-guard that fires for all CODE-* transitions.
+pre-guard that fires for all CODE-* transitions except `done`.
 
 ### Single-writer scope in Phase 1
 
@@ -1112,7 +1129,8 @@ Four independent test layers:
    - **plan mutation in CODE-REVIEW** — advance to CODE-REVIEW; mutate plan.md;
      verify `findings-remain` and `reviewers-clean` both refuse.
    - **plan mutation in CODE-HUMAN-GATE** — advance to CODE-HUMAN-GATE; mutate
-     plan.md; verify neither `done` nor `blocker-applied` advances.
+     plan.md; verify `blocker-applied` refuses (`schedule check-current` fires);
+     verify `done` succeeds (`done` is exempt from the pre-guard).
    - **stasis detection** — write known fingerprints to `state.json`; verify
      `review inspect --json` returns `matches_previous_round: true`; verify an
      empty-vs-empty comparison returns `matches_previous_round: false`.
