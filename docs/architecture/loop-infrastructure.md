@@ -227,9 +227,14 @@ loop-cohort auto-parallel <spec-dir> [--off]
     "matches_previous_round": false
   }
   ```
-  `matches_previous_round` is `true` iff the computed fingerprint set equals
-  `state.finding_fingerprints`. The skill uses this as the canonical stasis
-  check before routing to `reviewers-clean` or `findings-remain`.
+  Classification: `invalid` if the report file is absent, unreadable, or missing
+  the adversarial-reviewer sentinel block; `clean` if the sentinel block is
+  present and zero findings are extracted; `findings` if ≥ 1 finding is
+  extracted. Fingerprint computation reuses the existing `parse_findings`
+  SHA-1 algorithm anchored on the `**N. <title>.** \`file:line\`. … Fix: …`
+  format. `matches_previous_round` is `true` iff the computed fingerprint set
+  equals `state.finding_fingerprints`. The skill uses this as the canonical
+  stasis check before routing to `reviewers-clean` or `findings-remain`.
 
 - **`reset`** — deletes only `state.json`. Idempotent: tolerates already-absent.
   Paired with `loop-engine reset` (each owns only its own file). `loop-cohort
@@ -238,11 +243,12 @@ loop-cohort auto-parallel <spec-dir> [--off]
 
 - **Parallel-wave verbs** (`worktree preflight|add|record|list|merge|cleanup`,
   `dispatch-decision`, `auto-parallel`) are carried over from loop-cohort's
-  existing implementation. **All three are disabled in Phase 1** — parallel waves
-  have no FSM coupling and their sequencing is not specified here; the verbs are
-  present in the CLI surface but the skill must not invoke any of them. A future
-  spec will wire worktree sequencing against `wave-complete` and `wave advance`,
-  at which point these verbs will become supported gate inputs.
+  existing implementation. **All three parallel-wave verb groups (`worktree`,
+  `dispatch-decision`, `auto-parallel`) are disabled in Phase 1** — parallel
+  waves have no FSM coupling and their sequencing is not specified here; the
+  verbs are present in the CLI surface but the skill must not invoke any of them.
+  A future spec will wire worktree sequencing against `wave-complete` and `wave
+  advance`, at which point these verbs will become supported gate inputs.
 
 **Write contract:** all `loop-cohort` mutations write `state.json` via tempfile +
 `os.replace` (atomic swap, mirrors `loop-engine`'s write contract). Torn writes
@@ -344,8 +350,10 @@ message on failure.
 **Trust boundary:** `<spec-dir>` is trusted local input — both scripts run in
 the user's own workspace, not in a sandboxed environment. `plan.md` and `spec.md`
 are parsed defensively: `schedule` exits non-zero on a malformed DAG; hashing
-operations work on raw bytes without executing content. Both scripts resolve
-`<spec-dir>` to an absolute path at startup and reject `..` components.
+operations work on raw bytes without executing content. All `loop-engine` and
+`loop-cohort` verbs that accept `<spec-dir>` resolve it to an absolute path at
+startup and reject `..` components (`dispatch-decision` does not take `<spec-dir>`
+and is excluded from this claim).
 
 **Single-writer contract:** only one caller may issue `transition` calls for a
 given `<spec-dir>` at a time.
@@ -360,9 +368,12 @@ At new loop-run initialization (not session resume — a resuming session calls
 `status`, not `init`):
 
 **Skill-side preflight:**
-1. Skill calls `loop-cohort identity <spec-dir>` — if it exits 0 (cohort already
-   initialized), refuse and surface: cohort state exists without engine state, or
-   a prior run was not reset. Ask user to run the reset pair.
+1. Skill calls `loop-cohort identity <spec-dir>` — if it exits 0 (`state.json`
+   present and valid), refuse and surface: cohort state exists without engine
+   state, or a prior run was not reset. Ask user to run the reset pair.
+   If `identity` exits non-zero because `state.json` is present but corrupt
+   (e.g. wrong `schema_version` or unparseable), this is not a clean-absent
+   state — route to Corrupt-pair recovery before retrying init.
 2. Skill calls `loop-engine init <spec-dir> --mode <mode> --json` — engine checks
    that `engine-state.json` is absent (its own file only), generates `run_id`,
    writes `engine-state.json`, outputs `run_id`. If `engine-state.json` is already
@@ -406,11 +417,13 @@ is not supported in Phase 1.
 
 ### run_id verification
 
-For every code/spec-plan transition, the engine runs `loop-cohort identity
-<spec-dir> --expect-run-id <run_id>` (where `run_id` is from engine-state.json)
-as a mandatory preflight before its event-specific guard. If identity exits
-non-zero (file absent, run_id mismatch), the transition is refused with the
-identity error.
+For every code/spec-plan transition, the engine reads `engine-state.json`
+first; if `schema_version != 1`, it refuses with a descriptive error (forward
+guard for future schema versions). It then runs `loop-cohort identity <spec-dir>
+--expect-run-id <run_id>` (where `run_id` is from engine-state.json) as a
+mandatory preflight before its event-specific guard. If identity exits non-zero
+(file absent, schema_version mismatch, run_id mismatch), the transition is
+refused with the identity error.
 
 This is a read-only call and does not violate the A boundary (the engine reads
 only through this designated verb, never by directly opening state.json).
@@ -565,7 +578,10 @@ is deferred.
 **`findings-remain` guard scope:** enforces `review_retry_count <
 max_review_retries`. Counts findings-only rounds; clean reviews and
 human-blocker round-trips do not consume this budget. Token budget and same-error
-checks are advisory in Phase 1.
+checks are advisory in Phase 1. **Implementation note:** the existing
+`loop-cohort cmd_check` performs a stasis comparison (`finding_fingerprints` vs
+`previous_finding_fingerprints`); that check must be removed from `check --phase
+review` and replaced by `review inspect` routing in the skill.
 
 **`reviewers-clean` in `SPEC-PLAN-REVIEW`** carries no guard — the spec is not
 being shipped.
@@ -818,8 +834,10 @@ cohort state only through designated read-only verbs.
 **`run_id`** is an immutable UUID generated at `loop-engine init`. Both files
 carry it; every transition verifies the pair via `loop-cohort identity`.
 
-**`feature`** is an immutable slug independently derived from the spec-dir
-basename. Never written by one script and read by the other.
+**`feature`** is an immutable slug: the exact basename of `<spec-dir>` (no
+case normalization, no whitespace stripping). Both `loop-engine init` and
+`loop-cohort init` derive it identically from the same argument; `run_id` is
+the pairing key, not `feature`. `feature` is informational only.
 
 **Counters are separated by concern.** `review_round_count` counts all
 CODE-REVIEW rounds (incremented by every `review record`). `review_retry_count`
@@ -918,11 +936,14 @@ CODE-REVIEW
 | `SPEC-PLAN-HUMAN-GATE` | code, spec-plan | spec.md + plan.md on branch/PR | Human G-plan sign-off |
 | `CODE-HUMAN-GATE` | code | implementation PR | Human G-pr (merge or blocker) |
 
-**Session resume rule:** a resuming session calls `loop-engine status --json` to
-read the current phase and `last_event`. It does not call `loop-engine init`.
+**Session resume rule:** a resuming session calls `loop-engine status <spec-dir>
+--json` to read the current phase and `last_event`. It does not call `loop-engine
+init`.
 If `pending_human_wait` is true, wait for the human signal. The `last_event`
-field disambiguates the five inbound paths to `CODE-IMPLEMENTATION` so the
-resuming session knows what repair or advancement action is expected.
+field disambiguates the five inbound paths to `CODE-IMPLEMENTATION`
+(`plan-approved`, `wave-passed`, `gates-failed`, `findings-remain`,
+`blocker-applied`) so the resuming session knows what repair or advancement
+action is expected.
 
 Work product must be committed to a named branch or open PR before ending a
 session in a human-wait state.
@@ -933,22 +954,24 @@ session in a human-wait state.
 
 On resume, the agent:
 
-1. Calls `loop-engine status --json <spec-dir>` → reads `state`, `last_event`,
+1. Calls `loop-engine status <spec-dir> --json` → reads `state`, `last_event`,
    `last_event_context`, `run_id`, `pending_human_wait`. If this exits non-zero
    (`engine-state.json` absent or unreadable), the run has no resumable Phase-1
    state — see Corrupt-pair recovery; start a new run after the reset pair.
 2. Calls `loop-cohort identity <spec-dir> --expect-run-id <run_id>` → verifies
    `run_id` match, `schema_version == 1`, and file presence in one call. Surface
    if identity exits non-zero; do not proceed.
-3. Calls `loop-cohort status --json <spec-dir>` → reads `current_wave_index`,
+3. Calls `loop-cohort status <spec-dir> --json` → reads `current_wave_index`,
    `schedule_waves`, `finding_fingerprints`, `review_retry_count`,
    `implementation_retry_count`.
 4. If `pending_human_wait` → wait for the human signal before firing any exit event.
-5. If `state == CODE-IMPLEMENTATION` and `last_event == wave-passed` → extract
+5. If `state == CODE-IMPLEMENTATION` and `last_event ∈ {plan-approved,
+   blocker-applied}` → no pending cohort mutation. Resume implementation directly.
+6. If `state == CODE-IMPLEMENTATION` and `last_event == wave-passed` → extract
    `completed_wave_index` from `last_event_context`; reissue `loop-cohort wave
    advance <spec-dir> --from-index <completed_wave_index> --expect-run-id <run_id>`
    (idempotent; safe in both crash windows — before or after the advance completed).
-6. If `state == CODE-IMPLEMENTATION` and `last_event == findings-remain` →
+7. If `state == CODE-IMPLEMENTATION` and `last_event == findings-remain` →
    `review record --fingerprint` may not have run. This window is not idempotent
    in Phase 1. Surface to human: report that `review_retry_count` may be
    under-counted by one and `finding_fingerprints` may not reflect the latest
@@ -956,16 +979,22 @@ On resume, the agent:
    --expect-run-id <run_id>` (risks double-count if the record actually succeeded
    before the crash), or (b) proceed with an under-counted budget as an accepted
    Phase-1 limitation.
-7. If `state == CODE-IMPLEMENTATION` and `last_event == gates-failed` →
+8. If `state == CODE-IMPLEMENTATION` and `last_event == gates-failed` →
    `record-attempt` may not have run. Reissue `loop-cohort record-attempt
    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` (idempotent:
    same cycle-id is a no-op).
-8. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is now
-   mechanically guarded; re-run gates and fire the appropriate event.
-9. If `state == CODE-HUMAN-GATE` and `last_event == reviewers-clean` →
-   `review record --report` may not have run. `review_round_count` may be
-   under-counted by one; this is audit-only and does not affect guard caps.
-   Safe to proceed: fire `done` or `blocker-applied` per the human decision.
+9. If `state == CODE-REVIEW` → no pending cohort mutation (the prior round's
+   `review record` completed before the FSM left `CODE-IMPLEMENTATION`). Re-run
+   the reviewer fan-out and `review inspect`.
+10. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is
+    mechanically guarded; re-run gates and fire the appropriate event.
+11. If `state == CODE-HUMAN-GATE` and `last_event == reviewers-clean` →
+    `review record --report` may not have run. `review_round_count` may be
+    under-counted by one; this is audit-only and does not affect guard caps.
+    Safe to proceed: fire `done` or `blocker-applied` per the human decision.
+12. If `state ∈ {SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
+    no pending cohort mutation in Phase 1 (spec-plan mutations are skill
+    obligations, not tool-driven). Resume spec/plan work per skill prose.
 
 `last_event` enables genuine work resumption without chat history. For durable
 pointers to review reports or gate-failure artifacts, the skill must record these
