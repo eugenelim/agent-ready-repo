@@ -36,3 +36,7 @@ All acceptance criteria verified through the test layers in `plan.md § Testing`
 - Guard-refusal tests (stub each guard; verify no file mutation on refusal)
 - Init/reset and `run_id` coupling tests (including positive-path init pair)
 - High-risk behavioural tests (crash windows, retry caps, stasis, plan mutation per state)
+- SKILL.md content assertions (T4): the `findings-remain` and `reviewers-clean` session-resumption
+  limitations (AC6 "surfaces the documented limitation") are verified as documented prose obligations
+  in `SKILL.md` — script tests assert the resulting cohort state; the skill's human-surfacing
+  behavior is a prose obligation, not a script-testable property.

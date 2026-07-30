@@ -661,8 +661,12 @@ being shipped.
 **`check-spec-status.py`** — CLI contract: `check-spec-status.py <spec-dir>`;
 exits 0 iff the canonical status parser resolves `spec.md`'s Status token to
 `Shipped`; exits non-zero with a one-line reason on stderr otherwise (missing,
-wrong status, or unparseable). It must reuse the same canonical status parser as
-`lint-spec-status.py` to avoid an independent regex. **Scope limitation and named risk acceptance:** the gate
+wrong status, or unparseable). It must reuse the same canonical status parser as `lint-spec-status.py` to avoid
+an independent regex — use `importlib.util.spec_from_file_location` to import the
+`parse_status` / `extract_status_token` function from `lint-spec-status.py`, or
+factor the common parser into a shared `_status_parser.py` in the same `scripts/`
+directory. A characterization test must assert that both files resolve identical
+status tokens for the same `spec.md` content, so wording drift in one fails CI. **Scope limitation and named risk acceptance:** the gate
 proves the string is present, not that *this run* wrote it — a stale `Shipped`
 from an abandoned prior run would pass. The reset pair deletes only run-local
 scratch files and does NOT clear `spec.md`. Phase-2 resolution: a run-id-stamped
@@ -1017,7 +1021,7 @@ Both files are run-local and gitignored.
 
 | Mode | loop-cohort guards | spec-status guard | wave guards | Skill explicit calls |
 |---|---|---|---|---|
-| `code` | `plan-approved` (`plan check-current --require-schedule`), `wave-complete` (`check --phase implement`), `gates-failed` (`check --phase gates-failed`), `findings-remain` (`check --phase review`) | `reviewers-clean` at CODE-REVIEW | `wave-passed` (`wave check --expect more --wave-index <n>`), `gates-clean` (`wave check --expect last`) | init pair, `approve-plan` + `schedule` before `plan-approved`, `wave advance` after `wave-passed`, `record-attempt` after `gates-failed`, `review inspect` before CODE-REVIEW routing, `review record` after each CODE-REVIEW exit |
+| `code` | `plan-approved` (`plan check-current --require-schedule`), `wave-complete` (`check --phase implement` — advisory only, never blocking in Phase 1), `gates-failed` (`check --phase gates-failed`), `findings-remain` (`check --phase review`) | `reviewers-clean` at CODE-REVIEW | `wave-passed` (`wave check --expect more --wave-index <n>`), `gates-clean` (`wave check --expect last`) | init pair, `approve-plan` + `schedule` before `plan-approved`, `wave advance` after `wave-passed`, `record-attempt` after `gates-failed`, `review inspect` before CODE-REVIEW routing, `review record` after each CODE-REVIEW exit |
 | `spec-plan` | `plan-approved` (`plan check-current`) | — | — | init pair, `approve-plan` before `plan-approved` |
 
 **Light mode** does not invoke loop-engine or loop-cohort.
@@ -1351,6 +1355,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `schema_version != 1` in `engine-state.json` refuses `status` and `transition`
 - `transition --wave-index` contract: required for `wave-passed`; rejected for all other events
 - `check-spec-status.py` exits 0 on `Status: Shipped`; exits non-zero on wrong status, missing spec, or unparseable Status line
+- `check-spec-status.py` and `lint-spec-status.py` resolve identical status tokens for the same `spec.md` content (anti-drift characterization test; imported via `importlib.util.spec_from_file_location` or shared `_status_parser.py`)
 - After successful init pair: both files carry the same `run_id` (positive-path pairing check)
 
 **Approach:** Write `loop-engine.py` (new script): `init`, `transition`, `status`, `reset` verbs; per-mode FSM tables; mandatory run_id preflight (calls `loop-cohort identity`); mandatory `schedule check-current` pre-guard for all CODE-* transitions except `done`; event-specific guard dispatch per the Guards table; atomic write (`tempfile` + `os.replace`). Write `check-spec-status.py` (new script) reusing the canonical status parser from `lint-spec-status.py` (not an independent regex). `status --json` exposes all `engine-state.json` fields plus a `pending_human_wait` boolean.
@@ -1391,7 +1396,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Projection parity: `.agents/` and `.claude/` copies match `packs/` source (verified by `make build-check`)
 - `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
 
-**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state.
+**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13).
 
 **Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state.
 
@@ -1558,6 +1563,8 @@ tools/
 
 .github/workflows/
 └── docs.yml                         # CI workflow (update — add path triggers and both test steps)
+
+.gitignore                           # repo root (update — add docs/specs/**/engine-state.json pattern)
 ```
 
 `engine-state.json` has no template file — its fields and allowed values are
