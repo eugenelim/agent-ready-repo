@@ -1,10 +1,11 @@
 # Work-loop state
 
 > **Current implementation contract.**
-> The schema and commands below remain authoritative until PR #816 lands.
-> The proposed Phase-1 replacement is defined in
-> `docs/architecture/loop-infrastructure.md`; do not use its target-state
-> commands against the current scripts.
+> The schema and commands below remain authoritative until the
+> follow-on Phase-1 implementation lands.
+> The target-state command surface is defined in
+> `docs/specs/loop-infrastructure-phase-1/plan.md`; do not use those
+> target-state commands against the current scripts.
 
 A spec-driven loop carries a small amount of session-scoped state — how
 many iterations have run, what budget is left, what findings the last

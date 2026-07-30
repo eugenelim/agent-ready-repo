@@ -101,11 +101,6 @@ One file per non-trivial subsystem:
   (env / OS keyring / `~/.agentbundle/credentials.env`), the four
   brokers (`creds` / `env` / `cli` / `sso-cookie`), the
   credentialed-primitive contract, and the substring trap.
-- [`loop-infrastructure.md`](loop-infrastructure.md) — proposed A-only
-  work-loop infrastructure: `loop-engine.py` owns phase state and read-only
-  guard enforcement; `loop-cohort.py` owns execution state and explicit
-  mutations. Covers `code` and `spec-plan` modes; `doc` mode and orchestration
-  (Option B) are deferred.
 
 ## Packages
 
