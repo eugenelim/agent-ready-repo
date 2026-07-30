@@ -162,6 +162,14 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-traceability",
             ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",
         ),
+        _script_step(
+            "test-loop-engine",
+            ".claude", "skills", "work-loop", "scripts", "test-loop-engine.py",
+        ),
+        _script_step(
+            "test-check-spec-status",
+            ".claude", "skills", "work-loop", "scripts", "test-check-spec-status.py",
+        ),
     ]
     return _run_chain(steps)
 
