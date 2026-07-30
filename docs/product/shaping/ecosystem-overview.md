@@ -14,7 +14,7 @@ Six initiatives that together enable AI-native engineering maturity. INI-002 sta
 | ID | Name | Scope | Status |
 |---|---|---|---|
 | INI-001 | AI-Native Ecosystem | Umbrella — coordinates the others; never directly built | Active (umbrella) |
-| INI-002 | Platform Core | Skills, packs, governance, workspace coordination, PE capabilities | Active — M1 |
+| INI-002 | Platform Core | Skills, packs, governance, workspace coordination, PE capabilities | Active — M1–M5 shipped; P5 (Adopt) in progress |
 | INI-003 | Coding CLI Adapter Pack | Headless CLI adapters: Claude Code `-p`, Codex CLI, Kiro CLI, Copilot CLI, Gemini CLI | Not started |
 | INI-004 | Remote Agent Runtime | Cloud/VM-hosted and orchestration harnesses: Devin, Manus, Omnigent, and pluggable sandbox providers | Not started |
 | INI-005 | Infra & Observability | State persistence, telemetry, monitoring, alerting | Not started |
@@ -26,9 +26,11 @@ The foundation the others build on. An open, harness-agnostic catalogue of skill
 
 **Already shipped:** three loops that form the operational heartbeat — the discovery loop (G0→G3: raw idea → ratified decision brief), the work loop (G3→G5: spec → plan → build → verify → review), and the release loop (G4→G5: verified build → shipped). All three are proven in production.
 
+**Milestone delivery (RFC-0064):** M1–M5 shipped. M6 re-sequenced by Amendment #3 into P1–P5 journey-phase slices: P1 (Orient + Capture), P2 (Shape — M2 PE skills), P3 (Brief → Build), and P4 (Intake edges — M5 trackers) shipped; P5 (Adopt) in progress, gated on `research:adopter-persona` desk-research completing.
+
 **Pack architecture:** a multi-pack catalogue — core (workspace coordination, brief lifecycle, foundational skills), PE pack (product engineering: frame-intent, frame-domain, explore-options, de-risk-intent, decompose-intent), governance-extras (ADR, RFC, rfc-status), desk-research pack (structured research lifecycle), experience-design pack (journey maps, screen flows, creative direction), architect pack (C4 diagrams, ADRs, architecture review), and connector packs (atlassian, linear). Teams compose from the catalogue; no pack is mandatory.
 
-**Harness-agnostic design:** the skill surface runs unchanged across Claude Code (local), Devin (VM-snapshot), Manus (database-backed), Copilot Agent (cloud-session), and Kiro today — each harness reads the same `.md` skill files; MCP-capable harnesses consume them as registered tools. INI-003 and INI-004 wire this more deeply; INI-002 already works with manual session pickup.
+**Harness-agnostic design:** the skill surface runs unchanged across Claude Code (local), Devin (VM-snapshot), Copilot Agent (cloud-session), and Kiro today — each harness reads the same `.md` skill files; MCP-capable harnesses consume them as registered tools. INI-003 and INI-004 wire this more deeply; INI-002 already works with manual session pickup.
 
 **Governance machinery:** ADRs (immutable architectural decisions), RFCs (reviewed decisions with full lifecycle), specs (technical decomposition with traceability lint). The traceability lint enforces that every spec links to a brief and every brief links to an intent — structural orphans are caught at CI.
 
@@ -44,7 +46,7 @@ The first harness tier. Adapters for headless CLI-invoked agents — the executi
 |---|---|---|
 | Claude Code | `claude -p "<prompt>"` | Reads `.claude/` skills; MCP tool integration |
 | Codex CLI | `codex "<task>"` | OpenAI function calling; sandbox isolation |
-| Kiro CLI | `kiro "<task>"` | Spec-driven; reads `.kiro/` steering files |
+| Kiro CLI | `kiro "<task>"` | Kiro CLI 2.0: formal headless mode (`--no-interactive`, `KIRO_API_KEY`); MCP startup validation; trust tiers; AWS-positioned (CodeBuild + Bedrock AgentCore Runtime) |
 | GitHub Copilot CLI | `gh copilot suggest` / agent mode | GitHub-integrated; PR-aware |
 | Gemini CLI | `gemini "<task>"` | Google Workspace integration; long-context |
 
@@ -58,7 +60,9 @@ The first harness tier. Adapters for headless CLI-invoked agents — the executi
 
 **Why separate from INI-004:** CLI adapters are stateless (each invocation is fresh), portable (run locally, in CI/CD, or on any compute), and straightforward to write (thin wrapper around a CLI command). Cloud runtimes (INI-004) have stateful session management, proprietary execution environments, and more complex integration surfaces.
 
-Trigger: INI-002 M1 shipped (`workspace.toml` schema is the stable contract the adapters target).
+**Trigger met (INI-002 M1 shipped).** Harness adapter specs for Kiro, Codex, Copilot CLI, and Gemini CLI shipped inside INI-002, establishing the per-adapter pattern. INI-003 as a formal initiative picks up the layer above those individual adapters: adapter factory, atomic claim protocol (`workspace.toml`-coordinated), and completion-signal conventions that the per-adapter specs deferred. INI-003 RFC not yet opened.
+
+**Namespace note:** `workspace.toml` reuses the INI-003 identifier for the Digital Experience Doctrine internal repo initiative — a separate namespace. The ecosystem framework's INI-003 (Coding CLI Adapter Pack) is unstarted as a formal initiative and is not tracked in `workspace.toml`.
 
 ### INI-004 · Remote Agent Runtime
 
@@ -69,11 +73,16 @@ The cloud and orchestration harness tier. Wires INI-002's skill surface into run
 | Harness | Category | Execution model | State persistence |
 |---|---|---|---|
 | Devin | Standalone cloud agent | Sandboxed cloud VM, long-running | VM snapshots; session resumes from snapshot |
-| Manus | Cloud "digital worker" | Per-task sandboxed Ubuntu VM | TiDB; structured state across sessions |
+| Devin Outposts | On-prem / customer infra | Executes on workstations, VMs, Kubernetes, Apple silicon (launched July 2026) | Customer-controlled compute; Devin-managed state |
 | GitHub Copilot Coding Agent | Cloud coding session | Platform-managed, GitHub-integrated | Session-scoped; GitHub context |
-| Omnigent | Meta-harness / orchestration | Pluggable sandbox providers; routes to underlying agents | Omnigent server state; delegates to Modal, E2B, Daytona, Databricks Sandboxes, Kubernetes |
+| Omnigent | Meta-harness / orchestration | Pluggable sandbox providers; routes to underlying agents (Beta, July 2026) | Omnigent server state; delegates to Modal, E2B, Daytona, Databricks Sandboxes, Kubernetes |
+| Anthropic Managed Agents | Managed agent service | Scheduler + dreaming pass + rubric grading on Agent SDK | Anthropic-managed; partial scope overlap with INI-004 — assess before RFC |
 
-**Omnigent in detail:** Released by Databricks in June 2026 (Apache 2.0). Omnigent is an orchestration layer that sits *above* other agents (Claude Code, Codex, Cursor, Pi) and routes work to pluggable sandbox providers. Key capabilities: swap harnesses without rewriting, enforce policies and sandboxing, collaborate in real time. A managed Databricks enterprise tier (currently Beta) provisions sandboxes inside a Databricks workspace with Unity AI Gateway integration. Omnigent is not a peer of Devin/Manus — it orchestrates them. For this initiative, Omnigent is interesting as the **dispatch and routing layer** that INI-002's `workspace.toml` can feed: Omnigent reads intent, selects the appropriate underlying agent and sandbox, and executes. This aligns naturally with the `workspace.toml` coordination model.
+**Omnigent in detail:** Released by Databricks in June 2026 (Apache 2.0); PyPI-published 2026-07-21; still Beta as of July 2026 with no GA date announced — INI-004 integration gates on GA. Omnigent is an orchestration layer that sits *above* other agents (Claude Code, Codex, Cursor, Pi) and routes work to pluggable sandbox providers. Key capabilities: swap harnesses without rewriting, enforce policies and sandboxing, collaborate in real time. A managed Databricks enterprise tier (currently Beta) provisions sandboxes inside a Databricks workspace with Unity AI Gateway integration. Omnigent is not a peer of Devin — it orchestrates agents across sandbox providers. For this initiative, Omnigent is interesting as the **dispatch and routing layer** that INI-002's `workspace.toml` can feed: Omnigent reads intent, selects the appropriate underlying agent and sandbox, and executes. This aligns naturally with the `workspace.toml` coordination model.
+
+**Sandbox providers (as of July 2026):** Modal ($355M Series C; GPU-inside sandboxes, high-throughput compute); Daytona ($24M Series A; ~90ms cold start, compliance-first secure environments); E2B (pause/resume with filesystem and memory state intact); Databricks Sandboxes (integrated with Unity AI Gateway); Kubernetes (self-managed).
+
+**Anthropic Managed Agents:** Scheduler, dreaming pass, and rubric grading on the Agent SDK. Partial scope overlap with INI-004 around dispatch, state management, and evaluation. The scope boundary between Managed Agents and INI-004's adapter layer needs to be drawn explicitly before opening the INI-004 RFC.
 
 **The harness adapter pattern:** a thin, harness-specific wrapper that maps INI-002 skill invocations (via agent-readable `.md` + MCP tool registration) to each runtime's tool surface. Handles: reading `workspace.toml` at session start, identifying active work, orienting the agent, executing via the work-loop, and writing completion state back.
 
@@ -81,7 +90,7 @@ The cloud and orchestration harness tier. Wires INI-002's skill surface into run
 
 **MCP as the cross-harness bridge:** harnesses that support Model Context Protocol consume INI-002 skills as registered MCP tools, enabling dynamic skill discovery without per-harness packaging.
 
-Trigger: INI-002 M2 shipped (shaping + coordination surface is stable enough that wiring it into cloud runtimes is the right next investment).
+**Trigger met (INI-002 M2 shipped).** Concurrent window with INI-003 is open; both can progress in parallel. INI-004 RFC not yet opened; assess Anthropic Managed Agents scope overlap before opening.
 
 ### INI-005 · Infra & Observability
 
@@ -121,21 +130,20 @@ Trigger: INI-005 M1 shipped — the control plane is only meaningful when the ob
 
 ## How the initiatives connect
 
-The dependency chain is linear by design:
+Both INI-003 and INI-004 trigger conditions are now met and the concurrent window is open:
 
 ```
-INI-002 (now)
-  ↓ M1 ships
-INI-003 starts (Coding CLI Adapters)
-  ↓ M2 ships
-INI-004 starts (Remote Agent Runtime)
-  ↓ M1 ships
+INI-002 M1–M5 shipped ✓ (P5 in progress)
+  ↓ M1 trigger met → INI-003 window open (Coding CLI Adapters) — RFC not opened
+  ↓ M2 trigger met → INI-004 window open (Remote Agent Runtime) — RFC not opened
+  [INI-003 and INI-004 may progress concurrently]
+  ↓ INI-004 M1 ships
 INI-005 starts (Infra & Observability)
   ↓ M1 ships
 INI-006 starts (Control Plane)
 ```
 
-Each step adds one capability layer. INI-003 and INI-004 can run concurrently once INI-002 M2 ships — CLI adapters (INI-003) can start after M1, and both are independent of each other after that.
+Each step adds one capability layer. INI-003 and INI-004 are independent of each other and can progress in parallel. INI-005 requires INI-004 M1 specifically (the observability surface has no execution layer to observe until INI-004 ships).
 
 | Initiatives active | Maturity ceiling |
 |---|---|

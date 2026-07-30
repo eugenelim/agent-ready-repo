@@ -28,7 +28,7 @@
 ["ini-002"]
 name      = "Platform Core"
 status    = "active"
-milestone = "M1 · Workspace Foundation"
+milestone = "P5 · Adopt (M1–M5 shipped)"
 parent    = "INI-001"
 
 ["ini-002".shaping_queue]
