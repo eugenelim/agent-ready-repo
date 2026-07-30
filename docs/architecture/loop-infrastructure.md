@@ -226,15 +226,24 @@ loop-cohort auto-parallel <spec-dir> [--off]
     "matches_previous_round": false
   }
   ```
-  Classification: `invalid` if the report file is absent, unreadable, or does
-  not contain the adversarial-reviewer sentinel line `## Findings` (the section
-  header that separates the narrative from the finding list — as produced by the
-  `adversarial-reviewer` agent per its documented output contract); `clean` if
-  the sentinel is present and zero findings are extracted; `findings` if ≥ 1
-  finding is extracted. Fingerprint computation reuses the existing `parse_findings`
-  SHA-1 algorithm anchored on the `**N. <title>.** \`file:line\`. … Fix: …`
-  format. If the `adversarial-reviewer` agent changes its output structure, the
-  sentinel and fingerprint format must be updated together. `matches_previous_round` is `true` iff the computed fingerprint set
+  Classification is anchored on the `adversarial-reviewer` agent's actual output
+  contract (`## Blockers` / `## Concerns` / `## Nits` for findings; the bare line
+  `Clean — ready to commit.` for a clean report — no `## Findings` header is ever
+  emitted):
+  - `invalid`: report file absent or unreadable, OR the file contains neither the
+    literal clean line nor any line matching `FINDING_LINE_RE`. A report with
+    severity headers (`## Blockers`, etc.) but zero extractable fingerprints also
+    classifies `invalid` (surface to human — the format has changed or is malformed).
+  - `clean`: report contains the exact line `Clean — ready to commit.` (em-dash `—`)
+    and zero `FINDING_LINE_RE` matches.
+  - `findings`: ≥ 1 `FINDING_LINE_RE` match extracted. Note: a `findings` result
+    must contain ≥ 1 fingerprint; see `**findings-remain` floor`** below.
+
+  Fingerprint computation reuses the existing `parse_findings` SHA-1 algorithm
+  and `FINDING_LINE_RE` from `loop-cohort.py` (lines 717–719), anchored on the
+  `**N. <title>.** \`file:line\`. … Fix: …` format. If the `adversarial-reviewer`
+  output structure changes, the classification predicate and fingerprint format
+  must be updated together. `matches_previous_round` is `true` iff the computed fingerprint set
   equals `state.finding_fingerprints`. The skill uses this as the canonical
   stasis check before routing to `reviewers-clean` or `findings-remain`.
 
@@ -1301,7 +1310,7 @@ packs/core/.apm/skills/work-loop/
 ├── scripts/
 │   ├── loop-cohort.py               # task execution state owner
 │   ├── loop-engine.py               # phase FSM validator (proposed — Phase 1)
-│   ├── check-spec-status.py         # spec Status=Shipped gate (proposed)
+│   ├── check-spec-status.py         # spec Status=Shipped gate (proposed — authored in PR #816; dist/ copy is stale build output, not source)
 │   ├── test-loop-engine.py          # proposed test file (FSM, guard, init/reset, stasis)
 │   ├── lint-spec-status.py          # spec metadata drift linter (CI/on-demand)
 │   └── lint-traceability.py         # traceability matrix linter
