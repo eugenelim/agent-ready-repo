@@ -21,7 +21,10 @@ pending an addressing-model decision — see
 The work-loop skill executes a non-trivial feature spec in phases (drafting →
 review → human gate → implementation waves → verification → code review → done).
 Before this design, the skill tracked phase state in prose and session context —
-hard to resume across crashes, impossible to audit, and invisible to supervisors.
+hard to resume across crashes, opaque to inspection (no persisted current-state
+record), and invisible to supervisors. Note: Phase 1 provides inspectable
+*current* state (`state`, `last_event`, `transition_sequence`), not a transition
+history — an append-only event log is a Phase-2 addition.
 
 **This design splits that into two scripts with a hard boundary:**
 
@@ -64,33 +67,11 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
 **What it owns:**
 
 - `state.json` — the run-local state file written into each spec directory
-  (intentionally survives chat-session boundaries). The field list in this
-  document is the authoritative Phase 1 reference; `references/state-schema.md`
-  reflects the pre-Phase-1 model (per-session lifetime, shared `iteration_count`)
-  and is superseded by this document; it will be rewritten in PR #816. Schema includes
-  (`schema_version: 1` in Phase 1). The [State Ownership table](#state-ownership)
-  is the authoritative field list; the sub-bullets below are supplementary
-  descriptions. Active Phase-1 fields:
-  `run_id`, `schema_version`, `feature`,
-  `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`,
-  `review_round_count`, `review_retry_count`, `max_review_retries`,
-  `implementation_retry_count`, `max_implementation_retries`,
-  `last_record_attempt_cycle_id`,
-  `finding_fingerprints`, `previous_finding_fingerprints`,
-  `plan_hash`, `schedule_waves`, `current_wave_index`.
-
-  *Disabled-verb fields — present in the schema but have no Phase-1 writer
-  (disabled verb groups: `worktree`, `dispatch-decision`, `auto-parallel`):*
-  `auto_parallel`, `last_commit_sha`, `worktrees`.
-
-  *(Phase-2 reserved — no Phase-1 writer; guards treat as advisory/non-blocking):*
-  `token_budget_used_pct`, `token_budget_cap_pct`,
-  `consecutive_same_error_count`, `consecutive_same_error_threshold`,
-  `last_error_fingerprint`.
-
-  *Phase-2 reserved fields are listed to reserve the name for Phase 2. Guards
-  that read them treat them as advisory bounds (log but do not block).
-  Implementers must not wire a writer for these fields in Phase 1.*
+  (intentionally survives chat-session boundaries). `references/state-schema.md`
+  reflects the pre-Phase-1 model and is superseded; it will be rewritten in
+  PR #816. The authoritative field list is the
+  [State Ownership table](#state-ownership); the sub-bullets below are
+  supplementary descriptions of each field's semantics.
 
   - `review_round_count` — total CODE-REVIEW rounds; incremented by every
     `review record` call (both clean and findings). Audit only; not cap-guarded.
@@ -245,12 +226,15 @@ loop-cohort auto-parallel <spec-dir> [--off]
     "matches_previous_round": false
   }
   ```
-  Classification: `invalid` if the report file is absent, unreadable, or missing
-  the adversarial-reviewer sentinel block; `clean` if the sentinel block is
-  present and zero findings are extracted; `findings` if ≥ 1 finding is
-  extracted. Fingerprint computation reuses the existing `parse_findings`
+  Classification: `invalid` if the report file is absent, unreadable, or does
+  not contain the adversarial-reviewer sentinel line `## Findings` (the section
+  header that separates the narrative from the finding list — as produced by the
+  `adversarial-reviewer` agent per its documented output contract); `clean` if
+  the sentinel is present and zero findings are extracted; `findings` if ≥ 1
+  finding is extracted. Fingerprint computation reuses the existing `parse_findings`
   SHA-1 algorithm anchored on the `**N. <title>.** \`file:line\`. … Fix: …`
-  format. `matches_previous_round` is `true` iff the computed fingerprint set
+  format. If the `adversarial-reviewer` agent changes its output structure, the
+  sentinel and fingerprint format must be updated together. `matches_previous_round` is `true` iff the computed fingerprint set
   equals `state.finding_fingerprints`. The skill uses this as the canonical
   stasis check before routing to `reviewers-clean` or `findings-remain`.
 
@@ -654,6 +638,23 @@ least one fingerprint. A round returning `classification: clean` fires
 In Option A, the skill invokes loop-cohort verbs at defined points. The engine
 does not invoke these.
 
+### Skill Contract (consolidated obligations)
+
+The correctness of Option A rests on the skill honoring this ordered call contract.
+Each obligation notes idempotency:
+
+| Obligation | Timing | Idempotent on crash? |
+|---|---|---|
+| `approve-plan` then `schedule` (code mode) | after human G-plan sign-off, before `plan-approved` transition | no — re-run both on abort |
+| Write `Status: Implementing` | after `plan-approved` transition (CODE-IMPLEMENTATION entry) | yes — safe to re-write |
+| `record-attempt --cycle-id <run_id>:<seq>` | immediately after `gates-failed` transition | yes — same cycle-id is a no-op |
+| `wave advance --from-index <n>` | immediately after `wave-passed` transition | yes — `current_wave_index == n+1` returns success |
+| `review inspect` then route to `reviewers-clean` or `findings-remain` | at CODE-REVIEW before any FSM event | no — inspect is read-only; routing event is not |
+| `review record --fingerprint` | after `findings-remain` transition | no — non-idempotent; see Session Resumption step 7 |
+| `review record --report` | after `reviewers-clean` transition | no — non-idempotent; missed write is audit-only |
+| Write `Status: Shipped` | before `reviewers-clean` transition (enforced by `check-spec-status.py` guard) | yes — safe to re-write |
+| `done` only after confirmed merge | at CODE-HUMAN-GATE human G-pr approval | no — irreversible |
+
 ### At new loop-run initialization (not session resume)
 
 ```
@@ -799,6 +800,15 @@ and line-ending-only changes do not.
 Any semantic change to plan.md causes this guard to refuse, and the run must be
 reset and restarted. Partial recovery is not supported in Phase 1.
 
+**Frequency/impact justification:** mid-run plan edits are uncommon in
+well-disciplined runs — the human G-plan gate is the canonical point for plan
+changes, and the skill's discipline expects the plan to be stable once approved.
+The full restart cost includes re-doing G-plan approval, but all committed code
+is preserved in git. The accepted tradeoff: mechanically simple deterministic
+enforcement over an escape hatch that would require replan-semantics (mapping
+old tasks to new tasks, invalidating completed waves). In-place replanning is the
+Phase-2 resolution.
+
 Deferred: in-place plan correction (task rewording, dependency fix) without a
 full restart. Supporting it would require a `replan-requested` transition, a
 human-wait planning state, rules for preserving or invalidating completed tasks,
@@ -808,14 +818,14 @@ schedule migration semantics, and a new approved plan/schedule baseline.
 `approve-plan` + `schedule` and continue) conflicts with the immutability rule.
 The implementation PR (PR #816) must remove or disable that path.
 
-**Migration:** a `state.json` written by the pre-Phase-1 model (per-session
-lifetime, `iteration_count` field, no `run_id`) fails at Session Resumption step
-1 — a pre-Phase-1 run never created `engine-state.json`, so `loop-engine status`
-exits non-zero before `loop-cohort identity` is even called. If for some reason
-`engine-state.json` is present but `state.json` is pre-Phase-1 format, step 2
-(`loop-cohort identity --expect-run-id`) fails instead. Either way, run the
-reset pair and start a new run. No partial migration is needed. PR #816 must
-also update
+**Migration:** **All active runs at the time of PR #816 merge must restart** —
+there is no partial migration path. A `state.json` written by the pre-Phase-1
+model (per-session lifetime, `iteration_count` field, no `run_id`) fails at
+Session Resumption step 1 — a pre-Phase-1 run never created `engine-state.json`,
+so `loop-engine status` exits non-zero before `loop-cohort identity` is even
+called. If for some reason `engine-state.json` is present but `state.json` is
+pre-Phase-1 format, step 2 (`loop-cohort identity --expect-run-id`) fails instead.
+Either way, run the reset pair and start a new run. PR #816 must also update
 `assets/state.json` (the template written by `loop-cohort init`) to the
 Phase-1 field set defined in the Scripts section above.
 
