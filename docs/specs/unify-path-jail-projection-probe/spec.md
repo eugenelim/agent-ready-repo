@@ -1,6 +1,6 @@
 # Spec: unify-path-jail-projection-probe
 
-- **Status:** Approved → Shipped (2026-07-23)
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none — internal refactoring within `packages/agentbundle`; no RFC, no ADR, no external interface change
