@@ -9,9 +9,9 @@
 **Status:** Proposed  
 **Implementation:** Not yet landed — design ratification is the precondition for
 implementation (PR #816).  
-**Supersedes:** the earlier draft design on PR #816 (which mixed A-phase
-tracking with partial B side-effect wiring); the ratified design ships in the
-same PR.  
+**Supersedes:** the earlier draft in this PR's history (which mixed A-phase
+tracking with partial B side-effect wiring); this ratified version ships in
+PR #816.  
 **Phase 1 scope:** `code` and `spec-plan` modes only. `doc` mode is deferred
 pending an addressing-model decision — see
 [Deferred: doc mode](#deferred-doc-mode).
@@ -29,8 +29,8 @@ hard to resume across crashes, impossible to audit, and invisible to supervisors
 |---|---|
 | Legal phase ordering and guard enforcement | `loop-engine.py` (phase FSM) |
 | Task execution state, counters, fingerprints | `loop-cohort.py` (execution state owner) |
-| Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) |
-| Bounded convergence of CODE-REVIEW and `gates-failed` repair cycles (retry caps, stasis detection) | `loop-cohort` counters + guards — the spec/plan drafting loop terminates on the human G-plan gate or LLM judgment, not a mechanical cap |
+| Crash-safe session resumption without chat history | persisted `engine-state.json` (`last_event`, `last_event_context`) — idempotent for `wave-passed` and `gates-failed` windows; `findings-remain` window is non-idempotent (see Session Resumption step 7) |
+| Bounded convergence of CODE-REVIEW and `gates-failed` repair cycles (retry caps, stasis detection) | `loop-cohort` counters + guards — the spec/plan drafting loop has no mechanical Phase-1 cap; it terminates on the human G-plan gate or LLM judgment. An advisory token or round counter for unattended spec-plan runs is a Phase-2 concern |
 
 **Phase 1 must guarantee:** legal phase ordering across all transitions; plan
 immutability from G-plan approval through the run; paired-state consistency
@@ -112,15 +112,17 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
     ran, binding the G-plan approval marker to a specific spec version. This is a
     **point-in-time marker**: after `plan-approved`, spec.md is expected to
     undergo permitted status mutations (`Approved → Implementing → Shipped`)
-    that change its raw bytes, making `approved_spec_hash` stale. The engine does
+    that change its raw bytes, making `approved_spec_hash` stale. Skill writes
+    `Status: Implementing` before calling `schedule`, and `Status: Shipped` before
+    the `reviewers-clean` transition (gate enforced by `check-spec-status.py`). The engine does
     not re-check `approved_spec_hash` during CODE-* transitions. Subsequent
     spec-body integrity (acceptance criteria, scope, requirements) is a skill
     obligation in Phase 1. Phase 2 may introduce `approved_spec_contract_hash`
     (canonical hash excluding mutable `Status:` metadata) to mechanically protect
     the spec body throughout the run.
-  - `approved_plan_hash` — sha256 of plan.md bytes at the time `approve-plan`
+  - `approved_plan_hash` — sha256 of canonical(plan.md) at the time `approve-plan`
     ran, binding the approval marker to a specific plan version.
-  - `plan_hash` — sha256 of plan.md bytes at the time `schedule` ran.
+  - `plan_hash` — sha256 of canonical(plan.md) at the time `schedule` ran. Canonical form: CRLF → LF, trailing whitespace stripped per line.
     `loop-cohort schedule check-current` verifies this matches the working copy
     at every CODE-* transition (plan immutability enforcement). `check --phase
     implement` at `wave-complete` enforces advisory bounds only (non-blocking
@@ -182,8 +184,9 @@ loop-cohort auto-parallel <spec-dir> [--off]
 - **`identity [--expect-run-id <uuid>]`** — read-only. Returns `run_id` and
   `schema_version` from `state.json`. Exits non-zero if: `state.json` is absent;
   `schema_version != 1` (the Phase-1 supported value); or, with `--expect-run-id`,
-  the stored `run_id` does not match. `identity` is the sole validator of
-  `schema_version` — the engine does not parse it separately. Used as the run_id
+  the stored `run_id` does not match. `identity` is the sole validator of the
+  *cohort* `schema_version` (`state.json`); the engine validates its own
+  `engine-state.json` `schema_version` directly (see run_id verification). Used as the run_id
   verification preflight before every code/spec-plan transition (see Guards) and
   as the cohort-present check during the init preflight.
 
@@ -197,7 +200,7 @@ loop-cohort auto-parallel <spec-dir> [--off]
 
 - **`plan check-current [--require-schedule]`** — read-only. Always verifies:
   `plan_review_status == "approved"`, `approved_spec_hash == sha256(spec.md)`,
-  `approved_plan_hash == sha256(plan.md)`. With `--require-schedule`: also
+  `approved_plan_hash == sha256(canonical(plan.md))`. With `--require-schedule`: also
   verifies `plan_hash == approved_plan_hash`, `schedule_waves` non-empty,
   `0 <= current_wave_index < len(schedule_waves)`. Without the flag: no schedule
   check (spec-plan mode has no implementation waves). Exit non-zero with a
@@ -212,13 +215,13 @@ loop-cohort auto-parallel <spec-dir> [--off]
   stored index. Guard for `wave-passed` (with `--wave-index`) and `gates-clean`
   respectively.
 
-- **`schedule check-current`** — read-only. Verifies `plan_hash == sha256(plan.md)`.
-  Exit non-zero with a descriptive message if they differ. Called by the engine as
-  a mandatory pre-guard for every transition from a `CODE-*` state (after run_id
-  preflight, before the event-specific guard), **except `done`**. Makes plan
-  immutability a run invariant across all active CODE-* transitions. `done` is
-  exempted because the PR is already merged at that point — plan immutability has
-  served its purpose and enforcing it on `done` would strand a completed run.
+- **`schedule check-current`** — read-only. Verifies `plan_hash ==
+  sha256(canonical(plan.md))` (same canonicalization as `schedule`). Exit non-zero
+  with a descriptive message if they differ. Called by the engine as a mandatory
+  pre-guard for every transition from a `CODE-*` state (after run_id preflight,
+  before the event-specific guard), **except `done`**. Makes plan immutability a
+  run invariant across all active CODE-* transitions. `done` is exempted because
+  the PR is already merged at that point.
 
 - **`wave advance --from-index <n>`** — mutating; idempotent.
   - `current_wave_index == n` → set `n + 1`, exit 0.
@@ -345,8 +348,9 @@ this path to capture the `run_id` for passing to `loop-cohort init`.
   is unchanged on guard failure.
 
 `status --json` exposes all `engine-state.json` fields plus a
-`pending_human_wait` boolean. This flag is `true` in: `SPEC-PLAN-HUMAN-GATE`,
-`CODE-HUMAN-GATE`. It is `false` in all other states.
+`pending_human_wait` boolean. The states where this is `true` are listed in
+the [Human-Wait States and Session Boundaries](#human-wait-states-and-session-boundaries)
+section; it is `false` in all other states.
 
 `reset` — deletes only `engine-state.json`. Idempotent: tolerates
 already-absent.
@@ -378,9 +382,10 @@ At new loop-run initialization (not session resume — a resuming session calls
 1. Skill calls `loop-cohort identity <spec-dir>` — if it exits 0 (`state.json`
    present and valid), refuse and surface: cohort state exists without engine
    state, or a prior run was not reset. Ask user to run the reset pair.
-   If `identity` exits non-zero because `state.json` is present but corrupt
-   (e.g. wrong `schema_version` or unparseable), this is not a clean-absent
-   state — route to Corrupt-pair recovery before retrying init.
+   If `identity` exits non-zero, `state.json` is absent or corrupt — proceed
+   to step 2. (A present-but-corrupt `state.json` is caught at step 4:
+   `loop-cohort init` refuses if `state.json` already exists; the error there
+   routes to Corrupt-pair recovery.)
 2. Skill calls `loop-engine init <spec-dir> --mode <mode> --json` — engine checks
    that `engine-state.json` is absent (its own file only), generates `run_id`,
    writes `engine-state.json`, outputs `run_id`. If `engine-state.json` is already
@@ -552,7 +557,7 @@ calls.
 
 **`plan check-current` scope (code, `--require-schedule`):** verifies
 `plan_review_status == "approved"`, `approved_spec_hash == sha256(spec.md)`,
-`approved_plan_hash == sha256(plan.md)`, `plan_hash == approved_plan_hash`,
+`approved_plan_hash == sha256(canonical(plan.md))`, `plan_hash == approved_plan_hash`,
 `schedule_waves` non-empty, `0 <= current_wave_index < len(schedule_waves)`.
 This guard runs only at the `plan-approved` transition (G-plan gate). It catches
 spec.md or plan.md edited between `approve-plan` and `schedule`, or between
@@ -562,7 +567,7 @@ see `approved_spec_hash` note).
 
 **`plan check-current` scope (spec-plan, no flag):** verifies
 `plan_review_status == "approved"`, `approved_spec_hash == sha256(spec.md)`,
-`approved_plan_hash == sha256(plan.md)`. No schedule check (spec-plan has no
+`approved_plan_hash == sha256(canonical(plan.md))`. No schedule check (spec-plan has no
 implementation waves). Both spec.md and plan.md are bound to the approval
 marker; a post-approval edit to either file causes this guard to refuse.
 Precondition: spec-plan mode requires both `spec.md` and `plan.md` to be present
@@ -599,8 +604,10 @@ one-line reason on stderr otherwise (missing, wrong status, or unparseable).
 It must reuse the same canonical status parser as `lint-spec-status.py` to avoid
 an independent regex. **Scope limitation:** the gate proves the string is present,
 not that *this run* wrote it — a stale `Shipped` from an abandoned prior run would
-pass; the reset discipline (both files are gitignored run-local scratch) is the
-expected control. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
+pass. The reset pair (`loop-cohort reset` + `loop-engine reset`) deletes only the
+run-local scratch files and does NOT clear `spec.md`. The expected control: before
+reusing a spec dir after an abandoned run, manually reset `spec.md` Status to
+`Implementing`; a fresh spec dir will not have a stale `Shipped`. The gate fires at the `CODE-REVIEW → CODE-HUMAN-GATE` edge
 (before G-pr, not at merge). This means
 a `blocker-applied` return leaves the spec with `Status: Shipped` while the PR
 continues iterating. This is intentional — per the project's "set final status
@@ -755,6 +762,14 @@ repair cycles. If the budget is exhausted while repairing a human blocker, the
 `gates-failed` guard refuses and the run must be reset — even with a blocker in
 flight. Per-phase or post-blocker budget reset is deferred from Phase 1.
 
+**Named risk acceptance — post-G-pr budget exhaustion:** a human can request a
+legitimate fix at G-pr after pre-review repair cycles have consumed
+`implementation_retry_count`. At that point the run is unrecoverable without a
+full restart (new G-plan approval required). This is an accepted Phase-1
+limitation: the default cap of 5 makes it unlikely in normal runs, and a project
+can raise the cap in `assets/state.json`. A per-phase or post-blocker budget
+credit is the resolution for Phase 2.
+
 ---
 
 ## Plan Immutability in Phase 1
@@ -766,17 +781,13 @@ Phase 1.
 
 The mandatory `schedule check-current` pre-guard (step 1b) mechanically enforces
 immutability at every CODE-* transition except `done` by verifying `plan_hash ==
-sha256(plan.md)`. Any byte-level change to plan.md (including comments and
-whitespace — SHA-256 comparison is raw bytes) causes this guard to refuse, and
-the run must be reset and restarted. Partial recovery is not supported in Phase 1.
-Plan canonicalization (to allow whitespace-only edits without a reset) is deferred.
+sha256(canonical(plan.md))`. Phase-1 canonicalization: normalize CRLF to LF and
+strip trailing whitespace per line before hashing. Semantic edits (comments,
+task text, dependency rewording) still cause the guard to refuse; whitespace-only
+and line-ending-only changes do not.
 
-**Operational risk — incidental edits:** a formatter, an IDE trailing-newline
-insertion, or a CRLF/LF normalization on `plan.md` will trip the guard and force
-a full restart including the human G-plan gate. Mitigation: add `plan.md` to
-`.gitattributes` with `eol=lf -text` and disable format-on-save for files in
-`docs/specs/`. The SKILL.md must warn of this at the point it captures the plan
-hash.
+Any semantic change to plan.md causes this guard to refuse, and the run must be
+reset and restarted. Partial recovery is not supported in Phase 1.
 
 Deferred: in-place plan correction (task rewording, dependency fix) without a
 full restart. Supporting it would require a `replan-requested` transition, a
@@ -815,10 +826,10 @@ Phase-1 field set defined in the Scripts section above.
    byte-frozen from the `approve-plan` call through the `plan-approved` transition.*
 3. `loop-cohort approve-plan` was called. — *Mechanically enforced: `plan
    check-current` verifies `plan_review_status == "approved"` and both
-   `approved_spec_hash == sha256(spec.md)` and `approved_plan_hash == sha256(plan.md)`.*
+   `approved_spec_hash == sha256(spec.md)` and `approved_plan_hash == sha256(canonical(plan.md))`.*
 4. `loop-cohort schedule` exited 0. — *Mechanically enforced: `plan
    check-current` verifies `schedule_waves` non-empty and `plan_hash` matches.*
-5. Both `approved_plan_hash` and `plan_hash` equal `sha256(plan.md)`. —
+5. Both `approved_plan_hash` and `plan_hash` equal `sha256(canonical(plan.md))`. —
    *Mechanically enforced: `plan check-current`.*
 6. Human G-plan sign-off received. — *Skill obligation; not mechanically enforced.*
 
@@ -1001,13 +1012,12 @@ On resume, the agent:
    (idempotent; safe in both crash windows — before or after the advance completed).
 7. If `state == CODE-IMPLEMENTATION` and `last_event == findings-remain` →
    `review record --fingerprint` may not have run. This window is not idempotent
-   in Phase 1. Surface to human: report that `review_retry_count` may be
-   under-counted by one and `finding_fingerprints` may not reflect the latest
-   round. **Recommended:** option (b) proceed with an under-counted budget — the
-   under-count is conservative (the guard may allow one extra retry) and avoids
-   the double-count risk. Do NOT auto-reissue. Option (a) reissuing `review
-   record --fingerprint --expect-run-id <run_id>` is available if the human
-   is confident the prior record did not complete.
+   in Phase 1 (no report-path pointer in `state.json` to enable safe replay). Surface
+   to human: report that `review_retry_count` may be under-counted by one and
+   `finding_fingerprints` may not reflect the latest round. **Proceed with
+   under-counted budget (Phase-1 accepted limitation)** — the under-count is
+   conservative (guard may allow one extra retry) and is the only safe default
+   given the report path is not durably stored. Do NOT auto-reissue `review record`.
 8. If `state == CODE-IMPLEMENTATION` and `last_event == gates-failed` →
    `record-attempt` may not have run. Reissue `loop-cohort record-attempt
    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` (idempotent:
