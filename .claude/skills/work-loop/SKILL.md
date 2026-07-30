@@ -158,15 +158,6 @@ Before PLAN begins, orient to the current initiative and work queue:
        → surface "No active spec found — run `workspace-status` to see
        what's ready to start." More than one (single initiative or across
        initiatives) → list all and ask the user to pick.
-     - **Stale-queue check.** For each active initiative, for each entry in
-       `["ini-NNN".work].queue` and `["ini-NNN".work].active`: resolve the
-       path (bare string → as-is; inline object → `path` field; `slug` is
-       shaping-queue only), strip the `spec/` prefix, and read
-       `docs/specs/<slug>/spec.md`. If `**Status:**` is `Shipped` (ignoring
-       trailing `<!-- -->` comments), emit this warning and proceed — non-blocking:
-       > Warning: workspace.toml drift: `<path>` is in `<queue|active>` but
-       > spec.md shows Status: Shipped — move it to shipped in workspace.toml.
-       A path in both lists: warn once, name both. No spec.md or other Status: skip.
    - **If absent:** skip this step entirely. PLAN begins immediately with no
      error, no diagnostic, and no behavioral change.
 
