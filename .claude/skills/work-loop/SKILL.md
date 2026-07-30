@@ -1,6 +1,6 @@
 ---
 name: work-loop
-description: "Use when implementing a non-trivial repository change — a feature, a behavior-changing bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system change, a reversion, or implementing an approved spec under `docs/specs/`. Also activates on bare continuation commands ('resume', 'continue', 'keep going', 'pick up where I left off', 'let's get going') when conversation or workspace context identifies active build work. Excludes: shaping, research, strategy, product planning, design exploration, review-only, explanation-only, specification-authoring-only tasks, and cosmetic or local behavior-preserving edits."
+description: "Use when implementing or resuming a non-trivial repository change: a feature, behavior-changing fix, refactor, migration, framework or dependency upgrade, schema or API change, performance work, infrastructure or build-system change, reversion, or an existing build spec under `docs/specs/`. Also use for bare continuation commands ('resume', 'continue', 'keep going', 'pick up where I left off', 'let's get going') when conversation or workspace context identifies active build work. Do not use for shaping, research, strategy, product planning, design exploration, monitoring or status-only work, review-only, explanation-only, specification-authoring-only, spike-only or throwaway exploration, or trivial edits that are cosmetic, tightly local, behavior-preserving, and have obvious verification."
 ---
 
 # Skill: work-loop
@@ -81,7 +81,10 @@ Skip entirely if `workspace.toml` is absent. If present:
 
 2. **Shaping-item guard.** Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all active initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed entries for a slug match. On match, stop: "This is a `[shape]` item (`type = <subtype>`); use `<skill>` — `work-loop` is for build items only." (shape→`frame-intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
 
-After orientation: if exactly one active item, strip the `spec/` prefix, then read `docs/specs/<slug>/spec.md` and `plan.md` as step 1 of PLAN. In the zero and multi-item branches, stop after surfacing.
+After orientation:
+- If a spec path was supplied, use it and proceed directly to PLAN.
+- Otherwise, exactly one active item → strip the `spec/` prefix, read `docs/specs/<slug>/spec.md` and `plan.md`, then proceed to PLAN.
+- Zero or multiple active items → stop after surfacing.
 
 ## Step 1. PLAN
 
@@ -113,7 +116,7 @@ After orientation: if exactly one active item, strip the `spec/` prefix, then re
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed, note in summary. Full conditions and `approve-plan` gate: [`references/pre-execute-review.md`](references/pre-execute-review.md).
+   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions and `approve-plan` gate: [`references/pre-execute-review.md`](references/pre-execute-review.md).
 
 9. **Initialize state file (full mode only).** Run `scripts/loop-cohort.py init docs/specs/<feature>`. Then `loop-cohort.py check docs/specs/<feature> --phase plan` — expect exit 1 (`plan not approved`) as the cue to run the pre-EXECUTE reviewer. After the reviewer is clean, run `loop-cohort.py approve-plan docs/specs/<feature>` and re-run check; exit 0 unlocks EXECUTE. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
@@ -124,7 +127,7 @@ Write the plan to disk — don't keep it in memory across turns.
 **Bump spec status to `Implementing`** if currently `Draft` or `Approved`. Do this before writing any code.
 
 Match discipline to verification mode:
-- **TDD** — red-green-refactor. If PLAN produced a stub, verify it's red and fill deferred assertions; don't rewrite from scratch.
+- **TDD** — red-green-refactor; commit each step if non-trivial. If PLAN produced a stub, verify it's red and fill deferred assertions; don't rewrite from scratch.
 - **Goal-based check** — write code, run the `Done when:` one-liner.
 - **Visual / manual QA** — implement, exercise the real artifact end-to-end, record observed output.
 - **infra/deploy** — implement, then drive the deploy and read real environment output (run apply, smoke probe, log pull, teardown; read their actual output — don't reason about what they'd say). Anti-pattern: a human pasting deploy errors back by hand. Craft in [`references/infra-verification.md`](references/infra-verification.md).
@@ -138,7 +141,7 @@ Match discipline to verification mode:
 <!-- Bundled-fixes carve-out — canonical site. Mirrored by
      implementer.md (operating envelope) and adversarial-reviewer.md
      (scope check #4). Keep all three in sync. -->
-**Bundled-fixes carve-out.** Same-area, same-concern, mechanical ride-alongs land in the change — dead import, stale comment contradicting new code, unused local orphaned by the change, typo in a sibling file. *Same area* = a file in a directory already containing a file the change edits (siblings only; not parent walk-up, not sideways to unedited directories). List ride-alongs in the PR description under a standalone `Bundled fixes:` section (append below standard template content; do not modify the template). Fails closed on: file outside touched directory, design call, behavior change. **Volume guard:** each fix is a line or two; the bundle must be visibly smaller than the primary change. In supervisor mode, the dispatch brief must explicitly authorize the carve-out.
+**Bundled-fixes carve-out.** Same-area, same-concern, mechanical ride-alongs land in the change — dead import, stale comment contradicting new code, unused local orphaned by the change, typo in a sibling file. *Same area* = a file in a directory already containing a file the change edits (siblings only; not parent walk-up, not sideways to unedited directories). "The change" = the current plan task for the executor; the merged PR diff for the reviewer. List ride-alongs in the PR description under a standalone `Bundled fixes:` section (append below standard template content; do not modify the template). Fails closed on: file outside touched directory, design call, behavior change. **Volume guard:** each fix is a line or two; the bundle must be visibly smaller than the primary change. In supervisor mode, the dispatch brief must explicitly authorize the carve-out.
 
 **Simplify pass.** After this task's GATES are green, shrink the diff: inline a single-use helper, delete orphaned code, collapse needless indirection, drop parameters no caller varies. Scope to new code only; leave tests DAMP. In Claude Code, `/simplify` performs this (optional accelerant, never a dependency).
 
@@ -187,7 +190,9 @@ loop-cohort.py check docs/specs/<feature> --phase review
 
 Drop the full report text from resident context after recording. Re-read from disk when a FIX needs a finding's detail. (There is no pre-filtered "open findings" file — which findings are still open is your DECIDE-phase routing call.)
 
-**Specialist reviewers — use after adversarial-reviewer is clean.** Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`"; absence = note in summary, not a blocker.
+**Specialist reviewers — use after adversarial-reviewer is clean.** Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`"; absence = named skip in the final summary, **except `security-reviewer` on infra-flavored work: that reviewer is mandatory — its absence surfaces and blocks.**
+
+**`quality-engineer` trigger:** full mode — every loop; light mode — only when `AGENTS.md` declares the external-quality-gate exception (e.g., SonarQube, CI-only coverage threshold). Act on the declaration; don't scan for config files.
 
 - **`security-reviewer`** — diff crosses a security boundary (auth, secrets, user input, deserialization, file/network I/O, dependencies, LLM/agent code). Current lens: OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25 + STRIDE + LINDDUN open pass. Complements SAST/SCA scanners; does not replace them. **Inline its depth, don't make it self-discover:** detect which trust boundaries the diff crosses, load only the matching `security-checklists` modules, inline them into the subagent's brief (subagent has no Skill tool). Route via [`security-checklists` Module index](../security-checklists/SKILL.md#module-index); load only modules the diff crosses, never a flat march. **Mandatory and multi-module on infra-flavored work** (destructive/irreversible trigger + diff matches IaC/deploy-config entry): non-skippable, runs at spec stage and on diff, force-loads `config-misconfig` always, plus `access-control` / `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips each module's entry. Missing `security-reviewer` on infra work = loud blocker; run both reviewer and scanner.
 
@@ -232,7 +237,7 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this.
-- [ ] For each warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` on every loop plus whole-spec pass on the final loop of a multi-loop spec; `experience-reviewer` on user-facing surface diffs in full mode; `frontend-reviewer` on HTML/CSS/JS primary-output diffs in full mode): subagent returned `Clean — ready to commit.` **or** no matching subagent installed and the final summary names the missing review by its role label. Silent skips are not allowed.
+- [ ] For each warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger above; `experience-reviewer` on user-facing surface diffs in full mode; `frontend-reviewer` on HTML/CSS/JS primary-output diffs in full mode): subagent returned `Clean — ready to commit.` **or** no matching subagent installed and the final summary names the missing review by its role label — **except missing `security-reviewer` on infra-flavored work, which blocks completion**. Silent skips are not allowed.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
@@ -246,7 +251,8 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 1. Read the finding carefully; fix what the reviewer flagged, not the symptom.
 2. Make the smallest change that addresses it.
 3. Re-run GATES.
-4. Re-run REVIEW only if the fix touched logic the reviewer hadn't already approved.
+4. **Full mode:** after any applied REVIEW finding, re-run the reviewer or reviewer set that produced it; continue until Clean.
+5. **Light mode:** non-Blocker fixes return to GATES only. A Blocker receives the one re-review permitted by the light-mode rules.
 
 ## Capture learnings
 
@@ -315,7 +321,6 @@ Load when the predicate fires; don't load speculatively.
 | TDD mode, need red stub mechanics | [`references/tdd-stubs.md`](references/tdd-stubs.md) |
 | Pre-existing gate failure suspected | [`references/pre-flight-failures.md`](references/pre-flight-failures.md) |
 | Pre-EXECUTE review full conditions or `approve-plan` gate | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
-| Full self-coverage protocol | [`references/self-coverage/protocol.md`](references/self-coverage/protocol.md) |
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | Supervisor / wave / worktree / parallel mode | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
-| State file schema | [`references/state-schema.md`](references/state-schema.md) |
+| Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
