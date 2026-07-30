@@ -36,8 +36,10 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
 **What it owns:**
 
 - `state.json` — the run-local state file written into each spec directory
-  (intentionally survives chat-session boundaries). See
-  `references/state-schema.md` for the full field reference. Schema includes:
+  (intentionally survives chat-session boundaries). The field list in this
+  document is the authoritative Phase 1 reference; `references/state-schema.md`
+  reflects the pre-Phase-1 model (per-session lifetime, shared `iteration_count`)
+  and is superseded by this document until rewritten. Schema includes:
   `run_id`, `schema_version`, `feature`,
   `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`,
   `review_round_count`, `review_retry_count`, `max_review_retries`,
@@ -83,7 +85,9 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
 
 - Task DAG and wave scheduling — `schedule` reads plan.md, validates the DAG,
   computes topological waves, and persists `plan_hash`, `schedule_waves`,
-  `current_wave_index: 0` to `state.json`. Exit non-zero on any DAG error.
+  `current_wave_index: 0` to `state.json`. Exit non-zero on any DAG error or if
+  the task set is empty (so an empty-wave failure surfaces at scheduling, not
+  at the `plan-approved` guard two calls later).
 - Finding fingerprints — `review record --fingerprint` increments
   `review_retry_count` and `review_round_count`, rotates fingerprint lists.
   `review record --report` increments `review_round_count` only (clean round).
@@ -93,7 +97,10 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   stores the cycle ID in `last_record_attempt_cycle_id`. Idempotent: a second
   call with the same `--cycle-id` returns success without incrementing.
   Called by the skill only after `gates-failed`; not called on successful
-  scheduled-wave transitions.
+  scheduled-wave transitions. `--error-fingerprint <hex>` stores the fingerprint
+  in a `last_error_fingerprint` field for future comparison; the
+  `consecutive_same_error_count` increment is not defined in Phase 1 and the
+  guard for that field is advisory.
 - Iteration and budget gates — `check --phase {implement,review,gates-failed}`
   enforces the bounded counters for that phase or transition. Advisory fields
   are checked but do not block. Plan-phase approval is covered by
@@ -440,6 +447,9 @@ scheduling.
 `approved_plan_hash == sha256(plan.md)`. No schedule check (spec-plan has no
 implementation waves). Both spec.md and plan.md are bound to the approval
 marker; a post-approval edit to either file causes this guard to refuse.
+Precondition: spec-plan mode requires both `spec.md` and `plan.md` to be present
+before `approve-plan` is called — `sha256(plan.md)` fails with an unexplained
+error on an absent file.
 
 **`wave-complete` guard scope:** enforces plan immutability (`plan_hash ==
 sha256(plan.md)`) — a post-approval edit to plan.md causes this guard to
@@ -597,6 +607,12 @@ failed call surfaces to the human; do not retry autonomously.
 No loop-cohort call. A human-returned blocker is not a review round;
 `review_retry_count` is not incremented.
 
+`blocker-applied` does **not** reset `implementation_retry_count`. Gate failures
+during blocker repair consume the same global implementation budget as pre-review
+repair cycles. If the budget is exhausted while repairing a human blocker, the
+`gates-failed` guard refuses and the run must be reset — even with a blocker in
+flight. Per-phase or post-blocker budget reset is deferred from Phase 1.
+
 ---
 
 ## Plan Immutability in Phase 1
@@ -741,9 +757,9 @@ CODE-REVIEW
    rounds; clean rounds and human-blocker round-trips do not consume this budget.
 2. **Implementation retry cap** — `check --phase gates-failed` exits non-zero when
    `implementation_retry_count >= max_implementation_retries`. Fires before repair
-   begins (not after), so a refused fifth `gates-failed` back-edge means four
-   complete repair cycles have been attempted. `check --phase implement` at
-   `wave-complete` enforces plan immutability only.
+   begins (not after), so with a cap of 5 a refused sixth `gates-failed`
+   back-edge means five complete repair cycles have been attempted.
+   `check --phase implement` at `wave-complete` enforces plan immutability only.
 3. **Stasis** — `review inspect` returns `matches_previous_round: true`; skill
    surfaces to human without advancing the FSM.
 4. **Token budget** *(advisory, Phase 1)* — no updater defined; guard treats as
@@ -785,7 +801,18 @@ On resume, the agent:
    `completed_wave_index` from `last_event_context`; reissue `loop-cohort wave
    advance <spec-dir> --from-index <completed_wave_index>` (idempotent; safe in
    both crash windows — before or after the advance completed).
-5. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is now
+5. If `state == CODE-IMPLEMENTATION` and `last_event == findings-remain` →
+   `review record --fingerprint` may not have run. This window is not idempotent
+   in Phase 1. Surface to human: report that `review_retry_count` may be
+   under-counted by one and `finding_fingerprints` may not reflect the latest
+   round. The human must decide: (a) reissue `review record --fingerprint` (risks
+   double-count if the record actually succeeded before the crash), or (b) proceed
+   with an under-counted budget as an accepted Phase-1 limitation.
+6. If `state == CODE-IMPLEMENTATION` and `last_event == gates-failed` →
+   `record-attempt` may not have run. Reissue `loop-cohort record-attempt
+   --cycle-id <run_id>:<transition_sequence>` (idempotent: same cycle-id is a
+   no-op).
+7. If `state == CODE-VERIFICATION` → `wave-passed` vs `gates-clean` is now
    mechanically guarded; re-run gates and fire the appropriate event.
 
 `last_event` enables genuine work resumption without chat history. For durable
