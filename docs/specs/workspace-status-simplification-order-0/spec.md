@@ -27,7 +27,7 @@ characterization and test-infrastructure change only.
 ### Always do
 
 - Extract workspace-status algorithmic core (TOML parse, DAG resolution, reconciliation scans) into `tools/workspace_status_engine.py` as a test seam
-- Write characterization tests in `tools/test-workspace-status.py` covering all scenarios listed in AC3
+- Write characterization tests in `tools/test_workspace_status.py` covering all scenarios listed in AC3
 - Write a benchmark in `tools/bench-workspace-status.py` generating ≥250 spec directories
 - Create a behavior map at `docs/specs/workspace-status-simplification-order-0/notes/behavior-map.md`
 - Create a baseline report at `docs/specs/workspace-status-simplification-order-0/notes/baseline-report.md`
@@ -49,7 +49,7 @@ characterization and test-infrastructure change only.
 ## Testing Strategy
 
 All criteria use **TDD** (testable logic: pure functions over parsed TOML data).
-Verification mode: `python3 tools/test-workspace-status.py` exits 0.
+Verification mode: `python3 tools/test_workspace_status.py` exits 0.
 Benchmark: `python3 tools/bench-workspace-status.py` exits 0 and prints measurements.
 
 ## Acceptance Criteria
@@ -105,7 +105,7 @@ Benchmark: `python3 tools/bench-workspace-status.py` exits 0 and prints measurem
 
 ### Gates
 
-- [x] AC6. `python3 tools/test-workspace-status.py` exits 0.
+- [x] AC6. `python3 tools/test_workspace_status.py` exits 0.
 - [x] AC7. `python3 tools/bench-workspace-status.py` exits 0 and prints measurements.
 - [x] AC8. `make build-check` passes (existing tests unaffected).
 - [x] AC9. `git diff` contains no production behavior change (no SKILL.md edits).

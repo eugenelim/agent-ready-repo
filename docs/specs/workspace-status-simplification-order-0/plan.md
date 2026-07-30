@@ -4,7 +4,7 @@
 
 **Assumption trio:**
 1. Files touched: 7 new files in `tools/` and `docs/specs/workspace-status-simplification-order-0/`; no existing files modified
-2. Tests demonstrate done: `python3 tools/test-workspace-status.py` exits 0; `python3 tools/bench-workspace-status.py` exits 0 and prints measurements
+2. Tests demonstrate done: `python3 tools/test_workspace_status.py` exits 0; `python3 tools/bench-workspace-status.py` exits 0 and prints measurements
 3. Not changing: `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/.apm/skills/work-loop/SKILL.md`, `workspace.toml` schema, any existing test
 
 **Declined:**
@@ -36,10 +36,10 @@ Tests:
 ```
 
 ### T3 — Characterization tests
-`tools/test-workspace-status.py`
+`tools/test_workspace_status.py`
 
 Mode: TDD (characterization suite)
-Done when: `python3 tools/test-workspace-status.py` exits 0, covers AC3a–AC3h
+Done when: `python3 tools/test_workspace_status.py` exits 0, covers AC3a–AC3h
 
 Tests: the test file IS the test
 

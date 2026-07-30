@@ -1127,6 +1127,48 @@ def case_type2_cleanup_mutation_contract() -> None:
         expect(mut4 is None, "[cleanup] untracked spec returns no mutation")
 
 
+def case_type1_type3_no_cleanup() -> None:
+    """Explicit negative assertion: Type 1 and Type 3 entries produce no cleanup mutation.
+
+    Type 1 (untracked Approved spec in the spec tree, absent from all workspace.toml
+    lists) has no mutation because compute_done_step_mutation only inspects active/queue.
+
+    Type 3 (path is in work.shipped but spec.md doesn't say Shipped) has no mutation
+    for the same reason — shipped is not active/queue.
+
+    Only entries that appear in active or queue are Type 2 candidates.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Negative Test"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = ["spec/shipped-only"]
+            queue   = ["spec/queued"]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+
+        # Type 1: spec exists in the spec tree but not in any workspace.toml list
+        m = compute_done_step_mutation("spec/untracked-approved", inits)
+        expect(m is None, f"[type1] untracked spec → None (no cleanup mutation), got {m!r}")
+
+        # Type 3: path is in work.shipped, not in active or queue
+        m = compute_done_step_mutation("spec/shipped-only", inits)
+        expect(m is None, f"[type3] shipped-only path → None (no cleanup mutation), got {m!r}")
+
+        # Positive control: queued entry IS a Type 2 candidate
+        m = compute_done_step_mutation("spec/queued", inits)
+        expect(m is not None, f"[type2/positive] queued entry → mutation candidate, got {m!r}")
+
+
 # ── pytest wrappers for custom-runner cases ───────────────────────────────────
 # Allow `pytest tools/test_workspace_status.py` to discover all cases.
 
@@ -1217,6 +1259,10 @@ def test_type2_cleanup_mutation_contract() -> None:
     _run_case(case_type2_cleanup_mutation_contract)
 
 
+def test_type1_type3_no_cleanup() -> None:
+    _run_case(case_type1_type3_no_cleanup)
+
+
 def test_integration_full_analyze() -> None:
     _run_case(case_full_analyze)
 
@@ -1244,6 +1290,7 @@ CASES = [
     ("AC3g done_step_mutation", case_done_step_mutation),
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
     ("type2_cleanup_mutation_contract", case_type2_cleanup_mutation_contract),
+    ("type1_type3_no_cleanup", case_type1_type3_no_cleanup),
     ("skill_contract_anchor", case_skill_contract_anchor),
     ("integration full_analyze", case_full_analyze),
 ]
