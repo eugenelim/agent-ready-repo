@@ -117,11 +117,11 @@ around it:
   `sonar-project.properties` or a coverage config. Absent the declaration,
   light mode is unchanged (the pass stays dropped by default); the EXECUTE
   simplify pass still runs either way.
-- **No `loop-cohort` state machine** — light mode does not invoke
-  `loop-cohort` at all (no `init`, `approve-plan`, `check`, or
-  `review record`). The mechanical doc-drift check still runs:
-  `lint-spec-status.py` at the finish-time checklist, since it is a
-  no-subagent lint that costs ~nothing.
+- **No `loop-cohort` state machine and no `loop-engine`** — light mode
+  does not invoke either script (no `init`, `approve-plan`, `check`,
+  `review record`, or `loop-engine transition`). The mechanical doc-drift
+  check still runs: `lint-spec-status.py` at the finish-time checklist,
+  since it is a no-subagent lint that costs ~nothing.
 
 **Full mode (unchanged).** Reached whenever any risk trigger fires. It is
 the loop exactly as the rest of this document describes — `new-spec` with
@@ -130,6 +130,14 @@ iterated to `Clean`, the `quality-engineer` floor at the end-of-session
 checklist, and the iteration cap. **Everything below this section is full
 mode unless it says otherwise**; light mode reuses those steps verbatim
 except for the four trims named above.
+
+### Loop-engine phase tracking (full mode only)
+
+In full mode, `loop-engine` is the phase FSM — it owns `engine-state.json`
+(session-local, gitignored) and coordinates with `loop-cohort`. Light mode
+skips both. For mode selection, checkpoint events, guard wiring, and
+session-boundary rules, load
+[`references/loop-infrastructure.md`](references/loop-infrastructure.md).
 
 ### Step 0. Orientation — read workspace context
 
@@ -304,19 +312,12 @@ For anything beyond trivial, *think before you write code*. Concretely:
   ³ Run `creative-direction` if no grounded aesthetic reference exists yet; `design-review` if an existing surface is being changed. `experience-reviewer` runs in full-mode REVIEW. HTML/CSS/JS: "primary" means the output IS the artifact, not incidental markup — when in doubt, load `frontend-engineering`. The `frontend-engineering` skill is owned by the `frontend-engineering` pack (not `core`); check if it appears in your available skills before loading it. If absent, record a named skip — `FE pre-flight: skipped (frontend-engineering pack absent)` — in the spec and proceed without the pre-flight. When the pack is installed, atomic craft skills (`token-architecture`, `a11y-engineering`, `fe-performance`, `rendering-strategy`, `component-contract`, `responsive-layout`, `css-architecture`) are available — load only the one the task warrants against its specific concern.
 
   Iterate each fired review to `Clean` before EXECUTE. Reviewer absent → proceed, note in summary. Full depth (firing conditions, infra force-load, re-plan re-fire, `approve-plan` gate, Profile-A opt-out): [`references/pre-execute-review.md`](references/pre-execute-review.md).
-- **Initialize the loop's state file.** Run this skill's bundled
-  `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
-  the bundled `assets/state.json` template into place, sets `feature`
-  to the spec slug, and writes atomically. The file is gitignored —
-  session-scratch, not history. Then run `loop-cohort.py check
-  docs/specs/<feature> --phase plan`; on the first invocation it will
-  exit 1 with `plan not approved` — **this is the expected cue to run
-  the pre-EXECUTE reviewer**, not a stop-and-surface signal. Once the
-  reviewer is clean, run `loop-cohort.py approve-plan docs/specs/<feature>`
-  and re-run check; exit 0 unlocks EXECUTE. Every state mutation —
-  template copy, status flip, atomic write — is owned by the tool; do
-  not edit `state.json` by hand. Schema reference:
-  [`references/state-schema.md`](references/state-schema.md).
+- **Initialise phase tracking.** See [`references/loop-infrastructure.md`](references/loop-infrastructure.md) for the events to fire as you move through each phase. In full mode, fire
+  `loop-engine transition <work-dir> plan-approved` only **after** the
+  pre-EXECUTE reviewer is clean and a human has given G-plan sign-off.
+  The `plan-approved` guard calls `loop-cohort check --phase plan`,
+  which exits 0 only when `loop-cohort approve-plan` has been run —
+  the mechanical gate that enforces the human sign-off step.
 
 The output of this step is a written plan (with tests) you can return to.
 Don't keep it in your head — your context will turn over and you'll lose it.
@@ -482,32 +483,26 @@ discipline rather than restating it.
 
 #### Supervisor mode (wave-scheduled; sequential by default)
 
-Run `loop-cohort schedule docs/specs/<feature>` to build the plan's full
-`Depends on:` DAG and get the topological order. **Execute tasks in that
-order, single-agent, by default** — on every adapter. `schedule` fails
-loud on a dependency **cycle** and warns on a **forward-reference** (a dep
-authored later — it reorders so the dep runs first), so an ill-formed plan
-is caught here, not run out of order. This is the proven, zero-hazard path;
-its win is correct ordering, not speed. If tasks
-declare optional `Touches:` globs, `schedule` also prints
-`predicted-disjoint: yes|no|unknown` per wave — a **serialize-only screen**
-(a predicted overlap is a reason to keep the wave serial; it **never**
-greenlights parallel — the gate below stays authoritative).
+Build the plan's full `Depends on:` DAG to get the topological task order.
+**Execute tasks in that order, single-agent, by default** — on every adapter.
+An ill-formed plan (dependency cycle, forward-reference) is caught here, not
+run out of order. This is the proven, zero-hazard path; its win is correct
+ordering, not speed. After each wave completes, fire
+`loop-engine transition <work-dir> wave-complete`.
 
-**Parallel implementer fan-out is opt-in and gated — never automatic.** The
-short version: a wave fans out only when `loop-cohort dispatch-decision` clears
-it (categories auto-derived fail-closed, plus a clean `git merge-tree`
-disjointness check) **and** — with `state.json.auto_parallel` unset — a human
-opts in; absent that it runs sequentially, and a failed parallel wave
-**Surfaces and stops**, never auto-retries. When you do opt in, select a
-subagent matching `implementer` per the
-[parallel-dispatch discipline](#parallel-dispatch-discipline) above. The full
-gate semantics, the `auto_parallel` GO-approval behavior, the 7-step worktree
-procedure, and the single-agent fallback (no `implementer` subagent installed)
-are progressive-disclosure depth in
-[`references/supervisor-mode.md`](references/supervisor-mode.md) — loaded only
-when you take this path. Parallel *reviewer* (read) fan-out is a separate,
-always-safe path and is unaffected.
+**Parallel implementer fan-out is opt-in and gated — never automatic.** A
+wave fans out only when a disjointness check clears it (categories
+auto-derived fail-closed, plus a clean `git merge-tree` check) **and** — with
+`state.json.auto_parallel` unset — a human opts in; absent that it runs
+sequentially, and a failed parallel wave **Surfaces and stops**, never
+auto-retries. When you do opt in, select a subagent matching `implementer`
+per the [parallel-dispatch discipline](#parallel-dispatch-discipline) above.
+The full gate semantics, the `auto_parallel` GO-approval behavior, the
+7-step worktree procedure, and the single-agent fallback are progressive-
+disclosure depth in
+[`references/supervisor-mode.md`](references/supervisor-mode.md) — loaded
+only when you take this path. Parallel *reviewer* (read) fan-out is a
+separate, always-safe path and is unaffected.
 
 ### 3. GATES — mechanical verification
 
@@ -556,24 +551,13 @@ celebrating what you did. Findings come back grouped by severity
 (Blockers / Concerns / Nits), each with a one-sentence `Fix:`. Iterate
 until the agent returns `Clean — ready to commit.`
 
-**After each reviewer pass, record findings via the tool** before
-iterating. Write the reviewer's report to disk, then run:
-
-```
-loop-cohort.py review record docs/specs/<feature> --report <report-path>
-loop-cohort.py check docs/specs/<feature> --phase review
-```
-
-`review record` parses the report's findings (anchored on the
-adversarial-reviewer's documented `**N. <title>.** \`file:line\`. … Fix: …`
-format), computes `sha1("<file>|<line>|<title>")` per the canonical
-algorithm, rotates `finding_fingerprints` → `previous_finding_fingerprints`,
-sets the new list, increments `iteration_count`, and writes atomically —
-one transaction, no by-hand JSON. If the parser surfaces zero findings on
-a non-clean report it exits non-zero; pass `--fingerprint <hex>` repeated
-to override. `check --phase review` then enforces stasis detection: exit
-1 with `no progress` means the same findings landed two iterations in a
-row; stop and surface to a human rather than spinning a third.
+**After each reviewer pass, record findings via loop-engine** before
+iterating. Write the reviewer's report to disk, then fire the appropriate
+transition (see [`references/loop-infrastructure.md`](references/loop-infrastructure.md)): `findings-remain` with `--fingerprints`
+if blockers remain, or `reviewers-clean --report <path>` when clean. The
+underlying loop-cohort `review record` call rotates fingerprints, increments
+`iteration_count`, and enforces stasis detection — same findings two
+iterations in a row surfaces to a human rather than spinning a third.
 
 **Once recorded, drop the full report text from resident context.** The
 on-disk report plus the `state.json` fingerprints are the durable record —
@@ -820,12 +804,12 @@ The loop must terminate. Iteration without termination is how unattended
 loops (see below) burn money. Stop when **any** of these is true:
 
 1. **Gates green AND review clean** — the normal exit. Ship.
-2. **`scripts/loop-cohort.py check` exits non-zero.** The script is the
-   mechanical side of termination, reading from `state.json` (see
-   [`references/state-schema.md`](references/state-schema.md)). It
-   fires on iteration cap, token-budget cap, consecutive-error counter,
-   pending plan approval (PLAN phase only), and fingerprint stasis
-   (REVIEW phase only). The exit message tells you which.
+2. **`loop-engine transition` refuses a guard.** The guard is the mechanical
+   side of termination — it delegates to `loop-cohort check`, which reads
+   from `state.json` (see [`references/state-schema.md`](references/state-schema.md))
+   and fires on iteration cap, token-budget cap, consecutive-error counter,
+   pending plan approval (PLAN phase only), and fingerprint stasis (REVIEW
+   phase only). The guard's refusal message tells you which condition fired.
 3. **Diff is shrinking but findings aren't** — you're spot-fixing without
    addressing root cause. This is a judgment call, not in `loop-cohort`.
    Stop and rethink the approach (back to PLAN).

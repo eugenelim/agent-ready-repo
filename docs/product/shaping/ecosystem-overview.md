@@ -54,7 +54,7 @@ The first harness tier. Adapters for headless CLI-invoked agents — the executi
 3. Captures output and maps it back to `workspace.toml` (progress, gate outcomes, completion)
 4. Handles harness-specific quirks: tool format, context window limits, output parsing, skill discovery path
 
-**Swarm capability:** INI-003 enables running a coordinated swarm of headless CLI agents in parallel — each agent reads from `[work].active` and takes an unblocked spec. `workspace.toml` is the collision-free coordination layer: each spec has exactly one active agent. A CI/CD supervisor (or a human) launches N agents; `workspace.toml` determines who works on what.
+**Swarm capability:** INI-003 enables running a coordinated swarm of headless CLI agents in parallel — each agent reads from `[work].active` and takes an unblocked spec. `workspace.toml` is the collision-free coordination layer: each spec has exactly one active agent. A CI/CD supervisor (or a human) launches N agents; `workspace.toml` determines who works on what. `loop-engine status --json` is the per-worker observation interface: factory workers call it against each spec's work-dir to observe the current FSM phase of a headless loop instance.
 
 **Why separate from INI-004:** CLI adapters are stateless (each invocation is fresh), portable (run locally, in CI/CD, or on any compute), and straightforward to write (thin wrapper around a CLI command). Cloud runtimes (INI-004) have stateful session management, proprietary execution environments, and more complex integration surfaces.
 
