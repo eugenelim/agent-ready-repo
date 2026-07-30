@@ -74,6 +74,7 @@ def run(args: argparse.Namespace) -> int:
         description=pack.get("description"),
         skills=skill_names(pack_dir),
         agents=agent_names(pack_dir),
+        integrations=pack.get("integrations") or [],
         source="catalogue",
     )
     return 0
@@ -150,6 +151,7 @@ def _degrade(args: argparse.Namespace, pack_name: str, fmt: str) -> int:
         description=None,
         skills=sorted(skills),
         agents=sorted(agents),
+        integrations=[],  # degrade path has no TOML; empty array surfaces nothing
         source="installed-state",
     )
     return 0
@@ -240,6 +242,7 @@ def _emit(
     description: str | None,
     skills: list[str],
     agents: list[str],
+    integrations: list[dict],
     source: str,
 ) -> None:
     """Render the inventory as a table block or a single JSON object."""
@@ -252,6 +255,21 @@ def _emit(
             "description": description,
             "skills": skills,
             "agents": agents,
+            "integrations": [
+                {
+                    "id": e.get("id"),
+                    "pack": e.get("pack"),
+                    "kind": e.get("kind"),
+                    "role": e.get("role"),
+                    "consumers": e.get("consumers", []),
+                    "providers": e.get("providers", []),
+                    "when": e.get("when"),
+                    "purpose": e.get("purpose"),
+                    "fallback": e.get("fallback"),
+                    "version": e.get("version"),
+                }
+                for e in integrations
+            ],
             "source": source,
         }
         print(json.dumps(obj))
@@ -267,6 +285,14 @@ def _emit(
         rows.append(["description", description])
     rows.append(["skills", ", ".join(skills) if skills else "-"])
     rows.append(["agents", ", ".join(agents) if agents else "-"])
+    if integrations:
+        summary = ", ".join(
+            f"{e.get('id', '?')} ({e.get('kind', '?')} → {e.get('pack', '?')})"
+            for e in integrations
+        )
+    else:
+        summary = "-"
+    rows.append(["integrations", summary])
     render_table(["FIELD", "VALUE"], rows, wrap_col=1)
     if source != "catalogue":
         print(f"source: {source} (catalogue unavailable)")
