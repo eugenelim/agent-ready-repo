@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`agentbundle` 0.27.0 — `[[pack.integrations]]` convention**: packs can now
+  declare optional cross-pack behavior seams in `pack.toml`. The new
+  `[[pack.integrations]]` array (governed by `contracts/pack.schema.json`) carries
+  ten fields: `id`, `pack`, `kind` (`input`/`augment`/`review`/`handoff`), `role`,
+  `consumers`, `providers`, `when`, `purpose`, `fallback`, and an optional `version`
+  semver range. `agentbundle catalogue verify` validates integration refs (uniqueness,
+  primitive resolution, self-target prohibition, semver range grammar, provider
+  presence when the target pack is in the same catalogue). `agentbundle show <pack>`
+  surfaces declared integrations in table and JSON output. Five first-party integration
+  entries ship across `packs/core` (two, targeting `frontend-engineering`) and
+  `packs/governance-extras` (three, targeting `desk-research`, `product-engineering`,
+  and `architect`).
+
 - **`agentbundle` 0.26.1 — bundled schemas**: the wheel now bundles
   `guide.schema.json`, `skill.schema.json`, `skill-manifest.schema.json`, and
   `target-vocab.toml` from the canonical `contracts/` source (plus corrected

@@ -1305,11 +1305,10 @@ backlog = [
 ]
 
 ["ini-007".work]
-active  = [
-  "spec/catalogue-wave2-pack-integrations",     # spec Approved — D6 integrations schema + verifier + show + pilots + hub
-]
+active  = []
 shipped = [
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
+  "spec/catalogue-wave2-pack-integrations",     # 0.27.0 — D6 integrations schema + verifier + show + pilots + hub
 ]
 queue   = [
 
