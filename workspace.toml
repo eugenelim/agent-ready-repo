@@ -567,6 +567,16 @@ open = [
   # Unblocks when: someone wants to close the profiles/ gap in a focused quick-win PR.
   {slug = "profiles-agents-normative-pointer", source = "spec/catalogue-wave1-contract-convergence"},
 
+  # spec/catalogue-wave3-enterprise-authoring-discovery deferred AC. InitResult JSON
+  # output lacks a next_steps field (SelfHostedInitResult has one; consistency gap).
+  # Wave 3 emits next-step hints only in table output; JSON schema is unchanged.
+  # Fix: add next_steps: list[str] to InitResult in catalogue_tooling/results.py and
+  #   populate in init_catalogue(); update catalogue_init.py JSON branch to include the
+  #   field; update tests/unit/test_catalogue_tooling_init.py JSON snapshot.
+  # File: packages/agentbundle/agentbundle/catalogue_tooling/results.py + initialise.py.
+  # Unblocks when: an automation consumer needs next_steps in the JSON output.
+  {slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"},
+
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
   # __init__.py, _core.py, _vault.py). The pack is frozen by RFC-0013 (§4/§4d);
