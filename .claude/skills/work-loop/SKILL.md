@@ -1,6 +1,6 @@
 ---
 name: work-loop
-description: Use this skill whenever you're implementing a non-trivial change -- a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. Also triggered by argless resume phrases -- "resume", "continue", "keep going", "pick up where I left off", "let's get going" (bare phrases only; "resume the X project" or "resume the X investigation" routes to desk-research-project-status). It enforces the project's plan -> execute -> self-review -> fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
+description: "Use for implementing or resuming non-trivial repository changes: features, behavior-changing fixes, refactors, migrations, framework or dependency upgrades, schema/API changes, performance work, infrastructure/build edits, reversions, and specs under docs/specs/. Also trigger on bare continuation commands such as \"resume,\" \"continue,\" \"keep going,\" \"pick up where I left off,\" or \"let's get going\" when conversation or workspace context identifies active build work. Do not use for shaping, research, strategy, design-only work, status-only or review-only requests, or trivial cosmetic/local edits. Run the risk-selected light/full plan → execute → gates → adversarial review → fix/ship loop."
 ---
 
 # Skill: work-loop
@@ -25,21 +25,6 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
 Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
 Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. Don't force narrative into a table.
 Progress — Report progress inline as done/total (e.g. 3/8). Only draw a bar if you're animating in a terminal.
-
-## When this skill applies
-
-- Implementing a spec from `docs/specs/`.
-- Bug fixes that touch more than one file — including security patches and incident hot-fixes.
-- Refactors.
-- Migrations, framework or dependency upgrades, schema or API changes.
-- Performance work, or infrastructure / build-system changes beyond a single config tweak.
-- Reverting and re-doing a previous change.
-- Any task where you'd otherwise be tempted to "just go".
-
-For genuine one-line edits (typo, config tweak), skip the loop — the overhead
-isn't worth it. That triviality test decides *whether* to run the loop; once
-you're in it, **risk** (not file count) decides *which mode* runs — see
-[Modes: light and full](#modes-light-and-full) below.
 
 ## The loop
 
