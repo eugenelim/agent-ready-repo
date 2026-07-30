@@ -60,7 +60,29 @@ not an error.
 
 ### loop-engine.py
 
-**Role:** Phase FSM validator and loop-cohort coordinator.
+**Role:** Phase FSM validator and workflow orchestrator.
+
+loop-engine has two distinct responsibilities that compose within a single
+transition call:
+
+**A. Pure phase tracker.** The engine validates that the incoming event is legal
+for the current mode × state pair, fires read-only guards, and records the new
+phase in `engine-state.json`. This layer carries no side effects: it cannot
+produce incorrect mutations even if the transition is called in an unexpected
+context, and it is independently testable against the FSM tables alone.
+
+**B. Workflow orchestrator.** After the phase write succeeds, the engine invokes
+the appropriate loop-cohort mutations (`schedule`, `review record`) as side
+effects. These are event-specific: each event that triggers a downstream cohort
+operation carries the evidence required for that operation (`--report` for a
+clean review, `--fingerprint` hashes for an unresolved-findings round). This
+layer is what makes the engine a coordinator — not just a recorder — of the
+work-loop's progress.
+
+The two responsibilities are intentionally layered: A is always correct (legal
+FSM transitions are enforced regardless of B), while B adds the operational
+consequence. A failing B side effect does not reverse the A state write — see
+Side-effect failure below.
 
 **Source:** `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
 **Projects to:** `.claude/skills/work-loop/scripts/loop-engine.py` (via
@@ -81,8 +103,9 @@ not an error.
 - Phase FSM — per-mode transition tables. Each transition is:
   `current_state + event → next_state`. Events not in the table for the current
   mode × state pair are refused with a non-zero exit.
-- Transition validation — reads `engine-state.json`, validates the event, fires
-  any guards, writes the new state atomically, then fires any side effects.
+- Transition execution — reads `engine-state.json`, validates the event (A),
+  fires any guards (A), writes the new state atomically (A), then fires any
+  side effects (B).
 
 **Verb surface:**
 ```
@@ -173,19 +196,21 @@ document types.
       ▼
   loop-engine.py
       │
-      ├── 1. validate event against FSM for current mode × state
-      │       (refuses with non-zero exit if invalid)
+      ├── A. PHASE TRACKER
+      │   ├── 1. validate event against FSM for current mode × state
+      │   │       (refuses with non-zero exit if invalid)
+      │   │
+      │   ├── 2. fire guards (if applicable):
+      │   │       calls guard scripts listed in Guards table below, in order
+      │   │       (refuses with non-zero exit if any guard exits non-zero)
+      │   │
+      │   └── 3. write new state to engine-state.json (atomic: tempfile + os.replace)
       │
-      ├── 2. fire guards (if applicable):
-      │       calls guard scripts listed in Guards table below, in order
-      │       (refuses with non-zero exit if any guard exits non-zero)
-      │
-      ├── 3. write new state to engine-state.json (atomic: tempfile + os.replace)
-      │
-      └── 4. fire side effects (if applicable, in order listed in Side Effects table):
-              calls the exact loop-cohort verbs listed below
-              (side-effect failure → logged to stderr, not retried, does not
-               reverse the transition — see Recovery below)
+      └── B. WORKFLOW ORCHESTRATOR
+          └── 4. fire side effects (if applicable, in order listed in Side Effects table):
+                  calls the exact loop-cohort verbs listed below
+                  (side-effect failure → logged to stderr, not retried, does not
+                   reverse the transition — see Recovery below)
 
   loop-cohort.py
       │
@@ -204,7 +229,9 @@ as its sole setup call (for code and spec-plan modes only), immediately after
 writing `engine-state.json`. This is not a transition side effect — it happens
 once, at session start, before any `transition` call.
 
-### Guards
+---
+
+## A. Phase Tracker: Guards
 
 A guard must exit 0 before the transition is accepted. Non-zero exit refuses
 the transition. Guards fire in step 2, before the state write (step 3).
@@ -247,10 +274,17 @@ only when `plan_review_status != "pending"`. The only verb that sets this is
 `loop-engine transition plan-approved` — it is the mechanical step of the G-plan
 human gate. The guard verifies it ran. This is not a side effect.
 
-### Side Effects (code and spec-plan modes only)
+---
+
+## B. Workflow Orchestrator: Side Effects
 
 Side effects are loop-cohort verb calls fired **after** `engine-state.json` is
-written, in the order listed.
+written (step 4), in the order listed. They are the orchestration consequence
+of each transition — the engine does not just record that the phase changed; it
+triggers the downstream work the new phase requires.
+
+Side effects fire for **code and spec-plan modes only** (see Coordination by
+Mode below).
 
 | Trigger | Mode | Current state | Exact side-effect calls (in order) |
 |---|---|---|---|
@@ -289,7 +323,7 @@ as described in the SKILL.md's supervisor mode reference. Routing them through
 loop-engine would introduce git operations into the engine — a constraint
 violation (`loop-engine` has no git operations).
 
-### Side-effect failure
+### Side-effect failure and recovery
 
 If a side effect fails:
 - `engine-state.json` already reflects the new state (written in step 3).
@@ -401,7 +435,7 @@ boundaries within the same working tree but are never committed.
 
 ## Coordination by Mode
 
-| Mode | loop-cohort used? | loop-cohort guards | spec-status guard | Side effects |
+| Mode | loop-cohort used? | Guards (A) | Spec-status guard (A) | Side effects (B) |
 |---|---|---|---|---|
 | `code` | Yes | `plan-approved` (SPEC-PLAN-HUMAN-GATE), `wave-complete` (CODE-IMPLEMENTATION), `findings-remain` (CODE-REVIEW) | `reviewers-clean` at CODE-REVIEW → `check-spec-status.py` | `plan-approved` → schedule; `reviewers-clean` + `findings-remain` at CODE-REVIEW → review record; `loop-cohort init` at engine init |
 | `spec-plan` | Yes (setup + plan gate only) | `plan-approved` (SPEC-PLAN-HUMAN-GATE) | — | none beyond setup and plan guard |
@@ -540,7 +574,7 @@ packs/core/.apm/skills/work-loop/
 ├── SKILL.md                         # skill entry point (LLM reads this)
 ├── scripts/
 │   ├── loop-cohort.py               # task execution state owner
-│   ├── loop-engine.py               # phase FSM validator (new)
+│   ├── loop-engine.py               # phase FSM validator + workflow orchestrator (new)
 │   ├── check-spec-status.py         # spec Status=Shipped gate (new)
 │   ├── lint-spec-status.py          # spec metadata drift linter (CI/on-demand)
 │   └── lint-traceability.py         # traceability matrix linter

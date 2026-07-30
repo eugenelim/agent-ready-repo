@@ -1,9 +1,10 @@
 # Loop-engine: Mode selection and checkpoint reference
 
 `loop-engine` is the phase FSM for full-mode work-loop. It owns
-`engine-state.json` (session-local, gitignored) and coordinates with
-`loop-cohort` as guards and side effects. Light mode never invokes either
-script.
+`engine-state.json` (session-local, gitignored) and has two layered
+responsibilities: **A. phase tracker** (validate ordering, run read-only
+guards, record phase state) and **B. workflow orchestrator** (fire loop-cohort
+mutations after each transition). Light mode never invokes either script.
 
 ## Mode selection
 
@@ -20,25 +21,25 @@ Choose once at `loop-engine init`:
 
 Events to fire as you move through each phase.
 
-| State | Exit event | Human gate? | Guards that run | Modes |
-|-------|-----------|-------------|-----------------|-------|
-| `SPEC-PLAN-DRAFTING` | `spec-ready` | — | — | code, spec-plan |
-| `SPEC-PLAN-REVIEW` | `reviewers-clean` | — | — | code, spec-plan |
-| `SPEC-PLAN-REVIEW` | `findings-remain` | — | — | code, spec-plan |
-| `SPEC-PLAN-HUMAN-GATE` | `plan-approved` | **G-plan** (human sign-off required first; `loop-cohort approve-plan` must have run) | `loop-cohort check --phase plan` | code, spec-plan |
-| `SPEC-PLAN-HUMAN-GATE` | `plan-rejected` | — | — | code, spec-plan |
-| `CODE-IMPLEMENTATION` | `wave-complete` | — | `loop-cohort check --phase implement` | code |
-| `CODE-VERIFICATION` | `gates-clean` | — | — | code |
-| `CODE-VERIFICATION` | `gates-failed` | — | — | code |
-| `CODE-REVIEW` | `reviewers-clean --report <path>` | — | `check-spec-status.py` (**Status:** must be `Shipped`) | code |
-| `CODE-REVIEW` | `findings-remain --fingerprints <h>...` | — | `loop-cohort check --phase review` | code |
-| `CODE-HUMAN-GATE` | `done` | **G-pr** (human merges PR) | — | code |
-| `CODE-HUMAN-GATE` | `blocker-applied` | — | — | code |
-| `DOC-DRAFTING` | `doc-ready` | — | — | doc |
-| `DOC-REVIEW` | `reviewers-clean` | — | — | doc |
-| `DOC-REVIEW` | `findings-remain` | — | — | doc |
-| `DOC-HUMAN-GATE` | `doc-approved` | **human approves** | — | doc |
-| `DOC-HUMAN-GATE` | `doc-returned` | — | — | doc |
+| State | Exit event | Human gate? | Guards that run (A) | Side effects (B) | Modes |
+|-------|-----------|-------------|---------------------|------------------|-------|
+| `SPEC-PLAN-DRAFTING` | `spec-ready` | — | — | — | code, spec-plan |
+| `SPEC-PLAN-REVIEW` | `reviewers-clean` | — | — | — | code, spec-plan |
+| `SPEC-PLAN-REVIEW` | `findings-remain` | — | — | — | code, spec-plan |
+| `SPEC-PLAN-HUMAN-GATE` | `plan-approved` | **G-plan** (human sign-off required first; `loop-cohort approve-plan` must have run) | `loop-cohort check --phase plan` | `loop-cohort schedule` | code, spec-plan |
+| `SPEC-PLAN-HUMAN-GATE` | `plan-rejected` | — | — | — | code, spec-plan |
+| `CODE-IMPLEMENTATION` | `wave-complete` | — | `loop-cohort check --phase implement` | — | code |
+| `CODE-VERIFICATION` | `gates-clean` | — | — | — | code |
+| `CODE-VERIFICATION` | `gates-failed` | — | — | — | code |
+| `CODE-REVIEW` | `reviewers-clean --report <path>` | — | `check-spec-status.py` (**Status:** must be `Shipped`) | `loop-cohort review record --report <path>` | code |
+| `CODE-REVIEW` | `findings-remain --fingerprints <h>...` | — | `loop-cohort check --phase review` | `loop-cohort review record --fingerprint <h>...` | code |
+| `CODE-HUMAN-GATE` | `done` | **G-pr** (human merges PR) | — | — | code |
+| `CODE-HUMAN-GATE` | `blocker-applied` | — | — | — | code |
+| `DOC-DRAFTING` | `doc-ready` | — | — | — | doc |
+| `DOC-REVIEW` | `reviewers-clean` | — | — | — | doc |
+| `DOC-REVIEW` | `findings-remain` | — | — | — | doc |
+| `DOC-HUMAN-GATE` | `doc-approved` | **human approves** | — | — | doc |
+| `DOC-HUMAN-GATE` | `doc-returned` | — | — | — | doc |
 
 ## Human-wait states and session boundaries
 
