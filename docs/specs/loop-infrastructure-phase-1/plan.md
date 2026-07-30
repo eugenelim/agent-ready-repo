@@ -69,6 +69,10 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   [State Ownership table](#state-ownership); the sub-bullets below are
   supplementary descriptions of each field's semantics.
 
+  - `plan_review_status` — set to `"approved"` by `approve-plan`; read by
+    `plan check-current` to verify the plan was approved before schedule guards
+    fire. Not consulted by `check --phase` in Phase 1 (its role there is
+    superseded by the `plan check-current` guard).
   - `review_round_count` — total CODE-REVIEW rounds; incremented by every
     `review record` call (both clean and findings). Audit only; not cap-guarded.
   - `review_retry_count` / `max_review_retries` — findings-only rounds;
@@ -236,6 +240,14 @@ loop-cohort auto-parallel <spec-dir> [--off]
   - `current_wave_index == n` → set `n + 1`, exit 0.
   - `current_wave_index == n + 1` → already advanced, exit 0 (safe retry).
   - Any other value, or precondition violated → refuse, exit non-zero.
+
+- **`record-attempt --phase implement --cycle-id <run_id>:<seq>`** — mutating; idempotent.
+  Increments `implementation_retry_count` and records the most-recent cycle-id in
+  `last_record_attempt_cycle_id`. A second call with the same `--cycle-id` value
+  returns success without incrementing (idempotent replay after a crash between
+  `gates-failed` and `record-attempt`). A call with a different cycle-id increments.
+  Requires `--expect-run-id`; the `run_id` prefix embedded in `--cycle-id` must also
+  match. The skill calls this immediately after the `gates-failed` transition.
 
 - **`review inspect --report <path> [--json]`** — read-only. Parses the
   reviewer report and returns:
@@ -1394,12 +1406,12 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Crash-window behavioral tests: wave advance before and after crash; gates-failed record-attempt replay; findings-remain stale-fingerprint surface; plan mutation per CODE-* state (all from Testing section layer 4)
 - Plan-rejected + re-approval round-trip: approve a plan; fire `plan-rejected`; edit plan.md; call `approve-plan` again; verify new hashes stored
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
-- `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, and `test-loop-engine.py`; the added CI step runs `python3 .../test-loop-engine.py` and fails the job on non-zero exit
+- `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
-**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, and `test-loop-engine.py`; add a CI step running `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py`.
+**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, `test-loop-cohort.py`, and `.claude/skills/work-loop/scripts/loop-engine.py` (projection parity with the existing `loop-cohort.py` trigger pattern); add CI steps for both `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` and `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py`.
 
-**Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; `tools/test-loop-cohort.sh` rewritten to Phase-1 contracts; `test-loop-engine.py` step passes in CI.
+**Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; `tools/test-loop-cohort.sh` rewritten to Phase-1 contracts; both `test-loop-engine.py` and `test-loop-cohort.py` CI steps pass.
 
 ---
 
@@ -1503,6 +1515,12 @@ Test files:
   identity, approve-plan, plan check-current, wave advance, record-attempt, review mutations.
 - `packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` — engine and integration tests
   (T2/T4/T5): FSM tables, guard-refusal, init/reset, full lifecycle, crash-window.
+
+The split is intentional: `test-loop-cohort.py` exercises cohort verbs in isolation
+(unit depth); `test-loop-engine.py` exercises the engine FSM and the full multi-component
+lifecycle (integration depth). Layer-4 behavioral tests appear in `test-loop-engine.py` as
+integration scenarios even when they invoke cohort mutations — they verify the end-to-end
+path, not mutation logic in isolation, so the overlap is deliberate.
 
 **Clean-substring contract:** both `review inspect` classification and stasis comparison depend
 on the `adversarial-reviewer` emitting the exact string `Clean — ready to commit.` (em-dash).
