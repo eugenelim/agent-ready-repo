@@ -1318,8 +1318,9 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `run_id` mismatch on `approve-plan`, `schedule` exits non-zero before any mutation
 - `assets/state.json` template carries Phase-1 field set; `loop-cohort init` writes it correctly
 - Pre-Phase-1 `state.json` (with `iteration_count`, without `run_id`) fails `identity` (migration gate)
+- Each disabled Phase-1 verb (`worktree`, `dispatch-decision`, `auto-parallel`) exits non-zero with a descriptive "disabled in Phase 1" message; `state.json` is unchanged
 
-**Approach:** Update `loop-cohort.py`: add `identity`, update `approve-plan` (writes `approved_spec_hash`, `approved_plan_hash`), update `plan check-current` (with and without `--require-schedule`), `schedule` (persists `plan_hash`, `schedule_waves`, `current_wave_index`), `schedule check-current`, `reset`. Remove `plan_review_status` gate from `check --phase` (it moves to `plan check-current`). Remove the `--error-fingerprint` flag and all same-error fields from Phase-1 code (Phase-2 reserved). Update `assets/state.json` template to Phase-1 field set: add `run_id`, `schema_version`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `approved_spec_hash`, `approved_plan_hash`, `plan_hash`, `schedule_waves`, `current_wave_index`; remove `iteration_count`, `max_iterations`, `plan_review_status` (as a shared field — it moves to an internal field written by `approve-plan`).
+**Approach:** Update `loop-cohort.py`: add `identity`, update `approve-plan` (writes `approved_spec_hash`, `approved_plan_hash`), update `plan check-current` (with and without `--require-schedule`), `schedule` (persists `plan_hash`, `schedule_waves`, `current_wave_index`), `schedule check-current`, `reset`. Remove `plan_review_status` from the `check --phase` gate; it remains in `state.json` as an internal field written by `approve-plan`. Remove the `--error-fingerprint` flag and all same-error fields from Phase-1 code (Phase-2 reserved). Add exit-non-zero disable guards for `worktree`, `dispatch-decision`, and `auto-parallel` verbs (Phase-2 reserved; each refuses with a descriptive "disabled in Phase 1" message before any `state.json` mutation). Update `assets/state.json` template to Phase-1 field set: add `run_id`, `schema_version`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `approved_spec_hash`, `approved_plan_hash`, `plan_hash`, `schedule_waves`, `current_wave_index`; remove `iteration_count`, `max_iterations` (the `plan_review_status` field is retained in `state.json` — it is only removed from the `check --phase` gate).
 
 **Done when:** All T1 tests pass; `loop-cohort identity`, `approve-plan`, `plan check-current --require-schedule`, `schedule check-current`, `reset` exercise the test cases above; `make build-check` (SKIP_SAST=1) passes.
 
@@ -1360,7 +1361,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Counter separation: `--report` never increments `review_retry_count`; `--fingerprint` increments both
 - `check --phase gates-failed` refuses at cap; `check --phase review` refuses at cap; `check --phase implement` is advisory only
 
-**Approach:** Update `loop-cohort.py`: implement `wave advance` with preconditions (`schedule_waves` non-empty; `0 <= n < len-1`); update `record-attempt` for cycle-id idempotency (using `last_record_attempt_cycle_id`); implement `review inspect` with `parse_findings()`-based classification and `sorted(set(...))` stasis comparison; split `review record` into `--fingerprint` and `--report` branches with separate counter logic; store `sorted(set(supplied_fingerprints))` in `finding_fingerprints`. Rework `check --phase` to key off `review_retry_count`, `implementation_retry_count`; remove `iteration_count`/`max_iterations` cap; remove stasis comparison from `check --phase review`.
+**Approach:** Update `loop-cohort.py`: implement `wave advance` with preconditions (`schedule_waves` non-empty; `0 <= n < len-1`); add new `record-attempt` verb with cycle-id idempotency (using `last_record_attempt_cycle_id`); implement `review inspect` with `parse_findings()`-based classification and `sorted(set(...))` stasis comparison; split `review record` into `--fingerprint` and `--report` branches with separate counter logic; store `sorted(set(supplied_fingerprints))` in `finding_fingerprints`. Rework `check --phase` to key off `review_retry_count`, `implementation_retry_count`; remove `iteration_count`/`max_iterations` cap; remove stasis comparison from `check --phase review`.
 
 **Done when:** All T3 tests pass; `wave advance` preconditions enforced; fingerprint storage deterministic; counter separation correct per branch; `make build-check` (SKIP_SAST=1) passes.
 
@@ -1393,11 +1394,12 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Crash-window behavioral tests: wave advance before and after crash; gates-failed record-attempt replay; findings-remain stale-fingerprint surface; plan mutation per CODE-* state (all from Testing section layer 4)
 - Plan-rejected + re-approval round-trip: approve a plan; fire `plan-rejected`; edit plan.md; call `approve-plan` again; verify new hashes stored
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
+- `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, and `test-loop-engine.py`; the added CI step runs `python3 .../test-loop-engine.py` and fails the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
-**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Run against the Phase-1 implementation. Confirm no regression in existing `loop-cohort` command coverage (pre-Phase-1 verbs not being removed must still pass their existing tests).
+**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, and `test-loop-engine.py`; add a CI step running `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py`.
 
-**Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; no regression in existing `loop-cohort` test coverage.
+**Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; `tools/test-loop-cohort.sh` rewritten to Phase-1 contracts; `test-loop-engine.py` step passes in CI.
 
 ---
 
@@ -1495,8 +1497,18 @@ Four independent test layers:
      the `plan check-current` guard to refuse (the guard checks `approved_spec_hash`
      matches the current spec.md, not the pre-status-edit hash).
 
-The proposed test file will live at
-`packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py`.
+Test files:
+
+- `packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py` — cohort unit tests (T1/T3):
+  identity, approve-plan, plan check-current, wave advance, record-attempt, review mutations.
+- `packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` — engine and integration tests
+  (T2/T4/T5): FSM tables, guard-refusal, init/reset, full lifecycle, crash-window.
+
+**Clean-substring contract:** both `review inspect` classification and stasis comparison depend
+on the `adversarial-reviewer` emitting the exact string `Clean — ready to commit.` (em-dash).
+Extract this as a named constant `CLEAN_SUBSTRING` imported by both the parser and any report
+stub, so a reviewer wording drift fails a test rather than silently misclassifying every clean
+round. Add a characterization test that asserts the constant's value.
 
 ---
 
@@ -1509,13 +1521,20 @@ packs/core/.apm/skills/work-loop/
 │   ├── loop-cohort.py               # task execution state owner (update existing)
 │   ├── loop-engine.py               # phase FSM validator (new — Phase 1)
 │   ├── check-spec-status.py         # spec Status=Shipped gate (new — Phase 1)
-│   ├── test-loop-engine.py          # test file (FSM, guard, init/reset, stasis) (new — Phase 1)
+│   ├── test-loop-cohort.py          # cohort unit tests: T1/T3 (new — Phase 1)
+│   ├── test-loop-engine.py          # engine + integration tests: T2/T4/T5 (new — Phase 1)
 │   ├── lint-spec-status.py          # spec metadata drift linter (CI/on-demand)
 │   └── lint-traceability.py         # traceability matrix linter
 ├── assets/
 │   └── state.json                   # loop-cohort state template (update to Phase-1 fields)
 └── references/
     └── state-schema.md              # current implementation contract (update to Phase-1 fields)
+
+tools/
+└── test-loop-cohort.sh              # existing CI harness (update — rewrite to Phase-1 schema/contracts)
+
+.github/workflows/
+└── docs.yml                         # CI workflow (update — add path triggers and test-loop-engine step)
 ```
 
 `engine-state.json` has no template file — its fields and allowed values are
