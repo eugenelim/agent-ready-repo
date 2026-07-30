@@ -3,12 +3,11 @@
 - **Status:** Accepted
 - **Date:** 2026-07-30
 - **Decision-makers:** eugenelim
-- **Related:** `docs/specs/loop-infrastructure-phase-1/spec.md`, `docs/specs/loop-infrastructure-phase-1/plan.md`
 
 ## Decision summary
 
 - **Decision:** Phase 1 of the loop infrastructure uses Option A: `loop-engine.py` owns legal phase ordering and read-only guard enforcement; `loop-cohort.py` owns execution state and explicit mutations. All cohort mutations are invoked explicitly by the skill; the engine never writes cohort state.
-- **Because:** Option B (workflow orchestrator with durable side-effect semantics) requires `review record` to support idempotency keys before its crash-recovery guarantees can be honoured. Option A delivers legal phase ordering, guard enforcement, crash-resumption, and multi-wave phase structure with a substantially smaller surface. The A/B boundary was explored in the design documented in this ADR's related spec; see `plan.md` for the full contract.
+- **Because:** Option B (workflow orchestrator with durable side-effect semantics) requires `review record` to support idempotency keys before its crash-recovery guarantees can be honoured. Option A delivers legal phase ordering, guard enforcement, crash-resumption, and multi-wave phase structure with a substantially smaller surface.
 - **Applies to:** `packs/core/.apm/skills/work-loop/scripts/` (new `loop-engine.py`, `check-spec-status.py`; updated `loop-cohort.py`), `packs/core/.apm/skills/work-loop/assets/state.json`, `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`.
 - **Tradeoff accepted:** `findings-remain` and `reviewers-clean` crash windows are non-idempotent in Phase 1; review-record crash recovery requires a skill-level sidecar for report pointers. In-place replanning after `plan-approved` is not supported — any post-approval plan change requires a full reset.
 - **Revisit if:** `review record` gains idempotency keys (enabling Phase 2 / Option B); or per-phase budget credits are required (post-G-pr blocker repair consuming the global implementation budget); or a mechanical seal on the approved plan baseline is needed beyond the skill-discipline model.

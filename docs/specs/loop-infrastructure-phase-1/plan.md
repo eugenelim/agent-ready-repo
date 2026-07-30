@@ -1,6 +1,6 @@
 # Plan: loop-infrastructure-phase-1
 
-- **Status:** Not yet started
+- **Status:** Drafting
 - **Spec:** [spec.md](spec.md)
 - **Decision:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md)
 - **Supersedes:** the mixed A/B approach explored in PR #816
@@ -152,10 +152,9 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   stores the cycle ID in `last_record_attempt_cycle_id`. Idempotent: a second
   call with the same `--cycle-id` returns success without incrementing.
   Called by the skill only after `gates-failed`; not called on successful
-  scheduled-wave transitions. `--error-fingerprint <hex>` stores the fingerprint
-  in a `last_error_fingerprint` field for future comparison; the
-  `consecutive_same_error_count` increment is not defined in Phase 1 and the
-  guard for that field is advisory.
+  scheduled-wave transitions. `--error-fingerprint` and the related
+  `last_error_fingerprint` / `consecutive_same_error_count` fields are
+  Phase-2 reserved — not part of the Phase-1 verb surface.
 - Iteration and budget gates — `check --phase {implement,review,gates-failed}`
   enforces the bounded counters for that phase or transition. Advisory fields
   are checked but do not block. Plan-phase approval is covered by
@@ -171,7 +170,7 @@ loop-cohort approve-plan <spec-dir> --expect-run-id <uuid>
 loop-cohort plan check-current <spec-dir> [--require-schedule]
 loop-cohort schedule <spec-dir> --expect-run-id <uuid>
 loop-cohort schedule check-current <spec-dir>
-loop-cohort record-attempt <spec-dir> --phase implement --cycle-id <id> --expect-run-id <uuid> [--error-fingerprint <hex>]
+loop-cohort record-attempt <spec-dir> --phase implement --cycle-id <id> --expect-run-id <uuid>
 loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
 loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
 loop-cohort review inspect <spec-dir> --report <path> [--json]
@@ -765,7 +764,7 @@ written by the `gates-failed` transition.
 loop-engine transition <spec-dir> gates-failed   # guard: check --phase gates-failed (retry cap)
 # engine now at CODE-IMPLEMENTATION; transition_sequence incremented
 loop-cohort record-attempt <spec-dir> --phase implement \
-    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id> [--error-fingerprint <hex>]
+    --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>
 # idempotent: same cycle-id on replay → no increment
 ```
 
@@ -1077,8 +1076,9 @@ CODE-REVIEW
    `review_retry_count` cap; the retry cap is the backstop, not stasis detection.
 4. **Token budget** *(advisory, Phase 1)* — no updater defined; guard treats as
    advisory.
-5. **Consecutive-same-error** *(advisory, Phase 1)* — `record-attempt` accepts
-   `--error-fingerprint` but the comparison mechanism is not yet fully specified.
+5. **Consecutive-same-error** *(advisory, Phase 1)* — `--error-fingerprint` and
+   the related comparison mechanism are Phase-2 reserved; no Phase-1 updater or
+   guard is specified for `consecutive_same_error_count`.
 
 ---
 
@@ -1161,8 +1161,10 @@ On resume, the agent:
       false-negative, this self-corrects from the next round onward). **Recommended:**
       regenerate a clean report (re-run the reviewer fan-out), then reissue
       `review record --report --expect-run-id <run_id>` before firing
-      `blocker-applied` (safe: `--report` only rotates fingerprints to `[]` and
-      increments the audit counter; no cap impact). If a clean report cannot be
+      `blocker-applied`. Guard-safe (no cap impact), but audit-distorting if the
+      original write already succeeded: replay may double-increment
+      `review_round_count` and overwrite one level of fingerprint audit history.
+      This is accepted under the Phase-1 non-idempotent review-record limitation. If a clean report cannot be
       produced (working tree changed, or the re-run itself returns findings), fall
       back to proceeding with the stale fingerprint baseline and accepting the
       one-time spurious-stasis risk.
@@ -1298,6 +1300,104 @@ enforced within the A boundary, at negligible cost.
 Having the skill compute sha1 hashes from prose risks independent parser
 implementations. `review inspect` is the single canonical parser; the skill
 uses its output for routing and passes the fingerprints to `review record`.
+
+---
+
+## Tasks
+
+### T1: Phase-1 cohort state, identity, approval, and schedule guards
+
+**Depends on:** none
+
+**Tests:**
+- `identity` exits non-zero when `state.json` absent, `schema_version != 1`, or `--expect-run-id` mismatches (guard-refusal layer)
+- `approve-plan` writes `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`; verified via `plan check-current`
+- `plan check-current` (code mode, `--require-schedule`) refuses on changed spec.md, changed plan.md, missing schedule; spec-plan mode refuses when either file is absent
+- `schedule check-current` refuses when `plan_hash != sha256(canonical(plan.md))`
+- `reset` deletes only `state.json`; idempotent (run twice → still absent)
+- `run_id` mismatch on `approve-plan`, `schedule` exits non-zero before any mutation
+- `assets/state.json` template carries Phase-1 field set; `loop-cohort init` writes it correctly
+- Pre-Phase-1 `state.json` (with `iteration_count`, without `run_id`) fails `identity` (migration gate)
+
+**Approach:** Update `loop-cohort.py`: add `identity`, update `approve-plan` (writes `approved_spec_hash`, `approved_plan_hash`), update `plan check-current` (with and without `--require-schedule`), `schedule` (persists `plan_hash`, `schedule_waves`, `current_wave_index`), `schedule check-current`, `reset`. Remove `plan_review_status` gate from `check --phase` (it moves to `plan check-current`). Remove the `--error-fingerprint` flag and all same-error fields from Phase-1 code (Phase-2 reserved). Update `assets/state.json` template to Phase-1 field set: add `run_id`, `schema_version`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `approved_spec_hash`, `approved_plan_hash`, `plan_hash`, `schedule_waves`, `current_wave_index`; remove `iteration_count`, `max_iterations`, `plan_review_status` (as a shared field — it moves to an internal field written by `approve-plan`).
+
+**Done when:** All T1 tests pass; `loop-cohort identity`, `approve-plan`, `plan check-current --require-schedule`, `schedule check-current`, `reset` exercise the test cases above; `make build-check` (SKIP_SAST=1) passes.
+
+---
+
+### T2: FSM engine, status/init/reset, and spec-status guard
+
+**Depends on:** T1
+
+**Tests:**
+- All legal transitions per mode (code + spec-plan FSM tables) produce correct next state, `last_event`, `last_event_context`, `transition_sequence` increment (FSM table layer)
+- All illegal event/state pairs exit non-zero with no `engine-state.json` mutation
+- `loop-engine init` refuses when `engine-state.json` already present (engine-orphan guard)
+- Skill-level preflight refuses when cohort state exists without engine state
+- `run_id` preflight failure (identity exits non-zero) refuses transition before guard fires
+- `schema_version != 1` in `engine-state.json` refuses `status` and `transition`
+- `transition --wave-index` contract: required for `wave-passed`; rejected for all other events
+- `check-spec-status.py` exits 0 on `Status: Shipped`; exits non-zero on wrong status, missing spec, or unparseable Status line
+- After successful init pair: both files carry the same `run_id` (positive-path pairing check)
+
+**Approach:** Write `loop-engine.py` (new script): `init`, `transition`, `status`, `reset` verbs; per-mode FSM tables; mandatory run_id preflight (calls `loop-cohort identity`); mandatory `schedule check-current` pre-guard for all CODE-* transitions except `done`; event-specific guard dispatch per the Guards table; atomic write (`tempfile` + `os.replace`). Write `check-spec-status.py` (new script) reusing the canonical status parser from `lint-spec-status.py` (not an independent regex). `status --json` exposes all `engine-state.json` fields plus a `pending_human_wait` boolean.
+
+**Done when:** All T2 tests pass; `loop-engine transition` enforces the FSM for both modes; `status --json` returns all required fields; `check-spec-status.py` gates correctly; `make build-check` (SKIP_SAST=1) passes.
+
+---
+
+### T3: Wave, retry, and review mutations with recovery semantics
+
+**Depends on:** T1
+
+**Tests:**
+- `wave advance` from a valid intermediate wave advances; replay at already-advanced index returns success without mutation
+- `wave advance` refuses on final wave, negative n, n ≥ len(schedule_waves), empty schedule (wave advance edge-case tests from Testing section)
+- `record-attempt` increments `implementation_retry_count`; same cycle-id is a no-op; new cycle-id increments (record-attempt replay tests)
+- `review inspect` classification: `invalid` (absent/unreadable + no clean substring), `clean` (no parse_findings + clean substring), `findings` (len(parse_findings) ≥ 1); all content outcomes exit 0; stasis comparison uses `sorted(set(...))`
+- `review record --fingerprint` stores `sorted(set(supplied_fingerprints))`; duplicate/reordered input produces identical `state.json` (fingerprint canonicalization test)
+- `review record --report` exits non-zero on non-clean report; on clean: increments `review_round_count` only; rotates `finding_fingerprints` to `[]`
+- Counter separation: `--report` never increments `review_retry_count`; `--fingerprint` increments both
+- `check --phase gates-failed` refuses at cap; `check --phase review` refuses at cap; `check --phase implement` is advisory only
+
+**Approach:** Update `loop-cohort.py`: implement `wave advance` with preconditions (`schedule_waves` non-empty; `0 <= n < len-1`); update `record-attempt` for cycle-id idempotency (using `last_record_attempt_cycle_id`); implement `review inspect` with `parse_findings()`-based classification and `sorted(set(...))` stasis comparison; split `review record` into `--fingerprint` and `--report` branches with separate counter logic; store `sorted(set(supplied_fingerprints))` in `finding_fingerprints`. Rework `check --phase` to key off `review_retry_count`, `implementation_retry_count`; remove `iteration_count`/`max_iterations` cap; remove stasis comparison from `check --phase review`.
+
+**Done when:** All T3 tests pass; `wave advance` preconditions enforced; fingerprint storage deterministic; counter separation correct per branch; `make build-check` (SKIP_SAST=1) passes.
+
+---
+
+### T4: Work-loop skill integration, assets, schema reference, and projections
+
+**Depends on:** T2, T3
+
+**Tests:**
+- `SKILL.md` no longer references the mid-EXECUTE re-plan path or `check --phase plan` expecting exit-1
+- `SKILL.md` init sequence matches Phase-1 command surface (engine init then cohort init, run_id threading)
+- `assets/state.json` carries Phase-1 field set (all fields per the State Ownership table; no legacy fields)
+- `references/state-schema.md` reflects the Phase-1 field set and authoritative descriptions
+- Projection parity: `.agents/` and `.claude/` copies match `packs/` source (verified by `make build-check`)
+- `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
+
+**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state.
+
+**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state.
+
+---
+
+### T5: Full lifecycle, crash-window, migration, and build-gate verification
+
+**Depends on:** T4
+
+**Tests:**
+- Full code-mode lifecycle: init pair → spec-ready → reviewers-clean → plan-approved → wave-complete → wave-passed (×N for multi-wave plan) → gates-clean → reviewers-clean → done (happy path)
+- Crash-window behavioral tests: wave advance before and after crash; gates-failed record-attempt replay; findings-remain stale-fingerprint surface; plan mutation per CODE-* state (all from Testing section layer 4)
+- Plan-rejected + re-approval round-trip: approve a plan; fire `plan-rejected`; edit plan.md; call `approve-plan` again; verify new hashes stored
+- Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
+- `make ci` passes (full CI: build-check + lint + test)
+
+**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Run against the Phase-1 implementation. Confirm no regression in existing `loop-cohort` command coverage (pre-Phase-1 verbs not being removed must still pass their existing tests).
+
+**Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; no regression in existing `loop-cohort` test coverage.
 
 ---
 

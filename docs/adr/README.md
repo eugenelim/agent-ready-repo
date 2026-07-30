@@ -66,6 +66,7 @@
 | 0057 | [Promote `frontend-engineering` to first-class pack; delete core resident to resolve footprint conflict](0057-frontend-engineering-pack-promotion-and-resident-deletion.md) | Accepted |
 | 0058 | [Per-pack config root (`user-root`) stored as an optional field on `PackState` adapter rows in user-scope `state.toml`](0058-per-pack-config-root-in-packstate-adapter-rows.md) | Accepted |
 | 0059 | [Pack config uses a three-source cascade baked into `_data/install-defaults.toml` at catalogue build time](0059-pack-config-cascade-via-install-defaults-baking.md) | Accepted |
+| 0061 | [Phase-1 loop infrastructure uses Option A — pure phase tracker with hard engine/cohort boundary](0061-loop-infrastructure-phase-1.md) | Accepted |
 
 ## Adding a new ADR
 
