@@ -77,11 +77,12 @@ exist yet** — ask, or open an RFC. Don't guess. Lifecycle and mechanics
 
 ## How we work
 
-For anything beyond a one-line edit, follow the **plan → execute → verify →
-review** loop. The mechanics — verification modes, gate sequence, iteration
-cap, capture-learnings, specialist-reviewer pass — live in the
-`work-loop` skill. Load it before
-non-trivial work; that is the canonical source for *how* the loop runs.
+Skip `work-loop` only when a repository change is cosmetic, tightly local,
+behavior-preserving, and obviously verifiable — a one-line authentication,
+migration, production-config, or public-interface change is not trivial. For
+every other repository change, use `work-loop` and follow its plan → execute →
+verify → review loop. The skill is the canonical source for verification modes,
+gate order, iteration limits, learning capture, and specialist-reviewer routing.
 [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#how-we-do-non-trivial-work)
 covers the *why*. Commits follow Conventional Commits — format and footer
 rules are in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits).
