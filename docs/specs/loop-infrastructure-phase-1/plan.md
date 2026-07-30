@@ -292,6 +292,31 @@ loop-cohort auto-parallel <spec-dir> [--off]
   init` refuses if `state.json` is already present (use `reset` to clear first,
   not `--force`).
 
+- **`status <spec-dir> [--json]`** — read-only. Returns the cohort fields needed
+  for session resumption without mutating `state.json`. Text output (no `--json`):
+  a human-readable summary of the same fields. JSON output:
+  ```json
+  {
+    "schema_version": 1,
+    "run_id": "<uuid>",
+    "approved_spec_hash": "<hex>",
+    "approved_plan_hash": "<hex>",
+    "plan_hash": "<hex>",
+    "schedule_waves": [],
+    "current_wave_index": 0,
+    "implementation_retry_count": 0,
+    "review_round_count": 0,
+    "review_retry_count": 0,
+    "finding_fingerprints": [],
+    "previous_finding_fingerprints": []
+  }
+  ```
+  Exit 0 if `state.json` is present, readable, and `schema_version == 1`. Exit
+  non-zero on absent file, malformed JSON, or unsupported `schema_version`.
+  `status` makes no mutation under any condition, including error paths.
+  Used at Session Resumption step 3 to read `current_wave_index`,
+  `schedule_waves`, `finding_fingerprints`, and retry counters.
+
 - **Parallel-wave verbs** (`worktree preflight|add|record|list|merge|cleanup`,
   `dispatch-decision`, `auto-parallel`) are carried over from loop-cohort's
   existing implementation. **All three parallel-wave verb groups (`worktree`,
@@ -623,7 +648,13 @@ same-error checks (advisory: not blocked in Phase 1 because their writers are
 unspecified). Plan immutability is enforced by the mandatory `schedule check-current`
 pre-guard (step 1b in the Interaction Model) that fires for all CODE-* transitions
 except `done`. This guard does NOT enforce the implementation retry cap
-— that moves to `gates-failed`.
+— that moves to `gates-failed`. **Phase-1 named stance:** retained as a
+compatibility stub — its surface is correct for Phase 2 (when token-budget and
+same-error writers land), but enforces no blocking constraint in Phase 1. Removing
+it until Phase 2 was considered and declined: the stub keeps the Phase-2 wiring
+point visible at the cost of one pass-through call per `wave-complete` transition.
+`wave-complete`'s deterministic protection comes from `schedule check-current`
+(plan immutability) and the `gates-failed` guard (retry cap), not this advisory guard.
 
 **`gates-failed` guard scope:** enforces `implementation_retry_count <
 max_implementation_retries`. Fires before repair begins. Successful
@@ -1335,9 +1366,12 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `run_id` mismatch on `approve-plan`, `schedule` exits non-zero before any mutation
 - `assets/state.json` template carries Phase-1 field set; `loop-cohort init` writes it correctly
 - Pre-Phase-1 `state.json` (with `iteration_count`, without `run_id`) fails `identity` (migration gate)
+- `status` exits 0 with correct JSON field set on valid `state.json`; text output (no `--json`) includes the same fields in human-readable form
+- `status` exits non-zero on absent `state.json`, malformed JSON, or `schema_version != 1`
+- `status` does not mutate `state.json` under any outcome (read-only guarantee verified by checksum before/after call)
 - Each disabled Phase-1 verb (`worktree`, `dispatch-decision`, `auto-parallel`) exits non-zero with a descriptive "disabled in Phase 1" message; `state.json` is unchanged
 
-**Approach:** Update `loop-cohort.py`: add `identity`, update `approve-plan` (writes `approved_spec_hash`, `approved_plan_hash`), update `plan check-current` (with and without `--require-schedule`), `schedule` (persists `plan_hash`, `schedule_waves`, `current_wave_index`), `schedule check-current`, `reset`. Remove `plan_review_status` from the `check --phase` gate; it remains in `state.json` as an internal field written by `approve-plan`. Remove the `--error-fingerprint` flag and all same-error fields from Phase-1 code (Phase-2 reserved). Add exit-non-zero disable guards for `worktree`, `dispatch-decision`, and `auto-parallel` verbs (Phase-2 reserved; each refuses with a descriptive "disabled in Phase 1" message before any `state.json` mutation). Update `assets/state.json` template to Phase-1 field set: add `run_id`, `schema_version`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `approved_spec_hash`, `approved_plan_hash`, `plan_hash`, `schedule_waves`, `current_wave_index`; remove `iteration_count`, `max_iterations` (the `plan_review_status` field is retained in `state.json` — it is only removed from the `check --phase` gate).
+**Approach:** Update `loop-cohort.py`: add `identity`, add `status`, update `approve-plan` (writes `approved_spec_hash`, `approved_plan_hash`), update `plan check-current` (with and without `--require-schedule`), `schedule` (persists `plan_hash`, `schedule_waves`, `current_wave_index`), `schedule check-current`, `reset`. Remove `plan_review_status` from the `check --phase` gate; it remains in `state.json` as an internal field written by `approve-plan`. Remove the `--error-fingerprint` flag and all same-error fields from Phase-1 code (Phase-2 reserved). Add exit-non-zero disable guards for `worktree`, `dispatch-decision`, and `auto-parallel` verbs (Phase-2 reserved; each refuses with a descriptive "disabled in Phase 1" message before any `state.json` mutation). Update `assets/state.json` template to Phase-1 field set: add `run_id`, `schema_version`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `approved_spec_hash`, `approved_plan_hash`, `plan_hash`, `schedule_waves`, `current_wave_index`; remove `iteration_count`, `max_iterations` (the `plan_review_status` field is retained in `state.json` — it is only removed from the `check --phase` gate).
 
 **Done when:** All T1 tests pass; `loop-cohort identity`, `approve-plan`, `plan check-current --require-schedule`, `schedule check-current`, `reset` exercise the test cases above; `make build-check` (SKIP_SAST=1) passes.
 
@@ -1373,7 +1407,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `wave advance` from a valid intermediate wave advances; replay at already-advanced index returns success without mutation
 - `wave advance` refuses on final wave, negative n, n ≥ len(schedule_waves), empty schedule (wave advance edge-case tests from Testing section)
 - `record-attempt` increments `implementation_retry_count`; same cycle-id is a no-op; new cycle-id increments (record-attempt replay tests)
-- `review inspect` classification: `invalid` (absent/unreadable + no clean substring), `clean` (no parse_findings + clean substring), `findings` (len(parse_findings) ≥ 1); all content outcomes exit 0; stasis comparison uses `sorted(set(...))`
+- `review inspect` classification: `invalid` (report absent or unreadable, OR (`parse_findings()` returns `[]` AND no clean substring)); `clean` (`parse_findings()` returns `[]` AND clean substring present); `findings` (`len(parse_findings()) ≥ 1`); all content outcomes exit 0; stasis comparison uses `sorted(set(...))`; `review inspect` and `review record --report` share one classifier function so their clean/findings/invalid rules cannot drift
 - `review record --fingerprint` stores `sorted(set(supplied_fingerprints))`; duplicate/reordered input produces identical `state.json` (fingerprint canonicalization test)
 - `review record --report` exits non-zero on non-clean report; on clean: increments `review_round_count` only; rotates `finding_fingerprints` to `[]`
 - Counter separation: `--report` never increments `review_retry_count`; `--fingerprint` increments both
@@ -1391,6 +1425,11 @@ uses its output for routing and passes the fingerprints to `review record`.
 
 **Tests:**
 - `SKILL.md` no longer references the mid-EXECUTE re-plan path or `check --phase plan` expecting exit-1
+- `references/supervisor-mode.md` no longer instructs agents to invoke the disabled Phase-1 verbs (`worktree`, `dispatch-decision`, `auto-parallel`); supervisor/parallel execution is either absent or clearly marked as unavailable for Phase 1
+- Active agent guidance (`SKILL.md` and `references/supervisor-mode.md`) contains no executable invocation of the disabled Phase-1 verbs (verified by content assertion — grep for `dispatch-decision`, `auto-parallel`, and `worktree` verb invocations)
+- `SKILL.md` documents the `findings-remain` crash-window limitation: `review record` is non-idempotent; ambiguous crash windows are surfaced to the human rather than blindly replayed
+- `SKILL.md` documents the `reviewers-clean` crash-window limitation: clean-record replay is guard-safe but can distort audit counters and fingerprint history
+- `SKILL.md` documents the session-resumption sequence: `loop-engine status` is read first; cohort identity/schema compatibility is checked via `loop-cohort identity`; `loop-cohort status` is then read; `last_event` and `last_event_context` determine the recovery action
 - `SKILL.md` init sequence matches Phase-1 command surface (engine init then cohort init, run_id threading)
 - `assets/state.json` carries Phase-1 field set (all fields per the State Ownership table; no legacy fields)
 - `references/state-schema.md` reflects the Phase-1 field set and authoritative descriptions
@@ -1398,7 +1437,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
 - `docs/architecture/overview.md` updated to reflect Phase-1 as current state
 
-**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13).
+**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13).
 
 **Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state.
 
@@ -1409,14 +1448,15 @@ uses its output for routing and passes the fingerprints to `review record`.
 **Depends on:** T4
 
 **Tests:**
-- Full code-mode lifecycle: init pair → spec-ready → reviewers-clean → plan-approved → wave-complete → wave-passed (×N for multi-wave plan) → gates-clean → reviewers-clean → done (happy path)
+- Full code-mode lifecycle (two-wave explicit): init pair → spec-ready → reviewers-clean → approve-plan + schedule + plan-approved → wave 0 implementation → wave-complete → wave-passed --wave-index 0 → wave advance --from-index 0 → wave 1 implementation → wave-complete → gates-clean → reviewers-clean → done (happy path); inject crashes before and after `wave advance --from-index 0` and verify replay uses `completed_wave_index` from `last_event_context`
+- Full spec-plan lifecycle: init pair (mode=spec-plan) → spec-ready → reviewers-clean → write Status: Approved → approve-plan (no `schedule` call) → plan check-current (no `--require-schedule`) → plan-approved → DONE; assert: `schedule` is neither required nor invoked; `plan check-current` uses the no-flag form; no CODE-* state is entered; a rejected plan (`plan-rejected`) returns engine to `SPEC-PLAN-DRAFTING` with `last_event: plan-rejected`; resumption from each spec-plan state produces the correct recovery action per `last_event`
 - Crash-window behavioral tests: wave advance before and after crash; gates-failed record-attempt replay; findings-remain stale-fingerprint surface; plan mutation per CODE-* state (all from Testing section layer 4)
 - Plan-rejected + re-approval round-trip: approve a plan; fire `plan-rejected`; edit plan.md; call `approve-plan` again; verify new hashes stored
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
-**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4). Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, `test-loop-cohort.py`, `.claude/skills/work-loop/scripts/loop-engine.py`, and `.claude/skills/work-loop/scripts/check-spec-status.py` (projection parity with the existing `loop-cohort.py` trigger pattern); add CI steps for both `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` and `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py`.
+**Approach:** Write integration tests in `test-loop-engine.py` covering the full lifecycle and all crash-window cases from the Testing section (test matrix layers 1–4); crash/resumption tests must read cohort state via `loop-cohort status --json` rather than inspecting `state.json` directly — this exercises the command surface and catches field omissions. Rewrite `tools/test-loop-cohort.sh` to the Phase-1 schema and verb contracts; update its `expected_keys` to the Phase-1 field set (removing `iteration_count`, `max_iterations`; adding `run_id`, `schema_version`, etc.). Extend `.github/workflows/docs.yml` path triggers to include `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, `test-loop-cohort.py`, `.claude/skills/work-loop/scripts/loop-engine.py`, and `.claude/skills/work-loop/scripts/check-spec-status.py` (projection parity with the existing `loop-cohort.py` trigger pattern); add CI steps for both `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` and `python3 packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py`.
 
 **Done when:** All test-matrix cases from the Testing section pass; `make ci` is green; `tools/test-loop-cohort.sh` rewritten to Phase-1 contracts; both `test-loop-engine.py` and `test-loop-cohort.py` CI steps pass.
 
