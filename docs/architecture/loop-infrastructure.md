@@ -1,14 +1,23 @@
 # Loop Infrastructure
 
+**Status:** Proposed  
+**Implementation:** Not yet landed — implementation pending replanning after this design is ratified.  
+**Supersedes:** PR #816 design.
+
 The work-loop skill's phase sequencing and task execution are implemented by
 two scripts. This document defines the boundary between them so future
 maintainers have a single reference rather than reconstructing it from code.
 
+**Design choice — Phase 1:** Option A (pure phase tracker). The engine validates
+legal phase ordering and runs read-only guards. All loop-cohort mutations are
+invoked explicitly by the skill. Option B (workflow orchestrator with durable
+side-effect semantics) is deferred until `review record` supports idempotency
+keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orchestrator-b).
+
 **FSM** = Finite State Machine throughout this document.
 
 For the mode table (light vs. full, and which full-mode flows use loop-cohort),
-see [`packs/core/DESIGN.md §3`](../../packs/core/DESIGN.md). The
-code/spec-plan/doc coordination table is local to this document.
+see [`packs/core/DESIGN.md §3`](../../packs/core/DESIGN.md).
 
 ---
 
@@ -18,141 +27,195 @@ code/spec-plan/doc coordination table is local to this document.
 
 **Role:** Task execution state owner.
 
-**Source:** `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`
-**Projects to:** `.claude/skills/work-loop/scripts/loop-cohort.py` (via
-`make build-self`)
+**Source:** `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`  
+**Projects to:** `.claude/skills/work-loop/scripts/loop-cohort.py`
 
 **What it owns:**
 
 - `state.json` — the session-local state file written into each spec directory.
-  Schema: iteration count, max-iterations cap, token budget, plan-review status,
-  finding fingerprints, worktree list, and the `auto_parallel` flag. See
-  `references/state-schema.md` for the full field reference.
-- Task DAG and wave scheduling — reads the plan's `Depends on:` graph, produces
-  topological order, and enforces the parallel-write gate (`dispatch-decision`).
-- Worktree lifecycle — `worktree preflight/add/record/list/merge/cleanup` for
-  parallel implementer fan-out.
+  See `references/state-schema.md` for the full field reference. Schema includes:
+  `run_id`, `schema_version`, `feature`, `plan_review_status`, `iteration_count`,
+  `max_iterations`, `token_budget_used_pct`, `token_budget_cap_pct`,
+  `consecutive_same_error_count`, `consecutive_same_error_threshold`,
+  `finding_fingerprints`, `previous_finding_fingerprints`, `auto_parallel`,
+  `last_commit_sha`, `worktrees`, `plan_hash`, `schedule_waves`,
+  `current_wave_index`.
+  - `finding_fingerprints`: fingerprints from the most recent review round,
+    rotated by `review record`. The stasis pre-flight compares incoming
+    fingerprints against this field.
+  - `previous_finding_fingerprints`: fingerprints from the round before the
+    most recent, retained for audit and stasis-history purposes.
+- `plan_hash` + `schedule_waves` + `current_wave_index` — persisted by
+  `loop-cohort schedule` so that a resuming session can reconstruct wave position
+  without re-reading plan.md or re-running the scheduler.
+- Task DAG and wave scheduling — `schedule` reads plan.md, validates the DAG
+  (no missing tasks or dependency cycles), computes topological waves, and
+  persists the result to `state.json`. Exit non-zero on any DAG error. The skill
+  must verify exit 0 before firing `loop-engine transition plan-approved`.
 - Finding fingerprints — `review record` parses reviewer output, computes
   `sha1("<file>|<line>|<title>")` per finding, and rotates fingerprint lists
-  to enable stasis detection.
+  to enable stasis detection. **Not idempotent** — each call increments
+  `iteration_count`. Phase 1 callers are the skill; see
+  [Future Phase](#future-phase-workflow-orchestrator-b) for idempotency-key support.
+- Attempt recording — `record-attempt --phase implement` increments
+  `iteration_count` and updates `consecutive_same_error_count` for the
+  implementation phase. Called by the skill before firing `wave-complete` so
+  that `check --phase implement` can enforce the iteration cap. Without this
+  call, the implementation loop is bounded only by token budget.
 - Iteration and budget gates — `check --phase {plan,implement,review}` reads
-  `state.json` and enforces: plan-approval status, iteration cap and token-budget
-  cap, fingerprint stasis, and consecutive-same-error threshold.
+  `state.json` and enforces: plan-approval status, iteration cap, token-budget
+  cap, and consecutive-same-error threshold.
+- Worktree lifecycle — `worktree preflight/add/record/list/merge/cleanup`.
 
 **Verb surface:**
 ```
-loop-cohort init <spec-dir>
+loop-cohort init <spec-dir> [--run-id <uuid>] [--force]
 loop-cohort check <spec-dir> --phase {plan,implement,review}
 loop-cohort approve-plan <spec-dir>
 loop-cohort schedule <spec-dir>
+loop-cohort record-attempt <spec-dir> --phase implement
 loop-cohort review record <spec-dir> (--report <path> | --fingerprint <hex>...)
+loop-cohort status <spec-dir> [--json]
 loop-cohort worktree preflight|add|record|list|merge|cleanup <spec-dir> [...]
 loop-cohort dispatch-decision --branch <b> [--branch <b>...] [--category <c>...] [--base <ref>]
 loop-cohort auto-parallel <spec-dir> [--off]
 ```
 
+`status --json` exposes all `state.json` fields plus any computed views the
+skill needs (e.g., whether more waves remain). This is the canonical read path
+for skill pre-flight checks including stasis detection and wave routing.
+
 **Exit contract:** exit 0 on success; exit non-zero with a one-line reason on
 stderr on failure. `check --phase plan` exits 1 with "plan not approved" on
-first invocation — this is the expected cue to run the pre-EXECUTE reviewer,
-not an error.
+first invocation — expected cue for the pre-EXECUTE reviewer, not an error.
 
 ---
 
 ### loop-engine.py
 
-**Role:** Phase FSM validator and workflow orchestrator.
+**Role:** Phase FSM validator (Option A — Phase 1).
 
-loop-engine has two distinct responsibilities that compose within a single
-transition call:
+The engine validates legal phase ordering, runs the read-only guard for each
+transition, and records the current phase in `engine-state.json`. It does not
+invoke loop-cohort mutations. The skill invokes all mutations explicitly.
 
-**A. Pure phase tracker.** The engine validates that the incoming event is legal
-for the current mode × state pair, fires the read-only guard (if any), and
-records the new phase in `engine-state.json`. This layer carries no side effects:
-it cannot produce incorrect mutations even if called in an unexpected context,
-and it is independently testable against the FSM tables alone.
+**A guarantees** legal phase ordering and the mechanically checked preconditions
+listed in the Guards table. It does not prove the truth of unguarded event
+assertions (`done`, `gates-clean`, `wave-passed`, `doc-approved`, and others
+carry no mechanical evidence check) or the completion of any post-transition
+operation the skill performs.
 
-**B. Workflow orchestrator.** After the phase write succeeds, the engine invokes
-the appropriate loop-cohort mutations (`schedule`, `review record`) as side
-effects. Each event that triggers a downstream cohort operation carries the
-evidence required for that operation (`--report` for a clean review, `--fingerprint`
-hashes for a round with open findings). This layer is what makes the engine a
-coordinator — not just a recorder — of the work-loop's progress.
-
-The two responsibilities are intentionally layered: A is always correct (legal
-FSM transitions are enforced regardless of B), while B adds the operational
-consequence. A failing B side effect does not reverse the A state write — see
-Side-effect failure below.
-
-**Source:** `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
-**Projects to:** `.claude/skills/work-loop/scripts/loop-engine.py` (via
-`make build-self`)
+**Source:** `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`  
+**Projects to:** `.claude/skills/work-loop/scripts/loop-engine.py`
 
 **What it owns:**
 
-- `engine-state.json` — the session-local phase record written into each spec
-  directory. Schema:
+- `engine-state.json` — the session-local phase record. Schema:
   ```json
   {
+    "schema_version": 1,
+    "run_id": "<UUID generated at init>",
     "feature": "<slug>",
     "mode": "code | spec-plan | doc",
     "state": "<phase name — see transition tables below>",
-    "last_transition_at": "<ISO-8601 UTC>",
-    "pending_side_effect": "<verb | null>",
-    "last_side_effect_result": "ok | failed | null"
+    "last_transition_at": "<ISO-8601 UTC>"
   }
   ```
-  `pending_side_effect` is written to before a side effect fires and cleared
-  after. If the engine terminates between the phase write and the side-effect
-  call, a resuming session can read `pending_side_effect` to know that the side
-  effect was never executed (see Recovery below).
-- Phase FSM — per-mode transition tables. Each transition is:
-  `current_state + event → next_state`. Events not in the table for the current
-  mode × state pair are refused with a non-zero exit.
-- Transition execution — reads `engine-state.json`, validates the event (A),
-  fires the guard if one exists (A), writes the new state with
-  `pending_side_effect` set (A), then fires the side effect and clears
-  `pending_side_effect` (B).
+- Phase FSM — per-mode transition tables (see below). Events not in the table
+  for the current mode × state pair are refused with a non-zero exit.
+- Transition execution — reads `engine-state.json`, validates the event, fires
+  the guard if one exists, writes the new state atomically (tempfile +
+  `os.replace`).
 
 **Verb surface:**
 ```
 loop-engine init <spec-dir> --mode {code|spec-plan|doc}
-loop-engine transition <spec-dir> <event> [--fingerprints <hash>...]
+loop-engine transition <spec-dir> <event>
 loop-engine status <spec-dir> [--json]
 loop-engine reset <spec-dir>
 ```
 
-`--help` on every command is the primary documentation; help strings are
-sufficient to use the tool without reading the source.
+`--help` on every command is the primary documentation.
 
-`status --json` exposes `pending_side_effect` and `last_side_effect_result` so
-the INI-003 supervisor and a resuming session can detect incomplete transitions.
+`status --json` exposes all `engine-state.json` fields plus a
+`pending_human_wait` boolean. This flag is `true` in any of:
+`SPEC-PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE`, `DOC-EXTERNAL-REVIEW-WAIT`,
+`DOC-HUMAN-GATE`. It is `false` in all other states, including
+`DOC-INTERNAL-REVIEW`.
 
 **Exit contract:** exit 0 on success; exit non-zero with a one-line descriptive
 message on failure (invalid transition, guard refused, file absent, etc.).
 
-**Single-writer contract:** only one caller may issue `loop-engine transition`
-calls for a given `<spec-dir>` at a time. `os.replace` provides atomic individual
-writes but not serialised read-modify-write; concurrent callers on the same
-spec-dir will produce lost updates. In supervisor mode this is guaranteed by the
-barrier-wait discipline (all implementers complete before the supervisor fires
-the next `wave-complete`). A `loop-engine transition` call must not be issued
-while another is in flight for the same spec-dir.
+**Single-writer contract:** only one caller may issue `transition` calls for a
+given `<spec-dir>` at a time. `os.replace` provides atomic individual writes
+but not serialized read-modify-write. In supervisor mode the barrier-wait
+discipline guarantees this. Do not issue concurrent `transition` calls on the
+same spec-dir.
+
+---
+
+## Initialization Invariants
+
+`loop-engine init <spec-dir> --mode <mode>` is responsible for writing
+`engine-state.json` only. It does **not** write `state.json` — that remains
+loop-cohort's exclusive domain. The skill calls `loop-cohort init` immediately
+after `loop-engine init` to complete the pair.
+
+**Init sequence (code and spec-plan modes):**
+
+1. Skill calls `loop-engine init <spec-dir> --mode <mode>`.
+2. Engine preflight: refuse if `engine-state.json` already exists; refuse if
+   `state.json` already exists (indicates a prior cohort run without cleanup).
+   Both must be absent for a clean start. If either is present, emit a
+   descriptive refusal naming the present file.
+3. Engine generates `run_id` (UUID), writes `engine-state.json`, and outputs
+   the `run_id` on stdout (or as a field in `--json` output).
+4. Skill captures `run_id` from step 3 and calls
+   `loop-cohort init <spec-dir> --run-id <run_id>`.
+5. Cohort writes `state.json` with the same `run_id`.
+
+**Init sequence (doc mode):**
+
+Doc mode does not use loop-cohort. `loop-engine init` checks only that
+`engine-state.json` is absent; it does not check or create `state.json`.
+The "one present, one absent" corrupt-pair check is scoped to `code` and
+`spec-plan` modes only.
+
+**`run_id` across files (code and spec-plan):** both `engine-state.json` and
+`state.json` carry the same `run_id`. All operations verify the pair match
+before proceeding; a mismatch surfaces a corrupt-state error and halts.
+
+**`loop-engine reset <spec-dir>`** deletes both `engine-state.json` and
+`state.json`, in that order: delete `state.json` first (cohort's store), then
+`engine-state.json`. If either deletion fails, leave the remaining file intact,
+emit an error, and halt — partial deletion is never silently swallowed. On
+success, both files are absent and `loop-engine init` may run. For `doc` mode,
+reset deletes only `engine-state.json`.
+
+**Corrupt-pair recovery:** `reset` attempts deletion of both files regardless
+of the pair's internal consistency (one present, one absent; `run_id` mismatch;
+either file malformed). Any present file is deleted; absent files are tolerated
+as already-clean.
+
+**Accepted cost:** reset is all-or-nothing. A late-phase inconsistency forces a
+full restart from the initial drafting state, including the G-plan approval
+flow. Partial recovery is not supported in Phase 1.
 
 ---
 
 ## Phase FSM: Transition Tables
 
-Three modes. State names embed the phase so the current position is readable
-at a glance.
+Three modes. State names embed the phase for readability.
 
-Legal states per mode (only these values appear in `engine-state.json.state`):
+Legal states per mode:
 
 - **code:** `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-PLAN-HUMAN-GATE`,
   `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`,
   `DONE`
 - **spec-plan:** `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-PLAN-HUMAN-GATE`,
   `DONE`
-- **doc:** `DOC-DRAFTING`, `DOC-REVIEW`, `DOC-HUMAN-GATE`, `DONE`
+- **doc:** `DOC-DRAFTING`, `DOC-INTERNAL-REVIEW`, `DOC-EXTERNAL-REVIEW-WAIT`,
+  `DOC-HUMAN-GATE`, `DONE`
 
 ### code
 
@@ -172,20 +235,22 @@ Legal states per mode (only these values appear in `engine-state.json.state`):
 | `CODE-HUMAN-GATE` | `done` | `DONE` |
 | `CODE-HUMAN-GATE` | `blocker-applied` | `CODE-IMPLEMENTATION` |
 
-**`wave-passed` vs `gates-clean`:** `wave-complete` fires when a single wave's
-implementation work is committed. If the plan has additional waves in the
-schedule, the agent fires `wave-passed` after the wave's gates pass and the
-merge is clean — returning to `CODE-IMPLEMENTATION` for the next wave. When all
-waves are complete and gates pass on the full diff, the agent fires `gates-clean`
-to proceed to `CODE-REVIEW`. The agent knows whether more waves remain from the
-`loop-cohort schedule` output read during `CODE-IMPLEMENTATION`.
+**`wave-passed` vs `gates-clean` routing arithmetic:**  
+At `CODE-VERIFICATION`, read `current_wave_index` and `schedule_waves` from
+`loop-cohort status --json`. `current_wave_index` holds the index of the wave
+just completed (zero-based).
+- `current_wave_index == len(schedule_waves) - 1` → all waves done → fire
+  `gates-clean`.
+- `current_wave_index < len(schedule_waves) - 1` → more waves remain → fire
+  `wave-passed`.
+
+After `wave-passed`, the skill increments `current_wave_index` via the
+designated loop-cohort verb and proceeds to the next wave group.
 
 ### spec-plan
 
 spec-plan reuses the first three code-mode states and terminates at
-`SPEC-PLAN-HUMAN-GATE`. `reviewers-clean` here means the spec/plan passes cold
-adversarial review — not that implementation is complete. This review cycle
-bypasses loop-cohort (no `review record`; convergence bounded by LLM judgment).
+`SPEC-PLAN-HUMAN-GATE`. This review cycle bypasses loop-cohort mutation calls.
 
 | Current state | Event | Next state |
 |---|---|---|
@@ -197,51 +262,50 @@ bypasses loop-cohort (no `review record`; convergence bounded by LLM judgment).
 
 ### doc
 
-`doc` mode covers all standalone documents: RFC, ADR, architecture doc, or any
-other review-and-approve document. The SKILL.md defines what the human does at
-`DOC-HUMAN-GATE` for each document type (RFC: named approver sign-off; ADR:
-decision record; arch doc: lead review). The engine does not distinguish between
-document types.
+`doc` mode covers RFC, ADR, architecture doc, and any other review-and-approve
+document. Two review states distinguish whether the review round is handled
+autonomously by the LLM or requires waiting for a human reviewer.
 
 | Current state | Event | Next state |
 |---|---|---|
-| `DOC-DRAFTING` | `doc-ready` | `DOC-REVIEW` |
-| `DOC-REVIEW` | `reviewers-clean` | `DOC-HUMAN-GATE` |
-| `DOC-REVIEW` | `findings-remain` | `DOC-DRAFTING` |
+| `DOC-DRAFTING` | `doc-ready` | `DOC-INTERNAL-REVIEW` |
+| `DOC-DRAFTING` | `doc-ready-external` | `DOC-EXTERNAL-REVIEW-WAIT` |
+| `DOC-INTERNAL-REVIEW` | `reviewers-clean` | `DOC-HUMAN-GATE` |
+| `DOC-INTERNAL-REVIEW` | `findings-remain` | `DOC-DRAFTING` |
+| `DOC-EXTERNAL-REVIEW-WAIT` | `reviewers-clean` | `DOC-HUMAN-GATE` |
+| `DOC-EXTERNAL-REVIEW-WAIT` | `findings-remain` | `DOC-DRAFTING` |
 | `DOC-HUMAN-GATE` | `doc-approved` | `DONE` |
 | `DOC-HUMAN-GATE` | `doc-returned` | `DOC-DRAFTING` |
 
+`DOC-EXTERNAL-REVIEW-WAIT` is a human-wait state (see Human-Wait States below).
+`DOC-INTERNAL-REVIEW` is not — the LLM runs review and may fire the exit event
+autonomously.
+
 ---
 
-## Interaction Model
+## Interaction Model (Option A)
 
 ```
-  LLM agent
+  LLM skill
       │
-      │ loop-engine transition <spec-dir> <event> [--fingerprints <hashes>]
+      │ loop-engine transition <spec-dir> <event>
       ▼
   loop-engine.py
       │
-      ├── A. PHASE TRACKER
-      │   ├── 1. validate event against FSM for current mode × state
-      │   │       (refuses with non-zero exit if invalid)
-      │   │
-      │   ├── 2. fire guard (if one exists for this event):
-      │   │       calls the guard listed in the Guards table below
-      │   │       (refuses with non-zero exit if guard exits non-zero)
-      │   │
-      │   └── 3. write new state to engine-state.json:
-      │           {state: <new>, last_transition_at: <now>,
-      │            pending_side_effect: <verb|null>}
-      │           (atomic: tempfile + os.replace)
+      ├── 1. validate event against FSM for current mode × state
+      │       (refuses non-zero if invalid)
       │
-      └── B. WORKFLOW ORCHESTRATOR
-          └── 4. fire side effect (if applicable):
-                  calls the exact loop-cohort verb listed in the Side Effects table
-                  on success: write {pending_side_effect: null, last_side_effect_result: "ok"}
-                  on failure: write {pending_side_effect: null, last_side_effect_result: "failed"}
-                  logged to stderr regardless; transition not reversed on failure
-                  (see Recovery below)
+      ├── 2. fire guard (if one listed in Guards table for this event):
+      │       read-only call against loop-cohort or standalone script
+      │       (refuses non-zero if guard exits non-zero)
+      │
+      └── 3. write new state to engine-state.json
+              (atomic: tempfile + os.replace)
+
+  LLM skill (after transition returns 0)
+      │
+      └── invokes loop-cohort verbs explicitly per skill instructions
+          (see Explicit Skill Calls below)
 
   loop-cohort.py
       │
@@ -249,220 +313,181 @@ document types.
           loop-engine never reads or writes state.json
 ```
 
-**Direction is one-way.** loop-engine calls loop-cohort verbs. loop-cohort
-never calls loop-engine. There is no shared mutable state between the two
-scripts (see `feature` note in State Ownership below).
-
-### `loop-engine init` setup call
-
-`loop-engine init <spec-dir> --mode <mode>` runs `loop-cohort init <spec-dir>`
-as its sole setup call (for code and spec-plan modes only), immediately after
-writing `engine-state.json`. This is not a transition side effect — it happens
-once, at session start, before any `transition` call.
+**Direction is one-way.** loop-engine calls loop-cohort only for read-only
+guards during transitions. loop-cohort never calls loop-engine. There is no
+shared mutable state other than the immutable `run_id` pair.
 
 ---
 
-## A. Phase Tracker: Guards
+## Guards
 
-Each event has at most one guard. The guard must exit 0 before the transition
-is accepted; non-zero exit refuses the transition. Guards fire in step 2, before
-the state write (step 3), and are always read-only calls against loop-cohort or
-standalone scripts — never mutations.
+Each transition has at most one guard. Guards are always read-only calls — they
+may not write to either state file. Guards fire in step 2, before the state
+write (step 3).
 
 | Event | Mode | Current state | Guard call | Purpose |
 |---|---|---|---|---|
 | `plan-approved` | code, spec-plan | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort check <spec-dir> --phase plan` | Verifies `approve-plan` was called |
-| `wave-complete` | code | `CODE-IMPLEMENTATION` | `loop-cohort check <spec-dir> --phase implement` | Iteration cap + token budget + same-error + stasis backstop |
-| `findings-remain` | code | `CODE-REVIEW` | `loop-cohort check <spec-dir> --phase review` | Iteration cap + token budget + stasis + same-error |
-| `reviewers-clean` | code | `CODE-REVIEW` | `check-spec-status.py <spec-dir>` | `**Status:** Shipped` in working tree before PR goes to human |
+| `wave-complete` | code | `CODE-IMPLEMENTATION` | `loop-cohort check <spec-dir> --phase implement` | Iteration cap, token budget, consecutive-same-error |
+| `findings-remain` | code | `CODE-REVIEW` | `loop-cohort check <spec-dir> --phase review` | Iteration cap, token budget, consecutive-same-error |
+| `reviewers-clean` | code | `CODE-REVIEW` | `check-spec-status.py <spec-dir>` | `**Status:** Shipped` in working tree before G-pr |
 
-`check-spec-status.py` lives at
-`packs/core/.apm/skills/work-loop/scripts/check-spec-status.py`. It verifies
-that the spec's `**Status:**` field reads `Shipped` in the current working tree.
-It fires at `CODE-REVIEW + reviewers-clean → CODE-HUMAN-GATE` — the point where
-the PR is about to be presented for human G-pr review. The optimistic in-PR
-update (spec updated to `Shipped` as part of the PR diff) is intentional: the
-PR is the proposal to ship, and the spec update is part of that proposal. If the
-PR is rejected, the update stays on the branch; main is unchanged.
+**`wave-complete` guard scope:** `check --phase implement` enforces iteration
+cap, token budget, and consecutive-same-error threshold. It does **not** check
+fingerprint stasis — stasis applies to review rounds only (see Stasis Detection).
+These counters are incremented by `record-attempt --phase implement` (see
+Explicit Skill Calls); without that call, `check --phase implement` sees stale
+counters and the iteration cap is inert.
 
-`lint-spec-status.py` is a CI-level drift linter (AC completeness, deferred
-items, `**Status:**` field). It is not a loop-engine guard; it runs in CI and
-on-demand for cleanup and reconciliation.
-
-`reviewers-clean` in `SPEC-PLAN-REVIEW` (spec-plan and code mode pre-plan
-phase) carries **no guard** — the spec isn't being shipped at that point, and a
-stasis check must not block a legitimate clean exit.
-
-**Stasis detection sequencing:** the `findings-remain` guard (in `CODE-REVIEW`)
-fires in step 2, before the `review record` side effect in step 4. It therefore
-sees fingerprints from the **preceding round**. Stasis is detected one round
-delayed: guard on round N+1 catches that round N fingerprints equal round N−1
-fingerprints.
+**`findings-remain` guard scope:** `check --phase review` enforces the same
+three counters for review rounds. Stasis is handled by the skill pre-flight
+(see Stasis Detection), not by this guard.
 
 **`plan-approved` guard ordering:** `loop-cohort check --phase plan` exits 0
-only when `plan_review_status != "pending"`. The only verb that sets this is
-`loop-cohort approve-plan`. Therefore, `approve-plan` must be called **before**
-`loop-engine transition plan-approved` — it is the mechanical step of the G-plan
-human gate. The guard verifies it ran. This is not a side effect.
+only when `plan_review_status != "pending"`, set exclusively by
+`loop-cohort approve-plan`. Call `approve-plan` before firing this transition;
+the guard verifies that it ran.
 
-**Zero-fingerprint floor:** `findings-remain` must be accompanied by at least
-one `--fingerprints` hash. A review round that produces no hashable findings is
-a clean round and must fire `reviewers-clean` instead.
+**`reviewers-clean` in `SPEC-PLAN-REVIEW`** carries no guard — the spec is not
+being shipped and a stasis check must not block a legitimate clean exit.
+
+**`check-spec-status.py`** lives alongside loop-engine.py. It verifies the
+spec's `**Status:**` field reads exactly `Shipped`. It is a separate script
+from `lint-spec-status.py` (CI drift linter). The optimistic in-PR update
+(spec status = `Shipped` in the PR diff) is intentional: the PR proposes to
+ship, and the spec update is part of that proposal. It must reuse the same
+canonical status parser as `lint-spec-status.py` rather than introduce an
+independent regex.
+
+**Stasis detection (immediate):** before firing `findings-remain`, the skill
+must compare the current round's computed fingerprints against
+`state.finding_fingerprints` (read via `loop-cohort status --json`). If they
+match, the finding set is unchanged from the previous round; the skill must
+surface stasis to the human rather than advancing the FSM. Only if they differ
+should the skill fire `findings-remain` and subsequently call `review record`.
+This detects stasis at the point it occurs, not one round later.
+
+**`findings-remain` floor:** at least one fingerprint hash must be present. A
+review round with no hashable findings fires `reviewers-clean` instead.
 
 ---
 
-## B. Workflow Orchestrator: Side Effects
+## Explicit Skill Calls
 
-Side effects are loop-cohort verb calls fired **after** `engine-state.json` is
-written (step 4), in the order listed. They are the orchestration consequence
-of each transition. Side effects fire for **code mode only** in the specific
-events below; spec-plan and doc modes have no side effects (see Coordination by
-Mode).
+In Option A, the skill invokes loop-cohort verbs at defined points. These are
+skill obligations documented here so that future implementers can verify the
+engine and skill are consistent. The engine does not invoke these.
 
-| Trigger | Mode | Current state | Side-effect call |
-|---|---|---|---|
-| `plan-approved` | code only | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort schedule <spec-dir>` |
-| `reviewers-clean` | code only | `CODE-REVIEW` | `loop-cohort review record <spec-dir> --report <report-path>` |
-| `findings-remain` | code only | `CODE-REVIEW` | `loop-cohort review record <spec-dir> --fingerprint <h1> --fingerprint <h2> ...` |
+### At session start — code and spec-plan modes only
 
-`schedule` and `review record` fire for **code mode only**, and only in the
-code-phase review states. spec-plan's `SPEC-PLAN-REVIEW` cycle bypasses
-loop-cohort entirely — no `review record` is called; convergence is bounded by
-LLM judgment. The only loop-cohort calls for spec-plan are the setup call
-(`loop-cohort init` during `loop-engine init`) and the `plan-approved` guard.
+```
+loop-engine init <spec-dir> --mode <mode>          # writes engine-state.json, outputs run_id
+loop-cohort init <spec-dir> --run-id <run_id>      # writes state.json with matching run_id
+```
 
-`review record` fires on **every** code-mode review round — both when reviewers
-find issues (`findings-remain`) and when they clear (`reviewers-clean`). This
-increments `iteration_count` and rotates fingerprints so the count is accurate
-even on the clean exit.
+The skill captures `run_id` from `loop-engine init` stdout (or `--json` output)
+and passes it to `loop-cohort init`. Doc mode uses only `loop-engine init`;
+`loop-cohort init` is not called.
 
-**`blocker-applied` fires no side effect.** A human-returned blocker is not an
-LLM review round; `iteration_count` is not incremented. The agent re-enters
-`CODE-IMPLEMENTATION`, fixes, and re-runs gates before the next `wave-complete`.
+### Before `plan-approved` — code mode only
 
-**Flag conventions for `review record`:**
-- `reviewers-clean` → `--report <path>`: loop-cohort parses the "Clean — ready
-  to commit." marker and records an empty fingerprint set.
-- `findings-remain` → repeated `--fingerprint <hex>`: one flag per finding hash.
-  loop-engine accepts `--fingerprints <hash>...` (`nargs='+'`) and expands them
-  to repeated `--fingerprint <hex>` calls. loop-engine never stores fingerprints.
+```
+loop-cohort approve-plan <spec-dir>         # sets plan_review_status
+loop-cohort schedule <spec-dir>             # validates DAG; persists waves to state.json
+loop-engine transition <spec-dir> plan-approved
+```
 
-**`review record` is not idempotent** — it unconditionally increments
-`iteration_count` and rotates fingerprint lists. Do not call it twice for the
-same review round. `loop-cohort schedule` is safe to re-run.
+`schedule` validates the task DAG and persists `plan_hash`, `schedule_waves`,
+and `current_wave_index` to `state.json`. The skill must verify exit 0 before
+firing the transition. A dependency cycle or missing task aborts the sequence —
+do not advance the FSM with an invalid schedule.
 
-### Worktree lifecycle (code mode)
+`schedule` does not mutate `plan_review_status`, `finding_fingerprints`, or any
+counter fields. It is read-validate-persist, not a review mutation.
 
-Worktree verbs (`worktree preflight/add/record/list/merge/cleanup`) are
-**not** loop-engine side effects. They are invoked directly by the LLM or
-supervisor during `CODE-IMPLEMENTATION`, between `wave-complete` transitions,
-as described in the SKILL.md's supervisor mode reference. Routing them through
-loop-engine would introduce git operations into the engine — a constraint
-violation (`loop-engine` has no git operations).
+**spec-plan mode does not call `schedule`** — spec-plan terminates at
+`plan-approved → DONE` and has no implementation task DAG to compute.
 
-### Side-effect failure and recovery
+### Before `wave-complete` — code mode
 
-Before firing a side effect, loop-engine writes `pending_side_effect: <verb>` to
-`engine-state.json`. After the call returns (success or failure), it writes
-`pending_side_effect: null` and `last_side_effect_result: "ok" | "failed"`.
+```
+loop-cohort record-attempt <spec-dir> --phase implement  # increments iteration counters
+loop-engine transition <spec-dir> wave-complete          # guard: check --phase implement
+```
 
-If the engine terminates between the state write (step 3) and the side-effect
-call (step 4), `engine-state.json` carries a non-null `pending_side_effect`.
-A resuming session reads `loop-engine status --json <spec-dir>` and acts:
+Also call `record-attempt` before each retry after `gates-failed` so that a
+persistent build failure eventually trips the iteration cap. Without this call,
+the implementation loop is bounded only by token budget.
 
-- **`pending_side_effect: "schedule"`** → re-run `loop-cohort schedule <spec-dir>`
-  directly (`schedule` is idempotent).
-- **`pending_side_effect: "review-record"`** → surface to the human. The
-  `iteration_count` and fingerprints were never updated; manual reconciliation
-  is required before the next review round. Do not re-run `review record`
-  autonomously (non-idempotent; double-run corrupts iteration count and stasis
-  state).
+### After `CODE-REVIEW + reviewers-clean` — code mode
 
-If the engine exits non-zero during step 4 (side effect ran but failed):
-- `engine-state.json` reflects the new state (step 3 already completed).
-- The failure is logged to stderr and recorded as `last_side_effect_result: "failed"`.
-- Recovery is the same as the above per-verb rules.
+```
+loop-engine transition <spec-dir> reviewers-clean   # guard: check-spec-status.py
+loop-cohort review record <spec-dir> --report <path>
+```
 
-**`loop-cohort init` failure** (during `loop-engine init`): `engine-state.json`
-is written but `state.json` is not. Re-run `loop-cohort init <spec-dir>`
-directly — the verb refuses if `state.json` already exists, so it is safe to
-retry on a clean write failure.
+### After `CODE-REVIEW + findings-remain` — code mode (only after stasis pre-flight passes)
 
-**Unrecoverable inconsistency:** run `loop-engine reset <spec-dir>` (deletes
-`engine-state.json`) and manually delete `state.json`, then re-run
-`loop-engine init`. This restarts both scripts from `SPEC-PLAN-DRAFTING` and
-requires re-running the full G-plan approval flow.
+```
+loop-engine transition <spec-dir> findings-remain
+loop-cohort review record <spec-dir> --fingerprint <h1> --fingerprint <h2> ...
+```
+
+`review record` is not idempotent. Call it once per review round. A failed call
+surfaces to the human for manual reconciliation; do not retry autonomously.
+
+### After `CODE-VERIFICATION + wave-passed` — code mode
+
+Increment `current_wave_index` in `state.json` via the designated loop-cohort
+verb (to be named at implementation time). Then read the updated index to
+determine the next task group.
+
+### `blocker-applied` — code mode
+
+No loop-cohort call. A human-returned blocker is not an LLM review round;
+`iteration_count` is not incremented.
 
 ---
 
 ## Human Gate Obligations
 
-Loop-engine does not automate human gates. The following events require explicit
-human action before the LLM may fire them. Mechanical enforcement varies by
-event and is noted below.
+The following events require explicit human action before the LLM may fire them.
+Mechanical enforcement is noted per event.
 
 ### G-plan (plan approval)
 
-`plan-approved` fires only after all three pre-conditions hold:
+`plan-approved` fires only after all hold:
 
-1. The adversarial reviewer returned clean on the spec/plan (`SPEC-PLAN-REVIEW`
-   reached `reviewers-clean`). — *SKILL.md obligation; not mechanically enforced.*
-2. The LLM called `loop-cohort approve-plan <spec-dir>` directly (sets
-   `plan_review_status`). — *Mechanically enforced: the `plan-approved` guard
-   exits non-zero if this hasn't run.*
-3. Human G-plan sign-off received (the LLM surfaced the plan and waited). —
-   *SKILL.md obligation; not mechanically enforced.*
+1. Adversarial reviewer returned clean on spec/plan. — *Skill obligation; not
+   mechanically enforced.*
+2. `loop-cohort approve-plan` was called. — *Mechanically enforced: the
+   `plan-approved` guard exits non-zero if this has not run.*
+3. `loop-cohort schedule` exited 0 (valid DAG, waves persisted). — *Skill
+   obligation; not mechanically enforced by the engine guard.*
+4. Human G-plan sign-off received. — *Skill obligation; not mechanically
+   enforced.*
 
 ### G-pr (code review and merge)
 
-G-pr happens **at** `CODE-HUMAN-GATE`. Both events that exit this state (`done`,
-`blocker-applied`) carry **no mechanical guard**. The LLM must not fire `done`
-without an actual merge. This is enforced by SKILL.md convention, not by the
-engine.
-
-A merge-verification guard (checking PR merge status via the GitHub API) would
-make this mechanical but introduces an external-system dependency and tool-access
-uncertainty. This is a future consideration if autonomous misuse becomes
-observable in practice.
+`done` and `blocker-applied` carry **no mechanical guard**. `done` must not be
+fired without a confirmed merge. This is enforced by skill convention. A
+merge-verification guard (checking PR merge status via the GitHub API) would
+make this mechanical but introduces an external-system dependency; deferred.
 
 ```
 CODE-REVIEW → reviewers-clean → CODE-HUMAN-GATE
               (check-spec-status        │
                guard fires here)        │ LLM presents PR for human G-pr review
                                         │
-                    ┌───────────────────┴──────────────────────┐
-                    │ Human approves and PR merges             │ Human returns blocker
-                    ▼                                           ▼
-                 done → DONE                    blocker-applied → CODE-IMPLEMENTATION
-               (loop complete)            (fix applied, gates re-run,
-                                            CODE-IMPLEMENTATION → CODE-VERIFICATION
-                                            → CODE-REVIEW → CODE-HUMAN-GATE)
+                ┌───────────────────────┴────────────────────────┐
+                │ Human approves and PR merges                   │ Human returns blocker
+                ▼                                                 ▼
+             done → DONE                        blocker-applied → CODE-IMPLEMENTATION
+                                          (fix applied, gates re-run before re-review)
 ```
 
-`DONE` means the PR is merged. `blocker-applied` routes back to
-`CODE-IMPLEMENTATION` (not directly to `CODE-REVIEW`) so that gates re-run on
-the fix before re-review.
-
-For `doc` mode, human gates are enforced by the respective governance process
-(RFC approver sign-off, ADR record). Loop-engine tracks phase state only; it
-does not replace those governance steps.
-
----
-
-## `reset` Scope
-
-`loop-engine reset <spec-dir>` deletes `engine-state.json` only. It does not
-touch `state.json`. After `reset`, the next `loop-engine init` starts from the
-mode's initial drafting state — `SPEC-PLAN-DRAFTING` for code and spec-plan
-(agent must re-run the full G-plan approval flow), `DOC-DRAFTING` for doc.
-
-**Accepted cost:** reset is all-or-nothing. A late-phase inconsistency (e.g. an
-unrecoverable `review-record` failure) forces a restart from `SPEC-PLAN-DRAFTING`,
-including re-running the full G-plan approval flow. Partial recovery (returning
-to the phase just before the inconsistency) is not supported; the added recovery
-machinery is not worth the complexity at this stage.
-
-`reset` cannot be used to skip or replay a human gate.
+For `doc` mode, governance steps (RFC approver sign-off, ADR record) are not
+replaced by loop-engine; the engine tracks phase state only.
 
 ---
 
@@ -470,42 +495,35 @@ machinery is not worth the complexity at this stage.
 
 No field is shared as mutable state between the two files.
 
-| File | Owner | Fields |
+| File | Owner | Key fields |
 |---|---|---|
-| `state.json` | loop-cohort | `feature`, `iteration_count`, `max_iterations`, `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `plan_review_status`, `auto_parallel`, `last_commit_sha`, `finding_fingerprints`, `previous_finding_fingerprints`, `worktrees` |
-| `engine-state.json` | loop-engine | `feature`, `mode`, `state`, `last_transition_at`, `pending_side_effect`, `last_side_effect_result` |
+| `state.json` | loop-cohort | `run_id`, `schema_version`, `feature`, `plan_review_status`, `iteration_count`, `max_iterations`, `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `finding_fingerprints`, `previous_finding_fingerprints`, `auto_parallel`, `last_commit_sha`, `worktrees`, `plan_hash`, `schedule_waves`, `current_wave_index` |
+| `engine-state.json` | loop-engine | `schema_version`, `run_id`, `feature`, `mode`, `state`, `last_transition_at` |
 
-**`feature` appears in both files.** It is an immutable slug independently
-derived from the spec-dir basename at init time. It is never written by one
-script and read by the other; the two derivations always agree because they
-share the same input. This is the sole intentional name overlap and carries no
-shared mutable state.
+**`run_id` in both files** (code and spec-plan modes) is an immutable UUID
+generated at `loop-engine init` and written to both files during initialization.
+All operations verify the pair matches before proceeding.
 
-**`max_iterations` lives in `state.json` and is owned exclusively by
-loop-cohort.** loop-engine has no read or write access to `state.json` and
-therefore cannot read, modify, or override the iteration cap. When loop-cohort
-signals an iteration cap via a non-zero exit from `check --phase implement`,
-the LLM exercises judgment (request permission to continue or accept the cap)
-per the SKILL.md's termination guidance — not loop-engine.
+**`feature`** is an immutable slug independently derived from the spec-dir
+basename in both files. Never written by one script and read by the other.
 
-Both files are session-local and gitignored. They survive across session
-boundaries within the same working tree but are never committed.
+**`max_iterations`** is owned exclusively by loop-cohort. loop-engine has no
+access to `state.json`. When loop-cohort signals an iteration cap, the LLM
+exercises judgment per the SKILL.md's termination guidance.
+
+Both files are session-local and gitignored.
 
 ---
 
 ## Coordination by Mode
 
-| Mode | loop-cohort used? | Guards (A) | Spec-status guard (A) | Side effects (B) |
-|---|---|---|---|---|
-| `code` | Yes | `plan-approved` (SPEC-PLAN-HUMAN-GATE), `wave-complete` (CODE-IMPLEMENTATION), `findings-remain` (CODE-REVIEW) | `reviewers-clean` at CODE-REVIEW → `check-spec-status.py` | `plan-approved` → schedule; `reviewers-clean` + `findings-remain` at CODE-REVIEW → review record; `loop-cohort init` at engine init |
-| `spec-plan` | Yes (setup + plan gate only) | `plan-approved` (SPEC-PLAN-HUMAN-GATE) | — | `loop-cohort init` at engine init only; no transition side effects |
-| `doc` | No | — | — | — |
+| Mode | loop-cohort guards | spec-status guard | Skill explicit calls |
+|---|---|---|---|
+| `code` | `plan-approved` (SPEC-PLAN-HUMAN-GATE), `wave-complete` (CODE-IMPLEMENTATION), `findings-remain` (CODE-REVIEW) | `reviewers-clean` at CODE-REVIEW | `init` pair, `approve-plan` + `schedule` before `plan-approved`, `record-attempt` before each `wave-complete`, `review record` after each CODE-REVIEW transition |
+| `spec-plan` | `plan-approved` (SPEC-PLAN-HUMAN-GATE) | — | `init` pair, `approve-plan` before `plan-approved` |
+| `doc` | — | — | engine `init` only; no loop-cohort |
 
-`doc` mode bypasses loop-cohort entirely. The engine manages phase state only;
-no task DAG, no worktrees, no finding fingerprints.
-
-**Light mode** does not invoke loop-engine or loop-cohort. See
-`packs/core/DESIGN.md §3` for the light-vs-full mode selection rule.
+**Light mode** does not invoke loop-engine or loop-cohort.
 
 ---
 
@@ -513,192 +531,207 @@ no task DAG, no worktrees, no finding fingerprints.
 
 ### code mode
 
-The code-mode FSM has two back-edge families. The pre-plan loop iterates the
-spec/plan until clean; the code loop iterates implementation across waves and
-review rounds until the diff is clean.
-
-**Pre-plan loop:**
+**Pre-plan loop** (bounded by LLM judgment — no loop-cohort cap):
 ```
-SPEC-PLAN-DRAFTING
-    │  spec-ready
-    ▼
-SPEC-PLAN-REVIEW
-    ├── reviewers-clean ────────────────────► SPEC-PLAN-HUMAN-GATE
-    └── findings-remain                              │ plan-approved
-          │                                          ▼
-          ▼                                  CODE-IMPLEMENTATION
-    SPEC-PLAN-DRAFTING  ← fix and re-draft
+SPEC-PLAN-DRAFTING ──spec-ready──► SPEC-PLAN-REVIEW
+                                         │
+                         ┌───────────────┴───────────────┐
+                  findings-remain                  reviewers-clean
+                         │                               │
+                         ▼                               ▼
+                  SPEC-PLAN-DRAFTING          SPEC-PLAN-HUMAN-GATE
+                    (fix, re-draft)                 │ plan-approved
+                                                    ▼
+                                           CODE-IMPLEMENTATION
 ```
 
-Pre-plan convergence is bounded by LLM judgment (no loop-cohort iteration cap).
-
-**Code loop (multi-wave + review):**
+**Code loop (multi-wave + review, bounded by loop-cohort):**
 ```
 CODE-IMPLEMENTATION
+    │  (skill: record-attempt --phase implement)
     │  wave-complete (guard: check --phase implement)
     ▼
 CODE-VERIFICATION
-    ├── wave-passed ──────────────────────────────────────────────────────────┐
-    │     (more waves remain in schedule)                                     │
-    ├── gates-clean ──────────────────────────────────────────────────────► CODE-REVIEW
-    │     (all waves complete)                                                │
-    └── gates-failed ──────────────────────────────────────────────────────► CODE-IMPLEMENTATION (fix)
-                                                                             ▲
-CODE-REVIEW                                                                  │
-    ├── reviewers-clean (guard: check-spec-status.py) ──► CODE-HUMAN-GATE   │
-    │     (side effect: review record --report)               │              │
-    │                                                  done   │  blocker-    │
-    │                                                   ▼     │  applied     │
-    │                                                  DONE   └─────────────►┘
+    ├── wave-passed ─────────────────────────────────────────► CODE-IMPLEMENTATION
+    │     (current_wave_index < len(schedule_waves) - 1)          (next wave)
+    ├── gates-clean ─────────────────────────────────────────► CODE-REVIEW
+    │     (current_wave_index == len(schedule_waves) - 1)
+    └── gates-failed ────────────────────────────────────────► CODE-IMPLEMENTATION
+                                                               (skill: record-attempt
+                                                                before retry's wave-complete)
+CODE-REVIEW
+    ├── reviewers-clean (guard: check-spec-status.py) ──► CODE-HUMAN-GATE
+    │     (skill: review record --report after)               │
+    │                                                  done   │  blocker-applied
+    │                                                   ▼     ▼
+    │                                                  DONE   CODE-IMPLEMENTATION
     └── findings-remain (guard: check --phase review)
-          (side effect: review record --fingerprints)
+          (skill: stasis pre-flight, then review record --fingerprints after)
           │
           ▼
-    CODE-IMPLEMENTATION  ← back-edge; the cycle repeats
-                                                                ▲
-                                                                └── (wave-passed also feeds here)
+    CODE-IMPLEMENTATION ← back-edge
 ```
 
-**Code-mode termination is bounded** by four independent mechanisms in `state.json`
-(owned by loop-cohort, invisible to loop-engine):
+**Termination mechanisms** (in `state.json`; loop-engine has no access):
 
-1. **Iteration cap** — `check --phase implement` and `check --phase review`
-   both exit non-zero when `iteration_count >= max_iterations`. The LLM
-   exercises judgment: surface to the human with a concrete reason why another
-   round is warranted, or accept the cap and stop. `max_iterations` is a
-   judgment parameter, not a blind limit.
-2. **Stasis detection** — `check --phase review` exits non-zero when
-   `finding_fingerprints == previous_finding_fingerprints` and both are non-empty
-   (same non-empty finding set two rounds in a row, order-independent).
-3. **Token budget** — `check --phase implement` and `check --phase review` both
-   exit non-zero when `token_budget_used_pct >= token_budget_cap_pct`.
-4. **Consecutive-same-error** — both `check --phase implement` and
-   `check --phase review` exit non-zero when
-   `consecutive_same_error_count >= consecutive_same_error_threshold`.
+1. **Iteration cap** — `check --phase implement/review` exits non-zero when
+   `iteration_count >= max_iterations`. LLM exercises judgment: surface to
+   human with a concrete reason to continue, or accept the cap.
+2. **Stasis** — skill detects before `findings-remain` when incoming
+   fingerprints equal `state.finding_fingerprints`; surfaces to human.
+3. **Token budget** — `check --phase implement/review` exits non-zero when
+   `token_budget_used_pct >= token_budget_cap_pct`.
+4. **Consecutive-same-error** — `check --phase implement/review` exits non-zero
+   when `consecutive_same_error_count >= consecutive_same_error_threshold`.
 
-If any mechanism fires and the loop is not converged, the LLM surfaces to the
-human. **The loop cannot self-terminate beyond `DONE`** — the `done` event must
-be fired explicitly by the LLM, and G-pr (human merge) remains the terminal gate.
+The loop cannot self-terminate beyond `DONE` — `done` must be fired explicitly
+after human G-pr approval.
 
 ### spec-plan and doc modes
 
-Both have the same back-edge structure (`findings-remain → *-DRAFTING`) without
-loop-cohort coordination. Convergence is bounded by LLM judgment. For `doc`
-mode, `DOC-HUMAN-GATE` also has a back-edge via `doc-returned → DOC-DRAFTING`
-for when a human approver sends the document back for revision after internal
-review is already clean.
+Both converge via `findings-remain → *-DRAFTING` back-edges, bounded by LLM
+judgment. `DOC-HUMAN-GATE` has a `doc-returned → DOC-DRAFTING` back-edge for
+when a human approver returns the document for revision after internal review
+is clean.
 
 ---
 
 ## Human-Wait States and Session Boundaries
 
-Some states are **human-wait states** — the loop has committed its work product
-to git (as a PR, draft, or branch) and is waiting for a human response before
-the next event can be fired. A session can end in any of these states.
-
 | State | Mode | Work product committed | Waiting for |
 |---|---|---|---|
-| `SPEC-PLAN-HUMAN-GATE` | code, spec-plan | spec.md + plan.md on branch or PR | Human G-plan sign-off |
+| `SPEC-PLAN-HUMAN-GATE` | code, spec-plan | spec.md + plan.md on branch/PR | Human G-plan sign-off |
 | `CODE-HUMAN-GATE` | code | implementation PR | Human G-pr (merge or blocker) |
-| `DOC-HUMAN-GATE` | doc | document on branch or PR | Human doc approval |
-| `DOC-REVIEW` | doc | document committed to git | Human reviewer — human-wait **only when review is async/external**; when the LLM runs review itself, `DOC-REVIEW` is a normal LLM-reviewed state and `reviewers-clean`/`findings-remain` may fire autonomously |
+| `DOC-EXTERNAL-REVIEW-WAIT` | doc | document on branch/PR | Human async reviewer |
+| `DOC-HUMAN-GATE` | doc | document on branch/PR | Human doc approval |
 
-When a session ends in a human-wait state, the next session (same or different
-person) resumes by reading `loop-engine status <spec-dir>` and **waiting for
-the human response** rather than firing the next event autonomously. The rule:
-no event that exits a human-wait state may be fired without the human's
-explicit signal, regardless of session boundary.
+`DOC-INTERNAL-REVIEW` is **not** a human-wait state; the LLM may fire
+`reviewers-clean` or `findings-remain` autonomously.
 
-The committed work product must be on a named branch or open PR before the
-session ends in a human-wait state — a locally-only-committed artifact cannot
-be reviewed by others.
+**Resumption rule:** a resuming session reads `loop-engine status --json
+<spec-dir>` to recover the current phase. If `pending_human_wait` is true, wait
+for the human signal before firing any exit event. Work product must be on a
+named branch or open PR before ending a session in a human-wait state.
 
 ---
 
 ## Session Resumption
 
-`last_transition_at` in `engine-state.json` records the UTC timestamp of each
-transition. This enables:
+`last_transition_at` enables cross-session recovery without reconstructing state
+from chat history. On resume:
 
-1. **Cross-session resumption** — an agent starting a new session reads
-   `loop-engine status <spec-dir>` to recover the current phase without
-   reconstructing it from chat history. If `pending_side_effect` is non-null,
-   handle the incomplete transition before firing any new events (see Recovery).
-   If the state is a human-wait state, wait for the human signal rather than
-   proceeding.
-2. **Stale-worker detection** (INI-003) — a factory supervisor calls
-   `loop-engine status --json <spec-dir>` on each worker's spec directory and
-   uses `last_transition_at` to identify workers that have not advanced.
-   The stale threshold is INI-003's responsibility; loop-engine makes no
-   assumption about phase-expected duration.
+1. `loop-engine status --json <spec-dir>` — current phase, `pending_human_wait`.
+2. `loop-cohort status --json <spec-dir>` — `current_wave_index`, `schedule_waves`,
+   `finding_fingerprints`, iteration counts.
+3. If in a human-wait state — wait for the human signal.
+4. If in `CODE-VERIFICATION` — apply the `wave-passed` vs `gates-clean` routing
+   arithmetic (see Phase FSM: code). Re-run gates for the current wave before
+   firing either.
 
-The `--json` flag on `status` is the stable per-worker observation interface.
-The four-verb surface (`init`, `transition`, `status`, `reset`) and the
-`engine-state.json` schema are stable across INI-003 integration.
+**Stale-worker detection** (INI-003): `loop-engine status --json <spec-dir>`
+exposes `last_transition_at`; a supervisor compares it against a threshold it
+owns. Loop-engine makes no assumption about per-phase expected duration.
+
+---
+
+## Future Phase: Workflow Orchestrator (B)
+
+Phase 2 adds the orchestration layer once the following are in place:
+
+- `loop-cohort review record` accepts a `--transition-id <uuid>` and
+  deduplicates: a previously applied ID returns exit 0 without incrementing
+  counters. This makes `review record` idempotent and safe to retry.
+- `engine-state.json` carries a structured `pending_transition` object:
+  ```json
+  {
+    "pending_transition": {
+      "id": "<uuid>",
+      "event": "findings-remain",
+      "from": "CODE-REVIEW",
+      "to": "CODE-IMPLEMENTATION",
+      "effect": {
+        "verb": "review-record",
+        "payload_hash": "<sha256 of fingerprint list>",
+        "status": "prepared | applied | failed"
+      }
+    }
+  }
+  ```
+  The committed state remains the **source** state until the required effect
+  is confirmed. Any unresolved `pending_transition` blocks all new transitions.
+- `run_id` and `schema_version` propagate through all pending-transition records.
+- The loop-engine and loop-cohort both carry `schema_version` with a documented
+  upgrade path.
+
+With idempotency keys, a crash between the side-effect call and the confirmation
+write is recoverable by re-issuing the same `--transition-id`; the cohort
+deduplicates and confirms. Without them, the current Phase 1 (skill-explicit,
+non-automated mutations) is the correct choice.
 
 ---
 
 ## Alternatives Considered
 
-### State-first vs. side-effect-first ordering
+### A-only (Phase 1) vs B-with-proper-guarantees now
 
-Side effects could fire before the phase write (B before A). This is rejected
-because a successful side effect with a failed state write leaves `state.json`
-updated (e.g. `iteration_count` incremented) with `engine-state.json` still in
-the old phase — a worse inconsistency than the current crash window, because the
-side effect's consequences are irreversible (non-idempotent `review record`)
-while the state write is not. State-first was chosen: if the phase write
-succeeds but the side effect fails, `pending_side_effect` records what was
-pending and recovery is deterministic.
+B requires a durable `pending_transition` schema, idempotency keys on all
+mutations, target-state-committed-only-after-effect, `run_id` coupling across
+files, and persisted wave state. All are achievable but represent a design and
+implementation surface roughly twice what Phase 1 requires. Phase 1 delivers
+legal ordering, guard enforcement, resumption, and multi-wave phase structure —
+nearly all the useful determinism. B is added after `review record` is
+idempotent rather than building distributed-transaction machinery for three
+mutation rows.
 
-### Outcome journaling as the primary design
+### `schedule` as side effect vs. pre-transition precondition
 
-An alternative approach journals every intended and actual side-effect outcome
-as the primary design, with no A/B layering. This is subsumed by the current
-design: `pending_side_effect` and `last_side_effect_result` in `engine-state.json`
-provide outcome journaling within the A/B model, without the overhead of a
-separate journaling protocol.
+Under a side-effect model, a plan with a dependency cycle first moves the
+engine to `CODE-IMPLEMENTATION` then fails scheduling — the FSM says
+implementation has begun while no valid schedule exists. Making schedule a
+pre-transition skill obligation (call it; verify exit 0; only then fire
+`plan-approved`) means `CODE-IMPLEMENTATION` is *intended* to be semantically
+complete: a valid schedule exists and is persisted in `state.json`, contingent
+on the skill honoring the obligation (the engine guard does not mechanically
+enforce a persisted schedule). `schedule` is read-validate-persist, not a
+review mutation, so it fits naturally as a precondition rather than a post-commit
+side effect.
 
-### Two separate scripts (pure tracker + pure orchestrator)
+### DOC states vs. `review_actor` field
 
-Separating A (FSM validator) and B (workflow orchestrator) into two scripts
-would create cleaner module boundaries at the cost of a coordination protocol
-between them. The event is the natural unit of both validation and consequence;
-the single `transition` call from the agent maps cleanly to both responsibilities.
-A two-script design would require callers to invoke two CLIs in sequence with no
-atomicity guarantee across them — reproducing the crash window at a higher level.
+A `review_actor: "llm" | "human"` field in `engine-state.json` works but requires
+callers to parse a field to determine whether to wait. Separate FSM states
+(`DOC-INTERNAL-REVIEW`, `DOC-EXTERNAL-REVIEW-WAIT`) encode the wait condition in
+the state name itself, making resumption logic unambiguous without field parsing.
 
 ### Optimistic concurrency vs. single-writer contract
 
-Optimistic concurrency (read `last_transition_at`, compare before replace) would
-handle concurrent callers on the same spec-dir. This is deferred in favour of
-the single-writer contract (see Single-writer contract in the Scripts section),
-which is sufficient given that supervisor mode enforces the barrier-wait
-discipline. Add optimistic concurrency if a use case arises that cannot honour
-the single-writer constraint.
+Optimistic concurrency (compare `last_transition_at` before `os.replace`) would
+handle concurrent callers on the same spec-dir. The single-writer contract is
+sufficient given that supervisor mode enforces barrier-wait. Add optimistic
+concurrency if a use case arises where the contract cannot be honoured.
 
 ---
 
 ## Testing
 
-The A/B layering enables three independent test layers:
+Four independent test layers:
 
-1. **FSM table tests (A):** for each mode, enumerate all legal transitions and
-   verify they produce the correct next state; enumerate illegal event/state
-   pairs and verify non-zero exit. No loop-cohort involvement.
+1. **FSM table tests:** for each mode, enumerate all legal transitions and verify
+   the correct next state; enumerate illegal event/state pairs and verify non-zero
+   exit with no file mutation.
 
-2. **Guard-refusal tests (A):** stub each guard script to exit non-zero; verify
-   the transition is refused and `engine-state.json` is unchanged; verify the
-   guard call receives the correct arguments.
+2. **Guard-refusal tests:** stub each guard to exit non-zero; verify the
+   transition is refused and `engine-state.json` is unchanged; verify the guard
+   receives the correct arguments.
 
-3. **Side-effect ordering and journaling tests (B):** stub loop-cohort verbs;
-   verify `pending_side_effect` is written before the stub is called and cleared
-   after; simulate a verb failure and verify `last_side_effect_result: "failed"`.
+3. **`run_id` coupling and init/reset tests:** verify that `init` with one file
+   already present refuses; verify that `transition` with mismatched `run_id`
+   across files refuses; verify that `reset` followed by `init` succeeds; verify
+   corrupt-pair recovery across all mismatch orientations.
 
-4. **Recovery tests (B):** write `engine-state.json` with a non-null
-   `pending_side_effect` directly (simulating a mid-flight crash); verify
-   `loop-engine status --json` surfaces it; verify the per-verb recovery
-   instruction (re-run schedule / surface review-record to human).
+4. **Stasis and wave-advancement tests:** write known fingerprints to `state.json`;
+   verify the skill's stasis pre-flight logic detects a match; verify
+   `wave-passed` vs `gates-clean` routing arithmetic from `current_wave_index`.
 
 Tests live at `packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py`.
 
@@ -711,16 +744,20 @@ packs/core/.apm/skills/work-loop/
 ├── SKILL.md                         # skill entry point (LLM reads this)
 ├── scripts/
 │   ├── loop-cohort.py               # task execution state owner
-│   ├── loop-engine.py               # phase FSM validator + workflow orchestrator (new)
-│   ├── check-spec-status.py         # spec Status=Shipped gate (new)
+│   ├── loop-engine.py               # phase FSM validator (proposed — Phase 1)
+│   ├── check-spec-status.py         # spec Status=Shipped gate (proposed)
+│   ├── test-loop-engine.py          # FSM, guard, init/reset, wave/stasis tests
 │   ├── lint-spec-status.py          # spec metadata drift linter (CI/on-demand)
 │   └── lint-traceability.py         # traceability matrix linter
 ├── assets/
 │   └── state.json                   # loop-cohort state template
 └── references/
-    ├── loop-infrastructure.md       # mode/checkpoint tables; agent-facing quick reference (new)
     └── state-schema.md              # state.json field reference
 ```
 
-`engine-state.json` has no separate template file — its six fields and allowed
-values are fully specified in this document and in `loop-engine --help` output.
+`engine-state.json` has no template file — its fields and allowed values are
+fully specified in this document and in `loop-engine --help` output.
+
+The agent-facing quick-reference (`references/loop-infrastructure.md`) and its
+projections into `.agents/` and `.claude/` will land alongside the implementation,
+not with this proposal.
