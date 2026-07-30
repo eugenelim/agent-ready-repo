@@ -828,6 +828,7 @@ windows (before or after the advance completed).
 loop-cohort review inspect <spec-dir> --report <path> --json
 
 # If classification == clean:
+#   (skill writes Status: Shipped to spec.md here — required before check-spec-status.py guard)
 loop-engine transition <spec-dir> reviewers-clean   # guard: check-spec-status.py
 loop-cohort review record <spec-dir> --report <path> --expect-run-id <run_id>
 
@@ -1395,6 +1396,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `references/state-schema.md` reflects the Phase-1 field set and authoritative descriptions
 - Projection parity: `.agents/` and `.claude/` copies match `packs/` source (verified by `make build-check`)
 - `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
+- `docs/architecture/overview.md` updated to reflect Phase-1 as current state
 
 **Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13).
 
