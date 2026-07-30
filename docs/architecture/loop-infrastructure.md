@@ -127,11 +127,14 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
 - Finding fingerprints — `review record --fingerprint` (findings round):
   `previous_finding_fingerprints = finding_fingerprints`, `finding_fingerprints =
   [<supplied fingerprints>]`, `review_retry_count += 1`, `review_round_count += 1`.
-  `review record --report` (clean round): `previous_finding_fingerprints =
-  finding_fingerprints`, `finding_fingerprints = []`, `review_round_count += 1`,
-  `review_retry_count` unchanged. Both forms rotate `finding_fingerprints` to `[]`
-  or the new set, so a subsequent `review inspect` compares against the current
-  round's baseline — not a stale pre-clean set. **Not idempotent** in Phase 1.
+  `review record --report` (clean round): exits non-zero if the report is not
+  clean (i.e. `parse_findings()` returns ≥1 fingerprints, or the clean substring
+  is absent from the file) — findings rounds must go through `--fingerprint`.
+  On a clean report: `previous_finding_fingerprints = finding_fingerprints`,
+  `finding_fingerprints = []`, `review_round_count += 1`, `review_retry_count`
+  unchanged. Both forms rotate `finding_fingerprints` to `[]` or the new set, so
+  a subsequent `review inspect` compares against the current round's baseline —
+  not a stale pre-clean set. **Not idempotent** in Phase 1.
 - Attempt recording — `record-attempt --phase implement --cycle-id
   <run_id>:<transition_sequence>` increments `implementation_retry_count` and
   stores the cycle ID in `last_record_attempt_cycle_id`. Idempotent: a second
@@ -232,22 +235,25 @@ loop-cohort auto-parallel <spec-dir> [--off]
   reserved for operational errors (`<spec-dir>` unresolvable, `state.json` unreadable).
 
   Classification is derived entirely from `parse_findings()` output
-  (`loop-cohort.py` lines 723–751; `FINDING_LINE_RE` lines 717–719):
+  (`parse_findings()` / `FINDING_LINE_RE` in `loop-cohort.py`):
   - `invalid`: report file absent or unreadable, OR (`parse_findings()` returns
-    `[]` AND the report does not contain the literal clean line). `matches_previous_round`
+    `[]` AND the report does not contain the clean substring). `matches_previous_round`
     is `false` (no meaningful comparison).
-  - `clean`: `parse_findings()` returns `[]` AND the report contains the exact line
-    `Clean — ready to commit.` (em-dash `—`). `matches_previous_round` is always
-    `false` when the computed fingerprint set is empty.
+  - `clean`: `parse_findings()` returns `[]` AND the report contains the substring
+    `Clean — ready to commit.` (em-dash `—`) anywhere in the text — identical to
+    the substring check in `cmd_review_record`, not a full-line equality test.
+    `matches_previous_round` is always `false` when the computed fingerprint set is empty.
   - `findings`: `len(parse_findings()) >= 1`. See the **findings-remain floor** below.
 
   `parse_findings()` is the single canonical extractor; `FINDING_LINE_RE` matching
   alone is not sufficient (the algorithm additionally requires a `:` and a digit in
   the citation). If the `adversarial-reviewer` output structure changes, the
   classification predicate and fingerprint format must be updated together.
-  `matches_previous_round` is `true` iff the computed fingerprint set
-  equals `state.finding_fingerprints`. The skill uses this as the canonical
-  stasis check before routing to `reviewers-clean` or `findings-remain`.
+  `matches_previous_round` is `true` iff the computed fingerprint set equals
+  `state.finding_fingerprints`, compared order-insensitively (`sorted(computed) ==
+  sorted(state.finding_fingerprints)` or set equality) — a reordered but otherwise
+  identical finding list is still detected as stasis. The skill uses this as the
+  canonical stasis check before routing to `reviewers-clean` or `findings-remain`.
 
 - **`reset`** — deletes only `state.json`. Idempotent: tolerates already-absent.
   Paired with `loop-engine reset` (each owns only its own file). `loop-cohort
