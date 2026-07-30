@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
-"""workspace-status algorithmic engine — test seam for Order 0 characterization.
+"""workspace-status executable reference model — Order 0 characterization.
 
-Extracts the DAG-resolution and reconciliation logic described in
-packs/core/.apm/skills/workspace-status/SKILL.md into a pure-Python,
-importable module. No production behavior is changed by this file.
+This module is a MANUALLY TRANSCRIBED Python interpretation of the algorithmic
+sections of packs/core/.apm/skills/workspace-status/SKILL.md. It is NOT a seam
+into the production implementation: the live skill is pure model instructions
+executed by an LLM; this module is a Python parallel that the model does not call.
 
-This module exists solely to support characterization tests and benchmarks.
-The canonical implementation is the LLM skill; this extraction makes the
-algorithmic logic testable and measurable without invoking an LLM.
+Relationship to production:
+
+  SKILL.md semantics ──────► model execution  (production path)
+         │
+         └── manually transcribed ──► this engine ──► tests
+
+Tests against this engine prove the Python interpretation is internally
+consistent with its expected values. They do NOT prove parity with production
+behavior. Order 1 will wire this engine (or a successor) as the actual backend;
+only then will these become true production-path unit tests.
+
+SKILL.md contract anchor:
+  SHA-256 of SKILL.md lines 75–180 (DAG resolution + reconciliation sections):
+  61ad933bdb40c5020aa88cc6a3276abe85f4a5f13a745777f2decfb43df62597
+  Tested by test_workspace_status.py::test_skill_contract_anchor.
+  If that test fails, re-read the changed sections and update this engine before
+  editing the fingerprint.
 
 Known gaps (documented in behavior-map.md, not fixed here):
   KD-01: `backlog:<slug>` prefix absent from SKILL.md table

@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """Characterization tests for workspace-status algorithmic behavior.
 
-Tests the workspace_status_engine module (Order 0 test seam) against
-deterministic fixtures built in tempdir. Each fixture models a scenario
-from the spec AC2 list.
+Tests workspace_status_engine against deterministic fixtures.
 
-Run:  python3 tools/test-workspace-status.py
+IMPORTANT: workspace_status_engine is an executable reference model, NOT
+a seam into the production implementation. The live skill is pure LLM
+instructions; this engine is a manually transcribed Python interpretation.
+These tests prove the Python model is internally consistent; they do not
+prove parity with production behavior. See engine docstring for details.
+
+The contract anchor test (test_skill_contract_anchor) will fail when the
+DAG-resolution or reconciliation sections of SKILL.md change, signaling
+that the engine must be reviewed and updated before re-approving the hash.
+
+Run:  python3 tools/test_workspace_status.py
+      python3 -m pytest tools/test_workspace_status.py -q
 Exit: 0 if all pass, 1 if any fail.
 
 Known-defect tests are marked with [KNOWN-DEFECT: KD-NN] and describe
@@ -14,6 +23,7 @@ intentional existing behavior — not desired future behavior.
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import tempfile
 import textwrap
@@ -1011,6 +1021,206 @@ def case_full_analyze() -> None:
                f"[integration] untracked-approved should be Type 1; type1={type1_paths}")
 
 
+# ── Contract anchor — SKILL.md drift guard ───────────────────────────────────
+#
+# SHA-256 of SKILL.md lines 75–180 (DAG resolution + reconciliation sections).
+# When this test fails, the engine's interpretation may be stale. Read the
+# changed sections and reconcile before updating the constant.
+_SKILL_CONTRACT_HASH = (
+    "61ad933bdb40c5020aa88cc6a3276abe85f4a5f13a745777f2decfb43df62597"
+)
+_SKILL_MD = (
+    Path(__file__).resolve().parent.parent
+    / "packs/core/.apm/skills/workspace-status/SKILL.md"
+)
+
+
+def case_skill_contract_anchor() -> None:
+    """Fail when DAG/reconciliation sections of SKILL.md change without update."""
+    if not _SKILL_MD.exists():
+        # Allow running outside the repo root (e.g. isolated tempdir tests)
+        return
+    raw = _SKILL_MD.read_bytes().splitlines(keepends=True)
+    contract = b"".join(raw[74:180])  # lines 75–180 (0-indexed 74–179)
+    actual = hashlib.sha256(contract).hexdigest()
+    expect(
+        actual == _SKILL_CONTRACT_HASH,
+        f"[contract] SKILL.md DAG/reconciliation sections changed "
+        f"(expected {_SKILL_CONTRACT_HASH[:12]}…, got {actual[:12]}…). "
+        "Review the changed lines and update workspace_status_engine.py "
+        "before updating _SKILL_CONTRACT_HASH.",
+    )
+
+
+def test_skill_contract_anchor() -> None:
+    """pytest entry point for the contract anchor."""
+    before = len(FAILURES)
+    case_skill_contract_anchor()
+    after = len(FAILURES)
+    assert after == before, "\n".join(FAILURES[before:])
+
+
+# ── Type 2 cleanup mutation contract ─────────────────────────────────────────
+#
+# The engine is read-only; it describes the SHAPE of the cleanup write but does
+# not perform it. The following cases cover:
+#   - Shipped entry in queue → mutation: queue removed, appended to shipped
+#   - Shipped entry in active → mutation: active removed, appended to shipped
+#   - Archived entry in queue → mutation: queue removed, NOT added to shipped
+#   - Entry absent → no mutation
+#
+# Acceptance gaps (not exercised here; to be covered in Order 1):
+#   - Comment-preserving TOML write (tomlkit) — engine is read-only
+#   - Y-confirmation boundary — model-layer behavior, not algorithmic
+#   - Deduplication in [work].shipped — tomlkit write path, not engine
+#   - Type 1/Type 3 findings do NOT trigger a cleanup offer — not tested here
+
+def case_type2_cleanup_mutation_contract() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Cleanup Contract"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/stale-active-shipped", "spec/stale-active-archived"]
+            shipped = []
+            queue   = ["spec/stale-queue-shipped", "spec/stale-queue-archived"]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+
+        # Shipped in active → active removed, appended to shipped
+        mut = compute_done_step_mutation("spec/stale-active-shipped", initiatives)
+        expect(mut is not None, "[cleanup] stale-active-shipped has mutation")
+        expect(mut["source_list"] == "active", "[cleanup] source=active for shipped-in-active")
+        expect(mut["target_list"] == "shipped", "[cleanup] target=shipped for shipped-in-active")
+        expect(
+            mut["written_form"] == '"spec/stale-active-shipped"',
+            "[cleanup] bare string form for shipped entry",
+        )
+
+        # Shipped in queue → queue removed, appended to shipped
+        mut2 = compute_done_step_mutation("spec/stale-queue-shipped", initiatives)
+        expect(mut2 is not None, "[cleanup] stale-queue-shipped has mutation")
+        expect(mut2["source_list"] == "queue", "[cleanup] source=queue for shipped-in-queue")
+        expect(mut2["target_list"] == "shipped", "[cleanup] target=shipped")
+
+        # Archived in active → active removed, NOT added to shipped
+        # Note: compute_done_step_mutation models the "remove + optionally add to shipped"
+        # shape. The Archived path is handled differently: remove-only.
+        # This is documented here as an acceptance gap — the engine currently returns
+        # the same mutation shape regardless of whether the spec Status is Shipped or
+        # Archived. The caller (workspace-status) is responsible for checking spec status
+        # and omitting the target_list write for Archived entries.
+        mut3 = compute_done_step_mutation("spec/stale-active-archived", initiatives)
+        expect(mut3 is not None, "[cleanup] stale-active-archived has mutation (remove shape)")
+        # Documented gap: engine doesn't distinguish Shipped vs Archived in mutation shape.
+        # Archived entries should NOT be appended to shipped — workspace-status must check.
+
+        # Not present → no mutation
+        mut4 = compute_done_step_mutation("spec/not-tracked", initiatives)
+        expect(mut4 is None, "[cleanup] untracked spec returns no mutation")
+
+
+# ── pytest wrappers for custom-runner cases ───────────────────────────────────
+# Allow `pytest tools/test_workspace_status.py` to discover all cases.
+
+def _run_case(fn) -> None:  # noqa: ANN001
+    before = len(FAILURES)
+    fn()
+    after = len(FAILURES)
+    assert after == before, "\n".join(FAILURES[before:])
+
+
+def test_ac2a_multiple_active_initiatives() -> None:
+    _run_case(case_multiple_active_initiatives)
+
+
+def test_ac2b_paused_closed_initiatives() -> None:
+    _run_case(case_paused_closed_initiatives)
+
+
+def test_ac2c_ordered_queues() -> None:
+    _run_case(case_ordered_queues)
+
+
+def test_ac2d_local_work_deps() -> None:
+    _run_case(case_local_work_deps)
+
+
+def test_ac2e_cross_initiative_deps() -> None:
+    _run_case(case_cross_initiative_deps)
+
+
+def test_ac2f_shape_research_brief_deps() -> None:
+    _run_case(case_shape_research_brief_deps)
+
+
+def test_ac2g_ready_and_transitively_blocked() -> None:
+    _run_case(case_ready_and_transitively_blocked)
+
+
+def test_ac2h_spec_statuses() -> None:
+    _run_case(case_spec_statuses)
+
+
+def test_ac2i_missing_spec_paths() -> None:
+    _run_case(case_missing_spec_paths)
+
+
+def test_ac2j_missing_dep_targets() -> None:
+    _run_case(case_missing_dep_targets)
+
+
+def test_ac2k_dependency_cycles() -> None:
+    _run_case(case_dependency_cycles)
+
+
+def test_ac2l_type1_untracked_live_spec() -> None:
+    _run_case(case_type1_untracked_live_spec)
+
+
+def test_ac2m_type2_stale_entries() -> None:
+    _run_case(case_type2_stale_entries)
+
+
+def test_ac2n_type3_premature_shipped() -> None:
+    _run_case(case_type3_premature_shipped)
+
+
+def test_ac2o_multiple_active_for_workloop() -> None:
+    _run_case(case_multiple_active_for_workloop)
+
+
+def test_ac2p_deferred_backlog_anchors() -> None:
+    _run_case(case_deferred_backlog_anchors)
+
+
+def test_ac3f_shaping_item_guard() -> None:
+    _run_case(case_shaping_item_guard)
+
+
+def test_ac3g_done_step_mutation() -> None:
+    _run_case(case_done_step_mutation)
+
+
+def test_ac3a_dag_all_needs_prefixes() -> None:
+    _run_case(case_dag_all_needs_prefixes)
+
+
+def test_type2_cleanup_mutation_contract() -> None:
+    _run_case(case_type2_cleanup_mutation_contract)
+
+
+def test_integration_full_analyze() -> None:
+    _run_case(case_full_analyze)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
@@ -1033,6 +1243,8 @@ CASES = [
     ("AC3f shaping_item_guard", case_shaping_item_guard),
     ("AC3g done_step_mutation", case_done_step_mutation),
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
+    ("type2_cleanup_mutation_contract", case_type2_cleanup_mutation_contract),
+    ("skill_contract_anchor", case_skill_contract_anchor),
     ("integration full_analyze", case_full_analyze),
 ]
 
