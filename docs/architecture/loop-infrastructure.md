@@ -135,10 +135,15 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   unchanged. Both forms rotate `finding_fingerprints` to `[]` or the new set, so
   a subsequent `review inspect` compares against the current round's baseline —
   not a stale pre-clean set. **Not idempotent** in Phase 1. **Implementation note
-  (PR #816):** the existing `cmd_review_record --report` branch records reports
-  that contain findings and increments `iteration_count`; PR #816 must change it
-  to exit non-zero when `parse_findings()` returns ≥1 or the clean substring is
-  absent, and to increment `review_round_count` (never `review_retry_count`).
+  (PR #816):** the existing `cmd_review_record` shares a single
+  `state["iteration_count"] += 1` write across both branches; PR #816 must replace
+  it with branch-specific counter updates:
+  (a) `--report` branch: exit non-zero when `parse_findings()` returns ≥1 or the
+  clean substring is absent; on success, increment `review_round_count` only
+  (never `review_retry_count`);
+  (b) `--fingerprint` branch: increment both `review_retry_count` and
+  `review_round_count`; add `--expect-run-id` validation.
+  Both branches must drop the shared `iteration_count` write.
 - Attempt recording — `record-attempt --phase implement --cycle-id
   <run_id>:<transition_sequence>` increments `implementation_retry_count` and
   stores the cycle ID in `last_record_attempt_cycle_id`. Idempotent: a second
@@ -608,7 +613,7 @@ is deferred.
 **`findings-remain` guard scope:** enforces `review_retry_count <
 max_review_retries`. Counts findings-only rounds; clean reviews and
 human-blocker round-trips do not consume this budget. Token budget and same-error
-checks are advisory in Phase 1. **Implementation note (PR #816 must make two
+checks are advisory in Phase 1. **Implementation note (PR #816 must make three
 changes to `_evaluate` / `cmd_check`):**
 (1) Remove the stasis comparison (`finding_fingerprints` vs
 `previous_finding_fingerprints`) from `check --phase review` — stasis routing
@@ -619,15 +624,24 @@ review` off `review_retry_count < max_review_retries`; drop the
 `iteration_count`/`max_iterations` cap entirely (`check --phase implement`
 becomes an advisory pass-through in Phase 1 — no blocking cap is specified for
 that phase).
+(3) Remove the module-scope `_template_max_iterations()` helper and the
+`DEFAULTS["max_iterations"]` entry alongside the `_evaluate` cap logic; once
+`assets/state.json` is migrated to the Phase-1 field set, the `max_iterations`
+key is absent and `_template_max_iterations()` would otherwise emit a spurious
+warning on every invocation.
+Also: change `PHASES` from `("plan", "implement", "review")` to
+`("implement", "review", "gates-failed")` and remove the `phase == "plan"` /
+`plan_review_status == "pending"` branches (plan approval moves to
+`plan check-current`).
 
 **`reviewers-clean` in `SPEC-PLAN-REVIEW`** carries no guard — the spec is not
 being shipped.
 
 **`check-spec-status.py`** — CLI contract: `check-spec-status.py <spec-dir>`;
-exits 0 iff `spec.md` contains `**Status:** Shipped`; exits non-zero with a
-one-line reason on stderr otherwise (missing, wrong status, or unparseable).
-It must reuse the same canonical status parser as `lint-spec-status.py` to avoid
-an independent regex. **Scope limitation and named risk acceptance:** the gate
+exits 0 iff the canonical status parser resolves `spec.md`'s Status token to
+`Shipped`; exits non-zero with a one-line reason on stderr otherwise (missing,
+wrong status, or unparseable). It must reuse the same canonical status parser as
+`lint-spec-status.py` to avoid an independent regex. **Scope limitation and named risk acceptance:** the gate
 proves the string is present, not that *this run* wrote it — a stale `Shipped`
 from an abandoned prior run would pass. The reset pair deletes only run-local
 scratch files and does NOT clear `spec.md`. Phase-2 resolution: a run-id-stamped
