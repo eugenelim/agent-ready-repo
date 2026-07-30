@@ -940,14 +940,15 @@ pre-guards (`run_id` preflight and `schedule check-current`) still fire for
 immutability enforcement (see "blocker-applied is not exempt" below and the
 corresponding test). `done` alone is exempt from `schedule check-current`.
 
-**Named risk acceptance — `done` has no mechanical guards:** `done` skips both
-merge verification (deferred) and plan immutability. A mis-firing skill can
-terminate a run with an unmerged or plan-mutated tree and nothing catches it
-mechanically. This is an accepted Phase-1 gap: both omissions are individually
-justified (merge guard deferred; plan-check exempted to avoid stranding merged
-runs), but the combination leaves the only irreversible transition wholly
-trust-based. Merge verification and a post-merge plan-check exemption are
-Phase-2 items.
+**Named risk acceptance — `done` has no merge or plan-immutability guard:** `done`
+skips merge verification (deferred) and plan-immutability enforcement (exempted).
+The run_id preflight still fires, but it gives no protection against merge state
+or plan mutations. A mis-firing skill can terminate a run with an unmerged or
+plan-mutated tree and neither guard catches it. This is an accepted Phase-1 gap:
+both omissions are individually justified (merge guard deferred; plan-check
+exempted to avoid stranding merged runs), but the combination leaves merge-state
+and plan-integrity trust-based. Merge verification and a post-merge plan-check
+exemption are Phase-2 items.
 
 `done` is **exempt from the `schedule check-current` pre-guard** (see Interaction
 Model step 1b). The PR is already merged when `done` fires; plan immutability has
@@ -1154,14 +1155,17 @@ On resume, the agent:
       this is audit-only and does not affect guard caps. Safe to proceed.
     - **`blocker-applied` branch:** additionally, `finding_fingerprints` may
       still hold the prior findings set (not rotated to `[]` by the missed
-      clean record). The next `review inspect` will compare against a stale
-      pre-clean baseline — same hazard as step 7. **Recommended:** regenerate
-      a clean report (re-run the reviewer fan-out), then reissue `review record
-      --report --expect-run-id <run_id>` before firing `blocker-applied` (safe:
-      `--report` only rotates fingerprints to `[]` and increments the audit
-      counter; no cap impact). If regeneration is not possible (e.g. the working
-      tree has changed), fall back to the step-7 accepted limitation: proceed
-      with under-counted budget and stale fingerprint baseline.
+      clean record). The next `review inspect` compares the post-blocker round
+      against a stale non-empty baseline rather than `[]`, which may spuriously
+      surface stasis once (conservative false-positive — unlike step 7's
+      false-negative, this self-corrects from the next round onward). **Recommended:**
+      regenerate a clean report (re-run the reviewer fan-out), then reissue
+      `review record --report --expect-run-id <run_id>` before firing
+      `blocker-applied` (safe: `--report` only rotates fingerprints to `[]` and
+      increments the audit counter; no cap impact). If a clean report cannot be
+      produced (working tree changed, or the re-run itself returns findings), fall
+      back to proceeding with the stale fingerprint baseline and accepting the
+      one-time spurious-stasis risk.
 12. If `state ∈ {SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
     no pending cohort mutation in Phase 1 (spec-plan mutations are skill
     obligations, not tool-driven).
