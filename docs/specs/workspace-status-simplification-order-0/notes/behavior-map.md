@@ -187,6 +187,14 @@ work-loop reads `workspace.toml` in **Step 0 ORIENT**:
    - If Status = `Shipped` → emits **warning only**, does NOT write
    - Does not trigger cleanup; cleanup is workspace-status's responsibility
 
+3. **Shaping-item guard** (Step 0, before PLAN):
+   - Derives slug from the spec path (strips `docs/specs/` prefix and trailing `/`)
+   - Checks **active initiatives only** (`status == "active"`); paused/closed/complete initiatives are skipped
+   - Scans each active initiative's `[shaping_queue].active` and `.backlog` for a slug match
+   - Also scans the top-level `[backlog].open` typed entries for a slug match
+   - On match: stops before PLAN and surfaces the routing skill (see Section 7)
+   - On no match: proceeds to PLAN normally
+
 ---
 
 ## 9. workspace.toml writes performed by work-loop
@@ -264,7 +272,7 @@ removing the duplication. **This is NOT implemented in Order 0.**
 ## 12. Reference: status extraction algorithm
 
 From a `spec.md` file:
-1. Find the first line containing `**Status:**`
+1. Find the first line starting with `- **Status:**`
 2. Transition form `X → Y` (or `X → Y → Z` multi-hop): use a greedy match to capture the first word after the **last** `→`. Examples: `Approved → Shipped` → `Shipped`; `Draft → Approved → Shipped` → `Shipped`.
 3. Simple form: take first word after `**Status:** ` (stop at whitespace or `<!--`)
 4. If no `**Status:**` line → unknown status; skip this path in all scans

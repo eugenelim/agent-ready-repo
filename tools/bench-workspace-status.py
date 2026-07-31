@@ -197,7 +197,7 @@ def run_benchmark() -> dict:
         for ini in active_inis:
             cls = [c for c in result.classifications if c.ini_slug == ini.slug]
             buf.write(f"  {ini.slug}: {len(cls)} queue entries\n")
-            for c in cls[:5]:
+            for c in cls:
                 tag = "READY" if c.is_ready else f"BLOCKED({', '.join(c.blocking_needs)})"
                 buf.write(f"    {c.entry.path}: {tag}\n")
         t1, t2, t3 = len(result.type1), len(result.type2), len(result.type3)
