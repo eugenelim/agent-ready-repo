@@ -867,6 +867,46 @@ def case_deferred_backlog_anchors() -> None:
         expect("another-item" in slugs, "[AC2p] backlog.open second entry parseable")
 
 
+def case_strategy_prefix_gap() -> None:
+    """[KD-08] strategy:<slug> prefix is documented but absent from SKILL.md table.
+
+    Treated conservatively as unsatisfied — same pattern as backlog: (KD-01).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Strategy gap"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = [
+              {path = "spec/needs-strategy", needs = "strategy:some-strategy-item"},
+              {path = "spec/no-strategy-dep"},
+            ]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+        cls = classify_entries(initiatives[0], initiatives)
+        by_path = {c.entry.path: c for c in cls}
+
+        # [KNOWN-DEFECT: KD-08] strategy:<slug> not in SKILL.md table;
+        # treated conservatively as unsatisfied.
+        expect(
+            not by_path["spec/needs-strategy"].is_ready,
+            "[KD-08] strategy: prefix treated as unsatisfied (known gap)",
+        )
+        expect(
+            by_path["spec/no-strategy-dep"].is_ready,
+            "[KD-08] entry without strategy: dep is unaffected",
+        )
+
+
 # ── AC3e: Argless work-loop resume (covered by AC2o above) ───────────────────
 # AC3e is satisfied by case_multiple_active_for_workloop.
 
@@ -1823,6 +1863,10 @@ def test_ac2p_deferred_backlog_anchors() -> None:
     _run_case(case_deferred_backlog_anchors)
 
 
+def test_strategy_prefix_gap() -> None:
+    _run_case(case_strategy_prefix_gap)
+
+
 def test_ac3f_shaping_item_guard() -> None:
     _run_case(case_shaping_item_guard)
 
@@ -1917,6 +1961,7 @@ CASES = [
     ("AC2n type3_premature_shipped", case_type3_premature_shipped),
     ("AC2o multiple_active_for_workloop", case_multiple_active_for_workloop),
     ("AC2p deferred_backlog_anchors", case_deferred_backlog_anchors),
+    ("KD-08 strategy_prefix_gap", case_strategy_prefix_gap),
     ("AC3f shaping_item_guard", case_shaping_item_guard),
     ("AC3f shaping_guard_paused_initiative", case_shaping_guard_paused_initiative),
     ("AC3f shaping_guard_top_level_backlog", case_shaping_guard_top_level_backlog),

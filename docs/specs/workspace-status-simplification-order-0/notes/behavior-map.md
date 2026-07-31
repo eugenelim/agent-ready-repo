@@ -279,6 +279,7 @@ be the mechanism to move Type 1 off the default session-start path (KD-04).
 | KD-05 | Duplication | `work.active`/`work.shipped` duplicate `spec.md Status:`; cause of Type 2 and Type 3 findings (Type 1 is an independent undeclared-work audit) | Architectural |
 | KD-06 | Spec inconsistency | SKILL.md says `shape:<slug>` "treated as shipped if not present" but workspace.toml header says `shape:` without this qualification | Minor |
 | KD-07 | Missing test | `brief:<path>` needs resolution is underspecified; `brief_queue` structure varies | Minor |
+| KD-08 | Spec gap | `strategy:<slug>` needs prefix documented in `workspace-toml-deps.md` but absent from SKILL.md needs-resolution table; treated conservatively as unsatisfied | Minor |
 
 ---
 

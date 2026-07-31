@@ -251,6 +251,7 @@ def run_benchmark() -> dict:
             "type1_findings": len(result.type1),
             "type2_findings": len(result.type2),
             "type3_findings": len(result.type3),
+            "workspace_files_read": 1,  # workspace.toml
             "files_read_by_reconciliation": result.files_read,
             "analysis_elapsed_first_run_s": elapsed_first_run,
             "analysis_elapsed_repeated_run_s": elapsed_repeated_run,
@@ -285,7 +286,8 @@ def main() -> int:
     print(f"  Type 1 findings:          {m['type1_findings']}")
     print(f"  Type 2 findings:          {m['type2_findings']}")
     print(f"  Type 3 findings:          {m['type3_findings']}")
-    print(f"  Files read (reconcil.):   {m['files_read_by_reconciliation']}")
+    print(f"  Workspace files read:     {m['workspace_files_read']}")
+    print(f"  Spec files read (reconcil.): {m['files_read_by_reconciliation']}")
     print(f"  Analysis elapsed — first run:    {m['analysis_elapsed_first_run_s']:.4f}s")
     print(f"  Analysis elapsed — repeated run: {m['analysis_elapsed_repeated_run_s']:.4f}s")
     print(f"  Work-queue diagnostic:    {m['diagnostic_bytes']} bytes")
@@ -300,6 +302,10 @@ def main() -> int:
         errors.append(f"AC4b: need 30–80 queued entries, got {m['queued_entries']}")
     if m["active_initiatives"] < 2:
         errors.append(f"AC4c: need ≥2 active initiatives, got {m['active_initiatives']}")
+    if m["ready_entries"] == 0:
+        errors.append(f"AC4d: need ≥1 ready entry, got {m['ready_entries']}")
+    if m["blocked_entries"] == 0:
+        errors.append(f"AC4d: need ≥1 blocked entry, got {m['blocked_entries']}")
     if not m["cross_dep_blocked"]:
         errors.append(
             "AC4e: expected cross-initiative dep chain (blocked entry with cross-ini need)"
@@ -321,7 +327,8 @@ def main() -> int:
     print(f"  ✓  AC4d: ready={m['ready_entries']}, blocked={m['blocked_entries']} (mix present)")
     print(f"  ✓  AC4e: cross-initiative dep chain (blocked on {CROSS_INI_PROVIDER})")
     print(f"  ✓  AC4f: untracked Approved spec → Type 1 ({m['type1_findings']} finding(s))")
-    print(f"  ✓  AC4g: measurements collected (files={m['files_read_by_reconciliation']}, "
+    print(f"  ✓  AC4g: measurements collected "
+          f"(workspace={m['workspace_files_read']} spec={m['files_read_by_reconciliation']}, "
           f"first={m['analysis_elapsed_first_run_s']:.4f}s "
           f"repeated={m['analysis_elapsed_repeated_run_s']:.4f}s, "
           f"diag={m['diagnostic_bytes']}b, "

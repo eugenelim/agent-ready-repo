@@ -8,7 +8,7 @@
 ## Repo revision
 
 ```
-6e50213d  (branch: eugene/pasted-text-review-v12)
+6e50213d
 ```
 
 ## Benchmark command

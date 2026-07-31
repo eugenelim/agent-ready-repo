@@ -369,6 +369,11 @@ def is_need_satisfied(
     if need.startswith("backlog:"):
         return False
 
+    # `strategy:<slug>` — KD-08: documented in workspace-toml-deps.md but absent from
+    # SKILL.md needs-resolution table; treated conservatively as unsatisfied
+    if need.startswith("strategy:"):
+        return False
+
     # Unknown prefix — conservatively unsatisfied
     return False
 
