@@ -686,10 +686,7 @@ loses the planning context. We do it the other way only when fresh context
 is the *point* — an unattended, fresh-session-per-iteration loop (see the
 work-loop skill).
 
-**Why a hard iteration cap.** Without one, you're hoping. The cap lives as
-data in `state.json` (see below) and is enforced by `loop-cohort check`
-at `.claude/skills/work-loop/scripts/loop-cohort.py`; if you hit it, the
-task is bigger than you thought — stop, re-plan, or split.
+**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by `loop-cohort check --phase gates-failed` and `--phase review` respectively at `.claude/skills/work-loop/scripts/loop-cohort.py`; if you hit one, the task is bigger than you thought — stop, re-plan, or split.
 
 **Why capture learnings.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a
@@ -792,19 +789,11 @@ future maintainer would ask "why", surface it in the PR description.
 
 ### Supervisor mode
 
-**Supervisor mode is wave-scheduled and sequential by default.** The
+**Supervisor mode is wave-scheduled and sequential in Phase 1.** The
 work-loop builds the plan's full `Depends on:` DAG
 (`loop-cohort schedule`) and runs tasks in topological order, single-agent,
 on every adapter — failing loud on a cycle and warning on a
-forward-reference. Parallel `implementer` fan-out is **opt-in and gated**,
-never automatic: a wave runs in parallel only when every task is in a safe
-category (cannot-collide / typed-Group-B / textual-loud) **and** passes a
-`git merge-tree` file-disjointness check (`loop-cohort dispatch-decision`),
-each in its own worktree, merged back with gates run in the primary; any
-other category or merge conflict stays serial. The trigger and concept live
-in the `work-loop` skill §EXECUTE; the step-by-step worktree procedure
-lives in the skill's `references/supervisor-mode.md`. This section is the
-why and the boundary.
+forward-reference. Parallel `implementer` fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is **disabled in Phase 1** — those verbs exit non-zero without touching `state.json`. The design intent for opt-in parallel fan-out and the step-by-step worktree procedure live in the `work-loop` skill §EXECUTE and `references/supervisor-mode.md`. This section is the why and the boundary.
 
 **Why a separate mode instead of a separate skill.** The trigger is
 structural (the plan's shape), not a choice the user makes. Branching
@@ -892,7 +881,7 @@ Two layered mechanisms enforce discipline before a PR opens:
 
 | Layer | Mechanism | What it gates |
 |---|---|---|
-| Caps | `scripts/loop-cohort.py check` in the `work-loop` skill | Iteration cap, token budget, plan approval, fingerprint stasis (see `references/state-schema.md` in the `work-loop` skill). The same tool owns every state mutation upstream of the check. |
+| Caps | `scripts/loop-cohort.py check` in the `work-loop` skill | Implementation retry cap (`--phase gates-failed`) and review retry cap (`--phase review`) (see `references/state-schema.md` in the `work-loop` skill). The same tool owns every state mutation upstream of the check. |
 | Your gate | `tools/hooks/pre-pr.py` | Runs the caps check, then **your project's own** lint / typecheck / test commands — wire them into the stub in `pre-pr.py` (or let the `adapt-to-project` skill fill them in from your detected build commands). |
 
 This is **Shift Left**: catch problems as early as possible, locally

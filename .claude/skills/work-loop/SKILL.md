@@ -380,7 +380,7 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
-- [ ] **Doc-drift invariants hold**: spec `**Status:**` set to `Shipped` — use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` is invalid and will fail `lint-spec-status.py`); every AC is `[x]` or `(deferred: <slug>)`; each deferral resolves in `[backlog].open`; intra-repo references the change touches resolve. Run `scripts/lint-spec-status.py` where Python is available.
+- [ ] **Doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE) — use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` is invalid and will fail `lint-spec-status.py`); every AC is `[x]` or `(deferred: <slug>)`; each deferral resolves in `[backlog].open`; intra-repo references the change touches resolve. Run `scripts/lint-spec-status.py` where Python is available.
 - [ ] Conventional commit format used; no force-push to shared branches.
 - [ ] Learnings captured per [Capture learnings](#capture-learnings).
 - [ ] PR opened (or merged directly) with the four-question template filled in.
@@ -488,6 +488,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `last_event` | `state` | Action |
    |---|---|---|
    | `plan-approved` | `CODE-IMPLEMENTATION` | Write `Status: Implementing` if not set; resume EXECUTE |
+   | `plan-approved` | `DONE` | **spec-plan terminal** — loop ended after plan approval; no EXECUTE follows. PR/merge only |
    | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `python3 scripts/loop-cohort.py wave advance docs/specs/<feature> --from-index <last_event_context.completed_wave_index> --expect-run-id <run_id>` (idempotent); resume EXECUTE |
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `python3 scripts/loop-cohort.py record-attempt docs/specs/<feature> --phase implement --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` where `transition_sequence` was read from `loop-engine status` in step 3 (idempotent); resume EXECUTE |
    | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |
