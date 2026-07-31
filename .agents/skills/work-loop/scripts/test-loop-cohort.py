@@ -1621,6 +1621,25 @@ def test_canonical_plan_normalization(tmp: Path) -> None:
         ok(name)
 
 
+def test_schedule_accepts_level2_task_headings(tmp: Path) -> None:
+    """schedule parses '## T<n>' (level-2) headings for backward-compatible plans."""
+    name = "schedule-accepts-level2-headings"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    level2_plan = (
+        "# Plan\n\n## T1\n\n**Depends on:** none\n\n## T2\n\n**Depends on:** T1\n"
+    )
+    write_plan(spec_dir, content=level2_plan)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    rc, _, err = run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"schedule rejected level-2 headings: exit {rc} — {err.strip()}")
+    else:
+        ok(name)
+
+
 # ── G-plan ordering test ──────────────────────────────────────────────────
 
 
@@ -1724,6 +1743,7 @@ def main() -> int:
             test_classify_report_ship_it_clean,
             test_validate_run_id_rejects_wrong_schema,
             test_canonical_plan_normalization,
+            test_schedule_accepts_level2_task_headings,
             test_gplan_ordering_status_approved_before_approve_plan,
         ]
         for t in tests:

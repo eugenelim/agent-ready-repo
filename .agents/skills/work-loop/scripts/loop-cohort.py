@@ -208,7 +208,9 @@ def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | Non
 #
 # Pure functions over a plan's `Depends on:` graph. Sequential by default.
 
-TASK_HEADING_RE = re.compile(r"^###\s+(T\d+[a-z]?)\b", re.MULTILINE)
+# Accepts both '## T<n>' (level-2) and '### T<n>' (level-3) headings for
+# backward compatibility with existing plans that predate the Phase-1 spec.
+TASK_HEADING_RE = re.compile(r"^#{2,3}\s+(T\d+[a-z]?)\b", re.MULTILINE)
 DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
 TOUCHES_LINE_RE = re.compile(r"^\*\*Touches:\*\*\s*(.+)$", re.MULTILINE)
 _RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")

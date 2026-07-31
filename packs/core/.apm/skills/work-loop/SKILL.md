@@ -492,7 +492,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `last_event` | `state` | Action |
    |---|---|---|
    | `plan-approved` | `CODE-IMPLEMENTATION` | Write `Status: Implementing` if not set; resume EXECUTE |
-   | `plan-approved` | `DONE` | **spec-plan terminal** — loop ended after plan approval; no EXECUTE follows. PR/merge only |
+   | `plan-approved` | `DONE` | **spec-plan terminal** — loop ended after plan approval. PR/merge only. **To start a later code run on the same spec:** Surface to human — confirm intent, then run the reset pair (`loop-engine reset docs/specs/<feature>` then `loop-cohort reset docs/specs/<feature>`) and re-init with `--mode code` |
    | `done` | `DONE` | **code-mode terminal** — loop ended after human approved merge; PR/merge only |
    | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `python scripts/loop-cohort.py wave advance docs/specs/<feature> --from-index <last_event_context.completed_wave_index> --expect-run-id <run_id>` (idempotent); resume EXECUTE |
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `python scripts/loop-cohort.py record-attempt docs/specs/<feature> --phase implement --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` where `transition_sequence` was read from `loop-engine status` in step 3 (idempotent); resume EXECUTE |
