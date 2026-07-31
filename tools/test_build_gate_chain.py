@@ -113,8 +113,8 @@ class BuildCheckChainTest(unittest.TestCase):
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + 8 script steps = 9 total subprocess calls.
-        self.assertEqual(len(order), 9)
+        # 1 module step (catalogue build) + 9 script steps = 10 total subprocess calls.
+        self.assertEqual(len(order), 10)
 
     def test_first_step_is_catalogue_build(self):
         """The first step must invoke agentbundle catalogue build."""
@@ -197,6 +197,7 @@ class BuildCheckChainTest(unittest.TestCase):
                 ".claude/skills/receive-brief/scripts/lint-brief-coverage.py",
                 ".claude/skills/work-loop/scripts/test-lint-traceability.py",
                 ".claude/skills/work-loop/scripts/lint-traceability.py",
+                "tools/test_workspace_status.py",
             ],
         )
 
