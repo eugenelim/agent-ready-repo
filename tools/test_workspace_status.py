@@ -1286,7 +1286,7 @@ def case_full_analyze() -> None:
 _SKIP_ANCHOR_ENV = "WORKSPACE_STATUS_SKIP_ANCHOR"
 
 _SKILL_CONTRACT_HASH = (
-    "84f6341e597ad7510d6fc6214843435f5bc055c6d1f443ae57a305ac278fef83"
+    "0d23c903d6c3f8c2156f892fa97af6c94f8983fada52ec26c7a075042a3b2838"
 )
 _SKILL_MD = (
     Path(__file__).resolve().parent.parent
@@ -1295,6 +1295,9 @@ _SKILL_MD = (
 
 _WORK_LOOP_CONTRACT_HASH = (
     "d2d59e668a8b3003eba484026e9057c31bdd8dedc858384a8a5ceffc2d3b78bc"
+)
+_WORK_LOOP_FINISH_HASH = (
+    "9aa04f96b8ee76a8ff2aa6cabc685d5fc9974c76aa2b1b7532257acc444d69c1"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
@@ -1342,24 +1345,31 @@ def _check_anchor(
 def case_skill_contract_anchor() -> None:
     """Fail when the DAG/reconciliation contract of workspace-status SKILL.md changes.
 
-    Anchors lines 55–180 (0-indexed 54–179): schema field vocabulary (status
+    Anchors lines 55–251 (0-indexed 54–250): schema field vocabulary (status
     active|paused|closed, work/shaping/brief_queue fields), ready/blocked
-    definitions, DAG resolution, and reconciliation sections.
+    definitions, DAG resolution, reconciliation sections, output format for
+    signals (§3 active-context section), skill routing table (§4 including
+    signal → no action), and missing-fields defaults (§5 type absent = shape).
     """
-    _check_anchor(_SKILL_MD, (54, 180), _SKILL_CONTRACT_HASH,
+    _check_anchor(_SKILL_MD, (54, 251), _SKILL_CONTRACT_HASH,
                   "workspace-status contract")
 
 
 def case_work_loop_contract_anchor() -> None:
-    """Fail when the Step 0 ORIENT contract of work-loop SKILL.md changes.
+    """Fail when the Step 0 or finish-checklist contract of work-loop SKILL.md changes.
 
-    The engine characterizes work-loop Step 0 behaviors (lines 69–88):
-      - Argless active-spec resolution (get_active_specs)
-      - Stale-queue check
-      - Shaping-item guard (check_shaping_guard / extract_top_level_backlog)
+    Two anchors:
+    - Lines 69–88 (0-indexed 68–88): Step 0 ORIENT behaviors — active-spec
+      resolution, stale-queue check (warn-only; does NOT update workspace.toml),
+      and shaping-item guard.
+    - Lines 251–266 (0-indexed 250–266): Finish checklist — only sets spec.md
+      Status to Shipped; workspace-status (not work-loop) owns workspace.toml
+      queue/active/shipped updates (AC3g ownership invariant).
     """
     _check_anchor(_WORK_LOOP_MD, (68, 88), _WORK_LOOP_CONTRACT_HASH,
                   "work-loop Step-0 contract")
+    _check_anchor(_WORK_LOOP_MD, (250, 266), _WORK_LOOP_FINISH_HASH,
+                  "work-loop finish-checklist contract")
 
 
 def test_skill_contract_anchor() -> None:
