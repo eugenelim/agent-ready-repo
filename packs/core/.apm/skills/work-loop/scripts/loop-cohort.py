@@ -998,16 +998,11 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if not args.report:
         return stop("review record: one of --report or --fingerprint is required")
     report_path = Path(args.report)
-    if not report_path.exists():
-        return stop(f"review record: report not found at {report_path}")
-    report_text = report_path.read_text(encoding="utf-8")
-
-    # Verify the report is clean (parse_findings returns [] AND clean substring present)
-    fps = parse_findings(report_text)
-    if fps or CLEAN_SUBSTRING not in report_text:
+    result = _classify_report(report_path, state)
+    if result["classification"] != "clean":
+        cls = result["classification"]
         return stop(
-            f"review record --report: report is not clean "
-            f"(findings={len(fps)}, has_clean={CLEAN_SUBSTRING in report_text}); "
+            f"review record --report: report classified as {cls!r}; "
             "use --fingerprint for a findings round"
         )
 
