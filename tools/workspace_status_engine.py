@@ -37,6 +37,8 @@ Known gaps (documented in behavior-map.md, not fixed here):
   KD-06: shape: resolved against .active only; wording inconsistency in SKILL.md/schema
   KD-07: brief:<path> needs underspecified; brief_queue structure varies
   KD-08: strategy:<slug> needs prefix absent from SKILL.md; treated conservatively
+  KD-09: research:<slug> checks only backlog; item in .active (in-progress) erroneously
+         reports satisfied — RFC-0064 requires findings committed before unblocking
 """
 
 from __future__ import annotations

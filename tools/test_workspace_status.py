@@ -386,7 +386,10 @@ def case_shape_research_brief_deps() -> None:
             status = "active"
             milestone = "M1"
             ["ini-001".shaping_queue]
-            active  = [{slug = "active-shape", type = "shape"}]
+            active  = [
+              {slug = "active-shape",    type = "shape"},
+              {slug = "active-research", type = "research"},
+            ]
             backlog = [
               {slug = "backlog-research", type = "research"},
               {slug = "backlog-shape",    type = "shape"},
@@ -398,6 +401,7 @@ def case_shape_research_brief_deps() -> None:
               {path = "spec/needs-active-shape",    needs = "shape:active-shape"},
               {path = "spec/needs-absent-shape",    needs = "shape:never-existed"},
               {path = "spec/needs-backlog-shape",   needs = "shape:backlog-shape"},
+              {path = "spec/needs-active-research", needs = "research:active-research"},
               {path = "spec/needs-research-done",   needs = "research:finished-research"},
               {path = "spec/needs-research-pending",needs = "research:backlog-research"},
             ]
@@ -418,6 +422,9 @@ def case_shape_research_brief_deps() -> None:
                "[AC2f] shape:never-existed satisfied (absent from all lists → treated as done)")
         expect(by_path["spec/needs-backlog-shape"].is_ready,
                "[AC2f] shape:backlog-shape satisfied (in backlog but not active)")
+        expect(by_path["spec/needs-active-research"].is_ready,
+               "[AC2f][KD-09] research:active-research — in active (not backlog) "
+               "erroneously satisfies dep; RFC-0064 requires findings committed first")
         expect(by_path["spec/needs-research-done"].is_ready,
                "[AC2f] research:finished-research satisfied (not in backlog)")
         expect(not by_path["spec/needs-research-pending"].is_ready,
@@ -1350,7 +1357,7 @@ _SKILL_CONTRACT_END = r'^### 6\. Next-actions'
 _WL_STEP0_START = r'^## Step 0\. ORIENT'
 _WL_STEP0_END = r'^## Step 1\. PLAN'
 _WL_FINISH_START = r'^## Finish checklist'
-_WL_FINISH_END = r'^## FIX'
+_WL_FINISH_END = r'Conventional commit format'
 
 _SKILL_CONTRACT_HASH = (
     "2a35d5a0ca04ac4d0d4a840825a261cf2faccd9884364eae46254a68599b1ef1"
@@ -1364,7 +1371,7 @@ _WORK_LOOP_CONTRACT_HASH = (
     "ecd5adb2813efde235d5ae6e1723ce4dba48e4f70ab46befcf8cb58d6e2a6bd0"
 )
 _WORK_LOOP_FINISH_HASH = (
-    "82cc0a4a9107923ab30a48c94588f7a3fc2b54d001ff927ab9501f355446dc59"
+    "8009f975b67a3b8bc0cce17a28a5383398f9847e59e7e2349ebd699aa5af57f4"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
@@ -1448,9 +1455,11 @@ def case_work_loop_contract_anchor() -> None:
     - '## Step 0. ORIENT' → '## Step 1. PLAN': active-spec resolution,
       stale-queue check (warn-only; does NOT update workspace.toml), and
       shaping-item guard.
-    - '## Finish checklist' → '## FIX': only sets spec.md Status to Shipped;
-      workspace-status (not work-loop) owns workspace.toml queue/active/shipped
-      updates (AC3g ownership invariant).
+    - '## Finish checklist' → 'Conventional commit format': the ownership-relevant
+      checklist items including the doc-drift invariant (sets spec.md Status: Shipped)
+      but excluding commit format, learnings, and PR-opening guidance — which are
+      routine maintenance that should not fail build-check. workspace-status (not
+      work-loop) owns workspace.toml queue/active/shipped updates (AC3g invariant).
     """
     _check_section_anchor(
         _WORK_LOOP_MD,

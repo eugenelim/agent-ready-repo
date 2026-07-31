@@ -302,6 +302,7 @@ be the mechanism to move Type 1 off the default session-start path (KD-04).
 | KD-06 | Spec inconsistency | SKILL.md says `shape:<slug>` "treated as shipped if not present" but workspace.toml header says `shape:` without this qualification | Minor |
 | KD-07 | Missing test | `brief:<path>` needs resolution is underspecified; `brief_queue` structure varies | Minor |
 | KD-08 | Spec gap | `strategy:<slug>` needs prefix documented in `workspace-toml-deps.md` but absent from SKILL.md needs-resolution table; treated conservatively as unsatisfied | Minor |
+| KD-09 | Behavior gap | `research:<slug>` checks only `[shaping_queue].backlog`; when a research item moves to `.active` (in-progress) it leaves `backlog` and the dep is erroneously satisfied — RFC-0064 requires findings committed before dependents unblock | Major |
 
 ---
 
