@@ -522,7 +522,7 @@ def run_reconciliation(
                 rel = spec_file.parent.relative_to(specs_dir)
             except ValueError:
                 continue
-            slug = str(rel)
+            slug = rel.as_posix()
             slug_path = Path(slug)
             if slug_path.is_absolute() or ".." in slug_path.parts:
                 continue
