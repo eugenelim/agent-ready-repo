@@ -118,8 +118,7 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   - `plan_hash` — sha256 of canonical(plan.md) at the time `schedule` ran. Canonical form: CRLF → LF, trailing whitespace stripped per line.
     `loop-cohort schedule check-current` verifies this matches the working copy
     at every CODE-* transition (plan immutability enforcement). `check --phase
-    implement` at `wave-complete` enforces advisory bounds only (non-blocking
-    in Phase 1).
+    implement` is a Phase-1 compatibility stub (exits 0; see guard-scope paragraph).
   - `schedule_waves`, `current_wave_index` — persisted by `schedule` for
     cross-run wave resumption.
 
@@ -617,11 +616,11 @@ transitions carry only the run_id preflight. Guards are always read-only calls.
 |---|---|---|---|---|
 | `plan-approved` | code | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort plan check-current <spec-dir> --require-schedule` | Verifies approval + schedule bound to current spec.md + plan.md |
 | `plan-approved` | spec-plan | `SPEC-PLAN-HUMAN-GATE` | `loop-cohort plan check-current <spec-dir>` | Verifies approval bound to current spec.md + plan.md (no schedule) |
-| `wave-complete` | code | `CODE-IMPLEMENTATION` | `loop-cohort check <spec-dir> --phase implement` | Advisory: token budget, same-error (non-blocking in Phase 1; plan immutability is covered by mandatory `schedule check-current` pre-guard) |
+| `wave-complete` | code | `CODE-IMPLEMENTATION` | `loop-cohort check <spec-dir> --phase implement` | Phase-1 compatibility stub: exits 0 unconditionally for any valid Phase-1 state; reads no token-budget or same-error fields (writers absent); plan immutability enforced by mandatory `schedule check-current` pre-guard |
 | `gates-failed` | code | `CODE-VERIFICATION` | `loop-cohort check <spec-dir> --phase gates-failed` | Retry cap: refuses if `implementation_retry_count >= max_implementation_retries` |
 | `wave-passed` | code | `CODE-VERIFICATION` | `loop-cohort wave check <spec-dir> --expect more --wave-index <n>` | Mechanically verify more waves remain; index matches persisted state |
 | `gates-clean` | code | `CODE-VERIFICATION` | `loop-cohort wave check <spec-dir> --expect last` | Mechanically verify current is the final wave |
-| `findings-remain` | code | `CODE-REVIEW` | `loop-cohort check <spec-dir> --phase review` | Review retry cap (`review_retry_count`); advisory: token budget, same-error |
+| `findings-remain` | code | `CODE-REVIEW` | `loop-cohort check <spec-dir> --phase review` | Review retry cap (`review_retry_count < max_review_retries`); token-budget and same-error fields are Phase-2-deferred (no Phase-1 writers or guards defined) |
 | `reviewers-clean` | code | `CODE-REVIEW` | `check-spec-status.py <spec-dir>` | `**Status:** Shipped` before G-pr |
 
 **`plan check-current` scope (code, `--require-schedule`):** verifies
@@ -654,7 +653,7 @@ is deferred.
 **`findings-remain` guard scope:** enforces `review_retry_count <
 max_review_retries`. Counts findings-only rounds; clean reviews and
 human-blocker round-trips do not consume this budget. Token budget and same-error
-checks are advisory in Phase 1. **Implementation note:** the follow-on
+checks are Phase-2-deferred (no Phase-1 writers or guards defined). **Implementation note:** the follow-on
 implementation must make three changes to `_evaluate` / `cmd_check`:
 (1) Remove the stasis comparison (`finding_fingerprints` vs
 `previous_finding_fingerprints`) from `check --phase review` — stasis routing
@@ -663,8 +662,7 @@ moves to `review inspect` in the skill.
 `implementation_retry_count < max_implementation_retries` and `check --phase
 review` off `review_retry_count < max_review_retries`; drop the
 `iteration_count`/`max_iterations` cap entirely (`check --phase implement`
-becomes an advisory pass-through in Phase 1 — no blocking cap is specified for
-that phase).
+is a Phase-1 compatibility stub — exits 0, reads no Phase-2 fields; see guard-scope paragraph).
 (3) Remove the module-scope `_template_max_iterations()` helper and the
 `DEFAULTS["max_iterations"]` entry alongside the `_evaluate` cap logic; once
 `assets/state.json` is migrated to the Phase-1 field set, the `max_iterations`
@@ -814,12 +812,12 @@ gates-failed` in engine-state.json tells the resuming session to reissue
 No `record-attempt` call at this point.
 
 ```
-loop-engine transition <spec-dir> wave-complete   # guard: check --phase implement (advisory only)
+loop-engine transition <spec-dir> wave-complete   # guard: check --phase implement (Phase-1 stub: exits 0)
 ```
 
-The guard fires on every `wave-complete`. It enforces advisory bounds only
-(token budget, same-error — non-blocking in Phase 1 because their writers are
-Phase-2-reserved; effectively a pass-through in Phase 1). Plan immutability is
+The guard fires on every `wave-complete`. It is a Phase-1 compatibility stub:
+it reads no token-budget or same-error fields (their writers are Phase-2-reserved)
+and exits 0 unconditionally for any valid Phase-1 state. Plan immutability is
 enforced by the mandatory `schedule check-current` pre-guard (step 1b) that
 fires before the event-specific guard. The retry cap is guarded at `gates-failed`.
 
@@ -1075,7 +1073,7 @@ Both files are run-local and gitignored.
 
 | Mode | loop-cohort guards | spec-status guard | wave guards | Skill explicit calls |
 |---|---|---|---|---|
-| `code` | `plan-approved` (`plan check-current --require-schedule`), `wave-complete` (`check --phase implement` — advisory only, never blocking in Phase 1), `gates-failed` (`check --phase gates-failed`), `findings-remain` (`check --phase review`) | `reviewers-clean` at CODE-REVIEW | `wave-passed` (`wave check --expect more --wave-index <n>`), `gates-clean` (`wave check --expect last`) | init pair, `approve-plan` + `schedule` before `plan-approved`, `wave advance` after `wave-passed`, `record-attempt` after `gates-failed`, `review inspect` before CODE-REVIEW routing, `review record` after each CODE-REVIEW exit |
+| `code` | `plan-approved` (`plan check-current --require-schedule`), `wave-complete` (`check --phase implement` — Phase-1 stub: exits 0), `gates-failed` (`check --phase gates-failed`), `findings-remain` (`check --phase review`) | `reviewers-clean` at CODE-REVIEW | `wave-passed` (`wave check --expect more --wave-index <n>`), `gates-clean` (`wave check --expect last`) | init pair, `approve-plan` + `schedule` before `plan-approved`, `wave advance` after `wave-passed`, `record-attempt` after `gates-failed`, `review inspect` before CODE-REVIEW routing, `review record` after each CODE-REVIEW exit |
 | `spec-plan` | `plan-approved` (`plan check-current`) | — | — | init pair, `approve-plan` before `plan-approved` |
 
 **Light mode** does not invoke loop-engine or loop-cohort.
@@ -1106,7 +1104,7 @@ SPEC-PLAN-DRAFTING ──spec-ready──► SPEC-PLAN-REVIEW
 ```
 CODE-IMPLEMENTATION
     │  wave-complete
-    │  guard: check --phase implement (advisory only)
+    │  guard: check --phase implement (Phase-1 stub: exits 0)
     ▼
 CODE-VERIFICATION   [skill branches: gates pass? → wave check --expect last
     │                  last wave? → gates-clean; else → wave-passed
@@ -1136,7 +1134,7 @@ CODE-REVIEW
    `implementation_retry_count >= max_implementation_retries`. Fires before repair
    begins (not after), so with a cap of 5 a refused sixth `gates-failed`
    back-edge means five complete repair cycles have been attempted.
-   `check --phase implement` at `wave-complete` enforces advisory bounds only;
+   `check --phase implement` is a Phase-1 compatibility stub (exits 0);
    plan immutability is enforced by the mandatory `schedule check-current`
    pre-guard.
 3. **Stasis** — `review inspect` returns `matches_previous_round: true`; skill
@@ -1144,11 +1142,12 @@ CODE-REVIEW
    lookback: an A→B→A oscillation never matches the immediately-prior round
    and is not flagged. Oscillating findings terminate only via the
    `review_retry_count` cap; the retry cap is the backstop, not stasis detection.
-4. **Token budget** *(advisory, Phase 1)* — no updater defined; guard treats as
-   advisory.
-5. **Consecutive-same-error** *(advisory, Phase 1)* — `--error-fingerprint` and
+4. **Token budget** *(Phase 2 — deferred)* — no Phase-1 writer or guard defined;
+   `check --phase implement` does not read this field.
+5. **Consecutive-same-error** *(Phase 2 — deferred)* — `--error-fingerprint` and
    the related comparison mechanism are Phase-2 reserved; no Phase-1 updater or
-   guard is specified for `consecutive_same_error_count`.
+   guard is specified for `consecutive_same_error_count`; `check --phase implement`
+   does not read this field.
 
 ---
 
@@ -1346,9 +1345,9 @@ A cap guard at `wave-complete` causes an off-by-one: the nth repair increments
 the counter and then the guard refuses before verification — so only n−1 repaired
 attempts can be verified. A guard at `gates-failed` fires before repair begins,
 so a refused nth back-edge means n−1 complete repair cycles have been attempted.
-`wave-complete`'s event-specific guard (`check --phase implement`) is advisory
-only; plan immutability is enforced by the mandatory `schedule check-current`
-pre-guard that fires for all CODE-* transitions except `done`.
+`wave-complete`'s event-specific guard (`check --phase implement`) is a Phase-1
+compatibility stub (exits 0); plan immutability is enforced by the mandatory
+`schedule check-current` pre-guard that fires for all CODE-* transitions except `done`.
 
 ### Single-writer scope in Phase 1
 
@@ -1441,7 +1440,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `review record --fingerprint` stores `sorted(set(supplied_fingerprints))`; duplicate/reordered input produces identical `state.json` (fingerprint canonicalization test)
 - `review record --report` exits non-zero on non-clean report; on clean: increments `review_round_count` only; rotates `finding_fingerprints` to `[]`
 - Counter separation: `--report` never increments `review_retry_count`; `--fingerprint` increments both
-- `check --phase gates-failed` refuses at cap; `check --phase review` refuses at cap; `check --phase implement` is advisory only
+- `check --phase gates-failed` refuses at cap; `check --phase review` refuses at cap; `check --phase implement` exits 0 with no check (Phase-1 stub); test asserts it neither reads nor requires any token-budget or same-error field from `state.json`
 
 **Approach:** Update `loop-cohort.py`: implement `wave advance` with preconditions (`schedule_waves` non-empty; `0 <= n < len-1`); add new `record-attempt` verb with cycle-id idempotency (using `last_record_attempt_cycle_id`); implement `review inspect` with `parse_findings()`-based classification and `sorted(set(...))` stasis comparison; split `review record` into `--fingerprint` and `--report` branches with separate counter logic; store `sorted(set(supplied_fingerprints))` in `finding_fingerprints`. Rework `check --phase` to key off `review_retry_count`, `implementation_retry_count`; remove `iteration_count`/`max_iterations` cap; remove stasis comparison from `check --phase review`.
 
@@ -1471,11 +1470,11 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry matching bumped versions; both fields match exactly; the chosen increment is documented in the PR description with the release-classification decision (major/minor/patch per the disabled-capability policy above)
 - `docs/product/changelog.md` carries a corresponding entry for this core-pack change
 - `FORCE=1 make build-self` reports no projection drift after all canonical pack edits
-- The work-loop Tier-A exclusion at `packs/core/pack.toml` lines 43-44 ("loaded broadly by the plan→execute→review discipline, not by a narrow user-prompt surface; a clean negative set isn't writable for it") is re-verified to remain accurate after Phase-1 changes. If Phase-1 introduces a narrower activation surface that makes Tier-A evals writable, add work-loop to `[pack.evals].skills`, create `packs/core/.apm/skills/work-loop/evals/eval_queries.json`, and run `python3 tools/run-pack-evals.py`; otherwise confirm the comment and no new eval file is needed.
+- The work-loop exclusion comment in `packs/core/pack.toml` (the block immediately above the `[pack.evals]` key — "loaded broadly by the plan→execute→review discipline, not by a narrow user-prompt surface; a clean negative set isn't writable for it") continues to apply to Phase 1: Phase-1 does not introduce a narrower activation surface. No Tier-A `eval_queries.json` is created; no new entry is added to `[pack.evals].skills`. The Phase-1 behavioral changes (sequential wave routing, disabled parallel commands, identity/status-first resumption, human surfacing before non-idempotent replay, last_event routing) are covered by T5's full lifecycle integration tests. The T4 implementer re-verifies the exclusion comment text is unchanged after Phase-1 changes are applied.
 
 **Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Before bumping the pack version, the implementing PR must classify the increment according to the repository's version rules and document the decision. Making `worktree`, `dispatch-decision`, and `auto-parallel` exit non-zero removes previously functional capabilities; the repository's major-removal rule applies unless the implementing PR either (a) preserves those commands as functioning and defers their removal to a separately versioned change, or (b) documents a specific reason the removals do not meet the major threshold. Update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
 
-**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped with documented release-classification decision and matching; `docs/product/changelog.md` entry added; eval disposition confirmed (Tier-A exclusion verified or new eval fixture created).
+**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped with documented release-classification decision and matching; `docs/product/changelog.md` entry added; Tier-A exclusion comment confirmed unchanged (Phase-1 behavioral verification delegated to T5).
 
 ---
 
@@ -1493,7 +1492,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Aborted pre-transition approval mutation: `approve-plan` writes hashes; sequence aborts before `plan-approved`; document is corrected and approved again; `approve-plan` reruns and unconditionally overwrites the old hashes (no cleanup command needed)
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` version fields match; `marketplace.json` reflects the bumped version (no stale projection after `FORCE=1 make build-self`)
-- If Tier-A evals were added in T4: `python3 tools/run-pack-evals.py` passes; otherwise, `pack.toml` Tier-A exclusion comment is confirmed unchanged
+- `packs/core/pack.toml` Tier-A exclusion comment is confirmed unchanged (Phase-1 does not introduce a narrower activation surface; Phase-1 behavioral verification lives in T5's integration tests)
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
