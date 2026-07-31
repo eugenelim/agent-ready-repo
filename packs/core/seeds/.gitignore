@@ -6,6 +6,7 @@
 
 # Work-loop session state — per-spec scratch, never committed.
 docs/specs/**/state.json
+docs/specs/**/engine-state.json
 
 # Supervisor-mode worktrees.
 .worktrees/

@@ -904,7 +904,7 @@ def _classify_report(report_path: Path, state: dict) -> dict:
     """
     try:
         report_text = report_path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return {
             "classification": "invalid",
             "fingerprints": [],

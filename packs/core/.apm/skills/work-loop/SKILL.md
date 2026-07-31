@@ -117,7 +117,7 @@ After orientation:
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
+10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), if `state.json` is present (orphaned cohort from a prior partial run) run `loop-cohort reset` first. Then run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
     ```bash
     run_id=$(python3 scripts/loop-engine.py init docs/specs/<feature> \
         --mode code --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
@@ -254,11 +254,13 @@ loop-cohort.py review record docs/specs/<feature> \
     --expect-run-id "$run_id"
 # Fix findings and return to CODE-IMPLEMENTATION.
 
-# 2c. Clean — write Status: Shipped, record the clean round, fire reviewers-clean:
-loop-cohort.py review record docs/specs/<feature> \
-    --report <report-path> --expect-run-id "$run_id"
+# 2c. Clean — write Status: Shipped, fire reviewers-clean, then record the round
+#     (transition first; record is non-idempotent — recording first then
+#      crashing leaves CODE-REVIEW with the audit count already moved):
 python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
                    # guard: check-spec-status.py; requires Status: Shipped
+loop-cohort.py review record docs/specs/<feature> \
+    --report <report-path> --expect-run-id "$run_id"
 ```
 `review inspect` classifies the report into `findings` / `clean` / `invalid`; exit 0 for all content outcomes (use `invalid` as a signal to Surface — the reviewer output is malformed). `matches_previous_round=True` on a `findings` round = stasis → Surface to human, don't spin another round. `review record --fingerprint` increments both `review_round_count` and `review_retry_count`; `review record --report` (clean path) increments only `review_round_count`. `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`.
 
@@ -410,3 +412,33 @@ Load when the predicate fires; don't load speculatively.
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | Supervisor / wave / worktree / parallel mode | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
+
+## Session Resumption (full mode)
+
+When `engine-state.json` is present, do **not** call `loop-engine init`. Instead:
+
+1. `loop-engine status docs/specs/<feature> --json` → read `state`, `last_event`,
+   `last_event_context`, `run_id`, `pending_human_wait`. Non-zero exit means
+   no resumable state — reset both files (`loop-engine reset` then
+   `loop-cohort reset`) and start a new run.
+2. `loop-cohort identity docs/specs/<feature> --expect-run-id <run_id>` →
+   verify the pair. Surface and stop if non-zero.
+3. `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
+   `schedule_waves`, `review_retry_count`, `implementation_retry_count`.
+4. If `pending_human_wait` → wait for the human signal before firing any
+   exit event.
+5. Route by `last_event` to pick up where the session left off:
+
+   | `last_event` | `state` | Action |
+   |---|---|---|
+   | `plan-approved` | `CODE-IMPLEMENTATION` | Write `Status: Implementing` if not set; resume EXECUTE |
+   | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `wave advance --from-index <last_event_context.completed_wave_index>` (idempotent); resume EXECUTE |
+   | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `record-attempt --cycle-id <run_id>:<transition_sequence>` (idempotent); resume EXECUTE |
+   | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |
+   | `blocker-applied` | `CODE-IMPLEMENTATION` | Resume implementation directly (Status: Shipped stays; do not rewrite) |
+   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal; after signal, surface `review record --report` audit risk before replaying |
+   | `wave-complete` | `CODE-VERIFICATION` | Re-run gates; fire `wave-passed` or `gates-clean` or `gates-failed` |
+   | `gates-clean` | `CODE-REVIEW` | Re-run reviewer fan-out and `review inspect` |
+
+6. States in `{SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
+   resume spec/plan work per skill prose; no pending cohort mutation in Phase 1.
