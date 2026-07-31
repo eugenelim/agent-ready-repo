@@ -104,7 +104,7 @@ For the end-to-end narrative with the parts in context, read [core-pack.md § Ho
 ### Termination cues you'll see
 
 - **Gates green and review clean** → ship.
-- **`loop-cohort.py check` exits non-zero** → the script tells you which cap fired (iteration cap, token budget, consecutive errors, plan not approved, or fingerprint stasis). Read the message; don't override.
+- **`loop-cohort.py check` exits non-zero** → the script tells you which cap fired (implementation retry cap or review retry cap). Read the message; don't override.
 - **Diff is shrinking but findings aren't** → you're spot-fixing without addressing root cause. Back to PLAN.
 
 If any of these fire and the work isn't done, the task is bigger than you thought. Re-plan rather than expanding scope silently.
@@ -113,17 +113,17 @@ If any of these fire and the work isn't done, the task is bigger than you though
 
 ### Resume an in-flight spec
 
-`work-loop` reads `docs/specs/<feature>/` and picks up from `state.json`. Phrase as "resume the X work" or "continue on `docs/specs/X`". Pre-EXECUTE review won't re-fire unless you amended the spec or plan since the last pass — or the re-plan introduced one of the four structural triggers.
+`work-loop` reads `docs/specs/<feature>/` and picks up from both `engine-state.json` (FSM phase) and `state.json` (execution counters and wave progress). Phrase as "resume the X work" or "continue on `docs/specs/X`". The Session Resumption protocol in the skill reads `loop-engine status --json` first, then `loop-cohort status --json`, and routes by `last_event`.
 
-`state.json` is gitignored session-scratch — on a fresh checkout (new machine, after `git clean`, a teammate's box), the loop re-initializes it via `loop-cohort.py init` and treats the spec / plan / diff as authoritative.
+Both files are gitignored session-scratch — on a fresh checkout (new machine, after `git clean`, a teammate's box), the loop re-initializes with engine first: `loop-engine init --json` produces the `run_id`; `loop-cohort init <spec-dir> --run-id <run_id>` registers it. Any other init order causes the engine's identity preflight to reject every subsequent transition.
 
 ### Spec amendment mid-flight
 
-If EXECUTE discovers a missing or wrong task, update `plan.md` first, then resume. The pre-EXECUTE adversarial review re-fires automatically if the re-plan introduces any structural trigger. This is by design — most over-engineering surfaces mid-flight, not during initial PLAN.
+Once `plan-approved` is fired, `schedule check-current` guards every subsequent transition against the approved plan hash. A post-approval `plan.md` edit will cause the next transition to be rejected — the approved plan is immutable. If EXECUTE discovers a fundamentally missing or wrong task, surface that to a human and start a new run rather than editing in place. The only safe post-approval edits are trailing-whitespace and line-ending normalization — `canonical_plan()` normalizes only those two, so any other change (including comments) invalidates the hash.
 
 ### Parallel implementers (supervisor mode)
 
-If your plan has two or more tasks declaring `Depends on: none`, `work-loop` fans out into supervisor mode and dispatches one `implementer` subagent per independent task. The procedure lives in [`references/supervisor-mode.md`](../../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md); the loop loads it on demand.
+Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 — those verbs exit non-zero without touching `state.json`. The full parallel-dispatch design (opt-in, gated, wave-scheduled) is documented in [`references/supervisor-mode.md`](../../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md) for future phases.
 
 ## Pitfalls
 

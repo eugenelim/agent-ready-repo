@@ -19,6 +19,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`work-loop` Phase-1 loop-infrastructure split (core 1.0.0 — major).** The work-loop
+  tooling is split into two scripts with a hard boundary. `loop-engine.py` is a pure FSM
+  phase tracker (read-only except `init`/`transition`/`reset`; owns `engine-state.json`)
+  with two modes (`code`, 13 transitions; `spec-plan`, 5 transitions). `loop-cohort.py`
+  is rewritten as the sole writer of `state.json`; new verbs include `identity`,
+  `plan check-current [--require-schedule]`, `record-attempt`, `wave check`, `wave
+  advance`, and `review inspect`. `check-spec-status.py` guards the `reviewers-clean`
+  event in code mode. A `run_id` UUID generated at engine `init` is shared between both
+  state files and verified on every mutating call via `--expect-run-id`. Phase-1 parallel
+  verbs (`worktree`, `dispatch-decision`, `auto-parallel`) are disabled — they exit
+  non-zero. The `pre-pr.py` enforcement hook now reads `engine-state.json` to skip the
+  `check --phase review` cap check when the FSM is not in `CODE-REVIEW` (avoids false
+  positives during `CODE-IMPLEMENTATION` and after `CODE-HUMAN-GATE`/`DONE`).
+  **Breaking changes (version classification: major):** `worktree`
+  subcommands are disabled (they exit non-zero). Dependent packs governance-extras (0.9.4), iac-terraform
+  (0.1.5), monorepo-extras (0.1.5), and release-engineering (0.1.8) updated their core
+  constraint from `^0.1` to `^1.0`.
+
+- **governance-extras 0.9.4** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
+- **iac-terraform 0.1.5** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
+- **monorepo-extras 0.1.5** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
+- **release-engineering 0.1.8** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
 - **`agentbundle` 0.27.0 — `[[pack.integrations]]` convention**: packs can now
   declare optional cross-pack behavior seams in `pack.toml`. The new
   `[[pack.integrations]]` array (governed by `contracts/pack.schema.json`) carries
@@ -85,6 +111,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when to add `JOURNEY.md`, the full frontmatter contract, stage contract, state
   vocabulary, skill validation, route preservation, installation exclusion, migration
   procedure, and dual-ownership rules.
+
+## [core][1.0.0] — 2026-07-31
+
+### Added
+
+- **`loop-engine.py`** — new Phase-1 FSM phase tracker for the work-loop. See `[Unreleased]` for full detail.
+
+### Changed
+
+- **`loop-cohort.py`** — Phase-1 rewrite with new verbs and split counter semantics. See `[Unreleased]`.
+
+### Removed (breaking)
+
+- **`worktree` subcommands** — disabled in Phase 1; all exit non-zero.
+
+## [release-engineering][0.1.8] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
+
+## [monorepo-extras][0.1.5] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
+
+## [iac-terraform][0.1.5] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
+
+## [governance-extras][0.9.4] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
 
 ## [product-documentation][0.1.0] — 2026-07-28
 

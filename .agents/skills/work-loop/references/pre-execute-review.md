@@ -27,27 +27,26 @@ AGENTS.md **"Check before acting"** list (when installed elsewhere this slug
 arrives as a fragment under `docs/AGENTS.fragments/`; merge the items the adopter
 wants into their own AGENTS.md).
 
-## Re-fire on mid-EXECUTE re-plan
+## Mid-EXECUTE re-plan — Phase-1 note
 
-If EXECUTE discovers a missing or wrong task and updates `plan.md` per the
-*Design tests up front* rule, re-evaluate the structural-change checklist against
-the updated plan. If a re-plan introduces any of the four conditions (new module
-boundary / new dependency / new abstraction layer / new top-level directory) that
-the original plan did not, the trigger re-fires and the reviewer re-runs before
-EXECUTE resumes. This is where most over-engineering emerges in practice — a
-tempting abstraction surfaces mid-flight, not during the original PLAN — so the
-one-shot trigger is not enough.
+In Phase 1 approved plans are **immutable**: `loop-cohort plan check-current`
+guards every `CODE-*` transition against the scheduled `plan_hash`; any edit to
+`plan.md` after `approve-plan` causes a refusal. If EXECUTE discovers a plan
+error, surface to the human and stop — do not edit `plan.md` in-flight. The
+full mid-EXECUTE re-plan path (structural-change re-fire, reviewer re-run, new
+approval) is a Phase-2 feature; this section will be updated when it ships.
 
 ## Why early, and the gate mechanism
 
 Cheap-to-fix-early applies harder to specs and structural decisions than to code
 — catching a vague behavior, a missing `Depends on:`, a mismatched verification
 mode, or a misplaced module boundary here costs a sentence; catching it
-post-EXECUTE costs a re-do. Gate mechanism is unchanged: the `loop-cohort
-approve-plan` verb flips `state.json.plan_review_status` to `approved` once the
-reviewer is clean; `loop-cohort check <spec-dir> --phase plan` unlocks EXECUTE.
-No new state fields. **Both triggers respect the Profile-A opt-out:** skip if the
-project doesn't use the reviewer at all.
+post-EXECUTE costs a re-do. Gate mechanism in Phase 1: the `loop-cohort
+approve-plan` verb writes `approved_plan_hash` to `state.json`; `loop-cohort
+plan check-current` (with `--require-schedule` for `code` mode) verifies the
+hash and unlocks the `plan-approved` transition. No new state fields. **Both
+triggers respect the Profile-A opt-out:** skip if the project doesn't use the
+reviewer at all.
 
 ## Secure-design review — net-new wiring and the infra-mandatory pass
 

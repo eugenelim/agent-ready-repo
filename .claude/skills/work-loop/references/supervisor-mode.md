@@ -1,5 +1,11 @@
 # Supervisor mode — procedure
 
+> **Phase 1:** `dispatch-decision`, `worktree {add, record, list, merge, cleanup, preflight}`,
+> and `auto-parallel` are **disabled** — those verbs exit non-zero. The parallel
+> fan-out path in this document is unavailable until Phase 2. Run tasks
+> sequentially; use `loop-cohort schedule <spec-dir> --expect-run-id "$run_id"` for
+> topological order.
+
 **Default is sequential.** Supervisor mode computes the plan's full
 `Depends on:` DAG (`loop-cohort schedule <spec-dir>`) and runs tasks in
 **topological order, single-agent, on every adapter** — it does *not*
@@ -77,6 +83,12 @@ updates, merges, cleanup — is owned by the `loop-cohort` tool at
 write-second / state-update-last ordering and atomic JSON writes; do
 not edit `state.json` or invoke `git worktree` directly.
 
+> **Phase 2 only.** The procedure below describes the parallel dispatch path,
+> which is unavailable in Phase 1. The verbs `dispatch-decision`, `worktree`,
+> and `auto-parallel` all exit non-zero in Phase 1 — run tasks sequentially
+> using the topological order from `loop-cohort schedule`. This section is
+> retained as the Phase 2 specification target.
+
 ## The procedure
 
 0. **Pre-flight: surface stale worktrees.** Run
@@ -130,7 +142,8 @@ not edit `state.json` or invoke `git worktree` directly.
       unvalidated name.
    2. Copies the report verbatim to
       `docs/specs/<feature>/notes/implementer-<task-id>-<iteration>.md`,
-      where `<iteration>` is the current `state.json.iteration_count`.
+      where `<iteration>` is the current `state.json.implementation_retry_count`
+      (Phase-1 field; Phase-2 may introduce a dedicated counter).
       On a fresh loop the value is `0`, so the first attempt lands as
       `…-0.md`; subsequent re-plans see the counter bumped (see step 4
       below) so reports never overwrite one another.
@@ -148,7 +161,7 @@ not edit `state.json` or invoke `git worktree` directly.
    not merge. Surface the failed-task list (with `report_path`
    pointers), then return to PLAN and revise the offending task. The
    next supervisor pass's `worktree record` call (or `review record`
-   on the surrounding loop) will bump `iteration_count`, so report
+   on the surrounding loop) will bump `implementation_retry_count`, so report
    filenames won't collide. Do not redispatch the same implementer on
    the same task — the assumption that produced the failure is what
    needs revising, not the attempt.

@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "0.9.3"
+version = "0.9.4"
 description = "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -28,7 +28,7 @@ allowed-scopes = ["repo"]
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^0.1"
+version = "^1.0"
 
 # pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is

@@ -189,15 +189,30 @@ def test_dispatch_fails_closed():
 
 # ── T3: `schedule` verb (AC4) — real file-path invocation via subprocess ────
 
+import json  # noqa: E402
 import subprocess  # noqa: E402
 import sys  # noqa: E402
+import uuid  # noqa: E402
+
+
+def _seed_state(tmp_path):
+    """Seed a minimal Phase-1 state.json and return the run_id."""
+    run_id = str(uuid.uuid4())
+    (tmp_path / "state.json").write_text(
+        json.dumps({"schema_version": 1, "run_id": run_id}), encoding="utf-8"
+    )
+    return run_id
 
 
 def _schedule(tmp_path, plan_text):
+    run_id = _seed_state(tmp_path)
     plan = tmp_path / "plan.md"
     plan.write_text(plan_text, encoding="utf-8", newline="\n")
     return subprocess.run(
-        [sys.executable, str(LC_PATH), "schedule", str(tmp_path), "--plan", str(plan)],
+        [
+            sys.executable, str(LC_PATH), "schedule", str(tmp_path),
+            "--plan", str(plan), "--expect-run-id", run_id,
+        ],
         capture_output=True, text=True,
     )
 
@@ -241,75 +256,34 @@ def _dispatch(*args):
 
 
 def test_dispatch_decision_verb_safe_no_branches_parallel():
-    # all-safe categories, no branches to conflict (<2) → clean → parallel.
+    # Phase 1: dispatch-decision is disabled — exits non-zero with clear message.
     r = _dispatch("--category", "cannot-collide", "--category", "typed-group-b")
-    assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "parallel"
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 def test_dispatch_decision_verb_non_safe_serial():
-    # a non-safe category fails closed even with nothing to merge.
+    # Phase 1: dispatch-decision is disabled — exits non-zero with clear message.
     r = _dispatch("--category", "cannot-collide", "--category", "dangerous")
-    assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "serial"
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 # ── T7: cleared-gate surface rationale (AC10) ───────────────────────────────
+# Phase 1: _dispatch_rationale is removed alongside the dispatch-decision verb.
+# The pure dispatch_decision() function (unit-testable) still exists.
 
-
-def test_dispatch_rationale_parallel_names_eligible_and_count():
-    # parallel-eligible rationale names the wave as eligible + the task count.
-    msg = lc._dispatch_rationale(
-        ["cannot-collide", "typed-group-b"], merge_tree_clean=True, decision="parallel"
-    )
-    assert "parallel-eligible" in msg.lower()
-    assert "2" in msg
-
-
-def test_dispatch_rationale_serial_non_safe_names_category():
-    msg = lc._dispatch_rationale(
-        ["cannot-collide", "shared-state"], merge_tree_clean=True, decision="serial"
-    )
-    assert "non-safe" in msg.lower()
-    assert "shared-state" in msg
-
-
-def test_dispatch_rationale_serial_overlap_names_merge_tree():
-    # branch overlap → name the git merge-tree conflict, not specific files.
-    msg = lc._dispatch_rationale(
-        ["cannot-collide"], merge_tree_clean=False, decision="serial"
-    )
-    assert "git merge-tree" in msg
-
-
-def test_dispatch_rationale_both_fail_tiebreak_is_merge_tree():
-    # both non-safe AND overlapping → merge-tree reason wins (short-circuit order).
-    msg = lc._dispatch_rationale(
-        ["shared-state"], merge_tree_clean=False, decision="serial"
-    )
-    assert "git merge-tree" in msg
-    assert "shared-state" not in msg  # the category reason is NOT what's named
-
-
-def test_decision_and_rationale_stay_coupled_on_both_fail():
-    # AC10 tie-break correctness depends on dispatch_decision and
-    # _dispatch_rationale sharing the merge_tree_clean-first short-circuit.
-    # Drive BOTH from the same both-fail input so a future reorder of either
-    # function trips this test (not just a stale docstring).
-    cats, clean = ["shared-state"], False
-    decision = lc.dispatch_decision(cats, merge_tree_clean=clean)
-    assert decision == "serial"
-    msg = lc._dispatch_rationale(cats, merge_tree_clean=clean, decision=decision)
-    assert "git merge-tree" in msg          # the merge-tree half is named first
-    assert "shared-state" not in msg        # not the category half
+def test_dispatch_decision_pure_function_still_exists():
+    # Phase 1: the pure function remains for future use; only the CLI verb is disabled.
+    assert lc.dispatch_decision(["cannot-collide"], merge_tree_clean=True) == "parallel"
+    assert lc.dispatch_decision(["shared-state"], merge_tree_clean=True) == "serial"
 
 
 def test_dispatch_decision_verb_parallel_emits_rationale_to_stderr():
-    # stdout stays the bare token; the human-facing rationale lands on stderr.
+    # Phase 1: dispatch-decision verb is disabled — exits non-zero.
     r = _dispatch("--category", "cannot-collide", "--category", "typed-group-b")
-    assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "parallel"
-    assert "parallel-eligible" in r.stderr.lower()
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 # ── supervisor-auto-classify T1: classify_task (AC1–AC4) ────────────────────
@@ -357,25 +331,12 @@ def test_classify_labels_outside_safe_categories_except_cannot_collide():
 
 
 # ── T1: added_paths_may_share_symbol (AC8 unit) ─────────────────────────────
+# Phase 1: added_paths_may_share_symbol is removed alongside dispatch-decision.
+# The cross-branch symbol-collision check was only called from dispatch-decision.
 
-
-def test_share_symbol_shared_basename_true():
-    assert lc.added_paths_may_share_symbol([{"x/plugin.py"}, {"y/plugin.py"}]) is True
-
-
-def test_share_symbol_shared_parent_dir_true():
-    assert lc.added_paths_may_share_symbol([{"plugins/a.py"}, {"plugins/b.py"}]) is True
-
-
-def test_share_symbol_disjoint_false():
-    assert lc.added_paths_may_share_symbol([{"x/a.py"}, {"y/b.py"}]) is False
-
-
-def test_share_symbol_distinct_root_files_false():
-    # two distinct-basename repo-root additions must NOT serialize (root "" is
-    # excluded from the shared-dir match; a same-named root add is a merge-tree
-    # conflict caught elsewhere). Pins the Concern-3 fix.
-    assert lc.added_paths_may_share_symbol([{"README.md"}, {"LICENSE"}]) is False
+def test_share_symbol_not_exposed_in_phase1():
+    # Confirms the function is not accidentally retained in the Phase-1 surface.
+    assert not hasattr(lc, "added_paths_may_share_symbol")
 
 
 # ── supervisor-auto-classify T2: dispatch-decision auto-path (AC5–AC10) ──────
@@ -415,53 +376,56 @@ def _dispatch_in(repo, *args):
 
 
 def test_verb_auto_all_added_disjoint_is_parallel(tmp_path):
+    # Phase 1: dispatch-decision --branch is disabled.
     repo = _mk_repo(tmp_path)
     _branch(repo, "p", "feat_p/p.py")
     _branch(repo, "q", "feat_q/q.py")
     r = _dispatch_in(repo, "--branch", "p", "--branch", "q")
-    assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "parallel"
-    assert "auto-derived" in r.stderr.lower()          # AC7: auto, not human
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 def test_verb_auto_modified_existing_is_serial(tmp_path):
+    # Phase 1: dispatch-decision --branch is disabled.
     repo = _mk_repo(tmp_path)
-    _branch(repo, "m", "base.py", "BASE = 2\n")         # modifies existing
+    _branch(repo, "m", "base.py", "BASE = 2\n")
     _branch(repo, "p", "feat_p/p.py")
     r = _dispatch_in(repo, "--branch", "m", "--branch", "p")
-    assert r.stdout.strip() == "serial"
-    assert "modified-existing" in r.stderr             # AC7 names the signal
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 def test_verb_auto_cross_branch_shared_basename_is_serial(tmp_path):
+    # Phase 1: dispatch-decision --branch is disabled.
     repo = _mk_repo(tmp_path)
-    _branch(repo, "c1", "dirA/plugin.py")               # both add plugin.py
+    _branch(repo, "c1", "dirA/plugin.py")
     _branch(repo, "c2", "dirB/plugin.py")
     r = _dispatch_in(repo, "--branch", "c1", "--branch", "c2")
-    assert r.stdout.strip() == "serial"
-    assert "cross-branch-symbol" in r.stderr            # AC8 integration
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 def test_verb_auto_unresolvable_base_fails_closed(tmp_path):
+    # Phase 1: dispatch-decision --branch is disabled (exits non-zero).
     repo = _mk_repo(tmp_path)
     _branch(repo, "p", "feat_p/p.py")
-    _git(repo, "checkout", "-q", "--orphan", "orphan")  # no common ancestor
+    _git(repo, "checkout", "-q", "--orphan", "orphan")
     (repo / "o.py").write_text("O = 1\n", encoding="utf-8", newline="\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "orphan")
     _git(repo, "checkout", "-q", "main")
     r = _dispatch_in(repo, "--branch", "p", "--branch", "orphan")
-    assert r.stdout.strip() == "serial"                 # AC9 fail-closed
-    assert "base" in r.stderr.lower()
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 def test_verb_category_override_takes_precedence(tmp_path):
+    # Phase 1: dispatch-decision --category override is also disabled.
     repo = _mk_repo(tmp_path)
     _branch(repo, "p", "feat_p/p.py")
     r = _dispatch_in(repo, "--branch", "p", "--category", "typed-group-b")
-    assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "parallel"               # typed-group-b is safe
-    assert "human-supplied" in r.stderr.lower()         # AC6 override path
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 # ── supervisor-predict-disjointness PD-T1: parse Touches: (AC1) ──────────────
@@ -617,19 +581,21 @@ def _run_lc(*args):
 def test_init_state_has_auto_parallel_false(tmp_path):
     spec = tmp_path / "spec"
     spec.mkdir()
-    r = _run_lc("init", str(spec))
+    run_id = str(uuid.uuid4())
+    r = _run_lc("init", str(spec), "--run-id", run_id)
     assert r.returncode == 0, r.stderr
     assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC1
 
 
 def test_auto_parallel_verb_flips_both_ways(tmp_path):
+    # Phase 1: auto-parallel verb is disabled — exits non-zero.
     spec = tmp_path / "spec"
     spec.mkdir()
-    _run_lc("init", str(spec))
-    assert _run_lc("auto-parallel", str(spec)).returncode == 0
-    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is True   # AC2
-    assert _run_lc("auto-parallel", str(spec), "--off").returncode == 0
-    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC2 --off
+    run_id = str(uuid.uuid4())
+    _run_lc("init", str(spec), "--run-id", run_id)
+    r = _run_lc("auto-parallel", str(spec))
+    assert r.returncode != 0
+    assert "disabled in Phase 1" in r.stderr
 
 
 def test_auto_parallel_not_a_gate_input():

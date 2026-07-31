@@ -1,6 +1,6 @@
-"""T5 (adopter-clean-enforcement-gate AC6): `max_iterations` is single-sourced.
+"""T5 (adopter-clean-enforcement-gate AC6): `max_implementation_retries` is single-sourced.
 
-The iteration cap lives in exactly one place — the bundled `state.json` template
+The implementation-retry cap lives in exactly one place — the bundled `state.json` template
 (the adopter-visible per-spec knob). `loop-cohort.py` DEFAULTS derives its value
 from the template rather than hard-coding a duplicate literal, so an adopter
 changes the cap in one place.
@@ -28,30 +28,30 @@ def _load_module():
 
 
 def test_defaults_has_no_hardcoded_max_iterations_literal() -> None:
-    """The duplicate literal is gone from loop-cohort.py — it derives instead."""
+    """The old max_iterations literal is gone from loop-cohort.py."""
     src = LOOP_COHORT.read_text(encoding="utf-8")
     assert not re.search(r'"max_iterations"\s*:\s*\d+', src), (
-        "loop-cohort.py must not hard-code a max_iterations literal; it derives "
-        "the value from the bundled state.json template (single source)."
+        "loop-cohort.py must not contain a max_iterations literal; "
+        "Phase 1 renamed the field to max_implementation_retries."
     )
 
 
 def test_default_matches_template() -> None:
-    """The derived DEFAULT equals the template's value (the single source)."""
-    template_val = json.loads(TEMPLATE.read_text())["max_iterations"]
+    """DEFAULTS['max_implementation_retries'] equals the template's value (single source)."""
+    template_val = json.loads(TEMPLATE.read_text())["max_implementation_retries"]
     mod = _load_module()
-    assert mod.DEFAULTS["max_iterations"] == template_val
+    assert mod.DEFAULTS["max_implementation_retries"] == template_val
 
 
 def test_broken_template_fallback_matches_template_value() -> None:
-    """The last-resort `_fallback` constant (used only if the template is
-    unreadable on a broken install) must stay hand-synced with the template's
-    shipped value — otherwise the cap silently diverges on the fallback path.
-    This drift-guard fails if someone bumps the template without the fallback."""
-    template_val = json.loads(TEMPLATE.read_text())["max_iterations"]
+    """The last-resort _fallback in `_template_max_implementation_retries` must
+    stay hand-synced with the template's shipped value — otherwise the cap
+    silently diverges on a broken-install path."""
+    template_val = json.loads(TEMPLATE.read_text())["max_implementation_retries"]
     mod = _load_module()
-    fallback_default = mod._template_max_iterations.__defaults__[0]
+    fallback_default = mod._template_max_implementation_retries.__defaults__[0]
     assert fallback_default == template_val, (
-        "loop-cohort.py `_template_max_iterations` _fallback must equal the "
-        f"template's max_iterations ({template_val}); update it in lockstep."
+        "loop-cohort.py `_template_max_implementation_retries` fallback must equal "
+        f"the template's max_implementation_retries ({template_val}); "
+        "update it in lockstep."
     )

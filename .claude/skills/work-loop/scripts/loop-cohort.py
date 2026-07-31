@@ -1,36 +1,37 @@
 #!/usr/bin/env python3
-"""loop-cohort — work-loop state owner.
+"""loop-cohort — work-loop execution-state owner (Phase 1).
 
-Single tool the work-loop skill (and its pre-PR hook) calls for every
-deterministic state mutation: phase termination checks, plan approval,
-review-finding fingerprints, and the parallel-implementer cohort
-(worktree add/record/merge/cleanup). The skill body and supervisor-mode
-reference describe *when* to call each verb; this script is *what* runs.
+Single tool the work-loop skill calls for every deterministic state mutation:
+phase termination checks, plan approval, review-finding fingerprints, and wave
+scheduling. Phase-1 parallel verbs (worktree, dispatch-decision, auto-parallel)
+are disabled — they exit non-zero without touching state.json.
 
-Cross-platform: Python 3 stdlib only, `subprocess` for git, `os.replace`
-for atomic writes, `pathlib` for paths. No shell, no bash, no PATH
-dependency.
+Cross-platform: Python 3 stdlib only, `subprocess` for git, `os.replace` for
+atomic writes, `pathlib` for paths. No shell, no bash, no PATH dependency.
 
 Verb surface
 ------------
-    loop-cohort init <spec-dir>
-    loop-cohort check <spec-dir> --phase {plan,implement,review}
-    loop-cohort approve-plan <spec-dir>
-    loop-cohort review record <spec-dir> --report <path>
-                              [--fingerprint <hex> ...]
-    loop-cohort worktree preflight <spec-dir> [<task-id> ...]
-    loop-cohort worktree add <spec-dir> <task-id>
-    loop-cohort worktree record <spec-dir> <task-id>
-                                --status {ready,blocked,failed}
-                                --report <path>
-    loop-cohort worktree list <spec-dir>
-    loop-cohort worktree merge <spec-dir>
-    loop-cohort worktree cleanup <spec-dir>
+    loop-cohort init <spec-dir> --run-id <uuid>
+    loop-cohort identity <spec-dir> [--expect-run-id <uuid>] [--json]
+    loop-cohort check <spec-dir> --phase {implement,review,gates-failed}
+    loop-cohort approve-plan <spec-dir> --expect-run-id <uuid>
+    loop-cohort plan check-current <spec-dir> [--require-schedule]
+    loop-cohort schedule <spec-dir> --expect-run-id <uuid>
+    loop-cohort schedule check-current <spec-dir>
+    loop-cohort record-attempt <spec-dir> --phase implement
+                               --cycle-id <run_id>:<seq> --expect-run-id <uuid>
+    loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
+    loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
+    loop-cohort review inspect <spec-dir> --report <path> [--json]
+    loop-cohort review record <spec-dir> (--report <path>
+                               | --fingerprint <hex> ...) --expect-run-id <uuid>
+    loop-cohort status <spec-dir> [--json]
+    loop-cohort reset <spec-dir>
+    loop-cohort worktree ...        (disabled in Phase 1 — exits non-zero)
+    loop-cohort dispatch-decision   (disabled in Phase 1 — exits non-zero)
+    loop-cohort auto-parallel ...   (disabled in Phase 1 — exits non-zero)
 
 Exit contract: 0 on success; non-zero with a one-line reason on stderr.
-The skill treats exit-1 from `check --phase plan` with reason "plan not
-approved" as the expected first-invocation cue to run the spec-mode
-reviewer; any other non-zero exit terminates the loop.
 
 Schema reference: ../assets/state.json and ../references/state-schema.md.
 """
@@ -58,42 +59,62 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 
-
-def _template_max_iterations(_fallback: int = 5) -> int:
-    """The iteration cap's single source of truth is the bundled `state.json`
-    template (the adopter-visible per-spec knob); ``DEFAULTS`` derives from it so
-    the value lives in exactly one place. ``_fallback`` is a last resort only for
-    a missing/broken template (a broken install) — not an adopter-facing knob."""
-    try:
-        val = json.loads(TEMPLATE_PATH.read_text()).get("max_iterations")
-    except (OSError, json.JSONDecodeError):
-        val = None
-    if isinstance(val, int) and val > 0:
-        return val
-    # Broken/missing template (a broken install) — fall back, but say so, so the
-    # cap silently reverting isn't a 3am mystery. `_fallback` must be hand-synced
-    # with the template's shipped value (a drift test pins this).
-    print(
-        f"loop-cohort: warning — could not read max_iterations from {TEMPLATE_PATH}; "
-        f"defaulting to {_fallback}",
-        file=sys.stderr,
-    )
-    return _fallback
-
-
-DEFAULTS = {
-    "max_iterations": _template_max_iterations(),
-    "token_budget_cap_pct": 0.85,
-    "consecutive_same_error_threshold": 3,
-}
-
-PHASES = ("plan", "implement", "review")
+PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
+
+CLEAN_SUBSTRING = "Clean — ready to commit."
+# Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
+# on its own line as their clean verdict instead of CLEAN_SUBSTRING.
+_SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
+_RE_SHA1 = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _template_max_implementation_retries(fallback: int = 5) -> int:
+    """Read max_implementation_retries from the bundled state.json template."""
+    try:
+        return int(
+            json.loads(
+                TEMPLATE_PATH.read_text(encoding="utf-8")
+            )["max_implementation_retries"]
+        )
+    except (FileNotFoundError, OSError, KeyError, TypeError, ValueError):
+        return fallback
+
+
+def _template_max_review_retries(fallback: int = 5) -> int:
+    """Read max_review_retries from the bundled state.json template."""
+    try:
+        return int(
+            json.loads(
+                TEMPLATE_PATH.read_text(encoding="utf-8")
+            )["max_review_retries"]
+        )
+    except (FileNotFoundError, OSError, KeyError, TypeError, ValueError):
+        return fallback
+
+
+DEFAULTS: dict = {
+    "max_implementation_retries": _template_max_implementation_retries(),
+    "max_review_retries": _template_max_review_retries(),
+}
 
 
 def stop(reason: str, code: int = 1) -> int:
     print(f"loop-cohort: stop — {reason}", file=sys.stderr)
     return code
+
+
+def _disabled(verb: str) -> int:
+    return stop(f"{verb} is disabled in Phase 1")
+
+
+def _resolve_spec_dir(raw: str) -> Path:
+    """Resolve <spec-dir> to an absolute path; reject `..` traversal."""
+    p = Path(raw).resolve()
+    parts = Path(raw).parts
+    if ".." in parts:
+        raise ValueError(f"spec-dir must not contain '..': {raw!r}")
+    return p
 
 
 def state_path_for(spec_dir: Path) -> Path:
@@ -140,39 +161,66 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
     )
 
 
-# ── scheduler (wave-scheduled supervisor mode) ─────────────────────────────
-#
-# Pure functions over a plan's `Depends on:` graph. The supervisor mode runs
-# tasks in topological order *sequentially by default* on every adapter;
-# parallel writes are opt-in and gated (`dispatch_decision`). `Depends on:` is
-# made machine-parseable here — prose, ranges, letter-suffixed IDs, and a
-# cross-spec marker.
+# ── hashing helpers ───────────────────────────────────────────────────────
 
-TASK_HEADING_RE = re.compile(r"^###\s+(T\d+[a-z]?)\b", re.MULTILINE)
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    """SHA-256 of raw file bytes (for spec.md)."""
+    return _sha256_bytes(path.read_bytes())
+
+
+def canonical_plan(text: str) -> str:
+    """Canonical form of plan.md: CRLF→LF, trailing whitespace stripped per line."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.rstrip() for line in text.split("\n")]
+    return "\n".join(lines)
+
+
+def sha256_canonical_plan(path: Path) -> str:
+    """SHA-256 of canonical(plan.md)."""
+    return _sha256_bytes(canonical_plan(path.read_text(encoding="utf-8")).encode("utf-8"))
+
+
+# ── run_id / schema_version validation ───────────────────────────────────
+
+
+def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
+    """Return None on success, or a stop() error code on schema/identity mismatch."""
+    sv = state.get("schema_version")
+    if sv != 1:
+        return stop(
+            f"{verb}: unsupported schema_version={sv!r} (expected 1); run reset pair"
+        )
+    stored = state.get("run_id")
+    if stored != expect_run_id:
+        return stop(
+            f"{verb}: --expect-run-id mismatch (stored={stored!r}, "
+            f"supplied={expect_run_id!r})"
+        )
+    return None
+
+
+# ── scheduler (wave-scheduled supervisor mode) ────────────────────────────
+#
+# Pure functions over a plan's `Depends on:` graph. Sequential by default.
+
+# Accepts both '## T<n>' (level-2) and '### T<n>' (level-3) headings for
+# backward compatibility with existing plans that predate the Phase-1 spec.
+TASK_HEADING_RE = re.compile(r"^#{2,3}\s+(T\d+[a-z]?)\b", re.MULTILINE)
 DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
 TOUCHES_LINE_RE = re.compile(r"^\*\*Touches:\*\*\s*(.+)$", re.MULTILINE)
 _RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
 _TASK_ID_RE = re.compile(r"T\d+[a-z]?")
-# Cross-spec deps, two accepted forms — both excluded from the intra-plan
-# edge set so a cross-spec TN can't collide with a local TN:
-#   marker : spec:<name>/TN              (the documented going-forward grammar)
-#   legacy : `distribution-adapters` TN  (backtick-quoted spec name + id)
 _CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
-# The backtick group is a spec *name*; the negative-lookahead rejects a
-# backtick-quoted bare task ID (e.g. `T1`) so a local dep written `` `T1` T2 ``
-# isn't mis-read as a cross-spec dep and silently dropped from local edges.
 _CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
 
 
 def parse_depends_on(field: str, local_task_ids):
-    """Parse one `Depends on:` field body.
-
-    Returns ``(local_edges: set[str], cross_spec: list[tuple[str, str]])``.
-    Strips parenthetical prose, expands ranges (``T1-T6``), admits
-    letter-suffixed IDs (``T1a``), and recognizes cross-spec deps in either
-    the ``spec:<name>/TN`` marker or the legacy `` `<name>` TN `` form,
-    excluding them from the local edge set.
-    """
+    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
     head = field.split("(")[0]
     cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
     cleaned = _CROSS_MARKER_RE.sub("", head)
@@ -187,12 +235,7 @@ def parse_depends_on(field: str, local_task_ids):
 
 
 def parse_plan(text: str):
-    """Parse a plan.md body into ``(ordered_task_ids, deps_by_task)``.
-
-    ``ordered_task_ids`` preserves authored (file) order — required for
-    forward-reference detection. ``deps_by_task[tid]`` is the set of local
-    task IDs ``tid`` depends on.
-    """
+    """Extract ordered task IDs and dependency map from plan.md text."""
     matches = list(TASK_HEADING_RE.finditer(text))
     ordered = [m.group(1) for m in matches]
     taskset = set(ordered)
@@ -205,26 +248,12 @@ def parse_plan(text: str):
     return ordered, deps
 
 
-# ── supervisor-predict-disjointness (follow-on 3): optional `Touches:` globs ──
-# A per-task `**Touches:**` line declares the file globs the task expects to
-# touch. Parsed like `Depends on:` but kept in a SEPARATE accessor so
-# `parse_plan`'s (ordered, deps) signature — and its ~8 callers — stay
-# unchanged. The globs drive a *screen-only* pre-dispatch disjointness
-# prediction in `schedule`; they never greenlight parallel (the post-write
-# `git merge-tree` stays authoritative).
-
-
 def parse_touches(field: str):
-    """Parse one `Touches:` field body into a set of path globs. Tolerates
-    trailing parenthetical prose, like `parse_depends_on`."""
     head = field.split("(")[0]
     return {g.strip() for g in head.split(",") if g.strip()}
 
 
 def parse_touches_by_task(text: str):
-    """Map each ``### T<n>`` task to its declared `Touches:` globs. A task with
-    no `**Touches:**` line is **absent from the map** (optional — never an
-    empty-set key, never an error)."""
     matches = list(TASK_HEADING_RE.finditer(text))
     out: dict[str, set] = {}
     for i, m in enumerate(matches):
@@ -238,15 +267,10 @@ def parse_touches_by_task(text: str):
 
 
 def _is_literal_seg(seg: str) -> bool:
-    """A path segment is a *pure literal* iff it carries no glob metacharacter
-    (`* ? [`). `glob.escape(seg) == seg` is the exact test."""
     return _glob.escape(seg) == seg
 
 
 def _seg_provably_disjoint(x: str, y: str) -> bool:
-    """Two aligned path segments are *provably* non-co-matching only when both
-    are pure literals that differ, or one is a literal the other (a pattern)
-    cannot `fnmatch`. Two patterns are never provably disjoint (could co-match)."""
     xl, yl = _is_literal_seg(x), _is_literal_seg(y)
     if xl and yl:
         return x != y
@@ -254,30 +278,19 @@ def _seg_provably_disjoint(x: str, y: str) -> bool:
         return not fnmatch.fnmatch(x, y)
     if yl and not xl:
         return not fnmatch.fnmatch(y, x)
-    return False  # both patterns → conservatively could overlap
+    return False
 
 
 def globs_overlap(a: str, b: str) -> bool:
-    """Conservative, segment-wise: **return True (overlap) unless provably
-    disjoint** (so a both-ways match-miss is NOT taken as proof of disjointness).
-    `*`/`?` match within one `/`-segment and never across `/`; any `**` →
-    conservatively True. Disjoint only when (a) no `**` and the segment counts
-    differ, or (b) some aligned segment pair is provably disjoint."""
     if "**" in a or "**" in b:
         return True
     sa, sb = a.split("/"), b.split("/")
     if len(sa) != len(sb):
-        return False  # different depth, no `**` → no shared path
+        return False
     return not any(_seg_provably_disjoint(x, y) for x, y in zip(sa, sb, strict=False))
 
 
 def wave_touches_disjoint(per_task_globs) -> str:
-    """Screen verdict for a wave from declared `Touches:` globs. Each element is
-    a set of globs or a falsy value (task omitted `Touches:`). Returns ``"no"``
-    if any pair of *declared* globs overlaps (even when other tasks omit
-    `Touches:` — a provable overlap is always worth serializing early),
-    ``"unknown"`` if no overlap is found and at least one task omitted, else
-    ``"yes"``. Screen-only: never feeds the authoritative dispatch gate."""
     declared = [g for g in per_task_globs if g]
     for i in range(len(declared)):
         for j in range(i + 1, len(declared)):
@@ -289,7 +302,6 @@ def wave_touches_disjoint(per_task_globs) -> str:
 
 
 def build_dag(ordered, deps):
-    """Return ``(indegree, children)`` over local edges only."""
     taskset = set(ordered)
     indeg = dict.fromkeys(ordered, 0)
     children = defaultdict(list)
@@ -302,11 +314,6 @@ def build_dag(ordered, deps):
 
 
 def topological_waves(ordered, deps):
-    """Kahn level-ordering → ``(waves, placed_count)``.
-
-    Each wave is a list of mutually-independent task IDs; ``placed_count <
-    len(ordered)`` signals a cycle. Ties break by authored order.
-    """
     indeg, children = build_dag(ordered, deps)
     order = {t: i for i, t in enumerate(ordered)}
     work = dict(indeg)
@@ -325,7 +332,7 @@ def topological_waves(ordered, deps):
 
 
 def detect_cycles(ordered, deps):
-    """Return the unschedulable task IDs (the cycle), or [] if acyclic."""
+    """Return task IDs that form cycles (topological sort excludes them)."""
     waves, placed = topological_waves(ordered, deps)
     if placed == len(ordered):
         return []
@@ -334,8 +341,7 @@ def detect_cycles(ordered, deps):
 
 
 def detect_forward_refs(ordered, deps):
-    """Return ``(task, dep)`` pairs whose dep is authored *later* — a valid
-    edge that would run before its input in authored order."""
+    """Return (task, dep) pairs where dep appears after task in the declared order."""
     order = {t: i for i, t in enumerate(ordered)}
     return [
         (t, d)
@@ -345,70 +351,10 @@ def detect_forward_refs(ordered, deps):
     ]
 
 
-# The only categories whose conflicts fail *loud* (caught by merge or a
-# post-merge compile) and so are eligible for opt-in parallel writes. Every
-# other category — dynamic-semantic interference, shared mutable state,
-# move/extract-vs-edit, migration ordering, shared fixtures — fails *silent*
-# and stays serial.
+# ── auto-classification helpers (kept; dispatch-decision verb disabled) ───
+
 SAFE_CATEGORIES = frozenset({"cannot-collide", "typed-group-b", "textual-loud"})
 
-
-def dispatch_decision(categories, *, merge_tree_clean):
-    """Decide whether a wave of writes may run in parallel.
-
-    Parallel only when **every** task is in a safe category **and** the wave
-    is file-disjoint (a clean ``git merge-tree``). Fail closed: any non-safe
-    category, or any merge-tree conflict, serializes.
-    This gates *writes* only; reviewer (read) fan-out is unaffected.
-    """
-    if not merge_tree_clean:
-        return "serial"
-    if any(c not in SAFE_CATEGORIES for c in categories):
-        return "serial"
-    return "parallel"
-
-
-def _dispatch_rationale(categories, *, merge_tree_clean, decision, source=None) -> str:
-    """Human-readable one-line rationale for a `dispatch-decision` outcome —
-    the cleared-gate surface. On ``parallel`` it names the wave as
-    parallel-eligible + the task count; on ``serial`` it names the
-    disqualifying reason, **merge-tree conflict first** to match
-    `dispatch_decision`'s short-circuit order (so a both-fail wave names the
-    conflict, not the category). ``source`` (``"auto"`` | ``"human"`` | None)
-    names whether categories were auto-derived from branch diffs or
-    human-supplied; **None preserves the original output verbatim** so
-    existing output-shape tests stay green (additive change)."""
-    if decision == "parallel":
-        msg = (
-            f"wave is PARALLEL-ELIGIBLE — {len(categories)} task(s), all "
-            "safe-category and file-disjoint. Present this to the human for "
-            "opt-in before fan-out; absent an explicit opt-in, run the wave "
-            "sequentially (the safe default)."
-        )
-    else:
-        if not merge_tree_clean:
-            reason = "the wave's branches conflict under git merge-tree"
-        else:
-            unsafe = [c for c in categories if c not in SAFE_CATEGORIES]
-            plural = "ies" if len(unsafe) != 1 else "y"
-            reason = f"non-safe categor{plural} present: {', '.join(unsafe)}"
-        msg = f"wave is SERIAL — {reason}; run it sequentially."
-    if source == "auto":
-        msg += " (categories auto-derived from branch diffs)"
-    elif source == "human":
-        msg += " (categories human-supplied)"
-    return msg
-
-
-# ── auto-classification (supervisor-auto-classify) ───────────────────────────
-# Auto-derive a task's conflict category from its committed branch diff so the
-# supervisor stops hand-feeding `--category`. FAIL-CLOSED: only an all-added,
-# no-danger-path diff is `cannot-collide` (the lone auto-safe label); every
-# other shape gets a named non-safe label that serializes. This establishes
-# file-additive ∧ (with the gate's merge-tree half) file-disjoint — NOT
-# a full disjoint-no-shared-symbol guarantee; the cross-branch guard below
-# shrinks that residual, and the irreducible string-key/cross-file-symbol case
-# is backstopped by the post-merge test gate, not claimed here.
 _DANGER_PATH_RE = re.compile(
     r"(^|/)(poetry\.lock|package-lock\.json|Cargo\.lock|go\.sum|uv\.lock"
     r"|yarn\.lock|requirements\.txt|pyproject\.toml|package\.json|__init__\.py"
@@ -419,13 +365,6 @@ _DANGER_PATH_RE = re.compile(
 
 
 def classify_task(name_status) -> str:
-    """Classify one task's diff into a conflict category from parsed
-    ``git diff --name-status`` rows. Each row is a tuple whose first element is
-    the status code (``A``/``M``/``D``/``R100``/``C``…) and whose remaining
-    elements are path operands (two for rename/copy). Precedence (fail-closed):
-    rename/copy/delete → ``move-or-delete``; any danger-path → ``danger-path``;
-    all-added → ``cannot-collide`` (the only auto label in SAFE_CATEGORIES);
-    else → ``modified-existing``."""
     statuses = [row[0][0] for row in name_status]
     paths = [p for row in name_status for p in row[1:]]
     if any(s in ("R", "C", "D") for s in statuses):
@@ -437,104 +376,259 @@ def classify_task(name_status) -> str:
     return "modified-existing"
 
 
-def _resolve_diff_base(explicit, branches):
-    """Resolve the ref to diff each branch against. ``--base`` wins; else the
-    `git merge-base` of the wave's branches. Returns ``(base, err)`` — fail
-    closed: ``err`` is set (and base None) when there are <2 branches and no
-    explicit base, or the merge base is empty/ambiguous (multiple bases)."""
-    if explicit:
-        return explicit, None
-    if len(branches) < 2:
-        return None, "need >=2 branches (or an explicit --base) to resolve a merge base"
-    proc = run_git(["merge-base", "--all", *branches])
-    bases = proc.stdout.split() if proc.returncode == 0 else []
-    if not bases:
-        return None, "no common merge base among the wave's branches (unrelated histories?)"
-    if len(bases) > 1:
-        return None, "ambiguous base: multiple merge bases among the wave's branches"
-    return bases[0], None
-
-
-def _branch_name_status(base, branch):
-    """Parse ``git diff --name-status <base>...<branch>`` into a list of
-    ``(status, *paths)`` tuples (two paths for rename/copy)."""
-    proc = run_git(["diff", "--name-status", f"{base}...{branch}"])
-    rows = []
-    for line in proc.stdout.splitlines():
-        if line.strip():
-            rows.append(tuple(line.split("\t")))
-    return rows
-
-
-def added_paths_may_share_symbol(per_branch_added) -> bool:
-    """Cross-branch symbol guard: True iff two branches' **added** paths share a
-    basename or an immediate parent directory — a likely symbol/registration
-    collision that file-level ``git merge-tree`` cannot see. Conservative
-    (over-serializes, never under). ``per_branch_added`` is a list of sets of
-    repo-relative paths (git's forward-slash form)."""
-    def _bn(p):  # basename, git-path semantics (always '/')
-        return p.rsplit("/", 1)[-1]
-
-    def _dir(p):
-        return p.rsplit("/", 1)[0] if "/" in p else ""
-
-    for i in range(len(per_branch_added)):
-        for j in range(i + 1, len(per_branch_added)):
-            a, b = per_branch_added[i], per_branch_added[j]
-            if {_bn(p) for p in a} & {_bn(p) for p in b}:
-                return True
-            # only *real* shared subdirectories count — exclude repo root (""),
-            # so two distinct-basename root additions aren't needlessly serial
-            # (a same-named root add is already a merge-tree conflict anyway).
-            dirs_a = {_dir(p) for p in a} - {""}
-            dirs_b = {_dir(p) for p in b} - {""}
-            if dirs_a & dirs_b:
-                return True
-    return False
-
-
-def wave_is_disjoint(branches) -> bool:
-    """True iff the wave's branches merge without conflict, via read-only
-    ``git merge-tree`` (no working-tree mutation). Pairwise over the wave;
-    called by the ``dispatch-decision`` verb (and the worktree dry-run)."""
-    for i in range(len(branches)):
-        for j in range(i + 1, len(branches)):
-            proc = run_git(
-                ["merge-tree", "--write-tree", "--name-only", branches[i], branches[j]]
-            )
-            if proc.returncode != 0:  # git merge-tree exits non-zero on conflict
-                return False
-    return True
+def dispatch_decision(categories, *, merge_tree_clean):
+    if not merge_tree_clean:
+        return "serial"
+    if any(c not in SAFE_CATEGORIES for c in categories):
+        return "serial"
+    return "parallel"
 
 
 # ── init ──────────────────────────────────────────────────────────────────
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
     dest = state_path_for(spec_dir)
-    if dest.exists() and not args.force:
-        return stop(f"state.json already exists at {dest} (use --force to overwrite)")
+    if dest.exists():
+        return stop(
+            f"state.json already exists at {dest}; run 'loop-cohort reset' first"
+        )
     if not TEMPLATE_PATH.exists():
         return stop(f"template missing at {TEMPLATE_PATH}")
     template = json.loads(TEMPLATE_PATH.read_text())
-    template["feature"] = spec_dir.name
+    template["run_id"] = args.run_id
+    template["feature"] = Path(spec_dir).resolve().name
     write_state_atomic(spec_dir, template)
-    print(f"loop-cohort: initialised {dest} (feature={spec_dir.name})")
+    print(f"loop-cohort: initialised {dest} (feature={template['feature']} run_id={args.run_id})")
     return 0
 
 
-# ── schedule (topological order; sequential by default) ───────────────────
+# ── identity ──────────────────────────────────────────────────────────────
 
 
-def cmd_schedule(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
-    plan_path = Path(args.plan) if args.plan else spec_dir / "plan.md"
+def cmd_identity(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    if state.get("schema_version") != 1:
+        sv = state.get("schema_version")
+        return stop(f"identity: unsupported schema_version={sv!r} (expected 1)")
+    stored_run_id = state.get("run_id")
+    if args.expect_run_id is not None and stored_run_id != args.expect_run_id:
+        return stop(
+            f"identity: run_id mismatch (stored={stored_run_id!r}, "
+            f"expected={args.expect_run_id!r})"
+        )
+    result = {"run_id": stored_run_id, "schema_version": state.get("schema_version")}
+    if args.json:
+        print(json.dumps(result))
+    else:
+        print(f"loop-cohort: run_id={stored_run_id} schema_version={result['schema_version']}")
+    return 0
+
+
+# ── status ────────────────────────────────────────────────────────────────
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    if state.get("schema_version") != 1:
+        sv = state.get("schema_version")
+        return stop(f"status: unsupported schema_version={sv!r} (expected 1)")
+    result = {
+        "schema_version": state.get("schema_version"),
+        "run_id": state.get("run_id"),
+        "approved_spec_hash": state.get("approved_spec_hash"),
+        "approved_plan_hash": state.get("approved_plan_hash"),
+        "plan_hash": state.get("plan_hash"),
+        "schedule_waves": state.get("schedule_waves", []),
+        "current_wave_index": state.get("current_wave_index", 0),
+        "implementation_retry_count": state.get("implementation_retry_count", 0),
+        "review_round_count": state.get("review_round_count", 0),
+        "review_retry_count": state.get("review_retry_count", 0),
+        "finding_fingerprints": state.get("finding_fingerprints", []),
+        "previous_finding_fingerprints": state.get("previous_finding_fingerprints", []),
+    }
+    if args.json:
+        print(json.dumps(result))
+    else:
+        print(f"loop-cohort status for {spec_dir.name}:")
+        for k, v in result.items():
+            print(f"  {k}: {v!r}")
+    return 0
+
+
+# ── reset ─────────────────────────────────────────────────────────────────
+
+
+def cmd_reset(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    path = state_path_for(spec_dir)
+    if path.exists():
+        path.unlink()
+        print(f"loop-cohort: deleted {path}")
+    else:
+        print(f"loop-cohort: reset — state.json already absent at {path}")
+    return 0
+
+
+# ── approve-plan ──────────────────────────────────────────────────────────
+
+
+def cmd_approve_plan(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="approve-plan")
+    if err is not None:
+        return err
+
+    spec_path = spec_dir / "spec.md"
+    plan_path = spec_dir / "plan.md"
+    if not spec_path.exists():
+        return stop(f"approve-plan: spec.md not found at {spec_path}")
+    if not plan_path.exists():
+        return stop(f"approve-plan: plan.md not found at {plan_path}")
+
+    state["plan_review_status"] = "approved"
+    state["approved_spec_hash"] = sha256_file(spec_path)
+    state["approved_plan_hash"] = sha256_canonical_plan(plan_path)
+    write_state_atomic(spec_dir, state)
+    print(
+        f"loop-cohort: approve-plan for {spec_dir.name} "
+        f"(approved_spec_hash={state['approved_spec_hash'][:12]}… "
+        f"approved_plan_hash={state['approved_plan_hash'][:12]}…)"
+    )
+    return 0
+
+
+# ── plan check-current ────────────────────────────────────────────────────
+
+
+def cmd_plan_check_current(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+
+    if state.get("plan_review_status") != "approved":
+        return stop("plan_review_status: pending")
+
+    spec_path = spec_dir / "spec.md"
+    plan_path = spec_dir / "plan.md"
+    if not spec_path.exists():
+        return stop(f"plan check-current: spec.md not found at {spec_path}")
+    if not plan_path.exists():
+        return stop(f"plan check-current: plan.md not found at {plan_path}")
+
+    current_spec_hash = sha256_file(spec_path)
+    if state.get("approved_spec_hash") != current_spec_hash:
+        return stop(
+            "plan check-current: spec.md has changed since approve-plan "
+            f"(approved={state.get('approved_spec_hash', 'null')!r} "
+            f"current={current_spec_hash!r})"
+        )
+
+    current_plan_hash = sha256_canonical_plan(plan_path)
+    if state.get("approved_plan_hash") != current_plan_hash:
+        return stop(
+            "plan check-current: plan.md has changed since approve-plan "
+            f"(approved={state.get('approved_plan_hash', 'null')!r} "
+            f"current={current_plan_hash!r})"
+        )
+
+    if args.require_schedule:
+        if state.get("plan_hash") != state.get("approved_plan_hash"):
+            return stop(
+                "plan check-current: plan_hash != approved_plan_hash "
+                "(schedule not run or run on a different plan version)"
+            )
+        waves = state.get("schedule_waves", [])
+        if not waves:
+            return stop("plan check-current: schedule_waves is empty (run schedule first)")
+        idx = state.get("current_wave_index", 0)
+        if not (0 <= idx < len(waves)):
+            return stop(
+                f"plan check-current: current_wave_index={idx} out of range "
+                f"[0, {len(waves)})"
+            )
+
+    print(f"loop-cohort: plan check-current OK for {spec_dir.name}")
+    return 0
+
+
+# ── schedule ──────────────────────────────────────────────────────────────
+
+
+def _schedule_check_current_impl(spec_dir: Path) -> int:
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    plan_path = spec_dir / "plan.md"
+    if not plan_path.exists():
+        return stop(f"schedule check-current: plan.md not found at {plan_path}")
+    current_hash = sha256_canonical_plan(plan_path)
+    stored = state.get("plan_hash")
+    if stored != current_hash:
+        return stop(
+            f"schedule check-current: plan.md has changed since schedule "
+            f"(stored={stored!r} current={current_hash!r})"
+        )
+    print(f"loop-cohort: schedule check-current OK for {spec_dir.name}")
+    return 0
+
+
+def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | None) -> int:
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, expect_run_id, verb="schedule")
+    if err is not None:
+        return err
+
+    canonical_plan = spec_dir / "plan.md"
+    if plan_override and Path(plan_override).resolve() != canonical_plan.resolve():
+        return stop(
+            f"schedule: --plan must point to {canonical_plan}; alternate paths create "
+            "unusable state because schedule check-current always hashes plan.md"
+        )
+    plan_path = canonical_plan
     if not plan_path.exists():
         return stop(f"plan not found at {plan_path}")
-    ordered, deps = parse_plan(plan_path.read_text())
+    plan_text = plan_path.read_text(encoding="utf-8")
+    ordered, deps = parse_plan(plan_text)
     if not ordered:
-        return stop(f"no '### T<n>' tasks found in {plan_path}")
+        return stop(f"no '## T<n>' or '### T<n>' tasks found in {plan_path}")
 
     cyc = detect_cycles(ordered, deps)
     if cyc:
@@ -542,10 +636,6 @@ def cmd_schedule(args: argparse.Namespace) -> int:
             f"dependency cycle among tasks: {', '.join(cyc)} — unschedulable; "
             "the plan is wrong, fix Depends on:"
         )
-    # A forward-reference is a *valid* acyclic edge (a task declares a dep
-    # authored later); the topological order below reorders it correctly, so
-    # it is a WARNING (authored-order smell), not a hard error. Only a cycle
-    # is unschedulable. (Surfaced during EXECUTE — see plan.md changelog.)
     fwd = detect_forward_refs(ordered, deps)
     if fwd:
         pairs = ", ".join(f"{a}->{b}" for a, b in fwd)
@@ -556,11 +646,7 @@ def cmd_schedule(args: argparse.Namespace) -> int:
         )
 
     waves, _ = topological_waves(ordered, deps)
-    # Optional `Touches:` globs drive a SCREEN-ONLY pre-dispatch disjointness
-    # prediction per multi-task wave. Advisory: a `no` is a reason to serialize
-    # early; `yes`/`unknown` never greenlight — the authoritative post-write
-    # `git merge-tree` (in `dispatch-decision`) is untouched. (Follow-on 3.)
-    touches = parse_touches_by_task(plan_path.read_text())
+    touches = parse_touches_by_task(plan_text)
     print(
         f"loop-cohort: topological order for {spec_dir.name} "
         "(run sequentially by default; waves mark what *could* parallelize):"
@@ -569,155 +655,251 @@ def cmd_schedule(args: argparse.Namespace) -> int:
         print(f"  wave {i}: {', '.join(wave)}")
         if len(wave) > 1:
             verdict = wave_touches_disjoint([touches.get(t) for t in wave])
-            print(f"    predicted-disjoint: {verdict}  "
-                  "(Touches: screen — serialize-only, never a greenlight)")
-    return 0
-
-
-def cmd_dispatch_decision(args: argparse.Namespace) -> int:
-    """Gate one write wave: print ``parallel`` or ``serial``. The wave's
-    conflict categories are **auto-derived** from
-    each ``--branch``'s committed diff when ``--category`` is omitted, else the
-    explicit ``--category`` list is used verbatim (human override). Combined
-    with a mechanical ``git merge-tree`` file-disjointness check; fail closed:
-    any non-safe category, any merge-tree conflict, or (auto path) an
-    unresolvable diff base or cross-branch symbol collision → serial. stdout is
-    the machine-readable token; stderr carries the cleared-gate rationale."""
-    clean = wave_is_disjoint(args.branch) if len(args.branch) > 1 else True
-
-    if args.category:  # human override — used verbatim (still the only typed-group-b path)
-        categories, source = args.category, "human"
-    else:  # auto-classify each branch from its committed diff
-        source = "auto"
-        base, err = _resolve_diff_base(args.base, args.branch)
-        if err:
-            print("serial")
             print(
-                f"dispatch-decision: wave is SERIAL — diff base unresolved ({err}); "
-                "run it sequentially. (categories auto-derived from branch diffs)",
-                file=sys.stderr,
+                f"    predicted-disjoint: {verdict}  "
+                "(Touches: screen — serialize-only, never a greenlight)"
             )
-            return 0
-        categories, added_sets = [], []
-        for br in args.branch:
-            rows = _branch_name_status(base, br)
-            categories.append(classify_task(rows))
-            added_sets.append({row[-1] for row in rows if row[0][0] == "A"})
-        # cross-branch symbol guard: an all-cannot-collide wave whose added
-        # files share a basename/parent-dir injects a non-safe marker so the
-        # unchanged gate serializes it and the rationale names the cause.
-        if (categories and all(c == "cannot-collide" for c in categories)
-                and added_paths_may_share_symbol(added_sets)):
-            categories = categories + ["cross-branch-symbol"]
 
-    decision = dispatch_decision(categories, merge_tree_clean=clean)
-    print(decision)  # stdout: the machine-readable token (scripted reads)
-    # stderr: the human-facing cleared-gate surface — so the agent has
-    # something to present to the human for opt-in, never fanning out silently.
+    plan_hash = sha256_canonical_plan(plan_path)
+    state["plan_hash"] = plan_hash
+    state["schedule_waves"] = waves
+    state["current_wave_index"] = 0
+    write_state_atomic(spec_dir, state)
     print(
-        "dispatch-decision: " + _dispatch_rationale(
-            categories, merge_tree_clean=clean, decision=decision, source=source
-        ),
-        file=sys.stderr,
+        f"loop-cohort: schedule persisted for {spec_dir.name} "
+        f"({len(waves)} wave(s), plan_hash={plan_hash[:12]}…)"
     )
     return 0
 
 
-# ── check (formerly check-done.py) ────────────────────────────────────────
+def cmd_schedule(args: argparse.Namespace) -> int:
+    first = args.schedule_first
+    second = getattr(args, "schedule_second", None)
+    if first == "check-current":
+        if not second:
+            return stop("schedule check-current: <spec-dir> required")
+        try:
+            spec_dir = _resolve_spec_dir(second)
+        except ValueError as exc:
+            return stop(str(exc))
+        return _schedule_check_current_impl(spec_dir)
+    # first is the spec-dir
+    try:
+        spec_dir = _resolve_spec_dir(first)
+    except ValueError as exc:
+        return stop(str(exc))
+    if not args.expect_run_id:
+        return stop("schedule: --expect-run-id is required")
+    plan_override = getattr(args, "plan", None)
+    return _schedule_run_impl(spec_dir, args.expect_run_id, plan_override)
+
+
+# ── check (phase termination) ─────────────────────────────────────────────
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
     try:
-        state = read_state(spec_dir)
-    except FileNotFoundError as exc:
-        return stop(str(exc))
+        spec_dir = _resolve_spec_dir(args.spec_dir)
     except ValueError as exc:
         return stop(str(exc))
-
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    # The `implement` phase is a no-op stub (returns 0 for any state); skip
+    # schema validation there so pre-Phase-1 state files don't break the hook.
+    # For phases that actually evaluate counters, reject incompatible state.
+    if args.phase != "implement" and state.get("schema_version") != 1:
+        sv = state.get("schema_version")
+        return stop(f"check: unsupported schema_version={sv!r} (expected 1); run reset pair")
     return _evaluate(state, args.phase)
 
 
 def _evaluate(state: dict, phase: str) -> int:
-    if state.get("plan_review_status", "pending") == "pending":
-        return stop("plan not approved (plan_review_status=pending)")
-    if phase == "plan":
+    if phase == "implement":
+        # Phase-1 compatibility stub: exits 0 unconditionally for any
+        # valid Phase-1 state. Token-budget and same-error fields are
+        # Phase-2 reserved — no Phase-1 writers or guards defined.
         return 0
 
-    iter_count = state.get("iteration_count", 0)
-    max_iter = state.get("max_iterations", DEFAULTS["max_iterations"])
-    if iter_count >= max_iter:
-        return stop(f"iteration cap reached ({iter_count}/{max_iter})")
-
-    used = state.get("token_budget_used_pct", 0.0)
-    cap = state.get("token_budget_cap_pct", DEFAULTS["token_budget_cap_pct"])
-    if used >= cap:
-        return stop(f"token budget exhausted ({used:.2%}/{cap:.2%})")
-
-    same_err = state.get("consecutive_same_error_count", 0)
-    same_err_threshold = state.get(
-        "consecutive_same_error_threshold",
-        DEFAULTS["consecutive_same_error_threshold"],
-    )
-    if same_err >= same_err_threshold:
-        return stop(f"stuck on same error ({same_err} consecutive iterations)")
+    if phase == "gates-failed":
+        count = int(state.get("implementation_retry_count", 0))
+        cap = int(state.get("max_implementation_retries", DEFAULTS["max_implementation_retries"]))
+        if count >= cap:
+            return stop(
+                f"implementation retry cap reached ({count}/{cap}); "
+                "reset and start a new run"
+            )
+        return 0
 
     if phase == "review":
-        current = sorted(state.get("finding_fingerprints", []))
-        previous = sorted(state.get("previous_finding_fingerprints", []))
-        if current and current == previous:
+        count = int(state.get("review_retry_count", 0))
+        cap = int(state.get("max_review_retries", DEFAULTS["max_review_retries"]))
+        if count >= cap:
             return stop(
-                f"no progress — same {len(current)} finding(s) two iterations in a row"
+                f"review retry cap reached ({count}/{cap}); "
+                "reset and start a new run"
             )
+        return 0
 
-    return 0
-
-
-# ── approve-plan ──────────────────────────────────────────────────────────
+    return stop(f"unknown phase {phase!r}")
 
 
-def cmd_approve_plan(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
+# ── wave check / advance ──────────────────────────────────────────────────
+
+
+def cmd_wave_check(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
     try:
         state = read_state(spec_dir)
     except (FileNotFoundError, ValueError) as exc:
         return stop(str(exc))
-    state["plan_review_status"] = "approved"
-    write_state_atomic(spec_dir, state)
-    print(f"loop-cohort: plan_review_status=approved for {spec_dir.name}")
-    return 0
+
+    waves = state.get("schedule_waves", [])
+    idx = int(state.get("current_wave_index", 0))
+    n = len(waves)
+
+    # Optional index check (used by wave-passed guard)
+    if args.wave_index is not None and idx != args.wave_index:
+        return stop(
+            f"wave check: current_wave_index={idx} does not match "
+            f"--wave-index {args.wave_index}"
+        )
+
+    if args.expect == "more":
+        if idx < n - 1:
+            print(f"loop-cohort: wave check more — wave_index={idx} has more waves (total={n})")
+            return 0
+        return stop(f"wave check more: no more waves (current={idx}, total={n})")
+
+    if args.expect == "last":
+        if idx == n - 1:
+            print(f"loop-cohort: wave check last — wave_index={idx} is the last wave (total={n})")
+            return 0
+        return stop(f"wave check last: not the last wave (current={idx}, total={n})")
+
+    return stop(f"wave check: unknown --expect value {args.expect!r}")
 
 
-# ── auto-parallel (per-run unattended pre-authorization) ────────────────────
-
-
-def cmd_auto_parallel(args: argparse.Namespace) -> int:
-    """Per-run pre-authorization for unattended supervisor runs (follow-on 4).
-    Sets `state.json.auto_parallel` (default off; `--off` clears it). When set,
-    the supervisor proceeds in parallel on a wave that has ALREADY cleared the
-    gate, skipping only the follow-on-1 human opt-in — it is never a gate input
-    and never causes auto-recovery (a failed wave still Surfaces). Per-run
-    session scratch: a fresh run defaults off."""
-    spec_dir = Path(args.spec_dir)
+def cmd_wave_advance(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
     try:
         state = read_state(spec_dir)
     except (FileNotFoundError, ValueError) as exc:
         return stop(str(exc))
-    state["auto_parallel"] = not args.off
+    err = _validate_run_id(state, args.expect_run_id, verb="wave advance")
+    if err is not None:
+        return err
+
+    n_arg = args.from_index
+    waves = state.get("schedule_waves", [])
+    n = len(waves)
+
+    if n == 0:
+        return stop("wave advance: schedule_waves is empty")
+    if n_arg < 0:
+        return stop(f"wave advance: --from-index must be >= 0 (got {n_arg})")
+    if n_arg >= n:
+        return stop(
+            f"wave advance: --from-index {n_arg} >= len(schedule_waves) {n}"
+        )
+    if n_arg == n - 1:
+        return stop(
+            f"wave advance: cannot advance from the final wave (index={n_arg}); "
+            "use gates-clean to exit the final wave"
+        )
+
+    idx = int(state.get("current_wave_index", 0))
+    if idx == n_arg:
+        state["current_wave_index"] = n_arg + 1
+        write_state_atomic(spec_dir, state)
+        print(
+            f"loop-cohort: wave advance {n_arg} → {n_arg + 1} for {spec_dir.name}"
+        )
+        return 0
+    if idx == n_arg + 1:
+        print(
+            f"loop-cohort: wave advance already applied "
+            f"(current_wave_index={idx}) for {spec_dir.name}"
+        )
+        return 0
+    return stop(
+        f"wave advance: current_wave_index={idx} does not match "
+        f"--from-index {n_arg} or {n_arg + 1}"
+    )
+
+
+# ── record-attempt ────────────────────────────────────────────────────────
+
+
+def cmd_record_attempt(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    if args.phase != "implement":
+        return stop(f"record-attempt: --phase must be 'implement' (got {args.phase!r})")
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="record-attempt")
+    if err is not None:
+        return err
+
+    # The cycle-id must be <run_id>:<decimal-sequence>; the run_id prefix must match.
+    cycle_id = args.cycle_id
+    _parts = cycle_id.split(":", 1)
+    if len(_parts) != 2 or not _parts[1].isdigit():
+        return stop(
+            f"record-attempt: --cycle-id must be '<run_id>:<decimal-sequence>' "
+            f"(got {cycle_id!r})"
+        )
+    run_id_prefix = _parts[0]
+    if run_id_prefix != args.expect_run_id:
+        return stop(
+            f"record-attempt: run_id prefix in --cycle-id ({run_id_prefix!r}) "
+            f"does not match --expect-run-id ({args.expect_run_id!r})"
+        )
+
+    last_id = state.get("last_record_attempt_cycle_id")
+    if last_id == cycle_id:
+        print(
+            f"loop-cohort: record-attempt already applied for cycle {cycle_id!r} "
+            f"(idempotent no-op)"
+        )
+        return 0
+
+    state["implementation_retry_count"] = int(state.get("implementation_retry_count", 0)) + 1
+    state["last_record_attempt_cycle_id"] = cycle_id
     write_state_atomic(spec_dir, state)
-    print(f"loop-cohort: auto_parallel={state['auto_parallel']} for {spec_dir.name}")
+    print(
+        f"loop-cohort: record-attempt implementation_retry_count="
+        f"{state['implementation_retry_count']} cycle={cycle_id!r} "
+        f"for {spec_dir.name}"
+    )
     return 0
 
 
-# ── review record ─────────────────────────────────────────────────────────
+# ── review inspect / record ───────────────────────────────────────────────
 
-# Anchors on the adversarial-reviewer's documented format:
-#   ## Blockers / ## Concerns / ## Nits headings (empty sections omitted)
-#   **N. <title>.** `path/to/file.ext:line`. <what's wrong>. Fix: <fix>.
 FINDING_LINE_RE = re.compile(
     r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*`(?P<citation>[^`]+)`"
 )
-LINE_FROM_CITATION_RE = re.compile(r":(\d+)")
+# frontend-reviewer: **title.** file:line. (unquoted file:line after title)
+FINDING_LINE_RE_UNQUOTED = re.compile(
+    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*(?P<citation>\S+:\d+)"
+)
+# experience-reviewer: **title.** Where: <location>. (no file:line)
+FINDING_LINE_RE_WHERE = re.compile(
+    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*Where:\s*(?P<location>[^.]+)"
+)
 
 
 def parse_findings(report_text: str) -> list[str]:
@@ -728,282 +910,229 @@ def parse_findings(report_text: str) -> list[str]:
     where <file> is the cited path exactly as written, <line> is the first
     integer after the first colon in the citation, and <title> is the
     bolded heading including the surrounding `**` markers.
+
+    Supports three formats:
+    - adversarial-reviewer: **title** `file:line`  (backtick-quoted citation)
+    - frontend-reviewer:    **title.** file:line.  (unquoted file:line)
+    - experience-reviewer:  **title.** Where: loc. (location; key uses loc|0|title)
     """
     fingerprints: list[str] = []
     for raw in report_text.splitlines():
         line = raw.strip()
         if not line.startswith("**"):
             continue
+        # Try backtick-quoted citation first (adversarial-reviewer)
         m = FINDING_LINE_RE.match(line)
-        if not m:
+        if m:
+            title = m.group("title").strip()
+            citation = m.group("citation").strip()
+            if ":" not in citation:
+                continue
+            file_part, _, rest = citation.partition(":")
+            line_match = re.match(r"\d+", rest)
+            if not line_match:
+                continue
+            key = f"{file_part}|{line_match.group(0)}|{title}"
+            fingerprints.append(
+                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+            )
             continue
-        title = m.group("title").strip()
-        citation = m.group("citation").strip()
-        if ":" not in citation:
+        # Try Where: <location> (experience-reviewer)
+        m = FINDING_LINE_RE_WHERE.match(line)
+        if m:
+            title = m.group("title").strip()
+            location = m.group("location").strip()
+            key = f"{location}|0|{title}"
+            fingerprints.append(
+                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+            )
             continue
-        file_part, _, rest = citation.partition(":")
-        line_match = re.match(r"\d+", rest)
-        if not line_match:
-            continue
-        line_num = line_match.group(0)
-        key = f"{file_part}|{line_num}|{title}"
-        fingerprints.append(hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest())
+        # Try unquoted file:line (frontend-reviewer)
+        m = FINDING_LINE_RE_UNQUOTED.match(line)
+        if m:
+            title = m.group("title").strip()
+            citation = m.group("citation").strip()
+            file_part, _, rest = citation.partition(":")
+            line_match = re.match(r"\d+", rest)
+            if not line_match:
+                continue
+            key = f"{file_part}|{line_match.group(0)}|{title}"
+            fingerprints.append(
+                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+            )
     return fingerprints
 
 
+def _classify_report(report_path: Path, state: dict) -> dict:
+    """Classify a reviewer report. Exits 0 for all report-content outcomes.
+
+    Returns a dict with keys: classification, fingerprints, matches_previous_round.
+    """
+    try:
+        report_text = report_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {
+            "classification": "invalid",
+            "fingerprints": [],
+            "matches_previous_round": False,
+        }
+
+    fps = parse_findings(report_text)
+    has_clean = (
+        CLEAN_SUBSTRING in report_text
+        or _SHIP_IT_RE.search(report_text) is not None
+    )
+
+    if fps:
+        classification = "findings"
+    elif has_clean:
+        classification = "clean"
+    else:
+        classification = "invalid"
+
+    canonical_fps = sorted(set(fps))
+    previous = sorted(set(state.get("finding_fingerprints", [])))
+
+    # Empty-vs-empty is always false (not stasis — no meaningful comparison)
+    matches_prev = bool(canonical_fps and canonical_fps == previous)
+
+    return {
+        "classification": classification,
+        "fingerprints": canonical_fps,
+        "matches_previous_round": matches_prev,
+    }
+
+
+def cmd_review_inspect(args: argparse.Namespace) -> int:
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        # Operational error (spec-dir unresolvable or state.json unreadable)
+        return stop(str(exc))
+
+    report_path = Path(args.report)
+    result = _classify_report(report_path, state)
+
+    if args.json:
+        print(json.dumps(result))
+    else:
+        print(
+            f"loop-cohort: review inspect "
+            f"classification={result['classification']} "
+            f"fingerprints={len(result['fingerprints'])} "
+            f"matches_previous_round={result['matches_previous_round']}"
+        )
+    return 0  # content outcomes always exit 0
+
+
 def cmd_review_record(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
+    try:
+        spec_dir = _resolve_spec_dir(args.spec_dir)
+    except ValueError as exc:
+        return stop(str(exc))
     try:
         state = read_state(spec_dir)
     except (FileNotFoundError, ValueError) as exc:
         return stop(str(exc))
+    err = _validate_run_id(state, args.expect_run_id, verb="review record")
+    if err is not None:
+        return err
+
+    if getattr(args, "all_skipped", False):
+        # All-skipped branch: every warranted reviewer was a named skip
+        state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
+        state["finding_fingerprints"] = []
+        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        write_state_atomic(spec_dir, state)
+        print(
+            f"loop-cohort: review record (all-skipped) "
+            f"round={state['review_round_count']} for {spec_dir.name}"
+        )
+        return 0
 
     if args.fingerprint:
-        fingerprints = list(args.fingerprint)
-    else:
-        report_path = Path(args.report)
-        if not report_path.exists():
-            return stop(f"report not found at {report_path}")
-        report_text = report_path.read_text(encoding="utf-8")
-        if "Clean — ready to commit." in report_text:
-            fingerprints = []
-        else:
-            fingerprints = parse_findings(report_text)
-            if not fingerprints:
-                return stop(
-                    f"parsed zero findings from {report_path} and report is not "
-                    "marked clean; pass --fingerprint <hex> repeated to bypass"
-                )
+        # Findings branch: --fingerprint <hex> ...
+        fingerprints = sorted(set(args.fingerprint))
+        bad = [fp for fp in fingerprints if not _RE_SHA1.match(fp)]
+        if bad:
+            return stop(
+                f"review record: --fingerprint must be lowercase 40-char SHA-1 hex; "
+                f"invalid: {bad!r}"
+            )
+        state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
+        state["finding_fingerprints"] = fingerprints
+        state["review_retry_count"] = int(state.get("review_retry_count", 0)) + 1
+        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        write_state_atomic(spec_dir, state)
+        print(
+            f"loop-cohort: review record (findings) "
+            f"round={state['review_round_count']} retry={state['review_retry_count']} "
+            f"fingerprints={len(fingerprints)} for {spec_dir.name}"
+        )
+        return 0
+
+    # Clean branch: --report <path>
+    if not args.report:
+        return stop("review record: one of --report or --fingerprint is required")
+    report_path = Path(args.report)
+    result = _classify_report(report_path, state)
+    if result["classification"] != "clean":
+        cls = result["classification"]
+        return stop(
+            f"review record --report: report classified as {cls!r}; "
+            "use --fingerprint for a findings round"
+        )
 
     state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
-    state["finding_fingerprints"] = fingerprints
-    state["iteration_count"] = int(state.get("iteration_count", 0)) + 1
+    state["finding_fingerprints"] = []
+    state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+    # review_retry_count unchanged on clean review
     write_state_atomic(spec_dir, state)
     print(
-        f"loop-cohort: review iter={state['iteration_count']} "
-        f"findings={len(fingerprints)} for {spec_dir.name}"
+        f"loop-cohort: review record (clean) "
+        f"round={state['review_round_count']} "
+        f"retry={state['review_retry_count']} for {spec_dir.name}"
     )
     return 0
 
 
-# ── worktree subcommands ──────────────────────────────────────────────────
+# ── disabled Phase-1 verbs ────────────────────────────────────────────────
 
 
-def worktree_path_for(task_id: str) -> Path:
-    return Path(".worktrees") / task_id
+def cmd_dispatch_decision(args: argparse.Namespace) -> int:
+    return _disabled("dispatch-decision")
 
 
-def branch_name_for(base: str, task_id: str) -> str:
-    return f"{base}-{task_id}"
-
-
-def current_branch() -> str:
-    proc = run_git(["branch", "--show-current"])
-    if proc.returncode != 0:
-        raise RuntimeError(f"git branch --show-current failed: {proc.stderr.strip()}")
-    return proc.stdout.strip()
+def cmd_auto_parallel(args: argparse.Namespace) -> int:
+    return _disabled("auto-parallel")
 
 
 def cmd_worktree_preflight(args: argparse.Namespace) -> int:
-    # Surface any stale worktree directories or pre-existing branches
-    # for the cohort's task IDs — do not silently reuse or destroy.
-    spec_dir = Path(args.spec_dir)
-    try:
-        base = current_branch()
-    except RuntimeError as exc:
-        return stop(str(exc))
-
-    run_git(["worktree", "prune"])
-    listing = run_git(["worktree", "list", "--porcelain"])
-    if listing.returncode != 0:
-        return stop(f"git worktree list failed: {listing.stderr.strip()}")
-
-    collisions: list[str] = []
-    for task_id in args.task_ids:
-        wt = worktree_path_for(task_id)
-        if wt.exists():
-            collisions.append(f"worktree directory {wt} already exists")
-        branch = branch_name_for(base, task_id)
-        verify = run_git(["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"])
-        if verify.returncode == 0:
-            collisions.append(f"branch {branch} already exists")
-
-    if collisions:
-        for line in collisions:
-            print(f"loop-cohort: {line}", file=sys.stderr)
-        return stop(
-            f"stale cohort state for {spec_dir.name}; resolve manually "
-            "(do not silently reuse)"
-        )
-    print(f"loop-cohort: preflight clean for {spec_dir.name}")
-    return 0
+    return _disabled("worktree preflight")
 
 
 def cmd_worktree_add(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
-    try:
-        state = read_state(spec_dir)
-        base = current_branch()
-    except (FileNotFoundError, ValueError, RuntimeError) as exc:
-        return stop(str(exc))
-
-    entries = state.setdefault("worktrees", [])
-    if any(e.get("task_id") == args.task_id for e in entries):
-        return stop(f"worktree entry for task {args.task_id} already exists")
-
-    wt = worktree_path_for(args.task_id)
-    branch = branch_name_for(base, args.task_id)
-    proc = run_git(["worktree", "add", str(wt), "-b", branch])
-    if proc.returncode != 0:
-        return stop(f"git worktree add failed: {proc.stderr.strip()}")
-
-    entries.append(
-        {
-            "task_id": args.task_id,
-            "branch": branch,
-            "path": str(wt),
-            "status": "in-progress",
-            "report_path": None,
-        }
-    )
-    write_state_atomic(spec_dir, state)
-    print(f"loop-cohort: worktree add task={args.task_id} branch={branch} path={wt}")
-    return 0
-
-
-REPORT_HEADING_RE = re.compile(r"^##\s+Task\s+([^\s:.,]+)", re.MULTILINE)
+    return _disabled("worktree add")
 
 
 def cmd_worktree_record(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-
-    entries = state.get("worktrees", [])
-    target = next((e for e in entries if e.get("task_id") == args.task_id), None)
-    if target is None:
-        return stop(f"no worktree entry for task {args.task_id}")
-
-    report_src = Path(args.report)
-    if not report_src.exists():
-        return stop(f"report not found at {report_src}")
-    report_text = report_src.read_text(encoding="utf-8")
-
-    # Match first — confirm the report's heading references the task ID
-    # we were told to record. Never write under an unvalidated name.
-    m = REPORT_HEADING_RE.search(report_text)
-    if not m:
-        return stop(
-            f"report at {report_src} has no '## Task <task-id>' heading"
-        )
-    declared = m.group(1)
-    if declared != args.task_id:
-        return stop(
-            f"report at {report_src} declares task '{declared}', "
-            f"expected '{args.task_id}'"
-        )
-
-    # Write second — persist the report under notes/.
-    iteration = int(state.get("iteration_count", 0))
-    notes_dir = spec_dir / "notes"
-    notes_dir.mkdir(parents=True, exist_ok=True)
-    report_dst = notes_dir / f"implementer-{args.task_id}-{iteration}.md"
-    report_dst.write_text(report_text)
-
-    # State-update last — flip status + report_path on the matched entry.
-    target["status"] = args.status
-    target["report_path"] = str(report_dst)
-    write_state_atomic(spec_dir, state)
-    print(
-        f"loop-cohort: worktree record task={args.task_id} status={args.status} "
-        f"report={report_dst}"
-    )
-    return 0
+    return _disabled("worktree record")
 
 
 def cmd_worktree_list(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-    entries = state.get("worktrees", [])
-    if not entries:
-        print("loop-cohort: no worktree entries")
-        return 0
-    width = max(len(e.get("task_id", "")) for e in entries)
-    for e in entries:
-        print(
-            f"{e.get('task_id', ''):<{width}}  {e.get('status', ''):<12}"
-            f"  {e.get('branch', ''):<40}  {e.get('report_path') or '-'}"
-        )
-    return 0
-
-
-def _task_id_sort_key(task_id: str):
-    m = re.fullmatch(r"T(\d+)", task_id)
-    if m:
-        return (0, int(m.group(1)))
-    return (1, task_id)
+    return _disabled("worktree list")
 
 
 def cmd_worktree_merge(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-
-    ready = [
-        e for e in state.get("worktrees", []) if e.get("status") == "ready"
-    ]
-    if not ready:
-        return stop("no ready worktrees to merge")
-
-    ready.sort(key=lambda e: _task_id_sort_key(e.get("task_id", "")))
-    for e in ready:
-        branch = e.get("branch")
-        proc = run_git(["merge", "--no-ff", branch])
-        if proc.returncode != 0:
-            run_git(["merge", "--abort"])
-            return stop(
-                f"merge conflict on task {e.get('task_id')} (branch {branch}); "
-                "tasks weren't actually independent — return to PLAN and "
-                "fix Depends on:"
-            )
-        print(f"loop-cohort: merged task={e.get('task_id')} branch={branch}")
-    return 0
+    return _disabled("worktree merge")
 
 
 def cmd_worktree_cleanup(args: argparse.Namespace) -> int:
-    spec_dir = Path(args.spec_dir)
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-
-    stuck: list[str] = []
-    for e in state.get("worktrees", []):
-        path = e.get("path")
-        if not path:
-            continue
-        proc = run_git(["worktree", "remove", path])
-        if proc.returncode != 0:
-            forced = run_git(["worktree", "remove", "--force", path])
-            if forced.returncode != 0:
-                stuck.append(path)
-                continue
-        print(f"loop-cohort: worktree removed {path}")
-    if stuck:
-        for path in stuck:
-            print(f"loop-cohort: could not remove {path} (left in place)", file=sys.stderr)
-        # Non-zero so the supervisor sees and reports the stuck paths in
-        # the end-of-loop summary, but the entries keep their terminal
-        # status — the loop should still proceed to gates.
-        return 2
-    return 0
+    return _disabled("worktree cleanup")
 
 
 # ── dispatcher ────────────────────────────────────────────────────────────
@@ -1013,117 +1142,201 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="loop-cohort", description=__doc__)
     sub = p.add_subparsers(dest="verb", required=True)
 
+    # init
     sp = sub.add_parser("init", help="initialise state.json from the bundled template")
     sp.add_argument("spec_dir")
-    sp.add_argument("--force", action="store_true")
+    sp.add_argument("--run-id", required=True, dest="run_id",
+                    help="UUID generated by loop-engine init")
     sp.set_defaults(func=cmd_init)
 
+    # identity
     sp = sub.add_parser(
-        "schedule",
-        help="parse the plan DAG; detect cycles/forward-refs; print topological order",
+        "identity",
+        help="read-only: verify schema_version=1 and optionally run_id match",
     )
     sp.add_argument("spec_dir")
-    sp.add_argument("--plan", help="path to plan.md (default: <spec-dir>/plan.md)")
-    sp.set_defaults(func=cmd_schedule)
+    sp.add_argument("--expect-run-id", dest="expect_run_id", default=None)
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_identity)
 
+    # status
     sp = sub.add_parser(
-        "dispatch-decision",
-        help="gate a write wave: safe-category ∧ git merge-tree disjointness → parallel|serial",
+        "status",
+        help="read-only: return cohort fields for session resumption",
     )
-    sp.add_argument(
-        "--category", action="append", default=[],
-        help="one task's conflict category (repeat per task); OMIT to "
-             "auto-classify each --branch from its committed diff",
-    )
-    sp.add_argument(
-        "--branch", action="append", default=[],
-        help="one task's worktree branch (repeat per task; merge-tree "
-             "disjointness + auto-classification source)",
-    )
-    sp.add_argument(
-        "--base",
-        help="ref to diff each branch against for auto-classification "
-             "(default: git merge-base of the --branches)",
-    )
-    sp.set_defaults(func=cmd_dispatch_decision)
+    sp.add_argument("spec_dir")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_status)
 
+    # reset
+    sp = sub.add_parser("reset", help="delete state.json; idempotent")
+    sp.add_argument("spec_dir")
+    sp.set_defaults(func=cmd_reset)
+
+    # check
     sp = sub.add_parser("check", help="phase termination check")
     sp.add_argument("spec_dir")
     sp.add_argument("--phase", required=True, choices=PHASES)
     sp.set_defaults(func=cmd_check)
 
-    sp = sub.add_parser("approve-plan", help="flip plan_review_status to approved")
+    # approve-plan
+    sp = sub.add_parser(
+        "approve-plan",
+        help="record plan_review_status=approved and hash spec/plan",
+    )
     sp.add_argument("spec_dir")
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_approve_plan)
 
-    sp = sub.add_parser(
-        "auto-parallel",
-        help="per-run: pre-authorize unattended parallel on already-cleared waves "
-             "(default off; --off clears)",
+    # plan (namespace with sub-verbs)
+    sp_plan = sub.add_parser("plan", help="plan-approval guard verbs")
+    plan_sub = sp_plan.add_subparsers(dest="plan_verb", required=True)
+    sp = plan_sub.add_parser(
+        "check-current",
+        help="verify plan_review_status, spec/plan hashes, and optionally schedule",
     )
     sp.add_argument("spec_dir")
-    sp.add_argument("--off", action="store_true", help="clear auto_parallel (set false)")
-    sp.set_defaults(func=cmd_auto_parallel)
+    sp.add_argument(
+        "--require-schedule", action="store_true", dest="require_schedule",
+        help="also verify plan_hash matches approved_plan_hash and schedule_waves non-empty",
+    )
+    sp.set_defaults(func=cmd_plan_check_current)
 
+    # schedule (custom dispatch: first positional is spec-dir or "check-current")
+    sp_sched = sub.add_parser(
+        "schedule",
+        help="DAG-order schedule (persists plan_hash + waves) or 'check-current'",
+    )
+    sp_sched.add_argument(
+        "schedule_first",
+        metavar="<spec-dir> | check-current",
+        help="spec directory path, or 'check-current' for the read-only hash check",
+    )
+    sp_sched.add_argument(
+        "schedule_second",
+        nargs="?",
+        metavar="<spec-dir>",
+        help="spec directory path when first arg is 'check-current'",
+    )
+    sp_sched.add_argument("--expect-run-id", dest="expect_run_id", default=None)
+    sp_sched.add_argument(
+        "--plan", default=None,
+        help="path to plan.md (default: <spec-dir>/plan.md)",
+    )
+    sp_sched.set_defaults(func=cmd_schedule)
+
+    # record-attempt
+    sp = sub.add_parser(
+        "record-attempt",
+        help="record a gates-failed repair attempt (idempotent per cycle-id)",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--phase", required=True, choices=["implement"])
+    sp.add_argument("--cycle-id", required=True, dest="cycle_id")
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_record_attempt)
+
+    # wave (namespace with sub-verbs)
+    sp_wave = sub.add_parser("wave", help="wave-advance and guard verbs")
+    wave_sub = sp_wave.add_subparsers(dest="wave_verb", required=True)
+
+    sp = wave_sub.add_parser(
+        "check",
+        help="read-only: verify more/last wave guard",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--expect", required=True, choices=["more", "last"])
+    sp.add_argument("--wave-index", type=int, dest="wave_index", default=None)
+    sp.set_defaults(func=cmd_wave_check)
+
+    sp = wave_sub.add_parser(
+        "advance",
+        help="idempotent: advance current_wave_index from n to n+1",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--from-index", required=True, type=int, dest="from_index")
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
+    sp.set_defaults(func=cmd_wave_advance)
+
+    # review (namespace with sub-verbs)
     sp_review = sub.add_parser("review", help="review-phase state mutations")
     review_sub = sp_review.add_subparsers(dest="review_verb", required=True)
+
+    sp = review_sub.add_parser(
+        "inspect",
+        help="read-only: classify a reviewer report (clean/findings/invalid)",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--report", required=True)
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_review_inspect)
+
     sp = review_sub.add_parser(
         "record",
-        help="rotate fingerprints from a reviewer report and bump iteration",
+        help="rotate fingerprints and bump counters after a CODE-REVIEW round",
     )
     sp.add_argument("spec_dir")
-    sp.add_argument("--report", help="path to the reviewer's markdown report")
-    sp.add_argument(
+    _rr_grp = sp.add_mutually_exclusive_group(required=True)
+    _rr_grp.add_argument("--report", default=None,
+                         help="path to a clean reviewer report")
+    _rr_grp.add_argument(
         "--fingerprint",
         action="append",
-        default=[],
-        help="explicit fingerprint (hex sha1); escape hatch when parsing fails",
+        default=None,
+        help="explicit fingerprint (hex sha1); use for findings rounds",
     )
+    _rr_grp.add_argument(
+        "--all-skipped",
+        action="store_true",
+        default=False,
+        dest="all_skipped",
+        help="all warranted reviewers were named skips; bumps round count, clears fingerprints",
+    )
+    sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_review_record)
 
-    sp_wt = sub.add_parser("worktree", help="cohort worktree coordination")
+    # dispatch-decision (disabled)
+    sp = sub.add_parser(
+        "dispatch-decision",
+        help="(disabled in Phase 1 — exits non-zero)",
+    )
+    sp.add_argument("--category", action="append", default=[])
+    sp.add_argument("--branch", action="append", default=[])
+    sp.add_argument("--base", default=None)
+    sp.set_defaults(func=cmd_dispatch_decision)
+
+    # auto-parallel (disabled)
+    sp = sub.add_parser(
+        "auto-parallel",
+        help="(disabled in Phase 1 — exits non-zero)",
+    )
+    sp.add_argument("spec_dir", nargs="?")
+    sp.add_argument("--off", action="store_true")
+    sp.set_defaults(func=cmd_auto_parallel)
+
+    # worktree (disabled)
+    sp_wt = sub.add_parser("worktree", help="(disabled in Phase 1 — exits non-zero)")
     wt_sub = sp_wt.add_subparsers(dest="worktree_verb", required=True)
 
-    sp = wt_sub.add_parser(
-        "preflight",
-        help="surface stale worktree dirs or pre-existing branches",
-    )
-    sp.add_argument("spec_dir")
-    sp.add_argument("task_ids", nargs="*")
-    sp.set_defaults(func=cmd_worktree_preflight)
-
-    sp = wt_sub.add_parser("add", help="create a cohort worktree for one task")
-    sp.add_argument("spec_dir")
-    sp.add_argument("task_id")
-    sp.set_defaults(func=cmd_worktree_add)
-
-    sp = wt_sub.add_parser(
-        "record",
-        help="persist an implementer's report and update the cohort entry",
-    )
-    sp.add_argument("spec_dir")
-    sp.add_argument("task_id")
-    sp.add_argument("--status", required=True, choices=WORKTREE_STATUSES)
-    sp.add_argument("--report", required=True)
-    sp.set_defaults(func=cmd_worktree_record)
-
-    sp = wt_sub.add_parser("list", help="show cohort entries")
-    sp.add_argument("spec_dir")
-    sp.set_defaults(func=cmd_worktree_list)
-
-    sp = wt_sub.add_parser(
-        "merge",
-        help="merge every ready worktree in task-id order; abort on conflict",
-    )
-    sp.add_argument("spec_dir")
-    sp.set_defaults(func=cmd_worktree_merge)
-
-    sp = wt_sub.add_parser(
-        "cleanup",
-        help="git worktree remove each entry; retry --force, then surface stuck paths",
-    )
-    sp.add_argument("spec_dir")
-    sp.set_defaults(func=cmd_worktree_cleanup)
+    for wt_verb, wt_func, wt_help in [
+        ("preflight", cmd_worktree_preflight, "disabled"),
+        ("add", cmd_worktree_add, "disabled"),
+        ("record", cmd_worktree_record, "disabled"),
+        ("list", cmd_worktree_list, "disabled"),
+        ("merge", cmd_worktree_merge, "disabled"),
+        ("cleanup", cmd_worktree_cleanup, "disabled"),
+    ]:
+        sp = wt_sub.add_parser(wt_verb, help=wt_help)
+        sp.add_argument("spec_dir", nargs="?")
+        if wt_verb == "record":
+            # Preserve original signature so callers get the "disabled" message
+            # instead of an argparse "unrecognized arguments" error.
+            sp.add_argument("task_id", nargs="?")
+            sp.add_argument("--status", choices=WORKTREE_STATUSES)
+            sp.add_argument("--report")
+        else:
+            sp.add_argument("args", nargs="*")
+        sp.set_defaults(func=wt_func)
 
     return p
 
