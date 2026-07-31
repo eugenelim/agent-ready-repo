@@ -1,0 +1,74 @@
+{
+  "skill_name": "work-loop",
+  "evals": [
+    {
+      "id": "phase1-sequential-wave-routing",
+      "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
+      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
+      "assertions": [
+        "Response mentions `loop-engine transition` with the `wave-passed` event",
+        "Response mentions `loop-cohort wave advance` with `--from-index` and `--expect-run-id`",
+        "Response does NOT invoke `worktree`, `dispatch-decision`, or `auto-parallel`",
+        "Response follows the sequential path (one wave at a time)",
+        "Response does NOT call `loop-cohort wave check` as a prerequisite (engine guard handles this)"
+      ]
+    },
+    {
+      "id": "phase1-disabled-parallel-commands",
+      "prompt": "You are in Phase-1 code mode of the work-loop. You have 4 independent tasks. What dispatch strategy should you use and why?",
+      "expected_output": "Execute tasks sequentially using the schedule order from `loop-cohort schedule`. Parallel dispatch (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 and exits non-zero. Run tasks one at a time in wave order.",
+      "assertions": [
+        "Response does NOT instruct calling `dispatch-decision`",
+        "Response does NOT instruct calling `worktree`",
+        "Response does NOT instruct calling `auto-parallel`",
+        "Response explains sequential execution as the required strategy",
+        "Response mentions the schedule or wave ordering"
+      ]
+    },
+    {
+      "id": "phase1-identity-status-first-resumption",
+      "prompt": "You are resuming a work-loop session mid-implementation. The spec-dir is `docs/specs/my-feature`. What is the correct first sequence of commands to orient yourself before mutating any state?",
+      "expected_output": "First run `loop-engine status <spec-dir>` to read the current FSM state and last_event, then `loop-cohort identity <spec-dir> --expect-run-id <run_id>` to verify the run_id matches, then `loop-cohort status <spec-dir> --json` to read current cohort state. Only after these read-only checks should you issue any mutating command.",
+      "assertions": [
+        "Response mentions `loop-engine status` as the first step",
+        "Response mentions `loop-cohort identity` to verify the run_id",
+        "Response mentions `loop-cohort status` to read cohort state",
+        "Response establishes orientation (read-only steps) before any mutation",
+        "Response does not start with a mutating command"
+      ]
+    },
+    {
+      "id": "phase1-last-event-routing",
+      "prompt": "You resume a work-loop session and `loop-engine status` shows `last_event: 'wave-passed'` and `state: 'CODE-IMPLEMENTATION'`. What does this tell you and what is the correct next action?",
+      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` \u2014 this call is idempotent and safe to replay; (3) then proceed to implement the tasks in the current (next) wave.",
+      "assertions": [
+        "Response reads `last_event_context.completed_wave_index` to determine the completed wave",
+        "Response re-issues `wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` before proceeding",
+        "Response proceeds to implement the current wave's tasks after advancing",
+        "Response uses `last_event` as the routing signal, not re-deriving state from scratch"
+      ]
+    },
+    {
+      "id": "phase1-surface-ambiguous-review-record",
+      "prompt": "You ran the adversarial reviewer and got findings. You called `loop-cohort review record --fingerprint <fp>`. The process was interrupted mid-write (crash-window). You cannot tell whether the fingerprint was persisted. What is the correct action before issuing another `review record`?",
+      "expected_output": "Surface this ambiguous non-idempotent write to the human. Read `loop-cohort status --json` to check the current `finding_fingerprints` and `review_retry_count`. If uncertain, describe the ambiguity and ask the human to confirm before proceeding. Do not silently re-issue `review record` if the previous write's outcome is unknown.",
+      "assertions": [
+        "Response surfaces the crash-window ambiguity to the human",
+        "Response reads `loop-cohort status --json` to inspect current fingerprint state",
+        "Response does not silently re-issue `review record` without checking",
+        "Response asks for or waits for human confirmation before proceeding"
+      ]
+    },
+    {
+      "id": "phase1-explicit-auth-clean-report-replay",
+      "prompt": "The adversarial reviewer returned `Clean \u2014 ready to commit.`. You need to run `loop-cohort review record --report <report-path> --expect-run-id $run_id`. The same clean report was already recorded in the previous round. What must you do before replaying it?",
+      "expected_output": "Before replaying a `review record --report` for an already-recorded clean report, obtain and record explicit human authorization. Replaying distorts the audit history by incrementing `review_round_count` a second time for the same clean signal. Surface the situation: state that the clean report was already recorded, explain the audit impact, and require explicit confirmation before issuing the second `review record --report` call.",
+      "assertions": [
+        "Response requires explicit human authorization before the replay",
+        "Response explains the audit-history impact of a duplicate `review record --report`",
+        "Response does not silently re-issue `review record --report` without authorization",
+        "Response surfaces the situation to the human with a clear description"
+      ]
+    }
+  ]
+}

@@ -11,7 +11,7 @@ Monorepo scaffolding on top of `core`. Adds the `new-package` skill and the
 ## Install
 
 `monorepo-extras` is **repo-scope** — `new-package` scaffolds in `packages/`,
-which is meaningless without a monorepo. It **requires `core`** (`^0.1`);
+which is meaningless without a monorepo. It **requires `core`** (`^1.0`);
 install `core` first or alongside.
 
 ```
