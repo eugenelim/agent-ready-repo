@@ -1160,7 +1160,7 @@ def case_dag_all_needs_prefixes() -> None:
         by_path = {c.entry.path: c for c in cls}
 
         expect(by_path["spec/p-work"].is_ready, "[AC3a] work: prefix satisfied")
-        expect(by_path["spec/p-shape"].is_ready, "[AC3a] shape: prefix satisfied (absent = graduated)")
+        expect(by_path["spec/p-shape"].is_ready, "[AC3a] shape: satisfied (absent = graduated)")
         expect(by_path["spec/p-research"].is_ready, "[AC3a] research: prefix (not in backlog)")
         expect(by_path["spec/p-brief"].is_ready, "[AC3a] brief: prefix satisfied")
         expect(by_path["spec/p-cross"].is_ready, "[AC3a] cross-ini prefix satisfied")
@@ -1286,7 +1286,7 @@ def case_full_analyze() -> None:
 _SKIP_ANCHOR_ENV = "WORKSPACE_STATUS_SKIP_ANCHOR"
 
 _SKILL_CONTRACT_HASH = (
-    "c0c2166e2a12472c1255602ccaad750cf6290646a510d83151a4a46e5a6f8984"
+    "84f6341e597ad7510d6fc6214843435f5bc055c6d1f443ae57a305ac278fef83"
 )
 _SKILL_MD = (
     Path(__file__).resolve().parent.parent
@@ -1342,10 +1342,11 @@ def _check_anchor(
 def case_skill_contract_anchor() -> None:
     """Fail when the DAG/reconciliation contract of workspace-status SKILL.md changes.
 
-    Anchors lines 66–180 (0-indexed 65–179): ready/blocked definitions, DAG
-    resolution, and reconciliation sections.
+    Anchors lines 55–180 (0-indexed 54–179): schema field vocabulary (status
+    active|paused|closed, work/shaping/brief_queue fields), ready/blocked
+    definitions, DAG resolution, and reconciliation sections.
     """
-    _check_anchor(_SKILL_MD, (65, 180), _SKILL_CONTRACT_HASH,
+    _check_anchor(_SKILL_MD, (54, 180), _SKILL_CONTRACT_HASH,
                   "workspace-status contract")
 
 
