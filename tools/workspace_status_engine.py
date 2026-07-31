@@ -343,15 +343,14 @@ def is_need_satisfied(
                 return any(e.path == path for e in ini.work.shipped)
         return False  # Target initiative not found
 
-    # Local work: "work:<path>" — satisfied by shipped OR active (SKILL.md §2 prefix table)
+    # Local work: "work:<path>" — satisfied only by shipped (schema.md:113).
+    # An entry in work.active is "in-progress" but NOT yet satisfied;
+    # its dependents remain blocked until the path reaches work.shipped.
     if need.startswith("work:"):
         path = need[len("work:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
-                return (
-                    any(e.path == path for e in ini.work.shipped)
-                    or any(e.path == path for e in ini.work.active)
-                )
+                return any(e.path == path for e in ini.work.shipped)
         return False
 
     # Shape: "shape:<slug>" — satisfied when active OR absent from all shaping lists

@@ -250,13 +250,15 @@ def case_local_work_deps() -> None:
                "[AC2d] blocking need should name the unmet dep")
 
 
-# ── AC2d-active: work: dep satisfied by active (not just shipped) ─────────────
+# ── AC2d-active: work: dep on active item stays blocked until shipped ──────────
 
 def case_local_work_dep_satisfied_by_active() -> None:
-    """SKILL.md §2: work:<path> resolves against shipped OR active.
+    """workspace-toml-schema.md §needs: work:<path> resolves to [work].shipped only.
 
-    A queue entry whose prerequisite is in work.active must be classified ready,
-    not blocked. The production contract explicitly says active counts as in-progress.
+    A queue entry whose prerequisite is in work.active is NOT yet satisfied —
+    it stays blocked until the prerequisite moves to work.shipped.
+    The SKILL.md parenthetical "active counts as in-progress" describes status,
+    not satisfaction; schema.md:113 is the authoritative resolution rule.
     """
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -283,8 +285,8 @@ def case_local_work_dep_satisfied_by_active() -> None:
 
         expect("spec/dependent" in by_path,
                "[AC2d-active] spec/dependent should appear in classification")
-        expect(by_path["spec/dependent"].is_ready,
-               "[AC2d-active] dep on active spec should be READY (active counts as in-progress)")
+        expect(not by_path["spec/dependent"].is_ready,
+               "[AC2d-active] dep on active (not yet shipped) spec should be BLOCKED")
         expect(not by_path["spec/blocked-dep"].is_ready,
                "[AC2d-active] dep on absent spec should be blocked")
 
@@ -2075,7 +2077,7 @@ CASES = [
     ("AC2b paused_closed_initiatives", case_paused_closed_initiatives),
     ("AC2c ordered_queues", case_ordered_queues),
     ("AC2d local_work_deps", case_local_work_deps),
-    ("AC2d-active work_dep_satisfied_by_active", case_local_work_dep_satisfied_by_active),
+    ("AC2d-active work_dep_on_active_stays_blocked", case_local_work_dep_satisfied_by_active),
     ("AC2d-dup queue_entries_in_active_or_shipped_excluded",
      case_queue_entries_in_active_or_shipped_excluded),
     ("AC2e cross_initiative_deps", case_cross_initiative_deps),
