@@ -494,6 +494,16 @@ def case_spec_statuses() -> None:
         expect(annot_status == "Shipped",
                f"[AC2h] arrow in annotation should not override status, got {annot_status}")
 
+        # Unknown final segment must not backtrack to an earlier known status
+        p_unk = root / "docs" / "specs" / "spec-unknown-final" / "spec.md"
+        p_unk.parent.mkdir(parents=True, exist_ok=True)
+        p_unk.write_text(
+            "# U\n\n- **Status:** Approved → Cancelled\n", encoding="utf-8"
+        )
+        unk_status = extract_spec_status(p_unk)
+        expect(unk_status is None,
+               f"[AC2h] unknown final segment should yield None, got {unk_status}")
+
 
 # ── AC2i: Missing spec paths ──────────────────────────────────────────────────
 

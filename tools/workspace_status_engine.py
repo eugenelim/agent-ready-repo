@@ -255,17 +255,25 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
 
 # ── Status extraction ─────────────────────────────────────────────────────────
 
-# Transition form: "... **Status:** Draft → Approved → Shipped ..."
-# Capture group restricted to known status vocab so arrows in inline comments
-# (e.g. "root→leaf") do not poison the result.  The greedy .* still finds
-# the LAST status-after-arrow in a multi-hop chain.
-_TRANSITION_RE = re.compile(
-    r'\*\*Status:\*\*\s+.*→\s*(Draft|Approved|Implementing|Shipped|Archived)'
-)
-# Simple form: "... **Status:** Shipped ..."
-_SIMPLE_RE = re.compile(
-    r'\*\*Status:\*\*\s+([A-Za-z]+)'
-)
+_SIMPLE_STATUS_RE = re.compile(r'\*\*Status:\*\*\s+([A-Za-z]+)')
+# Requires leading whitespace so annotation arrows ("root→leaf") are ignored.
+_ARROW_RE = re.compile(r'\s→\s*([A-Za-z]+)')
+
+
+def _safe_spec_path(root: Path, slug: str) -> Path | None:
+    """Return the spec.md Path only if it resolves within root/docs/specs/.
+
+    Rejects slugs containing `..` or absolute components so workspace entries
+    cannot escape the docs/specs boundary.
+    """
+    specs_dir = (root / "docs" / "specs").resolve()
+    candidate = (specs_dir / slug / "spec.md").resolve()
+    try:
+        candidate.relative_to(specs_dir)
+        return candidate
+    except ValueError:
+        return None
+
 
 VALID_STATUSES = frozenset({"Draft", "Approved", "Implementing", "Shipped", "Archived"})
 
@@ -283,13 +291,20 @@ def extract_spec_status(spec_path: Path) -> str | None:
         # A prose line containing **Status:** (example, comment) is not the field.
         if not line.startswith("- **Status:**"):
             continue
-        # Try transition form first ("X → Y")
-        m = _TRANSITION_RE.search(line)
+        if "→" in line:
+            # Status transitions use leading whitespace (" → Shipped").
+            # Annotation arrows do not ("root→leaf"). Match only the spaced form
+            # so annotations never interfere with status extraction.
+            # Take the LAST segment; if it is not a known status
+            # (e.g. "Approved → Cancelled"), return None — do not backtrack.
+            segments = _ARROW_RE.findall(line)
+            if segments:
+                last = segments[-1]
+                return last if last in VALID_STATUSES else None
+        m = _SIMPLE_STATUS_RE.search(line)
         if m:
-            return m.group(1).strip()
-        m = _SIMPLE_RE.search(line)
-        if m:
-            return m.group(1).strip()
+            word = m.group(1)
+            return word if word in VALID_STATUSES else None
     return None
 
 
@@ -513,8 +528,8 @@ def run_reconciliation(
     for ini in initiatives:
         for list_name, entries in [("queue", ini.work.queue), ("active", ini.work.active)]:
             for entry in entries:
-                spec_file = root / "docs" / "specs" / entry.slug / "spec.md"
-                if not spec_file.exists():
+                spec_file = _safe_spec_path(root, entry.slug)
+                if spec_file is None or not spec_file.exists():
                     continue
                 files_read += 1
                 status = extract_spec_status(spec_file)
@@ -530,8 +545,8 @@ def run_reconciliation(
     # ── Type 3: Shipped scan — prematurely shipped entries ────────────────────
     for ini in initiatives:
         for entry in ini.work.shipped:
-            spec_file = root / "docs" / "specs" / entry.slug / "spec.md"
-            if not spec_file.exists():
+            spec_file = _safe_spec_path(root, entry.slug)
+            if spec_file is None or not spec_file.exists():
                 continue
             files_read += 1
             status = extract_spec_status(spec_file)
@@ -719,8 +734,8 @@ def collect_work_loop_stale_warnings(
 
         for path, sources in path_sources.items():
             slug = path.removeprefix("spec/")
-            spec_file = root / "docs" / "specs" / slug / "spec.md"
-            if not spec_file.exists():
+            spec_file = _safe_spec_path(root, slug)
+            if spec_file is None or not spec_file.exists():
                 continue
             status = extract_spec_status(spec_file)
             if status != "Shipped":

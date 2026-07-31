@@ -1,7 +1,6 @@
 # Spec: workspace-status simplification — Order 0
 
 - **Status:** Shipped
-- **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (multi-feature + structural: new Python module + test infrastructure)
 - **Constrained by:**

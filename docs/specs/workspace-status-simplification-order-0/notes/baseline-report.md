@@ -50,7 +50,7 @@ the same logic as model instructions.
 | Reference-engine time (~0.11 s) | Python resolver/reconciliation compute cost |
 | Spec-file reads: 397; bytes read not measured | Structural scaling cost — O(spec_count) |
 | Ready/blocked/finding counts | Correctness of the reference model |
-| Reference-engine diagnostic serialization (1996 B) | Partial engine diagnostic; not full status output |
+| Reference-engine diagnostic serialization (1948 B) | Partial engine diagnostic; not full status output |
 
 **Missing from this baseline (to be added in Order 1):**
 
@@ -79,7 +79,7 @@ every session-start pays the full O(spec_count) cost.
 
 ## Output size
 
-Reference-engine diagnostic serialization: **1996 bytes** for 4 initiatives × 48 queue entries.
+Reference-engine diagnostic serialization: **1948 bytes** for 4 initiatives × 48 queue entries.
 Scales with the number of blocked entries (longer `blocking_needs` lists).
 This is a partial diagnostic (work queue, shaping classifications, reconciliation counts); it does
 not represent the full user-facing status output, which also includes brief queue, top-level
@@ -105,7 +105,7 @@ shipped list — it resolves to READY, demonstrating real cross-initiative dep r
 
 ## Correctness findings
 
-All 37 characterization test cases pass. Known defects documented in
+All 37 characterization test cases pass (arrow-in-annotation and unknown-final-segment cases included in AC2h). Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
