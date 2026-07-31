@@ -190,7 +190,8 @@ def _build_parser() -> argparse.ArgumentParser:
     bc = sub.add_parser(
         "build-check",
         help="catalogue build, validate-manifests, pre-pr-catalogue, spec-status, "
-             "brief-coverage, traceability (no portable verify, no SAST).",
+             "brief-coverage, traceability, workspace-status tests "
+             "(no portable verify, no SAST).",
     )
     bc.add_argument("--packs-dir", default="packs", help="Ignored (resolved via --root .).")
     bc.add_argument(

@@ -3,9 +3,9 @@
 **Status:** Done
 
 **Assumption trio:**
-1. Files touched: 5 new files in `tools/`, 4 new files in `docs/specs/workspace-status-simplification-order-0/notes/` + `spec.md` + `plan.md`; also modified `Makefile`, `tools/repo/build_gate_chain.py`, `tools/test_build_gate_chain.py`
+1. Files touched: 3 new files in `tools/` (`workspace_status_engine.py`, `test_workspace_status.py`, `bench-workspace-status.py`); 2 modified in `tools/` (`repo/build_gate_chain.py`, `test_build_gate_chain.py`); 4 new files in `docs/specs/workspace-status-simplification-order-0/notes/` + `spec.md` + `plan.md`; also modified `Makefile`
 2. Tests demonstrate done: `python3 tools/test_workspace_status.py` exits 0; `python3 tools/bench-workspace-status.py` exits 0 and prints measurements
-3. Not changing: `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/.apm/skills/work-loop/SKILL.md`, `workspace.toml` schema, any existing test
+3. Not changing: `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/.apm/skills/work-loop/SKILL.md`, `workspace.toml` schema
 
 **Declined:**
 - Extracting engine into `packs/core/` — future order, not order 0

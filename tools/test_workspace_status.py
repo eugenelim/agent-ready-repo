@@ -24,6 +24,7 @@ intentional existing behavior — not desired future behavior.
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 import tempfile
 import textwrap
@@ -35,6 +36,7 @@ from workspace_status_engine import (
     analyze,
     check_shaping_guard,
     classify_entries,
+    classify_shaping_entries,
     compute_type2_cleanup,
     extract_initiatives,
     extract_spec_status,
@@ -983,53 +985,34 @@ def case_type2_cleanup_ownership() -> None:
     work-loop (≥ a46d6f46) only sets spec.md Status: Shipped at completion.
     Stale queue/active entries are workspace-status's responsibility (Type 2).
     compute_type2_cleanup describes the write the skill would perform after Y confirmation.
+
+    Caller provides exact (ini_slug, source_list) from the ReconciliationFinding;
+    the function does not search — it maps the finding to the mutation shape.
     """
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Cleanup"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/stale-active", "spec/stale-active-archived"]
-            shipped = []
-            queue   = ["spec/stale-queued", "spec/stale-queued-archived"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
+    # Shipped, in active → remove from active, append to shipped
+    mut = compute_type2_cleanup("ini-001", "active", "spec/stale-active", "Shipped")
+    expect(mut["source_list"] == "active", f"[AC3g] source=active: {mut}")
+    expect(mut["target_list"] == "shipped", f"[AC3g] target=shipped: {mut}")
+    expect(mut["written_form"] == '"spec/stale-active"', f"[AC3g] bare string form: {mut}")
 
-        # Shipped, in active → remove from active, append to shipped
-        mut = compute_type2_cleanup("spec/stale-active", "Shipped", initiatives)
-        expect(mut is not None, "[AC3g] Shipped stale-active → mutation")
-        expect(mut["source_list"] == "active", f"[AC3g] source=active: {mut}")
-        expect(mut["target_list"] == "shipped", f"[AC3g] target=shipped: {mut}")
-        expect(mut["written_form"] == '"spec/stale-active"', f"[AC3g] bare string form: {mut}")
+    # Shipped, in queue → remove from queue, append to shipped
+    mut2 = compute_type2_cleanup("ini-001", "queue", "spec/stale-queued", "Shipped")
+    expect(mut2["source_list"] == "queue", f"[AC3g] source=queue: {mut2}")
+    expect(mut2["target_list"] == "shipped", f"[AC3g] target=shipped: {mut2}")
 
-        # Shipped, in queue → remove from queue, append to shipped
-        mut2 = compute_type2_cleanup("spec/stale-queued", "Shipped", initiatives)
-        expect(mut2 is not None, "[AC3g] Shipped stale-queued → mutation")
-        expect(mut2["source_list"] == "queue", f"[AC3g] source=queue: {mut2}")
-        expect(mut2["target_list"] == "shipped", f"[AC3g] target=shipped: {mut2}")
+    # Archived, in active → remove from active, NOT added to shipped
+    mut3 = compute_type2_cleanup("ini-001", "active", "spec/stale-active-archived",
+                                  "Archived")
+    expect(mut3["source_list"] == "active", f"[AC3g] Archived source=active: {mut3}")
+    expect(mut3["target_list"] is None,
+           f"[AC3g] Archived target=None (remove only): {mut3}")
 
-        # Archived, in active → remove from active, NOT added to shipped
-        mut3 = compute_type2_cleanup("spec/stale-active-archived", "Archived", initiatives)
-        expect(mut3 is not None, "[AC3g] Archived stale-active-archived → mutation")
-        expect(mut3["source_list"] == "active", f"[AC3g] Archived source=active: {mut3}")
-        expect(mut3["target_list"] is None, f"[AC3g] Archived target=None (remove only): {mut3}")
-
-        # Archived, in queue → remove from queue, NOT added to shipped
-        mut4 = compute_type2_cleanup("spec/stale-queued-archived", "Archived", initiatives)
-        expect(mut4 is not None, "[AC3g] Archived stale-queued-archived → mutation")
-        expect(mut4["source_list"] == "queue", f"[AC3g] Archived source=queue: {mut4}")
-        expect(mut4["target_list"] is None, f"[AC3g] Archived target=None (remove only): {mut4}")
-
-        # Not tracked → no mutation
-        mut5 = compute_type2_cleanup("spec/not-tracked", "Shipped", initiatives)
-        expect(mut5 is None, "[AC3g] untracked spec → no mutation")
+    # Archived, in queue → remove from queue, NOT added to shipped
+    mut4 = compute_type2_cleanup("ini-001", "queue", "spec/stale-queued-archived",
+                                  "Archived")
+    expect(mut4["source_list"] == "queue", f"[AC3g] Archived source=queue: {mut4}")
+    expect(mut4["target_list"] is None,
+           f"[AC3g] Archived target=None (remove only): {mut4}")
 
 
 # ── AC3a: DAG all needs prefix forms ─────────────────────────────────────────
@@ -1202,6 +1185,8 @@ def case_full_analyze() -> None:
 # reconciliation sections — the full algorithmic contract).
 # When this test fails, the engine's interpretation may be stale. Read the
 # changed sections and reconcile before updating the constant.
+_SKIP_ANCHOR_ENV = "WORKSPACE_STATUS_SKIP_ANCHOR"
+
 _SKILL_CONTRACT_HASH = (
     "c0c2166e2a12472c1255602ccaad750cf6290646a510d83151a4a46e5a6f8984"
 )
@@ -1210,28 +1195,84 @@ _SKILL_MD = (
     / "packs/core/.apm/skills/workspace-status/SKILL.md"
 )
 
+_WORK_LOOP_CONTRACT_HASH = (
+    "d2d59e668a8b3003eba484026e9057c31bdd8dedc858384a8a5ceffc2d3b78bc"
+)
+_WORK_LOOP_MD = (
+    Path(__file__).resolve().parent.parent
+    / "packs/core/.apm/skills/work-loop/SKILL.md"
+)
 
-def case_skill_contract_anchor() -> None:
-    """Fail when the full DAG/reconciliation contract of SKILL.md changes."""
-    if not _SKILL_MD.exists():
-        # Allow running outside the repo root (e.g. isolated tempdir tests)
+
+def _check_anchor(
+    skill_path: Path,
+    line_slice: tuple[int, int],
+    expected_hash: str,
+    label: str,
+) -> None:
+    """Shared logic for contract-anchor cases.
+
+    Fails hard when the skill file is absent in the canonical repo.
+    Set WORKSPACE_STATUS_SKIP_ANCHOR=1 to skip in isolated environments;
+    the test will print SKIP rather than pass.
+    """
+    if not skill_path.exists():
+        if os.environ.get(_SKIP_ANCHOR_ENV, "").lower() in ("1", "true", "yes"):
+            print(f"  [SKIP] {label}: skill absent, {_SKIP_ANCHOR_ENV} set")
+            return
+        expect(
+            False,
+            f"[{label}] skill file not found at {skill_path}. "
+            f"Set {_SKIP_ANCHOR_ENV}=1 to skip in isolated environments.",
+        )
         return
-    raw = _SKILL_MD.read_bytes().splitlines(keepends=True)
-    contract = b"".join(raw[65:180])  # lines 66–180 (0-indexed 65–179)
+    raw = skill_path.read_bytes().splitlines(keepends=True)
+    start, end = line_slice
+    contract = b"".join(raw[start:end])
     actual = hashlib.sha256(contract).hexdigest()
     expect(
-        actual == _SKILL_CONTRACT_HASH,
-        f"[contract] SKILL.md DAG/reconciliation sections changed "
-        f"(expected {_SKILL_CONTRACT_HASH[:12]}…, got {actual[:12]}…). "
-        "Review the changed lines and update workspace_status_engine.py "
-        "before updating _SKILL_CONTRACT_HASH.",
+        actual == expected_hash,
+        f"[{label}] skill contract changed "
+        f"(expected {expected_hash[:12]}…, got {actual[:12]}…). "
+        "Review the changed sections and update workspace_status_engine.py "
+        f"before updating the hash constant.",
     )
 
 
+def case_skill_contract_anchor() -> None:
+    """Fail when the DAG/reconciliation contract of workspace-status SKILL.md changes.
+
+    Anchors lines 66–180 (0-indexed 65–179): ready/blocked definitions, DAG
+    resolution, and reconciliation sections.
+    """
+    _check_anchor(_SKILL_MD, (65, 180), _SKILL_CONTRACT_HASH,
+                  "workspace-status contract")
+
+
+def case_work_loop_contract_anchor() -> None:
+    """Fail when the Step 0 ORIENT contract of work-loop SKILL.md changes.
+
+    The engine characterizes work-loop Step 0 behaviors (lines 69–88):
+      - Argless active-spec resolution (get_active_specs)
+      - Stale-queue check
+      - Shaping-item guard (check_shaping_guard / extract_top_level_backlog)
+    """
+    _check_anchor(_WORK_LOOP_MD, (68, 88), _WORK_LOOP_CONTRACT_HASH,
+                  "work-loop Step-0 contract")
+
+
 def test_skill_contract_anchor() -> None:
-    """pytest entry point for the contract anchor."""
+    """pytest entry point for the workspace-status contract anchor."""
     before = len(FAILURES)
     case_skill_contract_anchor()
+    after = len(FAILURES)
+    assert after == before, "\n".join(FAILURES[before:])
+
+
+def test_work_loop_contract_anchor() -> None:
+    """pytest entry point for the work-loop Step 0 contract anchor."""
+    before = len(FAILURES)
+    case_work_loop_contract_anchor()
     after = len(FAILURES)
     assert after == before, "\n".join(FAILURES[before:])
 
@@ -1252,91 +1293,236 @@ def test_skill_contract_anchor() -> None:
 #   - Type 1/Type 3 findings do NOT trigger a cleanup offer — not tested here
 
 def case_type2_cleanup_mutation_contract() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Cleanup Contract"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/stale-active-shipped", "spec/stale-active-archived"]
-            shipped = []
-            queue   = ["spec/stale-queue-shipped", "spec/stale-queue-archived"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
+    # Shipped in active → active removed, appended to shipped
+    mut = compute_type2_cleanup("ini-001", "active", "spec/stale-active-shipped", "Shipped")
+    expect(mut["source_list"] == "active", "[cleanup] source=active for shipped-in-active")
+    expect(mut["target_list"] == "shipped", "[cleanup] target=shipped for shipped-in-active")
+    expect(
+        mut["written_form"] == '"spec/stale-active-shipped"',
+        "[cleanup] bare string form for shipped entry",
+    )
 
-        # Shipped in active → active removed, appended to shipped
-        mut = compute_type2_cleanup("spec/stale-active-shipped", "Shipped", initiatives)
-        expect(mut is not None, "[cleanup] stale-active-shipped has mutation")
-        expect(mut["source_list"] == "active", "[cleanup] source=active for shipped-in-active")
-        expect(mut["target_list"] == "shipped", "[cleanup] target=shipped for shipped-in-active")
-        expect(
-            mut["written_form"] == '"spec/stale-active-shipped"',
-            "[cleanup] bare string form for shipped entry",
-        )
+    # Shipped in queue → queue removed, appended to shipped
+    mut2 = compute_type2_cleanup("ini-001", "queue", "spec/stale-queue-shipped", "Shipped")
+    expect(mut2["source_list"] == "queue", "[cleanup] source=queue for shipped-in-queue")
+    expect(mut2["target_list"] == "shipped", "[cleanup] target=shipped")
 
-        # Shipped in queue → queue removed, appended to shipped
-        mut2 = compute_type2_cleanup("spec/stale-queue-shipped", "Shipped", initiatives)
-        expect(mut2 is not None, "[cleanup] stale-queue-shipped has mutation")
-        expect(mut2["source_list"] == "queue", "[cleanup] source=queue for shipped-in-queue")
-        expect(mut2["target_list"] == "shipped", "[cleanup] target=shipped")
-
-        # Archived in active → removed only, NOT added to shipped
-        mut3 = compute_type2_cleanup("spec/stale-active-archived", "Archived", initiatives)
-        expect(mut3 is not None, "[cleanup] stale-active-archived has mutation")
-        expect(mut3["source_list"] == "active", "[cleanup] Archived source=active")
-        expect(mut3["target_list"] is None, "[cleanup] Archived target=None (remove only)")
-
-        # Not present → no mutation
-        mut4 = compute_type2_cleanup("spec/not-tracked", "Shipped", initiatives)
-        expect(mut4 is None, "[cleanup] untracked spec returns no mutation")
+    # Archived in active → removed only, NOT added to shipped
+    mut3 = compute_type2_cleanup("ini-001", "active", "spec/stale-active-archived",
+                                  "Archived")
+    expect(mut3["source_list"] == "active", "[cleanup] Archived source=active")
+    expect(mut3["target_list"] is None, "[cleanup] Archived target=None (remove only)")
 
 
 def case_type1_type3_no_cleanup() -> None:
-    """Explicit negative assertion: Type 1 and Type 3 entries produce no cleanup mutation.
+    """Negative assertions: compute_type2_cleanup rejects ineligible statuses and sources.
 
-    Type 1 (untracked Approved spec in the spec tree, absent from all workspace.toml
-    lists) has no mutation because compute_type2_cleanup only inspects active/queue.
+    Type 1 findings have spec_status Approved or Implementing (untracked live spec).
+    Type 3 findings have spec_status Approved or Implementing (spec in shipped but
+    not yet actually done). Neither is eligible for Type 2 cleanup.
 
-    Type 3 (path is in work.shipped but spec.md doesn't say Shipped) has no mutation
-    for the same reason — shipped is not active/queue.
+    The function raises ValueError for:
+      - spec_status outside {"Shipped", "Archived"}  — catches Type 1 / Type 3 callers
+      - source_list outside {"active", "queue"}       — catches Type 3 shipped-list source
+    """
+    # Type 1 guard: Approved status → ValueError
+    try:
+        compute_type2_cleanup("ini-001", "queue", "spec/untracked", "Approved")
+        expect(False, "[type1] Approved spec_status should raise ValueError")
+    except ValueError:
+        pass  # expected
 
-    Only entries that appear in active or queue are Type 2 candidates.
+    # Type 3 guard: Implementing status → ValueError
+    try:
+        compute_type2_cleanup("ini-001", "queue", "spec/premature", "Implementing")
+        expect(False, "[type3-status] Implementing spec_status should raise ValueError")
+    except ValueError:
+        pass  # expected
+
+    # Type 3 guard: source_list='shipped' → ValueError
+    try:
+        compute_type2_cleanup("ini-001", "shipped", "spec/premature", "Shipped")
+        expect(False, "[type3-source] source_list='shipped' should raise ValueError")
+    except ValueError:
+        pass  # expected
+
+
+# ── F1a: research: prefix type filter ────────────────────────────────────────
+
+def case_research_type_filter() -> None:
+    """research: need is only blocked by backlog entries with type='research'.
+
+    A shape/signal/design/strategy entry with the same slug does NOT block a
+    research: need (those are different kinds of shaping work).
     """
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_workspace(root, """
             ["ini-001"]
-            name = "Negative Test"
+            name = "Research Filter"
             status = "active"
             milestone = "M1"
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = [{slug = "same-slug", type = "shape"}]
             ["ini-001".work]
             active  = []
-            shipped = ["spec/shipped-only"]
-            queue   = ["spec/queued"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
+            shipped = []
+            queue   = [{path = "spec/needs-research", needs = "research:same-slug"}]
         """)
         ws = parse_workspace(root / "workspace.toml")
         inits = extract_initiatives(ws)
+        ini = next(i for i in inits if i.slug == "ini-001")
+        cls = classify_entries(ini, inits)
+        entry = next(c for c in cls if c.entry.path == "spec/needs-research")
 
-        # Type 1: spec exists in the spec tree but not in any workspace.toml list
-        m = compute_type2_cleanup("spec/untracked-approved", "Approved", inits)
-        expect(m is None, f"[type1] untracked spec → None (no cleanup mutation), got {m!r}")
+        # "same-slug" is in backlog as type="shape", not "research" → not blocking
+        expect(
+            entry.is_ready,
+            f"[F1a] research:same-slug ready when backlog entry is type=shape, "
+            f"blocking={entry.blocking_needs!r}",
+        )
 
-        # Type 3: path is in work.shipped, not in active or queue
-        m = compute_type2_cleanup("spec/shipped-only", "Shipped", inits)
-        expect(m is None, f"[type3] shipped-only path → None (no cleanup mutation), got {m!r}")
 
-        # Positive control: queued entry IS a Type 2 candidate
-        m = compute_type2_cleanup("spec/queued", "Shipped", inits)
-        expect(m is not None, f"[type2/positive] queued entry → mutation candidate, got {m!r}")
+# ── F1b: untyped backlog entries not treated as shaping ───────────────────────
+
+def case_untyped_backlog_not_shaping() -> None:
+    """Untyped [backlog].open entries (build backlog) are NOT routed as shaping work."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = []
+
+            [backlog]
+            open = [
+              {slug = "build-item",  source = "spec/x AC1"},
+              {slug = "typed-shape", type   = "shape"},
+            ]
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        top_backlog = extract_top_level_backlog(ws)
+
+        # Untyped build-backlog entry must not trigger the shaping guard
+        r = check_shaping_guard("build-item", inits, top_level_backlog=top_backlog)
+        expect(
+            r is None,
+            f"[F1b] untyped build backlog entry → None (not shaping), got {r!r}",
+        )
+
+        # Explicitly typed shape entry must still route correctly
+        r2 = check_shaping_guard("typed-shape", inits, top_level_backlog=top_backlog)
+        expect(
+            r2 == "frame-intent",
+            f"[F1b] typed shape entry → frame-intent, got {r2!r}",
+        )
+
+
+# ── F2: shaping DAG classification ───────────────────────────────────────────
+
+def case_shaping_classifications() -> None:
+    """Shaping entries are classified: ready, signal, blocked; routing type preserved."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Shaping"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active = [
+              {slug = "active-shape",    type = "shape"},
+              {slug = "active-research", type = "research"},
+              {slug = "active-signal",   type = "signal"},
+            ]
+            backlog = [
+              {slug = "backlog-no-needs",  type = "strategy"},
+              {slug = "backlog-blocked",   type = "design",  needs = "work:spec/not-shipped"},
+              {slug = "backlog-satisfied", type = "shape",   needs = "work:spec/already-shipped"},
+            ]
+            ["ini-001".work]
+            active  = []
+            shipped = ["spec/already-shipped"]
+            queue   = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        ini = next(i for i in inits if i.slug == "ini-001")
+
+        cls = classify_shaping_entries(ini, inits)
+        by_slug = {c.entry.slug: c for c in cls}
+
+        # shaping_queue.active: non-signals are ready, signals are active context
+        expect("active-shape" in by_slug, "[shaping] active-shape classified")
+        expect(by_slug["active-shape"].is_ready,
+               "[shaping] active-shape is ready")
+        expect(not by_slug["active-shape"].is_signal,
+               "[shaping] active-shape is not signal")
+        expect(by_slug["active-shape"].entry.entry_type == "shape",
+               "[shaping] active-shape routing type preserved")
+
+        expect("active-research" in by_slug, "[shaping] active-research classified")
+        expect(by_slug["active-research"].is_ready,
+               "[shaping] active-research is ready")
+        expect(by_slug["active-research"].entry.entry_type == "research",
+               "[shaping] active-research routing type preserved")
+
+        expect("active-signal" in by_slug, "[shaping] active-signal classified")
+        expect(by_slug["active-signal"].is_signal,
+               "[shaping] active-signal is_signal=True")
+        expect(not by_slug["active-signal"].is_ready,
+               "[shaping] active-signal not ready (active context only)")
+
+        # shaping_queue.backlog entries classified by needs
+        expect("backlog-no-needs" in by_slug, "[shaping] backlog-no-needs classified")
+        expect(by_slug["backlog-no-needs"].is_ready,
+               "[shaping] backlog-no-needs ready (no needs)")
+
+        expect("backlog-blocked" in by_slug, "[shaping] backlog-blocked classified")
+        expect(not by_slug["backlog-blocked"].is_ready,
+               "[shaping] backlog-blocked not ready (needs unsatisfied)")
+        expect("work:spec/not-shipped" in by_slug["backlog-blocked"].blocking_needs,
+               "[shaping] backlog-blocked has correct blocking_need")
+
+        expect("backlog-satisfied" in by_slug, "[shaping] backlog-satisfied classified")
+        expect(by_slug["backlog-satisfied"].is_ready,
+               "[shaping] backlog-satisfied ready (needs satisfied)")
+
+
+# ── F3: duplicate-source cleanup representability ─────────────────────────────
+
+def case_type2_cleanup_duplicate_source() -> None:
+    """When a path appears in both active AND queue, both cleanup operations are representable.
+
+    run_reconciliation emits two Type 2 findings (one list_name='active',
+    one list_name='queue'). compute_type2_cleanup's caller-provides-source API
+    can describe both — the old search-based API returned only 'active'.
+    """
+    mut_active = compute_type2_cleanup("ini-001", "active", "spec/in-both", "Shipped")
+    mut_queue = compute_type2_cleanup("ini-001", "queue", "spec/in-both", "Shipped")
+
+    expect(mut_active["source_list"] == "active",
+           "[dup] active-source mutation representable")
+    expect(mut_queue["source_list"] == "queue",
+           "[dup] queue-source mutation representable")
+    expect(mut_active["target_list"] == "shipped",
+           "[dup] active mutation target=shipped")
+    expect(mut_queue["target_list"] == "shipped",
+           "[dup] queue mutation target=shipped")
+    expect(
+        mut_active["path"] == mut_queue["path"] == "spec/in-both",
+        "[dup] same path in both mutations",
+    )
 
 
 # ── pytest wrappers for custom-runner cases ───────────────────────────────────
@@ -1449,6 +1635,22 @@ def test_type1_type3_no_cleanup() -> None:
     _run_case(case_type1_type3_no_cleanup)
 
 
+def test_research_type_filter() -> None:
+    _run_case(case_research_type_filter)
+
+
+def test_untyped_backlog_not_shaping() -> None:
+    _run_case(case_untyped_backlog_not_shaping)
+
+
+def test_shaping_classifications() -> None:
+    _run_case(case_shaping_classifications)
+
+
+def test_type2_cleanup_duplicate_source() -> None:
+    _run_case(case_type2_cleanup_duplicate_source)
+
+
 def test_integration_full_analyze() -> None:
     _run_case(case_full_analyze)
 
@@ -1482,7 +1684,12 @@ CASES = [
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
     ("type2_cleanup_mutation_contract", case_type2_cleanup_mutation_contract),
     ("type1_type3_no_cleanup", case_type1_type3_no_cleanup),
+    ("F1a research_type_filter", case_research_type_filter),
+    ("F1b untyped_backlog_not_shaping", case_untyped_backlog_not_shaping),
+    ("F2 shaping_classifications", case_shaping_classifications),
+    ("F3 type2_cleanup_duplicate_source", case_type2_cleanup_duplicate_source),
     ("skill_contract_anchor", case_skill_contract_anchor),
+    ("work_loop_contract_anchor", case_work_loop_contract_anchor),
     ("integration full_analyze", case_full_analyze),
 ]
 

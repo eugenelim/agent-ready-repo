@@ -99,6 +99,15 @@ class EntryClassification:
 
 
 @dataclasses.dataclass
+class ShapingClassification:
+    entry: ShapingEntry
+    ini_slug: str
+    is_signal: bool      # True for entry_type == "signal" (active context, not actionable)
+    is_ready: bool       # True when needs satisfied; always False for signals
+    blocking_needs: list[str]
+
+
+@dataclasses.dataclass
 class ReconciliationFinding:
     finding_type: int   # 1, 2, or 3
     spec_path: str
@@ -110,7 +119,8 @@ class ReconciliationFinding:
 @dataclasses.dataclass
 class WorkspaceStatusResult:
     initiatives: list[Initiative]
-    classifications: list[EntryClassification]   # all queue entries (ready + blocked)
+    classifications: list[EntryClassification]        # work queue entries (ready + blocked)
+    shaping_classifications: list[ShapingClassification]  # shaping queue entries
     reconciliation: list[ReconciliationFinding]
     files_read: int   # count of spec.md files read by reconciliation
     elapsed_s: float  # wall-clock seconds for analyze()
@@ -122,6 +132,21 @@ class WorkspaceStatusResult:
     @property
     def blocked(self) -> list[EntryClassification]:
         return [c for c in self.classifications if not c.is_ready]
+
+    @property
+    def ready_shaping(self) -> list[ShapingClassification]:
+        return [c for c in self.shaping_classifications if c.is_ready]
+
+    @property
+    def signals(self) -> list[ShapingClassification]:
+        return [c for c in self.shaping_classifications if c.is_signal]
+
+    @property
+    def blocked_shaping(self) -> list[ShapingClassification]:
+        return [
+            c for c in self.shaping_classifications
+            if not c.is_ready and not c.is_signal
+        ]
 
     @property
     def type1(self) -> list[ReconciliationFinding]:
@@ -301,13 +326,17 @@ def is_need_satisfied(
                 return slug in active_slugs
         return True  # Initiative not found → assume satisfied
 
-    # Research: "research:<slug>" — satisfied when NOT in shaping backlog
+    # Research: "research:<slug>" — satisfied when NOT in shaping backlog as type="research"
     if need.startswith("research:"):
         slug = need[len("research:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
-                backlog_slugs = {e.slug for e in ini.shaping.backlog}
-                return slug not in backlog_slugs
+                # Only entries explicitly typed "research" can block a research: need.
+                # A shape/signal/design entry with the same slug does NOT block it.
+                research_slugs = {
+                    e.slug for e in ini.shaping.backlog if e.entry_type == "research"
+                }
+                return slug not in research_slugs
         return True
 
     # Brief: "brief:<path>" — satisfied if in brief_queue.ready or executing
@@ -360,6 +389,56 @@ def classify_entries(
                 is_ready=len(blocking) == 0,
                 blocking_needs=blocking,
             ))
+    return results
+
+
+def classify_shaping_entries(
+    ini: Initiative,
+    all_initiatives: list[Initiative],
+) -> list[ShapingClassification]:
+    """Classify shaping queue entries for an active initiative.
+
+    Per behavior-map §4:
+      shaping_queue.active — non-signals are ready; signals are active context.
+      shaping_queue.backlog — classified by needs (same resolution as work entries).
+    """
+    results: list[ShapingClassification] = []
+
+    for entry in ini.shaping.active:
+        is_sig = entry.entry_type == "signal"
+        results.append(ShapingClassification(
+            entry=entry,
+            ini_slug=ini.slug,
+            is_signal=is_sig,
+            is_ready=not is_sig,
+            blocking_needs=[],
+        ))
+
+    for entry in ini.shaping.backlog:
+        is_sig = entry.entry_type == "signal"
+        if is_sig:
+            results.append(ShapingClassification(
+                entry=entry, ini_slug=ini.slug,
+                is_signal=True, is_ready=False, blocking_needs=[],
+            ))
+        elif not entry.needs:
+            results.append(ShapingClassification(
+                entry=entry, ini_slug=ini.slug,
+                is_signal=False, is_ready=True, blocking_needs=[],
+            ))
+        else:
+            blocking = [
+                n for n in entry.needs
+                if not is_need_satisfied(n, ini.slug, all_initiatives)
+            ]
+            results.append(ShapingClassification(
+                entry=entry,
+                ini_slug=ini.slug,
+                is_signal=False,
+                is_ready=len(blocking) == 0,
+                blocking_needs=blocking,
+            ))
+
     return results
 
 
@@ -460,10 +539,12 @@ def analyze(root: Path) -> WorkspaceStatusResult:
     initiatives = extract_initiatives(workspace)
 
     all_classifications: list[EntryClassification] = []
+    all_shaping: list[ShapingClassification] = []
     for ini in initiatives:
         if ini.status not in ("active",):
-            continue   # Only active initiatives for ready/blocked
+            continue   # Only active initiatives for ready/blocked and shaping
         all_classifications.extend(classify_entries(ini, initiatives))
+        all_shaping.extend(classify_shaping_entries(ini, initiatives))
 
     reconciliation, files_read = run_reconciliation(root, initiatives)
 
@@ -471,6 +552,7 @@ def analyze(root: Path) -> WorkspaceStatusResult:
     return WorkspaceStatusResult(
         initiatives=initiatives,
         classifications=all_classifications,
+        shaping_classifications=all_shaping,
         reconciliation=reconciliation,
         files_read=files_read,
         elapsed_s=elapsed,
@@ -498,16 +580,30 @@ def get_active_specs(initiatives: list[Initiative]) -> list[tuple[str, str]]:
 
 # ── work-loop shaping-item guard helper ──────────────────────────────────────
 
+# Explicitly recognised shaping types. Only entries with one of these types
+# in [backlog].open are treated as shaping work by check_shaping_guard.
+# Untyped entries (ordinary build-backlog items) are excluded.
+_SHAPING_TYPES: frozenset[str] = frozenset(
+    {"shape", "research", "strategy", "signal", "design"}
+)
+
+
 def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:
-    """Extract typed entries from [backlog].open (the top-level backlog section).
+    """Extract typed shaping entries from [backlog].open.
 
     work-loop's shaping-item guard (SKILL.md §0 step 2) checks this list in addition
-    to per-initiative shaping queues.
+    to per-initiative shaping queues. Only entries with an explicit shaping type
+    (shape | research | strategy | signal | design) are returned; untyped dict entries
+    and ordinary build-backlog items without a type field are excluded.
     """
     backlog_section = workspace.get("backlog", {})
     if not isinstance(backlog_section, dict):
         return []
-    return [_parse_shaping_entry(e) for e in backlog_section.get("open", [])]
+    entries = []
+    for e in backlog_section.get("open", []):
+        if isinstance(e, dict) and e.get("type") in _SHAPING_TYPES:
+            entries.append(_parse_shaping_entry(e))
+    return entries
 
 
 _SHAPING_TYPE_TO_SKILL: dict[str, str] = {
@@ -552,53 +648,62 @@ def check_shaping_guard(
 # Cleanup of stale active/queue entries is workspace-status's responsibility
 # (Type 2 cleanup write after user confirmation).
 #
-# This function models that cleanup mutation: given a spec_path that
-# workspace-status has identified as stale (Status: Shipped/Archived in spec.md
-# but still in active/queue), describe what the cleanup write WOULD do.
+# This function models that cleanup mutation: caller provides the exact finding
+# fields from run_reconciliation() and receives the mutation shape.
+
+_TYPE2_VALID_STATUSES: frozenset[str] = frozenset({"Shipped", "Archived"})
+_TYPE2_VALID_SOURCES: frozenset[str] = frozenset({"active", "queue"})
+
 
 def compute_type2_cleanup(
+    ini_slug: str,
+    source_list: str,
     spec_path: str,
     spec_status: str,
-    initiatives: list[Initiative],
-) -> dict | None:
+) -> dict:
     """Describe what workspace-status Type 2 cleanup WOULD write to workspace.toml.
 
-    This does not perform the write (the engine is read-only).
-    Returns a dict describing the mutation, or None if the path is not in
-    any initiative's active or queue list.
+    Caller must supply the exact fields from a Type 2 ReconciliationFinding:
+      ini_slug   — the initiative slug (e.g. "ini-001")
+      source_list — "active" | "queue" (the list the finding came from)
+      spec_path  — the spec path (e.g. "spec/my-feature")
+      spec_status — "Shipped" | "Archived" (from the spec.md Status field)
+
+    Raises ValueError for spec_status outside {"Shipped", "Archived"} or
+    source_list outside {"active", "queue"} — these signal a caller bug
+    (Type 1 / Type 3 findings should never reach this function).
 
     workspace-status Type 2 cleanup (after user confirmation Y):
-      - Shipped, in active/queue: remove → append bare string to [work].shipped
-      - Archived, in active/queue: remove only — do NOT add to shipped
-      - Not in active/queue: no mutation (None)
+      - Shipped, in active/queue → remove, append bare string to [work].shipped
+      - Archived, in active/queue → remove only; do NOT add to shipped
 
-    NOTE: work-loop (≥ a46d6f46) does not perform this write. Cleanup is
-    workspace-status's responsibility exclusively.
+    This engine is read-only; it describes the write shape, not performs it.
+    NOTE: work-loop (≥ a46d6f46) does not perform this write.
     """
-    for ini in initiatives:
-        source: str | None = None
-        if any(e.path == spec_path for e in ini.work.active):
-            source = "active"
-        elif any(e.path == spec_path for e in ini.work.queue):
-            source = "queue"
-        if source is None:
-            continue
-        if spec_status == "Archived":
-            return {
-                "ini_slug": ini.slug,
-                "source_list": source,
-                "target_list": None,  # remove only — not added to shipped
-                "path": spec_path,
-            }
-        # Shipped (and any other non-Archived status — treated as Shipped)
+    if spec_status not in _TYPE2_VALID_STATUSES:
+        raise ValueError(
+            f"compute_type2_cleanup: spec_status must be 'Shipped' or 'Archived', "
+            f"got {spec_status!r}. Type 1 / Type 3 findings are not eligible."
+        )
+    if source_list not in _TYPE2_VALID_SOURCES:
+        raise ValueError(
+            f"compute_type2_cleanup: source_list must be 'active' or 'queue', "
+            f"got {source_list!r}."
+        )
+    if spec_status == "Archived":
         return {
-            "ini_slug": ini.slug,
-            "source_list": source,
-            "target_list": "shipped",
+            "ini_slug": ini_slug,
+            "source_list": source_list,
+            "target_list": None,   # remove only — not added to shipped
             "path": spec_path,
-            "written_form": f'"{spec_path}"',  # bare string
         }
-    return None
+    return {
+        "ini_slug": ini_slug,
+        "source_list": source_list,
+        "target_list": "shipped",
+        "path": spec_path,
+        "written_form": f'"{spec_path}"',   # bare string
+    }
 
 
 if __name__ == "__main__":
@@ -608,6 +713,9 @@ if __name__ == "__main__":
     print(f"Active initiatives: {len(active)}")
     print(f"Ready queue entries: {len(result.ready)}")
     print(f"Blocked queue entries: {len(result.blocked)}")
+    print(f"Ready shaping entries: {len(result.ready_shaping)}")
+    print(f"Blocked shaping entries: {len(result.blocked_shaping)}")
+    print(f"Signal entries: {len(result.signals)}")
     print(f"Reconciliation findings: "
           f"T1={len(result.type1)} T2={len(result.type2)} T3={len(result.type3)}")
     print(f"Spec files read: {result.files_read}")

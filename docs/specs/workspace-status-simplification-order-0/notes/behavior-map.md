@@ -234,10 +234,18 @@ reflect current work-loop behavior.
 
 ### Current duplication gap
 
-`workspace.toml` maintains `active`/`shipped`/`queue` arrays that DUPLICATE the
+`workspace.toml` maintains `active` and `shipped` arrays that DUPLICATE the
 authoritative status in each `spec.md`. A spec marked `Shipped` in its `spec.md`
 but still in `[work].queue` is a stale entry (Type 2 finding). This duplication
-is the root cause of all three reconciliation scan types.
+is the root cause of **Type 2 and Type 3** reconciliation findings.
+
+`[work].queue` is **authoritative ordered portfolio intent** — it is not a lifecycle
+mirror. Queue order is declared by the team; it cannot be derived from spec status.
+
+**Type 1 is independent.** The Type 1 forward scan finds specs in `Approved` or
+`Implementing` status that do not appear in any workspace.toml list. It is an
+*undeclared-work audit*, not drift between `spec.md` and `work.active`/`work.shipped`.
+Removing `work.active` and `work.shipped` does **not** eliminate Type 1.
 
 **Known defect:** `work.active` is redundant with `spec.md Status: Implementing`.
 **Known defect:** `work.shipped` is redundant with `spec.md Status: Shipped`.
@@ -250,8 +258,11 @@ proposes:
 - Derive active/shipped status from `spec.md Status:` at runtime
 - Keep only `work.queue` (ordered intent) as the authoritative source in workspace.toml
 
-This simplification would eliminate all three reconciliation scan types by
-removing the duplication. **This is NOT implemented in Order 0.**
+This simplification would eliminate Type 2 and Type 3 reconciliation scan types by
+removing the duplication. Type 1 remains — it is the untracked-live-spec audit and
+does not depend on `work.active`/`work.shipped`. A "quick" / "full" mode split would
+be the mechanism to move Type 1 off the default session-start path (KD-04).
+**This is NOT implemented in Order 0.**
 
 ---
 
@@ -263,7 +274,7 @@ removing the duplication. **This is NOT implemented in Order 0.**
 | KD-02 | Behavior gap | No cycle detection: if A needs B and B needs A, both show as blocked forever with no error | Minor |
 | KD-03 | Behavior gap | Missing dependency targets: a `work:spec/foo` need that points to a spec absent from ALL lists will never be satisfied; no warning | Minor |
 | KD-04 | Behavior gap | No "quick" mode — reconciliation always runs even for simple orientation queries | Performance |
-| KD-05 | Duplication | `work.active`/`work.shipped` duplicate `spec.md Status:`; source of all three reconciliation types | Architectural |
+| KD-05 | Duplication | `work.active`/`work.shipped` duplicate `spec.md Status:`; cause of Type 2 and Type 3 findings (Type 1 is an independent undeclared-work audit) | Architectural |
 | KD-06 | Spec inconsistency | SKILL.md says `shape:<slug>` "treated as shipped if not present" but workspace.toml header says `shape:` without this qualification | Minor |
 | KD-07 | Missing test | `brief:<path>` needs resolution is underspecified; `brief_queue` structure varies | Minor |
 

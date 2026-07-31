@@ -101,7 +101,7 @@ The 5 blocked entries are:
 
 ## Correctness findings
 
-All 27 characterization test cases pass. Known defects documented in
+All 32 characterization test cases pass. Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
@@ -155,7 +155,7 @@ git diff origin/main...HEAD -- workspace.toml                             # (emp
 |--------|----------|----------------|
 | Files read (reconciliation) | 397 for 313 specs | O(N) always; KD-04 — no quick path |
 | Reconciliation scope | All specs every call | Sessions that only need orientation still pay full scan |
-| Duplication findings (KD-05) | 3 reconciliation types exist | Eliminating `work.active`/`work.shipped` would eliminate all three |
+| Duplication findings (KD-05) | Type 2 + Type 3 caused by active/shipped duplication | Eliminating `work.active`/`work.shipped` eliminates Type 2 and Type 3; Type 1 remains as the untracked-work audit |
 | Cycle detection | None | Cycles silently block forever (KD-02) |
 | Missing-target warnings | None | Ghost deps silently block forever (KD-03) |
 | `backlog:` prefix | Conservatively unsatisfied | Undefined behavior; should be spec'd (KD-01) |
