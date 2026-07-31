@@ -147,12 +147,16 @@ def test_pre_pr_adopter_tree_no_tooling_is_graceful(tmp_path: Path) -> None:
 
 
 def test_pre_pr_fails_on_unapproved_state(sandbox: Path) -> None:
-    """An active state.json with plan not approved (the template's default)
-    makes the work-loop caps check fail — the one gate the shipped hook keeps."""
+    """Phase 1: an active state.json with review retry cap exceeded fails the
+    pre-pr review check — the one gate the shipped hook keeps in Phase 1.
+    (check --phase implement is a Phase-1 stub; review cap is the active gate.)"""
     spec_dir = sandbox / "docs" / "specs" / "example"
     spec_dir.mkdir(parents=True, exist_ok=True)
     template = sandbox / ".claude" / "skills" / "work-loop" / "assets" / "state.json"
-    shutil.copy(template, spec_dir / "state.json")
+    state = json.loads(template.read_text())
+    max_retries = int(state["max_review_retries"])
+    state["review_retry_count"] = max_retries  # at cap → check --phase review fails
+    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
     result = _run(sandbox)
     assert result.returncode != 0
     assert "pre-pr: ✖ loop-cohort check" in result.stderr

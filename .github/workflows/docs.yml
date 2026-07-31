@@ -21,7 +21,15 @@ on:
       - 'profiles/**'
       - 'packs/**'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
+      - '.claude/skills/work-loop/scripts/loop-engine.py'
+      - '.claude/skills/work-loop/scripts/check-spec-status.py'
+      - '.claude/skills/work-loop/scripts/test-loop-cohort.py'
+      - '.claude/skills/work-loop/scripts/test-loop-engine.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py'
       - 'tools/test-loop-cohort.sh'
       - 'tools/hooks/**'
       - 'tools/test-all.py'
@@ -67,8 +75,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Self-test loop-cohort (caps, fingerprints, worktree verbs)
+      - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
         run: bash tools/test-loop-cohort.sh
+      - name: Python test suite — loop-cohort (67 unit tests)
+        run: python3 .claude/skills/work-loop/scripts/test-loop-cohort.py
+      - name: Python test suite — loop-engine FSM (84 unit/integration tests)
+        run: python3 .claude/skills/work-loop/scripts/test-loop-engine.py
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches
@@ -85,8 +97,15 @@ jobs:
       - name: Seed a healthy state.json so the aggregator exercises loop-cohort check
         run: |
           mkdir -p docs/specs/_ci-smoke
-          sed 's/"pending"/"approved"/' .claude/skills/work-loop/assets/state.json \
-            > docs/specs/_ci-smoke/state.json
+          python3 -c "
+          import json, pathlib, uuid
+          d = json.loads(pathlib.Path('.claude/skills/work-loop/assets/state.json').read_text())
+          d['run_id'] = str(uuid.uuid4())
+          d['plan_review_status'] = 'approved'
+          d['implementation_retry_count'] = 0
+          d['review_retry_count'] = 0
+          pathlib.Path('docs/specs/_ci-smoke/state.json').write_text(json.dumps(d, indent=2))
+          "
       - name: Run pre-pr aggregator (mirrors local enforcement triplet)
         run: PYTHONPATH=packages/agentbundle python tools/catalogue/pre_pr_catalogue.py
       - name: Self-test the aggregator (each layer corruption surfaces)

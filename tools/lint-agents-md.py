@@ -233,9 +233,9 @@ def main() -> int:
                     f"drift-watch: '{pattern}' re-appeared in {forb} (canonical: {canonical})."
                 )
 
-    # 10a — iteration-cap value lives in state.json template, not prose.
+    # 10a — Phase-1 retry caps live in state.json template, not prose.
     drift_check(
-        r'"max_iterations":\s*[0-9]+',
+        r'"max_implementation_retries":\s*[0-9]+',
         ".claude/skills/work-loop/assets/state.json",
         [
             ".claude/skills/work-loop/SKILL.md",

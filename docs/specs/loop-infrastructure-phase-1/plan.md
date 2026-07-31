@@ -1,6 +1,6 @@
 # Plan: loop-infrastructure-phase-1
 
-- **Status:** Drafting
+- **Status:** Executing
 - **Spec:** [spec.md](spec.md)
 - **Decision:** [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md)
 - **Supersedes:** the mixed A/B approach explored in PR #816

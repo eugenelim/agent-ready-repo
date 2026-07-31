@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`work-loop` Phase-1 loop-infrastructure split (core 0.16.0).** The work-loop
+  tooling is split into two scripts with a hard boundary. `loop-engine.py` is a pure FSM
+  phase tracker (read-only except `init`/`transition`/`reset`; owns `engine-state.json`)
+  with two modes (`code`, 13 transitions; `spec-plan`, 5 transitions). `loop-cohort.py`
+  is rewritten as the sole writer of `state.json`; new verbs include `identity`,
+  `plan check-current [--require-schedule]`, `record-attempt`, `wave check`, `wave
+  advance`, and `review inspect`. `check-spec-status.py` guards the `reviewers-clean`
+  event in code mode. A `run_id` UUID generated at engine `init` is shared between both
+  state files and verified on every mutating call via `--expect-run-id`. Phase-1 parallel
+  verbs (`worktree`, `dispatch-decision`, `auto-parallel`) are disabled — they exit
+  non-zero. Version classification: 0.15.x → 0.16.0 (minor); the disabled verbs were
+  already non-functional for sequential Phase-1 workflows — no adopter relied on them
+  during this pre-Phase-2 window, and the changelog entry for 0.15.0 explicitly noted
+  Phase-2 would arrive later.
+
 - **`agentbundle` 0.27.0 — `[[pack.integrations]]` convention**: packs can now
   declare optional cross-pack behavior seams in `pack.toml`. The new
   `[[pack.integrations]]` array (governed by `contracts/pack.schema.json`) carries

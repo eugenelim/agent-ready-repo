@@ -113,19 +113,36 @@ After orientation:
    | User-facing surface³ | Design-intent pass | `creative-direction` / `design-review` |
    | HTML/CSS/JS primary output | Frontend pre-flight | `frontend-engineering` (named skip if absent) |
 
-   ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory. Re-fires on mid-EXECUTE re-plan.
+   ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory.
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-10. **Full mode:** run
-    `scripts/loop-cohort.py init docs/specs/<feature>`, then run
-    `scripts/loop-cohort.py check docs/specs/<feature> --phase plan`.
-    The initial exit 1 with `plan not approved` is the expected transition
-    into pre-EXECUTE review — it does not trigger termination.
+10. **Full mode:** run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
+    ```bash
+    run_id=$(python3 scripts/loop-engine.py init docs/specs/<feature> \
+        --mode code --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
+    python3 scripts/loop-cohort.py init docs/specs/<feature> --run-id "$run_id"
+    python3 scripts/loop-engine.py transition docs/specs/<feature> spec-ready
+    ```
+    Then run `scripts/loop-cohort.py plan check-current docs/specs/<feature>`.
+    Exit 1 (`plan_review_status: pending`) is the expected signal to run
+    pre-EXECUTE review — it does not trigger termination. Keep `$run_id` for all
+    subsequent `--expect-run-id` arguments throughout the rest of this loop.
 
-11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md).
+11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md). After all fired reviewers return Clean, fire the spec-review transition:
+    ```bash
+    python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
+    ```
 
-12. **Full mode:** run `loop-cohort.py approve-plan docs/specs/<feature>`, then re-run `check --phase plan`. Exit 0 unlocks EXECUTE; any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
+12. **Full mode:** the **G-plan sequence** — run in order after the human writes `Status: Approved` in spec.md:
+    ```bash
+    python3 scripts/loop-cohort.py approve-plan docs/specs/<feature> \
+        --expect-run-id "$run_id"
+    python3 scripts/loop-cohort.py schedule docs/specs/<feature> \
+        --expect-run-id "$run_id"
+    python3 scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+    ```
+    `loop-engine transition plan-approved` internally verifies approval + schedule binding (`plan check-current --require-schedule`). Exit 0 unlocks EXECUTE; any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
 Write the plan to disk — don't keep it in memory across turns.
 
@@ -162,9 +179,13 @@ Both EXECUTE fan-out (supervisor mode) and REVIEW fan-out share these rules:
 - Timeout, tool error, or missing report = `failed` for that target. Same as substantive failure; don't retry silently.
 - Merge results in your own context: read N reports, group by your bookkeeping, then decide.
 
-#### Supervisor mode (sequential by default)
+#### Supervisor mode (sequential only in Phase 1)
 
-Run `loop-cohort schedule docs/specs/<feature>` for topological task order. `schedule` fails loud on a dependency cycle and warns on a forward-reference (reorders so the dep runs first). Execute sequentially by default — correct ordering is the win. Parallel fan-out is opt-in and gated: `loop-cohort dispatch-decision` must clear it (fail-closed) **and** a human must opt in (`state.json.auto_parallel` unset = no auto-parallel). When you do opt in, select a subagent matching `implementer` per the [Parallel dispatch discipline](#parallel-dispatch-discipline). A failed parallel wave surfaces and stops, never auto-retries. Full gate semantics, worktree procedure, and single-agent fallback: [`references/supervisor-mode.md`](references/supervisor-mode.md).
+Run `loop-cohort schedule docs/specs/<feature> --expect-run-id "$run_id"` for topological task order. `schedule` fails loud on a dependency cycle and warns on a forward-reference (reorders so the dep runs first). Execute sequentially — **parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1**; those verbs exit non-zero. After all wave tasks are done, fire `wave-complete` before proceeding to GATES:
+```bash
+python3 scripts/loop-engine.py transition docs/specs/<feature> wave-complete
+```
+Full procedure: [`references/supervisor-mode.md`](references/supervisor-mode.md).
 
 ## Step 3. GATES
 
@@ -177,6 +198,27 @@ Run in order; proceed only if each passes:
 ```
 
 Don't move past a failing gate by editing the gate. On failure → FIX.
+
+**Full mode — after gates pass (wave routing):**
+```bash
+# More waves remain — fire wave-passed, advance cohort wave pointer, return to EXECUTE:
+python3 scripts/loop-engine.py transition docs/specs/<feature> wave-passed \
+    --wave-index <n>   # guard: wave check --expect more
+python3 scripts/loop-cohort.py wave advance docs/specs/<feature> \
+    --from-index <n> --expect-run-id "$run_id"
+
+# Final wave — fire gates-clean, proceed to REVIEW:
+python3 scripts/loop-engine.py transition docs/specs/<feature> gates-clean
+                   # guard: wave check --expect last
+```
+
+**Full mode — if gates fail:**
+```bash
+python3 scripts/loop-engine.py transition docs/specs/<feature> gates-failed
+python3 scripts/loop-cohort.py record-attempt docs/specs/<feature> \
+    --phase implement --cycle-id "$run_id:<seq>" --expect-run-id "$run_id"
+```
+Fix the failure and return to EXECUTE.
 
 **Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or stash-and-rerun. Pre-existing: grep `[backlog].open` for the test/file name; if no entry exists, add `{slug = "pre-existing-…", source = "pre-flight/<iso-date>"}` with a cold-start-sufficient comment, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
 
@@ -192,11 +234,32 @@ Findings come back grouped by severity (Blockers / Concerns / Nits), each with a
 - **Light mode:** run the single bounded pass. After every finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single Blocker re-review allowed by the light-mode rules.
 
 **Record findings after each pass (full mode):**
+```bash
+# 1. Classify the report
+result=$(python3 scripts/loop-cohort.py review inspect docs/specs/<feature> \
+    --report <report-path> --json)
+classification=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['classification'])")
+stasis=$(echo "$result"        | python3 -c "import sys,json; print(json.load(sys.stdin)['matches_previous_round'])")
+
+# 2a. Stasis — same findings two rounds in a row → surface immediately
+#     (matches_previous_round=True with classification=findings)
+
+# 2b. Findings — record each fingerprint and enforce the retry cap
+loop-cohort.py review record docs/specs/<feature> \
+    $(for fp in <fingerprint-list>; do echo "--fingerprint $fp"; done) \
+    --expect-run-id "$run_id"
+loop-cohort.py check docs/specs/<feature> --phase review  # exits non-zero at retry cap
+# Then fire findings-remain (guard: check --phase review):
+python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain
+# Fix findings and return to CODE-IMPLEMENTATION.
+
+# 2c. Clean — write Status: Shipped, record the clean round, fire reviewers-clean:
+loop-cohort.py review record docs/specs/<feature> \
+    --report <report-path> --expect-run-id "$run_id"
+python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
+                   # guard: check-spec-status.py; requires Status: Shipped
 ```
-loop-cohort.py review record docs/specs/<feature> --report <report-path>
-loop-cohort.py check docs/specs/<feature> --phase review
-```
-`review record` parses the report, computes `sha1("<file>|<line>|<title>")` per finding, rotates fingerprints, increments `iteration_count`, writes atomically. Exit non-zero on zero findings in a non-clean report — pass `--fingerprint <hex>` to override. `check --phase review` enforces stasis detection: exit 1 with `no progress` = same findings two iterations in a row → surface to human, don't spin a third.
+`review inspect` classifies the report into `findings` / `clean` / `invalid`; exit 0 for all content outcomes (use `invalid` as a signal to Surface — the reviewer output is malformed). `matches_previous_round=True` on a `findings` round = stasis → Surface to human, don't spin another round. `review record --fingerprint` increments both `review_round_count` and `review_retry_count`; `review record --report` (clean path) increments only `review_round_count`. `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`.
 
 Drop the full report text from resident context after recording. Re-read from disk when a FIX needs a finding's detail. (There is no pre-filtered "open findings" file — which findings are still open is your DECIDE-phase routing call.)
 
@@ -243,7 +306,8 @@ When gates are green and the mode's review requirements are satisfied → procee
 Stop when **any** of these is true:
 
 1. **Gates green AND the mode's review requirements are satisfied** — normal exit. Proceed to [Finish checklist](#finish-checklist).
-2. **`scripts/loop-cohort.py check` exits non-zero** — except the expected initial `plan not approved` in PLAN (step 10 above), which is the cue to run pre-EXECUTE reviewers, not a stop signal. All other non-zero exits stop the current iteration and surface. Fires on: iteration cap, token-budget cap, consecutive-error counter, fingerprint stasis (REVIEW phase only). The exit message identifies which condition.
+2. **`scripts/loop-cohort.py check` exits non-zero** — except the expected `plan_review_status: pending` in PLAN (step 10 above), which is the cue to run pre-EXECUTE reviewers, not a stop signal. All other non-zero exits stop the current iteration and surface. Fires on: implementation retry cap (`check --phase gates-failed`), review retry cap (`check --phase review`). The exit message identifies the condition.
+   **Stasis** (same findings two review rounds in a row) is detected by `review inspect` returning `matches_previous_round=True` — not by `check`. Surface immediately; do not run another review round.
 3. **Diff is shrinking but findings aren't** — spot-fixing without addressing root cause. Stop and rethink the approach (back to PLAN).
 
 If you hit any of these and the work isn't done: stop, write down what you learned, re-plan. Never silently expand scope to make a finding go away.

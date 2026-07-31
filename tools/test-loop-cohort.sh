@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Self-test for .claude/skills/work-loop/scripts/loop-cohort.py.
+# Self-test for .claude/skills/work-loop/scripts/loop-cohort.py — Phase 1.
 #
-# Each fixture lands in its own tempdir <name>/state.json (the tool
-# reads from <spec-dir>/state.json). The legacy check-done.py cases
-# are preserved — they cover the `check` verb. The newer cases exercise
-# init, approve-plan, review record (parse + --fingerprint), and the
-# worktree subcommands against scratch git repos.
+# Tests Phase-1 schema contracts: check verbs, identity, init --run-id,
+# approve-plan, schedule, wave, record-attempt, review inspect/record,
+# disabled Phase-1 verbs, and schema-key drift against assets/state.json.
+#
+# Comprehensive TDD coverage lives in test-loop-cohort.py and test-loop-engine.py;
+# this script retests the core contracts via the projected path and verifies
+# the assets/state.json field set matches Phase-1 expectations.
 
 set -uo pipefail
 
@@ -21,623 +23,435 @@ PY="python3 $SCRIPT"
 failures=0
 ran=0
 
-# run_case <name> <state-body> <phase> <expected-exit> <expected-stderr-substring>
-# Wraps the body into <TMP>/<name>/state.json and runs `loop-cohort check`.
-run_case() {
-  local name="$1" body="$2" phase="$3" want_exit="$4" want_substr="$5"
+fail() {
+  local name="$1"; shift
+  echo "FAIL [$name]: $*" >&2
+  failures=$((failures + 1))
+}
+
+ok() {
+  echo "ok   [$1]"
+}
+
+run_and_check() {
+  # run_and_check <name> <want_exit> <want_substr> -- <cmd...>
+  local name="$1" want_exit="$2" want_substr="$3"
+  shift 3
+  # consume '--'
+  if [[ "$1" == "--" ]]; then shift; fi
+
   ran=$((ran + 1))
-
-  local dir="$TMP/$name"
-  mkdir -p "$dir"
-  printf '%s' "$body" > "$dir/state.json"
-
-  local stderr_out
+  local stderr_out got_exit
   set +e
-  stderr_out=$($PY check "$dir" --phase "$phase" 2>&1 >/dev/null)
-  local got_exit=$?
+  stderr_out=$("$@" 2>&1 >/dev/null)
+  got_exit=$?
   set -e
 
   if [[ "$got_exit" -ne "$want_exit" ]]; then
-    echo "FAIL [$name]: expected exit $want_exit, got $got_exit" >&2
-    echo "  stderr: $stderr_out" >&2
-    failures=$((failures + 1))
+    fail "$name" "expected exit $want_exit, got $got_exit (stderr: $stderr_out)"
     return
   fi
-
   if [[ -n "$want_substr" && "$stderr_out" != *"$want_substr"* ]]; then
-    echo "FAIL [$name]: stderr did not contain '$want_substr'" >&2
-    echo "  stderr: $stderr_out" >&2
-    failures=$((failures + 1))
+    fail "$name" "stderr did not contain '$want_substr' (stderr: $stderr_out)"
     return
   fi
-
-  echo "ok   [$name]"
+  ok "$name"
 }
 
-# ── check verb (legacy check-done.py coverage) ───────────────────────────
+# ── Phase-1 state.json schema-key drift ─────────────────────────────────
 
-HEALTHY='{
-  "feature": "x",
-  "iteration_count": 1,
-  "max_iterations": 5,
-  "token_budget_used_pct": 0.1,
-  "token_budget_cap_pct": 0.85,
-  "consecutive_same_error_count": 0,
-  "plan_review_status": "approved",
-  "finding_fingerprints": ["a"],
-  "previous_finding_fingerprints": ["b"]
-}'
-
-# Healthy state passes all three phases.
-run_case "healthy-plan"      "$HEALTHY" plan      0 ""
-run_case "healthy-implement" "$HEALTHY" implement 0 ""
-run_case "healthy-review"    "$HEALTHY" review    0 ""
-
-# #1: iteration cap.
-ITER_OVER='{"iteration_count": 5, "max_iterations": 5, "plan_review_status": "approved"}'
-run_case "iter-cap" "$ITER_OVER" implement 1 "iteration cap"
-
-# #2: token budget.
-TOK_OVER='{"token_budget_used_pct": 0.9, "token_budget_cap_pct": 0.85, "plan_review_status": "approved"}'
-run_case "token-cap" "$TOK_OVER" implement 1 "token budget"
-
-# #3: consecutive same error.
-STUCK='{"consecutive_same_error_count": 3, "plan_review_status": "approved"}'
-run_case "stuck" "$STUCK" implement 1 "stuck on same error"
-
-# #4: plan not approved (fires in all phases).
-PENDING='{"plan_review_status": "pending"}'
-run_case "plan-pending-plan"      "$PENDING" plan      1 "plan not approved"
-run_case "plan-pending-implement" "$PENDING" implement 1 "plan not approved"
-run_case "plan-pending-review"    "$PENDING" review    1 "plan not approved"
-
-# Caps fire under --phase review too.
-ITER_REVIEW='{"iteration_count": 5, "max_iterations": 5, "plan_review_status": "approved"}'
-run_case "iter-cap-review" "$ITER_REVIEW" review 1 "iteration cap"
-
-TOK_REVIEW='{"token_budget_used_pct": 0.9, "token_budget_cap_pct": 0.85, "plan_review_status": "approved"}'
-run_case "token-cap-review" "$TOK_REVIEW" review 1 "token budget"
-
-STUCK_REVIEW='{"consecutive_same_error_count": 3, "plan_review_status": "approved"}'
-run_case "stuck-review" "$STUCK_REVIEW" review 1 "stuck on same error"
-
-# Data-driven same-error threshold.
-STUCK_LOW='{
-  "consecutive_same_error_count": 2,
-  "consecutive_same_error_threshold": 2,
-  "plan_review_status": "approved"
-}'
-run_case "stuck-from-data" "$STUCK_LOW" implement 1 "stuck on same error"
-
-STUCK_BELOW='{
-  "consecutive_same_error_count": 2,
-  "consecutive_same_error_threshold": 3,
-  "plan_review_status": "approved"
-}'
-run_case "stuck-below-data-threshold" "$STUCK_BELOW" implement 0 ""
-
-STASIS_UNSORTED='{
-  "plan_review_status": "approved",
-  "finding_fingerprints": ["b", "a", "c"],
-  "previous_finding_fingerprints": ["c", "a", "b"]
-}'
-run_case "stasis-unsorted" "$STASIS_UNSORTED" review 1 "no progress"
-
-STASIS='{
-  "plan_review_status": "approved",
-  "finding_fingerprints": ["x", "y"],
-  "previous_finding_fingerprints": ["x", "y"]
-}'
-run_case "stasis-review"    "$STASIS" review    1 "no progress"
-run_case "stasis-implement" "$STASIS" implement 0 ""
-
-EMPTY_FP='{
-  "plan_review_status": "approved",
-  "finding_fingerprints": [],
-  "previous_finding_fingerprints": []
-}'
-run_case "empty-fingerprints-review" "$EMPTY_FP" review 0 ""
-
-# Missing file — point at a dir that has no state.json.
-ran=$((ran + 1))
-mkdir -p "$TMP/missing"
-set +e
-stderr_out=$($PY check "$TMP/missing" --phase implement 2>&1 >/dev/null)
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 1 && "$stderr_out" == *"state.json missing"* ]]; then
-  echo "ok   [missing-file]"
-else
-  echo "FAIL [missing-file]: exit=$got_exit stderr=$stderr_out" >&2
-  failures=$((failures + 1))
-fi
-
-MALFORMED='{not json'
-run_case "malformed" "$MALFORMED" implement 1 "malformed"
-
-NOT_OBJ='[1, 2, 3]'
-run_case "not-object" "$NOT_OBJ" implement 1 "must be an object"
-
-DEFAULTS_OVER='{"iteration_count": 5, "plan_review_status": "approved"}'
-run_case "defaults-iter" "$DEFAULTS_OVER" implement 1 "iteration cap"
-
-# Template-vs-script drift. Reuses the canonical assets/state.json so
-# any rename/removal of a field check-done's logic reads gets caught.
 TEMPLATE_PATH="$REPO_ROOT/.claude/skills/work-loop/assets/state.json"
-if [[ -f "$TEMPLATE_PATH" ]]; then
-  ran=$((ran + 1))
-  mkdir -p "$TMP/fresh-template"
-  cp "$TEMPLATE_PATH" "$TMP/fresh-template/state.json"
-  set +e
-  fresh_err=$($PY check "$TMP/fresh-template" --phase plan 2>&1 >/dev/null)
-  fresh_exit=$?
-  set -e
-  if [[ "$fresh_exit" -eq 1 && "$fresh_err" == *"plan not approved"* ]]; then
-    echo "ok   [fresh-template-pending]"
-  else
-    echo "FAIL [fresh-template-pending]: exit=$fresh_exit stderr=$fresh_err" >&2
-    failures=$((failures + 1))
-  fi
 
-  ran=$((ran + 1))
-  mkdir -p "$TMP/fresh-template-approved"
-  python3 -c "import json, pathlib; p=pathlib.Path('$TEMPLATE_PATH'); d=json.loads(p.read_text()); d['plan_review_status']='approved'; pathlib.Path('$TMP/fresh-template-approved/state.json').write_text(json.dumps(d))"
-  set +e
-  fresh_err=$($PY check "$TMP/fresh-template-approved" --phase implement 2>&1 >/dev/null)
-  fresh_exit=$?
-  set -e
-  if [[ "$fresh_exit" -eq 0 ]]; then
-    echo "ok   [fresh-template-approved]"
-  else
-    echo "FAIL [fresh-template-approved]: exit=$fresh_exit stderr=$fresh_err" >&2
-    failures=$((failures + 1))
-  fi
-else
-  echo "skip [fresh-template-*]: $TEMPLATE_PATH not found"
-fi
-
-# Schema-vs-script drift assertions.
-if [[ -f "$TEMPLATE_PATH" ]]; then
-  ran=$((ran + 1))
-  if python3 - "$TEMPLATE_PATH" "$SCRIPT" <<'PY'
-import json, pathlib, re, sys
+ran=$((ran + 1))
+if python3 - "$TEMPLATE_PATH" <<'PY'
+import json, pathlib, sys
 template = json.loads(pathlib.Path(sys.argv[1]).read_text())
-script = pathlib.Path(sys.argv[2]).read_text()
 
 expected_keys = {
-    "feature", "iteration_count", "max_iterations",
+    "schema_version", "run_id", "feature",
+    "plan_review_status",
+    "approved_spec_hash", "approved_plan_hash", "plan_hash",
+    "schedule_waves", "current_wave_index",
+    "implementation_retry_count", "max_implementation_retries",
+    "last_record_attempt_cycle_id",
+    "review_round_count", "review_retry_count", "max_review_retries",
+    "finding_fingerprints", "previous_finding_fingerprints",
+    "auto_parallel", "last_commit_sha", "worktrees",
+}
+# Phase-2 fields must be absent
+phase2_absent = {
     "token_budget_used_pct", "token_budget_cap_pct",
     "consecutive_same_error_count", "consecutive_same_error_threshold",
-    "plan_review_status", "auto_parallel", "last_commit_sha",
-    "finding_fingerprints", "previous_finding_fingerprints",
-    "worktrees",
+    "iteration_count", "max_iterations",
 }
 missing = expected_keys - set(template)
 extra = set(template) - expected_keys
-if missing or extra:
-    print(f"schema-drift: missing={sorted(missing)} extra={sorted(extra)}", file=sys.stderr)
-    sys.exit(1)
-
-script_reads = set(re.findall(r'state\.get\("([^"]+)"', script))
-missing_from_template = script_reads - set(template) - {"worktrees"}
-if missing_from_template:
-    print(f"schema-drift: script reads {sorted(missing_from_template)} which template omits", file=sys.stderr)
-    sys.exit(1)
-PY
-  then
-    echo "ok   [schema-keys-match]"
-  else
-    echo "FAIL [schema-keys-match]" >&2
-    failures=$((failures + 1))
-  fi
-
-  ran=$((ran + 1))
-  if python3 - "$TEMPLATE_PATH" "$SCRIPT" <<'PY'
-import json, pathlib, re, sys
-template = json.loads(pathlib.Path(sys.argv[1]).read_text())
-script = pathlib.Path(sys.argv[2]).read_text()
-
-m = re.search(r'DEFAULTS = \{([^}]+)\}', script, re.DOTALL)
-if not m:
-    print("DEFAULTS dict not found in script", file=sys.stderr); sys.exit(1)
-defaults = {}
-for line in m.group(1).strip().splitlines():
-    km = re.match(r'\s*"([^"]+)":\s*([0-9.]+)', line)
-    if km:
-        defaults[km.group(1)] = float(km.group(2))
-
-mismatches = []
-for k, v in defaults.items():
-    tv = template.get(k)
-    if tv is None or float(tv) != v:
-        mismatches.append(f"{k}: script={v} template={tv}")
-if mismatches:
-    print("defaults-vs-template drift: " + "; ".join(mismatches), file=sys.stderr)
+present_p2 = phase2_absent & set(template)
+if missing or extra or present_p2:
+    if missing:
+        print(f"schema-drift: missing={sorted(missing)}", file=sys.stderr)
+    if extra:
+        print(f"schema-drift: extra={sorted(extra)}", file=sys.stderr)
+    if present_p2:
+        print(f"schema-drift: Phase-2 fields in template={sorted(present_p2)}", file=sys.stderr)
     sys.exit(1)
 PY
-  then
-    echo "ok   [defaults-match-template]"
-  else
-    echo "FAIL [defaults-match-template]" >&2
-    failures=$((failures + 1))
-  fi
+then
+  ok "schema-phase1-keys-match"
+else
+  fail "schema-phase1-keys-match" "Phase-1 field set mismatch; see above"
 fi
 
-# ── init verb ────────────────────────────────────────────────────────────
+# Template must have null run_id and schema_version=1 at init.
+ran=$((ran + 1))
+if python3 - "$TEMPLATE_PATH" <<'PY'
+import json, pathlib, sys
+d = json.loads(pathlib.Path(sys.argv[1]).read_text())
+ok = d.get("schema_version") == 1 and d.get("run_id") is None and d.get("plan_review_status") == "pending"
+if not ok:
+    print(f"schema_version={d.get('schema_version')} run_id={d.get('run_id')} plan_review_status={d.get('plan_review_status')}", file=sys.stderr)
+    sys.exit(1)
+PY
+then
+  ok "template-init-defaults"
+else
+  fail "template-init-defaults" "template has wrong default values for Phase-1 init fields"
+fi
+
+# ── init: requires --run-id ──────────────────────────────────────────────
+
+RUN_ID="$(python3 -c "import uuid; print(str(uuid.uuid4()))")"
+SPEC1="$TMP/spec1"
+mkdir -p "$SPEC1"
+
+run_and_check "init-no-run-id-fails" 2 "" -- $PY init "$SPEC1"
+
+run_and_check "init-with-run-id-succeeds" 0 "" -- $PY init "$SPEC1" --run-id "$RUN_ID"
+
+# State must carry run_id and schema_version=1.
+ran=$((ran + 1))
+if python3 - "$SPEC1/state.json" "$RUN_ID" <<'PY'
+import json, pathlib, sys
+d = json.loads(pathlib.Path(sys.argv[1]).read_text())
+ok = d.get("run_id") == sys.argv[2] and d.get("schema_version") == 1 and d.get("plan_review_status") == "pending"
+if not ok:
+    print(f"run_id={d.get('run_id')!r} schema_version={d.get('schema_version')} plan_review_status={d.get('plan_review_status')!r}", file=sys.stderr)
+    sys.exit(1)
+PY
+then
+  ok "init-state-run-id-correct"
+else
+  fail "init-state-run-id-correct" "state.json has wrong field values after init"
+fi
+
+# Init refuses if state.json already exists (no --force in Phase 1).
+run_and_check "init-refuses-if-state-exists" 1 "" -- $PY init "$SPEC1" --run-id "$RUN_ID"
+
+# ── identity ─────────────────────────────────────────────────────────────
+
+run_and_check "identity-success" 0 "" -- $PY identity "$SPEC1" --expect-run-id "$RUN_ID"
+run_and_check "identity-mismatch" 1 "" -- $PY identity "$SPEC1" --expect-run-id "wrong-id"
+
+SPEC_NOSTATE="$TMP/spec-nostate"
+mkdir -p "$SPEC_NOSTATE"
+run_and_check "identity-absent-state" 1 "" -- $PY identity "$SPEC_NOSTATE"
+
+# ── plan check-current before approve-plan ───────────────────────────────
+
+# Need spec.md + plan.md for approve-plan
+cat > "$SPEC1/spec.md" <<'EOF'
+# Spec
+
+- **Status:** Approved
+
+## Acceptance criteria
+
+- [ ] AC1
+EOF
+cat > "$SPEC1/plan.md" <<'EOF'
+# Plan
+
+### T1
+
+**Depends on:** none
+
+### T2
+
+**Depends on:** T1
+EOF
+
+run_and_check "plan-check-current-not-approved" 1 "" -- $PY plan check-current "$SPEC1"
+
+# ── approve-plan ──────────────────────────────────────────────────────────
+
+run_and_check "approve-plan-no-run-id-fails" 2 "" -- $PY approve-plan "$SPEC1"
+run_and_check "approve-plan-with-run-id" 0 "" -- $PY approve-plan "$SPEC1" --expect-run-id "$RUN_ID"
 
 ran=$((ran + 1))
-mkdir -p "$TMP/init-spec/myfeature"
-set +e
-$PY init "$TMP/init-spec/myfeature" > /dev/null
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 && -f "$TMP/init-spec/myfeature/state.json" ]]; then
-  feature_val=$(python3 -c "import json; print(json.load(open('$TMP/init-spec/myfeature/state.json'))['feature'])")
-  if [[ "$feature_val" == "myfeature" ]]; then
-    echo "ok   [init-creates-state]"
-  else
-    echo "FAIL [init-creates-state]: feature='$feature_val' expected 'myfeature'" >&2
-    failures=$((failures + 1))
-  fi
+if python3 - "$SPEC1/state.json" <<'PY'
+import json, pathlib, sys
+d = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if d.get("plan_review_status") != "approved":
+    print(f"plan_review_status={d.get('plan_review_status')!r}", file=sys.stderr)
+    sys.exit(1)
+if not isinstance(d.get("approved_spec_hash"), str) or len(d["approved_spec_hash"]) != 64:
+    print(f"approved_spec_hash={d.get('approved_spec_hash')!r}", file=sys.stderr)
+    sys.exit(1)
+if not isinstance(d.get("approved_plan_hash"), str) or len(d["approved_plan_hash"]) != 64:
+    print(f"approved_plan_hash={d.get('approved_plan_hash')!r}", file=sys.stderr)
+    sys.exit(1)
+PY
+then
+  ok "approve-plan-writes-hashes"
 else
-  echo "FAIL [init-creates-state]: exit=$got_exit" >&2
-  failures=$((failures + 1))
+  fail "approve-plan-writes-hashes" "approve-plan did not write expected fields"
 fi
 
-# init refuses to overwrite by default.
+run_and_check "plan-check-current-approved" 0 "" -- $PY plan check-current "$SPEC1"
+
+# ── check --phase stub verbs ──────────────────────────────────────────────
+
+# check --phase implement: stub, always exits 0
+run_and_check "check-phase-implement-stub" 0 "" -- $PY check "$SPEC1" --phase implement
+
+# check --phase gates-failed: cap detection
+python3 -c "
+import json, pathlib
+p = pathlib.Path('$SPEC1/state.json')
+d = json.loads(p.read_text())
+d['implementation_retry_count'] = 5
+d['max_implementation_retries'] = 5
+p.write_text(json.dumps(d))
+"
+run_and_check "check-phase-gates-failed-at-cap" 1 "cap" -- $PY check "$SPEC1" --phase gates-failed
+
+# Reset counter for remaining tests
+python3 -c "
+import json, pathlib, sys
+p = pathlib.Path('$SPEC1/state.json')
+d = json.loads(p.read_text())
+d['implementation_retry_count'] = 0
+p.write_text(json.dumps(d))
+"
+
+run_and_check "check-phase-gates-failed-under-cap" 0 "" -- $PY check "$SPEC1" --phase gates-failed
+
+# check --phase review: retry cap
+python3 -c "
+import json, pathlib
+p = pathlib.Path('$SPEC1/state.json')
+d = json.loads(p.read_text())
+d['review_retry_count'] = 5
+d['max_review_retries'] = 5
+p.write_text(json.dumps(d))
+"
+run_and_check "check-phase-review-at-cap" 1 "" -- $PY check "$SPEC1" --phase review
+
+python3 -c "
+import json, pathlib
+p = pathlib.Path('$SPEC1/state.json')
+d = json.loads(p.read_text())
+d['review_retry_count'] = 0
+p.write_text(json.dumps(d))
+"
+
+# ── schedule ──────────────────────────────────────────────────────────────
+
+run_and_check "schedule-no-run-id-fails" 1 "" -- $PY schedule "$SPEC1"
+run_and_check "schedule-with-run-id" 0 "" -- $PY schedule "$SPEC1" --expect-run-id "$RUN_ID"
+
 ran=$((ran + 1))
-set +e
-$PY init "$TMP/init-spec/myfeature" 2> "$TMP/init-overwrite.err"
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 1 && $(cat "$TMP/init-overwrite.err") == *"already exists"* ]]; then
-  echo "ok   [init-refuses-overwrite]"
+if python3 - "$SPEC1/state.json" <<'PY'
+import json, pathlib, sys
+d = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if not d.get("schedule_waves") or not isinstance(d["schedule_waves"], list):
+    print(f"schedule_waves={d.get('schedule_waves')!r}", file=sys.stderr)
+    sys.exit(1)
+if d.get("plan_hash") is None:
+    print("plan_hash is None after schedule", file=sys.stderr)
+    sys.exit(1)
+if d.get("current_wave_index") != 0:
+    print(f"current_wave_index={d.get('current_wave_index')!r}", file=sys.stderr)
+    sys.exit(1)
+PY
+then
+  ok "schedule-persists-waves-and-hash"
 else
-  echo "FAIL [init-refuses-overwrite]: exit=$got_exit" >&2
-  failures=$((failures + 1))
+  fail "schedule-persists-waves-and-hash" "schedule did not write expected state"
 fi
 
-# init --force overwrites.
+run_and_check "schedule-check-current-passes" 0 "" -- $PY schedule check-current "$SPEC1"
+
+# Mutate plan.md → schedule check-current fails
+echo "# Plan (modified)" > "$SPEC1/plan.md"
+run_and_check "schedule-check-current-detects-change" 1 "" -- $PY schedule check-current "$SPEC1"
+
+# Restore plan.md
+cat > "$SPEC1/plan.md" <<'EOF'
+# Plan
+
+### T1
+
+**Depends on:** none
+
+### T2
+
+**Depends on:** T1
+EOF
+
+# ── disabled Phase-1 verbs ────────────────────────────────────────────────
+
+run_and_check "disabled-dispatch-decision" 1 "disabled" -- $PY dispatch-decision --branch main
+run_and_check "disabled-auto-parallel" 1 "disabled" -- $PY auto-parallel "$SPEC1"
+run_and_check "disabled-worktree-add" 1 "disabled" -- $PY worktree add "$SPEC1" T1
+
+# ── wave check / advance ──────────────────────────────────────────────────
+
+# Current state has current_wave_index=0, waves=[[T1],[T2]]
+# With 2 waves, index=0 → more remain
+run_and_check "wave-check-more-index0" 0 "" -- $PY wave check "$SPEC1" --expect more
+
+# Advance to index 1
+run_and_check "wave-advance-0-to-1" 0 "" -- $PY wave advance "$SPEC1" --from-index 0 --expect-run-id "$RUN_ID"
+
 ran=$((ran + 1))
-set +e
-$PY init "$TMP/init-spec/myfeature" --force > /dev/null
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 ]]; then
-  echo "ok   [init-force-overwrites]"
+idx=$(python3 -c "import json; print(json.load(open('$SPEC1/state.json'))['current_wave_index'])")
+if [[ "$idx" == "1" ]]; then
+  ok "wave-advance-current-index-updated"
 else
-  echo "FAIL [init-force-overwrites]: exit=$got_exit" >&2
-  failures=$((failures + 1))
+  fail "wave-advance-current-index-updated" "expected current_wave_index=1, got $idx"
 fi
 
-# ── approve-plan verb ────────────────────────────────────────────────────
+run_and_check "wave-check-last-at-index1" 0 "" -- $PY wave check "$SPEC1" --expect last
+run_and_check "wave-advance-refuses-final" 1 "" -- $PY wave advance "$SPEC1" --from-index 1 --expect-run-id "$RUN_ID"
+
+# ── record-attempt ────────────────────────────────────────────────────────
+
+CYCLE1="${RUN_ID}:1"
+run_and_check "record-attempt-increment" 0 "" -- $PY record-attempt "$SPEC1" --phase implement --cycle-id "$CYCLE1" --expect-run-id "$RUN_ID"
 
 ran=$((ran + 1))
-$PY approve-plan "$TMP/init-spec/myfeature" > /dev/null
-status_val=$(python3 -c "import json; print(json.load(open('$TMP/init-spec/myfeature/state.json'))['plan_review_status'])")
-if [[ "$status_val" == "approved" ]]; then
-  echo "ok   [approve-plan-flips-status]"
+cnt=$(python3 -c "import json; print(json.load(open('$SPEC1/state.json'))['implementation_retry_count'])")
+if [[ "$cnt" == "1" ]]; then
+  ok "record-attempt-counter-is-1"
 else
-  echo "FAIL [approve-plan-flips-status]: status='$status_val'" >&2
-  failures=$((failures + 1))
+  fail "record-attempt-counter-is-1" "expected implementation_retry_count=1, got $cnt"
 fi
 
-# ── review record verb ──────────────────────────────────────────────────
+# Idempotent: same cycle-id is a no-op
+run_and_check "record-attempt-idempotent" 0 "" -- $PY record-attempt "$SPEC1" --phase implement --cycle-id "$CYCLE1" --expect-run-id "$RUN_ID"
 
-# Sample reviewer report in the documented format.
-REVIEW_REPORT="$TMP/review.md"
-cat > "$REVIEW_REPORT" <<'EOF'
+ran=$((ran + 1))
+cnt2=$(python3 -c "import json; print(json.load(open('$SPEC1/state.json'))['implementation_retry_count'])")
+if [[ "$cnt2" == "1" ]]; then
+  ok "record-attempt-idempotent-count-unchanged"
+else
+  fail "record-attempt-idempotent-count-unchanged" "expected count=1 after idempotent replay, got $cnt2"
+fi
+
+# ── review inspect ────────────────────────────────────────────────────────
+
+FINDINGS_REPORT="$TMP/findings.md"
+cat > "$FINDINGS_REPORT" <<'EOF'
 ## Blockers
 
-**1. PLAN-phase exit-1 conflates "not yet done" with "stop".** `foo.py:88-92`. The skill body conflates exit-1. Fix: distinguish.
+**1. Missing null check.** `src/foo.py:42`. Value not validated. Fix: add guard.
 
-**2. Wrong file mode.** `bar.py:14`. Mode is 0o755. Fix: use 0o644.
-
-## Nits
-
-**3. Typo in docstring.** `baz.py:3`. Says "implementor". Fix: spell correctly.
+**2. Typo.** `src/bar.py:10`. Spelling error. Fix: fix it.
 EOF
 
-ran=$((ran + 1))
-$PY review record "$TMP/init-spec/myfeature" --report "$REVIEW_REPORT" > /dev/null
-fp_count=$(python3 -c "import json; print(len(json.load(open('$TMP/init-spec/myfeature/state.json'))['finding_fingerprints']))")
-iter_val=$(python3 -c "import json; print(json.load(open('$TMP/init-spec/myfeature/state.json'))['iteration_count'])")
-if [[ "$fp_count" == "3" && "$iter_val" == "1" ]]; then
-  echo "ok   [review-record-parses-three]"
-else
-  echo "FAIL [review-record-parses-three]: count=$fp_count iter=$iter_val" >&2
-  failures=$((failures + 1))
-fi
-
-# Fingerprint stability — same report parses to same hashes.
-ran=$((ran + 1))
-EXPECTED_FP=$(python3 -c "
-import hashlib
-print(hashlib.sha1(b'foo.py|88|**1. PLAN-phase exit-1 conflates \"not yet done\" with \"stop\".**').hexdigest())
-")
-ACTUAL_FP=$(python3 -c "
-import json
-print(json.load(open('$TMP/init-spec/myfeature/state.json'))['finding_fingerprints'][0])
-")
-if [[ "$EXPECTED_FP" == "$ACTUAL_FP" ]]; then
-  echo "ok   [fingerprint-sha1-canonical]"
-else
-  echo "FAIL [fingerprint-sha1-canonical]: expected=$EXPECTED_FP actual=$ACTUAL_FP" >&2
-  failures=$((failures + 1))
-fi
-
-# Rotation: second record moves current → previous.
-ran=$((ran + 1))
-$PY review record "$TMP/init-spec/myfeature" --report "$REVIEW_REPORT" > /dev/null
-prev_count=$(python3 -c "import json; print(len(json.load(open('$TMP/init-spec/myfeature/state.json'))['previous_finding_fingerprints']))")
-if [[ "$prev_count" == "3" ]]; then
-  echo "ok   [review-record-rotates]"
-else
-  echo "FAIL [review-record-rotates]: prev_count=$prev_count" >&2
-  failures=$((failures + 1))
-fi
-
-# Clean report → empty fingerprints.
-ran=$((ran + 1))
 CLEAN_REPORT="$TMP/clean.md"
-printf 'Clean — ready to commit.\n' > "$CLEAN_REPORT"
-$PY init "$TMP/clean-spec" > /dev/null
-$PY approve-plan "$TMP/clean-spec" > /dev/null
-$PY review record "$TMP/clean-spec" --report "$CLEAN_REPORT" > /dev/null
-clean_count=$(python3 -c "import json; print(len(json.load(open('$TMP/clean-spec/state.json'))['finding_fingerprints']))")
-if [[ "$clean_count" == "0" ]]; then
-  echo "ok   [review-record-clean]"
+printf 'Review complete.\n\nClean \xe2\x80\x94 ready to commit.\n' > "$CLEAN_REPORT"
+
+ran=$((ran + 1))
+result=$(python3 $SCRIPT review inspect "$SPEC1" --report "$FINDINGS_REPORT" --json 2>/dev/null)
+classification=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['classification'])")
+if [[ "$classification" == "findings" ]]; then
+  ok "review-inspect-findings"
 else
-  echo "FAIL [review-record-clean]: count=$clean_count" >&2
-  failures=$((failures + 1))
+  fail "review-inspect-findings" "expected classification=findings, got $classification"
 fi
 
-# --fingerprint escape hatch.
 ran=$((ran + 1))
-$PY init "$TMP/fp-spec" > /dev/null
-$PY approve-plan "$TMP/fp-spec" > /dev/null
-$PY review record "$TMP/fp-spec" --fingerprint aaaa --fingerprint bbbb > /dev/null
-fp_list=$(python3 -c "import json; print(','.join(json.load(open('$TMP/fp-spec/state.json'))['finding_fingerprints']))")
-if [[ "$fp_list" == "aaaa,bbbb" ]]; then
-  echo "ok   [review-record-fingerprint-flag]"
+result_clean=$(python3 $SCRIPT review inspect "$SPEC1" --report "$CLEAN_REPORT" --json 2>/dev/null)
+class_clean=$(echo "$result_clean" | python3 -c "import sys,json; print(json.load(sys.stdin)['classification'])")
+if [[ "$class_clean" == "clean" ]]; then
+  ok "review-inspect-clean"
 else
-  echo "FAIL [review-record-fingerprint-flag]: fp_list='$fp_list'" >&2
-  failures=$((failures + 1))
+  fail "review-inspect-clean" "expected classification=clean, got $class_clean"
 fi
 
-# Non-clean report with zero parsed findings → non-zero exit.
+# ── review record ────────────────────────────────────────────────────────
+
+# --fingerprint path: increments both counters
+run_and_check "review-record-fingerprint" 0 "" -- $PY review record "$SPEC1" --fingerprint "aabbccdd1122334455667788990011223344556677" --expect-run-id "$RUN_ID"
+
 ran=$((ran + 1))
-BAD_REPORT="$TMP/bad.md"
-printf 'Some prose without findings.\n' > "$BAD_REPORT"
-$PY init "$TMP/bad-spec" > /dev/null
-$PY approve-plan "$TMP/bad-spec" > /dev/null
-set +e
-err=$($PY review record "$TMP/bad-spec" --report "$BAD_REPORT" 2>&1 >/dev/null)
-got_exit=$?
-set -e
-if [[ "$got_exit" -ne 0 && "$err" == *"parsed zero findings"* ]]; then
-  echo "ok   [review-record-rejects-unparseable]"
+rr=$(python3 -c "import json; d=json.load(open('$SPEC1/state.json')); print(d['review_round_count'], d['review_retry_count'])")
+if [[ "$rr" == "1 1" ]]; then
+  ok "review-record-fingerprint-both-counters"
 else
-  echo "FAIL [review-record-rejects-unparseable]: exit=$got_exit stderr=$err" >&2
-  failures=$((failures + 1))
+  fail "review-record-fingerprint-both-counters" "expected round_count=1 retry_count=1, got '$rr'"
 fi
 
-# ── worktree subcommands (against a scratch git repo) ───────────────────
+# --report (clean) path: increments only round_count
+run_and_check "review-record-report-clean" 0 "" -- $PY review record "$SPEC1" --report "$CLEAN_REPORT" --expect-run-id "$RUN_ID"
 
-GIT_DIR="$TMP/gitrepo"
-mkdir -p "$GIT_DIR"
-(
-  cd "$GIT_DIR"
-  git init -q
-  git config user.email t@t
-  git config user.name t
-  touch a
-  git add a
-  git commit -qm init
-  git checkout -qb base
-)
-
-(
-  cd "$GIT_DIR"
-  mkdir -p docs/specs/feat
-  $PY init docs/specs/feat > /dev/null
-  $PY approve-plan docs/specs/feat > /dev/null
-)
-
-# preflight clean.
 ran=$((ran + 1))
-set +e
-( cd "$GIT_DIR" && $PY worktree preflight docs/specs/feat T1 T2 > /dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 ]]; then
-  echo "ok   [worktree-preflight-clean]"
+rr2=$(python3 -c "import json; d=json.load(open('$SPEC1/state.json')); print(d['review_round_count'], d['review_retry_count'])")
+if [[ "$rr2" == "2 1" ]]; then
+  ok "review-record-report-only-round-counter"
 else
-  echo "FAIL [worktree-preflight-clean]: exit=$got_exit" >&2
-  failures=$((failures + 1))
+  fail "review-record-report-only-round-counter" "expected round=2 retry=1, got '$rr2'"
 fi
 
-# add T1, T2.
+# --report with non-clean report: fails
+run_and_check "review-record-report-non-clean-fails" 1 "" -- $PY review record "$SPEC1" --report "$FINDINGS_REPORT" --expect-run-id "$RUN_ID"
+
+# ── status is read-only ───────────────────────────────────────────────────
+
 ran=$((ran + 1))
-set +e
-( cd "$GIT_DIR" && $PY worktree add docs/specs/feat T1 > /dev/null && $PY worktree add docs/specs/feat T2 > /dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 ]]; then
-  wt_count=$(python3 -c "import json; print(len(json.load(open('$GIT_DIR/docs/specs/feat/state.json'))['worktrees']))")
-  if [[ "$wt_count" == "2" ]]; then
-    echo "ok   [worktree-add-two]"
+before=$(md5sum "$SPEC1/state.json" | awk '{print $1}')
+python3 $SCRIPT status "$SPEC1" --json > /dev/null 2>&1
+after=$(md5sum "$SPEC1/state.json" | awk '{print $1}')
+if [[ "$before" == "$after" ]]; then
+  ok "status-read-only"
+else
+  fail "status-read-only" "state.json was mutated by status"
+fi
+
+# ── reset ────────────────────────────────────────────────────────────────
+
+run_and_check "reset-deletes-state" 0 "" -- $PY reset "$SPEC1"
+if [[ ! -f "$SPEC1/state.json" ]]; then
+  ran=$((ran + 1)); ok "reset-state-gone"
+else
+  ran=$((ran + 1)); fail "reset-state-gone" "state.json still exists after reset"
+fi
+
+run_and_check "reset-idempotent" 0 "" -- $PY reset "$SPEC1"
+
+# ── Python test delegation ────────────────────────────────────────────────
+# Run the comprehensive Python test suite against the projected path.
+
+PYTEST="$REPO_ROOT/.claude/skills/work-loop/scripts/test-loop-cohort.py"
+if [[ -f "$PYTEST" ]]; then
+  ran=$((ran + 1))
+  if python3 "$PYTEST" > /dev/null 2>&1; then
+    ok "python-test-loop-cohort-suite"
   else
-    echo "FAIL [worktree-add-two]: count=$wt_count" >&2
-    failures=$((failures + 1))
+    fail "python-test-loop-cohort-suite" "test-loop-cohort.py reported failures (run it directly for details)"
   fi
-else
-  echo "FAIL [worktree-add-two]: exit=$got_exit" >&2
-  failures=$((failures + 1))
 fi
 
-# preflight after add — should surface T1 and T2 collisions.
-ran=$((ran + 1))
-set +e
-( cd "$GIT_DIR" && $PY worktree preflight docs/specs/feat T1 > /dev/null 2>&1 )
-got_exit=$?
-set -e
-if [[ "$got_exit" -ne 0 ]]; then
-  echo "ok   [worktree-preflight-detects-stale]"
-else
-  echo "FAIL [worktree-preflight-detects-stale]: expected non-zero" >&2
-  failures=$((failures + 1))
-fi
-
-# worktree add refuses duplicate task_id.
-ran=$((ran + 1))
-set +e
-err=$( cd "$GIT_DIR" && $PY worktree add docs/specs/feat T1 2>&1 >/dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -ne 0 && "$err" == *"already exists"* ]]; then
-  echo "ok   [worktree-add-refuses-dup]"
-else
-  echo "FAIL [worktree-add-refuses-dup]: exit=$got_exit stderr=$err" >&2
-  failures=$((failures + 1))
-fi
-
-# worktree record — match-first / write-second.
-ran=$((ran + 1))
-T1_REPORT="$TMP/report-T1.md"
-cat > "$T1_REPORT" <<'EOF'
-## Task T1: build a thing
-
-**Status:** ready
-EOF
-set +e
-( cd "$GIT_DIR" && $PY worktree record docs/specs/feat T1 --status ready --report "$T1_REPORT" > /dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 && -f "$GIT_DIR/docs/specs/feat/notes/implementer-T1-0.md" ]]; then
-  echo "ok   [worktree-record-writes-note]"
-else
-  echo "FAIL [worktree-record-writes-note]: exit=$got_exit" >&2
-  failures=$((failures + 1))
-fi
-
-# worktree record refuses heading/arg mismatch.
-ran=$((ran + 1))
-MISMATCH_REPORT="$TMP/report-mismatch.md"
-cat > "$MISMATCH_REPORT" <<'EOF'
-## Task T99: not the same task
-
-**Status:** ready
-EOF
-set +e
-err=$( cd "$GIT_DIR" && $PY worktree record docs/specs/feat T2 --status ready --report "$MISMATCH_REPORT" 2>&1 >/dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -ne 0 && "$err" == *"declares task 'T99'"* ]]; then
-  echo "ok   [worktree-record-rejects-mismatch]"
-else
-  echo "FAIL [worktree-record-rejects-mismatch]: exit=$got_exit stderr=$err" >&2
-  failures=$((failures + 1))
-fi
-
-# worktree merge — happy path.
-ran=$((ran + 1))
-T2_REPORT="$TMP/report-T2.md"
-cat > "$T2_REPORT" <<'EOF'
-## Task T2: build the other thing
-
-**Status:** ready
-EOF
-(
-  cd "$GIT_DIR/.worktrees/T1"
-  echo "T1 work" > t1.txt
-  git add t1.txt
-  git commit -qm "T1"
-)
-(
-  cd "$GIT_DIR/.worktrees/T2"
-  echo "T2 work" > t2.txt
-  git add t2.txt
-  git commit -qm "T2"
-)
-( cd "$GIT_DIR" && $PY worktree record docs/specs/feat T2 --status ready --report "$T2_REPORT" > /dev/null )
-set +e
-( cd "$GIT_DIR" && $PY worktree merge docs/specs/feat > /dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 ]]; then
-  echo "ok   [worktree-merge-happy]"
-else
-  echo "FAIL [worktree-merge-happy]: exit=$got_exit" >&2
-  failures=$((failures + 1))
-fi
-
-# worktree cleanup.
-ran=$((ran + 1))
-set +e
-( cd "$GIT_DIR" && $PY worktree cleanup docs/specs/feat > /dev/null 2>&1 )
-got_exit=$?
-set -e
-if [[ "$got_exit" -eq 0 && ! -d "$GIT_DIR/.worktrees/T1" && ! -d "$GIT_DIR/.worktrees/T2" ]]; then
-  echo "ok   [worktree-cleanup-removes]"
-else
-  echo "FAIL [worktree-cleanup-removes]: exit=$got_exit" >&2
-  failures=$((failures + 1))
-fi
-
-# worktree merge — conflict path. Two tasks edit the same file.
-GIT_DIR2="$TMP/gitrepo2"
-mkdir -p "$GIT_DIR2"
-(
-  cd "$GIT_DIR2"
-  git init -q
-  git config user.email t@t
-  git config user.name t
-  echo "base" > conflict.txt
-  git add conflict.txt
-  git commit -qm init
-  git checkout -qb base
-  mkdir -p docs/specs/feat
-  $PY init docs/specs/feat > /dev/null
-  $PY approve-plan docs/specs/feat > /dev/null
-  $PY worktree add docs/specs/feat T1 > /dev/null
-  $PY worktree add docs/specs/feat T2 > /dev/null
-)
-(
-  cd "$GIT_DIR2/.worktrees/T1"
-  echo "T1 edit" > conflict.txt
-  git add conflict.txt
-  git commit -qm "T1 conflict"
-)
-(
-  cd "$GIT_DIR2/.worktrees/T2"
-  echo "T2 edit" > conflict.txt
-  git add conflict.txt
-  git commit -qm "T2 conflict"
-)
-cat > "$TMP/conflict-T1.md" <<'EOF'
-## Task T1: edit
-**Status:** ready
-EOF
-cat > "$TMP/conflict-T2.md" <<'EOF'
-## Task T2: edit
-**Status:** ready
-EOF
-(
-  cd "$GIT_DIR2"
-  $PY worktree record docs/specs/feat T1 --status ready --report "$TMP/conflict-T1.md" > /dev/null
-  $PY worktree record docs/specs/feat T2 --status ready --report "$TMP/conflict-T2.md" > /dev/null
-)
-ran=$((ran + 1))
-set +e
-err=$( cd "$GIT_DIR2" && $PY worktree merge docs/specs/feat 2>&1 >/dev/null )
-got_exit=$?
-set -e
-if [[ "$got_exit" -ne 0 && "$err" == *"merge conflict on task T2"* ]]; then
-  echo "ok   [worktree-merge-conflict]"
-else
-  echo "FAIL [worktree-merge-conflict]: exit=$got_exit stderr=$err" >&2
-  failures=$((failures + 1))
+PYTEST_ENGINE="$REPO_ROOT/.claude/skills/work-loop/scripts/test-loop-engine.py"
+if [[ -f "$PYTEST_ENGINE" ]]; then
+  ran=$((ran + 1))
+  if python3 "$PYTEST_ENGINE" > /dev/null 2>&1; then
+    ok "python-test-loop-engine-suite"
+  else
+    fail "python-test-loop-engine-suite" "test-loop-engine.py reported failures (run it directly for details)"
+  fi
 fi
 
 echo

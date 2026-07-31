@@ -1,6 +1,6 @@
 # Spec: loop-infrastructure-phase-1
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
@@ -58,16 +58,16 @@ Any event not listed above is illegal and must cause `loop-engine transition` to
 
 ## Acceptance criteria
 
-- [ ] `loop-engine transition` enforces legal phase ordering (normative transition matrix above) and refuses illegal events with exit non-zero.
-- [ ] `loop-engine status` returns current phase, `last_event`, `run_id`, and `pending_human_wait` as JSON.
-- [ ] `loop-cohort schedule check-current` runs as a mandatory pre-guard for every transition whose source state is `CODE-*`, except `done`; any change that alters `canonical(plan.md)` from the scheduled baseline causes refusal.
-- [ ] Every post-initialization run-local cohort mutation (`approve-plan`, `schedule`, `wave advance`, `record-attempt`, `review record`) requires and enforces `--expect-run-id`.
-- [ ] `review inspect` uses `parse_findings()` as the canonical findings extractor and combines its output with report readability and the canonical clean-substring check to classify reports; report-content outcomes exit 0; operational failures exit non-zero.
-- [ ] Session resumption works without chat history for `wave-passed` and `gates-failed` windows (idempotent) and surfaces the documented limitation for `findings-remain` and `reviewers-clean` windows; `loop-cohort status <spec-dir> [--json]` reads cohort state without mutation as the read-only step of the resumption protocol.
-- [ ] `loop-engine` refuses `gates-failed` when `implementation_retry_count` equals `max_implementation_retries`; refuses `findings-remain` when `review_retry_count` equals `max_review_retries`; stale-fingerprint stasis at `findings-remain` surfaces to human per the session-resumption protocol.
-- [ ] Disabled Phase-1 verbs (`worktree`, `dispatch-decision`, `auto-parallel`) exit non-zero with no `state.json` mutation.
-- [ ] `state-schema.md` is updated to reflect the Phase-1 field set; `.claude/` and `.agents/` projections are regenerated.
-- [ ] `SKILL.md` removes the mid-execution replan path and wires the Phase-1 `approve-plan` + G-plan sequence in place of the old `check --phase plan` gate.
+- [x] `loop-engine transition` enforces legal phase ordering (normative transition matrix above) and refuses illegal events with exit non-zero.
+- [x] `loop-engine status` returns current phase, `last_event`, `run_id`, and `pending_human_wait` as JSON.
+- [x] `loop-cohort schedule check-current` runs as a mandatory pre-guard for every transition whose source state is `CODE-*`, except `done`; any change that alters `canonical(plan.md)` from the scheduled baseline causes refusal.
+- [x] Every post-initialization run-local cohort mutation (`approve-plan`, `schedule`, `wave advance`, `record-attempt`, `review record`) requires and enforces `--expect-run-id`.
+- [x] `review inspect` uses `parse_findings()` as the canonical findings extractor and combines its output with report readability and the canonical clean-substring check to classify reports; report-content outcomes exit 0; operational failures exit non-zero.
+- [x] Session resumption works without chat history for `wave-passed` and `gates-failed` windows (idempotent) and surfaces the documented limitation for `findings-remain` and `reviewers-clean` windows; `loop-cohort status <spec-dir> [--json]` reads cohort state without mutation as the read-only step of the resumption protocol.
+- [x] `loop-engine` refuses `gates-failed` when `implementation_retry_count` equals `max_implementation_retries`; refuses `findings-remain` when `review_retry_count` equals `max_review_retries`; stale-fingerprint stasis at `findings-remain` surfaces to human per the session-resumption protocol.
+- [x] Disabled Phase-1 verbs (`worktree`, `dispatch-decision`, `auto-parallel`) exit non-zero with no `state.json` mutation.
+- [x] `state-schema.md` is updated to reflect the Phase-1 field set; `.claude/` and `.agents/` projections are regenerated.
+- [x] `SKILL.md` removes the mid-execution replan path and wires the Phase-1 `approve-plan` + G-plan sequence in place of the old `check --phase plan` gate.
 
 ## Testing strategy
 
