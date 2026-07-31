@@ -32,14 +32,17 @@ start", "show the queue", etc. (full list in SKILL.md frontmatter description).
 There is no "quick" mode that skips reconciliation and no "full" mode that adds extra
 checks. The current behavior is: always run all three reconciliation scan types.
 
-**Known schema/usage drift — initiative status vocabulary:**
+### Source conflicts and characterized resolution
 
-SKILL.md (line 57) documents the initiative status vocabulary as `active | paused | closed`.
-However, the real `workspace.toml` in this repo uses `complete` (not `closed`) for at least
-one historical initiative. The engine and skill both accept whatever string is present; the
-characterization suite (AC2b) exercises `complete` as the observed legacy form. A future
-order should either align the vocabulary (update `workspace.toml` to `closed`) or update
-the SKILL.md documentation to include `complete` as a valid synonym.
+The following authoritative sources disagree. The "Executable interpretation" column
+records what the reference engine actually does.
+
+| Concern | Conflicting sources | Executable interpretation |
+|---------|---------------------|--------------------------|
+| Initiative status vocabulary | RFC-0064: `active \| shipped`; schema guide: `active \| inactive`; SKILL.md:57: `active \| paused \| closed`; real `workspace.toml`: `complete` | Only exact `"active"` participates in discovery. Every other string (paused, closed, complete, inactive, shipped) is treated as non-active and the initiative is skipped. |
+| Work-loop completion mutation | RFC-0064 states work-loop moves work from `active` to `shipped`. Current work-loop SKILL.md does not mutate `workspace.toml` — it only sets `spec.md Status: Shipped`. | `workspace.toml` queue/active/shipped updates are out-of-scope for work-loop; workspace-status owns reconciliation (AC3g ownership invariant). RFC-0064 describes superseded behavior. |
+| Active work dependency | SKILL.md dep table: `work:<path>` resolves to `[work].shipped` "(or `[work].active` counts as in-progress)". Final rule and `workspace-toml-schema.md:113`: satisfied only by `[work].shipped`. | Shipped-only: an entry in `work.active` does NOT satisfy a `work:` dependency. The parenthetical describes status, not satisfaction. |
+| Shape dependency | SKILL.md:90: "treated as shipped if not present". `workspace-toml-schema.md:114`: "satisfied when no longer in active". | Resolved against `.active` only — absent from active = satisfied, regardless of backlog. Both sources agree on the operative rule; the "not present" phrasing is imprecise. |
 
 ---
 
@@ -107,6 +110,10 @@ depending on whether their `needs` are satisfied.
 `backlog:<slug>` needs is **undefined** — the skill will either ignore it, treat it as
 unknown, or fail to resolve. This is a spec/implementation gap to be fixed in a later
 order.
+
+**List-valued needs:** `needs` accepts either a single string or a list of strings.
+When a list, all entries must be satisfied for the item to be unblocked (logical AND).
+`blocking_needs` lists only the unsatisfied subset.
 
 **Known behavior:** `shape:<slug>` resolves as satisfied when the slug is absent from
 `[shaping_queue].active` — meaning a slug in `backlog` (scheduled but not yet started)
@@ -284,7 +291,23 @@ be the mechanism to move Type 1 off the default session-start path (KD-04).
 
 ---
 
-## 12. Reference: status extraction algorithm
+## 12. Reference-model policies not established by the current production skill
+
+The following behaviors are implemented in the reference engine but have no
+corresponding specification in the current production SKILL.md. They are not
+"characterization" of production behavior — they are additional policies. Order 1
+work that depends on these behaviors must decide whether to spec them formally.
+
+| Behavior | Policy type | Notes |
+|----------|-------------|-------|
+| Path confinement in `_safe_spec_path` — rejects absolute slugs, slugs containing `..`, and paths resolving outside `docs/specs/` | Defensive implementation policy | SKILL.md says "strip `spec/` and resolve"; does not define traversal rejection. Appropriate for a build-gate tool but not transcribed from production. |
+| `os.walk(followlinks=False)` in Type 1 — skips symlinked directories and symlinked `spec.md` files | Defensive implementation policy | Production skill has no concept of symlinks. Prevents repo-escape in the build gate. |
+| Missing `status` field on an initiative — treated as non-active (fail-closed) | Ambiguity resolved for the model | Production prose calls `status` required but does not define missing-field behavior. Fail-closed is correct for a characterization tool. |
+| Cross-type shaping identity — `same-slug/shape` and `same-slug/research` in separate lists are preserved as distinct entries | Ambiguity resolved for the model | Production instructions do not specify whether identity is `slug` alone or `(slug, type)`. Work-loop routing guard matches by slug; dependency prefixes are type-sensitive. |
+
+---
+
+## 14. Reference: status extraction algorithm
 
 From a `spec.md` file:
 1. Find the first line starting with `- **Status:**`

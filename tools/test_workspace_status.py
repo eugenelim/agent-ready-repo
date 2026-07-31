@@ -253,7 +253,7 @@ def case_local_work_deps() -> None:
 
 # ── AC2d-active: work: dep on active item stays blocked until shipped ──────────
 
-def case_local_work_dep_satisfied_by_active() -> None:
+def case_local_work_dep_blocked_by_active() -> None:
     """workspace-toml-schema.md §needs: work:<path> resolves to [work].shipped only.
 
     A queue entry whose prerequisite is in work.active is NOT yet satisfied —
@@ -421,6 +421,46 @@ def case_shape_research_brief_deps() -> None:
                "[AC2f] research:finished-research satisfied (not in backlog)")
         expect(not by_path["spec/needs-research-pending"].is_ready,
                "[AC2f] research:backlog-research blocked (in backlog)")
+
+
+# ── AC2f-list: List-valued needs (logical AND) ────────────────────────────────
+
+def case_list_valued_needs() -> None:
+    """needs = [...] satisfies all entries; one unsatisfied dep blocks the whole entry."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "List Needs"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+            ["ini-001".work]
+            active  = []
+            shipped = ["spec/dep-a"]
+            queue   = [
+              {path = "spec/partial",   needs = ["work:spec/dep-a", "work:spec/dep-missing"]},
+              {path = "spec/satisfied", needs = ["work:spec/dep-a",
+                                                 "brief:docs/product/briefs/ready.md"]},
+            ]
+            ["ini-001".brief_queue]
+            executing = ""
+            ready     = ["docs/product/briefs/ready.md"]
+            draft     = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+        cls = classify_entries(initiatives[0], initiatives)
+        by_path = {c.entry.path: c for c in cls}
+
+        expect(not by_path["spec/partial"].is_ready,
+               "[AC2f-list] one unsatisfied dep → entry blocked")
+        expect("work:spec/dep-missing" in by_path["spec/partial"].blocking_needs,
+               "[AC2f-list] unsatisfied dep named in blocking_needs")
+        expect(by_path["spec/satisfied"].is_ready,
+               "[AC2f-list] mixed-prefix list with all deps satisfied → ready")
 
 
 # ── AC2g: Ready and transitively blocked ─────────────────────────────────────
@@ -1289,12 +1329,15 @@ def case_full_analyze() -> None:
 
 # ── Contract anchor — SKILL.md drift guard ───────────────────────────────────
 #
-# SHA-256 of SKILL.md lines 66–180 (ready/blocked definitions, DAG resolution,
-# reconciliation sections — the full algorithmic contract).
+# workspace-status anchor: SHA-256 of SKILL.md lines 55–251 (_SKILL_CONTRACT_SLICE,
+# 0-indexed (54, 251)). That slice covers: schema field vocabulary, ready/blocked
+# definitions, DAG resolution, reconciliation, signal output (§3), skill routing
+# (§4), and missing-field defaults (§5 type absent = shape).
 # When this test fails, the engine's interpretation may be stale. Read the
 # changed sections and reconcile before updating the constant.
 _SKIP_ANCHOR_ENV = "WORKSPACE_STATUS_SKIP_ANCHOR"
 
+_SKILL_CONTRACT_SLICE = (54, 251)  # 0-indexed; maps to lines 55–251 (1-indexed)
 _SKILL_CONTRACT_HASH = (
     "0d23c903d6c3f8c2156f892fa97af6c94f8983fada52ec26c7a075042a3b2838"
 )
@@ -1361,7 +1404,7 @@ def case_skill_contract_anchor() -> None:
     signals (§3 active-context section), skill routing table (§4 including
     signal → no action), and missing-fields defaults (§5 type absent = shape).
     """
-    _check_anchor(_SKILL_MD, (54, 251), _SKILL_CONTRACT_HASH,
+    _check_anchor(_SKILL_MD, _SKILL_CONTRACT_SLICE, _SKILL_CONTRACT_HASH,
                   "workspace-status contract")
 
 
@@ -1988,6 +2031,10 @@ def test_ac2f_shape_research_brief_deps() -> None:
     _run_case(case_shape_research_brief_deps)
 
 
+def test_ac2f_list_valued_needs() -> None:
+    _run_case(case_list_valued_needs)
+
+
 def test_ac2g_ready_and_transitively_blocked() -> None:
     _run_case(case_ready_and_transitively_blocked)
 
@@ -2049,7 +2096,7 @@ def test_ac3g_type2_cleanup_ownership() -> None:
 
 
 def test_ac2d_active_local_dep() -> None:
-    _run_case(case_local_work_dep_satisfied_by_active)
+    _run_case(case_local_work_dep_blocked_by_active)
 
 
 def test_ac2d_dup_queue_excluded() -> None:
@@ -2123,11 +2170,12 @@ CASES = [
     ("AC2b paused_closed_initiatives", case_paused_closed_initiatives),
     ("AC2c ordered_queues", case_ordered_queues),
     ("AC2d local_work_deps", case_local_work_deps),
-    ("AC2d-active work_dep_on_active_stays_blocked", case_local_work_dep_satisfied_by_active),
+    ("AC2d-active work_dep_on_active_stays_blocked", case_local_work_dep_blocked_by_active),
     ("AC2d-dup queue_entries_in_active_or_shipped_excluded",
      case_queue_entries_in_active_or_shipped_excluded),
     ("AC2e cross_initiative_deps", case_cross_initiative_deps),
     ("AC2f shape_research_brief_deps", case_shape_research_brief_deps),
+    ("AC2f-list list_valued_needs", case_list_valued_needs),
     ("AC2g ready_and_transitively_blocked", case_ready_and_transitively_blocked),
     ("AC2h spec_statuses", case_spec_statuses),
     ("AC2i missing_spec_paths", case_missing_spec_paths),

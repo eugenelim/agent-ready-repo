@@ -18,9 +18,11 @@ behavior. Order 1 will wire this engine (or a successor) as the actual backend;
 only then will these become true production-path unit tests.
 
 SKILL.md contract anchor:
-  SHA-256 of SKILL.md lines 66–180 (ready/blocked definitions, DAG resolution,
-  reconciliation sections — the full algorithmic contract):
-  c0c2166e2a12472c1255602ccaad750cf6290646a510d83151a4a46e5a6f8984
+  SHA-256 of SKILL.md lines 55–251 (0-indexed slice _SKILL_CONTRACT_SLICE = (54, 251)
+  in test_workspace_status.py): schema field vocabulary, ready/blocked definitions,
+  DAG resolution, reconciliation, signal output (§3), skill routing (§4), and
+  missing-field defaults (§5 type absent = shape) — the full algorithmic contract.
+  0d23c903d6c3f8c2156f892fa97af6c94f8983fada52ec26c7a075042a3b2838
   Tested by test_workspace_status.py::test_skill_contract_anchor.
   If that test fails, re-read the changed sections and update this engine before
   editing the fingerprint.
@@ -31,6 +33,9 @@ Known gaps (documented in behavior-map.md, not fixed here):
   KD-03: Missing dep targets not warned
   KD-04: No quick mode (reconciliation always runs)
   KD-05: work.active/shipped duplicate spec.md Status
+  KD-06: shape: resolved against .active only; wording inconsistency in SKILL.md/schema
+  KD-07: brief:<path> needs underspecified; brief_queue structure varies
+  KD-08: strategy:<slug> needs prefix absent from SKILL.md; treated conservatively
 """
 
 from __future__ import annotations

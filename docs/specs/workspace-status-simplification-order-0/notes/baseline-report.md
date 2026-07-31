@@ -105,7 +105,7 @@ shipped list — it resolves to READY, demonstrating real cross-initiative dep r
 
 ## Correctness findings
 
-All 40 characterization test cases pass (arrow-in-annotation, unknown-final-segment, spaced annotation arrow, no-space transition, cross-type shaping dedup, missing-status initiative, and non-letter transition segment cases included). Known defects documented in
+All 41 characterization test cases pass (arrow-in-annotation, unknown-final-segment, spaced annotation arrow, no-space transition, cross-type shaping dedup, missing-status initiative, non-letter transition segment, and list-valued needs cases included). Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
@@ -125,8 +125,33 @@ All 40 characterization test cases pass (arrow-in-annotation, unknown-final-segm
 | Deduplication in `[work].shipped` | tomlkit write path, not algorithmic logic |
 | `brief:<path>` resolution edge cases | `brief_queue` structure variation not fully exercised (KD-07) |
 | LLM skill natural-language activation | Engine tests pure algorithmic logic; prompt→skill dispatch not covered |
-| Multi-need array form | TOML allows `needs = ["work:a", "work:b"]`; no explicit multi-need test |
 | Production-path timing | Reference-engine ~0.11 s is compute cost only; actual skill trace not measured |
+
+## Observed data drift (real repository)
+
+Running `extract_spec_status()` over the 254 real `docs/specs/**/spec.md` files reveals:
+
+| Status | Count |
+|--------|-------|
+| Shipped | 229 |
+| Approved | 9 |
+| Unknown (non-canonical syntax) | 16 |
+
+The 16 unknown forms use either `**Status:** Shipped` (bold markers without the leading
+`- ` list prefix) or `Status: Shipped` (no bold markers). Both variants are skipped by
+the current parser, which requires an exact `- **Status:**` prefix per SKILL.md.
+
+One of these specs (`spec/product-documentation-pack`) appears in an initiative's
+`shipped` list. Type 3 reconciliation reads it but treats its status as unknown and
+skips it — no false finding is generated, but the Type 3 guard has a blind spot.
+
+**This is not a Phase 0 defect.** The reference engine faithfully follows the
+production extraction rule. However, Order 1's lifecycle-migration proposal (deriving
+active/shipped from `spec.md Status:` alone) depends on either:
+- A one-time normalization of these 16 specs to canonical syntax, or
+- An explicitly revised status grammar with compatibility tests.
+
+Do not broaden the parser in Phase 0. Decide in the lifecycle-migration phase.
 
 ## Branch scope
 

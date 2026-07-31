@@ -182,10 +182,10 @@ def run_benchmark() -> dict:
             for k in ws if k.startswith("ini-")
         )
 
-        # ── Run analysis — warm then cold ─────────────────────────────────────
-        t_warm_0 = time.monotonic()
+        # ── Run analysis — first run then repeated run ────────────────────────
+        t_first_0 = time.monotonic()
         analyze(root)
-        elapsed_first_run = time.monotonic() - t_warm_0
+        elapsed_first_run = time.monotonic() - t_first_0
 
         t0 = time.monotonic()
         result = analyze(root)
