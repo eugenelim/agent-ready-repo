@@ -28,6 +28,7 @@ import os
 import sys
 import tempfile
 import textwrap
+import unittest
 from pathlib import Path
 
 # Prefer repo-local copy of the engine.
@@ -37,11 +38,13 @@ from workspace_status_engine import (
     check_shaping_guard,
     classify_entries,
     classify_shaping_entries,
+    collect_work_loop_stale_warnings,
     compute_type2_cleanup,
     extract_initiatives,
     extract_spec_status,
     extract_top_level_backlog,
     get_active_specs,
+    normalize_for_shaping_guard,
     parse_workspace,
     run_reconciliation,
 )
@@ -139,8 +142,8 @@ def case_paused_closed_initiatives() -> None:
             backlog = []
 
             ["ini-003"]
-            name = "Closed"
-            status = "complete"
+            name = "Closed (documented)"
+            status = "closed"
             milestone = "M1"
             ["ini-003".work]
             active  = []
@@ -149,21 +152,32 @@ def case_paused_closed_initiatives() -> None:
             ["ini-003".shaping_queue]
             active = []
             backlog = []
+
+            ["ini-004"]
+            name = "Complete (legacy)"
+            status = "complete"
+            milestone = "M1"
+            ["ini-004".work]
+            active  = []
+            shipped = ["spec/complete-feature"]
+            queue   = []
+            ["ini-004".shaping_queue]
+            active = []
+            backlog = []
         """)
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
-        expect(len(initiatives) == 3, f"[AC2b] expected 3 initiatives, got {len(initiatives)}")
+        expect(len(initiatives) == 4, f"[AC2b] expected 4 initiatives, got {len(initiatives)}")
         by_status = {i.slug: i.status for i in initiatives}
         expect(by_status.get("ini-001") == "active", "[AC2b] ini-001 status wrong")
         expect(by_status.get("ini-002") == "paused", "[AC2b] ini-002 status wrong")
-        # Schema drift: SKILL.md documents 'closed' but real workspace.toml uses 'complete'.
-        # The engine accepts both; 'complete' is the observed legacy form.
-        # See behavior-map §5 for the known schema/usage drift.
-        expect(
-            by_status.get("ini-003") == "complete",
-            "[AC2b] ini-003 status wrong (legacy 'complete')",
-        )
-        # Paused/closed don't contribute to ready/blocked
+        # Schema drift: SKILL.md documents 'closed'; some workspace.toml files use 'complete'.
+        # Both are exercised here to freeze the vocabulary inconsistency (behavior-map §2).
+        expect(by_status.get("ini-003") == "closed",
+               "[AC2b] ini-003 status wrong (documented 'closed')")
+        expect(by_status.get("ini-004") == "complete",
+               "[AC2b] ini-004 status wrong (legacy 'complete')")
+        # Paused/closed/complete don't contribute to ready/blocked
         all_cls: list = []
         for ini in initiatives:
             if ini.status == "active":
@@ -1213,13 +1227,15 @@ def _check_anchor(
     """Shared logic for contract-anchor cases.
 
     Fails hard when the skill file is absent in the canonical repo.
-    Set WORKSPACE_STATUS_SKIP_ANCHOR=1 to skip in isolated environments;
-    the test will print SKIP rather than pass.
+    Set WORKSPACE_STATUS_SKIP_ANCHOR=1 to raise unittest.SkipTest, which
+    pytest surfaces as a skip and the custom runner counts as 'skipped' —
+    never as passed.
     """
     if not skill_path.exists():
         if os.environ.get(_SKIP_ANCHOR_ENV, "").lower() in ("1", "true", "yes"):
-            print(f"  [SKIP] {label}: skill absent, {_SKIP_ANCHOR_ENV} set")
-            return
+            raise unittest.SkipTest(
+                f"{label}: skill absent, {_SKIP_ANCHOR_ENV} set"
+            )
         expect(
             False,
             f"[{label}] skill file not found at {skill_path}. "
@@ -1525,6 +1541,214 @@ def case_type2_cleanup_duplicate_source() -> None:
     )
 
 
+# ── F2: shaping duplicate deduplication ──────────────────────────────────────
+
+def case_shaping_deduplication() -> None:
+    """Active shaping entries take precedence; backlog duplicates are suppressed."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Dedup"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active  = [
+              {slug = "same-shape", type = "shape"},
+              {slug = "same-signal", type = "signal"},
+            ]
+            backlog = [
+              {slug = "same-shape",  type = "shape"},
+              {slug = "same-signal", type = "signal"},
+              {slug = "same-cross",  type = "research"},
+              {slug = "unique",      type = "design"},
+            ]
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = []
+        """)
+        # Note: same-cross appears only in backlog (different slug to active entries)
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        ini = next(i for i in inits if i.slug == "ini-001")
+        cls = classify_shaping_entries(ini, inits)
+
+        # Count occurrences of each slug
+        slug_counts: dict[str, int] = {}
+        for c in cls:
+            slug_counts[c.entry.slug] = slug_counts.get(c.entry.slug, 0) + 1
+
+        expect(slug_counts.get("same-shape", 0) == 1,
+               f"[dedup] same-shape appears once (got {slug_counts.get('same-shape', 0)})")
+        expect(slug_counts.get("same-signal", 0) == 1,
+               f"[dedup] same-signal appears once (got {slug_counts.get('same-signal', 0)})")
+        expect(slug_counts.get("unique", 0) == 1,
+               "[dedup] unique backlog entry still visible")
+        expect(slug_counts.get("same-cross", 0) == 1,
+               "[dedup] same-cross (backlog-only) still visible")
+
+        # Active classification is preserved when backlog duplicate suppressed
+        by_slug = {c.entry.slug: c for c in cls}
+        expect(by_slug["same-shape"].is_ready,
+               "[dedup] same-shape is ready (from active, not backlog)")
+        expect(not by_slug["same-shape"].is_signal,
+               "[dedup] same-shape is not signal")
+        expect(by_slug["same-signal"].is_signal,
+               "[dedup] same-signal is signal (from active)")
+
+
+# ── F1: work-loop Step 0 stale-queue check ───────────────────────────────────
+
+def case_work_loop_stale_warnings() -> None:
+    """collect_work_loop_stale_warnings: characterizes work-loop Step 0 stale-queue check."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/stale-active"]
+            shipped = []
+            queue   = [
+              "spec/stale-queue",
+              "spec/archived-entry",
+              {path = "spec/inline-shipped", needs = "work:spec/stale-queue"},
+              "spec/approved-entry",
+              "spec/no-spec",
+            ]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+
+            ["ini-002"]
+            name = "Paused"
+            status = "paused"
+            milestone = "M1"
+            ["ini-002".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/paused-stale"]
+            ["ini-002".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        # Write spec files
+        write_spec(root, "stale-queue", "Shipped")
+        write_spec(root, "stale-active", "Shipped")
+        write_spec(root, "archived-entry", "Archived")
+        write_spec(root, "inline-shipped", "Shipped")
+        write_spec(root, "approved-entry", "Approved")
+        write_spec(root, "paused-stale", "Shipped")
+        # spec/no-spec deliberately has no spec.md
+
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        warnings = collect_work_loop_stale_warnings(root, inits)
+        warned_paths = {w.spec_path for w in warnings}
+
+        # Shipped queue entry → warns
+        expect("spec/stale-queue" in warned_paths,
+               "[stale] Shipped queue entry warns")
+        # Shipped active entry → warns
+        expect("spec/stale-active" in warned_paths,
+               "[stale] Shipped active entry warns")
+        # Shipped inline-object queue entry → warns (path field used, not slug)
+        expect("spec/inline-shipped" in warned_paths,
+               "[stale] Shipped inline-object queue entry warns")
+        # Archived → does NOT warn
+        expect("spec/archived-entry" not in warned_paths,
+               "[stale] Archived entry does NOT warn")
+        # Approved → does NOT warn
+        expect("spec/approved-entry" not in warned_paths,
+               "[stale] Approved entry does NOT warn")
+        # Missing spec.md → skipped without error
+        expect("spec/no-spec" not in warned_paths,
+               "[stale] missing spec.md → no warning")
+        # Paused initiative → ignored
+        expect("spec/paused-stale" not in warned_paths,
+               "[stale] paused initiative ignored")
+        # Exactly 3 warnings (stale-queue, stale-active, inline-shipped)
+        expect(len(warnings) == 3,
+               f"[stale] expected 3 warnings, got {len(warnings)}: "
+               f"{[w.spec_path for w in warnings]}")
+
+
+def case_work_loop_stale_both_lists() -> None:
+    """Path in both queue and active → ONE warning naming both lists."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/in-both"]
+            shipped = []
+            queue   = ["spec/in-both"]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        write_spec(root, "in-both", "Shipped")
+
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        warnings = collect_work_loop_stale_warnings(root, inits)
+
+        expect(len(warnings) == 1,
+               f"[stale-both] one warning for path in both lists, got {len(warnings)}")
+        w = warnings[0]
+        expect(w.spec_path == "spec/in-both", "[stale-both] correct path")
+        expect(sorted(w.source_lists) == ["active", "queue"],
+               f"[stale-both] both lists named: {w.source_lists!r}")
+
+
+def case_work_loop_slug_normalization() -> None:
+    """normalize_for_shaping_guard converts various path forms to canonical slug."""
+    cases = [
+        ("docs/specs/example/", "example"),
+        ("docs/specs/example", "example"),
+        ("spec/example", "example"),
+        ("example", "example"),
+        ("docs/specs/a/b", "a/b"),
+    ]
+    for raw, expected in cases:
+        got = normalize_for_shaping_guard(raw)
+        expect(got == expected,
+               f"[normalize] {raw!r} → {expected!r}, got {got!r}")
+
+    # End-to-end: normalization + shaping guard
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active  = [{slug = "my-feature", type = "shape"}]
+            backlog = []
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+
+        # All these raw paths should route to the same shaping entry
+        for raw in ["docs/specs/my-feature/", "docs/specs/my-feature",
+                    "spec/my-feature", "my-feature"]:
+            slug = normalize_for_shaping_guard(raw)
+            result = check_shaping_guard(slug, inits)
+            expect(result == "frame-intent",
+                   f"[normalize+guard] {raw!r} → slug={slug!r} → {result!r} (want 'frame-intent')")
+
+
 # ── pytest wrappers for custom-runner cases ───────────────────────────────────
 # Allow `pytest tools/test_workspace_status.py` to discover all cases.
 
@@ -1655,6 +1879,22 @@ def test_integration_full_analyze() -> None:
     _run_case(case_full_analyze)
 
 
+def test_shaping_deduplication() -> None:
+    _run_case(case_shaping_deduplication)
+
+
+def test_work_loop_stale_warnings() -> None:
+    _run_case(case_work_loop_stale_warnings)
+
+
+def test_work_loop_stale_both_lists() -> None:
+    _run_case(case_work_loop_stale_both_lists)
+
+
+def test_work_loop_slug_normalization() -> None:
+    _run_case(case_work_loop_slug_normalization)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
@@ -1691,16 +1931,25 @@ CASES = [
     ("skill_contract_anchor", case_skill_contract_anchor),
     ("work_loop_contract_anchor", case_work_loop_contract_anchor),
     ("integration full_analyze", case_full_analyze),
+    ("F4a shaping_deduplication", case_shaping_deduplication),
+    ("F4b work_loop_stale_warnings", case_work_loop_stale_warnings),
+    ("F4c work_loop_stale_both_lists", case_work_loop_stale_both_lists),
+    ("F4d work_loop_slug_normalization", case_work_loop_slug_normalization),
 ]
 
 
 def main() -> int:
     passed = 0
     failed = 0
+    skipped = 0
     for label, fn in CASES:
         before = len(FAILURES)
         try:
             fn()
+        except unittest.SkipTest as exc:
+            print(f"  ⊘  {label}: {exc}")
+            skipped += 1
+            continue
         except Exception as exc:
             FAILURES.append(f"{label}: exception: {exc}")
         after = len(FAILURES)
@@ -1712,7 +1961,10 @@ def main() -> int:
                 print(f"  ✖  {msg}")
             failed += 1
 
-    print(f"\n{passed} passed, {failed} failed")
+    summary = f"{passed} passed, {failed} failed"
+    if skipped:
+        summary += f", {skipped} skipped"
+    print(f"\n{summary}")
     return 0 if failed == 0 else 1
 
 

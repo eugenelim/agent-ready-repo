@@ -101,7 +101,7 @@ The 5 blocked entries are:
 
 ## Correctness findings
 
-All 32 characterization test cases pass. Known defects documented in
+All 36 characterization test cases pass. Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
@@ -110,7 +110,7 @@ All 32 characterization test cases pass. Known defects documented in
 | KD-02 (no cycle detection) | Both entries blocked; no cycle warning — confirmed |
 | KD-03 (missing dep targets) | Entry blocked with dep named; no warning — confirmed |
 | KD-04 (no quick mode) | Reconciliation runs on every invocation — confirmed |
-| KD-05 (`work.active`/`shipped` duplication) | All three reconciliation types exist because of this — confirmed |
+| KD-05 (`work.active`/`shipped` duplication) | Type 2 and Type 3 drift confirmed; Type 1 is an independent untracked-work audit — confirmed |
 
 ## Known test gaps
 

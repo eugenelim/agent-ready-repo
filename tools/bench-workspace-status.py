@@ -181,16 +181,16 @@ def run_benchmark() -> dict:
             for k in ws if k.startswith("ini-")
         )
 
-        # ── Run analysis (hot run for measurement) ────────────────────────────
-        # Warm run first (filesystem caches)
+        # ── Run analysis — warm then cold ─────────────────────────────────────
+        t_warm_0 = time.monotonic()
         analyze(root)
+        elapsed_warm = time.monotonic() - t_warm_0
 
-        # Measured run
         t0 = time.monotonic()
         result = analyze(root)
-        elapsed = time.monotonic() - t0
+        elapsed_cold = time.monotonic() - t0
 
-        # ── Collect output (simulate formatted report size) ───────────────────
+        # ── Collect output (work-queue diagnostic serialization) ──────────────
         buf = io.StringIO()
         active_inis = [i for i in result.initiatives if i.status == "active"]
         buf.write(f"Active initiatives: {len(active_inis)}\n")
@@ -200,6 +200,27 @@ def run_benchmark() -> dict:
             for c in cls:
                 tag = "READY" if c.is_ready else f"BLOCKED({', '.join(c.blocking_needs)})"
                 buf.write(f"    {c.entry.path}: {tag}\n")
+            shaping_cls = [
+                s for s in result.shaping_classifications if s.ini_slug == ini.slug
+            ]
+            ready_shaping = [s for s in shaping_cls if s.is_ready and not s.is_signal]
+            blocked_shaping = [s for s in shaping_cls if not s.is_ready and not s.is_signal]
+            signals = [s for s in shaping_cls if s.is_signal]
+            if ready_shaping:
+                buf.write(
+                    f"  {ini.slug} shaping ready: "
+                    + ", ".join(s.entry.slug for s in ready_shaping) + "\n"
+                )
+            if blocked_shaping:
+                buf.write(
+                    f"  {ini.slug} shaping blocked: "
+                    + ", ".join(s.entry.slug for s in blocked_shaping) + "\n"
+                )
+            if signals:
+                buf.write(
+                    f"  {ini.slug} signals: "
+                    + ", ".join(s.entry.slug for s in signals) + "\n"
+                )
         t1, t2, t3 = len(result.type1), len(result.type2), len(result.type3)
         buf.write(f"Reconciliation: T1={t1} T2={t2} T3={t3}\n")
         buf.write(f"Files read by reconciliation: {result.files_read}\n")
@@ -231,8 +252,9 @@ def run_benchmark() -> dict:
             "type2_findings": len(result.type2),
             "type3_findings": len(result.type3),
             "files_read_by_reconciliation": result.files_read,
-            "analysis_elapsed_s": elapsed,
-            "output_size_bytes": output_bytes,
+            "analysis_elapsed_warm_s": elapsed_warm,
+            "analysis_elapsed_cold_s": elapsed_cold,
+            "diagnostic_bytes": output_bytes,
             "cross_dep_blocked": cross_dep_blocked,
             "has_untracked_approved": has_type1_untracked,
         }
@@ -264,8 +286,9 @@ def main() -> int:
     print(f"  Type 2 findings:          {m['type2_findings']}")
     print(f"  Type 3 findings:          {m['type3_findings']}")
     print(f"  Files read (reconcil.):   {m['files_read_by_reconciliation']}")
-    print(f"  Analysis elapsed:         {m['analysis_elapsed_s']:.4f}s")
-    print(f"  Output size:              {m['output_size_bytes']} bytes")
+    print(f"  Analysis elapsed (warm):  {m['analysis_elapsed_warm_s']:.4f}s")
+    print(f"  Analysis elapsed (cold):  {m['analysis_elapsed_cold_s']:.4f}s")
+    print(f"  Work-queue diagnostic:    {m['diagnostic_bytes']} bytes")
     print()
 
     # ── AC gate checks ────────────────────────────────────────────────────────
@@ -299,7 +322,8 @@ def main() -> int:
     print(f"  ✓  AC4e: cross-initiative dep chain (blocked on {CROSS_INI_PROVIDER})")
     print(f"  ✓  AC4f: untracked Approved spec → Type 1 ({m['type1_findings']} finding(s))")
     print(f"  ✓  AC4g: measurements collected (files={m['files_read_by_reconciliation']}, "
-          f"t={m['analysis_elapsed_s']:.4f}s, out={m['output_size_bytes']}b, "
+          f"warm={m['analysis_elapsed_warm_s']:.4f}s cold={m['analysis_elapsed_cold_s']:.4f}s, "
+          f"diag={m['diagnostic_bytes']}b, "
           f"T1={m['type1_findings']} T2={m['type2_findings']} T3={m['type3_findings']})")
     print("  ✓  AC4h: benchmark runs from python3 tools/bench-workspace-status.py")
     print()

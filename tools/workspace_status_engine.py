@@ -117,6 +117,21 @@ class ReconciliationFinding:
 
 
 @dataclasses.dataclass
+class WorkLoopStaleWarning:
+    """A warn-only stale-queue finding emitted by work-loop Step 0.
+
+    Distinct from workspace-status Type 2 reconciliation:
+      - Only active initiatives are checked
+      - Only Shipped status triggers a warning (Archived/Approved/Implementing do not)
+      - When a path is in both queue and active, ONE warning names both lists
+      - No cleanup offer; work-loop only warns
+    """
+    spec_path: str
+    ini_slug: str
+    source_lists: list[str]  # ["queue"], ["active"], or ["queue", "active"]
+
+
+@dataclasses.dataclass
 class WorkspaceStatusResult:
     initiatives: list[Initiative]
     classifications: list[EntryClassification]        # work queue entries (ready + blocked)
@@ -176,7 +191,7 @@ def _parse_work_entry(raw) -> WorkEntry:
         path = raw
         needs: list[str] = []
     else:
-        path = raw.get("path", raw.get("slug", ""))
+        path = raw.get("path", "")   # work inline objects use `path`; `slug` is shaping-only
         needs = _parse_needs(raw.get("needs"))
     slug = path.removeprefix("spec/")
     return WorkEntry(path=path, slug=slug, needs=needs)
@@ -404,6 +419,9 @@ def classify_shaping_entries(
     """
     results: list[ShapingClassification] = []
 
+    # Active entries take precedence; build set to exclude duplicates from backlog
+    active_slugs = {e.slug for e in ini.shaping.active}
+
     for entry in ini.shaping.active:
         is_sig = entry.entry_type == "signal"
         results.append(ShapingClassification(
@@ -415,6 +433,8 @@ def classify_shaping_entries(
         ))
 
     for entry in ini.shaping.backlog:
+        if entry.slug in active_slugs:
+            continue  # Active entry takes precedence; backlog duplicate is suppressed
         is_sig = entry.entry_type == "signal"
         if is_sig:
             results.append(ShapingClassification(
@@ -639,6 +659,71 @@ def check_shaping_guard(
         if entry.slug == spec_slug:
             return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
     return None
+
+
+def normalize_for_shaping_guard(raw_path: str) -> str:
+    """Normalize a spec path to slug form for the shaping-item guard.
+
+    Per work-loop SKILL.md §0 step 2: "Derive slug (strip docs/specs/ prefix + trailing /)."
+
+    Accepted input forms:
+      'docs/specs/example/'  → 'example'
+      'docs/specs/example'   → 'example'
+      'spec/example'         → 'example'
+      'example'              → 'example'  (already normalized)
+    """
+    s = raw_path.rstrip("/")
+    if s.startswith("docs/specs/"):
+        return s[len("docs/specs/"):]
+    if s.startswith("spec/"):
+        return s[len("spec/"):]
+    return s
+
+
+# ── work-loop Step 0 stale-queue check ───────────────────────────────────────
+
+def collect_work_loop_stale_warnings(
+    root: Path,
+    initiatives: list[Initiative],
+) -> list[WorkLoopStaleWarning]:
+    """Characterize work-loop Step 0 stale-queue check (SKILL.md §0 step 1).
+
+    Checks active initiatives' queue and active entries. Emits a warn-only
+    WorkLoopStaleWarning when the entry's spec.md Status is 'Shipped'.
+
+    Differs from workspace-status Type 2 reconciliation:
+      - Only active initiatives (paused/closed/complete skipped)
+      - Only Shipped triggers a warning; Archived, Approved, Implementing do not
+      - When a path appears in both queue and active, emits ONE warning naming both
+      - Does not offer or perform cleanup (warn-only)
+      - Missing spec.md → skipped without error
+    """
+    warnings: list[WorkLoopStaleWarning] = []
+    for ini in initiatives:
+        if ini.status != "active":
+            continue
+        # Collect all paths with their source lists; a path may appear in both
+        path_sources: dict[str, list[str]] = {}
+        for list_name, entries in [("queue", ini.work.queue), ("active", ini.work.active)]:
+            for entry in entries:
+                if entry.path not in path_sources:
+                    path_sources[entry.path] = []
+                path_sources[entry.path].append(list_name)
+
+        for path, sources in path_sources.items():
+            slug = path.removeprefix("spec/")
+            spec_file = root / "docs" / "specs" / slug / "spec.md"
+            if not spec_file.exists():
+                continue
+            status = extract_spec_status(spec_file)
+            if status != "Shipped":
+                continue  # Only Shipped warns; Archived/Approved/Implementing skip
+            warnings.append(WorkLoopStaleWarning(
+                spec_path=path,
+                ini_slug=ini.slug,
+                source_lists=sources,
+            ))
+    return warnings
 
 
 # ── workspace-status Type 2 cleanup mutation shape ────────────────────────────

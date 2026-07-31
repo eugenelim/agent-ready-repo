@@ -61,7 +61,7 @@ Benchmark: `python3 tools/bench-workspace-status.py` exits 0 and prints measurem
 ### Deliverable 2 — Characterization fixtures
 
 - [x] AC2a. Multiple active initiatives fixture exists.
-- [x] AC2b. Paused and closed initiatives fixture exists.
+- [x] AC2b. Paused, closed (documented form), and complete (legacy form) initiatives fixture exists.
 - [x] AC2c. Ordered queues fixture (queue order preserved as priority).
 - [x] AC2d. Local work dependencies fixture.
 - [x] AC2e. Cross-initiative work dependencies fixture.

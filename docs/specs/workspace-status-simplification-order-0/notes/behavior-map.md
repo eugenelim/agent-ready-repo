@@ -80,8 +80,8 @@ Entries in `[work].shipped` are historical. They are used as the satisfaction so
 ## 4. How shaping_queue entries are classified
 
 `[shaping_queue].active` entries appear under "Ready to start" with type-appropriate
-skill routing (see §7). `[shaping_queue].backlog` entries appear under "Blocked" or
-not at all, depending on whether their `needs` are satisfied.
+skill routing (see §7). `[shaping_queue].backlog` entries appear as ready or blocked,
+depending on whether their `needs` are satisfied.
 
 ### Signal entries
 
