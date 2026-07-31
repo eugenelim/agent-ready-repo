@@ -96,7 +96,7 @@ Runs a `terraform plan`-based drift audit and proposes a per-resource dispositio
 - **Local writes:** `.tf` files, ADR records, plan digest file — only after you approve each gate
 - **Remote reads:** provider registries (via `terraform init`); no direct cloud API calls
 - **Remote writes:** none — `apply` is always yours
-- **Requires:** `core` ≥0.1, `governance-extras` ≥0.6, `terraform` or `tofu` CLI in PATH
+- **Requires:** `core` ≥1.0, `governance-extras` ≥0.6, `terraform` or `tofu` CLI in PATH
 
 ---
 

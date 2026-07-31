@@ -29,9 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   event in code mode. A `run_id` UUID generated at engine `init` is shared between both
   state files and verified on every mutating call via `--expect-run-id`. Phase-1 parallel
   verbs (`worktree`, `dispatch-decision`, `auto-parallel`) are disabled — they exit
-  non-zero. **Breaking changes (version classification: major):** the `approve-plan`
-  top-level command is removed (replaced by `plan approve` subcommand); `worktree`
-  subcommands are disabled. Dependent packs governance-extras (0.9.4), iac-terraform
+  non-zero. **Breaking changes (version classification: major):** `worktree`
+  subcommands are disabled (they exit non-zero). Dependent packs governance-extras (0.9.4), iac-terraform
   (0.1.5), monorepo-extras (0.1.5), and release-engineering (0.1.8) updated their core
   constraint from `^0.1` to `^1.0`.
 
@@ -109,6 +108,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when to add `JOURNEY.md`, the full frontmatter contract, stage contract, state
   vocabulary, skill validation, route preservation, installation exclusion, migration
   procedure, and dual-ownership rules.
+
+## [core][1.0.0] — 2026-07-31
+
+### Added
+
+- **`loop-engine.py`** — new Phase-1 FSM phase tracker for the work-loop. See `[Unreleased]` for full detail.
+
+### Changed
+
+- **`loop-cohort.py`** — Phase-1 rewrite with new verbs and split counter semantics. See `[Unreleased]`.
+
+### Removed (breaking)
+
+- **`worktree` subcommands** — disabled in Phase 1; all exit non-zero.
+
+## [release-engineering][0.1.8] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
+
+## [monorepo-extras][0.1.5] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
+
+## [iac-terraform][0.1.5] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
+
+## [governance-extras][0.9.4] — 2026-07-31
+
+### Changed
+
+- Core dependency constraint updated from `^0.1` to `^1.0`.
 
 ## [product-documentation][0.1.0] — 2026-07-28
 

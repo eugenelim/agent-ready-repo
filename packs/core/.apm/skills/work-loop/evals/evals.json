@@ -40,10 +40,10 @@
     {
       "id": "phase1-last-event-routing",
       "prompt": "You resume a work-loop session and `loop-engine status` shows `last_event: 'wave-passed'` and `state: 'CODE-IMPLEMENTATION'`. What does this tell you and what is the correct next action?",
-      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index>` — this call is idempotent and safe to replay; (3) then proceed to implement the tasks in the current (next) wave.",
+      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` — this call is idempotent and safe to replay; (3) then proceed to implement the tasks in the current (next) wave.",
       "assertions": [
         "Response reads `last_event_context.completed_wave_index` to determine the completed wave",
-        "Response re-issues `wave advance --from-index <completed_wave_index>` before proceeding",
+        "Response re-issues `wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` before proceeding",
         "Response proceeds to implement the current wave's tasks after advancing",
         "Response uses `last_event` as the routing signal, not re-deriving state from scratch"
       ]

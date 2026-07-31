@@ -261,7 +261,7 @@ stasis=$(echo "$result"        | python3 -c "import sys,json; print(json.load(sy
 #     recording first could increment review_retry_count to the cap and then
 #     refuse the transition on the last allowed round.
 python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain
-loop-cohort.py review record docs/specs/<feature> \
+python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     $(for fp in <fingerprint-list>; do echo "--fingerprint $fp"; done) \
     --expect-run-id "$run_id"
 # Fix findings and return to CODE-IMPLEMENTATION.
@@ -296,7 +296,7 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 **When ALL warranted reviewers are clean** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and record the clean round (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
 ```bash
 python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
-loop-cohort.py review record docs/specs/<feature> \
+python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id "$run_id"
 ```
 If a specialist reviewer returns findings, apply them, re-run GATES, and re-run the full REVIEW loop (adversarial first) before firing this transition.
@@ -453,7 +453,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `record-attempt --cycle-id <run_id>:<transition_sequence>` (idempotent); resume EXECUTE |
    | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |
    | `blocker-applied` | `CODE-IMPLEMENTATION` | Resume implementation directly (Status: Shipped stays; do not rewrite) |
-   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal. **Approved (merge confirmed):** fire `done`. **Changes requested:** fire `blocker-applied` immediately → apply fix → re-run GATES → REVIEW (adversarial first). Surface `review record --report` audit risk before acting |
+   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal. **Approved (merge confirmed):** fire `done`. **Changes requested:** surface `review record --report` audit risk first; if authorized replay it; then fire `blocker-applied` → apply fix → re-run GATES → REVIEW (adversarial first) |
    | `wave-complete` | `CODE-VERIFICATION` | Re-run gates; fire `wave-passed` or `gates-clean` or `gates-failed` |
    | `gates-clean` | `CODE-REVIEW` | Re-run reviewer fan-out and `review inspect` |
 
