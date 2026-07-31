@@ -184,11 +184,11 @@ def run_benchmark() -> dict:
         # ── Run analysis — warm then cold ─────────────────────────────────────
         t_warm_0 = time.monotonic()
         analyze(root)
-        elapsed_warm = time.monotonic() - t_warm_0
+        elapsed_first_run = time.monotonic() - t_warm_0
 
         t0 = time.monotonic()
         result = analyze(root)
-        elapsed_cold = time.monotonic() - t0
+        elapsed_repeated_run = time.monotonic() - t0
 
         # ── Collect output (work-queue diagnostic serialization) ──────────────
         buf = io.StringIO()
@@ -252,8 +252,8 @@ def run_benchmark() -> dict:
             "type2_findings": len(result.type2),
             "type3_findings": len(result.type3),
             "files_read_by_reconciliation": result.files_read,
-            "analysis_elapsed_warm_s": elapsed_warm,
-            "analysis_elapsed_cold_s": elapsed_cold,
+            "analysis_elapsed_first_run_s": elapsed_first_run,
+            "analysis_elapsed_repeated_run_s": elapsed_repeated_run,
             "diagnostic_bytes": output_bytes,
             "cross_dep_blocked": cross_dep_blocked,
             "has_untracked_approved": has_type1_untracked,
@@ -286,8 +286,8 @@ def main() -> int:
     print(f"  Type 2 findings:          {m['type2_findings']}")
     print(f"  Type 3 findings:          {m['type3_findings']}")
     print(f"  Files read (reconcil.):   {m['files_read_by_reconciliation']}")
-    print(f"  Analysis elapsed (warm):  {m['analysis_elapsed_warm_s']:.4f}s")
-    print(f"  Analysis elapsed (cold):  {m['analysis_elapsed_cold_s']:.4f}s")
+    print(f"  Analysis elapsed — first run:    {m['analysis_elapsed_first_run_s']:.4f}s")
+    print(f"  Analysis elapsed — repeated run: {m['analysis_elapsed_repeated_run_s']:.4f}s")
     print(f"  Work-queue diagnostic:    {m['diagnostic_bytes']} bytes")
     print()
 
@@ -322,7 +322,8 @@ def main() -> int:
     print(f"  ✓  AC4e: cross-initiative dep chain (blocked on {CROSS_INI_PROVIDER})")
     print(f"  ✓  AC4f: untracked Approved spec → Type 1 ({m['type1_findings']} finding(s))")
     print(f"  ✓  AC4g: measurements collected (files={m['files_read_by_reconciliation']}, "
-          f"warm={m['analysis_elapsed_warm_s']:.4f}s cold={m['analysis_elapsed_cold_s']:.4f}s, "
+          f"first={m['analysis_elapsed_first_run_s']:.4f}s "
+          f"repeated={m['analysis_elapsed_repeated_run_s']:.4f}s, "
           f"diag={m['diagnostic_bytes']}b, "
           f"T1={m['type1_findings']} T2={m['type2_findings']} T3={m['type3_findings']})")
     print("  ✓  AC4h: benchmark runs from python3 tools/bench-workspace-status.py")

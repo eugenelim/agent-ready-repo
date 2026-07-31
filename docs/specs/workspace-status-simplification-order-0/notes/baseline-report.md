@@ -8,7 +8,7 @@
 ## Repo revision
 
 ```
-9ab1859e  (branch: eugene/pasted-text-review-v12)
+6e50213d  (branch: eugene/pasted-text-review-v12)
 ```
 
 ## Benchmark command
@@ -35,7 +35,7 @@ python3 tools/bench-workspace-status.py
 | Path | Count | Notes |
 |------|-------|-------|
 | `workspace.toml` | 1 | Parsed by `tomllib` |
-| `docs/specs/*/spec.md` — reconciliation | 397 | Type 1: 313 dirs; Type 2: 4×(12 queue+1 active)=52 entries; Type 3: 4×8 shipped=32 entries |
+| `docs/specs/*/spec.md` — reconciliation | 397 reads; bytes not measured | Type 1: 313 dirs; Type 2: 4×(12 queue+1 active)=52 entries; Type 3: 4×8 shipped=32 entries |
 | `docs/specs/*/spec.md` — DAG resolution | 0 | DAG resolution uses workspace.toml state only; spec files are not read |
 
 ## Benchmark classification
@@ -48,9 +48,9 @@ the same logic as model instructions.
 | Measurement | What it proves |
 |-------------|---------------|
 | Reference-engine time (~0.11 s) | Python resolver/reconciliation compute cost |
-| Files and bytes inspected (397 files) | Structural scaling cost — O(spec_count) |
+| Spec-file reads: 397; bytes read not measured | Structural scaling cost — O(spec_count) |
 | Ready/blocked/finding counts | Correctness of the reference model |
-| Output bytes (1996 B) | Resident-context cost estimate |
+| Reference-engine diagnostic serialization (1996 B) | Partial engine diagnostic; not full status output |
 
 **Missing from this baseline (to be added in Order 1):**
 
@@ -68,8 +68,8 @@ scan" — not a specific millisecond threshold.
 | Phase | Observation |
 |-------|-------------|
 | Fixture generation | ~0.37 s (313 spec.md files written, workspace.toml written) |
-| Reference-engine analysis — warm | ~0.11 s |
-| Reference-engine analysis — cold | < 0.20 s |
+| Reference-engine analysis — first run | ~0.11 s |
+| Reference-engine analysis — repeated run | < 0.20 s (filesystem caches warm; not a cold-process measurement) |
 
 The dominant cost is reconciliation: all three scan types read spec.md files.
 Type 1 alone walks every `docs/specs/` subdirectory; the 313-directory fixture
@@ -79,8 +79,11 @@ every session-start pays the full O(spec_count) cost.
 
 ## Output size
 
-Formatted status report: **1996 bytes** for 4 initiatives × 48 queue entries.
+Reference-engine diagnostic serialization: **1996 bytes** for 4 initiatives × 48 queue entries.
 Scales with the number of blocked entries (longer `blocking_needs` lists).
+This is a partial diagnostic (work queue, shaping classifications, reconciliation counts); it does
+not represent the full user-facing status output, which also includes brief queue, top-level
+backlog, findings registers, dependency graph, skill routing, and numbered next actions.
 
 ## Classification results
 

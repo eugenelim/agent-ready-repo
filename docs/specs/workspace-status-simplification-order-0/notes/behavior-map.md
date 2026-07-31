@@ -14,6 +14,8 @@
 | `docs/specs/*/spec.md` | Spec tree | Used by reconciliation scans (Step 2a) |
 | `docs/product/findings/rfc-candidates.md` | Findings register | Read for count display |
 | `docs/product/findings/roadmap-intents.md` | Findings register | Read for count display |
+| Installed skill/pack availability | Runtime skill catalogue | Determines shaping command, fallback, or "requires pack" message; influences rendering and next-action recommendations, not DAG resolution |
+| `claude --help` output | Local CLI (when Bash is available) | Detects `--bg` support before offering automated parallel sessions |
 
 **No flags, modes, or CLI switches exist.** workspace-status is invoked by name with no
 arguments. "Quick" vs "full" are not currently implemented — all invocations run the
