@@ -299,9 +299,9 @@ loop-cohort auto-parallel <spec-dir> [--off]
   {
     "schema_version": 1,
     "run_id": "<uuid>",
-    "approved_spec_hash": "<hex>",
-    "approved_plan_hash": "<hex>",
-    "plan_hash": "<hex>",
+    "approved_spec_hash": "<hex> | null",
+    "approved_plan_hash": "<hex> | null",
+    "plan_hash": "<hex> | null",
     "schedule_waves": [],
     "current_wave_index": 0,
     "implementation_retry_count": 0,
@@ -1021,16 +1021,20 @@ CODE-REVIEW → reviewers-clean → CODE-HUMAN-GATE
 No field is shared as mutable state between the two files. The engine reads
 cohort state only through designated read-only verbs.
 
-| File | Owner | Key fields |
+| File | Owner | Phase-1 serialized fields |
 |---|---|---|
-| `state.json` | loop-cohort | **Active Phase-1:** `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `plan_hash`, `schedule_waves`, `current_wave_index` ∥ **Disabled-verb (no Phase-1 writer):** `auto_parallel`, `last_commit_sha`, `worktrees` ∥ **Phase-2 reserved (no Phase-1 writer):** `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint` |
+| `state.json` — active | loop-cohort | `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `plan_hash`, `schedule_waves`, `current_wave_index` |
+| `state.json` — disabled-verb (present, no Phase-1 writer) | loop-cohort | `auto_parallel`, `last_commit_sha`, `worktrees` |
+| `state.json` — Phase-2 future (**absent from Phase-1 entirely**) | — | `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint` |
 | `engine-state.json` | loop-engine | `schema_version`, `run_id`, `feature`, `mode`, `state`, `last_event`, `last_event_context`, `transition_sequence`, `last_transition_at` |
 
-*This table is the authoritative field list. The field descriptions in the Scripts section above are supplementary.*
+*The canonical Phase-1 initial-state JSON object below is the normative schema. The field descriptions in the Scripts section above are supplementary.*
 
-**Schema policy:** Disabled-verb fields (`auto_parallel`, `last_commit_sha`, `worktrees`) are present in `state.json` from `loop-cohort init` with the defaults below — their presence is required for forward compatibility. Phase-2 reserved fields (`token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint`) are **absent** from Phase-1 `state.json` entirely; no Phase-1 writer touches them, and they must not appear in `assets/state.json`.
+**Schema policy:** Disabled-verb fields (`auto_parallel`, `last_commit_sha`, `worktrees`) are present in `state.json` from `loop-cohort init` with the defaults below — their presence is required for forward compatibility. Phase-2 future fields (`token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint`) are **absent** from Phase-1 `state.json` entirely; no Phase-1 writer touches them, and they must not appear in `assets/state.json`.
 
-**Phase-1 initial `state.json`** (written by `loop-cohort init --run-id <uuid> --feature <slug>`):
+**Phase-1 initial `state.json`** (written by `loop-cohort init <spec-dir> --run-id <uuid>`; `feature` is derived from `<spec-dir>` via `os.path.basename(os.path.realpath(spec_dir))`):
+
+The three hash fields (`approved_spec_hash`, `approved_plan_hash`, `plan_hash`) have type `string | null` — `null` at initialization, populated with a hex digest after the corresponding cohort verb runs (`approve-plan` for the first two; `schedule` for `plan_hash`).
 
 ```json
 {
@@ -1413,7 +1417,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 
 **Depends on:** T1
 **Mode:** TDD
-**ACs:** AC1, AC2
+**ACs:** AC1, AC2, AC3
 
 **Tests:**
 - All legal transitions per mode (code + spec-plan FSM tables) produce correct next state, `last_event`, `last_event_context`, `transition_sequence` increment (FSM table layer)
@@ -1426,8 +1430,9 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `check-spec-status.py` exits 0 on `Status: Shipped`; exits non-zero on wrong status, missing spec, or unparseable Status line
 - `check-spec-status.py` and `lint-spec-status.py` resolve identical status tokens for the same `spec.md` content (anti-drift characterization test; imported via `importlib.util.spec_from_file_location` or shared `_status_parser.py`)
 - After successful init pair: both files carry the same `run_id` (positive-path pairing check)
+- `loop-engine.py` and `check-spec-status.py` each carry the required UTF-8 stdout/stderr reconfiguration immediately after importing `sys` (required for all `.apm/` scripts that write to stdout or stderr); a static/import test asserts both scripts carry the guard before any `print` or `sys.stderr.write` call
 
-**Approach:** Write `loop-engine.py` (new script): `init`, `transition`, `status`, `reset` verbs; per-mode FSM tables; mandatory run_id preflight (calls `loop-cohort identity`); mandatory `schedule check-current` pre-guard for all CODE-* transitions except `done`; event-specific guard dispatch per the Guards table; atomic write (`tempfile` + `os.replace`). Write `check-spec-status.py` (new script) reusing the canonical status parser from `lint-spec-status.py` (not an independent regex). `status --json` exposes all `engine-state.json` fields plus a `pending_human_wait` boolean.
+**Approach:** Write `loop-engine.py` (new script): `init`, `transition`, `status`, `reset` verbs; per-mode FSM tables; mandatory run_id preflight (calls `loop-cohort identity`); mandatory `schedule check-current` pre-guard for all CODE-* transitions except `done`; event-specific guard dispatch per the Guards table; atomic write (`tempfile` + `os.replace`); UTF-8 stdout/stderr reconfiguration immediately after `import sys`. Write `check-spec-status.py` (new script) reusing the canonical status parser from `lint-spec-status.py` (not an independent regex); UTF-8 stdout/stderr reconfiguration immediately after `import sys`. `status --json` exposes all `engine-state.json` fields plus a `pending_human_wait` boolean.
 
 **Done when:** All T2 tests pass; `loop-engine transition` enforces the FSM for both modes; `status --json` returns all required fields; `check-spec-status.py` gates correctly; `make build-check` (SKIP_SAST=1) passes.
 
@@ -1437,7 +1442,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 
 **Depends on:** T1
 **Mode:** TDD
-**ACs:** AC5, AC7
+**ACs:** AC4, AC5, AC6, AC7
 
 **Tests:**
 - `wave advance` from a valid intermediate wave advances; replay at already-advanced index returns success without mutation
@@ -1469,7 +1474,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `SKILL.md` documents the `reviewers-clean` crash-window limitation: clean-record replay is guard-safe but can distort audit counters and fingerprint history
 - `SKILL.md` documents the session-resumption sequence: `loop-engine status` is read first; cohort identity/schema compatibility is checked via `loop-cohort identity`; `loop-cohort status` is then read; `last_event` and `last_event_context` determine the recovery action
 - `SKILL.md` init sequence matches Phase-1 command surface (engine init then cohort init, run_id threading)
-- `assets/state.json` carries Phase-1 field set (all fields per the State Ownership table; no legacy fields)
+- `assets/state.json` exactly matches the canonical Phase-1 initial-state object (the JSON block in the State Ownership section); Phase-2-reserved fields are absent
 - `references/state-schema.md` reflects the Phase-1 field set and authoritative descriptions
 - Projection parity: `.agents/` and `.claude/` copies match `packs/` source (verified by `make build-check`)
 - `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
@@ -1477,6 +1482,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry matching bumped versions (patch-level: modifies an existing primitive without adding a new public interface); both fields match exactly
 - `docs/product/changelog.md` carries a corresponding entry for this core-pack change
 - `FORCE=1 make build-self` reports no projection drift after all canonical pack edits
+- Pack eval harness updated to cover the changed work-loop behavior, or an explicit repository-approved exception is recorded (work-loop is excluded from Tier-A activation evaluation because it is loaded as part of the plan/execute/review discipline, not through a narrow prompt trigger; the applicable tier or exception must be named before implementation begins)
 
 **Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Select the required core-pack version increment (patch-level: this change modifies an existing work-loop primitive without adding a new public interface); update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
 
@@ -1491,7 +1497,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 **ACs:** AC1–AC10
 
 **Tests:**
-- Full code-mode lifecycle (two-wave explicit): init pair → spec-ready → reviewers-clean → approve-plan + schedule + plan-approved → wave 0 implementation → wave-complete → wave-passed --wave-index 0 → wave advance --from-index 0 → wave 1 implementation → wave-complete → gates-clean → reviewers-clean → done (happy path); inject crashes before and after `wave advance --from-index 0` and verify replay uses `completed_wave_index` from `last_event_context`
+- Full code-mode lifecycle (two-wave explicit, with all Option-A ordered skill calls): init pair → spec-ready → reviewers-clean → SPEC-PLAN-HUMAN-GATE (human G-plan approval) → write `Status: Approved` → approve-plan → schedule → plan-approved → write `Status: Implementing` → wave 0 implementation → wave-complete → wave-passed --wave-index 0 → wave advance --from-index 0 → wave 1 implementation → wave-complete → gates-clean → review inspect --report → write `Status: Shipped` → reviewers-clean → review record --report → confirmed human approval and merge → done; the test asserts engine state, `state.json` field values, and spec.md status strings at each boundary, not only the FSM event sequence; inject crashes before and after `wave advance --from-index 0` and verify replay uses `completed_wave_index` from `last_event_context`
 - Full spec-plan lifecycle: init pair (mode=spec-plan) → spec-ready → reviewers-clean → write Status: Approved → approve-plan (no `schedule` call) → plan check-current (no `--require-schedule`) → plan-approved → DONE; assert: `schedule` is neither required nor invoked; `plan check-current` uses the no-flag form; no CODE-* state is entered; a rejected plan (`plan-rejected`) returns engine to `SPEC-PLAN-DRAFTING` with `last_event: plan-rejected`; resumption from each spec-plan state produces the correct recovery action per `last_event`
 - Crash-window behavioral tests: wave advance before and after crash; gates-failed record-attempt replay; findings-remain stale-fingerprint surface; plan mutation per CODE-* state (all from Testing section layer 4)
 - Normal plan-rejection lifecycle: SPEC-PLAN-HUMAN-GATE → `plan-rejected` → SPEC-PLAN-DRAFTING; assert engine carries `last_event: plan-rejected` and no `approved_spec_hash` or `approved_plan_hash` was written; restore status to Draft → edit → `spec-ready` → `reviewers-clean` → human approves → write `Status: Approved` → `approve-plan` → (code mode: `schedule`) → `plan-approved`

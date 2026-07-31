@@ -35,13 +35,30 @@ Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM ph
 - Enable parallel-wave verbs (`worktree`, `dispatch-decision`, `auto-parallel`) in Phase 1.
 - Rebaseline an approved implementation plan after `plan-approved`.
 
-**Phase-1 FSM states:** `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-PLAN-HUMAN-GATE`, `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`, `DONE`.
+**Normative transition matrix** — every legal (mode, source, event, target) combination:
 
-**Legal events:** `spec-ready`, `findings-remain`, `reviewers-clean`, `plan-approved`, `plan-rejected`, `wave-complete`, `wave-passed`, `gates-failed`, `gates-clean`, `blocker-applied`, `done`. Detailed per-state legal sets, guard commands, and crash-window analysis live in `plan.md`.
+| Mode | Source state | Event | Target state |
+|------|-------------|-------|-------------|
+| both | `SPEC-PLAN-DRAFTING` | `spec-ready` | `SPEC-PLAN-REVIEW` |
+| both | `SPEC-PLAN-REVIEW` | `reviewers-clean` | `SPEC-PLAN-HUMAN-GATE` |
+| both | `SPEC-PLAN-REVIEW` | `findings-remain` | `SPEC-PLAN-DRAFTING` |
+| code | `SPEC-PLAN-HUMAN-GATE` | `plan-approved` | `CODE-IMPLEMENTATION` |
+| spec-plan | `SPEC-PLAN-HUMAN-GATE` | `plan-approved` | `DONE` |
+| both | `SPEC-PLAN-HUMAN-GATE` | `plan-rejected` | `SPEC-PLAN-DRAFTING` |
+| code | `CODE-IMPLEMENTATION` | `wave-complete` | `CODE-VERIFICATION` |
+| code | `CODE-VERIFICATION` | `wave-passed` | `CODE-IMPLEMENTATION` |
+| code | `CODE-VERIFICATION` | `gates-clean` | `CODE-REVIEW` |
+| code | `CODE-VERIFICATION` | `gates-failed` | `CODE-IMPLEMENTATION` |
+| code | `CODE-REVIEW` | `reviewers-clean` | `CODE-HUMAN-GATE` |
+| code | `CODE-REVIEW` | `findings-remain` | `CODE-IMPLEMENTATION` |
+| code | `CODE-HUMAN-GATE` | `done` | `DONE` |
+| code | `CODE-HUMAN-GATE` | `blocker-applied` | `CODE-IMPLEMENTATION` |
+
+Any event not listed above is illegal and must cause `loop-engine transition` to exit non-zero with no `engine-state.json` mutation. Guard commands, CLI arguments, crash-window analysis, and session-resumption steps live in `plan.md`.
 
 ## Acceptance criteria
 
-- [ ] `loop-engine transition` enforces legal phase ordering (FSM table in `plan.md`) and refuses illegal events with exit non-zero.
+- [ ] `loop-engine transition` enforces legal phase ordering (normative transition matrix above) and refuses illegal events with exit non-zero.
 - [ ] `loop-engine status` returns current phase, `last_event`, `run_id`, and `pending_human_wait` as JSON.
 - [ ] `loop-cohort schedule check-current` runs as a mandatory pre-guard for every transition whose source state is `CODE-*`, except `done`; any change that alters `canonical(plan.md)` from the scheduled baseline causes refusal.
 - [ ] Every post-initialization run-local cohort mutation (`approve-plan`, `schedule`, `wave advance`, `record-attempt`, `review record`) requires and enforces `--expect-run-id`.
@@ -54,7 +71,17 @@ Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM ph
 
 ## Testing strategy
 
-All acceptance criteria verified through the test layers in `plan.md § Testing`:
+All acceptance criteria verified through the test layers in `plan.md § Testing`.
+
+**AC-to-verification-mode mapping:**
+
+| ACs | Verification mode |
+|-----|------------------|
+| AC1–AC5, AC7–AC8 | TDD + integration — executable command/state behavior |
+| AC6 | TDD for persisted recovery state; goal-based content assertion for the human-surfacing obligation (prose obligation in `SKILL.md`) |
+| AC9–AC10 | goal-based content assertions + build/projection checks |
+
+Test layers:
 
 - FSM table tests (all legal transitions; all illegal event/state pairs)
 - Guard-refusal tests (stub each guard; verify no file mutation on refusal)
