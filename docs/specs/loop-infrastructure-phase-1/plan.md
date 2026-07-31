@@ -643,18 +643,7 @@ Precondition: spec-plan mode requires both `spec.md` and `plan.md` to be present
 before `approve-plan` is called. If either is absent, `plan check-current` exits
 non-zero with a descriptive message (consistent with the global exit contract).
 
-**`wave-complete` guard scope:** enforces advisory bounds only — token budget and
-same-error checks (advisory: not blocked in Phase 1 because their writers are
-unspecified). Plan immutability is enforced by the mandatory `schedule check-current`
-pre-guard (step 1b in the Interaction Model) that fires for all CODE-* transitions
-except `done`. This guard does NOT enforce the implementation retry cap
-— that moves to `gates-failed`. **Phase-1 named stance:** retained as a
-compatibility stub — its surface is correct for Phase 2 (when token-budget and
-same-error writers land), but enforces no blocking constraint in Phase 1. Removing
-it until Phase 2 was considered and declined: the stub keeps the Phase-2 wiring
-point visible at the cost of one pass-through call per `wave-complete` transition.
-`wave-complete`'s deterministic protection comes from `schedule check-current`
-(plan immutability) and the `gates-failed` guard (retry cap), not this advisory guard.
+**`wave-complete` guard scope (`check --phase implement`) — exact Phase-1 contract:** a compatibility stub. It reads no token-budget or same-error fields (their writers are absent in Phase 1) and exits 0 for every otherwise-valid Phase-1 state. It enforces no blocking constraint. Plan immutability is enforced by the mandatory `schedule check-current` pre-guard (step 1b in the Interaction Model). The implementation retry cap moves to `gates-failed`. The stub is retained so the Phase-2 wiring point (when token-budget and same-error writers land) remains visible at the cost of one pass-through call per `wave-complete` transition. `wave-complete`'s deterministic protection comes from `schedule check-current` (plan immutability) and the `gates-failed` guard (retry cap), not this stub.
 
 **`gates-failed` guard scope:** enforces `implementation_retry_count <
 max_implementation_retries`. Fires before repair begins. Successful
@@ -1239,16 +1228,16 @@ On resume, the agent:
       clean record). The next `review inspect` compares the post-blocker round
       against a stale non-empty baseline rather than `[]`, which may spuriously
       surface stasis once (conservative false-positive — unlike step 7's
-      false-negative, this self-corrects from the next round onward). **Recommended:**
-      regenerate a clean report (re-run the reviewer fan-out), then reissue
-      `review record --report --expect-run-id <run_id>` before firing
-      `blocker-applied`. Guard-safe (no cap impact), but audit-distorting if the
-      original write already succeeded: replay may double-increment
-      `review_round_count` and overwrite one level of fingerprint audit history.
-      This is accepted under the Phase-1 non-idempotent review-record limitation. If a clean report cannot be
-      produced (working tree changed, or the re-run itself returns findings), fall
-      back to proceeding with the stale fingerprint baseline and accepting the
-      one-time spurious-stasis risk.
+      false-negative, this self-corrects from the next round onward). **Required:**
+      surface the audit-distortion risk to the human — specifically that
+      a `review record --report` replay may double-increment `review_round_count`
+      and overwrite one level of fingerprint audit history if the original write
+      already succeeded — and wait for explicit authorization before proceeding.
+      If the human authorizes, regenerate a clean report (re-run the reviewer
+      fan-out) and reissue `review record --report --expect-run-id <run_id>`
+      before firing `blocker-applied`. If authorization is not given, proceed
+      with the stale fingerprint baseline and accept the one-time spurious-stasis
+      risk.
 12. If `state ∈ {SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
     no pending cohort mutation in Phase 1 (spec-plan mutations are skill
     obligations, not tool-driven).
@@ -1471,7 +1460,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `references/supervisor-mode.md` no longer instructs agents to invoke the disabled Phase-1 verbs (`worktree`, `dispatch-decision`, `auto-parallel`); supervisor/parallel execution is either absent or clearly marked as unavailable for Phase 1
 - Active agent guidance (`SKILL.md` and `references/supervisor-mode.md`) contains no executable invocation of the disabled Phase-1 verbs (verified by content assertion — grep for `dispatch-decision`, `auto-parallel`, and `worktree` verb invocations)
 - `SKILL.md` documents the `findings-remain` crash-window limitation: `review record` is non-idempotent; ambiguous crash windows are surfaced to the human rather than blindly replayed
-- `SKILL.md` documents the `reviewers-clean` crash-window limitation: clean-record replay is guard-safe but can distort audit counters and fingerprint history
+- `SKILL.md` documents the `reviewers-clean` crash-window limitation: the audit-distortion risk (double-increment, fingerprint-history overwrite) is surfaced to the human before any `review record --report` replay; replay proceeds only after explicit human authorization
 - `SKILL.md` documents the session-resumption sequence: `loop-engine status` is read first; cohort identity/schema compatibility is checked via `loop-cohort identity`; `loop-cohort status` is then read; `last_event` and `last_event_context` determine the recovery action
 - `SKILL.md` init sequence matches Phase-1 command surface (engine init then cohort init, run_id threading)
 - `assets/state.json` exactly matches the canonical Phase-1 initial-state object (the JSON block in the State Ownership section); Phase-2-reserved fields are absent
@@ -1479,14 +1468,14 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Projection parity: `.agents/` and `.claude/` copies match `packs/` source (verified by `make build-check`)
 - `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
 - `docs/architecture/overview.md` updated to reflect Phase-1 as current state
-- `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry matching bumped versions (patch-level: modifies an existing primitive without adding a new public interface); both fields match exactly
+- `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry matching bumped versions; both fields match exactly; the chosen increment is documented in the PR description with the release-classification decision (major/minor/patch per the disabled-capability policy above)
 - `docs/product/changelog.md` carries a corresponding entry for this core-pack change
 - `FORCE=1 make build-self` reports no projection drift after all canonical pack edits
-- Pack eval harness updated to cover the changed work-loop behavior, or an explicit repository-approved exception is recorded (work-loop is excluded from Tier-A activation evaluation because it is loaded as part of the plan/execute/review discipline, not through a narrow prompt trigger; the applicable tier or exception must be named before implementation begins)
+- The work-loop Tier-A exclusion at `packs/core/pack.toml` lines 43-44 ("loaded broadly by the plan→execute→review discipline, not by a narrow user-prompt surface; a clean negative set isn't writable for it") is re-verified to remain accurate after Phase-1 changes. If Phase-1 introduces a narrower activation surface that makes Tier-A evals writable, add work-loop to `[pack.evals].skills`, create `packs/core/.apm/skills/work-loop/evals/eval_queries.json`, and run `python3 tools/run-pack-evals.py`; otherwise confirm the comment and no new eval file is needed.
 
-**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Select the required core-pack version increment (patch-level: this change modifies an existing work-loop primitive without adding a new public interface); update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
+**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Before bumping the pack version, the implementing PR must classify the increment according to the repository's version rules and document the decision. Making `worktree`, `dispatch-decision`, and `auto-parallel` exit non-zero removes previously functional capabilities; the repository's major-removal rule applies unless the implementing PR either (a) preserves those commands as functioning and defers their removal to a separately versioned change, or (b) documents a specific reason the removals do not meet the major threshold. Update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
 
-**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped (patch-level) and matching; `docs/product/changelog.md` entry added.
+**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped with documented release-classification decision and matching; `docs/product/changelog.md` entry added; eval disposition confirmed (Tier-A exclusion verified or new eval fixture created).
 
 ---
 
@@ -1504,6 +1493,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Aborted pre-transition approval mutation: `approve-plan` writes hashes; sequence aborts before `plan-approved`; document is corrected and approved again; `approve-plan` reruns and unconditionally overwrites the old hashes (no cleanup command needed)
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` version fields match; `marketplace.json` reflects the bumped version (no stale projection after `FORCE=1 make build-self`)
+- If Tier-A evals were added in T4: `python3 tools/run-pack-evals.py` passes; otherwise, `pack.toml` Tier-A exclusion comment is confirmed unchanged
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 

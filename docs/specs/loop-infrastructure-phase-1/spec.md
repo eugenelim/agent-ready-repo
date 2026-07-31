@@ -13,7 +13,7 @@
 
 ## Objective
 
-Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM phase tracker with read-only guard enforcement; `loop-cohort.py` as the authoritative execution-state owner. The detailed command surface, guard contracts, FSM tables, crash-window analysis, session-resumption protocol, and test matrix live in `plan.md`.
+Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM phase tracker with read-only guard enforcement; `loop-cohort.py` as the authoritative execution-state owner. The normative legal-transition matrix is defined in the Boundaries section below. Detailed command surfaces, guards, crash-window analysis, recovery protocol, implementation-oriented FSM diagrams, and the test matrix live in `plan.md`.
 
 ## Boundaries
 
@@ -31,7 +31,7 @@ Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM ph
 
 ### Never do
 - Let `loop-engine` write `state.json`.
-- Automatically replay non-idempotent review recording.
+- Automatically replay `review record --fingerprint` or any other non-idempotent cohort write. A `review record --report` replay is permitted only after the audit-distortion risk (`review_round_count` double-increment, fingerprint-history overwrite) is surfaced to the human and the human explicitly authorizes it.
 - Enable parallel-wave verbs (`worktree`, `dispatch-decision`, `auto-parallel`) in Phase 1.
 - Rebaseline an approved implementation plan after `plan-approved`.
 
