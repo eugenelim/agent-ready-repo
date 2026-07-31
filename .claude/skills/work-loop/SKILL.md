@@ -142,7 +142,9 @@ After orientation:
     python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
     ```
 
-12. **Full mode:** the **G-plan sequence** — run in order after the human writes `Status: Approved` in spec.md:
+12. **Full mode:** the **G-plan sequence** — run in order after the human writes `Status: Approved` in spec.md. Branch by the mode used at init:
+
+    **`code` mode** (implementation work):
     ```bash
     python3 scripts/loop-cohort.py approve-plan docs/specs/<feature> \
         --expect-run-id "$run_id"
@@ -150,7 +152,17 @@ After orientation:
         --expect-run-id "$run_id"
     python3 scripts/loop-engine.py transition docs/specs/<feature> plan-approved
     ```
-    `loop-engine transition plan-approved` internally verifies approval + schedule binding (`plan check-current --require-schedule`). Exit 0 unlocks EXECUTE; any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
+    `loop-engine transition plan-approved` verifies approval + schedule binding (`plan check-current --require-schedule`). Exit 0 unlocks EXECUTE.
+
+    **`spec-plan` mode** (spec/plan-only work — no implementation tasks):
+    ```bash
+    python3 scripts/loop-cohort.py approve-plan docs/specs/<feature> \
+        --expect-run-id "$run_id"
+    python3 scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+    ```
+    `plan-approved` transitions directly to `DONE` in `spec-plan` mode — do not run `schedule` and do not continue to EXECUTE. The loop ends here.
+
+    Any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
     **If the human rejects the plan:** fire `plan-rejected` to return to SPEC-PLAN-DRAFTING, revise the spec/plan (bump `Status: Draft`), then fire `spec-ready` to re-enter the review state before the next reviewer pass (same as step 11):
     ```bash

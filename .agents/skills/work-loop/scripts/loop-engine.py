@@ -98,7 +98,7 @@ CHECK_SPEC_STATUS = str(SCRIPT_DIR / "check-spec-status.py")
 
 def _run(cmd: list[str]) -> tuple[int, str]:
     """Run a subprocess; return (returncode, combined stderr)."""
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", check=False)
     return proc.returncode, (proc.stderr.strip() or proc.stdout.strip())
 
 
