@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `state.json` and `engine-state.json` fields.
 - **`references/supervisor-mode.md`** — Phase-1 note at top: parallel fan-out disabled.
 
+### Removed (breaking)
+
+- **`approve-plan` top-level command** — replaced by `loop-cohort plan approve`.
+  Automation calling `loop-cohort.py approve-plan` must update to `loop-cohort.py plan approve`.
+- **`worktree` subcommands** — disabled in Phase 1; all exit non-zero. Phase-2 re-enables.
+
 <!-- Example entry (replace with your first real version):
 
 ## [pack-name][version] — YYYY-MM-DD

@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`work-loop` Phase-1 loop-infrastructure split (core 0.16.0).** The work-loop
+- **`work-loop` Phase-1 loop-infrastructure split (core 1.0.0 — major).** The work-loop
   tooling is split into two scripts with a hard boundary. `loop-engine.py` is a pure FSM
   phase tracker (read-only except `init`/`transition`/`reset`; owns `engine-state.json`)
   with two modes (`code`, 13 transitions; `spec-plan`, 5 transitions). `loop-cohort.py`
@@ -29,10 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   event in code mode. A `run_id` UUID generated at engine `init` is shared between both
   state files and verified on every mutating call via `--expect-run-id`. Phase-1 parallel
   verbs (`worktree`, `dispatch-decision`, `auto-parallel`) are disabled — they exit
-  non-zero. Version classification: 0.15.x → 0.16.0 (minor); the disabled verbs were
-  already non-functional for sequential Phase-1 workflows — no adopter relied on them
-  during this pre-Phase-2 window, and the changelog entry for 0.15.0 explicitly noted
-  Phase-2 would arrive later.
+  non-zero. **Breaking changes (version classification: major):** the `approve-plan`
+  top-level command is removed (replaced by `plan approve` subcommand); `worktree`
+  subcommands are disabled. Dependent packs governance-extras (0.9.4), iac-terraform
+  (0.1.5), monorepo-extras (0.1.5), and release-engineering (0.1.8) updated their core
+  constraint from `^0.1` to `^1.0`.
+
+- **governance-extras 0.9.4** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
+- **iac-terraform 0.1.5** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
+- **monorepo-extras 0.1.5** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
+
+- **release-engineering 0.1.8** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
 
 - **`agentbundle` 0.27.0 — `[[pack.integrations]]` convention**: packs can now
   declare optional cross-pack behavior seams in `pack.toml`. The new

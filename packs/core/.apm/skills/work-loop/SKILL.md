@@ -129,7 +129,14 @@ After orientation:
     pre-EXECUTE review — it does not trigger termination. Keep `$run_id` for all
     subsequent `--expect-run-id` arguments throughout the rest of this loop.
 
-11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md). After all fired reviewers return Clean, fire the spec-review transition:
+11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md). When a reviewer reports findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
+    ```bash
+    # On findings: revise spec/plan
+    python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain
+    # ... revise ...
+    python3 scripts/loop-engine.py transition docs/specs/<feature> spec-ready
+    ```
+    After all fired reviewers return Clean, fire the spec-review transition:
     ```bash
     python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
     ```
@@ -259,9 +266,9 @@ loop-cohort.py review record docs/specs/<feature> \
     --expect-run-id "$run_id"
 # Fix findings and return to CODE-IMPLEMENTATION.
 
-# 2c. Adversarial clean — record the round, then run specialist reviewers below:
-loop-cohort.py review record docs/specs/<feature> \
-    --report <report-path> --expect-run-id "$run_id"
+# 2c. Adversarial clean — run specialist reviewers (see below), then fire
+#     reviewers-clean and record. Do not record here: a specialist finding
+#     would prematurely advance the round counter before all reviews are done.
 ```
 `review inspect` classifies the report into `findings` / `clean` / `invalid`; exit 0 for all content outcomes (use `invalid` as a signal to Surface — the reviewer output is malformed). `matches_previous_round=True` on a `findings` round = stasis → Surface to human, don't spin another round. `review record --fingerprint` increments both `review_round_count` and `review_retry_count`; `review record --report` (clean path) increments only `review_round_count`. `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`.
 
@@ -286,9 +293,11 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals. Fallback absent: named skip.
 
-**When ALL warranted reviewers are clean** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` (transition first to preserve the retry bound; guard requires Status: Shipped):
+**When ALL warranted reviewers are clean** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and record the clean round (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
 ```bash
 python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
+loop-cohort.py review record docs/specs/<feature> \
+    --report <report-path> --expect-run-id "$run_id"
 ```
 If a specialist reviewer returns findings, apply them, re-run GATES, and re-run the full REVIEW loop (adversarial first) before firing this transition.
 
@@ -426,8 +435,9 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
 
 1. `loop-engine status docs/specs/<feature> --json` → read `state`, `last_event`,
    `last_event_context`, `run_id`, `pending_human_wait`. Non-zero exit means
-   no resumable state — reset both files (`loop-engine reset` then
-   `loop-cohort reset`) and start a new run.
+   the state file is missing or unreadable — **Surface to human**: describe the
+   error, wait for explicit authorization before running the destructive reset
+   pair (`loop-engine reset` then `loop-cohort reset`) and starting a new run.
 2. `loop-cohort identity docs/specs/<feature> --expect-run-id <run_id>` →
    verify the pair. Surface and stop if non-zero.
 3. `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
@@ -443,7 +453,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `record-attempt --cycle-id <run_id>:<transition_sequence>` (idempotent); resume EXECUTE |
    | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |
    | `blocker-applied` | `CODE-IMPLEMENTATION` | Resume implementation directly (Status: Shipped stays; do not rewrite) |
-   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal. **Approved (merge confirmed):** fire `done`. **Changes requested:** apply fix → re-run GATES → REVIEW → fire `blocker-applied` to return to CODE-IMPLEMENTATION. Surface `review record --report` audit risk before either outcome |
+   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal. **Approved (merge confirmed):** fire `done`. **Changes requested:** fire `blocker-applied` immediately → apply fix → re-run GATES → REVIEW (adversarial first). Surface `review record --report` audit risk before acting |
    | `wave-complete` | `CODE-VERIFICATION` | Re-run gates; fire `wave-passed` or `gates-clean` or `gates-failed` |
    | `gates-clean` | `CODE-REVIEW` | Re-run reviewer fan-out and `review inspect` |
 

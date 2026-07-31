@@ -114,23 +114,26 @@ def main() -> int:
     else:
         for state in state_files:
             spec_dir = state.parent
-            # Skip review-cap check when the FSM is in a terminal state
-            # (CODE-HUMAN-GATE or DONE): the review phase is complete and
-            # review_retry_count may legitimately equal max_review_retries.
+            # Run check --phase review only when the FSM is in CODE-REVIEW.
+            # In CODE-IMPLEMENTATION the agent may legitimately have
+            # review_retry_count == max_review_retries while pursuing a clean
+            # pass; the cap guards only the findings-remain edge, not the
+            # clean path. In CODE-HUMAN-GATE/DONE the review phase is complete.
             review_phase_active = True
             engine_state_path = spec_dir / "engine-state.json"
             if engine_state_path.is_file():
                 try:
                     import json as _json
                     es = _json.loads(engine_state_path.read_text(encoding="utf-8"))
-                    if es.get("state") in ("CODE-HUMAN-GATE", "DONE"):
+                    if es.get("state") != "CODE-REVIEW":
                         review_phase_active = False
                 except (OSError, ValueError, KeyError):
                     pass  # unreadable engine-state → conservative: check anyway
             for phase in ("implement", "review"):
                 if phase == "review" and not review_phase_active:
-                    print(  # FSM is in terminal state; review phase complete
-                        f"pre-pr: — loop-cohort check {spec_dir} (review) skipped (FSM terminal)"
+                    print(  # FSM not in CODE-REVIEW; cap check doesn't apply
+                        f"pre-pr: — loop-cohort check {spec_dir}"
+                        " (review) skipped (FSM not CODE-REVIEW)"
                     )
                     continue
                 result = subprocess.run(
