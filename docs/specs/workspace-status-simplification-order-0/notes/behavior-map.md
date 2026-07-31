@@ -163,7 +163,7 @@ After user confirmation (Y), workspace-status writes back to workspace.toml:
 
 | Type | Routed skill | Pack required |
 |------|-------------|---------------|
-| `shape` (default) | `frame-intent` | None (core) |
+| `shape` (default) | `frame-intent` | product-engineering pack |
 | `research` | `desk-research-project-start` | desk-research pack |
 | `strategy` | `frame-situation` (M2); interim: `frame-intent` | product-engineering pack (M2) |
 | `signal` | No action; "active context" only | — |

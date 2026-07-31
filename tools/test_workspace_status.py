@@ -1746,11 +1746,17 @@ def case_nonletter_transition_segment() -> None:
         status = extract_spec_status(p)
         expect(status is None,
                f"[AC2h] non-letter final segment should yield None, got {status}")
-        # Trailing arrow with nothing after → also None (no backtrack)
+        # Trailing arrow (simple): "Approved →" → None (no backtrack to "Approved")
         p.write_text("# B\n\n- **Status:** Approved →\n", encoding="utf-8")
         trailing_status = extract_spec_status(p)
         expect(trailing_status is None,
-               f"[AC2h] trailing arrow should yield None, got {trailing_status}")
+               f"[AC2h] trailing arrow (simple) should yield None, got {trailing_status}")
+        # Trailing arrow (multi-step): "Draft → Approved →" → None (no backtrack)
+        p.write_text("# B\n\n- **Status:** Draft → Approved →\n", encoding="utf-8")
+        trailing_multi_status = extract_spec_status(p)
+        expect(trailing_multi_status is None,
+               f"[AC2h] trailing arrow (multi-step) should yield None,"
+               f" got {trailing_multi_status}")
 
 
 # ── F1: work-loop Step 0 stale-queue check ───────────────────────────────────

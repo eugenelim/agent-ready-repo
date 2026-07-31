@@ -301,6 +301,10 @@ def extract_spec_status(spec_path: Path) -> str | None:
         content = m.group(1).strip()
         if "→" in content:
             # Transition form: "Draft → Approved → Shipped" (any arrow spacing).
+            # A trailing bare arrow ("Draft → Approved →") has no final segment;
+            # reject it explicitly so the preceding segment is never backtracked to.
+            if content.rstrip().endswith("→"):
+                return None
             # Take the LAST segment; if not a known status, return None — no backtrack.
             segments = _TRANSITION_ARROW_RE.findall(content)
             if segments:
