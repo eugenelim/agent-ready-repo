@@ -36,6 +36,7 @@ Known gaps (documented in behavior-map.md, not fixed here):
 from __future__ import annotations
 
 import dataclasses
+import os
 import re
 import time
 import tomllib
@@ -516,8 +517,16 @@ def run_reconciliation(
     # ── Type 1: Forward scan — untracked live specs ───────────────────────────
     # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
     # are discovered; slug is the parent path relative to specs_dir.
+    # os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
+    # (rglob follows symlinks on Python 3.11/3.12).
     if specs_dir.exists():
-        for spec_file in sorted(specs_dir.rglob("spec.md")):
+        for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
+            dirnames.sort()  # deterministic traversal order
+            if "spec.md" not in filenames:
+                continue
+            spec_file = Path(dirpath) / "spec.md"
+            if spec_file.is_symlink():
+                continue
             try:
                 rel = spec_file.parent.relative_to(specs_dir)
             except ValueError:
