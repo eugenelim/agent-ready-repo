@@ -1567,6 +1567,25 @@ def test_parse_findings_specialist_formats(tmp: Path) -> None:
     ok(name)
 
 
+def test_classify_report_ship_it_clean(tmp: Path) -> None:
+    """review inspect classifies 'SHIP IT' reports as clean (specialist reviewer verdicts)."""
+    name = "classify-report-ship-it-clean"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
+    report = tmp / "ship_it.md"
+    report.write_text("## Verdict\nSHIP IT\n\n## What's working\nAll good.\n", encoding="utf-8")
+    rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+        return
+    data = json.loads(out)
+    if data.get("classification") != "clean":
+        fail(name, f"expected classification=clean; got {data.get('classification')!r}")
+    else:
+        ok(name)
+
+
 def test_validate_run_id_rejects_wrong_schema(tmp: Path) -> None:
     """_validate_run_id rejects state with schema_version != 1 before checking run_id."""
     name = "validate-run-id-rejects-wrong-schema"
@@ -1702,6 +1721,7 @@ def main() -> int:
             test_clean_substring_constant,
             test_parse_findings_canonical_algorithm,
             test_parse_findings_specialist_formats,
+            test_classify_report_ship_it_clean,
             test_validate_run_id_rejects_wrong_schema,
             test_canonical_plan_normalization,
             test_gplan_ordering_status_approved_before_approve_plan,

@@ -63,6 +63,9 @@ PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
 
 CLEAN_SUBSTRING = "Clean — ready to commit."
+# Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
+# on its own line as their clean verdict instead of CLEAN_SUBSTRING.
+_SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
 _RE_SHA1 = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -973,7 +976,10 @@ def _classify_report(report_path: Path, state: dict) -> dict:
         }
 
     fps = parse_findings(report_text)
-    has_clean = CLEAN_SUBSTRING in report_text
+    has_clean = (
+        CLEAN_SUBSTRING in report_text
+        or _SHIP_IT_RE.search(report_text) is not None
+    )
 
     if fps:
         classification = "findings"
