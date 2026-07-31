@@ -1678,6 +1678,80 @@ def case_shaping_deduplication() -> None:
         expect(by_slug["same-signal"].is_signal,
                "[dedup] same-signal is signal (from active)")
 
+        # Cross-type: active shape + backlog research with the SAME slug both survive
+        write_workspace(root, """
+            ["ini-002"]
+            name = "CrossType"
+            status = "active"
+            milestone = "M1"
+            ["ini-002".shaping_queue]
+            active  = [{slug = "cross-dup", type = "shape"}]
+            backlog = [{slug = "cross-dup", type = "research"}]
+            ["ini-002".work]
+            active  = []
+            shipped = []
+            queue   = []
+        """)
+        ws2 = parse_workspace(root / "workspace.toml")
+        inits2 = extract_initiatives(ws2)
+        ini2 = next(i for i in inits2 if i.slug == "ini-002")
+        cls2 = classify_shaping_entries(ini2, inits2)
+        cross_slugs = [c.entry.slug for c in cls2]
+        expect(cross_slugs.count("cross-dup") == 2,
+               f"[dedup] cross-type: shape+research with same slug should both appear"
+               f" (got {cross_slugs.count('cross-dup')})")
+        cross_types = {c.entry.entry_type for c in cls2 if c.entry.slug == "cross-dup"}
+        expect(cross_types == {"shape", "research"},
+               f"[dedup] cross-type: both shape and research visible (got {cross_types})")
+
+
+# ── F4e: Missing initiative status not promoted to active ─────────────────────
+
+def case_missing_status_not_active() -> None:
+    """An initiative without a status field must NOT be treated as active."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "NoStatus"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/queued-item"]
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        ini = next(i for i in inits if i.slug == "ini-001")
+        expect(ini.status != "active",
+               f"[missing-status] omitted status must not default to 'active', got {ini.status!r}")
+        # classify_shaping_entries processes all entries; the key check is
+        # that the upstream callers (analyze) skip non-active initiatives.
+        result_ini_active = [i for i in inits if i.status == "active"]
+        expect(len(result_ini_active) == 0,
+               f"[missing-status] no-status initiative must not appear in active set"
+               f" (got {len(result_ini_active)})")
+
+
+# ── F4f: Non-letter final transition segment → None ──────────────────────────
+
+def case_nonletter_transition_segment() -> None:
+    """A non-letter final transition target must return None, not backtrack."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        p = root / "docs" / "specs" / "spec-bad-trans" / "spec.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        # Non-letter final segment (year, numeric) must not backtrack to Approved
+        p.write_text("# B\n\n- **Status:** Approved → 2026\n", encoding="utf-8")
+        status = extract_spec_status(p)
+        expect(status is None,
+               f"[AC2h] non-letter final segment should yield None, got {status}")
+        # Trailing arrow with nothing after → also None (no backtrack)
+        p.write_text("# B\n\n- **Status:** Approved →\n", encoding="utf-8")
+        trailing_status = extract_spec_status(p)
+        expect(trailing_status is None,
+               f"[AC2h] trailing arrow should yield None, got {trailing_status}")
+
 
 # ── F1: work-loop Step 0 stale-queue check ───────────────────────────────────
 
@@ -1980,6 +2054,14 @@ def test_work_loop_slug_normalization() -> None:
     _run_case(case_work_loop_slug_normalization)
 
 
+def test_missing_status_not_active() -> None:
+    _run_case(case_missing_status_not_active)
+
+
+def test_nonletter_transition_segment() -> None:
+    _run_case(case_nonletter_transition_segment)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
@@ -2021,6 +2103,8 @@ CASES = [
     ("F4b work_loop_stale_warnings", case_work_loop_stale_warnings),
     ("F4c work_loop_stale_both_lists", case_work_loop_stale_both_lists),
     ("F4d work_loop_slug_normalization", case_work_loop_slug_normalization),
+    ("F4e missing_status_not_active", case_missing_status_not_active),
+    ("F4f nonletter_transition_segment", case_nonletter_transition_segment),
 ]
 
 

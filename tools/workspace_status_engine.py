@@ -243,7 +243,7 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
         initiatives.append(Initiative(
             slug=key,
             name=section.get("name", ""),
-            status=section.get("status", "active"),
+            status=section.get("status", ""),  # absent → "" (not silently promoted to active)
             milestone=section.get("milestone", ""),
             work=work,
             shaping=shaping,
@@ -257,8 +257,9 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
 # Captures the status content before any annotation (parenthetical or HTML comment).
 # A spaced arrow inside "(root → leaf)" must never be read as a transition.
 _STATUS_FIELD_RE = re.compile(r'\*\*Status:\*\*\s+(.*?)(?:\s*\(|\s*<!--|$)')
-# Finds transition segments in the pre-annotation content; no whitespace requirement.
-_TRANSITION_ARROW_RE = re.compile(r'→\s*([A-Za-z]+)')
+# Finds ALL segments after → (any non-whitespace), so a non-letter final segment
+# (e.g. "→ 2026", trailing "→") forces None instead of backtracking.
+_TRANSITION_ARROW_RE = re.compile(r'→\s*(\S+)')
 
 
 def _safe_spec_path(root: Path, slug: str) -> Path | None:
@@ -444,8 +445,9 @@ def classify_shaping_entries(
     """
     results: list[ShapingClassification] = []
 
-    # Active entries take precedence; build set to exclude duplicates from backlog
-    active_slugs = {e.slug for e in ini.shaping.active}
+    # Active entries take precedence; deduplicate on (slug, type) so a shape:X active
+    # entry does not suppress a research:X backlog entry — they are distinct items.
+    active_typed = {(e.slug, e.entry_type) for e in ini.shaping.active}
 
     for entry in ini.shaping.active:
         is_sig = entry.entry_type == "signal"
@@ -458,8 +460,8 @@ def classify_shaping_entries(
         ))
 
     for entry in ini.shaping.backlog:
-        if entry.slug in active_slugs:
-            continue  # Active entry takes precedence; backlog duplicate is suppressed
+        if (entry.slug, entry.entry_type) in active_typed:
+            continue  # Same slug + same type: active takes precedence
         is_sig = entry.entry_type == "signal"
         if is_sig:
             results.append(ShapingClassification(

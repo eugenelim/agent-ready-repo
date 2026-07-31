@@ -23,7 +23,7 @@ import tomllib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from workspace_status_engine import analyze
+from workspace_status_engine import analyze, extract_spec_status
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -243,6 +243,14 @@ def run_benchmark() -> dict:
         type1_paths = {f.spec_path for f in result.type1}
         has_type1_untracked = UNTRACKED_APPROVED_PATH in type1_paths
 
+        # AC4d complete state mix — all five states must be present
+        active_ini_entries = sum(len(ini.work.active) for ini in active_inis)
+        shipped_ini_entries = sum(len(ini.work.shipped) for ini in active_inis)
+        archived_spec_count = sum(
+            1 for d in (root / "docs" / "specs").iterdir()
+            if d.is_dir() and extract_spec_status(d / "spec.md") == "Archived"
+        )
+
         return {
             "fixture_generation_s": t_gen,
             "spec_dirs_created": spec_count,
@@ -251,6 +259,9 @@ def run_benchmark() -> dict:
             "active_initiatives": len(active_inis),
             "ready_entries": len(result.ready),
             "blocked_entries": len(result.blocked),
+            "active_ini_entries": active_ini_entries,
+            "shipped_ini_entries": shipped_ini_entries,
+            "archived_spec_count": archived_spec_count,
             "type1_findings": len(result.type1),
             "type2_findings": len(result.type2),
             "type3_findings": len(result.type3),
@@ -286,6 +297,9 @@ def main() -> int:
     print("Analysis measurements (engine only, no LLM):")
     print(f"  Ready entries:            {m['ready_entries']}")
     print(f"  Blocked entries:          {m['blocked_entries']}")
+    print(f"  Active work entries:      {m['active_ini_entries']}")
+    print(f"  Shipped work entries:     {m['shipped_ini_entries']}")
+    print(f"  Archived spec count:      {m['archived_spec_count']}")
     print(f"  Type 1 findings:          {m['type1_findings']}")
     print(f"  Type 2 findings:          {m['type2_findings']}")
     print(f"  Type 3 findings:          {m['type3_findings']}")
@@ -309,6 +323,12 @@ def main() -> int:
         errors.append(f"AC4d: need ≥1 ready entry, got {m['ready_entries']}")
     if m["blocked_entries"] == 0:
         errors.append(f"AC4d: need ≥1 blocked entry, got {m['blocked_entries']}")
+    if m["active_ini_entries"] == 0:
+        errors.append(f"AC4d: need ≥1 active work entry, got {m['active_ini_entries']}")
+    if m["shipped_ini_entries"] == 0:
+        errors.append(f"AC4d: need ≥1 shipped work entry, got {m['shipped_ini_entries']}")
+    if m["archived_spec_count"] == 0:
+        errors.append(f"AC4d: need ≥1 archived spec, got {m['archived_spec_count']}")
     if not m["cross_dep_satisfied"]:
         errors.append(
             f"AC4e: expected cross-initiative dep resolved — "
@@ -328,7 +348,9 @@ def main() -> int:
     print(f"  ✓  AC4a: ≥250 spec dirs ({m['spec_dirs_with_spec_md']})")
     print(f"  ✓  AC4b: 30–80 queued entries ({m['queued_entries']})")
     print(f"  ✓  AC4c: ≥2 active initiatives ({m['active_initiatives']})")
-    print(f"  ✓  AC4d: ready={m['ready_entries']}, blocked={m['blocked_entries']} (mix present)")
+    print(f"  ✓  AC4d: ready={m['ready_entries']}, blocked={m['blocked_entries']},"
+          f" active={m['active_ini_entries']}, shipped={m['shipped_ini_entries']},"
+          f" archived={m['archived_spec_count']} (all five states present)")
     print(f"  ✓  AC4e: cross-initiative dep resolved "
           f"({CROSS_INI_DEP_INI} ready via {CROSS_INI_PROVIDER} shipped spec)")
     print(f"  ✓  AC4f: untracked Approved spec → Type 1 ({m['type1_findings']} finding(s))")
