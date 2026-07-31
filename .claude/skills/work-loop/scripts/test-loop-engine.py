@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Unit/integration tests for loop-engine.py — Phase-1 FSM.
-
-Covers T2, T4, and T5 test cases from plan.md.
+"""Unit/integration tests for loop-engine.py — Phase-1 FSM transitions,
+guards, lifecycle walks, and session-resumption state.
 
 Run: python3 test-loop-engine.py
 Exit 0 = all pass; exit non-zero = at least one failure.
@@ -1278,9 +1277,8 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
         fail(name, f"expected back to DRAFTING; got {state['state']!r}")
         return
 
-    # 4. spec-ready again, then reviewers-clean (needs Status: Shipped)
+    # 4. spec-ready again, then reviewers-clean (no status guard at SPEC-PLAN-REVIEW)
     run_engine("transition", str(spec_dir), "spec-ready")
-    write_spec(spec_dir, status="Shipped")  # set to Shipped for guard
     rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
     if rc != 0:
         fail(name, f"reviewers-clean failed: {err.strip()}")
@@ -1297,8 +1295,10 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
         return
 
     # 6. spec-ready + reviewers-clean + plan-approved → DONE
+    #    Human writes Status: Approved before approve-plan (spec-plan terminal is Approved)
     run_engine("transition", str(spec_dir), "spec-ready")
     run_engine("transition", str(spec_dir), "reviewers-clean")
+    write_spec(spec_dir, status="Approved")
 
     # For plan-approved: need approved cohort state
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", eng_run_id)
@@ -1309,6 +1309,10 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
     state = json.loads((spec_dir / "engine-state.json").read_text())
     if state["state"] != "DONE":
         fail(name, f"expected DONE; got {state['state']!r}")
+        return
+    spec_text = (spec_dir / "spec.md").read_text(encoding="utf-8")
+    if "**Status:** Approved" not in spec_text:
+        fail(name, "spec-plan terminal: expected Status: Approved at DONE")
     else:
         ok(name)
 

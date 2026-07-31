@@ -186,7 +186,12 @@ def sha256_canonical_plan(path: Path) -> str:
 
 
 def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
-    """Return None on success, or a stop() error code on mismatch."""
+    """Return None on success, or a stop() error code on schema/identity mismatch."""
+    sv = state.get("schema_version")
+    if sv != 1:
+        return stop(
+            f"{verb}: unsupported schema_version={sv!r} (expected 1); run reset pair"
+        )
     stored = state.get("run_id")
     if stored != expect_run_id:
         return stop(
@@ -878,7 +883,14 @@ def cmd_record_attempt(args: argparse.Namespace) -> int:
 FINDING_LINE_RE = re.compile(
     r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*`(?P<citation>[^`]+)`"
 )
-LINE_FROM_CITATION_RE = re.compile(r":(\d+)")
+# frontend-reviewer: **title.** file:line. (unquoted file:line after title)
+FINDING_LINE_RE_UNQUOTED = re.compile(
+    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*(?P<citation>\S+:\d+)"
+)
+# experience-reviewer: **title.** Where: <location>. (no file:line)
+FINDING_LINE_RE_WHERE = re.compile(
+    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*Where:\s*(?P<location>[^.]+)"
+)
 
 
 def parse_findings(report_text: str) -> list[str]:
@@ -889,26 +901,56 @@ def parse_findings(report_text: str) -> list[str]:
     where <file> is the cited path exactly as written, <line> is the first
     integer after the first colon in the citation, and <title> is the
     bolded heading including the surrounding `**` markers.
+
+    Supports three formats:
+    - adversarial-reviewer: **title** `file:line`  (backtick-quoted citation)
+    - frontend-reviewer:    **title.** file:line.  (unquoted file:line)
+    - experience-reviewer:  **title.** Where: loc. (location; key uses loc|0|title)
     """
     fingerprints: list[str] = []
     for raw in report_text.splitlines():
         line = raw.strip()
         if not line.startswith("**"):
             continue
+        # Try backtick-quoted citation first (adversarial-reviewer)
         m = FINDING_LINE_RE.match(line)
-        if not m:
+        if m:
+            title = m.group("title").strip()
+            citation = m.group("citation").strip()
+            if ":" not in citation:
+                continue
+            file_part, _, rest = citation.partition(":")
+            line_match = re.match(r"\d+", rest)
+            if not line_match:
+                continue
+            key = f"{file_part}|{line_match.group(0)}|{title}"
+            fingerprints.append(
+                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+            )
             continue
-        title = m.group("title").strip()
-        citation = m.group("citation").strip()
-        if ":" not in citation:
+        # Try Where: <location> (experience-reviewer)
+        m = FINDING_LINE_RE_WHERE.match(line)
+        if m:
+            title = m.group("title").strip()
+            location = m.group("location").strip()
+            key = f"{location}|0|{title}"
+            fingerprints.append(
+                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+            )
             continue
-        file_part, _, rest = citation.partition(":")
-        line_match = re.match(r"\d+", rest)
-        if not line_match:
-            continue
-        line_num = line_match.group(0)
-        key = f"{file_part}|{line_num}|{title}"
-        fingerprints.append(hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest())
+        # Try unquoted file:line (frontend-reviewer)
+        m = FINDING_LINE_RE_UNQUOTED.match(line)
+        if m:
+            title = m.group("title").strip()
+            citation = m.group("citation").strip()
+            file_part, _, rest = citation.partition(":")
+            line_match = re.match(r"\d+", rest)
+            if not line_match:
+                continue
+            key = f"{file_part}|{line_match.group(0)}|{title}"
+            fingerprints.append(
+                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+            )
     return fingerprints
 
 

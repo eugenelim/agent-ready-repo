@@ -308,9 +308,11 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals. Fallback absent: named skip.
 
-**When ALL warranted reviewers are clean** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and record the clean round (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
+**When ALL warranted reviewers are clean (or are named skips)** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and, if at least one reviewer produced a clean report, record it (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
 ```
 python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
+# Only when at least one reviewer ran and produced a clean report
+# (skip this line if every warranted reviewer was a named skip):
 python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id <run_id>
 ```

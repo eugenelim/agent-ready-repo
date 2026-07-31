@@ -2,8 +2,6 @@
 """Unit tests for loop-cohort.py — Phase-1 cohort state, identity, approval,
 schedule guards, wave, retry, and review mutations.
 
-Covers T1 and T3 test cases from plan.md.
-
 Run: python3 test-loop-cohort.py
 Exit 0 = all pass; exit non-zero = at least one failure.
 """
@@ -1512,6 +1510,60 @@ def test_parse_findings_canonical_algorithm(tmp: Path) -> None:
         ok(name)
 
 
+def test_parse_findings_specialist_formats(tmp: Path) -> None:
+    """parse_findings handles frontend-reviewer and experience-reviewer formats."""
+    name = "parse-findings-specialist-formats"
+    # frontend-reviewer: unquoted file:line
+    fe_report = "**1. Token drift.** src/styles.css:42. Lens: CSS. Fix: use token.\n"
+    fps_fe = parse_findings(fe_report)
+    fe_key = "src/styles.css|42|**1. Token drift.**"
+    fe_fp = hashlib.sha1(fe_key.encode("utf-8"), usedforsecurity=False).hexdigest()
+    if len(fps_fe) != 1:
+        fail(name, f"frontend-reviewer: expected 1 fingerprint; got {len(fps_fe)}")
+        return
+    if fps_fe[0] != fe_fp:
+        fail(name, f"frontend-reviewer fingerprint mismatch: {fps_fe[0]!r} != {fe_fp!r}")
+        return
+    # experience-reviewer: Where: <location>
+    exp_report = (
+        "**1. Incoherent contrast.** Where: Hero screen. "
+        "What's wrong: grounded fit. Fix: raise contrast.\n"
+    )
+    fps_exp = parse_findings(exp_report)
+    exp_key = "Hero screen|0|**1. Incoherent contrast.**"
+    exp_fp = hashlib.sha1(exp_key.encode("utf-8"), usedforsecurity=False).hexdigest()
+    if len(fps_exp) != 1:
+        fail(name, f"experience-reviewer: expected 1 fingerprint; got {len(fps_exp)}")
+        return
+    if fps_exp[0] != exp_fp:
+        fail(name, f"experience-reviewer fingerprint mismatch: {fps_exp[0]!r} != {exp_fp!r}")
+        return
+    ok(name)
+
+
+def test_validate_run_id_rejects_wrong_schema(tmp: Path) -> None:
+    """_validate_run_id rejects state with schema_version != 1 before checking run_id."""
+    name = "validate-run-id-rejects-wrong-schema"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 99, "run_id": run_id,
+        "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
+        "finding_fingerprints": [], "previous_finding_fingerprints": [],
+    })
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_cohort("review", "record", str(spec_dir),
+                          "--fingerprint", "a" * 40, "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when schema_version != 1")
+    elif before != after:
+        fail(name, "state.json mutated despite wrong schema_version")
+    else:
+        ok(name)
+
+
 def test_canonical_plan_normalization(tmp: Path) -> None:
     name = "canonical-plan-normalization"
     crlf_text = "line1  \r\nline2\r\n"
@@ -1622,6 +1674,8 @@ def main() -> int:
             test_review_record_clean_resets_fingerprint_baseline,
             test_clean_substring_constant,
             test_parse_findings_canonical_algorithm,
+            test_parse_findings_specialist_formats,
+            test_validate_run_id_rejects_wrong_schema,
             test_canonical_plan_normalization,
             test_gplan_ordering_status_approved_before_approve_plan,
         ]

@@ -43,7 +43,7 @@ SCHEMA_VERSION = 1
 
 # ── FSM tables ─────────────────────────────────────────────────────────────
 #
-# Normative transition matrix per spec.md §Boundaries.
+# Normative transition matrix.
 # Key: (mode, source_state, event) → target_state
 # "both" modes share the SPEC-PLAN-* states.
 
