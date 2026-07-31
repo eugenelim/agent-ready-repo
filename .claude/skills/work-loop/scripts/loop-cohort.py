@@ -685,6 +685,12 @@ def cmd_check(args: argparse.Namespace) -> int:
         state = read_state(spec_dir)
     except (FileNotFoundError, ValueError) as exc:
         return stop(str(exc))
+    # The `implement` phase is a no-op stub (returns 0 for any state); skip
+    # schema validation there so pre-Phase-1 state files don't break the hook.
+    # For phases that actually evaluate counters, reject incompatible state.
+    if args.phase != "implement" and state.get("schema_version") != 1:
+        sv = state.get("schema_version")
+        return stop(f"check: unsupported schema_version={sv!r} (expected 1); run reset pair")
     return _evaluate(state, args.phase)
 
 

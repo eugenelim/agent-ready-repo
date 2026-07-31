@@ -462,7 +462,8 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    pair (`loop-engine reset` then `loop-cohort reset`) and starting a new run.
 2. `loop-cohort identity docs/specs/<feature> --expect-run-id <run_id>` →
    verify the pair. Surface and stop if non-zero.
-3. `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
+3. `loop-engine status docs/specs/<feature> --json` → read `transition_sequence`.
+   `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
    `schedule_waves`, `review_retry_count`, `implementation_retry_count`.
 4. If `pending_human_wait` → wait for the human signal before firing any
    exit event.
@@ -471,8 +472,8 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `last_event` | `state` | Action |
    |---|---|---|
    | `plan-approved` | `CODE-IMPLEMENTATION` | Write `Status: Implementing` if not set; resume EXECUTE |
-   | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `wave advance --from-index <last_event_context.completed_wave_index>` (idempotent); resume EXECUTE |
-   | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `record-attempt --cycle-id <run_id>:<transition_sequence>` (idempotent); resume EXECUTE |
+   | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `python3 scripts/loop-cohort.py wave advance docs/specs/<feature> --from-index <last_event_context.completed_wave_index> --expect-run-id "$run_id"` (idempotent); resume EXECUTE |
+   | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `python3 scripts/loop-cohort.py record-attempt docs/specs/<feature> --phase implement --cycle-id <run_id>:<transition_sequence> --expect-run-id "$run_id"` where `transition_sequence` was read from `loop-engine status` in step 3 (idempotent); resume EXECUTE |
    | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |
    | `blocker-applied` | `CODE-IMPLEMENTATION` | Resume implementation directly (Status: Shipped stays; do not rewrite) |
    | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal. **Approved (merge confirmed):** fire `done`. **Changes requested:** surface `review record --report` audit risk first; if authorized replay it; then fire `blocker-applied` → apply fix → re-run GATES → REVIEW (adversarial first) |
