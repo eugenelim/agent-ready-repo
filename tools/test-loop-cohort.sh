@@ -384,7 +384,7 @@ fi
 # ── review record ────────────────────────────────────────────────────────
 
 # --fingerprint path: increments both counters
-run_and_check "review-record-fingerprint" 0 "" -- $PY review record "$SPEC1" --fingerprint "aabbccdd1122334455667788990011223344556677" --expect-run-id "$RUN_ID"
+run_and_check "review-record-fingerprint" 0 "" -- $PY review record "$SPEC1" --fingerprint "aabbccdd112233445566778899001122334455aa" --expect-run-id "$RUN_ID"
 
 ran=$((ran + 1))
 rr=$(python3 -c "import json; d=json.load(open('$SPEC1/state.json')); print(d['review_round_count'], d['review_retry_count'])")

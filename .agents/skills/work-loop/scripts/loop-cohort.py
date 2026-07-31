@@ -215,6 +215,7 @@ _CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?
 
 
 def parse_depends_on(field: str, local_task_ids):
+    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
     head = field.split("(")[0]
     cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
     cleaned = _CROSS_MARKER_RE.sub("", head)
@@ -229,6 +230,7 @@ def parse_depends_on(field: str, local_task_ids):
 
 
 def parse_plan(text: str):
+    """Extract ordered task IDs and dependency map from plan.md text."""
     matches = list(TASK_HEADING_RE.finditer(text))
     ordered = [m.group(1) for m in matches]
     taskset = set(ordered)
@@ -325,6 +327,7 @@ def topological_waves(ordered, deps):
 
 
 def detect_cycles(ordered, deps):
+    """Return task IDs that form cycles (topological sort excludes them)."""
     waves, placed = topological_waves(ordered, deps)
     if placed == len(ordered):
         return []
@@ -333,6 +336,7 @@ def detect_cycles(ordered, deps):
 
 
 def detect_forward_refs(ordered, deps):
+    """Return (task, dep) pairs where dep appears after task in the declared order."""
     order = {t: i for i, t in enumerate(ordered)}
     return [
         (t, d)
