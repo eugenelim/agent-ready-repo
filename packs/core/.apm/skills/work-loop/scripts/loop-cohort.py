@@ -73,7 +73,7 @@ def _template_max_implementation_retries(fallback: int = 5) -> int:
                 TEMPLATE_PATH.read_text(encoding="utf-8")
             )["max_implementation_retries"]
         )
-    except (FileNotFoundError, KeyError, ValueError):
+    except (FileNotFoundError, OSError, KeyError, TypeError, ValueError):
         return fallback
 
 
@@ -85,7 +85,7 @@ def _template_max_review_retries(fallback: int = 5) -> int:
                 TEMPLATE_PATH.read_text(encoding="utf-8")
             )["max_review_retries"]
         )
-    except (FileNotFoundError, KeyError, ValueError):
+    except (FileNotFoundError, OSError, KeyError, TypeError, ValueError):
         return fallback
 
 

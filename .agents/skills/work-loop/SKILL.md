@@ -314,6 +314,16 @@ python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
 python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id <run_id>
 ```
+Engine is now in `CODE-HUMAN-GATE`. **Wait for human response:**
+- **Approved (merge confirmed):** fire `done`.
+  ```
+  python3 scripts/loop-engine.py transition docs/specs/<feature> done
+  ```
+- **Changes requested:** surface the `review record --report` audit risk to the human (non-idempotent — it already ran); if authorized to replay: fire `blocker-applied`, apply the fix, re-run GATES, then re-enter REVIEW (adversarial first).
+  ```
+  python3 scripts/loop-engine.py transition docs/specs/<feature> blocker-applied
+  ```
+
 If a specialist reviewer returns findings, first exit `CODE-REVIEW` via `findings-remain` and record the fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
 ```
 python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain

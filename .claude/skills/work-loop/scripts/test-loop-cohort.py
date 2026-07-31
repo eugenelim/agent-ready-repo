@@ -76,12 +76,13 @@ def make_spec_dir(tmp: Path, feature: str = "myfeature") -> Path:
 def write_state(spec_dir: Path, state: dict) -> None:
     path = spec_dir / "state.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(state, indent=2))
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 def write_spec(spec_dir: Path, status: str = "Draft") -> Path:
     p = spec_dir / "spec.md"
-    p.write_text(f"# Spec\n\n- **Status:** {status}\n\n## Acceptance criteria\n\n- [ ] AC1\n")
+    content = f"# Spec\n\n- **Status:** {status}\n\n## Acceptance criteria\n\n- [ ] AC1\n"
+    p.write_text(content, encoding="utf-8")
     return p
 
 
@@ -89,7 +90,7 @@ def write_plan(spec_dir: Path, content: str | None = None) -> Path:
     p = spec_dir / "plan.md"
     if content is None:
         content = "# Plan\n\n### T1\n\n**Depends on:** none\n\n### T2\n\n**Depends on:** T1\n"
-    p.write_text(content)
+    p.write_text(content, encoding="utf-8")
     return p
 
 
@@ -541,7 +542,7 @@ def test_plan_check_current_absent_files_spec_plan_mode(tmp: Path) -> None:
     # Manually set approved but no files
     state = json.loads((spec_dir / "state.json").read_text())
     state["plan_review_status"] = "approved"
-    (spec_dir / "state.json").write_text(json.dumps(state))
+    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
 
     # No spec.md
     rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
@@ -1098,7 +1099,7 @@ def test_review_inspect_clean(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "clean.md"
-    report.write_text(CLEAN_REPORT)
+    report.write_text(CLEAN_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -1118,7 +1119,7 @@ def test_review_inspect_findings(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "findings.md"
-    report.write_text(SAMPLE_FINDINGS_REPORT)
+    report.write_text(SAMPLE_FINDINGS_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
     if rc != 0:
         fail(name, f"expected exit 0 for findings; got {rc}")
@@ -1156,7 +1157,7 @@ def test_review_inspect_invalid_no_clean_no_findings(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "empty.md"
-    report.write_text(EMPTY_REPORT)
+    report.write_text(EMPTY_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -1180,7 +1181,7 @@ def test_review_inspect_stasis(tmp: Path) -> None:
         "finding_fingerprints": fps,
     })
     report = tmp / "stasis.md"
-    report.write_text(SAMPLE_FINDINGS_REPORT)
+    report.write_text(SAMPLE_FINDINGS_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -1199,7 +1200,7 @@ def test_review_inspect_empty_vs_empty_not_stasis(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
     report = tmp / "clean2.md"
-    report.write_text(CLEAN_REPORT)
+    report.write_text(CLEAN_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -1219,7 +1220,7 @@ def test_review_inspect_findings_precedence(tmp: Path) -> None:
     write_state(spec_dir, {"schema_version": 1, "run_id": run_id, "finding_fingerprints": []})
     mixed = SAMPLE_FINDINGS_REPORT + f"\n{CLEAN_SUBSTRING}\n"
     report = tmp / "mixed.md"
-    report.write_text(mixed)
+    report.write_text(mixed, encoding="utf-8")
     rc, out, _ = run_cohort("review", "inspect", str(spec_dir), "--report", str(report), "--json")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -1271,7 +1272,7 @@ def test_review_record_report_increments_only_round(tmp: Path) -> None:
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
     report = tmp / "clean3.md"
-    report.write_text(CLEAN_REPORT)
+    report.write_text(CLEAN_REPORT, encoding="utf-8")
     rc, _, _ = run_cohort("review", "record", str(spec_dir), "--report", str(report),
                           "--expect-run-id", run_id)
     if rc != 0:
@@ -1297,7 +1298,7 @@ def test_review_record_report_rejects_non_clean(tmp: Path) -> None:
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
     report = tmp / "findings2.md"
-    report.write_text(SAMPLE_FINDINGS_REPORT)
+    report.write_text(SAMPLE_FINDINGS_REPORT, encoding="utf-8")
     rc, _, _ = run_cohort("review", "record", str(spec_dir), "--report", str(report),
                           "--expect-run-id", run_id)
     if rc == 0:
@@ -1383,13 +1384,13 @@ def test_review_record_clean_resets_fingerprint_baseline(tmp: Path) -> None:
     })
     # Clean review resets baseline to []
     report = tmp / "clean4.md"
-    report.write_text(CLEAN_REPORT)
+    report.write_text(CLEAN_REPORT, encoding="utf-8")
     run_cohort(
         "review", "record", str(spec_dir), "--report", str(report), "--expect-run-id", run_id
     )
     # Now inspect the same findings report
     findings_report = tmp / "findings3.md"
-    findings_report.write_text(SAMPLE_FINDINGS_REPORT)
+    findings_report.write_text(SAMPLE_FINDINGS_REPORT, encoding="utf-8")
     rc, out, _ = run_cohort(
         "review", "inspect", str(spec_dir), "--report", str(findings_report), "--json"
     )
