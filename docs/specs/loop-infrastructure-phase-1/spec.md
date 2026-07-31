@@ -15,6 +15,30 @@
 
 Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM phase tracker with read-only guard enforcement; `loop-cohort.py` as the authoritative execution-state owner. The detailed command surface, guard contracts, FSM tables, crash-window analysis, session-resumption protocol, and test matrix live in `plan.md`.
 
+## Boundaries
+
+### Always do
+- Keep `loop-engine` limited to phase state and read-only guard invocation.
+- Keep `loop-cohort` as the sole writer of execution state (`state.json`).
+- Verify paired `run_id` identity before every transition and run-local mutation.
+- Execute implementation waves sequentially in Phase 1.
+
+### Ask first
+- Add or remove an FSM state or event.
+- Change a human-gate obligation.
+- Add in-place replanning or automatic mutation replay.
+- Change the persisted state schemas incompatibly.
+
+### Never do
+- Let `loop-engine` write `state.json`.
+- Automatically replay non-idempotent review recording.
+- Enable parallel-wave verbs (`worktree`, `dispatch-decision`, `auto-parallel`) in Phase 1.
+- Rebaseline an approved implementation plan after `plan-approved`.
+
+**Phase-1 FSM states:** `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-PLAN-HUMAN-GATE`, `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`, `DONE`.
+
+**Legal events:** `spec-ready`, `findings-remain`, `reviewers-clean`, `plan-approved`, `plan-rejected`, `wave-complete`, `wave-passed`, `gates-failed`, `gates-clean`, `blocker-applied`, `done`. Detailed per-state legal sets, guard commands, and crash-window analysis live in `plan.md`.
+
 ## Acceptance criteria
 
 - [ ] `loop-engine transition` enforces legal phase ordering (FSM table in `plan.md`) and refuses illegal events with exit non-zero.

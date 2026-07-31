@@ -1026,7 +1026,36 @@ cohort state only through designated read-only verbs.
 | `state.json` | loop-cohort | **Active Phase-1:** `run_id`, `schema_version`, `feature`, `plan_review_status`, `approved_spec_hash`, `approved_plan_hash`, `review_round_count`, `review_retry_count`, `max_review_retries`, `implementation_retry_count`, `max_implementation_retries`, `last_record_attempt_cycle_id`, `finding_fingerprints`, `previous_finding_fingerprints`, `plan_hash`, `schedule_waves`, `current_wave_index` ∥ **Disabled-verb (no Phase-1 writer):** `auto_parallel`, `last_commit_sha`, `worktrees` ∥ **Phase-2 reserved (no Phase-1 writer):** `token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint` |
 | `engine-state.json` | loop-engine | `schema_version`, `run_id`, `feature`, `mode`, `state`, `last_event`, `last_event_context`, `transition_sequence`, `last_transition_at` |
 
-*This table is the authoritative field list. The field descriptions in the Scripts section above are supplementary. Phase-2 reserved and disabled-verb fields have no Phase-1 writer; guards treat Phase-2 reserved as advisory.*
+*This table is the authoritative field list. The field descriptions in the Scripts section above are supplementary.*
+
+**Schema policy:** Disabled-verb fields (`auto_parallel`, `last_commit_sha`, `worktrees`) are present in `state.json` from `loop-cohort init` with the defaults below — their presence is required for forward compatibility. Phase-2 reserved fields (`token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`, `consecutive_same_error_threshold`, `last_error_fingerprint`) are **absent** from Phase-1 `state.json` entirely; no Phase-1 writer touches them, and they must not appear in `assets/state.json`.
+
+**Phase-1 initial `state.json`** (written by `loop-cohort init --run-id <uuid> --feature <slug>`):
+
+```json
+{
+  "schema_version": 1,
+  "run_id": "<uuid>",
+  "feature": "<slug>",
+  "plan_review_status": "pending",
+  "approved_spec_hash": null,
+  "approved_plan_hash": null,
+  "plan_hash": null,
+  "schedule_waves": [],
+  "current_wave_index": 0,
+  "implementation_retry_count": 0,
+  "max_implementation_retries": 5,
+  "last_record_attempt_cycle_id": null,
+  "review_round_count": 0,
+  "review_retry_count": 0,
+  "max_review_retries": 5,
+  "finding_fingerprints": [],
+  "previous_finding_fingerprints": [],
+  "auto_parallel": false,
+  "last_commit_sha": null,
+  "worktrees": []
+}
+```
 
 **`run_id`** is an immutable UUID generated at `loop-engine init`. Both files
 carry it; every transition verifies the pair via `loop-cohort identity`.
@@ -1356,6 +1385,8 @@ uses its output for routing and passes the fingerprints to `review record`.
 ### T1: Phase-1 cohort state, identity, approval, and schedule guards
 
 **Depends on:** none
+**Mode:** TDD
+**ACs:** AC3, AC4, AC6, AC8
 
 **Tests:**
 - `identity` exits non-zero when `state.json` absent, `schema_version != 1`, or `--expect-run-id` mismatches (guard-refusal layer)
@@ -1366,6 +1397,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `run_id` mismatch on `approve-plan`, `schedule` exits non-zero before any mutation
 - `assets/state.json` template carries Phase-1 field set; `loop-cohort init` writes it correctly
 - Pre-Phase-1 `state.json` (with `iteration_count`, without `run_id`) fails `identity` (migration gate)
+- `status --json` immediately after `loop-cohort init` shows `approved_spec_hash: null`, `approved_plan_hash: null`, `plan_hash: null`, `schedule_waves: []`; after `approve-plan`, hash fields transition to non-null hex strings; after `schedule`, `plan_hash` and `schedule_waves` are populated (null-to-value transition pinning)
 - `status` exits 0 with correct JSON field set on valid `state.json`; text output (no `--json`) includes the same fields in human-readable form
 - `status` exits non-zero on absent `state.json`, malformed JSON, or `schema_version != 1`
 - `status` does not mutate `state.json` under any outcome (read-only guarantee verified by checksum before/after call)
@@ -1380,6 +1412,8 @@ uses its output for routing and passes the fingerprints to `review record`.
 ### T2: FSM engine, status/init/reset, and spec-status guard
 
 **Depends on:** T1
+**Mode:** TDD
+**ACs:** AC1, AC2
 
 **Tests:**
 - All legal transitions per mode (code + spec-plan FSM tables) produce correct next state, `last_event`, `last_event_context`, `transition_sequence` increment (FSM table layer)
@@ -1402,6 +1436,8 @@ uses its output for routing and passes the fingerprints to `review record`.
 ### T3: Wave, retry, and review mutations with recovery semantics
 
 **Depends on:** T1
+**Mode:** TDD
+**ACs:** AC5, AC7
 
 **Tests:**
 - `wave advance` from a valid intermediate wave advances; replay at already-advanced index returns success without mutation
@@ -1422,6 +1458,8 @@ uses its output for routing and passes the fingerprints to `review record`.
 ### T4: Work-loop skill integration, assets, schema reference, and projections
 
 **Depends on:** T2, T3
+**Mode:** goal-based (content assertions + build-gate checks)
+**ACs:** AC9, AC10
 
 **Tests:**
 - `SKILL.md` no longer references the mid-EXECUTE re-plan path or `check --phase plan` expecting exit-1
@@ -1436,23 +1474,30 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Projection parity: `.agents/` and `.claude/` copies match `packs/` source (verified by `make build-check`)
 - `docs/architecture/loop-infrastructure.md` updated to describe Phase-1 as current-state implementation
 - `docs/architecture/overview.md` updated to reflect Phase-1 as current state
+- `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry matching bumped versions (patch-level: modifies an existing primitive without adding a new public interface); both fields match exactly
+- `docs/product/changelog.md` carries a corresponding entry for this core-pack change
+- `FORCE=1 make build-self` reports no projection drift after all canonical pack edits
 
-**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13).
+**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Select the required core-pack version increment (patch-level: this change modifies an existing work-loop primitive without adding a new public interface); update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
 
-**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state.
+**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped (patch-level) and matching; `docs/product/changelog.md` entry added.
 
 ---
 
 ### T5: Full lifecycle, crash-window, migration, and build-gate verification
 
 **Depends on:** T4
+**Mode:** TDD/integration (cross-cutting)
+**ACs:** AC1–AC10
 
 **Tests:**
 - Full code-mode lifecycle (two-wave explicit): init pair → spec-ready → reviewers-clean → approve-plan + schedule + plan-approved → wave 0 implementation → wave-complete → wave-passed --wave-index 0 → wave advance --from-index 0 → wave 1 implementation → wave-complete → gates-clean → reviewers-clean → done (happy path); inject crashes before and after `wave advance --from-index 0` and verify replay uses `completed_wave_index` from `last_event_context`
 - Full spec-plan lifecycle: init pair (mode=spec-plan) → spec-ready → reviewers-clean → write Status: Approved → approve-plan (no `schedule` call) → plan check-current (no `--require-schedule`) → plan-approved → DONE; assert: `schedule` is neither required nor invoked; `plan check-current` uses the no-flag form; no CODE-* state is entered; a rejected plan (`plan-rejected`) returns engine to `SPEC-PLAN-DRAFTING` with `last_event: plan-rejected`; resumption from each spec-plan state produces the correct recovery action per `last_event`
 - Crash-window behavioral tests: wave advance before and after crash; gates-failed record-attempt replay; findings-remain stale-fingerprint surface; plan mutation per CODE-* state (all from Testing section layer 4)
-- Plan-rejected + re-approval round-trip: approve a plan; fire `plan-rejected`; edit plan.md; call `approve-plan` again; verify new hashes stored
+- Normal plan-rejection lifecycle: SPEC-PLAN-HUMAN-GATE → `plan-rejected` → SPEC-PLAN-DRAFTING; assert engine carries `last_event: plan-rejected` and no `approved_spec_hash` or `approved_plan_hash` was written; restore status to Draft → edit → `spec-ready` → `reviewers-clean` → human approves → write `Status: Approved` → `approve-plan` → (code mode: `schedule`) → `plan-approved`
+- Aborted pre-transition approval mutation: `approve-plan` writes hashes; sequence aborts before `plan-approved`; document is corrected and approved again; `approve-plan` reruns and unconditionally overwrites the old hashes (no cleanup command needed)
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
+- `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` version fields match; `marketplace.json` reflects the bumped version (no stale projection after `FORCE=1 make build-self`)
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
@@ -1515,9 +1560,16 @@ Four independent test layers:
    - **plan mutation in CODE-HUMAN-GATE** — advance to CODE-HUMAN-GATE; mutate
      plan.md; verify `blocker-applied` refuses (`schedule check-current` fires);
      verify `done` succeeds (`done` is exempt from the pre-guard).
-   - **plan-rejected + re-approval** — approve a plan; fire `plan-rejected`;
-     edit plan.md; call `approve-plan` again; verify new hashes are stored and
-     the stale approval is overwritten (no cleanup command needed).
+   - **Normal plan-rejection lifecycle** — start from SPEC-PLAN-HUMAN-GATE; fire
+     `plan-rejected`; assert engine returns to SPEC-PLAN-DRAFTING with
+     `last_event: plan-rejected`; assert no `approved_spec_hash` or
+     `approved_plan_hash` was written; complete the drafting loop through
+     `spec-ready` → `reviewers-clean` → write `Status: Approved` → `approve-plan`
+     → `plan-approved`.
+   - **Aborted pre-transition approval mutation** — `approve-plan` writes hashes;
+     sequence aborts before `plan-approved`; document is corrected and approved
+     again; `approve-plan` reruns and unconditionally overwrites the old hashes
+     (no cleanup command needed).
    - **spec-plan absent-file precondition (positive-path)** — call `plan
      check-current` in spec-plan mode (no `--require-schedule`) with spec.md
      present and plan.md absent, then with plan.md present and spec.md absent;
@@ -1597,7 +1649,8 @@ packs/core/.apm/skills/work-loop/
 ├── assets/
 │   └── state.json                   # loop-cohort state template (update to Phase-1 fields)
 └── references/
-    └── state-schema.md              # current implementation contract (update to Phase-1 fields)
+    ├── state-schema.md              # current implementation contract (update to Phase-1 fields)
+    └── supervisor-mode.md           # supervisor/parallel dispatch doc (update — remove disabled Phase-1 verb calls)
 
 tools/
 └── test-loop-cohort.sh              # existing CI harness (update — rewrite to Phase-1 schema/contracts)
@@ -1612,5 +1665,4 @@ tools/
 `engine-state.json` has no template file — its fields and allowed values are
 fully specified in this document and in `loop-engine --help` output.
 
-The agent-facing quick-reference (`references/loop-infrastructure.md`) and its
-projections into `.agents/` and `.claude/` will land alongside the implementation.
+No agent-facing quick-reference file (`references/loop-infrastructure.md`) is added in Phase 1. The skill entry point (`SKILL.md`), state-schema reference (`references/state-schema.md`), CLI help output, and machine-readable `loop-engine status --json` together provide the complete agent interface without a separate quick-reference doc.
