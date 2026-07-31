@@ -158,11 +158,14 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   scheduled-wave transitions. `--error-fingerprint` and the related
   `last_error_fingerprint` / `consecutive_same_error_count` fields are
   Phase-2 reserved — not part of the Phase-1 verb surface.
-- Iteration and budget gates — `check --phase {implement,review,gates-failed}`
-  enforces the bounded counters for that phase or transition. Advisory fields
-  are checked but do not block. Plan-phase approval is covered by
-  `plan check-current --require-schedule` or `plan check-current`, not
-  `check --phase`.
+- Iteration gates:
+  - `check --phase review` enforces the active review-retry bound.
+  - `check --phase gates-failed` enforces the active implementation-retry bound.
+  - `check --phase implement` is a Phase-1 compatibility stub: it reads no
+    deferred token/error fields and exits 0 for every otherwise valid Phase-1
+    state.
+  Plan-phase approval is covered by `plan check-current --require-schedule` or
+  `plan check-current`, not `check --phase`.
 
 **Verb surface:**
 ```
@@ -1470,11 +1473,18 @@ uses its output for routing and passes the fingerprints to `review record`.
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry matching bumped versions; both fields match exactly; the chosen increment is documented in the PR description with the release-classification decision (major/minor/patch per the disabled-capability policy above)
 - `docs/product/changelog.md` carries a corresponding entry for this core-pack change
 - `FORCE=1 make build-self` reports no projection drift after all canonical pack edits
-- The work-loop exclusion comment in `packs/core/pack.toml` (the block immediately above the `[pack.evals]` key — "loaded broadly by the plan→execute→review discipline, not by a narrow user-prompt surface; a clean negative set isn't writable for it") continues to apply to Phase 1: Phase-1 does not introduce a narrower activation surface. No Tier-A `eval_queries.json` is created; no new entry is added to `[pack.evals].skills`. The Phase-1 behavioral changes (sequential wave routing, disabled parallel commands, identity/status-first resumption, human surfacing before non-idempotent replay, last_event routing) are covered by T5's full lifecycle integration tests. The T4 implementer re-verifies the exclusion comment text is unchanged after Phase-1 changes are applied.
+- The work-loop exclusion comment in `packs/core/pack.toml` (the block immediately above the `[pack.evals]` key — "loaded broadly by the plan→execute→review discipline, not by a narrow user-prompt surface; a clean negative set isn't writable for it") continues to apply to Phase 1: Phase-1 does not introduce a narrower activation surface. No Tier-A `eval_queries.json` is created; no new entry is added to `[pack.evals].skills`. The T4 implementer re-verifies the exclusion comment text is unchanged after Phase-1 changes are applied.
+- `packs/core/.apm/skills/work-loop/evals/evals.json` authored with 6 output-quality cases covering Phase-1 agent-facing decisions (JSON schema valid; each case has `id`, `prompt`, `expected_output`, `assertions`):
+  1. Sequential wave routing — agent routes through the sequential `wave-complete` → verification → `wave-passed`/`gates-clean` loop; does not attempt parallel dispatch
+  2. Disabled parallel commands — agent invokes none of `worktree`, `dispatch-decision`, `auto-parallel` in Phase-1 code mode
+  3. Identity/status-first resumption — agent reads `loop-engine status` → `loop-cohort identity` → `loop-cohort status` before any mutation on session resume
+  4. `last_event` routing — agent recovers via the documented action for each `last_event` value rather than re-deriving state from scratch
+  5. Surfacing ambiguous non-idempotent writes — agent surfaces to human before issuing `review record` when crash-window ambiguity exists
+  6. Explicit authorization before clean-report replay — agent requires and records human authorization before a `review record --report` replay that may distort audit history
 
-**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Before bumping the pack version, the implementing PR must classify the increment according to the repository's version rules and document the decision. Making `worktree`, `dispatch-decision`, and `auto-parallel` exit non-zero removes previously functional capabilities; the repository's major-removal rule applies unless the implementing PR either (a) preserves those commands as functioning and defers their removal to a separately versioned change, or (b) documents a specific reason the removals do not meet the major threshold. Update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
+**Approach:** Update `SKILL.md` to remove the old `check --phase plan` / `approve-plan` flow and wire the Phase-1 verb sequence per the Explicit Skill Calls section (init pair, G-plan sequence, stasis routing, wave advance, record-attempt). Update `references/supervisor-mode.md` to remove active dispatch instructions for the disabled Phase-1 parallel verbs (`worktree`, `dispatch-decision`, `auto-parallel`); either replace the supervisor-mode dispatch path with a sequential-only procedure, or clearly mark supervisor/parallel execution as unavailable in Phase 1 and remove any executable `dispatch-decision` call from `SKILL.md`. Update `references/state-schema.md` to Phase-1 field descriptions. Author `packs/core/.apm/skills/work-loop/evals/evals.json` with the 6 output-quality cases listed above; automated LLM grading is not a Phase-1 implementation dependency — author the fixture but do not add it to a CI grading run. Regenerate projections (`python3 -m agentbundle catalogue self-host --root . --write --force`). Update `docs/architecture/loop-infrastructure.md` and `docs/architecture/overview.md` to reflect Phase-1 as implemented current state. Add `docs/specs/**/engine-state.json` to `.gitignore` (mirroring the existing `state.json` pattern on line 13). Before bumping the pack version, the implementing PR must classify the increment according to the repository's version rules and document the decision. Making `worktree`, `dispatch-decision`, and `auto-parallel` exit non-zero removes previously functional capabilities; the repository's major-removal rule applies unless the implementing PR either (a) preserves those commands as functioning and defers their removal to a separately versioned change, or (b) documents a specific reason the removals do not meet the major threshold. Update `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` to matching versions in the same commit; add the corresponding `docs/product/changelog.md` entry; run `FORCE=1 make build-self` after all canonical pack edits.
 
-**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped with documented release-classification decision and matching; `docs/product/changelog.md` entry added; Tier-A exclusion comment confirmed unchanged (Phase-1 behavioral verification delegated to T5).
+**Done when:** `make build-check` (SKIP_SAST=1) passes with updated projections; `SKILL.md` matches Phase-1 verb surface; architecture documentation reflects current state; `pack.toml` and `plugin.json` version fields bumped with documented release-classification decision and matching; `docs/product/changelog.md` entry added; Tier-A exclusion comment confirmed unchanged; `packs/core/.apm/skills/work-loop/evals/evals.json` authored with 6 Phase-1 behavioral cases and is valid JSON.
 
 ---
 
@@ -1492,7 +1502,8 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Aborted pre-transition approval mutation: `approve-plan` writes hashes; sequence aborts before `plan-approved`; document is corrected and approved again; `approve-plan` reruns and unconditionally overwrites the old hashes (no cleanup command needed)
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` version fields match; `marketplace.json` reflects the bumped version (no stale projection after `FORCE=1 make build-self`)
-- `packs/core/pack.toml` Tier-A exclusion comment is confirmed unchanged (Phase-1 does not introduce a narrower activation surface; Phase-1 behavioral verification lives in T5's integration tests)
+- `packs/core/pack.toml` Tier-A exclusion comment is confirmed unchanged (Phase-1 does not introduce a narrower activation surface)
+- `packs/core/.apm/skills/work-loop/evals/evals.json` exists, parses as valid JSON, and each entry carries `id`, `prompt`, `expected_output`, and `assertions` fields (schema shape assertion; no LLM grading required for Phase-1 CI)
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
@@ -1643,6 +1654,8 @@ packs/core/.apm/skills/work-loop/
 │   └── lint-traceability.py         # traceability matrix linter
 ├── assets/
 │   └── state.json                   # loop-cohort state template (update to Phase-1 fields)
+├── evals/
+│   └── evals.json                   # output-quality eval cases for Phase-1 decisions (new — Phase 1)
 └── references/
     ├── state-schema.md              # current implementation contract (update to Phase-1 fields)
     └── supervisor-mode.md           # supervisor/parallel dispatch doc (update — remove disabled Phase-1 verb calls)
