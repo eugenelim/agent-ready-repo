@@ -37,12 +37,13 @@ QUEUED_PER_INI = 12             # 4 × 12 = 48 queued entries (30–80 ✓)
 SHIPPED_PER_INI = 8
 ACTIVE_PER_INI = 1
 
-# In ini-001 we set up a blocked cross-initiative dep chain:
-#   ini-001-queued-0 needs ini-002:work:spec/ini-002-spec-never-shipped
-#   That spec is NOT in ini-002.work.shipped → entry is BLOCKED.
+# In ini-001 we set up a cross-initiative dep chain that IS satisfied:
+#   ini-001-queued-0 needs ini-002:work:spec/ini-002-spec-0
+#   That spec IS in ini-002.work.shipped → entry is READY (real cross-ini resolution).
+# KD-03 (missing-target silently blocked) is covered by the characterization test suite.
 CROSS_INI_DEP_INI = "ini-001"
 CROSS_INI_PROVIDER = "ini-002"
-CROSS_INI_SPEC = "spec/ini-002-spec-never-shipped"   # deliberately absent from shipped
+CROSS_INI_SPEC = "spec/ini-002-spec-0"   # first shipped spec — present in ini-002.work.shipped
 
 # One untracked Approved spec (not listed in any initiative)
 UNTRACKED_APPROVED_SLUG = "untracked-approved-order0"
@@ -68,7 +69,7 @@ def _build_workspace_toml(root: Path) -> None:
         queue_parts: list[str] = []
         for q in range(QUEUED_PER_INI):
             if i == 1 and q == 0:
-                # Cross-initiative dep: blocked until ini-002-spec-0 ships
+                # Cross-initiative dep pointing to a SHIPPED target → entry is READY (AC4e)
                 queue_parts.append(
                     f'{{path = "spec/{ini_slug}-queued-{q}", '
                     f'needs = "{CROSS_INI_PROVIDER}:work:{CROSS_INI_SPEC}"}}'
@@ -228,11 +229,13 @@ def run_benchmark() -> dict:
         output_text = buf.getvalue()
         output_bytes = len(output_text.encode("utf-8"))
 
-        # Cross-initiative dep check (AC4e): verify a blocked entry has the full
-        # ini-NNN:work: prefix in its blocking_needs (not just a substring match).
-        cross_ini_prefix = f"{CROSS_INI_PROVIDER}:work:"
-        cross_dep_blocked = any(
-            not c.is_ready and any(n.startswith(cross_ini_prefix) for n in c.blocking_needs)
+        # Cross-initiative dep check (AC4e): verify the designated entry is READY because
+        # its cross-ini dep (ini-002:work:spec/ini-002-spec-0) is in ini-002.work.shipped.
+        cross_ini_need = f"{CROSS_INI_PROVIDER}:work:{CROSS_INI_SPEC}"
+        cross_dep_satisfied = any(
+            c.is_ready
+            and c.ini_slug == CROSS_INI_DEP_INI
+            and cross_ini_need in (c.entry.needs or [])
             for c in result.classifications
         )
 
@@ -256,7 +259,7 @@ def run_benchmark() -> dict:
             "analysis_elapsed_first_run_s": elapsed_first_run,
             "analysis_elapsed_repeated_run_s": elapsed_repeated_run,
             "diagnostic_bytes": output_bytes,
-            "cross_dep_blocked": cross_dep_blocked,
+            "cross_dep_satisfied": cross_dep_satisfied,
             "has_untracked_approved": has_type1_untracked,
         }
 
@@ -306,9 +309,10 @@ def main() -> int:
         errors.append(f"AC4d: need ≥1 ready entry, got {m['ready_entries']}")
     if m["blocked_entries"] == 0:
         errors.append(f"AC4d: need ≥1 blocked entry, got {m['blocked_entries']}")
-    if not m["cross_dep_blocked"]:
+    if not m["cross_dep_satisfied"]:
         errors.append(
-            "AC4e: expected cross-initiative dep chain (blocked entry with cross-ini need)"
+            f"AC4e: expected cross-initiative dep resolved — "
+            f"no ready entry in {CROSS_INI_DEP_INI} with {CROSS_INI_PROVIDER}:work: need"
         )
     if not m["has_untracked_approved"]:
         errors.append("AC4f: expected untracked Approved spec → Type 1 finding")
@@ -325,7 +329,8 @@ def main() -> int:
     print(f"  ✓  AC4b: 30–80 queued entries ({m['queued_entries']})")
     print(f"  ✓  AC4c: ≥2 active initiatives ({m['active_initiatives']})")
     print(f"  ✓  AC4d: ready={m['ready_entries']}, blocked={m['blocked_entries']} (mix present)")
-    print(f"  ✓  AC4e: cross-initiative dep chain (blocked on {CROSS_INI_PROVIDER})")
+    print(f"  ✓  AC4e: cross-initiative dep resolved "
+          f"({CROSS_INI_DEP_INI} ready via {CROSS_INI_PROVIDER} shipped spec)")
     print(f"  ✓  AC4f: untracked Approved spec → Type 1 ({m['type1_findings']} finding(s))")
     print(f"  ✓  AC4g: measurements collected "
           f"(workspace={m['workspace_files_read']} spec={m['files_read_by_reconciliation']}, "

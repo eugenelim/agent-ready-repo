@@ -484,6 +484,16 @@ def case_spec_statuses() -> None:
         expect(multi_status == "Shipped",
                f"[AC2h] multi-arrow form last segment should be 'Shipped', got {multi_status}")
 
+        # Arrow in annotation comment must not poison the status
+        p_annot = root / "docs" / "specs" / "spec-annot-arrow" / "spec.md"
+        p_annot.parent.mkdir(parents=True, exist_ok=True)
+        p_annot.write_text(
+            "# A\n\n- **Status:** Shipped (tracing: root→leaf)\n", encoding="utf-8"
+        )
+        annot_status = extract_spec_status(p_annot)
+        expect(annot_status == "Shipped",
+               f"[AC2h] arrow in annotation should not override status, got {annot_status}")
+
 
 # ── AC2i: Missing spec paths ──────────────────────────────────────────────────
 

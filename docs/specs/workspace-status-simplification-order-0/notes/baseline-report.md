@@ -89,22 +89,23 @@ backlog, findings registers, dependency graph, skill routing, and numbered next 
 
 | Classification | Count |
 |----------------|-------|
-| Ready (queue) | 43 |
-| Blocked (queue) | 5 |
+| Ready (queue) | 44 |
+| Blocked (queue) | 4 |
 | Type 1 (untracked live spec) | 1 |
 | Type 2 (stale queue/active) | 0 |
 | Type 3 (premature shipped) | 0 |
 
-The 5 blocked entries are:
-- `ini-001-queued-0` is blocked by `ini-002:work:spec/ini-002-spec-never-shipped`
-  (cross-initiative dep pointing to a spec absent from ini-002's shipped list) —
-  confirming cross-initiative blocking resolution.
+The 4 blocked entries are:
 - `ini-001/ini-002/ini-003/ini-004`-queued-2 (one per initiative, q%5==2) are
   blocked on a local dep that is never shipped.
 
+`ini-001-queued-0` depends on `ini-002:work:spec/ini-002-spec-0`, which IS in ini-002's
+shipped list — it resolves to READY, demonstrating real cross-initiative dep resolution
+(AC4e). KD-03 missing-target behavior is covered by the characterization test suite.
+
 ## Correctness findings
 
-All 36 characterization test cases pass. Known defects documented in
+All 37 characterization test cases pass. Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |

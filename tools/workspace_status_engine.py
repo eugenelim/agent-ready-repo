@@ -256,9 +256,11 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
 # ── Status extraction ─────────────────────────────────────────────────────────
 
 # Transition form: "... **Status:** Draft → Approved → Shipped ..."
-# Greedy middle match captures the LAST arrow segment (e.g. multi-hop transitions).
+# Capture group restricted to known status vocab so arrows in inline comments
+# (e.g. "root→leaf") do not poison the result.  The greedy .* still finds
+# the LAST status-after-arrow in a multi-hop chain.
 _TRANSITION_RE = re.compile(
-    r'\*\*Status:\*\*\s+\S.*→\s*([A-Za-z]+)'
+    r'\*\*Status:\*\*\s+.*→\s*(Draft|Approved|Implementing|Shipped|Archived)'
 )
 # Simple form: "... **Status:** Shipped ..."
 _SIMPLE_RE = re.compile(
