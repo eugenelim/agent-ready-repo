@@ -8,7 +8,7 @@
 ## Repo revision
 
 ```
-0d43f06b2914278c486aa059754a0335155607a5  (branch: eugene/pasted-text-review-v12)
+9ab1859e  (branch: eugene/pasted-text-review-v12)
 ```
 
 ## Benchmark command
@@ -50,7 +50,7 @@ the same logic as model instructions.
 | Reference-engine time (~0.11 s) | Python resolver/reconciliation compute cost |
 | Files and bytes inspected (397 files) | Structural scaling cost — O(spec_count) |
 | Ready/blocked/finding counts | Correctness of the reference model |
-| Output bytes (1064 B) | Resident-context cost estimate |
+| Output bytes (1996 B) | Resident-context cost estimate |
 
 **Missing from this baseline (to be added in Order 1):**
 
@@ -79,7 +79,7 @@ every session-start pays the full O(spec_count) cost.
 
 ## Output size
 
-Formatted status report: **1064 bytes** for 4 initiatives × 48 queue entries.
+Formatted status report: **1996 bytes** for 4 initiatives × 48 queue entries.
 Scales with the number of blocked entries (longer `blocking_needs` lists).
 
 ## Classification results
@@ -101,7 +101,7 @@ The 5 blocked entries are:
 
 ## Correctness findings
 
-All 25 characterization test cases pass. Known defects documented in
+All 27 characterization test cases pass. Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
