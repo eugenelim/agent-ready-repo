@@ -215,7 +215,21 @@ in **one** place only. The done-step that moved specs from `active → shipped` 
 responsibility, not work-loop's"). The finish checklist now only sets the spec.md
 `**Status:**` to `Shipped` — it does not write to workspace.toml.
 
-### 9a. Deferred items (DECIDE step)
+### 9a. Pre-existing gate failure (Step 3 GATES)
+
+When a gate failure is classified as pre-existing (file not in diff, or diff made it no
+worse), work-loop Step 3 does the following before continuing:
+
+- Reads `[backlog].open` to check if an entry already exists for that test/file
+- **Writes** `{slug = "pre-existing-<test>", source = "pre-flight/<iso-date>"}` to
+  `[backlog].open` if none exists (SKILL.md:181)
+- Adds a cold-start-sufficient TOML comment above the entry
+
+This is a `workspace.toml` **write during GATES**, not DECIDE. It is distinct from the
+DECIDE deferral write below. Order 0 characterization tests do not exercise this path
+(it is model-layer behavior, not reference-engine logic).
+
+### 9b. Deferred items (DECIDE step)
 
 When a reviewer finding is deferred:
 - Writes `{slug = "<slug>", source = "spec/<name> ACn"}` to `[backlog].open`

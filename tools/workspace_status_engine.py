@@ -263,9 +263,10 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
 # Captures the status content before any annotation (parenthetical or HTML comment).
 # A spaced arrow inside "(root → leaf)" must never be read as a transition.
 _STATUS_FIELD_RE = re.compile(r'\*\*Status:\*\*\s+(.*?)(?:\s*\(|\s*<!--|$)')
-# Finds ALL segments after → (any non-whitespace), so a non-letter final segment
-# (e.g. "→ 2026", trailing "→") forces None instead of backtracking.
-_TRANSITION_ARROW_RE = re.compile(r'→\s*(\S+)')
+# Finds ALL segments after → (non-whitespace, non-arrow chars), so compact multi-hop
+# "Draft→Approved→Shipped" yields ["Approved", "Shipped"] and a non-letter final
+# segment (e.g. "→ 2026", trailing "→") still forces None instead of backtracking.
+_TRANSITION_ARROW_RE = re.compile(r'→\s*([^→\s]+)')
 
 
 def _safe_spec_path(root: Path, slug: str) -> Path | None:

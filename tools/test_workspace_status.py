@@ -1824,6 +1824,11 @@ def case_nonletter_transition_segment() -> None:
         expect(trailing_multi_status is None,
                f"[AC2h] trailing arrow (multi-step) should yield None,"
                f" got {trailing_multi_status}")
+        # Compact multi-hop (no spaces): "Draft→Approved→Shipped" → "Shipped"
+        p.write_text("# B\n\n- **Status:** Draft→Approved→Shipped\n", encoding="utf-8")
+        compact_status = extract_spec_status(p)
+        expect(compact_status == "Shipped",
+               f"[F4f] compact multi-hop should yield Shipped, got {compact_status}")
 
 
 # ── F4g: _safe_spec_path dot-segment rejection ────────────────────────────────
