@@ -97,7 +97,7 @@ depending on whether their `needs` are satisfied.
 | Prefix | Resolves against | Satisfied when |
 |--------|-----------------|----------------|
 | `work:<path>` | `["<same-ini>".work].shipped` | Path appears in shipped; active = in-progress, NOT yet satisfied |
-| `shape:<slug>` | `["<same-ini>".shaping_queue].active` | Absent from all shaping lists (graduated); in active or backlog = not yet satisfied |
+| `shape:<slug>` | `["<same-ini>".shaping_queue].active` | Not in `active` (graduated from active shaping); in backlog but not active = satisfied |
 | `research:<slug>` | `["<same-ini>".shaping_queue]` entries of `type = "research"` | Entry is NOT in `.backlog` |
 | `brief:<path>` | `["<same-ini>".brief_queue].ready` or `executing` | In ready or executing |
 | `<ini-slug>:work:<path>` | `["<ini-slug>".work].shipped` | Path appears in target ini's shipped |
@@ -109,8 +109,9 @@ unknown, or fail to resolve. This is a spec/implementation gap to be fixed in a 
 order.
 
 **Known behavior:** `shape:<slug>` resolves as satisfied when the slug is absent from
-ALL shaping lists — meaning if a shaping prerequisite was never added to any queue, it
-is treated as done. This is intentional (RFC-0064 D9).
+`[shaping_queue].active` — meaning a slug in `backlog` (scheduled but not yet started)
+does not block the dependent. Only active shaping work blocks. This matches SKILL.md:90
+and schema.md:114: "satisfied once the slug is no longer active".
 
 ---
 
@@ -121,13 +122,13 @@ files. Status is extracted from the first line matching `- **Status:**`.
 
 ### Type 1 — Forward scan: untracked live specs
 
-Walk every directory under `docs/specs/` containing a `spec.md`. For each:
+Recursively walk `docs/specs/` (including grouping subdirectories) for any `spec.md`. For each:
 1. Extract Status. Skip if not `Approved` or `Implementing`.
-2. Derive canonical path: `spec/<dirname>`.
+2. Derive canonical path: `spec/<relative-path>` (relative to `docs/specs/`).
 3. Check if path appears in ANY initiative's queue, active, or shipped list.
 4. If absent from all → **Type 1 finding**: "untracked live spec".
 
-Scope: ALL spec directories under `docs/specs/`, regardless of initiative.
+Scope: ALL spec files under `docs/specs/`, regardless of nesting depth or initiative.
 
 ### Type 2 — Backward scan: stale queue/active entries
 

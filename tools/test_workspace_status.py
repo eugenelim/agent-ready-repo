@@ -386,13 +386,17 @@ def case_shape_research_brief_deps() -> None:
             milestone = "M1"
             ["ini-001".shaping_queue]
             active  = [{slug = "active-shape", type = "shape"}]
-            backlog = [{slug = "backlog-research", type = "research"}]
+            backlog = [
+              {slug = "backlog-research", type = "research"},
+              {slug = "backlog-shape",    type = "shape"},
+            ]
             ["ini-001".work]
             active  = []
             shipped = []
             queue   = [
               {path = "spec/needs-active-shape",    needs = "shape:active-shape"},
               {path = "spec/needs-absent-shape",    needs = "shape:never-existed"},
+              {path = "spec/needs-backlog-shape",   needs = "shape:backlog-shape"},
               {path = "spec/needs-research-done",   needs = "research:finished-research"},
               {path = "spec/needs-research-pending",needs = "research:backlog-research"},
             ]
@@ -411,6 +415,8 @@ def case_shape_research_brief_deps() -> None:
                "[AC2f] shape:active-shape blocked (in active — not yet graduated)")
         expect(by_path["spec/needs-absent-shape"].is_ready,
                "[AC2f] shape:never-existed satisfied (absent from all lists → treated as done)")
+        expect(by_path["spec/needs-backlog-shape"].is_ready,
+               "[AC2f] shape:backlog-shape satisfied (in backlog but not active)")
         expect(by_path["spec/needs-research-done"].is_ready,
                "[AC2f] research:finished-research satisfied (not in backlog)")
         expect(not by_path["spec/needs-research-pending"].is_ready,
@@ -664,6 +670,8 @@ def case_type1_untracked_live_spec() -> None:
         # Untracked spec with non-live status (should NOT generate Type 1)
         write_spec(root, "untracked-draft", "Draft")
         write_spec(root, "untracked-shipped", "Shipped")
+        # Nested spec under a grouping directory — must also be discovered
+        write_spec(root, "group/nested-approved", "Approved")
 
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
@@ -681,6 +689,8 @@ def case_type1_untracked_live_spec() -> None:
                "[AC2l] untracked-shipped should NOT be Type 1 (Shipped is not live)")
         expect("spec/tracked-shipped" not in type1_paths,
                "[AC2l] tracked-shipped should NOT be Type 1 (tracked)")
+        expect("spec/group/nested-approved" in type1_paths,
+               "[AC2l] nested spec (group/nested-approved) should be Type 1")
 
 
 # ── AC2m: Stale queue/active entries (Type 2) ────────────────────────────────

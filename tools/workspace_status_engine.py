@@ -357,17 +357,15 @@ def is_need_satisfied(
                 return any(e.path == path for e in ini.work.shipped)
         return False
 
-    # Shape: "shape:<slug>" — satisfied only when absent from all shaping lists (graduated).
-    # Active = in-progress shaping (NOT yet done); backlog = not yet started.
-    # Both block the dependent until the shape item graduates (schema.md:114).
+    # Shape: "shape:<slug>" — satisfied when no longer in active (graduated from active shaping).
+    # SKILL.md:90, schema.md:114: resolves against .active only.
+    # Backlog = scheduled but not yet started; absent from active = treated as done.
     if need.startswith("shape:"):
         slug = need[len("shape:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
                 active_slugs = {e.slug for e in ini.shaping.active}
-                backlog_slugs = {e.slug for e in ini.shaping.backlog}
-                # Absent = graduated (KD-06). Active or backlog = not yet done.
-                return slug not in active_slugs and slug not in backlog_slugs
+                return slug not in active_slugs
         return True  # Initiative not found → assume satisfied
 
     # Research: "research:<slug>" — satisfied when NOT in shaping backlog as type="research"
@@ -516,19 +514,23 @@ def run_reconciliation(
     specs_dir = root / "docs" / "specs"
 
     # ── Type 1: Forward scan — untracked live specs ───────────────────────────
+    # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
+    # are discovered; slug is the parent path relative to specs_dir.
     if specs_dir.exists():
-        for spec_dir in sorted(specs_dir.iterdir()):
-            if not spec_dir.is_dir():
+        for spec_file in sorted(specs_dir.rglob("spec.md")):
+            try:
+                rel = spec_file.parent.relative_to(specs_dir)
+            except ValueError:
                 continue
-            # Confine reads to the spec tree (matches Type 2/3 confinement via _safe_spec_path).
-            spec_file = _safe_spec_path(root, spec_dir.name)
-            if spec_file is None or not spec_file.exists():
+            slug = str(rel)
+            slug_path = Path(slug)
+            if slug_path.is_absolute() or ".." in slug_path.parts:
                 continue
             files_read += 1
             status = extract_spec_status(spec_file)
             if status not in ("Approved", "Implementing"):
                 continue
-            canonical_path = f"spec/{spec_dir.name}"
+            canonical_path = f"spec/{slug}"
             if canonical_path not in all_tracked:
                 findings.append(ReconciliationFinding(
                     finding_type=1,
