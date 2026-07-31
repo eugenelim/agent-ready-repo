@@ -265,9 +265,13 @@ _TRANSITION_ARROW_RE = re.compile(r'→\s*(\S+)')
 def _safe_spec_path(root: Path, slug: str) -> Path | None:
     """Return the spec.md Path only if it resolves within root/docs/specs/.
 
-    Rejects slugs containing `..` or absolute components so workspace entries
-    cannot escape the docs/specs boundary.
+    Rejects slugs containing `..` or absolute paths before joining — resolve()
+    alone normalises traversal so the relative_to check would silently accept
+    "foo/../bar"; the pre-join rejection closes that gap.
     """
+    slug_path = Path(slug)
+    if slug_path.is_absolute() or ".." in slug_path.parts:
+        return None
     specs_dir = (root / "docs" / "specs").resolve()
     candidate = (specs_dir / slug / "spec.md").resolve()
     try:

@@ -96,7 +96,7 @@ depending on whether their `needs` are satisfied.
 
 | Prefix | Resolves against | Satisfied when |
 |--------|-----------------|----------------|
-| `work:<path>` | `["<same-ini>".work].shipped` OR `["<same-ini>".work].active` | Path appears in shipped **or active** (active counts as in-progress) |
+| `work:<path>` | `["<same-ini>".work].shipped` | Path appears in shipped; active = in-progress, NOT yet satisfied |
 | `shape:<slug>` | `["<same-ini>".shaping_queue].active` OR not present | In active OR absent from all shaping lists |
 | `research:<slug>` | `["<same-ini>".shaping_queue]` entries of `type = "research"` | Entry is NOT in `.backlog` |
 | `brief:<path>` | `["<same-ini>".brief_queue].ready` or `executing` | In ready or executing |

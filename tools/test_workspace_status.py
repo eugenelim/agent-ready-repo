@@ -34,6 +34,7 @@ from pathlib import Path
 # Prefer repo-local copy of the engine.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from workspace_status_engine import (
+    _safe_spec_path,
     analyze,
     check_shaping_guard,
     classify_entries,
@@ -1761,6 +1762,26 @@ def case_nonletter_transition_segment() -> None:
                f" got {trailing_multi_status}")
 
 
+# ── F4g: _safe_spec_path dot-segment rejection ────────────────────────────────
+
+def case_safe_spec_path_dot_segments() -> None:
+    """_safe_spec_path rejects slugs with '..' or absolute paths before resolve()."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # Dot-traversal slug must be rejected even when the resolved path stays in-tree
+        result_dotdot = _safe_spec_path(root, "foo/../bar")
+        expect(result_dotdot is None,
+               f"[confinement] 'foo/../bar' slug should be rejected, got {result_dotdot}")
+        # Absolute path slug must be rejected
+        result_abs = _safe_spec_path(root, "/etc/passwd")
+        expect(result_abs is None,
+               f"[confinement] absolute slug should be rejected, got {result_abs}")
+        # Normal slug must be accepted (returns a path, not necessarily existing)
+        result_ok = _safe_spec_path(root, "workspace-core")
+        expect(result_ok is not None,
+               f"[confinement] normal slug should not be rejected, got {result_ok}")
+
+
 # ── F1: work-loop Step 0 stale-queue check ───────────────────────────────────
 
 def case_work_loop_stale_warnings() -> None:
@@ -2070,6 +2091,10 @@ def test_nonletter_transition_segment() -> None:
     _run_case(case_nonletter_transition_segment)
 
 
+def test_safe_spec_path_dot_segments() -> None:
+    _run_case(case_safe_spec_path_dot_segments)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
@@ -2113,6 +2138,7 @@ CASES = [
     ("F4d work_loop_slug_normalization", case_work_loop_slug_normalization),
     ("F4e missing_status_not_active", case_missing_status_not_active),
     ("F4f nonletter_transition_segment", case_nonletter_transition_segment),
+    ("F4g safe_spec_path_dot_segments", case_safe_spec_path_dot_segments),
 ]
 
 

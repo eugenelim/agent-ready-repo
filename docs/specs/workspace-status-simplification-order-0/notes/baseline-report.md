@@ -8,7 +8,7 @@
 ## Repo revision
 
 ```
-1a7eede8
+9e45b0ab
 ```
 
 ## Benchmark command
@@ -105,7 +105,7 @@ shipped list — it resolves to READY, demonstrating real cross-initiative dep r
 
 ## Correctness findings
 
-All 39 characterization test cases pass (arrow-in-annotation, unknown-final-segment, spaced annotation arrow, no-space transition, cross-type shaping dedup, missing-status initiative, and non-letter transition segment cases included). Known defects documented in
+All 40 characterization test cases pass (arrow-in-annotation, unknown-final-segment, spaced annotation arrow, no-space transition, cross-type shaping dedup, missing-status initiative, and non-letter transition segment cases included). Known defects documented in
 `behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
