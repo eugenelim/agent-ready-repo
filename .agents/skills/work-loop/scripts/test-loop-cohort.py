@@ -1421,6 +1421,32 @@ def test_review_record_fingerprint_invalid_format(tmp: Path) -> None:
     ok(name)
 
 
+def test_review_record_all_skipped(tmp: Path) -> None:
+    """--all-skipped bumps review_round_count and clears fingerprints without a report."""
+    name = "review-record-all-skipped"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id,
+        "review_round_count": 2, "review_retry_count": 1, "max_review_retries": 5,
+        "finding_fingerprints": ["a" * 40], "previous_finding_fingerprints": [],
+    })
+    rc, _, _ = run_cohort("review", "record", str(spec_dir),
+                          "--all-skipped", "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, "expected exit 0 for --all-skipped")
+        return
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    if state.get("review_round_count") != 3:
+        fail(name, f"expected review_round_count=3; got {state.get('review_round_count')}")
+    elif state.get("review_retry_count") != 1:
+        fail(name, "review_retry_count should be unchanged by --all-skipped")
+    elif state.get("finding_fingerprints") != []:
+        fail(name, "finding_fingerprints should be cleared by --all-skipped")
+    else:
+        ok(name)
+
+
 def test_review_record_run_id_mismatch(tmp: Path) -> None:
     name = "review-record-run-id-mismatch"
     run_id = str(uuid.uuid4())
@@ -1670,6 +1696,7 @@ def main() -> int:
             test_review_record_report_rejects_non_clean,
             test_review_record_fingerprint_canonicalization,
             test_review_record_fingerprint_invalid_format,
+            test_review_record_all_skipped,
             test_review_record_run_id_mismatch,
             test_review_record_clean_resets_fingerprint_baseline,
             test_clean_substring_constant,

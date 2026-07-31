@@ -1030,6 +1030,18 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if err is not None:
         return err
 
+    if getattr(args, "all_skipped", False):
+        # All-skipped branch: every warranted reviewer was a named skip
+        state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
+        state["finding_fingerprints"] = []
+        state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+        write_state_atomic(spec_dir, state)
+        print(
+            f"loop-cohort: review record (all-skipped) "
+            f"round={state['review_round_count']} for {spec_dir.name}"
+        )
+        return 0
+
     if args.fingerprint:
         # Findings branch: --fingerprint <hex> ...
         fingerprints = sorted(set(args.fingerprint))
@@ -1260,6 +1272,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=None,
         help="explicit fingerprint (hex sha1); use for findings rounds",
+    )
+    _rr_grp.add_argument(
+        "--all-skipped",
+        action="store_true",
+        default=False,
+        dest="all_skipped",
+        help="all warranted reviewers were named skips; bumps round count, clears fingerprints",
     )
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_review_record)

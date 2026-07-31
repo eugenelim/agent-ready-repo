@@ -311,10 +311,12 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 **When ALL warranted reviewers are clean (or are named skips)** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and, if at least one reviewer produced a clean report, record it (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
 ```
 python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
-# Only when at least one reviewer ran and produced a clean report
-# (skip this line if every warranted reviewer was a named skip):
+# If at least one reviewer produced a clean report:
 python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id <run_id>
+# If every warranted reviewer was a named skip:
+python3 scripts/loop-cohort.py review record docs/specs/<feature> \
+    --all-skipped --expect-run-id <run_id>
 ```
 Engine is now in `CODE-HUMAN-GATE`. **Before waiting: complete the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human response:
 - **Approved (merge confirmed):** fire `done`.
