@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import sys
 import tempfile
 import textwrap
@@ -1329,17 +1330,30 @@ def case_full_analyze() -> None:
 
 # ── Contract anchor — SKILL.md drift guard ───────────────────────────────────
 #
-# workspace-status anchor: SHA-256 of SKILL.md lines 55–251 (_SKILL_CONTRACT_SLICE,
-# 0-indexed (54, 251)). That slice covers: schema field vocabulary, ready/blocked
-# definitions, DAG resolution, reconciliation, signal output (§3), skill routing
-# (§4), and missing-field defaults (§5 type absent = shape).
-# When this test fails, the engine's interpretation may be stale. Read the
-# changed sections and reconcile before updating the constant.
+# Uses section-heading markers instead of absolute line numbers so edits to
+# frontmatter or intro paragraphs before the anchored blocks do not shift the
+# hashed window and trigger false build-check failures.
+#
+# workspace-status: §1 Read workspace.toml through §5 Missing fields (the full
+# algorithmic contract: schema vocabulary, DAG resolution, reconciliation,
+# signal output, skill routing, missing-field defaults).
+# work-loop: Step 0 ORIENT (active-spec resolution, stale-queue check, shaping
+# guard) and Finish checklist (owns only spec.md Status: Shipped write).
+#
+# When a test fails, the SKILL.md section changed. Read the changed content
+# and reconcile workspace_status_engine.py before updating the hash constant.
 _SKIP_ANCHOR_ENV = "WORKSPACE_STATUS_SKIP_ANCHOR"
 
-_SKILL_CONTRACT_SLICE = (54, 251)  # 0-indexed; maps to lines 55–251 (1-indexed)
+# Section-heading markers for the three contract anchors (regex patterns).
+_SKILL_CONTRACT_START = r'^### 1\. Read workspace\.toml'
+_SKILL_CONTRACT_END = r'^### 6\. Next-actions'
+_WL_STEP0_START = r'^## Step 0\. ORIENT'
+_WL_STEP0_END = r'^## Step 1\. PLAN'
+_WL_FINISH_START = r'^## Finish checklist'
+_WL_FINISH_END = r'^## FIX'
+
 _SKILL_CONTRACT_HASH = (
-    "0d23c903d6c3f8c2156f892fa97af6c94f8983fada52ec26c7a075042a3b2838"
+    "2a35d5a0ca04ac4d0d4a840825a261cf2faccd9884364eae46254a68599b1ef1"
 )
 _SKILL_MD = (
     Path(__file__).resolve().parent.parent
@@ -1347,10 +1361,10 @@ _SKILL_MD = (
 )
 
 _WORK_LOOP_CONTRACT_HASH = (
-    "d2d59e668a8b3003eba484026e9057c31bdd8dedc858384a8a5ceffc2d3b78bc"
+    "ecd5adb2813efde235d5ae6e1723ce4dba48e4f70ab46befcf8cb58d6e2a6bd0"
 )
 _WORK_LOOP_FINISH_HASH = (
-    "9aa04f96b8ee76a8ff2aa6cabc685d5fc9974c76aa2b1b7532257acc444d69c1"
+    "82cc0a4a9107923ab30a48c94588f7a3fc2b54d001ff927ab9501f355446dc59"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
@@ -1358,18 +1372,21 @@ _WORK_LOOP_MD = (
 )
 
 
-def _check_anchor(
+def _check_section_anchor(
     skill_path: Path,
-    line_slice: tuple[int, int],
+    start_marker: str,
+    end_marker: str,
     expected_hash: str,
     label: str,
 ) -> None:
-    """Shared logic for contract-anchor cases.
+    """Hash content between section markers; fail if the hash differs.
+
+    Finds the first line matching start_marker, then extracts up to (not
+    including) the next line matching end_marker. Layout-stable: edits before
+    or after the anchored section don't shift the window.
 
     Fails hard when the skill file is absent in the canonical repo.
-    Set WORKSPACE_STATUS_SKIP_ANCHOR=1 to raise unittest.SkipTest, which
-    pytest surfaces as a skip and the custom runner counts as 'skipped' —
-    never as passed.
+    Set WORKSPACE_STATUS_SKIP_ANCHOR=1 to raise unittest.SkipTest.
     """
     if not skill_path.exists():
         if os.environ.get(_SKIP_ANCHOR_ENV, "").lower() in ("1", "true", "yes"):
@@ -1382,9 +1399,22 @@ def _check_anchor(
             f"Set {_SKIP_ANCHOR_ENV}=1 to skip in isolated environments.",
         )
         return
-    raw = skill_path.read_bytes().splitlines(keepends=True)
-    start, end = line_slice
-    contract = b"".join(raw[start:end])
+    raw = skill_path.read_bytes().split(b'\n')
+    start_idx = next(
+        (i for i, ln in enumerate(raw) if re.search(start_marker.encode(), ln)),
+        None,
+    )
+    if start_idx is None:
+        expect(False,
+               f"[{label}] start marker {start_marker!r} not found in "
+               f"{skill_path.name}")
+        return
+    end_idx = next(
+        (i for i, ln in enumerate(raw)
+         if i > start_idx and re.search(end_marker.encode(), ln)),
+        len(raw),
+    )
+    contract = b'\n'.join(raw[start_idx:end_idx])
     actual = hashlib.sha256(contract).hexdigest()
     expect(
         actual == expected_hash,
@@ -1396,33 +1426,42 @@ def _check_anchor(
 
 
 def case_skill_contract_anchor() -> None:
-    """Fail when the DAG/reconciliation contract of workspace-status SKILL.md changes.
+    """Fail when the algorithmic contract of workspace-status SKILL.md changes.
 
-    Anchors lines 55–251 (0-indexed 54–250): schema field vocabulary (status
-    active|paused|closed, work/shaping/brief_queue fields), ready/blocked
-    definitions, DAG resolution, reconciliation sections, output format for
-    signals (§3 active-context section), skill routing table (§4 including
-    signal → no action), and missing-fields defaults (§5 type absent = shape).
+    Anchors from '### 1. Read workspace.toml' to '### 6. Next-actions' (sections
+    §1–§5): schema field vocabulary, ready/blocked definitions, DAG resolution,
+    reconciliation, signal output (§3), skill routing (§4), missing-field
+    defaults (§5 type absent = shape). Layout-stable: edits before this range
+    (frontmatter, intro) don't shift the hashed window.
     """
-    _check_anchor(_SKILL_MD, _SKILL_CONTRACT_SLICE, _SKILL_CONTRACT_HASH,
-                  "workspace-status contract")
+    _check_section_anchor(
+        _SKILL_MD,
+        _SKILL_CONTRACT_START, _SKILL_CONTRACT_END,
+        _SKILL_CONTRACT_HASH, "workspace-status contract",
+    )
 
 
 def case_work_loop_contract_anchor() -> None:
     """Fail when the Step 0 or finish-checklist contract of work-loop SKILL.md changes.
 
-    Two anchors:
-    - Lines 69–88 (0-indexed 68–88): Step 0 ORIENT behaviors — active-spec
-      resolution, stale-queue check (warn-only; does NOT update workspace.toml),
-      and shaping-item guard.
-    - Lines 251–266 (0-indexed 250–266): Finish checklist — only sets spec.md
-      Status to Shipped; workspace-status (not work-loop) owns workspace.toml
-      queue/active/shipped updates (AC3g ownership invariant).
+    Two section anchors:
+    - '## Step 0. ORIENT' → '## Step 1. PLAN': active-spec resolution,
+      stale-queue check (warn-only; does NOT update workspace.toml), and
+      shaping-item guard.
+    - '## Finish checklist' → '## FIX': only sets spec.md Status to Shipped;
+      workspace-status (not work-loop) owns workspace.toml queue/active/shipped
+      updates (AC3g ownership invariant).
     """
-    _check_anchor(_WORK_LOOP_MD, (68, 88), _WORK_LOOP_CONTRACT_HASH,
-                  "work-loop Step-0 contract")
-    _check_anchor(_WORK_LOOP_MD, (250, 266), _WORK_LOOP_FINISH_HASH,
-                  "work-loop finish-checklist contract")
+    _check_section_anchor(
+        _WORK_LOOP_MD,
+        _WL_STEP0_START, _WL_STEP0_END,
+        _WORK_LOOP_CONTRACT_HASH, "work-loop Step-0 contract",
+    )
+    _check_section_anchor(
+        _WORK_LOOP_MD,
+        _WL_FINISH_START, _WL_FINISH_END,
+        _WORK_LOOP_FINISH_HASH, "work-loop finish-checklist contract",
+    )
 
 
 def test_skill_contract_anchor() -> None:

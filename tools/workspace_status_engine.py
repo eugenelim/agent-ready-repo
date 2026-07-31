@@ -18,11 +18,12 @@ behavior. Order 1 will wire this engine (or a successor) as the actual backend;
 only then will these become true production-path unit tests.
 
 SKILL.md contract anchor:
-  SHA-256 of SKILL.md lines 55–251 (0-indexed slice _SKILL_CONTRACT_SLICE = (54, 251)
-  in test_workspace_status.py): schema field vocabulary, ready/blocked definitions,
-  DAG resolution, reconciliation, signal output (§3), skill routing (§4), and
-  missing-field defaults (§5 type absent = shape) — the full algorithmic contract.
-  0d23c903d6c3f8c2156f892fa97af6c94f8983fada52ec26c7a075042a3b2838
+  SHA-256 of SKILL.md from '### 1. Read workspace.toml' through '### 6. Next-actions'
+  (_SKILL_CONTRACT_START/_SKILL_CONTRACT_END in test_workspace_status.py).
+  Covers §1–§5: schema vocabulary, ready/blocked definitions, DAG resolution,
+  reconciliation, signal output, skill routing, and missing-field defaults.
+  Section-marker-based: layout-stable against frontmatter/intro edits.
+  2a35d5a0ca04ac4d0d4a840825a261cf2faccd9884364eae46254a68599b1ef1
   Tested by test_workspace_status.py::test_skill_contract_anchor.
   If that test fails, re-read the changed sections and update this engine before
   editing the fingerprint.
