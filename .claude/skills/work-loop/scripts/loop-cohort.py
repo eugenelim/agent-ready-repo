@@ -540,7 +540,7 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
         return stop(str(exc))
 
     if state.get("plan_review_status") != "approved":
-        return stop("plan check-current: plan_review_status is not 'approved'")
+        return stop("plan_review_status: pending")
 
     spec_path = spec_dir / "spec.md"
     plan_path = spec_dir / "plan.md"

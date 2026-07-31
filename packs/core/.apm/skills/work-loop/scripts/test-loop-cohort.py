@@ -474,9 +474,11 @@ def test_plan_check_current_not_approved(tmp: Path) -> None:
     run_cohort("init", str(spec_dir), "--run-id", run_id)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    rc, _, _ = run_cohort("plan", "check-current", str(spec_dir))
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
     if rc == 0:
         fail(name, "expected non-zero when plan_review_status != approved")
+    elif "plan_review_status: pending" not in err:
+        fail(name, f"expected 'plan_review_status: pending' sentinel in stderr; got: {err!r}")
     else:
         ok(name)
 
