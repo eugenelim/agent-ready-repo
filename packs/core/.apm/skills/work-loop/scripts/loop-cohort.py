@@ -63,6 +63,7 @@ PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
 
 CLEAN_SUBSTRING = "Clean — ready to commit."
+_RE_SHA1 = re.compile(r"^[0-9a-f]{40}$")
 
 
 def _template_max_implementation_retries(fallback: int = 5) -> int:
@@ -832,13 +833,15 @@ def cmd_record_attempt(args: argparse.Namespace) -> int:
     if err is not None:
         return err
 
-    # The cycle-id must be <run_id>:<sequence>; the run_id prefix must match.
+    # The cycle-id must be <run_id>:<decimal-sequence>; the run_id prefix must match.
     cycle_id = args.cycle_id
-    if ":" not in cycle_id:
+    _parts = cycle_id.split(":", 1)
+    if len(_parts) != 2 or not _parts[1].isdigit():
         return stop(
-            f"record-attempt: --cycle-id must be '<run_id>:<sequence>' (got {cycle_id!r})"
+            f"record-attempt: --cycle-id must be '<run_id>:<decimal-sequence>' "
+            f"(got {cycle_id!r})"
         )
-    run_id_prefix = cycle_id.split(":", 1)[0]
+    run_id_prefix = _parts[0]
     if run_id_prefix != args.expect_run_id:
         return stop(
             f"record-attempt: run_id prefix in --cycle-id ({run_id_prefix!r}) "
@@ -982,6 +985,12 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if args.fingerprint:
         # Findings branch: --fingerprint <hex> ...
         fingerprints = sorted(set(args.fingerprint))
+        bad = [fp for fp in fingerprints if not _RE_SHA1.match(fp)]
+        if bad:
+            return stop(
+                f"review record: --fingerprint must be lowercase 40-char SHA-1 hex; "
+                f"invalid: {bad!r}"
+            )
         state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
         state["finding_fingerprints"] = fingerprints
         state["review_retry_count"] = int(state.get("review_retry_count", 0)) + 1

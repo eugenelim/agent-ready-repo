@@ -1075,6 +1075,31 @@ def test_record_attempt_run_id_prefix_mismatch(tmp: Path) -> None:
         ok(name)
 
 
+def test_record_attempt_invalid_sequence_suffix(tmp: Path) -> None:
+    """cycle-id with non-decimal suffix is rejected without mutation."""
+    name = "record-attempt-invalid-sequence-suffix"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id,
+        "implementation_retry_count": 0, "max_implementation_retries": 5,
+        "last_record_attempt_cycle_id": None,
+    })
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    for bad_suffix in ("", "abc", "1.0"):
+        rc, _, _ = run_cohort("record-attempt", str(spec_dir), "--phase", "implement",
+                              "--cycle-id", f"{run_id}:{bad_suffix}", "--expect-run-id", run_id)
+        after = path.read_bytes()
+        if rc == 0:
+            fail(name, f"expected non-zero for cycle-id suffix {bad_suffix!r}")
+            return
+        if before != after:
+            fail(name, f"state.json mutated despite invalid suffix {bad_suffix!r}")
+            return
+    ok(name)
+
+
 # ── T3: review inspect ────────────────────────────────────────────────────
 
 
@@ -1349,6 +1374,31 @@ def test_review_record_fingerprint_canonicalization(tmp: Path) -> None:
         ok(name)
 
 
+def test_review_record_fingerprint_invalid_format(tmp: Path) -> None:
+    """Non-canonical fingerprints (wrong length, uppercase) are rejected without mutation."""
+    name = "review-record-fp-invalid-format"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_state(spec_dir, {
+        "schema_version": 1, "run_id": run_id,
+        "review_round_count": 0, "review_retry_count": 0, "max_review_retries": 5,
+        "finding_fingerprints": [], "previous_finding_fingerprints": [],
+    })
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    for bad_fp in ("abc", "A" * 40, "a" * 39):
+        rc, _, _ = run_cohort("review", "record", str(spec_dir),
+                              "--fingerprint", bad_fp, "--expect-run-id", run_id)
+        after = path.read_bytes()
+        if rc == 0:
+            fail(name, f"expected non-zero for fingerprint {bad_fp!r}")
+            return
+        if before != after:
+            fail(name, f"state.json mutated despite invalid fingerprint {bad_fp!r}")
+            return
+    ok(name)
+
+
 def test_review_record_run_id_mismatch(tmp: Path) -> None:
     name = "review-record-run-id-mismatch"
     run_id = str(uuid.uuid4())
@@ -1530,6 +1580,7 @@ def main() -> int:
             test_record_attempt_idempotent,
             test_record_attempt_new_cycle_increments,
             test_record_attempt_run_id_prefix_mismatch,
+            test_record_attempt_invalid_sequence_suffix,
             test_review_inspect_clean,
             test_review_inspect_findings,
             test_review_inspect_invalid_absent,
@@ -1541,6 +1592,7 @@ def main() -> int:
             test_review_record_report_increments_only_round,
             test_review_record_report_rejects_non_clean,
             test_review_record_fingerprint_canonicalization,
+            test_review_record_fingerprint_invalid_format,
             test_review_record_run_id_mismatch,
             test_review_record_clean_resets_fingerprint_baseline,
             test_clean_substring_constant,
