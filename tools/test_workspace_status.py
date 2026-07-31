@@ -3,15 +3,8 @@
 
 Tests workspace_status_engine against deterministic fixtures.
 
-IMPORTANT: workspace_status_engine is an executable reference model, NOT
-a seam into the production implementation. The live skill is pure LLM
-instructions; this engine is a manually transcribed Python interpretation.
-These tests prove the Python model is internally consistent; they do not
-prove parity with production behavior. See engine docstring for details.
-
-The contract anchor test (test_skill_contract_anchor) will fail when the
-DAG-resolution or reconciliation sections of SKILL.md change, signaling
-that the engine must be reviewed and updated before re-approving the hash.
+Imports the production engine from its canonical location:
+  packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py
 
 Run:  python3 tools/test_workspace_status.py
       python3 -m pytest tools/test_workspace_status.py -q
@@ -24,6 +17,7 @@ intentional existing behavior — not desired future behavior.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import os
 import re
 import sys
@@ -32,24 +26,30 @@ import textwrap
 import unittest
 from pathlib import Path
 
-# Prefer repo-local copy of the engine.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from workspace_status_engine import (
-    _safe_spec_path,
-    analyze,
-    check_shaping_guard,
-    classify_entries,
-    classify_shaping_entries,
-    collect_work_loop_stale_warnings,
-    compute_type2_cleanup,
-    extract_initiatives,
-    extract_spec_status,
-    extract_top_level_backlog,
-    get_active_specs,
-    normalize_for_shaping_guard,
-    parse_workspace,
-    run_reconciliation,
+# Load the production engine from its skill-local location.
+_ENGINE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 )
+_engine_spec = importlib.util.spec_from_file_location("workspace_status_engine", _ENGINE_PATH)
+_engine_mod = importlib.util.module_from_spec(_engine_spec)  # type: ignore[arg-type]
+sys.modules.setdefault("workspace_status_engine", _engine_mod)
+_engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
+
+_safe_spec_path = _engine_mod._safe_spec_path
+analyze = _engine_mod.analyze
+check_shaping_guard = _engine_mod.check_shaping_guard
+classify_entries = _engine_mod.classify_entries
+classify_shaping_entries = _engine_mod.classify_shaping_entries
+collect_work_loop_stale_warnings = _engine_mod.collect_work_loop_stale_warnings
+compute_type2_cleanup = _engine_mod.compute_type2_cleanup
+extract_initiatives = _engine_mod.extract_initiatives
+extract_spec_status = _engine_mod.extract_spec_status
+extract_top_level_backlog = _engine_mod.extract_top_level_backlog
+get_active_specs = _engine_mod.get_active_specs
+normalize_for_shaping_guard = _engine_mod.normalize_for_shaping_guard
+parse_workspace = _engine_mod.parse_workspace
+run_reconciliation = _engine_mod.run_reconciliation
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -1351,21 +1351,11 @@ def case_full_analyze() -> None:
 # and reconcile workspace_status_engine.py before updating the hash constant.
 _SKIP_ANCHOR_ENV = "WORKSPACE_STATUS_SKIP_ANCHOR"
 
-# Section-heading markers for the three contract anchors (regex patterns).
-_SKILL_CONTRACT_START = r'^### 1\. Read workspace\.toml'
-_SKILL_CONTRACT_END = r'^### 6\. Next-actions'
+# Section-heading markers for the work-loop contract anchors (regex patterns).
 _WL_STEP0_START = r'^## Step 0\. ORIENT'
 _WL_STEP0_END = r'^## Step 1\. PLAN'
 _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
-
-_SKILL_CONTRACT_HASH = (
-    "2a35d5a0ca04ac4d0d4a840825a261cf2faccd9884364eae46254a68599b1ef1"
-)
-_SKILL_MD = (
-    Path(__file__).resolve().parent.parent
-    / "packs/core/.apm/skills/workspace-status/SKILL.md"
-)
 
 _WORK_LOOP_CONTRACT_HASH = (
     "c739285ae95ad891fddb2f6463624e2ef1793e1694e6711543c4d6eb1e4d72f6"
@@ -1432,22 +1422,6 @@ def _check_section_anchor(
     )
 
 
-def case_skill_contract_anchor() -> None:
-    """Fail when the algorithmic contract of workspace-status SKILL.md changes.
-
-    Anchors from '### 1. Read workspace.toml' to '### 6. Next-actions' (sections
-    §1–§5): schema field vocabulary, ready/blocked definitions, DAG resolution,
-    reconciliation, signal output (§3), skill routing (§4), missing-field
-    defaults (§5 type absent = shape). Layout-stable: edits before this range
-    (frontmatter, intro) don't shift the hashed window.
-    """
-    _check_section_anchor(
-        _SKILL_MD,
-        _SKILL_CONTRACT_START, _SKILL_CONTRACT_END,
-        _SKILL_CONTRACT_HASH, "workspace-status contract",
-    )
-
-
 def case_work_loop_contract_anchor() -> None:
     """Fail when the Step 0 or finish-checklist contract of work-loop SKILL.md changes.
 
@@ -1471,14 +1445,6 @@ def case_work_loop_contract_anchor() -> None:
         _WL_FINISH_START, _WL_FINISH_END,
         _WORK_LOOP_FINISH_HASH, "work-loop finish-checklist contract",
     )
-
-
-def test_skill_contract_anchor() -> None:
-    """pytest entry point for the workspace-status contract anchor."""
-    before = len(FAILURES)
-    case_skill_contract_anchor()
-    after = len(FAILURES)
-    assert after == before, "\n".join(FAILURES[before:])
 
 
 def test_work_loop_contract_anchor() -> None:
@@ -2251,7 +2217,6 @@ CASES = [
     ("F1b untyped_backlog_not_shaping", case_untyped_backlog_not_shaping),
     ("F2 shaping_classifications", case_shaping_classifications),
     ("F3 type2_cleanup_duplicate_source", case_type2_cleanup_duplicate_source),
-    ("skill_contract_anchor", case_skill_contract_anchor),
     ("work_loop_contract_anchor", case_work_loop_contract_anchor),
     ("integration full_analyze", case_full_analyze),
     ("F4a shaping_deduplication", case_shaping_deduplication),

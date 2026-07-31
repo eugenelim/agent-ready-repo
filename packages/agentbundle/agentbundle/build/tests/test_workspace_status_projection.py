@@ -1,0 +1,207 @@
+"""Projection and end-to-end tests for workspace-status scripts/ (Order 1A, AC9/AC10).
+
+Coverage:
+- Source scripts exist in the pack.
+- claude-code adapter projects both scripts under `.claude/skills/workspace-status/scripts/`.
+- Real-tree invariant: both scripts present in the self-hosted projection.
+- End-to-end installed CLI: exit 0, schema_version == 1, semantic counts plausible.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from agentbundle.build.adapters import ADAPTERS
+from agentbundle.build.contract import load as load_contract
+
+REPO_ROOT = Path(__file__).resolve().parents[5]
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+CORE_PACK = REPO_ROOT / "packs" / "core"
+SKILL_NAME = "workspace-status"
+_SCRIPTS = ("workspace_status.py", "workspace_status_engine.py")
+
+
+class SourceInvariantTests(unittest.TestCase):
+    """AC1 + AC9 precondition: source scripts must exist in the pack."""
+
+    _scripts_dir = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts"
+
+    def test_scripts_directory_exists(self) -> None:
+        self.assertTrue(
+            self._scripts_dir.is_dir(),
+            f"scripts/ directory not found at {self._scripts_dir}",
+        )
+
+    def test_cli_script_present_in_pack(self) -> None:
+        self.assertTrue(
+            (self._scripts_dir / "workspace_status.py").is_file(),
+            "workspace_status.py not found in pack scripts/",
+        )
+
+    def test_engine_script_present_in_pack(self) -> None:
+        self.assertTrue(
+            (self._scripts_dir / "workspace_status_engine.py").is_file(),
+            "workspace_status_engine.py not found in pack scripts/",
+        )
+
+    def test_old_engine_not_in_tools(self) -> None:
+        stale = REPO_ROOT / "tools" / "workspace_status_engine.py"
+        self.assertFalse(
+            stale.exists(),
+            f"Old engine copy still exists at {stale} — should have been git mv'd",
+        )
+
+
+class AdapterProjectionTests(unittest.TestCase):
+    """AC9: both scripts appear in the claude-code adapter projection."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def _project_to_tmp(self) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        ADAPTERS["claude-code"](CORE_PACK, self.contract, tmp)
+        return tmp
+
+    def test_scripts_project_under_claude_skills(self) -> None:
+        out = self._project_to_tmp()
+        scripts_dir = out / ".claude" / "skills" / SKILL_NAME / "scripts"
+        self.assertTrue(
+            scripts_dir.is_dir(),
+            f"scripts/ not found at {scripts_dir} after claude-code projection",
+        )
+        for name in _SCRIPTS:
+            with self.subTest(script=name):
+                self.assertTrue(
+                    (scripts_dir / name).is_file(),
+                    f"{name} not present in projected scripts/",
+                )
+
+    def test_skill_md_also_projects(self) -> None:
+        out = self._project_to_tmp()
+        skill_md = out / ".claude" / "skills" / SKILL_NAME / "SKILL.md"
+        self.assertTrue(skill_md.is_file(), "SKILL.md not projected alongside scripts/")
+
+    def test_projected_cli_invokes_ok(self) -> None:
+        """Projected CLI exits 0 against the real repo root (AC10 exercise)."""
+        out = self._project_to_tmp()
+        cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
+        if not cli.exists():
+            self.skipTest("CLI not projected — previous projection test likely failed")
+        r = subprocess.run(
+            [sys.executable, str(cli), "--root", str(REPO_ROOT)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        self.assertEqual(r.returncode, 0, f"CLI failed: {r.stderr}")
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("schema_version"), 1)
+
+
+class RealTreeProjectionTests(unittest.TestCase):
+    """AC9 real-tree invariant: scripts present in the self-hosted .claude/ projection."""
+
+    _projected_scripts = (
+        REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts"
+    )
+
+    def test_scripts_in_real_tree_projection(self) -> None:
+        """Both scripts must be present in the self-hosted projection.
+
+        If this test fails, run `make build-self` (or
+        `python3 -m agentbundle catalogue self-host --root . --write --force`)
+        to regenerate the projection.
+        """
+        if not self._projected_scripts.is_dir():
+            self.skipTest(
+                f"self-hosted scripts/ not found at {self._projected_scripts} — "
+                "run make build-self to generate projection"
+            )
+        for name in _SCRIPTS:
+            with self.subTest(script=name):
+                self.assertTrue(
+                    (self._projected_scripts / name).is_file(),
+                    f"{name} absent from self-hosted projection at {self._projected_scripts}",
+                )
+
+
+class EndToEndCLITests(unittest.TestCase):
+    """AC10/AC17: installed CLI executed end-to-end; result recorded."""
+
+    _cli = REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not cls._cli.exists():
+            cls._skip_reason = (
+                f"Installed CLI not found at {cls._cli} — run make build-self"
+            )
+        else:
+            cls._skip_reason = None
+
+    def _skip_if_not_installed(self) -> None:
+        if self._skip_reason:
+            self.skipTest(self._skip_reason)
+
+    def test_installed_cli_exit_0(self) -> None:
+        """AC10: installed CLI returns exit 0 against the real repo."""
+        self._skip_if_not_installed()
+        r = subprocess.run(
+            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        self.assertEqual(r.returncode, 0, f"CLI failed.\nstdout: {r.stdout[:500]}\nstderr: {r.stderr[:500]}")
+
+    def test_installed_cli_schema_version(self) -> None:
+        """AC10/AC17: output is valid JSON with schema_version == 1."""
+        self._skip_if_not_installed()
+        r = subprocess.run(
+            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        self.assertEqual(r.returncode, 0)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("schema_version"), 1)
+        # AC17: record semantic counts (printed to the test runner output)
+        work = data.get("work", {})
+        diag = data.get("diagnostics", {})
+        print(
+            f"\nAC17 record — installed CLI against real repo:\n"
+            f"  exit_code=0  schema_version=1\n"
+            f"  work.ready={len(work.get('ready', []))}"
+            f"  work.blocked={len(work.get('blocked', []))}"
+            f"  work.active={len(work.get('active', []))}"
+            f"  work.shipped={len(work.get('shipped', []))}\n"
+            f"  diagnostics.spec_files_read={diag.get('spec_files_read', '?')}",
+            flush=True,
+        )
+
+    def test_installed_cli_workspace_present(self) -> None:
+        """AC17: workspace_present is True for the real repo."""
+        self._skip_if_not_installed()
+        r = subprocess.run(
+            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        self.assertEqual(r.returncode, 0)
+        data = json.loads(r.stdout)
+        self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
+
+
+if __name__ == "__main__":
+    unittest.main()

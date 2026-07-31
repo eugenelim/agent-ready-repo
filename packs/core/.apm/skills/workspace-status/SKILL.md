@@ -20,11 +20,17 @@ Any time you need to orient: which initiative is active, what specs are ready to
 
 ## Procedure
 
-### 1. Read workspace.toml
+### 1. Invoke the backend
 
-Open `workspace.toml` from the repo root. Parse it as TOML (`tomllib.loads()` in Python 3.11+ / `tomli.loads()` backport for earlier).
+Run the production backend (from the skill's installed location):
 
-**If absent:** offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
+```
+python3 "<skill-dir>/scripts/workspace_status.py" --root "<repo-root>"
+```
+
+`<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). `<repo-root>` must be quoted. Use whatever shell or tool-call mechanism your environment provides.
+
+**Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
 ```toml
 # workspace.toml
@@ -70,76 +76,34 @@ backlog = []
 open = []
 ```
 
-**If present and unparseable:** surface the TOML parse error and stop — do not proceed with partial data.
+**Exit 2 — unexpected error:** surface the stderr message and stop — do not proceed with partial data.
 
-### 2. Resolve the DAG
+**Exit 0:** parse the JSON result. Key fields:
 
-For each initiative's `[work]` and `[shaping_queue]`:
+```
+initiatives              — list of active initiatives (slug, name, status, milestone, brief_queue)
+initiatives[].brief_queue — {executing, ready, draft} or null
+work.ready     — list of ready-to-start build entries; each carries ini_slug and blocking_needs
+work.blocked   — list of blocked build entries; each carries ini_slug and blocking_needs
+work.active    — list of currently in-progress build entries; each carries ini_slug
+work.shipped   — list of shipped build entries; each carries ini_slug
+shaping.ready  — list of ready shaping entries; each carries ini_slug and blocking_needs
+shaping.signals — list of active-context signal entries; each carries ini_slug
+shaping.blocked — list of blocked shaping entries; each carries ini_slug and blocking_needs
+reconciliation.type1             — untracked live specs
+reconciliation.type2             — stale queue/active entries
+reconciliation.type3             — prematurely-shipped entries
+reconciliation.type2_cleanup_ops — cleanup operations per Type 2 finding
+diagnostics.spec_files_read      — number of spec.md files examined
+```
 
-- A queue entry is **ready** when all its `needs` entries are satisfied (see below).
-- A queue entry is **blocked** when one or more `needs` entries are not yet satisfied.
-- An entry with no `needs` field is unconditionally ready (unless already in `active` or `shipped`).
+### 2. Surface results
 
-**Needs resolution:**
+If the reconciliation block is non-empty (any type1/type2/type3 findings), output it first:
 
-`needs` is a string or list of strings using queue-prefix notation:
+**Reconciliation:**
 
-| Prefix | Resolves against |
-|--------|-----------------|
-| `work:<path>` | `[work].shipped` (or `[work].active` counts as in-progress) |
-| `shape:<slug>` | `[shaping_queue].active` or treated as shipped if not present |
-| `research:<slug>` | `[shaping_queue]` entries of `type = "research"` — ready when that entry is not in the backlog |
-| `brief:<path>` | `[brief_queue].ready` or `executing` |
-| `<ini-slug>:work:<path>` | Cross-initiative: `["<ini-slug>".work].shipped` |
-
-An entry is satisfied when its referenced item is in the appropriate shipped/done list. When `needs` is a list, ALL entries must be satisfied.
-
-### 2a. Reconciliation — surface spec ↔ workspace.toml inconsistencies
-
-Run three passes across `docs/specs/*/spec.md` and all initiative lists before
-producing any output. Collect all findings first.
-
-**Path resolution (all three passes):**
-
-- Bare-string entry `"spec/foo"` → path = the string.
-- Inline-object entry `{path = "spec/foo", needs = "..."}` → path = the `path` field.
-- Shipped entries are always bare strings.
-- From any path: strip the `spec/` prefix → slug; resolve `docs/specs/<slug>/spec.md`.
-- Status extraction: read the first line in the file matching `- **Status:**` and
-  extract the Status vocabulary word. When the line contains `→` (transition form,
-  e.g. `Approved → Shipped`), split on `→` and take the first word of the last
-  segment (stop at whitespace or `<!--`) — the right-hand token is the current
-  status. Otherwise take the first word after `**Status:** ` (stop at whitespace
-  or `<!--`). If no such line exists, treat as unknown status and skip this path
-  in all passes.
-
-**Forward scan — untracked live specs:**
-
-Walk every directory under `docs/specs/` that contains a `spec.md`. For each:
-1. Extract Status. Skip if not `Approved` or `Implementing`.
-2. Derive the canonical path: `spec/<dirname>`.
-3. Check whether this path appears in any initiative's queue, active, or shipped
-   list across all initiatives. If absent from all three → **Type 1** finding.
-
-**Backward scan — stale queue/active entries:**
-
-For each initiative, for each path in `[work].queue` and `[work].active`:
-1. Resolve `docs/specs/<slug>/spec.md`. If absent, skip without warning.
-2. Extract Status. If `Shipped` or `Archived` → **Type 2** finding. Record the
-   path, the list name (queue or active), and the initiative slug.
-
-**Shipped scan — prematurely-shipped entries:**
-
-For each initiative, for each path in `[work].shipped`:
-1. Resolve `docs/specs/<slug>/spec.md`. If absent, skip without warning.
-2. Extract Status. If `Approved` or `Implementing` → **Type 3** finding. Record
-   the path and the initiative slug.
-
-**Reconciliation block:**
-
-Let N = total count across all three types. When N = 0, omit the block entirely.
-When N > 0, output the following block **before** Step 3; omit subsections with no
-entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
+Let N = total count across all three finding types. When N > 0, output before the main sections; omit subsections with no entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
 
 ```
 **Reconciliation** — N inconsistenc(y/ies) detected:
@@ -157,9 +121,7 @@ entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`
     (2) the workspace.toml entry was moved before the work was done.
 ```
 
-When Type 2 findings exist, build the cleanup offer. For any Type 2 entry found in
-`[work].active`, ask first: "Is `<path>` actively being worked on in this session?"
-— include it in the offer only after the user confirms it is not active. Then append:
+When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — include it in the offer only after the user confirms it is not active. Then append:
 
 ```
 Stale entries found — clean up now?
@@ -170,24 +132,24 @@ Stale entries found — clean up now?
 
 **Cleanup write — after Y confirmation (Type 2 only):**
 
-For each Type 2 finding in the confirmed offer:
-- **Shipped, in queue/active**: remove from queue/active; append `"spec/<slug>"` as
-  a bare string to the same initiative's `[work].shipped` (skip if already present).
-- **Archived, in queue/active**: remove from queue/active; add nothing to shipped.
+Apply each entry in `reconciliation.type2_cleanup_ops`. Each op describes:
+- `ini_slug` — initiative to modify
+- `source_list` — list to remove the entry from (`queue` or `active`)
+- `target_list` — list to add it to (`shipped`) or `null` (Archived: remove only)
+- `path` — the entry path
+- `written_form` — exact string to append to the target list (Shipped only)
 
-Use a comment-preserving write — targeted text insertion or `tomlkit`; never a
-`tomllib` + `tomli_w` round-trip (strips comments).
+Use a comment-preserving write — targeted text insertion or `tomlkit`; never a `tomllib` + `tomli_w` round-trip (strips comments).
 
-### 3. Surface results
-
-If the Reconciliation block from Step 2a is non-empty (N > 0), it has already been
-output first. Continue with the following sections.
+**Main output sections:**
 
 Format output in four sections (omit sections with no entries):
 
 ---
 
-**Active initiatives:** `<ini-slug>` — `<name>` (milestone: `<milestone>`)
+**Active initiatives:** (for each entry in `initiatives[]`)
+`<ini-slug>` — `<name>` (milestone: `<milestone>`)
+- **Brief queue** (from `initiatives[].brief_queue`; omit when `null`): Executing: `<executing>` (or "none") · Ready: N item(s) · Draft: N item(s)
 
 **Active context — signals** _(ongoing; do not need action):_
 - `<slug>` (`signal`) — no action needed; informs shaping decisions
@@ -205,12 +167,7 @@ Format output in four sections (omit sections with no entries):
 **Blocked:**
 - `<path>` — waiting on `<needs-entry>` (status: `<queued|in-progress>`)
 
-**Brief queue:**
-- Executing: `<path>` (or "none")
-- Ready: `<count>` item(s)
-- Draft: `<count>` item(s)
-
-**Closeout check:** if `[work].queue` is empty and `[work].active` is empty and `[work].shipped` is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
+**Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. If a given initiative's filtered ready + blocked + active are all empty and its filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 
 **Findings:** Read `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if they exist. Count non-header rows in each (a non-header row is any `|…|` line after the header separator row — the `|---|...|` line of dashes).
 
@@ -230,7 +187,7 @@ Each entry is prefixed with its room: `[shape]` when the entry carries a `type` 
 
 ---
 
-### 4. Skill prompts by type
+### 3. Skill prompts by type
 
 When surfacing shaping_queue entries, append the right skill invocation based on what's installed:
 
@@ -244,26 +201,26 @@ When surfacing shaping_queue entries, append the right skill invocation based on
 
 If the required pack is not installed, surface: "requires `<pack-name>` pack — install to work this item."
 
-### 5. Missing fields
+### 4. Missing fields
 
 `workspace.toml` evolves: older entries may lack a `type` field (treat as `shape`), a `milestone` field (omit from output), or a `parent` field (omit). Never fail on missing optional fields.
 
-### 6. Next-actions
+### 5. Next-actions
 
-Using Step 2 DAG state only — do not re-read `workspace.toml`:
+Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute the DAG:
 
-**6a. Resolve choices**
+**5a. Resolve choices**
 
-From the state already computed in Step 2:
+From the JSON result:
 
-- `active_spec` = first entry in `[work].active` (if any)
-- `next_queue` = first entry in `[work].queue` whose `needs` are all satisfied (queue order); if an entry is an inline object, use its `path` field
-- `unblocked` = all entries in `[work].queue` whose `needs` are all satisfied
-- `next_shape` = first entry in `[shaping_queue].active` whose `type` is not `signal` (if any); else first entry in `[shaping_queue]` that is ready (unblocked, not in `active` or `shipped`) and whose `type` is not `signal`
+- `active_spec` = first entry in `work.active` (if any)
+- `next_queue` = first entry in `work.ready` (JSON field, already resolved; first in list order)
+- `unblocked` = all entries in `work.ready`
+- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` (if any)
 
-**Path resolution:** workspace.toml paths carry a `spec/` prefix (e.g. `"spec/m1-workspace-core"`). Strip it before building file-system paths — the slug is the part after `spec/`, and the command uses `docs/specs/<slug>/`.
+**Path resolution:** entries in `work.ready`, `work.active`, etc. carry a `path` field (e.g. `"spec/m1-workspace-core"`). Strip the `spec/` prefix to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
-**6b. ASCII dependency graph (when ≥2 unblocked work items)**
+**5b. ASCII dependency graph (when ≥2 unblocked work items)**
 
 If `len(unblocked) ≥ 2`, render the following block _before_ the numbered choices:
 
@@ -276,23 +233,23 @@ Work queue — parallel opportunities:
 ```
 
 - Right-pad the slug column to the longest slug for alignment. Use the bare path (with `spec/` prefix preserved) for both `[ready]` and `[blocked by]` rows — e.g. `spec/alpha [ready]` and `spec/gamma [blocked by spec/alpha]`.
-- Unblocked entries: annotate `[ready]`.
-- Blocked entries: annotate `[blocked by <dep-slug>]`, where `<dep-slug>` is the path with the queue-prefix domain stripped (e.g. `needs = "work:spec/alpha"` → `spec/alpha`).
+- Entries in `work.ready`: annotate `[ready]`.
+- Entries in `work.blocked`: annotate `[blocked by <dep-slug>]`, where `<dep-slug>` is the first entry in that item's `blocking_needs` with the queue-prefix domain stripped.
 
-**6c. Harness detection and parallel-session offer (when graph rendered)**
+**5c. Harness detection and parallel-session offer (when graph rendered)**
 
-When the graph was rendered, offer a parallel-session choice as the **first** numbered slot. Check whether `--bg` appears in `claude --help` output (via the Bash tool if available):
+When the graph was rendered, offer a parallel-session choice as the **first** numbered slot. Check whether `--bg` appears in `claude --help` output (if a shell/command tool is available):
 
 - **`--bg` found:** emit a numbered choice listing `claude --bg "work-loop docs/specs/<slug>/"` for each parallel-ready root node.
-- **`--bg` absent or Bash tool unavailable:** emit a numbered choice with prose instructions for each parallel-ready root node (no automated spawn).
+- **`--bg` absent or no shell tool available:** emit a numbered choice with prose instructions for each parallel-ready root node (no automated spawn).
 
-**6d. Numbered choices**
+**5d. Numbered choices**
 
-Emit the following choices in order. Omit any whose source is empty; renumber sequentially. The parallel-session offer from 6c (when present) occupies the first slot and the remaining choices follow.
+Emit the following choices in order. Omit any whose source is empty; renumber sequentially. The parallel-session offer from 5c (when present) occupies the first slot and the remaining choices follow.
 
 - **Active spec:** `work-loop docs/specs/<slug>/` — continue active spec. Present when `active_spec` is non-empty.
 - **Next queue item:** `work-loop docs/specs/<slug>/` — next unblocked queue item. Present when `next_queue` is non-empty.
-- **First shaping item:** skill command per Step 4 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
+- **First shaping item:** skill command per Step 3 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
 - **Start new work (always — final choice):** `new-spec` · `new-rfc` · `new-adr` · `capture-work`
 
 ## See also

@@ -1,34 +1,15 @@
 #!/usr/bin/env python3
-"""workspace-status executable reference model — Order 0 characterization.
+"""workspace-status production backend — stdlib-only, read-only.
 
-This module is a MANUALLY TRANSCRIBED Python interpretation of the algorithmic
-sections of packs/core/.apm/skills/workspace-status/SKILL.md. It is NOT a seam
-into the production implementation: the live skill is pure model instructions
-executed by an LLM; this module is a Python parallel that the model does not call.
+Entry points:
+  analyze(root: Path) -> WorkspaceStatusResult   — full analysis
+  compute_type2_cleanup(ini_slug, source_list, spec_path, spec_status) -> dict
 
-Relationship to production:
+This engine is the canonical implementation invoked by the workspace-status skill
+via scripts/workspace_status.py. It reads workspace.toml and docs/specs/** to
+produce DAG resolution, reconciliation, and cleanup-planning results.
 
-  SKILL.md semantics ──────► model execution  (production path)
-         │
-         └── manually transcribed ──► this engine ──► tests
-
-Tests against this engine prove the Python interpretation is internally
-consistent with its expected values. They do NOT prove parity with production
-behavior. Order 1 will wire this engine (or a successor) as the actual backend;
-only then will these become true production-path unit tests.
-
-SKILL.md contract anchor:
-  SHA-256 of SKILL.md from '### 1. Read workspace.toml' through '### 6. Next-actions'
-  (_SKILL_CONTRACT_START/_SKILL_CONTRACT_END in test_workspace_status.py).
-  Covers §1–§5: schema vocabulary, ready/blocked definitions, DAG resolution,
-  reconciliation, signal output, skill routing, and missing-field defaults.
-  Section-marker-based: layout-stable against frontmatter/intro edits.
-  2a35d5a0ca04ac4d0d4a840825a261cf2faccd9884364eae46254a68599b1ef1
-  Tested by test_workspace_status.py::test_skill_contract_anchor.
-  If that test fails, re-read the changed sections and update this engine before
-  editing the fingerprint.
-
-Known gaps (documented in behavior-map.md, not fixed here):
+Known gaps (preserved from Phase 0 characterization; not fixed in Order 1A):
   KD-01: `backlog:<slug>` prefix absent from SKILL.md table
   KD-02: No cycle detection
   KD-03: Missing dep targets not warned
