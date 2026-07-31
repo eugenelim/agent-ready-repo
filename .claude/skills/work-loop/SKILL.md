@@ -119,8 +119,9 @@ After orientation:
 
 10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), if `state.json` is present (orphaned cohort from a prior partial run) — **Surface to human**: run `loop-cohort status docs/specs/<feature>` to show the orphaned state, describe it, and wait for explicit authorization before running the destructive reset pair (`loop-cohort reset` then `loop-engine reset`). Once authorized, run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
     ```bash
+    # Use --mode spec-plan for spec/plan-only work; --mode code for implementation work.
     run_id=$(python3 scripts/loop-engine.py init docs/specs/<feature> \
-        --mode code --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
+        --mode <mode> --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
     python3 scripts/loop-cohort.py init docs/specs/<feature> --run-id "$run_id"
     python3 scripts/loop-engine.py transition docs/specs/<feature> spec-ready
     ```
@@ -151,9 +152,11 @@ After orientation:
     ```
     `loop-engine transition plan-approved` internally verifies approval + schedule binding (`plan check-current --require-schedule`). Exit 0 unlocks EXECUTE; any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
-    **If the human rejects the plan:** fire `plan-rejected` to return to SPEC-PLAN-DRAFTING, then revise the spec/plan and re-enter the pre-EXECUTE review loop:
+    **If the human rejects the plan:** fire `plan-rejected` to return to SPEC-PLAN-DRAFTING, revise the spec/plan (bump `Status: Draft`), then fire `spec-ready` to re-enter the review state before the next reviewer pass (same as step 11):
     ```bash
     python3 scripts/loop-engine.py transition docs/specs/<feature> plan-rejected
+    # ... revise spec/plan, bump Status: Draft ...
+    python3 scripts/loop-engine.py transition docs/specs/<feature> spec-ready
     ```
 
 Write the plan to disk — don't keep it in memory across turns.
@@ -299,7 +302,14 @@ python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
 python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id "$run_id"
 ```
-If a specialist reviewer returns findings, apply them, re-run GATES, and re-run the full REVIEW loop (adversarial first) before firing this transition.
+If a specialist reviewer returns findings, first exit `CODE-REVIEW` via `findings-remain` and record the fingerprints (same as the adversarial-findings path above), then apply the fixes, re-run GATES, and re-run the full REVIEW loop (adversarial first):
+```bash
+python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain
+python3 scripts/loop-cohort.py review record docs/specs/<feature> \
+    $(for fp in <fingerprint-list>; do echo "--fingerprint $fp"; done) \
+    --expect-run-id "$run_id"
+# Apply the specialist's fixes, re-run GATES, then re-enter REVIEW.
+```
 
 **Dispatch multiple reviewers in parallel** per the [Parallel dispatch discipline](#parallel-dispatch-discipline): read N reports, group by severity, deduplicate cross-reviewer overlaps. Fingerprint computation once per fan-out round. Drop merged prose after recording.
 
