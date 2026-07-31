@@ -283,6 +283,11 @@ def _safe_spec_path(root: Path, slug: str) -> Path | None:
     if slug_path.is_absolute() or ".." in slug_path.parts:
         return None
     specs_dir = (root / "docs" / "specs").resolve()
+    # Reject if docs/specs itself is a symlink that escapes the repo root.
+    try:
+        specs_dir.relative_to(root.resolve())
+    except ValueError:
+        return None
     candidate = (specs_dir / slug / "spec.md").resolve()
     try:
         candidate.relative_to(specs_dir)
@@ -527,8 +532,17 @@ def run_reconciliation(
     # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
     # are discovered; slug is the parent path relative to specs_dir.
     # os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
-    # (rglob follows symlinks on Python 3.11/3.12).
+    # found DURING traversal (rglob follows symlinks on Python 3.11/3.12).
+    # The root-confinement check guards against docs/specs or docs/ itself being
+    # a symlink — followlinks=False does not apply to the initial top directory.
+    _specs_root_safe = False
     if specs_dir.exists():
+        try:
+            specs_dir.resolve().relative_to(root.resolve())
+            _specs_root_safe = True
+        except ValueError:
+            pass  # docs/specs resolved outside repo root (symlink) — skip walk
+    if _specs_root_safe:
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
             dirnames.sort()  # deterministic traversal order
             if "spec.md" not in filenames:
