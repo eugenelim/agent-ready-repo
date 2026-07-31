@@ -127,23 +127,26 @@ keys — see [Future Phase: Workflow Orchestrator](#future-phase-workflow-orches
   `current_wave_index: 0` to `state.json`. Exit non-zero on any DAG error or if
   the task set is empty (so an empty-wave failure surfaces at scheduling, not
   at the `plan-approved` guard two calls later).
-- Finding fingerprints — `review record --fingerprint` (findings round):
-  `previous_finding_fingerprints = finding_fingerprints`, `finding_fingerprints =
-  sorted(set(supplied_fingerprints))`, `review_retry_count += 1`, `review_round_count += 1`.
-  Storing `sorted(set(...))` rather than the raw list makes the serialized state
-  deterministic: two equivalent reports with duplicate or reordered fingerprints
-  produce identical `state.json` values.
-  `review record --report` (clean round): exits non-zero if the report is not
-  clean (i.e. `parse_findings()` returns ≥1 fingerprints, or the clean substring
-  is absent from the file) — findings rounds must go through `--fingerprint`.
-  On a clean report: `previous_finding_fingerprints = finding_fingerprints`,
-  `finding_fingerprints = []`, `review_round_count += 1`, `review_retry_count`
-  unchanged. Both forms rotate `finding_fingerprints` to `[]` or the new set, so
-  a subsequent `review inspect` compares against the current round's baseline —
-  not a stale pre-clean set. **Not idempotent** in Phase 1. **Implementation note:**
-  the existing `cmd_review_record` shares a single
-  `state["iteration_count"] += 1` write across both branches; the follow-on
-  implementation must replace it with branch-specific counter updates:
+- Finding fingerprints — `review record` has three branches:
+  - `--fingerprint` (findings round): `previous_finding_fingerprints =
+    finding_fingerprints`, `finding_fingerprints = sorted(set(supplied_fingerprints))`,
+    `review_retry_count += 1`, `review_round_count += 1`. Storing `sorted(set(...))`
+    makes serialized state deterministic.
+  - `--report` (clean round): exits non-zero if the report is not clean (i.e.
+    `parse_findings()` returns ≥1 fingerprints, or neither the `adversarial-reviewer`
+    clean substring nor a specialist `SHIP IT` verdict is present) — findings rounds
+    must go through `--fingerprint`. On a clean report: `previous_finding_fingerprints
+    = finding_fingerprints`, `finding_fingerprints = []`, `review_round_count += 1`,
+    `review_retry_count` unchanged.
+  - `--all-skipped` (all warranted reviewers were named skips): `previous_finding_fingerprints
+    = finding_fingerprints`, `finding_fingerprints = []`, `review_round_count += 1`,
+    `review_retry_count` unchanged. **Not idempotent** in Phase 1 — same semantics as
+    `--report` clean, but no report file is required.
+  All three forms rotate `finding_fingerprints` to `[]` or the new set, so a
+  subsequent `review inspect` compares against the current round's baseline. **Not
+  idempotent** in Phase 1. **Implementation note:** the existing `cmd_review_record`
+  shares a single `state["iteration_count"] += 1` write across both branches; the
+  follow-on implementation must replace it with branch-specific counter updates:
   (a) `--report` branch: exit non-zero when `parse_findings()` returns ≥1 or the
   clean substring is absent; on success, increment `review_round_count` only
   (never `review_retry_count`);
@@ -266,16 +269,18 @@ loop-cohort auto-parallel <spec-dir> [--off]
   reserved for operational errors (`<spec-dir>` unresolvable, `state.json` unreadable).
 
   Classification is derived from `parse_findings()` output together with report
-  readability and the clean-substring check (`parse_findings()` / `FINDING_LINE_RE`
-  in `loop-cohort.py`). A report carrying both the clean substring and parseable
+  readability and the clean-signal check (`parse_findings()` / `FINDING_LINE_RE`
+  in `loop-cohort.py`). A report carrying both a clean signal and parseable
   findings classifies as `findings` (findings take precedence):
   - `invalid`: report file absent or unreadable, OR (`parse_findings()` returns
-    `[]` AND the report does not contain the clean substring). `matches_previous_round`
-    is `false` (no meaningful comparison).
-  - `clean`: `parse_findings()` returns `[]` AND the report contains the substring
-    `Clean — ready to commit.` (em-dash `—`) anywhere in the text — identical to
-    the substring check in `cmd_review_record`, not a full-line equality test.
-    `matches_previous_round` is always `false` when the computed fingerprint set is empty.
+    `[]` AND no clean signal is present). `matches_previous_round` is `false`
+    (no meaningful comparison).
+  - `clean`: `parse_findings()` returns `[]` AND at least one clean signal is
+    present. Two clean signals are recognised: (1) the substring
+    `Clean — ready to commit.` (em-dash `—`) anywhere in the text — emitted by
+    `adversarial-reviewer`; (2) the string `SHIP IT` on its own line — emitted
+    by `experience-reviewer` and `frontend-reviewer`. `matches_previous_round` is
+    always `false` when the computed fingerprint set is empty.
   - `findings`: `len(parse_findings()) >= 1`. See the **findings-remain floor** below.
 
   `parse_findings()` is the single canonical extractor; `FINDING_LINE_RE` matching

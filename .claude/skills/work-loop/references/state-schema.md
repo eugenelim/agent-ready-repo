@@ -32,8 +32,8 @@ write-second ordering.
 | `implementation_retry_count` | Number of distinct implementation cycles, incremented by `record-attempt`. |
 | `max_implementation_retries` | Cap; `check --phase gates-failed` exits non-zero when `implementation_retry_count >= max`. Default: `5`. |
 | `last_record_attempt_cycle_id` | `<run_id>:<seq>` of the last recorded attempt; used for idempotency — a repeated cycle-id is a no-op. |
-| `review_round_count` | Total review rounds (all outcomes), incremented by both `review record --fingerprint` and `review record --report`. |
-| `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only. `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`. |
+| `review_round_count` | Total review rounds (all outcomes), incremented by `review record --fingerprint`, `--report`, and `--all-skipped`. |
+| `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only (not `--report` or `--all-skipped`). `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`. |
 | `max_review_retries` | Cap. Default: `5`. |
 | `finding_fingerprints` | `sha1("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; used for stasis detection via `review inspect`. |
 | `previous_finding_fingerprints` | `finding_fingerprints` from the round before last. Rotated atomically with `finding_fingerprints` by `review record`. |
