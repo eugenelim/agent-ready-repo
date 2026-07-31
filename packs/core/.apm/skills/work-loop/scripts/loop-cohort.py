@@ -1239,7 +1239,14 @@ def build_parser() -> argparse.ArgumentParser:
     ]:
         sp = wt_sub.add_parser(wt_verb, help=wt_help)
         sp.add_argument("spec_dir", nargs="?")
-        sp.add_argument("args", nargs="*")
+        if wt_verb == "record":
+            # Preserve original signature so callers get the "disabled" message
+            # instead of an argparse "unrecognized arguments" error.
+            sp.add_argument("task_id", nargs="?")
+            sp.add_argument("--status", choices=WORKTREE_STATUSES)
+            sp.add_argument("--report")
+        else:
+            sp.add_argument("args", nargs="*")
         sp.set_defaults(func=wt_func)
 
     return p
