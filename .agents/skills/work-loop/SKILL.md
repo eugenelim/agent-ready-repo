@@ -314,7 +314,7 @@ python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
 python3 scripts/loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id <run_id>
 ```
-Engine is now in `CODE-HUMAN-GATE`. **Wait for human response:**
+Engine is now in `CODE-HUMAN-GATE`. **Before waiting: complete the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human response:
 - **Approved (merge confirmed):** fire `done`.
   ```
   python3 scripts/loop-engine.py transition docs/specs/<feature> done
