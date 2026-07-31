@@ -357,16 +357,17 @@ def is_need_satisfied(
                 return any(e.path == path for e in ini.work.shipped)
         return False
 
-    # Shape: "shape:<slug>" — satisfied when active OR absent from all shaping lists
+    # Shape: "shape:<slug>" — satisfied only when absent from all shaping lists (graduated).
+    # Active = in-progress shaping (NOT yet done); backlog = not yet started.
+    # Both block the dependent until the shape item graduates (schema.md:114).
     if need.startswith("shape:"):
         slug = need[len("shape:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
                 active_slugs = {e.slug for e in ini.shaping.active}
                 backlog_slugs = {e.slug for e in ini.shaping.backlog}
-                if slug not in active_slugs and slug not in backlog_slugs:
-                    return True   # Not present → treated as shipped (KD-06)
-                return slug in active_slugs
+                # Absent = graduated (KD-06). Active or backlog = not yet done.
+                return slug not in active_slugs and slug not in backlog_slugs
         return True  # Initiative not found → assume satisfied
 
     # Research: "research:<slug>" — satisfied when NOT in shaping backlog as type="research"

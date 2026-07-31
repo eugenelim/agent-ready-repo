@@ -407,8 +407,8 @@ def case_shape_research_brief_deps() -> None:
         cls = classify_entries(ini, initiatives)
         by_path = {c.entry.path: c for c in cls}
 
-        expect(by_path["spec/needs-active-shape"].is_ready,
-               "[AC2f] shape:active-shape satisfied (in active)")
+        expect(not by_path["spec/needs-active-shape"].is_ready,
+               "[AC2f] shape:active-shape blocked (in active — not yet graduated)")
         expect(by_path["spec/needs-absent-shape"].is_ready,
                "[AC2f] shape:never-existed satisfied (absent from all lists → treated as done)")
         expect(by_path["spec/needs-research-done"].is_ready,
@@ -1124,7 +1124,7 @@ def case_dag_all_needs_prefixes() -> None:
             status = "active"
             milestone = "M1"
             ["ini-001".shaping_queue]
-            active  = [{slug = "active-shape", type = "shape"}]
+            active  = []
             backlog = [{slug = "pending-research", type = "research"}]
             ["ini-001".brief_queue]
             executing = ""
@@ -1135,7 +1135,7 @@ def case_dag_all_needs_prefixes() -> None:
             shipped = ["spec/shipped-work"]
             queue   = [
               {path = "spec/p-work",     needs = "work:spec/shipped-work"},
-              {path = "spec/p-shape",    needs = "shape:active-shape"},
+              {path = "spec/p-shape",    needs = "shape:graduated-shape"},
               {path = "spec/p-research", needs = "research:done-research"},
               {path = "spec/p-brief",    needs = "brief:docs/product/briefs/ready.md"},
               {path = "spec/p-cross",    needs = "ini-001:work:spec/shipped-work"},
@@ -1160,7 +1160,7 @@ def case_dag_all_needs_prefixes() -> None:
         by_path = {c.entry.path: c for c in cls}
 
         expect(by_path["spec/p-work"].is_ready, "[AC3a] work: prefix satisfied")
-        expect(by_path["spec/p-shape"].is_ready, "[AC3a] shape: prefix satisfied")
+        expect(by_path["spec/p-shape"].is_ready, "[AC3a] shape: prefix satisfied (absent = graduated)")
         expect(by_path["spec/p-research"].is_ready, "[AC3a] research: prefix (not in backlog)")
         expect(by_path["spec/p-brief"].is_ready, "[AC3a] brief: prefix satisfied")
         expect(by_path["spec/p-cross"].is_ready, "[AC3a] cross-ini prefix satisfied")
