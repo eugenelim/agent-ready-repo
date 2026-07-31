@@ -29,7 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   event in code mode. A `run_id` UUID generated at engine `init` is shared between both
   state files and verified on every mutating call via `--expect-run-id`. Phase-1 parallel
   verbs (`worktree`, `dispatch-decision`, `auto-parallel`) are disabled — they exit
-  non-zero. **Breaking changes (version classification: major):** `worktree`
+  non-zero. The `pre-pr.py` enforcement hook now reads `engine-state.json` to skip the
+  `check --phase review` cap check when the FSM is not in `CODE-REVIEW` (avoids false
+  positives during `CODE-IMPLEMENTATION` and after `CODE-HUMAN-GATE`/`DONE`).
+  **Breaking changes (version classification: major):** `worktree`
   subcommands are disabled (they exit non-zero). Dependent packs governance-extras (0.9.4), iac-terraform
   (0.1.5), monorepo-extras (0.1.5), and release-engineering (0.1.8) updated their core
   constraint from `^0.1` to `^1.0`.

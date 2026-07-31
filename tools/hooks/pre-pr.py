@@ -27,6 +27,7 @@ a hard failure.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -123,8 +124,7 @@ def main() -> int:
             engine_state_path = spec_dir / "engine-state.json"
             if engine_state_path.is_file():
                 try:
-                    import json as _json
-                    es = _json.loads(engine_state_path.read_text(encoding="utf-8"))
+                    es = json.loads(engine_state_path.read_text(encoding="utf-8"))
                     if es.get("state") != "CODE-REVIEW":
                         review_phase_active = False
                 except (OSError, ValueError, KeyError):

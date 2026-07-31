@@ -628,7 +628,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     plan_text = plan_path.read_text(encoding="utf-8")
     ordered, deps = parse_plan(plan_text)
     if not ordered:
-        return stop(f"no '### T<n>' tasks found in {plan_path}")
+        return stop(f"no '## T<n>' or '### T<n>' tasks found in {plan_path}")
 
     cyc = detect_cycles(ordered, deps)
     if cyc:
