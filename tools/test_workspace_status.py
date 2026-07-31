@@ -504,6 +504,27 @@ def case_spec_statuses() -> None:
         expect(unk_status is None,
                f"[AC2h] unknown final segment should yield None, got {unk_status}")
 
+        # Spaced arrow inside parenthetical annotation must not be read as a transition
+        p_spaced = root / "docs" / "specs" / "spec-spaced-annot" / "spec.md"
+        p_spaced.parent.mkdir(parents=True, exist_ok=True)
+        p_spaced.write_text(
+            "# S\n\n- **Status:** Shipped (root → leaf)\n", encoding="utf-8"
+        )
+        spaced_status = extract_spec_status(p_spaced)
+        expect(spaced_status == "Shipped",
+               f"[AC2h] spaced annotation arrow should not override status,"
+               f" got {spaced_status}")
+
+        # No-space transition arrow must be treated as a transition, not a simple word
+        p_nospace = root / "docs" / "specs" / "spec-nospace-trans" / "spec.md"
+        p_nospace.parent.mkdir(parents=True, exist_ok=True)
+        p_nospace.write_text(
+            "# N\n\n- **Status:** Approved→Shipped\n", encoding="utf-8"
+        )
+        nospace_status = extract_spec_status(p_nospace)
+        expect(nospace_status == "Shipped",
+               f"[AC2h] no-space transition should yield last segment, got {nospace_status}")
+
 
 # ── AC2i: Missing spec paths ──────────────────────────────────────────────────
 

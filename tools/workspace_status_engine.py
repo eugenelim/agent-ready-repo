@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import dataclasses
 import re
-import sys
 import time
 import tomllib
 from pathlib import Path
@@ -255,9 +254,11 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
 
 # ── Status extraction ─────────────────────────────────────────────────────────
 
-_SIMPLE_STATUS_RE = re.compile(r'\*\*Status:\*\*\s+([A-Za-z]+)')
-# Requires leading whitespace so annotation arrows ("root→leaf") are ignored.
-_ARROW_RE = re.compile(r'\s→\s*([A-Za-z]+)')
+# Captures the status content before any annotation (parenthetical or HTML comment).
+# A spaced arrow inside "(root → leaf)" must never be read as a transition.
+_STATUS_FIELD_RE = re.compile(r'\*\*Status:\*\*\s+(.*?)(?:\s*\(|\s*<!--|$)')
+# Finds transition segments in the pre-annotation content; no whitespace requirement.
+_TRANSITION_ARROW_RE = re.compile(r'→\s*([A-Za-z]+)')
 
 
 def _safe_spec_path(root: Path, slug: str) -> Path | None:
@@ -291,19 +292,21 @@ def extract_spec_status(spec_path: Path) -> str | None:
         # A prose line containing **Status:** (example, comment) is not the field.
         if not line.startswith("- **Status:**"):
             continue
-        if "→" in line:
-            # Status transitions use leading whitespace (" → Shipped").
-            # Annotation arrows do not ("root→leaf"). Match only the spaced form
-            # so annotations never interfere with status extraction.
-            # Take the LAST segment; if it is not a known status
-            # (e.g. "Approved → Cancelled"), return None — do not backtrack.
-            segments = _ARROW_RE.findall(line)
+        # Strip annotations before scanning — a spaced arrow in "(root → leaf)"
+        # must never be read as a transition arrow.
+        m = _STATUS_FIELD_RE.search(line)
+        if not m:
+            continue
+        content = m.group(1).strip()
+        if "→" in content:
+            # Transition form: "Draft → Approved → Shipped" (any arrow spacing).
+            # Take the LAST segment; if not a known status, return None — no backtrack.
+            segments = _TRANSITION_ARROW_RE.findall(content)
             if segments:
                 last = segments[-1]
                 return last if last in VALID_STATUSES else None
-        m = _SIMPLE_STATUS_RE.search(line)
-        if m:
-            word = m.group(1)
+        else:
+            word = content.split()[0] if content.split() else ""
             return word if word in VALID_STATUSES else None
     return None
 
@@ -507,8 +510,9 @@ def run_reconciliation(
         for spec_dir in sorted(specs_dir.iterdir()):
             if not spec_dir.is_dir():
                 continue
-            spec_file = spec_dir / "spec.md"
-            if not spec_file.exists():
+            # Confine reads to the spec tree (matches Type 2/3 confinement via _safe_spec_path).
+            spec_file = _safe_spec_path(root, spec_dir.name)
+            if spec_file is None or not spec_file.exists():
                 continue
             files_read += 1
             status = extract_spec_status(spec_file)
@@ -811,19 +815,3 @@ def compute_type2_cleanup(
         "path": spec_path,
         "written_form": f'"{spec_path}"',   # bare string
     }
-
-
-if __name__ == "__main__":
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
-    result = analyze(root)
-    active = [i for i in result.initiatives if i.status == "active"]
-    print(f"Active initiatives: {len(active)}")
-    print(f"Ready queue entries: {len(result.ready)}")
-    print(f"Blocked queue entries: {len(result.blocked)}")
-    print(f"Ready shaping entries: {len(result.ready_shaping)}")
-    print(f"Blocked shaping entries: {len(result.blocked_shaping)}")
-    print(f"Signal entries: {len(result.signals)}")
-    print(f"Reconciliation findings: "
-          f"T1={len(result.type1)} T2={len(result.type2)} T3={len(result.type3)}")
-    print(f"Spec files read: {result.files_read}")
-    print(f"Elapsed: {result.elapsed_s:.3f}s")
