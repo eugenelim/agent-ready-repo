@@ -30,6 +30,15 @@ start", "show the queue", etc. (full list in SKILL.md frontmatter description).
 There is no "quick" mode that skips reconciliation and no "full" mode that adds extra
 checks. The current behavior is: always run all three reconciliation scan types.
 
+**Known schema/usage drift — initiative status vocabulary:**
+
+SKILL.md (line 57) documents the initiative status vocabulary as `active | paused | closed`.
+However, the real `workspace.toml` in this repo uses `complete` (not `closed`) for at least
+one historical initiative. The engine and skill both accept whatever string is present; the
+characterization suite (AC2b) exercises `complete` as the observed legacy form. A future
+order should either align the vocabulary (update `workspace.toml` to `closed`) or update
+the SKILL.md documentation to include `complete` as a valid synonym.
+
 ---
 
 ## 3. How ready, blocked, active, and shipped are computed
@@ -57,7 +66,9 @@ An entry is **blocked** when one or more `needs` entries are not satisfied.
 ### Active
 
 Entries in `[work].active` are surfaced as currently in-progress. They do NOT appear in
-the ready/blocked classification — they are already running.
+the ready/blocked classification — they are already running. A queue entry whose path
+also appears in `active` or `shipped` is excluded from the ready/blocked classification
+(SKILL.md §2: "unconditionally ready unless already in active or shipped").
 
 ### Shipped
 
@@ -83,7 +94,7 @@ not at all, depending on whether their `needs` are satisfied.
 
 | Prefix | Resolves against | Satisfied when |
 |--------|-----------------|----------------|
-| `work:<path>` | `["<same-ini>".work].shipped` | Path appears in shipped |
+| `work:<path>` | `["<same-ini>".work].shipped` OR `["<same-ini>".work].active` | Path appears in shipped **or active** (active counts as in-progress) |
 | `shape:<slug>` | `["<same-ini>".shaping_queue].active` OR not present | In active OR absent from all shaping lists |
 | `research:<slug>` | `["<same-ini>".shaping_queue]` entries of `type = "research"` | Entry is NOT in `.backlog` |
 | `brief:<path>` | `["<same-ini>".brief_queue].ready` or `executing` | In ready or executing |

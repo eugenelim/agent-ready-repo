@@ -18,8 +18,9 @@ behavior. Order 1 will wire this engine (or a successor) as the actual backend;
 only then will these become true production-path unit tests.
 
 SKILL.md contract anchor:
-  SHA-256 of SKILL.md lines 75–180 (DAG resolution + reconciliation sections):
-  61ad933bdb40c5020aa88cc6a3276abe85f4a5f13a745777f2decfb43df62597
+  SHA-256 of SKILL.md lines 66–180 (ready/blocked definitions, DAG resolution,
+  reconciliation sections — the full algorithmic contract):
+  c0c2166e2a12472c1255602ccaad750cf6290646a510d83151a4a46e5a6f8984
   Tested by test_workspace_status.py::test_skill_contract_anchor.
   If that test fails, re-read the changed sections and update this engine before
   editing the fingerprint.
@@ -236,7 +237,9 @@ def extract_spec_status(spec_path: Path) -> str | None:
     except OSError:
         return None
     for line in text.splitlines():
-        if "**Status:**" not in line:
+        # Anchor to the canonical list-item field form: "- **Status:** ..."
+        # A prose line containing **Status:** (example, comment) is not the field.
+        if not line.startswith("- **Status:**"):
             continue
         # Try transition form first ("X → Y")
         m = _TRANSITION_RE.search(line)
@@ -275,12 +278,15 @@ def is_need_satisfied(
                 return any(e.path == path for e in ini.work.shipped)
         return False  # Target initiative not found
 
-    # Local work: "work:<path>"
+    # Local work: "work:<path>" — satisfied by shipped OR active (SKILL.md §2 prefix table)
     if need.startswith("work:"):
         path = need[len("work:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
-                return any(e.path == path for e in ini.work.shipped)
+                return (
+                    any(e.path == path for e in ini.work.shipped)
+                    or any(e.path == path for e in ini.work.active)
+                )
         return False
 
     # Shape: "shape:<slug>" — satisfied when active OR absent from all shaping lists
@@ -327,9 +333,18 @@ def classify_entries(
     ini: Initiative,
     all_initiatives: list[Initiative],
 ) -> list[EntryClassification]:
-    """Classify all queue entries for an initiative as ready or blocked."""
+    """Classify queue entries as ready or blocked.
+
+    Entries already in active or shipped are excluded — they are not surfaced
+    as ready/blocked in the DAG output (SKILL.md §2: "unconditionally ready
+    unless already in active or shipped").
+    """
+    active_paths = {e.path for e in ini.work.active}
+    shipped_paths = {e.path for e in ini.work.shipped}
     results: list[EntryClassification] = []
     for entry in ini.work.queue:
+        if entry.path in active_paths or entry.path in shipped_paths:
+            continue  # already running or done — not classified
         if not entry.needs:
             results.append(EntryClassification(
                 entry=entry, ini_slug=ini.slug, is_ready=True, blocking_needs=[],
@@ -483,6 +498,18 @@ def get_active_specs(initiatives: list[Initiative]) -> list[tuple[str, str]]:
 
 # ── work-loop shaping-item guard helper ──────────────────────────────────────
 
+def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:
+    """Extract typed entries from [backlog].open (the top-level backlog section).
+
+    work-loop's shaping-item guard (SKILL.md §0 step 2) checks this list in addition
+    to per-initiative shaping queues.
+    """
+    backlog_section = workspace.get("backlog", {})
+    if not isinstance(backlog_section, dict):
+        return []
+    return [_parse_shaping_entry(e) for e in backlog_section.get("open", [])]
+
+
 _SHAPING_TYPE_TO_SKILL: dict[str, str] = {
     "shape":    "frame-intent",
     "research": "desk-research-project-start",
@@ -495,16 +522,26 @@ _SHAPING_TYPE_TO_SKILL: dict[str, str] = {
 def check_shaping_guard(
     spec_slug: str,
     initiatives: list[Initiative],
+    top_level_backlog: list[ShapingEntry] | None = None,
 ) -> str | None:
     """Return the routing skill if spec_slug is in a shaping queue; None otherwise.
 
-    work-loop checks this guard at Step 0. If the spec is a shaping item,
-    work-loop stops and suggests the appropriate skill instead.
+    work-loop checks this guard at Step 0 (SKILL.md §0 step 2). Checks:
+      - active initiatives' [shaping_queue].active and .backlog
+      - top-level [backlog].open typed entries (pass via extract_top_level_backlog)
+
+    Only active initiatives are checked; paused/closed/complete initiatives are skipped.
+    If the spec is a shaping item, work-loop stops and suggests the appropriate skill.
     """
     for ini in initiatives:
+        if ini.status != "active":
+            continue
         for entry in ini.shaping.active + ini.shaping.backlog:
             if entry.slug == spec_slug:
                 return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
+    for entry in (top_level_backlog or []):
+        if entry.slug == spec_slug:
+            return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
     return None
 
 
@@ -519,41 +556,48 @@ def check_shaping_guard(
 # workspace-status has identified as stale (Status: Shipped/Archived in spec.md
 # but still in active/queue), describe what the cleanup write WOULD do.
 
-def compute_done_step_mutation(
+def compute_type2_cleanup(
     spec_path: str,
+    spec_status: str,
     initiatives: list[Initiative],
 ) -> dict | None:
-    """Describe what workspace-status's Type 2 cleanup WOULD write to workspace.toml.
+    """Describe what workspace-status Type 2 cleanup WOULD write to workspace.toml.
 
     This does not perform the write (the engine is read-only).
-    Returns a dict describing the mutation, or None if no mutation applies.
+    Returns a dict describing the mutation, or None if the path is not in
+    any initiative's active or queue list.
 
     workspace-status Type 2 cleanup (after user confirmation Y):
-      - In active (Status Shipped): remove from active → append bare string to shipped
-      - In queue (Status Shipped): remove from queue → append bare string to shipped
-      - In active/queue (Status Archived): remove only — do NOT add to shipped
-      - In neither: no write
+      - Shipped, in active/queue: remove → append bare string to [work].shipped
+      - Archived, in active/queue: remove only — do NOT add to shipped
+      - Not in active/queue: no mutation (None)
 
-    NOTE: work-loop (≥ a46d6f46) no longer performs this write. Cleanup is
+    NOTE: work-loop (≥ a46d6f46) does not perform this write. Cleanup is
     workspace-status's responsibility exclusively.
     """
     for ini in initiatives:
+        source: str | None = None
         if any(e.path == spec_path for e in ini.work.active):
+            source = "active"
+        elif any(e.path == spec_path for e in ini.work.queue):
+            source = "queue"
+        if source is None:
+            continue
+        if spec_status == "Archived":
             return {
                 "ini_slug": ini.slug,
-                "source_list": "active",
-                "target_list": "shipped",
+                "source_list": source,
+                "target_list": None,  # remove only — not added to shipped
                 "path": spec_path,
-                "written_form": f'"{spec_path}"',  # bare string
             }
-        if any(e.path == spec_path for e in ini.work.queue):
-            return {
-                "ini_slug": ini.slug,
-                "source_list": "queue",
-                "target_list": "shipped",
-                "path": spec_path,
-                "written_form": f'"{spec_path}"',  # bare string
-            }
+        # Shipped (and any other non-Archived status — treated as Shipped)
+        return {
+            "ini_slug": ini.slug,
+            "source_list": source,
+            "target_list": "shipped",
+            "path": spec_path,
+            "written_form": f'"{spec_path}"',  # bare string
+        }
     return None
 
 

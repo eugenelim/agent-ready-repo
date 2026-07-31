@@ -8,7 +8,7 @@
 ## Repo revision
 
 ```
-a46d6f4624bf3925ea29816094a15e0bcaac8bc4  (branch: eugene/port-au-prince)
+0d43f06b2914278c486aa059754a0335155607a5  (branch: eugene/pasted-text-review-v12)
 ```
 
 ## Benchmark command
@@ -67,7 +67,7 @@ scan" — not a specific millisecond threshold.
 
 | Phase | Observation |
 |-------|-------------|
-| Fixture generation | ~0.34 s (313 spec.md files written, workspace.toml written) |
+| Fixture generation | ~0.37 s (313 spec.md files written, workspace.toml written) |
 | Reference-engine analysis — warm | ~0.11 s |
 | Reference-engine analysis — cold | < 0.20 s |
 
@@ -79,7 +79,7 @@ every session-start pays the full O(spec_count) cost.
 
 ## Output size
 
-Formatted status report: **1016 bytes** for 4 initiatives × 48 queue entries.
+Formatted status report: **1064 bytes** for 4 initiatives × 48 queue entries.
 Scales with the number of blocked entries (longer `blocking_needs` lists).
 
 ## Classification results
@@ -92,16 +92,17 @@ Scales with the number of blocked entries (longer `blocking_needs` lists).
 | Type 2 (stale queue/active) | 0 |
 | Type 3 (premature shipped) | 0 |
 
-The 4 blocked entries are:
-- 1 per initiative blocked on an unresolvable dep (intentional fixture design).
-- `ini-001-queued-0` is blocked by `ini-002:work:spec/ini-002-spec-never-shipped` (cross-initiative dep pointing to a spec absent from ini-002's shipped list) — confirming cross-initiative blocking resolution.
-- `ini-001/ini-002/ini-003/ini-004`-queued-2 (one per initiative, q%5==2) are blocked on a local dep that is never shipped.
+The 5 blocked entries are:
+- `ini-001-queued-0` is blocked by `ini-002:work:spec/ini-002-spec-never-shipped`
+  (cross-initiative dep pointing to a spec absent from ini-002's shipped list) —
+  confirming cross-initiative blocking resolution.
+- `ini-001/ini-002/ini-003/ini-004`-queued-2 (one per initiative, q%5==2) are
+  blocked on a local dep that is never shipped.
 
 ## Correctness findings
 
-All 22 characterization test cases pass (20 original + Type 2 cleanup contract +
-contract anchor). Known defects documented in `behavior-map.md` §11 are exercised
-and labeled in `test_workspace_status.py`:
+All 25 characterization test cases pass. Known defects documented in
+`behavior-map.md` §11 are exercised and labeled in `test_workspace_status.py`:
 
 | Defect | Observed behavior |
 |--------|------------------|
@@ -118,30 +119,35 @@ and labeled in `test_workspace_status.py`:
 | Comment-preserving TOML write (tomlkit) | Engine is read-only; write path described in behavior-map §6 but not exercised |
 | Y-confirmation boundary | Model-layer behavior — not exercised by the reference engine |
 | Deduplication in `[work].shipped` | tomlkit write path, not algorithmic logic |
-| Archived vs Shipped mutation distinction | Engine returns same mutation shape for both; caller (workspace-status) must check spec status before writing — documented gap in `case_type2_cleanup_mutation_contract` |
-| Type 1 / Type 3 do NOT trigger cleanup | Asserted by absence in SKILL.md; no explicit negative test |
 | `brief:<path>` resolution edge cases | `brief_queue` structure variation not fully exercised (KD-07) |
 | LLM skill natural-language activation | Engine tests pure algorithmic logic; prompt→skill dispatch not covered |
 | Multi-need array form | TOML allows `needs = ["work:a", "work:b"]`; no explicit multi-need test |
 | Production-path timing | Reference-engine ~0.11 s is compute cost only; actual skill trace not measured |
 
-## Scope proof
+## Branch scope
 
-Verified using merge-base comparison (no SKILL.md or workspace.toml edits in this branch):
+Files changed from `origin/main` (verified with `git diff origin/main...HEAD`):
 
-```bash
-git diff origin/main...HEAD --name-only
-# No packs/core/.apm/skills/workspace-status/ files
-git diff origin/main...HEAD -- packs/core/.apm/skills/workspace-status/
-# (empty)
-git diff origin/main...HEAD -- packs/core/.apm/skills/work-loop/
-# (empty)
-git diff origin/main...HEAD -- workspace.toml
-# (empty)
+```
+Makefile                                                          (modified — make test wiring)
+docs/specs/workspace-status-simplification-order-0/notes/baseline-report.md  (new)
+docs/specs/workspace-status-simplification-order-0/notes/behavior-map.md     (new)
+docs/specs/workspace-status-simplification-order-0/plan.md                   (new)
+docs/specs/workspace-status-simplification-order-0/spec.md                   (new)
+tools/bench-workspace-status.py                                  (new)
+tools/repo/build_gate_chain.py                                   (modified — test-workspace-status step)
+tools/test_build_gate_chain.py                                   (modified — step count + path list)
+tools/test_workspace_status.py                                   (new, renamed from test-workspace-status.py)
+tools/workspace_status_engine.py                                 (new)
 ```
 
-All changes are new files under `docs/specs/workspace-status-simplification-order-0/`
-and `tools/`.
+No changes to `packs/core/.apm/skills/workspace-status/`, `work-loop/`, or `workspace.toml`:
+
+```bash
+git diff origin/main...HEAD -- packs/core/.apm/skills/workspace-status/  # (empty)
+git diff origin/main...HEAD -- packs/core/.apm/skills/work-loop/          # (empty)
+git diff origin/main...HEAD -- workspace.toml                             # (empty)
+```
 
 ## Measurements Order 1 should improve
 

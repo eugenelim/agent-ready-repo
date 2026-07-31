@@ -19,14 +19,14 @@ Establish an executable behavioral baseline and a reproducible performance
 benchmark for workspace-status before any simplification begins. This is a
 characterization and test-infrastructure change only.
 
-- **Hard scope:** test seam, fixtures, tests, benchmark, documentation only
+- **Hard scope:** executable reference model, fixtures, tests, benchmark, documentation only
 - **Hard exclude:** no production behavior change; no schema change; no caching; no optimization
 
 ## Boundaries
 
 ### Always do
 
-- Extract workspace-status algorithmic core (TOML parse, DAG resolution, reconciliation scans) into `tools/workspace_status_engine.py` as a test seam
+- Extract workspace-status algorithmic core (TOML parse, DAG resolution, reconciliation scans) into `tools/workspace_status_engine.py` as an executable reference model (manually transcribed Python interpretation of SKILL.md; not a production seam)
 - Write characterization tests in `tools/test_workspace_status.py` covering all scenarios listed in AC3
 - Write a benchmark in `tools/bench-workspace-status.py` generating ≥250 spec directories
 - Create a behavior map at `docs/specs/workspace-status-simplification-order-0/notes/behavior-map.md`
@@ -85,7 +85,7 @@ Benchmark: `python3 tools/bench-workspace-status.py` exits 0 and prints measurem
 - [x] AC3d. Tests cover Type 1, Type 2, and Type 3 reconciliation findings.
 - [x] AC3e. Tests cover argless work-loop resume (0, 1, multiple active specs).
 - [x] AC3f. Tests cover work-loop shaping-item guard scenario.
-- [x] AC3g. Tests cover work-loop completion-time workspace.toml mutation shape.
+- [x] AC3g. Tests cover workspace-status Type 2 cleanup mutation shape (workspace-status owns this; work-loop ≥ a46d6f46 does not mutate queue/active/shipped at completion).
 - [x] AC3h. Tests mark known defects explicitly (not silently preserving them).
 
 ### Deliverable 4 — Benchmark

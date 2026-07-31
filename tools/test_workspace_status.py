@@ -35,9 +35,10 @@ from workspace_status_engine import (
     analyze,
     check_shaping_guard,
     classify_entries,
-    compute_done_step_mutation,
+    compute_type2_cleanup,
     extract_initiatives,
     extract_spec_status,
+    extract_top_level_backlog,
     get_active_specs,
     parse_workspace,
     run_reconciliation,
@@ -153,7 +154,13 @@ def case_paused_closed_initiatives() -> None:
         by_status = {i.slug: i.status for i in initiatives}
         expect(by_status.get("ini-001") == "active", "[AC2b] ini-001 status wrong")
         expect(by_status.get("ini-002") == "paused", "[AC2b] ini-002 status wrong")
-        expect(by_status.get("ini-003") == "complete", "[AC2b] ini-003 status wrong")
+        # Schema drift: SKILL.md documents 'closed' but real workspace.toml uses 'complete'.
+        # The engine accepts both; 'complete' is the observed legacy form.
+        # See behavior-map §5 for the known schema/usage drift.
+        expect(
+            by_status.get("ini-003") == "complete",
+            "[AC2b] ini-003 status wrong (legacy 'complete')",
+        )
         # Paused/closed don't contribute to ready/blocked
         all_cls: list = []
         for ini in initiatives:
@@ -225,6 +232,82 @@ def case_local_work_deps() -> None:
                "[AC2d] spec/unmet should be blocked (not-yet-shipped not in shipped)")
         expect("work:spec/not-yet-shipped" in by_path["spec/unmet"].blocking_needs,
                "[AC2d] blocking need should name the unmet dep")
+
+
+# ── AC2d-active: work: dep satisfied by active (not just shipped) ─────────────
+
+def case_local_work_dep_satisfied_by_active() -> None:
+    """SKILL.md §2: work:<path> resolves against shipped OR active.
+
+    A queue entry whose prerequisite is in work.active must be classified ready,
+    not blocked. The production contract explicitly says active counts as in-progress.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active Dep"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/in-progress"]
+            shipped = []
+            queue   = [
+              {path = "spec/dependent", needs = "work:spec/in-progress"},
+              {path = "spec/blocked-dep", needs = "work:spec/not-started"},
+            ]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+        cls = classify_entries(initiatives[0], initiatives)
+        by_path = {c.entry.path: c for c in cls}
+
+        expect("spec/dependent" in by_path,
+               "[AC2d-active] spec/dependent should appear in classification")
+        expect(by_path["spec/dependent"].is_ready,
+               "[AC2d-active] dep on active spec should be READY (active counts as in-progress)")
+        expect(not by_path["spec/blocked-dep"].is_ready,
+               "[AC2d-active] dep on absent spec should be blocked")
+
+
+# ── AC2d-dup: queue entries already in active or shipped are excluded ──────────
+
+def case_queue_entries_in_active_or_shipped_excluded() -> None:
+    """SKILL.md §2: entry is ready 'unless already in active or shipped'.
+
+    A path duplicated in both queue and active must NOT appear in the
+    ready/blocked classification — it is already running. Similarly, a path
+    in both queue and shipped must NOT appear as ready.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Dup Test"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/also-active"]
+            shipped = ["spec/also-shipped"]
+            queue   = ["spec/also-active", "spec/also-shipped", "spec/normal"]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+        cls = classify_entries(initiatives[0], initiatives)
+        classified_paths = {c.entry.path for c in cls}
+
+        expect("spec/also-active" not in classified_paths,
+               "[AC2d-dup] queue entry already in active must be excluded")
+        expect("spec/also-shipped" not in classified_paths,
+               "[AC2d-dup] queue entry already in shipped must be excluded")
+        expect("spec/normal" in classified_paths,
+               "[AC2d-dup] normal queue entry should be classified")
 
 
 # ── AC2e: Cross-initiative work dependencies ─────────────────────────────────
@@ -814,12 +897,92 @@ def case_shaping_item_guard() -> None:
                "[AC3f] non-shaping spec → None (not guarded)")
 
 
+# ── AC3f ext: shaping guard — paused initiative and top-level backlog ─────────
+
+def case_shaping_guard_paused_initiative() -> None:
+    """Paused initiative's shaping items must NOT be guarded (filter: status == "active" only)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Paused Initiative"
+            status = "paused"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active  = [{slug = "paused-shape", type = "shape"}]
+            backlog = []
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = []
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+
+        result = check_shaping_guard("paused-shape", initiatives)
+        expect(result is None,
+               f"[AC3f-paused] paused initiative shaping item → None (not guarded), got {result!r}")
+
+
+def case_shaping_guard_top_level_backlog() -> None:
+    """Top-level [backlog].open typed entries must be checked by check_shaping_guard."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active Initiative"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = []
+
+            [backlog]
+            open = [
+              {slug = "top-shape",    type = "shape"},
+              {slug = "top-research", type = "research"},
+            ]
+        """)
+        ws = parse_workspace(root / "workspace.toml")
+        initiatives = extract_initiatives(ws)
+        top_backlog = extract_top_level_backlog(ws)
+
+        # Without top_level_backlog parameter → not guarded (shows the gap the param fills)
+        expect(check_shaping_guard("top-shape", initiatives) is None,
+               "[AC3f-toplevel] top-level backlog item → None without top_level_backlog param")
+
+        # With top_level_backlog parameter → correctly routed
+        result = check_shaping_guard("top-shape", initiatives, top_level_backlog=top_backlog)
+        expect(result == "frame-intent",
+               f"[AC3f-toplevel] top-level shape → frame-intent, got {result!r}")
+
+        result2 = check_shaping_guard("top-research", initiatives, top_level_backlog=top_backlog)
+        expect(result2 == "desk-research-project-start",
+               f"[AC3f-toplevel] top-level research → desk-research-project-start, got {result2!r}")
+
+        # Non-shaping slug → still None
+        result3 = check_shaping_guard("not-here", initiatives, top_level_backlog=top_backlog)
+        expect(result3 is None,
+               f"[AC3f-toplevel] non-shaping slug → None, got {result3!r}")
+
+
+
 # ── AC3g: workspace-status Type 2 cleanup mutation shape ────────────────────────
 # NOTE: work-loop (≥ a46d6f46) no longer writes active/shipped to workspace.toml.
 # Its finish checklist only sets spec.md Status: Shipped. Cleanup of stale
 # active/queue entries is workspace-status's Type 2 cleanup write.
 
-def case_done_step_mutation() -> None:
+def case_type2_cleanup_ownership() -> None:
+    """AC3g: workspace-status owns Type 2 cleanup; work-loop does not mutate queue/active/shipped.
+
+    work-loop (≥ a46d6f46) only sets spec.md Status: Shipped at completion.
+    Stale queue/active entries are workspace-status's responsibility (Type 2).
+    compute_type2_cleanup describes the write the skill would perform after Y confirmation.
+    """
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_workspace(root, """
@@ -828,9 +991,9 @@ def case_done_step_mutation() -> None:
             status = "active"
             milestone = "M1"
             ["ini-001".work]
-            active  = ["spec/stale-active"]
+            active  = ["spec/stale-active", "spec/stale-active-archived"]
             shipped = []
-            queue   = ["spec/stale-queued"]
+            queue   = ["spec/stale-queued", "spec/stale-queued-archived"]
             ["ini-001".shaping_queue]
             active = []
             backlog = []
@@ -838,23 +1001,34 @@ def case_done_step_mutation() -> None:
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
 
-        # Stale active entry: workspace-status cleanup moves active → shipped
-        mut = compute_done_step_mutation("spec/stale-active", initiatives)
-        expect(mut is not None, "[AC3g] stale active spec should have a cleanup mutation")
-        expect(mut["source_list"] == "active", f"[AC3g] source should be active: {mut}")
-        expect(mut["target_list"] == "shipped", f"[AC3g] target should be shipped: {mut}")
-        expect(mut["written_form"] == '"spec/stale-active"',
-               f"[AC3g] written form should be bare string: {mut}")
+        # Shipped, in active → remove from active, append to shipped
+        mut = compute_type2_cleanup("spec/stale-active", "Shipped", initiatives)
+        expect(mut is not None, "[AC3g] Shipped stale-active → mutation")
+        expect(mut["source_list"] == "active", f"[AC3g] source=active: {mut}")
+        expect(mut["target_list"] == "shipped", f"[AC3g] target=shipped: {mut}")
+        expect(mut["written_form"] == '"spec/stale-active"', f"[AC3g] bare string form: {mut}")
 
-        # Stale queue entry: workspace-status cleanup moves queue → shipped
-        mut2 = compute_done_step_mutation("spec/stale-queued", initiatives)
-        expect(mut2 is not None, "[AC3g] stale queued spec should have a cleanup mutation")
-        expect(mut2["source_list"] == "queue", f"[AC3g] source should be queue: {mut2}")
-        expect(mut2["target_list"] == "shipped", f"[AC3g] target should be shipped: {mut2}")
+        # Shipped, in queue → remove from queue, append to shipped
+        mut2 = compute_type2_cleanup("spec/stale-queued", "Shipped", initiatives)
+        expect(mut2 is not None, "[AC3g] Shipped stale-queued → mutation")
+        expect(mut2["source_list"] == "queue", f"[AC3g] source=queue: {mut2}")
+        expect(mut2["target_list"] == "shipped", f"[AC3g] target=shipped: {mut2}")
 
-        # Not present → no mutation
-        mut3 = compute_done_step_mutation("spec/not-tracked", initiatives)
-        expect(mut3 is None, "[AC3g] untracked spec should return no mutation")
+        # Archived, in active → remove from active, NOT added to shipped
+        mut3 = compute_type2_cleanup("spec/stale-active-archived", "Archived", initiatives)
+        expect(mut3 is not None, "[AC3g] Archived stale-active-archived → mutation")
+        expect(mut3["source_list"] == "active", f"[AC3g] Archived source=active: {mut3}")
+        expect(mut3["target_list"] is None, f"[AC3g] Archived target=None (remove only): {mut3}")
+
+        # Archived, in queue → remove from queue, NOT added to shipped
+        mut4 = compute_type2_cleanup("spec/stale-queued-archived", "Archived", initiatives)
+        expect(mut4 is not None, "[AC3g] Archived stale-queued-archived → mutation")
+        expect(mut4["source_list"] == "queue", f"[AC3g] Archived source=queue: {mut4}")
+        expect(mut4["target_list"] is None, f"[AC3g] Archived target=None (remove only): {mut4}")
+
+        # Not tracked → no mutation
+        mut5 = compute_type2_cleanup("spec/not-tracked", "Shipped", initiatives)
+        expect(mut5 is None, "[AC3g] untracked spec → no mutation")
 
 
 # ── AC3a: DAG all needs prefix forms ─────────────────────────────────────────
@@ -1023,11 +1197,12 @@ def case_full_analyze() -> None:
 
 # ── Contract anchor — SKILL.md drift guard ───────────────────────────────────
 #
-# SHA-256 of SKILL.md lines 75–180 (DAG resolution + reconciliation sections).
+# SHA-256 of SKILL.md lines 66–180 (ready/blocked definitions, DAG resolution,
+# reconciliation sections — the full algorithmic contract).
 # When this test fails, the engine's interpretation may be stale. Read the
 # changed sections and reconcile before updating the constant.
 _SKILL_CONTRACT_HASH = (
-    "61ad933bdb40c5020aa88cc6a3276abe85f4a5f13a745777f2decfb43df62597"
+    "c0c2166e2a12472c1255602ccaad750cf6290646a510d83151a4a46e5a6f8984"
 )
 _SKILL_MD = (
     Path(__file__).resolve().parent.parent
@@ -1036,12 +1211,12 @@ _SKILL_MD = (
 
 
 def case_skill_contract_anchor() -> None:
-    """Fail when DAG/reconciliation sections of SKILL.md change without update."""
+    """Fail when the full DAG/reconciliation contract of SKILL.md changes."""
     if not _SKILL_MD.exists():
         # Allow running outside the repo root (e.g. isolated tempdir tests)
         return
     raw = _SKILL_MD.read_bytes().splitlines(keepends=True)
-    contract = b"".join(raw[74:180])  # lines 75–180 (0-indexed 74–179)
+    contract = b"".join(raw[65:180])  # lines 66–180 (0-indexed 65–179)
     actual = hashlib.sha256(contract).hexdigest()
     expect(
         actual == _SKILL_CONTRACT_HASH,
@@ -1095,7 +1270,7 @@ def case_type2_cleanup_mutation_contract() -> None:
         initiatives = extract_initiatives(ws)
 
         # Shipped in active → active removed, appended to shipped
-        mut = compute_done_step_mutation("spec/stale-active-shipped", initiatives)
+        mut = compute_type2_cleanup("spec/stale-active-shipped", "Shipped", initiatives)
         expect(mut is not None, "[cleanup] stale-active-shipped has mutation")
         expect(mut["source_list"] == "active", "[cleanup] source=active for shipped-in-active")
         expect(mut["target_list"] == "shipped", "[cleanup] target=shipped for shipped-in-active")
@@ -1105,25 +1280,19 @@ def case_type2_cleanup_mutation_contract() -> None:
         )
 
         # Shipped in queue → queue removed, appended to shipped
-        mut2 = compute_done_step_mutation("spec/stale-queue-shipped", initiatives)
+        mut2 = compute_type2_cleanup("spec/stale-queue-shipped", "Shipped", initiatives)
         expect(mut2 is not None, "[cleanup] stale-queue-shipped has mutation")
         expect(mut2["source_list"] == "queue", "[cleanup] source=queue for shipped-in-queue")
         expect(mut2["target_list"] == "shipped", "[cleanup] target=shipped")
 
-        # Archived in active → active removed, NOT added to shipped
-        # Note: compute_done_step_mutation models the "remove + optionally add to shipped"
-        # shape. The Archived path is handled differently: remove-only.
-        # This is documented here as an acceptance gap — the engine currently returns
-        # the same mutation shape regardless of whether the spec Status is Shipped or
-        # Archived. The caller (workspace-status) is responsible for checking spec status
-        # and omitting the target_list write for Archived entries.
-        mut3 = compute_done_step_mutation("spec/stale-active-archived", initiatives)
-        expect(mut3 is not None, "[cleanup] stale-active-archived has mutation (remove shape)")
-        # Documented gap: engine doesn't distinguish Shipped vs Archived in mutation shape.
-        # Archived entries should NOT be appended to shipped — workspace-status must check.
+        # Archived in active → removed only, NOT added to shipped
+        mut3 = compute_type2_cleanup("spec/stale-active-archived", "Archived", initiatives)
+        expect(mut3 is not None, "[cleanup] stale-active-archived has mutation")
+        expect(mut3["source_list"] == "active", "[cleanup] Archived source=active")
+        expect(mut3["target_list"] is None, "[cleanup] Archived target=None (remove only)")
 
         # Not present → no mutation
-        mut4 = compute_done_step_mutation("spec/not-tracked", initiatives)
+        mut4 = compute_type2_cleanup("spec/not-tracked", "Shipped", initiatives)
         expect(mut4 is None, "[cleanup] untracked spec returns no mutation")
 
 
@@ -1131,7 +1300,7 @@ def case_type1_type3_no_cleanup() -> None:
     """Explicit negative assertion: Type 1 and Type 3 entries produce no cleanup mutation.
 
     Type 1 (untracked Approved spec in the spec tree, absent from all workspace.toml
-    lists) has no mutation because compute_done_step_mutation only inspects active/queue.
+    lists) has no mutation because compute_type2_cleanup only inspects active/queue.
 
     Type 3 (path is in work.shipped but spec.md doesn't say Shipped) has no mutation
     for the same reason — shipped is not active/queue.
@@ -1157,15 +1326,15 @@ def case_type1_type3_no_cleanup() -> None:
         inits = extract_initiatives(ws)
 
         # Type 1: spec exists in the spec tree but not in any workspace.toml list
-        m = compute_done_step_mutation("spec/untracked-approved", inits)
+        m = compute_type2_cleanup("spec/untracked-approved", "Approved", inits)
         expect(m is None, f"[type1] untracked spec → None (no cleanup mutation), got {m!r}")
 
         # Type 3: path is in work.shipped, not in active or queue
-        m = compute_done_step_mutation("spec/shipped-only", inits)
+        m = compute_type2_cleanup("spec/shipped-only", "Shipped", inits)
         expect(m is None, f"[type3] shipped-only path → None (no cleanup mutation), got {m!r}")
 
         # Positive control: queued entry IS a Type 2 candidate
-        m = compute_done_step_mutation("spec/queued", inits)
+        m = compute_type2_cleanup("spec/queued", "Shipped", inits)
         expect(m is not None, f"[type2/positive] queued entry → mutation candidate, got {m!r}")
 
 
@@ -1247,8 +1416,24 @@ def test_ac3f_shaping_item_guard() -> None:
     _run_case(case_shaping_item_guard)
 
 
-def test_ac3g_done_step_mutation() -> None:
-    _run_case(case_done_step_mutation)
+def test_ac3f_shaping_guard_paused_initiative() -> None:
+    _run_case(case_shaping_guard_paused_initiative)
+
+
+def test_ac3f_shaping_guard_top_level_backlog() -> None:
+    _run_case(case_shaping_guard_top_level_backlog)
+
+
+def test_ac3g_type2_cleanup_ownership() -> None:
+    _run_case(case_type2_cleanup_ownership)
+
+
+def test_ac2d_active_local_dep() -> None:
+    _run_case(case_local_work_dep_satisfied_by_active)
+
+
+def test_ac2d_dup_queue_excluded() -> None:
+    _run_case(case_queue_entries_in_active_or_shipped_excluded)
 
 
 def test_ac3a_dag_all_needs_prefixes() -> None:
@@ -1274,6 +1459,9 @@ CASES = [
     ("AC2b paused_closed_initiatives", case_paused_closed_initiatives),
     ("AC2c ordered_queues", case_ordered_queues),
     ("AC2d local_work_deps", case_local_work_deps),
+    ("AC2d-active work_dep_satisfied_by_active", case_local_work_dep_satisfied_by_active),
+    ("AC2d-dup queue_entries_in_active_or_shipped_excluded",
+     case_queue_entries_in_active_or_shipped_excluded),
     ("AC2e cross_initiative_deps", case_cross_initiative_deps),
     ("AC2f shape_research_brief_deps", case_shape_research_brief_deps),
     ("AC2g ready_and_transitively_blocked", case_ready_and_transitively_blocked),
@@ -1287,7 +1475,9 @@ CASES = [
     ("AC2o multiple_active_for_workloop", case_multiple_active_for_workloop),
     ("AC2p deferred_backlog_anchors", case_deferred_backlog_anchors),
     ("AC3f shaping_item_guard", case_shaping_item_guard),
-    ("AC3g done_step_mutation", case_done_step_mutation),
+    ("AC3f shaping_guard_paused_initiative", case_shaping_guard_paused_initiative),
+    ("AC3f shaping_guard_top_level_backlog", case_shaping_guard_top_level_backlog),
+    ("AC3g type2_cleanup_ownership", case_type2_cleanup_ownership),
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
     ("type2_cleanup_mutation_contract", case_type2_cleanup_mutation_contract),
     ("type1_type3_no_cleanup", case_type1_type3_no_cleanup),
