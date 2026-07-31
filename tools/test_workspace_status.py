@@ -921,7 +921,8 @@ def case_shaping_guard_paused_initiative() -> None:
 
         result = check_shaping_guard("paused-shape", initiatives)
         expect(result is None,
-               f"[AC3f-paused] paused initiative shaping item → None (not guarded), got {result!r}")
+               f"[AC3f-paused] paused initiative shaping item → None (not guarded),"
+               f" got {result!r}")
 
 
 def case_shaping_guard_top_level_backlog() -> None:
@@ -962,13 +963,13 @@ def case_shaping_guard_top_level_backlog() -> None:
 
         result2 = check_shaping_guard("top-research", initiatives, top_level_backlog=top_backlog)
         expect(result2 == "desk-research-project-start",
-               f"[AC3f-toplevel] top-level research → desk-research-project-start, got {result2!r}")
+               f"[AC3f-toplevel] top-level research → desk-research-project-start,"
+               f" got {result2!r}")
 
         # Non-shaping slug → still None
         result3 = check_shaping_guard("not-here", initiatives, top_level_backlog=top_backlog)
         expect(result3 is None,
                f"[AC3f-toplevel] non-shaping slug → None, got {result3!r}")
-
 
 
 # ── AC3g: workspace-status Type 2 cleanup mutation shape ────────────────────────
