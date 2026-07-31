@@ -1455,7 +1455,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 
 **Depends on:** T2, T3
 **Mode:** goal-based (content assertions + build-gate checks)
-**ACs:** AC9, AC10
+**ACs:** AC6, AC9, AC10
 
 **Tests:**
 - `SKILL.md` no longer references the mid-EXECUTE re-plan path or `check --phase plan` expecting exit-1
@@ -1503,7 +1503,7 @@ uses its output for routing and passes the fingerprints to `review record`.
 - Pre-Phase-1 `state.json` (missing `run_id`, containing `iteration_count`) fails identity at resume; reset pair clears it
 - `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` version fields match; `marketplace.json` reflects the bumped version (no stale projection after `FORCE=1 make build-self`)
 - `packs/core/pack.toml` Tier-A exclusion comment is confirmed unchanged (Phase-1 does not introduce a narrower activation surface)
-- `packs/core/.apm/skills/work-loop/evals/evals.json` exists, parses as valid JSON, and each entry carries `id`, `prompt`, `expected_output`, and `assertions` fields (schema shape assertion; no LLM grading required for Phase-1 CI)
+- `packs/core/.apm/skills/work-loop/evals/evals.json` exists, parses as valid JSON, has top-level `skill_name == "work-loop"` and a top-level `evals` array of exactly 6 entries, and each entry carries `id`, `prompt`, `expected_output`, and `assertions` fields (canonical schema shape assertion; no LLM grading required for Phase-1 CI)
 - `docs.yml` path triggers fire on changes to `loop-engine.py`, `check-spec-status.py`, `test-loop-engine.py`, and `test-loop-cohort.py`; CI steps run both test files and fail the job on non-zero exit
 - `make ci` passes (full CI: build-check + lint + test)
 
