@@ -641,6 +641,30 @@ def test_schedule_run_id_mismatch(tmp: Path) -> None:
         ok(name)
 
 
+def test_schedule_rejects_alternate_plan_path(tmp: Path) -> None:
+    """schedule --plan pointing to a different file than plan.md is rejected."""
+    name = "schedule-rejects-alternate-plan-path"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    # Create an alternate plan file somewhere else
+    alt_plan = tmp / "other_plan.md"
+    alt_plan.write_text("### T1: other\n\nApproach: other\nTests: no stub\n", encoding="utf-8")
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_cohort("schedule", str(spec_dir), "--plan", str(alt_plan),
+                          "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when --plan points to alternate file")
+    elif before != after:
+        fail(name, "state.json mutated despite alternate plan path")
+    else:
+        ok(name)
+
+
 # ── T1: disabled Phase-1 verbs ────────────────────────────────────────────
 
 
@@ -1557,6 +1581,7 @@ def main() -> int:
             test_schedule_check_current_passes_unchanged,
             test_schedule_persists_waves,
             test_schedule_run_id_mismatch,
+            test_schedule_rejects_alternate_plan_path,
             test_disabled_worktree,
             test_disabled_dispatch_decision,
             test_disabled_auto_parallel,

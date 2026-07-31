@@ -489,6 +489,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    |---|---|---|
    | `plan-approved` | `CODE-IMPLEMENTATION` | Write `Status: Implementing` if not set; resume EXECUTE |
    | `plan-approved` | `DONE` | **spec-plan terminal** — loop ended after plan approval; no EXECUTE follows. PR/merge only |
+   | `done` | `DONE` | **code-mode terminal** — loop ended after human approved merge; PR/merge only |
    | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `python3 scripts/loop-cohort.py wave advance docs/specs/<feature> --from-index <last_event_context.completed_wave_index> --expect-run-id <run_id>` (idempotent); resume EXECUTE |
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `python3 scripts/loop-cohort.py record-attempt docs/specs/<feature> --phase implement --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` where `transition_sequence` was read from `loop-engine status` in step 3 (idempotent); resume EXECUTE |
    | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |

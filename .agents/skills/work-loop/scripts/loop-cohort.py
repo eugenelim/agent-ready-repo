@@ -602,7 +602,13 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     if err is not None:
         return err
 
-    plan_path = Path(plan_override) if plan_override else spec_dir / "plan.md"
+    canonical_plan = spec_dir / "plan.md"
+    if plan_override and Path(plan_override).resolve() != canonical_plan.resolve():
+        return stop(
+            f"schedule: --plan must point to {canonical_plan}; alternate paths create "
+            "unusable state because schedule check-current always hashes plan.md"
+        )
+    plan_path = canonical_plan
     if not plan_path.exists():
         return stop(f"plan not found at {plan_path}")
     plan_text = plan_path.read_text(encoding="utf-8")
