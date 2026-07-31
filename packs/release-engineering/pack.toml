@@ -34,7 +34,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^0.1"
+version = "^1.0"
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links + maintainer.
 [pack.links]

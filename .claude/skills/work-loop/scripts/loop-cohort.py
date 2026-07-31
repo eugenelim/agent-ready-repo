@@ -1194,12 +1194,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="rotate fingerprints and bump counters after a CODE-REVIEW round",
     )
     sp.add_argument("spec_dir")
-    sp.add_argument("--report", default=None,
-                    help="path to a clean reviewer report (--report or --fingerprint required)")
-    sp.add_argument(
+    _rr_grp = sp.add_mutually_exclusive_group(required=True)
+    _rr_grp.add_argument("--report", default=None,
+                         help="path to a clean reviewer report")
+    _rr_grp.add_argument(
         "--fingerprint",
         action="append",
-        default=[],
+        default=None,
         help="explicit fingerprint (hex sha1); use for findings rounds",
     )
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")

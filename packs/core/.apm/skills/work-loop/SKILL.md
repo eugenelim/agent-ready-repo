@@ -117,7 +117,7 @@ After orientation:
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), if `state.json` is present (orphaned cohort from a prior partial run) run `loop-cohort reset` first. Then run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
+10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), if `state.json` is present (orphaned cohort from a prior partial run) — **Surface to human**: run `loop-cohort status docs/specs/<feature>` to show the orphaned state, describe it, and wait for explicit authorization before running the destructive reset pair (`loop-cohort reset` then `loop-engine reset`). Once authorized, run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
     ```bash
     run_id=$(python3 scripts/loop-engine.py init docs/specs/<feature> \
         --mode code --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
@@ -143,6 +143,11 @@ After orientation:
     python3 scripts/loop-engine.py transition docs/specs/<feature> plan-approved
     ```
     `loop-engine transition plan-approved` internally verifies approval + schedule binding (`plan check-current --require-schedule`). Exit 0 unlocks EXECUTE; any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
+
+    **If the human rejects the plan:** fire `plan-rejected` to return to SPEC-PLAN-DRAFTING, then revise the spec/plan and re-enter the pre-EXECUTE review loop:
+    ```bash
+    python3 scripts/loop-engine.py transition docs/specs/<feature> plan-rejected
+    ```
 
 Write the plan to disk — don't keep it in memory across turns.
 
@@ -254,11 +259,7 @@ loop-cohort.py review record docs/specs/<feature> \
     --expect-run-id "$run_id"
 # Fix findings and return to CODE-IMPLEMENTATION.
 
-# 2c. Clean — write Status: Shipped, fire reviewers-clean, then record the round
-#     (transition first; record is non-idempotent — recording first then
-#      crashing leaves CODE-REVIEW with the audit count already moved):
-python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
-                   # guard: check-spec-status.py; requires Status: Shipped
+# 2c. Adversarial clean — record the round, then run specialist reviewers below:
 loop-cohort.py review record docs/specs/<feature> \
     --report <report-path> --expect-run-id "$run_id"
 ```
@@ -284,6 +285,12 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 - **`experience-reviewer`** — diff changes what a reader or adopter sees (full-mode only). Pass rendered output + grounded aesthetic reference and constraints — not the code diff. Its confirm-before-reviewing gate requires the grounded reference. For web: run the build, describe key pages from output. Fallback absent: named skip.
 
 - **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals. Fallback absent: named skip.
+
+**When ALL warranted reviewers are clean** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` (transition first to preserve the retry bound; guard requires Status: Shipped):
+```bash
+python3 scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
+```
+If a specialist reviewer returns findings, apply them, re-run GATES, and re-run the full REVIEW loop (adversarial first) before firing this transition.
 
 **Dispatch multiple reviewers in parallel** per the [Parallel dispatch discipline](#parallel-dispatch-discipline): read N reports, group by severity, deduplicate cross-reviewer overlaps. Fingerprint computation once per fan-out round. Drop merged prose after recording.
 
@@ -436,7 +443,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `record-attempt --cycle-id <run_id>:<transition_sequence>` (idempotent); resume EXECUTE |
    | `findings-remain` | `CODE-IMPLEMENTATION` | **Surface to human** — `review record --fingerprint` may not have run; stale fingerprint baseline and possible under-count; do NOT auto-reissue |
    | `blocker-applied` | `CODE-IMPLEMENTATION` | Resume implementation directly (Status: Shipped stays; do not rewrite) |
-   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal; after signal, surface `review record --report` audit risk before replaying |
+   | `reviewers-clean` | `CODE-HUMAN-GATE` | Wait for human signal. **Approved (merge confirmed):** fire `done`. **Changes requested:** apply fix → re-run GATES → REVIEW → fire `blocker-applied` to return to CODE-IMPLEMENTATION. Surface `review record --report` audit risk before either outcome |
    | `wave-complete` | `CODE-VERIFICATION` | Re-run gates; fire `wave-passed` or `gates-clean` or `gates-failed` |
    | `gates-clean` | `CODE-REVIEW` | Re-run reviewer fan-out and `review inspect` |
 

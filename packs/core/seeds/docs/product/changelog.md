@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > newest-first. Rewrite entries for users, not contributors — see the
 > [Common Changelog guidance](https://common-changelog.org/).
 
-## [core][0.16.0] — 2026-07-31
+## [core][1.0.0] — 2026-07-31
 
 ### Added
 
