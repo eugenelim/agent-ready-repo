@@ -8,7 +8,7 @@
 ## Repo revision
 
 ```
-6e50213d
+7ffe88a3
 ```
 
 ## Benchmark command
