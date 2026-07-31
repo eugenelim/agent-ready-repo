@@ -709,22 +709,27 @@ def test_legal_reviewers_clean_spec_plan(tmp: Path) -> None:
 
 
 def test_guard_check_spec_status_fails_non_shipped(tmp: Path) -> None:
-    """reviewers-clean guard fires for code mode and blocks when Status != 'Shipped'.
+    """reviewers-clean guard fires on CODE-REVIEW → CODE-HUMAN-GATE when Status != 'Shipped'.
 
-    The check-spec-status guard is keyed on ("code", "reviewers-clean") and fires
-    whether the current state is SPEC-PLAN-REVIEW or CODE-REVIEW.
+    The guard is scoped to CODE-REVIEW (not SPEC-PLAN-REVIEW) so it does not
+    require Status: Shipped before G-plan sign-off.
     """
     name = "guard-check-spec-status-non-shipped"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir, status="Draft")
     write_plan(spec_dir)
-    # Must use code mode — the guard is ("code", "reviewers-clean"); spec-plan has no such guard.
-    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-REVIEW"))
-    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
+        "plan_review_status": "approved",
+        "plan_hash": plan_hash,
+        "schedule_waves": [["T1"]],
+        "current_wave_index": 0,
+    }))
     rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
     if rc == 0:
-        fail(name, "expected non-zero when spec.md Status != Shipped (code mode)")
+        fail(name, "expected non-zero when spec.md Status != Shipped (CODE-REVIEW source)")
     else:
         ok(name)
 

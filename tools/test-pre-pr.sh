@@ -115,11 +115,11 @@ run_corruption "knowledge-fail" \
   "printf '%s\n' '{not json' > docs/knowledge/patterns.jsonl" \
   'pre-pr: ✖ knowledge lint failed'
 
-# 4. loop-cohort check — plant a state.json with plan_review_status=pending,
-#    which trips the gate for both --phase implement and --phase review.
+# 4. loop-cohort check — plant a state.json with review_retry_count at cap,
+#    which trips the check --phase review gate.
 #    Drops the test if pre-pr ever stops iterating state.json files.
 run_corruption "loop-cohort-fail" \
-  "mkdir -p docs/specs/example && cp .claude/skills/work-loop/assets/state.json docs/specs/example/state.json" \
+  "mkdir -p docs/specs/example && python3 -c \"import json,pathlib; p=pathlib.Path('.claude/skills/work-loop/assets/state.json'); s=json.loads(p.read_text()); s['review_retry_count']=int(s['max_review_retries']); pathlib.Path('docs/specs/example/state.json').write_text(json.dumps(s))\"" \
   'pre-pr: ✖ loop-cohort check'
 
 echo

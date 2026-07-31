@@ -49,8 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`references/state-schema.md`** — rewritten for Phase-1 field set; documents both
   `state.json` and `engine-state.json` fields.
 - **`references/supervisor-mode.md`** — Phase-1 note at top: parallel fan-out disabled.
-- **`docs/architecture/loop-infrastructure.md`** — replaced pointer doc with
-  current-state Phase-1 architecture documentation.
 
 <!-- Example entry (replace with your first real version):
 

@@ -18,7 +18,7 @@ Verb surface
 
 Exit contract: 0 on success; non-zero with a one-line reason on stderr.
 
-Schema reference: docs/specs/loop-infrastructure-phase-1/plan.md §State Ownership.
+Schema reference: references/state-schema.md
 """
 
 from __future__ import annotations
@@ -180,6 +180,16 @@ def _guard_check_spec_status(spec_dir: Path, engine_state: dict, _) -> str | Non
     return None
 
 
+def _guard_check_spec_status_on_code_review(
+    spec_dir: Path, engine_state: dict, event_args: dict
+) -> str | None:
+    # reviewers-clean fires in both SPEC-PLAN-REVIEW and CODE-REVIEW; the
+    # shipped-status guard applies only on the CODE-REVIEW → CODE-HUMAN-GATE edge.
+    if engine_state.get("state") != "CODE-REVIEW":
+        return None
+    return _guard_check_spec_status(spec_dir, engine_state, event_args)
+
+
 # Guard dispatch: (mode, event) → guard_fn | None
 _GUARDS: dict[tuple[str, str], object] = {
     ("code", "plan-approved"): _guard_plan_check_current_require_schedule,
@@ -189,7 +199,7 @@ _GUARDS: dict[tuple[str, str], object] = {
     ("code", "wave-passed"): _guard_wave_check_more,
     ("code", "gates-clean"): _guard_wave_check_last,
     ("code", "findings-remain"): _guard_check_phase_review,
-    ("code", "reviewers-clean"): _guard_check_spec_status,
+    ("code", "reviewers-clean"): _guard_check_spec_status_on_code_review,
 }
 
 # ── engine-state.json helpers ──────────────────────────────────────────────

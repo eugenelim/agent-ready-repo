@@ -411,9 +411,9 @@ run_and_check "review-record-report-non-clean-fails" 1 "" -- $PY review record "
 # ── status is read-only ───────────────────────────────────────────────────
 
 ran=$((ran + 1))
-before=$(md5sum "$SPEC1/state.json" | awk '{print $1}')
+before=$(python3 -c "import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$SPEC1/state.json")
 python3 $SCRIPT status "$SPEC1" --json > /dev/null 2>&1
-after=$(md5sum "$SPEC1/state.json" | awk '{print $1}')
+after=$(python3 -c "import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$SPEC1/state.json")
 if [[ "$before" == "$after" ]]; then
   ok "status-read-only"
 else

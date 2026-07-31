@@ -117,7 +117,7 @@ After orientation:
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
-10. **Full mode:** run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
+10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
     ```bash
     run_id=$(python3 scripts/loop-engine.py init docs/specs/<feature> \
         --mode code --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
@@ -181,7 +181,7 @@ Both EXECUTE fan-out (supervisor mode) and REVIEW fan-out share these rules:
 
 #### Supervisor mode (sequential only in Phase 1)
 
-Run `loop-cohort schedule docs/specs/<feature> --expect-run-id "$run_id"` for topological task order. `schedule` fails loud on a dependency cycle and warns on a forward-reference (reorders so the dep runs first). Execute sequentially — **parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1**; those verbs exit non-zero. After all wave tasks are done, fire `wave-complete` before proceeding to GATES:
+Read `loop-cohort status docs/specs/<feature> --json` for `current_wave_index` and `schedule_waves[current_wave_index]` to get the active task set. (`schedule` runs once during the G-plan sequence and persists the wave list; re-calling it resets `current_wave_index` to 0, erasing prior `wave advance` progress.) Execute sequentially — **parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1**; those verbs exit non-zero. After all wave tasks are done, fire `wave-complete` before proceeding to GATES:
 ```bash
 python3 scripts/loop-engine.py transition docs/specs/<feature> wave-complete
 ```
@@ -244,13 +244,14 @@ stasis=$(echo "$result"        | python3 -c "import sys,json; print(json.load(sy
 # 2a. Stasis — same findings two rounds in a row → surface immediately
 #     (matches_previous_round=True with classification=findings)
 
-# 2b. Findings — record each fingerprint and enforce the retry cap
+# 2b. Findings — fire findings-remain first (guard: check --phase review),
+#     then record fingerprints. Transition first preserves the retry bound:
+#     recording first could increment review_retry_count to the cap and then
+#     refuse the transition on the last allowed round.
+python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain
 loop-cohort.py review record docs/specs/<feature> \
     $(for fp in <fingerprint-list>; do echo "--fingerprint $fp"; done) \
     --expect-run-id "$run_id"
-loop-cohort.py check docs/specs/<feature> --phase review  # exits non-zero at retry cap
-# Then fire findings-remain (guard: check --phase review):
-python3 scripts/loop-engine.py transition docs/specs/<feature> findings-remain
 # Fix findings and return to CODE-IMPLEMENTATION.
 
 # 2c. Clean — write Status: Shipped, record the clean round, fire reviewers-clean:
