@@ -95,7 +95,7 @@ The skill scaffolds the pack shell at `packs/database-tooling/` via
 ```
 packs/database-tooling/
   pack.toml               # name, version, description, dependencies,
-                          # [[pack.maintainers]], maturity scope
+                          # [[pack.maintainers]], maturity scope, [pack.evals]
   README.md               # one-paragraph overview + install command
   .claude-plugin/
     plugin.json           # name, version, description (only — schema is closed)
@@ -103,6 +103,11 @@ packs/database-tooling/
     skills/
       schema-migrate/
         SKILL.md          # stub: name + description stub only; body TBD via assimilation
+        evals/
+          eval_queries.json  # Tier-A activation evals (8–10 trigger + 8–10 near-miss stubs)
+  evals/
+    eval_queries.json     # pack-level Tier-A activation index (references skill evals)
+    evals.json            # Tier-4 LLM-judge rubric stubs for judgment/authoring skills
 ```
 
 Notes on the scaffold:
@@ -113,6 +118,15 @@ Notes on the scaffold:
   body). `pack-shell.md:15-16` requires at least one skill or agent; an empty
   `.apm/` fails pack validation. The stub is the minimum; the operator populates
   it via `assimilate-primitive` or `assimilate-repo` later.
+- **Eval harness is required** (`packs/AGENTS.md:110-115`): a non-cosmetic pack
+  update (and new-pack scaffold) must include:
+  - Tier-A activation evals — `evals/eval_queries.json` (~8–10 should-trigger +
+    ~8–10 near-miss entries per user-triggered skill) and a `[pack.evals]` block
+    in `pack.toml` listing every user-triggered skill (`schema-migrate`,
+    `query-author`, etc.).
+  - Tier-4 LLM-judge rubric — `evals/evals.json` for judgment/authoring skills.
+  The scaffold produces stub eval files (empty JSON arrays with a TODO comment);
+  the operator populates them before shipping the pack.
 - The maintainer handle from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.

@@ -28,17 +28,17 @@ The autonomous portion of this work — authoring fixture files and documenting 
 
 ### Autonomous: fixture preparation
 
-- [ ] **AC1 (`antipattern-steering` fixtures).** At least three fixture primitives exist under `docs/specs/catalogue-curation-qa-coverage/fixtures/antipatterns/`, each representing a known misuse pattern:
+- [x] **AC1 (`antipattern-steering` fixtures).** At least three fixture primitives exist under `docs/specs/catalogue-curation-qa-coverage/fixtures/antipatterns/`, each representing a known misuse pattern:
   - `skill-triggers-skill.md` — a skill that directly invokes another skill by name (scripts-triggering-skills pattern)
   - `agent-reviews-own-output.md` — an agent skill whose SKILL.md instructs the agent to review its own output
   - `flooding-prompt.md` — a skill with an excessively verbose or repetitive prompt that floods context without value
   Each fixture is a realistic, ingestible primitive exhibiting the misuse pattern only — shaped like a real skill/agent file a curator would encounter (frontmatter + SKILL.md body). The `## Why this is rejected` and `## Reshaped form` analysis belongs in `notes/antipattern-steering.md` (AC3), not in the fixture files themselves. This separation ensures AC5's live QA session exercises real detection, not fixture-embedded answers.
 
-- [ ] **AC2 (`hook-confirm` fixture).** A fixture hook file exists under `docs/specs/catalogue-curation-qa-coverage/fixtures/hook-confirm/` that represents a realistic hook that would trigger during ingest:
+- [x] **AC2 (`hook-confirm` fixture).** A fixture hook file exists under `docs/specs/catalogue-curation-qa-coverage/fixtures/hook-confirm/` that represents a realistic hook that would trigger during ingest:
   - `sample-hook.sh` — a bash hook that runs on git pre-commit (or equivalent agent event)
   - `sample-hook-notes.md` — documents what the hook does, why it requires explicit operator confirm, and what the expected confirm prompt should look like.
 
-- [ ] **AC3 (expected-behavior transcripts).** A `notes/` directory contains one transcript-capture document per deferred path:
+- [x] **AC3 (expected-behavior transcripts).** A `notes/` directory contains one transcript-capture document per deferred path:
   - `notes/resync-rfc-routing.md` — documents the three routing cases (Open → Amendment, Frozen+correction → Erratum, Frozen+new → new RFC) with example inputs and expected skill outputs for each case.
   - `notes/antipattern-steering.md` — documents the three anti-pattern cases with example inputs, expected detection messages, and expected corrective re-shaping outputs.
   - `notes/propose-pack.md` — documents the additivity+fit test flow with a sample pack proposal, the scaffold output, and the RFC template the skill would produce.

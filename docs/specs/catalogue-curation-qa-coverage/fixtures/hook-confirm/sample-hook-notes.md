@@ -1,5 +1,14 @@
 # Hook fixture: sample-hook.sh
 
+## Fixture bundle
+
+This fixture bundle contains two files that are ingested together:
+- `sample-hook.sh` — the pre-commit hook (thin wrapper calling the companion script).
+- `scripts/pre-commit-checks.py` — the companion script the hook delegates to. This
+  is a stub (exits 0) for QA purposes. In production, it would contain real checks
+  (ruff, mypy, pytest, etc.). During landing, it must be placed at `scripts/` in the
+  project root so the hook can find it.
+
 ## What this hook does
 
 `sample-hook.sh` is a git pre-commit hook — a bash script that git invokes
