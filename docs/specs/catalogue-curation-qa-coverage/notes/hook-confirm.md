@@ -181,6 +181,15 @@ Only after steps 4–5 complete does Phase 2 begin.
    definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
 9. Before writing, the skill presents the shaped target (destination path,
    projected path, rename recommendation) and waits for operator approval.
+
+> **QA session boundary — abort here.** At step 9's shaped-target prompt,
+> the operator answers `no` to avoid installing an incomplete bundle. The
+> companion (`.agentbundle/bin/pre-commit-checks.py`) is ingested in a
+> separate session; landing the hook alone would produce a hook that
+> references a non-existent path and blocks every commit. Items 10–14
+> below document the expected behavior for a production landing and are
+> NOT exercised in the AC7 QA session.
+
 10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
 11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
 12. The version bump happens BEFORE `FORCE=1 make build-self`.

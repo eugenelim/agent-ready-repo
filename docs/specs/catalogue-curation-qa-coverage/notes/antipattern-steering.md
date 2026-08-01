@@ -9,29 +9,28 @@ Source authority:
 
 ---
 
-## Pattern 1: skill-triggers-skill (fixture: skill-triggers-skill.md)
+## Pattern 1: script-triggers-skill (fixture: script-triggers-skill.sh)
 
 ### Why this is rejected / steered
 
-The fixture (`code-summary`) contains a procedure step that invokes a
-second skill by shelling out to an agent CLI:
+The fixture (`analyse-modules.sh`) is a bash script that performs legitimate
+deterministic work (listing Python modules) but also programmatically invokes
+a skill via the agent CLI:
 
-```
-example-agent-cli --print "Run dependency-graph for <module>"
+```bash
+example-agent-cli --print \
+  --prompt "Analyze module dependencies in $DIR and produce a dependency graph."
 ```
 
 This is anti-pattern #1 from `anti-patterns.md`: **a script or hook that
-triggers a skill or agent**. The tell is the `example-agent-cli --print`
-invocation embedded in a procedure step; skills activate by description —
-they are not invoked from other skills or scripts.
+triggers a skill or agent**. Deterministic scripts must stay deterministic;
+skills activate by description and are not invoked from scripts or hooks.
 
-The fixture also performs legitimate deterministic work in steps 1–3 and 5
-(asking for the module, reading source files, building the summary, presenting
-the output). Because it is not *solely* an auto-trigger — it has real work
-alongside the bad step — the correct disposition is **steer**, not reject.
-`anti-patterns.md:17-19` reserves rejection for a primitive whose entire
-purpose is to auto-trigger another skill; mixed primitives with one bad
-step are steered.
+Because the script has real deterministic work alongside the bad CLI line —
+not a script whose entire purpose is to trigger a skill — the correct
+disposition is **steer**, not reject. `anti-patterns.md:17-19` reserves
+rejection for primitives whose sole purpose is the auto-trigger; mixed
+primitives with one bad invocation are steered.
 
 ### Expected detection message
 
@@ -39,32 +38,32 @@ The assimilation skill should surface a message similar to:
 
 > **Anti-pattern detected: script triggers skill** (anti-patterns.md §1)
 >
-> `code-summary` step 4 invokes `dependency-graph` via
-> `example-agent-cli --print "Run dependency-graph for <module>"`. Skills
-> activate by description — they are not called from other skills or scripts.
-> The read-and-summarize work in steps 1–3 and 5 is legitimate;
-> only the skill-invocation step is the violation.
+> `analyse-modules.sh` invokes a skill programmatically via
+> `example-agent-cli --print`. Scripts must stay deterministic; skills
+> activate by description — they are not called from scripts or hooks.
+> The `find` + `sort` work is legitimate; only the `example-agent-cli`
+> invocation is the violation.
 >
-> **Disposition: Steer.** Remove step 4. The `dependency-graph` skill
-> activates independently through its own trigger description when the
-> operator asks for a dependency map.
+> **Disposition: Steer.** Remove the `example-agent-cli` call. If a
+> dependency graph is needed, activate the `dependency-graph` skill
+> separately by describing the need.
 
 ### Reshaped form
 
-Remove step 4; renumber:
+Remove the `example-agent-cli` block:
 
-```
-## Procedure
-1. Ask the operator: which module or package should be summarized?
-2. Read the relevant source files (Python modules, README, docstrings).
-3. Build a summary covering: purpose, key classes and functions, external
-   dependencies, and notable design decisions.
-4. Present the summary to the operator as an onboarding document.
+```bash
+#!/usr/bin/env bash
+# analyse-modules: scans a source directory and lists Python modules.
+set -euo pipefail
+DIR="${1:?usage: analyse-modules.sh <src-dir>}"
+echo "Modules in $DIR:"
+find "$DIR" -name "*.py" -maxdepth 2 | sort
 ```
 
-The `dependency-graph` skill is removed from this primitive entirely — it
-activates through its own description when the operator separately asks
-for a dependency map.
+The dependency-graph skill is removed from this primitive entirely. If the
+operator wants a dependency graph, they activate the skill separately by
+describing their need.
 
 ---
 

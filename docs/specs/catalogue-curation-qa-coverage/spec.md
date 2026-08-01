@@ -29,7 +29,7 @@ The autonomous portion of this work — authoring fixture files and documenting 
 ### Autonomous: fixture preparation
 
 - [x] **AC1 (`antipattern-steering` fixtures).** At least three fixture primitives exist under `docs/specs/catalogue-curation-qa-coverage/fixtures/antipatterns/`, each representing a known misuse pattern:
-  - `skill-triggers-skill.md` — a skill that directly invokes another skill by name (scripts-triggering-skills pattern)
+  - `script-triggers-skill.sh` — a bash script that programmatically invokes a skill via CLI (the scripts-triggering-skills anti-pattern: a script or hook must stay deterministic; skills activate by description, not by CLI invocation from a script)
   - `agent-reviews-own-output.md` — an agent skill whose SKILL.md instructs the agent to review its own output
   - `flooding-prompt.md` — a skill with an excessively verbose or repetitive prompt that floods context without value
   Each fixture is a realistic, ingestible primitive exhibiting the misuse pattern only — shaped like a real skill/agent file a curator would encounter (frontmatter + SKILL.md body). The `## Why this is rejected` and `## Reshaped form` analysis belongs in `notes/antipattern-steering.md` (AC3), not in the fixture files themselves. This separation ensures AC5's live QA session exercises real detection, not fixture-embedded answers.
@@ -96,7 +96,7 @@ The autonomous portion of this work — authoring fixture files and documenting 
 
 ## Tasks
 
-1. **Author anti-pattern fixtures** (AC1) — Write `fixtures/antipatterns/skill-triggers-skill.md`, `agent-reviews-own-output.md`, `flooding-prompt.md` as realistic ingestible primitives (no answer-key sections in the fixture files).
+1. **Author anti-pattern fixtures** (AC1) — Write `fixtures/antipatterns/script-triggers-skill.sh`, `agent-reviews-own-output.md`, `flooding-prompt.md` as realistic ingestible primitives (no answer-key sections in the fixture files).
    - **Depends on:** none
 2. **Author hook fixture** (AC2) — Write `fixtures/hook-confirm/sample-hook.sh` and `sample-hook-notes.md`.
    - **Depends on:** none

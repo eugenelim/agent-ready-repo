@@ -93,6 +93,15 @@ accelerator pack. Please supply them and re-run."
 
 ## Expected: Step 3 — scaffold output (on pass, after accelerator gates cleared)
 
+> **QA session scope.** The AC6 QA session verifies that the skill produces
+> the correct scaffold structure and shape — it does NOT commit the new pack
+> to the repository. After verifying scaffold shape, the operator discards the
+> output. Before opening a real PR for a new pack, the operator must expand
+> the eval harness to ~8–10 trigger and ~8–10 near-miss entries and add the
+> `[pack.evals]` block — `packs/AGENTS.md:112-115` requires a complete harness
+> for any non-cosmetic pack update. The scaffold stubs are a starting point,
+> not a production-ready deliverable.
+
 The skill scaffolds the pack shell at `packs/database-tooling/` via
 `agentbundle.safety.write_jailed`. Expected files created:
 
