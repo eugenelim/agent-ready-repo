@@ -1,7 +1,7 @@
 ---
 name: pr-review-agent
 description: Review a pull request diff for code quality, correctness, and style issues. Produces a structured findings report for the operator.
-model: claude-opus-5
+model: opus
 tools: []
 ---
 

@@ -14,16 +14,16 @@ Source authority:
 ### Why this is rejected / steered
 
 The fixture (`code-summary`) contains a procedure step that invokes a
-second skill by shelling out to the Claude CLI:
+second skill by shelling out to an agent CLI:
 
 ```
-claude --print "Run dependency-graph for <module>"
+example-agent-cli --print "Run dependency-graph for <module>"
 ```
 
 This is anti-pattern #1 from `anti-patterns.md`: **a script or hook that
-triggers a skill or agent**. The tell is the `claude --print` invocation
-embedded in a procedure step; skills activate by description — they are not
-invoked from other skills or scripts.
+triggers a skill or agent**. The tell is the `example-agent-cli --print`
+invocation embedded in a procedure step; skills activate by description —
+they are not invoked from other skills or scripts.
 
 The fixture also performs legitimate deterministic work in steps 1–3 and 5
 (asking for the module, reading source files, building the summary, presenting
@@ -40,8 +40,8 @@ The assimilation skill should surface a message similar to:
 > **Anti-pattern detected: script triggers skill** (anti-patterns.md §1)
 >
 > `code-summary` step 4 invokes `dependency-graph` via
-> `claude --print "Run dependency-graph for <module>"`. Skills activate by
-> description — they are not called from other skills or scripts.
+> `example-agent-cli --print "Run dependency-graph for <module>"`. Skills
+> activate by description — they are not called from other skills or scripts.
 > The read-and-summarize work in steps 1–3 and 5 is legitimate;
 > only the skill-invocation step is the violation.
 >
@@ -113,7 +113,7 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 ---
 name: pr-review-agent
 description: Review a pull request diff for code quality, correctness, and style issues.
-model: claude-opus-5
+model: opus
 tools: []
 ---
 

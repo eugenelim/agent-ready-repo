@@ -113,24 +113,36 @@ Only after steps 4–5 pass does Phase 2 begin.
     `packs/core/.apm/hooks/pre-commit.sh`). **Do not create a subdirectory** such
     as `.apm/hooks/git/` — `build-self` iterates only immediate `.apm/hooks`
     children that are files (`self_host.py:721–724`); subdirectories are ignored.
-  - Write the companion script to a shippable pack path (e.g.,
-    `packs/core/.apm/scripts/pre-commit-checks.py`). This is a pack-owned script
-    that ships alongside the hook body; adopters place it at `scripts/` in their
-    repo root.
   - Document manual installation: "copy or symlink both to your repo."
   - Do NOT write a `.apm/hook-wiring/<name>.toml` for git events.
 
-4. Write **both** files via `agentbundle.safety.write_jailed`:
-   - `packs/core/.apm/hooks/pre-commit.sh` — the hook body
-   - `packs/core/.apm/scripts/pre-commit-checks.py` — the companion script
-5. Add documentation noting manual installation for both:
+**Important — companion script is not a projected primitive:**
+
+`.apm/scripts/` is NOT a declared source path in `adapter.toml` and is not
+projected by `build-self`. The companion script (`scripts/pre-commit-checks.py`)
+cannot be distributed through the pack projection chain. Two options:
+
+- **Option A (recommended):** Rewrite the hook to be self-contained — inline
+  the actual check commands directly in the hook body rather than delegating
+  to a companion script. This avoids the dependency on an unmanaged external file.
+- **Option B:** Treat the companion script as a manually installed artifact that
+  the operator copies to `scripts/` in their repo root. It is not managed by the
+  pack; document this limitation clearly in the hook's README entry.
+
+For this QA fixture, the skill should surface Option A as the preferred landing
+shape and note that Option B is available if the operator prefers the thin-wrapper
+pattern (with the caveat that the script must be placed manually).
+
+4. Write the hook body via `agentbundle.safety.write_jailed`:
+   - `packs/core/.apm/hooks/pre-commit.sh`
+5. Add documentation for manual installation:
    ```
    # Hook body (flat under .apm/hooks/):
    cp packs/core/.apm/hooks/pre-commit.sh .git/hooks/pre-commit
    chmod +x .git/hooks/pre-commit
 
-   # Companion script (place at repo root scripts/ before activating the hook):
-   cp packs/core/.apm/scripts/pre-commit-checks.py scripts/pre-commit-checks.py
+   # If using Option B (thin-wrapper pattern), also place the companion:
+   # cp scripts/pre-commit-checks.py <your-repo-root>/scripts/pre-commit-checks.py
    ```
 6. Prompt `make build-self` to project the hook body to adapter layouts.
 

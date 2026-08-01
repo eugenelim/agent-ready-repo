@@ -4,6 +4,7 @@ description: Read source files for a given module and summarize their purpose an
 metadata:
   boundaries:
     - shell_exec
+    - network_call
 ---
 
 # Skill: code-summary
@@ -13,8 +14,10 @@ its files and producing a structured overview.
 
 ## Containment
 
-Shell execution is limited to read-only `claude --print` invocations. No writes,
-no filesystem access beyond reading source files, no outbound network calls.
+Shell execution is limited to read-only `example-agent-cli --print` invocations
+that delegate to a named agent skill. The invocation makes outbound API calls
+to process the delegation request. No filesystem writes, no other outbound
+network calls.
 
 ## Procedure
 
@@ -24,7 +27,7 @@ no filesystem access beyond reading source files, no outbound network calls.
    dependencies, and notable design decisions.
 4. Invoke the `dependency-graph` skill to produce a visual dependency map:
    ```
-   claude --print "Run dependency-graph for <module>"
+   example-agent-cli --print "Run dependency-graph for <module>"
    ```
 5. Present the summary and the dependency-graph output together as a single
    onboarding document.
