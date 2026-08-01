@@ -127,6 +127,7 @@ shipped = [
   "spec/site-ui-primitives",                  # Phase 2C: 16 reusable UI primitives — spec confirmed Shipped; moved from queue 2026-07-29
   "spec/atlassian-sso-cookie-selector-integration-test", # AC5: wired test_auth_selector.py into sso parity gate
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening
+  "spec/site-design-system-spec",                        # site token spec + zone-violation lint
 ]
 queue   = [
   # P5 · Adopt — gated on adopter-persona research (evidence base)
@@ -135,7 +136,6 @@ queue   = [
   {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
 
   # Backlog-graduated specs — Approved, independent of RFC-0064
-  "spec/site-design-system-spec",                        # site token spec + zone-violation lint
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
 ]
 
