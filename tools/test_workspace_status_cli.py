@@ -471,7 +471,7 @@ class CLIContractTests(_CliBase):
         self.assertIn("ready", shaping)
         self.assertIn("signals", shaping)
         self.assertIn("blocked", shaping)
-        self.assertIn("active_slugs", shaping)
+        self.assertIn("active_entries", shaping)
         self.assertNotIn("active", shaping)  # unsourced key must not appear
 
     def test_cli_diagnostics_present(self) -> None:

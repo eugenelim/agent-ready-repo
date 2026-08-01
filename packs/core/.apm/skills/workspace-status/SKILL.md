@@ -92,7 +92,7 @@ work.shipped   — list of shipped build entries; each carries ini_slug
 shaping.ready  — list of ready shaping entries (from active AND backlog); each carries ini_slug and blocking_needs
 shaping.signals — list of active-context signal entries; each carries ini_slug
 shaping.blocked — list of blocked shaping entries (backlog only); each carries ini_slug and blocking_needs
-shaping.active_slugs — slugs of shaping_queue.active non-signal entries (provenance for shape: dep status)
+shaping.active_entries — list of all shaping_queue.active entries; each carries slug, ini_slug, and entry_type (signals included)
 reconciliation.type1             — untracked live specs
 reconciliation.type2             — stale queue/active entries
 reconciliation.type3             — prematurely-shipped entries
@@ -140,11 +140,13 @@ Apply only the _confirmed set_ of operations (do not re-read `type2_cleanup_ops`
 - `source_list` — list to remove the entry from (`queue` or `active`)
 - `target_list` — list to add it to (`shipped`) or `null` (Archived: remove only)
 - `path` — the entry path
-- `written_form` — exact string to append to the target list (Shipped only)
+- `written_form` — TOML source literal for text insertion (Shipped only; e.g. `"spec/foo"` with surrounding quotes)
 
-When appending to `[work].shipped`, deduplicate by `path`: skip the append if the path is already present (a path in both `queue` and `active` produces two ops; apply the source-list removal for each but append `written_form` at most once).
+When appending to `[work].shipped`, deduplicate by `path`: skip the append if the path is already present (a path in both `queue` and `active` produces two ops; apply the source-list removal for each but append at most once).
 
 Use a comment-preserving write — targeted text insertion or `tomlkit`; never a `tomllib` + `tomli_w` round-trip (strips comments).
+- **Text insertion:** append `written_form` as-is (it is already a correctly-quoted TOML string literal, including surrounding `"` characters).
+- **`tomlkit` structured API:** append `path` (the raw string value); `tomlkit` handles quoting automatically. Do not pass `written_form` to `tomlkit` — it would persist the surrounding quote characters as part of the path value.
 
 **Main output sections:**
 
@@ -174,7 +176,7 @@ Format output in four sections (omit sections with no entries):
 
   Resolve the status from JSON: for each entry in `blocking_needs`, strip the queue-prefix to get the slug/path, then branch on the prefix:
   - `work:` — look in `work.*`: appears in `work.active` → `in-progress`; in `work.ready` or `work.blocked` → `queued`; else → omit.
-  - `shape:` — shape deps block while the slug is in `shaping_queue.active`; use `shaping.active_slugs` for provenance: if slug in `shaping.active_slugs` → `in-progress`; else → omit.
+  - `shape:` — shape deps block while the slug is in `shaping_queue.active`; use `shaping.active_entries` for provenance: for each entry, match on `slug == dep_slug AND ini_slug == resolved_ini_slug` (use the owning initiative's slug for same-initiative deps; strip `ini-NNN:` prefix for cross-initiative deps and use the named initiative's slug). If a matching entry is found → `in-progress` (regardless of `entry_type`, since signals also block `shape:` deps); else → omit.
   - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` → if slug in either → not yet started → `queued`; else → omit.
   - `brief:` — brief deps block while draft; if path in any `initiatives[].brief_queue.draft` → `queued`; if in `executing` → `in-progress`; else → omit.
   - Cross-initiative (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix, then resolve the remainder as above.
@@ -229,7 +231,7 @@ From the JSON result:
 - `active_spec` = first entry in `work.active` (if any)
 - `next_queue` = first entry in `work.ready` (JSON field, already resolved; first in list order)
 - `unblocked` = all entries in `work.ready`
-- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` and whose `slug` is in `shaping.active_slugs` (if any); if none, fall back to the first `shaping.ready` non-signal entry whose slug is not in `shaping.active_slugs` (backlog-ready)
+- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` and whose `slug` appears in `shaping.active_entries` for the same `ini_slug` (active shaping, if any); if none, fall back to the first `shaping.ready` non-signal entry with no matching `active_entries` record (backlog-ready)
 
 **Path resolution:** entries in `work.ready`, `work.active`, etc. carry a `path` field (e.g. `"spec/m1-workspace-core"`). Strip the `spec/` prefix to get the slug; use `docs/specs/<slug>/` for file-system commands.
 

@@ -102,11 +102,12 @@ def _build_json(root: Path, result) -> dict:
     initiatives_out: list[dict] = []
     active_entries: list[dict] = []
     shipped_entries: list[dict] = []
-    # active_shaping_slugs: slugs of shaping_queue.active non-signal entries.
-    # Needed for blocked-status rendering: a shape:X dep that is blocking means X is in
-    # shaping_queue.active (non-signal) — but the classifier serializes active non-signal
-    # entries into shaping.ready, indistinguishable from backlog-ready entries.
-    active_shaping_slugs: list[str] = []
+    # active_shaping_entries: per-entry provenance for shaping_queue.active.
+    # Includes ALL active entries (signals and non-signals) so that shape: dep
+    # resolution matches the engine's is_need_satisfied, which checks all active
+    # entries regardless of type. Each entry carries ini_slug to avoid cross-initiative
+    # slug collisions (two initiatives may share an initiative-scoped shaping slug).
+    active_shaping_entries: list[dict] = []
     for ini in result.initiatives:
         if ini.status != "active":
             continue
@@ -123,8 +124,11 @@ def _build_json(root: Path, result) -> dict:
         for e in ini.work.shipped:
             shipped_entries.append(_work_entry_dict(e, ini.slug))
         for e in ini.shaping.active:
-            if e.entry_type != "signal":
-                active_shaping_slugs.append(e.slug)
+            active_shaping_entries.append({
+                "slug": e.slug,
+                "ini_slug": ini.slug,
+                "entry_type": e.entry_type,
+            })
 
     # Type 2 cleanup ops — one per Type 2 finding
     type2_cleanup_ops: list[dict] = []
@@ -152,7 +156,7 @@ def _build_json(root: Path, result) -> dict:
             "ready": [_shaping_dict(c) for c in result.ready_shaping],
             "signals": [_shaping_dict(c) for c in result.signals],
             "blocked": [_shaping_dict(c) for c in result.blocked_shaping],
-            "active_slugs": active_shaping_slugs,
+            "active_entries": active_shaping_entries,
         },
         "reconciliation": {
             "type1": [_finding_dict(f) for f in result.type1],
