@@ -2,7 +2,10 @@
 """workspace-status CLI — thin JSON frontend for the production engine.
 
 Usage:
-    python3 workspace_status.py --root "<repo-root>"
+    python3 workspace_status.py status    --root "<repo-root>"
+    python3 workspace_status.py explain   --root "<repo-root>" --item <selector>
+    python3 workspace_status.py reconcile --root "<repo-root>"
+    python3 workspace_status.py           --root "<repo-root>"   # compat alias for reconcile
 
 Output (stdout): deterministic UTF-8 JSON with schema_version = 1.
 
@@ -40,12 +43,19 @@ try:
     sys.modules.setdefault("workspace_status_engine", _engine_mod)
     _engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
     analyze = _engine_mod.analyze
+    analyze_bounded = _engine_mod.analyze_bounded
+    explain_item = _engine_mod.explain_item
     compute_type2_cleanup = _engine_mod.compute_type2_cleanup
 except Exception as _load_err:
     # Engine load failure must be exit 2, not exit 1 (reserved for absent workspace).
     # Emit only the exception type — the message may include the engine's install path.
     print(f"workspace-status: engine load failed: {type(_load_err).__name__}", file=sys.stderr)
     sys.exit(2)
+
+
+# ── Subcommand routing ────────────────────────────────────────────────────────
+
+_SUBCOMMANDS = frozenset({"status", "explain", "reconcile"})
 
 
 # ── Serialisation helpers ─────────────────────────────────────────────────────
@@ -103,7 +113,16 @@ def _brief_queue_dict(bq) -> dict | None:
     }
 
 
-def _build_json(root: Path, result) -> dict:
+def _scan_dict(result) -> dict:
+    return {
+        "global_spec_scan_performed": result.global_scan_performed,
+        "workspace_files_read": 1,
+        "declared_spec_files_read": result.declared_spec_files_read,
+        "global_scan_spec_files_read": result.global_scan_files_read,
+    }
+
+
+def _build_json(root: Path, result, mode: str) -> dict:
     # initiatives/work.active/work.shipped are filtered to active initiatives only;
     # reconciliation.* spans all initiatives (including paused/closed) — mirroring analyze().
     # A type2_cleanup_ops entry may therefore reference an ini_slug absent from initiatives[].
@@ -149,10 +168,14 @@ def _build_json(root: Path, result) -> dict:
         )
         type2_cleanup_ops.append(op)
 
+    types_performed = [1, 2, 3] if result.global_scan_performed else [2, 3]
+
     return {
         "schema_version": 1,
+        "mode": mode,
         "workspace_present": True,
         "workspace_root": str(root.resolve()),
+        "scan": _scan_dict(result),
         "initiatives": initiatives_out,
         "work": {
             "ready": [_classification_dict(c) for c in result.ready],
@@ -170,6 +193,9 @@ def _build_json(root: Path, result) -> dict:
             "top_level_backlog": [_shaping_entry_dict(e) for e in result.top_level_backlog],
         },
         "reconciliation": {
+            "performed": True,
+            "complete": result.global_scan_performed,
+            "types_performed": types_performed,
             "type1": [_finding_dict(f) for f in result.type1],
             "type2": [_finding_dict(f) for f in result.type2],
             "type3": [_finding_dict(f) for f in result.type3],
@@ -182,6 +208,18 @@ def _build_json(root: Path, result) -> dict:
     }
 
 
+def _build_explain_json(root: Path, result, selector: str, explain_result: dict) -> dict:
+    return {
+        "schema_version": 1,
+        "mode": "explain",
+        "workspace_present": True,
+        "workspace_root": str(root.resolve()),
+        "scan": _scan_dict(result),
+        "selector": selector,
+        **explain_result,
+    }
+
+
 def _emit(data: dict) -> None:
     sys.stdout.write(json.dumps(data, sort_keys=True, allow_nan=False) + "\n")
     sys.stdout.flush()
@@ -190,6 +228,25 @@ def _emit(data: dict) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    argv = list(argv)
+
+    # Pre-dispatch: first token is a known subcommand → strip it
+    if argv and argv[0] in _SUBCOMMANDS:
+        subcommand = argv.pop(0)
+        compat_alias = False
+    else:
+        subcommand = "reconcile"
+        compat_alias = True
+
+    if compat_alias:
+        print(
+            "workspace-status: no subcommand specified; defaulting to reconcile. "
+            "Use 'reconcile' explicitly.",
+            file=sys.stderr,
+        )
+
     parser = argparse.ArgumentParser(
         description="workspace-status: parse workspace.toml and emit JSON"
     )
@@ -198,6 +255,12 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="Absolute or relative path to the repository root",
     )
+    if subcommand == "explain":
+        parser.add_argument(
+            "--item",
+            required=True,
+            help="Selector for the item to explain (slug or spec/ path)",
+        )
     args = parser.parse_args(argv)
     root = Path(args.root)
 
@@ -218,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
         except FileNotFoundError:
             _emit({
                 "schema_version": 1,
+                "mode": subcommand,
                 "workspace_present": False,
                 "workspace_root": str(root.resolve()),
             })
@@ -234,8 +298,18 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 return 2
-        result = analyze(root)
-        data = _build_json(root, result)
+
+        if subcommand == "explain":
+            result = analyze_bounded(root)
+            explain_result = explain_item(result, args.item)
+            data = _build_explain_json(root, result, args.item, explain_result)
+        elif subcommand == "status":
+            result = analyze_bounded(root)
+            data = _build_json(root, result, "status")
+        else:
+            result = analyze(root)
+            data = _build_json(root, result, "reconcile")
+
         _emit(data)
         return 0
     except Exception as exc:

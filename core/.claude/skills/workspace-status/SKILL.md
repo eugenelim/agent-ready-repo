@@ -29,16 +29,18 @@ Any time you need to orient: which initiative is active, what specs are ready to
 Run the production backend via **argument vector** (the canonical and only safe invocation):
 
 ```
-["<python>", "<skill-dir>/scripts/workspace_status.py", "--root", "<repo-root>"]
+["<python>", "<skill-dir>/scripts/workspace_status.py", "status", "--root", "<repo-root>"]
 ```
+
+The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit that also finds untracked live specs (Type 1). Use `explain` to investigate a specific item. See **§1a. Subcommand guidance** below.
 
 `<python>` is the Python 3.11+ interpreter available in your environment: `python3` on macOS/Linux; `python` on Windows. `<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, `$VAR`, and other metacharacters — the values are never interpreted by a shell.
 
 **Shell-string-only tools:** If your adapter cannot be configured to pass a discrete argument vector, use the shell-specific form below — or, for maximum portability, set the working directory to the repository root and pass `--root .`:
 
-- **POSIX (bash/zsh):** `python3 '<skill-dir>/scripts/workspace_status.py' --root .`
-- **PowerShell:** `python '<skill-dir>/scripts/workspace_status.py' --root .` (single-quoted strings are literal in PS; safe unless the path contains `'`)
-- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" --root .` (double-quoted path; safe unless the path contains `"`, `%`, or `!` — any of these requires the argv form)
+- **POSIX (bash/zsh):** `python3 '<skill-dir>/scripts/workspace_status.py' status --root .`
+- **PowerShell:** `python '<skill-dir>/scripts/workspace_status.py' status --root .` (single-quoted strings are literal in PS; safe unless the path contains `'`)
+- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" status --root .` (double-quoted path; safe unless the path contains `"`, `%`, or `!` — any of these requires the argv form)
 
 Any path with special characters requires the argv form.
 
@@ -93,6 +95,19 @@ open = []
 **Exit 0:** parse the JSON result. Key fields:
 
 ```
+mode                             — active subcommand: "status" | "reconcile" | "explain"
+scan.global_spec_scan_performed  — true only in reconcile mode (Type 1 walk performed)
+scan.workspace_files_read        — always 1 (workspace.toml)
+scan.declared_spec_files_read    — spec.md files read for declared entries (Type 2+3 reads)
+scan.global_scan_spec_files_read — spec.md files read during global walk; 0 in status/explain
+reconciliation.performed         — always true in status/reconcile (Type 2+3 always run)
+reconciliation.complete          — true only in reconcile (all three types performed)
+reconciliation.types_performed   — [2, 3] in status; [1, 2, 3] in reconcile
+                                   (explain mode omits the reconciliation object entirely)
+selector                         — normalized selector string (explain mode only)
+selector_status                  — "matched" | "not_found" | "ambiguous" (explain mode only)
+explained_item                   — item details when selector_status is "matched" (explain only)
+matches                          — initiative slugs with colliding entries when "ambiguous" (explain only)
 initiatives              — list of active initiatives (slug, name, status, milestone, brief_queue)
 initiatives[].brief_queue — {executing, ready, draft} or null
 work.ready     — list of ready-to-start build entries; each carries ini_slug and blocking_needs
@@ -103,14 +118,38 @@ shaping.ready  — list of ready shaping entries (from active AND backlog); each
 shaping.signals — list of active-context signal entries; each carries ini_slug
 shaping.blocked — list of blocked shaping entries (backlog only); each carries ini_slug and blocking_needs
 shaping.active_entries — list of all shaping_queue.active entries; each carries slug, ini_slug, and entry_type (signals included)
-reconciliation.type1             — untracked live specs
+reconciliation.type1             — untracked live specs (empty in status/explain; 1 not in types_performed)
 reconciliation.type2             — stale queue/active entries
 reconciliation.type3             — prematurely-shipped entries
 reconciliation.type2_cleanup_ops — cleanup operations per Type 2 finding
-diagnostics.spec_files_read      — number of spec.md files examined
+diagnostics.spec_files_read      — number of spec.md files examined (status + reconcile only)
 ```
 
+### 1a. Subcommand guidance
+
+| Subcommand | When to use | Type 1 walk |
+|------------|-------------|-------------|
+| `status` (default) | Session start, queue check — fast bounded scan | No |
+| `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes |
+| `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No |
+
+**`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
+
+**`explain`** — pass a slug or `spec/` path to get the item's current classification, dependencies, blocking needs, and which downstream items would become unblocked if this item shipped. Lookup is restricted to **active initiatives' work queues** (queue/active/shipped); shaping items and items in paused or closed initiatives return `selector_status: "not_found"`.
+
 ### 2. Surface results
+
+**When `mode == "explain"`:** render the focused lookup result below and stop — skip §§3–5. The explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`; those fields must not be read.
+
+- `selector_status: "matched"` → surface the `explained_item` object: path, slug, ini_slug, list, classification, blocking_needs, dependencies, downstream_unblocked
+- `selector_status: "not_found"` → report the selector was not found in any active initiative's work queue (shaping items and items in paused/closed initiatives also return `not_found`)
+- `selector_status: "ambiguous"` → list the initiative slugs in `matches` and ask which initiative the user is working in. The CLI does not accept an initiative-prefix qualifier — re-invoking `explain` with the same selector will still return `ambiguous`. Use `status` for context on the relevant initiative.
+
+For status and reconcile modes only, continue:
+
+**Type 1 audit notice:** when `1` is not in `reconciliation.types_performed` (status mode only), always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
+
+> _Type 1 scan not performed — run `reconcile` to also check for untracked live specs._
 
 If the reconciliation block is non-empty (any type1/type2/type3 findings), output it first:
 
@@ -122,6 +161,9 @@ Let N = total count across all three finding types. When N > 0, output before th
 **Reconciliation** — N inconsistenc(y/ies) detected:
 
   Untracked live specs (Approved or Implementing, not in any initiative list):
+  [Gate: render this subsection only when 1 is in reconciliation.types_performed.
+   When absent: omit this subsection — the global Type 1 audit notice at the top
+   of §2 already informs the user; do not emit a second notice here.]
   - `spec/<slug>` (Status: Approved) — add to [work].queue or run capture-work
 
   Stale queue/active entries (spec shows Shipped or Archived):
