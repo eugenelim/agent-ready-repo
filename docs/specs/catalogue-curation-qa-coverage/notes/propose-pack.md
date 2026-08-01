@@ -195,7 +195,7 @@ The RFC adds one additional section not in the base template:
 |-----------|------|---------|-------|
 | schema-migrate | skill | Assimilate | Core migration workflow |
 | query-author   | skill | Assimilate | Recurring query authoring |
-| db-inspect     | skill | Needs assessment | Scope TBD — inspect vs. query overlap |
+| db-inspect     | skill | Reject | Overlaps query-author; inspection is a query sub-operation, not a distinct habit |
 ```
 
 This section is appended after the `Options considered` section and before the

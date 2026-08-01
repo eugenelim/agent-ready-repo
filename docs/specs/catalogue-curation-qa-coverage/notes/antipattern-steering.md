@@ -83,60 +83,60 @@ findings in step 4:
 This is anti-pattern #2 from `anti-patterns.md`: **agent self-review**.
 Step 4 instructs the agent to re-read and re-evaluate findings it just
 generated in step 3. Self-review provides no independent signal — the same
-reasoning that produced the findings will evaluate them.
+reasoning that produced the findings will evaluate them. This fires during
+Phase 2 step 5 (anti-pattern detection).
 
-Note: `pr-review-agent` is a **legitimate subagent role** (code review in a
-forked context). The skill-vs-agent confusion check does **not** fire here —
-code review is judgment work that benefits from a separate reasoning context.
-Only the self-review in step 4 is the anti-pattern; there is exactly one
-detection for this fixture.
+However, Phase 2 step 6 (destination diagnosis) also fires for this fixture:
+`pr-review-agent` would be a **fourth specialized reviewer**, but the charter
+(`CHARTER.md:58-62`) sets an explicit ceiling of three reviewers
+(`adversarial-reviewer`, `security-reviewer`, `quality-engineer`). The charter
+ceiling is a second, independent rejection reason — even if step 4 were removed,
+the primitive cannot land because it overlaps the existing implementation-review
+surface and exceeds the charter ceiling.
 
-### Expected detection message
+The QA session surfaces exactly **two detections** for this fixture:
+1. Anti-pattern #2 (self-review in step 4) — from Phase 2 step 5.
+2. Charter ceiling violation (4th reviewer) — from Phase 2 step 6 destination
+   diagnosis.
 
-The assimilation skill should surface a message similar to:
+Overall disposition: **Reject** (charter ceiling failure overrides the steer that
+self-review alone would earn). The fixture is intentionally chosen so the
+self-review is the anti-pattern exercised, and the charter violation is the
+additional reason the skill must surface during destination diagnosis.
+
+### Expected detection messages
+
+The assimilation skill should surface two messages:
+
+**Phase 2 step 5 — anti-pattern detection:**
 
 > **Anti-pattern detected: agent self-review** (anti-patterns.md §2)
 >
 > `pr-review-agent` step 4 instructs the agent to re-read and re-evaluate
 > findings it just produced in step 3. Self-review provides no independent
 > signal — the same model that generated the findings evaluates them.
+
+**Phase 2 step 6 — destination diagnosis:**
+
+> **Charter ceiling violation** (CHARTER.md §"What this project does not do")
 >
-> **Disposition: Steer.** Remove step 4. The pull request diff review
-> remains a legitimate subagent workflow; the self-review step alone
-> is the violation.
+> `pr-review-agent` would be a fourth specialized reviewer. This repo's charter
+> explicitly limits specialized reviewers to three (`adversarial-reviewer`,
+> `security-reviewer`, `quality-engineer`). The `pr-review-agent` role overlaps
+> `adversarial-reviewer`'s implementation-review surface and cannot be added.
+>
+> **Disposition: Reject.** The charter ceiling failure is independent of the
+> self-review anti-pattern; removing step 4 would not clear this blocker.
 
 ### Reshaped form
 
-Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
-
-```
----
-name: pr-review-agent
-description: Review a pull request diff for code quality, correctness, and style issues.
-model: opus
-tools: Read
----
-
-# Agent: pr-review-agent
-
-## Procedure
-
-1. Read the pull request diff provided by the operator.
-2. Review the diff against: correctness, edge cases, error handling, style,
-   test coverage gaps.
-3. Draft a findings report: Blockers / Concerns / Nits.
-4. Present the final report to the operator.
-
-## Output
-
-Blockers, Concerns, Nits — each with a one-line description and the diff
-line that supports it.
-```
+**None.** The fixture is **Rejected** — both for the self-review anti-pattern
+and the charter ceiling violation. No landing target exists within this repo.
+The skill surfaces the rejection with both named reasons.
 
 Agent frontmatter uses `ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}`.
 The `metadata` field is not valid for agents and would fail the verify gate;
-`type: subagent` is not a recognized agent key either. The reshaped form keeps
-`model` (required) and drops `metadata`.
+`type: subagent` is not a recognized agent key either.
 
 ---
 

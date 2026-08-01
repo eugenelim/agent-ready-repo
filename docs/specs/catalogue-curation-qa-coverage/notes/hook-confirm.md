@@ -101,16 +101,18 @@ For `sample-hook.sh` and `scripts/pre-commit-checks.py`:
   authority and full filesystem access. Naming the companion script path
   (`.agentbundle/bin/pre-commit-checks.py`) is NOT sufficient containment —
   AST06 requires a sandbox, temp-directory scope, or explicit egress boundary.
-  The skill should surface this as a concern: "These scripts run with host
-  authority. No sandbox is declared. Verify the companion is trustworthy; operator
-  must acknowledge before proceeding." If the operator cannot name a containment
-  scope, AST06 remains a concern (not cleared) in the session record.
+  Per the source contract (`assimilate-primitive/SKILL.md:76-81`), AST06 undeclared
+  code execution without containment is a **Blocker — landing is prevented**. The
+  skill must surface: "These scripts run with host authority. No sandbox or
+  containment boundary is declared. Landing is blocked until containment is
+  established." No operator acknowledgment clears this blocker; the operator must
+  either supply a containment mechanism (and the skill re-checks) or abort.
 - **AST10** — confirm security metadata (if any) survives to this catalogue's schema.
 
 Note: the CONFIRM gate (step 3) fires BEFORE AST06 (step 5). The QA session
-successfully exercises the confirm gate regardless of AST06 outcome. The session
-record should capture both: confirm fired ✓, AST06 concern surfaced (acknowledged
-by operator / blocked by operator choice).
+successfully exercises the confirm gate at step 3 regardless of AST06 outcome.
+The session record should capture both: confirm fired ✓, AST06 BLOCKER surfaced
+→ landing blocked (unless operator adds containment).
 
 ### Phase 2 — destination diagnosis and landing
 
@@ -142,24 +144,34 @@ Only after steps 4–5 complete (or concerns are acknowledged) does Phase 2 begi
   - Document manual installation for the hook only (the companion projects via build-self).
   - Do NOT write a `.apm/hook-wiring/<name>.toml` for git events.
 
-4. Write both files via `agentbundle.safety.write_jailed`:
-   - `packs/core/.apm/hooks/pre-commit.sh` — the hook body (projected to `tools/hooks/`)
-   - `packs/core/.apm/adapter-root-bins/pre-commit-checks.py` — the companion
-     (projected to `.agentbundle/bin/pre-commit-checks.py` at repo scope)
-5. Bump version **before** running `build-self` — both files in the working tree make
-   it dirty and `build-self` requires `FORCE=1` on dirty trees:
+4. **QA boundary — do not land the stub into the core pack.** The companion
+   `scripts/pre-commit-checks.py` is a QA fixture stub (exits 0, no real checks)
+   and is explicitly labeled "replace before production." Landing it into `core`
+   and shipping a version bump would make a no-op hook part of the released pack,
+   violating the spec's fixture-support-material boundary (`spec.md:65-69`). The
+   QA session exercises detection, confirmation, and Phase 1 steps 4–5 only.
+   For the write step, either:
+   - Write to a **disposable test catalogue** (e.g., `packs/test-fixture/`) and
+     discard after the session; do not bump core's version.
+   - Verify the skill's write path is correct by inspection, then abort before
+     committing, and record the session outcome without a version bump.
+5. If a real (non-stub) companion is being landed into core, bump version **before**
+   running `build-self` — the write makes the tree dirty and `build-self` requires
+   `FORCE=1`:
    - Increment minor version in `packs/core/pack.toml`
    - Set the same version in `packs/core/.claude-plugin/plugin.json`
    - Both must match before `build-self` will accept the change.
-6. Run `FORCE=1 make build-self` to project both new primitives and re-aggregate
+6. Run `FORCE=1 make build-self` to project primitives and re-aggregate
    `marketplace.json`. Plain `make build-self` refuses on dirty trees.
 7. Add a `## [core][version] — YYYY-MM-DD` changelog section in
    `docs/product/changelog.md` (the canonical post-bump record per
    `packs/AGENTS.local.md:16-19`).
-8. Add documentation for manual installation of the hook body:
+8. Add documentation for manual installation of the hook body. After `build-self`,
+   the hook is projected to `tools/hooks/`. Adopters receive the projected path —
+   not the catalogue authoring tree under `packs/core/.apm/`. Use the projected path:
    ```
-   # Hook body (flat under .apm/hooks/, install manually after build-self):
-   cp packs/core/.apm/hooks/pre-commit.sh .git/hooks/pre-commit
+   # Hook body is projected by build-self to tools/hooks/:
+   cp tools/hooks/pre-commit.sh .git/hooks/pre-commit
    chmod +x .git/hooks/pre-commit
    # The companion is projected by build-self to .agentbundle/bin/.
    ```
@@ -180,9 +192,13 @@ Only after steps 4–5 complete (or concerns are acknowledged) does Phase 2 begi
 4. A single confirmation prompt covers the entire bundle (not two separate prompts).
 5. Answering "no" discards both primitives cleanly.
 6. Answering "yes" triggers Phase 1 steps 4–5 before any write.
-7. At step 5, AST06 concern is surfaced (host-authority execution, no sandbox declared).
-8. BOTH files are written: hook body to `.apm/hooks/` (flat), companion to
-   `.apm/adapter-root-bins/`.
-9. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
-10. The version bump happens BEFORE `FORCE=1 make build-self`.
-11. `docs/product/changelog.md` receives the new `## [core][version]` entry.
+7. At step 5, AST06 **Blocker** is surfaced (host-authority execution, no sandbox
+   declared) — landing is blocked, not merely acknowledged.
+8. The QA session does NOT land the stub companion into the core pack — exercise
+   up to Phase 1 steps 4–5 and record the outcome without a core version bump.
+9. If the session reaches Phase 2 with a real (non-stub) companion, BOTH files
+   are written: hook body to `.apm/hooks/` (flat), companion to `.apm/adapter-root-bins/`.
+10. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
+11. The manual install command uses the projected path: `cp tools/hooks/pre-commit.sh`.
+12. The version bump (when applicable) happens BEFORE `FORCE=1 make build-self`.
+13. `docs/product/changelog.md` receives the new `## [core][version]` entry.

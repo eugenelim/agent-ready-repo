@@ -40,33 +40,36 @@ candidates.
 ## Case 2: Source RFC is Frozen + genuine correction → Erratum
 
 **Setup:** RFC-0001 in `agent-commander` has been Accepted (Frozen). The
-operator — not a re-sync — notices that a verdict recorded in RFC-0001
-contains a typo in the destination pack name (e.g., the skill was recorded
-as going to `core` but the correct destination was `governance-extras`).
+source repo (`llm-wiki-kit`) has a small documentation-only update to one
+candidate: the candidate's description field has a typo corrected (the behavior
+is unchanged; only the description prose differs). A re-sync runs.
 
-**Why operator-initiated:** A verdict typo does not change the source
-candidate's content. The re-sync algorithm classifies by content hash; if the
-source content is unchanged, the candidate is marked `unchanged` and skipped.
-The correction must be initiated by the operator, who identifies the error
-directly (e.g., during RFC review, code review, or reading the output later)
-and tells the skill to record a correction.
-
-This is a **genuine correction** — a verdict typo, not a new decision.
+**How the algorithm classifies it:** The re-sync reads `last-synced.toml` and
+computes the content hash for the candidate. The description typo-fix changes
+the hash → the candidate is classified `changed` (not `unchanged`). The skill
+then checks the prior RFC: RFC-0001 is Frozen. Because the content change is a
+documentation correction (no behavioral change, no verdict reversal, no new
+candidate), the skill classifies it as a **genuine correction** and routes to
+the Erratum path. The skill asks the operator to confirm the classification
+before writing.
 
 **Expected skill behavior:**
 
-1. The operator supplies: the RFC number, the incorrect field, and the
-   corrected value — this is the input, not the re-sync algorithm's output.
-2. Because the prior RFC is Frozen and this is a genuine correction (not a new
-   decision or reversal), the skill records an **Erratum** entry, appended
-   additively to RFC-0001 under an `## Errata` section.
-3. The Erratum names: the date, the incorrect field, the corrected value, and
-   the reason it is a correction rather than a new decision.
-4. The skill does **not** author a new RFC.
-5. The skill does **not** append new decisions to the Frozen RFC body.
+1. The skill runs re-sync, classifies the candidate as `changed`, and detects
+   that RFC-0001 is Frozen.
+2. The skill presents the delta to the operator: what changed (the description
+   typo-fix), the prior verdict, and asks: "Is this a correction to the prior
+   verdict or a new decision? (correction / new-decision)"
+3. Operator answers "correction."
+4. The skill records an **Erratum** entry, appended additively to RFC-0001
+   under an `## Errata` section.
+5. The Erratum names: the date, what changed (the description field), the
+   corrected value, and the reason it is a correction rather than a new decision.
+6. The skill does **not** author a new RFC.
+7. The skill does **not** append new decisions to the Frozen RFC body.
 
 **Expected output signals:**
-- "RFC-0001 is Frozen — recording operator-supplied correction as an Erratum."
+- "RFC-0001 is Frozen — recording operator-confirmed correction as an Erratum."
 - The erratum entry is appended to RFC-0001's Errata section.
 - No new RFC file is created.
 
@@ -113,8 +116,7 @@ Re-sync delta found
 │
 └─ Prior RFC Frozen?
      ├─ Genuine correction (typo, moved destination)?
-     │    └─ Yes → Erratum (additive, no new file)
-     │         Note: correction is operator-initiated, not algorithm-detected
+     │    └─ Yes → Erratum (additive, no new file; operator confirms classification)
      │
      └─ New candidates or reversed verdicts?
           └─ Yes → New RFC + Erratum entry on prior RFC naming superseder
