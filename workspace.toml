@@ -557,12 +557,6 @@ open = [
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
-  # loop-infrastructure-phase-1 deferred AC: integration test coverage for
-  # session resumption (code-mode full walk, wave-advance crash windows,
-  # gates-failed record-attempt replay, fifth-vs-sixth retry).
-  # Protocol is implemented in SKILL.md; tests deferred from initial ship.
-  {slug = "loop-infra-crash-window-tests", source = "spec/loop-infrastructure-phase-1"},
-
   # profiles/AGENTS.md has no normative pointer to contracts/profile.schema.json.
   # Wave 1 (catalogue-wave1-contract-convergence) added the pointer to packs/AGENTS.md
   # and packs/README.md. This item mirrors that for profiles/.

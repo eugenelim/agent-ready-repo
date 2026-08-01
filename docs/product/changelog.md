@@ -126,6 +126,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`worktree` subcommands** — disabled in Phase 1; all exit non-zero.
 
+## [core][1.0.1] — 2026-07-31
+
+### Changed
+
+- **`work-loop` session-resumption table: `reviewers-clean` row consequence language.**
+  The `reviewers-clean` row now explicitly names double-increment of `review_round_count`
+  and overwrite of fingerprint audit history as consequences of replaying
+  `review record --report` without authorization.
+
 ## [release-engineering][0.1.8] — 2026-07-31
 
 ### Changed
