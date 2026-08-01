@@ -40,6 +40,15 @@ Assumptions:
   `color: "#hex",`) would be flagged. AC9 holds because web/src/ frontmatter uses
   only patterns that don't match CSS_PROP_RE (e.g. object literals starting with
   '{', or values that contain no raw hex).
+- Out of scope: HTML `style` attributes in Astro template markup
+  (`<div style="color: #fff">`). Detecting these requires HTML attribute
+  parsing across multiple lines, which is outside the line-by-line CSS
+  scanner design. web/src/ components use CSS custom properties via class
+  names, not inline style attributes.
+- Out of scope: directory-enumeration PermissionError from Path.rglob().
+  The scanner exits 2 on OSError *reading* a file; enumeration errors from
+  rglob() are not guaranteed to surface (Python stdlib behaviour). This is
+  acceptable for a developer-owned source tree where all paths are readable.
 """
 
 import re
@@ -153,7 +162,9 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                         inline_value = after_brace[colon_idx + 1:]
                         for m in HEX_RE.finditer(inline_value):
                             violations.append((lineno, m.group()))
-                        if ";" in inline_value:
+                        if ";" in inline_value or "}" in inline_value:
+                            # Declaration terminates on this line (semicolon or
+                            # closing brace — CSS permits omitting the final ;).
                             for m in RGBA_RE.finditer(inline_value):
                                 violations.append((lineno, m.group()))
                         else:

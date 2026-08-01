@@ -236,3 +236,10 @@ Goal-based throughout — no new compilation step, no production test file.
 - Linting `docs-site/src/styles/starlight.css` — Starlight is intentionally outside this lint's
   scope; the two `#ffffff` deviations there are known current deviations, not suppressible
   false positives.
+- Scanning HTML `style` attributes in Astro markup (`<div style="color: #fff">`) — would
+  require HTML attribute parsing across multiple lines; the line-by-line CSS scanner design
+  does not cover this. `web/src/` components use CSS custom properties via class names, not
+  inline style attributes, so no violations exist there in practice.
+- Failing closed on directory-enumeration `PermissionError` from `Path.rglob()` — the lint
+  exits 2 on `OSError` reading a file; rglob enumeration errors are not surfaced by the
+  stdlib. Acceptable for a developer-owned source tree where all paths are readable.
