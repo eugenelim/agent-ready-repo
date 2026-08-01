@@ -9,7 +9,7 @@ Output (stdout): deterministic UTF-8 JSON with schema_version = 1.
 Exit codes:
     0  — success
     1  — workspace.toml not found (workspace_present: false in JSON)
-    2  — any other error (message on stderr, no traceback/absolute paths on stdout)
+    2  — any other error (one-line message on stderr; no traceback, no internal paths)
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ import argparse
 import importlib.util
 import json
 import sys
-import traceback
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -217,10 +216,8 @@ def main(argv: list[str] | None = None) -> int:
         data = _build_json(root, result)
         _emit(data)
         return 0
-    except Exception:
-        tb = traceback.format_exc()
-        # Route full traceback to stderr, not stdout
-        print(f"workspace-status error:\n{tb}", file=sys.stderr)
+    except Exception as exc:
+        print(f"workspace-status error: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 
 
