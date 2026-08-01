@@ -524,17 +524,25 @@ def run_reconciliation(
             pass  # docs/specs resolved outside repo root (symlink) — skip walk
     if _specs_root_safe:
         _specs_root_resolved = specs_dir.resolve()
+        _visited: set[Path] = set()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
-            # Prune any dir whose resolved path escapes the specs root.
-            # NTFS junctions are not symlinks, so followlinks=False does not stop them.
+            # Prune subdirs that escape the specs root OR have already been visited.
+            # is_relative_to guards against junctions pointing outside the root;
+            # the visited set guards against in-root cycles (a junction whose
+            # resolved target is an ancestor within the tree).
             safe: list[str] = []
             for d in dirnames:
                 try:
-                    if (Path(dirpath) / d).resolve().is_relative_to(_specs_root_resolved):
+                    resolved = (Path(dirpath) / d).resolve()
+                    if (
+                        resolved.is_relative_to(_specs_root_resolved)
+                        and resolved not in _visited
+                    ):
                         safe.append(d)
                 except (OSError, ValueError):
                     pass
             dirnames[:] = sorted(safe)  # deterministic traversal order
+            _visited.add(Path(dirpath).resolve())
             if "spec.md" not in filenames:
                 continue
             spec_file = Path(dirpath) / "spec.md"

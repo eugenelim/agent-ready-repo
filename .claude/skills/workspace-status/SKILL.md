@@ -178,7 +178,7 @@ Format output in four sections (omit sections with no entries):
   - `work:` — scope to blocked entry's `ini_slug`: filter `work.active`, `work.ready`, `work.blocked` by `ini_slug == owning-ini`. Path in filtered `work.active` → `in-progress`; in filtered `work.ready` or `work.blocked` → `queued`; else → omit.
   - `shape:` — scope to `ini_slug` as above; use `shaping.active_entries` filtered to `ini_slug == owning-ini`: if a matching entry with `slug == dep_slug` is found → `in-progress` (signals included); else → omit.
   - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` — filter both by `ini_slug == owning-ini`: if dep slug found → `queued`; else → omit.
-  - `brief:` — scope to the owning initiative's `brief_queue` only (filter `initiatives[]` by `ini_slug == owning-ini`): if path in `brief_queue.draft` → `queued`; if in `brief_queue.executing` → `in-progress`; else → omit.
+  - `brief:` — scope to the owning initiative's `brief_queue` only (filter `initiatives[]` by `slug == owning-ini`, since `initiatives[]` carries `slug` not `ini_slug`): if path in `brief_queue.draft` → `queued`; if in `brief_queue.executing` → `in-progress`; else → omit.
   - Cross-initiative prefix (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix to get the named initiative; resolve the remainder as above using that initiative's `ini_slug`.
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
 
@@ -231,7 +231,7 @@ From the JSON result:
 - `active_spec` = first entry in `work.active` (if any)
 - `next_queue` = first entry in `work.ready` (JSON field, already resolved; first in list order)
 - `unblocked` = all entries in `work.ready`
-- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` and whose `slug` appears in `shaping.active_entries` for the same `ini_slug` (active shaping, if any); if none, fall back to the first `shaping.ready` non-signal entry with no matching `active_entries` record (backlog-ready)
+- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` AND for which `shaping.active_entries` contains an entry matching all of `slug`, `ini_slug`, and `entry_type` (a signal named `x` in active does not make a non-signal `x` in ready count as active); fall back to the first `shaping.ready` non-signal entry with no such full match (backlog-ready)
 
 **Path resolution:** entries in `work.ready`, `work.active`, etc. carry a `path` field (e.g. `"spec/m1-workspace-core"`). Strip the `spec/` prefix to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
