@@ -21,18 +21,21 @@ only this file to the skill.
 
 The assimilation skill must detect executable code during Phase 1, before
 confirmation. Detection fires when a file has an executable shebang (`#!/usr/bin/env ...`)
-or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python`
-shebang. **Why `python` and not `python3`:** this is a git hook — git
-invokes it directly via the shebang on every `git commit`, including on
-native Windows where `python3.exe` is rarely on PATH but `python.exe` and
-the `py` launcher are. `tools/hooks/README.md:3-8` prescribes `python` (not
-`python3`) for exactly this reason. This is distinct from agent lifecycle
-hooks (e.g. `packs/core/.apm/hooks/pre-pr.py`), which use `python3` in
-their shebang because they are invoked via wiring commands that specify the
-interpreter (e.g. `python tools/hooks/pre-pr.py`), never via the shebang
-directly. (The directory-based trigger — files under a `hooks/` directory —
-is not exercised here; the fixture lives under `fixtures/hook-confirm/`, not
-a `hooks/` directory.)
+or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
+shebang. **Why `python3` for a git hook:** git invokes the hook via the OS
+`execve` system call, which resolves the shebang interpreter through
+`/usr/bin/env` — shell aliases (e.g. `alias python=python3`) are never
+consulted. `python3` is the portable choice: it is present on all modern
+POSIX systems (macOS, Linux) and available in git-bash on Windows when
+Python is installed via python.org. `python` fails on most modern macOS/Linux
+where the `python` binary was removed with Python 2. This is distinct from
+agent lifecycle hooks (e.g. `packs/core/.apm/hooks/pre-pr.py`), which are
+invoked via wiring commands that specify the interpreter explicitly
+(e.g. `python tools/hooks/pre-pr.py`) — the shebang is not used for that
+path, so `tools/hooks/README.md:3-8`'s `python` guidance applies only to
+those invocation commands, not to git hook shebangs. (The directory-based
+trigger — files under a `hooks/` directory — is not exercised here; the
+fixture lives under `fixtures/hook-confirm/`, not a `hooks/` directory.)
 
 **Phase 1 step 2 — show raw body before confirmation:**
 
@@ -202,9 +205,8 @@ Only after steps 4–5 complete does Phase 2 begin.
    # Claude Code / self-host adapter (build-self projects to tools/hooks/).
    # Resolve the active hooks directory via Git — works in worktrees and
    # respects core.hooksPath; `.git/hooks` is wrong in linked worktrees.
-   # Prerequisite (POSIX): `python` must resolve to Python 3.11+. If your
-   # system only provides `python3`, run `alias python=python3` first, or
-   # substitute `python3` for `python` in the hook shebang and this command.
+   # Prerequisite: python3 ≥ 3.11 on PATH (standard on modern macOS/Linux;
+   # on Windows, install Python via python.org and use git-bash).
    HOOKS_DIR="$(git rev-parse --git-path hooks)"
    if [ -f "$HOOKS_DIR/pre-commit" ]; then
      echo "Warning: pre-commit hook already exists — back up or compose before overwriting."

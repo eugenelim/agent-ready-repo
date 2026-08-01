@@ -146,14 +146,17 @@ Notes on the scaffold:
   explicitly says "empty `.apm/`". No skill stubs, agent definitions, or eval
   files are created at propose time.
 - `pack-shell.md:15-16` states "at least one primitive, or the pack won't
-  validate." **The actual tooling does not enforce this at lint time.** Running
-  `agentbundle catalogue lint --deep` and `agentbundle catalogue verify`
-  immediately after scaffold creation **succeed** on a metadata-valid pack with
-  an empty `.apm/` — no primitives required. `pack-shell.md:15-16` describes an
-  aspirational or informational constraint, not one enforced by the current
-  verifier. The operator adds primitives in a subsequent `assimilate-primitive`
-  or `assimilate-repo` pass. Eval harness requirements (`packs/AGENTS.md:110-115`)
-  apply once primitives are assimilated, not at scaffold time.
+  validate." **The actual tooling does not enforce this at lint time.**
+  `agentbundle catalogue lint --deep` succeeds immediately after scaffold
+  creation on a metadata-valid pack with an empty `.apm/` — no primitives
+  required. `agentbundle catalogue verify` requires `FORCE=1 make build-self`
+  first (in a self-hosting checkout): verify step 15 checks self-host drift,
+  and adding the new pack directory makes `marketplace.json` stale until
+  `build-self` regenerates it. `pack-shell.md:15-16` describes an aspirational
+  constraint, not one enforced by the current linter. The operator adds
+  primitives in a subsequent `assimilate-primitive` or `assimilate-repo` pass.
+  Eval harness requirements (`packs/AGENTS.md:110-115`) apply once primitives
+  are assimilated, not at scaffold time.
 
 **AC6 pass condition:** The QA session verifies that the skill (a) tests
 additivity + fit and reports the result, (b) creates the correct empty scaffold

@@ -38,7 +38,7 @@ pure-stdlib Python (`AGENTS.md:238-241`); `build-self` projects the hook to
 
 ## Why this requires explicit operator confirm
 
-This is executable code (`#!/usr/bin/env python`) that runs automatically on
+This is executable code (`#!/usr/bin/env python3`) that runs automatically on
 the operator's machine without further prompting on every `git commit` attempt.
 
 The operator must make an informed decision because:
