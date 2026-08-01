@@ -1,29 +1,30 @@
 ---
-name: pr-review-agent
-description: Review a pull request diff for code quality, correctness, and style issues. Produces a structured findings report for the operator.
+name: doc-quality-rater
+description: Rate documentation files for clarity, completeness, and audience fit. Reads each file and produces a rubric score with improvement notes.
 model: opus
 tools: Read
 ---
 
-# Agent: pr-review-agent
+# Agent: doc-quality-rater
 
-Review the pull request diff provided by the operator and produce a structured
-findings report covering code quality, correctness, and style.
+Read the documentation files provided by the operator and produce a quality
+rubric report covering clarity, completeness, and audience fit.
 
 ## Procedure
 
-1. Read the pull request diff provided by the operator (as a file path or
-   pasted content).
-2. Review the diff against: correctness, edge cases, error handling, style,
-   test coverage gaps.
-3. Draft a findings report structured as: Blockers / Concerns / Nits.
-4. **Self-review your report:**
-   - Re-read the findings you just produced.
-   - Check each finding: is it well-supported by the diff? Is the severity correct?
-   - Remove or downgrade any finding you cannot clearly justify.
-5. Present the final reviewed report to the operator.
+1. Read the list of documentation files provided by the operator.
+2. For each file, read its full content.
+3. Rate it on three dimensions (1–5 scale):
+   - **Clarity** — is the prose unambiguous? Would a cold reader follow it?
+   - **Completeness** — does it answer what it claims to cover?
+   - **Audience fit** — is the depth right for the stated audience?
+4. **Self-review your ratings:**
+   - Re-read the scores you just produced.
+   - Check each score: is it consistent with your stated rationale?
+   - Adjust any score you cannot justify with specific evidence from the file.
+5. Present the finalized rubric report to the operator.
 
 ## Output
 
-A structured findings report: Blockers, Concerns, Nits — each with a one-line
-description and the diff line that supports it.
+Per-file rubric report: file path, three scores (1–5), one-sentence rationale
+per dimension.

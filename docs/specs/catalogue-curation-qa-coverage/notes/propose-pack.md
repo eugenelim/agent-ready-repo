@@ -210,14 +210,16 @@ new-rfc template structure verbatim.
 
 Expected output:
 
-> **Reject: duplicative.** Git workflow operations (commit, branch, PR) are
-> covered by the `core` pack's `bug-fix`, `capture-work`, and `work-loop`
-> skills, and by `github`'s `github-brief-intake`. A `git-workflow` pack would
-> duplicate their activation surface without adding distinct capability.
+> **Reject: fails Principle 3 (Habit, not a tool).** Git operations — committing,
+> branching, opening PRs — are atomic tool invocations, not repeating workflow
+> habits. The developer issues `git commit` or `gh pr create` directly; there is
+> no recurring sequence that forms a habit a skill should encode. A skill here
+> would substitute a wrapper for a CLI, not capture a genuine pattern of repeated
+> judgment.
 >
-> Failing principle: **Substantive, not duplicative.**
+> Failing principle: **Habit, not a tool.**
 
-The skill must name the failing principle and cite the colliding pack(s).
+The skill must name the failing principle.
 No scaffold is produced on a reject.
 
 ---
