@@ -25,10 +25,10 @@ or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
 shebang. **Why `python3` for a git hook:** git invokes the hook via the OS
 `execve` system call, which resolves the shebang interpreter through
 `/usr/bin/env` — shell aliases (e.g. `alias python=python3`) are never
-consulted. `python3` is the portable choice: it is present on all modern
-POSIX systems (macOS, Linux) and available in git-bash on Windows when
-Python is installed via python.org. `python` fails on most modern macOS/Linux
-where the `python` binary was removed with Python 2. This is distinct from
+consulted. `python3` is the portable choice for POSIX: it is present on all modern
+macOS and Linux systems. `python` fails on most modern macOS/Linux where
+the `python` binary was removed with Python 2. Windows installation is
+out of scope — see the POSIX-only installation note in step 10. This is distinct from
 agent lifecycle hooks (e.g. `packs/core/.apm/hooks/pre-pr.py`), which are
 invoked via wiring commands that specify the interpreter explicitly
 (e.g. `python tools/hooks/pre-pr.py`) — the shebang is not used for that
@@ -212,7 +212,7 @@ Only after steps 4–5 complete does Phase 2 begin.
    # Resolve the active hooks directory via Git — works in worktrees and
    # respects core.hooksPath; `.git/hooks` is wrong in linked worktrees.
    HOOKS_DIR="$(git rev-parse --git-path hooks)"
-   if [ -f "$HOOKS_DIR/pre-commit" ]; then
+   if [ -e "$HOOKS_DIR/pre-commit" ] || [ -L "$HOOKS_DIR/pre-commit" ]; then
      echo "Warning: pre-commit hook already exists — back up or compose before overwriting."
    else
      cp tools/hooks/pre-commit.py "$HOOKS_DIR/pre-commit"
@@ -240,7 +240,11 @@ Only after steps 4–5 complete does Phase 2 begin.
 2. The raw body is shown BEFORE the confirmation prompt.
 3. The confirm prompt identifies the file as executable code and describes what it does (blocks staged `.env` files).
 4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
-5. Answering anything other than `yes, land this code` aborts the ingest.
+5. Answering anything other than `yes, land this code` prevents the skill from
+   proceeding. A valid implementation may re-prompt for clarification rather than
+   immediately aborting. Only an explicit `no` triggers mandatory abort.
+   (The skill contract requires the exact phrase before proceeding — it does not
+   mandate abort on every non-matching response.)
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
 7. At step 4, all gates run PRE-WRITE during Phase 1. Catalogue lint/verify
    run against a **temporary catalogue** containing only the **raw candidate
