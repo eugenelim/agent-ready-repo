@@ -108,7 +108,7 @@ Add `TestD3CheckDotfileRead` class to `packages/agentbundle/tests/unit/test_cred
 **Depends on:** T1
 **Mode:** Goal-based (AC12–AC16)
 
-Run all gates in order (AC13 must run before AC15 — `make build-self` produces the `dist/apm/` projected copies that AC11's projected variant checks):
+Run all gates in order. Note: AC11's projected-path variant (`dist/apm/`) requires a prior `make build` run to produce the output directory; on a clean checkout without `dist/apm/`, those cases `pytest.skip` per the spec's explicit design (AC11). In this checkout `dist/apm/` is pre-existing so the projected-path tests run and pass.
 
 0. Mark AC2–AC5 `[x]` in `spec.md` (tests exist and pass).
 1. `make build-self FORCE=1` → exits 0
