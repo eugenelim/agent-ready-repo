@@ -9,17 +9,11 @@ Phase 1, step 3: "Confirm on code."
 
 ---
 
-## Fixture bundle
+## Fixture file
 
-The `fixtures/hook-confirm/` directory contains:
-- `sample-hook.sh` — the pre-commit hook (thin wrapper calling the companion at
-  `python .agentbundle/bin/pre-commit-checks.py`). **This is the file ingested.**
-- `scripts/pre-commit-checks.py` — companion stub (QA support material, not
-  ingested as a separate primitive in this session).
-- `sample-hook-notes.md` — this file (answer-key prose, not a primitive).
-
-Pass only `fixtures/hook-confirm/sample-hook.sh` to the skill — the file named
-in AC7. The companion and notes are fixture support material, not ingest targets.
+`sample-hook.sh` is a self-contained git pre-commit hook — the only file ingested
+in the AC7 QA session. It runs `ruff` and `mypy` inline without calling any
+external companion script. Pass only this file to the skill.
 
 ---
 
@@ -49,18 +43,19 @@ After showing the raw body, the skill must surface:
 
 > ⚠ **This primitive is a bash script** — executable code that will run
 > automatically on your machine as a git pre-commit hook on every commit attempt.
-> It invokes `python .agentbundle/bin/pre-commit-checks.py`.
+> It runs `ruff check` and `mypy` — if either fails, the commit is aborted.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
-> **Do you want to land this hook? (yes / no)**
+> Type **`yes, land this code`** to proceed, or **`no`** to abort.
 
 Requirements the prompt must satisfy:
 - Identifies the file as executable code (not prose).
-- Names what it executes: `python .agentbundle/bin/pre-commit-checks.py`.
+- Describes what it does (runs ruff + mypy inline).
 - Shows the raw body BEFORE the prompt.
-- Asks for an explicit `yes` or `no`.
-- Does not proceed on ambiguous answers.
+- Requires the exact contracted phrase `yes, land this code`
+  (per `assimilate-primitive/SKILL.md:35-37`).
+- Does not proceed on `yes` alone or any other ambiguous answer.
 
 ---
 
@@ -89,9 +84,11 @@ scripts. `sample-hook.sh` is a hook-body primitive (raw bash), not a behaviour
 definition. The confirm gate (step 3) and shellcheck (step 4) are the applicable
 Phase 1 security checks for raw scripts.
 
-AST09 (governance/registry) still applies: the hook must be registered in
-`marketplace.json` via `build-self` before use. The skill should verify that
-landing the hook body will result in it being projected and tracked.
+AST09 (governance/registry) does **not** apply to a raw hook-body — `marketplace.json`
+registers packs, not individual hook files. The relevant check is that `build-self`
+correctly projects the hook file to the adapter's hook path (verified after the write
+step by running `FORCE=1 make build-self` and confirming the file appears under
+`tools/hooks/` or the equivalent adapter path).
 
 ### Phase 2 — destination diagnosis and landing
 
@@ -100,7 +97,9 @@ Only after steps 4–5 complete does Phase 2 begin.
 1. The skill diagnoses the destination pack (most likely `core` for a
    general-purpose quality gate, or the source pack for a workflow-specific hook).
 2. Anti-pattern check: `anti-patterns.md:38-42` flags hooks doing heavy logic
-   directly. `sample-hook.sh` is a thin wrapper — it clears this check.
+   directly. `sample-hook.sh` runs `ruff` and `mypy` inline — this IS the
+   heavy-logic anti-pattern. The skill surfaces this and recommends reshaping
+   to a thin wrapper that delegates to a companion script.
 3. The skill may recommend renaming to match git's convention (`pre-commit`, no
    extension).
 
@@ -118,25 +117,31 @@ Only after steps 4–5 complete does Phase 2 begin.
     `packs/core/.apm/hooks/pre-commit.sh`). **Do not create a subdirectory** such
     as `.apm/hooks/git/` — `build-self` iterates only immediate `.apm/hooks`
     children that are files; subdirectories are ignored.
-  - Document manual installation (see step 5 below). The companion
-    (`pre-commit-checks.py`) would land via `.apm/adapter-root-bins/` if ingested
-    separately (RFC-0013 §4d); it is NOT part of this QA session.
   - Do NOT write a `.apm/hook-wiring/<name>.toml` for git events.
 
-4. Write the hook body via `agentbundle.safety.write_jailed`:
+4. **Present the shaped target for approval before writing** (per
+   `assimilate-primitive/SKILL.md:104-107`). The skill must show the operator:
+   - Destination path: `packs/core/.apm/hooks/pre-commit.sh`
+   - Projected path (Claude Code / self-host): `tools/hooks/pre-commit.sh`
+   - Any rename recommendation (e.g., drop `.sh` extension to match git convention)
+
+   Wait for explicit operator approval before any write. A correct QA trace
+   must include this approval step between Phase 2 diagnosis and the write.
+
+5. Write the hook body via `agentbundle.safety.write_jailed`:
    - `packs/core/.apm/hooks/pre-commit.sh` — projected to `tools/hooks/` by
      `build-self` (Claude Code / self-host adapter).
-5. Bump version **before** running `build-self` — the write makes the tree dirty
+6. Bump version **before** running `build-self` — the write makes the tree dirty
    and `build-self` requires `FORCE=1`:
    - Increment minor version in `packs/core/pack.toml`
    - Set the same version in `packs/core/.claude-plugin/plugin.json`
    - Both must match before `build-self` will accept the change.
-6. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
+7. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
    `marketplace.json`. Plain `make build-self` refuses on dirty trees.
-7. Add a `## [core][version] — YYYY-MM-DD` changelog section in
+8. Add a `## [core][version] — YYYY-MM-DD` changelog section in
    `docs/product/changelog.md` (the canonical post-bump record per
    `packs/AGENTS.local.md:16-19`).
-8. Add documentation for manual installation. After `build-self`, the hook is
+9. Add documentation for manual installation. After `build-self`, the hook is
    projected to an adapter-specific path — adopters receive the projected file,
    NOT the catalogue authoring tree under `packs/core/.apm/`. The projected path
    depends on the installed adapter:
@@ -165,20 +170,20 @@ Only after steps 4–5 complete does Phase 2 begin.
 
 ## What the QA session should verify
 
-1. The skill is invoked with the single explicit file path `sample-hook.sh`
-   (not the bundle directory; not the companion).
+1. The skill is invoked with the single explicit file path `sample-hook.sh`.
 2. The raw body is shown BEFORE the confirmation prompt.
-3. The confirm prompt identifies the file as executable code and names
-   `python .agentbundle/bin/pre-commit-checks.py`.
-4. Answering "no" discards the file cleanly.
-5. Answering "yes" triggers Phase 1 steps 4–5 before any write.
-6. At step 4, shellcheck runs against the candidate file.
-7. At step 5, the skill notes that AST01–AST10 apply to SKILL.md behaviour
-   definitions, not raw scripts; AST09 (registry/marketplace) is the relevant
-   check for the hook primitive.
-8. The hook body is written flat under `.apm/hooks/` (no subdirectory).
-9. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
-10. The version bump happens BEFORE `FORCE=1 make build-self`.
-11. `docs/product/changelog.md` receives the new `## [core][version]` entry.
-12. The manual install command uses the adapter-specific projected path (not
+3. The confirm prompt identifies the file as executable code (runs ruff + mypy).
+4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
+5. Answering anything other than `yes, land this code` aborts the ingest.
+6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
+7. At step 4, shellcheck runs against the candidate file.
+8. At step 5, the skill correctly notes AST01–AST10 apply to SKILL.md behaviour
+   definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
+9. Before writing, the skill presents the shaped target (destination path,
+   projected path, rename recommendation) and waits for operator approval.
+10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
+11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
+12. The version bump happens BEFORE `FORCE=1 make build-self`.
+13. `docs/product/changelog.md` receives the new `## [core][version]` entry.
+14. The manual install command uses the adapter-specific projected path (not
     `packs/core/.apm/hooks/`).
