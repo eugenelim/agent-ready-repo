@@ -129,7 +129,9 @@ packs/database-tooling/
 ```
 
 There is no pack-root `evals/` directory. Eval discovery is always per-skill:
-`pack_evals.py` reads Tier-4 files from `.apm/skills/<name>/evals/evals.json` only.
+`pack_evals.py` (the Tier-A activation runner) reads `.apm/skills/<name>/evals/eval_queries.json`
+for each skill listed in `[pack.evals]`. The `evals.json` file is the Tier-4 LLM-judge
+rubric stub — consumed by a separate judge runner, not by `pack_evals.py`.
 A root-level `evals/` directory is not read by any known tool.
 
 Notes on the scaffold:

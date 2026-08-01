@@ -13,7 +13,7 @@ aborts the commit if any are detected:
 
 ```python
 result = subprocess.run(
-    ["git", "diff", "--cached", "--name-only"],
+    ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
     capture_output=True, text=True, check=True,
 )
 staged = result.stdout.splitlines()

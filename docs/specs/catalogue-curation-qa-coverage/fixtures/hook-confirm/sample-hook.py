@@ -7,7 +7,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 result = subprocess.run(
-    ["git", "diff", "--cached", "--name-only"],
+    ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
     capture_output=True,
     text=True,
     check=True,

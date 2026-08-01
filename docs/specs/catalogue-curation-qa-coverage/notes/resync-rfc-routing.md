@@ -37,40 +37,38 @@ candidates.
 
 ---
 
-## Case 2: Source RFC is Frozen + moved destination → Erratum
+## Case 2: Source RFC is Frozen + verdict typo → Erratum (operator-initiated)
 
 **Setup:** RFC-0001 in `agent-commander` has been Accepted (Frozen). It
-recorded a `query-planner` skill with verdict Assimilate and destination
-`packs/core/.apm/skills/query-planner/`. Since RFC-0001 was accepted, a pack
-reorganization split `core` into `core` and `platform`; `query-planner` now
-belongs in `packs/platform/.apm/skills/query-planner/`. The source candidate
-is unchanged (content hash matches `last-synced.toml`). A re-sync runs.
+recorded a `query-planner` skill with a typo in the verdict field:
+`"Assimulate"` instead of `"Assimilate"`. This was a transcription error when
+RFC-0001 was authored; the decision itself (assimilate `query-planner`) is
+correct. The source candidate is unchanged (content hash matches
+`last-synced.toml`). A re-sync runs, triggered by a new candidate in the source.
 
 **How the algorithm classifies it:** The re-sync reads `last-synced.toml` and
-computes the content hash for `query-planner`. Hash matches → candidate is
-classified `unchanged` (not re-surfaced for a new verdict). However, re-sync
-includes a validation pass that checks each prior RFC's recorded destination
-path against the live pack layout. The path `packs/core/.apm/skills/query-planner/`
-no longer exists; `packs/platform/.apm/skills/query-planner/` is the canonical
-location. This is a **moved destination** — a genuine correction per
-`re-sync.md:29`. Since RFC-0001 is Frozen, the skill routes to the Erratum path.
+computes the content hash for `query-planner`. Hash matches → the candidate is
+classified `unchanged` and skipped (re-sync.md:12-16 — unchanged candidates are
+not re-surfaced). The skill does **not** auto-detect the typo. After the re-sync
+summary is presented, the operator notices the `"Assimulate"` typo in the prior
+RFC's verdict and flags it as a correction request.
 
 **Expected skill behavior:**
 
-1. The skill classifies `query-planner` as `unchanged` (content hash matches).
-2. The validation pass detects the destination mismatch: recorded destination
-   `packs/core/.apm/skills/query-planner/` does not resolve; correct destination
-   is `packs/platform/.apm/skills/query-planner/`.
-3. The skill surfaces the mismatch and asks: "Is this a correction to the prior
-   record (moved destination) or a new decision? (correction / new-decision)"
-4. Operator answers "correction."
-5. The skill records an **Erratum** entry, appended additively to RFC-0001
+1. The skill classifies `query-planner` as `unchanged` and skips it during the
+   re-sync pass — the typo is not auto-detected.
+2. After the re-sync summary, the operator flags: "`query-planner` verdict in
+   RFC-0001 has a typo — `Assimulate` should be `Assimilate`."
+3. The skill recognizes this as an operator-reported genuine correction
+   (verdict typo, per re-sync.md:29). Since RFC-0001 is Frozen, the skill
+   routes to the Erratum path.
+4. The skill records an **Erratum** entry, appended additively to RFC-0001
    under an `## Errata` section.
-6. The Erratum names: date, candidate (`query-planner`), prior destination,
-   corrected destination, and reason (pack reorganization — moved destination,
-   not a verdict reversal).
-7. The skill does **not** author a new RFC.
-8. The skill does **not** append any new decisions to the Frozen RFC body.
+5. The Erratum names: date, candidate (`query-planner`), prior verdict text
+   (`"Assimulate"`), corrected verdict text (`"Assimilate"`), and reason
+   (typographical error — not a reversed decision).
+6. The skill does **not** author a new RFC.
+7. The skill does **not** append any new decisions to the Frozen RFC body.
 
 **Expected output signals:**
 - "RFC-0001 is Frozen — recording operator-confirmed correction as an Erratum."
@@ -119,8 +117,10 @@ Re-sync delta found
 │    └─ Yes → Amendment (in-place on prior RFC)
 │
 └─ Prior RFC Frozen?
-     ├─ Genuine correction (typo, moved destination)?
-     │    └─ Yes → Erratum (additive, no new file; operator confirms classification)
+     ├─ Genuine correction (verdict typo, moved destination)?
+     │    └─ Yes → Erratum (additive, no new file; operator flags + confirms —
+     │              auto-detection only fires when candidate is `changed`;
+     │              unchanged candidates must be flagged by the operator)
      │
      └─ New candidates or reversed verdicts?
           └─ Yes → New RFC + Erratum entry on prior RFC naming superseder
