@@ -195,11 +195,18 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root)
 
     try:
-        # Existence check is inside the exception boundary: an inaccessible ancestor
-        # or symlink loop on root raises OSError here, which must be exit 2, not exit 1.
-        # Exit 1 is reserved exclusively for a confirmed-absent workspace.toml.
+        # Validate root before checking workspace.toml.
+        # If root is a file (not a dir), Path.exists() returns False via ENOTDIR
+        # without raising, which would falsely report workspace_present: false.
+        if not root.is_dir():
+            raise NotADirectoryError(f"--root is not a directory: {root}")
+
         workspace_toml = root / "workspace.toml"
-        if not workspace_toml.exists():
+        # Use stat() to distinguish FileNotFoundError (ENOENT → genuinely absent,
+        # exit 1) from other OS errors (ELOOP for symlink loops, EACCES → exit 2).
+        try:
+            workspace_toml.stat()
+        except FileNotFoundError:
             _emit({
                 "schema_version": 1,
                 "workspace_present": False,
