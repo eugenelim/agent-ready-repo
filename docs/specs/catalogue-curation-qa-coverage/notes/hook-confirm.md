@@ -21,12 +21,11 @@ only this file to the skill.
 
 The assimilation skill must detect executable code during Phase 1, before
 confirmation. Detection fires when a file has an executable shebang (`#!/usr/bin/env ...`)
-or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python`
-shebang. (`tools/hooks/README.md` standardizes on `python` — not `python3` —
-for cross-platform portability: `python3.exe` is rarely on Windows PATH while
-`python.exe` and the `py` launcher are.) (The directory-based trigger — files under a `hooks/` directory — is
-not exercised here; the fixture lives under `fixtures/hook-confirm/`, not a
-`hooks/` directory.)
+or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
+shebang, consistent with existing `.apm/hooks/*.py` files in the repo
+(e.g. `packs/core/.apm/hooks/pre-pr.py`). (The directory-based trigger —
+files under a `hooks/` directory — is not exercised here; the fixture lives
+under `fixtures/hook-confirm/`, not a `hooks/` directory.)
 
 **Phase 1 step 2 — show raw body before confirmation:**
 

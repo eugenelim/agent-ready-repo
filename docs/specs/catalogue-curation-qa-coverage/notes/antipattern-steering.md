@@ -120,7 +120,7 @@ The primitive stays as a subagent (no re-homing):
 name: import-lister
 description: List the non-stdlib imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
 model: haiku
-tools: Read
+tools: Read, Glob
 ---
 
 # Agent: import-lister
