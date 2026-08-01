@@ -194,17 +194,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = Path(args.root)
 
-    # Exit 1 if workspace.toml is absent — still emit JSON with workspace_present: false
-    workspace_toml = root / "workspace.toml"
-    if not workspace_toml.exists():
-        _emit({
-            "schema_version": 1,
-            "workspace_present": False,
-            "workspace_root": str(root.resolve()),
-        })
-        return 1
-
     try:
+        # Existence check is inside the exception boundary: an inaccessible ancestor
+        # or symlink loop on root raises OSError here, which must be exit 2, not exit 1.
+        # Exit 1 is reserved exclusively for a confirmed-absent workspace.toml.
+        workspace_toml = root / "workspace.toml"
+        if not workspace_toml.exists():
+            _emit({
+                "schema_version": 1,
+                "workspace_present": False,
+                "workspace_root": str(root.resolve()),
+            })
+            return 1
         result = analyze(root)
         data = _build_json(root, result)
         _emit(data)
