@@ -297,9 +297,9 @@ component draws from.
 **BEM classes:** `.gates__headline`, `.gates__accent`, `.gates__subhead`, `.gates__grid`,
 `.gate-card`, `.gate-card__top`, `.gate-card__id`, `.gate-card__loop`, `.gate-card__name`,
 `.gate-card__decide`, `.gates__cta`  
-**Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-accent`, `--ds-accent-glow`,
-`--ds-radius-md`, `--ds-on-surface`, `--ds-on-surface-2`  
-**Note:** `.gate-card` has an amber left-border accent (`--ds-accent`).
+**Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-accent`, `--ds-accent-deep`,
+`--ds-radius-md`, `--ds-on-surface-2`, `--ds-on-surface-muted`  
+**Note:** `.gate-card` has an amber left-border accent (`--ds-accent`); `.gate-card__id` uses `--ds-accent-deep`.
 
 ---
 
@@ -321,7 +321,9 @@ component draws from.
 `.tabs__label`, `.tabs__panels`, `.tabs__panel`, `.terminal__line`, `.terminal__prompt`,
 `.install__note`, `.copy-btn.install-copy-btn`  
 **Key tokens:** `--ds-hero-bg`, `--ds-hero-border-card`, `--ds-hero-border`,
-`--ds-hero-elevated`, `--ds-accent`, `--ds-font-mono`, `--ds-type-mono-sm`  
+`--ds-hero-elevated`, `--ds-hero-fg`, `--ds-hero-fg-2`, `--ds-hero-fg-muted`,
+`--ds-accent`, `--ds-accent-subtle-dk`, `--ds-font-mono`,
+`--ds-radius-lg`, `--ds-radius-pill`  
 **Note:** Tab switching is CSS-only via hidden radio inputs (`<input type="radio">`) — zero JS.
 
 ---
@@ -428,9 +430,12 @@ explicitly targets its own zone.
 
 ## 6. Dark mode
 
-The Astro marketing site (`web/`) has **no `prefers-color-scheme: dark` media query**. Dark zone
-is a layout concept — specific sections use `--ds-hero-bg` as a design property, not in response
-to user OS preference. Every component's zone is fixed at design time, not toggled by user setting.
+The Astro marketing site page and component CSS (`web/src/`) has **no `prefers-color-scheme: dark`
+media query**. Dark zone is a layout concept — specific sections use `--ds-hero-bg` as a design
+property, not in response to user OS preference. Every component's zone is fixed at design time,
+not toggled by user setting. Exception: `web/public/favicon.svg` does include a
+`@media (prefers-color-scheme: dark)` rule to adjust the favicon fill in dark OS mode — this is
+a standalone SVG asset and does not affect page or component CSS.
 
 Dark mode equivalents exist only in the **Starlight docs-site** (`docs-site/src/styles/starlight.css`
 via `[data-theme='dark']`, toggled by the Starlight theme switcher). The Starlight CSS imports

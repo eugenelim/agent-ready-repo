@@ -19,9 +19,13 @@ Assumptions:
 - JS/TS comments in Astro frontmatter are always line-leading (^\\s*//).
 - CSS property values may appear on continuation lines when the declaration
   spans multiple lines (e.g. background-image: followed by gradient values on
-  the next lines). in_declaration tracks state through the terminating semicolon
-  so continuation lines are also scanned. Inline single-line rules like
+  the next lines). in_declaration tracks state through the terminating semicolon.
+  Hex values are scanned per-line; rgba()/rgb() values are accumulated into
+  decl_buffer and scanned against the full declaration text at close, so splits
+  across lines are also detected. Inline single-line rules like
   '.foo { color: #hex; }' are not detected — the codebase doesn't use this format.
+- CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
+  uses an explicit alternation to avoid matching 5/7-digit strings.
 - Astro frontmatter (JS/TS between --- fences) is scanned as-is. A frontmatter
   object property on its own line that happens to look like a CSS property (e.g.
   `color: "#hex",`) would be flagged. AC9 holds because web/src/ frontmatter uses
@@ -35,7 +39,7 @@ from pathlib import Path
 
 FILE_EXTS = {".astro", ".css"}
 
-HEX_RE = re.compile(r"#[0-9a-fA-F]{3,6}\b")
+HEX_RE = re.compile(r"#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b")
 RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)")
 
 TOKEN_FILE = "tokens.css"
@@ -55,6 +59,7 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
     in_root_block = False  # only active when is_token_file
     in_block_comment = False
     in_declaration = False  # True when a CSS value continues on the next line(s)
+    decl_buffer = ""  # accumulated declaration value for multi-line rgba detection
 
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -93,20 +98,24 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         if SVG_ATTR_RE.match(line):
             continue
 
-        # Multi-line declaration continuation: scan the raw line for color literals
-        # when the previous property declaration had its value on subsequent lines.
+        # Multi-line declaration continuation: hex is scanned per-line; rgba()/rgb()
+        # values are accumulated into decl_buffer and matched against the full text
+        # at close so cross-line splits (e.g. rgba(\n  0,0,0,\n  0.5\n)) are detected.
         if in_declaration:
+            decl_buffer += " " + line.strip()
             for m in HEX_RE.finditer(line):
                 violations.append((lineno, m.group()))
-            for m in RGBA_RE.finditer(line):
-                violations.append((lineno, m.group()))
             if ";" in line or "{" in line or "}" in line:
+                for m in RGBA_RE.finditer(decl_buffer):
+                    violations.append((lineno, m.group()))
                 in_declaration = False
+                decl_buffer = ""
             continue
 
         if not CSS_PROP_RE.match(line):
             if "{" in line or "}" in line:
                 in_declaration = False
+                decl_buffer = ""
             continue
 
         # Extract value part (after the first colon on the line)
@@ -115,13 +124,15 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
 
         for m in HEX_RE.finditer(value_part):
             violations.append((lineno, m.group()))
-        for m in RGBA_RE.finditer(value_part):
-            violations.append((lineno, m.group()))
 
-        # If the declaration has no terminating semicolon on this line, the value
-        # continues on subsequent lines — flag them too.
-        if ";" not in value_part:
+        if ";" in value_part:
+            # Single-line value: scan rgba immediately on the value part.
+            for m in RGBA_RE.finditer(value_part):
+                violations.append((lineno, m.group()))
+        else:
+            # Multi-line value: accumulate buffer; rgba scanned when declaration closes.
             in_declaration = True
+            decl_buffer = value_part
 
     return violations
 

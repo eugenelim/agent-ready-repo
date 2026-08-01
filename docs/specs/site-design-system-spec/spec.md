@@ -76,9 +76,11 @@ documented resolution decision.
   web/src/design-system.md` for ThreeLoops, `grep "cat-card"` for
   catalogue card) must each return a match.
 - [x] **AC5.** `web/src/design-system.md` states that the Astro marketing
-  site has no `prefers-color-scheme: dark` media query; dark zone is a
-  layout property (specific sections use `--ds-hero-bg`), not a
-  user-preference mode. Dark mode equivalents exist only in the Starlight
+  site page and component CSS (`web/src/`) has no `prefers-color-scheme: dark`
+  media query; dark zone is a layout property (specific sections use
+  `--ds-hero-bg`), not a user-preference mode. The document notes that
+  `web/public/favicon.svg` does include such a query for the favicon fill, but
+  this is a standalone SVG asset outside the component CSS scope. Dark mode equivalents exist only in the Starlight
   docs-site layer (`docs-site/src/styles/starlight.css` via
   `[data-theme='dark']`). The Starlight CSS imports `tokens.css` at build
   time and expresses dark-mode overrides via `--prim-*` / `--ds-*` tokens
