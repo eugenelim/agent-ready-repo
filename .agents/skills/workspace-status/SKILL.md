@@ -25,7 +25,7 @@ Any time you need to orient: which initiative is active, what specs are ready to
 Run the production backend (from the skill's installed location):
 
 ```
-python3 "<skill-dir>/scripts/workspace_status.py" --root "<repo-root>"
+python "<skill-dir>/scripts/workspace_status.py" --root "<repo-root>"
 ```
 
 `<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). `<repo-root>` must be quoted. Use whatever shell or tool-call mechanism your environment provides.
@@ -121,7 +121,7 @@ Let N = total count across all three finding types. When N > 0, output before th
     (2) the workspace.toml entry was moved before the work was done.
 ```
 
-When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — include it in the offer only after the user confirms it is not active. Then append:
+When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — exclude it from the confirmed-operation set if the user says yes. Build a _confirmed set_ of operations (all ops except any `active`-list ops the user excluded) before showing the offer. Then append:
 
 ```
 Stale entries found — clean up now?
@@ -132,12 +132,14 @@ Stale entries found — clean up now?
 
 **Cleanup write — after Y confirmation (Type 2 only):**
 
-Apply each entry in `reconciliation.type2_cleanup_ops`. Each op describes:
+Apply only the _confirmed set_ of operations (do not re-read `type2_cleanup_ops`). Each op describes:
 - `ini_slug` — initiative to modify
 - `source_list` — list to remove the entry from (`queue` or `active`)
 - `target_list` — list to add it to (`shipped`) or `null` (Archived: remove only)
 - `path` — the entry path
 - `written_form` — exact string to append to the target list (Shipped only)
+
+When appending to `[work].shipped`, deduplicate by `path`: skip the append if the path is already present (a path in both `queue` and `active` produces two ops; apply the source-list removal for each but append `written_form` at most once).
 
 Use a comment-preserving write — targeted text insertion or `tomlkit`; never a `tomllib` + `tomli_w` round-trip (strips comments).
 
@@ -167,7 +169,7 @@ Format output in four sections (omit sections with no entries):
 **Blocked:**
 - `<path>` — waiting on `<needs-entry>` (status: `<queued|in-progress>`)
 
-**Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. If a given initiative's filtered ready + blocked + active are all empty and its filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
+**Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. Also check whether `reconciliation.type2` has any entry for that `ini_slug` — a stale queue entry whose spec is Shipped is omitted from `work.ready/blocked` by the classifier but still occupies the queue. If a given initiative's filtered ready + blocked + active are all empty, **and** no type2 findings remain for that initiative, and its filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 
 **Findings:** Read `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if they exist. Count non-header rows in each (a non-header row is any `|…|` line after the header separator row — the `|---|...|` line of dashes).
 

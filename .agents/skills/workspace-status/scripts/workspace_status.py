@@ -21,6 +21,9 @@ import sys
 import traceback
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
 _here = Path(__file__).parent
