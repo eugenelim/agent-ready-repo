@@ -1976,7 +1976,7 @@ def main() -> int:
             test_check_spec_status_no_args,
             test_spec_plan_full_walk,
             test_evals_json_shape,
-            # Crash-window tests (loop-infra-crash-window-tests)
+            # Crash-window tests: session-resumption and idempotency coverage
             test_no_chat_history_status_read_via_cli,
             test_no_chat_history_identity_verify_via_cli,
             test_no_chat_history_route_wave_passed_via_cli,
