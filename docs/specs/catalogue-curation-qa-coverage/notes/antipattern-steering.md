@@ -105,12 +105,15 @@ steering):
 > import list it just produced in step 3. Self-review provides no independent
 > signal — the same model that produced the list evaluates it.
 >
-> **Disposition: Steer.** Remove step 4. The import scanning remains a
-> legitimate subagent workflow; the self-review step alone is the violation.
+> **Disposition: Steer.** Remove step 4 (self-review) and fold the stdlib
+> exclusion into step 3 so the main scan already filters stdlib names. The
+> import scanning remains a legitimate subagent workflow; the self-review
+> step alone is the violation.
 
 ### Reshaped form
 
-Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
+Remove step 4 (self-review) and fold stdlib exclusion into step 3.
+The primitive stays as a subagent (no re-homing):
 
 ```
 ---
@@ -126,7 +129,8 @@ tools: Read
 
 1. Read each .py file in the paths provided by the operator.
 2. For each file, collect all `import` and `from ... import` statements.
-3. Produce a de-duplicated list of the imported top-level names.
+3. Produce a de-duplicated list of the imported top-level names,
+   excluding Python stdlib modules (e.g., `os`, `sys`, `re`).
 4. Present the import list to the operator.
 
 ## Output

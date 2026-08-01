@@ -208,10 +208,11 @@ Only after steps 4–5 complete does Phase 2 begin.
 5. Answering anything other than `yes, land this code` aborts the ingest.
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
 7. At step 4, all gates run PRE-WRITE during Phase 1. Catalogue lint/verify
-   run on the existing packs/ root (health check; they do not inspect raw hook
-   bodies directly). Bandit (MEDIUM+ threshold) and semgrep (with the candidate
-   path appended) run against the candidate file. The fixture has no MEDIUM+
-   bandit findings and no semgrep errors; all gates pass.
+   run against a **temporary catalogue** containing only the shaped hook and its
+   parent pack stub — not the existing packs/ root — to validate the candidate's
+   projection compatibility before the real write. Bandit (MEDIUM+ threshold)
+   and semgrep (with the candidate path appended) run against the candidate file.
+   The fixture has no MEDIUM+ bandit findings and no semgrep errors; all gates pass.
 8. At step 5, the skill correctly notes AST01–AST10 apply to SKILL.md behaviour
    definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
 9. Before writing, the skill presents the shaped target (destination path,
