@@ -119,6 +119,17 @@ step by running `FORCE=1 make build-self` and confirming the file appears under
 
 ### Phase 2 — destination diagnosis and landing
 
+> **QA isolation:** Phase 2 writes permanently to `packs/core/` (version bumps,
+> changelog entries, hook body). Run AC7 in a disposable git worktree so the
+> checkout is not mutated:
+> ```
+> git worktree add /tmp/qa-hook-confirm
+> # run assimilate-primitive in /tmp/qa-hook-confirm
+> git worktree remove --force /tmp/qa-hook-confirm
+> ```
+> Only proceed without a worktree if the intent is to actually ship the
+> pre-commit hook as a new `core` primitive in a dedicated PR.
+
 Only after steps 4–5 complete does Phase 2 begin.
 
 1. The skill diagnoses the destination pack (most likely `core` for a

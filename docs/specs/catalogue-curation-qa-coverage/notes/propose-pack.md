@@ -169,6 +169,19 @@ structure when the pack passes fit, and (c) emits an RFC. Post-scaffold:
   then verify.
 AC6 is satisfied when the scaffold structure and RFC match the forms documented
 in this file and both post-build-self gates pass clean.
+
+**AC6 teardown (required after QA):** The `database-tooling` scaffold is a
+throwaway for QA verification. After confirming AC6 passes, the QA operator
+must clean up before the checkout is used for other work:
+1. Delete `packs/database-tooling/` and the emitted RFC file.
+2. Run `FORCE=1 make build-self` to remove the stale `marketplace.json` entry
+   (deleting the pack directory without rebuilding leaves a dangling entry that
+   fails `agentbundle catalogue verify`).
+3. Run `agentbundle catalogue verify` to confirm the clean state.
+
+Alternatively, run AC6 in a disposable git worktree
+(`git worktree add /tmp/qa-propose-pack`) and remove it after
+(`git worktree remove --force /tmp/qa-propose-pack`) — no teardown needed.
 - The maintainer alias from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.
