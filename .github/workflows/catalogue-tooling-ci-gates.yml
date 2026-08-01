@@ -15,6 +15,20 @@ name: catalogue-tooling-ci-gates
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'guides/**'
+      - 'governance/**'
+      - 'docs-site/**'
+      - 'web/**'
+      - 'profiles/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'AGENTS.local.md'
+      - 'CLAUDE.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE-*'
+      - 'llms.txt'
   push:
     branches: [main]
 
