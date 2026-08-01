@@ -128,8 +128,8 @@ Notes on the scaffold:
 - **Eval harness is required** (`packs/AGENTS.md:110-115`): a non-cosmetic pack
   update (and new-pack scaffold) must include:
   - Tier-A activation evals at `.apm/skills/schema-migrate/evals/eval_queries.json`
-    — a flat JSON array. The scaffold stub ships with two placeholder entries; the
-    operator must expand to ~8–10 trigger and ~8–10 near-miss entries before the
+    — a flat JSON array. The scaffold stub ships with five entries (three trigger,
+    two near-miss); the operator must expand to ~8–10 of each before the
     skill is registered in `[pack.evals]`. **Do not add the skill to `[pack.evals]`
     until the harness reaches meaningful coverage** — catalogue lint validates JSON
     shape only, not coverage depth.

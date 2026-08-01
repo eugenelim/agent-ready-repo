@@ -29,7 +29,7 @@ The operator must make an informed decision because:
 
 1. **Execution scope** — the hook invokes a Python script that runs on the
    operator's local environment, using whatever Python is on PATH and whatever
-   checks `tools/pre-commit-checks.py` implements.
+   checks `.agentbundle/bin/pre-commit-checks.py` implements.
 2. **Abort behavior** — if `pre-commit-checks.py` exits non-zero, the commit
    is aborted. A missing or broken check environment will block all commits.
 3. **Trust boundary** — even a short wrapper script delegates to code the

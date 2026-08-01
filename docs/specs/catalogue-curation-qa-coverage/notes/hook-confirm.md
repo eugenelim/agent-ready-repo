@@ -12,9 +12,9 @@ Phase 1, step 3: "Confirm on code."
 ## Fixture file
 
 `sample-hook.sh` is a thin-wrapper git pre-commit hook — the only file ingested
-in the AC7 QA session. It delegates to `tools/pre-commit-checks.py`, a
-project-local script the adopter owns (not a shipped companion from the pack).
-Pass only this file to the skill.
+in the AC7 QA session. It delegates to `.agentbundle/bin/pre-commit-checks.py`,
+a companion projected to the adopter tree via the pack's `adapter-root-bins`
+mechanism. Pass only this file to the skill.
 
 ---
 
@@ -44,7 +44,7 @@ After showing the raw body, the skill must surface:
 
 > ⚠ **This primitive is a bash script** — executable code that will run
 > automatically on your machine as a git pre-commit hook on every commit attempt.
-> It invokes `python3 tools/pre-commit-checks.py`.
+> It invokes `python3 .agentbundle/bin/pre-commit-checks.py`.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
@@ -52,7 +52,7 @@ After showing the raw body, the skill must surface:
 
 Requirements the prompt must satisfy:
 - Identifies the file as executable code (not prose).
-- Names what it invokes: `python3 tools/pre-commit-checks.py`.
+- Names what it invokes: `python3 .agentbundle/bin/pre-commit-checks.py`.
 - Shows the raw body BEFORE the prompt.
 - Requires the exact contracted phrase `yes, land this code`
   (per `assimilate-primitive/SKILL.md:35-37`).
@@ -98,7 +98,7 @@ Only after steps 4–5 complete does Phase 2 begin.
 1. The skill diagnoses the destination pack (most likely `core` for a
    general-purpose quality gate, or the source pack for a workflow-specific hook).
 2. Anti-pattern check: `anti-patterns.md:38-42` flags hooks doing heavy logic
-   directly. `sample-hook.sh` delegates to `tools/pre-commit-checks.py` — a
+   directly. `sample-hook.sh` delegates to `.agentbundle/bin/pre-commit-checks.py` — a
    thin wrapper. It clears this check.
 3. The skill may recommend renaming to match git's convention (`pre-commit`, no
    extension).
