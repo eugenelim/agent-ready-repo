@@ -124,7 +124,12 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
             in_block_comment = False
             line = line[close + 2:]  # keep only the code that follows */
 
-        # Step 2: Strip closed inline /* ... */ from the entire line; if /* remains
+        # Step 2: Mask quoted CSS strings BEFORE comment stripping. This prevents
+        # comment patterns inside string literals (e.g. `content: "/*";`) from
+        # being misread as comment openers by _strip_inline_comment.
+        line = CSS_STRING_RE.sub("''", line)
+
+        # Step 3: Strip closed inline /* ... */ from the entire line; if /* remains
         # unclosed, truncate there and enter block-comment state. This handles
         # trailing comments (`color: var(--x); /* old: #fff */`) and mid-line
         # openings (`.foo { /* comment`) without false positives or false negatives.
@@ -132,13 +137,9 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         if opened_block:
             in_block_comment = True
 
-        # Step 3: Strip url(...) tokens — URL fragments like url(#id) contain
+        # Step 4: Strip url(...) tokens — URL fragments like url(#id) contain
         # valid hex-looking strings that are element IDs, not color values.
         line = URL_RE.sub("url()", line)
-
-        # Step 4: Strip quoted CSS strings — content: '#abc' or content: "rgba(0,0,0)"
-        # are string literals, not color values; masking them prevents false positives.
-        line = CSS_STRING_RE.sub("''", line)
 
         if not line.strip():
             continue
