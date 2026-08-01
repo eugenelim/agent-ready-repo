@@ -30,8 +30,8 @@ This spec delivers two artefacts:
    working on the platform site. It covers: color tokens (names, roles,
    zone assignments), typography scale, spacing rhythm, component
    vocabulary (BEM classes + token usage per component), zone rules, dark
-   mode equivalents (MkDocs only), the card icon parity decision, and an
-   audit of Material-injected component deviations.
+   mode equivalents (Starlight docs-site `[data-theme='dark']` only), the card icon
+   parity decision, and an audit of Starlight CSS deviations.
 
 2. **`tools/lint_zone_violations.py`** — a stdlib-only Python lint script
    that scans `web/src/` for raw color values (hex literals or `rgba()`
@@ -122,9 +122,9 @@ documented resolution decision.
   (c) the `:root {}` token-definition block in `tokens.css`. The exclusion
   assumes flat, single-line-brace `:root` blocks (the current `tokens.css` shape — two
   single-line `{` openings, no nested braces). The scanner operates line-by-line and
-  detects raw hex/rgba only when a CSS property value is on its own line (multi-line
-  formatting) — inline single-line rules like `.foo { color: #hex; }` are not detected;
-  this is acceptable because `web/src/` uses multi-line CSS throughout. Astro frontmatter
+  handles both multi-line declarations (property name and value on separate lines, with
+  state tracked through the terminating semicolon) and inline single-line rules like
+  `.foo { color: #hex; }` (detected by scanning the portion after `{`). Astro frontmatter
   is scanned as-is; a frontmatter object property that resembles a CSS property could
   false-positive, but `web/src/` frontmatter patterns do not match this shape. Exits 0 = clean,
   exits 1 = violations found, printing `file:line: <value>` for each hit.

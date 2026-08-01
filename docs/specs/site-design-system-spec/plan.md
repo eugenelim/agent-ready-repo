@@ -42,10 +42,12 @@ for each file:
         skip SVG attribute lines (fill= stroke= xmlns= viewBox= etc.)
         if in_declaration:
             append line to decl_buffer; scan line for #hex (3/4/6/8 digits)
-            if ";" or block boundary: scan decl_buffer for rgba(); clear state
+            if ";" or block boundary (not opened_block): scan decl_buffer for rgba(); clear state
         elif line matches CSS property: value; pattern:
             scan value for #hex (3/4/6/8 digits) and rgba()
             if no ";" in value: in_declaration=True, decl_buffer=value (multi-line)
+        elif "{" in line (non-property line with brace):
+            if portion after "{" matches CSS property: scan that value for #hex and rgba()
 exit 0 if no violations, 1 if any; exit 2 on unreadable file; print file:line: <value>
 ```
 
@@ -77,7 +79,7 @@ Author the eight-section document per the LLD. All hex and clamp values copy ver
 **Depends on:** none (parallel with T2; the lint is structurally self-contained and does not consume the T1 inventory)
 **Mode:** Goal-based
 
-Implement the state-machine parser per the LLD. Use Python stdlib `re`, `pathlib`, `sys`. Traverse with `Path.rglob` (simpler than `os.walk` for this use case). The `:root` block exclusion is gated by file path (only the canonical token file at `<root>/styles/tokens.css`) and assumes flat, single-line-brace `:root` blocks; the brace-tracking is a boolean toggle, not a depth counter. Comment exclusion must handle: CSS block comments `/* … */` (including multi-line and same-line trailing variants), and line-leading `//` (`^\s*//`, JS/TS comments in Astro frontmatter). Multi-line CSS declarations (property name and value on separate lines) require declaration-state tracking through the terminating semicolon. Line count is ~170 due to declaration and comment state tracking, plus inline-comment stripping.
+Implement the state-machine parser per the LLD. Use Python stdlib `re`, `pathlib`, `sys`. Traverse with `Path.rglob` (simpler than `os.walk` for this use case). The `:root` block exclusion is gated by file path (only the canonical token file at `<root>/styles/tokens.css`) and assumes flat, single-line-brace `:root` blocks; the brace-tracking is a boolean toggle, not a depth counter. Comment exclusion must handle: CSS block comments `/* … */` (including multi-line and same-line trailing variants), and line-leading `//` (`^\s*//`, JS/TS comments in Astro frontmatter). Multi-line CSS declarations (property name and value on separate lines) require declaration-state tracking through the terminating semicolon. Inline single-line rules (`.selector { property: value; }`) are also handled by scanning the portion after `{`. Line count is ~200 due to declaration and comment state tracking, plus inline-comment stripping and inline-rule handling.
 
 **Verification:**
 - `python tools/lint_zone_violations.py web/src/` exits 0 (AC9)
@@ -85,8 +87,8 @@ Implement the state-machine parser per the LLD. Use Python stdlib `re`, `pathlib
   `.foo {\n  color: #e8952b;\n}` (property on its own line, matching the codebase's
   multi-line formatting convention), run `python tools/lint_zone_violations.py` against
   its directory, confirm exit 1 and a `tmp_test_violation.css:2:` report; delete the temp
-  file (AC8 — keeps the Astro source tree clean). Note: inline single-line rules
-  `.foo { color: #hex; }` are not detected — see lint docstring for the scope assumption.
+  file (AC8 — keeps the Astro source tree clean). Also verify inline single-line rules
+  are detected: create a temp file with `.foo { color: #hex; }` and confirm exit 1.
 
 ### T4 — Verify lint exits 0 on current codebase
 

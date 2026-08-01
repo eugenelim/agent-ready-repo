@@ -22,8 +22,11 @@ Assumptions:
   the next lines). in_declaration tracks state through the terminating semicolon.
   Hex values are scanned per-line; rgba()/rgb() values are accumulated into
   decl_buffer and scanned against the full declaration text at close, so splits
-  across lines are also detected. Inline single-line rules like
-  '.foo { color: #hex; }' are not detected — the codebase doesn't use this format.
+  across lines are also detected. Block comments within a multi-line declaration
+  (e.g. `background: /* old */ value;`) do NOT terminate the declaration — the
+  state persists through the comment so post-comment values are still scanned.
+- Inline rules sharing a selector line (`.selector { property: value; }`) are
+  handled by scanning the portion after `{` for property declarations.
 - CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
   uses an explicit alternation to avoid matching 5/7-digit strings.
 - Block-comment state is resolved at the start of every line: when inside a block
@@ -124,7 +127,9 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
             decl_buffer += " " + line.strip()
             for m in HEX_RE.finditer(line):
                 violations.append((lineno, m.group()))
-            if ";" in line or "{" in line or "}" in line or opened_block:
+            # Do NOT terminate on opened_block: a block comment within a declaration
+            # does not end it — the value continues after the comment closes.
+            if ";" in line or "{" in line or "}" in line:
                 for m in RGBA_RE.finditer(decl_buffer):
                     violations.append((lineno, m.group()))
                 in_declaration = False
@@ -135,6 +140,21 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
             if "{" in line or "}" in line:
                 in_declaration = False
                 decl_buffer = ""
+                # Handle inline rules: .selector { property: value; }
+                # Guard: CSS inline rules have a non-empty selector before {;
+                # JSX object literals start with { (no selector), so before_brace
+                # would be empty — skip those.
+                if "{" in line:
+                    brace_pos = line.index("{")
+                    before_brace = line[:brace_pos].rstrip()
+                    after_brace = line[brace_pos + 1:].lstrip()
+                    if before_brace and CSS_PROP_RE.match(after_brace):
+                        colon_idx = after_brace.index(":")
+                        inline_value = after_brace[colon_idx + 1:]
+                        for m in HEX_RE.finditer(inline_value):
+                            violations.append((lineno, m.group()))
+                        for m in RGBA_RE.finditer(inline_value):
+                            violations.append((lineno, m.group()))
             continue
 
         # Extract value part (after the first colon on the line).
@@ -144,12 +164,15 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         for m in HEX_RE.finditer(value_part):
             violations.append((lineno, m.group()))
 
-        if ";" in value_part or opened_block:
-            # Single-line value (or comment-truncated): scan rgba immediately.
+        if ";" in value_part:
+            # Single-line value terminated on this line: scan rgba immediately.
             for m in RGBA_RE.finditer(value_part):
                 violations.append((lineno, m.group()))
         else:
-            # Multi-line value: accumulate buffer; rgba scanned when declaration closes.
+            # Multi-line value (or comment cut off the value): accumulate buffer;
+            # rgba scanned when declaration closes. Block comments do not terminate
+            # the declaration — in_block_comment will skip comment lines and
+            # in_declaration persists until a real ; or block boundary.
             in_declaration = True
             decl_buffer = value_part
 
