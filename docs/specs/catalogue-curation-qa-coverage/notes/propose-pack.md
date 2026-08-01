@@ -111,12 +111,12 @@ packs/database-tooling/
                           #   [pack] name, version, description
                           #   [pack.adapter-contract] version
                           #   [pack.install] default-scope, allowed-scopes
-                          #   [[pack.dependencies.required]] (core at minimum)
+                          #   [[pack.dependencies.required]] (only if this pack
+                          #     composes around core; standalone packs omit this)
                           #   [pack.links]
                           #   [[pack.maintainers]]
-                          #   Maturity scope and deprecation path documented here.
                           # ([pack.evals] added later, once eval harness reaches coverage)
-  README.md               # one-paragraph overview + install command
+  README.md               # elevator pitch + link to pack's guide home + install command
   .claude-plugin/
     plugin.json           # name, version, description (only — schema is closed)
   .apm/

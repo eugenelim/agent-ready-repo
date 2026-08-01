@@ -37,36 +37,40 @@ candidates.
 
 ---
 
-## Case 2: Source RFC is Frozen + genuine correction → Erratum
+## Case 2: Source RFC is Frozen + moved destination → Erratum
 
-**Setup:** RFC-0001 in `agent-commander` has been Accepted (Frozen). The
-source repo (`llm-wiki-kit`) has a small documentation-only update to one
-candidate: the candidate's description field has a typo corrected (the behavior
-is unchanged; only the description prose differs). A re-sync runs.
+**Setup:** RFC-0001 in `agent-commander` has been Accepted (Frozen). It
+recorded a `query-planner` skill with verdict Assimilate and destination
+`packs/core/.apm/skills/query-planner/`. Since RFC-0001 was accepted, a pack
+reorganization split `core` into `core` and `platform`; `query-planner` now
+belongs in `packs/platform/.apm/skills/query-planner/`. The source candidate
+is unchanged (content hash matches `last-synced.toml`). A re-sync runs.
 
 **How the algorithm classifies it:** The re-sync reads `last-synced.toml` and
-computes the content hash for the candidate. The description typo-fix changes
-the hash → the candidate is classified `changed` (not `unchanged`). The skill
-then checks the prior RFC: RFC-0001 is Frozen. Because the content change is a
-documentation correction (no behavioral change, no verdict reversal, no new
-candidate), the skill classifies it as a **genuine correction** and routes to
-the Erratum path. The skill asks the operator to confirm the classification
-before writing.
+computes the content hash for `query-planner`. Hash matches → candidate is
+classified `unchanged` (not re-surfaced for a new verdict). However, re-sync
+includes a validation pass that checks each prior RFC's recorded destination
+path against the live pack layout. The path `packs/core/.apm/skills/query-planner/`
+no longer exists; `packs/platform/.apm/skills/query-planner/` is the canonical
+location. This is a **moved destination** — a genuine correction per
+`re-sync.md:29`. Since RFC-0001 is Frozen, the skill routes to the Erratum path.
 
 **Expected skill behavior:**
 
-1. The skill runs re-sync, classifies the candidate as `changed`, and detects
-   that RFC-0001 is Frozen.
-2. The skill presents the delta to the operator: what changed (the description
-   typo-fix), the prior verdict, and asks: "Is this a correction to the prior
-   verdict or a new decision? (correction / new-decision)"
-3. Operator answers "correction."
-4. The skill records an **Erratum** entry, appended additively to RFC-0001
+1. The skill classifies `query-planner` as `unchanged` (content hash matches).
+2. The validation pass detects the destination mismatch: recorded destination
+   `packs/core/.apm/skills/query-planner/` does not resolve; correct destination
+   is `packs/platform/.apm/skills/query-planner/`.
+3. The skill surfaces the mismatch and asks: "Is this a correction to the prior
+   record (moved destination) or a new decision? (correction / new-decision)"
+4. Operator answers "correction."
+5. The skill records an **Erratum** entry, appended additively to RFC-0001
    under an `## Errata` section.
-5. The Erratum names: the date, what changed (the description field), the
-   corrected value, and the reason it is a correction rather than a new decision.
-6. The skill does **not** author a new RFC.
-7. The skill does **not** append new decisions to the Frozen RFC body.
+6. The Erratum names: date, candidate (`query-planner`), prior destination,
+   corrected destination, and reason (pack reorganization — moved destination,
+   not a verdict reversal).
+7. The skill does **not** author a new RFC.
+8. The skill does **not** append any new decisions to the Frozen RFC body.
 
 **Expected output signals:**
 - "RFC-0001 is Frozen — recording operator-confirmed correction as an Erratum."

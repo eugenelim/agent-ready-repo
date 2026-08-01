@@ -42,8 +42,8 @@ confirmation prompt. The operator cannot consent to code they have not read.
 
 After showing the raw body, the skill must surface:
 
-> ⚠ **This primitive is a Python script** — executable code that will run
-> automatically on your machine as a git pre-commit hook on every commit attempt.
+> ⚠ **This primitive is a Python script** — executable code that, if installed
+> as a git hook, will run automatically on your machine on every commit attempt.
 > It blocks commits when a `.env` file is staged.
 >
 > Raw content is shown above. Please review it before proceeding.
@@ -128,8 +128,10 @@ Only after steps 4–5 complete does Phase 2 begin.
    `assimilate-primitive/SKILL.md:104-107`). The skill must show the operator:
    - Destination path: `packs/core/.apm/hooks/pre-commit.py`
    - Projected path (Claude Code / self-host): `tools/hooks/pre-commit.py`
-   - Any rename recommendation (e.g., drop the `.py` extension to match git's
-     convention; the hook still executes correctly via the Python shebang)
+   - Rename note: keep `pre-commit.py` as the catalogue path — `build-self`
+     must project a `.py` file (hook-body discovery recognizes only `.sh` and
+     `.py`; an extensionless file is skipped). The operator drops the extension
+     only in the `cp` step when installing into `.git/hooks/pre-commit`.
 
    Wait for explicit operator approval before any write. A correct QA trace
    must include this approval step between Phase 2 diagnosis and the write.
