@@ -1348,7 +1348,7 @@ def test_evals_json_shape(_tmp: Path) -> None:
     ok(name)
 
 
-# ── Crash-window tests (loop-infra-crash-window-tests AC6 closure) ────────
+# ── Crash-window tests: session-resumption and idempotency coverage ─────────
 
 
 def make_crash_window_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
@@ -1433,7 +1433,7 @@ def _setup_retry_boundary_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
 
 
 def test_no_chat_history_status_read_via_cli(tmp: Path) -> None:
-    """AC7: engine status --json is readable via subprocess; key fields present."""
+    """engine status --json is readable via subprocess; key fields present."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-status")
     rc, out, _ = run_engine("status", str(spec_dir), "--json")
     try:
@@ -1450,7 +1450,7 @@ def test_no_chat_history_status_read_via_cli(tmp: Path) -> None:
 
 
 def test_no_chat_history_identity_verify_via_cli(tmp: Path) -> None:
-    """AC7: cohort identity --expect-run-id verifies pairing via subprocess."""
+    """cohort identity --expect-run-id verifies pairing via subprocess."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-identity")
     rc, out, err = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
     if rc != 0:
@@ -1461,7 +1461,7 @@ def test_no_chat_history_identity_verify_via_cli(tmp: Path) -> None:
 
 
 def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:
-    """AC7: reads last_event=wave-passed via CLI and routes wave advance correctly."""
+    """reads last_event=wave-passed via CLI and routes wave advance correctly."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-wave")
     # Crash: fire real wave-passed; stop before advance
     run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
@@ -1505,7 +1505,7 @@ def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:
 
 
 def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:
-    """AC7: reads last_event=gates-failed via CLI and routes record-attempt correctly."""
+    """reads last_event=gates-failed via CLI and routes record-attempt correctly."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-gf")
     # Crash: fire real gates-failed; stop before record-attempt
     run_engine("transition", str(spec_dir), "gates-failed")
@@ -1558,7 +1558,7 @@ def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:
 
 
 def test_wave_passed_window_a_advance_before_crash(tmp: Path) -> None:
-    """AC1: window A — crash before advance; advance succeeds and increments once."""
+    """window A — crash before advance; advance succeeds and increments once."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-a")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
     if rc_t != 0:
@@ -1583,7 +1583,7 @@ def test_wave_passed_window_a_advance_before_crash(tmp: Path) -> None:
 
 
 def test_wave_passed_window_b_advance_after_crash(tmp: Path) -> None:
-    """AC2: window B — crash after advance; replay is idempotent no-op."""
+    """window B — crash after advance; replay is idempotent no-op."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-b")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
     if rc_t != 0:
@@ -1607,7 +1607,7 @@ def test_wave_passed_window_b_advance_after_crash(tmp: Path) -> None:
 
 
 def test_wave_passed_wrong_from_index_refused(tmp: Path) -> None:
-    """AC3: wrong --from-index exits non-zero; both state files unchanged; run IDs remain paired."""
+    """wrong --from-index exits non-zero; both state files unchanged; run IDs paired."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-wfi")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
     if rc_t != 0:
@@ -1632,7 +1632,7 @@ def test_wave_passed_wrong_from_index_refused(tmp: Path) -> None:
 
 
 def test_wave_passed_wrong_run_id_refused(tmp: Path) -> None:
-    """AC3: wrong --expect-run-id exits non-zero; both state files unchanged; run IDs remain paired."""
+    """wrong --expect-run-id exits non-zero; both state files unchanged; run IDs paired."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-wri")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
     if rc_t != 0:
@@ -1658,7 +1658,7 @@ def test_wave_passed_wrong_run_id_refused(tmp: Path) -> None:
 
 
 def test_wave_passed_run_ids_remain_paired_after_advance(tmp: Path) -> None:
-    """AC1: engine and cohort run_ids remain paired after crash recovery."""
+    """engine and cohort run_ids remain paired after crash recovery."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-pair")
     run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
     run_cohort("wave", "advance", str(spec_dir),
@@ -1675,7 +1675,7 @@ def test_wave_passed_run_ids_remain_paired_after_advance(tmp: Path) -> None:
 
 
 def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:
-    """AC4: window A — crash before record-attempt; count increments exactly once."""
+    """window A — crash before record-attempt; count increments exactly once."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-a")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
     if rc_t != 0:
@@ -1699,7 +1699,7 @@ def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:
 
 
 def test_gates_failed_window_b_record_after_crash(tmp: Path) -> None:
-    """AC5: window B — cycle_id already recorded; replay is no-op."""
+    """window B — cycle_id already recorded; replay is no-op."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-b")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
     if rc_t != 0:
@@ -1727,7 +1727,7 @@ def test_gates_failed_window_b_record_after_crash(tmp: Path) -> None:
 
 
 def test_gates_failed_wrong_run_id_prefix_refused(tmp: Path) -> None:
-    """AC4/AC5: cycle_id with wrong run_id prefix exits non-zero; state unchanged."""
+    """cycle_id with wrong run_id prefix exits non-zero; state unchanged."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-wri")
     run_engine("transition", str(spec_dir), "gates-failed")
     eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
@@ -1746,7 +1746,7 @@ def test_gates_failed_wrong_run_id_prefix_refused(tmp: Path) -> None:
 
 
 def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:
-    """AC6: fifth repair cycle permitted; implementation_retry_count reaches 5."""
+    """fifth repair cycle permitted; implementation_retry_count reaches 5."""
     spec_dir, run_id, _ = _setup_retry_boundary_run(tmp, "gf-5th")
     st = _read_cohort_state(spec_dir)
     st["implementation_retry_count"] = 4
@@ -1768,7 +1768,7 @@ def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:
 
 
 def test_gates_failed_sixth_retry_refused(tmp: Path) -> None:
-    """AC6: sixth gates-failed transition refused; both state files unchanged."""
+    """sixth gates-failed transition refused; both state files unchanged."""
     spec_dir, run_id, _ = _setup_retry_boundary_run(tmp, "gf-6th")
     st = _read_cohort_state(spec_dir)
     st["implementation_retry_count"] = 5
@@ -1794,7 +1794,7 @@ def test_gates_failed_sixth_retry_refused(tmp: Path) -> None:
 
 
 def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:
-    """AC8a: last_event=findings-remain readable from engine status --json."""
+    """last_event=findings-remain readable from engine status --json."""
     spec_dir, run_id = make_code_review_run(tmp, "fr-phase")
     run_engine("transition", str(spec_dir), "findings-remain")
     rc, out, _ = run_engine("status", str(spec_dir), "--json")
@@ -1811,7 +1811,7 @@ def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:
 
 
 def test_findings_remain_no_auto_replay(tmp: Path) -> None:
-    """AC8b: cohort state unchanged after recovery reads; reads must succeed."""
+    """cohort state unchanged after recovery reads; reads must succeed."""
     spec_dir, run_id = make_code_review_run(tmp, "fr-noreplay")
     run_engine("transition", str(spec_dir), "findings-remain")
     before = (spec_dir / "state.json").read_bytes()
@@ -1832,7 +1832,7 @@ def test_findings_remain_no_auto_replay(tmp: Path) -> None:
 
 
 def test_findings_remain_skill_prose_present(tmp: Path) -> None:
-    """AC8c: findings-remain SKILL.md row contains required phrases."""
+    """findings-remain SKILL.md row contains required phrases."""
     skill_path = SCRIPT_DIR.parent / "SKILL.md"
     lines = skill_path.read_text(encoding="utf-8").splitlines()
     row_line = next(
@@ -1855,7 +1855,7 @@ def test_findings_remain_skill_prose_present(tmp: Path) -> None:
 
 
 def test_reviewers_clean_record_forms_present(tmp: Path) -> None:
-    """AC9: --report and --all-skipped exist in cohort review record --help."""
+    """--report and --all-skipped exist in cohort review record --help."""
     rc, out, err = run_cohort("review", "record", "--help")
     combined = out + err
     if "--report" not in combined or "--all-skipped" not in combined:
@@ -1866,7 +1866,7 @@ def test_reviewers_clean_record_forms_present(tmp: Path) -> None:
 
 
 def test_reviewers_clean_no_silent_replay(tmp: Path) -> None:
-    """AC9: cohort state unchanged after recovery reads; reads must succeed."""
+    """cohort state unchanged after recovery reads; reads must succeed."""
     spec_dir, run_id = make_code_review_run(tmp, "rc-noreplay")
     write_spec(spec_dir, status="Shipped")
     rc_t, _, err_t = run_engine("transition", str(spec_dir), "reviewers-clean")
@@ -1896,7 +1896,7 @@ def test_reviewers_clean_no_silent_replay(tmp: Path) -> None:
 
 
 def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
-    """AC9: reviewers-clean SKILL.md row contains required consequence phrases."""
+    """reviewers-clean SKILL.md row contains required consequence phrases."""
     skill_path = SCRIPT_DIR.parent / "SKILL.md"
     lines = skill_path.read_text(encoding="utf-8").splitlines()
     row_line = next(
