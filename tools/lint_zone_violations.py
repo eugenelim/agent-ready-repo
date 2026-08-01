@@ -224,10 +224,14 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                 else:
                     in_declaration = True
                     decl_buffer = inline_value
-        elif value_part.strip().endswith(","):
+        elif value_part.strip().endswith(",") and "(" not in value_part:
             # Multiline selector list continuation (e.g. `a:hover,` followed
             # by `#id {` on the next line). The colon belongs to the selector;
             # the trailing comma is not valid CSS property syntax. Skip.
+            # Guard: if value_part contains `(`, it's a CSS function call in a
+            # multi-layer value (e.g. `background: linear-gradient(...),`) and
+            # must enter declaration state normally; only skip when value_part
+            # is bare text (no function calls) ending with a comma.
             pass
         else:
             for m in HEX_RE.finditer(value_part):

@@ -343,9 +343,12 @@ component draws from.
 `.loop-card__link`, `.catalogue__more`, `.catalogue__summary`, `.catalogue__summary-arrow`,
 `.catalogue__group`, `.catalogue__group-title`, `.pack-grid`, `.pack-card`,
 `.pack-card__name`, `.pack-card__desc`  
+**Scope chip** (`StatusChip.astro` via `<StatusChip label={scope} />`): `.status-chip`  
 **Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-radius-lg`, `--ds-on-surface-2`,
 `--ds-on-surface-muted`, `--ds-accent`, `--ds-accent-deep`,
-`--ds-hero-bg`, `--ds-hero-fg` (install code sub-zone)  
+`--ds-hero-bg`, `--ds-hero-fg` (install code sub-zone);
+`--ds-font-mono`, `--ds-type-xs`, `--ds-track-label`, `--ds-radius-sm`,
+`--ds-accent-subtle`, `--ds-accent-deep` (scope chip)  
 **Note:** `.loop-card` items carry no numeric badge — contrast with ThreeLoops §7.
 
 ---
