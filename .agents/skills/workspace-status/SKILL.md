@@ -143,7 +143,7 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 
 - `selector_status: "matched"` → surface the `explained_item` object: path, slug, ini_slug, list, classification, blocking_needs, dependencies, downstream_unblocked
 - `selector_status: "not_found"` → report the selector was not found in any active initiative's work queue (shaping items and items in paused/closed initiatives also return `not_found`)
-- `selector_status: "ambiguous"` → list the initiative slugs in `matches` and ask the user to qualify the selector with an initiative prefix
+- `selector_status: "ambiguous"` → list the initiative slugs in `matches` and ask which initiative the user is working in. The CLI does not accept an initiative-prefix qualifier — re-invoking `explain` with the same selector will still return `ambiguous`. Use `status` for context on the relevant initiative.
 
 For status and reconcile modes, continue:
 
