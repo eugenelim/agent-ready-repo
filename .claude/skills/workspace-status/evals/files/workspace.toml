@@ -5,7 +5,7 @@ status = "active"
 milestone = "M1"
 
 [ini-001.work]
-queue = ["docs/specs/example-feature/spec.md"]
+queue = ["spec/example-feature"]
 active = []
 shipped = []
 

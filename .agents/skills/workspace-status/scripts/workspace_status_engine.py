@@ -128,6 +128,9 @@ class WorkspaceStatusResult:
     reconciliation: list[ReconciliationFinding]
     files_read: int   # count of spec.md files read by reconciliation
     elapsed_s: float  # wall-clock seconds for analyze()
+    # [backlog].open typed shaping entries (workspace-level, not per-initiative).
+    # Populated by extract_top_level_backlog(); work-loop's shaping-item guard reads these.
+    top_level_backlog: list[ShapingEntry] = dataclasses.field(default_factory=list)
 
     @property
     def ready(self) -> list[EntryClassification]:
@@ -651,6 +654,7 @@ def analyze(root: Path) -> WorkspaceStatusResult:
         all_shaping.extend(classify_shaping_entries(ini, initiatives))
 
     reconciliation, files_read = run_reconciliation(root, initiatives)
+    top_level_backlog = extract_top_level_backlog(workspace)
 
     elapsed = time.monotonic() - t0
     return WorkspaceStatusResult(
@@ -660,6 +664,7 @@ def analyze(root: Path) -> WorkspaceStatusResult:
         reconciliation=reconciliation,
         files_read=files_read,
         elapsed_s=elapsed,
+        top_level_backlog=top_level_backlog,
     )
 
 

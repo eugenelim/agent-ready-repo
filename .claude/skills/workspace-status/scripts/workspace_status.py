@@ -79,6 +79,10 @@ def _shaping_dict(c) -> dict:
     }
 
 
+def _shaping_entry_dict(e) -> dict:
+    return {"slug": e.slug, "entry_type": e.entry_type, "needs": e.needs}
+
+
 def _finding_dict(f) -> dict:
     return {
         "finding_type": f.finding_type,
@@ -161,6 +165,9 @@ def _build_json(root: Path, result) -> dict:
             "signals": [_shaping_dict(c) for c in result.signals],
             "blocked": [_shaping_dict(c) for c in result.blocked_shaping],
             "active_entries": active_shaping_entries,
+            # [backlog].open typed entries (workspace-level, not per-initiative).
+            # work-loop's shaping-item guard checks this list for slug matches.
+            "top_level_backlog": [_shaping_entry_dict(e) for e in result.top_level_backlog],
         },
         "reconciliation": {
             "type1": [_finding_dict(f) for f in result.type1],
