@@ -146,24 +146,21 @@ Notes on the scaffold:
   explicitly says "empty `.apm/`". No skill stubs, agent definitions, or eval
   files are created at propose time.
 - `pack-shell.md:15-16` states "at least one primitive, or the pack won't
-  validate." This is a description of a **complete, usable pack** — not the
-  scaffold state. The scaffold intentionally starts empty; the operator adds
-  primitives in a subsequent `assimilate-primitive` or `assimilate-repo` pass.
-  These are two sequential, non-conflicting states: scaffold (empty = valid
-  scaffold) → assimilation (≥1 primitive = valid pack). Running
-  `agentbundle catalogue lint --deep` immediately after scaffold creation
-  **will** report an error (no primitives found), and this is expected — the
-  error is the natural prompt to begin assimilation, not a scaffold defect.
-  Eval harness requirements (`packs/AGENTS.md:110-115`) apply once primitives
-  are assimilated, not at scaffold time.
+  validate." **The actual tooling does not enforce this at lint time.** Running
+  `agentbundle catalogue lint --deep` and `agentbundle catalogue verify`
+  immediately after scaffold creation **succeed** on a metadata-valid pack with
+  an empty `.apm/` — no primitives required. `pack-shell.md:15-16` describes an
+  aspirational or informational constraint, not one enforced by the current
+  verifier. The operator adds primitives in a subsequent `assimilate-primitive`
+  or `assimilate-repo` pass. Eval harness requirements (`packs/AGENTS.md:110-115`)
+  apply once primitives are assimilated, not at scaffold time.
 
 **AC6 pass condition:** The QA session verifies that the skill (a) tests
 additivity + fit and reports the result, (b) creates the correct empty scaffold
-structure when the pack passes fit, and (c) emits an RFC. The post-scaffold
-catalogue lint failure is expected and is **not** part of the AC6 pass
-condition. AC6 is satisfied when the scaffold structure and RFC match the forms
-documented in this file; pack-level validation is deferred to after primitives
-are added.
+structure when the pack passes fit, and (c) emits an RFC. Post-scaffold
+`agentbundle catalogue lint --deep` and `agentbundle catalogue verify` both
+**pass** on the empty scaffold. AC6 is satisfied when the scaffold structure and
+RFC match the forms documented in this file.
 - The maintainer alias from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.
