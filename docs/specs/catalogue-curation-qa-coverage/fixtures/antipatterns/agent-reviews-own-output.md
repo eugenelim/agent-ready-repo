@@ -2,7 +2,7 @@
 name: pr-review-agent
 description: Review a pull request diff for code quality, correctness, and style issues. Produces a structured findings report for the operator.
 model: opus
-tools: []
+tools: Read
 ---
 
 # Agent: pr-review-agent

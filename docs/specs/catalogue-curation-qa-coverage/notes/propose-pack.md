@@ -160,15 +160,31 @@ Notes on the scaffold:
 ## Expected: Step 4 — RFC output
 
 The skill authors an RFC using the canonical template from
-`packs/governance-extras/.apm/skills/new-rfc/assets/rfc.md` as its base —
-filling in all required sections. The template's required content sections are:
-`Reviewer brief`, `The ask`, `Problem & goals`, `Proposal`, `Options considered`,
-`Risks & what would make this wrong`, `Evidence & prior art`, `Open questions`,
-`Follow-on artifacts`. The metadata fields (Status, Author, Approver, Date opened)
-are frontmatter — not document sections but still required.
+`packs/governance-extras/.apm/skills/new-rfc/assets/rfc.md` as its base.
+
+**Metadata layout:** The RFC template does NOT use YAML frontmatter. The metadata
+is a **Markdown bullet-list block** placed directly below the H1 title:
+
+```markdown
+# RFC-NNNN: database-tooling pack
+
+- **Status:** Draft
+- **Author:** <github-handle>
+- **Approver:** <github-handle>
+- **Date opened:** YYYY-MM-DD
+- **Date closed:**
+- **Decision weight:** standard
+- **Related:**
+```
 
 The `Author` field uses the canonical `<github-handle>` placeholder; the skill
 stops and asks if no project convention for governance authorship is established.
+Do not emit YAML delimiters (`---`) around this block — it is not YAML frontmatter.
+
+**Required document sections** (in template order):
+`Reviewer brief`, `The ask`, `Problem & goals`, `Proposal`, `Options considered`,
+`Risks & what would make this wrong`, `Evidence & prior art`, `Open questions`,
+`Follow-on artifacts`. These sections follow the metadata bullet block verbatim.
 
 The RFC adds one additional section not in the base template:
 

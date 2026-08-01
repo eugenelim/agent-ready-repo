@@ -2,12 +2,13 @@
 
 ## Fixture bundle
 
-This fixture bundle contains two files that are ingested together:
-- `sample-hook.sh` — the pre-commit hook (thin wrapper calling the companion script).
-- `scripts/pre-commit-checks.py` — the companion script the hook delegates to. This
-  is a stub (exits 0) for QA purposes. In production, it would contain real checks
-  (ruff, mypy, pytest, etc.). During landing, it must be placed at `scripts/` in the
-  project root so the hook can find it.
+This fixture bundle contains two files ingested together:
+- `sample-hook.sh` — the pre-commit hook (thin wrapper calling the companion at its
+  projected path: `python .agentbundle/bin/pre-commit-checks.py`).
+- `scripts/pre-commit-checks.py` — the companion script source (stub, exits 0).
+  During landing, it is placed at `packs/core/.apm/adapter-root-bins/pre-commit-checks.py`
+  and projected to `.agentbundle/bin/pre-commit-checks.py` at repo scope by `build-self`.
+  The hook body calls it at that projected path.
 
 ## What this hook does
 
@@ -15,7 +16,7 @@ This fixture bundle contains two files that are ingested together:
 automatically before each `git commit` in the repository. It is a thin wrapper:
 
 ```bash
-python scripts/pre-commit-checks.py
+python .agentbundle/bin/pre-commit-checks.py
 ```
 
 All check logic (formatting, lint, type-checking, tests) lives in

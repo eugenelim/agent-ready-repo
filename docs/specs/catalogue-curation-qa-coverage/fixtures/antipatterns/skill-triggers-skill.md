@@ -14,10 +14,9 @@ its files and producing a structured overview.
 
 ## Containment
 
-Shell execution is limited to read-only `example-agent-cli --print` invocations
-that delegate to a named agent skill. The invocation makes outbound API calls
-to process the delegation request. No filesystem writes, no other outbound
-network calls.
+Shell execution is limited to read-only `example-agent-cli --print` invocations.
+Outbound network calls are limited to `api.example-service.local` (the agent
+endpoint). No filesystem writes, no other outbound connections.
 
 ## Procedure
 

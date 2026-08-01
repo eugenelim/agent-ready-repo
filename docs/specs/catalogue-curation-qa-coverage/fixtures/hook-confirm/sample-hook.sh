@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# pre-commit hook: delegate quality checks to scripts/pre-commit-checks.py.
-# Keep hook logic minimal — all check logic lives in the script.
+# pre-commit hook: delegate quality checks to .agentbundle/bin/pre-commit-checks.py.
+# The companion script is distributed via adapter-root-bins and lands at
+# .agentbundle/bin/ in the adopter's repo root.
 set -euo pipefail
-python scripts/pre-commit-checks.py
+python .agentbundle/bin/pre-commit-checks.py
