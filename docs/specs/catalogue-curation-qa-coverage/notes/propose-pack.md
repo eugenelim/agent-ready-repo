@@ -119,16 +119,14 @@ packs/database-tooling/
   README.md               # elevator pitch + link to pack's guide home + install command
   .claude-plugin/
     plugin.json           # name, version, description (only — schema is closed)
-  .apm/
-    skills/
-      schema-migrate/
-        SKILL.md          # stub: name + description stub only; body TBD via assimilation
-        evals/
-          eval_queries.json  # Tier-A activation stubs (valid JSON, see shape below)
-          evals.json         # Tier-4 judge rubric stub (valid JSON, see shape below)
+  .apm/                    # empty — propose-catalogue-pack scaffolds the shell only;
+                           # skills are added later via assimilation
 ```
 
 There is no pack-root `evals/` directory. Eval discovery is always per-skill.
+The scaffold does not create any skill stubs, eval files, or agent definitions —
+`propose-catalogue-pack/SKILL.md:33-36` is explicit: "empty `.apm/`". Primitives
+are added in a subsequent assimilation pass, not at propose time.
 `pack_evals.py` supports three mutually exclusive `--mode` invocations:
 - `--mode headless` (default): Tier-A activation — reads each listed skill's
   `eval_queries.json` and measures whether the skill fires on trigger queries.
