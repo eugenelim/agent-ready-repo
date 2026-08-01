@@ -19,6 +19,7 @@ from pathlib import Path
 
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
+from agentbundle.scope import shipped_adapters_from_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
@@ -73,7 +74,7 @@ class AdapterProjectionTests(unittest.TestCase):
 
     def test_scripts_project_for_all_adapters(self) -> None:
         """AC9: scripts/ present under every shipped adapter's skill output."""
-        for adapter_name in ADAPTERS:
+        for adapter_name in shipped_adapters_from_contract():
             with self.subTest(adapter=adapter_name):
                 out = self._project_to_tmp(adapter_name)
                 # Each adapter places skills under its own prefix; find by rglob.
