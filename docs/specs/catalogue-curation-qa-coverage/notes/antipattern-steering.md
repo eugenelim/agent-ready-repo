@@ -57,8 +57,9 @@ Remove the `example-agent-cli` block:
 # analyse-modules: scans a source directory and lists Python modules.
 set -euo pipefail
 DIR="${1:?usage: analyse-modules.sh <src-dir>}"
+case "$DIR" in -*) DIR="./$DIR";; esac
 echo "Modules in $DIR:"
-find -- "$DIR" -name "*.py" -maxdepth 2 | sort
+find "$DIR" -name "*.py" -maxdepth 2 | sort
 ```
 
 The dependency-graph skill is removed from this primitive entirely. If the
@@ -71,27 +72,27 @@ describing their need.
 
 ### Why this is rejected / steered
 
-The fixture (`release-note-formatter`) instructs the agent to self-review its
-own output in step 4:
+The fixture (`import-lister`) instructs the agent to self-review its own output
+in step 4:
 
-> **Self-review your bullets:**
-> - Re-read each bullet you just wrote.
-> - Check: is it under 25 words? Is it written from the user's perspective?
-> - Revise any bullet that fails either check before presenting.
+> **Self-check your list:**
+> - Re-read each import name you just listed.
+> - Verify it is not a Python stdlib module (e.g., `os`, `sys`, `re`).
+> - Remove any stdlib names you find from the list before presenting.
 
 This is anti-pattern #2 from `anti-patterns.md`: **agent self-review**.
-Step 4 instructs the agent to re-read and re-evaluate bullets it just generated
-in step 3. Self-review provides no independent signal — the same reasoning
-that produced the bullets will evaluate them.
+Step 4 instructs the agent to re-read and re-evaluate the import list it just
+produced in step 3. Self-review provides no independent signal — the same
+reasoning that listed the imports will evaluate them.
 
-`release-note-formatter` is a **legitimate subagent role** (deterministic text
-formatting in a forked context, independent of other reasoning). The skill-vs-agent
-confusion check does **not** fire here — the formatting work benefits from a
-separate context. The charter reviewer ceiling does **not** fire — a changelog
-formatter is not a specialized reviewer; `docs/CHARTER.md:60-62` caps the
-three specialized code/security/quality reviewers, not formatting agents.
-**Only the self-review in step 4 is the anti-pattern; there is exactly
-one detection for this fixture.**
+`import-lister` is a **legitimate subagent role** (mechanical bounded subtask:
+read source files, collect import statements — no authoring or judgment). The
+skill-vs-agent confusion check does **not** fire — scanning for import statements
+is a read-only, deterministic operation that benefits from a forked context.
+The charter reviewer ceiling does **not** fire — an import lister is not a
+specialized reviewer; `docs/CHARTER.md:60-62` caps the three specialized
+code/security/quality reviewers. **Only the self-review in step 4 is the
+anti-pattern; there is exactly one detection for this fixture.**
 
 ### Expected detection message
 
@@ -100,13 +101,12 @@ steering):
 
 > **Anti-pattern detected: agent self-review** (anti-patterns.md §2)
 >
-> `release-note-formatter` step 4 instructs the agent to re-read and re-evaluate
-> bullets it just produced in step 3. Self-review provides no independent
-> signal — the same model that generated the bullets evaluates them.
+> `import-lister` step 4 instructs the agent to re-read and re-evaluate the
+> import list it just produced in step 3. Self-review provides no independent
+> signal — the same model that produced the list evaluates it.
 >
-> **Disposition: Steer.** Remove step 4. The release-note formatting
-> remains a legitimate subagent workflow; the self-review step alone
-> is the violation.
+> **Disposition: Steer.** Remove step 4. The import scanning remains a
+> legitimate subagent workflow; the self-review step alone is the violation.
 
 ### Reshaped form
 
@@ -114,24 +114,24 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 
 ```
 ---
-name: release-note-formatter
-description: Format shipped-spec entries into release-note bullets for the changelog. Reads spec files and produces one bullet per spec.
-model: opus
+name: import-lister
+description: List the third-party imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
+model: haiku
 tools: Read
 ---
 
-# Agent: release-note-formatter
+# Agent: import-lister
 
 ## Procedure
 
-1. Read the list of spec files provided by the operator.
-2. For each spec, read its spec.md and extract the Objective.
-3. Write one release-note bullet: `- **<spec-name>:** <one-sentence summary>`.
-4. Present the bullet list to the operator.
+1. Read each .py file in the paths provided by the operator.
+2. For each file, collect all `import` and `from ... import` statements.
+3. Produce a de-duplicated list of the imported top-level names.
+4. Present the import list to the operator.
 
 ## Output
 
-A bulleted list of release-note entries, one per spec.
+A de-duplicated list of third-party import names, one per line.
 ```
 
 Agent frontmatter uses `ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}`.

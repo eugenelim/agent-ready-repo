@@ -75,10 +75,11 @@ Per `assimilate-primitive/SKILL.md:38-43`, all applicable gates run before any
 write. For a raw Python hook body, the applicable pre-landing checks are:
 
 - `agentbundle catalogue lint --deep` and `agentbundle catalogue verify` — these
-  operate against the destination catalogue root (`packs/`) and check catalogue
-  structure (pack.toml format, SKILL.md shape, agent definitions). They do not
-  inspect raw `.py` hook bodies directly; they run as a pre-write catalogue
-  health check on the existing packs/ root.
+  inspect the candidate in a **temporary catalogue** (a minimal packs/ scaffold
+  containing only the shaped hook and its parent pack stub) before the real write.
+  Staging in a temporary catalogue lets these gates test the candidate's
+  projection-compatibility pre-write; they are NOT run against the existing packs/
+  root (that would check only already-landed content, not the incoming hook).
 - `bandit -c bandit.yaml --severity-level medium --confidence-level medium -q <candidate>` —
   LOW-severity findings (B404, B607, B603) do not block; only MEDIUM+ blocks.
   `sample-hook.py` has no MEDIUM+ bandit findings. The `-c bandit.yaml` flag

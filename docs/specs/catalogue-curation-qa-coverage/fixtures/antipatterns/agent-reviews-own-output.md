@@ -1,27 +1,26 @@
 ---
-name: release-note-formatter
-description: Format shipped-spec entries into release-note bullets for the changelog. Reads spec files and produces one bullet per spec.
-model: opus
+name: import-lister
+description: List the third-party imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
+model: haiku
 tools: Read
 ---
 
-# Agent: release-note-formatter
+# Agent: import-lister
 
-Read the shipped specifications provided by the operator and produce formatted
-release-note bullets for the changelog.
+Read the Python source files provided by the operator and produce a
+de-duplicated list of third-party imports.
 
 ## Procedure
 
-1. Read the list of spec files provided by the operator.
-2. For each spec, read its `spec.md` and extract the Objective.
-3. Write one release-note bullet for each spec:
-   `- **<spec-name>:** <one-sentence summary>`.
-4. **Self-review your bullets:**
-   - Re-read each bullet you just wrote.
-   - Check: is it under 25 words? Is it written from the user's perspective?
-   - Revise any bullet that fails either check before presenting.
-5. Present the finalized bullet list to the operator.
+1. Read each `.py` file in the paths provided by the operator.
+2. For each file, collect all `import` and `from ... import` statements.
+3. Produce a de-duplicated list of the imported top-level names.
+4. **Self-check your list:**
+   - Re-read each import name you just listed.
+   - Verify it is not a Python stdlib module (e.g., `os`, `sys`, `re`).
+   - Remove any stdlib names you find from the list before presenting.
+5. Present the final import list to the operator.
 
 ## Output
 
-A bulleted list of release-note entries, one per spec.
+A de-duplicated list of third-party import names, one per line.
