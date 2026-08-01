@@ -134,7 +134,8 @@ There is no pack-root `evals/` directory. Eval discovery is always per-skill.
   `eval_queries.json` and measures whether the skill fires on trigger queries.
 - `--mode judge --artifacts ...`: LLM-judge grading — reads `evals.json` and
   grades output quality against the rubric assertions.
-- `--mode in-harness`: B-lite behavior check — also reads `evals.json`.
+- `--mode in-harness --check activation` (default `--check`): Tier-A, reads `eval_queries.json` from pre-collected run results.
+- `--mode in-harness --check behavior`: Tier-B-lite output check — reads `evals.json`.
 Each mode is a separate CLI invocation; running `headless` does not execute the
 judge or behavior passes. A root-level `evals/` directory is not read by any
 known tool.

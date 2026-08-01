@@ -89,8 +89,22 @@ forked context, independent of other reasoning). The skill-vs-agent confusion
 check does **not** fire here — quality judgment work benefits from a separate
 reasoning context. The charter reviewer ceiling does **not** fire either —
 `doc-quality-rater` is not a specialized code/security/quality reviewer and does
-not add a fourth item to that ceiling. **Only the self-review in step 4 is
-the anti-pattern; there is exactly one detection for this fixture.**
+not add a fourth item to that ceiling.
+
+**Skill collision note (Phase 2 step 8):** During Phase 2, the assimilation skill
+checks the candidate's description against every existing skill. The
+`author-product-docs` skill (`product-documentation` pack) activates for
+"auditing or verifying documentation" — which overlaps with `doc-quality-rater`'s
+description ("Rate documentation files for clarity, completeness, and audience
+fit"). A live session will likely surface this collision as an additional issue
+alongside the self-review anti-pattern. The operator must resolve the collision
+before the self-review steer is actioned; the correct disposition is to narrow
+`doc-quality-rater`'s description to a non-overlapping scope (e.g., internal skill
+documentation only, not product docs) or reject the agent if the narrowed scope
+no longer justifies it.
+
+The self-review in step 4 remains the anti-pattern demonstrated by this fixture;
+the skill collision is a pre-existing overlap that surfaces separately.
 
 ### Expected detection message
 

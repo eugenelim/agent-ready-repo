@@ -73,11 +73,14 @@ steps 4–5 before shaping or writing.
 against the destination catalogue root (`packs/`) — they do NOT inspect the
 candidate file directly. For a Python script candidate, the applicable pre-landing
 checks mirror the repo's configured SAST suite (`Makefile:147-174`):
-- `bandit --severity-level medium --confidence-level medium -q <candidate>` —
+- `bandit -c bandit.yaml --severity-level medium --confidence-level medium -q <candidate>` —
   LOW-severity findings (B404, B607, B603) do not block; only MEDIUM+ blocks.
-  `sample-hook.py` has no MEDIUM+ bandit findings.
-- `semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet <candidate>` —
-  with the candidate file path appended so the scan is isolated to that file only.
+  `sample-hook.py` has no MEDIUM+ bandit findings. The `-c bandit.yaml` flag
+  preserves the repo's configured suppression list (e.g., B101 skipped globally).
+- `semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet --metrics off <SEMGREP_EXCLUDE> <candidate>` —
+  with the candidate file path appended, `--metrics off` to suppress telemetry,
+  and the repo's `SEMGREP_EXCLUDE` rules (from `Makefile`) applied so intentionally
+  suppressed rules don't block compliant candidates.
 
 A MEDIUM+ severity bandit finding or any semgrep `--error` hit blocks landing
 pending explicit operator acknowledgment.
