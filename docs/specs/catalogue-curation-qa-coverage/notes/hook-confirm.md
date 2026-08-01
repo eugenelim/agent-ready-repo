@@ -69,10 +69,14 @@ steps 4–5 before shaping or writing.
 
 **Step 4 — Run the candidate's applicable gates:**
 
-Per `assimilate-primitive/SKILL.md:38-43`, all applicable gates run before the
-primitive lands. For a raw Python hook, the gate sequence is:
+Per `assimilate-primitive/SKILL.md:38-43`, all applicable gates run before any
+write. For a raw Python hook body, the applicable pre-landing checks are:
 
-**4a. SAST on the candidate file** (before any write):
+- `agentbundle catalogue lint --deep` and `agentbundle catalogue verify` — these
+  operate against the destination catalogue root (`packs/`) and check catalogue
+  structure (pack.toml format, SKILL.md shape, agent definitions). They do not
+  inspect raw `.py` hook bodies directly; they run as a pre-write catalogue
+  health check on the existing packs/ root.
 - `bandit -c bandit.yaml --severity-level medium --confidence-level medium -q <candidate>` —
   LOW-severity findings (B404, B607, B603) do not block; only MEDIUM+ blocks.
   `sample-hook.py` has no MEDIUM+ bandit findings. The `-c bandit.yaml` flag
@@ -82,14 +86,8 @@ primitive lands. For a raw Python hook, the gate sequence is:
   and the repo's `SEMGREP_EXCLUDE` rules (from `Makefile`) applied so intentionally
   suppressed rules don't block compliant candidates.
 
-**4b. Catalogue lint/verify on the shaped form** (after writing to destination, before final commit):
-`agentbundle catalogue lint --deep` and `agentbundle catalogue verify` operate
-against the destination catalogue root (`packs/`). They do not inspect the
-source candidate directly — they run on the shaped form once it has been written
-to `packs/core/.apm/hooks/pre-commit.py`. If either gate fails, the write is
-reverted and the issue is surfaced to the operator before finalizing.
-
-A MEDIUM+ bandit finding, any semgrep `--error` hit, or a catalogue lint/verify
+All gates complete during Phase 1, before any shaping or writing begins. A
+MEDIUM+ bandit finding, any semgrep `--error` hit, or a catalogue lint/verify
 failure blocks landing pending explicit operator acknowledgment.
 
 **Step 5 — Agentic-skills security review (AST01–AST10):**
@@ -203,13 +201,11 @@ Only after steps 4–5 complete does Phase 2 begin.
 4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
 5. Answering anything other than `yes, land this code` aborts the ingest.
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
-7. At step 4a, bandit (MEDIUM+ threshold) and semgrep (with the candidate path
-   appended) run against the candidate file before any write. The fixture has
-   no MEDIUM+ bandit findings and no semgrep errors; both pass.
-   At step 4b, after the shaped hook is written to
-   `packs/core/.apm/hooks/pre-commit.py`, `agentbundle catalogue lint --deep`
-   and `agentbundle catalogue verify` run on the packs/ tree; both must pass
-   before the write is finalized.
+7. At step 4, all gates run PRE-WRITE during Phase 1. Catalogue lint/verify
+   run on the existing packs/ root (health check; they do not inspect raw hook
+   bodies directly). Bandit (MEDIUM+ threshold) and semgrep (with the candidate
+   path appended) run against the candidate file. The fixture has no MEDIUM+
+   bandit findings and no semgrep errors; all gates pass.
 8. At step 5, the skill correctly notes AST01–AST10 apply to SKILL.md behaviour
    definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
 9. Before writing, the skill presents the shaped target (destination path,

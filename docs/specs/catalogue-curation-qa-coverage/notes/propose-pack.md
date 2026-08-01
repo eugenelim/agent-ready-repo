@@ -142,45 +142,13 @@ Notes on the scaffold:
 - `plugin.json` contains only `name`, `version`, and `description` — the schema
   (`contracts/plugin-manifest.schema.json`) is closed (`additionalProperties: false`)
   and does not support tool grants or other custom fields.
-- `.apm/skills/schema-migrate/SKILL.md` is a minimal stub (frontmatter + one-line
-  body). `pack-shell.md:15-16` requires at least one skill or agent; an empty
-  `.apm/` fails pack validation. The stub is the minimum; the operator populates
-  it via `assimilate-primitive` or `assimilate-repo` later.
-- **Eval harness is required** (`packs/AGENTS.md:110-115`): a non-cosmetic pack
-  update (and new-pack scaffold) must include:
-  - Tier-A activation evals at `.apm/skills/schema-migrate/evals/eval_queries.json`
-    — a flat JSON array. The scaffold stub ships with five entries (three trigger,
-    two near-miss); the operator must expand to ~8–10 of each before the
-    skill is registered in `[pack.evals]`. **Do not add the skill to `[pack.evals]`
-    until the harness reaches meaningful coverage** — catalogue lint validates JSON
-    shape only, not coverage depth.
-    ```json
-    [
-      {"query": "Migrate the schema to add a column to the accounts table", "should_trigger": true},
-      {"query": "Add an index to the users table for email lookups", "should_trigger": true},
-      {"query": "Run all pending migrations against the staging database", "should_trigger": true},
-      {"query": "Show me what columns the orders table currently has", "should_trigger": false},
-      {"query": "Write a query to find customers with more than five orders", "should_trigger": false}
-    ]
-    ```
-    Operator populates the remaining ~5–8 entries per direction before registration.
-  - `[pack.evals]` block in `pack.toml`, added **only after** the eval harness is
-    populated to meaningful coverage. **Do not list `query-author` or other
-    unscaffolded skills** — the coverage check (`agentbundle catalogue lint --deep`)
-    rejects every listed skill that lacks `evals/eval_queries.json`. Only list
-    `schema-migrate` once its harness is complete:
-    ```toml
-    [pack.evals]
-    skills = ["schema-migrate"]
-    ```
-  - Tier-4 LLM-judge rubric at `.apm/skills/schema-migrate/evals/evals.json`
-    — a valid JSON object with the required shape:
-    ```json
-    {"skill_name": "schema-migrate", "evals": []}
-    ```
-    The `evals` array is empty in the stub; the operator populates it before shipping.
-    **Do not use TODO comments inside the JSON** — that produces unparsable files;
-    the empty array is the correct parseable placeholder.
+- `.apm/` is empty in the scaffold — `propose-catalogue-pack/SKILL.md:33-36`
+  explicitly says "empty `.apm/`". No skill stubs, agent definitions, or eval
+  files are created at propose time. `pack-shell.md:15-16` notes the pack won't
+  validate until at least one primitive is added — the operator adds primitives
+  in a subsequent `assimilate-primitive` or `assimilate-repo` pass.
+  Eval harness requirements (`packs/AGENTS.md:110-115`) apply once primitives
+  are assimilated, not at scaffold time.
 - The maintainer alias from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.
