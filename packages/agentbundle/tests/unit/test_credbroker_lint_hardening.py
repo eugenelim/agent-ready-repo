@@ -158,11 +158,13 @@ class TestD3CheckDotfileRead:
             "fixture must not contain the literal dotfile substring "
             "(that would make the test a tautology for the old scan)"
         )
-        # AC2(b): AST walk catches it.
+        # AC2(b): AST walk catches it on the correct line.
         findings = self._run(tmp_path, source)
         assert findings, "expected a finding for inline part-composition bypass"
-        assert any("read_text" in desc for _, desc in findings), (
-            f"expected 'read_text' in finding description; got {findings}"
+        matching = [(ln, desc) for ln, desc in findings if "read_text" in desc]
+        assert matching, f"expected 'read_text' in finding description; got {findings}"
+        assert matching[0][0] == 2, (
+            f"expected call reported on line 2; got lineno={matching[0][0]}"
         )
 
     def test_read_bytes_inline_caught(self, tmp_path: pathlib.Path) -> None:
