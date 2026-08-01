@@ -1,7 +1,7 @@
 # Spec: loop-infra-crash-window-tests
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Owner:** eugenelim
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, [loop-infrastructure-phase-1 spec](../loop-infrastructure-phase-1/spec.md)
 - **Brief:** none
@@ -70,57 +70,57 @@ accepted Phase 1 Option-A architecture.
 
 ## Acceptance criteria
 
-- [ ] **AC1 — `wave-passed` window A:** a fresh process that finds `last_event:
+- [x] **AC1 — `wave-passed` window A:** a fresh process that finds `last_event:
   wave-passed` and `last_event_context: {completed_wave_index: N}` in engine state
   with cohort `current_wave_index == N` safely reissues `wave advance --from-index N`
   and advances to `N+1` exactly once.
-- [ ] **AC2 — `wave-passed` window B:** a fresh process that finds the same engine
+- [x] **AC2 — `wave-passed` window B:** a fresh process that finds the same engine
   state but cohort `current_wave_index == N+1` (advance already completed) safely
   reissues `wave advance --from-index N` as an idempotent no-op with no state
   mutation.
-- [ ] **AC3 — `wave-passed` refusals:** malformed or mismatched recovery attempts
+- [x] **AC3 — `wave-passed` refusals:** malformed or mismatched recovery attempts
   (wrong `--from-index`, wrong `--expect-run-id` [run_id prefix mismatch]) exit
   non-zero and do not mutate either state file; the engine and cohort run_ids remain
   paired after every refused recovery attempt.
-- [ ] **AC4 — `gates-failed` window A:** a fresh process that finds `last_event:
+- [x] **AC4 — `gates-failed` window A:** a fresh process that finds `last_event:
   gates-failed` with no `last_record_attempt_cycle_id` reconstructs the stable
   `cycle-id` (`run_id:transition_sequence` from engine state) and safely issues
   `record-attempt`, incrementing `implementation_retry_count` exactly once.
-- [ ] **AC5 — `gates-failed` window B:** a fresh process that finds the same engine
+- [x] **AC5 — `gates-failed` window B:** a fresh process that finds the same engine
   state but `last_record_attempt_cycle_id == run_id:transition_sequence` (call
   already completed) safely reissues `record-attempt` as an idempotent no-op with
   no counter increment.
-- [ ] **AC6 — retry boundaries:** with `max_implementation_retries == 5`, the fifth
+- [x] **AC6 — retry boundaries:** with `max_implementation_retries == 5`, the fifth
   repair cycle (`gates-failed` transition + `record-attempt`) is permitted;
   `implementation_retry_count` reaches 5; the sixth `gates-failed` transition is
   refused by the guard before any mutation; `implementation_retry_count` stays at 5.
-- [ ] **AC7 — no-chat-history resumption protocol:** a test exercises the full
+- [x] **AC7 — no-chat-history resumption protocol:** a test exercises the full
   documented read sequence — `loop-engine status --json` → `loop-cohort identity
   --expect-run-id` → `loop-cohort status --json` — via subprocess only (no direct
   `state.json` reads; no internal Python function imports); reads `last_event` and
   `last_event_context` from the command output and demonstrates correct recovery
   routing for `wave-passed` and `gates-failed`.
-- [ ] **AC8 — `findings-remain` limitation:** a test proves (a) the committed phase
+- [x] **AC8 — `findings-remain` limitation:** a test proves (a) the committed phase
   is recoverable from persisted engine state via `loop-engine status --json`; (b)
   the workflow does not auto-replay `review record --fingerprint` — cohort state
   is unchanged when the replay is deliberately skipped; (c) the SKILL.md session-
   resumption table row for `findings-remain` contains the phrases "stale fingerprint
   baseline" and "under-count" and "do NOT auto-reissue".
-- [ ] **AC9 — `reviewers-clean` limitation:** tests cover both `--report` and
+- [x] **AC9 — `reviewers-clean` limitation:** tests cover both `--report` and
   `--all-skipped` CLI forms (verified by `--help` output); prove that cohort state
   is unchanged when `review record` is deliberately skipped after `reviewers-clean`;
   the SKILL.md session-resumption table row for `reviewers-clean` contains the
   phrase "non-idempotent" and mentions "double-increment" of `review_round_count`
   and "fingerprint audit history" (or equivalent consequence phrases); requires
   "authorized" before replay.
-- [ ] **AC10 — deterministic construction:** all new tests use only temporary
+- [x] **AC10 — deterministic construction:** all new tests use only temporary
   directories and subprocess invocations; no sleeps; no timing races; no network
   access; cross-platform (macOS and Linux); every refusal is validated by comparing
   state before and after the refused call; every new `test_*` function appears in
   the `tests` list in `main()`.
-- [ ] **AC11 — closure:** `docs/specs/loop-infrastructure-phase-1/spec.md` AC6 is
-  checked and its `(deferred: loop-infra-crash-window-tests)` marker is removed;
-  the `{slug = "loop-infra-crash-window-tests", ...}` entry is removed from
+- [x] **AC11 — closure:** `docs/specs/loop-infrastructure-phase-1/spec.md` AC6 is
+  checked and its deferred-notation marker pointing to this spec is removed;
+  the slug entry for this spec is removed from
   `[backlog].open` in `workspace.toml`; `python3
   packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` reports clean;
   projection parity passes (`FORCE=1 make build-self` no drift).

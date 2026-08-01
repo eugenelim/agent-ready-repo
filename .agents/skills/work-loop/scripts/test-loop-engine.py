@@ -1348,6 +1348,567 @@ def test_evals_json_shape(_tmp: Path) -> None:
     ok(name)
 
 
+# ── Crash-window tests (loop-infra-crash-window-tests AC6 closure) ────────
+
+
+def make_crash_window_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
+    """Drive a fresh ≥2-wave run to CODE-VERIFICATION via real CLI.
+
+    Returns (spec_dir, run_id, transition_sequence).
+    The ≥2-wave plan is required so wave advance --from-index 0 is legal
+    (from-index must be < len - 1 on a single-wave schedule).
+    """
+    spec_dir = make_spec_dir(tmp, feature)
+    write_spec(spec_dir, status="Draft")
+    # Two-task plan → schedule_waves [["T1"], ["T2"]] (≥2 waves required)
+    write_plan(spec_dir)
+
+    rc, out, err = run_engine("init", str(spec_dir), "--mode", "code", "--json")
+    if rc != 0:
+        raise RuntimeError(f"make_crash_window_run: engine init failed: {err}")
+    run_id = json.loads(out)["run_id"]
+
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    run_engine("transition", str(spec_dir), "spec-ready")
+    run_engine("transition", str(spec_dir), "reviewers-clean")
+    write_spec(spec_dir, status="Approved")
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    run_engine("transition", str(spec_dir), "plan-approved")
+    # wave-complete: CODE-IMPLEMENTATION → CODE-VERIFICATION (wave 0 done)
+    rc_wc, _, err_wc = run_engine("transition", str(spec_dir), "wave-complete")
+    if rc_wc != 0:
+        raise RuntimeError(f"make_crash_window_run: wave-complete failed: {err_wc}")
+
+    eng = json.loads((spec_dir / "engine-state.json").read_text())
+    return spec_dir, run_id, eng["transition_sequence"]
+
+
+def make_code_review_run(tmp: Path, feature: str) -> tuple[Path, str]:
+    """Drive a fresh 1-wave run to CODE-REVIEW via real CLI.
+
+    Returns (spec_dir, run_id).
+    Single-wave plan means wave 0 is the last wave, allowing gates-clean
+    (not wave-passed) to exit CODE-VERIFICATION → CODE-REVIEW.
+    """
+    spec_dir = make_spec_dir(tmp, feature)
+    write_spec(spec_dir, status="Draft")
+    # One-task plan → schedule_waves [["T1"]] (single last wave)
+    write_plan(spec_dir, content="# Plan\n\n### T1\n\n**Depends on:** none\n")
+
+    rc, out, err = run_engine("init", str(spec_dir), "--mode", "code", "--json")
+    if rc != 0:
+        raise RuntimeError(f"make_code_review_run: engine init failed: {err}")
+    run_id = json.loads(out)["run_id"]
+
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    run_engine("transition", str(spec_dir), "spec-ready")
+    run_engine("transition", str(spec_dir), "reviewers-clean")
+    write_spec(spec_dir, status="Approved")
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    run_engine("transition", str(spec_dir), "plan-approved")
+    run_engine("transition", str(spec_dir), "wave-complete")
+    # gates-clean: CODE-VERIFICATION → CODE-REVIEW (at last wave)
+    rc_gc, _, err_gc = run_engine("transition", str(spec_dir), "gates-clean")
+    if rc_gc != 0:
+        raise RuntimeError(f"make_code_review_run: gates-clean failed: {err_gc}")
+
+    return spec_dir, run_id
+
+
+def _read_cohort_state(spec_dir: Path) -> dict:
+    return json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+
+
+_write_cohort_state = write_cohort_state  # same contract; named for crash-window tests
+
+
+def _setup_retry_boundary_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
+    """Same as make_crash_window_run; alias clarifying CODE-VERIFICATION start state."""
+    return make_crash_window_run(tmp, feature)
+
+
+# ── T1: no-chat-history status recovery ───────────────────────────────────
+
+
+def test_no_chat_history_status_read_via_cli(tmp: Path) -> None:
+    """AC7: engine status --json is readable via subprocess; key fields present."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-status")
+    rc, out, _ = run_engine("status", str(spec_dir), "--json")
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail("no-chat-history-status-read-via-cli",
+             f"engine status --json not parseable: {out!r}")
+        return
+    if rc != 0 or "last_event" not in data or "run_id" not in data:
+        fail("no-chat-history-status-read-via-cli",
+             f"rc={rc} or missing fields; got keys {list(data.keys())}")
+    else:
+        ok("no-chat-history-status-read-via-cli")
+
+
+def test_no_chat_history_identity_verify_via_cli(tmp: Path) -> None:
+    """AC7: cohort identity --expect-run-id verifies pairing via subprocess."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-identity")
+    rc, out, err = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail("no-chat-history-identity-verify-via-cli",
+             f"identity returned rc={rc}: {err.strip()!r}")
+    else:
+        ok("no-chat-history-identity-verify-via-cli")
+
+
+def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:
+    """AC7: reads last_event=wave-passed via CLI and routes wave advance correctly."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-wave")
+    # Crash: fire real wave-passed; stop before advance
+    run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    # Fresh-process read sequence
+    rc_s, out_s, _ = run_engine("status", str(spec_dir), "--json")
+    if rc_s != 0:
+        fail("no-chat-history-route-wave-passed-via-cli",
+             f"engine status failed rc={rc_s}")
+        return
+    eng = json.loads(out_s)
+    rc_i, _, err_i = run_cohort("identity", str(spec_dir), "--expect-run-id", eng["run_id"])
+    if rc_i != 0:
+        fail("no-chat-history-route-wave-passed-via-cli",
+             f"identity failed rc={rc_i}: {err_i.strip()!r}")
+        return
+    rc_c, out_c, _ = run_cohort("status", str(spec_dir), "--json")
+    if rc_c != 0:
+        fail("no-chat-history-route-wave-passed-via-cli",
+             f"cohort status failed rc={rc_c}")
+        return
+    n = eng["last_event_context"]["completed_wave_index"]
+    rc_a, _, err_a = run_cohort(
+        "wave", "advance", str(spec_dir),
+        "--from-index", str(n), "--expect-run-id", eng["run_id"],
+    )
+    if rc_a != 0:
+        fail("no-chat-history-route-wave-passed-via-cli",
+             f"wave advance failed rc={rc_a}: {err_a.strip()!r}")
+        return
+    coh2 = _read_cohort_state(spec_dir)
+    if eng["last_event"] != "wave-passed" or coh2["current_wave_index"] != n + 1:
+        fail("no-chat-history-route-wave-passed-via-cli",
+             f"last_event={eng['last_event']!r} idx={coh2.get('current_wave_index')}")
+    else:
+        ok("no-chat-history-route-wave-passed-via-cli")
+
+
+def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:
+    """AC7: reads last_event=gates-failed via CLI and routes record-attempt correctly."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-gf")
+    # Crash: fire real gates-failed; stop before record-attempt
+    run_engine("transition", str(spec_dir), "gates-failed")
+    rc_s, out_s, _ = run_engine("status", str(spec_dir), "--json")
+    if rc_s != 0:
+        fail("no-chat-history-route-gates-failed-via-cli",
+             f"engine status failed rc={rc_s}")
+        return
+    eng = json.loads(out_s)
+    rc_i, _, err_i = run_cohort("identity", str(spec_dir), "--expect-run-id", eng["run_id"])
+    if rc_i != 0:
+        fail("no-chat-history-route-gates-failed-via-cli",
+             f"identity failed rc={rc_i}: {err_i.strip()!r}")
+        return
+    rc_c, out_c, _ = run_cohort("status", str(spec_dir), "--json")
+    if rc_c != 0:
+        fail("no-chat-history-route-gates-failed-via-cli",
+             f"cohort status failed rc={rc_c}")
+        return
+    coh_before = json.loads(out_c)
+    cycle_id = f"{eng['run_id']}:{eng['transition_sequence']}"
+    rc_r, _, err_r = run_cohort(
+        "record-attempt", str(spec_dir),
+        "--phase", "implement",
+        "--cycle-id", cycle_id,
+        "--expect-run-id", eng["run_id"],
+    )
+    if rc_r != 0:
+        fail("no-chat-history-route-gates-failed-via-cli",
+             f"record-attempt failed rc={rc_r}: {err_r.strip()!r}")
+        return
+    coh_after = _read_cohort_state(spec_dir)
+    if (eng["last_event"] != "gates-failed"
+            or coh_after["implementation_retry_count"]
+               != coh_before["implementation_retry_count"] + 1):
+        fail("no-chat-history-route-gates-failed-via-cli",
+             f"last_event={eng['last_event']!r} count "
+             f"{coh_before['implementation_retry_count']}"
+             f"→{coh_after.get('implementation_retry_count')}")
+    else:
+        ok("no-chat-history-route-gates-failed-via-cli")
+
+
+# ── T2: wave-passed crash windows and refusals ────────────────────────────
+
+
+def test_wave_passed_window_a_advance_before_crash(tmp: Path) -> None:
+    """AC1: window A — crash before advance; advance succeeds and increments once."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-a")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    if rc_t != 0:
+        fail("wave-passed-window-a",
+             f"wave-passed transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    before = _read_cohort_state(spec_dir)
+    if before["current_wave_index"] != 0:
+        fail("wave-passed-window-a",
+             f"pre-condition: current_wave_index={before['current_wave_index']} != 0")
+        return
+    rc, _, err = run_cohort(
+        "wave", "advance", str(spec_dir),
+        "--from-index", "0", "--expect-run-id", run_id,
+    )
+    after = _read_cohort_state(spec_dir)
+    if rc != 0 or after["current_wave_index"] != 1:
+        fail("wave-passed-window-a",
+             f"rc={rc} idx={after.get('current_wave_index')} err={err.strip()!r}")
+    else:
+        ok("wave-passed-window-a")
+
+
+def test_wave_passed_window_b_advance_after_crash(tmp: Path) -> None:
+    """AC2: window B — crash after advance; replay is idempotent no-op."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-b")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    if rc_t != 0:
+        fail("wave-passed-window-b",
+             f"wave-passed transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    # Advance already applied (crash happens after this)
+    run_cohort("wave", "advance", str(spec_dir),
+               "--from-index", "0", "--expect-run-id", run_id)
+    before_json = (spec_dir / "state.json").read_bytes()
+    rc, _, _ = run_cohort(
+        "wave", "advance", str(spec_dir),
+        "--from-index", "0", "--expect-run-id", run_id,
+    )
+    after_json = (spec_dir / "state.json").read_bytes()
+    if rc != 0 or before_json != after_json:
+        fail("wave-passed-window-b",
+             f"rc={rc} state_mutated={before_json != after_json}")
+    else:
+        ok("wave-passed-window-b")
+
+
+def test_wave_passed_wrong_from_index_refused(tmp: Path) -> None:
+    """AC3: wrong --from-index exits non-zero; both state files unchanged; run IDs remain paired."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-wfi")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    if rc_t != 0:
+        fail("wave-passed-wrong-from-index-refused",
+             f"wave-passed transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    before_coh = (spec_dir / "state.json").read_bytes()
+    before_eng = (spec_dir / "engine-state.json").read_bytes()
+    rc, _, _ = run_cohort(
+        "wave", "advance", str(spec_dir),
+        "--from-index", "99", "--expect-run-id", run_id,
+    )
+    after_coh = (spec_dir / "state.json").read_bytes()
+    after_eng = (spec_dir / "engine-state.json").read_bytes()
+    rc_pair, _, _ = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
+    if rc == 0 or before_coh != after_coh or before_eng != after_eng or rc_pair != 0:
+        fail("wave-passed-wrong-from-index-refused",
+             f"rc={rc} coh_mutated={before_coh != after_coh} "
+             f"eng_mutated={before_eng != after_eng} pair_rc={rc_pair}")
+    else:
+        ok("wave-passed-wrong-from-index-refused")
+
+
+def test_wave_passed_wrong_run_id_refused(tmp: Path) -> None:
+    """AC3: wrong --expect-run-id exits non-zero; both state files unchanged; run IDs remain paired."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-wri")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    if rc_t != 0:
+        fail("wave-passed-wrong-run-id-refused",
+             f"wave-passed transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    before_coh = (spec_dir / "state.json").read_bytes()
+    before_eng = (spec_dir / "engine-state.json").read_bytes()
+    rc, _, _ = run_cohort(
+        "wave", "advance", str(spec_dir),
+        "--from-index", "0",
+        "--expect-run-id", "00000000-0000-0000-0000-000000000000",
+    )
+    after_coh = (spec_dir / "state.json").read_bytes()
+    after_eng = (spec_dir / "engine-state.json").read_bytes()
+    rc_pair, _, _ = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
+    if rc == 0 or before_coh != after_coh or before_eng != after_eng or rc_pair != 0:
+        fail("wave-passed-wrong-run-id-refused",
+             f"rc={rc} coh_mutated={before_coh != after_coh} "
+             f"eng_mutated={before_eng != after_eng} pair_rc={rc_pair}")
+    else:
+        ok("wave-passed-wrong-run-id-refused")
+
+
+def test_wave_passed_run_ids_remain_paired_after_advance(tmp: Path) -> None:
+    """AC1: engine and cohort run_ids remain paired after crash recovery."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-pair")
+    run_engine("transition", str(spec_dir), "wave-passed", "--wave-index", "0")
+    run_cohort("wave", "advance", str(spec_dir),
+               "--from-index", "0", "--expect-run-id", run_id)
+    rc, out, err = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail("wave-passed-run-ids-paired",
+             f"identity failed after advance: rc={rc} {err.strip()!r}")
+    else:
+        ok("wave-passed-run-ids-paired")
+
+
+# ── T3: gates-failed crash windows and retry boundary ────────────────────
+
+
+def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:
+    """AC4: window A — crash before record-attempt; count increments exactly once."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-a")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
+    if rc_t != 0:
+        fail("gates-failed-window-a",
+             f"gates-failed transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    before = _read_cohort_state(spec_dir)
+    eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
+    cycle_id = f"{run_id}:{eng['transition_sequence']}"
+    rc, _, err = run_cohort(
+        "record-attempt", str(spec_dir),
+        "--phase", "implement", "--cycle-id", cycle_id, "--expect-run-id", run_id,
+    )
+    after = _read_cohort_state(spec_dir)
+    if rc != 0 or after["implementation_retry_count"] != before["implementation_retry_count"] + 1:
+        fail("gates-failed-window-a",
+             f"rc={rc} count {before['implementation_retry_count']}"
+             f"→{after.get('implementation_retry_count')} {err.strip()!r}")
+    else:
+        ok("gates-failed-window-a")
+
+
+def test_gates_failed_window_b_record_after_crash(tmp: Path) -> None:
+    """AC5: window B — cycle_id already recorded; replay is no-op."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-b")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
+    if rc_t != 0:
+        fail("gates-failed-window-b",
+             f"gates-failed transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
+    cycle_id = f"{run_id}:{eng['transition_sequence']}"
+    # First call (crash happens after this)
+    run_cohort(
+        "record-attempt", str(spec_dir),
+        "--phase", "implement", "--cycle-id", cycle_id, "--expect-run-id", run_id,
+    )
+    before_2 = (spec_dir / "state.json").read_bytes()
+    rc2, _, err2 = run_cohort(
+        "record-attempt", str(spec_dir),
+        "--phase", "implement", "--cycle-id", cycle_id, "--expect-run-id", run_id,
+    )
+    after_2 = (spec_dir / "state.json").read_bytes()
+    if rc2 != 0 or before_2 != after_2:
+        fail("gates-failed-window-b",
+             f"rc2={rc2} state_mutated={before_2 != after_2} {err2.strip()!r}")
+    else:
+        ok("gates-failed-window-b")
+
+
+def test_gates_failed_wrong_run_id_prefix_refused(tmp: Path) -> None:
+    """AC4/AC5: cycle_id with wrong run_id prefix exits non-zero; state unchanged."""
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-wri")
+    run_engine("transition", str(spec_dir), "gates-failed")
+    eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
+    bad_cycle = f"00000000-0000-0000-0000-000000000000:{eng['transition_sequence']}"
+    before = (spec_dir / "state.json").read_bytes()
+    rc, _, _ = run_cohort(
+        "record-attempt", str(spec_dir),
+        "--phase", "implement", "--cycle-id", bad_cycle, "--expect-run-id", run_id,
+    )
+    after = (spec_dir / "state.json").read_bytes()
+    if rc == 0 or before != after:
+        fail("gates-failed-wrong-run-id-prefix",
+             f"rc={rc} state_mutated={before != after}")
+    else:
+        ok("gates-failed-wrong-run-id-prefix")
+
+
+def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:
+    """AC6: fifth repair cycle permitted; implementation_retry_count reaches 5."""
+    spec_dir, run_id, _ = _setup_retry_boundary_run(tmp, "gf-5th")
+    st = _read_cohort_state(spec_dir)
+    st["implementation_retry_count"] = 4
+    _write_cohort_state(spec_dir, st)
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
+    eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
+    cycle_id = f"{run_id}:{eng['transition_sequence']}"
+    rc_r, _, err_r = run_cohort(
+        "record-attempt", str(spec_dir),
+        "--phase", "implement", "--cycle-id", cycle_id, "--expect-run-id", run_id,
+    )
+    after = _read_cohort_state(spec_dir)
+    if rc_t != 0 or rc_r != 0 or after["implementation_retry_count"] != 5:
+        fail("gates-failed-fifth-permitted",
+             f"rc_t={rc_t} rc_r={rc_r} count={after.get('implementation_retry_count')} "
+             f"t_err={err_t.strip()!r} r_err={err_r.strip()!r}")
+    else:
+        ok("gates-failed-fifth-permitted")
+
+
+def test_gates_failed_sixth_retry_refused(tmp: Path) -> None:
+    """AC6: sixth gates-failed transition refused; both state files unchanged."""
+    spec_dir, run_id, _ = _setup_retry_boundary_run(tmp, "gf-6th")
+    st = _read_cohort_state(spec_dir)
+    st["implementation_retry_count"] = 5
+    _write_cohort_state(spec_dir, st)
+    before_eng = (spec_dir / "engine-state.json").read_bytes()
+    before_coh = (spec_dir / "state.json").read_bytes()
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "gates-failed")
+    after_eng = (spec_dir / "engine-state.json").read_bytes()
+    after_coh = (spec_dir / "state.json").read_bytes()
+    after_st = _read_cohort_state(spec_dir)
+    if (rc_t == 0 or before_eng != after_eng or before_coh != after_coh
+            or after_st["implementation_retry_count"] != 5):
+        fail("gates-failed-sixth-refused",
+             f"rc_t={rc_t} eng_mutated={before_eng != after_eng} "
+             f"coh_mutated={before_coh != after_coh} "
+             f"count={after_st.get('implementation_retry_count')} "
+             f"err={err_t.strip()!r}")
+    else:
+        ok("gates-failed-sixth-refused")
+
+
+# ── T4: review-window limitation tests and SKILL.md prose ─────────────────
+
+
+def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:
+    """AC8a: last_event=findings-remain readable from engine status --json."""
+    spec_dir, run_id = make_code_review_run(tmp, "fr-phase")
+    run_engine("transition", str(spec_dir), "findings-remain")
+    rc, out, _ = run_engine("status", str(spec_dir), "--json")
+    try:
+        eng = json.loads(out)
+    except json.JSONDecodeError:
+        fail("findings-remain-phase-recoverable", f"status not JSON: {out!r}")
+        return
+    if rc != 0 or eng.get("last_event") != "findings-remain":
+        fail("findings-remain-phase-recoverable",
+             f"rc={rc} last_event={eng.get('last_event')!r}")
+    else:
+        ok("findings-remain-phase-recoverable")
+
+
+def test_findings_remain_no_auto_replay(tmp: Path) -> None:
+    """AC8b: cohort state unchanged after recovery reads; reads must succeed."""
+    spec_dir, run_id = make_code_review_run(tmp, "fr-noreplay")
+    run_engine("transition", str(spec_dir), "findings-remain")
+    before = (spec_dir / "state.json").read_bytes()
+    # Full documented read sequence
+    rc_s, _, _ = run_engine("status", str(spec_dir), "--json")
+    rc_i, _, _ = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
+    rc_c, _, _ = run_cohort("status", str(spec_dir), "--json")
+    # Deliberately do NOT call review record --fingerprint
+    after = (spec_dir / "state.json").read_bytes()
+    if rc_s != 0 or rc_i != 0 or rc_c != 0:
+        fail("findings-remain-no-auto-replay",
+             f"recovery reads failed: rc_s={rc_s} rc_i={rc_i} rc_c={rc_c}")
+    elif before != after:
+        fail("findings-remain-no-auto-replay",
+             "state.json mutated by read-only recovery sequence")
+    else:
+        ok("findings-remain-no-auto-replay")
+
+
+def test_findings_remain_skill_prose_present(tmp: Path) -> None:
+    """AC8c: findings-remain SKILL.md row contains required phrases."""
+    skill_path = SCRIPT_DIR.parent / "SKILL.md"
+    lines = skill_path.read_text(encoding="utf-8").splitlines()
+    row_line = next(
+        (ln for ln in lines
+         if ("| `findings-remain`" in ln or "findings-remain" in ln)
+         and "| `CODE-IMPLEMENTATION`" in ln),
+        None,
+    )
+    if row_line is None:
+        fail("findings-remain-skill-prose-present",
+             "could not find findings-remain row in SKILL.md")
+        return
+    required = ["stale fingerprint baseline", "under-count", "do NOT auto-reissue"]
+    missing = [p for p in required if p not in row_line]
+    if missing:
+        fail("findings-remain-skill-prose-present",
+             f"findings-remain row missing: {missing}")
+    else:
+        ok("findings-remain-skill-prose-present")
+
+
+def test_reviewers_clean_record_forms_present(tmp: Path) -> None:
+    """AC9: --report and --all-skipped exist in cohort review record --help."""
+    rc, out, err = run_cohort("review", "record", "--help")
+    combined = out + err
+    if "--report" not in combined or "--all-skipped" not in combined:
+        fail("reviewers-clean-record-forms-present",
+             f"missing flags in help: {combined!r}")
+    else:
+        ok("reviewers-clean-record-forms-present")
+
+
+def test_reviewers_clean_no_silent_replay(tmp: Path) -> None:
+    """AC9: cohort state unchanged after recovery reads; reads must succeed."""
+    spec_dir, run_id = make_code_review_run(tmp, "rc-noreplay")
+    write_spec(spec_dir, status="Shipped")
+    rc_t, _, err_t = run_engine("transition", str(spec_dir), "reviewers-clean")
+    if rc_t != 0:
+        fail("reviewers-clean-no-silent-replay",
+             f"reviewers-clean transition failed: rc={rc_t} {err_t.strip()!r}")
+        return
+    eng = json.loads(run_engine("status", str(spec_dir), "--json")[1])
+    if eng.get("last_event") != "reviewers-clean":
+        fail("reviewers-clean-no-silent-replay",
+             f"engine last_event != reviewers-clean: {eng.get('last_event')!r}")
+        return
+    before = (spec_dir / "state.json").read_bytes()
+    # Full documented read sequence (deliberate read-only; no review record call)
+    rc_s, _, _ = run_engine("status", str(spec_dir), "--json")
+    rc_i, _, _ = run_cohort("identity", str(spec_dir), "--expect-run-id", run_id)
+    rc_c, _, _ = run_cohort("status", str(spec_dir), "--json")
+    after = (spec_dir / "state.json").read_bytes()
+    if rc_s != 0 or rc_i != 0 or rc_c != 0:
+        fail("reviewers-clean-no-silent-replay",
+             f"recovery reads failed: rc_s={rc_s} rc_i={rc_i} rc_c={rc_c}")
+    elif before != after:
+        fail("reviewers-clean-no-silent-replay",
+             "state.json mutated by read-only recovery sequence")
+    else:
+        ok("reviewers-clean-no-silent-replay")
+
+
+def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
+    """AC9: reviewers-clean SKILL.md row contains required consequence phrases."""
+    skill_path = SCRIPT_DIR.parent / "SKILL.md"
+    lines = skill_path.read_text(encoding="utf-8").splitlines()
+    row_line = next(
+        (ln for ln in lines
+         if ("| `reviewers-clean`" in ln or "reviewers-clean" in ln)
+         and "| `CODE-HUMAN-GATE`" in ln),
+        None,
+    )
+    if row_line is None:
+        fail("reviewers-clean-skill-prose-obligations",
+             "could not find reviewers-clean row in SKILL.md")
+        return
+    required = ["non-idempotent", "double-increment",
+                "fingerprint audit history", "authorized"]
+    missing = [p for p in required if p not in row_line]
+    if missing:
+        fail("reviewers-clean-skill-prose-obligations",
+             f"reviewers-clean row missing: {missing}")
+    else:
+        ok("reviewers-clean-skill-prose-obligations")
+
+
 # ── runner ────────────────────────────────────────────────────────────────
 
 
@@ -1405,6 +1966,27 @@ def main() -> int:
             test_check_spec_status_no_args,
             test_spec_plan_full_walk,
             test_evals_json_shape,
+            # Crash-window tests (loop-infra-crash-window-tests)
+            test_no_chat_history_status_read_via_cli,
+            test_no_chat_history_identity_verify_via_cli,
+            test_no_chat_history_route_wave_passed_via_cli,
+            test_no_chat_history_route_gates_failed_via_cli,
+            test_wave_passed_window_a_advance_before_crash,
+            test_wave_passed_window_b_advance_after_crash,
+            test_wave_passed_wrong_from_index_refused,
+            test_wave_passed_wrong_run_id_refused,
+            test_wave_passed_run_ids_remain_paired_after_advance,
+            test_gates_failed_window_a_record_before_crash,
+            test_gates_failed_window_b_record_after_crash,
+            test_gates_failed_wrong_run_id_prefix_refused,
+            test_gates_failed_fifth_retry_permitted,
+            test_gates_failed_sixth_retry_refused,
+            test_findings_remain_phase_recoverable_from_engine,
+            test_findings_remain_no_auto_replay,
+            test_findings_remain_skill_prose_present,
+            test_reviewers_clean_record_forms_present,
+            test_reviewers_clean_no_silent_replay,
+            test_reviewers_clean_skill_prose_obligations,
         ]
         for t in tests:
             try:

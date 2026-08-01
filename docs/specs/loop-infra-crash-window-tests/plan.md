@@ -1,6 +1,6 @@
 # Plan: loop-infra-crash-window-tests
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [spec.md](spec.md)
 - **Mode:** code (full mode)
 
@@ -575,7 +575,7 @@ clean; no regression in existing tests.
 # Goal-based:
 python3 packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py
 make build-check SKIP_SAST=1
-python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .
+python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py --root .
 ```
 
 **Approach:**
@@ -586,7 +586,7 @@ python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .
 3. Remove the `{slug = "loop-infra-crash-window-tests", ...}` entry from
    `[backlog].open` in `workspace.toml`.
 4. Add this spec to `docs/specs/README.md` active list (required by new-spec step 7).
-5. Run `python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .`
+5. Run `python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py --root .`
    and verify clean.
 6. Run `FORCE=1 make build-self` to verify no projection drift.
 7. Run `make build-check SKIP_SAST=1` for full build gates.
