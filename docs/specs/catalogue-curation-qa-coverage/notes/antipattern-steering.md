@@ -114,7 +114,7 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 name: pr-review-agent
 description: Review a pull request diff for code quality, correctness, and style issues.
 model: opus
-tools: []
+tools: Read
 ---
 
 # Agent: pr-review-agent

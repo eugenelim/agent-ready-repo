@@ -51,7 +51,7 @@ Phase 1, it must surface a message similar to:
 
 > This primitive is a bash script — executable code that will run automatically
 > on your machine as a git pre-commit hook on every commit attempt. It invokes
-> `python scripts/pre-commit-checks.py`.
+> `python .agentbundle/bin/pre-commit-checks.py`.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
@@ -59,6 +59,6 @@ Phase 1, it must surface a message similar to:
 
 The confirm prompt must:
 - Identify the file as executable code (not prose).
-- Name what it executes (`python scripts/pre-commit-checks.py`).
+- Name what it executes (`python .agentbundle/bin/pre-commit-checks.py`).
 - Ask for an explicit "yes" before landing.
 - Not proceed on ambiguous answers.
