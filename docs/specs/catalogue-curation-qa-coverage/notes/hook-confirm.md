@@ -193,8 +193,10 @@ Only after steps 4–5 complete does Phase 2 begin.
 
 **On "no":** the ingest is aborted.
 
-1. The fetched file is discarded.
-2. No files are written.
+1. No files are written to the catalogue.
+2. Local source files (e.g., `fixtures/hook-confirm/sample-hook.py`) are NOT
+   deleted — the skill only purges tool-created temporary copies; it never
+   deletes caller-owned local inputs (per `SKILL.md:23-24`).
 3. The skill surfaces: "Hook ingest aborted — no files written."
 
 ---

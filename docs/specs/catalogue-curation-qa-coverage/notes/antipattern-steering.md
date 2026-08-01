@@ -86,7 +86,7 @@ produced in step 3. Self-review provides no independent signal — the same
 reasoning that listed the imports will evaluate them.
 
 `import-lister` is a **legitimate subagent role** (mechanical bounded subtask:
-read source files, collect import statements — no authoring or judgment). The
+read source files, collect non-stdlib import statements — no authoring or judgment). The
 skill-vs-agent confusion check does **not** fire — scanning for import statements
 is a read-only, deterministic operation that benefits from a forked context.
 The charter reviewer ceiling does **not** fire — an import lister is not a
@@ -118,7 +118,7 @@ The primitive stays as a subagent (no re-homing):
 ```
 ---
 name: import-lister
-description: List the third-party imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
+description: List the non-stdlib imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
 model: haiku
 tools: Read
 ---
@@ -135,7 +135,7 @@ tools: Read
 
 ## Output
 
-A de-duplicated list of third-party import names, one per line.
+A de-duplicated list of non-stdlib import names, one per line.
 ```
 
 Agent frontmatter uses `ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}`.

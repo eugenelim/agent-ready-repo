@@ -1,6 +1,6 @@
 ---
 name: import-lister
-description: List the third-party imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
+description: List the non-stdlib imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
 model: haiku
 tools: Read
 ---
@@ -8,7 +8,7 @@ tools: Read
 # Agent: import-lister
 
 Read the Python source files provided by the operator and produce a
-de-duplicated list of third-party imports.
+de-duplicated list of non-stdlib imports.
 
 ## Procedure
 
@@ -23,4 +23,4 @@ de-duplicated list of third-party imports.
 
 ## Output
 
-A de-duplicated list of third-party import names, one per line.
+A de-duplicated list of non-stdlib import names, one per line.
