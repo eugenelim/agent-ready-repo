@@ -1,5 +1,11 @@
-"""credbroker test-suite hardening — AC7 / AC8 / AC9.
+"""credbroker test-suite hardening — AC1 (fallback) / AC2 / AC3 / AC4 / AC5 / AC7 / AC8 / AC9.
 
+AC1  — _cs_check_dotfile_read retained fallback substring scan catches the literal
+        keyword-arg open(file="<path>") form that the AST branch misses (defense-in-depth).
+AC2  — _cs_check_dotfile_read catches inline part-composition bypass.
+AC3  — _cs_check_dotfile_read catches inline .read_bytes() form.
+AC4  — _cs_check_dotfile_read suppresses findings when opt-out marker is present.
+AC5  — _cs_check_dotfile_read catches bare open('.agentbundle/credentials.env') form.
 AC7  — _cs_is_canonical_shim returns False for canonical bytes at a
         non-canonical parent directory.
 AC8  — _cs_is_canonical_shim returns True for canonical bytes at "scripts/"
@@ -15,7 +21,7 @@ import sys
 import types
 
 import pytest
-from agentbundle.catalogue_tooling.lint import _cs_is_canonical_shim
+from agentbundle.catalogue_tooling.lint import _cs_check_dotfile_read, _cs_is_canonical_shim
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 _CANONICAL_SHIM_SRC = (
@@ -112,3 +118,109 @@ class TestIsCanonicalShimPathAnchor:
         """AC8b: canonical bytes at a shared-libs/ parent → True."""
         shim = self._write_shim("shared-libs")
         assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is True
+
+
+# ── AC2 / AC3 / AC4 / AC5: _cs_check_dotfile_read ───────────────────────────
+
+
+class TestD3CheckDotfileRead:
+    """D3 dotfile-read detection — AST walk and fallback scan (AC1 fallback / AC2-AC5).
+
+    Each test writes a minimal fixture Python file to tmp_path and calls
+    _cs_check_dotfile_read() directly to verify finding presence/absence.
+    """
+
+    _DOTFILE_SUBSTRING = ".agentbundle/credentials.env"
+
+    def _run(self, tmp_path: pathlib.Path, source: str) -> list[tuple[int, str]]:
+        fixture = tmp_path / "fixture.py"
+        fixture.write_text(source, encoding="utf-8")
+        return _cs_check_dotfile_read(fixture)
+
+    def test_part_composition_bypass_caught(self, tmp_path: pathlib.Path) -> None:
+        """AC2: inline part-composition is caught; old substring scan would miss it.
+
+        The fixture uses ("." + "agentbundle") so no literal
+        '.agentbundle/credentials.env' substring appears on any line.
+        _cs_path_chain_components() resolves BinOp(Add) inside BinOp(Div)
+        and the AST walk flags the .read_text() call.
+        """
+        # Split across adjacent string literals to stay under 99 chars while
+        # keeping the part-composition fully inline (required for _cs_path_chain_components).
+        source = (
+            "from pathlib import Path\n"
+            "result = ("
+            'Path.home() / ("." + "agentbundle") / ("credentials" + ".env")'
+            ").read_text()\n"
+        )
+        # AC2(a): prove the old substring scan would have missed this.
+        assert self._DOTFILE_SUBSTRING not in source, (
+            "fixture must not contain the literal dotfile substring "
+            "(that would make the test a tautology for the old scan)"
+        )
+        # AC2(b): AST walk catches it.
+        findings = self._run(tmp_path, source)
+        assert findings, "expected a finding for inline part-composition bypass"
+        assert any("read_text" in desc for _, desc in findings), (
+            f"expected 'read_text' in finding description; got {findings}"
+        )
+
+    def test_read_bytes_inline_caught(self, tmp_path: pathlib.Path) -> None:
+        """AC3: inline .read_bytes() form is caught by the AST walk."""
+        source = (
+            "from pathlib import Path\n"
+            "result = (Path.home() / '.agentbundle' / 'credentials.env').read_bytes()\n"
+        )
+        findings = self._run(tmp_path, source)
+        assert findings, "expected a finding for .read_bytes() inline form"
+        assert any("read_bytes" in desc for _, desc in findings), (
+            f"expected 'read_bytes' in finding description; got {findings}"
+        )
+
+    def test_optout_marker_suppresses_finding(self, tmp_path: pathlib.Path) -> None:
+        """AC4: opt-out marker on the same line as the call suppresses the finding."""
+        source = (
+            "from pathlib import Path\n"
+            "result = (Path.home() / '.agentbundle' / 'credentials.env').read_text()"
+            "  # credentialed-primitive: reads-creds-directly\n"
+        )
+        findings = self._run(tmp_path, source)
+        assert not findings, (
+            "opt-out marker on the call line must suppress the finding; "
+            f"got: {findings}"
+        )
+
+    def test_fallback_substring_scan_caught(self, tmp_path: pathlib.Path) -> None:
+        """AC1 defense-in-depth: keyword-arg open() evades the AST branch but is
+        caught by the retained fallback substring scan.
+
+        _cs_check_dotfile_read's AST branch requires a positional arg in node.args;
+        open(file=...) uses only node.keywords so the branch never fires.
+        The fallback scan catches any line whose text contains the dotfile substring
+        that the AST branch did not already flag.
+        """
+        source = 'f = open(file=".agentbundle/credentials.env").read()\n'
+        findings = self._run(tmp_path, source)
+        assert findings, (
+            "expected fallback scan to catch keyword-arg open(file=...) form"
+        )
+        assert any("skill reads" in desc for _, desc in findings), (
+            f"expected fallback-branch description 'skill reads'; got {findings}"
+        )
+
+    def test_bare_open_caught(self, tmp_path: pathlib.Path) -> None:
+        """AC5: bare open('.agentbundle/credentials.env') is caught by the AST walk.
+
+        _cs_path_chain_components() resolves the string literal to
+        ("relative", [".agentbundle", "credentials.env"]); _cs_is_dotfile_chain()
+        returns True. ast.walk() visits the inner open() call even when it is
+        chained with .read(). Asserting the AST-branch description
+        "open() reads dotfile credentials" distinguishes this from the retained
+        fallback substring scan (which would produce "skill reads ... directly").
+        """
+        source = "data = open('.agentbundle/credentials.env').read()\n"
+        findings = self._run(tmp_path, source)
+        assert findings, "expected a finding for bare open('.agentbundle/credentials.env')"
+        assert any("open() reads dotfile credentials" in desc for _, desc in findings), (
+            f"expected AST-branch description 'open() reads dotfile credentials'; got {findings}"
+        )

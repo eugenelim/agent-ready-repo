@@ -4,129 +4,121 @@
 
 ## Approach
 
-Three tasks that can run in parallel (D3 AST walk, shim path anchor, and test parametrisation have no shared edits). T4 runs final gates after all three are done. D3 has the highest security impact and the most verification overhead (TDD with bypass-proof fixtures). The shim path anchor is a pure function guard with two unit tests. The test parametrisation is purely additive.
+AC1, AC6–AC11 are already implemented and passing in origin/main (all three D3/shim/parametrisation fixes landed as part of the v0.13.0 CLI-fold and prior spec work). Remaining work is two sequential tasks:
+
+- **T1** — Add `TestD3CheckDotfileRead` class to `packages/agentbundle/tests/unit/test_credbroker_lint_hardening.py` (AC2/AC3/AC4/AC5).
+- **T2** — Run gate verification (AC13–AC16).
+
+*Note on location: the standalone `tools/lint_credentialed_skills.py` and `tools/test-lint-credentialed-skills.py` were deleted in commit 96232e62 (v0.13.0). All lint logic is in `packages/agentbundle/agentbundle/catalogue_tooling/lint.py` under `_cs_`-prefixed symbols.*
 
 ## Design (LLD)
 
-### D3: `_check_dotfile_read`
+### D3 — `_cs_check_dotfile_read` (already shipped)
 
 ```python
-def _check_dotfile_read(py_path: Path) -> list[tuple[int, str]]:
-    """Walk AST, return (lineno, desc) for each dotfile-read call site."""
+# packages/agentbundle/agentbundle/catalogue_tooling/lint.py
+
+def _cs_check_dotfile_read(py_path: Path) -> list[tuple[int, str]]:
     source = py_path.read_text(encoding="utf-8")
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
+    tree = ast.parse(source)
     lines = source.splitlines()
-    findings = []
+    results: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         if isinstance(node.func, ast.Name) and node.func.id == "open":
             if node.args:
-                arg = node.args[0]
-                result = _path_chain_components(arg)
-                if result and _is_dotfile_chain(result):
+                chain = _cs_path_chain_components(node.args[0])
+                if _cs_is_dotfile_chain(chain):
                     lineno = node.lineno
-                    if OPTOUT_MARKER not in lines[lineno - 1]:
-                        findings.append((lineno, "open() reads dotfile credentials"))
-        elif isinstance(node.func, ast.Attribute) and node.func.attr in {"read_text", "read_bytes"}:
-            result = _path_chain_components(node.func.value)
-            if result and _is_dotfile_chain(result):
+                    if _CS_OPTOUT_MARKER not in lines[lineno - 1]:
+                        results.append((lineno, "open() reads dotfile credentials"))
+        elif (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"read_text", "read_bytes", "open"}
+        ):
+            chain = _cs_path_chain_components(node.func.value)
+            if _cs_is_dotfile_chain(chain):
                 lineno = node.lineno
-                if OPTOUT_MARKER not in lines[lineno - 1]:
-                    findings.append((lineno, f".{node.func.attr}() reads dotfile credentials"))
-    return findings
-
-def _is_dotfile_chain(result) -> bool:
-    _, components = result
-    return (len(components) >= 2
-            and components[-2] == DOTFILE_PARENT
-            and components[-1] == DOTFILE_BASENAME)
+                if _CS_OPTOUT_MARKER not in lines[lineno - 1]:
+                    results.append((lineno, f".{node.func.attr}() reads dotfile credentials"))
+    # Fallback: substring scan for lines not already flagged (defense-in-depth).
+    flagged_linenos = {lineno for lineno, _ in results}
+    for i, line in enumerate(lines, start=1):
+        if i in flagged_linenos:
+            continue
+        if _CS_DOTFILE_SUBSTRING in line and _CS_OPTOUT_MARKER not in line.rstrip():
+            results.append((i, f"skill reads {_CS_DOTFILE_SUBSTRING} directly"))
+    return results
 ```
 
-Replace the substring-scan block (lines 908–925) in `lint_credentialed_skills.py` with a call to `_check_dotfile_read(py_path)`.
-
-### `_is_canonical_shim` path anchor
+### `_cs_is_canonical_shim` path anchor (already shipped)
 
 ```python
-def _is_canonical_shim(py: pathlib.Path) -> bool:
-    if py.parent.name not in {"scripts", "shared-libs"}:  # ADD FIRST
+def _cs_is_canonical_shim(py: pathlib.Path, shim_source_dir: pathlib.Path) -> bool:
+    if py.name not in _CS_SHIM_BASENAMES:
         return False
-    # ... existing byte-equality check ...
+    if py.parent.name not in {"scripts", "shared-libs"}:  # path anchor
+        return False
+    expected_path = shim_source_dir / py.name
+    try:
+        expected = expected_path.read_bytes()
+    except OSError:
+        return False
+    try:
+        return py.read_bytes() == expected
+    except OSError:
+        return False
 ```
 
-### `_load_cli_module` helper
+### `_load_cli_module` helper (already shipped)
 
 ```python
 def _load_cli_module(py_path: pathlib.Path) -> types.ModuleType:
-    import importlib.util, sys
-    spec = importlib.util.spec_from_file_location("_loaded_module", py_path)
+    spec = importlib.util.spec_from_file_location(py_path.stem, py_path)
     module = importlib.util.module_from_spec(spec)
     sys.path.insert(0, str(py_path.parent))
     try:
         spec.loader.exec_module(module)
     finally:
-        sys.path.pop(0)
+        sys.path.remove(str(py_path.parent))
     return module
 ```
 
 ## Tasks
 
-### T1 — Rewrite D3 dotfile-read check as AST walk
+### T1 — Add D3 fixture tests to `test_credbroker_lint_hardening.py`
 
 **Depends on:** none
-**Mode:** TDD (AC1–AC5)
+**Mode:** Regression/characterization (AC2–AC5; `_cs_check_dotfile_read` already shipped in origin/main — tests pin bypass invariants after the fact)
 
-Write TDD fixtures first:
-- Fixture for AC2: inline part-composition `(Path.home() / ("." + "agentbundle") / ("credentials" + ".env")).read_text()` — verify it has no literal `.agentbundle/credentials.env` substring (AC2(a)), then confirm AST walk catches it.
-- Fixture for AC3: inline `.read_bytes()` form `(Path.home() / ".agentbundle" / "credentials.env").read_bytes()`.
+Add `TestD3CheckDotfileRead` class to `packages/agentbundle/tests/unit/test_credbroker_lint_hardening.py`. Each test method writes a fixture file to `tmp_path` and calls `_cs_check_dotfile_read(fixture)` directly.
 
-Then implement `_check_dotfile_read()` and `_is_dotfile_chain()`. Replace the substring-scan block with the AST walk.
-
-**Verification:**
-- `python3 tools/test-lint-credentialed-skills.py` exits 0 (AC1, AC4, AC5 regression)
-- New test cases for AC2 (bypass fixture) and AC3 (read_bytes) pass
-- `assert ".agentbundle/credentials.env" not in ac2_fixture_source` (AC2(a) inline assertion)
-
-### T2 — Add `_is_canonical_shim` path anchor
-
-**Depends on:** none (parallel with T1)
-**Mode:** Unit/TDD (AC6, AC7, AC8)
-
-Add `py.parent.name not in {"scripts", "shared-libs"}` early-return to `_is_canonical_shim`.
+**Test cases:**
+- `test_part_composition_bypass_caught` (AC2): fixture uses `("." + "agentbundle")` — assert (a) `".agentbundle/credentials.env" not in source` and (b) findings non-empty with `"read_text"` in description.
+- `test_read_bytes_inline_caught` (AC3): `.read_bytes()` inline — assert findings non-empty with `"read_bytes"` in description.
+- `test_optout_marker_suppresses_finding` (AC4): opt-out marker on same line — assert findings empty.
+- `test_bare_open_caught` (AC5): `open('.agentbundle/credentials.env')` — assert findings non-empty with `"open() reads dotfile credentials"` in description (isolates AST `open()` branch from fallback substring scan).
 
 **Verification:**
-- Unit test: canonical bytes at `arbitrary/credentials_shim.py` → `False` (AC7)
-- Unit test: canonical bytes at `scripts/credentials_shim.py` → `True` (AC8a)
-- Unit test: canonical bytes at `shared-libs/credentials_shim.py` → `True` (AC8b)
-- `python3 tools/test-lint-credentialed-skills.py` exits 0 (AC6/AC8 regression)
+- `pytest packages/agentbundle/tests/unit/test_credbroker_lint_hardening.py -x` exits 0
 
-### T3 — Add `_load_cli_module()` and parametrise integration tests
+### T2 — Gate verification
 
-**Depends on:** none (parallel with T1/T2)
-**Mode:** Integration (AC9, AC10, AC11)
-
-Add `_load_cli_module()` helper. Parametrise `broker` fixture in `test_sso_broker_verbs.py` over source + projected paths. Add projected-path variant to `test_entry_point_imports_resolve_under_user_scope_layout`.
-
-**Verification:**
-- `pytest packages/agentbundle/tests/unit/test_sso_broker_verbs.py` passes (AC10)
-- `pytest packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py` passes (AC11)
-- If `dist/apm/` absent, projected variants report skip (not error)
-
-### T4 — Gate verification
-
-**Depends on:** T1, T2, T3
+**Depends on:** T1
 **Mode:** Goal-based (AC12–AC16)
 
-Run all gates in order (AC13 must run before AC15 — `make build-self` produces the `dist/apm/` projected copies that AC11's projected variant checks; without it, AC11's projected parametrisation will always skip):
-1. `make build-self FORCE=1` → exits 0 (AC13 prerequisite for projected test variants)
+Run all gates in order (AC13 must run before AC15 — `make build-self` produces the `dist/apm/` projected copies that AC11's projected variant checks):
+
+0. Mark AC2–AC5 `[x]` in `spec.md` (tests exist and pass).
+1. `make build-self FORCE=1` → exits 0
 2. `git status --short` → shows no changes (AC13)
 3. `python3 tools/hooks/pre-pr.py` → exits 0 (AC14)
-4. `pytest packages/agentbundle/tests/ -x` → exits 0 (AC15; projected variants now have build output to test against)
-5. `python3 tools/test-lint-credentialed-skills.py` → exits 0 (AC16)
+4. `pytest packages/agentbundle/tests/ -x` → exits 0 (AC12, AC15)
+5. `SKIP_SAST=1 make build-check` → exits 0 (AC16; covers `agentbundle catalogue verify --root .` and all build gates)
+6. Set `Status: Shipped` in `spec.md` after all reviewers return Clean (done at REVIEW, not here).
 
 ## Changelog
 
 - 2026-07-23: Initial plan authored.
+- 2026-07-31: Plan reconciled with corrected spec after v0.13.0 (96232e62) folded standalone linters into agentbundle CLI. AC1/AC6–AC11 confirmed shipped; remaining work scoped to T1 (D3 fixture tests) + T2 (gates). All `_cs_` prefixes and correct file paths applied; LLD updated to match shipped implementation; AC16 gate updated from deleted `tools/test-lint-credentialed-skills.py` to `SKIP_SAST=1 make build-check`.
