@@ -18,6 +18,10 @@ Progress — Report progress inline as done/total (e.g. 3/8). Only draw a bar if
 
 Any time you need to orient: which initiative is active, what specs are ready to start, what is blocked and why, what signals the strategist has flagged. Also the right skill if workspace.toml does not yet exist and you want to initialise it.
 
+## Prerequisites
+
+- **Python 3.11+** — the backend uses `tomllib` (stdlib from 3.11). Confirm with `python3 --version` (macOS/Linux) or `python --version` (Windows). If Python is absent or below 3.11, the backend exits with a load error; install or upgrade before invoking this skill.
+
 ## Procedure
 
 ### 1. Invoke the backend
@@ -34,7 +38,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 
 - **POSIX (bash/zsh):** `python3 '<skill-dir>/scripts/workspace_status.py' --root .`
 - **PowerShell:** `python '<skill-dir>/scripts/workspace_status.py' --root .` (single-quoted strings are literal in PS; safe unless the path contains `'`)
-- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" --root .` (double-quoted path; safe unless the path contains `"`, which requires the argv form)
+- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" --root .` (double-quoted path; safe unless the path contains `"`, `%`, or `!` — any of these requires the argv form)
 
 Any path with special characters requires the argv form.
 

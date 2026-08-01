@@ -60,7 +60,7 @@ email = "eugenelim@users.noreply.github.com"
 [pack.first-value]
 audience-posture = "technical"
 surfaces         = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
-prerequisites    = []
+prerequisites    = ["Python 3.11+"]
 verification     = "Run workspace-status and confirm your workspace.toml queue state is displayed."
 recovery         = "If workspace-status does not activate, re-run adapt-to-project to refresh your repo's skill index."
 
