@@ -25,10 +25,10 @@ or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
 shebang. **Why `python3` for a git hook:** git invokes the hook via the OS
 `execve` system call, which resolves the shebang interpreter through
 `/usr/bin/env` — shell aliases (e.g. `alias python=python3`) are never
-consulted. `python3` is the portable choice for POSIX: it is present on all modern
-macOS and Linux systems. `python` fails on most modern macOS/Linux where
-the `python` binary was removed with Python 2. Windows installation is
-out of scope — see the POSIX-only installation note in step 10. This is distinct from
+consulted. `python3` is the correct shebang for POSIX git hooks (see step 10
+installation prerequisites for how to install it). `python` fails on most
+modern macOS/Linux where the `python` binary was removed with Python 2.
+Windows installation is out of scope — see the POSIX-only note in step 10. This is distinct from
 agent lifecycle hooks (e.g. `packs/core/.apm/hooks/pre-pr.py`), which are
 invoked via wiring commands that specify the interpreter explicitly
 (e.g. `python tools/hooks/pre-pr.py`) — the shebang is not used for that
@@ -123,7 +123,7 @@ step by running `FORCE=1 make build-self` and confirming the file appears under
 > changelog entries, hook body). Run AC7 in a disposable git worktree so the
 > checkout is not mutated:
 > ```
-> git worktree add /tmp/qa-hook-confirm
+> git worktree add --detach /tmp/qa-hook-confirm HEAD
 > # run assimilate-primitive in /tmp/qa-hook-confirm
 > git worktree remove --force /tmp/qa-hook-confirm
 > ```

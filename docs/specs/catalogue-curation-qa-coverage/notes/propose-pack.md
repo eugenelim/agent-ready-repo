@@ -179,9 +179,15 @@ must clean up before the checkout is used for other work:
    fails `agentbundle catalogue verify`).
 3. Run `agentbundle catalogue verify` to confirm the clean state.
 
-Alternatively, run AC6 in a disposable git worktree
-(`git worktree add /tmp/qa-propose-pack`) and remove it after
-(`git worktree remove --force /tmp/qa-propose-pack`) — no teardown needed.
+Alternatively, run AC6 in a disposable detached worktree and remove it after
+— no teardown needed:
+```
+git worktree add --detach /tmp/qa-propose-pack HEAD
+# run propose-catalogue-pack in /tmp/qa-propose-pack
+git worktree remove --force /tmp/qa-propose-pack
+```
+`--detach` prevents git from creating a local branch; `git worktree remove`
+then leaves no repository state behind.
 - The maintainer alias from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.
