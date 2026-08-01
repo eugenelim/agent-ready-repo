@@ -38,6 +38,8 @@ _engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
 
 _safe_spec_path = _engine_mod._safe_spec_path
 analyze = _engine_mod.analyze
+analyze_bounded = _engine_mod.analyze_bounded
+explain_item = _engine_mod.explain_item
 check_shaping_guard = _engine_mod.check_shaping_guard
 classify_entries = _engine_mod.classify_entries
 classify_shaping_entries = _engine_mod.classify_shaping_entries
@@ -2016,6 +2018,476 @@ def case_work_loop_slug_normalization() -> None:
                    f"[normalize+guard] {raw!r} → slug={slug!r} → {result!r} (want 'frame-intent')")
 
 
+# ── Order 1B: analyze_bounded + explain_item ─────────────────────────────────
+
+def case_analyze_bounded_skips_type1() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/alpha-active"]
+            shipped = []
+            queue   = ["spec/alpha-queue"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        write_spec(root, "alpha-active", "Implementing")
+        write_spec(root, "alpha-queue", "Approved")
+        write_spec(root, "untracked-live", "Implementing")  # M=1 untracked live spec
+
+        result = analyze_bounded(root)
+        expect(result.type1 == [], f"[bounded-type1] expected type1==[], got {result.type1}")
+        expect(not result.global_scan_performed,
+               "[bounded-type1] global_scan_performed should be False")
+        expect(result.global_scan_files_read == 0,
+               f"[bounded-type1] global_scan_files_read={result.global_scan_files_read}")
+
+
+def case_analyze_bounded_file_counts() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/alpha-active"]
+            shipped = ["spec/alpha-shipped"]
+            queue   = ["spec/alpha-queue"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        write_spec(root, "alpha-active", "Implementing")
+        # alpha-shipped: no spec.md — confinement returns None → not read
+        write_spec(root, "alpha-queue", "Approved")
+        write_spec(root, "untracked-1", "Implementing")
+        write_spec(root, "untracked-2", "Approved")
+
+        result = analyze_bounded(root)
+        N = 3  # active + shipped + queue entries declared
+        expect(result.declared_spec_files_read <= N,
+               f"[bounded-counts] declared={result.declared_spec_files_read} > N={N}")
+        expect(result.global_scan_files_read == 0,
+               f"[bounded-counts] global_scan_files_read={result.global_scan_files_read}")
+        expect(result.files_read == result.declared_spec_files_read,
+               f"[bounded-counts] files_read={result.files_read} "
+               f"!= declared={result.declared_spec_files_read}")
+
+
+def case_analyze_full_file_counts() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/alpha-active"]
+            shipped = []
+            queue   = ["spec/alpha-queue"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        write_spec(root, "alpha-active", "Implementing")
+        write_spec(root, "alpha-queue", "Approved")
+        write_spec(root, "untracked-live-1", "Implementing")
+        write_spec(root, "untracked-live-2", "Approved")
+
+        result = analyze(root)
+        M = 2  # untracked live specs
+        expect(result.global_scan_performed, "[full-counts] global_scan_performed should be True")
+        expect(result.global_scan_files_read >= M,
+               f"[full-counts] global_scan_files_read={result.global_scan_files_read} < M={M}")
+        expect(
+            result.files_read == result.declared_spec_files_read + result.global_scan_files_read,
+            f"[full-counts] files_read={result.files_read} != declared+global",
+        )
+
+
+def case_explain_item_ready() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/alpha-ready"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/alpha-ready")
+        expect(out.get("selector_status") == "matched",
+               f"[explain-ready] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        expect(item.get("classification") == "ready",
+               f"[explain-ready] classification={item.get('classification')!r}")
+        expect(item.get("blocking_needs") == [],
+               f"[explain-ready] blocking_needs={item.get('blocking_needs')!r}")
+        expect(item.get("list") == "queue",
+               f"[explain-ready] list={item.get('list')!r}")
+
+
+def case_explain_item_blocked() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = [
+                "spec/alpha-dep",
+                {path = "spec/alpha-blocked", needs = ["work:spec/alpha-dep"]},
+            ]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/alpha-blocked")
+        expect(out.get("selector_status") == "matched",
+               f"[explain-blocked] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        expect(item.get("classification") == "blocked",
+               f"[explain-blocked] classification={item.get('classification')!r}")
+        expect("work:spec/alpha-dep" in item.get("blocking_needs", []),
+               f"[explain-blocked] blocking_needs={item.get('blocking_needs')!r}")
+        deps = item.get("dependencies", [])
+        expect(
+            len(deps) == 1
+            and deps[0]["need"] == "work:spec/alpha-dep"
+            and not deps[0]["satisfied"],
+            f"[explain-blocked] deps={deps!r}",
+        )
+
+
+def case_explain_item_active() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/alpha-active"]
+            shipped = []
+            queue   = []
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "alpha-active")  # slug form — tests normalization
+        expect(out.get("selector_status") == "matched",
+               f"[explain-active] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        expect(item.get("list") == "active",
+               f"[explain-active] list={item.get('list')!r}")
+        expect(item.get("classification") == "active",
+               f"[explain-active] classification={item.get('classification')!r}")
+
+
+def case_explain_item_active_downstream() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/item-b"]
+            shipped = []
+            queue   = [
+                {path = "spec/item-a", needs = ["work:spec/item-b"]},
+            ]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/item-b")
+        expect(out.get("selector_status") == "matched",
+               f"[explain-active-downstream] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        downstream = item.get("downstream_unblocked", [])
+        expect("spec/item-a" in downstream,
+               f"[explain-active-downstream] downstream_unblocked={downstream!r} (want item-a)")
+
+
+def case_explain_item_shipped() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = ["spec/alpha-shipped"]
+            queue   = []
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/alpha-shipped")
+        expect(out.get("selector_status") == "matched",
+               f"[explain-shipped] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        expect(item.get("list") == "shipped",
+               f"[explain-shipped] list={item.get('list')!r}")
+        expect(item.get("classification") == "shipped",
+               f"[explain-shipped] classification={item.get('classification')!r}")
+
+
+def case_explain_item_not_found() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/alpha-only"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/unknown-slug")
+        expect(out.get("selector_status") == "not_found",
+               f"[explain-not-found] selector_status={out.get('selector_status')!r}")
+
+
+def case_explain_item_ambiguous_cross_initiative() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/shared-slug"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+
+            ["ini-002"]
+            name = "Beta"
+            status = "active"
+            milestone = "M1"
+            ["ini-002".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/shared-slug"]
+            ["ini-002".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "shared-slug")
+        expect(out.get("selector_status") == "ambiguous",
+               f"[explain-ambiguous] selector_status={out.get('selector_status')!r}")
+        matches = out.get("matches", [])
+        expect(len(matches) == 2,
+               f"[explain-ambiguous] len(matches)={len(matches)} (want 2)")
+        ini_slugs = {m["ini_slug"] for m in matches}
+        expect("ini-001" in ini_slugs and "ini-002" in ini_slugs,
+               f"[explain-ambiguous] ini_slugs={ini_slugs!r}")
+
+
+def case_explain_item_within_ini_duplicate_not_ambiguous() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/dup-slug"]
+            shipped = ["spec/dup-slug"]
+            queue   = []
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "dup-slug")
+        expect(out.get("selector_status") == "matched",
+               f"[explain-dup] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        expect(item.get("list") == "active",
+               f"[explain-dup] list={item.get('list')!r} (want active > shipped)")
+        expect(item.get("classification") == "active",
+               f"[explain-dup] classification={item.get('classification')!r}")
+
+
+def case_explain_item_shaping_only_not_found() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = []
+            ["ini-001".shaping_queue]
+            active  = [{slug = "shape-only", type = "shape"}]
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "shape-only")
+        expect(out.get("selector_status") == "not_found",
+               f"[explain-shaping-only] selector_status={out.get('selector_status')!r}")
+
+
+def case_explain_item_downstream_sole_blocker() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = [
+                "spec/item-b",
+                {path = "spec/item-a", needs = ["work:spec/item-b"]},
+            ]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/item-b")
+        expect(out.get("selector_status") == "matched",
+               f"[downstream-sole] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        downstream = item.get("downstream_unblocked", [])
+        expect("spec/item-a" in downstream,
+               f"[downstream-sole] downstream_unblocked={downstream!r} (want item-a)")
+
+
+def case_explain_item_downstream_not_sole_blocker() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = [
+                "spec/item-b",
+                "spec/item-c",
+                {path = "spec/item-a", needs = ["work:spec/item-b", "work:spec/item-c"]},
+            ]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/item-b")
+        item = out.get("explained_item", {})
+        downstream = item.get("downstream_unblocked", [])
+        expect("spec/item-a" not in downstream,
+               f"[downstream-not-sole] item-a should not be in downstream: {downstream!r}")
+
+
+def case_explain_item_downstream_cross_ini_excluded() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/item-b"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+
+            ["ini-002"]
+            name = "Beta"
+            status = "active"
+            milestone = "M1"
+            ["ini-002".work]
+            active  = []
+            shipped = []
+            queue   = [{path = "spec/item-a", needs = ["ini-001:work:spec/item-b"]}]
+            ["ini-002".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/item-b")
+        item = out.get("explained_item", {})
+        downstream = item.get("downstream_unblocked", [])
+        expect("spec/item-a" not in downstream,
+               f"[downstream-cross-ini] item-a should not be in downstream: {downstream!r}")
+
+
+def case_analyze_bounded_path_traversal_entry() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/../../../etc/passwd"]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        expect(result.declared_spec_files_read == 0,
+               f"[traversal] declared_spec_files_read={result.declared_spec_files_read} (want 0)")
+        expect(isinstance(result.reconciliation, list),
+               "[traversal] result must be structurally valid")
+
+
 # ── pytest wrappers for custom-runner cases ───────────────────────────────────
 # Allow `pytest tools/test_workspace_status.py` to discover all cases.
 
@@ -2182,6 +2654,70 @@ def test_safe_spec_path_dot_segments() -> None:
     _run_case(case_safe_spec_path_dot_segments)
 
 
+def test_analyze_bounded_skips_type1() -> None:
+    _run_case(case_analyze_bounded_skips_type1)
+
+
+def test_analyze_bounded_file_counts() -> None:
+    _run_case(case_analyze_bounded_file_counts)
+
+
+def test_analyze_full_file_counts() -> None:
+    _run_case(case_analyze_full_file_counts)
+
+
+def test_explain_item_ready() -> None:
+    _run_case(case_explain_item_ready)
+
+
+def test_explain_item_blocked() -> None:
+    _run_case(case_explain_item_blocked)
+
+
+def test_explain_item_active() -> None:
+    _run_case(case_explain_item_active)
+
+
+def test_explain_item_active_downstream() -> None:
+    _run_case(case_explain_item_active_downstream)
+
+
+def test_explain_item_shipped() -> None:
+    _run_case(case_explain_item_shipped)
+
+
+def test_explain_item_not_found() -> None:
+    _run_case(case_explain_item_not_found)
+
+
+def test_explain_item_ambiguous_cross_initiative() -> None:
+    _run_case(case_explain_item_ambiguous_cross_initiative)
+
+
+def test_explain_item_within_ini_duplicate_not_ambiguous() -> None:
+    _run_case(case_explain_item_within_ini_duplicate_not_ambiguous)
+
+
+def test_explain_item_shaping_only_not_found() -> None:
+    _run_case(case_explain_item_shaping_only_not_found)
+
+
+def test_explain_item_downstream_sole_blocker() -> None:
+    _run_case(case_explain_item_downstream_sole_blocker)
+
+
+def test_explain_item_downstream_not_sole_blocker() -> None:
+    _run_case(case_explain_item_downstream_not_sole_blocker)
+
+
+def test_explain_item_downstream_cross_ini_excluded() -> None:
+    _run_case(case_explain_item_downstream_cross_ini_excluded)
+
+
+def test_analyze_bounded_path_traversal_entry() -> None:
+    _run_case(case_analyze_bounded_path_traversal_entry)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
@@ -2226,6 +2762,26 @@ CASES = [
     ("F4e missing_status_not_active", case_missing_status_not_active),
     ("F4f nonletter_transition_segment", case_nonletter_transition_segment),
     ("F4g safe_spec_path_dot_segments", case_safe_spec_path_dot_segments),
+    ("1B analyze_bounded_skips_type1", case_analyze_bounded_skips_type1),
+    ("1B analyze_bounded_file_counts", case_analyze_bounded_file_counts),
+    ("1B analyze_full_file_counts", case_analyze_full_file_counts),
+    ("1B explain_item_ready", case_explain_item_ready),
+    ("1B explain_item_blocked", case_explain_item_blocked),
+    ("1B explain_item_active", case_explain_item_active),
+    ("1B explain_item_active_downstream", case_explain_item_active_downstream),
+    ("1B explain_item_shipped", case_explain_item_shipped),
+    ("1B explain_item_not_found", case_explain_item_not_found),
+    ("1B explain_item_ambiguous_cross_initiative",
+     case_explain_item_ambiguous_cross_initiative),
+    ("1B explain_item_within_ini_duplicate_not_ambiguous",
+     case_explain_item_within_ini_duplicate_not_ambiguous),
+    ("1B explain_item_shaping_only_not_found", case_explain_item_shaping_only_not_found),
+    ("1B explain_item_downstream_sole_blocker", case_explain_item_downstream_sole_blocker),
+    ("1B explain_item_downstream_not_sole_blocker",
+     case_explain_item_downstream_not_sole_blocker),
+    ("1B explain_item_downstream_cross_ini_excluded",
+     case_explain_item_downstream_cross_ini_excluded),
+    ("1B analyze_bounded_path_traversal_entry", case_analyze_bounded_path_traversal_entry),
 ]
 
 

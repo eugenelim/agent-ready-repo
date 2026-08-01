@@ -582,5 +582,275 @@ class SkillWiringTests(unittest.TestCase):
         )
 
 
+# ── Test: Order 1B subcommands ────────────────────────────────────────────────
+
+_SIMPLE_TOML = """\
+["ini-001"]
+name      = "Alpha"
+status    = "active"
+milestone = "M1"
+
+["ini-001".work]
+active  = []
+shipped = []
+queue   = ["spec/alpha"]
+
+["ini-001".shaping_queue]
+active  = []
+backlog = []
+"""
+
+_TWO_INI_SHARED_SLUG_TOML = """\
+["ini-001"]
+name      = "Alpha"
+status    = "active"
+milestone = "M1"
+
+["ini-001".work]
+active  = []
+shipped = []
+queue   = ["spec/shared-slug"]
+
+["ini-001".shaping_queue]
+active  = []
+backlog = []
+
+["ini-002"]
+name      = "Beta"
+status    = "active"
+milestone = "M1"
+
+["ini-002".work]
+active  = []
+shipped = []
+queue   = ["spec/shared-slug"]
+
+["ini-002".shaping_queue]
+active  = []
+backlog = []
+"""
+
+
+class SubcommandTests(_CliBase):
+    """Order 1B: status / reconcile / no-subcommand / explain routing."""
+
+    def _run_status(self, root: Path) -> dict:
+        r = _run_cli("status", "--root", str(root))
+        self.assertEqual(r.returncode, 0, f"status failed: {r.stderr}")
+        return json.loads(r.stdout)
+
+    def _run_reconcile(self, root: Path) -> dict:
+        r = _run_cli("reconcile", "--root", str(root))
+        self.assertEqual(r.returncode, 0, f"reconcile failed: {r.stderr}")
+        return json.loads(r.stdout)
+
+    def _run_explain(self, root: Path, item: str):
+        return _run_cli("explain", "--root", str(root), "--item", item)
+
+    def test_status_subcommand_mode_field(self) -> None:
+        root = self._write_workspace(_SIMPLE_TOML)
+        data = self._run_status(root)
+        self.assertEqual(data.get("mode"), "status")
+
+    def test_status_subcommand_no_global_scan(self) -> None:
+        root = self._write_workspace(_SIMPLE_TOML)
+        data = self._run_status(root)
+        scan = data.get("scan", {})
+        self.assertFalse(scan.get("global_spec_scan_performed"),
+                         "status mode must not perform global scan")
+        self.assertEqual(scan.get("global_scan_spec_files_read"), 0)
+
+    def test_status_bounded_type1_absent(self) -> None:
+        root = self._write_workspace(_SIMPLE_TOML)
+        self._make_spec(root, "untracked-live", "Implementing")
+        data = self._run_status(root)
+        recon = data.get("reconciliation", {})
+        self.assertEqual(recon.get("type1"), [],
+                         "status mode must not find any Type 1 findings")
+        self.assertEqual(recon.get("types_performed"), [2, 3])
+
+    def test_reconcile_subcommand_mode_field(self) -> None:
+        root = self._write_workspace(_SIMPLE_TOML)
+        data = self._run_reconcile(root)
+        self.assertEqual(data.get("mode"), "reconcile")
+
+    def test_reconcile_subcommand_global_scan(self) -> None:
+        root = self._write_workspace(_SIMPLE_TOML)
+        data = self._run_reconcile(root)
+        scan = data.get("scan", {})
+        self.assertTrue(scan.get("global_spec_scan_performed"),
+                        "reconcile mode must perform global scan")
+        self.assertEqual(data.get("reconciliation", {}).get("types_performed"), [1, 2, 3])
+
+    def test_ac10_bounded_structural_cost(self) -> None:
+        """AC10: status mode never reads the global spec tree."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        self._make_spec(root, "alpha", "Approved")
+        # M untracked live specs not in workspace
+        for i in range(3):
+            self._make_spec(root, f"untracked-{i}", "Implementing")
+        N = 1  # one declared queue entry
+        data = self._run_status(root)
+        scan = data.get("scan", {})
+        self.assertEqual(scan.get("global_scan_spec_files_read"), 0)
+        self.assertLessEqual(scan.get("declared_spec_files_read", N + 1), N)
+
+    def test_ac11_full_structural_cost(self) -> None:
+        """AC11: reconcile mode reads all live specs including untracked."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        self._make_spec(root, "alpha", "Approved")
+        M = 3  # M untracked live specs
+        for i in range(M):
+            self._make_spec(root, f"untracked-{i}", "Implementing")
+        data = self._run_reconcile(root)
+        scan = data.get("scan", {})
+        self.assertGreaterEqual(scan.get("global_scan_spec_files_read", 0), M)
+
+    def test_no_subcommand_compatibility(self) -> None:
+        """AC9: no subcommand → reconcile mode, exit 0."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        r = _run_cli("--root", str(root))
+        self.assertEqual(r.returncode, 0)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("mode"), "reconcile")
+        self.assertEqual(data.get("reconciliation", {}).get("types_performed"), [1, 2, 3])
+
+    def test_no_subcommand_stderr_warning(self) -> None:
+        """AC9: deprecation warning appears only on stderr."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        r = _run_cli("--root", str(root))
+        self.assertIn("no subcommand", r.stderr.lower())
+        self.assertNotIn("no subcommand", r.stdout.lower())
+
+    def test_explain_matched(self) -> None:
+        """AC8/AC10: explain matched entry; global_scan_spec_files_read == 0."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        r = self._run_explain(root, "spec/alpha")
+        self.assertEqual(r.returncode, 0)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("mode"), "explain")
+        self.assertEqual(data.get("selector_status"), "matched")
+        item = data.get("explained_item", {})
+        for key in ("path", "slug", "ini_slug", "list", "classification",
+                    "blocking_needs", "dependencies", "downstream_unblocked"):
+            self.assertIn(key, item, f"explained_item missing key: {key!r}")
+        # AC10 explain coverage
+        self.assertEqual(data.get("scan", {}).get("global_scan_spec_files_read"), 0)
+
+    def test_explain_not_found(self) -> None:
+        """explain with unknown selector → exit 0, not_found."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        r = self._run_explain(root, "spec/does-not-exist")
+        self.assertEqual(r.returncode, 0)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("selector_status"), "not_found")
+
+    def test_explain_cli_ambiguous_exit0(self) -> None:
+        """AC14: ambiguous selector → exit 0, ambiguous status."""
+        root = self._write_workspace(_TWO_INI_SHARED_SLUG_TOML)
+        r = self._run_explain(root, "shared-slug")
+        self.assertEqual(r.returncode, 0,
+                         f"ambiguous must be exit 0, got {r.returncode}: {r.stderr}")
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("selector_status"), "ambiguous")
+        self.assertGreaterEqual(len(data.get("matches", [])), 2)
+
+    def test_reconciliation_metadata_fields(self) -> None:
+        """AC12: status and reconcile include performed/complete/types_performed."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        for mode_fn in (self._run_status, self._run_reconcile):
+            data = mode_fn(root)
+            recon = data.get("reconciliation", {})
+            for key in ("performed", "complete", "types_performed"):
+                self.assertIn(key, recon,
+                              f"{data.get('mode')} reconciliation missing {key!r}")
+        # explain mode must NOT include a reconciliation object
+        r = self._run_explain(root, "spec/alpha")
+        explain_data = json.loads(r.stdout)
+        self.assertNotIn("reconciliation", explain_data,
+                         "explain mode must not include reconciliation object")
+
+    def test_scan_field_present(self) -> None:
+        """All modes include scan object with four required keys."""
+        required = {
+            "global_spec_scan_performed", "workspace_files_read",
+            "declared_spec_files_read", "global_scan_spec_files_read",
+        }
+        root = self._write_workspace(_SIMPLE_TOML)
+        for label, proc in [
+            ("status", _run_cli("status", "--root", str(root))),
+            ("reconcile", _run_cli("reconcile", "--root", str(root))),
+            ("explain", _run_cli("explain", "--root", str(root), "--item", "spec/alpha")),
+        ]:
+            data = json.loads(proc.stdout)
+            scan_keys = set(data.get("scan", {}).keys())
+            missing = required - scan_keys
+            self.assertFalse(missing, f"{label} scan missing keys: {missing}")
+
+    def test_diagnostics_compat(self) -> None:
+        """AC13: diagnostics present in status/reconcile; absent in explain."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        for mode_fn in (self._run_status, self._run_reconcile):
+            data = mode_fn(root)
+            diag = data.get("diagnostics", {})
+            self.assertIn("workspace_files_read", diag)
+            self.assertIn("spec_files_read", diag)
+            scan = data.get("scan", {})
+            expected = (scan.get("declared_spec_files_read", 0)
+                        + scan.get("global_scan_spec_files_read", 0))
+            self.assertEqual(diag.get("spec_files_read"), expected,
+                             f"{data.get('mode')} diagnostics.spec_files_read mismatch")
+        # explain mode must not include diagnostics
+        r = self._run_explain(root, "spec/alpha")
+        explain_data = json.loads(r.stdout)
+        self.assertNotIn("diagnostics", explain_data,
+                         "explain mode must not include diagnostics")
+
+    def test_absent_workspace_mode_field(self) -> None:
+        """AC9: absent-workspace JSON includes mode for each subcommand."""
+        empty = self.tmp / "empty-dir"
+        empty.mkdir(exist_ok=True)
+        for subcmd, extra in [
+            (["status"], []),
+            (["reconcile"], []),
+            (["explain", "--item", "spec/x"], []),
+            ([], []),
+        ]:
+            r = _run_cli(*subcmd, "--root", str(empty), *extra)
+            self.assertEqual(r.returncode, 1)
+            data = json.loads(r.stdout)
+            self.assertIn("mode", data,
+                          f"absent-workspace missing 'mode' for subcmd={subcmd!r}")
+
+    def test_cli_no_writes_all_modes(self) -> None:
+        """AC19: CLI is read-only in all three modes."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        before = {
+            str(p): p.stat().st_mtime_ns
+            for p in root.rglob("*") if p.is_file()
+        }
+        for subcmd, extra in [
+            (["status"], []),
+            (["reconcile"], []),
+            (["explain", "--item", "spec/alpha"], []),
+        ]:
+            _run_cli(*subcmd, "--root", str(root), *extra)
+        after = {
+            str(p): p.stat().st_mtime_ns
+            for p in root.rglob("*") if p.is_file()
+        }
+        self.assertEqual(before, after, "CLI wrote to the fixture directory")
+
+    def test_explain_missing_item_arg(self) -> None:
+        """AC14b: explain without --item exits 2, stderr non-empty, stdout empty."""
+        root = self._write_workspace(_SIMPLE_TOML)
+        r = _run_cli("explain", "--root", str(root))
+        self.assertEqual(r.returncode, 2,
+                         f"explain without --item must exit 2, got {r.returncode}")
+        self.assertTrue(r.stderr.strip(), "stderr must be non-empty for missing --item")
+        self.assertEqual(r.stdout.strip(), "",
+                         "stdout must be empty when --item is missing")
+
+
 if __name__ == "__main__":
     unittest.main()
