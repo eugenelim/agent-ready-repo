@@ -1321,7 +1321,7 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
 
 
 def test_evals_json_shape(_tmp: Path) -> None:
-    """evals.json exists, is valid JSON, has skill_name='work-loop' and 6 entries."""
+    """evals.json exists, is valid JSON, has skill_name='work-loop' and 9 entries."""
     name = "evals-json-shape"
     if not EVALS_JSON.exists():
         fail(name, f"evals.json not found at {EVALS_JSON}")
@@ -1335,9 +1335,9 @@ def test_evals_json_shape(_tmp: Path) -> None:
         fail(name, f"expected skill_name='work-loop'; got {data.get('skill_name')!r}")
         return
     evals = data.get("evals")
-    if not isinstance(evals, list) or len(evals) != 6:
+    if not isinstance(evals, list) or len(evals) != 9:
         count = len(evals) if isinstance(evals, list) else repr(evals)
-        fail(name, f"expected 6 evals entries; got {count}")
+        fail(name, f"expected 9 evals entries; got {count}")
         return
     required_fields = {"id", "prompt", "expected_output", "assertions"}
     for entry in evals:

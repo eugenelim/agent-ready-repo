@@ -1,6 +1,6 @@
 # Spec: work-loop-step0-observability
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Constrained by:** `spec/spec-C-workloop-argless-resume` (defines Branch-1 behavior; Status: Shipped — body not modified by this spec); RFC-0067 §Change C
 
@@ -32,29 +32,35 @@ the closing paragraph.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** The closing paragraph of Step 0 in the source SKILL.md
-  (`packs/core/.apm/skills/work-loop/SKILL.md`) directs Branch 1 to echo
-  "Beginning on `<resolved-path>`" (or equivalent phrasing) before
-  proceeding to PLAN — so the resolved path is explicitly visible to the
-  user. This instruction lives in the closing paragraph, not in the
-  "Active spec" bullet.
-- [ ] **AC2.** Branch 3 (more than one active item) already lists all active
-  paths — verified that no change to its behavior is needed.
-- [ ] **AC3.** The three data-surface fields (Initiative / Milestone / Active
-  spec) in the orientation block's bullet list do not contain embedded
-  control-flow action text — the "Exactly one → begin on that spec without
-  asking. Zero → surface… More than one → list…" clause is removed from the
-  "Active spec" bullet.
-- [ ] **AC4.** Branch-outcome resolution is stated once (in the closing
-  paragraph), not at both the "Active spec" bullet and the closing paragraph.
-- [ ] **AC5.** `make build-self FORCE=1` exits 0 and the projected
-  `.claude/skills/work-loop/SKILL.md` reflects all changes.
-- [ ] **AC6.** The closing paragraph's Branch 1 instruction directs the echo,
-  and Branch 2's exact message ("No active spec found — run `workspace-status`
-  to see what's ready to start.") and Branch 3's "list all and ask" phrasing
-  are relocated verbatim from the "Active spec" bullet into the closing
-  paragraph when the bullet is trimmed. The relocated text does not paraphrase
-  or abbreviate the Branch 2 message.
+- [x] **AC1.** The "Active spec" bullet body carries an inline instruction to
+  include "Beginning on `docs/specs/<slug>/spec.md`" in the orientation block
+  for the exactly-one case (e.g., "If exactly one, include 'Beginning on
+  `docs/specs/<slug>/spec.md`' in this orientation block"). The instruction is
+  inline body text, not a sub-item.
+- [x] **AC3.** The "Exactly one →" sub-item is removed from the "Active spec"
+  bullet. Branch 2 and Branch 3 sub-items remain.
+- [x] **AC4.** The closing paragraph's "exactly one active item" routing line
+  (strip prefix + read + proceed to PLAN) is unchanged. The unreachable
+  "Zero or multiple active items → stop after surfacing" bullet is removed.
+- [x] **AC5.** `make build-self FORCE=1` exits 0 and both projected copies
+  (`.claude/skills/work-loop/SKILL.md` and `.agents/skills/work-loop/SKILL.md`)
+  reflect all changes.
+- [x] **AC6.** `make build-check` exits 0.
+- [x] **AC7.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+  carry the next available patch version above the working pack version (check
+  `python3 -c "import tomllib; d=tomllib.load(open('packs/core/pack.toml','rb')); print(d['pack']['version'])"` —
+  `grep "^version"` matches both `[pack]` and `[pack.adapter-contract]`; use the
+  TOML-scoped lookup). Use the next unused patch to avoid colliding with
+  in-flight branches. A
+  `docs/product/changelog.md` entry exists for the version.
+- [x] **AC8.** `packs/core/.apm/skills/work-loop/evals/evals.json` contains
+  three new eval cases: `step0-branch1-echo-resolved-spec` (exactly one active
+  item → echo in orientation block), `step0-branch2-zero-active-specs` (zero
+  active items → verbatim message + stop), and `step0-branch3-multiple-active-specs`
+  (multiple active items → list + ask + stop).
+- [x] **AC9.** Manual QA: work-loop invoked argless in a session with exactly one
+  active spec produces an orientation block that includes "Beginning on
+  `docs/specs/<slug>/spec.md`" as part of the block output. Observed output recorded.
 
 ## Boundaries
 
