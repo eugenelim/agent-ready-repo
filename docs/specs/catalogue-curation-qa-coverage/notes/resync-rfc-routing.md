@@ -44,7 +44,9 @@ recorded a `query-planner` skill with a typo in the verdict field:
 `"Assimulate"` instead of `"Assimilate"`. This was a transcription error when
 RFC-0001 was authored; the decision itself (assimilate `query-planner`) is
 correct. The source candidate is unchanged (content hash matches
-`last-synced.toml`). A re-sync runs, triggered by a new candidate in the source.
+`last-synced.toml`). A re-sync runs; **no new candidates are discovered** —
+all source files have unchanged hashes. The operator notices the typo while
+reviewing the re-sync summary and flags it as a correction request.
 
 **How the algorithm classifies it:** The re-sync reads `last-synced.toml` and
 computes the content hash for `query-planner`. Hash matches → the candidate is

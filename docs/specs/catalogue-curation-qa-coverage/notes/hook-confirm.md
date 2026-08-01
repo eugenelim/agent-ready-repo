@@ -34,7 +34,7 @@ confirmation prompt. The operator cannot consent to code they have not read.
 1. Fetch `sample-hook.py`.
 2. Show the raw body verbatim.
 3. Issue the confirmation prompt.
-4. Wait for explicit "yes" before proceeding.
+4. Wait for the exact phrase `yes, land this code` before proceeding.
 
 ---
 
