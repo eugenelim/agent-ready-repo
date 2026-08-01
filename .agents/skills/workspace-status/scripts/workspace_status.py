@@ -43,7 +43,8 @@ try:
     compute_type2_cleanup = _engine_mod.compute_type2_cleanup
 except Exception as _load_err:
     # Engine load failure must be exit 2, not exit 1 (reserved for absent workspace).
-    print(f"workspace-status: engine load failed: {_load_err}", file=sys.stderr)
+    # Emit only the exception type — the message may include the engine's install path.
+    print(f"workspace-status: engine load failed: {type(_load_err).__name__}", file=sys.stderr)
     sys.exit(2)
 
 
@@ -219,7 +220,13 @@ def main(argv: list[str] | None = None) -> int:
         _emit(data)
         return 0
     except Exception as exc:
-        print(f"workspace-status error: {type(exc).__name__}: {exc}", file=sys.stderr)
+        # Strip the root path from the message so user-specific filesystem paths
+        # do not appear on stderr (violates the "no internal paths" exit-2 contract).
+        import contextlib
+        _msg = str(exc).replace(str(root), "<root>")
+        with contextlib.suppress(OSError, RuntimeError):
+            _msg = _msg.replace(str(root.resolve()), "<root>")
+        print(f"workspace-status error: {type(exc).__name__}: {_msg}", file=sys.stderr)
         return 2
 
 

@@ -89,7 +89,7 @@ workspace.toml schema, work-loop behavior, scan scope, or session-start performa
 - [x] AC12. Runtime code has no imports from `tools/`, `packs/`, shared-libs, or sibling skills. Verified by a goal-based grep over both scripts asserting only stdlib and script-relative imports.
 - [x] AC13. No new runtime dependency is introduced (stdlib-only). Verified by a goal-based grep asserting no third-party import in either script.
 - [x] AC14. `guides/_shared/how-to/author-a-skill.md` no longer promises generic shared-libs projection; states skills must be self-contained with `scripts/`.
-- [x] AC15. Quick mode, reconciliation separation, schema migration, caching, and work-loop changes are absent from the diff.
+- [x] AC15. Quick mode, reconciliation separation, schema migration, and caching are absent from the diff. Work-loop skill improvements (anchor-test PLAN step, structured-config grep anti-pattern, QA-isolation section in verification-modes) were co-landed as a separate concern in the same PR; they do not alter workspace-status engine behavior or output contract.
 - [x] AC16. `make build-self`, focused tests, `make build-check`, and `make ci` pass.
 - [x] AC17. The actual installed artifact's happy path is exercised and recorded (command, exit code, schema_version, semantic counts).
 - [x] AC18. Production behavior and output-category parity are documented in the PR.

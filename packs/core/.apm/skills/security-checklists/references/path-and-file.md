@@ -55,10 +55,11 @@ behavior as criteria (ASVS 5.0 V12.1).
   format are reused in another, validate the **target** format's constraints
   independently:
   - **(a) Non-BMP characters: JSON → TOML / YAML.** `json.dumps` with the
-    default `ensure_ascii=True` encodes emoji and other non-BMP chars as
-    surrogate pairs (`😀`). These are valid JSON but **invalid**
-    in TOML string literals — TOML v1.1 requires Unicode scalar values, and
-    U+D800–U+DFFF are not. Emit UTF-8 directly or use a format-aware helper.
+    default `ensure_ascii=True` encodes non-BMP characters as surrogate pairs:
+    U+1F600 (😀) becomes `\uD83D\uDE00` — two `\uXXXX` escapes — in the JSON
+    string. These escape sequences are valid JSON but **invalid** in TOML string
+    literals — TOML v1.1 requires Unicode scalar values, and U+D800–U+DFFF are
+    not. Emit UTF-8 directly or use a format-aware helper.
   - **(b) `json.dumps` NaN / Infinity.** Python's `json.dumps` silently emits
     `NaN` / `Infinity` for IEEE 754 specials by default (`allow_nan=True`),
     violating RFC 8259. Pass `allow_nan=False` whenever the consumer or a

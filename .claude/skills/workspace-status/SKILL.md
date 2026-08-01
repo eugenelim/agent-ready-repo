@@ -30,7 +30,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 
 `<python>` is the Python 3.11+ interpreter available in your environment: `python3` on macOS/Linux; `python` on Windows. `<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, `$VAR`, and other metacharacters — the values are never interpreted by a shell.
 
-**Shell-string-only tools:** Use the argv form. If your adapter cannot be configured to pass a discrete argument vector, set the working directory to the repository root and invoke `python3 '<skill-dir>/scripts/workspace_status.py' --root .` (use `python` on Windows) — single quotes prevent most shell expansion, but fail for paths containing a literal `'`. Any path with special characters in it requires the argv form.
+**Shell-string-only tools:** On Windows, the argv form is required — `cmd.exe` and PowerShell do not treat single quotes as quoting characters, so paths containing spaces cannot be expressed safely in a shell string on Windows. On POSIX shells only: if your adapter cannot be configured to pass a discrete argument vector, set the working directory to the repository root and invoke `python3 '<skill-dir>/scripts/workspace_status.py' --root .` — single quotes prevent most shell expansion, but fail for paths containing a literal `'`. Any path with special characters in it requires the argv form.
 
 **Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 

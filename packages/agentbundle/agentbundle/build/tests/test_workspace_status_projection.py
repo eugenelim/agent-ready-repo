@@ -110,6 +110,23 @@ class AdapterProjectionTests(unittest.TestCase):
         data = json.loads(r.stdout)
         self.assertEqual(data.get("schema_version"), 1)
 
+    def test_exit2_stderr_no_root_path(self) -> None:
+        """AC20: exit-2 stderr must not expose the --root path."""
+        out = self._project_to_tmp("claude-code")
+        cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
+        if not cli.exists():
+            self.skipTest("CLI not projected — previous projection test likely failed")
+        # Pass an existing file (not a dir) as --root to force NotADirectoryError → exit 2.
+        fake_file = out / "not_a_dir.txt"
+        fake_file.write_bytes(b"")
+        r = subprocess.run(
+            [sys.executable, str(cli), "--root", str(fake_file)],
+            capture_output=True, text=True, encoding="utf-8",
+        )
+        self.assertEqual(r.returncode, 2, f"Expected exit 2, got {r.returncode}; stderr={r.stderr!r}")
+        self.assertNotIn(str(fake_file), r.stderr,
+            "exit-2 stderr exposes the --root path; it must be redacted to <root>")
+
     def test_projected_cli_against_fixture_workspace(self) -> None:
         """AC10/AC11/AC17: projected CLI against a fixture workspace (not the real repo).
 
