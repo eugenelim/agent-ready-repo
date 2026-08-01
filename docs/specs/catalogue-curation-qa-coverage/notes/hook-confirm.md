@@ -108,8 +108,10 @@ Only after steps 4–5 complete does Phase 2 begin.
 2. Anti-pattern check: `anti-patterns.md:38-42` flags hooks doing heavy logic
    directly. `sample-hook.py` is one grep check — minimal, single-purpose. It
    clears this check.
-3. The skill may recommend renaming to match git's convention (`pre-commit`, no
-   extension).
+3. The skill may note git's convention of extensionless hook names. The catalogue
+   source ALWAYS keeps the `.py` extension (`pre-commit.py`) — extensionless files
+   are excluded from hook-body discovery and upgrade matching. Only the manually
+   installed copy (`cp ... .git/hooks/pre-commit`) drops the extension.
 
 **Important — git hooks vs. agent hooks (two distinct landing paths):**
 

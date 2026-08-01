@@ -91,20 +91,12 @@ reasoning context. The charter reviewer ceiling does **not** fire either —
 `doc-quality-rater` is not a specialized code/security/quality reviewer and does
 not add a fourth item to that ceiling.
 
-**Skill collision note (Phase 2 step 8):** During Phase 2, the assimilation skill
-checks the candidate's description against every existing skill. The
-`author-product-docs` skill (`product-documentation` pack) activates for
-"auditing or verifying documentation" — which overlaps with `doc-quality-rater`'s
-description ("Rate documentation files for clarity, completeness, and audience
-fit"). A live session will likely surface this collision as an additional issue
-alongside the self-review anti-pattern. The operator must resolve the collision
-before the self-review steer is actioned; the correct disposition is to narrow
-`doc-quality-rater`'s description to a non-overlapping scope (e.g., internal skill
-documentation only, not product docs) or reject the agent if the narrowed scope
-no longer justifies it.
-
-The self-review in step 4 remains the anti-pattern demonstrated by this fixture;
-the skill collision is a pre-existing overlap that surfaces separately.
+**Skill collision scope:** The fixture's description is scoped to "skill and spec
+documentation for internal consistency and format compliance" — a non-overlapping
+scope from `author-product-docs` (which covers product documentation: pack READMEs,
+tutorials, guides, and user-facing docs). Phase 2 step 8 should not surface a
+collision. **Only the self-review in step 4 is the anti-pattern; there is exactly
+one detection for this fixture.**
 
 ### Expected detection message
 
@@ -128,7 +120,7 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 ```
 ---
 name: doc-quality-rater
-description: Rate documentation files for clarity, completeness, and audience fit. Reads each file and produces a rubric score.
+description: Rate skill and spec documentation for internal consistency and format compliance. Reads each file and produces a rubric score.
 model: opus
 tools: Read
 ---
@@ -139,7 +131,7 @@ tools: Read
 
 1. Read the list of documentation files provided by the operator.
 2. For each file, read its full content.
-3. Rate it on three dimensions (1–5 scale): Clarity, Completeness, Audience fit.
+3. Rate it on three dimensions (1–5 scale): Internal consistency, Format compliance, Completeness.
 4. Present the rubric report to the operator.
 
 ## Output
