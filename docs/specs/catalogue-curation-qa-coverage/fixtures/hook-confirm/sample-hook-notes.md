@@ -2,23 +2,24 @@
 
 ## Fixture file
 
-`sample-hook.sh` is a thin-wrapper git pre-commit hook. It is the only file
+`sample-hook.sh` is a self-contained git pre-commit hook. It is the only file
 ingested in the AC7 QA session.
 
 ## What this hook does
 
 `sample-hook.sh` is a git pre-commit hook — a bash script that git invokes
-automatically before each `git commit` in the repository. It is a thin wrapper:
+automatically before each `git commit`. It checks for staged `.env` files and
+aborts the commit if any are detected:
 
 ```bash
-python3 .agentbundle/bin/pre-commit-checks.py
+if git diff --cached --name-only | grep -q '\.env$'; then
+  echo "Error: .env file staged — refusing commit." >&2
+  exit 1
+fi
 ```
 
-All check logic lives in the companion script, which is projected to
-`.agentbundle/bin/` via the pack's `adapter-root-bins` mechanism when the pack
-is installed. The hook body delegates; it does not embed check logic directly.
-The companion is ingested and landed separately from the hook — the AC7 QA
-session covers the hook's confirm gate only.
+The hook is self-contained — no external companion is required. It can be
+safely landed without depending on any other projected artifact.
 
 ## Why this requires explicit operator confirm
 
@@ -27,13 +28,14 @@ the operator's machine without further prompting on every `git commit` attempt.
 
 The operator must make an informed decision because:
 
-1. **Execution scope** — the hook invokes a Python script that runs on the
-   operator's local environment, using whatever Python is on PATH and whatever
-   checks `.agentbundle/bin/pre-commit-checks.py` implements.
-2. **Abort behavior** — if `pre-commit-checks.py` exits non-zero, the commit
-   is aborted. A missing or broken check environment will block all commits.
-3. **Trust boundary** — even a short wrapper script delegates to code the
-   operator may not have reviewed in full.
+1. **Execution scope** — the hook runs on the operator's local environment
+   using whatever `git` is on PATH. A misconfigured or unexpected environment
+   could cause false positives.
+2. **Abort behavior** — if the hook exits non-zero, the commit is aborted.
+   Any staging of a `.env` file (including accidentally named files) blocks
+   the commit.
+3. **Trust boundary** — even a short script delegates execution to the
+   operator's shell environment.
 
 ## Expected confirm prompt from assimilation skill
 
@@ -41,8 +43,8 @@ When the assimilation skill (`assimilate-primitive`) encounters this file during
 Phase 1, it must surface a message similar to:
 
 > This primitive is a bash script — executable code that will run automatically
-> on your machine as a git pre-commit hook on every commit attempt. It invokes
-> `python3 .agentbundle/bin/pre-commit-checks.py`.
+> on your machine as a git pre-commit hook on every commit attempt. It blocks
+> commits when a `.env` file is staged.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
@@ -50,6 +52,6 @@ Phase 1, it must surface a message similar to:
 
 The confirm prompt must:
 - Identify the file as executable code (not prose).
-- Name what it invokes (`python3 .agentbundle/bin/pre-commit-checks.py`).
+- Describe what it does (blocks staged `.env` files).
 - Require the exact phrase `yes, land this code` (per SKILL.md:35-37).
 - Not proceed on `yes` alone or any other ambiguous answer.

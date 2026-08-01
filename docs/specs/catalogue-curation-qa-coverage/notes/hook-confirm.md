@@ -11,10 +11,9 @@ Phase 1, step 3: "Confirm on code."
 
 ## Fixture file
 
-`sample-hook.sh` is a thin-wrapper git pre-commit hook — the only file ingested
-in the AC7 QA session. It delegates to `.agentbundle/bin/pre-commit-checks.py`,
-a companion projected to the adopter tree via the pack's `adapter-root-bins`
-mechanism. Pass only this file to the skill.
+`sample-hook.sh` is a self-contained git pre-commit hook — the only file ingested
+in the AC7 QA session. It blocks commits when a `.env` file is staged. Pass
+only this file to the skill.
 
 ---
 
@@ -44,7 +43,7 @@ After showing the raw body, the skill must surface:
 
 > ⚠ **This primitive is a bash script** — executable code that will run
 > automatically on your machine as a git pre-commit hook on every commit attempt.
-> It invokes `python3 .agentbundle/bin/pre-commit-checks.py`.
+> It blocks commits when a `.env` file is staged.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
@@ -52,7 +51,7 @@ After showing the raw body, the skill must surface:
 
 Requirements the prompt must satisfy:
 - Identifies the file as executable code (not prose).
-- Names what it invokes: `python3 .agentbundle/bin/pre-commit-checks.py`.
+- Describes what it does (blocks staged `.env` files).
 - Shows the raw body BEFORE the prompt.
 - Requires the exact contracted phrase `yes, land this code`
   (per `assimilate-primitive/SKILL.md:35-37`).
@@ -98,8 +97,8 @@ Only after steps 4–5 complete does Phase 2 begin.
 1. The skill diagnoses the destination pack (most likely `core` for a
    general-purpose quality gate, or the source pack for a workflow-specific hook).
 2. Anti-pattern check: `anti-patterns.md:38-42` flags hooks doing heavy logic
-   directly. `sample-hook.sh` delegates to `.agentbundle/bin/pre-commit-checks.py` — a
-   thin wrapper. It clears this check.
+   directly. `sample-hook.sh` is one grep check — minimal, single-purpose. It
+   clears this check.
 3. The skill may recommend renaming to match git's convention (`pre-commit`, no
    extension).
 
@@ -172,7 +171,7 @@ Only after steps 4–5 complete does Phase 2 begin.
 
 1. The skill is invoked with the single explicit file path `sample-hook.sh`.
 2. The raw body is shown BEFORE the confirmation prompt.
-3. The confirm prompt identifies the file as executable code and names the invocation (`python3 .agentbundle/bin/pre-commit-checks.py`).
+3. The confirm prompt identifies the file as executable code and describes what it does (blocks staged `.env` files).
 4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
 5. Answering anything other than `yes, land this code` aborts the ingest.
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
@@ -181,15 +180,6 @@ Only after steps 4–5 complete does Phase 2 begin.
    definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
 9. Before writing, the skill presents the shaped target (destination path,
    projected path, rename recommendation) and waits for operator approval.
-
-> **QA session boundary — abort here.** At step 9's shaped-target prompt,
-> the operator answers `no` to avoid installing an incomplete bundle. The
-> companion (`.agentbundle/bin/pre-commit-checks.py`) is ingested in a
-> separate session; landing the hook alone would produce a hook that
-> references a non-existent path and blocks every commit. Items 10–14
-> below document the expected behavior for a production landing and are
-> NOT exercised in the AC7 QA session.
-
 10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
 11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
 12. The version bump happens BEFORE `FORCE=1 make build-self`.

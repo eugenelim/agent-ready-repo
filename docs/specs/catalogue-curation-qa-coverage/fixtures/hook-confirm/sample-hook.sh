@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# pre-commit hook: delegate quality checks to the companion script.
-# The companion is projected to .agentbundle/bin/ via adapter-root-bins.
+# pre-commit hook: block commits that stage .env files.
 set -euo pipefail
-python3 .agentbundle/bin/pre-commit-checks.py
+if git diff --cached --name-only | grep -q '\.env$'; then
+  echo "Error: .env file staged — refusing commit." >&2
+  exit 1
+fi
