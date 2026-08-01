@@ -175,8 +175,14 @@ is a **Markdown bullet-list block** placed directly below the H1 title:
 - **Related:**
 ```
 
-The `Author` field uses the canonical `<account-handle>` placeholder; the skill
-stops and asks if no project convention for governance authorship is established.
+**Note on the `Author`/`Approver` placeholder**: the source RFC template
+(`packs/governance-extras/.apm/skills/new-rfc/assets/rfc.md`) uses
+`<github-handle>`. The repo privacy rule (`AGENTS.md:217-221`) prohibits
+vendor-specific identifiers in committed artifacts, so this answer key
+substitutes the generic `<account-handle>`. This is template drift — the
+source template should be updated to use `<account-handle>` but has not been
+yet. The skill stops and asks if no project convention for governance authorship
+is established.
 Do not emit YAML delimiters (`---`) around this block — it is not YAML frontmatter.
 
 **Required document sections** (in template order):

@@ -76,10 +76,11 @@ write. For a raw Python hook body, the applicable pre-landing checks are:
 
 - `agentbundle catalogue lint --deep` and `agentbundle catalogue verify` — these
   inspect the candidate in a **temporary catalogue** (a minimal packs/ scaffold
-  containing only the shaped hook and its parent pack stub) before the real write.
-  Staging in a temporary catalogue lets these gates test the candidate's
-  projection-compatibility pre-write; they are NOT run against the existing packs/
-  root (that would check only already-landed content, not the incoming hook).
+  containing only the **raw candidate file, byte-for-byte**, and its parent pack
+  stub) before any shaping or real write. The raw file is used because shaping
+  begins only in Phase 2 (`assimilate-primitive/SKILL.md:14-15`); gates must
+  accept the raw candidate as safe before transformation. They are NOT run against
+  the existing packs/ root (that would check only already-landed content).
 - `bandit -c bandit.yaml --severity-level medium --confidence-level medium -q <candidate>` —
   LOW-severity findings (B404, B607, B603) do not block; only MEDIUM+ blocks.
   `sample-hook.py` has no MEDIUM+ bandit findings. The `-c bandit.yaml` flag
@@ -166,6 +167,9 @@ Only after steps 4–5 complete does Phase 2 begin.
      stale metadata in `plugin.json` produces stale marketplace entries.
    - Update `packs/core/docs/index.md`: change `**Hooks (3):**` to
      `**Hooks (4):**` and add `pre-commit` to the hook list.
+   - Update `tools/hooks/README.md`'s "What's here" section to document
+     the new `pre-commit.py` hook and its installation behavior — `build-self`
+     adds the file to `tools/hooks/` but does not update the README.
    (`build-self` does not update these inventory strings — they are
    human-maintained metadata that must be kept in sync manually.)
 7. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
@@ -222,7 +226,7 @@ Only after steps 4–5 complete does Phase 2 begin.
 10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
 11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
 12. The version bump AND hook inventory updates happen BEFORE `FORCE=1 make build-self`
-    (pack.toml description + plugin.json description + docs/index.md hook count + both version fields).
+    (pack.toml description + plugin.json description + docs/index.md hook count + tools/hooks/README.md + both version fields).
 13. `docs/product/changelog.md` receives the new `## [core][version]` entry.
 14. The manual install command uses the adapter-specific projected path (not
     `packs/core/.apm/hooks/`).
