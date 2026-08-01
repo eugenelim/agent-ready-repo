@@ -541,12 +541,12 @@ commands must not conflict with the surface ini-005's `catalogue-tooling-rewire`
 establishes. The Wave 3 spec (enterprise authoring discovery) verifies the surface before
 implementing it. If ini-005 reserves `agentbundle catalogue contracts`, an alternative
 subcommand path (e.g., `agentbundle contracts`) is acceptable.
-*Resolves in: Wave 3 spec.*
+*Resolves in: Wave 3 spec. Resolution recorded in Wave 3 spec Objective section.*
 
 **OQ2 — D7 catalogue-index command spelling:** `agentbundle catalogue index` is the
 candidate subcommand. ini-005's CLI surface may constrain the namespace. The Wave 4 spec
 confirms the spelling before implementing.
-*Resolves in: Wave 4 spec.*
+*Resolves in: Wave 4 spec. Resolution recorded in Wave 4 spec OQ2 resolution section.*
 
 **OQ3 — D8 mutation refusal scope:** The decision applies at catalogue-archive level.
 The Wave 5 spec determines whether pack-level archives (if any) are also in scope.
@@ -578,8 +578,8 @@ and which require manual narrative explanation beyond what the JSON schema provi
 ## Acceptance criteria (for this RFC)
 
 - [x] D1–D10 reviewed and accepted (accepted 2026-07-29)
-- [ ] OQ1 resolved in Wave 3 spec: D5 surface does not conflict with ini-005 catalogue-tooling-rewire
-- [ ] OQ2 resolved in Wave 4 spec: D7 catalogue-index command spelling confirmed
+- [x] OQ1 resolved in Wave 3 spec: D5 surface does not conflict with ini-005 catalogue-tooling-rewire
+- [x] OQ2 resolved in Wave 4 spec: D7 catalogue-index command spelling confirmed
 - [ ] OQ3 resolved in Wave 5 spec: D8 mutation refusal scope clarified
 - [ ] OQ4 resolved in Wave 6 spec: D9 generated field reference criterion defined
 - [x] Wave-to-decision mapping reviewed; no wave implements an unaccepted decision
