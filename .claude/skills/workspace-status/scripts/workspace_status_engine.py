@@ -526,6 +526,15 @@ def run_reconciliation(
         _specs_root_resolved = specs_dir.resolve()
         _visited: set[Path] = set()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
+            # Guard: skip this directory if already visited (in-root junction to a
+            # previously-scanned sibling). Must run before processing filenames so a
+            # junction alias doesn't produce duplicate Type 1 findings for the
+            # real directory's spec.md. dirnames.clear() prevents further descent.
+            _current_resolved = Path(dirpath).resolve()
+            if _current_resolved in _visited:
+                dirnames.clear()
+                continue
+            _visited.add(_current_resolved)
             # Prune subdirs that escape the specs root OR have already been visited.
             # is_relative_to guards against junctions pointing outside the root;
             # the visited set guards against in-root cycles (a junction whose
@@ -542,7 +551,6 @@ def run_reconciliation(
                 except (OSError, ValueError):
                     pass
             dirnames[:] = sorted(safe)  # deterministic traversal order
-            _visited.add(Path(dirpath).resolve())
             if "spec.md" not in filenames:
                 continue
             spec_file = Path(dirpath) / "spec.md"
