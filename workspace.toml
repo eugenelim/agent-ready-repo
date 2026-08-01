@@ -85,6 +85,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  "spec/work-loop-step0-observability",              # core 1.0.2 — Step 0 Branch-1 echo in orientation block
   "spec/product-documentation-pack",            # PR this branch — product-documentation pack (Phase 1)
   "spec/agentbundle-first-value-handoff",          # PR this branch — first-value handoff block in agentbundle install
   "spec/catalogue-curation",                # PR #614
@@ -231,11 +232,6 @@ queue   = [
   # backlog entries have been removed (superseded by the spec). Independent of RFC-0064.
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening (3 deferred items)
   "spec/site-design-system-spec",                        # site token spec + zone-violation lint
-  # work-loop-step0-observability: AC1 echo already landed ad-hoc in main (commit
-  # fb7435e9); remaining work is AC3/AC4/AC6 — trim the "Active spec" bullet's
-  # duplicated branch-outcome text and relocate Branch 2's verbatim message to the
-  # closing paragraph (single source of truth). Do not re-add the echo.
-  "spec/work-loop-step0-observability",                  # consumes work-loop-step0-{branch1-echo,layout} backlog items
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
   # ---- Independent skill improvements ----
   # spec/new-guide-conversation-first — moved to shipped above (spec.md=Shipped; superseded by product-documentation Phase 1)

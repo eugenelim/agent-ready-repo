@@ -112,6 +112,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   vocabulary, skill validation, route preservation, installation exclusion, migration
   procedure, and dual-ownership rules.
 
+## [core][1.0.2] — 2026-08-01
+
+### Changed
+
+- work-loop Step 0: remove "Exactly one →" sub-item from the Active spec bullet; add inline echo instruction so the orientation block surfaces "Beginning on `docs/specs/<slug>/spec.md`" alongside Initiative and Milestone output. Remove unreachable "Zero or multiple active items → stop after surfacing" bullet from the closing paragraph. Adds three evals covering Branch-1 (echo), Branch-2 (zero), and Branch-3 (multiple).
+
 ## [core][1.0.0] — 2026-07-31
 
 ### Added

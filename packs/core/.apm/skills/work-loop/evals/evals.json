@@ -70,6 +70,37 @@
         "Response does not silently re-issue `review record --report` without authorization",
         "Response surfaces the situation to the human with a clear description"
       ]
+    },
+    {
+      "id": "step0-branch1-echo-resolved-spec",
+      "prompt": "You are starting work-loop with no arguments. workspace.toml shows exactly one active spec path: spec/my-feature. What should you include in the orientation block before proceeding to PLAN?",
+      "expected_output": "Include 'Beginning on `docs/specs/my-feature/spec.md`' in the orientation block as part of the Active spec bullet output. After rendering the orientation block, strip the `spec/` prefix to get slug `my-feature`, read `docs/specs/my-feature/spec.md` and `plan.md`, then proceed to PLAN.",
+      "assertions": [
+        "Response includes 'Beginning on `docs/specs/my-feature/spec.md`' as part of the orientation block output",
+        "Response does NOT ask the user which spec to use",
+        "Response reads spec.md and plan.md before proceeding to PLAN"
+      ]
+    },
+    {
+      "id": "step0-branch2-zero-active-specs",
+      "prompt": "You are starting work-loop with no arguments. workspace.toml shows zero active spec paths across all initiatives. What should you say?",
+      "expected_output": "Surface: 'No active spec found \u2014 run `workspace-status` to see what's ready to start.' Stop without proceeding to PLAN.",
+      "assertions": [
+        "Response surfaces the exact message 'No active spec found \u2014 run `workspace-status` to see what's ready to start.'",
+        "Response does NOT proceed to PLAN",
+        "Response does NOT pick or ask about a spec"
+      ]
+    },
+    {
+      "id": "step0-branch3-multiple-active-specs",
+      "prompt": "You are starting work-loop with no arguments. workspace.toml shows two active specs: spec/feature-a and spec/feature-b. What should you do?",
+      "expected_output": "List both active specs (spec/feature-a and spec/feature-b), ask the user to pick one, and stop. Do not proceed to PLAN automatically.",
+      "assertions": [
+        "Response lists both active spec paths",
+        "Response asks the user to pick one",
+        "Response does NOT proceed to PLAN automatically",
+        "Response does NOT arbitrarily choose one spec"
+      ]
     }
   ]
 }
