@@ -67,7 +67,7 @@ Author the eight-section document per the LLD. All hex and clamp values copy ver
 **Depends on:** none (parallel with T2; the lint is structurally self-contained and does not consume the T1 inventory)
 **Mode:** Goal-based
 
-Implement the state-machine parser per the LLD. Use Python stdlib `re`, `os.walk`, `sys`. Keep under 120 lines. The `:root` block exclusion assumes flat, single-line-brace `:root` blocks (the current `tokens.css` shape); note this assumption in a comment so a future maintainer knows the brace-tracking is a boolean toggle, not a depth counter. Comment exclusion must handle both `/* … */` (CSS) and line-leading `//` (`^\s*//`, JS/TS comments in Astro frontmatter).
+Implement the state-machine parser per the LLD. Use Python stdlib `re`, `pathlib`, `sys`. Traverse with `Path.rglob` (simpler than `os.walk` for this use case). The `:root` block exclusion is gated by file path (only the canonical token file at `<root>/styles/tokens.css`) and assumes flat, single-line-brace `:root` blocks; the brace-tracking is a boolean toggle, not a depth counter. Comment exclusion must handle: CSS block comments `/* … */` (including multi-line and same-line trailing variants), and line-leading `//` (`^\s*//`, JS/TS comments in Astro frontmatter). Multi-line CSS declarations (property name and value on separate lines) require declaration-state tracking through the terminating semicolon. Line count is ~170 due to declaration and comment state tracking, plus inline-comment stripping.
 
 **Verification:**
 - `python tools/lint_zone_violations.py web/src/` exits 0 (AC9)

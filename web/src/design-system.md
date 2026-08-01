@@ -255,6 +255,10 @@ component draws from.
 > **Zone key:** `dark` = hero/dark layer (`--ds-hero-*`); `surface` = content/light layer
 > (`--ds-surface`, `--ds-on-surface*`); `surface-alt` = alternate light layer (`--ds-surface-alt`).
 
+> **Key tokens scope:** each entry lists the zone-defining color, typography, and motion tokens
+> most specific to that component. Per-component spacing values (`--ds-space-*`) are not listed
+> individually — they are documented in §3 and used uniformly across all components.
+
 ### Hero (`Hero.astro`)
 
 **Zone:** dark  
@@ -317,9 +321,9 @@ component draws from.
 ### InstallTerminal (`InstallTerminal.astro`)
 
 **Zone:** surface-alt (outer wrapper) / dark (terminal window)  
-**BEM classes:** `.terminal`, `.terminal__bar`, `.terminal__dot`, `.tabs`, `.tabs__radio`,
-`.tabs__label`, `.tabs__panels`, `.tabs__panel`, `.terminal__line`, `.terminal__prompt`,
-`.install__note`, `.copy-btn.install-copy-btn`  
+**BEM classes:** `.install__headline`, `.terminal`, `.terminal__bar`, `.terminal__dot`,
+`.tabs`, `.tabs__radio`, `.tabs__label`, `.tabs__panels`, `.tabs__panel`,
+`.terminal__line`, `.terminal__prompt`, `.install__note`, `.copy-btn.install-copy-btn`  
 **Key tokens:** `--ds-hero-bg`, `--ds-hero-border-card`, `--ds-hero-border`,
 `--ds-hero-elevated`, `--ds-hero-fg`, `--ds-hero-fg-2`, `--ds-hero-fg-muted`,
 `--ds-accent`, `--ds-accent-subtle-dk`, `--ds-font-mono`,
@@ -333,8 +337,9 @@ component draws from.
 **Zone:** surface  
 **BEM classes:** `.catalogue__headline`, `.catalogue__subhead`, `.loop-cards`, `.loop-card`,
 `.loop-card__head`, `.loop-card__name`, `.loop-card__desc`, `.loop-card__install`,
-`.loop-card__link`, `.catalogue__summary`, `.catalogue__more`, `.catalogue__group`,
-`.catalogue__group-title`, `.pack-grid`, `.pack-card`, `.pack-card__name`, `.pack-card__desc`  
+`.loop-card__link`, `.catalogue__more`, `.catalogue__summary`, `.catalogue__summary-arrow`,
+`.catalogue__group`, `.catalogue__group-title`, `.pack-grid`, `.pack-card`,
+`.pack-card__name`, `.pack-card__desc`  
 **Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-radius-lg`, `--ds-on-surface`,
 `--ds-on-surface-2`, `--ds-accent-deep`  
 **Note:** `.loop-card` items carry no numeric badge — contrast with ThreeLoops §7.

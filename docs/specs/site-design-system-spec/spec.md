@@ -71,8 +71,10 @@ documented resolution decision.
   surface-alt / dark tones), SiteNav, SiteFooter, PackCard (`/packs/`
   index), catalogue `cat-card` (`/catalogue/`), copy button. Journey pages,
   plugin pages, and 404 are out of scope. Each listed component is
-  documented with its zone assignment, BEM class names, and the semantic
-  tokens it uses. Spot-check greps per component (e.g. `grep "loop__n"
+  documented with its zone assignment, BEM class names, and its primary
+  semantic tokens (zone-defining color, typography, and motion tokens — per-component
+  spacing values are covered by §3 and are not repeated per component). Spot-check
+  greps per component (e.g. `grep "loop__n"
   web/src/design-system.md` for ThreeLoops, `grep "cat-card"` for
   catalogue card) must each return a match.
 - [x] **AC5.** `web/src/design-system.md` states that the Astro marketing

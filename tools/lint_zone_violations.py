@@ -26,6 +26,9 @@ Assumptions:
   '.foo { color: #hex; }' are not detected — the codebase doesn't use this format.
 - CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
   uses an explicit alternation to avoid matching 5/7-digit strings.
+- Inline block comments on a value line (e.g. `color: var(--x); /* old: #fff */`)
+  are stripped from the value before scanning so commented-out raw values do not
+  produce false positives. Unclosed /* causes truncation and enters block-comment state.
 - Astro frontmatter (JS/TS between --- fences) is scanned as-is. A frontmatter
   object property on its own line that happens to look like a CSS property (e.g.
   `color: "#hex",`) would be flagged. AC9 holds because web/src/ frontmatter uses
@@ -43,6 +46,7 @@ HEX_RE = re.compile(r"#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-
 RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)")
 
 TOKEN_FILE = "tokens.css"
+CSS_INLINE_COMMENT_RE = re.compile(r"/\*.*?\*/")
 ROOT_OPEN_RE = re.compile(r":root\b")
 CSS_PROP_RE = re.compile(r"^\s*[-\w]+\s*:")
 CSS_BLOCK_COMMENT_OPEN_RE = re.compile(r"^\s*/\*")
@@ -54,17 +58,23 @@ SVG_ATTR_RE = re.compile(
 )
 
 
+def _strip_inline_comment(text: str) -> tuple[str, bool]:
+    """Strip closed /* ... */ comments; return (stripped_text, unclosed_comment_found)."""
+    text = CSS_INLINE_COMMENT_RE.sub("", text)
+    if "/*" in text:
+        return text[: text.index("/*")], True
+    return text, False
+
+
 def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
+    """Scan a single file for raw color values used as CSS property values."""
     violations: list[tuple[int, str]] = []
     in_root_block = False  # only active when is_token_file
     in_block_comment = False
     in_declaration = False  # True when a CSS value continues on the next line(s)
     decl_buffer = ""  # accumulated declaration value for multi-line rgba detection
 
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return []
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
 
     for lineno, line in enumerate(lines, start=1):
         if not line.strip():
@@ -101,11 +111,15 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         # Multi-line declaration continuation: hex is scanned per-line; rgba()/rgb()
         # values are accumulated into decl_buffer and matched against the full text
         # at close so cross-line splits (e.g. rgba(\n  0,0,0,\n  0.5\n)) are detected.
+        # Inline comments are stripped before scanning so commented-out values are excluded.
         if in_declaration:
-            decl_buffer += " " + line.strip()
-            for m in HEX_RE.finditer(line):
+            stripped, started_comment = _strip_inline_comment(line)
+            if started_comment:
+                in_block_comment = True
+            decl_buffer += " " + stripped.strip()
+            for m in HEX_RE.finditer(stripped):
                 violations.append((lineno, m.group()))
-            if ";" in line or "{" in line or "}" in line:
+            if ";" in stripped or "{" in stripped or "}" in stripped or started_comment:
                 for m in RGBA_RE.finditer(decl_buffer):
                     violations.append((lineno, m.group()))
                 in_declaration = False
@@ -118,15 +132,17 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                 decl_buffer = ""
             continue
 
-        # Extract value part (after the first colon on the line)
+        # Extract value part (after the first colon on the line); strip inline comments.
         colon_idx = line.index(":")
-        value_part = line[colon_idx + 1 :]
+        value_part, started_comment = _strip_inline_comment(line[colon_idx + 1 :])
+        if started_comment:
+            in_block_comment = True
 
         for m in HEX_RE.finditer(value_part):
             violations.append((lineno, m.group()))
 
-        if ";" in value_part:
-            # Single-line value: scan rgba immediately on the value part.
+        if ";" in value_part or started_comment:
+            # Single-line value (or comment truncated it): scan rgba immediately.
             for m in RGBA_RE.finditer(value_part):
                 violations.append((lineno, m.group()))
         else:
@@ -138,6 +154,7 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
 
 
 def main() -> None:
+    """Walk the scan root and report raw color values outside the canonical token file."""
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("web/src")
 
     if not root.exists() or not root.is_dir():
@@ -150,9 +167,13 @@ def main() -> None:
     violations_found = False
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in FILE_EXTS:
-            for lineno, value in scan_file(path, is_token_file=(path == canonical_token)):
-                print(f"{path}:{lineno}: {value}")
-                violations_found = True
+            try:
+                for lineno, value in scan_file(path, is_token_file=(path == canonical_token)):
+                    print(f"{path}:{lineno}: {value}")
+                    violations_found = True
+            except OSError as exc:
+                print(f"error: cannot read {path}: {exc}", file=sys.stderr)
+                sys.exit(2)
 
     sys.exit(1 if violations_found else 0)
 
