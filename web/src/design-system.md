@@ -334,14 +334,16 @@ component draws from.
 
 ### PackCatalogue (`PackCatalogue.astro`)
 
-**Zone:** surface  
+**Zone:** surface (loop cards and pack grid) — with a dark sub-zone for
+`.loop-card__install code` (uses `--ds-hero-bg` / `--ds-hero-fg`)  
 **BEM classes:** `.catalogue__headline`, `.catalogue__subhead`, `.loop-cards`, `.loop-card`,
 `.loop-card__head`, `.loop-card__name`, `.loop-card__desc`, `.loop-card__install`,
 `.loop-card__link`, `.catalogue__more`, `.catalogue__summary`, `.catalogue__summary-arrow`,
 `.catalogue__group`, `.catalogue__group-title`, `.pack-grid`, `.pack-card`,
 `.pack-card__name`, `.pack-card__desc`  
-**Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-radius-lg`, `--ds-on-surface`,
-`--ds-on-surface-2`, `--ds-accent-deep`  
+**Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-radius-lg`, `--ds-on-surface-2`,
+`--ds-on-surface-muted`, `--ds-accent`, `--ds-accent-deep`,
+`--ds-hero-bg`, `--ds-hero-fg` (install code sub-zone)  
 **Note:** `.loop-card` items carry no numeric badge — contrast with ThreeLoops §7.
 
 ---
@@ -495,6 +497,7 @@ already cross-references `--ds-*` tokens elsewhere in `starlight.css` (e.g.
 reference `--ds-hero-fg` instead. Doing so is out of scope for this spec — they are documented
 as known current deviations, not necessary architectural exceptions.
 
-The zone-violation lint (`tools/lint_zone_violations.py`) scans `web/src/` only and does not
-cover `docs-site/src/styles/starlight.css` — linting the Starlight bootstrap context produces
-only false positives.
+The zone-violation lint (`tools/lint_zone_violations.py`) scans `web/src/` only.
+`docs-site/src/styles/starlight.css` is intentionally outside its scope — the two `#ffffff`
+deviations documented above are known current deviations that could be token references, not
+violations that should be suppressed.

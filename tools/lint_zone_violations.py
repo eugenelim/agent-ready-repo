@@ -26,9 +26,12 @@ Assumptions:
   '.foo { color: #hex; }' are not detected — the codebase doesn't use this format.
 - CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
   uses an explicit alternation to avoid matching 5/7-digit strings.
-- Inline block comments on a value line (e.g. `color: var(--x); /* old: #fff */`)
-  are stripped from the value before scanning so commented-out raw values do not
-  produce false positives. Unclosed /* causes truncation and enters block-comment state.
+- Block-comment state is resolved at the start of every line: when inside a block
+  comment, code after the closing `*/` on the same line is preserved and processed
+  (not discarded). Inline `/* ... */` is then stripped from the entire line before
+  any further checks, so trailing comments (/* old: #fff */) and mid-line comment
+  openings (.foo { /*) both enter block-comment state correctly without producing
+  false positives or false negatives.
 - Astro frontmatter (JS/TS between --- fences) is scanned as-is. A frontmatter
   object property on its own line that happens to look like a CSS property (e.g.
   `color: "#hex",`) would be flagged. AC9 holds because web/src/ frontmatter uses
@@ -49,8 +52,6 @@ TOKEN_FILE = "tokens.css"
 CSS_INLINE_COMMENT_RE = re.compile(r"/\*.*?\*/")
 ROOT_OPEN_RE = re.compile(r":root\b")
 CSS_PROP_RE = re.compile(r"^\s*[-\w]+\s*:")
-CSS_BLOCK_COMMENT_OPEN_RE = re.compile(r"^\s*/\*")
-CSS_BLOCK_COMMENT_CLOSE = "*/"
 JS_LINE_COMMENT_RE = re.compile(r"^\s*//")
 SVG_ATTR_RE = re.compile(
     r"^\s*(?:fill|stroke|xmlns|viewBox|x|y|width|height|rx|ry|d|transform|"
@@ -80,16 +81,24 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         if not line.strip():
             continue
 
-        # Multi-line CSS block comment tracking: once inside /* ... */,
-        # skip all continuation lines until the closing */ is seen.
+        # Step 1: Resolve block-comment state. When inside a block comment, skip
+        # until */ is found; preserve and process the code that follows it.
         if in_block_comment:
-            if CSS_BLOCK_COMMENT_CLOSE in line:
-                in_block_comment = False
-            continue
+            close = line.find("*/")
+            if close == -1:
+                continue  # whole line is inside the block comment
+            in_block_comment = False
+            line = line[close + 2:]  # keep only the code that follows */
 
-        if CSS_BLOCK_COMMENT_OPEN_RE.match(line):
-            if CSS_BLOCK_COMMENT_CLOSE not in line:
-                in_block_comment = True
+        # Step 2: Strip closed inline /* ... */ from the entire line; if /* remains
+        # unclosed, truncate there and enter block-comment state. This handles
+        # trailing comments (`color: var(--x); /* old: #fff */`) and mid-line
+        # openings (`.foo { /* comment`) without false positives or false negatives.
+        line, opened_block = _strip_inline_comment(line)
+        if opened_block:
+            in_block_comment = True
+
+        if not line.strip():
             continue
 
         if JS_LINE_COMMENT_RE.match(line):
@@ -111,15 +120,11 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         # Multi-line declaration continuation: hex is scanned per-line; rgba()/rgb()
         # values are accumulated into decl_buffer and matched against the full text
         # at close so cross-line splits (e.g. rgba(\n  0,0,0,\n  0.5\n)) are detected.
-        # Inline comments are stripped before scanning so commented-out values are excluded.
         if in_declaration:
-            stripped, started_comment = _strip_inline_comment(line)
-            if started_comment:
-                in_block_comment = True
-            decl_buffer += " " + stripped.strip()
-            for m in HEX_RE.finditer(stripped):
+            decl_buffer += " " + line.strip()
+            for m in HEX_RE.finditer(line):
                 violations.append((lineno, m.group()))
-            if ";" in stripped or "{" in stripped or "}" in stripped or started_comment:
+            if ";" in line or "{" in line or "}" in line or opened_block:
                 for m in RGBA_RE.finditer(decl_buffer):
                     violations.append((lineno, m.group()))
                 in_declaration = False
@@ -132,17 +137,15 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                 decl_buffer = ""
             continue
 
-        # Extract value part (after the first colon on the line); strip inline comments.
+        # Extract value part (after the first colon on the line).
         colon_idx = line.index(":")
-        value_part, started_comment = _strip_inline_comment(line[colon_idx + 1 :])
-        if started_comment:
-            in_block_comment = True
+        value_part = line[colon_idx + 1:]
 
         for m in HEX_RE.finditer(value_part):
             violations.append((lineno, m.group()))
 
-        if ";" in value_part or started_comment:
-            # Single-line value (or comment truncated it): scan rgba immediately.
+        if ";" in value_part or opened_block:
+            # Single-line value (or comment-truncated): scan rgba immediately.
             for m in RGBA_RE.finditer(value_part):
                 violations.append((lineno, m.group()))
         else:

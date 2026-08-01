@@ -152,9 +152,10 @@ documented resolution decision.
 - Change any existing CSS — this spec documents first; CSS changes are a
   separate PR.
 - Add icons, badges, or any visual element to catalogue cards or loop cards.
-- Extend the lint to `docs-site/src/styles/starlight.css` — the Starlight
-  CSS bootstrap context requires a few literal values; linting it produces
-  only false positives.
+- Extend the lint to `docs-site/src/styles/starlight.css` — Starlight is
+  intentionally outside the lint's scope; the two `#ffffff` deviations there
+  are known current deviations (documented in §8 of design-system.md), not
+  violations to suppress.
 - Introduce a new dependency beyond stdlib Python for the lint script.
 - Rename or reorganise existing tokens, even to fix the two Starlight
   deviation values.
@@ -232,4 +233,6 @@ Goal-based throughout — no new compilation step, no production test file.
   `.md-*` component classes no longer exist in the codebase.
 - Adding `prefers-color-scheme: dark` to the Astro marketing site — out of scope.
 - Adding icons or badges to catalogue cards.
-- Linting `docs-site/src/styles/starlight.css` — bootstrap context produces only false positives.
+- Linting `docs-site/src/styles/starlight.css` — Starlight is intentionally outside this lint's
+  scope; the two `#ffffff` deviations there are known current deviations, not suppressible
+  false positives.

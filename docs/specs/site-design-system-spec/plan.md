@@ -24,19 +24,29 @@ Eight H2 sections:
 ### `tools/lint_zone_violations.py` design
 
 ```
-parse args: path (default web/src/)
-walk all .astro and .css files under path
+parse args: path (default web/src/); exit 2 if path missing or not a dir
+canonical_token = path / "styles/tokens.css"
+rglob all .astro and .css files under path; exit 2 on OSError reading any file
 for each file:
-    state: inside_root_block = False
+    state: in_root_block=False, in_block_comment=False,
+           in_declaration=False, decl_buffer=""
+    is_token_file = (file == canonical_token)  # only this file gets :root exemption
     for each line:
-        skip if blank, or line matches ^\s*/\* (CSS block comment), or line matches ^\s*// (line-leading JS/TS comment — covers Astro frontmatter)
-        if ":root" and "{": inside_root_block = True; continue
-        if inside_root_block and "}": inside_root_block = False; continue
-        if inside_root_block: continue  # token definitions — exempt
+        skip if blank
+        if in_block_comment:
+            if "*/" found: clear state, keep code after "*/"; else: skip line
+        strip inline /* ... */ from line; if unclosed /* remains: truncate, set in_block_comment=True
+        skip if now blank, or line matches ^\s*// (JS/TS comment)
+        if is_token_file and ":root {": in_root_block=True; continue
+        if is_token_file and in_root_block: skip (token definitions exempt); clear on "}"
         skip SVG attribute lines (fill= stroke= xmlns= viewBox= etc.)
-        if line matches CSS property: value; pattern:
-            if value contains #[0-9a-fA-F]{3,6} or rgba(...): VIOLATION
-exit 0 if no violations, 1 if any; print file:line: <value>
+        if in_declaration:
+            append line to decl_buffer; scan line for #hex (3/4/6/8 digits)
+            if ";" or block boundary: scan decl_buffer for rgba(); clear state
+        elif line matches CSS property: value; pattern:
+            scan value for #hex (3/4/6/8 digits) and rgba()
+            if no ";" in value: in_declaration=True, decl_buffer=value (multi-line)
+exit 0 if no violations, 1 if any; exit 2 on unreadable file; print file:line: <value>
 ```
 
 ## Tasks
