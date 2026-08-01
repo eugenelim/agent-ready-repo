@@ -30,7 +30,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 
 `<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, `$VAR`, and other metacharacters — the values are never interpreted by a shell.
 
-**Shell-string-only tools:** Use the workdir facility of your tool (set working directory to the repository root) and pass `--root .`; single-quote both paths in the shell string when a workdir facility is unavailable (single quotes in POSIX are literal and never expand). On Windows/PowerShell, the argv form is the only safe option.
+**Shell-string-only tools:** Use the argv form. If your adapter cannot be configured to pass a discrete argument vector, set the working directory to the repository root and invoke `python '<skill-dir>/scripts/workspace_status.py' --root .` — single quotes prevent most shell expansion, but fail for paths containing a literal `'`. Any path with special characters in it requires the argv form.
 
 **Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
@@ -89,9 +89,10 @@ work.ready     — list of ready-to-start build entries; each carries ini_slug a
 work.blocked   — list of blocked build entries; each carries ini_slug and blocking_needs
 work.active    — list of currently in-progress build entries; each carries ini_slug
 work.shipped   — list of shipped build entries; each carries ini_slug
-shaping.ready  — list of ready shaping entries; each carries ini_slug and blocking_needs
+shaping.ready  — list of ready shaping entries (from active AND backlog); each carries ini_slug and blocking_needs
 shaping.signals — list of active-context signal entries; each carries ini_slug
-shaping.blocked — list of blocked shaping entries; each carries ini_slug and blocking_needs
+shaping.blocked — list of blocked shaping entries (backlog only); each carries ini_slug and blocking_needs
+shaping.active_slugs — slugs of shaping_queue.active non-signal entries (provenance for shape: dep status)
 reconciliation.type1             — untracked live specs
 reconciliation.type2             — stale queue/active entries
 reconciliation.type3             — prematurely-shipped entries
@@ -173,7 +174,7 @@ Format output in four sections (omit sections with no entries):
 
   Resolve the status from JSON: for each entry in `blocking_needs`, strip the queue-prefix to get the slug/path, then branch on the prefix:
   - `work:` — look in `work.*`: appears in `work.active` → `in-progress`; in `work.ready` or `work.blocked` → `queued`; else → omit.
-  - `shape:` — shape deps block while the slug is in `shaping_queue.active`; active non-signal entries are not serialized in `shaping.*` → if slug is NOT in `shaping.ready`, `shaping.blocked`, or `shaping.signals` → it is active → `in-progress`; else → omit.
+  - `shape:` — shape deps block while the slug is in `shaping_queue.active`; use `shaping.active_slugs` for provenance: if slug in `shaping.active_slugs` → `in-progress`; else → omit.
   - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` → if slug in either → not yet started → `queued`; else → omit.
   - `brief:` — brief deps block while draft; if path in any `initiatives[].brief_queue.draft` → `queued`; if in `executing` → `in-progress`; else → omit.
   - Cross-initiative (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix, then resolve the remainder as above.

@@ -102,6 +102,11 @@ def _build_json(root: Path, result) -> dict:
     initiatives_out: list[dict] = []
     active_entries: list[dict] = []
     shipped_entries: list[dict] = []
+    # active_shaping_slugs: slugs of shaping_queue.active non-signal entries.
+    # Needed for blocked-status rendering: a shape:X dep that is blocking means X is in
+    # shaping_queue.active (non-signal) — but the classifier serializes active non-signal
+    # entries into shaping.ready, indistinguishable from backlog-ready entries.
+    active_shaping_slugs: list[str] = []
     for ini in result.initiatives:
         if ini.status != "active":
             continue
@@ -117,6 +122,9 @@ def _build_json(root: Path, result) -> dict:
             active_entries.append(_work_entry_dict(e, ini.slug))
         for e in ini.work.shipped:
             shipped_entries.append(_work_entry_dict(e, ini.slug))
+        for e in ini.shaping.active:
+            if e.entry_type != "signal":
+                active_shaping_slugs.append(e.slug)
 
     # Type 2 cleanup ops — one per Type 2 finding
     type2_cleanup_ops: list[dict] = []
@@ -144,6 +152,7 @@ def _build_json(root: Path, result) -> dict:
             "ready": [_shaping_dict(c) for c in result.ready_shaping],
             "signals": [_shaping_dict(c) for c in result.signals],
             "blocked": [_shaping_dict(c) for c in result.blocked_shaping],
+            "active_slugs": active_shaping_slugs,
         },
         "reconciliation": {
             "type1": [_finding_dict(f) for f in result.type1],
