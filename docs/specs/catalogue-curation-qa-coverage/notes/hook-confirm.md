@@ -200,13 +200,17 @@ Only after steps 4–5 complete does Phase 2 begin.
 10. Add documentation for manual installation. After `build-self`, the hook is
    projected to an adapter-specific path — adopters receive the projected file,
    NOT the catalogue authoring tree under `packs/core/.apm/`. The projected path
-   depends on the installed adapter:
+   depends on the installed adapter.
+
+   **Installation (POSIX — macOS and Linux).** The hook uses a `python3`
+   shebang and requires `python3` ≥ 3.11 on PATH, standard on modern systems.
+   Native Windows cmd/PowerShell does not support POSIX shebangs; Windows users
+   should use WSL or limit to POSIX environments for this hook.
+
    ```
    # Claude Code / self-host adapter (build-self projects to tools/hooks/).
    # Resolve the active hooks directory via Git — works in worktrees and
    # respects core.hooksPath; `.git/hooks` is wrong in linked worktrees.
-   # Prerequisite: python3 ≥ 3.11 on PATH (standard on modern macOS/Linux;
-   # on Windows, install Python via python.org and use git-bash).
    HOOKS_DIR="$(git rev-parse --git-path hooks)"
    if [ -f "$HOOKS_DIR/pre-commit" ]; then
      echo "Warning: pre-commit hook already exists — back up or compose before overwriting."
