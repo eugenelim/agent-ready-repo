@@ -5,11 +5,15 @@ Scans web/src/ for raw hex or rgba() values used as CSS property values
 outside :root token-definition blocks.
 
 Exit 0: clean. Exit 1: violations found (printed as file:line: <value>).
+Exit 2: invalid invocation (scan root does not exist or is not a directory).
 
 Assumptions:
-- :root blocks use flat single-line-brace form (current tokens.css shape:
-  two ':root {' openings, no nested braces). in_root_block is a boolean
-  toggle, not a depth counter.
+- The :root exemption applies only to tokens.css, which is the canonical
+  token-definition file. :root blocks in other .astro or .css files are
+  NOT exempt — they should not define raw color values.
+- :root blocks in tokens.css use flat single-line-brace form (two ':root {'
+  openings, no nested braces). in_root_block is a boolean toggle, not a
+  depth counter.
 - JS/TS comments in Astro frontmatter are always line-leading (^\\s*//).
 - CSS property values are on their own lines (multi-line formatting), which
   is the convention throughout web/src/. Inline rules like '.foo { color: #hex; }'
@@ -30,9 +34,11 @@ FILE_EXTS = {".astro", ".css"}
 HEX_RE = re.compile(r"#[0-9a-fA-F]{3,6}\b")
 RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)")
 
+TOKEN_FILE = "tokens.css"
 ROOT_OPEN_RE = re.compile(r":root\b")
 CSS_PROP_RE = re.compile(r"^\s*[-\w]+\s*:")
-CSS_BLOCK_COMMENT_RE = re.compile(r"^\s*/\*")
+CSS_BLOCK_COMMENT_OPEN_RE = re.compile(r"^\s*/\*")
+CSS_BLOCK_COMMENT_CLOSE = "*/"
 JS_LINE_COMMENT_RE = re.compile(r"^\s*//")
 SVG_ATTR_RE = re.compile(
     r"^\s*(?:fill|stroke|xmlns|viewBox|x|y|width|height|rx|ry|d|transform|"
@@ -42,7 +48,9 @@ SVG_ATTR_RE = re.compile(
 
 def scan_file(path: Path) -> list[tuple[int, str]]:
     violations: list[tuple[int, str]] = []
-    in_root_block = False
+    in_root_block = False  # only active for tokens.css
+    in_block_comment = False
+    is_token_file = path.name == TOKEN_FILE
 
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -52,21 +60,31 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
     for lineno, line in enumerate(lines, start=1):
         if not line.strip():
             continue
-        if CSS_BLOCK_COMMENT_RE.match(line):
+
+        # Multi-line CSS block comment tracking: once inside /* ... */,
+        # skip all continuation lines until the closing */ is seen.
+        if in_block_comment:
+            if CSS_BLOCK_COMMENT_CLOSE in line:
+                in_block_comment = False
             continue
+
+        if CSS_BLOCK_COMMENT_OPEN_RE.match(line):
+            if CSS_BLOCK_COMMENT_CLOSE not in line:
+                in_block_comment = True
+            continue
+
         if JS_LINE_COMMENT_RE.match(line):
             continue
 
-        # :root block tracking — set before the in_root_block check so the
-        # opening line is consumed here and never reaches the violation check.
-        if ROOT_OPEN_RE.search(line) and "{" in line:
-            in_root_block = True
-            continue
-
-        if in_root_block:
-            if "}" in line:
-                in_root_block = False
-            continue  # skip all lines inside :root (including the closing })
+        # :root block exemption — restricted to tokens.css only.
+        if is_token_file:
+            if ROOT_OPEN_RE.search(line) and "{" in line:
+                in_root_block = True
+                continue
+            if in_root_block:
+                if "}" in line:
+                    in_root_block = False
+                continue  # skip all lines inside :root (including the closing })
 
         if SVG_ATTR_RE.match(line):
             continue
@@ -88,6 +106,10 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
 
 def main() -> None:
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("web/src")
+
+    if not root.exists() or not root.is_dir():
+        print(f"error: scan root does not exist or is not a directory: {root}", file=sys.stderr)
+        sys.exit(2)
 
     violations_found = False
     for path in sorted(root.rglob("*")):

@@ -284,8 +284,8 @@ component draws from.
 `.pipeline__link`, `.pipeline__gate`, `.pipeline__arrow`  
 **Key tokens:** `--ds-accent-deep`, `--ds-accent-subtle`, `--ds-font-mono`, `--ds-type-h3`,
 `--ds-type-xs`  
-**Note:** `.loop__n` carries the ordered step badge (01 / 02 / 03) in `--ds-accent-deep` fill
-with `--ds-font-mono`. See §7 (Card icon parity).
+**Note:** `.loop__n` carries the ordered step badge (01 / 02 / 03) — `color: --ds-accent-deep`,
+`font-family: --ds-font-mono`, `font-size: --ds-type-h3`. See §7 (Card icon parity).
 
 ---
 
@@ -305,9 +305,10 @@ with `--ds-font-mono`. See §7 (Card icon parity).
 
 **Zone:** surface  
 **BEM classes:** `.adapters__headline`, `.adapters__scroll`, `.adapters__table`,
-`.cap--yes`, `.cap--no`, `.adapters__note`  
-**Key tokens:** `--ds-border`, `--ds-surface-alt`, `--ds-on-surface`, `--ds-accent`,
-`--ds-state-danger-fg`
+`.cap`, `.cap--yes`, `.cap--no`, `.adapters__note`  
+**Key tokens:** `--ds-border`, `--ds-border-subtle`, `--ds-surface-alt`, `--ds-on-surface`,
+`--ds-on-surface-muted`, `--ds-accent-deep`, `--ds-radius-md`, `--ds-font-mono`  
+**Note:** `.cap--yes` uses `--ds-accent-deep`; `.cap--no` uses `--ds-on-surface-muted`.
 
 ---
 
@@ -457,9 +458,9 @@ Two sections use visually similar card layouts with different information archit
 | `/packs/` index | `.pack-card` | No | Unordered catalogue entries |
 | `/catalogue/` | `.cat-card` | No | Unordered catalogue entries |
 
-The `.loop__n` badge in ThreeLoops uses `--ds-accent-deep` fill and `--ds-font-mono` at
-`--ds-type-xs`. No badge or icon addition is in scope for this spec — this record closes the
-question so it is not re-litigated in future PRs.
+The `.loop__n` badge in ThreeLoops uses `color: --ds-accent-deep` and `font-family: --ds-font-mono`
+at `font-size: --ds-type-h3`. No badge or icon addition is in scope for this spec — this record
+closes the question so it is not re-litigated in future PRs.
 
 ## 8. Starlight CSS audit
 
@@ -476,9 +477,11 @@ tokens. It is predominantly token-compliant. Known deviations:
 | `--sl-color-text-invert` (light-mode assignment) | `#ffffff` | `--ds-hero-fg` (`#ffffff`) | Used by Starlight's built-in UI for inverted text; same resolved value but a distinct semantic slot |
 | `.site-footer__brand { color }` | `#ffffff` | `--ds-hero-fg` (`#ffffff`) | Bootstrap override for the Starlight footer brand; same resolved value |
 
-Both deviations resolve to the same hex value as `--ds-hero-fg`. They are present by necessity
-because the Starlight `--sl-*` slot system is separate from the `--ds-*` semantic layer — the
-two cannot be cross-referenced directly. Fixing these is out of scope for this spec.
+Both deviations resolve to the same hex value as `--ds-hero-fg`. The `--sl-*` slot system
+already cross-references `--ds-*` tokens elsewhere in `starlight.css` (e.g.
+`--sl-color-accent: var(--ds-accent)`), so these two literals could technically be updated to
+reference `--ds-hero-fg` instead. Doing so is out of scope for this spec — they are documented
+as known current deviations, not necessary architectural exceptions.
 
 The zone-violation lint (`tools/lint_zone_violations.py`) scans `web/src/` only and does not
 cover `docs-site/src/styles/starlight.css` — linting the Starlight bootstrap context produces
