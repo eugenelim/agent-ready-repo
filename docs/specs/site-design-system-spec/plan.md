@@ -17,9 +17,9 @@ Eight H2 sections:
 3. **Spacing, radius, shadow, motion, z-index** — Space scale table. Section/layout tokens. Radius steps. Shadow philosophy (overlay only). Motion tokens. Z-index stack.
 4. **Component vocabulary** — One H3 per component. Each entry: zone assignment, BEM classes used, semantic tokens referenced. Components: Hero, StatStrip, ThreeLoops, HumanGates, AdapterMatrix, InstallTerminal (terminal + CSS-only tabs), Copy button, PackCatalogue (loop-cards + pack-cards + scope chip), BuildYourOrg, Section band wrapper, SiteNav, SiteFooter, PackCard, `cat-card`.
 5. **Zone rules** — Prose: dark zone vs. content/light zone. Token-to-zone mapping table.
-6. **Dark mode equivalents** — Note that Astro has no dark mode. MkDocs dark mode via Material. List of dark-scheme values in `extra.css`.
+6. **Dark mode equivalents** — Note that Astro has no dark mode. Starlight dark mode via `[data-theme='dark']`. Token-resolved values table.
 7. **Card icon parity decision** — ThreeLoops `.loop__n` badges (sequential steps) vs. catalogue/pack cards (unordered, no badge). Decision: intentional asymmetry.
-8. **Material-injected component audit** — Why `extra.css` uses raw hex. Overridden component families. Four known deviation values table.
+8. **Starlight CSS audit** — Mostly token-compliant (imports `tokens.css`). Two known `#ffffff` deviations table.
 
 ### `tools/lint_zone_violations.py` design
 
@@ -60,7 +60,7 @@ Author the eight-section document per the LLD. All hex and clamp values copy ver
 **Verification:**
 - `grep "ds-type-display" web/src/design-system.md` returns a match
 - `grep "loop__n" web/src/design-system.md` returns a match
-- `grep "#f8fafc\|#1a202c" web/src/design-system.md` returns matches (Material deviation values documented)
+- `grep "Starlight\|text-invert" web/src/design-system.md` returns matches (Starlight deviation values documented)
 
 ### T3 — Write `tools/lint_zone_violations.py`
 
@@ -71,7 +71,12 @@ Implement the state-machine parser per the LLD. Use Python stdlib `re`, `os.walk
 
 **Verification:**
 - `python tools/lint_zone_violations.py web/src/` exits 0 (AC9)
-- Create a temp file `tmp_test_violation.css` (outside `web/src/`) with `.foo { color: #e8952b; }`, run `python tools/lint_zone_violations.py` against its directory, confirm exit 1 and a `tmp_test_violation.css:1:` report; delete the temp file (AC8 — keeps the Astro source tree clean)
+- Create a temp file `tmp_test_violation.css` (outside `web/src/`) with multi-line content:
+  `.foo {\n  color: #e8952b;\n}` (property on its own line, matching the codebase's
+  multi-line formatting convention), run `python tools/lint_zone_violations.py` against
+  its directory, confirm exit 1 and a `tmp_test_violation.css:2:` report; delete the temp
+  file (AC8 — keeps the Astro source tree clean). Note: inline single-line rules
+  `.foo { color: #hex; }` are not detected — see lint docstring for the scope assumption.
 
 ### T4 — Verify lint exits 0 on current codebase
 

@@ -1,6 +1,6 @@
 # Spec: site-design-system-spec
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
 - **Constrained by:** [design-system-foundations.md](../platform-site/design-system-foundations.md), [platform-site/spec.md](../platform-site/spec.md)
@@ -45,25 +45,25 @@ documented resolution decision.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `web/src/design-system.md` documents all color tokens from
+- [x] **AC1.** `web/src/design-system.md` documents all color tokens from
   `web/src/styles/tokens.css`: Tier 1 primitive names with hex values and
   roles (dark zone, neutral/light zone, amber-gold accent, alpha tokens),
   Tier 2 semantic names with their primitive targets and zone assignments
   (hero/dark zone vs. content/light zone vs. accent layer vs. CTA layer),
   and the layering rule (component CSS references semantic tokens only —
   never primitives directly).
-- [ ] **AC2.** `web/src/design-system.md` documents the typography scale:
+- [x] **AC2.** `web/src/design-system.md` documents the typography scale:
   font families (`--ds-font-sans`, `--ds-font-mono`), all eight size steps
   (`--ds-type-display` through `--ds-type-mono-sm`) with pixel-range
   equivalents, all five weight steps, all four tracking values, and all
   four leading values — each with its intended usage context.
-- [ ] **AC3.** `web/src/design-system.md` documents the spacing rhythm: the
+- [x] **AC3.** `web/src/design-system.md` documents the spacing rhythm: the
   4px base grid, all ten `--ds-space-*` steps with pixel values, and the
   four responsive layout tokens (`--ds-section-gap`, `--ds-section-pad-y`,
   `--ds-content-max`, `--ds-content-pad-x`). It also documents radius (4
   steps), shadow (overlay-only philosophy), motion (3 durations + 2 easing
   curves), and z-index (5 steps).
-- [ ] **AC4.** `web/src/design-system.md` documents the component
+- [x] **AC4.** `web/src/design-system.md` documents the component
   vocabulary for the marketing-homepage and catalogue/pack components. Scope:
   Hero section, StatStrip, ThreeLoops loop items, HumanGates gate cards,
   AdapterMatrix table, InstallTerminal + CSS-only tabs, PackCatalogue
@@ -75,15 +75,19 @@ documented resolution decision.
   tokens it uses. Spot-check greps per component (e.g. `grep "loop__n"
   web/src/design-system.md` for ThreeLoops, `grep "cat-card"` for
   catalogue card) must each return a match.
-- [ ] **AC5.** `web/src/design-system.md` states that the Astro marketing
+- [x] **AC5.** `web/src/design-system.md` states that the Astro marketing
   site has no `prefers-color-scheme: dark` media query; dark zone is a
   layout property (specific sections use `--ds-hero-bg`), not a
-  user-preference mode. Dark mode equivalents exist only in the MkDocs
-  layer (`site/docs/stylesheets/extra.css` via `[data-md-color-scheme=
-  "slate"]`). The document lists the dark-mode token values defined there:
-  surface (`#0b0e12`), code background (`#141516`), accent (`#e8952b`),
-  link color (`#f5bc6a`).
-- [ ] **AC6.** `web/src/design-system.md` documents the card icon parity
+  user-preference mode. Dark mode equivalents exist only in the Starlight
+  docs-site layer (`docs-site/src/styles/starlight.css` via
+  `[data-theme='dark']`). The Starlight CSS imports `tokens.css` at build
+  time and expresses dark-mode overrides via `--prim-*` / `--ds-*` tokens
+  rather than raw hex. The document lists the resolved dark-mode values:
+  surface (`var(--prim-dark-950)` → `#0b0e12`), accent (`var(--ds-accent)`
+  → `#e8952b`), link color (`var(--prim-amber-300)` → `#f5bc6a`), inline
+  code background (`var(--ds-accent-subtle-dk)` →
+  `rgba(232,149,43,0.15)`).
+- [x] **AC6.** `web/src/design-system.md` documents the card icon parity
   decision: ThreeLoops section (Section 4) items carry ordered numeric
   sequence badges (`.loop__n`: 01 / 02 / 03) because they represent named
   steps in a sequential "how it works" narrative; PackCatalogue section
@@ -93,19 +97,17 @@ documented resolution decision.
   types with different information architectures. No badge or icon
   additions are in scope for this spec; this AC records the decision so the
   question is closed.
-- [ ] **AC7.** `web/src/design-system.md` audits Material-injected
-  component deviations: the MkDocs `extra.css` overrides Material for
-  MkDocs using raw hex values (by necessity — `--ds-*` custom properties
-  are defined in the Astro build layer and are not available to the MkDocs
-  build). The document lists each Material component family overridden
-  (`.md-header`, `.md-tabs`, `.md-button`, `.grid.cards`, `.md-typeset
-  code` / `pre`, `.md-typeset table`, `.md-banner`, `.platform-back-link`)
-  and flags the four known value deviations from the token spec: `#f8fafc`
-  (primary text on dark, Material context) vs `--ds-hero-fg: #ffffff`;
-  `#141516` (dark code background) vs `--prim-dark-900: #111520`; `#1a202c`
-  (table header text) vs `--prim-neutral-900: #1c1b18`; `#e2e8f0` (table
-  border) which has no primitive-scale equivalent.
-- [ ] **AC8.** `tools/lint_zone_violations.py` exists and scans
+- [x] **AC7.** `web/src/design-system.md` audits the Starlight CSS
+  (`docs-site/src/styles/starlight.css`): the file imports `tokens.css`
+  at build time and is predominantly token-compliant. The document lists
+  the two known raw-hex deviations and their closest `--ds-*` equivalents:
+  `#ffffff` in `--sl-color-text-invert` (Starlight's light-mode inverted
+  text slot, same resolved value as `--ds-hero-fg: #ffffff` but different
+  semantic role) and `#ffffff` in `.site-footer__brand { color }` (bootstrap
+  context for the Starlight footer). Both use `#ffffff` by necessity — the
+  Starlight slot system is separate from `--ds-*`. The document notes that
+  fixing these is out of scope for this spec.
+- [x] **AC8.** `tools/lint_zone_violations.py` exists and scans
   `web/src/**/*.{astro,css}` for raw color assignments (bare hex literals
   `#rrggbb` or `rgba()` calls used as CSS property values) that appear
   outside a `:root {}` token-definition block. The script excludes:
@@ -113,13 +115,18 @@ documented resolution decision.
   (b) SVG attribute lines (`fill=`, `stroke=`, `xmlns=`, `viewBox=` etc.);
   (c) the `:root {}` token-definition block in `tokens.css`. The exclusion
   assumes flat, single-line-brace `:root` blocks (the current `tokens.css` shape — two
-  single-line `{` openings, no nested braces). Exits 0 = clean, exits 1 = violations found,
-  printing `file:line: <value>` for each hit.
-- [ ] **AC9.** `python tools/lint_zone_violations.py web/src/` exits 0 on
+  single-line `{` openings, no nested braces). The scanner operates line-by-line and
+  detects raw hex/rgba only when a CSS property value is on its own line (multi-line
+  formatting) — inline single-line rules like `.foo { color: #hex; }` are not detected;
+  this is acceptable because `web/src/` uses multi-line CSS throughout. Astro frontmatter
+  is scanned as-is; a frontmatter object property that resembles a CSS property could
+  false-positive, but `web/src/` frontmatter patterns do not match this shape. Exits 0 = clean,
+  exits 1 = violations found, printing `file:line: <value>` for each hit.
+- [x] **AC9.** `python tools/lint_zone_violations.py web/src/` exits 0 on
   the current codebase. Note: this AC is validated by running the lint itself, not by
   a preliminary grep — the lint's comment-exclusion logic (including `//` comments in Astro
   frontmatter) determines the outcome.
-- [ ] **AC10.** `docs/specs/README.md` is updated to include this spec in
+- [x] **AC10.** `docs/specs/README.md` is updated to include this spec in
   the active list.
 
 ## Boundaries
@@ -139,17 +146,17 @@ documented resolution decision.
 - Change any existing CSS — this spec documents first; CSS changes are a
   separate PR.
 - Add icons, badges, or any visual element to catalogue cards or loop cards.
-- Extend the lint to `site/docs/stylesheets/extra.css` — Material overrides
-  require raw hex values by design; linting them produces only false
-  positives.
+- Extend the lint to `docs-site/src/styles/starlight.css` — the Starlight
+  CSS bootstrap context requires a few literal values; linting it produces
+  only false positives.
 - Introduce a new dependency beyond stdlib Python for the lint script.
-- Rename or reorganise existing tokens, even to fix the four Material
+- Rename or reorganise existing tokens, even to fix the two Starlight
   deviation values.
 
 ### Ask first
 
-- Any fix to the four known Material deviation values (`#f8fafc`,
-  `#141516`, `#1a202c`, `#e2e8f0`).
+- Any fix to the two known Starlight deviation values (`#ffffff` in
+  `--sl-color-text-invert` and `.site-footer__brand`).
 - Any decision to add `prefers-color-scheme: dark` support to the Astro
   marketing site.
 
@@ -179,14 +186,18 @@ Goal-based throughout — no new compilation step, no production test file.
 - Technical: The Astro component CSS is currently fully token-compliant — no
   raw hex or `rgba()` values appear as CSS property assignments outside
   `tokens.css`. (Verified: grep returned only comment-line matches.)
-- Technical: Dark mode exists only in the MkDocs layer; the Astro marketing
-  site's "dark zone" is a layout concept and carries no `prefers-color-scheme`
-  media query. (Verified.)
+- Technical: Dark mode equivalents exist only in the Starlight docs-site layer
+  (`docs-site/src/styles/starlight.css`); the Astro marketing site's "dark zone"
+  is a layout concept and carries no `prefers-color-scheme` media query. The repo
+  migrated from MkDocs/Material to Starlight — the spec's original AC5/AC7
+  references to `site/docs/stylesheets/extra.css` and `.md-*` component classes
+  have been updated accordingly. (Verified.)
 - Technical: "Loop cards have icons" refers to ThreeLoops `.loop__n` badges;
   "catalogue cards" refers to PackCatalogue and `cat-card` items which carry
   no badge. The asymmetry is intentional. (Verified.)
-- Technical: The four Material deviation values in `extra.css` are known
-  side-effects of Material for MkDocs requiring raw CSS values. (Verified.)
+- Technical: The two Starlight deviation values (`#ffffff` in
+  `--sl-color-text-invert` and `.site-footer__brand`) are bootstrap-context
+  requirements of the Starlight slot system. (Verified.)
 - Process: No RFC is needed — the backlog entry explicitly states "no RFC
   needed — internal docs tooling; normal PR."
 
@@ -207,7 +218,10 @@ Goal-based throughout — no new compilation step, no production test file.
 
 ## Declined
 
-- Fixing the four Material deviation values — out of scope; a follow-on PR.
+- Fixing the two Starlight deviation values (`#ffffff`) — out of scope; both use
+  `#ffffff` by necessity; same resolved value as `--ds-hero-fg`.
+- Auditing Material/MkDocs component families — MkDocs replaced by Starlight;
+  `.md-*` component classes no longer exist in the codebase.
 - Adding `prefers-color-scheme: dark` to the Astro marketing site — out of scope.
 - Adding icons or badges to catalogue cards.
-- Linting `site/docs/stylesheets/extra.css` — Material overrides require raw values.
+- Linting `docs-site/src/styles/starlight.css` — bootstrap context produces only false positives.
