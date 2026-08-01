@@ -28,7 +28,7 @@ Run the production backend (from the skill's installed location):
 python "<skill-dir>/scripts/workspace_status.py" --root "<repo-root>"
 ```
 
-`<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). `<repo-root>` must be quoted. Use whatever shell or tool-call mechanism your environment provides.
+`<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). `<repo-root>` must be quoted. **Pass `<skill-dir>` and `<repo-root>` as discrete arguments, not shell-interpolated strings** — invoke via argument vector `["python", "<skill-dir>/scripts/workspace_status.py", "--root", "<repo-root>"]` when your tool supports it, to avoid metacharacter interpretation. Use whatever shell or tool-call mechanism your environment provides.
 
 **Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
@@ -168,6 +168,8 @@ Format output in four sections (omit sections with no entries):
 
 **Blocked:**
 - `<path>` — waiting on `<needs-entry>` (status: `<queued|in-progress>`)
+
+  Resolve the status from JSON: strip the queue-prefix from each `blocking_needs` entry to get the dependency path; if that path appears in any `work.active` entry → `in-progress`; if it appears in any `work.ready` or `work.blocked` entry → `queued`; if not found (dependency belongs to a paused initiative not surfaced in JSON) → omit the status annotation.
 
 **Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. Also check whether `reconciliation.type2` has any entry for that `ini_slug` — a stale queue entry whose spec is Shipped is omitted from `work.ready/blocked` by the classifier but still occupies the queue. If a given initiative's filtered ready + blocked + active are all empty, **and** no type2 findings remain for that initiative, and its filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 

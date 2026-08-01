@@ -1,7 +1,7 @@
 # Spec: workspace-status simplification — Order 1A
 
 - **Status:** Shipped
-- **Owner:** eugenelim
+- **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (structural/public-interface change + file-I/O boundary + multi-feature/dependent work)
 - **Constrained by:**

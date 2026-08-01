@@ -59,40 +59,44 @@ class SourceInvariantTests(unittest.TestCase):
 
 
 class AdapterProjectionTests(unittest.TestCase):
-    """AC9: both scripts appear in the claude-code adapter projection."""
+    """AC9: both scripts appear under every shipped adapter's projection."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def _project_to_tmp(self) -> Path:
+    def _project_to_tmp(self, adapter_name: str) -> Path:
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
-        ADAPTERS["claude-code"](CORE_PACK, self.contract, tmp)
+        ADAPTERS[adapter_name](CORE_PACK, self.contract, tmp)
         return tmp
 
-    def test_scripts_project_under_claude_skills(self) -> None:
-        out = self._project_to_tmp()
-        scripts_dir = out / ".claude" / "skills" / SKILL_NAME / "scripts"
-        self.assertTrue(
-            scripts_dir.is_dir(),
-            f"scripts/ not found at {scripts_dir} after claude-code projection",
-        )
-        for name in _SCRIPTS:
-            with self.subTest(script=name):
+    def test_scripts_project_for_all_adapters(self) -> None:
+        """AC9: scripts/ present under every shipped adapter's skill output."""
+        for adapter_name in ADAPTERS:
+            with self.subTest(adapter=adapter_name):
+                out = self._project_to_tmp(adapter_name)
+                # Each adapter places skills under its own prefix; find by rglob.
+                script_dirs = list(out.rglob(f"{SKILL_NAME}/scripts"))
                 self.assertTrue(
-                    (scripts_dir / name).is_file(),
-                    f"{name} not present in projected scripts/",
+                    len(script_dirs) >= 1,
+                    f"{adapter_name}: no scripts/ directory found under {out}",
                 )
+                for name in _SCRIPTS:
+                    found = any((d / name).is_file() for d in script_dirs)
+                    self.assertTrue(
+                        found,
+                        f"{adapter_name}: {name} not found in any scripts/ dir",
+                    )
 
-    def test_skill_md_also_projects(self) -> None:
-        out = self._project_to_tmp()
+    def test_skill_md_projects_for_claude_code(self) -> None:
+        out = self._project_to_tmp("claude-code")
         skill_md = out / ".claude" / "skills" / SKILL_NAME / "SKILL.md"
-        self.assertTrue(skill_md.is_file(), "SKILL.md not projected alongside scripts/")
+        self.assertTrue(skill_md.is_file(), "SKILL.md not projected alongside scripts/ for claude-code")
 
     def test_projected_cli_invokes_ok(self) -> None:
-        """Projected CLI exits 0 against the real repo root (AC10 exercise)."""
-        out = self._project_to_tmp()
+        """Projected CLI (claude-code) exits 0 against the real repo root (AC10 exercise)."""
+        out = self._project_to_tmp("claude-code")
         cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
         if not cli.exists():
             self.skipTest("CLI not projected — previous projection test likely failed")
