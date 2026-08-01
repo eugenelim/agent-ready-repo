@@ -215,17 +215,33 @@ def main(argv: list[str] | None = None) -> int:
                 "workspace_root": str(root.resolve()),
             })
             return 1
+        # Path-confinement: if workspace.toml is a symlink, verify the target
+        # stays within the repo root so session-start cannot read another tree's
+        # initiative data through an escape link.
+        if workspace_toml.is_symlink():
+            try:
+                workspace_toml.resolve().relative_to(root.resolve())
+            except (OSError, RuntimeError, ValueError):
+                print(
+                    "workspace-status error: workspace.toml symlink escapes repository root",
+                    file=sys.stderr,
+                )
+                return 2
         result = analyze(root)
         data = _build_json(root, result)
         _emit(data)
         return 0
     except Exception as exc:
-        # Strip the root path from the message so user-specific filesystem paths
-        # do not appear on stderr (violates the "no internal paths" exit-2 contract).
         import contextlib
-        _msg = str(exc).replace(str(root), "<root>")
+        _msg = str(exc)
+        # Redact the resolved (canonical) path first — covers symlink-redirected paths
+        # (e.g. /var/... → /private/var/... on macOS).
         with contextlib.suppress(OSError, RuntimeError):
             _msg = _msg.replace(str(root.resolve()), "<root>")
+        # Also redact the raw --root argument when it is absolute; skip when relative
+        # ("." or a short name) to avoid corrupting unrelated parts of the message.
+        if root.is_absolute():
+            _msg = _msg.replace(str(root), "<root>")
         print(f"workspace-status error: {type(exc).__name__}: {_msg}", file=sys.stderr)
         return 2
 

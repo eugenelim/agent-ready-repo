@@ -1,0 +1,15 @@
+# Tier-B-lite eval fixture — minimal active workspace with one queued spec.
+[ini-001]
+name = "Example Initiative"
+status = "active"
+milestone = "M1"
+
+[ini-001.work]
+queue = ["docs/specs/example-feature/spec.md"]
+active = []
+shipped = []
+
+[ini-001.shaping_queue]
+backlog = []
+active = []
+shipped = []
