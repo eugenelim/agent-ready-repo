@@ -139,6 +139,10 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 
 ### 2. Surface results
 
+**Type 1 audit notice (status/explain mode):** when `1` is not in `reconciliation.types_performed`, always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
+
+> _Type 1 scan not performed — run `reconcile` to also check for untracked live specs._
+
 If the reconciliation block is non-empty (any type1/type2/type3 findings), output it first:
 
 **Reconciliation:**
