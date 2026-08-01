@@ -21,11 +21,18 @@ only this file to the skill.
 
 The assimilation skill must detect executable code during Phase 1, before
 confirmation. Detection fires when a file has an executable shebang (`#!/usr/bin/env ...`)
-or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
-shebang, consistent with existing `.apm/hooks/*.py` files in the repo
-(e.g. `packs/core/.apm/hooks/pre-pr.py`). (The directory-based trigger —
-files under a `hooks/` directory — is not exercised here; the fixture lives
-under `fixtures/hook-confirm/`, not a `hooks/` directory.)
+or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python`
+shebang. **Why `python` and not `python3`:** this is a git hook — git
+invokes it directly via the shebang on every `git commit`, including on
+native Windows where `python3.exe` is rarely on PATH but `python.exe` and
+the `py` launcher are. `tools/hooks/README.md:3-8` prescribes `python` (not
+`python3`) for exactly this reason. This is distinct from agent lifecycle
+hooks (e.g. `packs/core/.apm/hooks/pre-pr.py`), which use `python3` in
+their shebang because they are invoked via wiring commands that specify the
+interpreter (e.g. `python tools/hooks/pre-pr.py`), never via the shebang
+directly. (The directory-based trigger — files under a `hooks/` directory —
+is not exercised here; the fixture lives under `fixtures/hook-confirm/`, not
+a `hooks/` directory.)
 
 **Phase 1 step 2 — show raw body before confirmation:**
 
