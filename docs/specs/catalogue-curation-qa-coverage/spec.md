@@ -70,7 +70,7 @@ The autonomous portion of this work — authoring fixture files and documenting 
 
 ### Never do
 
-- Modify the `catalogue-curation` skill source (`packs/core/.apm/skills/catalogue-curation/`) as part of this spec — if a QA session reveals a bug, open a separate bug PR.
+- Modify the `catalogue-curation` skill source (`packs/catalogue-curation/.apm/skills/`) as part of this spec — if a QA session reveals a bug, open a separate bug PR.
 - Auto-invoke `propose-catalogue-pack` from `assimilate-repo` (existing Never-do from parent spec).
 - Invent fictional QA session outcomes — AC4–AC7 require real runs.
 
