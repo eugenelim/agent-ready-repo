@@ -39,6 +39,14 @@ Assumptions:
   to avoid treating the next selector as a declaration continuation.
 - url(...) tokens are stripped before scanning for hex values so that SVG
   fragment references (e.g. `filter: url(#fade)`) are not reported as colors.
+- Quoted CSS string literals (e.g. `content: '#abc'`) are masked before
+  scanning so text inside quotes is not reported as a color value.
+- Out of scope: multiline selector lists where a pseudo-class line (e.g.
+  `a:hover,`) is followed by an ID-selector line (e.g. `#fade {`). CSS_PROP_RE
+  would match `a:` and treat `hover,` as a declaration value; without a full
+  CSS parser there is no reliable way to distinguish selector pseudo-classes
+  from property values using text heuristics alone. web/src/ does not use this
+  selector pattern, so no false positives occur in practice.
 - CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
   uses an explicit alternation to avoid matching 5/7-digit strings.
 - Block-comment state is resolved at the start of every line: when inside a block
@@ -75,6 +83,7 @@ RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)", re.IGNORECASE)
 TOKEN_FILE = "tokens.css"
 CSS_INLINE_COMMENT_RE = re.compile(r"/\*.*?\*/")
 URL_RE = re.compile(r"\burl\([^)]*\)", re.IGNORECASE)  # strip url(...) before scanning for hex
+CSS_STRING_RE = re.compile(r"""(?:"[^"]*"|'[^']*')""")  # strip quoted strings before scanning
 ROOT_OPEN_RE = re.compile(r":root\b")
 CSS_PROP_RE = re.compile(r"^\s*[-\w]+\s*:")
 JS_LINE_COMMENT_RE = re.compile(r"^\s*//")
@@ -126,6 +135,10 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         # Step 3: Strip url(...) tokens — URL fragments like url(#id) contain
         # valid hex-looking strings that are element IDs, not color values.
         line = URL_RE.sub("url()", line)
+
+        # Step 4: Strip quoted CSS strings — content: '#abc' or content: "rgba(0,0,0)"
+        # are string literals, not color values; masking them prevents false positives.
+        line = CSS_STRING_RE.sub("''", line)
 
         if not line.strip():
             continue
@@ -224,16 +237,6 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                 else:
                     in_declaration = True
                     decl_buffer = inline_value
-        elif (value_part.strip().endswith(",")
-              and "(" not in value_part
-              and " " not in value_part.strip()):
-            # Multiline selector list continuation (e.g. `a:hover,` with CSS_PROP_RE
-            # matching `a:`). The colon belongs to the selector; value_part is a bare
-            # single-token continuation (no spaces, no function calls) — not a CSS value.
-            # Guard: multi-layer values like `box-shadow: 0 0 1px #fff,` contain spaces
-            # and must enter declaration state normally; `linear-gradient(…),` has `(`.
-            # Only skip when value_part is a single bare token (no spaces, no parens).
-            pass
         else:
             for m in HEX_RE.finditer(value_part):
                 violations.append((lineno, m.group()))
