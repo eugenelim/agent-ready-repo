@@ -11,13 +11,14 @@ ingested in the AC7 QA session.
 automatically before each `git commit` in the repository. It is a thin wrapper:
 
 ```bash
-python3 tools/pre-commit-checks.py
+python3 .agentbundle/bin/pre-commit-checks.py
 ```
 
-All check logic lives in the project-local `tools/pre-commit-checks.py` script
-(owned by the adopter; not a shipped companion from the pack). This follows the
-pattern of "hook as thin wrapper" that keeps hooks lightweight and delegates
-decision logic to a testable, versioned project script.
+All check logic lives in the companion script, which is projected to
+`.agentbundle/bin/` via the pack's `adapter-root-bins` mechanism when the pack
+is installed. The hook body delegates; it does not embed check logic directly.
+The companion is ingested and landed separately from the hook — the AC7 QA
+session covers the hook's confirm gate only.
 
 ## Why this requires explicit operator confirm
 
@@ -41,7 +42,7 @@ Phase 1, it must surface a message similar to:
 
 > This primitive is a bash script — executable code that will run automatically
 > on your machine as a git pre-commit hook on every commit attempt. It invokes
-> `python3 tools/pre-commit-checks.py`.
+> `python3 .agentbundle/bin/pre-commit-checks.py`.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
@@ -49,6 +50,6 @@ Phase 1, it must surface a message similar to:
 
 The confirm prompt must:
 - Identify the file as executable code (not prose).
-- Name what it invokes (`python3 tools/pre-commit-checks.py`).
+- Name what it invokes (`python3 .agentbundle/bin/pre-commit-checks.py`).
 - Require the exact phrase `yes, land this code` (per SKILL.md:35-37).
 - Not proceed on `yes` alone or any other ambiguous answer.

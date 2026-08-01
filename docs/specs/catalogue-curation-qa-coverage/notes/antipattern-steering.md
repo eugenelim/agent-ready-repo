@@ -115,7 +115,7 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 ```
 ---
 name: doc-quality-rater
-description: Rate documentation files for clarity, completeness, and audience fit. Reads each file and produces a rubric score with improvement notes.
+description: Rate documentation files for clarity, completeness, and audience fit. Reads each file and produces a rubric score.
 model: opus
 tools: Read
 ---

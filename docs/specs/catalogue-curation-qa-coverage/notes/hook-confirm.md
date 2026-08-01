@@ -172,7 +172,7 @@ Only after steps 4–5 complete does Phase 2 begin.
 
 1. The skill is invoked with the single explicit file path `sample-hook.sh`.
 2. The raw body is shown BEFORE the confirmation prompt.
-3. The confirm prompt identifies the file as executable code (runs ruff + mypy).
+3. The confirm prompt identifies the file as executable code and names the invocation (`python3 .agentbundle/bin/pre-commit-checks.py`).
 4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
 5. Answering anything other than `yes, land this code` aborts the ingest.
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.

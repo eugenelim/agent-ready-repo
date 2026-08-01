@@ -99,8 +99,8 @@ The skill scaffolds the pack shell at `packs/database-tooling/` via
 ```
 packs/database-tooling/
   pack.toml               # name, version, description, dependencies,
-                          # [[pack.maintainers]], maturity scope;
-                          # [pack.evals] skills = ["schema-migrate"]
+                          # [[pack.maintainers]], maturity scope
+                          # ([pack.evals] added later, once eval harness reaches coverage)
   README.md               # one-paragraph overview + install command
   .claude-plugin/
     plugin.json           # name, version, description (only — schema is closed)

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-# pre-commit hook: delegate quality checks to the project's pre-commit script.
+# pre-commit hook: delegate quality checks to the companion script.
+# The companion is projected to .agentbundle/bin/ via adapter-root-bins.
 set -euo pipefail
-python3 tools/pre-commit-checks.py
+python3 .agentbundle/bin/pre-commit-checks.py
