@@ -60,6 +60,13 @@ Assumptions:
   `color: "#hex",`) would be flagged. AC9 holds because web/src/ frontmatter uses
   only patterns that don't match CSS_PROP_RE (e.g. object literals starting with
   '{', or values that contain no raw hex).
+- Out of scope: CSS block comments containing an unmatched quote character
+  (e.g. `/* unmatched " */`). When `CSS_STRING_RE` is applied before comment
+  stripping, a quote inside a comment pairs with a later real quote, masking
+  the closing `*/` from the string-masking pass. Correct handling requires a
+  full CSS lexer. This pattern does not appear in web/src/ so no false positive
+  or false negative occurs in practice. The comment/string masking architecture
+  (Step 2 before Step 3) is optimal for all patterns that do appear.
 - Out of scope: HTML `style` attributes in Astro template markup
   (`<div style="color: #fff">`). Detecting these requires HTML attribute
   parsing across multiple lines, which is outside the line-by-line CSS
@@ -190,7 +197,16 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                     after_brace = line[brace_pos + 1:].lstrip()
                     # Advance through nested selector levels so that
                     # `@keyframes foo { from { color: #fff; } }` is detected.
-                    while after_brace and not CSS_PROP_RE.match(after_brace):
+                    # Also advance when CSS_PROP_RE matches a pseudo-selector
+                    # whose value_part contains `{` (e.g. `a:has(#id) { ... }`).
+                    while after_brace:
+                        if CSS_PROP_RE.match(after_brace):
+                            c = after_brace.index(":")
+                            vp = after_brace[c + 1:]
+                            if "{" in vp:
+                                after_brace = vp[vp.index("{") + 1:].lstrip()
+                                continue
+                            break  # real property — stop advancing
                         if "{" not in after_brace:
                             break
                         after_brace = after_brace[after_brace.index("{") + 1:].lstrip()
@@ -223,7 +239,15 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
             brace_pos = value_part.index("{")
             after_brace = value_part[brace_pos + 1:].lstrip()
             # Advance through nested selector levels (e.g. @keyframes { from {).
-            while after_brace and not CSS_PROP_RE.match(after_brace):
+            # Also advance past pseudo-selectors whose value_part contains `{`.
+            while after_brace:
+                if CSS_PROP_RE.match(after_brace):
+                    c = after_brace.index(":")
+                    vp = after_brace[c + 1:]
+                    if "{" in vp:
+                        after_brace = vp[vp.index("{") + 1:].lstrip()
+                        continue
+                    break  # real property — stop advancing
                 if "{" not in after_brace:
                     break
                 after_brace = after_brace[after_brace.index("{") + 1:].lstrip()

@@ -58,17 +58,17 @@ semantic tokens only — never primitives directly.
 
 **Alpha tokens**
 
-| Token | Value |
-| --- | --- |
-| `--prim-white-06` | `rgba(255, 255, 255, 0.06)` |
-| `--prim-white-10` | `rgba(255, 255, 255, 0.10)` |
-| `--prim-white-20` | `rgba(255, 255, 255, 0.20)` |
-| `--prim-white-60` | `rgba(255, 255, 255, 0.60)` |
-| `--prim-white-80` | `rgba(255, 255, 255, 0.80)` |
-| `--prim-black-06` | `rgba(0, 0, 0, 0.06)` |
-| `--prim-black-12` | `rgba(0, 0, 0, 0.12)` |
-| `--prim-amber-10` | `rgba(232, 149, 43, 0.10)` |
-| `--prim-amber-15` | `rgba(232, 149, 43, 0.15)` |
+| Token | Value | Role |
+| --- | --- | --- |
+| `--prim-white-06` | `rgba(255, 255, 255, 0.06)` | Subtle white overlay (hover/active tints on dark backgrounds) |
+| `--prim-white-10` | `rgba(255, 255, 255, 0.10)` | Hero card elevated background |
+| `--prim-white-20` | `rgba(255, 255, 255, 0.20)` | Medium white overlay (borders, dividers on dark) |
+| `--prim-white-60` | `rgba(255, 255, 255, 0.60)` | Muted text on dark (secondary / de-emphasized) |
+| `--prim-white-80` | `rgba(255, 255, 255, 0.80)` | Secondary text on dark |
+| `--prim-black-06` | `rgba(0, 0, 0, 0.06)` | Subtle shadow / depth on light backgrounds |
+| `--prim-black-12` | `rgba(0, 0, 0, 0.12)` | Stronger shadow / border on light backgrounds |
+| `--prim-amber-10` | `rgba(232, 149, 43, 0.10)` | Accent subtle background (light-zone accent tint) |
+| `--prim-amber-15` | `rgba(232, 149, 43, 0.15)` | Accent subtle background — dark zone (`--ds-accent-subtle-dk`) |
 | `--prim-amber-20` | `rgba(232, 149, 43, 0.20)` |
 
 ### Tier 2 — Semantic color tokens

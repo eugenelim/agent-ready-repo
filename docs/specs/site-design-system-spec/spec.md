@@ -240,6 +240,11 @@ Goal-based throughout — no new compilation step, no production test file.
 - Linting `docs-site/src/styles/starlight.css` — Starlight is intentionally outside this lint's
   scope; the two `#ffffff` deviations there are known current deviations, not suppressible
   false positives.
+- Handling CSS block comments with an unmatched quote (e.g. `/* " */`) — when
+  `CSS_STRING_RE` is applied before `_strip_inline_comment` (Step 2 before Step 3,
+  needed to prevent `content: "/*";` from opening block-comment state), a quote inside
+  a comment can pair with a later real quote, masking the `*/` closing. Correct handling
+  requires a full CSS lexer; this pattern does not appear in `web/src/`.
 - Scanning HTML `style` attributes in Astro markup (`<div style="color: #fff">`) — would
   require HTML attribute parsing across multiple lines; the line-by-line CSS scanner design
   does not cover this. `web/src/` components use CSS custom properties via class names, not
