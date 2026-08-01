@@ -58,7 +58,7 @@ Remove the `example-agent-cli` block:
 set -euo pipefail
 DIR="${1:?usage: analyse-modules.sh <src-dir>}"
 echo "Modules in $DIR:"
-find "$DIR" -name "*.py" -maxdepth 2 | sort
+find -- "$DIR" -name "*.py" -maxdepth 2 | sort
 ```
 
 The dependency-graph skill is removed from this primitive entirely. If the

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """pre-commit hook: block commits that stage .env files."""
 import subprocess
 import sys
