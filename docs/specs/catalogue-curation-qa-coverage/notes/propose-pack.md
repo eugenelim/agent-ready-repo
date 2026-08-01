@@ -12,7 +12,8 @@ Source authority:
 ## Sample pack proposal input
 
 **Proposed area:** a `database-tooling` pack covering schema migration workflows,
-query authoring, and data inspection for SQL databases (PostgreSQL, SQLite).
+query authoring, and data inspection for SQL databases ([relational-db-A],
+[relational-db-B]).
 
 **Operator prompt:** "Should we add a database-tooling pack for schema migration
 and query workflows?"
@@ -22,8 +23,8 @@ and query workflows?"
 ## Expected: Step 1 — additivity + fit test
 
 The skill reads `docs/CHARTER.md`. `database-tooling` (SQL-specific: schema
-migration, query authoring for PostgreSQL/SQLite) is tech-stack-specific by
-design — this makes it a **tech-stack accelerator pack** under the charter
+migration, query authoring for a relational database stack) is tech-stack-specific
+by design — this makes it a **tech-stack accelerator pack** under the charter
 (CHARTER.md §"What this project does").
 
 **Accelerator-pack routing:** The charter explicitly exempts accelerator packs
@@ -59,7 +60,7 @@ Expected skill output:
 | Field | Expected output |
 |-------|----------------|
 | Primitives | At minimum: `schema-migrate` skill, `query-author` skill, possibly a `db-inspect` skill |
-| Dependencies | `core` (write path uses `agentbundle.safety.write_jailed`); no dependency on other non-core packs |
+| Dependencies | Depends on whether proposed skills compose with core workflows. If `schema-migrate` or `query-author` surfaces output that feeds into `work-loop` or other core skills, declare a `core` dependency in `pack.toml`. If the skills stand alone, no `core` dependency is needed. Do not cite `agentbundle.safety.write_jailed` — that is used by the scaffold step of `propose-catalogue-pack` itself, not a runtime dependency of `database-tooling`. |
 | Out of scope | ORM configuration (project-specific); DBA capacity planning; NoSQL databases (distinct enough to warrant a separate pack) |
 | Out-of-scope blocker | None identified — the pack can stand independently |
 
@@ -122,11 +123,14 @@ Notes on the scaffold:
 
 The skill authors an RFC using the canonical template from
 `packs/governance-extras/.apm/skills/new-rfc/assets/rfc.md` as its base —
-filling in all required sections (Status, Author, Approver, Date opened,
-Reviewer brief, The ask, Problem & goals, Options considered, Decision,
-Risks, Follow-ons). The `Author` field uses the canonical `<github-handle>`
-placeholder; the skill stops and asks if no project convention for governance
-authorship is established.
+filling in all required sections. The template's required content sections are:
+`Reviewer brief`, `The ask`, `Problem & goals`, `Proposal`, `Options considered`,
+`Risks & what would make this wrong`, `Evidence & prior art`, `Open questions`,
+`Follow-on artifacts`. The metadata fields (Status, Author, Approver, Date opened)
+are frontmatter — not document sections but still required.
+
+The `Author` field uses the canonical `<github-handle>` placeholder; the skill
+stops and asks if no project convention for governance authorship is established.
 
 The RFC adds one additional section not in the base template:
 
@@ -140,8 +144,9 @@ The RFC adds one additional section not in the base template:
 | db-inspect     | skill | Needs assessment | Scope TBD — inspect vs. query overlap |
 ```
 
-This section is appended after the Decisions table and before the Risks section.
-Everything else follows the canonical new-rfc template structure verbatim.
+This section is appended after the `Options considered` section and before the
+`Risks & what would make this wrong` section. Everything else follows the canonical
+new-rfc template structure verbatim.
 
 ---
 

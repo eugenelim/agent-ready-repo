@@ -40,16 +40,23 @@ candidates.
 ## Case 2: Source RFC is Frozen + genuine correction → Erratum
 
 **Setup:** RFC-0001 in `agent-commander` has been Accepted (Frozen). The
-re-sync reveals that a previously recorded verdict contained a typo in the
-destination pack name (e.g., the skill was recorded as going to `core` but
-the correct destination was `governance-extras`).
+operator — not a re-sync — notices that a verdict recorded in RFC-0001
+contains a typo in the destination pack name (e.g., the skill was recorded
+as going to `core` but the correct destination was `governance-extras`).
+
+**Why operator-initiated:** A verdict typo does not change the source
+candidate's content. The re-sync algorithm classifies by content hash; if the
+source content is unchanged, the candidate is marked `unchanged` and skipped.
+The correction must be initiated by the operator, who identifies the error
+directly (e.g., during RFC review, code review, or reading the output later)
+and tells the skill to record a correction.
 
 This is a **genuine correction** — a verdict typo, not a new decision.
 
 **Expected skill behavior:**
 
-1. The skill classifies the delta: the candidate's content is unchanged but
-   a prior verdict is incorrect.
+1. The operator supplies: the RFC number, the incorrect field, and the
+   corrected value — this is the input, not the re-sync algorithm's output.
 2. Because the prior RFC is Frozen and this is a genuine correction (not a new
    decision or reversal), the skill records an **Erratum** entry, appended
    additively to RFC-0001 under an `## Errata` section.
@@ -59,7 +66,7 @@ This is a **genuine correction** — a verdict typo, not a new decision.
 5. The skill does **not** append new decisions to the Frozen RFC body.
 
 **Expected output signals:**
-- "RFC-0001 is Frozen — this is a correction. Recording as an Erratum."
+- "RFC-0001 is Frozen — recording operator-supplied correction as an Erratum."
 - The erratum entry is appended to RFC-0001's Errata section.
 - No new RFC file is created.
 
@@ -107,6 +114,7 @@ Re-sync delta found
 └─ Prior RFC Frozen?
      ├─ Genuine correction (typo, moved destination)?
      │    └─ Yes → Erratum (additive, no new file)
+     │         Note: correction is operator-initiated, not algorithm-detected
      │
      └─ New candidates or reversed verdicts?
           └─ Yes → New RFC + Erratum entry on prior RFC naming superseder

@@ -1,29 +1,24 @@
 ---
-name: run-quality-gate
-description: Apply code formatting and run the lint-check skill to validate code quality before committing. Use before any commit to ensure formatting and lint are clean.
+name: code-summary
+description: Read source files for a given module and summarize their purpose and dependencies. Useful for onboarding new contributors to an unfamiliar codebase.
 metadata:
-  boundaries: [filesystem_write, shell_exec]
+  boundaries: []
 ---
 
-# Skill: run-quality-gate
+# Skill: code-summary
 
-Apply formatting and quality checks to staged changes, then surface a structured
-review via the lint-check skill.
+Summarize the purpose and key dependencies of a given source module by reading
+its files and producing a structured overview.
 
 ## Procedure
 
-1. Run `ruff format --check .` to detect formatting violations; if any exist,
-   run `ruff format .` to apply them.
-2. Run `ruff check . --fix` to apply auto-fixable lint violations.
-3. Invoke the `lint-check` skill to produce a structured quality report:
+1. Ask the operator: which module or package should be summarized?
+2. Read the relevant source files (Python modules, README, docstrings).
+3. Build a summary covering: purpose, key classes and functions, external
+   dependencies, and notable design decisions.
+4. Invoke the `dependency-graph` skill to produce a visual dependency map:
    ```
-   claude --print "Run lint-check on the current working tree"
+   claude --print "Run dependency-graph for <module>"
    ```
-4. Parse the lint-check output and surface any blockers to the operator.
-5. If all checks pass, stage the formatting changes and prompt the operator
-   to commit.
-
-## Never do
-
-- Skip the lint-check skill invocation — the quality gate is only complete
-  when both the local fixes and the skill review have run.
+5. Present the summary and the dependency-graph output together as a single
+   onboarding document.

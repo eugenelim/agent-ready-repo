@@ -13,11 +13,11 @@ Source authority:
 
 ### Why this is rejected / steered
 
-The fixture (`run-quality-gate`) contains a procedure step that invokes a
+The fixture (`code-summary`) contains a procedure step that invokes a
 second skill by shelling out to the Claude CLI:
 
 ```
-claude --print "Run lint-check on the current working tree"
+claude --print "Run dependency-graph for <module>"
 ```
 
 This is anti-pattern #1 from `anti-patterns.md`: **a script or hook that
@@ -25,11 +25,12 @@ triggers a skill or agent**. The tell is the `claude --print` invocation
 embedded in a procedure step; skills activate by description — they are not
 invoked from other skills or scripts.
 
-The fixture also performs legitimate deterministic work in steps 1–2 and 5
-(ruff format, ruff lint, staging). Because it is not *solely* an auto-trigger —
-it has real work alongside the bad step — the correct disposition is **steer**,
-not reject. `anti-patterns.md:17-19` reserves rejection for a primitive whose
-entire purpose is to auto-trigger another skill; mixed primitives with one bad
+The fixture also performs legitimate deterministic work in steps 1–3 and 5
+(asking for the module, reading source files, building the summary, presenting
+the output). Because it is not *solely* an auto-trigger — it has real work
+alongside the bad step — the correct disposition is **steer**, not reject.
+`anti-patterns.md:17-19` reserves rejection for a primitive whose entire
+purpose is to auto-trigger another skill; mixed primitives with one bad
 step are steered.
 
 ### Expected detection message
@@ -38,28 +39,32 @@ The assimilation skill should surface a message similar to:
 
 > **Anti-pattern detected: script triggers skill** (anti-patterns.md §1)
 >
-> `run-quality-gate` step 3 invokes `lint-check` via `claude --print "..."`.
-> Skills activate by description — they are not called from other skills or
-> scripts. The formatting and lint steps are legitimate deterministic work;
+> `code-summary` step 4 invokes `dependency-graph` via
+> `claude --print "Run dependency-graph for <module>"`. Skills activate by
+> description — they are not called from other skills or scripts.
+> The read-and-summarize work in steps 1–3 and 5 is legitimate;
 > only the skill-invocation step is the violation.
 >
-> **Disposition: Steer.** Remove step 3. The deterministic quality work in
-> steps 1–2 and 5 can stay; the `lint-check` activation must be removed.
-> `lint-check` activates independently through its own trigger description.
+> **Disposition: Steer.** Remove step 4. The `dependency-graph` skill
+> activates independently through its own trigger description when the
+> operator asks for a dependency map.
 
 ### Reshaped form
 
-Remove step 3 and the "Never do" note that depends on it:
+Remove step 4; renumber:
 
 ```
 ## Procedure
-1. Run `ruff format --check .`; if violations exist, run `ruff format .`.
-2. Run `ruff check . --fix`.
-3. Stage the formatting changes and prompt the operator to commit.
+1. Ask the operator: which module or package should be summarized?
+2. Read the relevant source files (Python modules, README, docstrings).
+3. Build a summary covering: purpose, key classes and functions, external
+   dependencies, and notable design decisions.
+4. Present the summary to the operator as an onboarding document.
 ```
 
-The `lint-check` skill is removed from this primitive entirely — it activates
-through its own description when the operator separately asks for a lint review.
+The `dependency-graph` skill is removed from this primitive entirely — it
+activates through its own description when the operator separately asks
+for a dependency map.
 
 ---
 
@@ -67,68 +72,67 @@ through its own description when the operator separately asks for a lint review.
 
 ### Why this is rejected / steered
 
-The fixture (`doc-author-agent`) instructs the agent to self-review its own
-draft in step 4:
+The fixture (`pr-review-agent`) instructs the agent to self-review its own
+findings in step 4:
 
-> Self-review your draft: Re-read the document you just authored … Score each
-> section … Revise any section scoring "needs revision."
+> **Self-review your report:**
+> - Re-read the findings you just produced.
+> - Check each finding: is it well-supported by the diff? Is the severity correct?
+> - Remove or downgrade any finding you cannot clearly justify.
 
-This is anti-pattern #2 from `anti-patterns.md` on two counts:
+This is anti-pattern #2 from `anti-patterns.md`: **agent self-review**.
+Step 4 instructs the agent to re-read and re-evaluate findings it just
+generated in step 3. Self-review provides no independent signal — the same
+reasoning that produced the findings will evaluate them.
 
-1. **Self-review** — step 4 instructs the agent to re-read and score its own
-   draft. Agents don't mark their own homework.
-2. **Skill-vs-agent confusion** — judgment and authoring work (drafting docs,
-   applying a style guide) is modeled as a subagent when it should be a skill.
-   `anti-patterns.md:28-30` names this explicitly: "judgment/authoring work
-   modeled as an agent when it should be a skill."
-
-Both violations require steering: remove the self-review *and* re-home the
-authoring work as a skill.
+Note: `pr-review-agent` is a **legitimate subagent role** (code review in a
+forked context). The skill-vs-agent confusion check does **not** fire here —
+code review is judgment work that benefits from a separate reasoning context.
+Only the self-review in step 4 is the anti-pattern; there is exactly one
+detection for this fixture.
 
 ### Expected detection message
 
-> **Anti-pattern detected: agent self-review + skill-vs-agent confusion**
-> (anti-patterns.md §2)
+The assimilation skill should surface a message similar to:
+
+> **Anti-pattern detected: agent self-review** (anti-patterns.md §2)
 >
-> `doc-author-agent` step 4 instructs the agent to re-read and score its own
-> output — self-review provides no independent signal. Additionally, technical
-> documentation authoring is judgment work that should be a skill, not a
-> subagent.
+> `pr-review-agent` step 4 instructs the agent to re-read and re-evaluate
+> findings it just produced in step 3. Self-review provides no independent
+> signal — the same model that generated the findings evaluates them.
 >
-> **Disposition: Steer (two fixes).** (1) Remove the self-review step.
-> (2) Re-home the authoring workflow as a skill; if a separate quality review
-> is needed, route it to a reviewer subagent *after* the skill completes.
+> **Disposition: Steer.** Remove step 4. The pull request diff review
+> remains a legitimate subagent workflow; the self-review step alone
+> is the violation.
 
 ### Reshaped form
 
-The primitive becomes a skill (`doc-author`) — not a subagent — with the
-self-review step removed:
+Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 
 ```
 ---
-name: doc-author
-description: Draft technical documentation for a given topic and audience level.
-  Presents the result to the operator; routes a separate quality review via the
-  operator's choice of reviewer.
+name: pr-review-agent
+description: Review a pull request diff for code quality, correctness, and style issues.
 metadata:
-  boundaries: [filesystem_write]
+  type: subagent
+  boundaries: []
 ---
 
-# Skill: doc-author
-
-Draft `docs/<topic>.md` for the topic and audience level the operator specifies.
+# Agent: pr-review-agent
 
 ## Procedure
-1. Ask: topic? audience level (beginner / intermediate / advanced)?
-2. Read relevant source files and existing docs in `docs/`.
-3. Draft `docs/<topic>.md`: overview, prerequisites, step-by-step procedure
-   with code examples, common errors and resolutions.
-4. Present the draft to the operator for sign-off. If a quality review is
-   needed, the operator routes it — do not review your own output.
-```
 
-The "self-certification" claim is removed from the Output section.
-The `type: subagent` metadata is replaced with a plain skill frontmatter.
+1. Read the pull request diff provided by the operator.
+2. Review the diff against: correctness, edge cases, error handling, style,
+   test coverage gaps.
+3. Draft a findings report: Blockers / Concerns / Nits.
+4. Present the final report to the operator.
+
+## Output
+
+Blockers, Concerns, Nits — each with a one-line description and the diff
+line that supports it.
+```
 
 ---
 

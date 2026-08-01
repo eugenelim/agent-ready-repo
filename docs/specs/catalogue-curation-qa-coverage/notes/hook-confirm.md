@@ -16,12 +16,10 @@ during Phase 1, before any shaping work begins. Detection fires when:
 1. The file has a `#!/usr/bin/env bash` shebang line (or any shebang).
 2. OR the filename extension is `.sh`, `.py`, `.rb`, or any recognized
    executable extension.
-3. OR the primitive is delivered in a location that suggests it is a hook
-   (e.g., under a `hooks/` directory in the source, or named
-   `pre-commit`, `post-merge`, etc.).
+3. OR the primitive is delivered under a `hooks/` directory in the source.
 
 `sample-hook.sh` satisfies criteria 1 (shebang) and 2 (`.sh` extension).
-Both independently trigger the gate; either alone is sufficient.
+Either alone is sufficient.
 
 The detection must fire **before** the raw body is shown for review.
 The flow is:
@@ -40,12 +38,7 @@ After showing the raw body of `sample-hook.sh`, the skill must surface:
 
 > ⚠ **This primitive is executable code** — a bash script that will run
 > automatically on your machine as a git hook on every commit attempt.
->
-> It executes the following commands:
-> - `ruff format --check .`
-> - `ruff check .`
-> - `mypy packages/ --ignore-missing-imports`
-> - `python3 -m pytest packages/ -q --tb=short -m "not integration"`
+> It executes: `python scripts/pre-commit-checks.py`
 >
 > Please review the script above before proceeding.
 >
@@ -53,7 +46,7 @@ After showing the raw body of `sample-hook.sh`, the skill must surface:
 
 Requirements the prompt must satisfy:
 - Identifies the file as **executable code** (not just "a file").
-- Names the commands that will run on the operator's machine.
+- Names what it executes.
 - Asks for an explicit `yes` or `no` — not a press-enter or implicit default.
 - Does not proceed on ambiguous answers.
 - Appears **after** the raw body is shown (raw body review is always first).
@@ -65,23 +58,43 @@ Requirements the prompt must satisfy:
 **On "yes":** Phase 2 proceeds normally.
 
 1. The skill diagnoses the destination pack (which pack should own this hook?
-   most likely `core` if it is a general-purpose quality gate, or the source
+   Most likely `core` if it is a general-purpose quality gate, or the source
    pack if it is specific to a particular workflow).
-2. Anti-pattern check: hooks that trigger another skill (anti-pattern #1) are
-   caught here even after confirm. `sample-hook.sh` does not trigger a skill,
-   so it clears this check.
-3. Reshape: the skill may recommend renaming the hook body to match the target
-   pack's hook-naming convention (e.g., `pre-commit.py` or `pre-commit.sh`,
-   placed under `.apm/hooks/` in the target pack).
-4. Write the **hook body** via `agentbundle.safety.write_jailed` to
-   `.apm/hooks/<name>.sh`.
-5. Author (or update) the **hook-wiring file** `.apm/hook-wiring/<name>.toml`
-   to bind the body to the target editor event (e.g., `PreToolUse` for
-   pre-commit gate behavior, or the appropriate git hook event if running
-   outside an editor harness). The wiring file is the separate primitive that
-   makes the hook body run — landing the body alone is not sufficient.
-   (`docs/architecture/pack-layout.md:118-119` defines both primitives.)
-6. Prompt `make build-self` to project both the body and the wiring file.
+2. Anti-pattern check: `anti-patterns.md:38-42` flags hooks doing heavy logic
+   that belongs in a script. `sample-hook.sh` is a thin wrapper
+   (`python scripts/pre-commit-checks.py`) — it clears this check.
+3. The skill may recommend renaming the hook to match git's naming convention
+   (`pre-commit` with no extension, placed under `.git/hooks/`).
+
+**Important — git hooks vs. agent hooks (two distinct landing paths):**
+
+`sample-hook.sh` is a **git pre-commit hook**, not an agent/editor hook. These
+are different primitive types with different landing destinations:
+
+- **Agent/editor hooks** (e.g., a hook that fires on `PreToolUse`) land as:
+  - Hook body → `.apm/hooks/<name>.py` or `.apm/hooks/<name>.sh`
+  - Hook wiring → `.apm/hook-wiring/<name>.toml` (binds body to the editor event)
+  - Projected to each adapter via `make build-self`.
+  - The `.apm/hook-wiring/` primitive is the mechanism for *editor* events
+    (Claude Code, Kiro, etc.) — it does not exist for git events.
+
+- **Git hooks** (pre-commit, post-merge, etc.) are NOT landed via hook-wiring.
+  Git's event system is separate from the adapter event system. A git hook lands
+  by being copied or symlinked into `.git/hooks/`. The correct landing path for
+  `sample-hook.sh` is:
+  - Write the hook body to a deterministic path within the pack source
+    (e.g., `packs/core/.apm/hooks/git/pre-commit.sh`).
+  - Document manual installation: "copy or symlink to `.git/hooks/pre-commit`".
+  - Do NOT write a `.apm/hook-wiring/<name>.toml` for git events — no such
+    adapter-contract binding exists for git pre-commit.
+
+4. Write the hook body via `agentbundle.safety.write_jailed`.
+5. Add a documentation note instructing the user to install manually:
+   ```
+   cp packs/core/.apm/hooks/git/pre-commit.sh .git/hooks/pre-commit
+   chmod +x .git/hooks/pre-commit
+   ```
+6. Prompt `make build-self` to project the hook body to adapter layouts.
 
 **On "no":** the ingest is aborted.
 
@@ -89,18 +102,14 @@ Requirements the prompt must satisfy:
 2. No files are written.
 3. The skill surfaces: "Hook ingest aborted — no files written."
 
-**On ambiguous answer ("maybe", "ok", "sure"):** the skill treats this as
-"no" and re-surfaces the prompt, or aborts and asks the operator to restart
-with a clear yes/no.
-
 ---
 
 ## What the QA session should verify
 
 1. The confirm prompt fires before any write — no file lands without confirm.
-2. The prompt names the commands (ruff, mypy, pytest) — not just "this is a
-   script".
+2. The prompt names what executes (`python scripts/pre-commit-checks.py`).
 3. Answering "no" discards the primitive cleanly.
-4. Answering "yes" proceeds to Phase 2 and eventually writes via the jailed
+4. Answering "yes" proceeds to Phase 2 and lands the hook body via the jailed
    write path.
-5. The raw body is shown verbatim before the confirm prompt — not after.
+5. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
+6. The raw body is shown verbatim before the confirm prompt.
