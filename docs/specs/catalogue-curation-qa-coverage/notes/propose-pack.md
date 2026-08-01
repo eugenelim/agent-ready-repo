@@ -129,11 +129,15 @@ packs/database-tooling/
 ```
 
 There is no pack-root `evals/` directory. Eval discovery is always per-skill.
-`pack_evals.py` runs two passes: the Tier-A activation pass reads each listed
-skill's `eval_queries.json` to measure whether the skill fires on trigger queries;
-the Tier-4 LLM-judge pass reads `evals.json` to grade output quality. Both files
-are consumed by `pack_evals.py`. A root-level `evals/` directory is not read by
-any known tool.
+`pack_evals.py` supports three mutually exclusive `--mode` invocations:
+- `--mode headless` (default): Tier-A activation — reads each listed skill's
+  `eval_queries.json` and measures whether the skill fires on trigger queries.
+- `--mode judge --artifacts ...`: LLM-judge grading — reads `evals.json` and
+  grades output quality against the rubric assertions.
+- `--mode in-harness`: B-lite behavior check — also reads `evals.json`.
+Each mode is a separate CLI invocation; running `headless` does not execute the
+judge or behavior passes. A root-level `evals/` directory is not read by any
+known tool.
 
 Notes on the scaffold:
 - `plugin.json` contains only `name`, `version`, and `description` — the schema

@@ -140,11 +140,18 @@ Only after steps 4–5 complete does Phase 2 begin.
    - `packs/core/.apm/hooks/pre-commit.py` — projected to `tools/hooks/` by
      `build-self` (Claude Code / self-host adapter). Python is required here;
      `AGENTS.md:238-241` prohibits new bash scripts under `tools/`.
-6. Bump version **before** running `build-self` — the write makes the tree dirty
-   and `build-self` requires `FORCE=1`:
+6. Bump version and update hook inventories **before** running `build-self` —
+   the write makes the tree dirty and `build-self` requires `FORCE=1`:
    - Increment minor version in `packs/core/pack.toml`
    - Set the same version in `packs/core/.claude-plugin/plugin.json`
    - Both must match before `build-self` will accept the change.
+   - Update the hook inventory in `packs/core/pack.toml`'s `description` field
+     to include `pre-commit` alongside the existing hook list
+     (`pre-pr, session-start + work-loop-check hooks`).
+   - Update `packs/core/docs/index.md`: change `**Hooks (3):**` to
+     `**Hooks (4):**` and add `pre-commit` to the hook list.
+   (`build-self` does not update these inventory strings — they are
+   human-maintained metadata that must be kept in sync manually.)
 7. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
    `marketplace.json`. Plain `make build-self` refuses on dirty trees.
 8. Add a `## [core][version] — YYYY-MM-DD` changelog section in
@@ -189,7 +196,8 @@ Only after steps 4–5 complete does Phase 2 begin.
    projected path, rename recommendation) and waits for operator approval.
 10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
 11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
-12. The version bump happens BEFORE `FORCE=1 make build-self`.
+12. The version bump AND hook inventory updates happen BEFORE `FORCE=1 make build-self`
+    (pack.toml description + docs/index.md hook count + both version fields).
 13. `docs/product/changelog.md` receives the new `## [core][version]` entry.
 14. The manual install command uses the adapter-specific projected path (not
     `packs/core/.apm/hooks/`).
