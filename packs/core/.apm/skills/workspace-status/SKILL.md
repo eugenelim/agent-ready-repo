@@ -139,7 +139,15 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 
 ### 2. Surface results
 
-**Type 1 audit notice (status/explain mode):** when `1` is not in `reconciliation.types_performed`, always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
+**When `mode == "explain"`:** render the focused lookup result directly and skip the rest of this section — the explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`:
+
+- `selector_status: "matched"` → surface the `explained_item` object: path, slug, ini_slug, list, classification, blocking_needs, dependencies, downstream_unblocked
+- `selector_status: "not_found"` → report the selector was not found in any active initiative's work queue (shaping items and items in paused/closed initiatives also return `not_found`)
+- `selector_status: "ambiguous"` → list the initiative slugs in `matches` and ask the user to qualify the selector with an initiative prefix
+
+For status and reconcile modes, continue:
+
+**Type 1 audit notice:** when `1` is not in `reconciliation.types_performed` (status mode only), always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
 
 > _Type 1 scan not performed — run `reconcile` to also check for untracked live specs._
 
