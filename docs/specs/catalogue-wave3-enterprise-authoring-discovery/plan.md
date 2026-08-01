@@ -115,21 +115,33 @@ from agentbundle.catalogue_tooling.contracts_inspector import (
     ContractInfo, list_bundled_contracts, show_contract, export_contracts,
 )
 
-_EXPECTED_NAMES = {
-    "adapter.schema.json", "adapter.toml", "catalogue.schema.json",
-    "guide.schema.json", "pack.schema.json", "plugin-manifest.derived.schema.json",
-    "plugin-manifest.schema.json", "profile.schema.json",
-    "skill-manifest.schema.json", "skill.schema.json", "target-vocab.toml",
-}
+# Derive expected names from contracts/ (canonical authority) rather than a
+# frozen set. _data/-only files (install-defaults.toml, install-marker.py) and
+# the catalogue-scaffold/ subdirectory are not public contracts.
+_DATA_ONLY = {"install-defaults.toml", "install-marker.py"}
+
+def _expected_names() -> set:
+    """Return the set of public contract names from the contracts/ directory.
+
+    Matches the parity tool: only .json and .toml files (excludes README.md etc.)
+    and excludes _data/-only internals.
+    """
+    contracts_dir = Path(__file__).parent.parent.parent.parent.parent / "contracts"
+    return {
+        p.name for p in contracts_dir.iterdir()
+        if p.is_file()
+        and p.suffix in {".json", ".toml"}
+        and p.name not in _DATA_ONLY
+    }
 
 class TestListBundledContracts:
-    def test_returns_eleven_contracts(self):
+    def test_returns_at_least_one_contract(self):
         result = list_bundled_contracts()
-        assert len(result) == 11
+        assert len(result) >= 1
 
-    def test_names_match_expected_set(self):
+    def test_names_match_contracts_directory(self):
         names = {c.name for c in list_bundled_contracts()}
-        assert names == _EXPECTED_NAMES
+        assert names == _expected_names()
 
     def test_kind_json_schema_for_schema_files(self):
         for c in list_bundled_contracts():
@@ -175,10 +187,10 @@ class TestExportContracts:
         export_contracts(out)
         assert out.is_dir()
 
-    def test_writes_eleven_files(self, tmp_path):
+    def test_writes_expected_files(self, tmp_path):
         out = tmp_path / "out"
         written = export_contracts(out)
-        assert len(written) == 11
+        assert len(written) == len(_expected_names())
 
     def test_content_matches_show(self, tmp_path):
         out = tmp_path / "out"
@@ -208,32 +220,38 @@ class TestExportContracts:
 
 Define `ContractInfo` as a `dataclasses.dataclass` with `name: str`, `kind: str`, `file: str`.
 
-Define the canonical allowlist as a module-level frozenset of the 11 names verified at spec time.
-Do not discover dynamically from `_data/` at runtime (avoids surprises when new `_data/`-only
-files are added).
+Derive public contract membership by scanning the bundled `_data/` package directory via
+`importlib.resources` and excluding `_data/`-only internals (`install-defaults.toml`,
+`install-marker.py`) and the `catalogue-scaffold/` subtree. Do not maintain a second
+manually synchronized frozenset — use `contracts/` (via parity tool) as the canonical
+authority; the runtime scan of `_data/` (which mirrors `contracts/`) is the air-gapped
+equivalent. The explicit exclusion list prevents internal defaults from surfacing as public
+contracts when new `_data/`-only files are added.
 
+Define the internal exclusions as a module-level frozenset:
 ```python
-_PUBLIC_CONTRACTS: frozenset[str] = frozenset({
-    "adapter.schema.json", "adapter.toml", "catalogue.schema.json",
-    "guide.schema.json", "pack.schema.json", "plugin-manifest.derived.schema.json",
-    "plugin-manifest.schema.json", "profile.schema.json",
-    "skill-manifest.schema.json", "skill.schema.json", "target-vocab.toml",
-})
+_DATA_ONLY_NAMES: frozenset[str] = frozenset({"install-defaults.toml", "install-marker.py"})
 ```
 
-Use `importlib.resources.files("agentbundle").joinpath("_data")` to load files:
+Do **not** define a `_PUBLIC_CONTRACTS` frozenset — contract membership is derived at
+runtime from the `_data/` bundle so it stays correct when new public contracts are added.
+
+Use `importlib.resources.files("agentbundle").joinpath("_data")` to enumerate and load:
 
 ```python
 from importlib.resources import files as _res_files
 
-def _resource(name: str):
-    return _res_files("agentbundle").joinpath("_data").joinpath(name)
+def _data_dir():
+    return _res_files("agentbundle").joinpath("_data")
 ```
 
-`list_bundled_contracts()`: iterate `_PUBLIC_CONTRACTS` in sorted order, build `ContractInfo`.
+`list_bundled_contracts()`: iterate the `_data/` package directory contents; include only
+entries whose name ends in `.json` or `.toml`, is not in `_DATA_ONLY_NAMES`, and is not
+inside the `catalogue-scaffold/` subtree; sort by name; build and return `ContractInfo` list.
 
-`show_contract(name)`: reject names with `/` or `\`; return None if not in allowlist;
-read via `importlib.resources`.
+`show_contract(name)`: reject names with `/` or `\` (return None, no ValueError); build
+the member set from `list_bundled_contracts()` names; return None if not in that set;
+read content via `_data_dir().joinpath(name).read_text(encoding="utf-8")`.
 
 `export_contracts(output_dir)`: check for symlink via `output_dir.is_symlink()` (lstat,
 does **not** call `.resolve()` first — `.resolve().is_symlink()` always returns False after
@@ -310,13 +328,15 @@ class TestShowSubcommand:
 class TestExportSubcommand:
     def test_creates_files_exits_0(self, tmp_path, capsys):
         from agentbundle.commands.catalogue_contracts import run
+        from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
         out_dir = tmp_path / "exported"
         ns = _make_ns(contracts_sub="export", output=str(out_dir))
         rc = run(ns)
         captured = capsys.readouterr()
         assert rc == 0
         files = list(out_dir.iterdir())
-        assert len(files) == 11
+        expected_count = len(list_bundled_contracts())
+        assert len(files) == expected_count
         # Each written filename must appear in stdout manifest (AC15)
         for f in files:
             assert f.name in captured.out, f"{f.name!r} missing from stdout manifest"
@@ -579,7 +599,7 @@ class TestColdReadPath:
     def test_all_listed_names_can_be_shown(self):
         """Full cold-read: list → show each → non-empty content."""
         contracts = list_bundled_contracts()
-        assert len(contracts) == 11
+        assert len(contracts) >= 1  # count derives from contracts/ authority
         for info in contracts:
             content = show_contract(info.name)
             assert content is not None, f"show_contract({info.name!r}) returned None"
@@ -601,7 +621,7 @@ class TestExportMatchesShow:
     def test_exported_files_match_show_content(self, tmp_path):
         """Each exported file's bytes match show_contract() for the same name."""
         written = export_contracts(tmp_path)
-        assert len(written) == 11
+        assert len(written) >= 1  # count derives from contracts/ authority
         for fname in written:
             disk_bytes = (tmp_path / fname).read_bytes()
             shown = show_contract(fname)
@@ -637,26 +657,20 @@ class TestExportMatchesShow:
 
 **Approach:**
 
-1. Bump `pyproject.toml` `version = "0.27.0"` → `"0.28.0"`.
-2. Bump `version.py` `CLI_VERSION = "0.27.0"` → `"0.28.0"`.
-3. Add changelog entry (match 0.27.0 shape).
-4. OQ1 resolution in `docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md`:
-   a. Check the OQ1 box: `- [ ] OQ1 resolved...` → `- [x] OQ1 resolved in Wave 3 spec: D5 surface does not conflict with ini-005 catalogue-tooling-rewire`.
-   b. Append AC1's exact resolved text to the OQ1 prose block (the paragraph at ~line 540)
-      so the RFC records the resolution rationale alongside the checkmark:
-      "`agentbundle catalogue contracts` does not conflict with ini-005 `catalogue-tooling-rewire`
-      (spec not yet authored). Wave 3 claims this path."
-5. Add `(deferred: init-result-json-next-steps)` backlog entry to `workspace.toml [backlog].open`:
-   ```toml
-   # spec/catalogue-wave3-enterprise-authoring-discovery deferred AC. InitResult JSON
-   # output lacks a next_steps field (SelfHostedInitResult has one; consistency gap).
-   # Fix: add next_steps: list[str] to InitResult and populate in init_catalogue(); ensure
-   #   JSON output includes the field when result.ok. Requires updating tests/unit/test_catalogue_tooling_init.py.
-   # Unblocks when: someone decides JSON output consistency matters for automation consumers.
-   {slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"},
-   ```
-6. Commit the new CLI subcommand commits with footer `Engine-Change-RFC: RFC-0076`.
-7. Run full regression gates:
+1. Inspect current HEAD version: `grep '^version' packages/agentbundle/pyproject.toml`.
+   Bump `pyproject.toml` `version` and `version.py` `CLI_VERSION` to the next available
+   minor (at Phase 0 approval, HEAD is `0.27.0`; the next minor is `0.28.0` — verify no
+   other branch has claimed it before opening the PR).
+2. Add changelog entry (match 0.27.0 shape).
+3. OQ1 resolution in `docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md`:
+   a. Check the OQ1 box: `- [ ] OQ1 resolved...` → `- [x] OQ1 resolved in Wave 3 spec`.
+   b. Append AC1's exact resolved text to the OQ1 prose block so the RFC records the
+      resolution rationale alongside the checkmark (see AC1 for exact wording).
+4. Verify `init-result-json-next-steps` already exists in `workspace.toml [backlog].open`
+   (present as of Phase 0 reconciliation, 2026-07-31). Do NOT create a duplicate entry.
+   Reference: `{slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"}`.
+5. Commit the new CLI subcommand commits with footer `Engine-Change-RFC: RFC-0076`.
+6. Run full regression gates:
 
 **Done when:**
 ```bash
@@ -664,10 +678,11 @@ SKIP_SAST=1 make build-check   # exit 0
 python3 -m pytest packages/agentbundle/tests/ -q   # exit 0
 python3 tools/catalogue/check_contract_parity.py   # exit 0
 python3 tools/catalogue/sync_authoring_scaffold.py --check  # exit 0
-grep "0.28.0" packages/agentbundle/pyproject.toml   # 1 match
-grep "0.28.0" packages/agentbundle/agentbundle/version.py  # 1 match
+# Replace <VER> with the actual version selected (expected 0.28.0 from current HEAD)
+grep "<VER>" packages/agentbundle/pyproject.toml   # 1 match
+grep "<VER>" packages/agentbundle/agentbundle/version.py  # 1 match
 grep -F '- [x] OQ1 resolved' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (AC1 checkbox)
 grep -F 'Wave 3 claims this path' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (AC1 prose)
-grep "init-result-json-next-steps" workspace.toml   # 1 match (deferred slug registered)
-grep -E "0\.28\.0|\[Unreleased\]" docs/product/changelog.md   # 1+ match (AC26)
+grep "init-result-json-next-steps" workspace.toml   # 1+ match (pre-existing; no duplicate)
+grep -E "<VER>|\[Unreleased\]" docs/product/changelog.md   # 1+ match (AC26)
 ```

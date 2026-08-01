@@ -32,10 +32,14 @@ profile metadata without Claude-specific assumptions.
 RFC-0076 OQ2 asks the Wave 4 spec to confirm the `agentbundle catalogue index` command
 spelling does not conflict with ini-005's CLI surface. Verification:
 
-- ini-005 (`catalogue-tooling-init` spec, Status: Shipped) adds `agentbundle catalogue init`.
+- Phase 0 reconciliation (2026-07-31) closed ini-005 as complete. The three remaining
+  queue entries (`catalogue-tooling-rewire`, `catalogue-tooling-docs`,
+  `catalogue-tooling-ci-gates`) were never authored; no spec dirs exist. ini-005's only
+  shipped command is `agentbundle catalogue init` (delivered as `catalogue-tooling-init`).
 - No `catalogue_index.py` or `catalogue index` subcommand exists in
-  `packages/agentbundle/agentbundle/commands/` at HEAD.
-- `agentbundle catalogue index` is confirmed non-conflicting.
+  `packages/agentbundle/agentbundle/commands/` at HEAD (confirmed by directory listing).
+- `agentbundle catalogue index` is confirmed unoccupied. The command is specified but
+  not yet implemented.
 
 **Resolved: `agentbundle catalogue index` is the normative command spelling.**
 
@@ -77,7 +81,8 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   normative for index generation.
 - Auto-install or dispatch integrations from the generated index.
 - Add third-party runtime dependencies to agentbundle.
-- Create a `plan.md` for this spec (light administrative decision; implementation is scoped).
+- Omit `plan.md` — Wave 4 is a full public-contract, CLI, schema, packaging, and engine
+  change that requires an explicit implementation plan. See [`plan.md`](plan.md).
 
 ## Testing Strategy
 
@@ -88,9 +93,9 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   generator's warning/exclude/empty-array behavior. No standalone JOURNEY.md JSON Schema
   validator exists in this wave (deferred per Assumption 11).
 - **catalogue-index.schema.json (Phase B, AC9–AC13):** TDD — Python tests assert the schema
-  is valid JSON Schema draft-07; normative field presence/absence produces the expected
-  validation outcomes against fixture index documents; byte-parity test confirms
-  `contracts/` and `_data/` copies are identical.
+  is valid JSON (and, optionally, valid JSON Schema 2020-12 meta-schema); normative field
+  presence/absence produces the expected validation outcomes against fixture index documents;
+  byte-parity test confirms `contracts/` and `_data/` copies are identical.
 - **`agentbundle catalogue index` command (Phase C, AC14–AC22):** integration tests — run
   the command against the first-party catalogue; confirm output file parses as JSON and
   validates against the schema; `--dry-run` writes nothing; `--format json` emits one
@@ -173,21 +178,51 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 ### Phase B — catalogue-index.schema.json
 
 - [ ] AC9: `contracts/catalogue-index.schema.json` is created. It is a valid JSON Schema
-  draft-07 document. It defines the following top-level structure:
+  draft 2020-12 document (consistent with pack.schema.json, profile.schema.json, and
+  catalogue.schema.json). It uses `"$schema": "https://json-schema.org/draft/2020-12/schema"`,
+  a stable `"$id"` (e.g. `"catalogue-index.schema.json"`), `"additionalProperties": false`
+  at every object level, and a `"schema_version"` field to track schema evolution.
+  It defines the following top-level structure:
   - `schema_version` (string, required, enum `["1"]`)
-  - `generated_at` (string, required, format `date-time`)
-  - `catalogue` (object, required) with sub-fields `name` (string, required), `version`
-    (string, required), `description` (string, optional)
+  - `generated_at` (string, optional, format `date-time`) — omitted when
+    `SOURCE_DATE_EPOCH` is unset, so the index is byte-identical by default; set only
+    when `SOURCE_DATE_EPOCH` (Unix timestamp) or `--generated-at <iso8601>` is supplied
+  - `catalogue` (object, required) with sub-fields:
+    - `name` (string, required) — sourced from `catalogue.toml [catalogue].name`
+    - `description` (string, optional) — sourced from `catalogue.toml [catalogue].description`
+    - `version` is omitted — `catalogue.toml` has no authoritative version field; do not
+      invent a release number; packaging release identity is associated during
+      `catalogue package`, not during index generation
   - `packs` (array, required) — see AC10
   - `profiles` (array, required) — see AC11
 
 - [ ] AC10: Each element of `packs` in the schema defines:
   - Required: `name` (string), `version` (string), `scope` (string, enum `["repo","user"]`)
-  - Conditionally required (present when data is available): `description` (string),
-    `categories` (array of strings), `lifecycle` (string), `adapters` (array of strings),
-    `integrations` (array of integration-reference objects), `integrations_inverse`
-    (array of integration-reference objects), `journeys` (array of journey-summary objects),
-    `effects` (array of effect-declaration objects), `documentation` (string)
+  - Optional (present when data is available from the authoritative source listed):
+    - `description` (string) — from `pack.toml [pack].description`
+    - `categories` (array of strings) — from `pack.toml [pack].categories`
+    - `adapters` (array of strings) — adapter target names supported by this pack, derived
+      from `contracts/adapter.toml [adapter]` keys; the source of truth is the adapter
+      contract, not a pack-level field. Include all standard adapter targets unless the
+      pack's `[pack.adapter-contract]` explicitly constrains them (deferred: exact
+      derivation rule to be confirmed against `catalogue lint` adapter validation logic
+      during implementation).
+    - `integrations` (array of integration-reference objects) — from
+      `[[pack.integrations]]` entries in `pack.toml` when present (Wave 2 data);
+      empty array when absent
+    - `integrations_inverse` (array of integration-reference objects) — populated by
+      scanning all other packs' integration entries for references to this pack;
+      empty array when absent
+    - `journeys` (array of journey-summary objects) — from `JOURNEY.md` frontmatter
+      when present and valid; empty array when absent or invalid
+    - `effects` (array of effect-declaration objects) — from `JOURNEY.md` frontmatter
+      `effects` field (AC3) when present; this is author-declared only; no automatic
+      inference from pack structure. Empty array when absent.
+    - `documentation` (string) — from `JOURNEY.md` frontmatter `docsUrl` when present
+    - `lifecycle` is deferred to a follow-on semantic-contract wave. `lifecycle` is not
+      an existing `pack.toml` field and `pack.schema.json` has no `lifecycle` property.
+      Do not pretend it is an existing field. A future wave may add it to
+      `pack.schema.json` and the index schema in the same spec.
   - Required for packs: `digest` (string) — SHA-256 hex; omitted only when the pack
     directory cannot be read (see AC17)
   - `journey-summary` object fields: `journey_id` (string, required), `pack` (string,
@@ -197,9 +232,16 @@ spelling does not conflict with ini-005's CLI surface. Verification:
     (string), `role` (string)
   - `effect-declaration` object fields: `kind` (string), `description` (string)
 
-- [ ] AC11: Each element of `profiles` in the schema defines: `name` (string, required),
-  `version` (string, required), `scope` (string, required), `description` (string,
-  optional).
+- [ ] AC11: Each element of `profiles` in the schema defines:
+  - `name` (string, required) — the profile filename stem (e.g. `solution-architect`)
+  - `scope` (string, required) — from `profile.toml scope`; enum `["user","repo"]`
+  - `description` (string, optional) — from `profile.toml description`
+  - `version` is omitted — `profile.schema.json` has no `version` field and profile
+    TOML files carry no version. Do not invent a profile version. Rich profile discovery
+    metadata (capability tags, pack dependencies) is deferred to a follow-on wave.
+  - `packs` (array of strings, optional) — the ordered pack name list from `profile.toml`;
+    omitted if the implementing work-loop determines it is redundant given the pack entries
+    already in the index.
 
 - [ ] AC12: `packages/agentbundle/agentbundle/_data/catalogue-index.schema.json` is
   byte-identical to `contracts/catalogue-index.schema.json`. This is verified by the
@@ -226,19 +268,37 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 - [ ] AC16: The generated `catalogue-index.json`:
   - Passes `contracts/catalogue-index.schema.json` validation before being written.
-  - Is deterministic when `generated_at` is fixed: two invocations with identical input
-    and the same `generated_at` value produce byte-identical output. The command honours
-    `SOURCE_DATE_EPOCH` (Unix timestamp) to override `generated_at` for reproducible
-    builds; absent `SOURCE_DATE_EPOCH`, it uses the live UTC clock.
+  - Is deterministic by default: two invocations with identical input and no timestamp
+    flag produce byte-identical output. `generated_at` is omitted unless
+    `SOURCE_DATE_EPOCH` (Unix timestamp) or `--generated-at <iso8601>` is supplied,
+    in which case the field is included using ISO 8601 format (UTC, second precision).
+    No wall-clock call is made when neither is supplied.
   - Is UTF-8 with a final newline.
   - Is sorted: packs alphabetically by name; profiles alphabetically by name.
-  - Uses ISO 8601 format for `generated_at` (UTC, second precision).
 
 - [ ] AC17: `digest` for each pack entry is the SHA-256 hex digest of the sorted,
-  UTF-8-encoded concatenation of `<relative-path>:<sha256-of-file-bytes>` for every
-  non-hidden, non-generated file in the pack directory tree. Files are sorted by
-  relative path (POSIX separators, case-sensitive ascending). The `digest` field is
-  always populated for packs; it is omitted only when the pack directory cannot be read.
+  UTF-8-encoded concatenation of `<relative-path>:<sha256-of-file-bytes>\n` for every
+  distributed pack source file in the pack directory tree. The digest must include
+  dot-prefixed paths — canonical pack implementation lives under `.apm/**`,
+  `.claude-plugin/plugin.json`, and similar dot-prefixed paths.
+  **Included:** `pack.toml`, `README.md`, `JOURNEY.md`, `.claude-plugin/plugin.json`,
+  `.apm/**`, skills, agents, commands, scripts, hooks, hook wiring, libraries, seeds,
+  evals, and pack-local assets.
+  **Excluded:** generated adapter projections (`.claude-code/`, `.cursor/`, `.kiro/`,
+  `.copilot/`, `.codex/`), installed state, caches (`.cache/`, `__pycache__/`),
+  temporary files, build output (`dist/`), and non-distributed local overlays.
+  **Algorithm details:**
+  - Files sorted by relative path (POSIX separators, case-sensitive ascending)
+  - Symlinks: not followed; the symlink entry itself is excluded from the digest
+    (do not dereference outside-tree symlinks)
+  - Line endings: bytes as-is (no normalization)
+  - File modes: not included
+  - Case: paths are case-sensitive (POSIX canonical)
+  - Unreadable file: raises and propagates the error (does not silently skip)
+  - Cross-platform: path separator normalized to `/` before hashing
+  The `digest` field is always populated for packs; it is omitted only when the pack
+  directory cannot be read. Wave 5 reuses this same library implementation for
+  mutation-refusal comparison.
 
 - [ ] AC18: `packs[].integrations` is populated from `[[pack.integrations]]` entries in
   the pack's `pack.toml` when present; otherwise an empty array. `packs[].integrations_inverse`
@@ -246,10 +306,16 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   pack; otherwise an empty array. (Both fields are empty arrays in a Wave 4 catalogue
   that predates Wave 2.)
 
-- [ ] AC19: Exit codes: 0 (success, file written or dry-run clean; JOURNEY.md required-key
-  violations emit warnings but do not escalate to exit 1), 1 (catalogue-index schema
-  validation failure, file write failure), 2 (CLI usage error). Schema validation failure
-  output names the failing field and value.
+- [ ] AC19: Exit codes:
+  - 0: success (file written or dry-run clean)
+  - 0 + structured warning to stderr: JOURNEY.md required-key violations (journey data
+    excluded); malformed JOURNEY.md YAML (invalid YAML → treat as absent, emit warning,
+    continue); optional keys absent (no warning)
+  - 0 + structured warning: old external catalogues without JOURNEY.md remain valid
+    (JOURNEY.md is always optional)
+  - 1: catalogue-index schema validation failure (output names the failing field and
+    value); file write failure; unreadable pack directory
+  - 2: CLI usage error (invalid flag, missing required argument)
 
 - [ ] AC20: The command makes no network requests. It does not invoke subprocesses. It
   reads only files within `CATALOGUE_ROOT` (path-safety validation as per `scaffold.py`
@@ -300,17 +366,19 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 ### Phase F — Engine change and release markers
 
-- [ ] AC29: `packages/agentbundle/pyproject.toml` version is bumped to `0.27.0` (minor
-  bump: new public command + new bundled schema). `packages/agentbundle/agentbundle/version.py`
-  `CLI_VERSION` is set to `"0.27.0"` in lockstep.
+- [ ] AC29: `packages/agentbundle/pyproject.toml` version is bumped to the next available
+  AgentBundle minor version after inspecting current HEAD at implementation time (Wave 2
+  shipped as `0.27.0`; Wave 3 targets `0.28.0`; Wave 4 takes the next unclaimed minor
+  after both — verify before opening the PR).
+  `packages/agentbundle/agentbundle/version.py` `CLI_VERSION` is set to match in lockstep.
 
 - [ ] AC30: Every commit that modifies `agentbundle/_data/` or adds the new CLI command
   includes `Engine-Change-RFC: RFC-0076` in the commit message footer.
 
-- [ ] AC31: `docs/product/changelog.md` has an `[Unreleased]` or `0.27.0` entry covering:
+- [ ] AC31: `docs/product/changelog.md` has an `[Unreleased]` or `<VER>` entry covering:
   new `catalogue index` command; `catalogue-index.schema.json` bundled in `_data/`;
-  version bump to 0.27.0. (Matches 0.26.1 precedent — user-visible entries land in
-  `docs/product/changelog.md`, not `packages/agentbundle/CHANGELOG.md`.)
+  version bump. (User-visible entries land in `docs/product/changelog.md`, not
+  `packages/agentbundle/CHANGELOG.md`.)
 
 ### Regression
 
@@ -340,10 +408,12 @@ spelling does not conflict with ini-005's CLI surface. Verification:
    `journey_id`, `pack`, `start_state`, `end_state`, `scope`, `tagline`, and `contract`
    with sub-keys `useItWhen`, `youProvide`, `youReceive`, `yourDecisions` are present in
    both files at HEAD).
-7. `packs[].lifecycle` is sourced from `pack.toml` (existing field); if absent, the index
-   entry omits the `lifecycle` field rather than emitting a null.
-8. `packs[].adapters` is sourced from `pack.toml` `[distribution.agentbundle]` adapter
-   settings; emitted as an array of adapter target name strings.
+7. `packs[].lifecycle` is deferred — `pack.toml` has no `lifecycle` field and
+   `pack.schema.json` has no `lifecycle` property (confirmed at HEAD). Removed from AC10.
+8. `packs[].adapters` is derived from `contracts/adapter.toml [adapter]` keys (e.g.,
+   `claude-code`, `cursor`, `kiro`, `copilot`, `codex`). There is no
+   `[distribution.agentbundle]` section in `pack.toml`; derivation logic to be confirmed
+   against `catalogue lint` adapter validation during implementation (see AC10 deferred note).
 9. `packs[].documentation` is sourced from JOURNEY.md frontmatter `docsUrl` when present;
    otherwise omitted from the index entry.
 10. The `digest` algorithm (AC17) is consistent with the SHA-256 approach described in
@@ -352,11 +422,10 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 **Version sequencing**
 
-Wave 2 (pack.integrations) and Wave 4 (catalogue index) are parallel and both target
-version `0.27.0`. The second PR to merge must rebase and take the then-current version
-as its base: if Wave 2 ships as `0.27.0`, Wave 4 bumps to `0.28.0`; if both merge
-together in a single PR, `0.27.0` is correct. Verify before opening the PR that no
-other PR has already claimed `0.27.0`.
+Wave 2 shipped as `0.27.0`. Wave 3 targets `0.28.0`. Wave 4 (catalogue index) takes the
+next unclaimed minor version after both predecessor waves have merged. Verify which version
+is available before opening the Wave 4 PR — do not open with a version that has already
+been claimed by another in-flight or shipped branch.
 
 **Deferred**
 
@@ -369,8 +438,9 @@ other PR has already claimed `0.27.0`.
 13. Pack-level digest changes triggering `catalogue-manifest.json` mutation refusal is Wave
     5 scope (D8). The `digest` field added to the index in this wave does not change any
     packaging behavior.
-14. `profiles[]` in the index will contain basic profile metadata (name, version, scope,
-    description from profile.toml). Rich profile discovery metadata (capability tags,
-    pack dependencies) is deferred to a follow-on spec.
+14. `profiles[]` in the index will contain basic profile metadata (name, scope,
+    description from profile.toml). No `version` field — `profile.schema.json` has no
+    version property (corrected in AC11). Rich profile discovery metadata (capability
+    tags, pack dependencies) is deferred to a follow-on spec.
 15. Cross-catalogue `integrations_inverse` (referencing packs not in the current catalogue)
     remains deferred per RFC-0076 D6 (requires registry-qualified identities).

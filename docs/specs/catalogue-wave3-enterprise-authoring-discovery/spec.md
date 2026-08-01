@@ -24,11 +24,12 @@ catalogue init` success path surfaces the authoring hub path and the new CLI. Hu
 12 documents the three commands so offline readers find them without visiting the source repo.
 
 **OQ1 resolution (RFC-0076):** Wave 3 verifies that `agentbundle catalogue contracts`
-does not conflict with ini-005's `catalogue-tooling-rewire` spec. The rewire spec has not
-been authored as of this wave. Current registered `agentbundle catalogue` subcommands:
-`lint`, `verify`, `build`, `self-host`, `package`, `sync-defaults`, `init`. The
-`contracts` subcommand path is not reserved. Wave 3 claims `agentbundle catalogue contracts`
-and marks OQ1 resolved in RFC-0076.
+does not conflict with ini-005's surface. Phase 0 reconciliation (2026-07-31) closed
+ini-005 as complete: `catalogue-tooling-rewire` was never authored; no spec dir exists;
+no `catalogue contracts` subcommand was registered. Current registered `agentbundle
+catalogue` subcommands: `lint`, `verify`, `build`, `self-host`, `package`,
+`sync-defaults`, `init`. The `contracts` subcommand path is confirmed unoccupied.
+Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-0076.
 
 ## Boundaries
 
@@ -80,14 +81,16 @@ and marks OQ1 resolved in RFC-0076.
 - **CLI registration (AC2–AC5):** goal-based — `--help` on the new subcommand group and
   each sub-subcommand exits 0 with the expected flags and positionals visible.
 - **Contracts inspector (AC6–AC10):** TDD — `test_catalogue_wave3_contracts_inspector.py`
-  unit tests: list count, kind mapping, show returns content for valid name / None for
-  invalid, export writes all files with matching content.
+  unit tests: list membership derived from canonical contracts/ source (not frozen count),
+  kind mapping, show returns content for valid name / None for invalid, export writes all
+  files with matching content.
 - **contracts list output (AC11–AC12):** TDD — `test_catalogue_wave3_contracts_cli.py`
   calls the handler with a namespace; asserts table rows and JSON array structure.
 - **contracts show output (AC13–AC14):** TDD — valid name exits 0 with non-empty stdout;
   invalid name exits non-zero.
-- **contracts export output (AC15–AC17):** TDD — output directory created; all 11 files
-  written; "reference copies only" notice in stderr; symlink target exits 2.
+- **contracts export output (AC15–AC17):** TDD — output directory created; all contract
+  files written (count derived from contracts/ authority); "reference copies only" notice
+  in stderr; symlink target exits 2.
 - **Init next-step output (AC18–AC19):** TDD — success table output contains the hub
   path and contracts-list hint; JSON output schema unchanged.
 - **Hub section 12 (AC20–AC22):** goal-based — section present; scaffold sync check
@@ -107,8 +110,10 @@ and marks OQ1 resolved in RFC-0076.
 
 - [ ] AC1: RFC-0076 OQ1 is marked resolved. The OQ1 checkbox in
   `docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md` is checked.
-  The resolved text states: "`agentbundle catalogue contracts` does not conflict with
-  ini-005 `catalogue-tooling-rewire` (spec not yet authored). Wave 3 claims this path."
+  The resolved text states: "`agentbundle catalogue contracts` is confirmed unoccupied.
+  ini-005 is complete; `catalogue-tooling-rewire` was never authored and no `catalogue
+  contracts` subcommand was registered. Wave 3 claims this path. The command is
+  specified but not yet implemented."
 
 - [ ] AC2: `agentbundle catalogue contracts --help` exits 0 and lists three
   subcommands: `list`, `show`, `export`.
@@ -130,17 +135,24 @@ and marks OQ1 resolved in RFC-0076.
   - `show_contract(name: str) -> str | None`
   - `export_contracts(output_dir: Path) -> list[str]`
 
-- [ ] AC7: `list_bundled_contracts()` returns exactly 11 entries — one for each file
-  present in both `contracts/` and `agentbundle/_data/`. The 11 names are:
+- [ ] AC7: `list_bundled_contracts()` returns all files present in both `contracts/`
+  and `agentbundle/_data/`, minus the `_data/`-only internal files
+  (`install-defaults.toml`, `install-marker.py`) and the `catalogue-scaffold/`
+  subdirectory. The implementation derives membership from `contracts/` as the
+  canonical authority — do not maintain a second manually synchronized list. At the
+  time this spec was approved, the set contained 11 entries:
   `adapter.schema.json`, `adapter.toml`, `catalogue.schema.json`, `guide.schema.json`,
   `pack.schema.json`, `plugin-manifest.derived.schema.json`,
   `plugin-manifest.schema.json`, `profile.schema.json`, `skill-manifest.schema.json`,
-  `skill.schema.json`, `target-vocab.toml`. The `install-defaults.toml` file and the
-  `catalogue-scaffold/` subdirectory are not included. Each `ContractInfo.kind` is
+  `skill.schema.json`, `target-vocab.toml`. Each `ContractInfo.kind` is
   `"json-schema"` for `*.schema.json` files and `"toml"` for `*.toml` files.
+  The implementation and tests must derive expected membership from
+  `python3 tools/catalogue/check_contract_parity.py` (or the equivalent contracts/
+  directory scan) rather than from a frozen count constant.
 
 - [ ] AC8: `show_contract(name)` returns the full UTF-8 string content of the named
-  bundled file when `name` is one of the 11 public contract names. Returns `None` when
+  bundled file when `name` is one of the public contract names (derived dynamically
+  from `list_bundled_contracts()`). Returns `None` when
   `name` is not in the known set. `show_contract` with a name containing `/` or `\`
   returns `None` (path-separator rejection, no ValueError).
 
@@ -235,10 +247,12 @@ and marks OQ1 resolved in RFC-0076.
 
 ### Phase G — Engine change, version, changelog, regression
 
-- [ ] AC25: `packages/agentbundle/pyproject.toml` version is bumped to `0.28.0`.
-  `packages/agentbundle/agentbundle/version.py` `CLI_VERSION` is set to `"0.28.0"` in
-  lockstep. At least one commit in the PR contains `Engine-Change-RFC: RFC-0076` in
-  its message.
+- [ ] AC25: `packages/agentbundle/pyproject.toml` version is bumped to the next
+  available AgentBundle minor version after inspecting current HEAD at implementation
+  time (Wave 2 shipped as `0.27.0`; the next minor is `0.28.0` unless another branch
+  has claimed it — verify before opening the PR). `agentbundle/version.py`
+  `CLI_VERSION` is set to match in lockstep. At least one commit in the PR contains
+  `Engine-Change-RFC: RFC-0076` in its message.
 
 - [ ] AC26: `docs/product/changelog.md` has an `[Unreleased]` or `0.28.0` entry
   describing: (a) the new `agentbundle catalogue contracts` CLI surface (`list`, `show`,
