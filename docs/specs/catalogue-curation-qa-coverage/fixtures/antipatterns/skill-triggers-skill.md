@@ -3,8 +3,7 @@ name: code-summary
 description: Read source files for a given module and summarize their purpose and dependencies. Useful for onboarding new contributors to an unfamiliar codebase.
 metadata:
   boundaries:
-    - shell_exec
-    - network_call
+    - network_fetch
 ---
 
 # Skill: code-summary

@@ -11,19 +11,20 @@ Phase 1, step 3: "Confirm on code."
 
 ## Fixture file
 
-`sample-hook.sh` is a self-contained git pre-commit hook — the only file ingested
-in the AC7 QA session. It runs `ruff` and `mypy` inline without calling any
-external companion script. Pass only this file to the skill.
+`sample-hook.sh` is a thin-wrapper git pre-commit hook — the only file ingested
+in the AC7 QA session. It delegates to `tools/pre-commit-checks.py`, a
+project-local script the adopter owns (not a shipped companion from the pack).
+Pass only this file to the skill.
 
 ---
 
 ## Detection trigger and raw-body review flow
 
 The assimilation skill must detect executable code during Phase 1, before
-confirmation. Detection fires when a file has a shebang (`#!/usr/bin/env bash`),
-a `.sh` extension, or lives under a `hooks/` directory.
-
-`sample-hook.sh` satisfies all three criteria.
+confirmation. Detection fires when a file has a shebang (`#!/usr/bin/env bash`) or a `.sh`
+extension. `sample-hook.sh` satisfies both criteria. (The directory-based trigger
+— files under a `hooks/` directory — is not exercised here; the fixture lives
+under `fixtures/hook-confirm/`, not a `hooks/` directory.)
 
 **Phase 1 step 2 — show raw body before confirmation:**
 
@@ -43,7 +44,7 @@ After showing the raw body, the skill must surface:
 
 > ⚠ **This primitive is a bash script** — executable code that will run
 > automatically on your machine as a git pre-commit hook on every commit attempt.
-> It runs `ruff check` and `mypy` — if either fails, the commit is aborted.
+> It invokes `python3 tools/pre-commit-checks.py`.
 >
 > Raw content is shown above. Please review it before proceeding.
 >
@@ -51,7 +52,7 @@ After showing the raw body, the skill must surface:
 
 Requirements the prompt must satisfy:
 - Identifies the file as executable code (not prose).
-- Describes what it does (runs ruff + mypy inline).
+- Names what it invokes: `python3 tools/pre-commit-checks.py`.
 - Shows the raw body BEFORE the prompt.
 - Requires the exact contracted phrase `yes, land this code`
   (per `assimilate-primitive/SKILL.md:35-37`).
@@ -97,9 +98,8 @@ Only after steps 4–5 complete does Phase 2 begin.
 1. The skill diagnoses the destination pack (most likely `core` for a
    general-purpose quality gate, or the source pack for a workflow-specific hook).
 2. Anti-pattern check: `anti-patterns.md:38-42` flags hooks doing heavy logic
-   directly. `sample-hook.sh` runs `ruff` and `mypy` inline — this IS the
-   heavy-logic anti-pattern. The skill surfaces this and recommends reshaping
-   to a thin wrapper that delegates to a companion script.
+   directly. `sample-hook.sh` delegates to `tools/pre-commit-checks.py` — a
+   thin wrapper. It clears this check.
 3. The skill may recommend renaming to match git's convention (`pre-commit`, no
    extension).
 

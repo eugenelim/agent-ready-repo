@@ -128,17 +128,26 @@ Notes on the scaffold:
 - **Eval harness is required** (`packs/AGENTS.md:110-115`): a non-cosmetic pack
   update (and new-pack scaffold) must include:
   - Tier-A activation evals at `.apm/skills/schema-migrate/evals/eval_queries.json`
-    — a flat JSON array with valid stub entries:
+    — a flat JSON array. The scaffold stub ships with two placeholder entries; the
+    operator must expand to ~8–10 trigger and ~8–10 near-miss entries before the
+    skill is registered in `[pack.evals]`. **Do not add the skill to `[pack.evals]`
+    until the harness reaches meaningful coverage** — catalogue lint validates JSON
+    shape only, not coverage depth.
     ```json
     [
       {"query": "Migrate the schema to add a column to the accounts table", "should_trigger": true},
-      {"query": "Show me what columns the orders table currently has", "should_trigger": false}
+      {"query": "Add an index to the users table for email lookups", "should_trigger": true},
+      {"query": "Run all pending migrations against the staging database", "should_trigger": true},
+      {"query": "Show me what columns the orders table currently has", "should_trigger": false},
+      {"query": "Write a query to find customers with more than five orders", "should_trigger": false}
     ]
     ```
-  - `[pack.evals]` block in `pack.toml`, listing only the skills that were actually
-    scaffolded. **Do not list `query-author` or other unscaffolded skills** — the
-    coverage check (`agentbundle catalogue lint --deep`) rejects every listed skill
-    that lacks a corresponding `evals/eval_queries.json`. Only list `schema-migrate`:
+    Operator populates the remaining ~5–8 entries per direction before registration.
+  - `[pack.evals]` block in `pack.toml`, added **only after** the eval harness is
+    populated to meaningful coverage. **Do not list `query-author` or other
+    unscaffolded skills** — the coverage check (`agentbundle catalogue lint --deep`)
+    rejects every listed skill that lacks `evals/eval_queries.json`. Only list
+    `schema-migrate` once its harness is complete:
     ```toml
     [pack.evals]
     skills = ["schema-migrate"]
@@ -212,7 +221,7 @@ Expected output:
 
 > **Reject: fails Principle 3 (Habit, not a tool).** Git operations — committing,
 > branching, opening PRs — are atomic tool invocations, not repeating workflow
-> habits. The developer issues `git commit` or `gh pr create` directly; there is
+> habits. The developer issues `git commit` or `example-scm-cli pr create` directly; there is
 > no recurring sequence that forms a habit a skill should encode. A skill here
 > would substitute a wrapper for a CLI, not capture a genuine pattern of repeated
 > judgment.

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# pre-commit hook: run basic quality gates before each commit.
+# pre-commit hook: delegate quality checks to the project's pre-commit script.
 set -euo pipefail
-python3 -m ruff check . --quiet
-python3 -m mypy packages/agentbundle/ --quiet
+python3 tools/pre-commit-checks.py
