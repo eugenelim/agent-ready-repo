@@ -122,3 +122,4 @@ Run all gates in order (AC13 must run before AC15 — `make build-self` produces
 
 - 2026-07-23: Initial plan authored.
 - 2026-07-31: Plan reconciled with corrected spec after v0.13.0 (96232e62) folded standalone linters into agentbundle CLI. AC1/AC6–AC11 confirmed shipped; remaining work scoped to T1 (D3 fixture tests) + T2 (gates). All `_cs_` prefixes and correct file paths applied; LLD updated to match shipped implementation; AC16 gate updated from deleted `tools/test-lint-credentialed-skills.py` to `SKIP_SAST=1 make build-check`.
+- 2026-08-01: Work-loop completed. Added AC1-fallback test (keyword-arg open(file=...) form caught by substring scan), narrowed Declined keyword-arg item to the part-composed-path gap, added os.environ["HOME"] bypass to Declined, fixed Testing Strategy to Regression/characterization, asserted AC2 line number per spec. Status → Shipped.
