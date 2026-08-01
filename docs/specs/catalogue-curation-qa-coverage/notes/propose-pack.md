@@ -167,15 +167,15 @@ is a **Markdown bullet-list block** placed directly below the H1 title:
 # RFC-NNNN: database-tooling pack
 
 - **Status:** Draft
-- **Author:** <github-handle>
-- **Approver:** <github-handle>
+- **Author:** <account-handle>
+- **Approver:** <account-handle>
 - **Date opened:** YYYY-MM-DD
 - **Date closed:**
 - **Decision weight:** standard
 - **Related:**
 ```
 
-The `Author` field uses the canonical `<github-handle>` placeholder; the skill
+The `Author` field uses the canonical `<account-handle>` placeholder; the skill
 stops and asks if no project convention for governance authorship is established.
 Do not emit YAML delimiters (`---`) around this block — it is not YAML frontmatter.
 

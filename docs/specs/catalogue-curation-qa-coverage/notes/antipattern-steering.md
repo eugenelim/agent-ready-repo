@@ -71,31 +71,26 @@ describing their need.
 
 ### Why this is rejected / steered
 
-The fixture (`doc-quality-rater`) instructs the agent to self-review its own
-ratings in step 4:
+The fixture (`release-note-formatter`) instructs the agent to self-review its
+own output in step 4:
 
-> **Self-review your ratings:**
-> - Re-read the scores you just produced.
-> - Check each score: is it consistent with your stated rationale?
-> - Adjust any score you cannot justify with specific evidence from the file.
+> **Self-review your bullets:**
+> - Re-read each bullet you just wrote.
+> - Check: is it under 25 words? Is it written from the user's perspective?
+> - Revise any bullet that fails either check before presenting.
 
 This is anti-pattern #2 from `anti-patterns.md`: **agent self-review**.
-Step 4 instructs the agent to re-read and re-evaluate ratings it just
-generated in step 3. Self-review provides no independent signal — the same
-reasoning that produced the scores will evaluate them.
+Step 4 instructs the agent to re-read and re-evaluate bullets it just generated
+in step 3. Self-review provides no independent signal — the same reasoning
+that produced the bullets will evaluate them.
 
-`doc-quality-rater` is a **legitimate subagent role** (doc quality rating in a
-forked context, independent of other reasoning). The skill-vs-agent confusion
-check does **not** fire here — quality judgment work benefits from a separate
-reasoning context. The charter reviewer ceiling does **not** fire either —
-`doc-quality-rater` is not a specialized code/security/quality reviewer and does
-not add a fourth item to that ceiling.
-
-**Skill collision scope:** The fixture's description is scoped to "skill and spec
-documentation for internal consistency and format compliance" — a non-overlapping
-scope from `author-product-docs` (which covers product documentation: pack READMEs,
-tutorials, guides, and user-facing docs). Phase 2 step 8 should not surface a
-collision. **Only the self-review in step 4 is the anti-pattern; there is exactly
+`release-note-formatter` is a **legitimate subagent role** (deterministic text
+formatting in a forked context, independent of other reasoning). The skill-vs-agent
+confusion check does **not** fire here — the formatting work benefits from a
+separate context. The charter reviewer ceiling does **not** fire — a changelog
+formatter is not a specialized reviewer; `docs/CHARTER.md:60-62` caps the
+three specialized code/security/quality reviewers, not formatting agents.
+**Only the self-review in step 4 is the anti-pattern; there is exactly
 one detection for this fixture.**
 
 ### Expected detection message
@@ -105,11 +100,11 @@ steering):
 
 > **Anti-pattern detected: agent self-review** (anti-patterns.md §2)
 >
-> `doc-quality-rater` step 4 instructs the agent to re-read and re-evaluate
-> ratings it just produced in step 3. Self-review provides no independent
-> signal — the same model that generated the scores evaluates them.
+> `release-note-formatter` step 4 instructs the agent to re-read and re-evaluate
+> bullets it just produced in step 3. Self-review provides no independent
+> signal — the same model that generated the bullets evaluates them.
 >
-> **Disposition: Steer.** Remove step 4. The documentation quality rating
+> **Disposition: Steer.** Remove step 4. The release-note formatting
 > remains a legitimate subagent workflow; the self-review step alone
 > is the violation.
 
@@ -119,25 +114,24 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 
 ```
 ---
-name: doc-quality-rater
-description: Rate skill and spec documentation for internal consistency and format compliance. Reads each file and produces a rubric score.
+name: release-note-formatter
+description: Format shipped-spec entries into release-note bullets for the changelog. Reads spec files and produces one bullet per spec.
 model: opus
 tools: Read
 ---
 
-# Agent: doc-quality-rater
+# Agent: release-note-formatter
 
 ## Procedure
 
-1. Read the list of documentation files provided by the operator.
-2. For each file, read its full content.
-3. Rate it on three dimensions (1–5 scale): Internal consistency, Format compliance, Completeness.
-4. Present the rubric report to the operator.
+1. Read the list of spec files provided by the operator.
+2. For each spec, read its spec.md and extract the Objective.
+3. Write one release-note bullet: `- **<spec-name>:** <one-sentence summary>`.
+4. Present the bullet list to the operator.
 
 ## Output
 
-Per-file rubric report: file path, three scores (1–5), one-sentence rationale
-per dimension.
+A bulleted list of release-note entries, one per spec.
 ```
 
 Agent frontmatter uses `ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}`.

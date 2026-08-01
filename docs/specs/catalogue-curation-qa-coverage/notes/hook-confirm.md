@@ -21,8 +21,10 @@ only this file to the skill.
 
 The assimilation skill must detect executable code during Phase 1, before
 confirmation. Detection fires when a file has an executable shebang (`#!/usr/bin/env ...`)
-or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
-shebang. (The directory-based trigger — files under a `hooks/` directory — is
+or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python`
+shebang. (`tools/hooks/README.md` standardizes on `python` — not `python3` —
+for cross-platform portability: `python3.exe` is rarely on Windows PATH while
+`python.exe` and the `py` launcher are.) (The directory-based trigger — files under a `hooks/` directory — is
 not exercised here; the fixture lives under `fixtures/hook-confirm/`, not a
 `hooks/` directory.)
 
@@ -158,6 +160,9 @@ Only after steps 4–5 complete does Phase 2 begin.
    - Update the hook inventory in `packs/core/pack.toml`'s `description` field
      to include `pre-commit` alongside the existing hook list
      (`pre-pr, session-start + work-loop-check hooks`).
+   - Update `packs/core/.claude-plugin/plugin.json`'s `description` field
+     to match — `build-self` aggregates the plugin description as-is;
+     stale metadata in `plugin.json` produces stale marketplace entries.
    - Update `packs/core/docs/index.md`: change `**Hooks (3):**` to
      `**Hooks (4):**` and add `pre-commit` to the hook list.
    (`build-self` does not update these inventory strings — they are
@@ -213,7 +218,7 @@ Only after steps 4–5 complete does Phase 2 begin.
 10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
 11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
 12. The version bump AND hook inventory updates happen BEFORE `FORCE=1 make build-self`
-    (pack.toml description + docs/index.md hook count + both version fields).
+    (pack.toml description + plugin.json description + docs/index.md hook count + both version fields).
 13. `docs/product/changelog.md` receives the new `## [core][version]` entry.
 14. The manual install command uses the adapter-specific projected path (not
     `packs/core/.apm/hooks/`).
