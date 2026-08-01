@@ -34,7 +34,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 
 - **POSIX (bash/zsh):** `python3 '<skill-dir>/scripts/workspace_status.py' --root .`
 - **PowerShell:** `python '<skill-dir>/scripts/workspace_status.py' --root .` (single-quoted strings are literal in PS; safe unless the path contains `'`)
-- **cmd.exe:** argv form required — cmd.exe does not treat single quotes as quoting characters; paths with spaces cannot be quoted safely in a shell string.
+- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" --root .` (double-quoted path; safe unless the path contains `"`, which requires the argv form)
 
 Any path with special characters requires the argv form.
 
