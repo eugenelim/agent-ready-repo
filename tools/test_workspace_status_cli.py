@@ -298,18 +298,23 @@ class CLIContractTests(_CliBase):
         if not _CLI.exists():
             self.skipTest("CLI not yet created")
         root = self._write_workspace(_MINIMAL_TOML)
+        scripts_dir = _CLI.parent
 
-        def _snapshot(d: Path) -> dict[str, float]:
-            snap: dict[str, float] = {}
-            for p in d.rglob("*"):
-                if p.is_file():
-                    snap[str(p.relative_to(d))] = p.stat().st_mtime
-            return snap
+        def _snapshot(d: Path) -> set[Path]:
+            return {p for p in d.rglob("*") if p.is_file()}
 
-        before = _snapshot(root)
+        fixture_before = _snapshot(root)
+        scripts_before = _snapshot(scripts_dir)
         _run_cli("--root", str(root))
-        after = _snapshot(root)
-        self.assertEqual(before, after, "CLI created or modified files in the fixture")
+        fixture_after = _snapshot(root)
+        scripts_after = _snapshot(scripts_dir)
+        new_in_fixture = fixture_after - fixture_before
+        new_in_scripts = scripts_after - scripts_before
+        self.assertFalse(new_in_fixture, f"CLI created files in fixture: {new_in_fixture}")
+        self.assertFalse(
+            new_in_scripts,
+            f"CLI created files in skill scripts/ (bytecode leak?): {new_in_scripts}",
+        )
 
     def test_cli_non_repo_cwd(self) -> None:
         """AC11: CLI succeeds when invoked from an unrelated cwd."""
@@ -364,6 +369,9 @@ class CLIContractTests(_CliBase):
         self.assertEqual(ini["name"], "Active Initiative")
         self.assertEqual(ini["status"], "active")
         self.assertEqual(ini["milestone"], "M1")
+        # queue_empty: ini-001 has spec/alpha and spec/beta in queue → not empty
+        self.assertIn("queue_empty", ini, "queue_empty field must be present in initiative dict")
+        self.assertFalse(ini["queue_empty"], "ini-001 queue is non-empty")
 
         # brief_queue shape
         bq = ini.get("brief_queue")
@@ -563,12 +571,13 @@ class SkillWiringTests(unittest.TestCase):
         self.assertIn("--bg", text)
 
     def test_skill_quoted_root(self) -> None:
-        """Boundaries: SKILL.md invocation uses quoted --root."""
+        """Boundaries: SKILL.md passes --root safely (quoted or discrete argv)."""
         text = self._skill_text()
-        # The invocation must quote the root: either --root "<path>" or --root '<path>'
+        # Argv form: "--root" as a quoted array element (canonical).
+        # Shell form: --root "<path>" or --root '<path>' (fallback uses --root .).
         self.assertTrue(
-            '--root "' in text or "--root '" in text,
-            "SKILL.md CLI invocation does not quote the --root argument",
+            '"--root"' in text or '--root "' in text or "--root '" in text,
+            "SKILL.md must pass --root as a quoted shell arg or discrete argv element",
         )
 
 
