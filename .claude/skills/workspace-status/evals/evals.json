@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "workspace status",
-      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py --root <root>) and surfaces the initiative queue from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start — spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). The agent does NOT re-derive readiness or reconciliation independently — all classification data comes from the backend JSON.",
+      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start — spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). The agent does NOT re-derive readiness or reconciliation independently — all classification data comes from the backend JSON.",
       "assertions": [
         "Invokes the backend script rather than independently parsing workspace.toml or recomputing the DAG",
         "Reports the active initiative name from the JSON output ('Example Initiative')",

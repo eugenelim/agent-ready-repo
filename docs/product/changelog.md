@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [core][1.0.3] — 2026-08-01
+
+### Added
+
+- **`workspace-status` progressive read modes (Order 1B).** The `workspace-status` skill now
+  exposes three explicit subcommands: `status` (bounded — Type 2 + 3 only, O(declared entries)),
+  `reconcile` (exhaustive — Type 1 + 2 + 3, same as prior behavior), and `explain --item
+  <selector>` (focused in-memory lookup for one item). `status` is now the default invocation in
+  SKILL.md. JSON output gains `mode`, `scan.*`, and `reconciliation.{performed,complete,
+  types_performed}` fields. Invoking without a subcommand still works as a `reconcile` alias
+  with a deprecation warning on stderr.
+
 ## [Unreleased]
 
 ### Added

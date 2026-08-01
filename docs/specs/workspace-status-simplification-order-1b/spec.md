@@ -111,7 +111,7 @@ warning on stderr. All modes are strictly read-only.
 
 ## Acceptance Criteria
 
-- [ ] AC1. `_run_type1_scan(root, all_tracked)` and `_run_type23_scan(root, initiatives)`
+- [x] AC1. `_run_type1_scan(root, all_tracked)` and `_run_type23_scan(root, initiatives)`
   both exist in the engine as private functions. `_run_type1_scan` has exactly two call
   sites: inside `run_reconciliation` and inside `analyze`. `_run_type23_scan` has exactly
   three call sites: inside `run_reconciliation`, inside `analyze`, and inside
@@ -120,15 +120,15 @@ warning on stderr. All modes are strictly read-only.
   `analyze_bounded` calls `_run_type23_scan` only — it never calls `_run_type1_scan`.
   All declared-spec path resolution in `_run_type23_scan` goes through the existing
   `_safe_spec_path()` confinement helper — no confinement bypass in bounded mode.
-- [ ] AC2. `analyze_bounded(root)` exists and populates `WorkspaceStatusResult` with
+- [x] AC2. `analyze_bounded(root)` exists and populates `WorkspaceStatusResult` with
   `global_scan_performed=False`, `declared_spec_files_read` ≤ N (Type 2+3 reads — entries
   with no spec.md do not increment the count), `global_scan_files_read=0`.
   `result.files_read` (property) returns `declared_spec_files_read`.
-- [ ] AC3. `analyze(root)` (full/reconcile path) populates `global_scan_performed=True`,
+- [x] AC3. `analyze(root)` (full/reconcile path) populates `global_scan_performed=True`,
   `declared_spec_files_read` ≤ N (Type 2+3 reads), `global_scan_files_read` ≥ M (Type 1
   reads — count includes all spec.md files read during the global walk, tracked and
   untracked). `result.files_read` equals `declared_spec_files_read + global_scan_files_read`.
-- [ ] AC4. `explain_item(result, selector)` exists in the engine. Selector is normalized
+- [x] AC4. `explain_item(result, selector)` exists in the engine. Selector is normalized
   to slug using the existing `normalize_for_shaping_guard()`. The function searches
   result in-memory only: never reads a file; never constructs a filesystem path from the
   selector. Lookup is restricted to **active initiatives** (status = "active") and
@@ -144,7 +144,7 @@ warning on stderr. All modes are strictly read-only.
     of more than one distinct active initiative (cross-initiative same-slug collision)
   Ambiguous is declared only when the slug appears in work queues of two or more
   distinct active initiatives simultaneously.
-- [ ] AC5. `explained_item` shape when the item is in the work queue (queue, active,
+- [x] AC5. `explained_item` shape when the item is in the work queue (queue, active,
   or shipped list):
   ```
   path          — canonical queue entry path (e.g. "spec/m1-workspace-core")
@@ -165,42 +165,42 @@ warning on stderr. All modes are strictly read-only.
                          need within their initiative; they become ready if this item
                          shipped). Cross-initiative blocking_needs are not evaluated here.
   ```
-- [ ] AC6. `workspace_status.py status --root <dir>` routes to `analyze_bounded`; JSON
+- [x] AC6. `workspace_status.py status --root <dir>` routes to `analyze_bounded`; JSON
   output contains `"mode": "status"` and `"scan": {"global_spec_scan_performed": false,
   "workspace_files_read": 1, "declared_spec_files_read": ≤N (actual read count, see AC10),
   "global_scan_spec_files_read": 0}`; `reconciliation.types_performed` is `[2, 3]`;
   `reconciliation.performed` is `true`; `reconciliation.complete` is `false`.
-- [ ] AC7. `workspace_status.py reconcile --root <dir>` routes to `analyze` (existing
+- [x] AC7. `workspace_status.py reconcile --root <dir>` routes to `analyze` (existing
   full path); JSON output contains `"mode": "reconcile"` and
   `"scan": {"global_spec_scan_performed": true, ..., "global_scan_spec_files_read": ≥M
   (actual read count, see AC11)}`; `reconciliation.types_performed` is `[1, 2, 3]`;
   `reconciliation.performed` is `true`; `reconciliation.complete` is `true`.
-- [ ] AC8. `workspace_status.py explain --root <dir> --item <selector>` routes to
+- [x] AC8. `workspace_status.py explain --root <dir> --item <selector>` routes to
   `analyze_bounded` then `explain_item`; JSON contains `"mode": "explain"`, `"selector"`,
   `"selector_status"`, and (when matched) `"explained_item"`. Explain mode's `scan`
   reflects the bounded analysis (same as status mode).
-- [ ] AC9. `workspace_status.py --root <dir>` (no subcommand) produces JSON output
+- [x] AC9. `workspace_status.py --root <dir>` (no subcommand) produces JSON output
   identical to `reconcile`; a deprecation warning is emitted on stderr; stdout contains
   only valid JSON; exit code is 0 on success. The absent-workspace branch for all
   subcommands includes `"mode"` in the JSON (`workspace_present: false` payload).
-- [ ] AC10. Structural-cost proof — bounded mode: a fixture with N declared workspace
+- [x] AC10. Structural-cost proof — bounded mode: a fixture with N declared workspace
   entries and M additional untracked live Approved/Implementing specs in `docs/specs/`
   produces `scan.global_scan_spec_files_read` = 0 and
   `scan.declared_spec_files_read` ≤ N in status mode. The global spec tree (`docs/specs/`)
   is never walked in status or explain mode.
-- [ ] AC11. Structural-cost proof — full mode: the same fixture produces
+- [x] AC11. Structural-cost proof — full mode: the same fixture produces
   `scan.global_scan_spec_files_read` ≥ M (Type 1 walk reads the M untracked files) in
   reconcile mode. The Type 1 walk IS performed in reconcile mode.
-- [ ] AC12. The `reconciliation` object in JSON retains `type1`, `type2`, `type3`, and
+- [x] AC12. The `reconciliation` object in JSON retains `type1`, `type2`, `type3`, and
   `type2_cleanup_ops` from Order 1A; `performed`, `complete`, and `types_performed` are
   additive new fields. No existing key is removed or renamed.
-- [ ] AC13. `diagnostics` object preserved in JSON for `status` and `reconcile` modes
+- [x] AC13. `diagnostics` object preserved in JSON for `status` and `reconcile` modes
   with the same fields (`workspace_files_read`, `spec_files_read`) for backward
   compatibility. `diagnostics.spec_files_read` equals `scan.declared_spec_files_read +
   scan.global_scan_spec_files_read`. The `explain` mode JSON is a focused projection
   that does not include `diagnostics` (or `reconciliation` arrays); see `_build_explain_json`
   in the plan LLD. `test_diagnostics_compat` is scoped to status and reconcile modes.
-- [ ] AC14. Explain: valid selector returns `selector_status: "matched"` and
+- [x] AC14. Explain: valid selector returns `selector_status: "matched"` and
   `explained_item` per AC5. Ready entry: `blocking_needs` = `[]`, all dependencies have
   `satisfied: true`. Blocked entry: `blocking_needs` non-empty, unsatisfied dependencies
   listed. `downstream_unblocked` contains only entries for which this item is the sole
@@ -209,24 +209,24 @@ warning on stderr. All modes are strictly read-only.
   Exit code is 0 for both `not_found` and `ambiguous` (structured diagnostics, not errors).
   A CLI-level test (`test_explain_cli_ambiguous_exit0`) asserts exit 0 for an ambiguous
   invocation — not just the engine-level return shape.
-- [ ] AC14a. `explain` active-only scope is documented in the SKILL.md `explain` guidance:
+- [x] AC14a. `explain` active-only scope is documented in the SKILL.md `explain` guidance:
   selectors for shaping items or items in paused/closed initiatives return `not_found`.
   (Plan T4 must include a SKILL.md bullet for this.)
-- [ ] AC14b. `explain` invoked without `--item` exits non-zero (exit 2) with a usage
+- [x] AC14b. `explain` invoked without `--item` exits non-zero (exit 2) with a usage
   error on stderr; stdout is empty. A CLI test (`test_explain_missing_item_arg`) asserts
   this behavior.
-- [ ] AC15. `SKILL.md` procedure invokes `status` subcommand as the default; the
+- [x] AC15. `SKILL.md` procedure invokes `status` subcommand as the default; the
   "Untracked live specs" rendering block is gated on
   `reconciliation.types_performed` containing `1` — when absent, the block is omitted
   and a pointer to `reconcile` mode is shown instead; guidance for when to invoke
   `reconcile` and `explain` is present; new `mode` and `scan` fields documented in the
   Key fields section.
-- [ ] AC16. `make build-self`, focused tests, `make build-check`, and `make ci` pass.
-- [ ] AC17. Existing Order 1A CLI tests all pass without modification. No existing test
+- [x] AC16. `make build-self`, focused tests, `make build-check`, and `make ci` pass.
+- [x] AC17. Existing Order 1A CLI tests all pass without modification. No existing test
   assertion is weakened.
-- [ ] AC18. Each mode invoked end-to-end against the repo's own workspace.toml; exit
+- [x] AC18. Each mode invoked end-to-end against the repo's own workspace.toml; exit
   code, mode field, scan counts, and reconciliation metadata recorded per mode.
-- [ ] AC19. The CLI is read-only in all three modes; verified by the Order 1A AC8
+- [x] AC19. The CLI is read-only in all three modes; verified by the Order 1A AC8
   write-snapshot assertion (test_cli_no_writes) extended to cover all three subcommands.
 
 ## Known gaps preserved from Order 1A

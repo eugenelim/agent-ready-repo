@@ -2206,6 +2206,34 @@ def case_explain_item_active() -> None:
                f"[explain-active] classification={item.get('classification')!r}")
 
 
+def case_explain_item_active_downstream() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Alpha"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/item-b"]
+            shipped = []
+            queue   = [
+                {path = "spec/item-a", needs = ["work:spec/item-b"]},
+            ]
+            ["ini-001".shaping_queue]
+            active  = []
+            backlog = []
+        """)
+        result = analyze_bounded(root)
+        out = explain_item(result, "spec/item-b")
+        expect(out.get("selector_status") == "matched",
+               f"[explain-active-downstream] selector_status={out.get('selector_status')!r}")
+        item = out.get("explained_item", {})
+        downstream = item.get("downstream_unblocked", [])
+        expect("spec/item-a" in downstream,
+               f"[explain-active-downstream] downstream_unblocked={downstream!r} (want item-a)")
+
+
 def case_explain_item_shipped() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -2650,6 +2678,10 @@ def test_explain_item_active() -> None:
     _run_case(case_explain_item_active)
 
 
+def test_explain_item_active_downstream() -> None:
+    _run_case(case_explain_item_active_downstream)
+
+
 def test_explain_item_shipped() -> None:
     _run_case(case_explain_item_shipped)
 
@@ -2736,6 +2768,7 @@ CASES = [
     ("1B explain_item_ready", case_explain_item_ready),
     ("1B explain_item_blocked", case_explain_item_blocked),
     ("1B explain_item_active", case_explain_item_active),
+    ("1B explain_item_active_downstream", case_explain_item_active_downstream),
     ("1B explain_item_shipped", case_explain_item_shipped),
     ("1B explain_item_not_found", case_explain_item_not_found),
     ("1B explain_item_ambiguous_cross_initiative",

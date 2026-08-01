@@ -38,9 +38,9 @@ The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global 
 
 **Shell-string-only tools:** If your adapter cannot be configured to pass a discrete argument vector, use the shell-specific form below — or, for maximum portability, set the working directory to the repository root and pass `--root .`:
 
-- **POSIX (bash/zsh):** `python3 '<skill-dir>/scripts/workspace_status.py' --root .`
-- **PowerShell:** `python '<skill-dir>/scripts/workspace_status.py' --root .` (single-quoted strings are literal in PS; safe unless the path contains `'`)
-- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" --root .` (double-quoted path; safe unless the path contains `"`, `%`, or `!` — any of these requires the argv form)
+- **POSIX (bash/zsh):** `python3 '<skill-dir>/scripts/workspace_status.py' status --root .`
+- **PowerShell:** `python '<skill-dir>/scripts/workspace_status.py' status --root .` (single-quoted strings are literal in PS; safe unless the path contains `'`)
+- **cmd.exe:** `python "<skill-dir>\scripts\workspace_status.py" status --root .` (double-quoted path; safe unless the path contains `"`, `%`, or `!` — any of these requires the argv form)
 
 Any path with special characters requires the argv form.
 
@@ -100,9 +100,14 @@ scan.global_spec_scan_performed  — true only in reconcile mode (Type 1 walk pe
 scan.workspace_files_read        — always 1 (workspace.toml)
 scan.declared_spec_files_read    — spec.md files read for declared entries (Type 2+3 reads)
 scan.global_scan_spec_files_read — spec.md files read during global walk; 0 in status/explain
-reconciliation.performed         — always true (Type 2+3 always run)
+reconciliation.performed         — always true in status/reconcile (Type 2+3 always run)
 reconciliation.complete          — true only in reconcile (all three types performed)
-reconciliation.types_performed   — [2, 3] in status/explain; [1, 2, 3] in reconcile
+reconciliation.types_performed   — [2, 3] in status; [1, 2, 3] in reconcile
+                                   (explain mode omits the reconciliation object entirely)
+selector                         — normalized selector string (explain mode only)
+selector_status                  — "matched" | "not_found" | "ambiguous" (explain mode only)
+explained_item                   — item details when selector_status is "matched" (explain only)
+matches                          — initiative slugs with colliding entries when "ambiguous" (explain only)
 initiatives              — list of active initiatives (slug, name, status, milestone, brief_queue)
 initiatives[].brief_queue — {executing, ready, draft} or null
 work.ready     — list of ready-to-start build entries; each carries ini_slug and blocking_needs

@@ -509,7 +509,7 @@ def _run_type1_scan(
 ) -> tuple[list[ReconciliationFinding], int]:
     """Type 1: Forward scan — untracked live specs. Returns (findings, files_read).
 
-    Call-site count: see AC1 in the spec (canonical definition).
+    Two callers: run_reconciliation and analyze. Never called by analyze_bounded.
     """
     findings: list[ReconciliationFinding] = []
     files_read = 0
@@ -600,9 +600,9 @@ def _run_type23_scan(
 ) -> tuple[list[ReconciliationFinding], int]:
     """Type 2 + 3: Backward and shipped scans. Returns (findings, files_read).
 
+    Three callers: run_reconciliation, analyze, and analyze_bounded.
     All declared-spec path resolution goes through _safe_spec_path() — no
-    confinement bypass in bounded mode (AC1 security invariant).
-    Call-site count: see AC1 in the spec (canonical definition).
+    confinement bypass in bounded mode.
     """
     findings: list[ReconciliationFinding] = []
     files_read = 0
@@ -804,7 +804,12 @@ def explain_item(result: WorkspaceStatusResult, selector: str) -> dict:
         entry = next(e for e in ini.work.active if e.path == target_path)
         blocking_needs: list[str] = []
         dependencies: list[dict] = []
-        downstream_unblocked: list[str] = []
+        sole_blocker = f"work:{target_path}"
+        downstream_unblocked: list[str] = [
+            c.entry.path
+            for c in result.blocked
+            if c.ini_slug == ini_slug and c.blocking_needs == [sole_blocker]
+        ]
     elif "shipped" in found_in:
         item_list = "shipped"
         classification = "shipped"
