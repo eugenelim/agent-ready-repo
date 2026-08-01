@@ -26,7 +26,13 @@ Assumptions:
   (e.g. `background: /* old */ value;`) do NOT terminate the declaration — the
   state persists through the comment so post-comment values are still scanned.
 - Inline rules sharing a selector line (`.selector { property: value; }`) are
-  handled by scanning the portion after `{` for property declarations.
+  handled by scanning the portion after `{` for property declarations. Nested
+  selector levels (e.g. `@keyframes foo { from { color: #fff; } }`) are
+  handled by advancing through nested `{` until a CSS property is found.
+- When CSS_PROP_RE matches a line but the text after the colon contains `{`,
+  the colon belongs to a selector (e.g. `a:hover {` or `body:has(#id) {`),
+  not a property. The scanner redirects to inline-rule logic on the portion
+  after the `{` rather than scanning the selector text for raw colors.
 - CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
   uses an explicit alternation to avoid matching 5/7-digit strings.
 - Block-comment state is resolved at the start of every line: when inside a block
@@ -157,6 +163,12 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                     brace_pos = line.index("{")
                     before_brace = line[:brace_pos].rstrip()
                     after_brace = line[brace_pos + 1:].lstrip()
+                    # Advance through nested selector levels so that
+                    # `@keyframes foo { from { color: #fff; } }` is detected.
+                    while after_brace and not CSS_PROP_RE.match(after_brace):
+                        if "{" not in after_brace:
+                            break
+                        after_brace = after_brace[after_brace.index("{") + 1:].lstrip()
                     if before_brace and CSS_PROP_RE.match(after_brace):
                         colon_idx = after_brace.index(":")
                         inline_value = after_brace[colon_idx + 1:]
@@ -178,21 +190,45 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         colon_idx = line.index(":")
         value_part = line[colon_idx + 1:]
 
-        for m in HEX_RE.finditer(value_part):
-            violations.append((lineno, m.group()))
-
-        if ";" in value_part or "}" in value_part:
-            # Declaration terminates here (semicolon or closing brace — CSS
-            # permits omitting the final ; before }).
-            for m in RGBA_RE.finditer(value_part):
-                violations.append((lineno, m.group()))
+        if "{" in value_part:
+            # The colon belongs to a CSS selector (e.g. `a:hover {` or
+            # `body:has(#id) {`) — the text after the colon is a selector
+            # continuation, not a property value. Redirect to inline-rule
+            # detection on the portion after the first `{` in value_part.
+            brace_pos = value_part.index("{")
+            after_brace = value_part[brace_pos + 1:].lstrip()
+            # Advance through nested selector levels (e.g. @keyframes { from {).
+            while after_brace and not CSS_PROP_RE.match(after_brace):
+                if "{" not in after_brace:
+                    break
+                after_brace = after_brace[after_brace.index("{") + 1:].lstrip()
+            if CSS_PROP_RE.match(after_brace):
+                c_idx = after_brace.index(":")
+                inline_value = after_brace[c_idx + 1:]
+                for m in HEX_RE.finditer(inline_value):
+                    violations.append((lineno, m.group()))
+                if ";" in inline_value or "}" in inline_value:
+                    for m in RGBA_RE.finditer(inline_value):
+                        violations.append((lineno, m.group()))
+                else:
+                    in_declaration = True
+                    decl_buffer = inline_value
         else:
-            # Multi-line value (or comment cut off the value): accumulate buffer;
-            # rgba scanned when declaration closes. Block comments do not terminate
-            # the declaration — in_block_comment will skip comment lines and
-            # in_declaration persists until a real ; or block boundary.
-            in_declaration = True
-            decl_buffer = value_part
+            for m in HEX_RE.finditer(value_part):
+                violations.append((lineno, m.group()))
+
+            if ";" in value_part or "}" in value_part:
+                # Declaration terminates here (semicolon or closing brace — CSS
+                # permits omitting the final ; before }).
+                for m in RGBA_RE.finditer(value_part):
+                    violations.append((lineno, m.group()))
+            else:
+                # Multi-line value: accumulate buffer; rgba scanned when
+                # declaration closes. Block comments do not terminate the
+                # declaration — in_block_comment skips comment lines and
+                # in_declaration persists until a real ; or block boundary.
+                in_declaration = True
+                decl_buffer = value_part
 
     return violations
 
