@@ -203,7 +203,9 @@ Only after steps 4–5 complete does Phase 2 begin.
    depends on the installed adapter.
 
    **Installation (POSIX — macOS and Linux).** The hook uses a `python3`
-   shebang and requires `python3` ≥ 3.11 on PATH, standard on modern systems.
+   shebang. **Prerequisite:** `python3` ≥ 3.11 must be explicitly installed
+   and on PATH (not pre-installed on macOS or most Linux distributions —
+   install via python.org, Homebrew, or your OS package manager).
    Native Windows cmd/PowerShell does not support POSIX shebangs; Windows users
    should use WSL or limit to POSIX environments for this hook.
 
@@ -211,8 +213,10 @@ Only after steps 4–5 complete does Phase 2 begin.
    # Claude Code / self-host adapter (build-self projects to tools/hooks/).
    # Resolve the active hooks directory via Git — works in worktrees and
    # respects core.hooksPath; `.git/hooks` is wrong in linked worktrees.
-   HOOKS_DIR="$(git rev-parse --git-path hooks)"
-   if [ -e "$HOOKS_DIR/pre-commit" ] || [ -L "$HOOKS_DIR/pre-commit" ]; then
+   HOOKS_DIR="$(git rev-parse --git-path hooks 2>/dev/null)"
+   if [ $? -ne 0 ] || [ -z "$HOOKS_DIR" ]; then
+     echo "Error: not inside a git worktree — run from the repo root."
+   elif [ -e "$HOOKS_DIR/pre-commit" ] || [ -L "$HOOKS_DIR/pre-commit" ]; then
      echo "Warning: pre-commit hook already exists — back up or compose before overwriting."
    else
      cp tools/hooks/pre-commit.py "$HOOKS_DIR/pre-commit"
