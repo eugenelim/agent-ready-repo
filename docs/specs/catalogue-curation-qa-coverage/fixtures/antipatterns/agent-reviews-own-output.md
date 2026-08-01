@@ -1,7 +1,7 @@
 ---
 name: import-lister
 description: List the non-stdlib imports used in a Python package by scanning its source files. Reads .py files and reports imported names.
-model: haiku
+model: inherit
 tools: Read, Glob
 ---
 

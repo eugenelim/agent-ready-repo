@@ -202,10 +202,16 @@ Only after steps 4–5 complete does Phase 2 begin.
    # Claude Code / self-host adapter (build-self projects to tools/hooks/).
    # Resolve the active hooks directory via Git — works in worktrees and
    # respects core.hooksPath; `.git/hooks` is wrong in linked worktrees.
+   # Prerequisite (POSIX): `python` must resolve to Python 3.11+. If your
+   # system only provides `python3`, run `alias python=python3` first, or
+   # substitute `python3` for `python` in the hook shebang and this command.
    HOOKS_DIR="$(git rev-parse --git-path hooks)"
-   [ -f "$HOOKS_DIR/pre-commit" ] && echo "Warning: pre-commit hook already exists — back up or compose before overwriting." && exit 1
-   cp tools/hooks/pre-commit.py "$HOOKS_DIR/pre-commit"
-   chmod +x "$HOOKS_DIR/pre-commit"
+   if [ -f "$HOOKS_DIR/pre-commit" ]; then
+     echo "Warning: pre-commit hook already exists — back up or compose before overwriting."
+   else
+     cp tools/hooks/pre-commit.py "$HOOKS_DIR/pre-commit"
+     chmod +x "$HOOKS_DIR/pre-commit"
+   fi
    ```
    `FORCE=1 make build-self` only produces `tools/hooks/` (self-host targets
    Claude Code and Codex only). Adopters using Copilot or Cursor adapters
