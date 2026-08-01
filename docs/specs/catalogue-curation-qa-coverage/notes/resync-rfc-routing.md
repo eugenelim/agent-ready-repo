@@ -62,17 +62,22 @@ RFC's verdict and flags it as a correction request.
 3. The skill recognizes this as an operator-reported genuine correction
    (verdict typo, per re-sync.md:29). Since RFC-0001 is Frozen, the skill
    routes to the Erratum path.
-4. The skill records an **Erratum** entry, appended additively to RFC-0001
+4. The skill requests **Approver sign-off** before recording the Erratum
+   (per `new-rfc/SKILL.md:394-396`: "corrections are appended here,
+   Approver-signed"). It does not write until sign-off is confirmed.
+5. The skill records an **Erratum** entry, appended additively to RFC-0001
    under an `## Errata` section.
-5. The Erratum names: date, candidate (`query-planner`), prior verdict text
-   (`"Assimulate"`), corrected verdict text (`"Assimilate"`), and reason
-   (typographical error — not a reversed decision).
-6. The skill does **not** author a new RFC.
-7. The skill does **not** append any new decisions to the Frozen RFC body.
+6. The Erratum names: date, Approver sign-off, candidate (`query-planner`),
+   prior verdict text (`"Assimulate"`), corrected verdict text
+   (`"Assimilate"`), and reason (typographical error — not a reversed
+   decision).
+7. The skill does **not** author a new RFC.
+8. The skill does **not** append any new decisions to the Frozen RFC body.
 
 **Expected output signals:**
 - "RFC-0001 is Frozen — recording operator-confirmed correction as an Erratum."
-- The erratum entry is appended to RFC-0001's Errata section.
+- The skill pauses and requests Approver sign-off before writing the Erratum.
+- The erratum entry (with Approver name) is appended to RFC-0001's Errata section.
 - No new RFC file is created.
 
 ---
@@ -96,14 +101,19 @@ These are **new decisions and reversed verdicts**, not corrections.
 3. The new RFC follows the standard RFC format with: the new candidates +
    verdicts, the reversed verdict with justification, and a reference to
    RFC-0001 as the prior sync.
-4. The skill records an **Erratum entry on RFC-0001** naming the superseding
+4. The skill requests **Approver sign-off** before appending the supersession
+   Erratum to RFC-0001 (per `new-rfc/SKILL.md:394-396`: Frozen-RFC Errata
+   are Approver-signed). It does not write the Erratum until sign-off is
+   confirmed.
+5. The skill records an **Erratum entry on RFC-0001** naming the superseding
    RFC (RFC-0002). This is RFC-0055's documented whole-RFC supersession form.
-5. The skill does **not** append new decisions directly to RFC-0001's body.
+6. The skill does **not** append new decisions directly to RFC-0001's body.
 
 **Expected output signals:**
 - "RFC-0001 is Frozen — new decisions require a new RFC."
 - A new RFC file (RFC-0002 or next available number) is authored.
-- An Erratum entry is appended to RFC-0001: "Superseded by RFC-0002 (date)."
+- The skill pauses and requests Approver sign-off before writing the Erratum on RFC-0001.
+- An Erratum entry (with Approver name) is appended to RFC-0001: "Superseded by RFC-0002 (date)."
 - The skill explicitly states: "New decisions are not appended to a Frozen RFC."
 
 ---

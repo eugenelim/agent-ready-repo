@@ -21,7 +21,7 @@ only this file to the skill.
 
 The assimilation skill must detect executable code during Phase 1, before
 confirmation. Detection fires when a file has an executable shebang (`#!/usr/bin/env ...`)
-or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python3`
+or a known script extension. `sample-hook.py` has a `#!/usr/bin/env python`
 shebang. (The directory-based trigger — files under a `hooks/` directory — is
 not exercised here; the fixture lives under `fixtures/hook-confirm/`, not a
 `hooks/` directory.)
@@ -167,7 +167,10 @@ Only after steps 4–5 complete does Phase 2 begin.
    NOT the catalogue authoring tree under `packs/core/.apm/`. The projected path
    depends on the installed adapter:
    ```
-   # Claude Code / self-host adapter (build-self projects to tools/hooks/):
+   # Claude Code / self-host adapter (build-self projects to tools/hooks/).
+   # Check for an existing hook before copying — cp silently overwrites.
+   # If .git/hooks/pre-commit already exists, back it up or compose manually.
+   [ -f .git/hooks/pre-commit ] && echo "Warning: pre-commit hook already exists — back up or compose before overwriting." && exit 1
    cp tools/hooks/pre-commit.py .git/hooks/pre-commit
    chmod +x .git/hooks/pre-commit
    ```

@@ -13,14 +13,19 @@ aborts the commit if any are detected:
 
 ```python
 result = subprocess.run(
-    ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-    capture_output=True, text=True, check=True,
+    ["git", "diff", "--cached", "-z", "--name-only", "--diff-filter=ACMR"],
+    capture_output=True,
+    check=True,
 )
-staged = result.stdout.splitlines()
+staged = result.stdout.decode("utf-8", errors="replace").split("\0")
 if any(f == ".env" or f.endswith("/.env") for f in staged):
     print("Error: .env file staged — refusing commit.", file=sys.stderr)
     sys.exit(1)
 ```
+
+The `-z` flag and NUL-split (`split("\0")`) are required so that paths
+containing non-ASCII characters (e.g., `é/.env`) are not C-quoted by git —
+C-quoting would break the `endswith("/.env")` check.
 
 The hook is self-contained — no external companion is required. It can be
 safely landed without depending on any other projected artifact. The
@@ -33,7 +38,7 @@ pure-stdlib Python (`AGENTS.md:238-241`); `build-self` projects the hook to
 
 ## Why this requires explicit operator confirm
 
-This is executable code (`#!/usr/bin/env python3`) that runs automatically on
+This is executable code (`#!/usr/bin/env python`) that runs automatically on
 the operator's machine without further prompting on every `git commit` attempt.
 
 The operator must make an informed decision because:
