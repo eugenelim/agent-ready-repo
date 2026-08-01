@@ -9,7 +9,7 @@ This engine is the canonical implementation invoked by the workspace-status skil
 via scripts/workspace_status.py. It reads workspace.toml and docs/specs/** to
 produce DAG resolution, reconciliation, and cleanup-planning results.
 
-Known gaps (preserved from Phase 0 characterization; not fixed in Order 1A):
+Known gaps (preserved from Phase 0 characterization):
   KD-01: `backlog:<slug>` prefix absent from SKILL.md table
   KD-02: No cycle detection
   KD-03: Missing dep targets not warned
@@ -19,7 +19,7 @@ Known gaps (preserved from Phase 0 characterization; not fixed in Order 1A):
   KD-07: brief:<path> needs underspecified; brief_queue structure varies
   KD-08: strategy:<slug> needs prefix absent from SKILL.md; treated conservatively
   KD-09: research:<slug> checks only backlog; item in .active (in-progress) erroneously
-         reports satisfied — RFC-0064 requires findings committed before unblocking
+         reports satisfied — research findings should be committed before unblocking dependents
 """
 
 from __future__ import annotations
@@ -441,9 +441,8 @@ def classify_shaping_entries(
 ) -> list[ShapingClassification]:
     """Classify shaping queue entries for an active initiative.
 
-    Per behavior-map §4:
-      shaping_queue.active — non-signals are ready; signals are active context.
-      shaping_queue.backlog — classified by needs (same resolution as work entries).
+    shaping_queue.active — non-signals are ready; signals are active context.
+    shaping_queue.backlog — classified by needs (same resolution as work entries).
     """
     results: list[ShapingClassification] = []
 
@@ -779,7 +778,7 @@ def collect_work_loop_stale_warnings(
 
 # ── workspace-status Type 2 cleanup mutation shape ────────────────────────────
 #
-# work-loop (as of commit a46d6f46) no longer writes to workspace.toml
+# work-loop no longer writes to workspace.toml
 # active/shipped arrays. Its finish checklist only sets spec.md Status: Shipped.
 # Cleanup of stale active/queue entries is workspace-status's responsibility
 # (Type 2 cleanup write after user confirmation).

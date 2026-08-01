@@ -22,19 +22,15 @@ Any time you need to orient: which initiative is active, what specs are ready to
 
 ### 1. Invoke the backend
 
-Run the production backend via **argument vector** (the canonical invocation):
+Run the production backend via **argument vector** (the canonical and only safe invocation):
 
 ```
 ["python", "<skill-dir>/scripts/workspace_status.py", "--root", "<repo-root>"]
 ```
 
-`<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, and other metacharacters — the values are never interpreted by a shell.
+`<skill-dir>` is the directory where your installer placed this skill's files (i.e., the directory containing this SKILL.md). Passing the paths as **discrete arguments** prevents shell expansion of `$()`, backticks, `$VAR`, and other metacharacters — the values are never interpreted by a shell.
 
-**Shell-string-only tools:** cd to the repository root first and pass `--root .`:
-```
-cd "<repo-root>" && python "<skill-dir>/scripts/workspace_status.py" --root .
-```
-This eliminates `<repo-root>` from the shell-interpolated string; `<skill-dir>` still needs to be a safe literal (no metacharacters) or single-quoted.
+**Shell-string-only tools:** Use the workdir facility of your tool (set working directory to the repository root) and pass `--root .`; single-quote both paths in the shell string when a workdir facility is unavailable (single quotes in POSIX are literal and never expand). On Windows/PowerShell, the argv form is the only safe option.
 
 **Exit 1 — workspace.toml absent:** the JSON will contain `"workspace_present": false`. Offer to initialise — ask the user whether to create a blank file or bootstrap with their first initiative. A blank file emits the full schema-documented template:
 
@@ -127,7 +123,7 @@ Let N = total count across all three finding types. When N > 0, output before th
     (2) the workspace.toml entry was moved before the work was done.
 ```
 
-When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — exclude it from the confirmed-operation set if the user says yes. Build a _confirmed set_ of operations (all ops except any `active`-list ops the user excluded) before showing the offer. Then append:
+When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — if the user says yes, **exclude all ops for that `(ini_slug, path)` pair** from the confirmed-operation set (both the active-list op and any queue-list op for the same path, to avoid partially applying a cleanup that leaves the path in both `active` and `shipped`). Build the _confirmed set_ (all ops except those excluded) before showing the offer. Then append:
 
 ```
 Stale entries found — clean up now?
@@ -177,8 +173,9 @@ Format output in four sections (omit sections with no entries):
 
   Resolve the status from JSON: for each entry in `blocking_needs`, strip the queue-prefix to get the slug/path, then branch on the prefix:
   - `work:` — look in `work.*`: appears in `work.active` → `in-progress`; in `work.ready` or `work.blocked` → `queued`; else → omit.
-  - `shape:` or `research:` — look in `shaping.*`: slug found anywhere in `shaping.ready`, `shaping.signals`, or `shaping.blocked` → `in-progress`; else → omit.
-  - `brief:` — look in `initiatives[].brief_queue`: path in `executing` or `ready` → `in-progress`; else → omit.
+  - `shape:` — shape deps block while the slug is in `shaping_queue.active`; active non-signal entries are not serialized in `shaping.*` → if slug is NOT in `shaping.ready`, `shaping.blocked`, or `shaping.signals` → it is active → `in-progress`; else → omit.
+  - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` → if slug in either → not yet started → `queued`; else → omit.
+  - `brief:` — brief deps block while draft; if path in any `initiatives[].brief_queue.draft` → `queued`; if in `executing` → `in-progress`; else → omit.
   - Cross-initiative (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix, then resolve the remainder as above.
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
 

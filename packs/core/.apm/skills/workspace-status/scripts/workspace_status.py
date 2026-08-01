@@ -24,7 +24,6 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 # Prevent Python from writing __pycache__ into the installed skill tree.
-# The skill must remain read-only after invocation (AC8 / spec §85).
 sys.dont_write_bytecode = True
 
 # ── Load engine from the same scripts/ directory ──────────────────────────────
