@@ -35,7 +35,7 @@ The autonomous portion of this work — authoring fixture files and documenting 
   Each fixture is a realistic, ingestible primitive exhibiting the misuse pattern only. The agent/skill fixtures (`agent-reviews-own-output.md`, `flooding-prompt.md`) are shaped like real skill/agent files (frontmatter + SKILL.md body). The script fixture (`script-triggers-skill.sh`) is a raw bash script without frontmatter — the anti-pattern it represents is explicitly defined for scripts and hooks, which are raw files by nature. The `## Why this is rejected` and `## Reshaped form` analysis belongs in `notes/antipattern-steering.md` (AC3), not in the fixture files themselves. This separation ensures AC5's live QA session exercises real detection, not fixture-embedded answers.
 
 - [x] **AC2 (`hook-confirm` fixture).** A fixture hook file exists under `docs/specs/catalogue-curation-qa-coverage/fixtures/hook-confirm/` that represents a realistic hook that would trigger during ingest:
-  - `sample-hook.sh` — a bash hook that runs on git pre-commit (or equivalent agent event)
+  - `sample-hook.py` — a Python hook that runs on git pre-commit (pure-stdlib Python; satisfies the repo policy that new `tools/` scripts must be `.py`)
   - `sample-hook-notes.md` — documents what the hook does, why it requires explicit operator confirm, and what the expected confirm prompt should look like.
 
 - [x] **AC3 (expected-behavior transcripts).** A `notes/` directory contains one transcript-capture document per deferred path:
@@ -52,7 +52,7 @@ The autonomous portion of this work — authoring fixture files and documenting 
 
 - [ ] **AC6 (`propose-catalogue-pack` QA).** A live QA session runs `propose-catalogue-pack` with a real or sample pack proposal. The skill tests additivity + fit and either rejects (non-additive) or passes and scaffolds a pack shell + RFC. Session outcome recorded in parent spec QA log.
 
-- [ ] **AC7 (`hook-confirm` QA).** A live QA session ingests the `sample-hook.sh` fixture (AC2). The skill flags it as executable code, issues the confirm prompt, and — on operator confirm — lands it. Session outcome recorded in parent spec QA log.
+- [ ] **AC7 (`hook-confirm` QA).** A live QA session ingests the `sample-hook.py` fixture (AC2). The skill flags it as executable code, issues the confirm prompt, and — on operator confirm — lands it. Session outcome recorded in parent spec QA log.
 
 ### Gate
 
@@ -98,7 +98,7 @@ The autonomous portion of this work — authoring fixture files and documenting 
 
 1. **Author anti-pattern fixtures** (AC1) — Write `fixtures/antipatterns/script-triggers-skill.sh`, `agent-reviews-own-output.md`, `flooding-prompt.md` as realistic ingestible primitives (no answer-key sections in the fixture files).
    - **Depends on:** none
-2. **Author hook fixture** (AC2) — Write `fixtures/hook-confirm/sample-hook.sh` and `sample-hook-notes.md`.
+2. **Author hook fixture** (AC2) — Write `fixtures/hook-confirm/sample-hook.py` and `sample-hook-notes.md`.
    - **Depends on:** none
 3. **Author expected-behavior transcripts** (AC3) — Write `notes/resync-rfc-routing.md`, `notes/antipattern-steering.md`, `notes/propose-pack.md`, `notes/hook-confirm.md`. The antipattern notes include the `## Why this is rejected` and `## Reshaped form` analysis (the answer key that must not appear in the fixture files).
    - **Depends on:** none
