@@ -178,12 +178,19 @@ Only after steps 4–5 complete does Phase 2 begin.
      adds the file to `tools/hooks/` but does not update the README.
    (`build-self` does not update these inventory strings — they are
    human-maintained metadata that must be kept in sync manually.)
-7. Run `agentbundle catalogue lint --deep` and `agentbundle catalogue verify`
-   against the real `packs/` root after the write and metadata edits
-   (per `packs/AGENTS.md:50-58` — required after every pack change). This
-   validates the integrated `packs/core` tree, not the pre-write temp catalogue.
+7. Run `agentbundle catalogue lint --deep` against the real `packs/` root
+   after the write and metadata edits (per `packs/AGENTS.md:50-58`). This
+   validates the integrated `packs/core` tree structure, not the pre-write temp
+   catalogue. `lint --deep` passes at this point.
+   **Do NOT run `agentbundle catalogue verify` yet** — verify step 15
+   (`check_self_host`) will fail because `tools/hooks/pre-commit.py` and
+   `.claude-plugin/marketplace.json` have not been regenerated. Run
+   `build-self` first (step 8), then verify (step 8b).
 8. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
    `marketplace.json`. Plain `make build-self` refuses on dirty trees.
+8b. Run `agentbundle catalogue verify` against the real `packs/` root after
+   `build-self`. Now that the self-host projection and marketplace are
+   regenerated, verify's self-host drift step (step 15) passes clean.
 9. Add a `## [core][version] — YYYY-MM-DD` changelog section in
    `docs/product/changelog.md` (the canonical post-bump record per
    `packs/AGENTS.local.md:16-19`).
@@ -240,8 +247,10 @@ Only after steps 4–5 complete does Phase 2 begin.
     catalogue gates and `FORCE=1 make build-self`
     (pack.toml description + plugin.json description + docs/index.md hook count + tools/hooks/README.md + both version fields).
 12b. After the write and metadata edits, `agentbundle catalogue lint --deep`
-    and `agentbundle catalogue verify` run against the real `packs/` root
-    (not the pre-write temp catalogue) before `build-self`.
+    runs against the real `packs/` root (not the pre-write temp catalogue)
+    before `build-self`. `agentbundle catalogue verify` runs AFTER
+    `build-self` (step 8b) — verify's self-host drift step (step 15) fails
+    if called before the self-host projection is regenerated.
 13. `docs/product/changelog.md` receives the new `## [core][version]` entry.
 14. The manual install command uses the adapter-specific projected path (not
     `packs/core/.apm/hooks/`).

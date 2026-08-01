@@ -157,10 +157,15 @@ Notes on the scaffold:
 
 **AC6 pass condition:** The QA session verifies that the skill (a) tests
 additivity + fit and reports the result, (b) creates the correct empty scaffold
-structure when the pack passes fit, and (c) emits an RFC. Post-scaffold
-`agentbundle catalogue lint --deep` and `agentbundle catalogue verify` both
-**pass** on the empty scaffold. AC6 is satisfied when the scaffold structure and
-RFC match the forms documented in this file.
+structure when the pack passes fit, and (c) emits an RFC. Post-scaffold:
+- `agentbundle catalogue lint --deep` passes on the empty scaffold.
+- `agentbundle catalogue verify` must run **after** `FORCE=1 make build-self` —
+  verify step 15 (`check_self_host`) checks self-host projection drift; the new
+  pack directory immediately makes `marketplace.json` stale, so verify fails
+  before `build-self` regenerates it. Run `FORCE=1 make build-self` first,
+  then verify.
+AC6 is satisfied when the scaffold structure and RFC match the forms documented
+in this file and both post-build-self gates pass clean.
 - The maintainer alias from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.
