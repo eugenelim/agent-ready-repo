@@ -23,7 +23,10 @@ if any(f == ".env" or f.endswith("/.env") for f in staged):
 ```
 
 The hook is self-contained — no external companion is required. It can be
-safely landed without depending on any other projected artifact. Using Python
+safely landed without depending on any other projected artifact. The
+`sys.stdout.reconfigure` / `sys.stderr.reconfigure` guard immediately after
+`import sys` is required by `packs/AGENTS.md:117-125` for any `.apm/` Python
+script that prints to stdout or stderr — it is already present in the fixture. Using Python
 (not bash) satisfies the repo policy that new additions to `tools/` must be
 pure-stdlib Python (`AGENTS.md:238-241`); `build-self` projects the hook to
 `tools/hooks/pre-commit.py`.

@@ -72,11 +72,15 @@ steps 4–5 before shaping or writing.
 `agentbundle catalogue lint --deep` and `agentbundle catalogue verify` operate
 against the destination catalogue root (`packs/`) — they do NOT inspect the
 candidate file directly. For a Python script candidate, the applicable pre-landing
-check is SAST against the explicit candidate path:
-- `bandit -q fixtures/hook-confirm/sample-hook.py` (Python SAST)
+checks mirror the repo's configured SAST suite (`Makefile:147-174`):
+- `bandit --severity-level medium --confidence-level medium -q <candidate>` —
+  LOW-severity findings (B404, B607, B603) do not block; only MEDIUM+ blocks.
+  `sample-hook.py` has no MEDIUM+ bandit findings.
+- `semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet` —
+  run against the candidate file.
 
-A HIGH or MEDIUM finding from bandit blocks landing pending explicit operator
-acknowledgment.
+A MEDIUM+ severity bandit finding or any semgrep `--error` hit blocks landing
+pending explicit operator acknowledgment.
 
 **Step 5 — Agentic-skills security review (AST01–AST10):**
 
@@ -149,19 +153,14 @@ Only after steps 4–5 complete does Phase 2 begin.
    NOT the catalogue authoring tree under `packs/core/.apm/`. The projected path
    depends on the installed adapter:
    ```
-   # Claude Code / self-host adapter (projects to tools/hooks/):
+   # Claude Code / self-host adapter (build-self projects to tools/hooks/):
    cp tools/hooks/pre-commit.py .git/hooks/pre-commit
    chmod +x .git/hooks/pre-commit
-
-   # Copilot adapter (projects to .github/hooks/):
-   cp .github/hooks/pre-commit.py .git/hooks/pre-commit
-   chmod +x .git/hooks/pre-commit
-
-   # Cursor adapter (projects to .cursor/hooks/):
-   cp .cursor/hooks/pre-commit.py .git/hooks/pre-commit
-   chmod +x .git/hooks/pre-commit
    ```
-   Use the path matching the adopter's installed adapter.
+   `FORCE=1 make build-self` only produces `tools/hooks/` (self-host targets
+   Claude Code and Codex only). Adopters using Copilot or Cursor adapters
+   must install those adapters and run their respective build steps first;
+   the hook file then appears under the adapter's projected hooks directory.
 
 **On "no":** the ingest is aborted.
 
@@ -179,7 +178,8 @@ Only after steps 4–5 complete does Phase 2 begin.
 4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
 5. Answering anything other than `yes, land this code` aborts the ingest.
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
-7. At step 4, bandit SAST runs against the candidate file (Python hook).
+7. At step 4, bandit (MEDIUM+ threshold) and semgrep run against the candidate
+   file. The fixture has no MEDIUM+ findings; both pass.
 8. At step 5, the skill correctly notes AST01–AST10 apply to SKILL.md behaviour
    definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
 9. Before writing, the skill presents the shaped target (destination path,

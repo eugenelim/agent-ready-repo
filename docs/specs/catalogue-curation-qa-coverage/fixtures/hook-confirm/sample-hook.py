@@ -3,6 +3,9 @@
 import subprocess
 import sys
 
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 result = subprocess.run(
     ["git", "diff", "--cached", "--name-only"],
     capture_output=True,

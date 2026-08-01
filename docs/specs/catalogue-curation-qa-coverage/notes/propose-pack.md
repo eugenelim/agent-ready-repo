@@ -107,8 +107,14 @@ The skill scaffolds the pack shell at `packs/database-tooling/` via
 
 ```
 packs/database-tooling/
-  pack.toml               # name, version, description, dependencies,
-                          # [[pack.maintainers]], maturity scope
+  pack.toml               # Required tables (per pack-shell.md:7-16):
+                          #   [pack] name, version, description
+                          #   [pack.adapter-contract] version
+                          #   [pack.install] default-scope, allowed-scopes
+                          #   [[pack.dependencies.required]] (core at minimum)
+                          #   [pack.links]
+                          #   [[pack.maintainers]]
+                          #   Maturity scope and deprecation path documented here.
                           # ([pack.evals] added later, once eval harness reaches coverage)
   README.md               # one-paragraph overview + install command
   .claude-plugin/
