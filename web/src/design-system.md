@@ -394,7 +394,8 @@ via `--ds-content-max`. Three tone variants map to the three zone levels.
 **BEM classes:** `.pack-card`, `.pack-card__link`, `.pack-card__head`, `.pack-card__name`,
 `.pack-card__tagline`, `.pack-card__cta`  
 **Key tokens:** `--ds-surface-alt`, `--ds-border`, `--ds-radius-lg`, `--ds-on-surface`,
-`--ds-on-surface-2`, `--ds-accent-deep`
+`--ds-on-surface-2`, `--ds-accent-deep`, `--ds-type-h3`, `--ds-type-body`, `--ds-type-sm`,
+`--ds-dur-moderate`, `--ds-ease-std`
 
 ---
 
@@ -420,7 +421,8 @@ via `--ds-content-max`. Three tone variants map to the three zone levels.
 **BEM classes:** `.copy-btn`, `.copy-btn--success`, `.copy-btn__icon`, `.copy-btn__label`,
 `.copy-btn__live` (aria-live region, visually hidden)  
 **Key tokens:** `--ds-border`, `--ds-on-surface-muted`, `--ds-accent`, `--ds-accent-deep`,
-`--ds-state-success-fg`, `--ds-state-success-border`, `--ds-radius-sm`
+`--ds-state-success-fg`, `--ds-state-success-border`, `--ds-radius-sm`,
+`--ds-type-xs`, `--ds-dur-quick`, `--ds-ease-std`
 
 ## 5. Zone rules
 

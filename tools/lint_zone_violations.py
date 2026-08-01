@@ -33,6 +33,12 @@ Assumptions:
   the colon belongs to a selector (e.g. `a:hover {` or `body:has(#id) {`),
   not a property. The scanner redirects to inline-rule logic on the portion
   after the `{` rather than scanning the selector text for raw colors.
+- When CSS_PROP_RE matches a line but the text after the colon ends with `,`,
+  the line is part of a multiline selector list (e.g. `a:hover,` followed by
+  `#id {`). The trailing comma is not valid CSS property syntax; skip the line
+  to avoid treating the next selector as a declaration continuation.
+- url(...) tokens are stripped before scanning for hex values so that SVG
+  fragment references (e.g. `filter: url(#fade)`) are not reported as colors.
 - CSS hex colors of valid lengths (3, 4, 6, 8 digits) are all matched. The regex
   uses an explicit alternation to avoid matching 5/7-digit strings.
 - Block-comment state is resolved at the start of every line: when inside a block
@@ -68,6 +74,7 @@ RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)", re.IGNORECASE)
 
 TOKEN_FILE = "tokens.css"
 CSS_INLINE_COMMENT_RE = re.compile(r"/\*.*?\*/")
+URL_RE = re.compile(r"\burl\([^)]*\)")  # strip url(...) before scanning for hex
 ROOT_OPEN_RE = re.compile(r":root\b")
 CSS_PROP_RE = re.compile(r"^\s*[-\w]+\s*:")
 JS_LINE_COMMENT_RE = re.compile(r"^\s*//")
@@ -115,6 +122,10 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         line, opened_block = _strip_inline_comment(line)
         if opened_block:
             in_block_comment = True
+
+        # Step 3: Strip url(...) tokens — URL fragments like url(#id) contain
+        # valid hex-looking strings that are element IDs, not color values.
+        line = URL_RE.sub("url()", line)
 
         if not line.strip():
             continue
@@ -213,6 +224,11 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                 else:
                     in_declaration = True
                     decl_buffer = inline_value
+        elif value_part.strip().endswith(","):
+            # Multiline selector list continuation (e.g. `a:hover,` followed
+            # by `#id {` on the next line). The colon belongs to the selector;
+            # the trailing comma is not valid CSS property syntax. Skip.
+            pass
         else:
             for m in HEX_RE.finditer(value_part):
                 violations.append((lineno, m.group()))

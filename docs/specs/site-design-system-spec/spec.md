@@ -230,7 +230,11 @@ Goal-based throughout — no new compilation step, no production test file.
   spec; both could technically reference `--ds-hero-fg` (same resolved value) but
   were not updated here.
 - Auditing Material/MkDocs component families — MkDocs replaced by Starlight;
-  `.md-*` component classes no longer exist in the codebase.
+  `.md-*` component classes no longer exist in the codebase. Note: the
+  `site-shell` spec (its plan.md §18–21 and spec.md §27–30) was authored
+  when this spec deferred four Material deviation fixes to it; that deferral
+  is now superseded — MkDocs is gone, so there is nothing left to implement.
+  The site-shell spec is now historical context only.
 - Adding `prefers-color-scheme: dark` to the Astro marketing site — out of scope.
 - Adding icons or badges to catalogue cards.
 - Linting `docs-site/src/styles/starlight.css` — Starlight is intentionally outside this lint's
