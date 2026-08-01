@@ -8,6 +8,17 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.27.1]
+
+### Added
+
+- **workspace-status projection tests** (`build/tests/test_workspace_status_projection.py`):
+  - `SourceInvariantTests`: verifies both CLI and engine scripts exist in the pack source.
+  - `AdapterProjectionTests`: exercises all shipped adapters via subTest loop; uses rglob
+    for adapter-agnostic scripts/ discovery (AC9).
+  - `RealTreeProjectionTests`: asserts both scripts present in the self-hosted projection.
+  - `EndToEndCLITests`: installed CLI exits 0, emits `schema_version: 1` against real repo.
+
 ## [0.26.0]
 
 ### Added

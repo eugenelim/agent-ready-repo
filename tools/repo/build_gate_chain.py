@@ -166,6 +166,10 @@ def build_check(args: argparse.Namespace) -> int:
             "test-workspace-status",
             "tools", "test_workspace_status.py",
         ),
+        _script_step(
+            "test-workspace-status-cli",
+            "tools", "test_workspace_status_cli.py",
+        ),
     ]
     return _run_chain(steps)
 

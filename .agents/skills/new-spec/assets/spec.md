@@ -101,6 +101,12 @@ metadata contract).
 Two recurring sources of criteria, so they don't slip into the plan as
 mere design detail:
 
+- An **output-channel constraint** (e.g., "no sensitive data on stdout")
+  must enumerate *every* channel the consuming context makes user-visible
+  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
+  same constraint to each one explicitly — a constraint named on one
+  channel only is silently violated if the caller also sees another.
+
 - A **UI state** is an acceptance criterion: phrase it as
   *state / trigger / outcome* — "given <state>, when <trigger>, the user
   sees <outcome>" (e.g. "given an empty cart, when the page loads, the

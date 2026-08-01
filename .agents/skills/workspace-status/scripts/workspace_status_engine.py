@@ -1,34 +1,15 @@
 #!/usr/bin/env python3
-"""workspace-status executable reference model — Order 0 characterization.
+"""workspace-status production backend — stdlib-only, read-only.
 
-This module is a MANUALLY TRANSCRIBED Python interpretation of the algorithmic
-sections of packs/core/.apm/skills/workspace-status/SKILL.md. It is NOT a seam
-into the production implementation: the live skill is pure model instructions
-executed by an LLM; this module is a Python parallel that the model does not call.
+Entry points:
+  analyze(root: Path) -> WorkspaceStatusResult   — full analysis
+  compute_type2_cleanup(ini_slug, source_list, spec_path, spec_status) -> dict
 
-Relationship to production:
+This engine is the canonical implementation invoked by the workspace-status skill
+via scripts/workspace_status.py. It reads workspace.toml and docs/specs/** to
+produce DAG resolution, reconciliation, and cleanup-planning results.
 
-  SKILL.md semantics ──────► model execution  (production path)
-         │
-         └── manually transcribed ──► this engine ──► tests
-
-Tests against this engine prove the Python interpretation is internally
-consistent with its expected values. They do NOT prove parity with production
-behavior. Order 1 will wire this engine (or a successor) as the actual backend;
-only then will these become true production-path unit tests.
-
-SKILL.md contract anchor:
-  SHA-256 of SKILL.md from '### 1. Read workspace.toml' through '### 6. Next-actions'
-  (_SKILL_CONTRACT_START/_SKILL_CONTRACT_END in test_workspace_status.py).
-  Covers §1–§5: schema vocabulary, ready/blocked definitions, DAG resolution,
-  reconciliation, signal output, skill routing, and missing-field defaults.
-  Section-marker-based: layout-stable against frontmatter/intro edits.
-  2a35d5a0ca04ac4d0d4a840825a261cf2faccd9884364eae46254a68599b1ef1
-  Tested by test_workspace_status.py::test_skill_contract_anchor.
-  If that test fails, re-read the changed sections and update this engine before
-  editing the fingerprint.
-
-Known gaps (documented in behavior-map.md, not fixed here):
+Known gaps (preserved from Phase 0 characterization):
   KD-01: `backlog:<slug>` prefix absent from SKILL.md table
   KD-02: No cycle detection
   KD-03: Missing dep targets not warned
@@ -38,7 +19,7 @@ Known gaps (documented in behavior-map.md, not fixed here):
   KD-07: brief:<path> needs underspecified; brief_queue structure varies
   KD-08: strategy:<slug> needs prefix absent from SKILL.md; treated conservatively
   KD-09: research:<slug> checks only backlog; item in .active (in-progress) erroneously
-         reports satisfied — RFC-0064 requires findings committed before unblocking
+         reports satisfied — research findings should be committed before unblocking dependents
 """
 
 from __future__ import annotations
@@ -147,6 +128,9 @@ class WorkspaceStatusResult:
     reconciliation: list[ReconciliationFinding]
     files_read: int   # count of spec.md files read by reconciliation
     elapsed_s: float  # wall-clock seconds for analyze()
+    # [backlog].open typed shaping entries (workspace-level, not per-initiative).
+    # Populated by extract_top_level_backlog(); work-loop's shaping-item guard reads these.
+    top_level_backlog: list[ShapingEntry] = dataclasses.field(default_factory=list)
 
     @property
     def ready(self) -> list[EntryClassification]:
@@ -282,17 +266,17 @@ def _safe_spec_path(root: Path, slug: str) -> Path | None:
     slug_path = Path(slug)
     if slug_path.is_absolute() or ".." in slug_path.parts:
         return None
-    specs_dir = (root / "docs" / "specs").resolve()
-    # Reject if docs/specs itself is a symlink that escapes the repo root.
+    # RuntimeError guards against circular symlinks on Python 3.11/3.12.
     try:
+        specs_dir = (root / "docs" / "specs").resolve()
         specs_dir.relative_to(root.resolve())
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
         return None
-    candidate = (specs_dir / slug / "spec.md").resolve()
     try:
+        candidate = (specs_dir / slug / "spec.md").resolve()
         candidate.relative_to(specs_dir)
         return candidate
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
         return None
 
 
@@ -460,9 +444,8 @@ def classify_shaping_entries(
 ) -> list[ShapingClassification]:
     """Classify shaping queue entries for an active initiative.
 
-    Per behavior-map §4:
-      shaping_queue.active — non-signals are ready; signals are active context.
-      shaping_queue.backlog — classified by needs (same resolution as work entries).
+    shaping_queue.active — non-signals are ready; signals are active context.
+    shaping_queue.backlog — classified by needs (same resolution as work entries).
     """
     results: list[ShapingClassification] = []
 
@@ -543,15 +526,49 @@ def run_reconciliation(
         except ValueError:
             pass  # docs/specs resolved outside repo root (symlink) — skip walk
     if _specs_root_safe:
+        _specs_root_resolved = specs_dir.resolve()
+        _visited: set[Path] = set()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
-            dirnames.sort()  # deterministic traversal order
+            # Guard: skip this directory if already visited (in-root junction to a
+            # previously-scanned sibling). Must run before processing filenames so a
+            # junction alias doesn't produce duplicate Type 1 findings for the
+            # real directory's spec.md. dirnames.clear() prevents further descent.
+            # RuntimeError guards against circular symlinks on Python 3.11/3.12.
+            try:
+                _current_resolved = Path(dirpath).resolve()
+            except (OSError, RuntimeError):
+                dirnames.clear()
+                continue
+            if _current_resolved in _visited:
+                dirnames.clear()
+                continue
+            _visited.add(_current_resolved)
+            # Prune subdirs that escape the specs root OR have already been visited.
+            # is_relative_to guards against junctions pointing outside the root;
+            # the visited set guards against in-root cycles (a junction whose
+            # resolved target is an ancestor within the tree).
+            # RuntimeError guards against circular symlinks during resolve().
+            safe: list[str] = []
+            for d in dirnames:
+                try:
+                    resolved = (Path(dirpath) / d).resolve()
+                    if (
+                        resolved.is_relative_to(_specs_root_resolved)
+                        and resolved not in _visited
+                    ):
+                        safe.append(d)
+                except (OSError, ValueError, RuntimeError):
+                    pass
+            dirnames[:] = sorted(safe)  # deterministic traversal order
             if "spec.md" not in filenames:
                 continue
             spec_file = Path(dirpath) / "spec.md"
             if spec_file.is_symlink():
                 continue
+            # Derive the slug from the resolved path so NTFS junction aliases
+            # that sort before their real target still produce the canonical slug.
             try:
-                rel = spec_file.parent.relative_to(specs_dir)
+                rel = _current_resolved.relative_to(_specs_root_resolved)
             except ValueError:
                 continue
             slug = rel.as_posix()
@@ -637,6 +654,7 @@ def analyze(root: Path) -> WorkspaceStatusResult:
         all_shaping.extend(classify_shaping_entries(ini, initiatives))
 
     reconciliation, files_read = run_reconciliation(root, initiatives)
+    top_level_backlog = extract_top_level_backlog(workspace)
 
     elapsed = time.monotonic() - t0
     return WorkspaceStatusResult(
@@ -646,6 +664,7 @@ def analyze(root: Path) -> WorkspaceStatusResult:
         reconciliation=reconciliation,
         files_read=files_read,
         elapsed_s=elapsed,
+        top_level_backlog=top_level_backlog,
     )
 
 
@@ -796,9 +815,33 @@ def collect_work_loop_stale_warnings(
     return warnings
 
 
+def _toml_basic_string(s: str) -> str:
+    """Return a TOML basic-string literal (with surrounding quotes) for value s.
+
+    json.dumps would emit surrogate-pair escapes (\\ud800\\udc00) for non-BMP
+    code points, which are not valid TOML \\u escapes (must be scalar values).
+    This helper includes non-BMP characters as UTF-8 literals instead.
+    """
+    _esc = {
+        "\b": "\\b", "\t": "\\t", "\n": "\\n", "\f": "\\f",
+        "\r": "\\r", '"': '\\"', "\\": "\\\\",
+    }
+    buf = ['"']
+    for ch in s:
+        e = _esc.get(ch)
+        if e:
+            buf.append(e)
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            buf.append(f"\\u{ord(ch):04X}")
+        else:
+            buf.append(ch)
+    buf.append('"')
+    return "".join(buf)
+
+
 # ── workspace-status Type 2 cleanup mutation shape ────────────────────────────
 #
-# work-loop (as of commit a46d6f46) no longer writes to workspace.toml
+# work-loop no longer writes to workspace.toml
 # active/shipped arrays. Its finish checklist only sets spec.md Status: Shipped.
 # Cleanup of stale active/queue entries is workspace-status's responsibility
 # (Type 2 cleanup write after user confirmation).
@@ -833,7 +876,6 @@ def compute_type2_cleanup(
       - Archived, in active/queue → remove only; do NOT add to shipped
 
     This engine is read-only; it describes the write shape, not performs it.
-    NOTE: work-loop (≥ a46d6f46) does not perform this write.
     """
     if spec_status not in _TYPE2_VALID_STATUSES:
         raise ValueError(
@@ -857,5 +899,5 @@ def compute_type2_cleanup(
         "source_list": source_list,
         "target_list": "shipped",
         "path": spec_path,
-        "written_form": f'"{spec_path}"',   # bare string
+        "written_form": _toml_basic_string(spec_path),
     }

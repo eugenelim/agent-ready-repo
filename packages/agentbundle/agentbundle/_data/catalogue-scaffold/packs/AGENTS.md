@@ -113,6 +113,16 @@ A non-cosmetic pack update must also update the pack's eval harness:
 - **Tier-A activation** — `evals/eval_queries.json` (~8–10 should-trigger + ~8–10 near-miss) and
   a `[pack.evals]` block in `pack.toml` listing every user-triggered skill.
 - **Tier-4 LLM-judge rubric** — `evals/evals.json` for judgment/authoring skills.
+- **Tier-B-lite behavior check** — add an `expect` block to an `evals/evals.json` entry (non-destructive,
+  non-credentialed skills only). Four things that must be explicit to avoid format churn:
+  - Field name is **`files`** (not `fixture`): paths are relative to the **skill root**
+    (e.g. `"evals/files/sample.md"`), not relative to `evals/`. The runner seeds a temp workspace
+    with these files before invoking the skill.
+  - `expect.produces`: filenames the run must create in the workspace.
+  - `expect.output_contains` / `expect.output_excludes`: substrings in captured output.
+  - **Your skill script must accept the workspace path** — via a `--fixture`/`--root` flag or by
+    treating CWD as the workspace — so the runner can confine writes and verify `produces`.
+  Full procedure: [`guides/_shared/how-to/author-a-skill.md`](../guides/_shared/how-to/author-a-skill.md).
 
 ## Windows-safe Python scripts
 

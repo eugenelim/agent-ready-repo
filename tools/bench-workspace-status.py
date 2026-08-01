@@ -15,6 +15,7 @@ Exit: 0 if benchmark completes successfully.
 
 from __future__ import annotations
 
+import importlib.util
 import io
 import sys
 import tempfile
@@ -22,8 +23,18 @@ import time
 import tomllib
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from workspace_status_engine import analyze, extract_spec_status
+# Load the production engine from its skill-local location.
+_ENGINE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
+)
+_engine_spec = importlib.util.spec_from_file_location("workspace_status_engine", _ENGINE_PATH)
+_engine_mod = importlib.util.module_from_spec(_engine_spec)  # type: ignore[arg-type]
+sys.modules.setdefault("workspace_status_engine", _engine_mod)
+_engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
+
+analyze = _engine_mod.analyze
+extract_spec_status = _engine_mod.extract_spec_status
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")

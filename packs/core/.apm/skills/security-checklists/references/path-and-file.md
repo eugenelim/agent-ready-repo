@@ -30,6 +30,40 @@ behavior as criteria (ASVS 5.0 V12.1).
 - `reason` **Symlink escape.** A path that resolves through an attacker-placed
   symlink can leave the root; resolve links before the boundary check, and
   refuse to follow links into untrusted trees.
+- `reason` **Tree-walk confinement (`os.walk`, 4 axes).** When code recurses
+  a directory tree, four axes all must hold:
+  - **(a) NTFS junctions (Windows).** `followlinks=False` does NOT stop
+    `os.walk` from descending NTFS junction points — `os.path.islink()`
+    returns `False` for them (CPython #23407). Guard: use
+    `entry.is_junction()` (Python ≥ 3.12) or verify
+    `resolved.is_relative_to(root)` after `resolve()` on every child dir.
+  - **(b) Visited-set timing.** Add the resolved current directory to the
+    visited set **before** processing filenames, not after. A sibling
+    junction pointing to the same real dir passes the child-prune check
+    before the target is recorded, so its content is processed twice.
+  - **(c) Path / slug derivation from alias.** Derive output paths or
+    catalogue slugs from the **resolved** canonical path, not the
+    unresolved `dirpath`. An alias that sorts before its real target is
+    processed first; its unresolved name becomes the slug, making the
+    real entry appear untracked.
+  - **(d) `RuntimeError` from circular symlinks.** `Path.resolve()`
+    raises `RuntimeError` (not `OSError`) for symlink loops on Python
+    3.11–3.12 (CPython #109187; PR #109192 not merged as of 3.12).
+    Catch `(OSError, RuntimeError)` in both the current-directory guard
+    and any child-pruning `resolve()` call.
+- `reason` **Cross-format value encoding.** When values serialised in one
+  format are reused in another, validate the **target** format's constraints
+  independently:
+  - **(a) Non-BMP characters: JSON → TOML / YAML.** `json.dumps` with the
+    default `ensure_ascii=True` encodes non-BMP characters as surrogate pairs:
+    U+1F600 (😀) becomes `\uD83D\uDE00` — two `\uXXXX` escapes — in the JSON
+    string. These escape sequences are valid JSON but **invalid** in TOML string
+    literals — TOML v1.1 requires Unicode scalar values, and U+D800–U+DFFF are
+    not. Emit UTF-8 directly or use a format-aware helper.
+  - **(b) `json.dumps` NaN / Infinity.** Python's `json.dumps` silently emits
+    `NaN` / `Infinity` for IEEE 754 specials by default (`allow_nan=True`),
+    violating RFC 8259. Pass `allow_nan=False` whenever the consumer or a
+    downstream parser requires strict JSON.
 - `reason` **Zip-slip / archive extraction.** Each entry's destination must be
   validated to stay under the extraction root; an entry named `../../etc/...`
   writes outside it. Reject absolute and traversing entry names.
