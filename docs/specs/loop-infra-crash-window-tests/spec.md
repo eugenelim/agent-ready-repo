@@ -1,12 +1,12 @@
 # Spec: loop-infra-crash-window-tests
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, [loop-infrastructure-phase-1 spec](../loop-infrastructure-phase-1/spec.md)
 - **Brief:** none
 - **Contract:** none
-- **Shape:** code
+- **Shape:** mixed
 - **Closes deferred:** AC6 of `docs/specs/loop-infrastructure-phase-1/spec.md`
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -28,6 +28,20 @@ projection parity.
 
 Phase 2 orchestration is out of scope. This spec stays strictly within the
 accepted Phase 1 Option-A architecture.
+
+## Assumptions
+
+- `loop-engine status --json` returns `run_id`, `last_event`, `last_event_context`,
+  and `transition_sequence` as top-level fields (verified by reading existing engine
+  output schema in `loop-engine.py`).
+- `loop-cohort wave advance` and `loop-cohort record-attempt` are the only cohort
+  mutations in the documented session-resumption protocol (verified by reading
+  SKILL.md session-resumption table rows).
+- All test invariants are provable via state-file comparison without relying on
+  process timing, network, or OS scheduling.
+- The `reviewers-clean` row in SKILL.md is the only session-resumption table row
+  that lacks consequence language for double-increment; the `findings-remain` row
+  already has the required phrases (verified by reading SKILL.md lines 499–501).
 
 ## Boundaries
 

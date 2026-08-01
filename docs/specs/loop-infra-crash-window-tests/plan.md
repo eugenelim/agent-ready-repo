@@ -20,7 +20,10 @@ Phase 2 orchestration is out of scope.
 
 - No production changes to `loop-engine.py` or `loop-cohort.py` unless a test
   discovers a bug blocking a required AC (surface first before any fix).
-- All tests use only subprocess invocations, temp dirs, and state-file comparison.
+- All crash states are reached via real CLI transitions (`run_engine("transition",
+  ...)`), never by writing synthetic engine-state.json files. Cohort crash states
+  (wave advance already applied, or record-attempt already applied) are reached by
+  calling the real cohort mutation command before the crash point.
 - No sleeps, timing, network access, or process killing.
 - Cross-platform (macOS and Linux).
 - Every new `test_*` function must be added to the `tests` list in `main()`.
@@ -30,6 +33,16 @@ Phase 2 orchestration is out of scope.
 - A test may reveal that the current `loop-cohort.py` does not fully implement
   the documented behavior for a crash window. If so: surface to human with the
   exact scenario + state diff before making any production fix.
+
+## Design (LLD)
+
+N/A — this spec adds tests and prose only. No new module boundary, no new
+dependency, no production state changes. SKILL.md change is a single prose row.
+
+## Rollout
+
+N/A — test additions and prose changes ship in a single PR; no migration,
+feature flag, or staged rollout required.
 
 ## Tasks
 
@@ -68,9 +81,9 @@ def test_no_chat_history_identity_verify_via_cli(tmp: Path) -> None:  # STUB: AC
 
 def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:  # STUB: AC7
     """AC7: reads last_event wave-passed from CLI and routes wave advance correctly."""
-    spec_dir, run_id, seq = make_crash_window_run(tmp, "nch-wave")
-    # Simulate crash after wave-passed transition: set engine state manually
-    _set_engine_wave_passed(spec_dir, run_id, completed_index=0)
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-wave")
+    # Simulate crash: fire real wave-passed transition, then stop before advance
+    run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")
     # Fresh-process read sequence
     rc_s, out_s, _ = run_engine("status", spec_dir, "--json")
     eng = json.loads(out_s)
@@ -94,9 +107,9 @@ def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:  # STUB: 
 
 def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:  # STUB: AC7
     """AC7: reads last_event gates-failed from CLI and routes record-attempt correctly."""
-    spec_dir, run_id, seq = make_crash_window_run(tmp, "nch-gf")
-    # Simulate crash after gates-failed; no record-attempt yet
-    _set_engine_gates_failed(spec_dir, run_id, seq)
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "nch-gf")
+    # Simulate crash: fire real gates-failed transition, stop before record-attempt
+    run_engine("transition", spec_dir, "gates-failed")
     rc_s, out_s, _ = run_engine("status", spec_dir, "--json")
     eng = json.loads(out_s)
     rc_i, _, _ = run_cohort("identity", spec_dir, "--expect-run-id", eng["run_id"])
@@ -137,11 +150,11 @@ it, the wave-advance guard refuses (`0 < len - 1` is false on a single-wave
 schedule) before reaching the increment/no-op paths under test. Use the same
 two-task pattern as existing lifecycle tests in `test-loop-engine.py`.
 
-Add `_set_engine_wave_passed(spec_dir, run_id, completed_index)` and
-`_set_engine_gates_failed(spec_dir, run_id, seq)` helpers that write the
-engine-state.json and cohort state.json to the pre-crash position (reusing the
-`write_engine_state` / `write_cohort_state` helpers already in
-`test-loop-engine.py`).
+Crash states in T1 tests are reached by firing real engine transitions (not
+synthetic state writes). `run_engine("transition", spec_dir, "wave-passed",
+"--wave-index", "0")` from CODE-VERIFICATION sets the crash state for wave-passed
+recovery tests. `run_engine("transition", spec_dir, "gates-failed")` from
+CODE-VERIFICATION sets the crash state for gates-failed recovery tests.
 
 The `tests` list in `main()` must include all four T1 test functions.
 
@@ -162,10 +175,10 @@ packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py` exits 0;
 def test_wave_passed_window_a_advance_before_crash(tmp: Path) -> None:  # STUB: AC1
     """AC1: window A — current_wave_index == N; advance succeeds and increments."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-a")
-    _set_engine_wave_passed(spec_dir, run_id, completed_index=0)
-    # Cohort index is still 0 (crash before advance)
+    # Set crash state: real wave-passed transition (crash before advance)
+    run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")
     before = _read_cohort_state(spec_dir)
-    assert before["current_wave_index"] == 0, "pre-condition failed"
+    assert before["current_wave_index"] == 0, "pre-condition: index not at 0"
     rc, _, _ = run_cohort(
         "wave", "advance", spec_dir,
         "--from-index", "0", "--expect-run-id", run_id
@@ -180,9 +193,10 @@ def test_wave_passed_window_a_advance_before_crash(tmp: Path) -> None:  # STUB: 
 def test_wave_passed_window_b_advance_after_crash(tmp: Path) -> None:  # STUB: AC2
     """AC2: window B — current_wave_index == N+1; replay is idempotent no-op."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-b")
-    _set_engine_wave_passed(spec_dir, run_id, completed_index=0)
-    # Simulate advance already completed
-    _set_cohort_wave_index(spec_dir, 1)
+    # Set crash state: engine wave-passed, then advance (crash after advance)
+    run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")
+    run_cohort("wave", "advance", spec_dir, "--from-index", "0", "--expect-run-id", run_id)
+    # Advance already applied (current_wave_index == 1); snapshot before replay
     before_json = (spec_dir / "state.json").read_bytes()
     rc, _, _ = run_cohort(
         "wave", "advance", spec_dir,
@@ -198,7 +212,7 @@ def test_wave_passed_window_b_advance_after_crash(tmp: Path) -> None:  # STUB: A
 def test_wave_passed_wrong_from_index_refused(tmp: Path) -> None:  # STUB: AC3
     """AC3: wrong --from-index exits non-zero; state.json unchanged."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-wfi")
-    _set_engine_wave_passed(spec_dir, run_id, completed_index=0)
+    run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")
     before = (spec_dir / "state.json").read_bytes()
     rc, _, _ = run_cohort(
         "wave", "advance", spec_dir,
@@ -214,7 +228,7 @@ def test_wave_passed_wrong_from_index_refused(tmp: Path) -> None:  # STUB: AC3
 def test_wave_passed_wrong_run_id_refused(tmp: Path) -> None:  # STUB: AC3
     """AC3: wrong --expect-run-id exits non-zero; state.json unchanged."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-wri")
-    _set_engine_wave_passed(spec_dir, run_id, completed_index=0)
+    run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")
     before = (spec_dir / "state.json").read_bytes()
     rc, _, _ = run_cohort(
         "wave", "advance", spec_dir,
@@ -231,7 +245,7 @@ def test_wave_passed_wrong_run_id_refused(tmp: Path) -> None:  # STUB: AC3
 def test_wave_passed_run_ids_remain_paired_after_advance(tmp: Path) -> None:  # STUB: AC1
     """AC1: engine and cohort run_ids remain paired after recovery."""
     spec_dir, run_id, _ = make_crash_window_run(tmp, "wp-pair")
-    _set_engine_wave_passed(spec_dir, run_id, completed_index=0)
+    run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")
     run_cohort("wave", "advance", spec_dir, "--from-index", "0",
                "--expect-run-id", run_id)
     rc, out, _ = run_cohort("identity", spec_dir, "--expect-run-id", run_id)
@@ -243,12 +257,11 @@ def test_wave_passed_run_ids_remain_paired_after_advance(tmp: Path) -> None:  # 
 ```
 
 **T2 helpers (new — to author alongside the stubs):**
-- `_set_engine_wave_passed(spec_dir, run_id, completed_index)` — writes
-  engine-state.json with `state: CODE-IMPLEMENTATION`, `last_event: wave-passed`,
-  `last_event_context: {completed_wave_index: N}`.
-- `_set_cohort_wave_index(spec_dir, n)` — reads `state.json`, sets
-  `current_wave_index = n`, writes back atomically.
 - `_read_cohort_state(spec_dir)` — reads and returns parsed `state.json` dict.
+
+No synthetic `_set_engine_wave_passed` helper. Crash states are reached by
+calling `run_engine("transition", spec_dir, "wave-passed", "--wave-index", "0")`
+from the CODE-VERIFICATION starting point provided by `make_crash_window_run`.
 
 The `tests` list must include all five T2 functions.
 
@@ -266,8 +279,9 @@ The `tests` list must include all five T2 functions.
 ```python
 def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:  # STUB: AC4
     """AC4: window A — no prior record-attempt; count increments exactly once."""
-    spec_dir, run_id, seq = make_crash_window_run(tmp, "gf-a")
-    _set_engine_gates_failed(spec_dir, run_id, seq)
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-a")
+    # Set crash state: real gates-failed transition (crash before record-attempt)
+    run_engine("transition", spec_dir, "gates-failed")
     before = _read_cohort_state(spec_dir)
     eng = json.loads(run_engine("status", spec_dir, "--json")[1])
     cycle_id = f"{run_id}:{eng['transition_sequence']}"
@@ -285,10 +299,11 @@ def test_gates_failed_window_a_record_before_crash(tmp: Path) -> None:  # STUB: 
 
 def test_gates_failed_window_b_record_after_crash(tmp: Path) -> None:  # STUB: AC5
     """AC5: window B — cycle_id already recorded; replay is no-op."""
-    spec_dir, run_id, seq = make_crash_window_run(tmp, "gf-b")
-    _set_engine_gates_failed(spec_dir, run_id, seq)
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-b")
+    run_engine("transition", spec_dir, "gates-failed")
     eng = json.loads(run_engine("status", spec_dir, "--json")[1])
     cycle_id = f"{run_id}:{eng['transition_sequence']}"
+    # First call (crash happened after this)
     run_cohort(
         "record-attempt", spec_dir,
         "--phase", "implement", "--cycle-id", cycle_id, "--expect-run-id", run_id
@@ -308,8 +323,8 @@ def test_gates_failed_window_b_record_after_crash(tmp: Path) -> None:  # STUB: A
 
 def test_gates_failed_wrong_run_id_prefix_refused(tmp: Path) -> None:  # STUB: AC4/AC5
     """AC4/AC5: cycle_id with mismatched run_id prefix exits non-zero; state unchanged."""
-    spec_dir, run_id, seq = make_crash_window_run(tmp, "gf-wri")
-    _set_engine_gates_failed(spec_dir, run_id, seq)
+    spec_dir, run_id, _ = make_crash_window_run(tmp, "gf-wri")
+    run_engine("transition", spec_dir, "gates-failed")
     eng = json.loads(run_engine("status", spec_dir, "--json")[1])
     bad_cycle = f"00000000-0000-0000-0000-000000000000:{eng['transition_sequence']}"
     before = (spec_dir / "state.json").read_bytes()
@@ -331,7 +346,7 @@ def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:  # STUB: AC6
     st = _read_cohort_state(spec_dir)
     st["implementation_retry_count"] = 4
     _write_cohort_state(spec_dir, st)
-    # Fire the fifth gates-failed transition and record-attempt
+    # Fire the fifth gates-failed transition
     rc_t, _, err_t = run_engine("transition", spec_dir, "gates-failed")
     eng = json.loads(run_engine("status", spec_dir, "--json")[1])
     cycle_id = f"{run_id}:{eng['transition_sequence']}"
@@ -347,39 +362,38 @@ def test_gates_failed_fifth_retry_permitted(tmp: Path) -> None:  # STUB: AC6
         ok("gates-failed-fifth-permitted")
 
 def test_gates_failed_sixth_retry_refused(tmp: Path) -> None:  # STUB: AC6
-    """AC6: sixth gates-failed transition is refused; count stays at 5."""
+    """AC6: sixth gates-failed transition is refused; both state files unchanged."""
     spec_dir, run_id, _ = _setup_retry_boundary_run(tmp, "gf-6th")
     # Set count to 5 (cap exhausted)
     st = _read_cohort_state(spec_dir)
     st["implementation_retry_count"] = 5
     _write_cohort_state(spec_dir, st)
-    before = (spec_dir / "state.json").read_bytes()
+    before_eng = (spec_dir / "engine-state.json").read_bytes()
+    before_coh = (spec_dir / "state.json").read_bytes()
     rc_t, _, err_t = run_engine("transition", spec_dir, "gates-failed")
-    after = (spec_dir / "state.json").read_bytes()
+    after_eng = (spec_dir / "engine-state.json").read_bytes()
+    after_coh = (spec_dir / "state.json").read_bytes()
     after_st = _read_cohort_state(spec_dir)
-    if rc_t == 0 or before != after or after_st["implementation_retry_count"] != 5:
+    if (rc_t == 0 or before_eng != after_eng or before_coh != after_coh
+            or after_st["implementation_retry_count"] != 5):
         fail("gates-failed-sixth-refused",
-             f"rc_t={rc_t} state_mutated={before != after} "
+             f"rc_t={rc_t} eng_mutated={before_eng != after_eng} "
+             f"coh_mutated={before_coh != after_coh} "
              f"count={after_st.get('implementation_retry_count')}")
     else:
         ok("gates-failed-sixth-refused")
 ```
 
 **T3 helpers (new — to author alongside the stubs):**
-- `_setup_retry_boundary_run(tmp, feature)` — same as `make_crash_window_run`
-  but ensures the engine is in `CODE-VERIFICATION` (after `wave-complete`),
-  ready to fire `gates-failed`. Returns `(spec_dir, run_id, seq)`.
-- `_set_engine_gates_failed(spec_dir, run_id, seq)` — writes engine-state.json
-  with `state: CODE-IMPLEMENTATION`, `last_event: gates-failed`,
-  `transition_sequence: seq`.
-- `_write_cohort_state(spec_dir, state_dict)` — writes state.json atomically
-  (new helper; used to directly set `implementation_retry_count` for boundary
-  tests).
+- `_setup_retry_boundary_run(tmp, feature)` — same as `make_crash_window_run`,
+  leaving the engine in `CODE-VERIFICATION` ready to fire `gates-failed`. Returns
+  `(spec_dir, run_id, seq)`.
+- `_write_cohort_state(spec_dir, state_dict)` — writes state.json atomically;
+  used to preset `implementation_retry_count` for boundary tests.
 - `_read_cohort_state(spec_dir)` — same as T2; reused here.
 
-Each retry-boundary test sets `implementation_retry_count` to the target value
-via direct state manipulation, then fires the engine transition (which calls the
-`check --phase gates-failed` guard that reads the count).
+No synthetic `_set_engine_gates_failed` helper. Crash states are reached by
+calling `run_engine("transition", spec_dir, "gates-failed")` from CODE-VERIFICATION.
 
 The `tests` list must include all five T3 functions.
 
@@ -387,7 +401,7 @@ The `tests` list must include all five T3 functions.
 
 ---
 
-### T4: Non-idempotent review-window limitation tests and SKILL.md prose assertions
+### T4: Non-idempotent review-window limitation tests, SKILL.md prose, and pack bump
 
 **Depends on:** T1
 **Mode:** TDD (state comparison) + goal-based content (SKILL.md prose, --help)
@@ -397,8 +411,9 @@ The `tests` list must include all five T3 functions.
 ```python
 def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:  # STUB: AC8a
     """AC8a: committed phase is readable from engine state via loop-engine status."""
-    spec_dir, run_id, _ = make_crash_window_run(tmp, "fr-phase")
-    _set_engine_findings_remain(spec_dir, run_id)
+    spec_dir, run_id = make_code_review_run(tmp, "fr-phase")
+    # Set crash state: fire real findings-remain from CODE-REVIEW
+    run_engine("transition", spec_dir, "findings-remain")
     rc, out, _ = run_engine("status", spec_dir, "--json")
     eng = json.loads(out)
     if rc != 0 or eng.get("last_event") != "findings-remain":
@@ -410,17 +425,19 @@ def test_findings_remain_phase_recoverable_from_engine(tmp: Path) -> None:  # ST
 def test_findings_remain_no_auto_replay(tmp: Path) -> None:  # STUB: AC8b
     """AC8b: cohort state.json unchanged after running the recovery read sequence
     (engine status + cohort status) without calling review record --fingerprint."""
-    spec_dir, run_id, _ = make_crash_window_run(tmp, "fr-noreplay")
-    _set_engine_findings_remain(spec_dir, run_id)
+    spec_dir, run_id = make_code_review_run(tmp, "fr-noreplay")
+    run_engine("transition", spec_dir, "findings-remain")
     before = (spec_dir / "state.json").read_bytes()
-    # Run the full documented read sequence (fresh-process recovery simulation);
-    # these are read-only and must not mutate cohort state.
-    run_engine("status", spec_dir, "--json")
-    run_cohort("identity", spec_dir, "--expect-run-id", run_id)
-    run_cohort("status", spec_dir, "--json")
+    # Run the full documented read sequence; require all reads to succeed.
+    rc_s, out_s, _ = run_engine("status", spec_dir, "--json")
+    rc_i, _, _ = run_cohort("identity", spec_dir, "--expect-run-id", run_id)
+    rc_c, out_c, _ = run_cohort("status", spec_dir, "--json")
     # Deliberately do NOT call review record --fingerprint
     after = (spec_dir / "state.json").read_bytes()
-    if before != after:
+    if rc_s != 0 or rc_i != 0 or rc_c != 0:
+        fail("findings-remain-no-auto-replay",
+             f"recovery reads failed: rc_s={rc_s} rc_i={rc_i} rc_c={rc_c}")
+    elif before != after:
         fail("findings-remain-no-auto-replay",
              "state.json mutated by read-only recovery sequence")
     else:
@@ -430,7 +447,7 @@ def test_findings_remain_skill_prose_present(tmp: Path) -> None:  # STUB: AC8c
     """AC8c: the findings-remain session-resumption table row contains required phrases."""
     skill_path = SCRIPT_DIR.parent / "SKILL.md"
     lines = skill_path.read_text(encoding="utf-8").splitlines()
-    # Extract the single table row for findings-remain
+    # Extract the single table row for findings-remain in CODE-IMPLEMENTATION
     row_line = next(
         (ln for ln in lines
          if ("| `findings-remain`" in ln or "findings-remain" in ln)
@@ -466,16 +483,21 @@ def test_reviewers_clean_record_forms_present(tmp: Path) -> None:  # STUB: AC9
 def test_reviewers_clean_no_silent_replay(tmp: Path) -> None:  # STUB: AC9
     """AC9: cohort state.json unchanged after running the recovery read sequence
     (engine status + cohort status) without calling review record --report."""
-    spec_dir, run_id, _ = make_crash_window_run(tmp, "rc-noreplay")
-    _set_engine_reviewers_clean(spec_dir, run_id)
+    spec_dir, run_id = make_code_review_run(tmp, "rc-noreplay")
+    # Set crash state: write Status: Shipped and fire real reviewers-clean
+    write_spec(spec_dir, status="Shipped")
+    run_engine("transition", spec_dir, "reviewers-clean")
     before = (spec_dir / "state.json").read_bytes()
-    # Run the full documented read sequence; must not mutate cohort state.
-    run_engine("status", spec_dir, "--json")
-    run_cohort("identity", spec_dir, "--expect-run-id", run_id)
-    run_cohort("status", spec_dir, "--json")
+    # Run the full documented read sequence; require all reads to succeed.
+    rc_s, out_s, _ = run_engine("status", spec_dir, "--json")
+    rc_i, _, _ = run_cohort("identity", spec_dir, "--expect-run-id", run_id)
+    rc_c, out_c, _ = run_cohort("status", spec_dir, "--json")
     # Deliberately do NOT call review record --report
     after = (spec_dir / "state.json").read_bytes()
-    if before != after:
+    if rc_s != 0 or rc_i != 0 or rc_c != 0:
+        fail("reviewers-clean-no-silent-replay",
+             f"recovery reads failed: rc_s={rc_s} rc_i={rc_i} rc_c={rc_c}")
+    elif before != after:
         fail("reviewers-clean-no-silent-replay",
              "state.json mutated by read-only recovery sequence")
     else:
@@ -485,7 +507,7 @@ def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:  # STUB: AC
     """AC9: the reviewers-clean session-resumption table row contains required phrases."""
     skill_path = SCRIPT_DIR.parent / "SKILL.md"
     lines = skill_path.read_text(encoding="utf-8").splitlines()
-    # Extract the single table row for reviewers-clean
+    # Extract the single table row for reviewers-clean in CODE-HUMAN-GATE
     row_line = next(
         (ln for ln in lines
          if ("| `reviewers-clean`" in ln or "reviewers-clean" in ln)
@@ -510,32 +532,35 @@ def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:  # STUB: AC
         ok("reviewers-clean-skill-prose-obligations")
 ```
 
+**T4 helpers (new — to author alongside the stubs):**
+- `make_code_review_run(tmp, feature)` — drives a fresh 1-wave run to `CODE-REVIEW`
+  via real CLI: engine init → cohort init → spec-ready → reviewers-clean → write
+  Status: Approved → approve-plan → schedule → plan-approved → wave-complete →
+  gates-clean → CODE-REVIEW. Returns `(spec_dir, run_id)`. Uses a 1-wave plan
+  (`write_plan(spec_dir, content="# Plan\n\n### T1\n\n**Depends on:** none\n")`)
+  so that the single wave is the last wave and `gates-clean` (not `wave-passed`)
+  exits CODE-VERIFICATION.
+
 **SKILL.md prose enhancements (in-scope):**
 
 Edit the `reviewers-clean` row in the Session Resumption table of
-`packs/core/.apm/skills/work-loop/SKILL.md` to make explicit the consequence
-language. Current text (line 501):
-> Wait for human signal. **Approved (merge confirmed):** fire `done`.
-> **Changes requested:** surface `review record --report` audit risk first
-> (non-idempotent — outcome unknown); if authorized replay it; ...
-
-Add to the Changes-requested cell: "— specifically that a replay may
-double-increment `review_round_count` and overwrite one level of fingerprint
+`packs/core/.apm/skills/work-loop/SKILL.md` to make the consequence language
+explicit. Extend the Changes-requested cell to say: "— specifically that a replay
+may double-increment `review_round_count` and overwrite one level of fingerprint
 audit history; explicit human authorization required before any replay".
 
-After editing `packs/core/.apm/skills/work-loop/SKILL.md`, run
-`FORCE=1 make build-self` to regenerate projections.
+After editing `packs/core/.apm/skills/work-loop/SKILL.md`, the pack requires a
+**patch version bump** (prose-body change = patch increment):
+- `packs/core/pack.toml`: bump `[pack] version` from `1.0.0` to `1.0.1`
+- `packs/core/.claude-plugin/plugin.json`: bump `"version"` to `"1.0.1"`
+- `docs/product/changelog.md`: add `## [core][1.0.1] — 2026-07-31` section
+- Run `FORCE=1 make build-self` to regenerate projections
 
-**T4 helpers:**
-- `_set_engine_findings_remain(spec_dir, run_id)`: writes engine-state.json
-  with `state: CODE-IMPLEMENTATION`, `last_event: findings-remain`.
-- `_set_engine_reviewers_clean(spec_dir, run_id)`: writes engine-state.json
-  with `state: CODE-HUMAN-GATE`, `last_event: reviewers-clean`.
+The T4 tests must include all six functions.
 
-The `tests` list must include all six T4 functions.
-
-**Done when:** all T4 tests pass; SKILL.md prose enhancements in place; projections
-regenerated; no regression in existing tests.
+**Done when:** all T4 tests pass; SKILL.md prose enhancement in place;
+pack bumped to `1.0.1`; changelog entry added; `FORCE=1 make build-self` exits
+clean; no regression in existing tests.
 
 ---
 
@@ -560,14 +585,16 @@ python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .
 2. Mark this spec `Status: Shipped`; mark plan.md `Status: Done`.
 3. Remove the `{slug = "loop-infra-crash-window-tests", ...}` entry from
    `[backlog].open` in `workspace.toml`.
-4. Run `python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .`
+4. Add this spec to `docs/specs/README.md` active list (required by new-spec step 7).
+5. Run `python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .`
    and verify clean.
-5. Run `FORCE=1 make build-self` to verify no projection drift.
-6. Run `make build-check SKIP_SAST=1` for full build gates.
+6. Run `FORCE=1 make build-self` to verify no projection drift.
+7. Run `make build-check SKIP_SAST=1` for full build gates.
 
 **Manual QA — happy-path recovery (wave-passed scenario):**
 - Init a fresh run in a temp dir; drive to `CODE-VERIFICATION`.
-- Set `last_event: wave-passed` in engine-state.json, `current_wave_index: 0`.
+- Fire `loop-engine transition ... wave-passed --wave-index 0`; verify engine
+  state has `last_event: wave-passed` and `last_event_context.completed_wave_index: 0`.
 - In a fresh shell: run `loop-engine status --json`; verify `last_event: wave-passed`.
 - Run `loop-cohort identity --expect-run-id <run_id>`; verify exit 0.
 - Run `loop-cohort status --json`; read `current_wave_index`.
@@ -577,7 +604,7 @@ python3 packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py .
 
 **Done when:** all crash-window tests pass; `lint-spec-status.py` clean;
 `make build-check` (SKIP_SAST=1) green; Phase 1 AC6 checked off; backlog entry
-removed; manual QA result recorded in PR.
+removed; `docs/specs/README.md` updated; manual QA result recorded in PR.
 
 ---
 
@@ -602,3 +629,11 @@ removed; manual QA result recorded in PR.
 - Rev 4 — addressed fourth adversarial-reviewer findings: fixed operator-precedence
   bug in row-extraction filters (parenthesized `(A or B) and C`); documented the
   ≥2-wave precondition for `make_crash_window_run` in T1 Approach.
+- Rev 5 — addressed Codex CLI review findings: (1) changed spec Shape from `code`
+  to `mixed`; (2) added spec Assumptions section; (3) removed all synthetic
+  `_set_engine_*` helpers — crash states now reached via real CLI transitions;
+  (4) added `make_code_review_run` helper (drives to CODE-REVIEW for T4 tests);
+  (5) added engine-state.json snapshot to sixth-retry refusal test (AC6); (6) added
+  rc assertions to no-replay recovery reads (AC8b, AC9); (7) added T4 pack version
+  bump (1.0.0→1.0.1), changelog entry, and eval check; (8) added
+  `docs/specs/README.md` update to T5.
