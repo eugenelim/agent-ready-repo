@@ -31,17 +31,21 @@ sys.dont_write_bytecode = True
 _here = Path(__file__).parent
 _engine_path = _here / "workspace_status_engine.py"
 
-_engine_spec = importlib.util.spec_from_file_location(
-    "workspace_status_engine", _engine_path
-)
-_engine_mod = importlib.util.module_from_spec(_engine_spec)  # type: ignore[arg-type]
-# Register before exec_module so dataclass annotation resolution (from __future__ import
-# annotations + sys.modules lookup) works correctly.
-sys.modules.setdefault("workspace_status_engine", _engine_mod)
-_engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
-
-analyze = _engine_mod.analyze
-compute_type2_cleanup = _engine_mod.compute_type2_cleanup
+try:
+    _engine_spec = importlib.util.spec_from_file_location(
+        "workspace_status_engine", _engine_path
+    )
+    _engine_mod = importlib.util.module_from_spec(_engine_spec)  # type: ignore[arg-type]
+    # Register before exec_module so dataclass annotation resolution (from __future__ import
+    # annotations + sys.modules lookup) works correctly.
+    sys.modules.setdefault("workspace_status_engine", _engine_mod)
+    _engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
+    analyze = _engine_mod.analyze
+    compute_type2_cleanup = _engine_mod.compute_type2_cleanup
+except Exception as _load_err:
+    # Engine load failure must be exit 2, not exit 1 (reserved for absent workspace).
+    print(f"workspace-status: engine load failed: {_load_err}", file=sys.stderr)
+    sys.exit(2)
 
 
 # ── Serialisation helpers ─────────────────────────────────────────────────────

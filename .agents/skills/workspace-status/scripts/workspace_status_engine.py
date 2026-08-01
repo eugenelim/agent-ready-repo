@@ -25,6 +25,7 @@ Known gaps (preserved from Phase 0 characterization):
 from __future__ import annotations
 
 import dataclasses
+import json
 import os
 import re
 import time
@@ -836,5 +837,5 @@ def compute_type2_cleanup(
         "source_list": source_list,
         "target_list": "shipped",
         "path": spec_path,
-        "written_form": f'"{spec_path}"',   # bare string
+        "written_form": json.dumps(spec_path),  # TOML basic string literal
     }

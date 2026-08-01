@@ -174,12 +174,12 @@ Format output in four sections (omit sections with no entries):
 **Blocked:**
 - `<path>` — waiting on `<needs-entry>` (status: `<queued|in-progress>`)
 
-  Resolve the status from JSON: for each entry in `blocking_needs`, strip the queue-prefix to get the slug/path, then branch on the prefix:
-  - `work:` — look in `work.*`: appears in `work.active` → `in-progress`; in `work.ready` or `work.blocked` → `queued`; else → omit.
-  - `shape:` — shape deps block while the slug is in `shaping_queue.active`; use `shaping.active_entries` for provenance: for each entry, match on `slug == dep_slug AND ini_slug == resolved_ini_slug` (use the owning initiative's slug for same-initiative deps; strip `ini-NNN:` prefix for cross-initiative deps and use the named initiative's slug). If a matching entry is found → `in-progress` (regardless of `entry_type`, since signals also block `shape:` deps); else → omit.
-  - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` → if slug in either → not yet started → `queued`; else → omit.
-  - `brief:` — brief deps block while draft; if path in any `initiatives[].brief_queue.draft` → `queued`; if in `executing` → `in-progress`; else → omit.
-  - Cross-initiative (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix, then resolve the remainder as above.
+  Resolve the status from JSON: for each entry in `blocking_needs`, strip the queue-prefix to get the slug/path, then branch on the prefix. **For same-initiative deps** (no `ini-NNN:` prefix), scope every lookup to the blocked entry's own `ini_slug`; only entries matching that `ini_slug` count. For cross-initiative deps, scope to the named initiative instead.
+  - `work:` — scope to blocked entry's `ini_slug`: filter `work.active`, `work.ready`, `work.blocked` by `ini_slug == owning-ini`. Path in filtered `work.active` → `in-progress`; in filtered `work.ready` or `work.blocked` → `queued`; else → omit.
+  - `shape:` — scope to `ini_slug` as above; use `shaping.active_entries` filtered to `ini_slug == owning-ini`: if a matching entry with `slug == dep_slug` is found → `in-progress` (signals included); else → omit.
+  - `research:` — research deps block while the item is in `shaping_queue.backlog`; backlog items appear in `shaping.ready` or `shaping.blocked` — filter both by `ini_slug == owning-ini`: if dep slug found → `queued`; else → omit.
+  - `brief:` — scope to the owning initiative's `brief_queue` only (filter `initiatives[]` by `ini_slug == owning-ini`): if path in `brief_queue.draft` → `queued`; if in `brief_queue.executing` → `in-progress`; else → omit.
+  - Cross-initiative prefix (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix to get the named initiative; resolve the remainder as above using that initiative's `ini_slug`.
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
 
 **Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. Also check `reconciliation.type2` for any entry with that `ini_slug`. Gate closeout on all of: (1) filtered ready + blocked + active are empty, (2) no type2 findings for that initiative, (3) `initiatives[i].queue_empty` is `true` — a path in both `queue` and `shipped` is excluded from the classifier's ready/blocked output and may have no type2 finding, so the raw queue emptiness flag is the authoritative check, (4) filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
