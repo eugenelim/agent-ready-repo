@@ -172,12 +172,16 @@ Only after steps 4–5 complete does Phase 2 begin.
      adds the file to `tools/hooks/` but does not update the README.
    (`build-self` does not update these inventory strings — they are
    human-maintained metadata that must be kept in sync manually.)
-7. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
+7. Run `agentbundle catalogue lint --deep` and `agentbundle catalogue verify`
+   against the real `packs/` root after the write and metadata edits
+   (per `packs/AGENTS.md:50-58` — required after every pack change). This
+   validates the integrated `packs/core` tree, not the pre-write temp catalogue.
+8. Run `FORCE=1 make build-self` to project the new primitive and re-aggregate
    `marketplace.json`. Plain `make build-self` refuses on dirty trees.
-8. Add a `## [core][version] — YYYY-MM-DD` changelog section in
+9. Add a `## [core][version] — YYYY-MM-DD` changelog section in
    `docs/product/changelog.md` (the canonical post-bump record per
    `packs/AGENTS.local.md:16-19`).
-9. Add documentation for manual installation. After `build-self`, the hook is
+10. Add documentation for manual installation. After `build-self`, the hook is
    projected to an adapter-specific path — adopters receive the projected file,
    NOT the catalogue authoring tree under `packs/core/.apm/`. The projected path
    depends on the installed adapter:
@@ -226,8 +230,12 @@ Only after steps 4–5 complete does Phase 2 begin.
    projected path, rename recommendation) and waits for operator approval.
 10. The hook body is written flat under `.apm/hooks/` (no subdirectory).
 11. The skill does NOT create a `.apm/hook-wiring/` file for this git hook.
-12. The version bump AND hook inventory updates happen BEFORE `FORCE=1 make build-self`
+12. The version bump AND hook inventory updates happen BEFORE the post-write
+    catalogue gates and `FORCE=1 make build-self`
     (pack.toml description + plugin.json description + docs/index.md hook count + tools/hooks/README.md + both version fields).
+12b. After the write and metadata edits, `agentbundle catalogue lint --deep`
+    and `agentbundle catalogue verify` run against the real `packs/` root
+    (not the pre-write temp catalogue) before `build-self`.
 13. `docs/product/changelog.md` receives the new `## [core][version]` entry.
 14. The manual install command uses the adapter-specific projected path (not
     `packs/core/.apm/hooks/`).
