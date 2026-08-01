@@ -74,7 +74,7 @@ RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)", re.IGNORECASE)
 
 TOKEN_FILE = "tokens.css"
 CSS_INLINE_COMMENT_RE = re.compile(r"/\*.*?\*/")
-URL_RE = re.compile(r"\burl\([^)]*\)")  # strip url(...) before scanning for hex
+URL_RE = re.compile(r"\burl\([^)]*\)", re.IGNORECASE)  # strip url(...) before scanning for hex
 ROOT_OPEN_RE = re.compile(r":root\b")
 CSS_PROP_RE = re.compile(r"^\s*[-\w]+\s*:")
 JS_LINE_COMMENT_RE = re.compile(r"^\s*//")
@@ -224,14 +224,15 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                 else:
                     in_declaration = True
                     decl_buffer = inline_value
-        elif value_part.strip().endswith(",") and "(" not in value_part:
-            # Multiline selector list continuation (e.g. `a:hover,` followed
-            # by `#id {` on the next line). The colon belongs to the selector;
-            # the trailing comma is not valid CSS property syntax. Skip.
-            # Guard: if value_part contains `(`, it's a CSS function call in a
-            # multi-layer value (e.g. `background: linear-gradient(...),`) and
-            # must enter declaration state normally; only skip when value_part
-            # is bare text (no function calls) ending with a comma.
+        elif (value_part.strip().endswith(",")
+              and "(" not in value_part
+              and " " not in value_part.strip()):
+            # Multiline selector list continuation (e.g. `a:hover,` with CSS_PROP_RE
+            # matching `a:`). The colon belongs to the selector; value_part is a bare
+            # single-token continuation (no spaces, no function calls) — not a CSS value.
+            # Guard: multi-layer values like `box-shadow: 0 0 1px #fff,` contain spaces
+            # and must enter declaration state normally; `linear-gradient(…),` has `(`.
+            # Only skip when value_part is a single bare token (no spaces, no parens).
             pass
         else:
             for m in HEX_RE.finditer(value_part):
