@@ -104,8 +104,10 @@ documented resolution decision.
   `#ffffff` in `--sl-color-text-invert` (Starlight's light-mode inverted
   text slot, same resolved value as `--ds-hero-fg: #ffffff` but different
   semantic role) and `#ffffff` in `.site-footer__brand { color }` (bootstrap
-  context for the Starlight footer). Both use `#ffffff` by necessity — the
-  Starlight slot system is separate from `--ds-*`. The document notes that
+  context for the Starlight footer). Both values could technically reference
+  `--ds-hero-fg` (as demonstrated by `--sl-color-accent: var(--ds-accent)` at
+  `starlight.css` line 23) but were not updated — they are current out-of-scope
+  deviations, not necessary architectural exceptions. The document notes that
   fixing these is out of scope for this spec.
 - [x] **AC8.** `tools/lint_zone_violations.py` exists and scans
   `web/src/**/*.{astro,css}` for raw color assignments (bare hex literals
@@ -196,8 +198,9 @@ Goal-based throughout — no new compilation step, no production test file.
   "catalogue cards" refers to PackCatalogue and `cat-card` items which carry
   no badge. The asymmetry is intentional. (Verified.)
 - Technical: The two Starlight deviation values (`#ffffff` in
-  `--sl-color-text-invert` and `.site-footer__brand`) are bootstrap-context
-  requirements of the Starlight slot system. (Verified.)
+  `--sl-color-text-invert` and `.site-footer__brand`) are current out-of-scope
+  deviations — both could technically reference `--ds-hero-fg` but were not
+  updated as part of this spec. (Verified.)
 - Process: No RFC is needed — the backlog entry explicitly states "no RFC
   needed — internal docs tooling; normal PR."
 
@@ -218,8 +221,9 @@ Goal-based throughout — no new compilation step, no production test file.
 
 ## Declined
 
-- Fixing the two Starlight deviation values (`#ffffff`) — out of scope; both use
-  `#ffffff` by necessity; same resolved value as `--ds-hero-fg`.
+- Fixing the two Starlight deviation values (`#ffffff`) — out of scope for this
+  spec; both could technically reference `--ds-hero-fg` (same resolved value) but
+  were not updated here.
 - Auditing Material/MkDocs component families — MkDocs replaced by Starlight;
   `.md-*` component classes no longer exist in the codebase.
 - Adding `prefers-color-scheme: dark` to the Astro marketing site — out of scope.

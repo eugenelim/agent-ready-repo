@@ -8,16 +8,20 @@ Exit 0: clean. Exit 1: violations found (printed as file:line: <value>).
 Exit 2: invalid invocation (scan root does not exist or is not a directory).
 
 Assumptions:
-- The :root exemption applies only to tokens.css, which is the canonical
-  token-definition file. :root blocks in other .astro or .css files are
-  NOT exempt — they should not define raw color values.
+- The :root exemption applies only to the canonical token file at
+  <root>/styles/tokens.css (computed from the scan root in main). :root blocks
+  in any other .astro or .css file are NOT exempt — they should not define raw
+  color values. The exemption is restricted to the single canonical path, not
+  any file named tokens.css.
 - :root blocks in tokens.css use flat single-line-brace form (two ':root {'
   openings, no nested braces). in_root_block is a boolean toggle, not a
   depth counter.
 - JS/TS comments in Astro frontmatter are always line-leading (^\\s*//).
-- CSS property values are on their own lines (multi-line formatting), which
-  is the convention throughout web/src/. Inline rules like '.foo { color: #hex; }'
-  on a single line are not detected — the codebase doesn't use this format.
+- CSS property values may appear on continuation lines when the declaration
+  spans multiple lines (e.g. background-image: followed by gradient values on
+  the next lines). in_declaration tracks state through the terminating semicolon
+  so continuation lines are also scanned. Inline single-line rules like
+  '.foo { color: #hex; }' are not detected — the codebase doesn't use this format.
 - Astro frontmatter (JS/TS between --- fences) is scanned as-is. A frontmatter
   object property on its own line that happens to look like a CSS property (e.g.
   `color: "#hex",`) would be flagged. AC9 holds because web/src/ frontmatter uses
@@ -46,11 +50,11 @@ SVG_ATTR_RE = re.compile(
 )
 
 
-def scan_file(path: Path) -> list[tuple[int, str]]:
+def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
     violations: list[tuple[int, str]] = []
-    in_root_block = False  # only active for tokens.css
+    in_root_block = False  # only active when is_token_file
     in_block_comment = False
-    is_token_file = path.name == TOKEN_FILE
+    in_declaration = False  # True when a CSS value continues on the next line(s)
 
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -76,7 +80,7 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
         if JS_LINE_COMMENT_RE.match(line):
             continue
 
-        # :root block exemption — restricted to tokens.css only.
+        # :root block exemption — restricted to the canonical token file only.
         if is_token_file:
             if ROOT_OPEN_RE.search(line) and "{" in line:
                 in_root_block = True
@@ -89,7 +93,20 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
         if SVG_ATTR_RE.match(line):
             continue
 
+        # Multi-line declaration continuation: scan the raw line for color literals
+        # when the previous property declaration had its value on subsequent lines.
+        if in_declaration:
+            for m in HEX_RE.finditer(line):
+                violations.append((lineno, m.group()))
+            for m in RGBA_RE.finditer(line):
+                violations.append((lineno, m.group()))
+            if ";" in line or "{" in line or "}" in line:
+                in_declaration = False
+            continue
+
         if not CSS_PROP_RE.match(line):
+            if "{" in line or "}" in line:
+                in_declaration = False
             continue
 
         # Extract value part (after the first colon on the line)
@@ -101,6 +118,11 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
         for m in RGBA_RE.finditer(value_part):
             violations.append((lineno, m.group()))
 
+        # If the declaration has no terminating semicolon on this line, the value
+        # continues on subsequent lines — flag them too.
+        if ";" not in value_part:
+            in_declaration = True
+
     return violations
 
 
@@ -111,10 +133,13 @@ def main() -> None:
         print(f"error: scan root does not exist or is not a directory: {root}", file=sys.stderr)
         sys.exit(2)
 
+    # Only the canonical token file may define raw color values in :root blocks.
+    canonical_token = root / "styles" / "tokens.css"
+
     violations_found = False
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in FILE_EXTS:
-            for lineno, value in scan_file(path):
+            for lineno, value in scan_file(path, is_token_file=(path == canonical_token)):
                 print(f"{path}:{lineno}: {value}")
                 violations_found = True
 

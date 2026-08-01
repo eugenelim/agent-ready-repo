@@ -262,8 +262,10 @@ component draws from.
 `.hero__cta`, `.hero__cta--primary`, `.hero__cta--ghost`, `.hero__friction`  
 **Key tokens:** `--ds-hero-bg`, `--ds-hero-fg`, `--ds-hero-fg-2`, `--ds-hero-fg-muted`,
 `--ds-accent-glow`, `--ds-hero-border`, `--ds-content-max`, `--ds-content-pad-x`,
-`--ds-cta-primary-bg`, `--ds-cta-primary-fg`, `--ds-cta-ghost-border`, `--ds-cta-ghost-fg`,
-`--ds-cta-ghost-bg-hover`, `--ds-radius-pill`, `--ds-type-display`, `--ds-weight-heavy`
+`--ds-cta-primary-bg`, `--ds-cta-primary-fg`, `--ds-cta-primary-bg-hover`,
+`--ds-cta-ghost-fg`, `--ds-cta-ghost-border`, `--ds-cta-ghost-bg-hover`,
+`--ds-radius-pill`, `--ds-type-body-lg`, `--ds-type-body`, `--ds-type-xs`,
+`--ds-weight-semibold`, `--ds-dur-gentle`, `--ds-ease-out`
 
 ---
 
