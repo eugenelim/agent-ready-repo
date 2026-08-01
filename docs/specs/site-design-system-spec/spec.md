@@ -124,7 +124,7 @@ documented resolution decision.
   single-line `{` openings, no nested braces). The scanner operates line-by-line and
   handles both multi-line declarations (property name and value on separate lines, with
   state tracked through the terminating semicolon) and inline single-line rules like
-  `.foo { color: #hex; }` (detected by scanning the portion after `{`). Astro frontmatter
+  `.foo { color: #fff; }` (detected by scanning the portion after `{`). Astro frontmatter
   is scanned as-is; a frontmatter object property that resembles a CSS property could
   false-positive, but `web/src/` frontmatter patterns do not match this shape. Exits 0 = clean,
   exits 1 = violations found, printing `file:line: <value>` for each hit.

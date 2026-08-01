@@ -88,7 +88,7 @@ Implement the state-machine parser per the LLD. Use Python stdlib `re`, `pathlib
   multi-line formatting convention), run `python tools/lint_zone_violations.py` against
   its directory, confirm exit 1 and a `tmp_test_violation.css:2:` report; delete the temp
   file (AC8 — keeps the Astro source tree clean). Also verify inline single-line rules
-  are detected: create a temp file with `.foo { color: #hex; }` and confirm exit 1.
+  are detected: create a temp file with `.foo { color: #fff; }` and confirm exit 1.
 
 ### T4 — Verify lint exits 0 on current codebase
 

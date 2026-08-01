@@ -49,7 +49,7 @@ from pathlib import Path
 FILE_EXTS = {".astro", ".css"}
 
 HEX_RE = re.compile(r"#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b")
-RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)")
+RGBA_RE = re.compile(r"\brgba?\s*\([^)]*\)", re.IGNORECASE)
 
 TOKEN_FILE = "tokens.css"
 CSS_INLINE_COMMENT_RE = re.compile(r"/\*.*?\*/")
@@ -153,8 +153,14 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
                         inline_value = after_brace[colon_idx + 1:]
                         for m in HEX_RE.finditer(inline_value):
                             violations.append((lineno, m.group()))
-                        for m in RGBA_RE.finditer(inline_value):
-                            violations.append((lineno, m.group()))
+                        if ";" in inline_value:
+                            for m in RGBA_RE.finditer(inline_value):
+                                violations.append((lineno, m.group()))
+                        else:
+                            # Value wraps to the next line; carry declaration state
+                            # so continuation lines are scanned.
+                            in_declaration = True
+                            decl_buffer = inline_value
             continue
 
         # Extract value part (after the first colon on the line).
