@@ -1491,7 +1491,12 @@ def test_no_chat_history_route_wave_passed_via_cli(tmp: Path) -> None:
         fail("no-chat-history-route-wave-passed-via-cli",
              f"wave advance failed rc={rc_a}: {err_a.strip()!r}")
         return
-    coh2 = _read_cohort_state(spec_dir)
+    rc_c2, out_c2, _ = run_cohort("status", str(spec_dir), "--json")
+    if rc_c2 != 0:
+        fail("no-chat-history-route-wave-passed-via-cli",
+             f"post-advance cohort status failed rc={rc_c2}")
+        return
+    coh2 = json.loads(out_c2)
     if eng["last_event"] != "wave-passed" or coh2["current_wave_index"] != n + 1:
         fail("no-chat-history-route-wave-passed-via-cli",
              f"last_event={eng['last_event']!r} idx={coh2.get('current_wave_index')}")
@@ -1532,7 +1537,12 @@ def test_no_chat_history_route_gates_failed_via_cli(tmp: Path) -> None:
         fail("no-chat-history-route-gates-failed-via-cli",
              f"record-attempt failed rc={rc_r}: {err_r.strip()!r}")
         return
-    coh_after = _read_cohort_state(spec_dir)
+    rc_c2, out_c2, _ = run_cohort("status", str(spec_dir), "--json")
+    if rc_c2 != 0:
+        fail("no-chat-history-route-gates-failed-via-cli",
+             f"post-record cohort status failed rc={rc_c2}")
+        return
+    coh_after = json.loads(out_c2)
     if (eng["last_event"] != "gates-failed"
             or coh_after["implementation_retry_count"]
                != coh_before["implementation_retry_count"] + 1):
