@@ -70,11 +70,18 @@ Requirements the prompt must satisfy:
 2. Anti-pattern check: hooks that trigger another skill (anti-pattern #1) are
    caught here even after confirm. `sample-hook.sh` does not trigger a skill,
    so it clears this check.
-3. Reshape: the skill may recommend renaming the hook to match the target pack's
-   hook-naming convention (e.g., `pre-commit` with no extension, placed under
-   `.apm/hooks/` in the target pack).
-4. Write via `agentbundle.safety.write_jailed` to the destination path.
-5. Prompt `make build-self`.
+3. Reshape: the skill may recommend renaming the hook body to match the target
+   pack's hook-naming convention (e.g., `pre-commit.py` or `pre-commit.sh`,
+   placed under `.apm/hooks/` in the target pack).
+4. Write the **hook body** via `agentbundle.safety.write_jailed` to
+   `.apm/hooks/<name>.sh`.
+5. Author (or update) the **hook-wiring file** `.apm/hook-wiring/<name>.toml`
+   to bind the body to the target editor event (e.g., `PreToolUse` for
+   pre-commit gate behavior, or the appropriate git hook event if running
+   outside an editor harness). The wiring file is the separate primitive that
+   makes the hook body run — landing the body alone is not sufficient.
+   (`docs/architecture/pack-layout.md:118-119` defines both primitives.)
+6. Prompt `make build-self` to project both the body and the wiring file.
 
 **On "no":** the ingest is aborted.
 

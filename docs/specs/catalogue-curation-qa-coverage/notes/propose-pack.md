@@ -65,57 +65,83 @@ Expected skill output:
 
 ---
 
-## Expected: Step 3 — scaffold output (on pass)
+## Expected: Step 2.5 — accelerator gate collection (before scaffold)
+
+Before proceeding to Step 3, the skill must collect the three accelerator-pack
+gates that CHARTER.md:49-56 requires:
+
+1. **Named maintainer** — ask the operator for the GitHub handle or team name
+   that will maintain this pack. Required in `pack.toml`'s
+   `[[pack.maintainers]]` field before any scaffold is written.
+2. **Maturity scope** — ask the operator to declare one of:
+   `experimental` / `contract-complete` / `validated`.
+3. **Archiving/deprecation path** — ask the operator to state what happens
+   when the pack is no longer maintained (e.g., "archived to a separate repo",
+   "deprecated with a tombstone in README", "handed off to community").
+
+Only after all three are supplied does the skill proceed to Step 3 (scaffold).
+If the operator cannot supply them now, the skill stops and surfaces: "These
+three gates are required by the catalogue charter before scaffolding an
+accelerator pack. Please supply them and re-run."
+
+---
+
+## Expected: Step 3 — scaffold output (on pass, after accelerator gates cleared)
 
 The skill scaffolds the pack shell at `packs/database-tooling/` via
 `agentbundle.safety.write_jailed`. Expected files created:
 
 ```
 packs/database-tooling/
-  pack.toml               # name, version, description, dependencies
+  pack.toml               # name, version, description, dependencies,
+                          # [[pack.maintainers]], maturity scope
   README.md               # one-paragraph overview + install command
   .claude-plugin/
-    plugin.json           # display name, description, tool grants
-  .apm/                   # empty; skills added when assimilated
+    plugin.json           # name, version, description (only — schema is closed)
+  .apm/
+    skills/
+      schema-migrate/
+        SKILL.md          # stub: name + description stub only; body TBD via assimilation
 ```
 
-The skill should **not** populate `.apm/` with skills — that is assimilation
-work (`assimilate-primitive` / `assimilate-repo`), not scaffolding work.
+Notes on the scaffold:
+- `plugin.json` contains only `name`, `version`, and `description` — the schema
+  (`contracts/plugin-manifest.schema.json`) is closed (`additionalProperties: false`)
+  and does not support tool grants or other custom fields.
+- `.apm/skills/schema-migrate/SKILL.md` is a minimal stub (frontmatter + one-line
+  body). `pack-shell.md:15-16` requires at least one skill or agent; an empty
+  `.apm/` fails pack validation. The stub is the minimum; the operator populates
+  it via `assimilate-primitive` or `assimilate-repo` later.
+- The maintainer handle from Step 2.5 is written into `pack.toml`'s
+  `[[pack.maintainers]]` field; the maturity scope and deprecation path are
+  documented in README.md.
 
 ---
 
 ## Expected: Step 4 — RFC output
 
-The skill authors an RFC (next available number in `docs/rfc/`) with:
+The skill authors an RFC using the canonical template from
+`packs/governance-extras/.apm/skills/new-rfc/assets/rfc.md` as its base —
+filling in all required sections (Status, Author, Approver, Date opened,
+Reviewer brief, The ask, Problem & goals, Options considered, Decision,
+Risks, Follow-ons). The `Author` field uses the canonical `<github-handle>`
+placeholder; the skill stops and asks if no project convention for governance
+authorship is established.
 
-```
-# RFC-NNNN: database-tooling pack
+The RFC adds one additional section not in the base template:
 
-Status: Draft
-Author: [operator name from git config]
-
-## Proposal
-Add a `database-tooling` pack covering schema migration and query authoring
-for SQL databases.
-
-## Additivity + fit assessment
-[Four-principle table as above]
-
+```markdown
 ## Candidate primitive inventory
+
 | Primitive | Type | Verdict | Notes |
 |-----------|------|---------|-------|
 | schema-migrate | skill | Assimilate | Core migration workflow |
-| query-author | skill | Assimilate | Recurring query authoring |
-| db-inspect | skill | Needs assessment | Scope TBD — inspect vs. query overlap |
-
-## Out of scope
-- ORM configuration
-- NoSQL databases
-- DBA capacity planning
-
-## Decision
-Pending operator approval.
+| query-author   | skill | Assimilate | Recurring query authoring |
+| db-inspect     | skill | Needs assessment | Scope TBD — inspect vs. query overlap |
 ```
+
+This section is appended after the Decisions table and before the Risks section.
+Everything else follows the canonical new-rfc template structure verbatim.
 
 ---
 

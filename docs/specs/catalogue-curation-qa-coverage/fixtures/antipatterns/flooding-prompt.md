@@ -1,157 +1,94 @@
 ---
-name: deploy-microservice
-description: Deploy a containerized microservice to the production Kubernetes cluster. Covers pre-deployment validation, image build and push, rolling deployment, health verification, and rollback. Use when you want to deploy a service to production.
+name: generate-release-notes
+description: Scan shipped specs and write a formatted release-notes entry for the current version. Use after marking a milestone complete.
 metadata:
-  boundaries: [shell_exec, network_call, filesystem_write]
+  boundaries: [filesystem_write]
 ---
 
-# Skill: deploy-microservice
+# Skill: generate-release-notes
 
-This skill deploys a microservice to production. It is important that all steps
-are followed in order. Do not skip any step. Every step is mandatory. If a step
-fails, stop and notify the operator. Do not proceed past a failing step.
+Generate a release notes entry for the current version by scanning all shipped
+specifications and producing a formatted changelog entry.
 
-## IMPORTANT: Read this before starting
+## IMPORTANT: Read this section first
 
-Before you begin, make sure you have read all steps below completely. It is
-essential that you understand the entire process before taking any action. Do
-not start until you have read everything. This is important.
+Before generating release notes, read all of the instructions below carefully.
+Do not start until you have read every step. It is essential that you understand
+the complete procedure. Following these instructions exactly is important for
+producing correct output.
 
-## Step 1: Pre-deployment validation
+## Step 1: Collect the version number
 
-Pre-deployment validation is mandatory. Do not skip pre-deployment validation.
-Pre-deployment validation must complete successfully before any other step.
+Ask the operator for the version number. The version number must follow semantic
+versioning (MAJOR.MINOR.PATCH). Do not proceed without a valid version number.
+If the version number does not follow semantic versioning, stop and ask again.
+The version number must not have a leading "v". The version number must not
+include pre-release identifiers unless the operator explicitly specifies one.
+Do not guess the version number. Do not derive it from git tags. Do not use
+the current date as a version number.
 
-### Environment variable validation
+## Step 2: Read all shipped specs
 
-Check that every one of the following environment variables is set. If any
-variable is missing or empty, stop immediately and tell the operator which
-variable is missing. Do not proceed if any variable is missing.
+Read every file matching `docs/specs/*/spec.md`. For each file:
+- Check if the spec status is `Shipped`. If the status is not `Shipped`, skip
+  the file. Do not include non-Shipped specs in the release notes. Do not
+  include Approved specs. Do not include Implementing specs. Do not include
+  Draft specs. Only include Shipped specs.
+- Read the Objective section. The Objective section starts after the
+  `## Objective` heading. Read it carefully.
+- Read the Acceptance Criteria section. The Acceptance Criteria section starts
+  after the `## Acceptance Criteria` heading. Read each item.
+- Note the spec name. The spec name is the directory name under `docs/specs/`.
+  The spec name is not the first heading in the file. The spec name is the
+  directory name.
 
-- `SERVICE_NAME` — the name of the microservice being deployed. This is the
-  name used in Kubernetes. It must match the name in the Helm chart. It must
-  not contain spaces. It must be lowercase.
-- `IMAGE_TAG` — the Docker image tag to deploy. This must be a specific tag,
-  not `latest`. Using `latest` is forbidden. The tag must match the tag built
-  by CI.
-- `KUBE_CONTEXT` — the kubectl context to use. Must be the production context.
-  Do not deploy to staging using this skill. Only production. Not staging.
-- `KUBE_NAMESPACE` — the Kubernetes namespace. Must exist before deployment.
-  The skill will not create namespaces. Do not expect namespace creation.
-- `DOCKER_REGISTRY` — the Docker registry URL. Must be reachable from the
-  deploy host. Verify network connectivity before deploying.
-- `ROLLBACK_VERSION` — the image tag to roll back to if deployment fails.
-  Must be set before deployment. If you don't know the rollback version,
-  check the last successful deployment before proceeding.
-- `MAX_SURGE` — maximum number of pods that can exceed the desired count
-  during a rolling update. Default is 1. Set this before deploying.
-- `MAX_UNAVAILABLE` — maximum number of pods that can be unavailable during
-  a rolling update. Default is 0. Set this before deploying.
-- `READINESS_PROBE_TIMEOUT` — timeout in seconds for the readiness probe.
-  Default is 30. Increase for slow-starting services.
-- `SLACK_WEBHOOK_URL` — Slack webhook URL for deployment notifications.
-  Must be valid. Notifications will fail silently if this is not set.
+## Step 3: Determine which specs are new in this release
 
-### Git state validation
+A spec is new in this release if it was shipped since the previous release:
+- Read `docs/product/changelog.md` to find the previous release version.
+- Compare the previous release's shipped specs to the current shipped specs.
+- Any spec in the current set that was not in the previous set is new in this
+  release.
+- If you cannot determine the previous release, include all Shipped specs and
+  note that this may include previously released items.
+- Do not include specs that appeared in previous releases. Do not duplicate
+  items from previous releases. Do not include specs that were already in the
+  last release notes. Only include new specs.
 
-Before deploying, check that the Git repository is in a clean state:
+## Step 4: Write the release notes entry
 
-- Run `git status` and confirm there are no uncommitted changes. If there
-  are uncommitted changes, stop and tell the operator. Do not deploy from
-  a dirty working tree.
-- Run `git log --oneline -1` and note the commit SHA for audit logging.
-- Run `git branch --show-current` to confirm you are on the correct branch.
-  The branch must be `main` or a release branch. Do not deploy from a feature
-  branch. If you are on a feature branch, stop and tell the operator immediately.
-- Run `git fetch origin` and confirm the local branch is up to date with
-  origin. If the branch is behind, stop and pull first.
+Format the release notes entry exactly as follows:
+- Start with `## v<version> — <date>` where `<version>` is the version from
+  Step 1 and `<date>` is today's date in `YYYY-MM-DD` format.
+- For each new spec, write a bullet: `- **<spec-name>:** <one-sentence summary>`.
+- The summary must be one sentence. Do not write two sentences. Do not use more
+  than 25 words. Do not include technical implementation details. Do not
+  reference acceptance criteria by number. Do not include the word "spec" in
+  the summary. Do not include the spec directory name verbatim — paraphrase it.
+  The summary must be written from the user's perspective.
+- After the spec bullets, write a `### Fixes` subsection if any specs closed
+  deferred items from previous releases.
+- After `### Fixes`, write a `### Deferred` subsection listing ACs from this
+  release deferred with `(deferred: <slug>)` annotations.
+- After `### Deferred`, write a `### Notes` subsection. Ask the operator for
+  notes content before writing this subsection.
 
-### Service health check
+## Step 5: Write the file
 
-Check the current health of the service before deploying:
+Prepend the release notes entry to `docs/product/changelog.md`. Do not replace
+the existing content. Do not overwrite the existing changelog. Prepend the new
+entry before the first existing `## v` heading. If there is no existing
+`## v` heading, add the entry at the end of the file. If the file does not
+exist, create it with the new entry only.
 
-- Run `kubectl get deployment $SERVICE_NAME -n $KUBE_NAMESPACE` to confirm
-  the deployment exists and note the current replica count.
-- Run `kubectl get pods -l app=$SERVICE_NAME -n $KUBE_NAMESPACE` to check
-  current pod status. If any pod is not in `Running` state before the
-  deployment starts, the pre-deployment health check fails. Stop and notify
-  the operator. Do not proceed.
-- Run `kubectl describe deployment $SERVICE_NAME -n $KUBE_NAMESPACE` and
-  review the recent events section for any warning events. If warning events
-  are present, surface them to the operator before proceeding.
-
-## Step 2: Build and push
-
-Build the Docker image using the Dockerfile in the current directory:
-
-Run `docker build -t $DOCKER_REGISTRY/$SERVICE_NAME:$IMAGE_TAG .`
-
-This may take several minutes. Do not interrupt the build. If the build fails,
-stop and report the full error output to the operator. Do not proceed to push
-if the build fails.
-
-After a successful build, push the image to the registry:
-
-Run `docker push $DOCKER_REGISTRY/$SERVICE_NAME:$IMAGE_TAG`
-
-This may take several minutes depending on image size. Do not interrupt the
-push. If the push fails, stop and report the error. Verify the push succeeded:
-
-Run `docker manifest inspect $DOCKER_REGISTRY/$SERVICE_NAME:$IMAGE_TAG`
-
-If the manifest is not found, the push failed. Do not proceed to deployment.
-
-## Step 3: Deploy
-
-Apply the new image to the Kubernetes deployment using a rolling update:
-
-Run `kubectl set image deployment/$SERVICE_NAME $SERVICE_NAME=$DOCKER_REGISTRY/$SERVICE_NAME:$IMAGE_TAG -n $KUBE_NAMESPACE --record`
-
-Wait for the rollout to complete:
-
-Run `kubectl rollout status deployment/$SERVICE_NAME -n $KUBE_NAMESPACE --timeout=300s`
-
-If the rollout does not complete within 300 seconds, it has timed out and
-should be considered failed. Trigger rollback immediately if the rollout fails.
-Do not wait longer than 300 seconds. 300 seconds is the maximum wait time.
-
-## Step 4: Health verification
-
-After the rollout completes, verify that the service is healthy:
-
-- Run `kubectl get pods -l app=$SERVICE_NAME -n $KUBE_NAMESPACE` and confirm
-  all pods are in `Running` state. If any pod is in `CrashLoopBackOff`,
-  `Error`, `OOMKilled`, or `Pending` state, the deployment has failed.
-  Trigger rollback immediately.
-- Run `kubectl logs -l app=$SERVICE_NAME -n $KUBE_NAMESPACE --tail=50` and
-  scan for ERROR-level log entries. Surface any errors to the operator.
-- Run the HTTP health check: `curl -sf https://$SERVICE_NAME.internal/health`
-  If the health check returns a non-200 status, the deployment has failed.
-  Trigger rollback immediately.
-- Wait 30 seconds after all pods are Running before declaring success.
-  Early health check failures are common in the first 30 seconds. Wait the
-  full 30 seconds. Do not declare success before 30 seconds have elapsed.
-
-## Step 5: Rollback
-
-If any step in deployment or health verification fails, roll back immediately:
-
-Run `kubectl set image deployment/$SERVICE_NAME $SERVICE_NAME=$DOCKER_REGISTRY/$SERVICE_NAME:$ROLLBACK_VERSION -n $KUBE_NAMESPACE --record`
-
-Wait for rollback to complete:
-
-Run `kubectl rollout status deployment/$SERVICE_NAME -n $KUBE_NAMESPACE --timeout=300s`
-
-After rollback, re-run the health verification steps to confirm the previous
-version is healthy. Notify the operator that rollback was triggered and whether
-rollback succeeded.
+After writing, read back the first 50 lines of the file to verify the entry
+was prepended correctly. If the entry was not prepended correctly, write the
+file again. Do not stop until the entry is verified as correctly prepended.
 
 ## REMINDER: Important notes
 
-Remember: do not skip pre-deployment validation. Remember: do not deploy from
-a feature branch. Remember: do not use the `latest` tag. Remember: always set
-`ROLLBACK_VERSION` before deploying. Remember: always verify health after
-deployment. Remember: if any step fails, stop and notify the operator
-immediately. Remember: this skill is for production only. Remember: do not
-interrupt a build or push in progress. Remember: wait 30 seconds before
-declaring health verification success.
+Remember: only include Shipped specs. Remember: the version number must follow
+semantic versioning. Remember: summaries must be one sentence and under 25
+words. Remember: prepend, do not replace. Remember: verify by reading back
+after writing. Remember: ask the operator for notes content before the Notes
+subsection. Remember: do not derive the version number from git tags.
