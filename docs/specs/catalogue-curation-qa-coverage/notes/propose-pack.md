@@ -128,11 +128,12 @@ packs/database-tooling/
           evals.json         # Tier-4 judge rubric stub (valid JSON, see shape below)
 ```
 
-There is no pack-root `evals/` directory. Eval discovery is always per-skill:
-`pack_evals.py` (the Tier-A activation runner) reads `.apm/skills/<name>/evals/eval_queries.json`
-for each skill listed in `[pack.evals]`. The `evals.json` file is the Tier-4 LLM-judge
-rubric stub — consumed by a separate judge runner, not by `pack_evals.py`.
-A root-level `evals/` directory is not read by any known tool.
+There is no pack-root `evals/` directory. Eval discovery is always per-skill.
+`pack_evals.py` runs two passes: the Tier-A activation pass reads each listed
+skill's `eval_queries.json` to measure whether the skill fires on trigger queries;
+the Tier-4 LLM-judge pass reads `evals.json` to grade output quality. Both files
+are consumed by `pack_evals.py`. A root-level `evals/` directory is not read by
+any known tool.
 
 Notes on the scaffold:
 - `plugin.json` contains only `name`, `version`, and `description` — the schema

@@ -118,9 +118,9 @@ Re-sync delta found
 │
 └─ Prior RFC Frozen?
      ├─ Genuine correction (verdict typo, moved destination)?
-     │    └─ Yes → Erratum (additive, no new file; operator flags + confirms —
-     │              auto-detection only fires when candidate is `changed`;
-     │              unchanged candidates must be flagged by the operator)
+     │    └─ Yes → Erratum (additive, no new file; always operator-confirmed —
+     │              re-sync never auto-classifies a correction; the operator
+     │              flags the correction and the skill routes to Erratum)
      │
      └─ New candidates or reversed verdicts?
           └─ Yes → New RFC + Erratum entry on prior RFC naming superseder

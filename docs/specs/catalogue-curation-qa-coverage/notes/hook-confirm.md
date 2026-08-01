@@ -76,8 +76,8 @@ checks mirror the repo's configured SAST suite (`Makefile:147-174`):
 - `bandit --severity-level medium --confidence-level medium -q <candidate>` —
   LOW-severity findings (B404, B607, B603) do not block; only MEDIUM+ blocks.
   `sample-hook.py` has no MEDIUM+ bandit findings.
-- `semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet` —
-  run against the candidate file.
+- `semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet <candidate>` —
+  with the candidate file path appended so the scan is isolated to that file only.
 
 A MEDIUM+ severity bandit finding or any semgrep `--error` hit blocks landing
 pending explicit operator acknowledgment.
@@ -180,8 +180,9 @@ Only after steps 4–5 complete does Phase 2 begin.
 4. The prompt requires the exact phrase `yes, land this code` — not just `yes`.
 5. Answering anything other than `yes, land this code` aborts the ingest.
 6. Answering `yes, land this code` triggers Phase 1 steps 4–5 before any write.
-7. At step 4, bandit (MEDIUM+ threshold) and semgrep run against the candidate
-   file. The fixture has no MEDIUM+ findings; both pass.
+7. At step 4, bandit (MEDIUM+ threshold) and semgrep (with the candidate path
+   appended) run against the candidate file only. The fixture has no MEDIUM+
+   bandit findings and no semgrep errors; both pass.
 8. At step 5, the skill correctly notes AST01–AST10 apply to SKILL.md behaviour
    definitions, not raw scripts; AST09 does NOT apply to a raw hook body.
 9. Before writing, the skill presents the shaped target (destination path,
