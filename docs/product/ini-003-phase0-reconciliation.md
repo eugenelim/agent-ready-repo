@@ -379,3 +379,43 @@ All reconciliation actions are complete:
 - No missing doctrine implementation was pulled into this reconciliation.
 - No AgentBundle version or pack version changed.
 - No spec was marked shipped without executable evidence.
+
+---
+
+## Phase 0B addendum — spec-index verification (2026-08-01)
+
+**Verification commit:** d2f74a5e (`feat(site-design-system-spec): design token reference doc + zone-violation lint`)  
+**Branch:** eugene/baton-rouge (at origin/main HEAD)  
+**Trigger:** AC24 — "docs/specs/README.md accurately reflects real spec status."
+
+Two post-Phase-0 commits landed before this verification run:
+- `ef5f9a68` — workspace-status progressive read modes: adds core spec (not ini-003). No ini-003 queue item classification affected.
+- `d2f74a5e` — site-design-system-spec design token reference + zone-violation lint: closes a site spec (not ini-003). No ini-003 queue item classification affected.
+
+### Spec-index corrections
+
+`docs/specs/README.md` is a hand-maintained active-spec index. At verification, 13 entries showed a status that differed from the spec.md on disk. All 13 were stale (README showed Draft, Implementing, or Approved; spec.md showed Shipped). Corrected in this PR:
+
+| Slug | README had | Corrected to |
+|------|-----------|-------------|
+| site-ui-primitives | Draft | Shipped |
+| jira-activation-reframe | Draft | Shipped |
+| agentbundle-first-value-handoff | Draft | Shipped |
+| m3-experience-design-rename | Draft | Shipped |
+| m3-desk-research-rename | Draft | Shipped |
+| m1-brief-queue | Implementing | Shipped |
+| m1-governance-integration | Implementing | Shipped |
+| catalogue-runtime-inventory | Draft | Shipped |
+| platform-site | Implementing | Shipped |
+| extraction-higher-tiers | Draft | Shipped |
+| extraction-msg-to-markdown-python-contract | Draft | Shipped |
+| render-proof | Approved | Shipped |
+| m1-work-queue | Implementing | Shipped |
+
+Post-correction verification: all 13 corrected entries (and all other listed entries) match spec.md on disk — 0 row-level mismatches. Note: index completeness (active specs absent from the index entirely) is a separate, deferred concern; four specs were found missing from the index (`catalogue-curation-qa-coverage`, `catalogue-wave3-enterprise-authoring-discovery`, `catalogue-wave4-semantic-contracts-index`, `catalogue-wave8-readme-contributing`).
+
+### copy-direction-skill nuance
+
+`docs/specs/copy-direction-skill/spec.md` — Status: Shipped. However, the spec's acceptance criteria assert that `packs/experience-design/.apm/skills/copy-direction/SKILL.md` exists; that file does not exist on disk. No copy-direction guidance was added to `tone-of-voice` either. This is pre-existing spec drift (the spec is marked Shipped with an unmet AC) outside the scope of this PR — registered here for follow-up.
+
+The ini-003 queue item `xd-copy-direction` (tracked as `spec/xd-copy-direction`) refers to the full copy-direction skill designed by RFC-0062 (accepted by RFC-0071, per `workspace.toml`). No `copy-direction/` skill directory exists in `packs/experience-design/.apm/skills/`. Classification remains **C (genuinely open, ready to start)** — the `copy-direction-skill` spec is not a fulfillment of the xd-copy-direction queue item.
