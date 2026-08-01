@@ -78,6 +78,12 @@ checklists; verification-mode awareness applies to every review.
    Criterion in the spec (and must not violate any Boundary — Boundaries
    are rails, not work items). Flag tasks that map to no criterion, and
    criteria with no implementing task.
+   **Duplicate values across spec and plan.** Any value or command that
+   must be identical across multiple locations (AC, Assumptions, Task
+   description, Risks, Constraints) is a sync hazard — each copy drifts
+   independently. Flag more than one canonical statement of the same
+   fact; the spec and plan should each hold one canonical location and
+   reference the other, not duplicate it.
 7. **Contract vs construction confusion.** The spec carries the contract
    (Acceptance Criteria as observable outcomes, with the verification
    mode named in Testing Strategy); the plan carries per-task units,
@@ -89,7 +95,14 @@ checklists; verification-mode awareness applies to every review.
    `Depends on:` explicitly — prior task IDs or `none`. Flag tasks that
    omit the field or use hand-wavy values (\"the previous ones\", \"see
    above\"). `none` is a valid answer; silence is not.
-9. **Verification-mode declaration.** Each plan task should state its
+9. **Derived-fixture scope.** When a spec or task derives fixtures,
+   test cases, or sub-specs from a parent spec's scope definition (e.g.,
+   from a deferred AC that defines a type constraint), quote the parent
+   spec's exact scope language and verify each derived artifact's type
+   against it. A fixture whose primitive type conflicts with the parent
+   scope imports the wrong contract — and the mismatch is invisible until
+   the derived work is reviewed against the parent.
+10. **Verification-mode declaration.** Each plan task should state its
    mode — TDD, goal-based check, or visual / manual QA — with the
    verification artifact named. The verification's level of
    abstraction should match the behavior's boundary: UI behaviors
@@ -115,8 +128,27 @@ checklists; verification-mode awareness applies to every review.
 2. **Edge cases.** Empty input, max input, malformed input, concurrent
    access, partial failure. Cite specific cases the diff handles, and
    specific cases it might not.
+   **Shell absence assertions.** `grep -c <pattern>` exits 1 on no-match,
+   which most CI harnesses report as test failure rather than \"pattern
+   absent.\" Correct form: `! grep -q <pattern>` (exit 0 on no-match, exit 1
+   if found) or compare `grep -c` output to 0 explicitly.
+   **Path-in-target-environment.** For any path the change introduces or
+   references, identify the environment where it will be invoked (repository
+   tree, CI, installed adopter tree) and verify the path exists there — not
+   just in the source tree. A path that is correct in the repo but wrong in
+   the install tree is a runtime failure invisible to CI.
+   **Rename completeness.** Before any rename (file, constant, command,
+   label), grep the full repo for all occurrences and verify all are updated.
+   A rename that misses a reference leaves a silent stale-reference bug.
 3. **Errors.** What does the caller see when things go wrong? \"Returns an
    error\" is not enough — what error, with what payload?
+   **Channel visibility.** When an AC constrains one output channel (e.g.,
+   \"no internal paths on stdout\"), enumerate every channel the consuming
+   context makes user-visible (e.g., a skill that surfaces stderr on exit
+   means stderr IS user-visible). Apply the same information-leak and
+   content constraints to all user-visible channels — an AC that forbids
+   internal paths on stdout is violated if the caller sees a full traceback
+   with those paths on stderr.
 <!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
      Keep all three sites (this file, work-loop/SKILL.md,
      implementer.md operating envelope) in sync when changing the
@@ -156,6 +188,10 @@ checklists; verification-mode awareness applies to every review.
      lives only in the PR description rots — flag it.
    - (d) **Intra-repo references resolve.** Doc links and `<spec>/<anchor>`
      references the diff touches actually resolve. Dangling refs are drift.
+   - (e) **Numbered-step cross-references.** After inserting or removing a
+     numbered step in any document, grep for back-references to step numbers
+     (`step 3`, `step N`) and verify they still resolve. Step-number drift
+     is a silent documentation corruption that readers can't detect.
 6. **Security and privacy.** What data does this touch? Is access
    controlled? Is anything logged that shouldn't be?
 7. **Architectural fit.** Does this diff introduce a structural pattern
@@ -188,6 +224,11 @@ When evaluating verification artifacts, classify each:
   and that the driver's input variation is recorded or seeded
   reproducibly. An exploratory run with no stated invariant is not a
   verification artifact; flag it.
+  **QA session scope.** For any manual-QA notes or answer-key records,
+  verify there is an explicit scope boundary stating *where the session
+  ends* and what is documented-but-not-exercised. A note that describes
+  the full end-to-end behavior without declaring a stop point causes
+  subsequent reviews to flag every out-of-scope behavior as a finding.
 
 If a test asserts what the compiler already proves, or where the test
 assertion math is identical to the production math, flag it.

@@ -201,10 +201,12 @@ def main(argv: list[str] | None = None) -> int:
             raise NotADirectoryError(f"--root is not a directory: {root}")
 
         workspace_toml = root / "workspace.toml"
-        # Use stat() to distinguish FileNotFoundError (ENOENT → genuinely absent,
-        # exit 1) from other OS errors (ELOOP for symlink loops, EACCES → exit 2).
+        # Use lstat() so a dangling symlink (entry exists but target absent) is
+        # not mistaken for a missing workspace — stat() follows the link and
+        # raises FileNotFoundError, falsely reporting workspace_present: false.
+        # lstat() only raises FileNotFoundError when no directory entry exists.
         try:
-            workspace_toml.stat()
+            workspace_toml.lstat()
         except FileNotFoundError:
             _emit({
                 "schema_version": 1,

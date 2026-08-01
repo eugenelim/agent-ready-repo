@@ -111,11 +111,12 @@ class AdapterProjectionTests(unittest.TestCase):
         self.assertEqual(data.get("schema_version"), 1)
 
     def test_projected_cli_against_fixture_workspace(self) -> None:
-        """AC10: projected CLI invoked against a fixture workspace (not the real repo).
+        """AC10/AC11/AC17: projected CLI against a fixture workspace (not the real repo).
 
-        Exercises the actual install path end-to-end against controlled input:
-        a temporary directory with a minimal workspace.toml. Verifies the CLI
-        exits 0 and returns schema_version == 1 with workspace_present == True.
+        Exercises the install path end-to-end: projects to a temp dir, invokes the
+        CLI from a CWD outside the fixture (AC11), parses the JSON, and cross-checks
+        key semantic fields against the source-engine CLI to detect installed/source
+        divergence (AC17).
         """
         out = self._project_to_tmp("claude-code")
         cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
@@ -124,16 +125,34 @@ class AdapterProjectionTests(unittest.TestCase):
         fixture = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, fixture, True)
         (fixture / "workspace.toml").write_bytes(b"# fixture\n")
+
+        # AC11: invoke from a CWD that is neither the fixture nor the repo root.
+        outside_cwd = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, outside_cwd, True)
         r = subprocess.run(
             [sys.executable, str(cli), "--root", str(fixture)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
+            capture_output=True, text=True, encoding="utf-8",
+            cwd=str(outside_cwd),
         )
         self.assertEqual(r.returncode, 0, f"CLI failed on fixture: {r.stderr}")
-        data = json.loads(r.stdout)
-        self.assertEqual(data.get("schema_version"), 1)
-        self.assertTrue(data.get("workspace_present"), "workspace_present should be True for fixture")
+        installed = json.loads(r.stdout)
+        self.assertEqual(installed.get("schema_version"), 1)
+        self.assertTrue(installed.get("workspace_present"), "workspace_present should be True")
+
+        # AC17: cross-check against source engine — same fixture, same CWD.
+        source_cli = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
+        r_src = subprocess.run(
+            [sys.executable, str(source_cli), "--root", str(fixture)],
+            capture_output=True, text=True, encoding="utf-8",
+            cwd=str(outside_cwd),
+        )
+        self.assertEqual(r_src.returncode, 0, f"Source CLI failed: {r_src.stderr}")
+        source = json.loads(r_src.stdout)
+        for key in ("schema_version", "workspace_present", "work", "shaping", "reconciliation"):
+            self.assertEqual(
+                installed.get(key), source.get(key),
+                f"Installed vs source engine mismatch on {key!r}",
+            )
 
 
 class RealTreeProjectionTests(unittest.TestCase):

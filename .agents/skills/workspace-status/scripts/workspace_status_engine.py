@@ -263,17 +263,17 @@ def _safe_spec_path(root: Path, slug: str) -> Path | None:
     slug_path = Path(slug)
     if slug_path.is_absolute() or ".." in slug_path.parts:
         return None
-    specs_dir = (root / "docs" / "specs").resolve()
-    # Reject if docs/specs itself is a symlink that escapes the repo root.
+    # RuntimeError guards against circular symlinks on Python 3.11/3.12.
     try:
+        specs_dir = (root / "docs" / "specs").resolve()
         specs_dir.relative_to(root.resolve())
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
         return None
-    candidate = (specs_dir / slug / "spec.md").resolve()
     try:
+        candidate = (specs_dir / slug / "spec.md").resolve()
         candidate.relative_to(specs_dir)
         return candidate
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
         return None
 
 

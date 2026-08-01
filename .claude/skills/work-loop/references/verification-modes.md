@@ -49,6 +49,15 @@ Add automation when the **regression cost** (a broken invocation ships
 invisibly) outweighs the cost (flakiness, brittleness); the choice of tool is
 the adopter's.
 
+## QA session isolation safety
+
+Manual-QA verification fails reproducibly when the session itself is not isolated. Before running, check three things:
+
+- **Worktree isolation.** The session runs from a clean branch or worktree — not the main editing context. If the QA session shares state with in-progress edits, any environmental side-effect (a staged file, an in-flight dependency install) leaks into the QA result.
+- **Fixture completeness.** Synthetic fixtures must include every file the code under test reads. A fixture that works locally because it falls back to files in the real repo produces false-pass results in CI (where the repo may be absent) and false-fail results in isolated worktrees (where sibling files are absent). Name each file the code reads; add it to the fixture or document the dependency explicitly.
+- **Artifact-copy direction.** When copying artifacts for testing, verify the copy direction and the working directory before executing `cp`, `rsync`, or equivalent. Source and destination look symmetric; the wrong direction silently overwrites the artifact under test.
+- **Session scope boundary.** Declare explicitly where the session ends and what is documented-but-not-exercised. A QA note that describes full end-to-end behavior without a declared stop point causes reviewers to flag every out-of-scope behavior as untested — each round costs an iteration. A one-line "this session verifies X; Y and Z are deferred" prevents multiple rounds of scope clarification.
+
 ## Exploratory / visual fuzz (a third flavor)
 
 A third flavor — *exploratory / visual fuzz* — drives the UI with varied or

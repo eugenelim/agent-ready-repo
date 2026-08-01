@@ -104,6 +104,8 @@ After orientation:
 
 8. **Write construction tests up front.** For every task, write `Tests:` in `plan.md` before EXECUTE begins. Can't write the test → task is too vague, sharpen first. For TDD tasks, materialize as a compilable red stub (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). Goal-based and manual-QA tasks record `no stub (mode)`. Light mode skips stubs.
 
+8a. **Anchor-test sweep.** Before writing code, grep the test suite for tests that hash, snapshot, or count the exact content of the files you'll edit (patterns: `hashlib`, `sha`, `==` on file content, `len(lines)`, counted assertions). These contract-anchor tests pin the artifact's content and must be updated when the content changes. Discovering them mid-EXECUTE causes false GATES failures — factor them into the task list now.
+
 9. **Determine which pre-EXECUTE gates fire:**
 
    | Work shape | Gate | Reviewer |
@@ -440,6 +442,7 @@ Wrong tool when "done" is fuzzy, task needs human judgment mid-flight, or touche
 - **Declaring spec-complete from per-task gates.** Run `quality-engineer` against the whole spec before the final loop's DECIDE — per-task gates verify N contracts; this is the pass that verifies the integrated journey.
 - **Running an unattended loop on a fresh task.** Do at least one in-session pass first to validate the approach.
 - **Looping without capturing learnings.** Every loop that ends without updating some doc, skill, or note loses its lessons.
+- **Grepping top-level keys in structured config.** `grep '^key' file.toml` matches `key` under every section, not just the top level — the same trap applies to YAML and JSON. Parse structured config with its native library rather than using line-pattern greps.
 
 ## Fidelity ladder
 
