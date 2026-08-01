@@ -813,7 +813,6 @@ def compute_type2_cleanup(
       - Archived, in active/queue → remove only; do NOT add to shipped
 
     This engine is read-only; it describes the write shape, not performs it.
-    NOTE: work-loop (≥ a46d6f46) does not perform this write.
     """
     if spec_status not in _TYPE2_VALID_STATUSES:
         raise ValueError(

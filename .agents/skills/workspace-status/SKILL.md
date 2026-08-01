@@ -229,7 +229,7 @@ From the JSON result:
 - `active_spec` = first entry in `work.active` (if any)
 - `next_queue` = first entry in `work.ready` (JSON field, already resolved; first in list order)
 - `unblocked` = all entries in `work.ready`
-- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` (if any)
+- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` and whose `slug` is in `shaping.active_slugs` (if any); if none, fall back to the first `shaping.ready` non-signal entry whose slug is not in `shaping.active_slugs` (backlog-ready)
 
 **Path resolution:** entries in `work.ready`, `work.active`, etc. carry a `path` field (e.g. `"spec/m1-workspace-core"`). Strip the `spec/` prefix to get the slug; use `docs/specs/<slug>/` for file-system commands.
 

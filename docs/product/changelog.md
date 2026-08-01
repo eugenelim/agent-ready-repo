@@ -45,12 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **release-engineering 0.1.8** — patch: updated core dependency constraint from `^0.1` to `^1.0` to track the core 1.0.0 major release. No skill or agent changes.
 
-## [core][1.0.1] — 2026-07-31
-
-### Changed
-
-- **`workspace-status` backend promotion.** The skill now invokes a production Python backend (`scripts/workspace_status_engine.py` + `scripts/workspace_status.py`) instead of embedding the DAG-resolution algorithm in the skill body. Behavior is unchanged — the same classifications, reconciliation findings, next-action semantics, and cleanup confirmation flow. The CLI emits deterministic UTF-8 JSON (`schema_version: 1`) with `initiatives[]` (including `brief_queue`), `work.*`, `shaping.*`, `reconciliation.*`, and `diagnostics.spec_files_read`. The author-a-skill guide is corrected to document the `scripts/` self-containment model.
-
 - **`agentbundle` 0.27.0 — `[[pack.integrations]]` convention**: packs can now
   declare optional cross-pack behavior seams in `pack.toml`. The new
   `[[pack.integrations]]` array (governed by `contracts/pack.schema.json`) carries
