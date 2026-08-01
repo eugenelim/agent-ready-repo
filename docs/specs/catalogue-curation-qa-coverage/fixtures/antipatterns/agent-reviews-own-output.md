@@ -1,9 +1,8 @@
 ---
 name: pr-review-agent
 description: Review a pull request diff for code quality, correctness, and style issues. Produces a structured findings report for the operator.
-metadata:
-  type: subagent
-  boundaries: []
+model: claude-opus-5
+tools: []
 ---
 
 # Agent: pr-review-agent

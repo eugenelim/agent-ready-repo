@@ -71,9 +71,13 @@ Expected skill output:
 Before proceeding to Step 3, the skill must collect the three accelerator-pack
 gates that CHARTER.md:49-56 requires:
 
-1. **Named maintainer** — ask the operator for the GitHub handle or team name
-   that will maintain this pack. Required in `pack.toml`'s
-   `[[pack.maintainers]]` field before any scaffold is written.
+1. **Named maintainer** — ask the operator for a team name or role alias
+   (e.g., `platform-team`, `db-working-group`) to identify the maintainer.
+   Do NOT ask for a personal account handle — committing a real username to
+   `pack.toml` violates the privacy rules (AGENTS.md §Privacy, which prohibits
+   real usernames in any committed file). If the operator supplies a personal
+   handle, surface the conflict and ask for a role alias instead. Required in
+   `pack.toml`'s `[[pack.maintainers]]` field before any scaffold is written.
 2. **Maturity scope** — ask the operator to declare one of:
    `experimental` / `contract-complete` / `validated`.
 3. **Archiving/deprecation path** — ask the operator to state what happens
@@ -95,7 +99,8 @@ The skill scaffolds the pack shell at `packs/database-tooling/` via
 ```
 packs/database-tooling/
   pack.toml               # name, version, description, dependencies,
-                          # [[pack.maintainers]], maturity scope, [pack.evals]
+                          # [[pack.maintainers]], maturity scope;
+                          # [pack.evals] skills = ["schema-migrate"]
   README.md               # one-paragraph overview + install command
   .claude-plugin/
     plugin.json           # name, version, description (only — schema is closed)
@@ -104,11 +109,13 @@ packs/database-tooling/
       schema-migrate/
         SKILL.md          # stub: name + description stub only; body TBD via assimilation
         evals/
-          eval_queries.json  # Tier-A activation evals (8–10 trigger + 8–10 near-miss stubs)
-  evals/
-    eval_queries.json     # pack-level Tier-A activation index (references skill evals)
-    evals.json            # Tier-4 LLM-judge rubric stubs for judgment/authoring skills
+          eval_queries.json  # Tier-A activation stubs (valid JSON, see shape below)
+          evals.json         # Tier-4 judge rubric stub (valid JSON, see shape below)
 ```
+
+There is no pack-root `evals/` directory. Eval discovery is always per-skill:
+`pack_evals.py` reads Tier-4 files from `.apm/skills/<name>/evals/evals.json` only.
+A root-level `evals/` directory is not read by any known tool.
 
 Notes on the scaffold:
 - `plugin.json` contains only `name`, `version`, and `description` — the schema
@@ -120,14 +127,31 @@ Notes on the scaffold:
   it via `assimilate-primitive` or `assimilate-repo` later.
 - **Eval harness is required** (`packs/AGENTS.md:110-115`): a non-cosmetic pack
   update (and new-pack scaffold) must include:
-  - Tier-A activation evals — `evals/eval_queries.json` (~8–10 should-trigger +
-    ~8–10 near-miss entries per user-triggered skill) and a `[pack.evals]` block
-    in `pack.toml` listing every user-triggered skill (`schema-migrate`,
-    `query-author`, etc.).
-  - Tier-4 LLM-judge rubric — `evals/evals.json` for judgment/authoring skills.
-  The scaffold produces stub eval files (empty JSON arrays with a TODO comment);
-  the operator populates them before shipping the pack.
-- The maintainer handle from Step 2.5 is written into `pack.toml`'s
+  - Tier-A activation evals at `.apm/skills/schema-migrate/evals/eval_queries.json`
+    — a flat JSON array with valid stub entries:
+    ```json
+    [
+      {"query": "Migrate the schema to add a column to the accounts table", "should_trigger": true},
+      {"query": "Show me what columns the orders table currently has", "should_trigger": false}
+    ]
+    ```
+  - `[pack.evals]` block in `pack.toml`, listing only the skills that were actually
+    scaffolded. **Do not list `query-author` or other unscaffolded skills** — the
+    coverage check (`agentbundle catalogue lint --deep`) rejects every listed skill
+    that lacks a corresponding `evals/eval_queries.json`. Only list `schema-migrate`:
+    ```toml
+    [pack.evals]
+    skills = ["schema-migrate"]
+    ```
+  - Tier-4 LLM-judge rubric at `.apm/skills/schema-migrate/evals/evals.json`
+    — a valid JSON object with the required shape:
+    ```json
+    {"skill_name": "schema-migrate", "evals": []}
+    ```
+    The `evals` array is empty in the stub; the operator populates it before shipping.
+    **Do not use TODO comments inside the JSON** — that produces unparsable files;
+    the empty array is the correct parseable placeholder.
+- The maintainer alias from Step 2.5 is written into `pack.toml`'s
   `[[pack.maintainers]]` field; the maturity scope and deprecation path are
   documented in README.md.
 

@@ -113,9 +113,8 @@ Remove step 4; renumber. The primitive stays as a subagent (no re-homing):
 ---
 name: pr-review-agent
 description: Review a pull request diff for code quality, correctness, and style issues.
-metadata:
-  type: subagent
-  boundaries: []
+model: claude-opus-5
+tools: []
 ---
 
 # Agent: pr-review-agent
@@ -133,6 +132,11 @@ metadata:
 Blockers, Concerns, Nits — each with a one-line description and the diff
 line that supports it.
 ```
+
+Agent frontmatter uses `ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}`.
+The `metadata` field is not valid for agents and would fail the verify gate;
+`type: subagent` is not a recognized agent key either. The reshaped form keeps
+`model` (required) and drops `metadata`.
 
 ---
 
