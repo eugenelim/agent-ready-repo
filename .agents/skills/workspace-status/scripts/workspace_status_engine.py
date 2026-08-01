@@ -2,7 +2,9 @@
 """workspace-status production backend — stdlib-only, read-only.
 
 Entry points:
-  analyze(root: Path) -> WorkspaceStatusResult   — full analysis
+  analyze(root: Path) -> WorkspaceStatusResult          — full analysis (Type 1+2+3)
+  analyze_bounded(root: Path) -> WorkspaceStatusResult  — bounded analysis (Type 2+3 only)
+  explain_item(result, selector: str) -> dict           — focused projection from bounded result
   compute_type2_cleanup(ini_slug, source_list, spec_path, spec_status) -> dict
 
 This engine is the canonical implementation invoked by the workspace-status skill
@@ -126,11 +128,17 @@ class WorkspaceStatusResult:
     classifications: list[EntryClassification]        # work queue entries (ready + blocked)
     shaping_classifications: list[ShapingClassification]  # shaping queue entries
     reconciliation: list[ReconciliationFinding]
-    files_read: int   # count of spec.md files read by reconciliation
     elapsed_s: float  # wall-clock seconds for analyze()
     # [backlog].open typed shaping entries (workspace-level, not per-initiative).
     # Populated by extract_top_level_backlog(); work-loop's shaping-item guard reads these.
     top_level_backlog: list[ShapingEntry] = dataclasses.field(default_factory=list)
+    global_scan_performed: bool = dataclasses.field(default=False)
+    declared_spec_files_read: int = dataclasses.field(default=0)
+    global_scan_files_read: int = dataclasses.field(default=0)
+
+    @property
+    def files_read(self) -> int:
+        return self.declared_spec_files_read + self.global_scan_files_read
 
     @property
     def ready(self) -> list[EntryClassification]:
@@ -495,23 +503,18 @@ def classify_shaping_entries(
 
 # ── Reconciliation ────────────────────────────────────────────────────────────
 
-def run_reconciliation(
+def _run_type1_scan(
     root: Path,
-    initiatives: list[Initiative],
+    all_tracked: set[str],
 ) -> tuple[list[ReconciliationFinding], int]:
-    """Run all three reconciliation scan types. Returns (findings, files_read)."""
+    """Type 1: Forward scan — untracked live specs. Returns (findings, files_read).
+
+    Call-site count: see AC1 in the spec (canonical definition).
+    """
     findings: list[ReconciliationFinding] = []
     files_read = 0
-
-    # Build set of all tracked paths across all initiatives
-    all_tracked: set[str] = set()
-    for ini in initiatives:
-        for e in ini.work.queue + ini.work.active + ini.work.shipped:
-            all_tracked.add(e.path)
-
     specs_dir = root / "docs" / "specs"
 
-    # ── Type 1: Forward scan — untracked live specs ───────────────────────────
     # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
     # are discovered; slug is the parent path relative to specs_dir.
     # os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
@@ -588,6 +591,21 @@ def run_reconciliation(
                     ini_slug="",
                     list_name="",
                 ))
+    return findings, files_read
+
+
+def _run_type23_scan(
+    root: Path,
+    initiatives: list[Initiative],
+) -> tuple[list[ReconciliationFinding], int]:
+    """Type 2 + 3: Backward and shipped scans. Returns (findings, files_read).
+
+    All declared-spec path resolution goes through _safe_spec_path() — no
+    confinement bypass in bounded mode (AC1 security invariant).
+    Call-site count: see AC1 in the spec (canonical definition).
+    """
+    findings: list[ReconciliationFinding] = []
+    files_read = 0
 
     # ── Type 2: Backward scan — stale queue/active entries ────────────────────
     for ini in initiatives:
@@ -627,6 +645,21 @@ def run_reconciliation(
     return findings, files_read
 
 
+def run_reconciliation(
+    root: Path,
+    initiatives: list[Initiative],
+) -> tuple[list[ReconciliationFinding], int]:
+    """Run all three reconciliation scan types. Returns (findings, files_read)."""
+    all_tracked: set[str] = set()
+    for ini in initiatives:
+        for e in ini.work.queue + ini.work.active + ini.work.shipped:
+            all_tracked.add(e.path)
+
+    type1_findings, type1_files = _run_type1_scan(root, all_tracked)
+    type23_findings, type23_files = _run_type23_scan(root, initiatives)
+    return type1_findings + type23_findings, type1_files + type23_files
+
+
 # ── Main analysis entry point ─────────────────────────────────────────────────
 
 def analyze(root: Path) -> WorkspaceStatusResult:
@@ -653,7 +686,17 @@ def analyze(root: Path) -> WorkspaceStatusResult:
         all_classifications.extend(classify_entries(ini, initiatives))
         all_shaping.extend(classify_shaping_entries(ini, initiatives))
 
-    reconciliation, files_read = run_reconciliation(root, initiatives)
+    # Build all_tracked for the Type 1 scan
+    all_tracked: set[str] = set()
+    for ini in initiatives:
+        for e in ini.work.queue + ini.work.active + ini.work.shipped:
+            all_tracked.add(e.path)
+
+    # Call helpers directly (not via run_reconciliation) to obtain split file counts
+    type1_findings, type1_files = _run_type1_scan(root, all_tracked)
+    type23_findings, type23_files = _run_type23_scan(root, initiatives)
+    reconciliation = type1_findings + type23_findings
+
     top_level_backlog = extract_top_level_backlog(workspace)
 
     elapsed = time.monotonic() - t0
@@ -662,10 +705,153 @@ def analyze(root: Path) -> WorkspaceStatusResult:
         classifications=all_classifications,
         shaping_classifications=all_shaping,
         reconciliation=reconciliation,
-        files_read=files_read,
         elapsed_s=elapsed,
         top_level_backlog=top_level_backlog,
+        global_scan_performed=True,
+        declared_spec_files_read=type23_files,
+        global_scan_files_read=type1_files,
     )
+
+
+def analyze_bounded(root: Path) -> WorkspaceStatusResult:
+    """Run bounded workspace-status analysis (Type 2+3 only; no global spec walk).
+
+    Used by 'status' and 'explain' subcommands. Structurally guarantees no Type 1
+    scan: calls _run_type23_scan only, never _run_type1_scan. Path confinement is
+    preserved — _run_type23_scan routes all path resolution through _safe_spec_path().
+    """
+    t0 = time.monotonic()
+
+    workspace_path = root / "workspace.toml"
+    workspace = parse_workspace(workspace_path)
+    initiatives = extract_initiatives(workspace)
+
+    all_classifications: list[EntryClassification] = []
+    all_shaping: list[ShapingClassification] = []
+    for ini in initiatives:
+        if ini.status not in ("active",):
+            continue
+        all_classifications.extend(classify_entries(ini, initiatives))
+        all_shaping.extend(classify_shaping_entries(ini, initiatives))
+
+    type23_findings, declared_files = _run_type23_scan(root, initiatives)
+    top_level_backlog = extract_top_level_backlog(workspace)
+
+    elapsed = time.monotonic() - t0
+    return WorkspaceStatusResult(
+        initiatives=initiatives,
+        classifications=all_classifications,
+        shaping_classifications=all_shaping,
+        reconciliation=type23_findings,
+        elapsed_s=elapsed,
+        top_level_backlog=top_level_backlog,
+        global_scan_performed=False,
+        declared_spec_files_read=declared_files,
+        global_scan_files_read=0,
+    )
+
+
+def explain_item(result: WorkspaceStatusResult, selector: str) -> dict:
+    """Focused projection of one work-queue item from a bounded status result.
+
+    Lookup is restricted to active initiatives' work queues (queue/active/shipped).
+    Shaping entries are not searched. No file I/O; selector is never used as a
+    filesystem path component.
+
+    Returns one of:
+      {"selector_status": "matched", "explained_item": {...}}
+      {"selector_status": "not_found"}
+      {"selector_status": "ambiguous", "matches": [...]}
+    """
+    slug = normalize_for_shaping_guard(selector)
+    target_path = f"spec/{slug}"
+
+    # Collect matching active initiatives (one entry per initiative)
+    matches: list[dict] = []
+    for ini in result.initiatives:
+        if ini.status != "active":
+            continue
+        found_in: list[str] = []
+        for list_name, entries in [
+            ("active", ini.work.active),
+            ("shipped", ini.work.shipped),
+            ("queue", ini.work.queue),
+        ]:
+            if any(e.path == target_path for e in entries):
+                found_in.append(list_name)
+        if found_in:
+            matches.append({"ini_slug": ini.slug, "found_in": found_in})
+
+    if len(matches) == 0:
+        return {"selector_status": "not_found"}
+
+    if len(matches) > 1:
+        return {
+            "selector_status": "ambiguous",
+            "matches": [{"path": target_path, "ini_slug": m["ini_slug"]} for m in matches],
+        }
+
+    # Exactly one active initiative matched
+    match = matches[0]
+    ini_slug = match["ini_slug"]
+    found_in = match["found_in"]
+    ini = next(i for i in result.initiatives if i.slug == ini_slug)
+
+    # Resolve list and classification: active > shipped > queue precedence
+    if "active" in found_in:
+        item_list = "active"
+        classification = "active"
+        entry = next(e for e in ini.work.active if e.path == target_path)
+        blocking_needs: list[str] = []
+        dependencies: list[dict] = []
+        downstream_unblocked: list[str] = []
+    elif "shipped" in found_in:
+        item_list = "shipped"
+        classification = "shipped"
+        entry = next(e for e in ini.work.shipped if e.path == target_path)
+        blocking_needs = []
+        dependencies = []
+        downstream_unblocked = []
+    else:
+        item_list = "queue"
+        entry = next(e for e in ini.work.queue if e.path == target_path)
+        cls = next(
+            (
+                c for c in result.classifications
+                if c.entry.path == target_path and c.ini_slug == ini_slug
+            ),
+            None,
+        )
+        if cls is not None:
+            classification = "ready" if cls.is_ready else "blocked"
+            blocking_needs = cls.blocking_needs
+        else:
+            classification = "ready"
+            blocking_needs = []
+        dependencies = [
+            {"need": need, "satisfied": need not in blocking_needs}
+            for need in entry.needs
+        ]
+        sole_blocker = f"work:{target_path}"
+        downstream_unblocked = [
+            c.entry.path
+            for c in result.blocked
+            if c.ini_slug == ini_slug and c.blocking_needs == [sole_blocker]
+        ]
+
+    return {
+        "selector_status": "matched",
+        "explained_item": {
+            "path": target_path,
+            "slug": slug,
+            "ini_slug": ini_slug,
+            "list": item_list,
+            "classification": classification,
+            "blocking_needs": blocking_needs,
+            "dependencies": dependencies,
+            "downstream_unblocked": downstream_unblocked,
+        },
+    }
 
 
 # ── Argless work-loop resume helper ──────────────────────────────────────────
