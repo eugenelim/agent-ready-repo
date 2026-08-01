@@ -530,7 +530,12 @@ def run_reconciliation(
             # previously-scanned sibling). Must run before processing filenames so a
             # junction alias doesn't produce duplicate Type 1 findings for the
             # real directory's spec.md. dirnames.clear() prevents further descent.
-            _current_resolved = Path(dirpath).resolve()
+            # RuntimeError guards against circular symlinks on Python 3.11/3.12.
+            try:
+                _current_resolved = Path(dirpath).resolve()
+            except (OSError, RuntimeError):
+                dirnames.clear()
+                continue
             if _current_resolved in _visited:
                 dirnames.clear()
                 continue
@@ -539,6 +544,7 @@ def run_reconciliation(
             # is_relative_to guards against junctions pointing outside the root;
             # the visited set guards against in-root cycles (a junction whose
             # resolved target is an ancestor within the tree).
+            # RuntimeError guards against circular symlinks during resolve().
             safe: list[str] = []
             for d in dirnames:
                 try:
@@ -548,7 +554,7 @@ def run_reconciliation(
                         and resolved not in _visited
                     ):
                         safe.append(d)
-                except (OSError, ValueError):
+                except (OSError, ValueError, RuntimeError):
                     pass
             dirnames[:] = sorted(safe)  # deterministic traversal order
             if "spec.md" not in filenames:
@@ -556,8 +562,10 @@ def run_reconciliation(
             spec_file = Path(dirpath) / "spec.md"
             if spec_file.is_symlink():
                 continue
+            # Derive the slug from the resolved path so NTFS junction aliases
+            # that sort before their real target still produce the canonical slug.
             try:
-                rel = spec_file.parent.relative_to(specs_dir)
+                rel = _current_resolved.relative_to(_specs_root_resolved)
             except ValueError:
                 continue
             slug = rel.as_posix()
