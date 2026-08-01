@@ -139,13 +139,13 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 
 ### 2. Surface results
 
-**When `mode == "explain"`:** render the focused lookup result directly and skip the rest of this section — the explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`:
+**When `mode == "explain"`:** render the focused lookup result below and stop — skip §§3–5. The explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`; those fields must not be read.
 
 - `selector_status: "matched"` → surface the `explained_item` object: path, slug, ini_slug, list, classification, blocking_needs, dependencies, downstream_unblocked
 - `selector_status: "not_found"` → report the selector was not found in any active initiative's work queue (shaping items and items in paused/closed initiatives also return `not_found`)
 - `selector_status: "ambiguous"` → list the initiative slugs in `matches` and ask which initiative the user is working in. The CLI does not accept an initiative-prefix qualifier — re-invoking `explain` with the same selector will still return `ambiguous`. Use `status` for context on the relevant initiative.
 
-For status and reconcile modes, continue:
+For status and reconcile modes only, continue:
 
 **Type 1 audit notice:** when `1` is not in `reconciliation.types_performed` (status mode only), always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
 
@@ -162,8 +162,8 @@ Let N = total count across all three finding types. When N > 0, output before th
 
   Untracked live specs (Approved or Implementing, not in any initiative list):
   [Gate: render this subsection only when 1 is in reconciliation.types_performed.
-   When absent (status or explain mode): emit instead —
-   "_Type 1 scan not performed (status mode) — run `reconcile` to find untracked specs_"]
+   When absent: omit this subsection — the global Type 1 audit notice at the top
+   of §2 already informs the user; do not emit a second notice here.]
   - `spec/<slug>` (Status: Approved) — add to [work].queue or run capture-work
 
   Stale queue/active entries (spec shows Shipped or Archived):
