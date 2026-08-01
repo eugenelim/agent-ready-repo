@@ -176,7 +176,7 @@ def _build_json(root: Path, result) -> dict:
 
 
 def _emit(data: dict) -> None:
-    sys.stdout.write(json.dumps(data, sort_keys=True) + "\n")
+    sys.stdout.write(json.dumps(data, sort_keys=True, allow_nan=False) + "\n")
     sys.stdout.flush()
 
 

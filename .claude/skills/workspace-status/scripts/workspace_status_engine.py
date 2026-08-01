@@ -25,7 +25,6 @@ Known gaps (preserved from Phase 0 characterization):
 from __future__ import annotations
 
 import dataclasses
-import json
 import os
 import re
 import time
@@ -524,8 +523,18 @@ def run_reconciliation(
         except ValueError:
             pass  # docs/specs resolved outside repo root (symlink) — skip walk
     if _specs_root_safe:
+        _specs_root_resolved = specs_dir.resolve()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
-            dirnames.sort()  # deterministic traversal order
+            # Prune any dir whose resolved path escapes the specs root.
+            # NTFS junctions are not symlinks, so followlinks=False does not stop them.
+            safe: list[str] = []
+            for d in dirnames:
+                try:
+                    if (Path(dirpath) / d).resolve().is_relative_to(_specs_root_resolved):
+                        safe.append(d)
+                except (OSError, ValueError):
+                    pass
+            dirnames[:] = sorted(safe)  # deterministic traversal order
             if "spec.md" not in filenames:
                 continue
             spec_file = Path(dirpath) / "spec.md"
@@ -777,6 +786,30 @@ def collect_work_loop_stale_warnings(
     return warnings
 
 
+def _toml_basic_string(s: str) -> str:
+    """Return a TOML basic-string literal (with surrounding quotes) for value s.
+
+    json.dumps would emit surrogate-pair escapes (\\ud800\\udc00) for non-BMP
+    code points, which are not valid TOML \\u escapes (must be scalar values).
+    This helper includes non-BMP characters as UTF-8 literals instead.
+    """
+    _esc = {
+        "\b": "\\b", "\t": "\\t", "\n": "\\n", "\f": "\\f",
+        "\r": "\\r", '"': '\\"', "\\": "\\\\",
+    }
+    buf = ['"']
+    for ch in s:
+        e = _esc.get(ch)
+        if e:
+            buf.append(e)
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            buf.append(f"\\u{ord(ch):04X}")
+        else:
+            buf.append(ch)
+    buf.append('"')
+    return "".join(buf)
+
+
 # ── workspace-status Type 2 cleanup mutation shape ────────────────────────────
 #
 # work-loop no longer writes to workspace.toml
@@ -837,5 +870,5 @@ def compute_type2_cleanup(
         "source_list": source_list,
         "target_list": "shipped",
         "path": spec_path,
-        "written_form": json.dumps(spec_path),  # TOML basic string literal
+        "written_form": _toml_basic_string(spec_path),
     }
