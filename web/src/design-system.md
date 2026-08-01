@@ -284,7 +284,7 @@ component draws from.
 
 ### ThreeLoops (`ThreeLoops.astro`)
 
-**Zone:** surface-alt (pipeline) / surface (loop cards)  
+**Zone:** surface-alt (full section — `<Section tone="surface-alt">`; `.loop` items have no background override)  
 **BEM classes:** `.loops`, `.loops__headline`, `.loop`, `.loop__n`, `.loop__body`, `.loop__name`,
 `.loop__pack`, `.loop__desc`, `.loop__gate`, `.loop__link`, `.pipeline`, `.pipeline__node`,
 `.pipeline__link`, `.pipeline__gate`, `.pipeline__arrow`  
@@ -323,6 +323,8 @@ component draws from.
 **Zone:** surface-alt (outer wrapper) / dark (terminal window)  
 **BEM classes:** `.install__headline`, `.terminal`, `.terminal__bar`, `.terminal__dot`,
 `.tabs`, `.tabs__radio`, `.tabs__label`, `.tabs__panels`, `.tabs__panel`,
+`.tabs__panel--flagship`, `.tabs__panel--discovery`, `.tabs__panel--inception`,
+`.tabs__panel--architect` (one per tab; CSS-only visibility depends on these modifiers),
 `.terminal__line`, `.terminal__prompt`, `.install__note`, `.copy-btn.install-copy-btn`  
 **Key tokens:** `--ds-hero-bg`, `--ds-hero-border-card`, `--ds-hero-border`,
 `--ds-hero-elevated`, `--ds-hero-fg`, `--ds-hero-fg-2`, `--ds-hero-fg-muted`,

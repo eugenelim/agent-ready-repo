@@ -181,8 +181,9 @@ def scan_file(path: Path, is_token_file: bool = False) -> list[tuple[int, str]]:
         for m in HEX_RE.finditer(value_part):
             violations.append((lineno, m.group()))
 
-        if ";" in value_part:
-            # Single-line value terminated on this line: scan rgba immediately.
+        if ";" in value_part or "}" in value_part:
+            # Declaration terminates here (semicolon or closing brace — CSS
+            # permits omitting the final ; before }).
             for m in RGBA_RE.finditer(value_part):
                 violations.append((lineno, m.group()))
         else:
