@@ -78,7 +78,8 @@ Skip entirely if `workspace.toml` is absent. If present:
      orientation block.
      - Zero → surface "No active spec found — run `workspace-status` to see what's ready to start." Stop.
      - More than one → list all, ask the user to pick. Stop.
-   - **Stale-queue check.** For each active initiative, for each entry in `.work.queue` and `.work.active`: resolve the path (bare string → as-is; inline object → `path` field; `slug` is shaping-queue only), strip the `spec/` prefix, read `docs/specs/<slug>/spec.md`. If `**Status:**` is `Shipped` (ignoring trailing `<!-- -->` comments), emit a non-blocking warning: `workspace.toml drift: <path> is in <queue|active> but spec.md shows Status: Shipped — move it to shipped in workspace.toml.` Path in both lists: warn once, name both. Missing `spec.md` or any status other than `Shipped` → skip without error.
+
+   Use `workspace-status reconcile` for exhaustive workspace integrity checks; `work-loop` does not scan the full portfolio at startup.
 
 2. **Shaping-item guard.** Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all active initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed entries for a slug match. On match, stop: "This is a `[shape]` item (`type = <subtype>`); use `<skill>` — `work-loop` is for build items only." (shape→`frame-intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
 

@@ -18,7 +18,7 @@ file as stale and ask before relying on it.
 
 **M1 · Workspace Foundation.** `workspace.toml` seed + `workspace-status` skill + brief template DoR fields (Status, Rabbit holes, Instrumentation, Design artifacts) + work-loop / receive-brief / new-rfc extensions + agentbundle-layout.toml `[product]` table + ADR for D2/D4 architectural decisions. [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md)
 
-**M1 fix — work-loop done-step lifecycle.** Extended done-step to find the current spec in `queue` (not just `active`), add Step 0 stale-queue warning, and fix the `spec/` prefix path-resolution bug. [spec/work-loop-queue-shipped-fix]
+**M1 fix — work-loop done-step lifecycle.** Extended done-step to find the current spec in `queue` (not just `active`) and fixed the `spec/` prefix path-resolution bug. The Step 0 stale-queue warning (added here, removed in Order 2A) transferred stale-entry detection permanently to `workspace-status reconcile`. [spec/work-loop-queue-shipped-fix]
 
 **M1 · Session-arc conventions (RFC-0067, Change D).** Pack workflow design guide (`guides/_shared/explanation/pack-workflow-design.md`) — five-step framework for pack authors: workflow-type classification, arc-stage mapping, skill naming, vault-path shape, workspace-status registration. CONTRIBUTING.md step 0 added. [spec/spec-D-pack-workflow-guide — Shipped; Changes A/B/C in queue]
 
