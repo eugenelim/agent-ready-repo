@@ -32,18 +32,14 @@ milestone = "P5 · Adopt (M1–M5 shipped)"
 parent    = "INI-001"
 
 ["ini-002".shaping_queue]
-# adopter-persona: deliverable must cover pack-segmented setup posture across the
-# proposed Level B set (architect, atlassian, converters, desk-research,
-# experience-design, figma, governance-extras, product-engineering,
-# product-strategy, product-documentation); include terminology comprehension,
-# prerequisite visibility, artifact discovery, and inputs to P5 persona and
-# live-demo design. Do not add a second generic user-study item — broaden this
-# one; formative evaluation folds into the pilots and later P5/rollout ACs.
-# Project (personal vault): efforts/research/2026-07-22-adopter-persona; phase=capture.
-# Un-gates the three P5 m6-* build items; summary elevates as RFC-0064 notes.
-active  = [
-  {slug = "adopter-persona",            type = "research"},
-]
+# adopter-persona: COMPLETE (2026-08-02). Desk-research only; participant sessions
+# deferred. Two-segment hypothesis (FDE-mediated enterprise / solo engineer) confirmed
+# as a pathway framing complementary to the five-segment posture model. Five cross-
+# segment design requirements identified. Three P5 m6-* work items are now unblocked.
+# Brief: docs/product/research/adopter-persona-brief.md
+# Comparison matrix: docs/product/research/adopter-persona-comparison-matrix.md
+# Project (personal vault): efforts/research/2026-07-22-adopter-persona; phase=synthesize.
+active  = []
 backlog = [
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
