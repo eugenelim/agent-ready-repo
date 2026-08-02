@@ -119,7 +119,7 @@ Both files are gitignored session-scratch — on a fresh checkout (new machine, 
 
 ### Spec amendment mid-flight
 
-Once `plan-approved` is fired, `schedule check-current` guards every subsequent transition against the approved plan hash. A post-approval `plan.md` edit will cause the next transition to be rejected — the approved plan is immutable. If EXECUTE discovers a fundamentally missing or wrong task, surface that to a human and start a new run rather than editing in place. The only safe post-approval edits are trailing-whitespace and line-ending normalization — `canonical_plan()` normalizes only those two, so any other change (including comments) invalidates the hash.
+Once `approve-plan` runs (during the G-plan sequence after the plan approver fires `plan-approved`), `plan check-current --require-schedule` guards the subsequent `plan-locked` transition against the approved plan hash. A post-approval `plan.md` edit will cause the `plan-locked` transition to be rejected — the approved plan is immutable. If EXECUTE discovers a fundamentally missing or wrong task, surface that to a human and start a new run rather than editing in place. The only safe post-approval edits are trailing-whitespace and line-ending normalization — `canonical_plan()` normalizes only those two, so any other change (including comments) invalidates the hash.
 
 ### Parallel implementers (supervisor mode)
 

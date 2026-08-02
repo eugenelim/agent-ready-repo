@@ -27,6 +27,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   types_performed}` fields. Invoking without a subcommand still works as a `reconcile` alias
   with a deprecation warning on stderr.
 
+## [core][2.0.0] — 2026-08-02
+
+### Changed
+
+- **loop-engine/loop-cohort** (breaking): Replaced the single `SPEC-PLAN-HUMAN-GATE` state and the combined `plan-approved` exit event with two separate human-wait states and a three-event approval sequence. Any `engine-state.json` parked at `SPEC-PLAN-HUMAN-GATE` from core 1.x will return "illegal transition" on every event after upgrade — reset with `loop-cohort reset` + `loop-engine reset` and re-init on the new sequence (spec.md and plan.md are preserved).
+  - New states: `SPEC-HUMAN-GATE` (scope decision; spec approver writes `spec.md Status: Approved`), `PLAN-HUMAN-GATE` (build decision; plan approver writes `plan.md Status: Approved`), `SPEC-PLAN-APPROVED` (durable intermediate after both approvals).
+  - New events: `spec-approved` (guard: spec.md Approved), `spec-rejected` → SPEC-PLAN-DRAFTING, `plan-locked` (replaces the old single-step plan-approved handoff; guard: spec Approved + schedule binding).
+  - `plan-approved` now means "plan approver approved" and targets SPEC-PLAN-APPROVED; the old meaning (machine handoff to CODE-IMPLEMENTATION) is replaced by `plan-locked`.
+  - `loop-cohort approve-plan` is now idempotent: same run ID + unchanged hashes = no-op; changed hash = refuse.
+  - `check-spec-status.py` gains `--expect` and `--file` flags so the plan-approved guard can check plan.md independently. Path traversal fixed: `--file` is now confined to spec-dir.
+
+## [governance-extras][0.9.5] — 2026-08-02
+
+### Changed
+
+- Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
+
+## [iac-terraform][0.1.6] — 2026-08-02
+
+### Changed
+
+- Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
+
+## [monorepo-extras][0.1.6] — 2026-08-02
+
+### Changed
+
+- Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
+
+## [release-engineering][0.1.9] — 2026-08-02
+
+### Changed
+
+- Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
+
 ## [Unreleased]
 
 ### Added

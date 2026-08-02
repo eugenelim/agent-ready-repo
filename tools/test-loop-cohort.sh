@@ -182,6 +182,21 @@ EOF
 
 run_and_check "plan-check-current-not-approved" 1 "" -- $PY plan check-current "$SPEC1"
 
+# Rewrite plan.md with Status: Approved so the crash-window guard in approve-plan passes.
+cat > "$SPEC1/plan.md" <<'EOF'
+# Plan
+
+- **Status:** Approved
+
+### T1
+
+**Depends on:** none
+
+### T2
+
+**Depends on:** T1
+EOF
+
 # ── approve-plan ──────────────────────────────────────────────────────────
 
 run_and_check "approve-plan-no-run-id-fails" 2 "" -- $PY approve-plan "$SPEC1"

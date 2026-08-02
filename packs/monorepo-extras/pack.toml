@@ -1,6 +1,6 @@
 [pack]
 name = "monorepo-extras"
-version = "0.1.5"
+version = "0.1.6"
 description = "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template."
 readme = "README.md"
 display_name = "Monorepo Extras"
@@ -26,7 +26,7 @@ allowed-scopes = ["repo"]
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^1.0"
+version = "^2.0"
 
 # pack-activation-evals (RFC-0037 / ADR-0028): Tier-A activation-eval coverage.
 # new-package is the only user-prompt-triggered skill; it is repo-scope so the

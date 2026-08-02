@@ -140,7 +140,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+      "description": "Core: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
       "displayName": "Core",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -158,7 +158,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "1.0.3"
+      "version": "2.0.0"
     },
     {
       "author": {
@@ -342,7 +342,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.9.4"
+      "version": "0.9.5"
     },
     {
       "author": {
@@ -369,7 +369,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.5"
+      "version": "0.1.6"
     },
     {
       "author": {
@@ -420,7 +420,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.5"
+      "version": "0.1.6"
     },
     {
       "author": {
@@ -527,7 +527,7 @@
         "repo": "eugenelim/agent-ready-repo",
         "source": "github"
       },
-      "version": "0.1.8"
+      "version": "0.1.9"
     },
     {
       "author": {

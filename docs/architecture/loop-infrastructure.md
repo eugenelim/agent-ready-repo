@@ -27,14 +27,17 @@ loop-engine reset <spec-dir>
 
 **FSM modes (Phase 1):**
 
-`code` — eight-state lifecycle with spec/plan drafting and implementation waves:
+`code` — ten-state lifecycle with spec/plan drafting, two human-approval gates, and implementation waves:
 
 ```
-SPEC-PLAN-DRAFTING → (spec-ready) → SPEC-PLAN-REVIEW
-SPEC-PLAN-REVIEW   → (reviewers-clean) → SPEC-PLAN-HUMAN-GATE
-SPEC-PLAN-REVIEW   → (findings-remain) → SPEC-PLAN-DRAFTING
-SPEC-PLAN-HUMAN-GATE → (plan-approved) → CODE-IMPLEMENTATION
-SPEC-PLAN-HUMAN-GATE → (plan-rejected) → SPEC-PLAN-DRAFTING
+SPEC-PLAN-DRAFTING → (spec-ready)       → SPEC-PLAN-REVIEW
+SPEC-PLAN-REVIEW   → (reviewers-clean)  → SPEC-HUMAN-GATE
+SPEC-PLAN-REVIEW   → (findings-remain)  → SPEC-PLAN-DRAFTING
+SPEC-HUMAN-GATE    → (spec-approved)    → PLAN-HUMAN-GATE      guard: spec.md Status==Approved
+SPEC-HUMAN-GATE    → (spec-rejected)    → SPEC-PLAN-DRAFTING
+PLAN-HUMAN-GATE    → (plan-approved)    → SPEC-PLAN-APPROVED   guard: plan.md Status==Approved
+PLAN-HUMAN-GATE    → (plan-rejected)    → SPEC-PLAN-DRAFTING
+SPEC-PLAN-APPROVED → (plan-locked)      → CODE-IMPLEMENTATION  guard: spec.md Status==Approved + schedule
 CODE-IMPLEMENTATION  → (wave-complete) → CODE-VERIFICATION
 CODE-VERIFICATION    → (wave-passed)   → CODE-IMPLEMENTATION   [requires --wave-index]
 CODE-VERIFICATION    → (gates-clean)   → CODE-REVIEW
@@ -45,14 +48,44 @@ CODE-HUMAN-GATE      → (done)          → DONE
 CODE-HUMAN-GATE      → (blocker-applied) → CODE-IMPLEMENTATION
 ```
 
-`spec-plan` — five-state lifecycle terminating at DONE on plan-approved (no code phase):
+`spec-plan` — six-state lifecycle terminating at DONE on plan-locked (no code phase):
 
 ```
-SPEC-PLAN-DRAFTING → (spec-ready) → SPEC-PLAN-REVIEW
-SPEC-PLAN-REVIEW   → (reviewers-clean) → SPEC-PLAN-HUMAN-GATE
-SPEC-PLAN-REVIEW   → (findings-remain) → SPEC-PLAN-DRAFTING
-SPEC-PLAN-HUMAN-GATE → (plan-approved) → DONE
-SPEC-PLAN-HUMAN-GATE → (plan-rejected) → SPEC-PLAN-DRAFTING
+SPEC-PLAN-DRAFTING → (spec-ready)       → SPEC-PLAN-REVIEW
+SPEC-PLAN-REVIEW   → (reviewers-clean)  → SPEC-HUMAN-GATE
+SPEC-PLAN-REVIEW   → (findings-remain)  → SPEC-PLAN-DRAFTING
+SPEC-HUMAN-GATE    → (spec-approved)    → PLAN-HUMAN-GATE      guard: spec.md Status==Approved
+SPEC-HUMAN-GATE    → (spec-rejected)    → SPEC-PLAN-DRAFTING
+PLAN-HUMAN-GATE    → (plan-approved)    → SPEC-PLAN-APPROVED   guard: plan.md Status==Approved
+PLAN-HUMAN-GATE    → (plan-rejected)    → SPEC-PLAN-DRAFTING
+SPEC-PLAN-APPROVED → (plan-locked)      → DONE                 guard: spec.md Status==Approved
+```
+
+Human-wait states: `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE`
+(all report `pending_human_wait: true`). `SPEC-PLAN-APPROVED` is not a
+human-wait state — it is a durable intermediate state between both approvals
+and the `plan-locked` cohort-seal step.
+
+**G-plan sequence (code mode):**
+
+```bash
+# 1. Spec approver writes Status: Approved in spec.md.
+python3 scripts/loop-engine.py transition docs/specs/<feature> spec-approved
+# → SPEC-HUMAN-GATE exits; engine enters PLAN-HUMAN-GATE
+
+# 2. Plan approver writes Status: Approved in plan.md.
+python3 scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+# → PLAN-HUMAN-GATE exits; engine enters SPEC-PLAN-APPROVED
+
+# 3. Cohort records the approved baseline:
+python3 scripts/loop-cohort.py approve-plan docs/specs/<feature> --expect-run-id <run_id>
+
+# 4. Schedule waves:
+python3 scripts/loop-cohort.py schedule docs/specs/<feature> --expect-run-id <run_id>
+
+# 5. Seal and hand off:
+python3 scripts/loop-engine.py transition docs/specs/<feature> plan-locked
+# → CODE-IMPLEMENTATION; write Status: Implementing before any code
 ```
 
 **Guards** fire before each transition to enforce pre-conditions. The engine
@@ -88,11 +121,23 @@ review record <spec-dir> (--fingerprint <hex> ... | --report <path>) --expect-ru
 **Disabled in Phase 1** (exit non-zero with "disabled in Phase 1" message):
 `dispatch-decision`, `worktree {add, record, list, merge, cleanup, preflight}`, `auto-parallel`.
 
-### `check-spec-status.py` (spec-shipped guard)
+### `check-spec-status.py` (status guard)
 
-Called by `loop-engine` as the guard for `reviewers-clean` (code mode). Imports
+Called by `loop-engine` as the guard for multiple transitions. Imports
 `parse_status` from `lint-spec-status.py` via `importlib` to share a single
-canonical status parser. Exits 0 iff `spec.md` Status is `Shipped`.
+canonical status parser.
+
+```
+check-spec-status.py <spec-dir> [--expect <status>] [--file <filename>]
+```
+
+- `--expect` omitted → defaults to `Shipped`.
+- `--file` omitted → defaults to `spec.md`.
+- `--file plan.md --expect Approved` → reads `<spec-dir>/plan.md`, checks `Status: Approved`.
+
+Used by `spec-approved` guard (`--expect Approved`), `plan-approved` guard
+(`--expect Approved --file plan.md`), `plan-locked` guard (`--expect Approved`),
+and `reviewers-clean` guard (`--expect Shipped`, default).
 
 ## Init pair
 

@@ -293,7 +293,8 @@ mechanical rule.
 
 - **Status vocabulary.** A spec's `- **Status:**` field is exactly one of
   `Draft | Approved | Implementing | Shipped | Archived`. (Plans carry their own
-  vocabulary, `Drafting | Executing | Done` — a separate field, separate set.)
+  vocabulary, `Drafting | Approved | Executing | Done` — a separate field, separate set.)
+  Approved means the spec/plan contract has received human approval. In `spec.md` it means the scope is accepted; in `plan.md` it means the implementation strategy is accepted. Before code changes begin, an implementation run moves `spec.md` to `Implementing`.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Deferral token.** A criterion that ships *unmet on purpose* is not left

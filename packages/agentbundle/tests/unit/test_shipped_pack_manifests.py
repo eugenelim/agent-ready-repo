@@ -40,9 +40,9 @@ def _load(pack_name: str) -> dict:
 @pytest.mark.parametrize("pack_name", CORE_DEP_PACKS)
 def test_addon_manifests_carry_required_dependency(pack_name):
     """Addon packs (governance-extras, monorepo-extras) declare
-    `[[pack.dependencies.required]]` against `core` with the `^1.0`
-    caret-minor range (adapt-to-project AC18; bumped from ^0.1 when core
-    hit 1.0.0 in the loop-infrastructure-phase-1 release).
+    `[[pack.dependencies.required]]` against `core` with the `^2.0`
+    caret-minor range (adapt-to-project AC18; bumped from ^0.1 → ^1.0 when core
+    hit 1.0.0, then ^1.0 → ^2.0 when core hit 2.0.0).
 
     user-guide-diataxis (0.3.0) is a deprecated shim that depends on
     product-documentation instead of core; its dep is pinned separately.
@@ -57,11 +57,11 @@ def test_addon_manifests_carry_required_dependency(pack_name):
         if isinstance(e, dict)
         and e.get("catalogue") == "agent-ready-repo"
         and e.get("pack") == "core"
-        and e.get("version") == "^1.0"
+        and e.get("version") == "^2.0"
     ]
     assert matches, (
         f"{pack_name}: required-dep entry "
-        '{catalogue="agent-ready-repo", pack="core", version="^1.0"} not found; '
+        '{catalogue="agent-ready-repo", pack="core", version="^2.0"} not found; '
         f"got {required!r}"
     )
 

@@ -84,4 +84,4 @@ HookIntegrator-covered adopters can also run this to opt out of hooks.
 ---
 
 → **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the [`core` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/core/).
+→ **Go deeper:** the `core` guides in `guides/core/`.
