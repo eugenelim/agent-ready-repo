@@ -6,8 +6,12 @@ current phase in engine-state.json. Does NOT invoke loop-cohort mutations.
 The skill invokes all mutations explicitly.
 
 Two modes in Phase 1:
-  code       — full eight-state lifecycle with implementation waves
-  spec-plan  — spec/plan drafting only (terminates at DONE via plan-approved)
+  code       — full ten-state lifecycle with implementation waves
+  spec-plan  — spec/plan drafting only (six-state; terminates at DONE via plan-locked)
+
+Human-wait states in the spec/plan phase:
+  SPEC-HUMAN-GATE  — scope decision: does this spec define the right thing to build?
+  PLAN-HUMAN-GATE  — build decision: does this plan describe the right way to build it?
 
 Verb surface
 ------------
@@ -49,14 +53,17 @@ SCHEMA_VERSION = 1
 
 _BOTH_TRANSITIONS = {
     ("SPEC-PLAN-DRAFTING", "spec-ready"): "SPEC-PLAN-REVIEW",
-    ("SPEC-PLAN-REVIEW", "reviewers-clean"): "SPEC-PLAN-HUMAN-GATE",
+    ("SPEC-PLAN-REVIEW", "reviewers-clean"): "SPEC-HUMAN-GATE",
     ("SPEC-PLAN-REVIEW", "findings-remain"): "SPEC-PLAN-DRAFTING",
-    ("SPEC-PLAN-HUMAN-GATE", "plan-rejected"): "SPEC-PLAN-DRAFTING",
+    ("SPEC-HUMAN-GATE", "spec-approved"): "PLAN-HUMAN-GATE",
+    ("SPEC-HUMAN-GATE", "spec-rejected"): "SPEC-PLAN-DRAFTING",
+    ("PLAN-HUMAN-GATE", "plan-approved"): "SPEC-PLAN-APPROVED",
+    ("PLAN-HUMAN-GATE", "plan-rejected"): "SPEC-PLAN-DRAFTING",
 }
 
 _CODE_TRANSITIONS = {
     **_BOTH_TRANSITIONS,
-    ("SPEC-PLAN-HUMAN-GATE", "plan-approved"): "CODE-IMPLEMENTATION",
+    ("SPEC-PLAN-APPROVED", "plan-locked"): "CODE-IMPLEMENTATION",
     ("CODE-IMPLEMENTATION", "wave-complete"): "CODE-VERIFICATION",
     ("CODE-VERIFICATION", "wave-passed"): "CODE-IMPLEMENTATION",
     ("CODE-VERIFICATION", "gates-clean"): "CODE-REVIEW",
@@ -69,7 +76,7 @@ _CODE_TRANSITIONS = {
 
 _SPEC_PLAN_TRANSITIONS = {
     **_BOTH_TRANSITIONS,
-    ("SPEC-PLAN-HUMAN-GATE", "plan-approved"): "DONE",
+    ("SPEC-PLAN-APPROVED", "plan-locked"): "DONE",
 }
 
 _TRANSITIONS_BY_MODE = {
@@ -78,7 +85,7 @@ _TRANSITIONS_BY_MODE = {
 }
 
 # States where pending_human_wait is True
-_HUMAN_WAIT_STATES = frozenset({"SPEC-PLAN-HUMAN-GATE", "CODE-HUMAN-GATE"})
+_HUMAN_WAIT_STATES = frozenset({"SPEC-HUMAN-GATE", "PLAN-HUMAN-GATE", "CODE-HUMAN-GATE"})
 
 # CODE-* states that require the mandatory schedule check-current pre-guard,
 # EXCEPT "done" which is exempt.
@@ -180,6 +187,58 @@ def _guard_check_spec_status(spec_dir: Path, engine_state: dict, _) -> str | Non
     return None
 
 
+def _guard_spec_approved(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """Guard for spec-approved: spec.md must have Status: Approved."""
+    rc, msg = _run(
+        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    )
+    if rc != 0:
+        return f"check-spec-status --expect Approved failed: {msg}"
+    return None
+
+
+def _guard_plan_approved(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """Guard for plan-approved: plan.md must have Status: Approved."""
+    rc, msg = _run(
+        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir),
+         "--expect", "Approved", "--file", "plan.md"]
+    )
+    if rc != 0:
+        return f"check-spec-status --expect Approved --file plan.md failed: {msg}"
+    return None
+
+
+def _guard_plan_locked_code(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """Guard for plan-locked (code mode): spec Approved + plan check-current --require-schedule."""
+    rc, msg = _run(
+        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    )
+    if rc != 0:
+        return f"check-spec-status --expect Approved failed: {msg}"
+    rc, msg = _run(
+        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir),
+         "--require-schedule"]
+    )
+    if rc != 0:
+        return f"plan check-current --require-schedule failed: {msg}"
+    return None
+
+
+def _guard_plan_locked_spec_plan(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """Guard for plan-locked (spec-plan mode): spec Approved + plan check-current."""
+    rc, msg = _run(
+        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    )
+    if rc != 0:
+        return f"check-spec-status --expect Approved failed: {msg}"
+    rc, msg = _run(
+        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir)]
+    )
+    if rc != 0:
+        return f"plan check-current failed: {msg}"
+    return None
+
+
 def _guard_check_spec_status_on_code_review(
     spec_dir: Path, engine_state: dict, event_args: dict
 ) -> str | None:
@@ -202,8 +261,12 @@ def _guard_check_phase_review_on_code_review(
 
 # Guard dispatch: (mode, event) → guard_fn | None
 _GUARDS: dict[tuple[str, str], object] = {
-    ("code", "plan-approved"): _guard_plan_check_current_require_schedule,
-    ("spec-plan", "plan-approved"): _guard_plan_check_current,
+    ("code", "spec-approved"): _guard_spec_approved,
+    ("spec-plan", "spec-approved"): _guard_spec_approved,
+    ("code", "plan-approved"): _guard_plan_approved,
+    ("spec-plan", "plan-approved"): _guard_plan_approved,
+    ("code", "plan-locked"): _guard_plan_locked_code,
+    ("spec-plan", "plan-locked"): _guard_plan_locked_spec_plan,
     ("code", "wave-complete"): _guard_check_phase_implement,
     ("code", "gates-failed"): _guard_check_phase_gates_failed,
     ("code", "wave-passed"): _guard_wave_check_more,
