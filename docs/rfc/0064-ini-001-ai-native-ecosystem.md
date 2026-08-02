@@ -527,12 +527,20 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 **P3 · Brief → Build — shipped**
 - [x] `author-brief` documentation: how-to (intake-an-external-brief) + DoR field definitions reference — `spec/author-brief-docs` (Shipped)
 
-**P5 · Adopt — in progress, gated on adopter-persona desk-research**
+**P5 · Adopt — adopter-persona research complete; three specs ready to start**
 - [ ] Astro site: project index view for non-engineer (PM) visibility — `spec/m6-astro-project-index`; `docs/product/projects/` contains only `_template.md`; no Astro page reads from it yet
 - [ ] Live-demo guide: ≥3 representative team types; pre-flight checklist; ≤30-min shaping→brief→spec narration on the org's own codebase — `spec/m6-live-demo-guide`
 - [ ] Enterprise rollout playbook: champion → CTO → platform team → engineers adoption arc; staged rollout phases (pilot → wave → org-wide); rollout checklist and retrospective template — `spec/m6-enterprise-rollout-playbook`; distinct from the technical catalogue enterprise-distribution guides already shipped
 
-All three P5 specs gate on `research:adopter-persona` completing (type = "research" desk-research project; personal vault, phase=capture; not a formal UX study — formative evaluation folds into the pilot transcripts and P5/rollout ACs).
+The `research:adopter-persona` gate is now clear (2026-08-02). Desk-research only;
+participant sessions deferred. Two-segment hypothesis (FDE-mediated enterprise /
+solo engineer) confirmed as adoption-pathway framing complementary to the five-
+segment posture model. Five cross-segment design requirements identified (prerequisites
+at decision point; outcome-first vocabulary; explicit artifact status; credential
+lifecycle documentation; mutation status stated). Third segment (unsupported
+mid-market enterprise) identified as highest churn risk — address in rollout playbook.
+
+Evidence base: [`docs/product/research/adopter-persona-brief.md`](../product/research/adopter-persona-brief.md) (governance brief, self-contained) · [`docs/product/research/adopter-persona-comparison-matrix.md`](../product/research/adopter-persona-comparison-matrix.md) (full comparison).
 
 ## Sub-RFCs
 
