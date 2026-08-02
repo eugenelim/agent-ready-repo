@@ -22,6 +22,8 @@ PyPI release before downstream repos can consume them.
 
 After bumping: tag `agentbundle-vX.Y.Z` and push to PyPI via the standard release process.
 
+**Two-step closeout.** Marking a spec `Status: Shipped` and updating `workspace.toml` are post-publication changes — the PyPI artifact does not exist until after the version-bump PR merges. Do not include these in the version-bump PR; land them in a follow-on change after the release is confirmed.
+
 ## Engine-Change-RFC requirement
 
 Any changeset touching `packages/agentbundle/agentbundle/` (engine behaviour) or `packs/credential-brokers/**` must include the literal string `Engine-Change-RFC:` somewhere in its commit messages — without it, `tools/lint-catalogue-curation-guard.py --base origin/main` fails in CI. Whitespace-only passes are still subject to the gate; add the marker to the commit message even when the change carries no logic.

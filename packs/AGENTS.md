@@ -134,6 +134,10 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 ```
 
+## TDD plan stubs
+
+Stubs in `plan.md` tasks must be `raise NotImplementedError  # STUB: ACn` — not `...`. A bare `...` is valid Python and passes immediately, defeating the red-green cycle.
+
 ## Shipped pack content carries no internal-governance citations
 
 When authoring anything under `.apm/**`, never cite this catalogue's own governance:
