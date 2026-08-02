@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### core 1.1.0
+
+- **loop-engine/loop-cohort**: Split `SPEC-PLAN-HUMAN-GATE` into two distinct human-wait states — `SPEC-HUMAN-GATE` (scope approval: `spec.md Status: Approved`) and `PLAN-HUMAN-GATE` (build approval: `plan.md Status: Approved`) — enabling separate stakeholder sign-off. Added `SPEC-PLAN-APPROVED` intermediate state between plan approval and implementation. Renamed `approval-committed` to `plan-locked`. `loop-cohort approve-plan` is now idempotent. `check-spec-status.py` gains `--expect` and `--file` flags.
+
 ### Added
 
 - **`work-loop` Phase-1 loop-infrastructure split (core 1.0.0 — major).** The work-loop
