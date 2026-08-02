@@ -275,6 +275,11 @@ documentation of the feature's contract — but at that point the *code is the
 truth*, and the spec is reference material that should be updated alongside
 behavior changes.
 
+Guards, pre-checks, and invariant-enforcement added during implementation are
+ACs, not implementation details — if they affect observable behavior (exit
+codes, refusals, error messages), they belong in the spec when they're added
+to the code.
+
 **Template:** `assets/spec.md` and `assets/plan.md` in the `new-spec` skill that creates the pair.
 
 **Cite upward, never downward:** a spec links to the ADRs and RFCs that
