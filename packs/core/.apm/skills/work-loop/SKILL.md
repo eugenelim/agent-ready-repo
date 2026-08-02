@@ -521,14 +521,16 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
 3. `loop-engine status docs/specs/<feature> --json` → read `transition_sequence`.
    `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
    `schedule_waves`, `review_retry_count`, `implementation_retry_count`.
-4. If `pending_human_wait` → wait for the human signal before firing any
-   exit event.
+4. If `pending_human_wait` is true, inspect the persisted artifact status before deciding whether to wait:
+   - **`SPEC-HUMAN-GATE`** — read `spec.md` Status: `Draft` → continue waiting; `Approved` → fire `spec-approved` immediately (crash-recovery: approver wrote Approved before the session ended); `Implementing` or `Shipped` → **Surface and stop** (spec advanced past approval without completing the plan gate — describe the state and wait for direction).
+   - **`PLAN-HUMAN-GATE`** — read `plan.md` Status: `Drafting` → continue waiting; `Approved` → fire `plan-approved` immediately (crash-recovery); `Executing` or `Done` → **Surface and stop** (plan advanced past approval state).
+   - **`CODE-HUMAN-GATE`** → wait for the human merge decision; no artifact to inspect.
 5. Route by `last_event` to pick up where the session left off:
 
    | `last_event` | `state` | Action |
    |---|---|---|
-   | `reviewers-clean` | `SPEC-HUMAN-GATE` | Waiting for spec approval. Spec approver writes `Status: Approved` in spec.md, then fire `spec-approved`. |
-   | `spec-approved` | `PLAN-HUMAN-GATE` | Spec approved. Waiting for plan approval. Plan approver writes `Status: Approved` in plan.md, then fire `plan-approved`. |
+   | `reviewers-clean` | `SPEC-HUMAN-GATE` | Apply step 4 spec-gate check first. If `Draft`: wait — spec approver writes `Status: Approved` in spec.md, then fire `spec-approved`. |
+   | `spec-approved` | `PLAN-HUMAN-GATE` | Apply step 4 plan-gate check first. If `Drafting`: wait — plan approver writes `Status: Approved` in plan.md, then fire `plan-approved`. |
    | `plan-approved` | `SPEC-PLAN-APPROVED` | Both approved. Proceed to cohort operations: `approve-plan` + (code mode) `schedule` + `plan-locked`. No second human signal needed. |
    | `plan-locked` | `CODE-IMPLEMENTATION` | New-sequence code run. EXECUTE proceeds normally. Write `Status: Implementing` before code. |
    | `plan-locked` | `DONE` | New-sequence spec-plan terminal. No further action required. |

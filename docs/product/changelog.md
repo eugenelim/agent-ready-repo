@@ -29,9 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### core 1.1.0
+### core 2.0.0
 
-- **loop-engine/loop-cohort**: Split `SPEC-PLAN-HUMAN-GATE` into two distinct human-wait states — `SPEC-HUMAN-GATE` (scope approval: `spec.md Status: Approved`) and `PLAN-HUMAN-GATE` (build approval: `plan.md Status: Approved`) — enabling separate stakeholder sign-off. Added `SPEC-PLAN-APPROVED` intermediate state between plan approval and implementation. Renamed `approval-committed` to `plan-locked`. `loop-cohort approve-plan` is now idempotent. `check-spec-status.py` gains `--expect` and `--file` flags.
+- **loop-engine/loop-cohort** (breaking): Replaced the single `SPEC-PLAN-HUMAN-GATE` state and the combined `plan-approved` exit event with two separate human-wait states and a three-event approval sequence. Any `engine-state.json` parked at `SPEC-PLAN-HUMAN-GATE` from core 1.x will return "illegal transition" on every event after upgrade — reset with `loop-cohort reset` + `loop-engine reset` and re-init on the new sequence (spec.md and plan.md are preserved).
+  - New states: `SPEC-HUMAN-GATE` (scope decision; spec approver writes `spec.md Status: Approved`), `PLAN-HUMAN-GATE` (build decision; plan approver writes `plan.md Status: Approved`), `SPEC-PLAN-APPROVED` (durable intermediate after both approvals).
+  - New events: `spec-approved` (guard: spec.md Approved), `spec-rejected` → SPEC-PLAN-DRAFTING, `plan-locked` (replaces the old single-step plan-approved handoff; guard: spec Approved + schedule binding).
+  - `plan-approved` now means "plan approver approved" and targets SPEC-PLAN-APPROVED; the old meaning (machine handoff to CODE-IMPLEMENTATION) is replaced by `plan-locked`.
+  - `loop-cohort approve-plan` is now idempotent: same run ID + unchanged hashes = no-op; changed hash = refuse.
+  - `check-spec-status.py` gains `--expect` and `--file` flags so the plan-approved guard can check plan.md independently.
 
 ### Added
 

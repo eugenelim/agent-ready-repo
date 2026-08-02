@@ -20,7 +20,7 @@ allowed-scopes = ["repo"]     # repo-scope: emits generated Terraform/pipeline o
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^1.0"
+version = "^2.0"
 
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"

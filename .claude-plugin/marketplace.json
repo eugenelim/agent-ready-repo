@@ -136,13 +136,12 @@
     },
     {
       "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
+        "email": "maintainer@example.com",
+        "name": "Example Maintainer"
       },
       "category": "governance",
-      "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+      "description": "Core: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
       "displayName": "Core",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
         "work-loop",
         "spec-driven",
@@ -151,14 +150,7 @@
       ],
       "license": "Apache-2.0 OR MIT",
       "name": "core",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "core",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
-      },
-      "version": "1.1.0"
+      "version": "2.0.0"
     },
     {
       "author": {

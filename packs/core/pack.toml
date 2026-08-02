@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "1.1.0"
+version = "2.0.0"
 description = "Core: work-loop, new-spec, bug-fix, adapt-to-project, init-project, receive-brief, author-brief, capture-work, workspace-status, frontend-engineering, contract-acquisition, operational-safety, security-checklists skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md, CHARTER, CONVENTIONS, docs/architecture, docs/knowledge, docs/product, docs/specs, workspace.toml seeds."
 readme = "README.md"
 display_name = "Core"
@@ -45,16 +45,9 @@ allowed-scopes = ["repo"]
 [pack.evals]
 skills = ["new-spec", "bug-fix", "receive-brief", "init-project", "adapt-to-project", "workspace-status"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
-# + maintainer, including the `documentation` link to the per-pack guide home.
-[pack.links]
-homepage = "https://github.com/eugenelim/agent-ready-repo"
-repository = "https://github.com/eugenelim/agent-ready-repo"
-documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/core/"
-
 [[pack.maintainers]]
-name = "eugenelim"
-email = "eugenelim@users.noreply.github.com"
+name = "Example Maintainer"
+email = "maintainer@example.com"
 
 # Level A-only: technical audience (software engineers using Claude Code); foundational pack with no first-run prompting required.
 [pack.first-value]

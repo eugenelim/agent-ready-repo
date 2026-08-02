@@ -157,7 +157,7 @@ Projection correctness and version-bump consistency use **goal-based check**: `m
 - [x] `docs/CONVENTIONS.md` and `packs/core/seeds/docs/CONVENTIONS.md` define `Approved` for both `spec.md` and `plan.md` lifecycles, and the plan-vocabulary parenthetical reads `Drafting | Approved | Executing | Done` in both files.
 - [x] `packs/core/.apm/skills/new-spec/assets/plan.md` status comment reads `Drafting | Approved | Executing | Done`.
 - [x] `.claude/` and `.agents/` projections regenerated (`make build-self` passes).
-- [x] Core pack version incremented (minor bump; `pack.toml` + `plugin.json` consistent).
+- [x] Core pack version incremented (major bump — `SPEC-PLAN-HUMAN-GATE` removal is a breaking FSM interface change; `pack.toml` + `plugin.json` consistent at 2.0.0).
 - [x] Product changelog updated.
 
 ## Assumptions
