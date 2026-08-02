@@ -275,6 +275,11 @@ documentation of the feature's contract — but at that point the *code is the
 truth*, and the spec is reference material that should be updated alongside
 behavior changes.
 
+Guards, pre-checks, and invariant-enforcement added during implementation are
+ACs, not implementation details — if they affect observable behavior (exit
+codes, refusals, error messages), they belong in the spec when they're added
+to the code.
+
 **Template:** `assets/spec.md` and `assets/plan.md` in the `new-spec` skill that creates the pair.
 
 **Cite upward, never downward:** a spec links to the ADRs and RFCs that
@@ -359,7 +364,6 @@ from stack-neutral category headings:
   contract. A user-visible UI state (phrased state / trigger / outcome) and an
   NFR with a pass/fail bar each rise to the spec as acceptance criteria; the
   per-screen and per-NFR design itself sits in the plan.
-- **Cross-cutting invariants go before the algorithm.** A security or correctness rule that applies to "all reads" or "all operations" must appear as a prefatory block before step 1, not as a sub-bullet inside a later step — a rule embedded mid-algorithm silently exempts the steps above it.
 - **The categories are stack-neutral; the stack is derived, never baked.** The
   headings are universal; the prose under them names a concrete stack, derived
   from a reference-architecture document (`docs/architecture/reference.md`) when
@@ -404,8 +408,6 @@ skill's `references/tdd-stubs.md`.
 This is the forcing function that keeps specs honest (every Acceptance
 Criterion must be testable in its declared mode) and keeps implementations
 honest (you can't drift from the spec if the criteria's verification artifacts are red).
-
-**AC output promises bind the full call stack.** An AC that says "emits X to stderr" or "returns Y" is a contract on every layer — parser, formatter, CLI handler. Before writing it, verify the design can deliver it at each layer. A promise the parser design cannot fulfill (e.g. "informational to stderr" when the parser returns an empty list) must be removed from the AC, not quietly violated.
 
 The typical mix follows the test pyramid — roughly 80% fast unit / construction
 tests, 15% integration, 5% end-to-end — a target shape, not a quota.
