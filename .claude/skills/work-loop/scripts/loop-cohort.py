@@ -454,6 +454,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     result = {
         "schema_version": state.get("schema_version"),
         "run_id": state.get("run_id"),
+        "plan_review_status": state.get("plan_review_status", "pending"),
         "approved_spec_hash": state.get("approved_spec_hash"),
         "approved_plan_hash": state.get("approved_plan_hash"),
         "plan_hash": state.get("plan_hash"),
@@ -513,6 +514,25 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         return stop(f"approve-plan: spec.md not found at {spec_path}")
     if not plan_path.exists():
         return stop(f"approve-plan: plan.md not found at {plan_path}")
+
+    # Idempotency: if already approved, verify hashes before writing.
+    current_status = state.get("plan_review_status", "pending")
+    if current_status == "approved":
+        spec_hash = sha256_file(spec_path)
+        plan_hash = sha256_canonical_plan(plan_path)
+        stored_spec_hash = state.get("approved_spec_hash", "")
+        stored_plan_hash = state.get("approved_plan_hash", "")
+        if spec_hash == stored_spec_hash and plan_hash == stored_plan_hash:
+            print(
+                f"loop-cohort: approve-plan already recorded for {spec_dir.name} (no-op)"
+            )
+            return 0
+        spec_changed = spec_hash != stored_spec_hash
+        plan_changed = plan_hash != stored_plan_hash
+        return stop(
+            f"approve-plan: artifact changed since approval — "
+            f"spec_changed={spec_changed}, plan_changed={plan_changed}"
+        )
 
     state["plan_review_status"] = "approved"
     state["approved_spec_hash"] = sha256_file(spec_path)

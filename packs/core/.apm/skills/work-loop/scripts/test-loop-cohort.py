@@ -443,23 +443,28 @@ def test_approve_plan_run_id_mismatch(tmp: Path) -> None:
 
 
 def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
-    """approve-plan unconditionally overwrites old hashes (no cleanup needed on retry)."""
+    """After approval, changing spec.md and re-running approve-plan refuses (AC5)."""
     name = "approve-plan-overwrites-hashes"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
     write_spec(spec_dir, status="Draft")
     write_plan(spec_dir)
-    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
-    state1 = json.loads((spec_dir / "state.json").read_text())
-    hash1 = state1.get("approved_spec_hash")
-    # Simulate G-plan status-only edit and re-run
+    # First approve-plan: pending → approved
+    rc1, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc1 != 0:
+        fail(name, f"first approve-plan failed: exit {rc1}")
+        return
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    # Spec bytes change (status edit) → second approve-plan must refuse
     write_spec(spec_dir, status="Approved")
-    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
-    state2 = json.loads((spec_dir / "state.json").read_text())
-    hash2 = state2.get("approved_spec_hash")
-    if hash1 == hash2:
-        fail(name, "approved_spec_hash should differ after re-approve on changed spec")
+    rc2, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc2 == 0:
+        fail(name, "expected non-zero when spec changed after approval (AC5 refusal)")
+    elif before != after:
+        fail(name, "state.json was mutated despite spec change (should refuse without mutation)")
     else:
         ok(name)
 
@@ -1642,6 +1647,298 @@ def test_schedule_accepts_level2_task_headings(tmp: Path) -> None:
         ok(name)
 
 
+# ── T3: approve-plan idempotency and status visibility ───────────────────
+
+
+def test_approve_plan_first_write(tmp: Path) -> None:
+    """pending → approved: records hashes, exits 0 (AC5 first-write path)."""
+    name = "approve-plan-first-write"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    rc, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"expected exit 0 on first write; got {rc}")
+        return
+    state = json.loads((spec_dir / "state.json").read_text())
+    if state.get("plan_review_status") != "approved":
+        fail(name, "plan_review_status not set to approved")
+    elif not isinstance(state.get("approved_spec_hash"), str):
+        fail(name, "approved_spec_hash not written")
+    elif not isinstance(state.get("approved_plan_hash"), str):
+        fail(name, "approved_plan_hash not written")
+    else:
+        ok(name)
+
+
+def test_approve_plan_idempotent_no_op(tmp: Path) -> None:
+    """Same run_id + unchanged files → exit 0; state bytes not rewritten (AC5 no-op)."""
+    name = "approve-plan-idempotent-no-op"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, out, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc != 0:
+        fail(name, f"expected exit 0 on idempotent replay; got {rc}")
+    elif before != after:
+        fail(name, "state.json was rewritten on idempotent replay (bytes must be unchanged)")
+    elif "no-op" not in out:
+        fail(name, f"expected 'no-op' in stdout; got {out!r}")
+    else:
+        ok(name)
+
+
+def test_approve_plan_refuses_changed_spec(tmp: Path) -> None:
+    """spec.md modified after approval → non-zero, no mutation (AC5)."""
+    name = "approve-plan-refuses-changed-spec"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    # Modify spec.md after approval
+    write_spec(spec_dir, status="Implementing")
+    rc, _, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when spec changed after approval")
+    elif before != after:
+        fail(name, "state.json was mutated despite spec change")
+    elif "spec_changed=True" not in err:
+        fail(name, f"expected 'spec_changed=True' in stderr; got {err!r}")
+    else:
+        ok(name)
+
+
+def test_approve_plan_refuses_changed_plan(tmp: Path) -> None:
+    """plan.md modified after approval → non-zero, no mutation (AC5)."""
+    name = "approve-plan-refuses-changed-plan"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    # Modify plan.md after approval
+    write_plan(spec_dir, content="# Plan (modified)\n\n### T1\n\n**Depends on:** none\n")
+    rc, _, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when plan changed after approval")
+    elif before != after:
+        fail(name, "state.json was mutated despite plan change")
+    elif "plan_changed=True" not in err:
+        fail(name, f"expected 'plan_changed=True' in stderr; got {err!r}")
+    else:
+        ok(name)
+
+
+def test_approve_plan_refuses_run_id_mismatch(tmp: Path) -> None:
+    """run_id mismatch when already approved → non-zero, no mutation (AC5)."""
+    name = "approve-plan-refuses-run-id-mismatch"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    # First call: transitions to approved
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    # Second call with wrong run_id (plan_review_status is now "approved")
+    rc, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", "wrong-run-id")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero on run_id mismatch when already approved")
+    elif before != after:
+        fail(name, "state.json was mutated despite run_id mismatch")
+    else:
+        ok(name)
+
+
+def test_approve_plan_state_preserved_on_refusal(tmp: Path) -> None:
+    """Raw state bytes are identical before and after any refused approve-plan call."""
+    name = "approve-plan-state-preserved-on-refusal"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    path = spec_dir / "state.json"
+    # Scenario A: changed spec after approval
+    write_spec(spec_dir, status="Implementing")
+    before_a = path.read_bytes()
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after_a = path.read_bytes()
+    if before_a != after_a:
+        fail(name, "state.json mutated after changed-spec refusal")
+        return
+    # Scenario B: changed plan after approval (reset first)
+    run_cohort("reset", str(spec_dir))
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    write_plan(spec_dir, content="# Plan changed\n\n### T1\n\n**Depends on:** none\n")
+    before_b = path.read_bytes()
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after_b = path.read_bytes()
+    if before_b != after_b:
+        fail(name, "state.json mutated after changed-plan refusal")
+    else:
+        ok(name)
+
+
+def test_cohort_status_json_includes_plan_review_status_pending(tmp: Path) -> None:
+    """status --json output includes plan_review_status=pending after init (AC5)."""
+    name = "cohort-status-json-plan-review-status-pending"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    rc, out, _ = run_cohort("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail(name, f"expected JSON output; got {out!r}")
+        return
+    if "plan_review_status" not in data:
+        fail(name, "plan_review_status absent from status --json output")
+    elif data["plan_review_status"] != "pending":
+        fail(name, f"expected plan_review_status=pending; got {data['plan_review_status']!r}")
+    else:
+        ok(name)
+
+
+def test_cohort_status_json_includes_plan_review_status_approved(tmp: Path) -> None:
+    """status --json output includes plan_review_status=approved after approve-plan (AC5)."""
+    name = "cohort-status-json-plan-review-status-approved"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    rc, out, _ = run_cohort("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail(name, f"expected JSON output; got {out!r}")
+        return
+    if "plan_review_status" not in data:
+        fail(name, "plan_review_status absent from status --json output")
+    elif data["plan_review_status"] != "approved":
+        fail(name, f"expected plan_review_status=approved; got {data['plan_review_status']!r}")
+    else:
+        ok(name)
+
+
+def test_crash_after_plan_approved_before_approve_plan(tmp: Path) -> None:
+    """Crash window: engine moved to SPEC-PLAN-APPROVED but cohort approve-plan not yet run.
+    Recovery: approve-plan runs as a normal first write (plan_review_status was pending)."""
+    name = "crash-after-plan-approved-before-approve-plan"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    # Cohort state: plan_review_status="pending" (initial after init) — approve-plan not run yet
+    rc, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc != 0:
+        fail(name, f"recovery approve-plan failed: exit {rc}")
+        return
+    state = json.loads((spec_dir / "state.json").read_text())
+    if state.get("plan_review_status") != "approved":
+        fail(name, "plan_review_status not approved after recovery approve-plan")
+    else:
+        ok(name)
+
+
+def test_crash_after_approve_plan_before_schedule(tmp: Path) -> None:
+    """Crash window: approve-plan done, schedule not yet run.
+    Recovery: approve-plan is an idempotent no-op; schedule then runs normally."""
+    name = "crash-after-approve-plan-before-schedule"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    # First approve-plan: records hashes
+    run_cohort("approve-plan", str(spec_dir), "--run-id", run_id)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    # Recovery step 1: approve-plan again (should be no-op)
+    rc1, out1, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc1 != 0:
+        fail(name, f"idempotent approve-plan failed: exit {rc1}")
+        return
+    if before != after:
+        fail(name, "state.json was rewritten on idempotent approve-plan replay")
+        return
+    # Recovery step 2: schedule runs normally
+    rc2, _, _ = run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    if rc2 != 0:
+        fail(name, f"schedule failed after idempotent approve-plan: exit {rc2}")
+        return
+    state = json.loads((spec_dir / "state.json").read_text())
+    if not state.get("schedule_waves"):
+        fail(name, "schedule_waves not populated after schedule")
+    else:
+        ok(name)
+
+
+def test_crash_after_schedule_before_plan_locked(tmp: Path) -> None:
+    """Crash window: schedule done, plan-locked not yet fired.
+    Recovery: approve-plan is no-op; plan check-current --require-schedule passes."""
+    name = "crash-after-schedule-before-plan-locked"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    # State: approve-plan done, schedule done — plan-locked not yet fired (crash point)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    # Recovery step 1: approve-plan is a no-op
+    rc1, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc1 != 0:
+        fail(name, f"idempotent approve-plan failed: exit {rc1}")
+        return
+    if before != after:
+        fail(name, "state.json was rewritten on idempotent approve-plan replay")
+        return
+    # Recovery step 2: plan check-current --require-schedule should pass
+    rc2, _, err2 = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    if rc2 != 0:
+        fail(name, f"plan check-current --require-schedule failed: exit {rc2} — {err2.strip()}")
+    else:
+        ok(name)
+
+
 # ── G-plan ordering test ──────────────────────────────────────────────────
 
 
@@ -1747,6 +2044,17 @@ def main() -> int:
             test_canonical_plan_normalization,
             test_schedule_accepts_level2_task_headings,
             test_gplan_ordering_status_approved_before_approve_plan,
+            test_approve_plan_first_write,
+            test_approve_plan_idempotent_no_op,
+            test_approve_plan_refuses_changed_spec,
+            test_approve_plan_refuses_changed_plan,
+            test_approve_plan_refuses_run_id_mismatch,
+            test_approve_plan_state_preserved_on_refusal,
+            test_cohort_status_json_includes_plan_review_status_pending,
+            test_cohort_status_json_includes_plan_review_status_approved,
+            test_crash_after_plan_approved_before_approve_plan,
+            test_crash_after_approve_plan_before_schedule,
+            test_crash_after_schedule_before_plan_locked,
         ]
         for t in tests:
             try:
