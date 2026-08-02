@@ -15,18 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
-## [core][1.0.4] — 2026-08-01
-
-### Changed
-
-- **`work-loop` Step 0 no longer scans the full portfolio for stale entries (Order 2A).**
-  The stale-queue check — which read every `queue` and `active` spec.md to detect
-  `Status: Shipped` drift on every `work-loop` invocation — is removed. `work-loop` now
-  orients only (initiative, milestone, active spec, shaping guard). For exhaustive workspace
-  integrity checks (stale entries, untracked live specs), run
-  `workspace-status reconcile`. The same stale fixtures are still detected as Type 2 findings
-  by `analyze()` — behavior moves, not disappears.
-
 ## [core][1.0.3] — 2026-08-01
 
 ### Added

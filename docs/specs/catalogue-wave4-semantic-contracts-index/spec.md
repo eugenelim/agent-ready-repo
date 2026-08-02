@@ -6,6 +6,7 @@ status: Approved
 
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D7](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (neutral catalogue index); D6 integration-view fields (parallel Wave 2 provides data; Wave 4 indexes it when present)
 - **Contract:** `contracts/catalogue-index.schema.json` (new, this wave); `contracts/pack.schema.json` (read-only); `contracts/` (no other schema changes)
 - **Shape:** new public contract + new CLI command + JOURNEY.md convention + engine change to `_data/`
@@ -89,9 +90,10 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 - **JOURNEY.md convention (Phase A, AC1–AC8):** AC1–AC5 are manual QA / doc verification —
   confirm required and optional frontmatter key declarations are present in this spec. AC6–AC8
   are TDD against the index generator's required-key validation: write unit test fixtures
-  (all-required-keys-present, one-required-key-missing, JOURNEY.md-absent) and assert the
-  generator's warning/exclude/empty-array behavior. No standalone JOURNEY.md JSON Schema
-  validator exists in this wave (deferred per Assumption 11).
+  (all-required-keys-present → passes; one-required-key-missing → exit 1, structured
+  diagnostic, no output; JOURNEY.md-absent → empty journeys array, exit 0) and assert the
+  generator's fail-closed behavior for present invalid files. No standalone JOURNEY.md JSON
+  Schema validator exists in this wave (deferred per Assumption 11).
 - **catalogue-index.schema.json (Phase B, AC9–AC13):** TDD — Python tests assert the schema
   is valid JSON (and, optionally, valid JSON Schema 2020-12 meta-schema); normative field
   presence/absence produces the expected validation outcomes against fixture index documents;
@@ -162,18 +164,26 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 **JOURNEY.md validation in the index generator**
 
 - [ ] AC6: The `catalogue index` command reads JOURNEY.md from `packs/<name>/JOURNEY.md`
-  when the file is present. It emits a structured warning and excludes the journey data
-  (exit 0) when any required frontmatter key (AC1) is absent. It emits a structured
-  warning (exit 0) when optional keys are absent. It does not parse JOURNEY.md body
-  markdown for structured data.
+  when the file is present. When JOURNEY.md is present but contains malformed YAML, the
+  command fails (exit 1) and writes no output file; the result contains a structured
+  diagnostic naming the offending pack. When JOURNEY.md is present but missing one or
+  more required frontmatter keys (AC1), the command fails (exit 1) with a structured
+  diagnostic. When JOURNEY.md is present and valid, the journey data is included.
+  Optional key absence is not a failure condition. The command does not parse JOURNEY.md
+  body markdown for structured data.
 
 - [ ] AC7: When `packs/<name>/JOURNEY.md` is absent, the pack's `journeys` field in the
   index is an empty array. This is not a validation error — JOURNEY.md is optional for
   index generation.
 
-- [ ] AC8: A unit test fixture covers: JOURNEY.md with all required keys (passes), JOURNEY.md
-  missing one required key (structured warning emitted, journey data excluded), JOURNEY.md
-  absent (empty journeys array, no warning).
+- [ ] AC8: Test coverage includes both unit and CLI-level integration tests:
+  - Unit (`parse_journey_md`): JOURNEY.md with all required keys → `(data, [])`; missing
+    required key → `(None, [error])`; absent file → `(None, [])`; malformed YAML →
+    `(None, [error])`.
+  - CLI integration (`agentbundle catalogue index`): JOURNEY.md with malformed YAML →
+    exit 1, structured diagnostic, no output file written; JOURNEY.md missing required key
+    → exit 1, structured diagnostic, no output file written. CLI tests are required because
+    the command handler could write a partial index or return 0 while unit tests pass.
 
 ### Phase B — catalogue-index.schema.json
 
@@ -201,12 +211,19 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   - Optional (present when data is available from the authoritative source listed):
     - `description` (string) — from `pack.toml [pack].description`
     - `categories` (array of strings) — from `pack.toml [pack].categories`
-    - `adapters` (array of strings) — adapter target names supported by this pack, derived
-      from `contracts/adapter.toml [adapter]` keys; the source of truth is the adapter
-      contract, not a pack-level field. Include all standard adapter targets unless the
-      pack's `[pack.adapter-contract]` explicitly constrains them (deferred: exact
-      derivation rule to be confirmed against `catalogue lint` adapter validation logic
-      during implementation).
+    - `adapters` (array of strings) — adapter target names supported by this pack.
+      Derivation rule (Phase 0B, frozen): gate extraction through the same
+      contract-version-aware logic used by `install.py::_profile_pack_allowed_adapters`.
+      For legacy v0.1 packs (contract version absent or `"0.1"`), the installer ignores
+      the `[pack.install]` table entirely — the index must do the same and emit the full
+      adapter set from `contracts/adapter.toml`. For contract-version-present packs:
+      if the pack has an `allowed-adapters` list key under `[pack.install]`, use that
+      subset; otherwise include all `contracts/adapter.toml [adapter]` keys.
+      Source of truth is the adapter contract; `[pack.adapter-contract].version` is the
+      required contract-version gate. New packs that need an `allowed-adapters` subset
+      must author this field — its absence classifies the pack as legacy and causes the
+      installer to ignore `[pack.install]` entirely. Implementation must read this field
+      to classify packs; do not strip it from existing pack.toml files.
     - `integrations` (array of integration-reference objects) — from
       `[[pack.integrations]]` entries in `pack.toml` when present (Wave 2 data);
       empty array when absent
@@ -214,10 +231,35 @@ spelling does not conflict with ini-005's CLI surface. Verification:
       scanning all other packs' integration entries for references to this pack;
       empty array when absent
     - `journeys` (array of journey-summary objects) — from `JOURNEY.md` frontmatter
-      when present and valid; empty array when absent or invalid
+      when present and valid; empty array when absent. When present but invalid
+      (malformed YAML or missing required keys), the command exits 1 before writing
+      any output (fail-closed per AC6 and AC19)
     - `effects` (array of effect-declaration objects) — from `JOURNEY.md` frontmatter
       `effects` field (AC3) when present; this is author-declared only; no automatic
       inference from pack structure. Empty array when absent.
+    - `content` (object, optional) — objective structural inventory derived mechanically
+      from canonical pack source files; does not rely on JOURNEY.md. Sub-fields:
+      `skills` (array of strings — names of skill directories under `.apm/skills/`),
+      `agents` (array of strings — names from `.apm/agents/`),
+      `commands` (array of strings — names from `.apm/commands/`),
+      `scripts` (array of strings — relative paths under each skill's `scripts/`
+      subdirectory, i.e. `.apm/skills/<skill>/scripts/**`; there is no pack-root
+      `scripts/` directory),
+      `hooks` (array of strings — names from `.apm/hooks/`),
+      `seeds` (array of strings — names from `seeds/`),
+      `shared-libs` (array of strings — immediate entry names from `.apm/shared-libs/`,
+      files OR subdirectories; e.g. `credential-brokers` ships direct `.py` files there;
+      if present; canonical shared library source per `packs/AGENTS.md:14-22`),
+      `user-libs` (array of strings — immediate entry names from `.apm/user-libs/`,
+      files OR subdirectories; if present;
+      canonical user-scope library source per `packs/AGENTS.md:14-22`).
+      Sub-fields are omitted when the corresponding source location is absent or empty.
+      Distinct from `effects` (author-declared) and `execution` (automatic execution surfaces).
+    - `execution` (array of strings, optional) — automatic-execution surface names
+      identified by structure: hook wiring entries, Kiro hook definitions, and
+      adapter-root executables found during pack directory scan. Distinct from `effects`
+      (author-declared external outcomes) and `content` (structural enumeration of
+      pack artifacts).
     - `documentation` (string) — from `JOURNEY.md` frontmatter `docsUrl` when present
     - `lifecycle` is deferred to a follow-on semantic-contract wave. `lifecycle` is not
       an existing `pack.toml` field and `pack.schema.json` has no `lifecycle` property.
@@ -249,8 +291,9 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 - [ ] AC13: A Python unit test asserts: (a) `contracts/catalogue-index.schema.json` parses
   as valid JSON; (b) three fixture index documents — normative-fields-only, full fields,
-  and invalid missing `schema_version` — produce the expected jsonschema validation
-  outcomes (pass, pass, fail).
+  and invalid missing `schema_version` — produce the expected validation outcomes
+  (pass, pass, fail) using `agentbundle.build.validate.validate` (stdlib-only; no
+  jsonschema dependency).
 
 ### Phase C — `agentbundle catalogue index` command
 
@@ -308,12 +351,15 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 - [ ] AC19: Exit codes:
   - 0: success (file written or dry-run clean)
-  - 0 + structured warning to stderr: JOURNEY.md required-key violations (journey data
-    excluded); malformed JOURNEY.md YAML (invalid YAML → treat as absent, emit warning,
-    continue); optional keys absent (no warning)
-  - 0 + structured warning: old external catalogues without JOURNEY.md remain valid
-    (JOURNEY.md is always optional)
-  - 1: catalogue-index schema validation failure (output names the failing field and
+  - 0: optional JOURNEY.md keys absent — not a failure; no diagnostic emitted. The
+    parser returns `(data, [])` for this case; `test_optional_keys_absent_no_warning`
+    pins the empty-findings contract.
+  - 0: old external catalogues without JOURNEY.md remain valid (JOURNEY.md is always
+    optional; absence is not a failure)
+  - 1: JOURNEY.md present and contains malformed YAML (fail-closed; no output file
+    written; structured diagnostic emitted naming the offending pack); JOURNEY.md
+    present and missing one or more required frontmatter keys (fail-closed; same);
+    catalogue-index schema validation failure (output names the failing field and
     value); file write failure; unreadable pack directory
   - 2: CLI usage error (invalid flag, missing required argument)
 
@@ -410,10 +456,18 @@ spelling does not conflict with ini-005's CLI surface. Verification:
    both files at HEAD).
 7. `packs[].lifecycle` is deferred — `pack.toml` has no `lifecycle` field and
    `pack.schema.json` has no `lifecycle` property (confirmed at HEAD). Removed from AC10.
-8. `packs[].adapters` is derived from `contracts/adapter.toml [adapter]` keys (e.g.,
-   `claude-code`, `cursor`, `kiro`, `copilot`, `codex`). There is no
-   `[distribution.agentbundle]` section in `pack.toml`; derivation logic to be confirmed
-   against `catalogue lint` adapter validation during implementation (see AC10 deferred note).
+8. `packs[].adapters` derivation rule is frozen (Phase 0B) — see AC10 for the
+   authoritative contract-version-aware algorithm (mirrors
+   `install.py::_profile_pack_allowed_adapters`). Source of truth:
+   `contracts/adapter.toml [adapter]` keys — set at HEAD: `claude-code`, `kiro`,
+   `kiro-ide`, `kiro-cli`, `copilot`, `codex`, `cursor`, `gemini`. The derivation has
+   two paths: (a) legacy v0.1 packs (contract version absent or `"0.1"`) → ignore
+   `[pack.install]` entirely and emit the full adapter set; (b) non-legacy packs → if
+   an explicit `allowed-adapters` list exists under `[pack.install]`, use that subset;
+   otherwise emit all keys. `[pack.adapter-contract].version` is the required
+   contract-version gate; new packs needing an `allowed-adapters` subset must author it
+   (see AC10). `[pack.install.allowed-adapters]` as a TOML section header is incorrect —
+   `allowed-adapters` is a list key inside the `[pack.install]` table.
 9. `packs[].documentation` is sourced from JOURNEY.md frontmatter `docsUrl` when present;
    otherwise omitted from the index entry.
 10. The `digest` algorithm (AC17) is consistent with the SHA-256 approach described in
@@ -432,6 +486,14 @@ been claimed by another in-flight or shipped branch.
 11. A standalone `contracts/journey.schema.json` JSON Schema for JOURNEY.md frontmatter
     validation is deferred. Wave 4 validates required keys programmatically in the index
     generator only. A formal JOURNEY.md contract may be introduced in a follow-on spec.
+    **JOURNEY.md parser dependency (Phase 0B, frozen — Option B):** The `catalogue index`
+    command uses `agentbundle[lint]` (which provides PyYAML ≥ 6.0) for JOURNEY.md YAML
+    parsing. PyYAML is imported lazily — only when a JOURNEY.md file is actually present
+    in the pack being indexed. If no pack has a JOURNEY.md, PyYAML is never imported and
+    the command exits 0. If a JOURNEY.md is present and PyYAML is not installed, the
+    command fails with a clear error directing the user to install `agentbundle[lint]`.
+    This reuses the existing optional extra already required by `catalogue verify` step 11.
+    No new top-level runtime dependency is added.
 12. Rendering integration views and journey data on the marketing site (D10) and docs site
     (D9) is Wave 7 and Wave 6 scope, respectively. This wave generates the index; later
     waves consume it.

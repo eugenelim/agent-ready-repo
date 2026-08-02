@@ -43,6 +43,7 @@ explain_item = _engine_mod.explain_item
 check_shaping_guard = _engine_mod.check_shaping_guard
 classify_entries = _engine_mod.classify_entries
 classify_shaping_entries = _engine_mod.classify_shaping_entries
+collect_work_loop_stale_warnings = _engine_mod.collect_work_loop_stale_warnings
 compute_type2_cleanup = _engine_mod.compute_type2_cleanup
 extract_initiatives = _engine_mod.extract_initiatives
 extract_spec_status = _engine_mod.extract_spec_status
@@ -1359,7 +1360,7 @@ _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
 
 _WORK_LOOP_CONTRACT_HASH = (
-    "2a7f418ed6769f3c3aeb65466b8a06b105363e2b1c74578a2d6b3a5286d2be2b"
+    "c739285ae95ad891fddb2f6463624e2ef1793e1694e6711543c4d6eb1e4d72f6"
 )
 _WORK_LOOP_FINISH_HASH = (
     "4bdd195cea3d66cb8bcc26405f61e573477b86c32e7a0eb4ed6e1c83fe71dd95"
@@ -1428,9 +1429,8 @@ def case_work_loop_contract_anchor() -> None:
 
     Two section anchors:
     - '## Step 0. ORIENT' → '## Step 1. PLAN': active-spec resolution,
-      ownership note directing exhaustive integrity work to `workspace-status reconcile`,
-      and shaping-item guard. (Order 2A removed the stale-queue check; AC6–AC10
-      preserved behaviors are verified by this hash + existing test cases.)
+      stale-queue check (warn-only; does NOT update workspace.toml), and
+      shaping-item guard.
     - '## Finish checklist' → 'Conventional commit format': the ownership-relevant
       checklist items including the doc-drift invariant (sets spec.md Status: Shipped)
       but excluding commit format, learnings, and PR-opening guidance — which are
@@ -1869,34 +1869,8 @@ def case_safe_spec_path_dot_segments() -> None:
 
 # ── F1: work-loop Step 0 stale-queue check ───────────────────────────────────
 
-# ── Order 2A: stale-scan removal sentinel + reconcile ownership parity ────────
-
-def case_work_loop_stale_scan_removed() -> None:
-    """Prove collect_work_loop_stale_warnings and WorkLoopStaleWarning are absent.
-
-    Order 2A removes the stale-queue scan from work-loop Step 0. The engine must
-    no longer export these symbols; ownership of stale detection moves entirely
-    to workspace-status reconcile (Type 2 findings in analyze()).
-    """
-    expect(
-        not hasattr(_engine_mod, "collect_work_loop_stale_warnings"),
-        "[2A] collect_work_loop_stale_warnings must be absent from engine after Order 2A",
-    )
-    expect(
-        not hasattr(_engine_mod, "WorkLoopStaleWarning"),
-        "[2A] WorkLoopStaleWarning must be absent from engine after Order 2A",
-    )
-
-
-def case_work_loop_reconcile_owns_stale() -> None:
-    """Prove analyze() still detects stale fixtures that work-loop Step 0 used to warn about.
-
-    Order 2A removes the stale-scan from work-loop but does NOT remove the behavior —
-    it moves responsibility to workspace-status reconcile. This test demonstrates parity:
-    the same stale entries that work-loop used to warn about are still found by analyze()
-    as Type 2 findings. The assertion is subset-only: analyze() is a strict superset of
-    the removed check (it also finds Archived entries, paused-initiative entries, etc.).
-    """
+def case_work_loop_stale_warnings() -> None:
+    """collect_work_loop_stale_warnings: characterizes work-loop Step 0 stale-queue check."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_workspace(root, """
@@ -1909,24 +1883,97 @@ def case_work_loop_reconcile_owns_stale() -> None:
             shipped = []
             queue   = [
               "spec/stale-queue",
+              "spec/archived-entry",
               {path = "spec/inline-shipped", needs = "work:spec/stale-queue"},
+              "spec/approved-entry",
+              "spec/no-spec",
             ]
             ["ini-001".shaping_queue]
             active = []
             backlog = []
+
+            ["ini-002"]
+            name = "Paused"
+            status = "paused"
+            milestone = "M1"
+            ["ini-002".work]
+            active  = []
+            shipped = []
+            queue   = ["spec/paused-stale"]
+            ["ini-002".shaping_queue]
+            active = []
+            backlog = []
         """)
+        # Write spec files
         write_spec(root, "stale-queue", "Shipped")
         write_spec(root, "stale-active", "Shipped")
+        write_spec(root, "archived-entry", "Archived")
         write_spec(root, "inline-shipped", "Shipped")
+        write_spec(root, "approved-entry", "Approved")
+        write_spec(root, "paused-stale", "Shipped")
+        # spec/no-spec deliberately has no spec.md
 
-        result = analyze(root)
-        type2_paths = {f.spec_path for f in result.type2}
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        warnings = collect_work_loop_stale_warnings(root, inits)
+        warned_paths = {w.spec_path for w in warnings}
 
-        # All three formerly-work-loop-warned entries must still appear as Type 2 findings
-        for path in ("spec/stale-queue", "spec/stale-active", "spec/inline-shipped"):
-            expect(path in type2_paths,
-                   f"[2A parity] {path} must still be a Type 2 finding in analyze(): "
-                   f"type2_paths={type2_paths}")
+        # Shipped queue entry → warns
+        expect("spec/stale-queue" in warned_paths,
+               "[stale] Shipped queue entry warns")
+        # Shipped active entry → warns
+        expect("spec/stale-active" in warned_paths,
+               "[stale] Shipped active entry warns")
+        # Shipped inline-object queue entry → warns (path field used, not slug)
+        expect("spec/inline-shipped" in warned_paths,
+               "[stale] Shipped inline-object queue entry warns")
+        # Archived → does NOT warn
+        expect("spec/archived-entry" not in warned_paths,
+               "[stale] Archived entry does NOT warn")
+        # Approved → does NOT warn
+        expect("spec/approved-entry" not in warned_paths,
+               "[stale] Approved entry does NOT warn")
+        # Missing spec.md → skipped without error
+        expect("spec/no-spec" not in warned_paths,
+               "[stale] missing spec.md → no warning")
+        # Paused initiative → ignored
+        expect("spec/paused-stale" not in warned_paths,
+               "[stale] paused initiative ignored")
+        # Exactly 3 warnings (stale-queue, stale-active, inline-shipped)
+        expect(len(warnings) == 3,
+               f"[stale] expected 3 warnings, got {len(warnings)}: "
+               f"{[w.spec_path for w in warnings]}")
+
+
+def case_work_loop_stale_both_lists() -> None:
+    """Path in both queue and active → ONE warning naming both lists."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_workspace(root, """
+            ["ini-001"]
+            name = "Active"
+            status = "active"
+            milestone = "M1"
+            ["ini-001".work]
+            active  = ["spec/in-both"]
+            shipped = []
+            queue   = ["spec/in-both"]
+            ["ini-001".shaping_queue]
+            active = []
+            backlog = []
+        """)
+        write_spec(root, "in-both", "Shipped")
+
+        ws = parse_workspace(root / "workspace.toml")
+        inits = extract_initiatives(ws)
+        warnings = collect_work_loop_stale_warnings(root, inits)
+
+        expect(len(warnings) == 1,
+               f"[stale-both] one warning for path in both lists, got {len(warnings)}")
+        w = warnings[0]
+        expect(w.spec_path == "spec/in-both", "[stale-both] correct path")
+        expect(sorted(w.source_lists) == ["active", "queue"],
+               f"[stale-both] both lists named: {w.source_lists!r}")
 
 
 def case_work_loop_slug_normalization() -> None:
@@ -2583,12 +2630,12 @@ def test_shaping_deduplication() -> None:
     _run_case(case_shaping_deduplication)
 
 
-def test_work_loop_stale_scan_removed() -> None:
-    _run_case(case_work_loop_stale_scan_removed)
+def test_work_loop_stale_warnings() -> None:
+    _run_case(case_work_loop_stale_warnings)
 
 
-def test_work_loop_reconcile_owns_stale() -> None:
-    _run_case(case_work_loop_reconcile_owns_stale)
+def test_work_loop_stale_both_lists() -> None:
+    _run_case(case_work_loop_stale_both_lists)
 
 
 def test_work_loop_slug_normalization() -> None:
@@ -2709,8 +2756,8 @@ CASES = [
     ("work_loop_contract_anchor", case_work_loop_contract_anchor),
     ("integration full_analyze", case_full_analyze),
     ("F4a shaping_deduplication", case_shaping_deduplication),
-    ("2A work_loop_stale_scan_removed", case_work_loop_stale_scan_removed),
-    ("2A work_loop_reconcile_owns_stale", case_work_loop_reconcile_owns_stale),
+    ("F4b work_loop_stale_warnings", case_work_loop_stale_warnings),
+    ("F4c work_loop_stale_both_lists", case_work_loop_stale_both_lists),
     ("F4d work_loop_slug_normalization", case_work_loop_slug_normalization),
     ("F4e missing_status_not_active", case_missing_status_not_active),
     ("F4f nonletter_transition_segment", case_nonletter_transition_segment),

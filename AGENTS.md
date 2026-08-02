@@ -217,8 +217,8 @@ Use generic placeholders everywhere: `user@example.com`, `colleague@example.com`
 **This rule covers all git artifacts** — code, comments, docs, specs, commit messages,
 PR titles, PR bodies, and PR comments are permanent record. Never use real service or
 vendor names as examples; use `example-service` or `[service type]` instead. When
-authoring governance docs (ADRs, RFCs, specs), populate author and decider fields from
-the project's established conventions only — do not infer them from session context.
+authoring governance docs (ADRs, RFCs, specs), GitHub handles used for author/decider
+fields are not PII — they are public project identifiers. Do not infer from session context.
 
 ## Guide trees
 

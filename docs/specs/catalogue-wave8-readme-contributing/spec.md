@@ -2,6 +2,7 @@
 
 - **Status:** Approved
 - **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D1–D4](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 - **Gated on:** [catalogue-wave1-contract-convergence](../catalogue-wave1-contract-convergence/spec.md) (Shipped)
 - **Shape:** docs only (no engine change)
@@ -40,13 +41,13 @@ Wave 8 completes the README/CONTRIBUTING convergence on top of that foundation:
 
 4. **CONTRIBUTING authoring rules** — CONTRIBUTING.md gains a pointer to the D4
    authoring hub (`guides/_shared/reference/catalogue-authoring-standards.md`), an
-   updated "Where to find authoritative information" table, and a forward-reference
-   to the Wave 2 `[[pack.integrations]]` convention.
+   updated "Where to find authoritative information" table, and a navigational note
+   for the Wave 2 `[[pack.integrations]]` convention (shipped in Wave 2 / 0.27.0).
 
 After this wave, a cold reader arriving at README.md or CONTRIBUTING.md finds a
 consistent path to the authoring hub, the machine contracts, and the Wave 2
-integration convention (as a placeholder). No engine change is required; this wave
-touches documentation only.
+integration convention (Wave 2 shipped; the note uses present tense). No engine
+change is required; this wave touches documentation only.
 
 ## Boundaries
 
@@ -55,8 +56,9 @@ touches documentation only.
 - Verify `SKIP_SAST=1 make build-check` exits 0 before committing.
 - Verify `grep "fork it as your own" README.md CONTRIBUTING.md` returns empty.
 - Keep root AGENTS.md ≤ 250 lines and packs/AGENTS.md ≤ 150 lines.
-- Keep the `[[pack.integrations]]` note in CONTRIBUTING as a forward-reference only
-  — the contract ships in Wave 2, not here.
+- Keep the `[[pack.integrations]]` note in CONTRIBUTING navigational — Wave 2 has
+  shipped (0.27.0); the note states the convention is live and points to the authoring
+  hub for the full contract spec. Do not describe the schema in CONTRIBUTING.
 - Use the exact link path `guides/_shared/reference/catalogue-authoring-standards.md`
   in both README.md and CONTRIBUTING.md (relative from the repo root).
 
@@ -149,12 +151,12 @@ touches documentation only.
   `guides/_shared/reference/catalogue-authoring-standards.md`. The row's
   question column may read "Catalogue authoring standards and contracts" or
   equivalent.
-- [ ] AC8: CONTRIBUTING.md "Adding a new pack" section contains a
-  forward-reference note for optional cross-pack composition: if the pack declares
-  optional composition with other packs, add `[[pack.integrations]]` entries to
-  `pack.toml`. The note must state that the `[[pack.integrations]]` convention is
-  Wave 2 work and point to the authoring hub for the current state of the spec.
-  The note must not define new schema; it is a navigational forward-reference only.
+- [ ] AC8: CONTRIBUTING.md "Adding a new pack" section contains a note for optional
+  cross-pack composition: if the pack declares optional composition with other packs,
+  add `[[pack.integrations]]` entries to `pack.toml`. The note must state that the
+  `[[pack.integrations]]` convention shipped with Wave 2 (0.27.0) and point to the
+  authoring hub for the full contract spec. The note must not define new schema; it is
+  navigational only.
 - [ ] AC9: `! grep -q "fork it as your own" CONTRIBUTING.md` exits 0 (no matches).
 
 ### Regression
@@ -187,5 +189,6 @@ touches documentation only.
   a prerequisite. The README "Evaluate or build a catalogue" subsection links to
   the D4 authoring hub as the interim evaluate entry point. When Wave 7 ships,
   a forward-link to `/evaluate/` may be added in Wave 9's closeout.
-- **Deferred:** `[[pack.integrations]]` full contract spec is Wave 2. CONTRIBUTING
-  carries only a forward-reference; the authoring rule is completed in Wave 2.
+- **Historical context:** `[[pack.integrations]]` shipped with Wave 2 (0.27.0).
+  CONTRIBUTING carries a navigational note pointing to the authoring hub for the full
+  contract spec. The note uses present tense ("shipped in Wave 2") not a future-reference.
