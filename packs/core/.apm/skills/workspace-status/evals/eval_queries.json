@@ -9,6 +9,9 @@
   {"query": "Give me a session-start orientation", "should_trigger": true},
   {"query": "What's the current initiative status?", "should_trigger": true},
   {"query": "Show me all queued specs and their dependencies", "should_trigger": true},
+  {"query": "Reconcile stale workspace entries — some specs in the queue show Status: Shipped", "should_trigger": true},
+  {"query": "Find all spec files on disk that aren't tracked in workspace.toml", "should_trigger": true},
+  {"query": "Why is spec/foo blocked?", "should_trigger": true},
 
   {"query": "Start a new spec for a rate-limiting feature", "should_trigger": false},
   {"query": "Fix this failing test in the parser", "should_trigger": false},
