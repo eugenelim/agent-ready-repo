@@ -72,8 +72,11 @@ _STATUS_RE = re.compile(r"\*\*Status:\*\*\s*(.+?)\s*$")
 _SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
 # Inline HTML comment span.  Stripped before status-token search so that
 # commented-out fields like `<!-- - **Status:** Approved -->` cannot satisfy
-# a lifecycle guard ahead of the real active field.
-_HTML_COMMENT_RE = re.compile(r"<!--.*?-->")
+# a lifecycle guard ahead of the real active field.  re.DOTALL so the
+# pattern correctly matches comments that span newlines when applied to
+# multi-line text (parse_status feeds single lines, but the pattern itself
+# should be correct).
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 # A real deferral marker carries a slug anchor — NOT the template
 # placeholder `(deferred: <anchor>)`, whose `<…>` form is excluded by the
 # leading-alphanumeric class.
