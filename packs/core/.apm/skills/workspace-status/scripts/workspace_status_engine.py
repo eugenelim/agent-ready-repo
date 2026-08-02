@@ -108,6 +108,21 @@ class ReconciliationFinding:
 
 
 @dataclasses.dataclass
+class WorkLoopStaleWarning:
+    """A warn-only stale-queue finding emitted by work-loop Step 0.
+
+    Distinct from workspace-status Type 2 reconciliation:
+      - Only active initiatives are checked
+      - Only Shipped status triggers a warning (Archived/Approved/Implementing do not)
+      - When a path is in both queue and active, ONE warning names both lists
+      - No cleanup offer; work-loop only warns
+    """
+    spec_path: str
+    ini_slug: str
+    source_lists: list[str]  # ["queue"], ["active"], or ["queue", "active"]
+
+
+@dataclasses.dataclass
 class WorkspaceStatusResult:
     initiatives: list[Initiative]
     classifications: list[EntryClassification]        # work queue entries (ready + blocked)
@@ -943,6 +958,52 @@ def normalize_for_shaping_guard(raw_path: str) -> str:
     if s.startswith("spec/"):
         return s[len("spec/"):]
     return s
+
+
+# ── work-loop Step 0 stale-queue check ───────────────────────────────────────
+
+def collect_work_loop_stale_warnings(
+    root: Path,
+    initiatives: list[Initiative],
+) -> list[WorkLoopStaleWarning]:
+    """Characterize work-loop Step 0 stale-queue check (SKILL.md §0 step 1).
+
+    Checks active initiatives' queue and active entries. Emits a warn-only
+    WorkLoopStaleWarning when the entry's spec.md Status is 'Shipped'.
+
+    Differs from workspace-status Type 2 reconciliation:
+      - Only active initiatives (paused/closed/complete skipped)
+      - Only Shipped triggers a warning; Archived, Approved, Implementing do not
+      - When a path appears in both queue and active, emits ONE warning naming both
+      - Does not offer or perform cleanup (warn-only)
+      - Missing spec.md → skipped without error
+    """
+    warnings: list[WorkLoopStaleWarning] = []
+    for ini in initiatives:
+        if ini.status != "active":
+            continue
+        # Collect all paths with their source lists; a path may appear in both
+        path_sources: dict[str, list[str]] = {}
+        for list_name, entries in [("queue", ini.work.queue), ("active", ini.work.active)]:
+            for entry in entries:
+                if entry.path not in path_sources:
+                    path_sources[entry.path] = []
+                path_sources[entry.path].append(list_name)
+
+        for path, sources in path_sources.items():
+            slug = path.removeprefix("spec/")
+            spec_file = _safe_spec_path(root, slug)
+            if spec_file is None or not spec_file.exists():
+                continue
+            status = extract_spec_status(spec_file)
+            if status != "Shipped":
+                continue  # Only Shipped warns; Archived/Approved/Implementing skip
+            warnings.append(WorkLoopStaleWarning(
+                spec_path=path,
+                ini_slug=ini.slug,
+                source_lists=sources,
+            ))
+    return warnings
 
 
 def _toml_basic_string(s: str) -> str:

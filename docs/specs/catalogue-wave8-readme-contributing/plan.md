@@ -26,9 +26,10 @@ Declined:
   Verified at spec time (shipped in Wave 1).
 - Domain claim: `guides/_shared/how-to/create-a-catalogue.md` exists.
   Verified at spec time (Wave 1 uses it as the redirect target).
-- Domain claim: Wave 2's `[[pack.integrations]]` convention is not yet fully contracted
-  at implementation time of Wave 8. Wave 8 carries only a forward-reference; do not
-  describe the full schema.
+- Domain claim: Wave 2's `[[pack.integrations]]` convention shipped with Wave 2 (0.27.0).
+  Wave 8 updates all "in progress" forward-references to say "shipped in Wave 2; see
+  the authoring hub for the full contract spec." Do not describe the full schema in
+  CONTRIBUTING — the note remains navigational.
 - Resolve-vs-surface: no open questions blocking this wave — Wave 1 shipped the
   foundation (D1–D4). Wave 8 is a documentation convergence pass.
 
@@ -224,16 +225,16 @@ In the `### Adding a new pack` section, after the main numbered steps, add a not
 ```markdown
 **Optional cross-pack composition:** If the pack declares optional composition with other
 packs, add `[[pack.integrations]]` entries to `pack.toml`. The `[[pack.integrations]]`
-convention is Wave 2 work (in progress); see the
+convention shipped with Wave 2 (0.27.0); see the
 [authoring hub](guides/_shared/reference/catalogue-authoring-standards.md) for the
-current state of the spec.
+full contract spec.
 ```
 
-The note must name `[[pack.integrations]]` and state it is Wave 2 work. It must not
-define new schema or describe field semantics — navigational forward-reference only.
+The note must name `[[pack.integrations]]` and state it shipped in Wave 2. It must not
+define new schema or describe field semantics — navigational only.
 
 **Done when:** Within the "Adding a new pack" section, `grep -q "pack.integrations"` exits 0
-and the match contains "Wave 2" or equivalent forward-reference qualifier.
+and the note references "shipped in Wave 2" or equivalent to indicate the convention is live.
 
 ---
 
@@ -291,6 +292,6 @@ If any match is found, remove or rewrite using the `agentbundle catalogue init` 
   the current section in full before adding the subsection to ensure no duplication.
 - The CONTRIBUTING.md "Where to find authoritative information" table may not exist yet;
   if absent, create it with at least the new row and a brief intro line.
-- Wave 2 may have shipped `[[pack.integrations]]` by the time Wave 8 is implemented.
-  If so, T7's forward-reference note should be updated to say "shipped in Wave 2; see..."
-  rather than "in progress".
+- Wave 2 has shipped `[[pack.integrations]]` (0.27.0). T7's note says "shipped in
+  Wave 2; see the authoring hub for the full contract spec." This is the current ground
+  truth, not a conditional risk.

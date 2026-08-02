@@ -5,7 +5,7 @@
 
 ## Mode and declined patterns
 
-Mode: full (new public CLI interface + OQ1 RFC resolution + multi-feature).
+Mode: full (new public CLI interface + multi-feature).
 
 Declined:
 - Tempted to implement `contracts check <file> <schema>` (validates a local file against
@@ -288,24 +288,26 @@ def _make_ns(**kwargs):
     return ns
 
 class TestListSubcommand:
-    def test_table_output_contains_all_11(self, capsys):
+    def test_table_output_contains_all_public_contracts(self, capsys):
         from agentbundle.commands.catalogue_contracts import run
+        from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
         ns = _make_ns(contracts_sub="list", format="table")
         rc = run(ns)
         out = capsys.readouterr().out
         assert rc == 0
         assert "pack.schema.json" in out
-        assert out.count("\n") >= 12  # header + 11 data rows
+        assert out.count("\n") >= 1 + len(list_bundled_contracts())  # header + N data rows
 
-    def test_json_output_is_array_of_11(self, capsys):
+    def test_json_output_is_array_of_all_contracts(self, capsys):
         from agentbundle.commands.catalogue_contracts import run
+        from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
         ns = _make_ns(contracts_sub="list", format="json")
         rc = run(ns)
         out = capsys.readouterr().out
         assert rc == 0
         data = json.loads(out)
         assert isinstance(data, list)
-        assert len(data) == 11
+        assert len(data) == len(list_bundled_contracts())
         assert all("name" in item and "kind" in item and "file" in item for item in data)
 
 class TestShowSubcommand:
@@ -418,14 +420,14 @@ def _make_success_result(name="test-cat", target="/tmp/test-cat"):
         schema_version=1,
         command="catalogue init",
         operation="init",
-        agentbundle_version="0.28.0",
+        agentbundle_version="9.9.9-test",
         catalogue_schema_version=1,
         dry_run=False,
         target=target,
         catalogue=InitCatalogueMeta(
             name=name, display_name=name, description="",
             owner_name=name, preferred_adapter="claude-code",
-            minimum_agentbundle_version="0.28.0",
+            minimum_agentbundle_version="9.9.9-test",
         ),
         files=[],
         verification=InitVerification(ok=True, diagnostic_count=0),
@@ -651,7 +653,6 @@ class TestExportMatchesShow:
 - `packages/agentbundle/pyproject.toml`
 - `packages/agentbundle/agentbundle/version.py`
 - `docs/product/changelog.md`
-- `docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md`
 
 **Tests:** none (goal-based)
 
@@ -659,13 +660,13 @@ class TestExportMatchesShow:
 
 1. Inspect current HEAD version: `grep '^version' packages/agentbundle/pyproject.toml`.
    Bump `pyproject.toml` `version` and `version.py` `CLI_VERSION` to the next available
-   minor (at Phase 0 approval, HEAD is `0.27.0`; the next minor is `0.28.0` — verify no
-   other branch has claimed it before opening the PR).
+   AgentBundle minor version according to repository release policy. Verify that no other
+   branch has already claimed that minor before opening the PR.
 2. Add changelog entry (match 0.27.0 shape).
-3. OQ1 resolution in `docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md`:
-   a. Check the OQ1 box: `- [ ] OQ1 resolved...` → `- [x] OQ1 resolved in Wave 3 spec`.
-   b. Append AC1's exact resolved text to the OQ1 prose block so the RFC records the
-      resolution rationale alongside the checkmark (see AC1 for exact wording).
+3. Verify OQ1 compatibility: confirm RFC-0076 OQ1 checkbox is already checked
+   (`- [x] OQ1 resolved in Wave 3 spec`) and that the accepted resolution remains
+   compatible with the Wave 3 implementation. No RFC mutation is required — OQ1 was
+   resolved at spec approval time.
 4. Verify `init-result-json-next-steps` already exists in `workspace.toml [backlog].open`
    (present as of Phase 0 reconciliation, 2026-07-31). Do NOT create a duplicate entry.
    Reference: `{slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"}`.
@@ -678,11 +679,10 @@ SKIP_SAST=1 make build-check   # exit 0
 python3 -m pytest packages/agentbundle/tests/ -q   # exit 0
 python3 tools/catalogue/check_contract_parity.py   # exit 0
 python3 tools/catalogue/sync_authoring_scaffold.py --check  # exit 0
-# Replace <VER> with the actual version selected (expected 0.28.0 from current HEAD)
+# Replace <VER> with the actual version selected
 grep "<VER>" packages/agentbundle/pyproject.toml   # 1 match
 grep "<VER>" packages/agentbundle/agentbundle/version.py  # 1 match
-grep -F '- [x] OQ1 resolved' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (AC1 checkbox)
-grep -F 'Wave 3 claims this path' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (AC1 prose)
+grep -F '- [x] OQ1 resolved' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (already checked; verify unchanged)
 grep "init-result-json-next-steps" workspace.toml   # 1+ match (pre-existing; no duplicate)
 grep -E "<VER>|\[Unreleased\]" docs/product/changelog.md   # 1+ match (AC26)
 ```

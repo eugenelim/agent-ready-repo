@@ -1210,15 +1210,39 @@ queue   = [
   # navigation verified; init updated; link + cold-read tests pass.
   {path = "spec/catalogue-wave3-enterprise-authoring-discovery", needs = "work:spec/catalogue-wave2-pack-integrations"},
 
-  # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1. Shape gate
-  # (catalogue-semantics-release-shape) satisfied — Wave 4 spec is Approved.
-  # Deliver: JOURNEY.md convention (author-declared effects via frontmatter);
-  # content/execution inventory from JOURNEY.md effects field; deterministic
-  # catalogue-index.json (catalogue-index.schema.json new contract); integration
+  # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
+  # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
+  # version-bump conflicts (both Wave 3 and verifier-correctness bump the agentbundle
+  # minor version; concurrent merges would assign the same release number).
+  # Problem: verify.py has 13 confirmed defects across 11 of 19 steps — no-op step 1
+  # (malformed catalogue.toml escapes as exception), wrong plugin path (steps 4+5),
+  # wrong marketplace source path in step 12 (reads dist/marketplace.json which never
+  # exists; source is config.paths.marketplace), unimplemented stubs (dependency, adapter
+  # compat, output drift, package preflight, fixture checks), parse-only profile validation,
+  # incorrect step count, and host-only leak in portable code. Note: PyYAML guard (step 11)
+  # is already correct at HEAD — T10 adds regression coverage only, not a defect fix.
+  # Affected steps: 1, 4, 5, 6, 7, 8, 11, 12, 14, 17, 18.
+  # Deliver: corrected verify.py with all advertised pipeline steps implemented; host-only
+  # rules extracted to repository-local tooling; accurate step count and help.
+  # Done when: SKIP_SAST=1 make build-check exits 0; pytest packages/agentbundle/ exits 0;
+  # all 13 defects corrected + regression coverage for step 11 PyYAML guard; external-catalogue
+  # portability tests pass.
+  # Non-goals: neutral index generation; JOURNEY indexing; lifecycle; release integrity;
+  # first-party migration; site work.
+  # Source spec: docs/specs/catalogue-verifier-correctness/spec.md
+  {path = "spec/catalogue-verifier-correctness", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave3-enterprise-authoring-discovery"]},
+
+  # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
+  # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
+  # the next AgentBundle minor; concurrent merges would claim the same release number.
+  # Shape gate (catalogue-semantics-release-shape) satisfied — Wave 4 spec is Approved.
+  # Deliver: JOURNEY.md convention (author-declared effects via frontmatter effects field);
+  # structural content/execution inventory derived from pack source (distinct from effects);
+  # deterministic catalogue-index.json (catalogue-index.schema.json new contract); integration
   # views from pack.toml [[pack.integrations]] (Wave 2 data); representative
   # first-party JOURNEY.md fixtures to prove the contract. First-party all-pack
   # migration is Wave 9 scope — not included here.
-  {path = "spec/catalogue-wave4-semantic-contracts-index", needs = "work:spec/catalogue-wave1-contract-convergence"},
+  {path = "spec/catalogue-wave4-semantic-contracts-index", needs = ["work:spec/catalogue-wave1-contract-convergence", "work:spec/catalogue-verifier-correctness"]},
 
   # Wave 5 — Release integrity. Gated on Wave 4.
   # Deliver: pack/profile content digests; same-version mutation refusal; human+JSON
