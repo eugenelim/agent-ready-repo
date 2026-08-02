@@ -1,7 +1,7 @@
 {
   "name": "core",
-  "version": "1.0.3",
-  "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+  "version": "2.0.0",
+  "description": "Core: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
   "hooks": {
     "SessionStart": [
       {

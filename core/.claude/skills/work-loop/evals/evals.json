@@ -101,6 +101,92 @@
         "Response does NOT proceed to PLAN automatically",
         "Response does NOT arbitrarily choose one spec"
       ]
+    },
+    {
+      "id": "step0-no-portfolio-reconcile",
+      "prompt": "You are starting work-loop. workspace.toml is present. Does work-loop scan every queue and active spec to find stale entries before proceeding to PLAN?",
+      "expected_output": "No. Work-loop does not scan the full portfolio for stale entries at startup. Step 0 reads workspace.toml only to orient: it resolves the active initiative, milestone, and active spec path, and checks the shaping-item guard. For exhaustive workspace integrity checks (including stale queue/active entries), run `workspace-status reconcile`.",
+      "assertions": [
+        "Response states work-loop does NOT scan every queue/active spec for stale entries",
+        "Response directs portfolio reconciliation to `workspace-status reconcile`",
+        "Response confirms Step 0 is limited to orientation (initiative, milestone, active spec, shaping guard)",
+        "Response does NOT describe a stale-queue warning mechanism in work-loop"
+      ]
+    },
+    {
+      "id": "reconcile-stale-routes-to-workspace-status",
+      "prompt": "Several specs in workspace.toml are showing Status: Shipped but are still listed in the queue. How do I find and fix all stale queue entries?",
+      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan — reconcile is the canonical tool for portfolio-wide stale detection.",
+      "assertions": [
+        "Response recommends `workspace-status reconcile` as the correct tool",
+        "Response does NOT say to use work-loop for this",
+        "Response identifies reconcile as the exhaustive integrity path",
+        "Response does not describe a stale-queue warning from work-loop"
+      ]
+    },
+    {
+      "id": "find-untracked-specs-routes-to-reconcile",
+      "prompt": "I want to find spec files that exist on disk but are not declared in workspace.toml and are actively in progress (Approved or Implementing). What command should I run?",
+      "expected_output": "Run `workspace-status reconcile` — it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
+      "assertions": [
+        "Response recommends `workspace-status reconcile`",
+        "Response mentions Type 1 findings or untracked spec detection",
+        "Response does NOT say work-loop handles this"
+      ]
+    },
+    {
+      "id": "two-gate-resumption-spec-human-gate-auto-fire",
+      "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `last_event: reviewers-clean`, `pending_human_wait: true`. You read spec.md and find `Status: Approved`. What should you do?",
+      "expected_output": "Fire `spec-approved` immediately — this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
+      "assertions": [
+        "Response fires `spec-approved` immediately without waiting for a new human signal",
+        "Response identifies this as crash-recovery for the approval window",
+        "Response does NOT instruct waiting when Status is already Approved",
+        "Response references transitioning to PLAN-HUMAN-GATE as the next state"
+      ]
+    },
+    {
+      "id": "two-gate-resumption-plan-human-gate-auto-fire",
+      "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: PLAN-HUMAN-GATE`, `last_event: spec-approved`, `pending_human_wait: true`. You read plan.md and find `Status: Approved`. What should you do?",
+      "expected_output": "Fire `plan-approved` immediately — crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
+      "assertions": [
+        "Response fires `plan-approved` immediately without waiting",
+        "Response identifies this as crash-recovery",
+        "Response proceeds to SPEC-PLAN-APPROVED state",
+        "Response mentions cohort operations (approve-plan) as the next step"
+      ]
+    },
+    {
+      "id": "two-gate-resumption-incompatible-spec-status",
+      "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `pending_human_wait: true`. spec.md shows `Status: Implementing`. What should you do?",
+      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible — it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
+      "assertions": [
+        "Response surfaces the incompatible state to the human",
+        "Response does NOT fire any transition automatically",
+        "Response describes the contradiction (Implementing status at a human-gate state)",
+        "Response waits for human direction"
+      ]
+    },
+    {
+      "id": "status-query-routes-to-workspace-status",
+      "prompt": "What should I work on next?",
+      "expected_output": "Run `workspace-status status` for a bounded view of what is ready to start (Type 2 and Type 3 findings). This shows ready, blocked, and actionable specs without a full portfolio scan. Work-loop is for executing a specific spec you have already selected.",
+      "assertions": [
+        "Response recommends `workspace-status status` for triage",
+        "Response does NOT say to invoke work-loop to answer this question",
+        "Response characterizes workspace-status status as the bounded discovery tool"
+      ]
+    },
+    {
+      "id": "explain-query-routes-to-explain",
+      "prompt": "Why is spec/foo still blocked? Its upstream dependencies look resolved to me.",
+      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec — it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
+      "assertions": [
+        "Response recommends `workspace-status explain --item spec/foo`",
+        "Response does NOT describe a work-loop mechanism for explaining blocked specs",
+        "Response identifies workspace-status explain as the correct tool for dependency explanation",
+        "Response does NOT claim the command shows why each upstream dependency is itself blocked"
+      ]
     }
   ]
 }

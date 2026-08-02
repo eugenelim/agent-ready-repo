@@ -335,10 +335,11 @@ def test_status_json_after_init(tmp: Path) -> None:
 
 
 def test_status_human_wait_states(tmp: Path) -> None:
-    """SPEC-PLAN-HUMAN-GATE and CODE-HUMAN-GATE should show pending_human_wait=True."""
+    """SPEC-HUMAN-GATE, PLAN-HUMAN-GATE, and CODE-HUMAN-GATE should show
+    pending_human_wait=True."""
     name = "engine-status-human-wait"
     run_id = str(uuid.uuid4())
-    for state_name in ("SPEC-PLAN-HUMAN-GATE", "CODE-HUMAN-GATE"):
+    for state_name in ("SPEC-HUMAN-GATE", "PLAN-HUMAN-GATE", "CODE-HUMAN-GATE"):
         spec_dir = make_spec_dir(tmp, f"{name}-{state_name}")
         write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", state_name))
         rc, out, _ = run_engine("status", str(spec_dir), "--json")
@@ -399,9 +400,9 @@ def test_illegal_transitions_code(tmp: Path) -> None:
         ("code", "SPEC-PLAN-REVIEW", "plan-rejected"),
         ("code", "SPEC-PLAN-REVIEW", "wave-complete"),
         ("code", "SPEC-PLAN-REVIEW", "done"),
-        ("code", "SPEC-PLAN-HUMAN-GATE", "wave-complete"),
-        ("code", "SPEC-PLAN-HUMAN-GATE", "gates-clean"),
-        ("code", "SPEC-PLAN-HUMAN-GATE", "done"),
+        ("code", "SPEC-HUMAN-GATE", "wave-complete"),
+        ("code", "SPEC-HUMAN-GATE", "gates-clean"),
+        ("code", "SPEC-HUMAN-GATE", "done"),
         ("code", "CODE-IMPLEMENTATION", "plan-approved"),
         ("code", "CODE-IMPLEMENTATION", "gates-clean"),
         ("code", "CODE-IMPLEMENTATION", "done"),
@@ -432,8 +433,8 @@ def test_illegal_transitions_spec_plan(tmp: Path) -> None:
         ("spec-plan", "SPEC-PLAN-DRAFTING", "done"),
         ("spec-plan", "SPEC-PLAN-REVIEW", "plan-rejected"),
         ("spec-plan", "SPEC-PLAN-REVIEW", "wave-complete"),
-        ("spec-plan", "SPEC-PLAN-HUMAN-GATE", "wave-complete"),
-        ("spec-plan", "SPEC-PLAN-HUMAN-GATE", "reviewers-clean"),
+        ("spec-plan", "SPEC-HUMAN-GATE", "wave-complete"),
+        ("spec-plan", "SPEC-HUMAN-GATE", "reviewers-clean"),
         ("spec-plan", "DONE", "spec-ready"),
         ("spec-plan", "DONE", "plan-approved"),
     ]
@@ -557,11 +558,11 @@ def test_legal_transition_spec_ready(tmp: Path) -> None:
 
 
 def test_legal_transition_plan_rejected(tmp: Path) -> None:
-    name = "legal-plan-rejected"
+    name = "legal-plan-rejected-compat"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_engine_state(
-        spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-HUMAN-GATE")
+        spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE")
     )
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
     rc, _, _ = run_engine("transition", str(spec_dir), "plan-rejected")
@@ -668,29 +669,34 @@ def test_blocker_applied_code_human_gate(tmp: Path) -> None:
 
 
 def test_legal_plan_approved_spec_plan_mode(tmp: Path) -> None:
-    """spec-plan plan-approved → DONE; guard = plan check-current (no --require-schedule)."""
+    """spec-plan plan-approved → SPEC-PLAN-APPROVED; guard = plan.md Status: Approved."""
     name = "legal-plan-approved-spec-plan"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
-    write_plan(spec_dir)
-    write_engine_state(
-        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-HUMAN-GATE")
+    plan_text = (
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n"
+        "### T2\n\n**Depends on:** T1\n"
     )
-    write_cohort_state(spec_dir, approved_cohort_state(spec_dir, run_id, name))
+    (spec_dir / "plan.md").write_text(plan_text)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "PLAN-HUMAN-GATE")
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
     rc, _, err = run_engine("transition", str(spec_dir), "plan-approved")
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}: {err.strip()}")
         return
     state = json.loads((spec_dir / "engine-state.json").read_text())
-    if state.get("state") != "DONE":
-        fail(name, f"expected DONE; got {state.get('state')!r}")
+    if state.get("state") != "SPEC-PLAN-APPROVED":
+        fail(name, f"expected SPEC-PLAN-APPROVED; got {state.get('state')!r}")
     else:
         ok(name)
 
 
 def test_legal_reviewers_clean_spec_plan(tmp: Path) -> None:
-    """SPEC-PLAN-REVIEW → reviewers-clean → SPEC-PLAN-HUMAN-GATE (no guard in spec-plan mode)."""
+    """SPEC-PLAN-REVIEW → reviewers-clean → SPEC-HUMAN-GATE (no guard in spec-plan mode)."""
     name = "legal-reviewers-clean-spec-plan"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -702,11 +708,11 @@ def test_legal_reviewers_clean_spec_plan(tmp: Path) -> None:
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
     rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
     if rc != 0:
-        fail(name, f"expected exit 0 with Status: Shipped; got {rc}: {err.strip()}")
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
         return
     state = json.loads((spec_dir / "engine-state.json").read_text())
-    if state.get("state") != "SPEC-PLAN-HUMAN-GATE":
-        fail(name, f"expected SPEC-PLAN-HUMAN-GATE; got {state.get('state')!r}")
+    if state.get("state") != "SPEC-HUMAN-GATE":
+        fail(name, f"expected SPEC-HUMAN-GATE; got {state.get('state')!r}")
     else:
         ok(name)
 
@@ -966,23 +972,23 @@ def test_legal_done_from_code_human_gate(tmp: Path) -> None:
 
 
 def test_guard_plan_check_current_fires_for_spec_plan_mode(tmp: Path) -> None:
-    """plan-approved in spec-plan mode fires plan check-current (no --require-schedule).
+    """plan-locked in spec-plan mode fires plan check-current (no --require-schedule).
     Verify by setting approved hashes then changing plan.md → guard must fail."""
     name = "guard-plan-check-current-spec-plan"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     cohort = approved_cohort_state(spec_dir, run_id, name)
     write_engine_state(
-        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-HUMAN-GATE")
+        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-APPROVED")
     )
     # Change plan.md AFTER computing approved hash → guard detects mismatch
     (spec_dir / "plan.md").write_text("# Plan (modified)\n")
     write_cohort_state(spec_dir, cohort)
     path = spec_dir / "engine-state.json"
     before = path.read_bytes()
-    rc, _, _ = run_engine("transition", str(spec_dir), "plan-approved")
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-locked")
     after = path.read_bytes()
     if rc == 0:
         fail(name, "expected guard to fail when plan.md changes after approve")
@@ -993,21 +999,21 @@ def test_guard_plan_check_current_fires_for_spec_plan_mode(tmp: Path) -> None:
 
 
 def test_guard_plan_check_current_require_schedule_fires_for_code_mode(tmp: Path) -> None:
-    """plan-approved in code mode fires plan check-current --require-schedule.
+    """plan-locked in code mode fires plan check-current --require-schedule.
     Verify by omitting schedule → guard must fail."""
     name = "guard-plan-check-current-require-schedule"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     # Approved but no schedule_waves → --require-schedule fails
     write_engine_state(
-        spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-HUMAN-GATE")
+        spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-APPROVED")
     )
     write_cohort_state(spec_dir, approved_cohort_state(spec_dir, run_id, name))
     path = spec_dir / "engine-state.json"
     before = path.read_bytes()
-    rc, _, _ = run_engine("transition", str(spec_dir), "plan-approved")
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-locked")
     after = path.read_bytes()
     if rc == 0:
         fail(name, "expected guard to fail with no schedule (--require-schedule)")
@@ -1247,7 +1253,7 @@ def test_check_spec_status_no_args(tmp: Path) -> None:
 
 
 def test_spec_plan_full_walk(tmp: Path) -> None:
-    """Walk all five spec-plan transitions to DONE under realistic guard conditions."""
+    """Walk all spec-plan transitions to DONE under realistic guard conditions."""
     name = "spec-plan-full-walk"
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir, status="Draft")
@@ -1277,34 +1283,57 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
         fail(name, f"expected back to DRAFTING; got {state['state']!r}")
         return
 
-    # 4. spec-ready again, then reviewers-clean (no status guard at SPEC-PLAN-REVIEW)
+    # 4. spec-ready again, then reviewers-clean → SPEC-HUMAN-GATE
     run_engine("transition", str(spec_dir), "spec-ready")
     rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
     if rc != 0:
         fail(name, f"reviewers-clean failed: {err.strip()}")
         return
     state = json.loads((spec_dir / "engine-state.json").read_text())
-    if state["state"] != "SPEC-PLAN-HUMAN-GATE":
-        fail(name, f"expected SPEC-PLAN-HUMAN-GATE; got {state['state']!r}")
+    if state["state"] != "SPEC-HUMAN-GATE":
+        fail(name, f"expected SPEC-HUMAN-GATE; got {state['state']!r}")
         return
 
-    # 5. plan-rejected → back to DRAFTING
-    rc, _, err = run_engine("transition", str(spec_dir), "plan-rejected")
+    # 5. spec-rejected → back to DRAFTING (tests that spec-rejected works from SPEC-HUMAN-GATE)
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-rejected")
     if rc != 0:
-        fail(name, f"plan-rejected failed: {err.strip()}")
+        fail(name, f"spec-rejected failed: {err.strip()}")
         return
 
-    # 6. spec-ready + reviewers-clean + plan-approved → DONE
-    #    Human writes Status: Approved before approve-plan (spec-plan terminal is Approved)
+    # 6. Full two-gate approval path → DONE
+    #    spec-ready → reviewers-clean → SPEC-HUMAN-GATE
     run_engine("transition", str(spec_dir), "spec-ready")
     run_engine("transition", str(spec_dir), "reviewers-clean")
+    #    Human writes spec.md Status: Approved → spec-approved → PLAN-HUMAN-GATE
     write_spec(spec_dir, status="Approved")
-
-    # For plan-approved: need approved cohort state
-    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", eng_run_id)
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc != 0:
+        fail(name, f"spec-approved failed: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state["state"] != "PLAN-HUMAN-GATE":
+        fail(name, f"expected PLAN-HUMAN-GATE after spec-approved; got {state['state']!r}")
+        return
+    #    Human writes plan.md Status: Approved → plan-approved → SPEC-PLAN-APPROVED
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n"
+        "### T2\n\n**Depends on:** T1\n"
+    )
     rc, _, err = run_engine("transition", str(spec_dir), "plan-approved")
     if rc != 0:
         fail(name, f"plan-approved failed: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state["state"] != "SPEC-PLAN-APPROVED":
+        fail(name, f"expected SPEC-PLAN-APPROVED after plan-approved; got {state['state']!r}")
+        return
+    #    Cohort records approved baseline
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", eng_run_id)
+    #    plan-locked → DONE (spec-plan mode; guard: spec Approved + plan check-current)
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc != 0:
+        fail(name, f"plan-locked failed: {err.strip()}")
         return
     state = json.loads((spec_dir / "engine-state.json").read_text())
     if state["state"] != "DONE":
@@ -1321,7 +1350,7 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
 
 
 def test_evals_json_shape(_tmp: Path) -> None:
-    """evals.json exists, is valid JSON, has skill_name='work-loop' and 9 entries."""
+    """evals.json exists, is valid JSON, has skill_name='work-loop' and at least 14 entries."""
     name = "evals-json-shape"
     if not EVALS_JSON.exists():
         fail(name, f"evals.json not found at {EVALS_JSON}")
@@ -1335,9 +1364,9 @@ def test_evals_json_shape(_tmp: Path) -> None:
         fail(name, f"expected skill_name='work-loop'; got {data.get('skill_name')!r}")
         return
     evals = data.get("evals")
-    if not isinstance(evals, list) or len(evals) != 9:
+    if not isinstance(evals, list) or len(evals) < 14:
         count = len(evals) if isinstance(evals, list) else repr(evals)
-        fail(name, f"expected 9 evals entries; got {count}")
+        fail(name, f"expected at least 14 evals entries; got {count}")
         return
     required_fields = {"id", "prompt", "expected_output", "assertions"}
     for entry in evals:
@@ -1371,10 +1400,27 @@ def make_crash_window_run(tmp: Path, feature: str) -> tuple[Path, str, int]:
     run_cohort("init", str(spec_dir), "--run-id", run_id)
     run_engine("transition", str(spec_dir), "spec-ready")
     run_engine("transition", str(spec_dir), "reviewers-clean")
+    # Spec approver writes Status: Approved → spec-approved → PLAN-HUMAN-GATE
     write_spec(spec_dir, status="Approved")
+    rc_sa, _, err_sa = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc_sa != 0:
+        raise RuntimeError(f"make_crash_window_run: spec-approved failed: {err_sa}")
+    # Plan approver writes Status: Approved in plan.md → plan-approved → SPEC-PLAN-APPROVED
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "### T1\n\n**Depends on:** none\n\n"
+        "### T2\n\n**Depends on:** T1\n"
+    )
+    rc_pa, _, err_pa = run_engine("transition", str(spec_dir), "plan-approved")
+    if rc_pa != 0:
+        raise RuntimeError(f"make_crash_window_run: plan-approved failed: {err_pa}")
+    # Cohort records approved baseline; code mode also needs schedule
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
-    run_engine("transition", str(spec_dir), "plan-approved")
+    # plan-locked seals the baseline → CODE-IMPLEMENTATION
+    rc_pl, _, err_pl = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc_pl != 0:
+        raise RuntimeError(f"make_crash_window_run: plan-locked failed: {err_pl}")
     # wave-complete: CODE-IMPLEMENTATION → CODE-VERIFICATION (wave 0 done)
     rc_wc, _, err_wc = run_engine("transition", str(spec_dir), "wave-complete")
     if rc_wc != 0:
@@ -1404,10 +1450,24 @@ def make_code_review_run(tmp: Path, feature: str) -> tuple[Path, str]:
     run_cohort("init", str(spec_dir), "--run-id", run_id)
     run_engine("transition", str(spec_dir), "spec-ready")
     run_engine("transition", str(spec_dir), "reviewers-clean")
+    # Spec approver writes Status: Approved → spec-approved → PLAN-HUMAN-GATE
     write_spec(spec_dir, status="Approved")
+    rc_sa, _, err_sa = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc_sa != 0:
+        raise RuntimeError(f"make_code_review_run: spec-approved failed: {err_sa}")
+    # Plan approver writes Status: Approved in plan.md → plan-approved → SPEC-PLAN-APPROVED
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n### T1\n\n**Depends on:** none\n"
+    )
+    rc_pa, _, err_pa = run_engine("transition", str(spec_dir), "plan-approved")
+    if rc_pa != 0:
+        raise RuntimeError(f"make_code_review_run: plan-approved failed: {err_pa}")
+    # Cohort records approved baseline; schedule; plan-locked → CODE-IMPLEMENTATION
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
-    run_engine("transition", str(spec_dir), "plan-approved")
+    rc_pl, _, err_pl = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc_pl != 0:
+        raise RuntimeError(f"make_code_review_run: plan-locked failed: {err_pl}")
     run_engine("transition", str(spec_dir), "wave-complete")
     # gates-clean: CODE-VERIFICATION → CODE-REVIEW (at last wave)
     rc_gc, _, err_gc = run_engine("transition", str(spec_dir), "gates-clean")
@@ -1919,6 +1979,773 @@ def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
         ok("reviewers-clean-skill-prose-obligations")
 
 
+# ── T4: legacy compat tests ───────────────────────────────────────────────
+
+
+def test_legacy_code_impl_plan_approved_readable(tmp: Path) -> None:
+    """engine-state.json with state=CODE-IMPLEMENTATION, last_event=plan-approved
+    → loop-engine status exits 0 (legacy pre-split run recognized as readable)."""
+    name = "legacy-code-impl-plan-approved-readable"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, {
+        **minimal_engine_state(run_id, name, "code", "CODE-IMPLEMENTATION"),
+        "last_event": "plan-approved",
+        "transition_sequence": 4,
+    })
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail(name, f"status --json not valid JSON: {out!r}")
+        return
+    if data.get("state") != "CODE-IMPLEMENTATION":
+        fail(name, f"expected state=CODE-IMPLEMENTATION; got {data.get('state')!r}")
+    elif data.get("last_event") != "plan-approved":
+        fail(name, f"expected last_event=plan-approved; got {data.get('last_event')!r}")
+    else:
+        ok(name)
+
+
+def test_legacy_done_plan_approved_readable(tmp: Path) -> None:
+    """engine-state.json with state=DONE, last_event=plan-approved
+    → loop-engine status exits 0 (legacy pre-split spec-plan terminal recognized)."""
+    name = "legacy-done-plan-approved-readable"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, {
+        **minimal_engine_state(run_id, name, "spec-plan", "DONE"),
+        "last_event": "plan-approved",
+        "transition_sequence": 3,
+    })
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail(name, f"status --json not valid JSON: {out!r}")
+        return
+    if data.get("state") != "DONE":
+        fail(name, f"expected state=DONE; got {data.get('state')!r}")
+    elif data.get("last_event") != "plan-approved":
+        fail(name, f"expected last_event=plan-approved; got {data.get('last_event')!r}")
+    else:
+        ok(name)
+
+
+# ── T2 new-gate tests ─────────────────────────────────────────────────────
+
+
+def test_legal_reviewers_clean_to_spec_human_gate(tmp: Path) -> None:
+    """SPEC-PLAN-REVIEW + reviewers-clean → SPEC-HUMAN-GATE in both modes."""
+    name = "legal-reviewers-clean-to-spec-human-gate"
+    for mode in ("code", "spec-plan"):
+        run_id = str(uuid.uuid4())
+        spec_dir = make_spec_dir(tmp, f"{name}-{mode}")
+        write_spec(spec_dir, status="Draft")
+        write_plan(spec_dir)
+        write_engine_state(spec_dir, minimal_engine_state(run_id, name, mode, "SPEC-PLAN-REVIEW"))
+        write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+        rc, _, err = run_engine("transition", str(spec_dir), "reviewers-clean")
+        if rc != 0:
+            fail(name, f"mode={mode}: expected exit 0; got {rc}: {err.strip()}")
+            return
+        state = json.loads((spec_dir / "engine-state.json").read_text())
+        if state.get("state") != "SPEC-HUMAN-GATE":
+            fail(name, f"mode={mode}: expected SPEC-HUMAN-GATE; got {state.get('state')!r}")
+            return
+    ok(name)
+
+
+def test_legal_spec_approved_to_plan_human_gate_code(tmp: Path) -> None:
+    """code mode: SPEC-HUMAN-GATE + spec-approved → PLAN-HUMAN-GATE (spec.md Status=Approved)."""
+    name = "legal-spec-approved-to-plan-human-gate-code"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "PLAN-HUMAN-GATE":
+        fail(name, f"expected PLAN-HUMAN-GATE; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_legal_spec_approved_to_plan_human_gate_spec_plan(tmp: Path) -> None:
+    """spec-plan mode: SPEC-HUMAN-GATE + spec-approved → PLAN-HUMAN-GATE
+    (spec.md Status=Approved)."""
+    name = "legal-spec-approved-to-plan-human-gate-spec-plan"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-HUMAN-GATE")
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "PLAN-HUMAN-GATE":
+        fail(name, f"expected PLAN-HUMAN-GATE; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_legal_plan_approved_to_spec_plan_approved_code(tmp: Path) -> None:
+    """code mode: PLAN-HUMAN-GATE + plan-approved → SPEC-PLAN-APPROVED
+    (plan.md Status=Approved)."""
+    name = "legal-plan-approved-to-spec-plan-approved-code"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n### T1\n\n**Depends on:** none\n"
+    )
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "SPEC-PLAN-APPROVED":
+        fail(name, f"expected SPEC-PLAN-APPROVED; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_legal_plan_approved_to_spec_plan_approved_spec_plan(tmp: Path) -> None:
+    """spec-plan: PLAN-HUMAN-GATE + plan-approved → SPEC-PLAN-APPROVED
+    (plan.md Status=Approved)."""
+    name = "legal-plan-approved-to-spec-plan-approved-spec-plan"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n### T1\n\n**Depends on:** none\n"
+    )
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "PLAN-HUMAN-GATE")
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "SPEC-PLAN-APPROVED":
+        fail(name, f"expected SPEC-PLAN-APPROVED; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_legal_plan_locked_code(tmp: Path) -> None:
+    """code: SPEC-PLAN-APPROVED + plan-locked → CODE-IMPLEMENTATION."""
+    name = "legal-plan-locked-code"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-APPROVED"))
+    write_cohort_state(spec_dir, approved_with_schedule_cohort_state(spec_dir, run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "CODE-IMPLEMENTATION":
+        fail(name, f"expected CODE-IMPLEMENTATION; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_legal_plan_locked_spec_plan(tmp: Path) -> None:
+    """spec-plan: SPEC-PLAN-APPROVED + plan-locked → DONE."""
+    name = "legal-plan-locked-spec-plan"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-APPROVED")
+    )
+    write_cohort_state(spec_dir, approved_cohort_state(spec_dir, run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "DONE":
+        fail(name, f"expected DONE; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_legal_spec_rejected(tmp: Path) -> None:
+    """Both modes: SPEC-HUMAN-GATE + spec-rejected → SPEC-PLAN-DRAFTING (no guard)."""
+    name = "legal-spec-rejected"
+    for mode in ("code", "spec-plan"):
+        run_id = str(uuid.uuid4())
+        spec_dir = make_spec_dir(tmp, f"{name}-{mode}")
+        write_spec(spec_dir, status="Draft")
+        write_plan(spec_dir)
+        write_engine_state(spec_dir, minimal_engine_state(run_id, name, mode, "SPEC-HUMAN-GATE"))
+        write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+        rc, _, err = run_engine("transition", str(spec_dir), "spec-rejected")
+        if rc != 0:
+            fail(name, f"mode={mode}: expected exit 0; got {rc}: {err.strip()}")
+            return
+        state = json.loads((spec_dir / "engine-state.json").read_text())
+        if state.get("state") != "SPEC-PLAN-DRAFTING":
+            fail(name, f"mode={mode}: expected SPEC-PLAN-DRAFTING; got {state.get('state')!r}")
+            return
+    ok(name)
+
+
+def test_legal_plan_rejected(tmp: Path) -> None:
+    """Both modes: PLAN-HUMAN-GATE + plan-rejected → SPEC-PLAN-DRAFTING (no guard)."""
+    name = "legal-plan-rejected"
+    for mode in ("code", "spec-plan"):
+        run_id = str(uuid.uuid4())
+        spec_dir = make_spec_dir(tmp, f"{name}-{mode}")
+        write_spec(spec_dir, status="Draft")
+        write_plan(spec_dir)
+        write_engine_state(spec_dir, minimal_engine_state(run_id, name, mode, "PLAN-HUMAN-GATE"))
+        write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+        rc, _, err = run_engine("transition", str(spec_dir), "plan-rejected")
+        if rc != 0:
+            fail(name, f"mode={mode}: expected exit 0; got {rc}: {err.strip()}")
+            return
+        state = json.loads((spec_dir / "engine-state.json").read_text())
+        if state.get("state") != "SPEC-PLAN-DRAFTING":
+            fail(name, f"mode={mode}: expected SPEC-PLAN-DRAFTING; got {state.get('state')!r}")
+            return
+    ok(name)
+
+
+def test_illegal_plan_approved_from_spec_human_gate(tmp: Path) -> None:
+    """SPEC-HUMAN-GATE + plan-approved is illegal in both modes (non-zero, no mutation)."""
+    name = "illegal-plan-approved-from-spec-human-gate"
+    for mode in ("code", "spec-plan"):
+        _test_illegal_transition(tmp, f"{name}-{mode}", mode, "SPEC-HUMAN-GATE", "plan-approved")
+
+
+def test_illegal_plan_rejected_from_spec_human_gate(tmp: Path) -> None:
+    """SPEC-HUMAN-GATE + plan-rejected is an illegal cross-rejection (non-zero, no mutation)."""
+    name = "illegal-plan-rejected-from-spec-human-gate"
+    for mode in ("code", "spec-plan"):
+        _test_illegal_transition(tmp, f"{name}-{mode}", mode, "SPEC-HUMAN-GATE", "plan-rejected")
+
+
+def test_illegal_spec_approved_from_plan_human_gate(tmp: Path) -> None:
+    """PLAN-HUMAN-GATE + spec-approved is illegal in both modes (non-zero, no mutation)."""
+    name = "illegal-spec-approved-from-plan-human-gate"
+    for mode in ("code", "spec-plan"):
+        _test_illegal_transition(tmp, f"{name}-{mode}", mode, "PLAN-HUMAN-GATE", "spec-approved")
+
+
+def test_illegal_spec_rejected_from_plan_human_gate(tmp: Path) -> None:
+    """PLAN-HUMAN-GATE + spec-rejected is an illegal cross-rejection (non-zero, no mutation)."""
+    name = "illegal-spec-rejected-from-plan-human-gate"
+    for mode in ("code", "spec-plan"):
+        _test_illegal_transition(tmp, f"{name}-{mode}", mode, "PLAN-HUMAN-GATE", "spec-rejected")
+
+
+def test_illegal_spec_approved_from_spec_plan_approved(tmp: Path) -> None:
+    """SPEC-PLAN-APPROVED + spec-approved is illegal in both modes."""
+    name = "illegal-spec-approved-from-spec-plan-approved"
+    for mode in ("code", "spec-plan"):
+        _test_illegal_transition(
+            tmp, f"{name}-{mode}", mode, "SPEC-PLAN-APPROVED", "spec-approved"
+        )
+
+
+def test_illegal_plan_locked_from_human_gates(tmp: Path) -> None:
+    """plan-locked from SPEC-HUMAN-GATE or PLAN-HUMAN-GATE is illegal."""
+    name = "illegal-plan-locked-from-human-gates"
+    cases = [
+        ("code", "SPEC-HUMAN-GATE"),
+        ("code", "PLAN-HUMAN-GATE"),
+        ("spec-plan", "SPEC-HUMAN-GATE"),
+        ("spec-plan", "PLAN-HUMAN-GATE"),
+    ]
+    for mode, state in cases:
+        _test_illegal_transition(tmp, f"{name}-{mode}-{state}", mode, state, "plan-locked")
+
+
+def test_illegal_plan_locked_from_code_states(tmp: Path) -> None:
+    """plan-locked from any CODE-* state is illegal."""
+    name = "illegal-plan-locked-from-code-states"
+    code_states = ["CODE-IMPLEMENTATION", "CODE-VERIFICATION", "CODE-REVIEW", "CODE-HUMAN-GATE"]
+    for state in code_states:
+        _test_illegal_transition(tmp, f"{name}-{state}", "code", state, "plan-locked")
+
+
+def test_illegal_wave_events_from_spec_plan_approved(tmp: Path) -> None:
+    """Wave and review events from SPEC-PLAN-APPROVED are all illegal."""
+    name = "illegal-wave-events-from-spec-plan-approved"
+    illegal_events = [
+        "wave-complete", "gates-clean", "gates-failed",
+        "findings-remain", "reviewers-clean",
+        "spec-rejected", "plan-rejected",
+    ]
+    for event in illegal_events:
+        _test_illegal_transition(
+            tmp, f"{name}-{event}", "code", "SPEC-PLAN-APPROVED", event
+        )
+
+
+def test_spec_human_gate_pending_human_wait_true(tmp: Path) -> None:
+    """SPEC-HUMAN-GATE reports pending_human_wait=True."""
+    name = "spec-human-gate-pending-human-wait-true"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    rc, out, _ = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+        return
+    data = json.loads(out)
+    if not data.get("pending_human_wait"):
+        fail(name, f"expected pending_human_wait=True; got {data.get('pending_human_wait')!r}")
+    else:
+        ok(name)
+
+
+def test_plan_human_gate_pending_human_wait_true(tmp: Path) -> None:
+    """PLAN-HUMAN-GATE reports pending_human_wait=True."""
+    name = "plan-human-gate-pending-human-wait-true"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    rc, out, _ = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+        return
+    data = json.loads(out)
+    if not data.get("pending_human_wait"):
+        fail(name, f"expected pending_human_wait=True; got {data.get('pending_human_wait')!r}")
+    else:
+        ok(name)
+
+
+def test_spec_plan_approved_pending_human_wait_false(tmp: Path) -> None:
+    """SPEC-PLAN-APPROVED reports pending_human_wait=False."""
+    name = "spec-plan-approved-pending-human-wait-false"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-APPROVED"))
+    rc, out, _ = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}")
+        return
+    data = json.loads(out)
+    if data.get("pending_human_wait") is not False:
+        fail(name, f"expected pending_human_wait=False; got {data.get('pending_human_wait')!r}")
+    else:
+        ok(name)
+
+
+def test_spec_approved_fields(tmp: Path) -> None:
+    """After spec-approved: state=PLAN-HUMAN-GATE, last_event=spec-approved."""
+    name = "spec-approved-fields"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "PLAN-HUMAN-GATE":
+        fail(name, f"expected state=PLAN-HUMAN-GATE; got {state.get('state')!r}")
+    elif state.get("last_event") != "spec-approved":
+        fail(name, f"expected last_event=spec-approved; got {state.get('last_event')!r}")
+    else:
+        ok(name)
+
+
+def test_plan_approved_fields(tmp: Path) -> None:
+    """After plan-approved: state=SPEC-PLAN-APPROVED, last_event=plan-approved."""
+    name = "plan-approved-fields"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n### T1\n\n**Depends on:** none\n"
+    )
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "SPEC-PLAN-APPROVED":
+        fail(name, f"expected state=SPEC-PLAN-APPROVED; got {state.get('state')!r}")
+    elif state.get("last_event") != "plan-approved":
+        fail(name, f"expected last_event=plan-approved; got {state.get('last_event')!r}")
+    else:
+        ok(name)
+
+
+def test_spec_approved_guard_accepts_approved(tmp: Path) -> None:
+    """spec-approved guard: accepts spec.md Status: Approved."""
+    name = "spec-approved-guard-accepts-approved"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "spec-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0 for Status: Approved; got {rc}: {err.strip()}")
+    else:
+        ok(name)
+
+
+def test_spec_approved_guard_refuses_draft(tmp: Path) -> None:
+    """spec-approved guard: refuses spec.md Status: Draft (non-zero, no mutation)."""
+    name = "spec-approved-guard-refuses-draft"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "spec-approved")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero for Status: Draft")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_spec_approved_guard_refuses_implementing(tmp: Path) -> None:
+    """spec-approved guard: refuses spec.md Status: Implementing (non-zero, no mutation)."""
+    name = "spec-approved-guard-refuses-implementing"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Implementing")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "spec-approved")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero for Status: Implementing")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_spec_approved_guard_refuses_malformed(tmp: Path) -> None:
+    """spec-approved guard: refuses spec.md with no **Status:** line (non-zero, no mutation)."""
+    name = "spec-approved-guard-refuses-malformed"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "spec.md").write_text("# Spec\n\nNo status line here.\n")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "spec-approved")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero for malformed spec.md")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_plan_approved_guard_accepts_approved(tmp: Path) -> None:
+    """plan-approved guard: accepts plan.md Status: Approved (reads plan.md, not spec.md)."""
+    name = "plan-approved-guard-accepts-approved"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)  # spec.md Status: Draft — guard reads plan.md
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n### T1\n\n**Depends on:** none\n"
+    )
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-approved")
+    if rc != 0:
+        fail(name, f"expected exit 0 for plan.md Status: Approved; got {rc}: {err.strip()}")
+    else:
+        ok(name)
+
+
+def test_plan_approved_guard_refuses_drafting(tmp: Path) -> None:
+    """plan-approved guard: refuses plan.md Status: Drafting (non-zero, no mutation)."""
+    name = "plan-approved-guard-refuses-drafting"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Drafting\n\n### T1\n\n**Depends on:** none\n"
+    )
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-approved")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero for plan.md Status: Drafting")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_plan_approved_guard_refuses_done(tmp: Path) -> None:
+    """plan-approved guard: refuses plan.md Status: Done (non-zero, no mutation)."""
+    name = "plan-approved-guard-refuses-done"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Done\n\n### T1\n\n**Depends on:** none\n"
+    )
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-approved")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero for plan.md Status: Done")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_plan_approved_guard_refuses_malformed(tmp: Path) -> None:
+    """plan-approved guard: refuses plan.md with no **Status:** line (non-zero, no mutation)."""
+    name = "plan-approved-guard-refuses-malformed"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    (spec_dir / "plan.md").write_text("# Plan\n\nNo status line here.\n")
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "PLAN-HUMAN-GATE"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-approved")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero for malformed plan.md")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_plan_locked_guard_code_approved(tmp: Path) -> None:
+    """plan-locked (code mode): spec Status=Approved + schedule → CODE-IMPLEMENTATION."""
+    name = "plan-locked-guard-code-approved"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-APPROVED"))
+    write_cohort_state(spec_dir, approved_with_schedule_cohort_state(spec_dir, run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "CODE-IMPLEMENTATION":
+        fail(name, f"expected CODE-IMPLEMENTATION; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_plan_locked_guard_spec_plan_approved(tmp: Path) -> None:
+    """plan-locked (spec-plan): spec Status=Approved + plan check-current → succeeds → DONE."""
+    name = "plan-locked-guard-spec-plan-approved"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-APPROVED")
+    )
+    write_cohort_state(spec_dir, approved_cohort_state(spec_dir, run_id, name))
+    rc, _, err = run_engine("transition", str(spec_dir), "plan-locked")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "DONE":
+        fail(name, f"expected DONE; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+def test_plan_locked_guard_refuses_wrong_spec_status(tmp: Path) -> None:
+    """plan-locked guard: refuses when spec.md Status != Approved (non-zero, no mutation)."""
+    name = "plan-locked-guard-refuses-wrong-spec-status"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Draft")  # not Approved
+    write_plan(spec_dir)
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-APPROVED"))
+    write_cohort_state(spec_dir, approved_with_schedule_cohort_state(spec_dir, run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-locked")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when spec.md Status != Approved")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_plan_locked_guard_code_requires_schedule(tmp: Path) -> None:
+    """plan-locked guard (code mode): fails when no schedule (--require-schedule check)."""
+    name = "plan-locked-guard-code-requires-schedule"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    # approved but no schedule_waves
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "SPEC-PLAN-APPROVED"))
+    write_cohort_state(spec_dir, approved_cohort_state(spec_dir, run_id, name))
+    path = spec_dir / "engine-state.json"
+    before = path.read_bytes()
+    rc, _, _ = run_engine("transition", str(spec_dir), "plan-locked")
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when no schedule (code mode --require-schedule)")
+    elif before != after:
+        fail(name, "engine-state.json mutated despite guard failure")
+    else:
+        ok(name)
+
+
+def test_reviewers_clean_still_requires_shipped(tmp: Path) -> None:
+    """reviewers-clean guard on CODE-REVIEW → CODE-HUMAN-GATE still requires Status: Shipped."""
+    name = "reviewers-clean-still-requires-shipped"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Approved")  # not Shipped
+    write_plan(spec_dir)
+    spec_hash = sha256_file(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
+        "plan_review_status": "approved",
+        "approved_spec_hash": spec_hash,
+        "approved_plan_hash": plan_hash,
+        "plan_hash": plan_hash,
+        "schedule_waves": [["T1"]],
+        "current_wave_index": 0,
+    }))
+    rc, _, _ = run_engine("transition", str(spec_dir), "reviewers-clean")
+    if rc == 0:
+        fail(name, "expected non-zero when spec.md Status != Shipped (CODE-REVIEW source)")
+    else:
+        ok(name)
+
+
+def test_check_spec_status_expect_approved_spec_md(tmp: Path) -> None:
+    """check-spec-status --expect Approved exits 0 when spec.md Status: Approved."""
+    name = "check-spec-status-expect-approved-spec-md"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n- [ ] AC1\n"
+    )
+    rc, out, _ = run_check_spec_status(str(spec_dir), "--expect", "Approved")
+    if rc != 0:
+        fail(name, f"expected exit 0 for --expect Approved with Status: Approved; got {rc}")
+    elif "Approved" not in out:
+        fail(name, f"expected 'Approved' in stdout; got {out!r}")
+    else:
+        ok(name)
+
+
+def test_check_spec_status_expect_approved_plan_md(tmp: Path) -> None:
+    """check-spec-status --file plan.md --expect Approved exits 0 when plan.md Status: Approved."""
+    name = "check-spec-status-expect-approved-plan-md"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "plan.md").write_text(
+        "# Plan\n\n- **Status:** Approved\n\n### T1\n\n**Depends on:** none\n"
+    )
+    rc, out, _ = run_check_spec_status(
+        str(spec_dir), "--expect", "Approved", "--file", "plan.md"
+    )
+    if rc != 0:
+        fail(name, f"expected exit 0 for --file plan.md --expect Approved; got {rc}")
+    elif "Approved" not in out:
+        fail(name, f"expected 'Approved' in stdout; got {out!r}")
+    else:
+        ok(name)
+
+
+def test_check_spec_status_expect_shipped_spec_md(tmp: Path) -> None:
+    """check-spec-status --expect Shipped exits 0 when spec.md Status: Shipped."""
+    name = "check-spec-status-expect-shipped-spec-md"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Shipped\n\n## Acceptance criteria\n\n- [x] AC1\n"
+    )
+    rc, out, _ = run_check_spec_status(str(spec_dir), "--expect", "Shipped")
+    if rc != 0:
+        fail(name, f"expected exit 0 for --expect Shipped with Status: Shipped; got {rc}")
+    elif "Shipped" not in out:
+        fail(name, f"expected 'Shipped' in stdout; got {out!r}")
+    else:
+        ok(name)
+
+
+def test_check_spec_status_no_flags_defaults_shipped_spec_md(tmp: Path) -> None:
+    """check-spec-status bare invocation defaults to --expect Shipped --file spec.md."""
+    name = "check-spec-status-no-flags-defaults"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Shipped\n\n## Acceptance criteria\n\n- [x] AC1\n"
+    )
+    rc, out, _ = run_check_spec_status(str(spec_dir))  # no --expect or --file
+    if rc != 0:
+        fail(name, f"expected exit 0 for bare invocation with Status: Shipped; got {rc}")
+    elif "Shipped" not in out:
+        fail(name, f"expected 'Shipped' in stdout; got {out!r}")
+    else:
+        ok(name)
+
+
 # ── runner ────────────────────────────────────────────────────────────────
 
 
@@ -1997,6 +2824,49 @@ def main() -> int:
             test_reviewers_clean_record_forms_present,
             test_reviewers_clean_no_silent_replay,
             test_reviewers_clean_skill_prose_obligations,
+            # T4 legacy compat tests
+            test_legacy_code_impl_plan_approved_readable,
+            test_legacy_done_plan_approved_readable,
+            # T2 new-gate tests
+            test_legal_reviewers_clean_to_spec_human_gate,
+            test_legal_spec_approved_to_plan_human_gate_code,
+            test_legal_spec_approved_to_plan_human_gate_spec_plan,
+            test_legal_plan_approved_to_spec_plan_approved_code,
+            test_legal_plan_approved_to_spec_plan_approved_spec_plan,
+            test_legal_plan_locked_code,
+            test_legal_plan_locked_spec_plan,
+            test_legal_spec_rejected,
+            test_legal_plan_rejected,
+            test_illegal_plan_approved_from_spec_human_gate,
+            test_illegal_plan_rejected_from_spec_human_gate,
+            test_illegal_spec_approved_from_plan_human_gate,
+            test_illegal_spec_rejected_from_plan_human_gate,
+            test_illegal_spec_approved_from_spec_plan_approved,
+            test_illegal_plan_locked_from_human_gates,
+            test_illegal_plan_locked_from_code_states,
+            test_illegal_wave_events_from_spec_plan_approved,
+            test_spec_human_gate_pending_human_wait_true,
+            test_plan_human_gate_pending_human_wait_true,
+            test_spec_plan_approved_pending_human_wait_false,
+            test_spec_approved_fields,
+            test_plan_approved_fields,
+            test_spec_approved_guard_accepts_approved,
+            test_spec_approved_guard_refuses_draft,
+            test_spec_approved_guard_refuses_implementing,
+            test_spec_approved_guard_refuses_malformed,
+            test_plan_approved_guard_accepts_approved,
+            test_plan_approved_guard_refuses_drafting,
+            test_plan_approved_guard_refuses_done,
+            test_plan_approved_guard_refuses_malformed,
+            test_plan_locked_guard_code_approved,
+            test_plan_locked_guard_spec_plan_approved,
+            test_plan_locked_guard_refuses_wrong_spec_status,
+            test_plan_locked_guard_code_requires_schedule,
+            test_reviewers_clean_still_requires_shipped,
+            test_check_spec_status_expect_approved_spec_md,
+            test_check_spec_status_expect_approved_plan_md,
+            test_check_spec_status_expect_shipped_spec_md,
+            test_check_spec_status_no_flags_defaults_shipped_spec_md,
         ]
         for t in tests:
             try:
