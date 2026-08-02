@@ -57,11 +57,24 @@ tool. Run `loop-cohort reset` and re-init.
 | `run_id` | Same UUID as `state.json.run_id`. Set at `loop-engine init`. |
 | `feature` | Spec directory name. |
 | `mode` | `code` or `spec-plan`. Fixed at init; drives FSM table selection. |
-| `state` | Current FSM state (e.g. `SPEC-PLAN-DRAFTING`, `CODE-IMPLEMENTATION`, `DONE`). |
-| `last_event` | Most recent FSM event (informational). |
+| `state` | Current FSM state. Legal values: `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`, `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`, `DONE`. |
+| `last_event` | Most recent FSM event. Legal values: `spec-ready`, `reviewers-clean`, `spec-approved`, `spec-rejected`, `plan-approved`, `plan-rejected`, `plan-locked`, `wave-complete`, `wave-passed`, `gates-clean`, `gates-failed`, `findings-remain`, `blocker-applied`, `done`. |
 | `last_event_context` | Event-specific payload; `{completed_wave_index: N}` for `wave-passed`. |
 | `transition_sequence` | Monotonically increasing counter, incremented on every successful transition. |
 | `last_transition_at` | ISO-8601 UTC timestamp of the last transition. |
+
+**Human-wait states.** `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, and `CODE-HUMAN-GATE`
+are in `_HUMAN_WAIT_STATES`; `loop-engine status` reports `pending_human_wait: true`
+while in any of these states. `SPEC-PLAN-APPROVED` is **not** in `_HUMAN_WAIT_STATES`
+— it is a durable intermediate state reached after both approvals, allowing the agent
+to proceed to cohort operations without another human signal.
+
+**Key event semantics:**
+- `spec-approved` — scope decision accepted; fires from `SPEC-HUMAN-GATE`; guard: `spec.md Status == Approved`.
+- `plan-approved` — build-strategy accepted; fires from `PLAN-HUMAN-GATE`; guard: `plan.md Status == Approved`.
+- `plan-locked` — approved baseline sealed; fires from `SPEC-PLAN-APPROVED`; guard (code mode): `spec.md Status == Approved` + `plan check-current --require-schedule`; guard (spec-plan mode): `spec.md Status == Approved` + `plan check-current`.
+- `spec-rejected` — scope rejected; fires from `SPEC-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
+- `plan-rejected` — build strategy rejected; fires from `PLAN-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
 
 **Exit contract — `check`.** `loop-cohort check --phase <phase>` exits 0 when
 the phase is satisfied and non-zero when it isn't, with a one-line reason on
@@ -70,8 +83,8 @@ stderr. Treat non-zero as "stop and surface."
 **Exit contract — `plan check-current`.** A separate read-only verb with its
 own contract: exits 1 with `plan_review_status: pending` during PLAN (the
 expected cue to run pre-EXECUTE reviewers — not a stop signal), and exits 0
-after the G-plan sequence completes (`approve-plan` → `schedule` →
-`loop-engine transition plan-approved`).
+after the G-plan sequence completes (`spec-approved` → `plan-approved` →
+`approve-plan` → (code mode) `schedule` → `plan-locked`).
 
 **Stasis.** Detected via `review inspect --json` returning
 `matches_previous_round: true`. Surface immediately; do not run `check`.

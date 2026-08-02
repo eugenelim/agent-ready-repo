@@ -143,32 +143,65 @@ After orientation:
     python scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
     ```
 
-12. **Full mode:** the **G-plan sequence** — run in order after the human writes `Status: Approved` in spec.md. Branch by the mode used at init:
+12. **Full mode:** the **G-plan sequence** — two human approvals required, run in order. Branch by the mode used at init:
 
     **`code` mode** (implementation work):
-    ```
+    ```bash
+    # 1. Spec approver writes Status: Approved in spec.md.
+    python scripts/loop-engine.py transition docs/specs/<feature> spec-approved
+    # → PLAN-HUMAN-GATE; pending_human_wait: true
+
+    # 2. Plan approver writes Status: Approved in plan.md.
+    python scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+    # → SPEC-PLAN-APPROVED; pending_human_wait: false
+
+    # 3. Cohort records the approved baseline:
     python scripts/loop-cohort.py approve-plan docs/specs/<feature> \
         --expect-run-id <run_id>
+
+    # 4. Schedule waves:
     python scripts/loop-cohort.py schedule docs/specs/<feature> \
         --expect-run-id <run_id>
-    python scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+
+    # 5. Seal and hand off:
+    python scripts/loop-engine.py transition docs/specs/<feature> plan-locked
+    # → CODE-IMPLEMENTATION; write Status: Implementing before any code
     ```
-    `loop-engine transition plan-approved` verifies approval + schedule binding (`plan check-current --require-schedule`). Exit 0 unlocks EXECUTE.
 
     **`spec-plan` mode** (spec/plan-only work — no implementation tasks):
-    ```
+    ```bash
+    # 1. Spec approver writes Status: Approved in spec.md.
+    python scripts/loop-engine.py transition docs/specs/<feature> spec-approved
+    # → PLAN-HUMAN-GATE
+
+    # 2. Plan approver writes Status: Approved in plan.md.
+    python scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+    # → SPEC-PLAN-APPROVED
+
+    # 3. Cohort records baseline:
     python scripts/loop-cohort.py approve-plan docs/specs/<feature> \
         --expect-run-id <run_id>
-    python scripts/loop-engine.py transition docs/specs/<feature> plan-approved
+
+    # 4. Seal (no schedule in spec-plan mode):
+    python scripts/loop-engine.py transition docs/specs/<feature> plan-locked
+    # → DONE; retain Status: Approved in both files
     ```
-    `plan-approved` transitions directly to `DONE` in `spec-plan` mode — do not run `schedule` and do not continue to EXECUTE. The loop ends here.
+
+    `spec-approved` = the scope decision. `plan-approved` = the build-strategy decision. `plan-locked` = baseline sealed, ready for implementation.
 
     Any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
-    **If the human rejects the plan:** fire `plan-rejected` to return to SPEC-PLAN-DRAFTING, revise the spec/plan (bump `Status: Draft`), then fire `spec-ready` to re-enter the review state before the next reviewer pass (same as step 11):
+    **If the spec is rejected:** fire `spec-rejected` from `SPEC-HUMAN-GATE` → `SPEC-PLAN-DRAFTING`; revise spec/plan, bump both to `Draft`/`Drafting`, fire `spec-ready`:
+    ```
+    python scripts/loop-engine.py transition docs/specs/<feature> spec-rejected
+    # → SPEC-PLAN-DRAFTING; revise spec/plan, bump Status: Draft / Drafting
+    python scripts/loop-engine.py transition docs/specs/<feature> spec-ready
+    ```
+
+    **If the plan is rejected:** fire `plan-rejected` from `PLAN-HUMAN-GATE` → `SPEC-PLAN-DRAFTING`, revise the spec/plan (bump both `Status: Draft` / `Drafting`), then fire `spec-ready`:
     ```
     python scripts/loop-engine.py transition docs/specs/<feature> plan-rejected
-    # ... revise spec/plan, bump Status: Draft ...
+    # → SPEC-PLAN-DRAFTING; revise spec/plan, bump Status: Draft / Drafting
     python scripts/loop-engine.py transition docs/specs/<feature> spec-ready
     ```
 
@@ -494,8 +527,13 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
 
    | `last_event` | `state` | Action |
    |---|---|---|
-   | `plan-approved` | `CODE-IMPLEMENTATION` | Write `Status: Implementing` if not set; resume EXECUTE |
-   | `plan-approved` | `DONE` | **spec-plan terminal** — loop ended after plan approval. PR/merge only. **To start a later code run on the same spec:** Surface to human — confirm intent, then run the reset pair (`loop-engine reset docs/specs/<feature>` then `loop-cohort reset docs/specs/<feature>`) and re-init with `--mode code` |
+   | `reviewers-clean` | `SPEC-HUMAN-GATE` | Waiting for spec approval. Spec approver writes `Status: Approved` in spec.md, then fire `spec-approved`. |
+   | `spec-approved` | `PLAN-HUMAN-GATE` | Spec approved. Waiting for plan approval. Plan approver writes `Status: Approved` in plan.md, then fire `plan-approved`. |
+   | `plan-approved` | `SPEC-PLAN-APPROVED` | Both approved. Proceed to cohort operations: `approve-plan` + (code mode) `schedule` + `plan-locked`. No second human signal needed. |
+   | `plan-locked` | `CODE-IMPLEMENTATION` | New-sequence code run. EXECUTE proceeds normally. Write `Status: Implementing` before code. |
+   | `plan-locked` | `DONE` | New-sequence spec-plan terminal. No further action required. |
+   | `plan-approved` | `CODE-IMPLEMENTATION` | **(legacy)** Pre-split run. Recognized as valid legacy code-mode run; ensure `Status: Implementing` before EXECUTE continues. |
+   | `plan-approved` | `DONE` | **(legacy)** Pre-split spec-plan terminal. Valid terminal state; no destructive reset required. |
    | `done` | `DONE` | **code-mode terminal** — loop ended after human approved merge; PR/merge only |
    | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `python scripts/loop-cohort.py wave advance docs/specs/<feature> --from-index <last_event_context.completed_wave_index> --expect-run-id <run_id>` (idempotent); resume EXECUTE |
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `python scripts/loop-cohort.py record-attempt docs/specs/<feature> --phase implement --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` where `transition_sequence` was read from `loop-engine status` in step 3 (idempotent); resume EXECUTE |
@@ -505,5 +543,23 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `wave-complete` | `CODE-VERIFICATION` | Re-run gates; fire `wave-passed` or `gates-clean` or `gates-failed` |
    | `gates-clean` | `CODE-REVIEW` | Re-run reviewer fan-out and `review inspect` |
 
-6. States in `{SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-PLAN-HUMAN-GATE}` →
-   resume spec/plan work per skill prose; no pending cohort mutation in Phase 1.
+6. States in `{SPEC-PLAN-DRAFTING, SPEC-PLAN-REVIEW, SPEC-HUMAN-GATE, PLAN-HUMAN-GATE}` →
+   resume spec/plan work per skill prose; no pending cohort mutation in Phase 1. A run
+   parked at `state: SPEC-PLAN-HUMAN-GATE` (pre-upgrade engine-state.json) returns
+   "illegal transition" on every event — the state no longer exists in the FSM table.
+   To recover: run `loop-cohort reset docs/specs/<feature>` then `loop-engine reset
+   docs/specs/<feature>` and re-init on the new two-gate sequence; spec.md and plan.md
+   are preserved.
+
+**Light-mode resumption** (no `engine-state.json`; spec has `Mode: light (no risk trigger fired)`):
+
+| spec `Status` | Resume at |
+|---|---|
+| `Draft` | resume PLAN. |
+| `Approved` | Resume at Step 2 EXECUTE. Write `Status: Implementing` before any code change. |
+| `Implementing` | Reconstruct progress from the task list and working tree. |
+| `Shipped` / `Archived` | Terminal. No further work needed. |
+
+**If `engine-state.json` is present**: use the full-mode protocol even if spec Status is `Approved`. Never infer light mode from spec Status alone when engine state files exist.
+
+**Ambiguous** (no `Mode: light` line AND no `engine-state.json`): surface to the human rather than guessing.

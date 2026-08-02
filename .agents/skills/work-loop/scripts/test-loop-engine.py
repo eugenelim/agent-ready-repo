@@ -1979,6 +1979,65 @@ def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
         ok("reviewers-clean-skill-prose-obligations")
 
 
+# ── T4: legacy compat tests ───────────────────────────────────────────────
+
+
+def test_legacy_code_impl_plan_approved_readable(tmp: Path) -> None:
+    """engine-state.json with state=CODE-IMPLEMENTATION, last_event=plan-approved
+    → loop-engine status exits 0 (legacy pre-split run recognized as readable)."""
+    name = "legacy-code-impl-plan-approved-readable"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, {
+        **minimal_engine_state(run_id, name, "code", "CODE-IMPLEMENTATION"),
+        "last_event": "plan-approved",
+        "transition_sequence": 4,
+    })
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail(name, f"status --json not valid JSON: {out!r}")
+        return
+    if data.get("state") != "CODE-IMPLEMENTATION":
+        fail(name, f"expected state=CODE-IMPLEMENTATION; got {data.get('state')!r}")
+    elif data.get("last_event") != "plan-approved":
+        fail(name, f"expected last_event=plan-approved; got {data.get('last_event')!r}")
+    else:
+        ok(name)
+
+
+def test_legacy_done_plan_approved_readable(tmp: Path) -> None:
+    """engine-state.json with state=DONE, last_event=plan-approved
+    → loop-engine status exits 0 (legacy pre-split spec-plan terminal recognized)."""
+    name = "legacy-done-plan-approved-readable"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_engine_state(spec_dir, {
+        **minimal_engine_state(run_id, name, "spec-plan", "DONE"),
+        "last_event": "plan-approved",
+        "transition_sequence": 3,
+    })
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+    if rc != 0:
+        fail(name, f"expected exit 0; got {rc}: {err.strip()}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        fail(name, f"status --json not valid JSON: {out!r}")
+        return
+    if data.get("state") != "DONE":
+        fail(name, f"expected state=DONE; got {data.get('state')!r}")
+    elif data.get("last_event") != "plan-approved":
+        fail(name, f"expected last_event=plan-approved; got {data.get('last_event')!r}")
+    else:
+        ok(name)
+
+
 # ── T2 new-gate tests ─────────────────────────────────────────────────────
 
 
@@ -2765,6 +2824,9 @@ def main() -> int:
             test_reviewers_clean_record_forms_present,
             test_reviewers_clean_no_silent_replay,
             test_reviewers_clean_skill_prose_obligations,
+            # T4 legacy compat tests
+            test_legacy_code_impl_plan_approved_readable,
+            test_legacy_done_plan_approved_readable,
             # T2 new-gate tests
             test_legal_reviewers_clean_to_spec_human_gate,
             test_legal_spec_approved_to_plan_human_gate_code,
