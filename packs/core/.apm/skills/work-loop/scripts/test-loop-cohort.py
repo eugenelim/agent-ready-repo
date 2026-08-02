@@ -84,10 +84,16 @@ def write_spec(spec_dir: Path, status: str = "Draft") -> Path:
     return p
 
 
-def write_plan(spec_dir: Path, content: str | None = None) -> Path:
+def write_plan(
+    spec_dir: Path, content: str | None = None, status: str | None = "Approved"
+) -> Path:
     p = spec_dir / "plan.md"
     if content is None:
-        content = "# Plan\n\n### T1\n\n**Depends on:** none\n\n### T2\n\n**Depends on:** T1\n"
+        status_line = f"- **Status:** {status}\n\n" if status is not None else ""
+        content = (
+            f"# Plan\n\n{status_line}### T1\n\n**Depends on:** none\n\n"
+            "### T2\n\n**Depends on:** T1\n"
+        )
     p.write_text(content, encoding="utf-8")
     return p
 
@@ -347,7 +353,7 @@ def test_status_null_to_value_transition(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
 
     rc, out, _ = run_cohort("status", str(spec_dir), "--json")
@@ -406,7 +412,7 @@ def test_approve_plan_writes_hashes(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     rc, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     if rc != 0:
@@ -428,7 +434,7 @@ def test_approve_plan_run_id_mismatch(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     path = spec_dir / "state.json"
     before = path.read_bytes()
@@ -448,7 +454,7 @@ def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir, status="Draft")
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     # First approve-plan: pending → approved
     rc1, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
@@ -458,7 +464,7 @@ def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
     path = spec_dir / "state.json"
     before = path.read_bytes()
     # Spec bytes change (status edit) → second approve-plan must refuse
-    write_spec(spec_dir, status="Approved")
+    write_spec(spec_dir, status="Implementing")
     rc2, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc2 == 0:
@@ -477,7 +483,7 @@ def test_plan_check_current_not_approved(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
     if rc == 0:
@@ -493,7 +499,7 @@ def test_plan_check_current_changed_spec(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     # Change spec.md after approval
@@ -510,7 +516,7 @@ def test_plan_check_current_changed_plan(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     # Change plan.md after approval
@@ -527,7 +533,7 @@ def test_plan_check_current_require_schedule_no_schedule(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     # No schedule run yet
@@ -555,7 +561,7 @@ def test_plan_check_current_absent_files_spec_plan_mode(tmp: Path) -> None:
         fail(name, "expected non-zero when spec.md absent")
         return
 
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     # No plan.md
     rc2, _, _ = run_cohort("plan", "check-current", str(spec_dir))
     if rc2 == 0:
@@ -572,7 +578,7 @@ def test_schedule_check_current_refuses_on_change(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
@@ -590,7 +596,7 @@ def test_schedule_check_current_passes_unchanged(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
@@ -609,7 +615,7 @@ def test_schedule_persists_waves(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     rc, _, _ = run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
@@ -632,7 +638,7 @@ def test_schedule_run_id_mismatch(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     path = spec_dir / "state.json"
     before = path.read_bytes()
@@ -652,7 +658,7 @@ def test_schedule_rejects_alternate_plan_path(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     # Create an alternate plan file somewhere else
     alt_plan = tmp / "other_plan.md"
@@ -1636,7 +1642,8 @@ def test_schedule_accepts_level2_task_headings(tmp: Path) -> None:
     run_cohort("init", str(spec_dir), "--run-id", run_id)
     write_spec(spec_dir, status="Approved")
     level2_plan = (
-        "# Plan\n\n## T1\n\n**Depends on:** none\n\n## T2\n\n**Depends on:** T1\n"
+        "# Plan\n\n- **Status:** Approved\n\n"
+        "## T1\n\n**Depends on:** none\n\n## T2\n\n**Depends on:** T1\n"
     )
     write_plan(spec_dir, content=level2_plan)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
@@ -1656,7 +1663,7 @@ def test_approve_plan_first_write(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     rc, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     if rc != 0:
@@ -1679,7 +1686,7 @@ def test_approve_plan_idempotent_no_op(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
@@ -1702,7 +1709,7 @@ def test_approve_plan_refuses_changed_spec(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
@@ -1727,7 +1734,7 @@ def test_approve_plan_refuses_changed_plan(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
@@ -1746,13 +1753,57 @@ def test_approve_plan_refuses_changed_plan(tmp: Path) -> None:
         ok(name)
 
 
+def test_approve_plan_refuses_unapproved_spec(tmp: Path) -> None:
+    """approve-plan on first call must refuse if spec.md does not have Status: Approved."""
+    name = "approve-plan-refuses-unapproved-spec"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, _, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when spec.md has Status: Draft")
+    elif before != after:
+        fail(name, "state.json was mutated despite unapproved spec (crash-window guard)")
+    elif "expected Approved" not in err:
+        fail(name, f"expected 'expected Approved' in stderr; got {err!r}")
+    else:
+        ok(name)
+
+
+def test_approve_plan_refuses_unapproved_plan(tmp: Path) -> None:
+    """approve-plan on first call must refuse if plan.md does not have Status: Approved."""
+    name = "approve-plan-refuses-unapproved-plan"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir, status=None)  # no Status field — simulates plan reverted in crash window
+    path = spec_dir / "state.json"
+    before = path.read_bytes()
+    rc, _, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    after = path.read_bytes()
+    if rc == 0:
+        fail(name, "expected non-zero when plan.md has no Status: Approved")
+    elif before != after:
+        fail(name, "state.json was mutated despite unapproved plan (crash-window guard)")
+    elif "expected Approved" not in err:
+        fail(name, f"expected 'expected Approved' in stderr; got {err!r}")
+    else:
+        ok(name)
+
+
 def test_approve_plan_refuses_run_id_mismatch(tmp: Path) -> None:
     """run_id mismatch when already approved → non-zero, no mutation (AC5)."""
     name = "approve-plan-refuses-run-id-mismatch"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     # First call: transitions to approved
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
@@ -1775,7 +1826,7 @@ def test_approve_plan_state_preserved_on_refusal(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
@@ -1790,7 +1841,7 @@ def test_approve_plan_state_preserved_on_refusal(tmp: Path) -> None:
     # Scenario B: changed plan after approval (reset first)
     run_cohort("reset", str(spec_dir))
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     write_plan(spec_dir, content="# Plan changed\n\n### T1\n\n**Depends on:** none\n")
@@ -1832,7 +1883,7 @@ def test_cohort_status_json_includes_plan_review_status_approved(tmp: Path) -> N
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     rc, out, _ = run_cohort("status", str(spec_dir), "--json")
@@ -1859,7 +1910,7 @@ def test_crash_after_plan_approved_before_approve_plan(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     # Cohort state: plan_review_status="pending" (initial after init) — approve-plan not run yet
     rc, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
@@ -1880,7 +1931,7 @@ def test_crash_after_approve_plan_before_schedule(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     # First approve-plan: records hashes
     run_cohort("approve-plan", str(spec_dir), "--run-id", run_id)
@@ -1915,7 +1966,7 @@ def test_crash_after_schedule_before_plan_locked(tmp: Path) -> None:
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
     run_cohort("init", str(spec_dir), "--run-id", run_id)
-    write_spec(spec_dir)
+    write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
@@ -2048,6 +2099,8 @@ def main() -> int:
             test_approve_plan_idempotent_no_op,
             test_approve_plan_refuses_changed_spec,
             test_approve_plan_refuses_changed_plan,
+            test_approve_plan_refuses_unapproved_spec,
+            test_approve_plan_refuses_unapproved_plan,
             test_approve_plan_refuses_run_id_mismatch,
             test_approve_plan_state_preserved_on_refusal,
             test_cohort_status_json_includes_plan_review_status_pending,

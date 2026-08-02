@@ -58,7 +58,7 @@ tool. Run `loop-cohort reset` and re-init.
 | `feature` | Spec directory name. |
 | `mode` | `code` or `spec-plan`. Fixed at init; drives FSM table selection. |
 | `state` | Current FSM state. Legal values: `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`, `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`, `DONE`. |
-| `last_event` | Most recent FSM event. Legal values: `spec-ready`, `reviewers-clean`, `spec-approved`, `spec-rejected`, `plan-approved`, `plan-rejected`, `plan-locked`, `wave-complete`, `wave-passed`, `gates-clean`, `gates-failed`, `findings-remain`, `blocker-applied`, `done`. |
+| `last_event` | Most recent FSM event. Legal values: `null` (initial state before any transition), `spec-ready`, `reviewers-clean`, `spec-approved`, `spec-rejected`, `plan-approved`, `plan-rejected`, `plan-locked`, `wave-complete`, `wave-passed`, `gates-clean`, `gates-failed`, `findings-remain`, `blocker-applied`, `done`. |
 | `last_event_context` | Event-specific payload; `{completed_wave_index: N}` for `wave-passed`. |
 | `transition_sequence` | Monotonically increasing counter, incremented on every successful transition. |
 | `last_transition_at` | ISO-8601 UTC timestamp of the last transition. |

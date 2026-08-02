@@ -43,6 +43,7 @@ import contextlib
 import fnmatch
 import glob as _glob
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -494,6 +495,33 @@ def cmd_reset(args: argparse.Namespace) -> int:
 
 # ── approve-plan ──────────────────────────────────────────────────────────
 
+# Lazy reference to parse_status from the sibling lint-spec-status.py so both
+# tools share one canonical parser implementation (handles Approved<!-- -->
+# and other annotated statuses correctly).
+_parse_status_fn: object | None = None
+
+
+def _get_parse_status():
+    global _parse_status_fn
+    if _parse_status_fn is None:
+        lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
+        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"loop-cohort: cannot load {lint_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _parse_status_fn = module.parse_status
+    return _parse_status_fn
+
+
+def _read_md_status(path: Path) -> str | None:
+    """Return the canonical status token from a markdown file, or None."""
+    try:
+        text = path.read_text(encoding="utf-8")
+        return _get_parse_status()(text)
+    except (OSError, ImportError):
+        return None
+
 
 def cmd_approve_plan(args: argparse.Namespace) -> int:
     try:
@@ -532,6 +560,24 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         return stop(
             f"approve-plan: artifact changed since approval — "
             f"spec_changed={spec_changed}, plan_changed={plan_changed}"
+        )
+
+    # Crash-window guard: verify that both spec.md and plan.md still carry
+    # Status: Approved before recording the baseline.  This detects the common
+    # crash-window scenario (a file reverted to an earlier status while
+    # plan_review_status was still "pending") but does NOT detect content
+    # changes that leave the Status token unchanged.
+    spec_status = _read_md_status(spec_path)
+    if spec_status != "Approved":
+        return stop(
+            f"approve-plan: spec.md Status is {spec_status!r}; expected Approved "
+            "(files may have changed in the crash window after plan-approved)"
+        )
+    plan_status = _read_md_status(plan_path)
+    if plan_status != "Approved":
+        return stop(
+            f"approve-plan: plan.md Status is {plan_status!r}; expected Approved "
+            "(files may have changed in the crash window after plan-approved)"
         )
 
     state["plan_review_status"] = "approved"

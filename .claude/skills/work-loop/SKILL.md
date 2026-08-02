@@ -155,7 +155,11 @@ After orientation:
     python scripts/loop-engine.py transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED; pending_human_wait: false
 
-    # 3. Cohort records the approved baseline:
+    # 3. Cohort records the approved baseline — call immediately after
+    #    plan-approved; do not modify spec.md or plan.md between these two steps.
+    #    On crash-resume from SPEC-PLAN-APPROVED: call approve-plan first; it
+    #    refuses if either file's Status field is no longer Approved (status-field
+    #    guard), and is a no-op when both statuses and all hashes are unchanged.
     python scripts/loop-cohort.py approve-plan docs/specs/<feature> \
         --expect-run-id <run_id>
 
@@ -178,7 +182,9 @@ After orientation:
     python scripts/loop-engine.py transition docs/specs/<feature> plan-approved
     # → SPEC-PLAN-APPROVED
 
-    # 3. Cohort records baseline:
+    # 3. Cohort records baseline — call immediately after plan-approved;
+    #    do not modify spec.md or plan.md between these two steps.
+    #    On crash-resume: call approve-plan first (refuses if changed, no-op if not).
     python scripts/loop-cohort.py approve-plan docs/specs/<feature> \
         --expect-run-id <run_id>
 
@@ -522,7 +528,7 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    `loop-cohort status docs/specs/<feature> --json` → read `current_wave_index`,
    `schedule_waves`, `review_retry_count`, `implementation_retry_count`.
 4. If `pending_human_wait` is true, inspect the persisted artifact status before deciding whether to wait:
-   - **`SPEC-HUMAN-GATE`** — read `spec.md` Status: `Draft` → continue waiting; `Approved` → fire `spec-approved` immediately (crash-recovery: approver wrote Approved before the session ended); `Implementing` or `Shipped` → **Surface and stop** (spec advanced past approval without completing the plan gate — describe the state and wait for direction).
+   - **`SPEC-HUMAN-GATE`** — read `spec.md` Status: `Draft` → continue waiting; `Approved` → fire `spec-approved` immediately (crash-recovery: approver wrote Approved before the session ended); `Implementing` or `Shipped` → **Surface and stop** (spec advanced past approval without completing the plan gate — describe the state and wait for direction); `Archived` → **Surface and stop** (terminal — this spec will not proceed through the approval gates).
    - **`PLAN-HUMAN-GATE`** — read `plan.md` Status: `Drafting` → continue waiting; `Approved` → fire `plan-approved` immediately (crash-recovery); `Executing` or `Done` → **Surface and stop** (plan advanced past approval state).
    - **`CODE-HUMAN-GATE`** → wait for the human merge decision; no artifact to inspect.
 5. Route by `last_event` to pick up where the session left off:
@@ -533,9 +539,9 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    | `spec-approved` | `PLAN-HUMAN-GATE` | Apply step 4 plan-gate check first. If `Drafting`: wait — plan approver writes `Status: Approved` in plan.md, then fire `plan-approved`. |
    | `plan-approved` | `SPEC-PLAN-APPROVED` | Both approved. Proceed to cohort operations: `approve-plan` + (code mode) `schedule` + `plan-locked`. No second human signal needed. |
    | `plan-locked` | `CODE-IMPLEMENTATION` | New-sequence code run. EXECUTE proceeds normally. Write `Status: Implementing` before code. |
-   | `plan-locked` | `DONE` | New-sequence spec-plan terminal. No further action required. |
+   | `plan-locked` | `DONE` | Spec-plan terminal. If implementation is later requested: **Surface** — describe the destructive reset and wait for explicit confirmation, then `loop-cohort reset` + `loop-engine reset`, then re-init with `--mode code` (spec.md and plan.md are preserved). |
    | `plan-approved` | `CODE-IMPLEMENTATION` | **(legacy)** Pre-split run. Recognized as valid legacy code-mode run; ensure `Status: Implementing` before EXECUTE continues. |
-   | `plan-approved` | `DONE` | **(legacy)** Pre-split spec-plan terminal. Valid terminal state; no destructive reset required. |
+   | `plan-approved` | `DONE` | **(legacy)** Pre-split spec-plan terminal. If implementation is later requested: **Surface** — describe the destructive reset and wait for explicit confirmation, then `loop-cohort reset` + `loop-engine reset`, then re-init with `--mode code` (spec.md and plan.md are preserved). |
    | `done` | `DONE` | **code-mode terminal** — loop ended after human approved merge; PR/merge only |
    | `wave-passed` | `CODE-IMPLEMENTATION` | Re-issue `python scripts/loop-cohort.py wave advance docs/specs/<feature> --from-index <last_event_context.completed_wave_index> --expect-run-id <run_id>` (idempotent); resume EXECUTE |
    | `gates-failed` | `CODE-IMPLEMENTATION` | Re-issue `python scripts/loop-cohort.py record-attempt docs/specs/<feature> --phase implement --cycle-id <run_id>:<transition_sequence> --expect-run-id <run_id>` where `transition_sequence` was read from `loop-engine status` in step 3 (idempotent); resume EXECUTE |
@@ -549,9 +555,11 @@ When `engine-state.json` is present, do **not** call `loop-engine init`. Instead
    resume spec/plan work per skill prose; no pending cohort mutation in Phase 1. A run
    parked at `state: SPEC-PLAN-HUMAN-GATE` (pre-upgrade engine-state.json) returns
    "illegal transition" on every event — the state no longer exists in the FSM table.
-   To recover: run `loop-cohort reset docs/specs/<feature>` then `loop-engine reset
-   docs/specs/<feature>` and re-init on the new two-gate sequence; spec.md and plan.md
-   are preserved.
+   **Surface** this to the human: describe the legacy state, explain that the following
+   reset will delete `state.json` and `engine-state.json` (retry/review progress lost;
+   spec.md and plan.md are preserved), and wait for explicit confirmation before
+   proceeding. Then: `loop-cohort reset docs/specs/<feature>` → `loop-engine reset
+   docs/specs/<feature>` → re-init on the new two-gate sequence.
 
 **Light-mode resumption** (no `engine-state.json`; spec has `Mode: light (no risk trigger fired)`):
 

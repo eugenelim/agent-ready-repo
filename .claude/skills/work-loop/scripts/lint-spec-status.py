@@ -66,6 +66,14 @@ CANONICAL_STATUSES: frozenset[str] = frozenset(
 
 # Header status line, e.g. `- **Status:** Shipped (2026-05-26)`.
 _STATUS_RE = re.compile(r"\*\*Status:\*\*\s*(.+?)\s*$")
+# ATX section heading at level ≥2: 0–3 optional spaces, two or more #, then
+# a space/tab or end-of-line.  CommonMark (spec §4.2) allows up to three
+# leading spaces before the opening #s; four spaces would be a code block.
+_SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
+# Inline HTML comment span.  Stripped before status-token search so that
+# commented-out fields like `<!-- - **Status:** Approved -->` cannot satisfy
+# a lifecycle guard ahead of the real active field.
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->")
 # A real deferral marker carries a slug anchor — NOT the template
 # placeholder `(deferred: <anchor>)`, whose `<…>` form is excluded by the
 # leading-alphanumeric class.
@@ -108,9 +116,19 @@ def extract_status_token(raw: str) -> str:
 
 
 def parse_status(spec_text: str) -> str | None:
-    """Return the leading status token from a spec's header, or None."""
+    """Return the leading status token from a spec's metadata preamble, or None.
+
+    Stops at the first second-level heading (## …) so body text that contains
+    **Status:** in examples, task descriptions, or quoted templates cannot
+    accidentally satisfy a lifecycle guard.
+    """
     for line in spec_text.splitlines():
-        m = _STATUS_RE.search(line)
+        if _SECTION_HEADING_RE.match(line):
+            break  # preamble ends at the first section heading
+        if line.lstrip().startswith("#"):
+            continue  # skip ATX heading lines — Status must not live in a heading
+        clean = _HTML_COMMENT_RE.sub("", line)
+        m = _STATUS_RE.search(clean)
         if m:
             return extract_status_token(m.group(1))
     return None

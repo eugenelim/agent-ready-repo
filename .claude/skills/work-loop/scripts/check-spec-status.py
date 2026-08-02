@@ -70,7 +70,14 @@ def main() -> int:
     args = parser.parse_args()
 
     spec_dir = Path(args.spec_dir).resolve()
-    target_path = spec_dir / args.file
+    target_path = (spec_dir / args.file).resolve()
+
+    if not target_path.is_relative_to(spec_dir):
+        print(
+            "check-spec-status: --file must be within spec-dir",
+            file=sys.stderr,
+        )
+        return 1
 
     if not target_path.exists():
         print(

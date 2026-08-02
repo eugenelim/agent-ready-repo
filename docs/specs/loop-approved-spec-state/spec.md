@@ -1,7 +1,7 @@
 # Spec: loop-approved-spec-state
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Owner:** eugenelim
+- **Owner:** example-user
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
 - **Brief:** none
@@ -104,7 +104,8 @@ Projection correctness and version-bump consistency use **goal-based check**: `m
 
 ### AC5 — Safe approval replay
 
-- [x] `loop-cohort approve-plan` when `plan_review_status == pending`: records hashes, marks approved, exits 0.
+- [x] `loop-cohort approve-plan` when `plan_review_status == pending` and both artifacts carry `Status: Approved`: records hashes, marks approved, exits 0.
+- [x] `loop-cohort approve-plan` when `plan_review_status == pending` and spec.md or plan.md `Status` ≠ `Approved`: exits non-zero without mutation (status-field crash-window guard).
 - [x] `loop-cohort approve-plan` when already approved with the same run ID and unchanged current hashes: exits 0 as an idempotent no-op; state bytes not rewritten.
 - [x] `loop-cohort approve-plan` when already approved but `spec.md` has changed: exits non-zero without mutation.
 - [x] `loop-cohort approve-plan` when already approved but `plan.md` has changed: exits non-zero without mutation.

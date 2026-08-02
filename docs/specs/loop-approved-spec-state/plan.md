@@ -307,7 +307,7 @@ Status guard tests:
 - In `loop-cohort.py` `cmd_approve_plan`:
   - After run_id validation, read `plan_review_status`.
   - If `"approved"`: compute current hashes; if run_id matches AND hashes unchanged → no-op exit 0; else → stop with message.
-  - Else (`"pending"`) → existing write path (unchanged).
+  - Else (`"pending"`) → status-field guard first: read spec.md and plan.md Status via `_read_md_status`; if either is not `Approved`, stop non-zero (crash-window guard). Then existing write path.
 - In `loop-cohort.py` `cmd_status`:
   - Add `"plan_review_status": state.get("plan_review_status", "pending")` to result dict.
 - In `test-loop-cohort.py`: write all stubs before touching production code.
@@ -398,8 +398,8 @@ For each scenario: record initial `engine-state.json` fixture, command sequence,
 - Integration paths (visual / manual QA via real subprocesses, AC9).
 - Legacy compat: stubs and production code live in T4; verify they still pass here (`test_legacy_code_impl_plan_approved_readable`, `test_legacy_done_plan_approved_readable`).
 - Version and projection checks (goal-based):
-  - `grep "^version" packs/core/pack.toml` returns `1.1.0`.
-  - `grep "version" packs/core/.claude-plugin/plugin.json` returns `1.1.0`.
+  - `grep "^version" packs/core/pack.toml` returns `2.0.0`.
+  - `grep "version" packs/core/.claude-plugin/plugin.json` returns `2.0.0`.
   - `make build-self` exits 0.
   - `SKIP_SAST=1 make build-check` exits 0.
   - Changelog entry exists.
@@ -408,8 +408,8 @@ For each scenario: record initial `engine-state.json` fixture, command sequence,
 **Approach:**
 - Run `python3 test-loop-engine.py` and `python3 test-loop-cohort.py` — both must be clean.
 - Create `notes/` directory; run both end-to-end flows via temp dirs using subprocess; record in `notes/manual-qa.md`.
-- Bump `packs/core/pack.toml`: `version = "1.0.4"` → `version = "1.1.0"`.
-- Bump `packs/core/.claude-plugin/plugin.json` version field to `1.1.0`.
+- Bump `packs/core/pack.toml`: `version = "1.0.4"` → `version = "2.0.0"`.
+- Bump `packs/core/.claude-plugin/plugin.json` version field to `2.0.0`.
 - Add changelog entry.
 - Run `make build-self` to regenerate projections.
 - Run `SKIP_SAST=1 make build-check`.

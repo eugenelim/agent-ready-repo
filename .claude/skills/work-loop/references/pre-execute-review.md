@@ -41,10 +41,12 @@ approval) is a Phase-2 feature; this section will be updated when it ships.
 Cheap-to-fix-early applies harder to specs and structural decisions than to code
 — catching a vague behavior, a missing `Depends on:`, a mismatched verification
 mode, or a misplaced module boundary here costs a sentence; catching it
-post-EXECUTE costs a re-do. Gate mechanism in Phase 1: the `loop-cohort
-approve-plan` verb writes `approved_plan_hash` to `state.json`; `loop-cohort
-plan check-current` (with `--require-schedule` for `code` mode) verifies the
-hash and unlocks the `plan-approved` transition. No new state fields. **Both
+post-EXECUTE costs a re-do. Gate mechanism in Phase 1: the plan approver writes `Status: Approved` in
+`plan.md` and the agent fires `plan-approved` (PLAN-HUMAN-GATE →
+SPEC-PLAN-APPROVED). The `loop-cohort approve-plan` verb then writes
+`approved_plan_hash` to `state.json`; `loop-cohort plan check-current`
+(with `--require-schedule` for `code` mode) verifies the hash; `plan-locked`
+fires to transition to CODE-IMPLEMENTATION. No new state fields. **Both
 triggers respect the Profile-A opt-out:** skip if the project doesn't use the
 reviewer at all.
 
