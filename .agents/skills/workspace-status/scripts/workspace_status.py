@@ -542,9 +542,11 @@ def main(argv: list[str] | None = None) -> int:
             if isinstance(_plan_confinement, int):
                 return _plan_confinement
             plan_path = _plan_confinement  # use resolved path for all I/O
-            # Guard: reject plan-file == workspace.toml (symlink or typo clobber)
+            # Guard: reject plan-file == workspace.toml (symlink or alias clobber).
+            # Use samefile() for identity — resolve()-equality fails on case-insensitive
+            # filesystems where WORKSPACE.TOML and workspace.toml are the same inode.
             with contextlib.suppress(OSError, RuntimeError):
-                if plan_path.resolve() == workspace_toml.resolve():
+                if plan_path.samefile(workspace_toml):
                     _emit({
                         "schema_version": 1,
                         "mode": "repair-plan",
@@ -731,8 +733,24 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 os.close(lock_fd)
                 lock_fd = -1
-                # Re-read workspace.toml under lock — final fingerprint verification
-                workspace_bytes = workspace_toml.read_bytes()
+                # Resolve first, then read — ensures the fingerprint and the write
+                # both target the same inode. Resolving before reading closes the
+                # TOCTOU window where a symlink retarget between read_bytes() and
+                # resolve() would let the fingerprint authenticate target A while
+                # _apply_operations writes target B.
+                workspace_write_target = workspace_toml.resolve()
+                try:
+                    workspace_write_target.relative_to(root.resolve())
+                except (OSError, RuntimeError, ValueError):
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": False,
+                        "reason": "workspace_outside_root",
+                    })
+                    return 2
+                # Read from the resolved target so bytes and write target are in sync
+                workspace_bytes = workspace_write_target.read_bytes()
                 actual_fp = hashlib.sha256(workspace_bytes).hexdigest()
                 expected_fp = plan_data.get("workspace_fingerprint", "")
                 if actual_fp != expected_fp:
@@ -745,21 +763,6 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
                 before_digest = actual_fp
-                # Re-resolve and re-check confinement under the lock. The early check
-                # (before lock acquisition) can be defeated by a symlink retarget in
-                # the window between that check and this write. Resolving here and
-                # verifying confinement again closes the TOCTOU gap.
-                workspace_write_target = workspace_toml.resolve()
-                try:
-                    workspace_write_target.relative_to(root.resolve())
-                except (OSError, RuntimeError, ValueError):
-                    _emit({
-                        "schema_version": 1,
-                        "mode": "repair-apply",
-                        "applied": False,
-                        "reason": "workspace_outside_root",
-                    })
-                    return 2
                 applied, per_op = _apply_operations(
                     root, ops, workspace_bytes, workspace_write_target
                 )

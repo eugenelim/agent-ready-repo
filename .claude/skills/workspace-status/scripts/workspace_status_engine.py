@@ -1227,14 +1227,15 @@ def compute_repair_plan(
             fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
             slug = f.spec_path.removeprefix("spec/")
             spec_file = _safe_spec_path(workspace_path.parent, slug)
-            _, status_fp = (
+            live_status, status_fp = (
                 extract_spec_status_with_fingerprint(spec_file)
                 if spec_file is not None else (None, None)
             )
-            if status_fp is None:
-                # Spec unreadable between analyze() and fingerprinting; an operation
-                # with an empty fingerprint would be rejected as plan_invalid at
-                # apply time and block all other valid operations. Route to manual.
+            if status_fp is None or live_status != f.spec_status:
+                # Spec unreadable, or its status changed between the scan and this
+                # read (e.g. Shipped → Archived). An operation whose status and
+                # fingerprint describe different snapshots would be skipped by
+                # repair-apply and would block other valid operations. Route to manual.
                 manual.append(ManualFinding(
                     finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
                     ini_slug=f.ini_slug, list_name=f.list_name,
@@ -1245,13 +1246,13 @@ def compute_repair_plan(
                 op_canon = json.dumps({
                     "finding_id": fid, "ini_slug": f.ini_slug,
                     "operation_type": op_type, "spec_path": f.spec_path,
-                    "spec_status": f.spec_status,
+                    "spec_status": live_status,
                     "spec_status_fingerprint": status_fp,
                 }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
                 oid = hashlib.sha256(op_canon.encode("ascii")).hexdigest()
                 automatic.append(RepairOperation(
                     operation_type=op_type, spec_path=f.spec_path,
-                    spec_status=f.spec_status, ini_slug=f.ini_slug,
+                    spec_status=live_status, ini_slug=f.ini_slug,
                     finding_id=fid, operation_id=oid,
                     spec_status_fingerprint=status_fp,
                 ))
