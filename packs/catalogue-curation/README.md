@@ -50,9 +50,8 @@ Returns a per-candidate verdict (in / out / reshape / defer) written to a resuma
 Say `propose-catalogue-pack` and describe the new pack's purpose.
 Tests whether the pack is additive (doesn't duplicate an existing pack) and fits the catalogue's charter, then scaffolds a pack shell and emits an RFC for human review. No RFC means no new pack.
 
-**Produce a redistributable derivative**
-Say `export-catalogue` and specify white-label or attributed mode and the target organization name.
-Produces a redistributable copy of the catalogue with upstream identity either stripped or credited. Runs a fail-closed leak check before writing any output — the command hard-fails if any identity signal would escape. Result is a local directory; you publish it.
+**Create a self-hosted catalogue**
+Run `agentbundle catalogue init --preset self-hosted` to scaffold a new catalogue from the managed template. No fork required.
 
 ---
 

@@ -19,7 +19,7 @@ The Markdown → Office skills (`markdown-to-docx`, `markdown-to-pptx`, `markdow
 ## Install
 
 ```
-agentbundle install --pack converters <catalogue>
+agentbundle install --pack converters --scope user <catalogue>
 ```
 
 `converters` is user-scope by default — format conversion is a portable utility, not a project concern.

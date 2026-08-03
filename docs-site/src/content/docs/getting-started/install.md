@@ -71,7 +71,7 @@ claude plugin install core@agent-ready-repo
 claude plugin install desk-research@agent-ready-repo
 ```
 
-Available for all 14 packs. Pack names match the directory names under `packs/`.
+Available for all 20 packs (catalogue-curation is an operator-only pack not published to the marketplace). Pack names match the directory names under `packs/`.
 
 ## Route 3: APM (Agent Package Manager)
 
