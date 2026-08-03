@@ -1,6 +1,6 @@
 # Plan: workspace-status simplification — Order 2B
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Assumption trio

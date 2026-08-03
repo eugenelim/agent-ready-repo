@@ -299,6 +299,12 @@ _STATUS_FIELD_RE = re.compile(r'\*\*Status:\*\*\s+(.*?)(?:\s*\(|\s*<!--|$)')
 # "Draft→Approved→Shipped" yields ["Approved", "Shipped"] and a non-letter final
 # segment (e.g. "→ 2026", trailing "→") still forces None instead of backtracking.
 _TRANSITION_ARROW_RE = re.compile(r'→\s*([^→\s]+)')
+# Stop at the first ##+ heading — status lines in body examples or tables are
+# never authoritative. Matches lint-spec-status.py's canonical preamble boundary.
+_SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
+# Single-line HTML comments; stripped before the status-field check so that
+# "<!-- - **Status:** Shipped -->" cannot satisfy the preamble guard.
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->")
 
 
 def _safe_spec_path(root: Path, slug: str) -> Path | None:
@@ -345,13 +351,19 @@ def extract_spec_status(spec_path: Path) -> str | None:
             continue
         if in_code_fence:
             continue
+        # Stop at the first section heading — body examples live after ## headings.
+        if _SECTION_HEADING_RE.match(line):
+            break
+        # Strip single-line HTML comments before matching — an inline comment cannot
+        # satisfy the preamble guard.
+        clean = _HTML_COMMENT_RE.sub("", line)
         # Anchor to the canonical list-item field form: "- **Status:** ..."
         # A prose line containing **Status:** (example, comment) is not the field.
-        if not line.startswith("- **Status:**"):
+        if not clean.startswith("- **Status:**"):
             continue
         # Strip annotations before scanning — a spaced arrow in "(root → leaf)"
         # must never be read as a transition arrow.
-        m = _STATUS_FIELD_RE.search(line)
+        m = _STATUS_FIELD_RE.search(clean)
         if not m:
             continue
         content = m.group(1).strip()
@@ -392,9 +404,12 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
             continue
         if in_code_fence:
             continue
-        if not line.startswith("- **Status:**"):
+        if _SECTION_HEADING_RE.match(line):
+            break
+        clean = _HTML_COMMENT_RE.sub("", line)
+        if not clean.startswith("- **Status:**"):
             continue
-        m = _STATUS_FIELD_RE.search(line)
+        m = _STATUS_FIELD_RE.search(clean)
         if not m:
             continue
         content = m.group(1).strip()

@@ -692,44 +692,22 @@ def main(argv: list[str] | None = None) -> int:
                 })
                 return 2
             ops = plan_data.get("automatic_operations", [])
-            if not ops:
-                # Validate fingerprint before accepting an empty plan — a stale empty
-                # plan must be rejected; fingerprint check precedes empty-ops short-circuit.
-                _empty_bytes = _ws_apply_resolved.read_bytes()
-                _empty_digest = hashlib.sha256(_empty_bytes).hexdigest()
-                _empty_expected = plan_data.get("workspace_fingerprint", "")
-                if _empty_digest != _empty_expected:
-                    print("workspace-status: fingerprint mismatch", file=sys.stderr)
+            # tomlkit guard — only needed when there are operations to apply
+            if ops:
+                try:
+                    import tomlkit as _tomlkit_check  # noqa: F401
+                except ImportError:
                     _emit({
                         "schema_version": 1,
                         "mode": "repair-apply",
                         "applied": False,
-                        "reason": "fingerprint_mismatch",
+                        "reason": "tomlkit_unavailable",
                     })
                     return 2
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-apply",
-                    "applied": True,
-                    "plan_id": stored_plan_id,
-                    "before_workspace_digest": _empty_digest,
-                    "after_workspace_digest": _empty_digest,
-                    "operations_applied": 0,
-                    "per_operation": [],
-                })
-                return 0
-            # tomlkit guard — only needed when there are operations to apply
-            try:
-                import tomlkit as _tomlkit_check  # noqa: F401
-            except ImportError:
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-apply",
-                    "applied": False,
-                    "reason": "tomlkit_unavailable",
-                })
-                return 2
-            # Acquire cross-platform sibling lock before final validation + write
+            # Acquire lock before ANY precondition validation — a concurrent non-empty
+            # apply can rewrite workspace.toml between an out-of-lock read and result
+            # emission. The lock serialises the fingerprint check for both empty and
+            # non-empty plans so that before_workspace_digest is always authoritative.
             lock_path = root / ".workspace-repair.lock"
             lock_fd = -1
             try:
@@ -749,8 +727,34 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 os.close(lock_fd)
                 lock_fd = -1
-                # Resolve first, then read — ensures the fingerprint and the write
-                # both target the same inode. Resolving before reading closes the
+                if not ops:
+                    # Empty plan: validate fingerprint under lock — tomlkit/mkstemp
+                    # short-circuit still applies; only the read-and-check is serialised.
+                    _empty_bytes = _ws_apply_resolved.read_bytes()
+                    _empty_digest = hashlib.sha256(_empty_bytes).hexdigest()
+                    _empty_expected = plan_data.get("workspace_fingerprint", "")
+                    if _empty_digest != _empty_expected:
+                        print("workspace-status: fingerprint mismatch", file=sys.stderr)
+                        _emit({
+                            "schema_version": 1,
+                            "mode": "repair-apply",
+                            "applied": False,
+                            "reason": "fingerprint_mismatch",
+                        })
+                        return 2
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": True,
+                        "plan_id": stored_plan_id,
+                        "before_workspace_digest": _empty_digest,
+                        "after_workspace_digest": _empty_digest,
+                        "operations_applied": 0,
+                        "per_operation": [],
+                    })
+                    return 0
+                # Non-empty: resolve first, then read — ensures the fingerprint and the
+                # write both target the same inode. Resolving before reading closes the
                 # TOCTOU window where a symlink retarget between read_bytes() and
                 # resolve() would let the fingerprint authenticate target A while
                 # _apply_operations writes target B.
