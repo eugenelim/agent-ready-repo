@@ -2724,6 +2724,54 @@ def test_analyze_bounded_path_traversal_entry() -> None:
 
 # ── Order 2B: compute_repair_plan ─────────────────────────────────────────────
 
+def test_compute_repair_plan_queue_shipped() -> None:
+    _run_case(case_compute_repair_plan_queue_shipped)
+
+
+def test_compute_repair_plan_queue_archived() -> None:
+    _run_case(case_compute_repair_plan_queue_archived)
+
+
+def test_compute_repair_plan_active_source_is_manual() -> None:
+    _run_case(case_compute_repair_plan_active_source_is_manual)
+
+
+def test_compute_repair_plan_type1_manual() -> None:
+    _run_case(case_compute_repair_plan_type1_manual)
+
+
+def test_compute_repair_plan_type3_manual() -> None:
+    _run_case(case_compute_repair_plan_type3_manual)
+
+
+def test_compute_repair_plan_approved_not_eligible() -> None:
+    _run_case(case_compute_repair_plan_approved_not_eligible)
+
+
+def test_compute_repair_plan_path_in_queue_and_active() -> None:
+    _run_case(case_compute_repair_plan_path_in_queue_and_active)
+
+
+def test_compute_repair_plan_duplicate_path_in_queue() -> None:
+    _run_case(case_compute_repair_plan_duplicate_path_in_queue)
+
+
+def test_compute_repair_plan_fingerprint_is_sha256() -> None:
+    _run_case(case_compute_repair_plan_fingerprint_is_sha256)
+
+
+def test_compute_repair_plan_empty_reconciliation() -> None:
+    _run_case(case_compute_repair_plan_empty_reconciliation)
+
+
+def test_compute_repair_plan_has_plan_id() -> None:
+    _run_case(case_compute_repair_plan_has_plan_id)
+
+
+def test_compute_repair_plan_operation_has_spec_status_fingerprint() -> None:
+    _run_case(case_compute_repair_plan_operation_has_spec_status_fingerprint)
+
+
 def _make_finding(finding_type: int, spec_path: str, spec_status: str,
                   ini_slug: str, list_name: str):
     from workspace_status_engine import ReconciliationFinding

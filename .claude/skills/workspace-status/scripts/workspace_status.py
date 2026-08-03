@@ -775,6 +775,18 @@ def main(argv: list[str] | None = None) -> int:
                     "reason": "lock_busy",
                 })
                 return 2
+            except OSError as _le:
+                _lmsg = str(_le)
+                with contextlib.suppress(OSError, RuntimeError):
+                    _lmsg = _lmsg.replace(str(root.resolve()), "<root>")
+                print(f"workspace-status: lock create failed: {_lmsg}", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "lock_create_failed",
+                })
+                return 2
             try:
                 # Write PID to the lock file for diagnostics (e.g. manual
                 # `cat .workspace-repair.lock`), then release the descriptor.
