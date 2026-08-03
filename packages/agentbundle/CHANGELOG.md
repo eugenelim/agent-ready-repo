@@ -8,6 +8,23 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Fixed
+
+- **Self-host orphan sweep deleting externally installed skills** (`build/adapters/claude_code.py`,
+  `build/adapters/kiro.py`, `build/adapters/codex.py`): `catalogue self-host --write` (and
+  `--force`) now preserves skill directories that are recorded in `.agentbundle-state.toml` —
+  i.e. skills installed by `agentbundle install` from an external catalogue. Previously,
+  `_sweep_skill_orphans` built its `expected_names` set solely from the packs passed to
+  `project_packs`; any skill whose name was not in that set was silently deleted with
+  `shutil.rmtree`. The fix reads the repo-root state file and adds every skill-directory name
+  it finds there to `expected_names` before the sweep runs. Absent, legacy-schema, or
+  malformed state files degrade gracefully to the pre-fix behavior (empty protection set;
+  no error). All three adapters (claude_code, kiro, codex) are fixed with the same
+  `_installed_skill_names` helper. Also copies `.agentbundle-state.toml` into
+  the shadow tree in `_clone_target_subtree` (`build/self_host.py`) so that
+  `--check` / dry-run produces consistent results with `--write` (without this,
+  the sweep deleted installed skills from the shadow and reported false drift).
+
 ## [0.27.1]
 
 ### Added

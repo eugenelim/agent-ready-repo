@@ -252,9 +252,17 @@ def resolve_markers(
     return modified
 
 
+_STATE_FILE = Path(".agentbundle-state.toml")
+
+
 def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
-    """Copy adapter-target paths from working_tree into destination."""
-    for relative in TARGET_PATHS:
+    """Copy adapter-target paths from working_tree into destination.
+
+    Also copies the repo-root state file so that `_installed_skill_names`
+    in the build adapters can read it from the shadow, keeping --check /
+    dry-run behaviour consistent with --write.
+    """
+    for relative in list(TARGET_PATHS) + [_STATE_FILE]:
         source = working_tree / relative
         if not source.exists():
             continue
