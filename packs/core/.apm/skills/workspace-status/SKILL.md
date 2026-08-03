@@ -1,6 +1,6 @@
 ---
 name: workspace-status
-description: Use this skill to orient at session start, check initiative queue state, or see what's ready to work on next. Reads workspace.toml and surfaces ready-to-start items, blocked items with reason, parallel candidates, and active signals. Triggers on "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", "what should I work on", "check workspace", or any cold-start orientation request. Offers to initialise workspace.toml if absent.
+description: Use this skill to orient at session start, check initiative queue state, or see what's ready to work on next. Reads workspace.toml and surfaces ready-to-start items, blocked items with reason, parallel candidates, and active signals. Triggers on "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", "what should I work on", "check workspace", or any cold-start orientation request. Offers to initialise workspace.toml if absent. Also reconciles and repairs workspace.toml drift — generates and applies repair plans for stale queue entries. Triggers on "clean up stale specs", "run repair-plan", "apply the workspace repair plan", "fix queue drift", "reconcile workspace", or any workspace repair or cleanup request.
 ---
 
 # Skill: workspace-status

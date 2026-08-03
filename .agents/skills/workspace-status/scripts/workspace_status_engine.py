@@ -373,7 +373,9 @@ def _parse_spec_status(text: str) -> tuple[str | None, str | None]:
         # Multi-line HTML comment: skip until closing -->.
         if in_ml_comment:
             if "-->" in line:
-                in_ml_comment = False
+                # A new opener on the same line (e.g. "--> <!--") must be detected.
+                remainder = line[line.index("-->") + 3:]
+                in_ml_comment = "<!--" in remainder
             continue
         # Stop at the first section heading — body examples live after ## headings.
         if _SECTION_HEADING_RE.match(line):
