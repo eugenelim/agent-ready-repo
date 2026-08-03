@@ -70,6 +70,34 @@ def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | 
     return None
 
 
+# Mirror of kiro.py:_installed_skill_names — keep in sync.
+def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
+    """Return skill dir names recorded in the repo state file under target_dir.
+
+    Protects skills installed via `agentbundle install` from the orphan
+    sweep when `project_packs` runs in self-host mode. Degrades to an empty
+    set on absent, legacy, or malformed state so the sweep is unchanged.
+    """
+    from agentbundle.config import ConfigError, load_state
+    try:
+        state = load_state(output_root / ".agentbundle-state.toml")
+    except ConfigError:
+        return set()
+    skill_dir_rel = target_dir.relative_to(output_root)
+    names: set[str] = set()
+    for ps in state.packs.values():
+        if ps.scope != "repo":
+            continue
+        for relpath in ps.files:
+            try:
+                remainder = Path(relpath).relative_to(skill_dir_rel)
+            except ValueError:
+                continue
+            if remainder.parts:
+                names.add(remainder.parts[0])
+    return names
+
+
 def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
     target_dir = _skill_direct_directory_target(contract, output_root)
     if target_dir is None:
@@ -83,6 +111,7 @@ def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Pa
         for entry in source_dir.iterdir():
             if entry.is_dir():
                 expected_names.add(entry.name)
+    expected_names |= _installed_skill_names(output_root, target_dir)
     sweep_orphans(target_dir, expected_names)
 
 
