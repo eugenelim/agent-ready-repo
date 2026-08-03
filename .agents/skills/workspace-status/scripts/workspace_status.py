@@ -553,11 +553,20 @@ def main(argv: list[str] | None = None) -> int:
 
         if subcommand == "repair-plan":
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
-            # Confinement resolves the path (following any symlink) and verifies it
-            # stays within root — this covers direct paths, relative traversal, and
-            # symlinks alike. Escaping symlinks → plan_file_outside_root.
-            # All subsequent I/O uses the resolved path, so replace() writes to the
-            # resolved target, never blindly following a retargeted link.
+            # Write-path symlink guard: check before confinement resolves the path.
+            # If the output location is already a symlink, replace() on the resolved
+            # path would silently overwrite the symlink's in-root target rather than
+            # the named entry. Reject here so no source file is clobbered.
+            if plan_path.is_symlink():
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-plan",
+                    "applied": False,
+                    "reason": "plan_file_is_symlink",
+                })
+                return 2
+            # Confinement resolves the path and verifies it stays within root —
+            # this covers direct paths and relative traversal.
             _plan_confinement = _check_plan_file_confinement(plan_path, root, "repair-plan")
             if isinstance(_plan_confinement, int):
                 return _plan_confinement

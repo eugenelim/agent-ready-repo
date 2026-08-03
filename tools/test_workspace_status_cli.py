@@ -987,7 +987,7 @@ class RepairPlanTests(_CliBase):
         self.assertEqual(data["mode"], "repair-plan")
 
     def test_repair_plan_plan_file_confinement(self) -> None:
-        """AC16d: --plan-file via symlink escaping root → exit 2, plan_file_outside_root."""
+        """AC16d: --plan-file via symlink → exit 2 (is_symlink guard fires before confinement)."""
         root = self._make_repair_fixture()
         import tempfile as _tmp
         with _tmp.TemporaryDirectory() as outside:
@@ -996,9 +996,9 @@ class RepairPlanTests(_CliBase):
             r = _run_cli("repair-plan", "--root", str(root), "--plan-file", str(link))
             self.assertEqual(r.returncode, 2)
             data = json.loads(r.stdout)
-            # Confinement check fires: resolves symlink → outside root → plan_file_outside_root
-            self.assertEqual(data.get("reason"), "plan_file_outside_root")
-            self.assertFalse(data.get("applied"), "confinement error must carry applied:false")
+            # is_symlink() guard fires before confinement for repair-plan write path
+            self.assertEqual(data.get("reason"), "plan_file_is_symlink")
+            self.assertFalse(data.get("applied"), "symlink guard must carry applied:false")
 
     def test_repair_plan_plan_file_confinement_direct_path(self) -> None:
         """AC16d: --plan-file direct path outside root → exit 2."""
@@ -1023,6 +1023,24 @@ class RepairPlanTests(_CliBase):
         self.assertFalse(data.get("applied"), "guard error must carry applied:false")
         # workspace.toml must not be clobbered
         self.assertIn("ini-001", workspace_toml.read_text(encoding="utf-8"))
+
+    @unittest.skipIf(sys.platform == "win32", "symlink needs elevated privs on Windows")
+    def test_repair_plan_plan_file_is_symlink(self) -> None:
+        """AC16d write-path: in-root symlink → exit 2, plan_file_is_symlink; target intact."""
+        root = self._make_repair_fixture()
+        # Create an in-root file that a symlink could clobber
+        innocent = root / "innocent.toml"
+        innocent.write_text("# must not be clobbered\n", encoding="utf-8")
+        # Create a symlink pointing at that in-root file
+        link = root / "plan-link.json"
+        link.symlink_to(innocent)
+        r = _run_cli("repair-plan", "--root", str(root), "--plan-file", str(link))
+        self.assertEqual(r.returncode, 2)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("reason"), "plan_file_is_symlink")
+        self.assertFalse(data.get("applied"))
+        # The in-root target must not have been overwritten
+        self.assertEqual(innocent.read_text(encoding="utf-8"), "# must not be clobbered\n")
 
 
 # ── Order 2B: repair-apply ────────────────────────────────────────────────────

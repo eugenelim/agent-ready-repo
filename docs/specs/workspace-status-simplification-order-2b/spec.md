@@ -464,8 +464,13 @@ The example below is abridged; the real file also contains `workspace_present`,
   inside `root.resolve()` for both `repair-plan` (write) and `repair-apply`
   (read). The check is unconditional `resolved_path.relative_to(root.resolve())`
   — it covers direct paths, relative traversal (`../../x.json`), and symlinks
-  alike. Violation → exit 2 with `reason="plan_file_outside_root"` (mirrors the
-  existing workspace.toml confinement; does not gate on `is_symlink()` alone).
+  alike. Violation → exit 2 with `reason="plan_file_outside_root"`.
+  For `repair-plan` (write path only): additionally check `plan_path.is_symlink()`
+  **before** confinement resolves the path. An existing symlink at the output
+  location would cause `replace()` (which writes to the resolved target) to
+  silently clobber the symlink's in-root target. Violation → exit 2 with
+  `reason="plan_file_is_symlink"`. `repair-apply` (read path) does not apply this
+  check — reads through in-root symlinks are safe.
 
 - [x] AC33. `repair-apply` requires explicit `--yes` flag. Without it, exits 2
   with `{"schema_version": 1, "mode": "repair-apply", "applied": false,
