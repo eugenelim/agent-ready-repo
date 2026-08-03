@@ -580,6 +580,11 @@ def main(argv: list[str] | None = None) -> int:
             data = _build_repair_plan_json(root, result, plan)
             # Emit stdout first — plan JSON always available even if file write fails
             _emit(data)
+            # Persisted plan must not contain workspace_root (an absolute path that
+            # would violate the privacy policy if a custom --plan-file is committed).
+            # repair-apply derives the root from --root at invocation time; it never
+            # reads workspace_root from the plan file.
+            file_data = {k: v for k, v in data.items() if k != "workspace_root"}
             tmp_plan: str | None = None
             try:
                 fd, tmp_plan = tempfile.mkstemp(
@@ -588,7 +593,7 @@ def main(argv: list[str] | None = None) -> int:
                     suffix=".tmp",
                 )
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                    fh.write(json.dumps(data, sort_keys=True, allow_nan=False) + "\n")
+                    fh.write(json.dumps(file_data, sort_keys=True, allow_nan=False) + "\n")
                 Path(tmp_plan).replace(plan_path)
                 tmp_plan = None
             except OSError as write_err:

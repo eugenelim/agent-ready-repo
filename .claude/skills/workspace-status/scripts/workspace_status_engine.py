@@ -343,20 +343,29 @@ def extract_spec_status(spec_path: Path) -> str | None:
     except OSError:
         return None
     in_code_fence = False
+    in_ml_comment = False  # multi-line HTML comment (<!-- ... --> spanning lines)
     for line in text.splitlines():
         # Track fenced code blocks — a status line inside a fence is an example, not
         # the authoritative field. Both ``` and ~~~ fences are recognised.
-        if line.startswith(("```", "~~~")):
+        if not in_ml_comment and line.startswith(("```", "~~~")):
             in_code_fence = not in_code_fence
             continue
         if in_code_fence:
             continue
+        # Multi-line HTML comment: skip until closing -->.
+        if in_ml_comment:
+            if "-->" in line:
+                in_ml_comment = False
+            continue
         # Stop at the first section heading — body examples live after ## headings.
         if _SECTION_HEADING_RE.match(line):
             break
-        # Strip single-line HTML comments before matching — an inline comment cannot
-        # satisfy the preamble guard.
+        # Strip single-line HTML comments. If an unclosed <!-- remains, the rest of
+        # this line and all subsequent lines until --> are inside a comment.
         clean = _HTML_COMMENT_RE.sub("", line)
+        if "<!--" in clean:
+            clean = clean[:clean.index("<!--")]
+            in_ml_comment = True
         # Anchor to the canonical list-item field form: "- **Status:** ..."
         # A prose line containing **Status:** (example, comment) is not the field.
         if not clean.startswith("- **Status:**"):
@@ -398,15 +407,23 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
     except OSError:
         return None, None
     in_code_fence = False
+    in_ml_comment = False
     for line in text.splitlines():
-        if line.startswith(("```", "~~~")):
+        if not in_ml_comment and line.startswith(("```", "~~~")):
             in_code_fence = not in_code_fence
             continue
         if in_code_fence:
             continue
+        if in_ml_comment:
+            if "-->" in line:
+                in_ml_comment = False
+            continue
         if _SECTION_HEADING_RE.match(line):
             break
         clean = _HTML_COMMENT_RE.sub("", line)
+        if "<!--" in clean:
+            clean = clean[:clean.index("<!--")]
+            in_ml_comment = True
         if not clean.startswith("- **Status:**"):
             continue
         m = _STATUS_FIELD_RE.search(clean)

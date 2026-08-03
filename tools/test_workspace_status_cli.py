@@ -918,7 +918,7 @@ class RepairPlanTests(_CliBase):
         self.assertIn(1, data["reconciliation"]["types_performed"])
 
     def test_repair_plan_writes_plan_file(self) -> None:
-        """AC8: default plan file written and matches stdout."""
+        """AC8: default plan file written; matches stdout except workspace_root is omitted."""
         root = self._make_repair_fixture()
         r = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r.returncode, 0)
@@ -926,7 +926,11 @@ class RepairPlanTests(_CliBase):
         self.assertTrue(plan_file.exists(), "plan file must be created")
         file_data = json.loads(plan_file.read_text(encoding="utf-8"))
         stdout_data = json.loads(r.stdout)
-        self.assertEqual(file_data, stdout_data, "plan file must match stdout")
+        # workspace_root is an absolute path — kept in transient stdout but omitted
+        # from the persisted file to avoid privacy leaks if the file is committed.
+        self.assertNotIn("workspace_root", file_data, "plan file must not contain workspace_root")
+        expected = {k: v for k, v in stdout_data.items() if k != "workspace_root"}
+        self.assertEqual(file_data, expected, "plan file must match stdout (minus workspace_root)")
 
     def test_repair_plan_custom_plan_file(self) -> None:
         """AC8: --plan-file overrides output path."""
