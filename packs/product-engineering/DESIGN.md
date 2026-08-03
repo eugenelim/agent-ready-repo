@@ -135,7 +135,7 @@ A plain versioned file is readable by any tool, diff-able in review, and require
 
 ### Scope boundary
 
-`ux-writing` covers product UI copy: error states, empty states, button labels, loading messages. Marketing and acquisition copy (hero headlines, above-fold narrative, taglines) belongs to `experience-design`'s `tone-of-voice`. Onboarding narrative arc and structure belongs to `experience-design`'s `content-design`. Documentation prose belongs to `new-guide`. The boundary is the surface type: UI state copy lives here; everything else does not.
+`ux-writing` covers product UI copy: error states, empty states, button labels, loading messages. Marketing and acquisition copy (hero headlines, above-fold narrative, taglines, onboarding copy voice) belongs to `experience-design`'s `copy-direction`. Brand-level copy register belongs to `experience-design`'s `tone-of-voice`. Onboarding narrative arc and structure belongs to `experience-design`'s `content-design`. Documentation prose belongs to `new-guide`. The boundary is the surface type: UI state copy lives here; everything else does not.
 
 ---
 

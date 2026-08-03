@@ -108,3 +108,7 @@ The fix is the smallest change that produces a large improvement:
 - Tempted to add editorial guidance to all 18 experience-design skills; declining — only the 4 skills directly in the copy-production chain need changes
 - Tempted to create a pack-level shared references directory; declining — the pack convention is per-skill copies with duplication notes, not a shared directory (documented in packs/AGENTS.md)
 - Tempted to update voice-and-microcopy in product-engineering; declining — that skill targets UI states, not public-facing copy, and is out of scope
+
+## Amendment note
+
+**2026-08-02 (xd-copy-direction / experience-design 2.0.0):** AC4 superseded. `tone-of-voice` has been re-scoped to brand-level register; it no longer consumes per-surface content briefs or applies anti-AI-smell gates at product-copy mode. The anti-AI-smell responsibility for product-copy mode is now discharged by `copy-direction` SKILL.md Steps 3 and 7 (which load `references/editorial-quality-gates.md` and run the anti-AI-smell scan). `conversion-design` (AC5) and `experience-reviewer` (AC6) are unaffected. The spec objective and AC1–AC3, AC5–AC8 remain valid. See `docs/specs/xd-copy-direction/spec.md` for the implementing record.

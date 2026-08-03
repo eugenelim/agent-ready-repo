@@ -188,6 +188,40 @@ The `experience-reviewer` agent reviews journeys, screens, and briefs against gr
 **OQ2 — Should `copy-direction` include a VoC (voice-of-customer) research step, or take VoC input as optional?**
 Copyhackers' model requires a VoC research report before copy direction begins. The repo has a `research` pack (a pack that produces project-mode research briefs; it gathers evidence but does not author copy direction). Recommended default: `copy-direction` takes VoC findings as an optional input (elicited inline when absent, flagged as directional when absent) — same posture as `aesthetic-direction` taking persona as input without running user research. Owner: eugenelim. Decide-by: spec authoring.
 
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision record.
+Corrections are appended here, Approver-signed.
+
+- **2026-08-02 (Approver: eugenelim) — Scope of tone-of-voice re-scoped to brand-level;
+  onboarding copy voice boundary moved from ux-writing to copy-direction.**
+  The implementation spec (`docs/specs/xd-copy-direction/spec.md`) extended the
+  RFC's minimum scope in two ways that the RFC's Stakes section had explicitly excluded.
+  Both extensions are ratified here.
+
+  **(a) tone-of-voice re-scope (overrides Stakes: "no existing skill changes behavior").**
+  `tone-of-voice` was narrowed from a per-surface skill to a brand-level register skill.
+  The per-surface output path `copy/<slug>.md` was replaced by a fixed brand-register
+  path `copy/brand-register.md`. Per-surface acquisition copy positioning is now fully
+  owned by `copy-direction`. This re-scope was required to eliminate overlap between the
+  two skills — without it, both would handle "what voice should our landing page have,"
+  and neither would be authoritative. The re-scope is a breaking change:
+  `experience-design` pack advances to **2.0.0** (major — per-surface path contract
+  removed).
+
+  **(b) Onboarding copy voice boundary (overrides Proposal § copy-direction:
+  "Onboarding copy lives in voice-and-microcopy").**
+  The RFC's boundary placed onboarding copy in `voice-and-microcopy` (now `ux-writing`).
+  The implementation splits onboarding into three sub-tasks: narrative arc and structure
+  → `content-design`; copy voice and register → `copy-direction`; UI-state strings
+  (loading, error, empty) → `ux-writing`. The revised boundary recognises the onboarding
+  flow as an acquisition surface for copy-voice purposes: it converts the user from
+  evaluator to active user, which is a marketing/acquisition moment, not a product
+  UI-state moment. `ux-writing` retains ownership of onboarding UI strings; the
+  register and positioning belong to `copy-direction`.
+
+  **Implementation record:** `docs/specs/xd-copy-direction/spec.md` (Status: Shipped).
+
 ## Follow-on artifacts
 
 - ADR-NNNN: `content-design` and `copy-direction` skills added to experience pack

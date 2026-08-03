@@ -8,6 +8,7 @@
 # in this catalogue may hand-write one at the repo root; it must never be
 # committed (and would otherwise trip the self-host drift gate).
 agentbundle-layout.toml
+!packs/**/evals/files/agentbundle-layout.toml
 
 # Work-loop session state — per-spec scratch, never committed.
 docs/specs/**/state.json

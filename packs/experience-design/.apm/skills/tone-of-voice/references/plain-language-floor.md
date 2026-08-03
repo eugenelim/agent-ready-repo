@@ -16,7 +16,7 @@ Neither standard is reprinted here. They are named as stable references the dire
 
 **Check 1 — No jargon the reader did not bring.** Review each named copy goal against the reader map from Step 1. For each goal, ask: "Does achieving this goal require the reader to know terminology they may not have arrived with?" If a goal's natural expression introduces specialist terms, the goal must either be grounded in a referent that translates the jargon (persona language that uses it natively) or restated in terms the reader brings.
 
-This is distinct from technical precision — a developer audience brings technical vocabulary; using it with them is not jargon. The check is about the specific reader on this specific surface, not an abstract universal audience.
+This is distinct from technical precision — a developer audience brings technical vocabulary; using it with them is not jargon. The check is about the specific reader for this brand, not an abstract universal audience.
 
 **Check 2 — No idioms that do not translate.** Review each named copy goal for idioms or culturally-local figures of speech that may not carry meaning for readers from different regions or language backgrounds. A copy direction that grounds itself in idioms readable only in one culture is fragile — it fails when the audience expands, the market changes, or the product localises. Flag idiom-dependent goals as open questions if the reader population is not known to be culturally homogeneous.
 

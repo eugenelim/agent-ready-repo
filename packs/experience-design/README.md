@@ -47,7 +47,8 @@ What to run next: user-flow
 | `experience-status` | Orient — where the design thread is, what's next |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains, opportunities |
 | `content-design` | Set surface intent — what this screen says and for whom |
-| `tone-of-voice` | Set the brand register — copy goals and arbitration rules |
+| `copy-direction` | Name the per-surface copy goals for a marketing or acquisition surface |
+| `tone-of-voice` | Set the brand-level copy register — cross-surface voice personality |
 | `user-flow` | Build the screen inventory — transitions and per-screen state briefs |
 | `creative-direction` | Anchor the aesthetic — grounded in persona and precedent |
 | `design-system` | Derive the token taxonomy from the aesthetic direction |
@@ -96,7 +97,7 @@ The reviewer runs forked — no authoring context. You act on its findings, then
 ## What the pack ships
 
 **Connective thread** — from outcome to screen inventory:
-`journey-mapping` → `content-design` / `tone-of-voice` → `user-flow` → `service-blueprint` / `process-mapping`
+`journey-mapping` → `content-design` → `tone-of-voice` (optional, brand register) → `copy-direction` (acquisition surfaces) → `user-flow` → `service-blueprint` / `process-mapping`
 
 **Craft sequence** — from structure to behavior:
 `design-principles` → `creative-direction` → `design-system` → `information-architecture` / genre-direct skill → `interaction-design`
@@ -112,7 +113,7 @@ Every skill ships portable **method**, not your stack: no UI-framework code, no 
 
 **Upstream — `product-strategy`:** When `ux-strategy.md` and `content-strategy.md` exist, `journey-mapping` and `content-design` read them as strategic anchors. Absent means the skills degrade gracefully.
 
-**Downstream — `product-engineering`:** Pass `user-flow`'s per-screen state matrix to `voice-and-microcopy` to write copy keyed to every screen × state cell.
+**Downstream — `product-engineering`:** Pass `user-flow`'s per-screen state matrix to `ux-writing` to write copy keyed to every screen × state cell.
 
 ---
 

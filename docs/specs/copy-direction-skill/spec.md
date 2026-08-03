@@ -1,6 +1,7 @@
 # Spec: copy-direction-skill
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Archived <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Superseded by:** [`docs/specs/xd-copy-direction/spec.md`](../xd-copy-direction/spec.md) — that spec re-implements copy-direction as a full XD skill (v2.0.0) alongside the tone-of-voice brand-level re-scope; it is the authoritative contract for the copy-direction feature.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0062 (D1–D5), ADR-0024 (guardrails A+B, framework-agnosticism), RFC-0050 (experience pack design-thread), RFC-0030 (voice-and-microcopy home stays in product-engineering)

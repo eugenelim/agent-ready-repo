@@ -11,7 +11,7 @@
         "Defines the above-fold contract: primary claim + proof context + single CTA, all visible before scroll",
         "Sequences the scroll story as proof tiers, each tier earning the next",
         "Names the social-proof architecture and explains why that proof type is most credible to this specific audience",
-        "Does NOT write copy (not a content-design or tone-of-voice output)",
+        "Does NOT write copy (not a content-design, copy-direction, or tone-of-voice output)",
         "Does NOT produce color values, font names, or implementation code"
       ]
     }

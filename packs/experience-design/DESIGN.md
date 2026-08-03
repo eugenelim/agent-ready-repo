@@ -32,7 +32,9 @@ Things a reasonable reader might expect this pack to provide. It doesn't, by des
 ```
 journey-mapping
     ↓
-content-design  ←──── tone-of-voice
+content-design
+    ↓
+copy-direction  ←──── tone-of-voice (brand register, optional)
     ↓
 user-flow
     ↓
@@ -55,6 +57,7 @@ experience-reviewer  ←  independent cold review
 Each skill consumes a specific upstream artifact and cannot produce reliable output without it:
 
 - `content-design` needs the journey's key touchpoints to know what the surface is trying to accomplish and for whom.
+- `copy-direction` needs the content brief from `content-design` to name per-surface copy goals grounded in the surface's declared intent. For acquisition surfaces, `tone-of-voice`'s brand register is an optional upstream anchor.
 - `user-flow` needs the content brief to sequence screens in a way that delivers on the stated content intent, not just the functional path.
 - `creative-direction` needs the journey's emotional arc (the pains, the moments of relief) to ground the aesthetic direction in real user feeling rather than preference.
 - `design-system` needs the named aesthetic direction to derive a token taxonomy that isn't arbitrary.
@@ -134,7 +137,8 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 |-------|-------|--------|-----------------|
 | `journey-mapping` | User, outcome, platform | Journey map (stages × emotions × pains × opportunities) | What the user is trying to accomplish and where it breaks |
 | `content-design` | Journey key touchpoints | Content brief per surface | What the surface says, for whom, to what objective |
-| `tone-of-voice` | Brand/product register | Copy goals + arbitration rules | How the copy sounds; what wins when goals conflict |
+| `tone-of-voice` | Brand/product register | Brand-register doc (copy goals + arbitration rules) | How the brand sounds across all surfaces; what wins when goals conflict |
+| `copy-direction` | Content brief + tone-of-voice brand register (optional) | Per-surface copy goals | Which copy goals govern each acquisition surface |
 | `user-flow` | Journey + content brief | Screen inventory, transitions, per-screen briefs | Which screens exist, what state each handles, how they connect |
 | `service-blueprint` | Journey + screen flow | Blueprint (frontstage / backstage / support) | What services back each screen action |
 | `process-mapping` | Internal workflow | As-is / to-be process (SIPOC, swimlane, pain register) | What the internal operations look like, where waste is |
@@ -144,15 +148,16 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 
 `journey-mapping` and `user-flow` carry a platform/surface axis — responsive-web, iOS, Android, cross-platform. This affects what the method asks at each stage (iOS has HIG interaction patterns; cross-platform requires explicit divergence documentation). Skills that consume per-screen briefs inherit the platform context from the brief.
 
-### Content-design vs. tone-of-voice vs. voice-and-microcopy
+### Content-design vs. tone-of-voice vs. copy-direction vs. ux-writing
 
-Three skills touch copy; they operate at different layers:
+Four skills touch copy; they operate at different layers:
 
-- **`tone-of-voice`** sets the register: ranked emotional and brand goals for copy, grounded in persona and precedent, with arbitration rules. Upstream and organizational — sets the standard all surfaces must meet.
+- **`tone-of-voice`** sets the brand register: named, ranked copy goals grounded in persona and precedent, with arbitration rules. Brand-level and cross-surface — sets the standard all per-surface copy decisions reference.
 - **`content-design`** sets surface intent: what this specific surface says, for whom, in what structure. Execution-layer, per-surface — answers "what goes here?" not "how does it sound?"
-- **`voice-and-microcopy`** (product-engineering pack) writes the actual per-state strings. Consumes the state matrix from `user-flow` and the copy direction from tone-of-voice.
+- **`copy-direction`** names per-surface copy goals for a specific marketing or acquisition surface. Takes the content brief from `content-design` and the brand register from `tone-of-voice` (optional) as upstream inputs — answers "how does this surface sound and what does it emphasize?"
+- **`ux-writing`** (product-engineering pack) writes the actual per-state UI strings. Consumes the state matrix from `user-flow` and loads the brand register from `tone-of-voice` by fixed path as voice input.
 
-Running `tone-of-voice` before `content-design` is correct. Running `content-design` before `user-flow` is correct. Running `voice-and-microcopy` after all three is correct.
+Running `content-design` before `copy-direction` is correct. Running `tone-of-voice` before `copy-direction` is correct (the brand register is an optional upstream anchor for per-surface copy goals). Running `ux-writing` after `user-flow` is correct.
 
 ---
 
