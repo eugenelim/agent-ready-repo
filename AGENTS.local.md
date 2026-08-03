@@ -8,7 +8,7 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
 - **Python package development** (install-test rules, Windows compatibility, test conventions):
   [`packages/AGENTS.md`](packages/AGENTS.md).
 - **Release coupling** (PyPI release requirements, version bump workflow, tagging):
-  [`packages/AGENTS.local.md`](packages/AGENTS.local.md).
+  **Read [`packages/AGENTS.local.md`](packages/AGENTS.local.md) before acting** whenever any file under `packages/` is in scope.
 - **Marketing site** (Astro build, Node.js deps, dev server, mobile viewport, link rules):
   [`web/AGENTS.md`](web/AGENTS.md).
 - **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
