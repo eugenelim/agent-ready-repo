@@ -549,7 +549,7 @@ def main(argv: list[str] | None = None) -> int:
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
             # Confinement resolves the path (following any symlink) and verifies it
             # stays within root — this covers direct paths, relative traversal, and
-            # symlinks alike (AC16d). Escaping symlinks → plan_file_outside_root.
+            # symlinks alike. Escaping symlinks → plan_file_outside_root.
             # All subsequent I/O uses the resolved path, so replace() writes to the
             # resolved target, never blindly following a retargeted link.
             _plan_confinement = _check_plan_file_confinement(plan_path, root, "repair-plan")
@@ -568,6 +568,17 @@ def main(argv: list[str] | None = None) -> int:
                         "reason": "plan_file_is_workspace_toml",
                     })
                     return 2
+            # Guard: reject plan-file == .workspace-repair.lock. The lock file is
+            # ephemeral, so samefile() would fail when it doesn't exist; compare
+            # resolved paths instead.
+            if plan_path == (root / ".workspace-repair.lock").resolve():
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-plan",
+                    "applied": False,
+                    "reason": "plan_file_is_lock_path",
+                })
+                return 2
             # Capture fingerprint BEFORE analyze() to bind the plan to this snapshot.
             # analyze() re-reads workspace.toml internally; by pre-capturing bytes here
             # we ensure the stored fingerprint reflects what we observed at plan-time,
@@ -649,6 +660,15 @@ def main(argv: list[str] | None = None) -> int:
             if isinstance(_plan_confinement, int):
                 return _plan_confinement
             plan_path = _plan_confinement  # use resolved path for all I/O
+            # Guard: reject plan-file == .workspace-repair.lock.
+            if plan_path == (root / ".workspace-repair.lock").resolve():
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "plan_file_is_lock_path",
+                })
+                return 2
             # Load plan file
             try:
                 plan_raw = plan_path.read_text(encoding="utf-8")
@@ -731,7 +751,7 @@ def main(argv: list[str] | None = None) -> int:
                     os.O_CREAT | os.O_EXCL | os.O_WRONLY,
                 )
             except FileExistsError:
-                # AC36: fail closed immediately — no waiting, no stale recovery.
+                # Fail closed immediately — no waiting, no stale recovery.
                 # Stale-lock recovery via PID probing is racey: two concurrent
                 # processes that both classify the same lock as stale can both
                 # unlink and re-acquire it, breaking mutual exclusion.
