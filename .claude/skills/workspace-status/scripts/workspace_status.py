@@ -569,9 +569,12 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
             # Guard: reject plan-file == .workspace-repair.lock. The lock file is
-            # ephemeral, so samefile() would fail when it doesn't exist; compare
-            # resolved paths instead.
-            if plan_path == (root / ".workspace-repair.lock").resolve():
+            # ephemeral, so samefile() fails when it doesn't exist. Compare the
+            # resolved parent (always canonical on HFS+/NTFS) plus a casefold on
+            # the name to catch .WORKSPACE-REPAIR.LOCK on case-insensitive volumes.
+            _lock_reserved_rp = (root / ".workspace-repair.lock").resolve()
+            if (plan_path.name.casefold() == _lock_reserved_rp.name.casefold()
+                    and plan_path.parent == _lock_reserved_rp.parent):
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-plan",
@@ -660,8 +663,11 @@ def main(argv: list[str] | None = None) -> int:
             if isinstance(_plan_confinement, int):
                 return _plan_confinement
             plan_path = _plan_confinement  # use resolved path for all I/O
-            # Guard: reject plan-file == .workspace-repair.lock.
-            if plan_path == (root / ".workspace-repair.lock").resolve():
+            # Guard: reject plan-file == .workspace-repair.lock. Use casefold on
+            # the name to catch .WORKSPACE-REPAIR.LOCK on case-insensitive volumes.
+            _lock_reserved_ra = (root / ".workspace-repair.lock").resolve()
+            if (plan_path.name.casefold() == _lock_reserved_ra.name.casefold()
+                    and plan_path.parent == _lock_reserved_ra.parent):
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-apply",
@@ -797,7 +803,20 @@ def main(argv: list[str] | None = None) -> int:
                 if not ops:
                     # Empty plan: validate fingerprint under lock — tomlkit/mkstemp
                     # short-circuit still applies; only the read-and-check is serialised.
-                    _empty_bytes = _ws_apply_resolved.read_bytes()
+                    try:
+                        _empty_bytes = _ws_apply_resolved.read_bytes()
+                    except OSError as _erb:
+                        _emsg = str(_erb)
+                        with contextlib.suppress(OSError, RuntimeError):
+                            _emsg = _emsg.replace(str(root.resolve()), "<root>")
+                        print(f"workspace-status: workspace read failed: {_emsg}", file=sys.stderr)
+                        _emit({
+                            "schema_version": 1,
+                            "mode": "repair-apply",
+                            "applied": False,
+                            "reason": "workspace_read_failed",
+                        })
+                        return 2
                     _empty_digest = hashlib.sha256(_empty_bytes).hexdigest()
                     _empty_expected = plan_data.get("workspace_fingerprint", "")
                     if _empty_digest != _empty_expected:
@@ -837,7 +856,20 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
                 # Read from the resolved target so bytes and write target are in sync
-                workspace_bytes = workspace_write_target.read_bytes()
+                try:
+                    workspace_bytes = workspace_write_target.read_bytes()
+                except OSError as _rbe:
+                    _emsg = str(_rbe)
+                    with contextlib.suppress(OSError, RuntimeError):
+                        _emsg = _emsg.replace(str(root.resolve()), "<root>")
+                    print(f"workspace-status: workspace read failed: {_emsg}", file=sys.stderr)
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": False,
+                        "reason": "workspace_read_failed",
+                    })
+                    return 2
                 actual_fp = hashlib.sha256(workspace_bytes).hexdigest()
                 expected_fp = plan_data.get("workspace_fingerprint", "")
                 if actual_fp != expected_fp:
@@ -874,10 +906,12 @@ def main(argv: list[str] | None = None) -> int:
                         "reason": _write_reason,
                     })
                     return 2
-                after_digest = (
-                    hashlib.sha256(workspace_write_target.read_bytes()).hexdigest()
-                    if applied > 0 else before_digest
-                )
+                after_digest = before_digest
+                if applied > 0:
+                    with contextlib.suppress(OSError):
+                        after_digest = hashlib.sha256(
+                            workspace_write_target.read_bytes()
+                        ).hexdigest()
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-apply",
