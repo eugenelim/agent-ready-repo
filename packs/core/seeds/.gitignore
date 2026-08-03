@@ -34,5 +34,12 @@ build/
 # Build pipeline output.
 dist/
 
+# workspace-status repair artifacts — written by repair-plan/repair-apply;
+# never committed (plan files, lock files, and atomic-write temps are session-scoped).
+.workspace-repair-plan.json
+.workspace-repair.lock
+.workspace.toml.*.tmp
+.plan.*.tmp
+
 # Conductor scratch + per-workspace probe scaffolding.
 .context/

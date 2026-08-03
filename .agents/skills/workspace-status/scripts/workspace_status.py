@@ -612,17 +612,6 @@ def main(argv: list[str] | None = None) -> int:
                     "reason": "workspace_outside_root",
                 })
                 return 2
-            # tomlkit guard — must precede any tomlkit call
-            try:
-                import tomlkit as _tomlkit_check  # noqa: F401
-            except ImportError:
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-apply",
-                    "applied": False,
-                    "reason": "tomlkit_unavailable",
-                })
-                return 2
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
             confinement_rc = _check_plan_file_confinement(plan_path, root, "repair-apply")
             if confinement_rc is not None:
@@ -702,6 +691,17 @@ def main(argv: list[str] | None = None) -> int:
                     "per_operation": [],
                 })
                 return 0
+            # tomlkit guard — only needed when there are operations to apply
+            try:
+                import tomlkit as _tomlkit_check  # noqa: F401
+            except ImportError:
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "tomlkit_unavailable",
+                })
+                return 2
             # Acquire cross-platform sibling lock before final validation + write
             lock_path = root / ".workspace-repair.lock"
             lock_fd = -1

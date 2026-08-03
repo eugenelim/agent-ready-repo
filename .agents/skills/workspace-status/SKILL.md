@@ -128,13 +128,13 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 
 ### 1a. Subcommand guidance
 
-| Subcommand | When to use | Type 1 walk |
-|------------|-------------|-------------|
-| `status` (default) | Session start, queue check — fast bounded scan | No |
-| `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes |
-| `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No |
-| `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes |
-| `repair-apply` | Apply a previously generated repair plan atomically | No |
+| Subcommand | When to use | Type 1 walk | Writes |
+|------------|-------------|-------------|--------|
+| `status` (default) | Session start, queue check — fast bounded scan | No | — |
+| `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
+| `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
+| `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
+| `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
 
 **`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
 
