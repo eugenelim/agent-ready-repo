@@ -184,6 +184,14 @@ jobs:
       - name: "Enterprise smoke — assert channel = stable in install-defaults.toml"
         run: grep 'channel = "stable"' /tmp/gate-h-enterprise-cat/install-defaults.toml
 
+      - name: "Enterprise smoke — inject enterprise defaults into package source"
+        # Simulates the enterprise fork workflow: after sync-defaults --write generates
+        # the enterprise install-defaults.toml, the org copies it into their agentbundle
+        # fork's _data/ before building their private wheel.
+        run: |
+          cp /tmp/gate-h-enterprise-cat/install-defaults.toml \
+             packages/agentbundle/agentbundle/_data/install-defaults.toml
+
       - name: "Enterprise smoke — build wheel"
         run: |
           pip install --upgrade build
@@ -202,6 +210,9 @@ jobs:
               print(data)
               sys.exit(1)
           "
+
+      - name: "Enterprise smoke — restore public install-defaults.toml"
+        run: git checkout -- packages/agentbundle/agentbundle/_data/install-defaults.toml
 
       - name: "Package-config test — create two-pack catalogue"
         run: |
