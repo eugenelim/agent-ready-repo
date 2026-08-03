@@ -399,6 +399,7 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
             if word in VALID_STATUSES:
                 fp = hashlib.sha256(line.encode("utf-8")).hexdigest()
                 return word, fp
+            return None, None  # stop at first invalid status line, matching extract_spec_status
     return None, None
 
 
@@ -1175,12 +1176,17 @@ def compute_type2_cleanup(
 def compute_repair_plan(
     result: WorkspaceStatusResult,
     workspace_path: Path,
+    workspace_fingerprint: str | None = None,
 ) -> RepairPlan:
     """Build a deterministic, read-only repair plan from a full reconciliation result.
 
     Only Type 2 findings from work.queue with Shipped or Archived status become
     automatic_operations. Paths appearing more than once in the same initiative's
     queue (duplicates) and all other findings become manual_findings.
+
+    workspace_fingerprint: pre-computed SHA-256 of workspace.toml bytes, captured
+    before analyze() is called. When provided, binds the plan to that snapshot and
+    eliminates the TOCTOU window between analysis and a separate read_bytes() call.
     """
     automatic: list[RepairOperation] = []
     manual: list[ManualFinding] = []
@@ -1251,7 +1257,11 @@ def compute_repair_plan(
             finding_id=fid,
         ))
 
-    fingerprint = hashlib.sha256(workspace_path.read_bytes()).hexdigest()
+    fingerprint = (
+        workspace_fingerprint
+        if workspace_fingerprint is not None
+        else hashlib.sha256(workspace_path.read_bytes()).hexdigest()
+    )
     # plan_id: SHA-256 of canonical plan content excluding plan_id itself.
     # Must be computed AFTER all operation_id and finding_id values are set.
     auto_dicts = [dataclasses.asdict(op) for op in automatic]

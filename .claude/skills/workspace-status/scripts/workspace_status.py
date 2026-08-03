@@ -544,8 +544,14 @@ def main(argv: list[str] | None = None) -> int:
                         "reason": "plan_file_is_workspace_toml",
                     })
                     return 2
+            # Capture fingerprint BEFORE analyze() to bind the plan to this snapshot.
+            # analyze() re-reads workspace.toml internally; by pre-capturing bytes here
+            # we ensure the stored fingerprint reflects what we observed at plan-time,
+            # not a later re-read that could race with a concurrent writer.
+            _plan_ws_bytes = workspace_toml.read_bytes()
+            _plan_ws_fp = hashlib.sha256(_plan_ws_bytes).hexdigest()
             result = analyze(root)
-            plan = compute_repair_plan(result, workspace_toml)
+            plan = compute_repair_plan(result, workspace_toml, workspace_fingerprint=_plan_ws_fp)
             data = _build_repair_plan_json(root, result, plan)
             # Emit stdout first — plan JSON always available even if file write fails
             _emit(data)
@@ -671,14 +677,27 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
             ops = plan_data.get("automatic_operations", [])
             if not ops:
-                before_digest = hashlib.sha256(workspace_toml.read_bytes()).hexdigest()
+                # Validate fingerprint before accepting an empty plan — a stale empty
+                # plan must be rejected (AC14: fingerprint check precedes empty-ops short-circuit).
+                _empty_bytes = workspace_toml.read_bytes()
+                _empty_digest = hashlib.sha256(_empty_bytes).hexdigest()
+                _empty_expected = plan_data.get("workspace_fingerprint", "")
+                if _empty_digest != _empty_expected:
+                    print("workspace-status: fingerprint mismatch", file=sys.stderr)
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": False,
+                        "reason": "fingerprint_mismatch",
+                    })
+                    return 2
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-apply",
                     "applied": True,
                     "plan_id": stored_plan_id,
-                    "before_workspace_digest": before_digest,
-                    "after_workspace_digest": before_digest,
+                    "before_workspace_digest": _empty_digest,
+                    "after_workspace_digest": _empty_digest,
                     "operations_applied": 0,
                     "per_operation": [],
                 })

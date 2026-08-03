@@ -20,7 +20,7 @@
     {
       "id": 2,
       "prompt": "Run repair-plan on the workspace to see what queue fixes are available",
-      "expected_output": "The agent invokes the workspace-status repair-plan subcommand (python3 <skill-dir>/scripts/workspace_status.py repair-plan --root <root>) and reports the plan result. The plan JSON includes workspace_fingerprint, planned_at, automatic_operations, and manual_findings. The agent summarises which operations are automatic and which require manual review. The agent does NOT modify workspace.toml.",
+      "expected_output": "The agent invokes the workspace-status repair-plan subcommand (python3 <skill-dir>/scripts/workspace_status.py repair-plan --root <root>) and reports the plan result. The plan JSON includes workspace_fingerprint, plan_id, automatic_operations, and manual_findings. The agent summarises which operations are automatic and which require manual review. The agent does NOT modify workspace.toml.",
       "assertions": [
         "Invokes repair-plan rather than modifying workspace.toml directly",
         "Reports the workspace_fingerprint from the plan JSON",
