@@ -8,6 +8,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.27.2]
+
 ### Fixed
 
 - **Self-host orphan sweep deleting externally installed skills** (`build/adapters/claude_code.py`,
