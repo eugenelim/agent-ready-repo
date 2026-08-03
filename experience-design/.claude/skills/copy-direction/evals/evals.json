@@ -1,0 +1,59 @@
+{
+  "skill_name": "copy-direction",
+  "version": "1.0",
+  "evals": [
+    {
+      "id": "per-surface-direction",
+      "prompt": "What voice should our pricing page have? We want authority without sounding cold or corporate.",
+      "expected_output": "A small set of NAMED copy goals, each a noun phrase a non-designer can recall, RANKED so a tie can break, with a single dominant goal. Each goal grounded in at least one stable referent (persona language, copy precedent, or persuasion standard). At least one arbitration rule recorded. Output scoped to the pricing page — not brand-level. No finished copy strings (no headlines, taglines, or CTA copy).",
+      "assertions": [
+        "Output identifies reader types and at least one JTBD sentence",
+        "Output names 3–5 copy goals, each a recall-able noun phrase",
+        "Each goal has at least one stable referent (persona language, copy precedent, or persuasion standard)",
+        "Goals are ranked with a dominant goal named",
+        "At least one arbitration rule is recorded",
+        "Output does NOT contain finished copy — no headline, tagline, or CTA string",
+        "Output does NOT claim to cover all surfaces — scoped to the pricing page"
+      ]
+    },
+    {
+      "id": "content-brief-grounding",
+      "prompt": "Here's our content brief for the homepage [communication_mode: product-copy, audience: technical founders]. What copy direction should we name?",
+      "expected_output": "A copy-direction doc that sources its reader map from the content brief's audience. Goals are scoped to the homepage surface — not brand-level. Because communication_mode is product-copy, the output notes the editorial-quality-gates anti-AI-smell scan.",
+      "assertions": [
+        "Reader map references the content brief's audience",
+        "If communication_mode is product-copy, editorial-quality-gates.md check is noted",
+        "Goals are scoped to the homepage surface — not brand-level",
+        "Output references the anti-AI-smell scan if communication_mode: product-copy is declared"
+      ]
+    },
+    {
+      "id": "brand-register-deference",
+      "prompt": "We have a brand register doc. Now what copy direction should our campaign landing page have?",
+      "expected_output": "A copy-direction doc that references the brand-register doc as an upstream referent (in step 3). Per-surface goals are checked against the brand register. Any tension is surfaced as an open question — the brand register is not silently overridden.",
+      "assertions": [
+        "Output references the brand-register doc as an upstream referent in step 3",
+        "Output checks per-surface goals against the brand register",
+        "Any tension between per-surface goals and brand register is surfaced as an open question",
+        "Output does not silently override the brand register"
+      ]
+    },
+    {
+      "id": "artifact-production",
+      "prompt": "Given the content brief at sample-brief.md, write the copy direction for the launch page.",
+      "files": ["evals/files/sample-brief.md", "evals/files/agentbundle-layout.toml"],
+      "expected_output": "A copy-direction doc written to copy/launch-page.md with frontmatter type: copy-direction. Contains reader map, 3–5 ranked named copy goals each with a stable referent, a dominant goal, and at least one arbitration rule. No finished copy strings. The skill reports the output path.",
+      "expect": {
+        "produces": ["copy/launch-page.md"],
+        "output_contains": ["copy/launch-page.md"]
+      },
+      "assertions": [
+        "Output file is written to copy/launch-page.md with frontmatter type: copy-direction",
+        "Output contains a reader map with at least one JTBD sentence",
+        "Output names 3–5 ranked copy goals, each with a stable referent",
+        "Output names a dominant goal",
+        "Output contains no finished copy strings (no headlines, taglines, or CTA copy)"
+      ]
+    }
+  ]
+}

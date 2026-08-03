@@ -1,18 +1,19 @@
 ---
 type: tone-of-voice
-surface: <marketing/acquisition | onboarding | announcement | other — name the surface type>
+scope: brand-level
 persona: <short persona name or pointer to persona artifact>
 date: <YYYY-MM-DD>
 ---
 
-# Copy direction: <surface or product name>
+# Brand register: <brand or product name>
 
 <!--
   Written by the `tone-of-voice` skill. Fill the angle-bracket prompts and
-  delete this comment. This doc names *copy direction* — the goals and
-  arbitration rules that steer copy decisions for this surface. It holds NO
-  finished copy, formula tables, or pre-written strings. Keep it short enough
-  that a writer picks up direction in two minutes.
+  delete this comment. This doc names the brand-level copy register — the
+  cross-surface copy personality that all per-surface copy decisions reference.
+  It holds NO finished copy, formula tables, or per-surface direction strings.
+  Per-surface copy direction lives in copy/<surface-slug>.md (copy-direction skill).
+  Keep this doc short enough that a writer picks up the brand register in two minutes.
 -->
 
 ## Reader map
@@ -35,7 +36,7 @@ date: <YYYY-MM-DD>
 
 ## What each goal means
 
-<!-- For each goal: what it means for copy on this surface, what would violate
+<!-- For each goal: what it means for brand copy, what would violate
      it, and its grounding referents. -->
 
 - **<goal 1>** — means: <one line: what this goal looks like in real copy choices>. Violated by: <the opposite — the copy move that would break it>.

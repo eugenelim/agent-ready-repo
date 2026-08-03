@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "A technical founder describes their product's copy vibe: 'direct but warm — we're the guide, not the expert. Our audience is technical founders and their teams.' Name the copy direction.",
-      "expected_output": "A small set of NAMED copy goals, each a noun phrase a non-designer can recall, RANKED so a tie can break, with a single dominant goal that wins when goals conflict. Each goal grounded in at least one stable referent (persona language, a named copy precedent, or a persuasion standard). At least one arbitration rule recorded (which goal wins which conflict and why). No finished copy strings or formula tables. VoC posture declared (directional if elicited inline).",
+      "prompt": "A technical founder describes their product's copy vibe: 'direct but warm — we're the guide, not the expert. Our audience is technical founders and their teams.' Name the brand-level copy register for this product.",
+      "expected_output": "A small set of NAMED brand-level copy goals, each a noun phrase a non-designer can recall, RANKED so a tie can break, with a single dominant goal that wins when goals conflict. Each goal grounded in at least one stable referent (persona language, a named copy precedent, or a persuasion standard). At least one arbitration rule recorded (which goal wins which conflict and why). No finished copy strings or formula tables. VoC posture declared (directional if elicited inline). Output written to copy/brand-register.md — not a per-surface slug path.",
       "assertions": [
         "Names the primary reader type and writes or references a copy JTBD sentence",
         "Produces at least two named copy goals, each a short noun phrase (not a sentence or a single vague word)",
@@ -13,8 +13,23 @@
         "Records at least one arbitration rule (conflict type → winner → reason)",
         "Does NOT produce finished copy strings, formula tables, or pre-written headlines",
         "If VoC is absent, flags goals as 'directional — not backed by VoC research'",
-        "Artifact path docs/design/copy/<slug>.md stated or implied"
+        "Artifact path copy/brand-register.md stated or implied (not a per-surface slug path)"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "Name the brand-level copy register for a developer-tool startup that wants to sound like a guide, not a guru. Use agentbundle-layout.toml in this workspace to resolve the output path.",
+      "expected_output": "Named, ranked brand-level copy goals written to copy/brand-register.md with type: tone-of-voice frontmatter. At least one arbitration rule. VoC posture declared. Does NOT write finished copy.",
+      "assertions": [
+        "Writes the brand register to copy/brand-register.md (not a per-surface path)",
+        "Frontmatter includes type: tone-of-voice",
+        "Does NOT produce per-surface copy direction (no landing-page or campaign-specific goals)"
+      ],
+      "files": ["evals/files/agentbundle-layout.toml"],
+      "expect": {
+        "produces": ["copy/brand-register.md"],
+        "output_contains": ["copy/brand-register.md"]
+      }
     }
   ]
 }

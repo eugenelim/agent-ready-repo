@@ -25,8 +25,8 @@ An aesthetic JTBD (from `creative-direction`) names what the reader *feels* — 
 After writing one sentence per reader type, rank them: primary, secondary, tertiary. The primary reader is the one whose job the copy must nail first. Copy that serves the primary reader precisely and does not reach the secondary reader is still a success; copy that tries to serve everyone equally serves none of them well.
 
 Ranking criteria:
-1. **Who is most likely to arrive?** The reader most likely to read this copy on this surface is the primary.
-2. **Whose conversion matters most?** On a landing page, the reader closest to the conversion decision is primary. On an announcement, the reader most likely to share or act on the announcement is primary.
+1. **Who is most likely to arrive?** The reader most likely to engage with this brand's copy is the primary.
+2. **Whose engagement is most register-dependent?** Across all channels and surfaces this brand reaches, the reader whose trust depends most on getting the copy register right is primary — the one you lose if the voice is wrong.
 3. **Who would leave if you got it wrong?** The reader whose departure is most costly if the copy fails them is primary.
 
 Record the ranked map before moving to Step 2. It becomes the Persona referent for every named copy goal.
