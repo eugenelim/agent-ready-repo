@@ -337,14 +337,13 @@ def _safe_spec_path(root: Path, slug: str) -> Path | None:
 VALID_STATUSES = frozenset({"Draft", "Approved", "Implementing", "Shipped", "Archived"})
 
 
-def extract_spec_status(spec_path: Path) -> str | None:
-    """Read spec.md and return the Status vocabulary word, or None if absent/unreadable."""
-    if not spec_path.exists():
-        return None
-    try:
-        text = spec_path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
+def _parse_spec_status(text: str) -> tuple[str | None, str | None]:
+    """Parse a spec.md string and return (status_token, raw_status_line).
+
+    Scans the preamble (before the first ## heading), skipping fenced code
+    blocks and HTML comments, and returns the first `- **Status:**` field.
+    Returns (None, None) when no valid status is found.
+    """
     fence_char: str | None = None  # None = not in fence; "`" or "~" = in fence
     fence_min_len: int = 0         # minimum closing fence length
     in_ml_comment = False          # inside a multi-line HTML comment
@@ -400,16 +399,28 @@ def extract_spec_status(spec_path: Path) -> str | None:
             # A trailing bare arrow ("Draft → Approved →") has no final segment;
             # reject it explicitly so the preceding segment is never backtracked to.
             if content.rstrip().endswith("→"):
-                return None
+                return None, None
             # Take the LAST segment; if not a known status, return None — no backtrack.
             segments = _TRANSITION_ARROW_RE.findall(content)
             if segments:
                 last = segments[-1]
-                return last if last in VALID_STATUSES else None
+                return (last, line) if last in VALID_STATUSES else (None, None)
         else:
             word = content.split()[0] if content.split() else ""
-            return word if word in VALID_STATUSES else None
-    return None
+            return (word, line) if word in VALID_STATUSES else (None, None)
+    return None, None
+
+
+def extract_spec_status(spec_path: Path) -> str | None:
+    """Read spec.md and return the Status vocabulary word, or None if absent/unreadable."""
+    if not spec_path.exists():
+        return None
+    try:
+        text = spec_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    status, _ = _parse_spec_status(text)
+    return status
 
 
 def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, str | None]:
@@ -425,60 +436,10 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
         text = spec_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None, None
-    fence_char: str | None = None
-    fence_min_len: int = 0
-    in_ml_comment = False
-    for line in text.splitlines():
-        if not in_ml_comment:
-            fm = _FENCE_RE.match(line)
-            if fm:
-                marker = fm.group(1)
-                char = marker[0]
-                length = len(marker)
-                if fence_char is None:
-                    fence_char, fence_min_len = char, length
-                    continue
-                # Closer: same type, >= length, and NO non-whitespace after the
-                # marker. A line like "```python" inside a fence is body content.
-                rest = line[fm.end():]
-                if char == fence_char and length >= fence_min_len and not rest.strip():
-                    fence_char, fence_min_len = None, 0
-                    continue
-        if fence_char is not None:
-            continue
-        if in_ml_comment:
-            if "-->" in line:
-                in_ml_comment = False
-            continue
-        if _SECTION_HEADING_RE.match(line):
-            break
-        clean = _HTML_COMMENT_RE.sub("", line)
-        if "<!--" in clean:
-            clean = clean[:clean.index("<!--")]
-            in_ml_comment = True
-        if not clean.startswith("- **Status:**"):
-            continue
-        m = _STATUS_FIELD_RE.search(clean)
-        if not m:
-            continue
-        content = m.group(1).strip()
-        if "→" in content:
-            if content.rstrip().endswith("→"):
-                return None, None
-            segments = _TRANSITION_ARROW_RE.findall(content)
-            if segments:
-                last = segments[-1]
-                if last in VALID_STATUSES:
-                    fp = hashlib.sha256(line.encode("utf-8")).hexdigest()
-                    return last, fp
-                return None, None
-        else:
-            word = content.split()[0] if content.split() else ""
-            if word in VALID_STATUSES:
-                fp = hashlib.sha256(line.encode("utf-8")).hexdigest()
-                return word, fp
-            return None, None  # stop at first invalid status line, matching extract_spec_status
-    return None, None
+    status, raw_line = _parse_spec_status(text)
+    if status is None or raw_line is None:
+        return None, None
+    return status, hashlib.sha256(raw_line.encode("utf-8")).hexdigest()
 
 
 # ── DAG / needs resolution ────────────────────────────────────────────────────

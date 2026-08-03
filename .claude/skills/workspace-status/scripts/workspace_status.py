@@ -690,6 +690,18 @@ def main(argv: list[str] | None = None) -> int:
                     "reason": "plan_file_parse_error",
                 })
                 return 2
+            except OSError as _re:
+                _rmsg = str(_re)
+                with contextlib.suppress(OSError, RuntimeError):
+                    _rmsg = _rmsg.replace(str(root.resolve()), "<root>")
+                print(f"workspace-status: plan file unreadable: {_rmsg}", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "plan_file_unreadable",
+                })
+                return 2
             try:
                 plan_data = json.loads(plan_raw)
             except json.JSONDecodeError as je:
