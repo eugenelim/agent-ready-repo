@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ux-writing` boundary note updated: onboarding copy voice routes to `copy-direction`.** The `ux-writing` skill's scope boundary note now routes per-surface marketing/acquisition copy voice — including onboarding copy voice — to `copy-direction` (experience-design pack) rather than `tone-of-voice`. The onboarding tri-point (`content-design` / `copy-direction` / `ux-writing`) is now explicit in the boundary note. ([spec](../specs/xd-copy-direction/spec.md))
 
-## [core][2.1.0] — 2026-08-02
+## [core][2.0.1] — 2026-08-02
 
 ### Added
 
