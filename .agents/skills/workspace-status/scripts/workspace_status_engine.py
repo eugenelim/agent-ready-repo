@@ -6,6 +6,8 @@ Entry points:
   analyze_bounded(root: Path) -> WorkspaceStatusResult  — bounded analysis (Type 2+3 only)
   explain_item(result, selector: str) -> dict           — focused projection from bounded result
   compute_type2_cleanup(ini_slug, source_list, spec_path, spec_status) -> dict
+  compute_repair_plan(result, workspace_path: Path) -> RepairPlan
+                                             — deterministic repair plan
 
 This engine is the canonical implementation invoked by the workspace-status skill
 via scripts/workspace_status.py. It reads workspace.toml and docs/specs/** to
@@ -27,6 +29,8 @@ Known gaps (preserved from Phase 0 characterization):
 from __future__ import annotations
 
 import dataclasses
+import datetime
+import hashlib
 import os
 import re
 import time
@@ -120,6 +124,35 @@ class WorkLoopStaleWarning:
     spec_path: str
     ini_slug: str
     source_lists: list[str]  # ["queue"], ["active"], or ["queue", "active"]
+
+
+@dataclasses.dataclass
+class RepairOperation:
+    """A single automatically applicable repair operation derived from a Type 2 queue finding."""
+    operation_type: str  # "queue-to-shipped" | "queue-remove"
+    spec_path: str
+    spec_status: str     # "Shipped" | "Archived"
+    ini_slug: str
+
+
+@dataclasses.dataclass
+class ManualFinding:
+    """A finding that requires human decision; not automatically repairable."""
+    finding_type: int
+    spec_path: str
+    spec_status: str
+    ini_slug: str
+    list_name: str
+    reason: str
+
+
+@dataclasses.dataclass
+class RepairPlan:
+    """Output of compute_repair_plan — a deterministic, read-only repair plan."""
+    automatic_operations: list[RepairOperation]
+    manual_findings: list[ManualFinding]
+    workspace_fingerprint: str  # SHA-256 hexdigest of workspace.toml bytes at plan time
+    planned_at: str             # ISO8601 UTC with +00:00 offset
 
 
 @dataclasses.dataclass
@@ -1092,3 +1125,71 @@ def compute_type2_cleanup(
         "path": spec_path,
         "written_form": _toml_basic_string(spec_path),
     }
+
+
+# ── Repair planning ───────────────────────────────────────────────────────────
+
+
+def compute_repair_plan(
+    result: WorkspaceStatusResult,
+    workspace_path: Path,
+) -> RepairPlan:
+    """Build a deterministic, read-only repair plan from a full reconciliation result.
+
+    Only Type 2 findings from work.queue with Shipped or Archived status become
+    automatic_operations. Paths appearing more than once in the same initiative's
+    queue (duplicates) and all other findings become manual_findings.
+    """
+    automatic: list[RepairOperation] = []
+    manual: list[ManualFinding] = []
+
+    # Duplicate detection: count (ini_slug, spec_path) pairs across Type 2 queue findings
+    queue_counts: dict[tuple[str, str], int] = {}
+    for f in result.type2:
+        if f.list_name == "queue":
+            key = (f.ini_slug, f.spec_path)
+            queue_counts[key] = queue_counts.get(key, 0) + 1
+    duplicate_keys = {k for k, n in queue_counts.items() if n > 1}
+
+    for f in result.type1:
+        manual.append(ManualFinding(
+            finding_type=1, spec_path=f.spec_path, spec_status=f.spec_status,
+            ini_slug=f.ini_slug, list_name=f.list_name, reason="type1-untracked",
+        ))
+
+    for f in result.type2:
+        if f.list_name == "queue" and (f.ini_slug, f.spec_path) in duplicate_keys:
+            manual.append(ManualFinding(
+                finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
+                ini_slug=f.ini_slug, list_name=f.list_name, reason="type2-queue-duplicate",
+            ))
+        elif f.list_name == "queue" and f.spec_status in ("Shipped", "Archived"):
+            op_type = "queue-to-shipped" if f.spec_status == "Shipped" else "queue-remove"
+            automatic.append(RepairOperation(
+                operation_type=op_type, spec_path=f.spec_path,
+                spec_status=f.spec_status, ini_slug=f.ini_slug,
+            ))
+        else:
+            reason = (
+                "type2-active-source" if f.list_name == "active"
+                else f"type2-queue-{f.spec_status.lower()}"
+            )
+            manual.append(ManualFinding(
+                finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
+                ini_slug=f.ini_slug, list_name=f.list_name, reason=reason,
+            ))
+
+    for f in result.type3:
+        manual.append(ManualFinding(
+            finding_type=3, spec_path=f.spec_path, spec_status=f.spec_status,
+            ini_slug=f.ini_slug, list_name=f.list_name, reason="type3-premature",
+        ))
+
+    fingerprint = hashlib.sha256(workspace_path.read_bytes()).hexdigest()
+    planned_at = datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
+    return RepairPlan(
+        automatic_operations=automatic,
+        manual_findings=manual,
+        workspace_fingerprint=fingerprint,
+        planned_at=planned_at,
+    )

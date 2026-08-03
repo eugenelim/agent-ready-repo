@@ -132,10 +132,53 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 | `status` (default) | Session start, queue check — fast bounded scan | No |
 | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes |
 | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No |
+| `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes |
+| `repair-apply` | Apply a previously generated repair plan atomically | No |
 
 **`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
 
 **`explain`** — pass a slug or `spec/` path to get the item's current classification, dependencies, blocking needs, and which downstream items would become unblocked if this item shipped. Lookup is restricted to **active initiatives' work queues** (queue/active/shipped); shaping items and items in paused or closed initiatives return `selector_status: "not_found"`.
+
+**`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
+
+**`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
+
+### 1b. Repair workflow
+
+Use `repair-plan` + `repair-apply` to deterministically clean up stale queue entries without manual `workspace.toml` editing:
+
+```
+# Step 1 — inspect the plan (no writes to workspace.toml)
+["<python>", "<skill-dir>/scripts/workspace_status.py", "repair-plan", "--root", "<repo-root>"]
+
+# Step 2 — review the plan JSON; then apply
+["<python>", "<skill-dir>/scripts/workspace_status.py", "repair-apply", "--root", "<repo-root>"]
+```
+
+**When to use:** after `reconcile` or `status` shows Type 2 stale-queue findings and you want automated cleanup without manual editing. The two-step design lets you review the plan before committing.
+
+**`--plan-file <path>`** — override the plan file location for both subcommands. The path must resolve inside `<repo-root>`; symlinks that escape the root are rejected (exit 2, `plan_file_outside_root`).
+
+**`tomlkit` availability** — `repair-apply` requires `tomlkit` (comment-preserving TOML writer). If absent, install it: `pip install tomlkit`. `repair-plan` does not require it.
+
+**`repair-apply` result JSON key fields:**
+
+```
+schema_version     — 1
+mode               — "repair-apply"
+applied            — true if write succeeded; false on any structural error
+operations_applied — count of operations actually written (0 when all skipped or empty plan)
+per_operation      — list of {path, applied, reason?} for all operations
+reason             — error reason string when applied:false (top-level field, structural errors)
+```
+
+**Interpreting `per_operation`:** each entry records `"applied": true` (written) or `"applied": false` with a `reason`:
+- `spec_status_changed` — spec Status changed between plan and apply; human review needed
+- `spec_status_unreadable` — spec.md not found or Status field missing
+- `initiative_not_found` — ini_slug absent from workspace.toml
+- `entry_not_found_in_queue` — path no longer in the queue (already removed or never present)
+
+**`.workspace-repair-plan.json` and temp files** — both are written inside the repo root. Add them to `.gitignore` to avoid accidental commits (the temp files are cleaned up automatically on success).
 
 ### 2. Surface results
 

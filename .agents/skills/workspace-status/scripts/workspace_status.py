@@ -2,10 +2,12 @@
 """workspace-status CLI — thin JSON frontend for the production engine.
 
 Usage:
-    python3 workspace_status.py status    --root "<repo-root>"
-    python3 workspace_status.py explain   --root "<repo-root>" --item <selector>
-    python3 workspace_status.py reconcile --root "<repo-root>"
-    python3 workspace_status.py           --root "<repo-root>"   # compat alias for reconcile
+    python3 workspace_status.py status       --root "<repo-root>"
+    python3 workspace_status.py explain      --root "<repo-root>" --item <selector>
+    python3 workspace_status.py reconcile    --root "<repo-root>"
+    python3 workspace_status.py repair-plan  --root "<repo-root>" [--plan-file <path>]
+    python3 workspace_status.py repair-apply --root "<repo-root>" [--plan-file <path>]
+    python3 workspace_status.py              --root "<repo-root>"   # compat alias for reconcile
 
 Output (stdout): deterministic UTF-8 JSON with schema_version = 1.
 
@@ -18,10 +20,15 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import dataclasses
+import hashlib
 import importlib.util
 import json
+import os
 import sys
-from pathlib import Path
+import tempfile
+from pathlib import Path, PurePosixPath
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -46,6 +53,9 @@ try:
     analyze_bounded = _engine_mod.analyze_bounded
     explain_item = _engine_mod.explain_item
     compute_type2_cleanup = _engine_mod.compute_type2_cleanup
+    compute_repair_plan = _engine_mod.compute_repair_plan
+    extract_spec_status = _engine_mod.extract_spec_status
+    _safe_spec_path = _engine_mod._safe_spec_path
 except Exception as _load_err:
     # Engine load failure must be exit 2, not exit 1 (reserved for absent workspace).
     # Emit only the exception type — the message may include the engine's install path.
@@ -55,7 +65,9 @@ except Exception as _load_err:
 
 # ── Subcommand routing ────────────────────────────────────────────────────────
 
-_SUBCOMMANDS = frozenset({"status", "explain", "reconcile"})
+_SUBCOMMANDS = frozenset({"status", "explain", "reconcile", "repair-plan", "repair-apply"})
+_DEFAULT_PLAN_FILE = ".workspace-repair-plan.json"
+_VALID_OPERATION_TYPES = frozenset({"queue-to-shipped", "queue-remove"})
 
 
 # ── Serialisation helpers ─────────────────────────────────────────────────────
@@ -220,6 +232,171 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
     }
 
 
+def _build_repair_plan_json(root: Path, result, plan) -> dict:
+    base = _build_json(root, result, "repair-plan")
+    base["workspace_fingerprint"] = plan.workspace_fingerprint
+    base["planned_at"] = plan.planned_at
+    base["automatic_operations"] = [dataclasses.asdict(op) for op in plan.automatic_operations]
+    base["manual_findings"] = [dataclasses.asdict(mf) for mf in plan.manual_findings]
+    return base
+
+
+def _check_plan_file_confinement(plan_path: Path, root: Path, mode: str) -> int | None:
+    """Return exit code 2 if plan_path escapes root, else None."""
+    try:
+        plan_path.resolve().relative_to(root.resolve())
+        return None
+    except (OSError, RuntimeError, ValueError):
+        _emit({
+            "schema_version": 1,
+            "mode": mode,
+            "applied": False,
+            "reason": "plan_file_outside_root",
+        })
+        return 2
+
+
+def _validate_plan_structure(data: dict) -> str | None:
+    """Validate plan JSON structure. Return error reason string or None."""
+    if data.get("schema_version") != 1:
+        return "plan_invalid"
+    ops = data.get("automatic_operations")
+    if not isinstance(ops, list):
+        return "plan_invalid"
+    for op in ops:
+        if not isinstance(op, dict):
+            return "plan_invalid"
+        op_type = op.get("operation_type", "")
+        spec_path = op.get("spec_path", "")
+        ini_slug = op.get("ini_slug", "")
+        spec_status = op.get("spec_status", "")
+        if op_type not in _VALID_OPERATION_TYPES:
+            return "plan_invalid"
+        if not spec_path or not isinstance(spec_path, str):
+            return "plan_invalid"
+        if not ini_slug or not isinstance(ini_slug, str):
+            return "plan_invalid"
+        # spec_path traversal guard
+        try:
+            parts = PurePosixPath(spec_path).parts
+        except Exception:
+            return "plan_invalid"
+        if ".." in parts or PurePosixPath(spec_path).is_absolute():
+            return "plan_invalid"
+        # operation_type ↔ spec_status coupling
+        if op_type == "queue-to-shipped" and spec_status != "Shipped":
+            return "plan_invalid"
+        if op_type == "queue-remove" and spec_status != "Archived":
+            return "plan_invalid"
+    return None
+
+
+def _apply_operations(
+    root: Path,
+    operations: list[dict],
+    workspace_toml_bytes: bytes,
+    workspace_path: Path,
+) -> tuple[int, list[dict]]:
+    """Apply automatic operations using tomlkit. Returns (applied, per_operation)."""
+    import stat
+
+    import tomlkit  # noqa: PLC0415 — guarded CLI-only import
+
+    doc = tomlkit.parse(workspace_toml_bytes.decode("utf-8"))
+    applied = 0
+    per_op: list[dict] = []
+
+    for op in operations:
+        spec_path = op["spec_path"]
+        ini_slug = op["ini_slug"]
+        expected_status = op["spec_status"]
+
+        # Confinement + re-verify spec status from disk
+        slug = spec_path.removeprefix("spec/")
+        spec_file = _safe_spec_path(root, slug)
+        if spec_file is None:
+            per_op.append(
+                {"path": spec_path, "applied": False, "reason": "spec_status_unreadable"}
+            )
+            continue
+        current_status = extract_spec_status(spec_file)
+        if current_status is None:
+            per_op.append(
+                {"path": spec_path, "applied": False, "reason": "spec_status_unreadable"}
+            )
+            continue
+        if current_status != expected_status:
+            per_op.append({"path": spec_path, "applied": False, "reason": "spec_status_changed"})
+            continue
+
+        # Re-derive action from verified disk status (do not trust plan's operation_type)
+        if current_status == "Shipped":
+            effective_op_type = "queue-to-shipped"
+        elif current_status == "Archived":
+            effective_op_type = "queue-remove"
+        else:
+            per_op.append({"path": spec_path, "applied": False, "reason": "spec_status_changed"})
+            continue
+
+        ini_section = doc.get(ini_slug)
+        if ini_section is None:
+            per_op.append({"path": spec_path, "applied": False, "reason": "initiative_not_found"})
+            continue
+        work = ini_section.get("work", {})
+        queue = work.get("queue", [])
+
+        # In-place removal: find and delete first matching entry
+        removed = False
+        for i, entry in enumerate(queue):
+            entry_path = entry if isinstance(entry, str) else entry.get("path", "")
+            if entry_path == spec_path:
+                del queue[i]
+                removed = True
+                break
+
+        if not removed:
+            per_op.append(
+                {"path": spec_path, "applied": False, "reason": "entry_not_found_in_queue"}
+            )
+            continue
+
+        if effective_op_type == "queue-to-shipped":
+            if "shipped" not in work:
+                work["shipped"] = tomlkit.array()
+            shipped = work["shipped"]
+            existing = {e if isinstance(e, str) else e.get("path", "") for e in shipped}
+            if spec_path not in existing:
+                shipped.append(spec_path)
+
+        per_op.append({"path": spec_path, "applied": True})
+        applied += 1
+
+    # Only write when at least one operation succeeded
+    if applied == 0:
+        return applied, per_op
+
+    tmp_path = None
+    try:
+        orig_mode = stat.S_IMODE(workspace_path.stat().st_mode)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=workspace_path.parent,
+            prefix=".workspace.toml.",
+            suffix=".tmp",
+        )
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(tomlkit.dumps(doc))
+        # Preserve original mode; set after fd close (cross-platform — os.fchmod is Unix-only)
+        Path(tmp_path).chmod(orig_mode)
+        Path(tmp_path).replace(workspace_path)
+        tmp_path = None
+    finally:
+        if tmp_path is not None:
+            with contextlib.suppress(OSError):
+                Path(tmp_path).unlink()
+
+    return applied, per_op
+
+
 def _emit(data: dict) -> None:
     sys.stdout.write(json.dumps(data, sort_keys=True, allow_nan=False) + "\n")
     sys.stdout.flush()
@@ -261,6 +438,12 @@ def main(argv: list[str] | None = None) -> int:
             required=True,
             help="Selector for the item to explain (slug or spec/ path)",
         )
+    if subcommand in ("repair-plan", "repair-apply"):
+        parser.add_argument(
+            "--plan-file",
+            default=None,
+            help="Override plan file path (default: <root>/.workspace-repair-plan.json)",
+        )
     args = parser.parse_args(argv)
     root = Path(args.root)
 
@@ -272,32 +455,188 @@ def main(argv: list[str] | None = None) -> int:
             raise NotADirectoryError(f"--root is not a directory: {root}")
 
         workspace_toml = root / "workspace.toml"
-        # Use lstat() so a dangling symlink (entry exists but target absent) is
-        # not mistaken for a missing workspace — stat() follows the link and
-        # raises FileNotFoundError, falsely reporting workspace_present: false.
-        # lstat() only raises FileNotFoundError when no directory entry exists.
-        try:
-            workspace_toml.lstat()
-        except FileNotFoundError:
-            _emit({
-                "schema_version": 1,
-                "mode": subcommand,
-                "workspace_present": False,
-                "workspace_root": str(root.resolve()),
-            })
-            return 1
-        # Path-confinement: if workspace.toml is a symlink, verify the target
-        # stays within the repo root so session-start cannot read another tree's
-        # initiative data through an escape link.
-        if workspace_toml.is_symlink():
+
+        # repair-apply owns its workspace checks (needs exit 2, not exit 1).
+        # The shared lstat + symlink guards below are skipped for repair-apply.
+        if subcommand != "repair-apply":
+            # Use lstat() so a dangling symlink (entry exists but target absent) is
+            # not mistaken for a missing workspace — stat() follows the link and
+            # raises FileNotFoundError, falsely reporting workspace_present: false.
+            # lstat() only raises FileNotFoundError when no directory entry exists.
+            try:
+                workspace_toml.lstat()
+            except FileNotFoundError:
+                _emit({
+                    "schema_version": 1,
+                    "mode": subcommand,
+                    "workspace_present": False,
+                    "workspace_root": str(root.resolve()),
+                })
+                return 1
+            # Path-confinement: if workspace.toml is a symlink, verify the target
+            # stays within the repo root so session-start cannot read another tree's
+            # initiative data through an escape link.
+            if workspace_toml.is_symlink():
+                try:
+                    workspace_toml.resolve().relative_to(root.resolve())
+                except (OSError, RuntimeError, ValueError):
+                    print(
+                        "workspace-status error: workspace.toml symlink escapes repository root",
+                        file=sys.stderr,
+                    )
+                    return 2
+
+        if subcommand == "repair-plan":
+            plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
+            confinement_rc = _check_plan_file_confinement(plan_path, root, "repair-plan")
+            if confinement_rc is not None:
+                return confinement_rc
+            # Guard: reject plan-file == workspace.toml (symlink or typo clobber)
+            with contextlib.suppress(OSError, RuntimeError):
+                if plan_path.resolve() == workspace_toml.resolve():
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-plan",
+                        "applied": False,
+                        "reason": "plan_file_is_workspace_toml",
+                    })
+                    return 2
+            result = analyze(root)
+            plan = compute_repair_plan(result, workspace_toml)
+            data = _build_repair_plan_json(root, result, plan)
+            # Emit stdout first — plan JSON always available even if file write fails
+            _emit(data)
+            tmp_plan: str | None = None
+            try:
+                fd, tmp_plan = tempfile.mkstemp(
+                    dir=plan_path.parent,
+                    prefix=".plan.",
+                    suffix=".tmp",
+                )
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    fh.write(json.dumps(data, sort_keys=True, allow_nan=False) + "\n")
+                Path(tmp_plan).replace(plan_path)
+                tmp_plan = None
+            except OSError as write_err:
+                _wmsg = str(write_err)
+                with contextlib.suppress(OSError, RuntimeError):
+                    _wmsg = _wmsg.replace(str(root.resolve()), "<root>")
+                if root.is_absolute():
+                    _wmsg = _wmsg.replace(str(root), "<root>")
+                print(f"workspace-status: plan file write failed: {_wmsg}", file=sys.stderr)
+                return 2
+            finally:
+                if tmp_plan is not None:
+                    with contextlib.suppress(OSError):
+                        Path(tmp_plan).unlink()
+            return 0
+
+        if subcommand == "repair-apply":
+            # Workspace-absent check (exit 2, not exit 1 — subcommand-specific shape)
+            try:
+                workspace_toml.lstat()
+            except FileNotFoundError:
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "workspace_absent",
+                })
+                return 2
+            # Write-target confinement
             try:
                 workspace_toml.resolve().relative_to(root.resolve())
             except (OSError, RuntimeError, ValueError):
-                print(
-                    "workspace-status error: workspace.toml symlink escapes repository root",
-                    file=sys.stderr,
-                )
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "workspace_outside_root",
+                })
                 return 2
+            # tomlkit guard — must precede any tomlkit call
+            try:
+                import tomlkit as _tomlkit_check  # noqa: F401
+            except ImportError:
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "tomlkit_unavailable",
+                })
+                return 2
+            plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
+            confinement_rc = _check_plan_file_confinement(plan_path, root, "repair-apply")
+            if confinement_rc is not None:
+                return confinement_rc
+            # Load plan file
+            try:
+                plan_raw = plan_path.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                print("workspace-status: plan file not found", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "plan_file_not_found",
+                })
+                return 2
+            try:
+                plan_data = json.loads(plan_raw)
+            except json.JSONDecodeError as je:
+                _jmsg = str(je)
+                with contextlib.suppress(OSError, RuntimeError):
+                    _jmsg = _jmsg.replace(str(root.resolve()), "<root>")
+                print(f"workspace-status: plan file parse error: {_jmsg}", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "plan_file_parse_error",
+                })
+                return 2
+            validation_reason = _validate_plan_structure(plan_data)
+            if validation_reason:
+                print(f"workspace-status: plan file invalid: {validation_reason}", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": validation_reason,
+                })
+                return 2
+            # Single-read fingerprint verification (TOCTOU elimination)
+            workspace_bytes = workspace_toml.read_bytes()
+            actual_fp = hashlib.sha256(workspace_bytes).hexdigest()
+            expected_fp = plan_data.get("workspace_fingerprint", "")
+            if actual_fp != expected_fp:
+                print("workspace-status: fingerprint mismatch", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "fingerprint_mismatch",
+                })
+                return 2
+            ops = plan_data.get("automatic_operations", [])
+            if not ops:
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": True,
+                    "operations_applied": 0,
+                    "per_operation": [],
+                })
+                return 0
+            applied, per_op = _apply_operations(root, ops, workspace_bytes, workspace_toml)
+            _emit({
+                "schema_version": 1,
+                "mode": "repair-apply",
+                "applied": True,
+                "operations_applied": applied,
+                "per_operation": per_op,
+            })
+            return 0
 
         if subcommand == "explain":
             result = analyze_bounded(root)
@@ -313,7 +652,6 @@ def main(argv: list[str] | None = None) -> int:
         _emit(data)
         return 0
     except Exception as exc:
-        import contextlib
         _msg = str(exc)
         # Redact the resolved (canonical) path first — covers symlink-redirected paths
         # (e.g. /var/... → /private/var/... on macOS).

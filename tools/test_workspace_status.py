@@ -52,6 +52,10 @@ get_active_specs = _engine_mod.get_active_specs
 normalize_for_shaping_guard = _engine_mod.normalize_for_shaping_guard
 parse_workspace = _engine_mod.parse_workspace
 run_reconciliation = _engine_mod.run_reconciliation
+compute_repair_plan = _engine_mod.compute_repair_plan
+RepairOperation = _engine_mod.RepairOperation
+ManualFinding = _engine_mod.ManualFinding
+RepairPlan = _engine_mod.RepairPlan
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -2718,6 +2722,176 @@ def test_analyze_bounded_path_traversal_entry() -> None:
     _run_case(case_analyze_bounded_path_traversal_entry)
 
 
+# ── Order 2B: compute_repair_plan ─────────────────────────────────────────────
+
+def _make_finding(finding_type: int, spec_path: str, spec_status: str,
+                  ini_slug: str, list_name: str):
+    from workspace_status_engine import ReconciliationFinding
+    return ReconciliationFinding(
+        finding_type=finding_type, spec_path=spec_path, spec_status=spec_status,
+        ini_slug=ini_slug, list_name=list_name,
+    )
+
+
+def _make_result(type1=None, type2=None, type3=None):
+    """Minimal WorkspaceStatusResult stub for compute_repair_plan tests."""
+    from workspace_status_engine import WorkspaceStatusResult
+    reconciliation = list(type1 or []) + list(type2 or []) + list(type3 or [])
+    return WorkspaceStatusResult(
+        initiatives=[], classifications=[], shaping_classifications=[],
+        reconciliation=reconciliation, elapsed_s=0.0,
+    )
+
+
+def case_compute_repair_plan_queue_shipped():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        f = _make_finding(2, "spec/foo", "Shipped", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 1, "2B shipped: expected 1 auto op")
+        op = plan.automatic_operations[0]
+        expect(
+            op.operation_type == "queue-to-shipped",
+            f"2B shipped: op_type={op.operation_type!r}",
+        )
+        expect(op.spec_path == "spec/foo", f"2B shipped: spec_path={op.spec_path!r}")
+        expect(op.spec_status == "Shipped", f"2B shipped: spec_status={op.spec_status!r}")
+        expect(op.ini_slug == "ini-001", f"2B shipped: ini_slug={op.ini_slug!r}")
+        expect(len(plan.manual_findings) == 0, "2B shipped: expected 0 manual findings")
+
+
+def case_compute_repair_plan_queue_archived():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        f = _make_finding(2, "spec/bar", "Archived", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 1, "2B archived: expected 1 auto op")
+        op = plan.automatic_operations[0]
+        expect(op.operation_type == "queue-remove", f"2B archived: op_type={op.operation_type!r}")
+        expect(op.spec_status == "Archived", f"2B archived: spec_status={op.spec_status!r}")
+        expect(len(plan.manual_findings) == 0, "2B archived: expected 0 manual")
+
+
+def case_compute_repair_plan_active_source_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        f = _make_finding(2, "spec/active-thing", "Shipped", "ini-001", "active")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B active: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B active: expected 1 manual")
+        mf = plan.manual_findings[0]
+        expect(mf.reason == "type2-active-source", f"2B active: reason={mf.reason!r}")
+
+
+def case_compute_repair_plan_type1_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        f = _make_finding(1, "spec/untracked", "Approved", "ini-001", "")
+        result = _make_result(type1=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B type1: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B type1: expected 1 manual")
+        expect(plan.manual_findings[0].reason == "type1-untracked", "2B type1: reason")
+
+
+def case_compute_repair_plan_type3_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        f = _make_finding(3, "spec/premature", "Implementing", "ini-001", "shipped")
+        result = _make_result(type3=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B type3: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B type3: expected 1 manual")
+        expect(plan.manual_findings[0].reason == "type3-premature", "2B type3: reason")
+
+
+def case_compute_repair_plan_approved_not_eligible():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        # Type 2 finding with Approved in queue (defensive: engine emits this only if it finds it)
+        f = _make_finding(2, "spec/live", "Approved", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B approved: must NOT be automatic")
+        expect(len(plan.manual_findings) == 1, "2B approved: expected 1 manual")
+        expect("approved" in plan.manual_findings[0].reason,
+               f"2B approved: reason={plan.manual_findings[0].reason!r}")
+
+
+def case_compute_repair_plan_path_in_queue_and_active():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        fq = _make_finding(2, "spec/dual", "Shipped", "ini-001", "queue")
+        fa = _make_finding(2, "spec/dual", "Shipped", "ini-001", "active")
+        result = _make_result(type2=[fq, fa])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        # queue finding → automatic op; active finding → manual; not collapsed
+        expect(len(plan.automatic_operations) == 1, "2B dual: expected 1 auto op (queue)")
+        expect(len(plan.manual_findings) == 1, "2B dual: expected 1 manual (active)")
+        expect(plan.manual_findings[0].reason == "type2-active-source", "2B dual: manual reason")
+
+
+def case_compute_repair_plan_duplicate_path_in_queue():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        f1 = _make_finding(2, "spec/dup", "Shipped", "ini-001", "queue")
+        f2 = _make_finding(2, "spec/dup", "Shipped", "ini-001", "queue")
+        result = _make_result(type2=[f1, f2])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B dup: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 2, "2B dup: expected 2 manual findings")
+        reasons = [mf.reason for mf in plan.manual_findings]
+        expect(all(r == "type2-queue-duplicate" for r in reasons),
+               f"2B dup: reasons={reasons}")
+
+
+def case_compute_repair_plan_fingerprint_is_sha256():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        content = b"[ini-001]\nname = \"Test\"\n"
+        (root / "workspace.toml").write_bytes(content)
+        result = _make_result()
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expected = hashlib.sha256(content).hexdigest()
+        expect(plan.workspace_fingerprint == expected,
+               f"2B fingerprint: got {plan.workspace_fingerprint!r}, expected {expected!r}")
+
+
+def case_compute_repair_plan_planned_at_is_utc_isoformat():
+    import datetime as dt
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        result = _make_result()
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(plan.planned_at.endswith("+00:00"),
+               f"2B planned_at: must end with '+00:00', got {plan.planned_at!r}")
+        parsed = dt.datetime.fromisoformat(plan.planned_at)
+        expect(parsed.utcoffset() == dt.timedelta(0),
+               f"2B planned_at: utcoffset must be zero, got {parsed.utcoffset()!r}")
+
+
+def case_compute_repair_plan_empty_reconciliation():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        result = _make_result()
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B empty: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 0, "2B empty: expected 0 manual findings")
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
@@ -2782,6 +2956,39 @@ CASES = [
     ("1B explain_item_downstream_cross_ini_excluded",
      case_explain_item_downstream_cross_ini_excluded),
     ("1B analyze_bounded_path_traversal_entry", case_analyze_bounded_path_traversal_entry),
+    # ── Order 2B: compute_repair_plan ─────────────────────────────────────────
+    ("2B compute_repair_plan_queue_shipped", case_compute_repair_plan_queue_shipped),
+    ("2B compute_repair_plan_queue_archived", case_compute_repair_plan_queue_archived),
+    (
+        "2B compute_repair_plan_active_source_is_manual",
+        case_compute_repair_plan_active_source_is_manual,
+    ),
+    ("2B compute_repair_plan_type1_manual", case_compute_repair_plan_type1_manual),
+    ("2B compute_repair_plan_type3_manual", case_compute_repair_plan_type3_manual),
+    (
+        "2B compute_repair_plan_approved_not_eligible",
+        case_compute_repair_plan_approved_not_eligible,
+    ),
+    (
+        "2B compute_repair_plan_path_in_queue_and_active",
+        case_compute_repair_plan_path_in_queue_and_active,
+    ),
+    (
+        "2B compute_repair_plan_duplicate_path_in_queue",
+        case_compute_repair_plan_duplicate_path_in_queue,
+    ),
+    (
+        "2B compute_repair_plan_fingerprint_is_sha256",
+        case_compute_repair_plan_fingerprint_is_sha256,
+    ),
+    (
+        "2B compute_repair_plan_planned_at_is_utc_isoformat",
+        case_compute_repair_plan_planned_at_is_utc_isoformat,
+    ),
+    (
+        "2B compute_repair_plan_empty_reconciliation",
+        case_compute_repair_plan_empty_reconciliation,
+    ),
 ]
 
 
