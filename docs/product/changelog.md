@@ -104,6 +104,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
 
+## [catalogue-curation][0.2.2] — 2026-08-03
+
+### Changed
+
+- **`propose-catalogue-pack`**: step 1 now encodes the tech-stack **accelerator-pack** routing path — exempt from Principle 1 (Universal), clears Principles 2–4 plus three extra gates (named maintainer, maturity scope, archiving path). Previously a tech-stack proposal would be wrongly failed on Principle 1; now routed correctly.
+- **`assimilate-primitive`**: SAST/SCA step updated from stale `.snyk`/CodeQL-only to the repo's actual Python SAST toolchain (`bandit -c bandit.yaml`, `semgrep --config tools/semgrep/`); CI-only scanners noted as conditional on the deploying repo's setup. Hook/script landing path (step 9) now references the new `hook-landing.md`.
+- **`assimilate-repo` / `re-sync.md`**: Erratum cases now require **Approver sign-off** (matching `new-rfc/SKILL.md:394-396`); operator-flagged nature of corrections made explicit (unchanged candidates are never auto-detected).
+- **`propose-catalogue-pack/references/pack-shell.md`**: corrected false claim — an empty `.apm/` scaffold validates cleanly; the prior "at least one primitive or the pack won't validate" was wrong.
+- **`docs/CHARTER.md`**: reconciled accelerator-pack principle count (`:52` said "four principles"; now correctly states "remaining three principles (Principles 2–4) instead of Principle 1 (Universal)").
+
+### Added
+
+- **`assimilate-primitive/references/hook-landing.md`**: new reference documenting hook/script landing mechanics — git-hook vs. agent/editor-hook distinction, flat `.apm/hooks/` layout, version + inventory bump sequence, and the lint → build-self → verify run order.
+- **`assimilate-primitive/references/anti-patterns.md`**: "one violation → one steer" rule and a positive read-only-subagent counter-example for §2 (agent-used-wrong-way).
+
 ## [Unreleased]
 
 ### Added

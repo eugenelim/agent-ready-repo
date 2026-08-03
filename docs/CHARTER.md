@@ -49,8 +49,9 @@ What this project does:
 - Ships opt-in **tech-stack accelerator packs** for common infrastructure
   tooling, CI/CD platforms, and SaaS integrations — ready-to-run
   scaffolding for adopters who have already chosen a stack, not a
-  prescription for those who haven't. Each accelerator pack clears the
-  four principles below, plus: a named maintainer, a stated maturity
+  prescription for those who haven't. Each accelerator pack is exempt from
+  Principle 1 (Universal) and instead clears the remaining three principles
+  (Principles 2–4), plus: a named maintainer, a stated maturity
   scope (validated / contract-complete / experimental), and an
   archiving/deprecation path. The `iac-terraform` pack is the
   establishing precedent; future packs are judged against it.

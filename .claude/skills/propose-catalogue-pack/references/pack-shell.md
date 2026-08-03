@@ -12,8 +12,9 @@ bar. All writes route through `agentbundle.safety.write_jailed`.
 - `packs/<name>/.claude-plugin/plugin.json` — `{name, version, description}`,
   version matching `pack.toml`.
 - `packs/<name>/README.md` — elevator pitch + a link to the pack's guide home.
-- `packs/<name>/.apm/skills/` (and/or `.apm/agents/`) — at least one primitive,
-  or the pack won't validate.
+- `packs/<name>/.apm/` — scaffolded empty; primitives are added in a later
+  assimilation pass. The empty scaffold validates cleanly (`agentbundle catalogue
+  lint --deep` passes on an empty `.apm/`).
 
 ## Dependency shape
 `[[pack.dependencies.required]]` names `catalogue` + `pack` + a `^X.Y` version.

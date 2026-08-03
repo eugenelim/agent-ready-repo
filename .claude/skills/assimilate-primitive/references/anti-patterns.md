@@ -7,6 +7,11 @@ anti-pattern and citing the rule it steers toward. Never launder misuse in.
 The "right shape" authority: the repo's *Authoring skills* conventions, the
 agent-authoring conventions, and `AGENTS.md`.
 
+**One violation → one steer.** When a primitive triggers more than one pattern,
+surface the primary violation and steer that. Don't compound advisories — an
+operator reading three simultaneous findings loses the signal. Resolve the
+dominant pattern first; note others as follow-on if they persist.
+
 ## 1. A script or hook that triggers a skill or agent — HARD anti-pattern
 
 Deterministic scripts stay deterministic; **skills activate by description**,
@@ -28,6 +33,14 @@ Deterministic scripts stay deterministic; **skills activate by description**,
 - *Skill-vs-agent confusion* — judgment/authoring work modeled as an agent when
   it should be a skill, or a read-only forked-context review modeled as a skill
   when it should be a subagent. Re-home to the right primitive type.
+
+**Positive counter-example — a legitimate read-only subagent is fine.** A
+subagent that receives inputs, reads files, produces a report, and returns to
+the supervisor is not self-review, not over-broad, and is correctly primitive-
+typed as an agent (forked context, bounded task). Don't flag it. The
+`skill-vs-agent confusion` tell fires on *judgment/authoring* modeled as an
+agent (unlimited tool grant, unbounded scope) — not on a well-scoped reviewer
+or analyzer.
 
 ## 3. A "skill" that is a flooding prompt
 
