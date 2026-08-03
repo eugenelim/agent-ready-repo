@@ -5,7 +5,8 @@ start_state: read-only
 end_state: confirmed-write
 scope: repo
 tagline: "decisions committed, proposals structured, conventions tracked."
-prerequisitePacks: []
+prerequisitePacks:
+  - core
 contract:
   useItWhen: "A cross-cutting change, architectural decision, or working-convention update needs a structured paper trail that survives personnel changes."
   youProvide: "The change or decision to document, plus any objections or alternatives already under consideration."

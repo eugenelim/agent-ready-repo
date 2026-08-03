@@ -11,7 +11,7 @@ GitHub integration for the agent-ready-repo catalogue. The pack ships one skill:
 `github` is **user-scope by default** (your GitHub access is yours, not a project's).
 
 ```
-agentbundle install --pack github <catalogue>
+agentbundle install --pack github --scope user <catalogue>
 ```
 
 ## Prerequisites

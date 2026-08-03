@@ -39,7 +39,7 @@ Do these once, top to bottom:
 1. **Install the figma pack** — user scope by default, so your token stays yours:
    ```
    # <catalogue> is your catalogue URI: a local clone path or a git+https://… URL.
-   agentbundle install --pack figma <catalogue>
+   agentbundle install --pack figma --scope user <catalogue>
    ```
 2. **Install the Python dependencies** — `python -m pip install credbroker httpx`
    (`httpx` is the HTTP client; `credbroker` resolves your token — step 3's pack

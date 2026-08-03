@@ -6,8 +6,7 @@ start_state: read-only
 end_state: confirmed-write
 scope: user
 tagline: "Strategy seat upstream of every initiative — committed artifacts."
-prerequisitePacks:
-  - product-engineering
+prerequisitePacks: []
 contract:
   useItWhen: "You're building the committed strategy layer — market analysis, altitude-0 direction, and OKR-derived gap routing — upstream of any product initiative."
   youProvide: "Company OKRs, any prior desk-research outputs, and the scope of the initiative or strategic question to address."
