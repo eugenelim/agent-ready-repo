@@ -122,7 +122,7 @@ rollback. Never silently downgrades an `ahead` row.
 **Package your catalogue for Artifactory:**
 
 ```bash
-agentbundle package-catalogue \
+agentbundle catalogue package \
   --root /path/to/catalogue \
   --bundle my-packs \
   --release 1.0.0 \
@@ -133,6 +133,19 @@ agentbundle package-catalogue \
 Produces a deterministic, reproducible gzip archive (versioned) and a mutable channel
 descriptor JSON (`stable.json`), ready to upload to Artifactory. Identical inputs
 produce byte-identical archives (honors `SOURCE_DATE_EPOCH`).
+
+**Source distribution for air-gapped or self-hosted catalogues:**
+
+```bash
+agentbundle catalogue package \
+  --root /path/to/catalogue \
+  --bundle my-packs \
+  --release 1.0.0 \
+  --flavor source \
+  --output dist/
+```
+
+Produces a `catalogue-source-<release>.tar.gz` from a positive allowlist (packs, profiles, guides, marketplace manifest, legal files). Includes a `self-hosted-source-manifest.json` with per-file SHA-256 digests and provenance fields. `agentbundle install` refuses to install a source archive, preventing accidental misuse.
 
 **Org bootstrap — ship the default channel in your fork:**
 
@@ -165,7 +178,31 @@ disconnected hosts, and security controls).
 
 ## Build your own catalogue
 
-`agentbundle` isn't tied to the agent-ready-repo catalogue. Any repo that lays its packs out the same way can use it. A pack is a directory:
+`agentbundle` isn't tied to the agent-ready-repo catalogue. Any repo that lays its packs out the same way can use it.
+
+**Bootstrap a new catalogue** in an empty directory:
+
+```bash
+agentbundle catalogue init --target /path/to/new-catalogue
+```
+
+Scaffolds `catalogue.toml`, the required directory tree (`packs/`, `profiles/`, `contracts/`, `.claude-plugin/`), and a starter `marketplace.json`. Skips files that already exist; reports conflicts without overwriting. Pass `--dry-run` to preview.
+
+**Bootstrap a self-hosted enterprise catalogue** from an existing source:
+
+```bash
+agentbundle catalogue init \
+  --preset self-hosted \
+  --source /path/to/source-catalogue.tar.gz \
+  --tooling vendored \
+  --attribution white-label \
+  --repository-url https://github.com/your-org/your-catalogue \
+  --owner-email admin@example.com
+```
+
+Copies selected packs and profiles from the source archive, generates `catalogue.toml` with your identity, runs a fail-closed leak check, and writes `.agentbundle/self-host-state.json` to track managed files. `--tooling vendored` also copies the `agentbundle` source and `catalogue-curation` pack into `.agentbundle/tooling/` for air-gapped deployments. Re-run to apply updates; stale owned files are removed (sha256-guarded, user-modified files are skipped).
+
+A pack is a directory:
 
 ```text
 my-pack/
