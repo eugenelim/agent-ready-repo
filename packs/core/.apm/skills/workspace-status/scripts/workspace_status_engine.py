@@ -373,9 +373,13 @@ def _parse_spec_status(text: str) -> tuple[str | None, str | None]:
         # Multi-line HTML comment: skip until closing -->.
         if in_ml_comment:
             if "-->" in line:
-                # A new opener on the same line (e.g. "--> <!--") must be detected.
+                # After the closer, strip any COMPLETE inline comments from the
+                # remainder (e.g. "--> <!-- note -->") before testing for an unclosed
+                # opener. Without this, "--> <!-- note -->" sets in_ml_comment=True
+                # even though the comment is fully closed on the same line.
                 remainder = line[line.index("-->") + 3:]
-                in_ml_comment = "<!--" in remainder
+                remainder_clean = _HTML_COMMENT_RE.sub("", remainder)
+                in_ml_comment = "<!--" in remainder_clean
             continue
         # Stop at the first section heading — body examples live after ## headings.
         if _SECTION_HEADING_RE.match(line):
