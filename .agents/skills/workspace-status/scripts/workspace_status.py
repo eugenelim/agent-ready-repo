@@ -260,11 +260,18 @@ def _recompute_plan_id(plan_data: dict) -> str:
     return hashlib.sha256(canon.encode("ascii")).hexdigest()
 
 
-def _check_plan_file_confinement(plan_path: Path, root: Path, mode: str) -> int | None:
-    """Return exit code 2 if plan_path escapes root, else None."""
+def _check_plan_file_confinement(plan_path: Path, root: Path, mode: str) -> Path | int:
+    """Return resolved plan path if within root, else exit code 2.
+
+    Callers must use the returned Path for all subsequent I/O to eliminate
+    the TOCTOU window between the confinement check and the actual file
+    operation (a parent-directory symlink retargeted after the check can
+    otherwise redirect I/O outside the repository).
+    """
     try:
-        plan_path.resolve().relative_to(root.resolve())
-        return None
+        resolved = plan_path.resolve()
+        resolved.relative_to(root.resolve())
+        return resolved
     except (OSError, RuntimeError, ValueError):
         _emit({
             "schema_version": 1,
@@ -287,11 +294,11 @@ def _validate_plan_structure(data: dict) -> str | None:
     for op in ops:
         if not isinstance(op, dict):
             return "plan_invalid"
-        op_type = op.get("operation_type", "")
+        op_type = op.get("operation_type")
         spec_path = op.get("spec_path", "")
         ini_slug = op.get("ini_slug", "")
         spec_status = op.get("spec_status", "")
-        if op_type not in _VALID_OPERATION_TYPES:
+        if not isinstance(op_type, str) or op_type not in _VALID_OPERATION_TYPES:
             return "plan_invalid"
         if not spec_path or not isinstance(spec_path, str):
             return "plan_invalid"
@@ -531,9 +538,10 @@ def main(argv: list[str] | None = None) -> int:
 
         if subcommand == "repair-plan":
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
-            confinement_rc = _check_plan_file_confinement(plan_path, root, "repair-plan")
-            if confinement_rc is not None:
-                return confinement_rc
+            _plan_confinement = _check_plan_file_confinement(plan_path, root, "repair-plan")
+            if isinstance(_plan_confinement, int):
+                return _plan_confinement
+            plan_path = _plan_confinement  # use resolved path for all I/O
             # Guard: reject plan-file == workspace.toml (symlink or typo clobber)
             with contextlib.suppress(OSError, RuntimeError):
                 if plan_path.resolve() == workspace_toml.resolve():
@@ -550,7 +558,7 @@ def main(argv: list[str] | None = None) -> int:
             # not a later re-read that could race with a concurrent writer.
             _plan_ws_bytes = workspace_toml.read_bytes()
             _plan_ws_fp = hashlib.sha256(_plan_ws_bytes).hexdigest()
-            result = analyze(root)
+            result = analyze(root, workspace_bytes=_plan_ws_bytes)
             plan = compute_repair_plan(result, workspace_toml, workspace_fingerprint=_plan_ws_fp)
             data = _build_repair_plan_json(root, result, plan)
             # Emit stdout first — plan JSON always available even if file write fails
@@ -613,9 +621,10 @@ def main(argv: list[str] | None = None) -> int:
                 })
                 return 2
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
-            confinement_rc = _check_plan_file_confinement(plan_path, root, "repair-apply")
-            if confinement_rc is not None:
-                return confinement_rc
+            _plan_confinement = _check_plan_file_confinement(plan_path, root, "repair-apply")
+            if isinstance(_plan_confinement, int):
+                return _plan_confinement
+            plan_path = _plan_confinement  # use resolved path for all I/O
             # Load plan file
             try:
                 plan_raw = plan_path.read_text(encoding="utf-8")
@@ -736,9 +745,21 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
                 before_digest = actual_fp
-                # Resolve so Path.replace() writes to the real file, not the symlink entry.
-                # AC16c already confirmed the resolved target is within root.
+                # Re-resolve and re-check confinement under the lock. The early check
+                # (before lock acquisition) can be defeated by a symlink retarget in
+                # the window between that check and this write. Resolving here and
+                # verifying confinement again closes the TOCTOU gap.
                 workspace_write_target = workspace_toml.resolve()
+                try:
+                    workspace_write_target.relative_to(root.resolve())
+                except (OSError, RuntimeError, ValueError):
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": False,
+                        "reason": "workspace_outside_root",
+                    })
+                    return 2
                 applied, per_op = _apply_operations(
                     root, ops, workspace_bytes, workspace_write_target
                 )

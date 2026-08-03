@@ -2747,6 +2747,9 @@ def case_compute_repair_plan_queue_shipped():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        spec_dir = root / "docs" / "specs" / "foo"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
         f = _make_finding(2, "spec/foo", "Shipped", "ini-001", "queue")
         result = _make_result(type2=[f])
         plan = compute_repair_plan(result, root / "workspace.toml")
@@ -2766,6 +2769,9 @@ def case_compute_repair_plan_queue_archived():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        spec_dir = root / "docs" / "specs" / "bar"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
         f = _make_finding(2, "spec/bar", "Archived", "ini-001", "queue")
         result = _make_result(type2=[f])
         plan = compute_repair_plan(result, root / "workspace.toml")
@@ -2831,6 +2837,9 @@ def case_compute_repair_plan_path_in_queue_and_active():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        spec_dir = root / "docs" / "specs" / "dual"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
         fq = _make_finding(2, "spec/dual", "Shipped", "ini-001", "queue")
         fa = _make_finding(2, "spec/dual", "Shipped", "ini-001", "active")
         result = _make_result(type2=[fq, fa])

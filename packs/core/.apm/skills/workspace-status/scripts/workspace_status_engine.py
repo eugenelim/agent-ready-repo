@@ -738,7 +738,7 @@ def run_reconciliation(
 
 # ── Main analysis entry point ─────────────────────────────────────────────────
 
-def analyze(root: Path) -> WorkspaceStatusResult:
+def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceStatusResult:
     """Run full workspace-status analysis from a repo root.
 
     Reads workspace.toml, extracts initiatives, classifies queue entries,
@@ -747,11 +747,18 @@ def analyze(root: Path) -> WorkspaceStatusResult:
     Only active initiatives contribute to ready/blocked classifications.
     All initiatives (including paused/closed) participate in reconciliation
     scans (behavior per SKILL.md which does not filter by status in scans).
+
+    workspace_bytes: when provided, parse from these bytes instead of re-reading
+    from disk. Callers that fingerprint workspace.toml before calling analyze()
+    should pass the same bytes to eliminate the TOCTOU window.
     """
     t0 = time.monotonic()
 
     workspace_path = root / "workspace.toml"
-    workspace = parse_workspace(workspace_path)
+    if workspace_bytes is not None:
+        workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    else:
+        workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
 
     all_classifications: list[EntryClassification] = []
@@ -1224,19 +1231,30 @@ def compute_repair_plan(
                 extract_spec_status_with_fingerprint(spec_file)
                 if spec_file is not None else (None, None)
             )
-            op_canon = json.dumps({
-                "finding_id": fid, "ini_slug": f.ini_slug,
-                "operation_type": op_type, "spec_path": f.spec_path,
-                "spec_status": f.spec_status,
-                "spec_status_fingerprint": status_fp or "",
-            }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-            oid = hashlib.sha256(op_canon.encode("ascii")).hexdigest()
-            automatic.append(RepairOperation(
-                operation_type=op_type, spec_path=f.spec_path,
-                spec_status=f.spec_status, ini_slug=f.ini_slug,
-                finding_id=fid, operation_id=oid,
-                spec_status_fingerprint=status_fp or "",
-            ))
+            if status_fp is None:
+                # Spec unreadable between analyze() and fingerprinting; an operation
+                # with an empty fingerprint would be rejected as plan_invalid at
+                # apply time and block all other valid operations. Route to manual.
+                manual.append(ManualFinding(
+                    finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
+                    ini_slug=f.ini_slug, list_name=f.list_name,
+                    reason="type2-queue-spec-status-unreadable",
+                    finding_id=fid,
+                ))
+            else:
+                op_canon = json.dumps({
+                    "finding_id": fid, "ini_slug": f.ini_slug,
+                    "operation_type": op_type, "spec_path": f.spec_path,
+                    "spec_status": f.spec_status,
+                    "spec_status_fingerprint": status_fp,
+                }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+                oid = hashlib.sha256(op_canon.encode("ascii")).hexdigest()
+                automatic.append(RepairOperation(
+                    operation_type=op_type, spec_path=f.spec_path,
+                    spec_status=f.spec_status, ini_slug=f.ini_slug,
+                    finding_id=fid, operation_id=oid,
+                    spec_status_fingerprint=status_fp,
+                ))
         else:
             reason = (
                 "type2-active-source" if f.list_name == "active"
