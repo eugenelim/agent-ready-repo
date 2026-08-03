@@ -359,12 +359,16 @@ def extract_spec_status(spec_path: Path) -> str | None:
                 char = marker[0]
                 length = len(marker)
                 if fence_char is None:
+                    # Opener: info strings (e.g. ```python) are allowed after the marker.
                     fence_char, fence_min_len = char, length
                     continue
-                if char == fence_char and length >= fence_min_len:
+                # Closer: same type, >= length, and NO non-whitespace after the marker.
+                # A line like "```python" inside a fence is body content, not a closer.
+                rest = line[fm.end():]
+                if char == fence_char and length >= fence_min_len and not rest.strip():
                     fence_char, fence_min_len = None, 0
                     continue
-                # else: different delimiter type inside a fence — falls through to body skip
+                # else: different type or has trailing text — treat as fence body
         if fence_char is not None:
             continue
         # Multi-line HTML comment: skip until closing -->.

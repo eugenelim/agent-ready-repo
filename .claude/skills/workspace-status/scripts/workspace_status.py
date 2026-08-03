@@ -430,6 +430,13 @@ def _apply_operations(
             fh.write(tomlkit.dumps(doc))
         # Preserve original mode; set after fd close (cross-platform — os.fchmod is Unix-only)
         Path(tmp_path).chmod(orig_mode)
+        # Re-hash immediately before replace to detect concurrent writes that
+        # occurred between the under-lock fingerprint read (caller) and here.
+        _precheck = workspace_path.read_bytes()
+        _precheck_fp = hashlib.sha256(_precheck).hexdigest()
+        _expected_fp = hashlib.sha256(workspace_toml_bytes).hexdigest()
+        if _precheck_fp != _expected_fp:
+            raise RuntimeError("workspace_concurrent_write")
         Path(tmp_path).replace(workspace_path)
         tmp_path = None
     finally:
@@ -540,17 +547,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if subcommand == "repair-plan":
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
-            # Reject symlinked output paths: replace() renames a temp file over the
-            # destination directory entry — on POSIX it follows the symlink and overwrites
-            # the target, not the link itself, allowing any in-repo file to be clobbered.
-            if plan_path.is_symlink():
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-plan",
-                    "applied": False,
-                    "reason": "plan_file_is_symlink",
-                })
-                return 2
+            # Confinement resolves the path (following any symlink) and verifies it
+            # stays within root — this covers direct paths, relative traversal, and
+            # symlinks alike (AC16d). Escaping symlinks → plan_file_outside_root.
+            # All subsequent I/O uses the resolved path, so replace() writes to the
+            # resolved target, never blindly following a retargeted link.
             _plan_confinement = _check_plan_file_confinement(plan_path, root, "repair-plan")
             if isinstance(_plan_confinement, int):
                 return _plan_confinement
@@ -797,9 +798,30 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
                 before_digest = actual_fp
-                applied, per_op = _apply_operations(
-                    root, ops, workspace_bytes, workspace_write_target
-                )
+                try:
+                    applied, per_op = _apply_operations(
+                        root, ops, workspace_bytes, workspace_write_target
+                    )
+                except (OSError, RuntimeError) as _ae:
+                    # mkstemp/write/chmod/replace failure OR concurrent-write
+                    # detection: emit structured JSON so machine callers can
+                    # distinguish this from other exit-2 reasons.
+                    _ae_str = str(_ae)
+                    _write_reason = (
+                        "workspace_modified_concurrently"
+                        if "concurrent" in _ae_str
+                        else "repair_write_failed"
+                    )
+                    with contextlib.suppress(OSError, RuntimeError):
+                        _ae_str = _ae_str.replace(str(root.resolve()), "<root>")
+                    print(f"workspace-status: repair write error: {_ae_str}", file=sys.stderr)
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": False,
+                        "reason": _write_reason,
+                    })
+                    return 2
                 after_digest = (
                     hashlib.sha256(workspace_write_target.read_bytes()).hexdigest()
                     if applied > 0 else before_digest
