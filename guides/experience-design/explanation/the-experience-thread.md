@@ -57,8 +57,10 @@ seam (every skill declares its inputs and what consumes it):
   `marketplace-design` · `informational-design` · `workspace-design`** —
   the six genre-specific skills, each specializing the IA and structure layer for
   one surface genre. Declare the genre once; the right skill applies.
-- **`content-design` · `tone-of-voice`** — the copy layer: `tone-of-voice`
-  names the brand voice; `content-design` applies it per screen.
+- **`content-design` · `copy-direction` · `tone-of-voice`** — the copy layer:
+  `tone-of-voice` names the brand-level register; `copy-direction` names per-surface
+  acquisition copy goals grounded in that register; `content-design` structures what
+  each surface needs to say.
 - **`design-review`** — the authoring-time critique (design-principles
   integration chain + genre-specific rubrics + heuristics + taste mode) you run
   as you go.

@@ -174,17 +174,23 @@ same-session critique marks its own homework; the independent pass is
 
 ### `content-design`
 
-**Triggers on:** "write the copy for this screen", "what should this button say", "content design for this flow", "name this empty state", "tone for this error message".
+**Triggers on:** "what should this landing page say", "write a content brief for our onboarding flow", "what's the narrative arc for this marketing page", "what does this feature page need to communicate", "help me decide the above-fold structure".
 
-**Use when** a per-screen brief needs its copy layer designed — functional copy (labels, CTAs, error messages, empty states, microcopy) and persuasion copy (above-fold narrative). Distinguishes acquisition copy (persuasion goal) from product-reference copy (task-enablement goal) and designs each accordingly. **Consumed by** `design-review` and `experience-reviewer`.
+**Use when** a surface needs a content brief — a text-first document answering what the surface must say, for whom, in what form, to achieve what objective — before any wireframe or copy is written. Distinguishes acquisition surfaces (persuasion goal) from product/reference surfaces (task-enablement goal). Produces `communication_mode` frontmatter consumed by `copy-direction` and `conversion-design`; scroll-section structure consumed by `user-flow`.
 
-**Do NOT use** for setting the brand tone direction (use `tone-of-voice`).
+**Do NOT use** to write finished copy or UI strings (use `copy-direction` for per-surface copy voice, `ux-writing` in the `product-engineering` pack for UI strings — labels, CTAs, error messages, empty states), or for brand-level copy register (use `tone-of-voice`).
+
+### `copy-direction`
+
+**Triggers on:** "what voice should our landing page have", "write copy direction for this surface", "name the copy goals for this campaign page", "how should our pricing page sound", "copy positioning for this acquisition surface".
+
+**Use when** a specific acquisition or marketing surface needs named, ranked copy goals — the per-surface twin of `creative-direction`. Produces a `copy-direction` doc at `<design_output_dir>/copy/<surface-slug>.md`. References the `tone-of-voice` brand register as an optional upstream anchor. **Do NOT use** for brand-level register across all surfaces (use `tone-of-voice`) or for UI copy states (use `ux-writing` in the `product-engineering` pack). See [Route copy work across content-design, copy-direction, ux-writing, and tone-of-voice](../how-to/copy-boundary.md) for the four-way boundary.
 
 ### `tone-of-voice`
 
-**Triggers on:** "what's our tone of voice", "how should we sound", "define our brand voice", "are we formal or casual", "voice and tone guidelines".
+**Triggers on:** "what's our tone of voice", "define our brand voice", "are we formal or casual", "voice and tone guidelines", "write a brand register".
 
-**Use when** a product needs a named, consistent brand voice across all surfaces — the personality axis (formal↔casual, authoritative↔approachable, playful↔serious) and the application rules that make it concrete. Distinct from `content-design`, which applies the voice; `tone-of-voice` defines the voice `content-design` applies.
+**Use when** a product needs a named, consistent brand-level copy register across all surfaces — personality axis, application rules, and a stable reference point for per-surface copy direction. Produces a single `brand-register.md` doc at `<design_output_dir>/copy/brand-register.md`. Distinct from `copy-direction`, which names per-surface copy goals grounded in the register; distinct from `ux-writing`, which applies voice to UI copy states.
 
 ## Genre-specific design
 

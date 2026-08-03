@@ -154,6 +154,8 @@ queue   = [
 #   3. design-system-foundations as new XD skill (distinct job: apply the
 #      token taxonomy; distinct from design-system which derives the method).
 #   4. copy-direction extends tone-of-voice frontmatter; not a new skill.
+#      SUPERSEDED: RFC-0062 Accepted 2026-07-23; copy-direction implemented as a
+#      full new skill per RFC-0062 design — see shipped entry spec/xd-copy-direction.
 #   5. FE four modes (create/retrofit/audit/verify) as conditional sections
 #      within one SKILL.md, not separate skills.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -235,44 +237,24 @@ queue   = [
   # Note: ux-writing rename shipped separately in spec/ux-writing-rename.
   {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
 
-  # XD prerequisite · copy-direction (fulfills RFC-0062 — Accepted 2026-07-23)
-  # Governance: RFC-0062 (Accepted), not RFC-0071. RFC-0071 accepted RFC-0062;
-  #   this spec is its implementation, tracked here for ini-003 coordination.
-  # Problem: RFC-0062 designed copy-direction as a full new XD skill. content-design
-  #   landed; copy-direction did not. The three-way copy boundary (copy-direction /
-  #   ux-writing / content-design) must be settled before xd-skill-boundaries (M3a)
-  #   can install frontmatter near-miss guards that reference copy-direction by name.
-  # Deliver: copy-direction SKILL.md per RFC-0062 design (copy twin of
-  #   creative-direction; produces copy-direction.md capturing copy voice goals,
-  #   copy precedents, and copy arbitration rules; scope boundary: marketing/
-  #   acquisition copy voice + positioned copy; feeds ux-writing for per-state
-  #   strings); reference tree; activation eval; XD pack version bump.
-  #   Site/guide: update experience-design pack page (web/ + site/) to list
-  #   copy-direction; update design journey page to include copy-direction in
-  #   the design thread sequence; add how-to guide for the three-way copy boundary
-  #   (copy-direction / ux-writing / content-design — when to use which).
-  # Done: copy-direction skill exists; three-way boundary documented in all three
-  #   skill frontmatter entries; RFC-0062 Date closed confirmed; pack page + journey
-  #   + boundary how-to guide updated.
-  {path = "spec/xd-copy-direction", needs = "work:spec/digital-experience-contract"},
-
   # M3a · XD Skill Boundaries
   # Problem: XD skill frontmatter descriptions are artifact-named not natural-
   #   language-triggered; near-misses don't guard adjacent disciplines. 20
   #   skills (19 + new copy-direction) need consistent boundary language. The
-  #   three-way copy boundary (copy-direction / ux-writing / content-design)
-  #   is settled by spec/xd-copy-direction before this spec runs.
+  #   four-way copy boundary (tone-of-voice / copy-direction / content-design / ux-writing)
+  #   is settled by spec/xd-copy-direction before this spec runs. Note: tone-of-voice
+  #   is upstream of copy-direction (brand register → per-surface direction).
   # Deliver: updated trigger descriptions + near-misses across all 20 XD skills
   #   using natural requests (redesign this experience / make this onboarding
   #   understandable / etc.); explicit near-miss guards for strategy, PE shaping,
-  #   and routine FE; tone-of-voice frontmatter updated to note its upstream
-  #   (copy-direction) and downstream (ux-writing) neighbors; all three copy-
-  #   layer boundaries explicit in frontmatter not buried prose.
+  #   and routine FE; tone-of-voice frontmatter updated to note its downstream
+  #   (copy-direction, ux-writing) neighbors; all four copy-layer boundaries
+  #   explicit in frontmatter not buried prose.
   #   Site/guide: update experience-design pack page (web/ + site/) — trigger
   #   language and near-miss guards visible to adopters; ensure all 20 skill
   #   listings on pack page use the new natural-language descriptions.
   # Done: natural requests route correctly; near-misses prevent discipline bleed;
-  #   full three-way copy boundary is explicit in frontmatter; pack page updated.
+  #   full four-way copy boundary is explicit in frontmatter; pack page updated.
   {path = "spec/xd-skill-boundaries", needs = ["work:spec/digital-experience-contract", "work:spec/xd-copy-direction"]},
 
   # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
@@ -431,6 +413,7 @@ queue   = [
 shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
+  "spec/xd-copy-direction",                        # Shipped 2026-08-02 — RFC-0062 impl; copy-direction skill + four-way boundary + tov re-scope
 ]
 
 ["ini-003".shaping_queue]

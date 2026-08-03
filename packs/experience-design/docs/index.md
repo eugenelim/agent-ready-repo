@@ -1,6 +1,6 @@
 # Experience Design
 
-> A user-scope pack of 19 skills and a forked-context experience-reviewer subagent for the full design thread — from journey mapping to per-screen craft — grounded in published standards, never pixel comps.
+> A user-scope pack of 20 skills and a forked-context experience-reviewer subagent for the full design thread — from journey mapping to per-screen craft — grounded in published standards, never pixel comps.
 
 ## Why this pack exists
 
@@ -8,9 +8,9 @@ Product teams designing screens without structured UX tooling default to the hap
 
 ## What it is
 
-**Skills (19) in two families:**
+**Skills (20) in two families:**
 
-*Connective skills* walk the thread from outcome to surface: `journey-mapping` (map customer journey stages, actions, emotions, pains, and opportunities), `content-design` (decide what a surface says, for whom, before wireframes), `tone-of-voice` (turn a vague copy register into named copy goals and arbitration rules), `user-flow` (sequence screens and transitions with error flows and per-screen briefs), `service-blueprint` (map backing services across frontstage, backstage, and support rows), `process-mapping` (map internal operations as swimlane flows — as-is/to-be, SIPOC, pain register), `design-principles` (derive 3–5 named principles from journey insights to resolve design disputes).
+*Connective skills* walk the thread from outcome to surface: `journey-mapping` (map customer journey stages, actions, emotions, pains, and opportunities), `content-design` (decide what a surface says, for whom, before wireframes), `copy-direction` (name per-surface copy goals for a marketing or acquisition surface, grounded in the brand register), `tone-of-voice` (name the brand-level copy register — cross-surface voice personality that copy-direction references), `user-flow` (sequence screens and transitions with error flows and per-screen briefs), `service-blueprint` (map backing services across frontstage, backstage, and support rows), `process-mapping` (map internal operations as swimlane flows — as-is/to-be, SIPOC, pain register), `design-principles` (derive 3–5 named principles from journey insights to resolve design disputes).
 
 *Craft skills* design and critique each screen: `creative-direction` (turn a vague mood into ranked emotional and brand goals), `design-system` (derive a token taxonomy from an aesthetic direction), `information-architecture` (organize a screen — hierarchy, reading flow, wayfinding), `interaction-design` (design the behavioral layer — states, validation, transitions, micro-interactions), `design-review` (severity-rated heuristic, accessibility, and aesthetic critique of an existing screen). Six surface-genre skills apply the full craft method to a specific screen type: `analytical-design`, `conversion-design`, `documentation-design`, `informational-design`, `marketplace-design`, `workspace-design`. Plus `experience-status` for read-only orientation to the current design thread.
 

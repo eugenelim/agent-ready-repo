@@ -24,7 +24,10 @@ skills:
     description: "Produces a content brief for a surface — what it should say, for whom, in what form, and to what objective — before any wireframe or screen flow starts."
     humanTouches: 0
   - name: tone-of-voice
-    description: "Turns a vague copy vibe into named, ranked copy goals grounded in stable referents, and records copy arbitration rules the rest of the build references."
+    description: "Names the brand-level copy register — the cross-surface voice and copy personality that all per-surface copy decisions reference."
+    humanTouches: 0
+  - name: copy-direction
+    description: "Names the copy direction for a specific marketing or acquisition surface — ranked copy goals grounded in stable referents, plus arbitration rules for that surface."
     humanTouches: 0
   - name: user-flow
     description: "Derives the screen inventory and flow from the customer journey — what screens exist, what state each handles, what the transitions are."
@@ -130,7 +133,8 @@ relatedJourneys:
 | `experience-status` | Orient — where the design thread is, what's next |
 | `journey-mapping` | Map the user's outcome: stages, emotions, pains |
 | `content-design` | Set surface intent — what this screen says and for whom |
-| `tone-of-voice` | Set the brand register — copy goals and arbitration rules |
+| `tone-of-voice` | Set the brand-level copy register — cross-surface copy personality all per-surface goals reference |
+| `copy-direction` | Name per-surface copy goals — voice, register, arbitration rules for a specific marketing surface |
 | `user-flow` | Build the screen inventory with per-screen state briefs |
 | `creative-direction` | Anchor the aesthetic in persona and precedent |
 | `design-system` | Derive the token taxonomy from the aesthetic direction |

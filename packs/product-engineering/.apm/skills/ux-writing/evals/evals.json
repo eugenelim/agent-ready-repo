@@ -13,6 +13,17 @@
         "Tone fits the context (calm in errors, warmer in success) while the voice stays constant",
         "Shapes words only — no visual/layout decisions and no documentation prose"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "Write the empty-state copy for a 'no projects yet' screen and the error-state copy for a failed save. A brand register exists at docs/design/copy/brand-register.md — use it as the upstream voice input.",
+      "expected_output": "UI copy for the empty state (orient + first action) and error state (blame-free + next step), shaped by the voice loaded from the fixed path docs/design/copy/brand-register.md — not re-derived from a type: tone-of-voice marker scan.",
+      "assertions": [
+        "Resolves the brand register from the fixed path docs/design/copy/brand-register.md (or the configured output_dir equivalent) — does not scan for type: tone-of-voice markers",
+        "Empty-state copy orients the user (what belongs here) and invites a first action — no decorative dead end",
+        "Error-state copy is blame-free (describes the situation, not user fault) and offers a next step",
+        "Output is UI copy strings, not copy direction or brand-level register content"
+      ]
     }
   ]
 }

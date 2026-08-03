@@ -1,6 +1,6 @@
 ---
 name: content-design
-description: "Use when a designer or product person needs to decide what a surface should say, for whom, in what form, and to what objective — before any wireframe or screen flow is opened. Routes across two surface types: acquisition surfaces (marketing pages, landing pages, web onboarding flows) and product/reference surfaces (help pages, feature reference, in-product wayfinding). Triggers on \"what should this landing page say\", \"write a content brief for our onboarding flow\", \"what's the narrative arc for this marketing page\", \"what does this feature page need to communicate\", \"help me decide the above-fold structure\". Do NOT use to write final copy (use `tone-of-voice` for copy voice, then `ux-writing` for UI strings), to produce an analytics or CRO measurement framework, or to generate SEO keyword plans. Outputs `communication_mode: product-copy | technical-editorial | reference-documentation` in the content brief frontmatter so downstream skills apply the correct editorial register."
+description: "Use when a designer or product person needs to decide what a surface should say, for whom, in what form, and to what objective — before any wireframe or screen flow is opened. Routes across two surface types: acquisition surfaces (marketing pages, landing pages, web onboarding flows) and product/reference surfaces (help pages, feature reference, in-product wayfinding). Triggers on \"what should this landing page say\", \"write a content brief for our onboarding flow\", \"what's the narrative arc for this marketing page\", \"what does this feature page need to communicate\", \"help me decide the above-fold structure\". Do NOT use to write final copy (use `copy-direction` for per-surface copy voice, `ux-writing` for UI strings, or `tone-of-voice` for brand register), to produce an analytics or CRO measurement framework, or to generate SEO keyword plans. Outputs `communication_mode: product-copy | technical-editorial | reference-documentation` in the content brief frontmatter."
 ---
 
 # Skill: content-design
@@ -18,7 +18,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 1. **There is a real surface with a defined purpose** — a specific page, flow, or section with a business objective. A vague "we need content" is not yet a brief; identify the surface and its goal before proceeding.
 2. **No content brief already exists for this surface** — if one exists, you are amending it, not starting fresh.
-3. **You are deciding direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job and hands off to `tone-of-voice` for voice and `ux-writing` for UI strings.
+3. **You are deciding direction, not writing final copy** — the moment the ask is "write the headline," this skill has done its job and hands off to `copy-direction` for per-surface copy voice and `ux-writing` for UI strings.
 4. **You know or can elicit the target audience** — either `journey-mapping` output is available, or you can elicit persona and outcome inline before routing to a sub-path.
 
 ## Procedure
@@ -56,10 +56,12 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 4. **Resolve and write the content brief.** Resolve the output path via `references/agentbundle-layout.md` (the `[design]` section). Write to `<output_dir>/content/<slug>.md` with frontmatter `type: content-brief`. Also write `communication_mode: <mode>` in the artifact frontmatter, where mode is the value determined in Step 1. Copy `assets/content-brief-template.md` to that path. Fill the relevant sections for the surface type. Resolve any conflicts in the elicitation (competing section jobs, unclear audience priority) before writing — the brief should have no open decisions, only open questions. Record open questions at the end.
 
 5. **Hand off.** Once the content brief is written:
-   - Name `tone-of-voice` as the next step for copy voice and register grounding — the brief names what to say; tone-of-voice names how to say it.
-   - The `communication_mode:` value in the brief frontmatter is read by `tone-of-voice` (applies anti-AI-smell criteria for `product-copy`) and `conversion-design` (runs editorial quality gate for `product-copy`).
+   - If `communication_mode: product-copy` — name `copy-direction` as the next step for per-surface copy voice and register grounding. The brief names what to say; copy-direction names how to say it for that surface. If a brand-register doc from `tone-of-voice` exists, `copy-direction` references it as an upstream anchor. `copy-direction` also applies anti-AI-smell criteria for `product-copy` surfaces.
+   - If `communication_mode: technical-editorial` — name `copy-direction` for **onboarding surfaces only** (onboarding is an acquisition moment for copy purposes: it converts an evaluator to an active user, making copy voice a marketing concern regardless of brief mode). For other technical-editorial surfaces, `copy-direction` does not apply; name `ux-writing` for any UI-state copy only.
+   - If `communication_mode: reference-documentation` — `copy-direction` does not apply; name `ux-writing` for UI-state copy only.
+   - `conversion-design` reads `communication_mode: product-copy` and runs its editorial quality gate.
    - Name `user-flow` as the next step for screen sequencing — the scroll sections and content hierarchy in the brief feed the screen-flow's copy slots directly.
-   - Note: experience-reviewer scope extension to include content briefs as a reviewable artifact type is deferred to a follow-on RFC (RFC-0062 OQ1). Until that RFC ships, experience-reviewer does not review content briefs; this step is the hand-off point.
+   - Note: experience-reviewer scope extension to include content briefs as a reviewable artifact type is deferred to a follow-on spec. Until that ships, experience-reviewer does not review content briefs; this step is the hand-off point.
 
 ## Anti-patterns to refuse
 
@@ -67,6 +69,6 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 - **Producing copy templates or pre-written strings.** This skill produces content direction — what to say, in what order, to whom — not finished copy. If the output contains a written headline or label, it has overstepped.
 - **Producing an analytics or measurement framework.** Naming a success metric (task completion rate, sign-up rate) is in scope. Specifying tracking instrumentation, funnel metrics, or A/B test design is not.
 - **Running user research or VoC production.** This skill takes audience information as input; it does not produce it. If no persona exists, elicit inline at the level of a sketch — do not run a research project.
-- **Producing an SEO keyword plan or meta-tag specification.** SEO is explicitly deferred per RFC-0062 D5; naming a headline's clarity is in scope, targeting a keyword is not.
+- **Producing an SEO keyword plan or meta-tag specification.** Naming a headline's clarity is in scope, targeting a keyword is not.
 - **Writing a single "global" brief for multiple distinct surfaces.** Each surface gets its own brief — a global brief produces direction that serves none of them precisely. If the ask is multi-surface, produce one brief per surface or push back on scope.
 - **Substituting a content brief for a screen flow.** The brief names what each section must accomplish; it does not sequence screens or define interaction states — that is `user-flow`'s job.

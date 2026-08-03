@@ -465,3 +465,20 @@ implemented as part of this initiative's specs:
   DTCG 2025.10 "where practical." Generated platform outputs (Figma variables,
   iOS Swift UI tokens, Android Material tokens) are deferred until an adopter
   need surfaces.
+
+---
+
+## Errata
+
+- **2026-08-02 (Approver: eugenelim) — `tone-of-voice` upstream relationship corrected.**
+  The D3 work-list item (lines 313–314) described `copy-direction` as the upstream
+  voice-direction skill relative to `tone-of-voice`. This is reversed. The correct
+  relationship, established by RFC-0062 Erratum (2026-08-02), is: `tone-of-voice`
+  produces the brand-level register; `copy-direction` optionally references that
+  register as an upstream anchor when positioning copy for a specific surface.
+  `tone-of-voice` is upstream of `copy-direction`. The D3 line is superseded by that
+  erratum and by the implementation in `docs/specs/xd-copy-direction/`.
+  Additionally, the adjacent D3 bullet (line 311) scopes the trigger-description
+  sweep to "All 19 skills"; `copy-direction` is the 20th skill shipped by
+  `docs/specs/xd-copy-direction/` and must be included in that sweep. Line 311's
+  count is corrected to 20 by this erratum.

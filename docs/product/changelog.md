@@ -15,6 +15,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [experience-design][2.0.0] — 2026-08-02
+
+### Added
+
+- **`copy-direction` skill added to the `experience-design` pack.** New skill for naming the copy direction for a specific marketing or acquisition surface — ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), plus copy arbitration rules for that surface. Copy twin of `creative-direction`: same 8-step interrogation rhythm applied to what a surface *says* rather than how it *looks*. Scope: per-surface acquisition copy positioning (hero headlines, above-fold narrative, taglines, announcement copy, onboarding copy voice). References: `tone-of-voice` brand-register doc as optional upstream anchor; writes `copy/<surface-slug>.md` with `type: copy-direction`. ([spec](../specs/xd-copy-direction/spec.md))
+
+### Changed
+
+- **`tone-of-voice` re-scoped to brand-level cross-surface register.** `tone-of-voice` now names the brand-level copy register — the cross-surface voice personality that all per-surface copy decisions reference — rather than per-surface acquisition copy positioning. Output path changed from `copy/<slug>.md` (per-surface slug) to `copy/brand-register.md` (stable brand-level doc). Per-surface acquisition copy positioning (hero headlines, above-fold narrative, taglines, announcement copy, onboarding copy voice) now belongs to the new `copy-direction` skill. The `content-design` and `ux-writing` boundary notes updated accordingly. ([spec](../specs/xd-copy-direction/spec.md))
+
+## [product-engineering][0.13.3] — 2026-08-02
+
+### Changed
+
+- **`ux-writing` boundary note updated: onboarding copy voice routes to `copy-direction`.** The `ux-writing` skill's scope boundary note now routes per-surface marketing/acquisition copy voice — including onboarding copy voice — to `copy-direction` (experience-design pack) rather than `tone-of-voice`. The onboarding tri-point (`content-design` / `copy-direction` / `ux-writing`) is now explicit in the boundary note. ([spec](../specs/xd-copy-direction/spec.md))
+
+## [core][1.0.4] — 2026-08-01
+
+### Changed
+
+- **`work-loop` Step 0 no longer scans the full portfolio for stale entries (Order 2A).**
+  The stale-queue check — which read every `queue` and `active` spec.md to detect
+  `Status: Shipped` drift on every `work-loop` invocation — is removed. `work-loop` now
+  orients only (initiative, milestone, active spec, shaping guard). For exhaustive workspace
+  integrity checks (stale entries, untracked live specs), run
+  `workspace-status reconcile`. The same stale fixtures are still detected as Type 2 findings
+  by `analyze()` — behavior moves, not disappears.
+
+
 ## [core][1.0.3] — 2026-08-01
 
 ### Added

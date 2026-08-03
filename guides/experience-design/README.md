@@ -3,11 +3,11 @@
 The design/UX seat that carries the **whole design thread** — from a customer
 journey, through the screens it implies and the services behind them, to how
 each screen looks and behaves, to an independent review and a hand-off to
-realization. 18 skills covering: journey mapping and screen flow derivation
+realization. 19 skills covering: journey mapping and screen flow derivation
 (connective thread), design principles (Define phase), genre-specific surface
 design (marketing, documentation, analytical, marketplace, informational,
 workspace), craft design (creative direction, design system, information
-architecture, interaction design), content design and tone of voice, continuous
+architecture, interaction design), content design, copy direction, tone of voice, continuous
 review, and a forked-context reviewer.
 
 Every skill ships portable **method**, never your stack: no UI-framework code,
@@ -32,6 +32,8 @@ run it end to end.
 - [Thread a feature from journey to screens](how-to/author-design-intent.md) —
   map the journey, derive the screen flow and per-screen briefs, blueprint the
   services, design and critique each screen, and get an independent review.
+- [Route copy work across content-design, copy-direction, ux-writing, and tone-of-voice](how-to/copy-boundary.md) —
+  which skill owns what across the four-way copy boundary.
 
 ## Reference
 
