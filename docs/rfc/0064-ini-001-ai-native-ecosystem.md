@@ -533,14 +533,21 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [ ] Enterprise rollout playbook: champion → CTO → platform team → engineers adoption arc; staged rollout phases (pilot → wave → org-wide); rollout checklist and retrospective template — `spec/m6-enterprise-rollout-playbook`; distinct from the technical catalogue enterprise-distribution guides already shipped
 
 The `research:adopter-persona` gate is now clear (2026-08-02). Desk-research only;
-participant sessions deferred. Two-segment hypothesis (FDE-mediated enterprise /
-solo engineer) confirmed as adoption-pathway framing complementary to the five-
-segment posture model. Five cross-segment design requirements identified (prerequisites
-at decision point; outcome-first vocabulary; explicit artifact status; credential
-lifecycle documentation; mutation status stated). Third segment (unsupported
-mid-market enterprise) identified as highest churn risk — address in rollout playbook.
+participant sessions deferred. Six primary adopter segments across two orthogonal
+dimensions: **arrival pathway** (FDE-mediated enterprise; solo engineer) and
+**role/altitude identity** (technical PM/product engineer; AI-naive knowledge
+worker; enterprise AI champion; UX/experience designer). A seventh segment
+(mid-market enterprise) is named but uncharacterised and is the highest churn
+risk — the rollout playbook must address it as a distinct track. Nine
+cross-segment design requirements: five from round-1 (prerequisites at decision
+point; outcome-first vocabulary; explicit artifact status; credential lifecycle
+documentation; mutation status stated) plus four from round-2 (constrain first
+task to a verifiable domain; name human control points; peer-champion the demo;
+frame value at the shareable artifact). Three rollout tracks required: technical
+(solo engineer + PM/PE), enterprise (FDE client + AI champion), non-technical
+(AI-naive professional + UX designer).
 
-Evidence base: [`docs/product/research/adopter-persona-brief.md`](../product/research/adopter-persona-brief.md) (governance brief, self-contained) · [`docs/product/research/adopter-persona-comparison-matrix.md`](../product/research/adopter-persona-comparison-matrix.md) (full comparison).
+Evidence base: [`docs/product/research/adopter-persona-brief.md`](../product/research/adopter-persona-brief.md) (governance brief, self-contained) · [`docs/product/research/adopter-persona-comparison-matrix.md`](../product/research/adopter-persona-comparison-matrix.md) (full six-segment comparison).
 
 ## Sub-RFCs
 
