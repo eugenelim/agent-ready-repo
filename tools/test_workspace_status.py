@@ -1367,7 +1367,7 @@ _WORK_LOOP_CONTRACT_HASH = (
     "c739285ae95ad891fddb2f6463624e2ef1793e1694e6711543c4d6eb1e4d72f6"
 )
 _WORK_LOOP_FINISH_HASH = (
-    "4bdd195cea3d66cb8bcc26405f61e573477b86c32e7a0eb4ed6e1c83fe71dd95"
+    "ff395703cf1ba7d10bbdf22909c59c675673aa7d76dab05d2fb51c228b56872f"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
