@@ -426,7 +426,7 @@ def _apply_operations(
             prefix=".workspace.toml.",
             suffix=".tmp",
         )
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
             fh.write(tomlkit.dumps(doc))
         # Preserve original mode; set after fd close (cross-platform — os.fchmod is Unix-only)
         Path(tmp_path).chmod(orig_mode)
@@ -526,9 +526,11 @@ def main(argv: list[str] | None = None) -> int:
             # Path-confinement: if workspace.toml is a symlink, verify the target
             # stays within the repo root so session-start cannot read another tree's
             # initiative data through an escape link.
+            # Resolve once here; repair-plan uses _ws_toml_resolved for TOCTOU-safe reads.
+            _ws_toml_resolved = workspace_toml.resolve()
             if workspace_toml.is_symlink():
                 try:
-                    workspace_toml.resolve().relative_to(root.resolve())
+                    _ws_toml_resolved.relative_to(root.resolve())
                 except (OSError, RuntimeError, ValueError):
                     print(
                         "workspace-status error: workspace.toml symlink escapes repository root",
@@ -569,7 +571,9 @@ def main(argv: list[str] | None = None) -> int:
             # analyze() re-reads workspace.toml internally; by pre-capturing bytes here
             # we ensure the stored fingerprint reflects what we observed at plan-time,
             # not a later re-read that could race with a concurrent writer.
-            _plan_ws_bytes = workspace_toml.read_bytes()
+            # Read from the already-resolved path (set by the shared symlink guard above)
+            # to avoid following a retargeted symlink between the guard and this read.
+            _plan_ws_bytes = _ws_toml_resolved.read_bytes()
             _plan_ws_fp = hashlib.sha256(_plan_ws_bytes).hexdigest()
             result = analyze(root, workspace_bytes=_plan_ws_bytes)
             plan = compute_repair_plan(result, workspace_toml, workspace_fingerprint=_plan_ws_fp)
@@ -622,9 +626,10 @@ def main(argv: list[str] | None = None) -> int:
                     "reason": "workspace_absent",
                 })
                 return 2
-            # Write-target confinement
+            # Write-target confinement; save resolved path for TOCTOU-safe reads
             try:
-                workspace_toml.resolve().relative_to(root.resolve())
+                _ws_apply_resolved = workspace_toml.resolve()
+                _ws_apply_resolved.relative_to(root.resolve())
             except (OSError, RuntimeError, ValueError):
                 _emit({
                     "schema_version": 1,
@@ -689,8 +694,8 @@ def main(argv: list[str] | None = None) -> int:
             ops = plan_data.get("automatic_operations", [])
             if not ops:
                 # Validate fingerprint before accepting an empty plan — a stale empty
-                # plan must be rejected (AC14: fingerprint check precedes empty-ops short-circuit).
-                _empty_bytes = workspace_toml.read_bytes()
+                # plan must be rejected; fingerprint check precedes empty-ops short-circuit.
+                _empty_bytes = _ws_apply_resolved.read_bytes()
                 _empty_digest = hashlib.sha256(_empty_bytes).hexdigest()
                 _empty_expected = plan_data.get("workspace_fingerprint", "")
                 if _empty_digest != _empty_expected:

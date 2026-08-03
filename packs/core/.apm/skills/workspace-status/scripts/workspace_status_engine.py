@@ -336,7 +336,15 @@ def extract_spec_status(spec_path: Path) -> str | None:
         text = spec_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
+    in_code_fence = False
     for line in text.splitlines():
+        # Track fenced code blocks — a status line inside a fence is an example, not
+        # the authoritative field. Both ``` and ~~~ fences are recognised.
+        if line.startswith(("```", "~~~")):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
         # Anchor to the canonical list-item field form: "- **Status:** ..."
         # A prose line containing **Status:** (example, comment) is not the field.
         if not line.startswith("- **Status:**"):
@@ -377,7 +385,13 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
         text = spec_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None, None
+    in_code_fence = False
     for line in text.splitlines():
+        if line.startswith(("```", "~~~")):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
         if not line.startswith("- **Status:**"):
             continue
         m = _STATUS_FIELD_RE.search(line)
