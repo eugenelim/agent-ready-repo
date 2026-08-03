@@ -302,9 +302,9 @@ _TRANSITION_ARROW_RE = re.compile(r'→\s*([^→\s]+)')
 # Stop at the first ##+ heading — status lines in body examples or tables are
 # never authoritative. Matches lint-spec-status.py's canonical preamble boundary.
 _SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
-# Single-line HTML comments; stripped before the status-field check so that
+# HTML comments; stripped before the status-field check so that
 # "<!-- - **Status:** Shipped -->" cannot satisfy the preamble guard.
-_HTML_COMMENT_RE = re.compile(r"<!--.*?-->")
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 # CommonMark fence opener/closer: 0-3 spaces indentation, then 3+ backticks or
 # 3+ tildes. Opening type and minimum length must match the closer.
 _FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
