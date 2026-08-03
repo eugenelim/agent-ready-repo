@@ -4,17 +4,13 @@ Repo-local addendum for maintainers of this checkout. `AGENTS.md` is adopter-own
 directly. To propagate changes to new adopters, also update `packs/core/seeds/AGENTS.md`.
 
 - **Pack and skill development** (version bumps, projection, skill authoring, eval coverage, plugin format):
-  [`packs/AGENTS.md`](packs/AGENTS.md). **Read [`packs/AGENTS.local.md`](packs/AGENTS.local.md) before acting** whenever any file under `packs/` is in scope.
-- **Python package development** (install-test rules, Windows compatibility, test conventions):
-  [`packages/AGENTS.md`](packages/AGENTS.md).
-- **Release coupling** (PyPI release requirements, version bump workflow, tagging):
-  **Read [`packages/AGENTS.local.md`](packages/AGENTS.local.md) before acting** whenever any file under `packages/` is in scope.
+  **Read [`packs/AGENTS.md`](packs/AGENTS.md) and [`packs/AGENTS.local.md`](packs/AGENTS.local.md) before acting** whenever any file under `packs/` is in scope.
+- **Python package development** (install-test rules, Windows compatibility, test conventions, PyPI release requirements):
+  **Read [`packages/AGENTS.md`](packages/AGENTS.md) and [`packages/AGENTS.local.md`](packages/AGENTS.local.md) before acting** whenever any file under `packages/` is in scope.
 - **Marketing site** (Astro build, Node.js deps, dev server, mobile viewport, link rules):
   [`web/AGENTS.md`](web/AGENTS.md).
 - **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
   [`guides/_shared/reference/catalogue-ci-contract.md`](guides/_shared/reference/catalogue-ci-contract.md).
-
-**Read before modifying:** `packs/` → read [`packs/AGENTS.md`](packs/AGENTS.md) first — version bump rule requires both `pack.toml` + `.claude-plugin/plugin.json`. `packages/` → read [`packages/AGENTS.local.md`](packages/AGENTS.local.md) first — covers when a PyPI release is required.
 
 ## Catalogue authoring scaffold — release-impact policy
 
