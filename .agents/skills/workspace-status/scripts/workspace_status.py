@@ -538,6 +538,17 @@ def main(argv: list[str] | None = None) -> int:
 
         if subcommand == "repair-plan":
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
+            # Reject symlinked output paths: replace() renames a temp file over the
+            # destination directory entry — on POSIX it follows the symlink and overwrites
+            # the target, not the link itself, allowing any in-repo file to be clobbered.
+            if plan_path.is_symlink():
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-plan",
+                    "applied": False,
+                    "reason": "plan_file_is_symlink",
+                })
+                return 2
             _plan_confinement = _check_plan_file_confinement(plan_path, root, "repair-plan")
             if isinstance(_plan_confinement, int):
                 return _plan_confinement

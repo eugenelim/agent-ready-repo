@@ -21,7 +21,7 @@ Any time you need to orient: which initiative is active, what specs are ready to
 ## Prerequisites
 
 - **Python 3.11+** — the backend uses `tomllib` (stdlib from 3.11). Confirm with `python3 --version` (macOS/Linux) or `python --version` (Windows). If Python is absent or below 3.11, the backend exits with a load error; install or upgrade before invoking this skill.
-- **tomlkit** (for `repair-apply` only) — comment-preserving TOML writer. Detect: `python3 -c "import tomlkit"`. If absent: `pip install tomlkit==0.15.1`. `repair-plan` does not require it.
+- **tomlkit** (for `repair-apply` only) — comment-preserving TOML writer. Detect: `python3 -c "import tomlkit"`. If absent, `repair-apply` exits 2 with `reason: "tomlkit_unavailable"` — surface to the user; install only with consent: `pip install tomlkit==0.15.1`. `repair-plan` does not require it.
 
 ## Procedure
 
@@ -160,7 +160,7 @@ Use `repair-plan` + `repair-apply` to deterministically clean up stale queue ent
 
 **`--plan-file <path>`** — override the plan file location for both subcommands. The path must resolve inside `<repo-root>`; symlinks that escape the root are rejected (exit 2, `plan_file_outside_root`).
 
-**`tomlkit` availability** — `repair-apply` requires `tomlkit` (comment-preserving TOML writer). If absent, run `pip install tomlkit==0.15.1`. See `## Prerequisites` above. `repair-plan` does not require it.
+**`tomlkit` availability** — `repair-apply` requires `tomlkit` (comment-preserving TOML writer). If absent, `repair-apply` exits 2 with `reason: "tomlkit_unavailable"`; surface to the user and install only with consent: `pip install tomlkit==0.15.1`. See `## Prerequisites` above. `repair-plan` does not require it.
 
 **`repair-apply` result JSON key fields:**
 

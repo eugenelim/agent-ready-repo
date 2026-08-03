@@ -984,7 +984,7 @@ class RepairPlanTests(_CliBase):
             unwritable_dir.chmod(0o755)
 
     def test_repair_plan_plan_file_confinement(self) -> None:
-        """AC16d: --plan-file via symlink outside root → exit 2."""
+        """AC16d: --plan-file via symlink → exit 2 (symlink rejection fires first)."""
         root = self._make_repair_fixture()
         import tempfile as _tmp
         with _tmp.TemporaryDirectory() as outside:
@@ -993,8 +993,9 @@ class RepairPlanTests(_CliBase):
             r = _run_cli("repair-plan", "--root", str(root), "--plan-file", str(link))
             self.assertEqual(r.returncode, 2)
             data = json.loads(r.stdout)
-            self.assertEqual(data.get("reason"), "plan_file_outside_root")
-            self.assertFalse(data.get("applied"), "confinement error must carry applied:false")
+            # Symlink rejection fires before confinement check
+            self.assertEqual(data.get("reason"), "plan_file_is_symlink")
+            self.assertFalse(data.get("applied"), "symlink error must carry applied:false")
 
     def test_repair_plan_plan_file_confinement_direct_path(self) -> None:
         """AC16d: --plan-file direct path outside root → exit 2."""
