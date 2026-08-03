@@ -974,18 +974,17 @@ class RepairPlanTests(_CliBase):
     def test_repair_plan_stdout_emitted_on_plan_file_write_failure(self) -> None:
         """AC26: stdout emitted even if plan file write fails; exit 2 on failure."""
         root = self._make_repair_fixture()
-        unwritable_dir = root / "no-write"
-        unwritable_dir.mkdir()
-        unwritable_dir.chmod(0o555)
-        try:
-            custom = unwritable_dir / "plan.json"
-            r = _run_cli("repair-plan", "--root", str(root), "--plan-file", str(custom))
-            self.assertEqual(r.returncode, 2, "must exit 2 on write failure")
-            # stdout must still be valid JSON (plan emitted before file write)
-            data = json.loads(r.stdout)
-            self.assertEqual(data["mode"], "repair-plan")
-        finally:
-            unwritable_dir.chmod(0o755)
+        # Use a regular file where the plan file's parent directory would be.
+        # mkstemp(dir=<regular-file>) raises NotADirectoryError on every platform
+        # and even when running as root, unlike chmod-based permission removal.
+        not_a_dir = root / "not-a-dir"
+        not_a_dir.write_text("regular file, not a directory")
+        custom = not_a_dir / "plan.json"
+        r = _run_cli("repair-plan", "--root", str(root), "--plan-file", str(custom))
+        self.assertEqual(r.returncode, 2, "must exit 2 on write failure")
+        # stdout must still be valid JSON (plan emitted before file write)
+        data = json.loads(r.stdout)
+        self.assertEqual(data["mode"], "repair-plan")
 
     def test_repair_plan_plan_file_confinement(self) -> None:
         """AC16d: --plan-file via symlink escaping root → exit 2, plan_file_outside_root."""

@@ -725,12 +725,40 @@ def main(argv: list[str] | None = None) -> int:
             # non-empty plans so that before_workspace_digest is always authoritative.
             lock_path = root / ".workspace-repair.lock"
             lock_fd = -1
+            _lock_acquired = False
             try:
                 lock_fd = os.open(
                     str(lock_path),
                     os.O_CREAT | os.O_EXCL | os.O_WRONLY,
                 )
+                _lock_acquired = True
             except FileExistsError:
+                # Stale-lock recovery: a process killed after lock-create but
+                # before finally-cleanup leaves the file permanently. Read the
+                # owning PID and probe it; if the process is gone, remove the
+                # stale file and retry once.
+                _stale = False
+                try:
+                    _owner_pid = int(
+                        lock_path.read_text(encoding="utf-8", errors="replace").strip()
+                    )
+                    os.kill(_owner_pid, 0)  # probe only; raises if process gone
+                except ProcessLookupError:
+                    _stale = True  # owner gone — lock is stale
+                except (OSError, ValueError):
+                    pass  # can't determine; treat as live (conservative)
+                if _stale:
+                    with contextlib.suppress(OSError):
+                        lock_path.unlink()
+                    try:
+                        lock_fd = os.open(
+                            str(lock_path),
+                            os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                        )
+                        _lock_acquired = True
+                    except FileExistsError:
+                        pass  # another process re-acquired; fall through to lock_busy
+            if not _lock_acquired:
                 print("workspace-status: repair lock is held by another process", file=sys.stderr)
                 _emit({
                     "schema_version": 1,
@@ -740,6 +768,9 @@ def main(argv: list[str] | None = None) -> int:
                 })
                 return 2
             try:
+                # Record PID so a future stale-lock check can verify ownership.
+                with contextlib.suppress(OSError):
+                    os.write(lock_fd, str(os.getpid()).encode())
                 os.close(lock_fd)
                 lock_fd = -1
                 if not ops:

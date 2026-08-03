@@ -438,7 +438,10 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
                 if fence_char is None:
                     fence_char, fence_min_len = char, length
                     continue
-                if char == fence_char and length >= fence_min_len:
+                # Closer: same type, >= length, and NO non-whitespace after the
+                # marker. A line like "```python" inside a fence is body content.
+                rest = line[fm.end():]
+                if char == fence_char and length >= fence_min_len and not rest.strip():
                     fence_char, fence_min_len = None, 0
                     continue
         if fence_char is not None:
