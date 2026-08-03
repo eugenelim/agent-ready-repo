@@ -25,6 +25,15 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
    not duplicative · a habit not a tool · used often enough to stick. A proposed
    area that duplicates an existing pack, or fails a principle, is a **reject**
    with the failing principle named.
+
+   **Tech-stack accelerator packs** are a distinct routing path — their
+   specificity is the point, so they are **exempt from Principle 1 (Universal)**
+   and must instead clear **Principles 2–4** plus three extra gates: (1) a named
+   maintainer, (2) a stated maturity scope (`validated` / `contract-complete` /
+   `experimental`), and (3) an archiving/deprecation path. An accelerator pack
+   that cannot satisfy all three extra gates is a reject. If the proposal is
+   tech-stack-specific (a CI/CD platform, IaC tool, SaaS integration), route it
+   through this path explicitly — do not fail it on Principle 1.
 2. **Diagnose the boundary.** What primitives would the pack carry, what does it
    depend on (`core`? another pack?), what's explicitly out of scope. If a
    heavy-knowledge dependency on another folder path in the same source is

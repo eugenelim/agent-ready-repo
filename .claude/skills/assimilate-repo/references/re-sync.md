@@ -26,8 +26,12 @@ define whole-RFC supersession):
 - Prior RFC **Open** → record the delta **in-place as an Amendment** (correction
   or new candidates alike — the proposal is still being worked).
 - Prior RFC **Frozen (Accepted/Rejected) + a genuine correction** (a verdict
-  typo, a moved destination) → an **Erratum** entry, additive.
+  typo, a moved destination) → an **Erratum** entry, additive. Corrections are
+  **operator-flagged** — unchanged candidates are skipped by hash, so typos are
+  never auto-detected. Request **Approver sign-off** before recording the Erratum
+  (per `new-rfc/SKILL.md`: Frozen-RFC Errata are Approver-signed).
 - Prior RFC **Frozen + new candidates or reversed verdicts** (fresh decisions,
   not a correction) → author a **new RFC**, and record it on the prior one as an
-  **Erratum entry naming the superseding RFC** (RFC-0055's documented whole-RFC
-  form). **Never append new decisions to a Frozen RFC's Errata.**
+  **Erratum entry naming the superseding RFC** (a catalogue convention; not a
+  form defined by RFC-0055). Request **Approver sign-off** before writing the
+  Erratum entry. **Never append new decisions to a Frozen RFC's Errata.**

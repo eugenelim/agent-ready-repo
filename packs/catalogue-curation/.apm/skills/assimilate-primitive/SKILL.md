@@ -37,10 +37,13 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
    an explicit "yes, land this code" before proceeding.
 4. **Run the repo's own gates on the candidate.** Before it lands, run the
    internal lints that apply to the artifact kind (`agentbundle catalogue lint --deep`,
-   `agentbundle catalogue verify`) and the SAST/SCA scanners (`.snyk` / dependency scan
-   where runnable; CodeQL runs on the PR this opens). A failure **blocks the
-   landing** or is surfaced for an explicit confirm — ingestion never bypasses
-   the gates the repo runs on its own code.
+   `agentbundle catalogue verify`) and the repo's SAST/SCA scanners. For Python
+   sources in this catalogue: `bandit -c bandit.yaml <path>` (MEDIUM+ severity
+   blocks) and `semgrep --config tools/semgrep/ <path>` (with `SEMGREP_EXCLUDE`).
+   If the repo has a dependency scanner or CI-integrated scanner (`.snyk`,
+   CodeQL), those run on the PR this opens. A failure **blocks the landing** or
+   is surfaced for an explicit confirm — ingestion never bypasses the gates the
+   repo runs on its own code.
 
 5. **Run the agentic-skills security review (AST01–AST10) on the candidate.**
    For every SKILL.md (or equivalent behaviour-definition file) in the candidate,
@@ -105,6 +108,9 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
    blessed jail, `agentbundle.safety.write_jailed` / `assert_under` (resolve →
    verify-prefix → symlinks resolved first), so a traversing/absolute path or an
    in-source symlink cannot escape `packs/`. Never roll your own path handling.
+   For hook/script primitives, the landing path differs from prose skills (flat
+   `.apm/hooks/`, no hook-wiring, version + inventory bumps before `build-self`):
+   [`references/hook-landing.md`](references/hook-landing.md).
 10. **Prompt `make build-self`** so the projection tracks the new source, and
     purge the fetched-but-rejected working copy.
 
