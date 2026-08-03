@@ -5,7 +5,7 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
 
 - **Pack and skill development** (version bumps, projection, skill authoring, eval coverage, plugin format):
   **Read [`packs/AGENTS.md`](packs/AGENTS.md) and [`packs/AGENTS.local.md`](packs/AGENTS.local.md) before acting** whenever any file under `packs/` is in scope.
-- **Python package development** (install-test rules, Windows compatibility, test conventions, PyPI release requirements):
+- **Python package development and release coupling** (install-test rules, Windows compatibility, test conventions, PyPI release requirements, version bump workflow):
   **Read [`packages/AGENTS.md`](packages/AGENTS.md) and [`packages/AGENTS.local.md`](packages/AGENTS.local.md) before acting** whenever any file under `packages/` is in scope.
 - **Marketing site** (Astro build, Node.js deps, dev server, mobile viewport, link rules):
   [`web/AGENTS.md`](web/AGENTS.md).
