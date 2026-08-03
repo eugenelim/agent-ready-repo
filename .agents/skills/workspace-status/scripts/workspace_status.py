@@ -332,8 +332,12 @@ def _apply_operations(
     operations: list[dict],
     workspace_toml_bytes: bytes,
     workspace_path: Path,
-) -> tuple[int, list[dict]]:
-    """Apply automatic operations using tomlkit. Returns (applied, per_operation)."""
+) -> tuple[int, list[dict], bytes | None]:
+    """Apply automatic operations using tomlkit. Returns (applied, per_operation, written_bytes).
+
+    written_bytes is the UTF-8 content written to workspace_path, or None when no
+    operations were applied (caller should use before_digest as after_digest in that case).
+    """
     import stat
 
     import tomlkit  # noqa: PLC0415 — guarded CLI-only import
@@ -416,8 +420,10 @@ def _apply_operations(
 
     # Only write when at least one operation succeeded
     if applied == 0:
-        return applied, per_op
+        return applied, per_op, None
 
+    serialized = tomlkit.dumps(doc)
+    written_bytes = serialized.encode("utf-8")
     tmp_path = None
     try:
         orig_mode = stat.S_IMODE(workspace_path.stat().st_mode)
@@ -427,7 +433,7 @@ def _apply_operations(
             suffix=".tmp",
         )
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
-            fh.write(tomlkit.dumps(doc))
+            fh.write(serialized)
         # Preserve original mode; set after fd close (cross-platform — os.fchmod is Unix-only)
         Path(tmp_path).chmod(orig_mode)
         # Re-hash immediately before replace to detect concurrent writes that
@@ -444,7 +450,7 @@ def _apply_operations(
             with contextlib.suppress(OSError):
                 Path(tmp_path).unlink()
 
-    return applied, per_op
+    return applied, per_op, written_bytes
 
 
 def _emit(data: dict) -> None:
@@ -801,10 +807,22 @@ def main(argv: list[str] | None = None) -> int:
                 os.close(lock_fd)
                 lock_fd = -1
                 if not ops:
-                    # Empty plan: validate fingerprint under lock — tomlkit/mkstemp
-                    # short-circuit still applies; only the read-and-check is serialised.
+                    # Empty plan: re-resolve under the lock so a symlink retargeted
+                    # between the initial confinement check and lock acquisition is
+                    # caught here rather than passing with a stale fingerprint.
+                    _empty_ws_target = workspace_toml.resolve()
                     try:
-                        _empty_bytes = _ws_apply_resolved.read_bytes()
+                        _empty_ws_target.relative_to(root.resolve())
+                    except (OSError, RuntimeError, ValueError):
+                        _emit({
+                            "schema_version": 1,
+                            "mode": "repair-apply",
+                            "applied": False,
+                            "reason": "workspace_outside_root",
+                        })
+                        return 2
+                    try:
+                        _empty_bytes = _empty_ws_target.read_bytes()
                     except OSError as _erb:
                         _emsg = str(_erb)
                         with contextlib.suppress(OSError, RuntimeError):
@@ -883,7 +901,7 @@ def main(argv: list[str] | None = None) -> int:
                     return 2
                 before_digest = actual_fp
                 try:
-                    applied, per_op = _apply_operations(
+                    applied, per_op, written_bytes = _apply_operations(
                         root, ops, workspace_bytes, workspace_write_target
                     )
                 except (OSError, RuntimeError) as _ae:
@@ -906,12 +924,15 @@ def main(argv: list[str] | None = None) -> int:
                         "reason": _write_reason,
                     })
                     return 2
-                after_digest = before_digest
-                if applied > 0:
-                    with contextlib.suppress(OSError):
-                        after_digest = hashlib.sha256(
-                            workspace_write_target.read_bytes()
-                        ).hexdigest()
+                # Compute after_digest from the serialized content captured inside
+                # _apply_operations — avoids a second disk read and guarantees the
+                # digest describes exactly what was written, even if a post-write
+                # read_bytes() were to fail.
+                after_digest = (
+                    hashlib.sha256(written_bytes).hexdigest()
+                    if written_bytes is not None
+                    else before_digest
+                )
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-apply",
