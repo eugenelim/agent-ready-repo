@@ -22,7 +22,7 @@ user, not the project. The broker is written to `~/.agentbundle/bin/` behind
 the `.agentbundle/` user-prefix fence (RFC-0013).
 
 ```
-agentbundle install --pack credential-brokers <catalogue>
+agentbundle install --pack credential-brokers --scope user <catalogue>
 ```
 
 ## Set up credentials

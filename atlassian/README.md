@@ -73,7 +73,7 @@ Each stage is optional. You can stop after the backlog review, improve only sele
 `atlassian` is **user-scope by default** — your Atlassian credentials are yours, not a project's.
 
 ```bash
-agentbundle install --pack atlassian <catalogue>
+agentbundle install --pack atlassian --scope user <catalogue>
 ```
 
 Or install via the Claude plugin registry:

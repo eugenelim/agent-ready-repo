@@ -108,7 +108,7 @@ architect-diagram [C4 component view — billing service]
 ## Install
 
 ```bash
-agentbundle install --pack architect <catalogue>
+agentbundle install --pack architect --scope user <catalogue>
 ```
 
 Adapters: `claude-code`, `kiro-ide`, `codex`, `copilot`, `cursor`, `gemini`. Default scope: user.
