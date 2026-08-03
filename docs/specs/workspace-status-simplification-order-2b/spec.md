@@ -146,7 +146,7 @@ may be candidates for deterministic repair.
   automatic operation's `spec.md` and assert the observed status still matches
   the plan's recorded `spec_status`. If any status has changed (e.g.,
   Shipped→Approved between plan and apply), skip that operation and report it as
-  `{"op": ..., "skipped": true, "reason": "spec_status_changed"}` in the result.
+  `{"path": ..., "applied": false, "reason": "spec_status_changed"}` in the result.
 - **Atomic write**: create the temp file via `tempfile.mkstemp(dir=workspace_path.parent,
   prefix=".workspace.toml.", suffix=".tmp")` (unpredictable name; `O_CREAT|O_EXCL`
   prevents symlink follow); write content; call `os.replace(tmp, workspace_path)`;

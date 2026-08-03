@@ -35,7 +35,7 @@
 
 **Declined temptations:**
 - Implement `work.active` automatic removal — prohibited by architectural boundary; Order 2B cannot distinguish live work-loops from stale entries.
-- Add POSIX file locking to `repair-apply` — adds complexity and cross-platform risk; fingerprint + spec-status re-verification provides sufficient staleness protection for the single-user CLI use case.
+- Add POSIX file locking to `repair-apply` — initially declined for cross-platform complexity; later added as `.workspace-repair.lock` (O_CREAT|O_EXCL atomic sibling lock) after review found the fingerprint-only approach insufficient for concurrent invocations.
 - Implement generic "repair anything" framework — scope creep; Order 3A/3B will redesign lifecycle ownership.
 - Add `repair-plan` / `repair-apply` as engine entry points — they are CLI-level operations; the engine stays narrow.
 - Use a fixed-name temp file — enables symlink-follow attack and concurrent write collision; use `tempfile.mkstemp` instead.
@@ -76,7 +76,7 @@ Verified before implementation — see spec.md §"Prerequisite gate evidence".
   - `test_compute_repair_plan_path_in_queue_and_active` — same path in queue+active both Shipped → one RepairOperation (queue) + one ManualFinding (active-source); not collapsed
   - `test_compute_repair_plan_duplicate_path_in_queue` — same spec_path appears twice in Type 2 queue findings for same ini → both route to manual_findings with `reason="type2-queue-duplicate"`; NOT in automatic_operations
   - `test_compute_repair_plan_fingerprint_is_sha256` — fingerprint matches `hashlib.sha256(workspace_path.read_bytes()).hexdigest()`
-  - `test_compute_repair_plan_planned_at_is_utc_isoformat` — `planned_at` ends with `"+00:00"` (not "Z"); `datetime.fromisoformat(planned_at).utcoffset() == datetime.timedelta(0)`
+  - `test_compute_repair_plan_has_plan_id` — `plan_id` is a 64-char lowercase hex string; SHA-256 of canonical JSON of `{automatic_operations, manual_findings, schema_version: 1, workspace_fingerprint}`
   - `test_compute_repair_plan_empty_reconciliation` — zero findings → empty automatic_operations, empty manual_findings
 - **Approach:**
   1. Add `RepairOperation`, `ManualFinding`, `RepairPlan` dataclasses after `ReconciliationFinding`.
@@ -89,16 +89,16 @@ Verified before implementation — see spec.md §"Prerequisite gate evidence".
      - iterate `result.type1` → manual (reason=type1-untracked)
      - iterate `result.type3` → manual (reason=type3-premature)
      - fingerprint: `hashlib.sha256(workspace_path.read_bytes()).hexdigest()`
-     - `planned_at`: `datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")`
+     - `plan_id`: SHA-256 of canonical JSON of `{"automatic_operations": [...], "manual_findings": [...], "schema_version": 1, "workspace_fingerprint": "..."}` (sorted keys; no `plan_id` field itself)
   3. Export in module docstring entry point list.
-  4. Add `hashlib`, `datetime` imports (stdlib only).
+  4. Add `hashlib` import (stdlib only; `datetime` not needed — `planned_at` was replaced by deterministic `plan_id`).
 
 ### T2: CLI — `repair-plan` subcommand
 
 - **Files:** `workspace_status.py`
 - **Verification mode:** TDD + Visual/manual QA
 - **Tests:**
-  - `test_repair_plan_json_contract` — stdout has schema_version, mode, workspace_present, workspace_root, workspace_fingerprint, planned_at, automatic_operations, manual_findings
+  - `test_repair_plan_json_contract` — stdout has schema_version, mode, workspace_present, workspace_root, workspace_fingerprint, plan_id, automatic_operations, manual_findings
   - `test_repair_plan_uses_full_reconcile` — `scan.global_spec_scan_performed: true`; `reconciliation.types_performed: [1, 2, 3]`
   - `test_repair_plan_writes_plan_file` — default plan file exists after invocation; contains valid JSON matching stdout
   - `test_repair_plan_custom_plan_file` — `--plan-file` path written
@@ -251,7 +251,7 @@ class RepairPlan:
     automatic_operations: list[RepairOperation]
     manual_findings: list[ManualFinding]
     workspace_fingerprint: str
-    planned_at: str
+    plan_id: str
 ```
 
 ### Engine — `compute_repair_plan`
@@ -261,7 +261,7 @@ def compute_repair_plan(
     result: WorkspaceStatusResult,
     workspace_path: Path,
 ) -> RepairPlan:
-    import hashlib, datetime
+    import hashlib, json
     automatic: list[RepairOperation] = []
     manual: list[ManualFinding] = []
 
@@ -307,12 +307,18 @@ def compute_repair_plan(
         ))
 
     fingerprint = hashlib.sha256(workspace_path.read_bytes()).hexdigest()
-    planned_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    plan_canon = json.dumps({
+        "automatic_operations": [dataclasses.asdict(op) for op in automatic],
+        "manual_findings": [dataclasses.asdict(mf) for mf in manual],
+        "schema_version": 1,
+        "workspace_fingerprint": fingerprint,
+    }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    plan_id = hashlib.sha256(plan_canon.encode("ascii")).hexdigest()
     return RepairPlan(
         automatic_operations=automatic,
         manual_findings=manual,
         workspace_fingerprint=fingerprint,
-        planned_at=planned_at,
+        plan_id=plan_id,
     )
 ```
 
