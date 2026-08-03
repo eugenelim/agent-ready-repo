@@ -254,6 +254,10 @@ jobs:
           marketplace-description = "test"
           [catalogue.package]
           include = ["packs/pack-a"]
+          [distribution.agentbundle]
+          preferred-adapter = "claude-code"
+          [distribution.agentbundle.artifactory]
+          enabled = false
           TOML
 
       - name: "Package-config test — run catalogue package"
