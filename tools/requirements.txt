@@ -3,3 +3,4 @@
 # contributors run `pip install -r tools/requirements.txt` once.
 pyyaml>=6.0
 jsonschema>=4.0  # guide frontmatter validation (validate_guides.py)
+tomlkit==0.15.1  # workspace-status repair-apply (comment-preserving TOML write)

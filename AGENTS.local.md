@@ -35,6 +35,10 @@ an **agentbundle engine change** and requires:
 
 `build-check` runs `sync_authoring_scaffold.py --check` and fails on drift.
 
+## No AC citation comments in .apm/ scripts
+
+`# AC14:`, `# AC36:` and similar prefixes in source files under `.apm/**` leak spec vocabulary to adopters. Strip the identifier; keep the invariant description. Write `# must not traverse symlinks` not `# AC14: must not traverse symlinks`.
+
 ## House style for internal docs
 
 Applies to prose that stays in this repo and never ships: this file, `docs/architecture/`, `docs/specs/`,

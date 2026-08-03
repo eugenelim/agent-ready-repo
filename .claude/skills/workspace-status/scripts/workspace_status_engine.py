@@ -6,6 +6,8 @@ Entry points:
   analyze_bounded(root: Path) -> WorkspaceStatusResult  — bounded analysis (Type 2+3 only)
   explain_item(result, selector: str) -> dict           — focused projection from bounded result
   compute_type2_cleanup(ini_slug, source_list, spec_path, spec_status) -> dict
+  compute_repair_plan(result, workspace_path: Path) -> RepairPlan
+                                             — deterministic repair plan
 
 This engine is the canonical implementation invoked by the workspace-status skill
 via scripts/workspace_status.py. It reads workspace.toml and docs/specs/** to
@@ -27,6 +29,8 @@ Known gaps (preserved from Phase 0 characterization):
 from __future__ import annotations
 
 import dataclasses
+import hashlib
+import json
 import os
 import re
 import time
@@ -120,6 +124,39 @@ class WorkLoopStaleWarning:
     spec_path: str
     ini_slug: str
     source_lists: list[str]  # ["queue"], ["active"], or ["queue", "active"]
+
+
+@dataclasses.dataclass
+class RepairOperation:
+    """A single automatically applicable repair operation derived from a Type 2 queue finding."""
+    operation_type: str          # "queue-to-shipped" | "queue-remove"
+    spec_path: str
+    spec_status: str             # "Shipped" | "Archived"
+    ini_slug: str
+    finding_id: str              # stable string ID: "type2:<ini_slug>:queue:<spec_path>"
+    operation_id: str            # SHA-256 of canonical operation content (excludes operation_id)
+    spec_status_fingerprint: str  # SHA-256 of raw status-field line from spec.md at plan time
+
+
+@dataclasses.dataclass
+class ManualFinding:
+    """A finding that requires human decision; not automatically repairable."""
+    finding_type: int
+    spec_path: str
+    spec_status: str
+    ini_slug: str
+    list_name: str
+    reason: str
+    finding_id: str  # stable string ID: "type<N>:<ini_slug>:<list_name>:<spec_path>"
+
+
+@dataclasses.dataclass
+class RepairPlan:
+    """Output of compute_repair_plan — a deterministic, read-only repair plan."""
+    automatic_operations: list[RepairOperation]
+    manual_findings: list[ManualFinding]
+    workspace_fingerprint: str  # SHA-256 hexdigest of workspace.toml bytes at plan time
+    plan_id: str                # SHA-256 of canonical plan content (excludes plan_id)
 
 
 @dataclasses.dataclass
@@ -262,6 +299,15 @@ _STATUS_FIELD_RE = re.compile(r'\*\*Status:\*\*\s+(.*?)(?:\s*\(|\s*<!--|$)')
 # "Draft→Approved→Shipped" yields ["Approved", "Shipped"] and a non-letter final
 # segment (e.g. "→ 2026", trailing "→") still forces None instead of backtracking.
 _TRANSITION_ARROW_RE = re.compile(r'→\s*([^→\s]+)')
+# Stop at the first ##+ heading — status lines in body examples or tables are
+# never authoritative. Matches lint-spec-status.py's canonical preamble boundary.
+_SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
+# HTML comments; stripped before the status-field check so that
+# "<!-- - **Status:** Shipped -->" cannot satisfy the preamble guard.
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+# CommonMark fence opener/closer: 0-3 spaces indentation, then 3+ backticks or
+# 3+ tildes. Opening type and minimum length must match the closer.
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 
 def _safe_spec_path(root: Path, slug: str) -> Path | None:
@@ -291,22 +337,66 @@ def _safe_spec_path(root: Path, slug: str) -> Path | None:
 VALID_STATUSES = frozenset({"Draft", "Approved", "Implementing", "Shipped", "Archived"})
 
 
-def extract_spec_status(spec_path: Path) -> str | None:
-    """Read spec.md and return the Status vocabulary word, or None if absent/unreadable."""
-    if not spec_path.exists():
-        return None
-    try:
-        text = spec_path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
+def _parse_spec_status(text: str) -> tuple[str | None, str | None]:
+    """Parse a spec.md string and return (status_token, raw_status_line).
+
+    Scans the preamble (before the first ## heading), skipping fenced code
+    blocks and HTML comments, and returns the first `- **Status:**` field.
+    Returns (None, None) when no valid status is found.
+    """
+    fence_char: str | None = None  # None = not in fence; "`" or "~" = in fence
+    fence_min_len: int = 0         # minimum closing fence length
+    in_ml_comment = False          # inside a multi-line HTML comment
     for line in text.splitlines():
+        # Fence tracking — CommonMark: 0–3 spaces of indentation; opening delimiter
+        # type (` or ~) and minimum length must match the closer. A `~~~` inside a
+        # ``` fence does NOT close it; it is treated as fence body content.
+        if not in_ml_comment:
+            fm = _FENCE_RE.match(line)
+            if fm:
+                marker = fm.group(1)
+                char = marker[0]
+                length = len(marker)
+                if fence_char is None:
+                    # Opener: info strings (e.g. ```python) are allowed after the marker.
+                    fence_char, fence_min_len = char, length
+                    continue
+                # Closer: same type, >= length, and NO non-whitespace after the marker.
+                # A line like "```python" inside a fence is body content, not a closer.
+                rest = line[fm.end():]
+                if char == fence_char and length >= fence_min_len and not rest.strip():
+                    fence_char, fence_min_len = None, 0
+                    continue
+                # else: different type or has trailing text — treat as fence body
+        if fence_char is not None:
+            continue
+        # Multi-line HTML comment: skip until closing -->.
+        if in_ml_comment:
+            if "-->" in line:
+                # After the closer, strip any COMPLETE inline comments from the
+                # remainder (e.g. "--> <!-- note -->") before testing for an unclosed
+                # opener. Without this, "--> <!-- note -->" sets in_ml_comment=True
+                # even though the comment is fully closed on the same line.
+                remainder = line[line.index("-->") + 3:]
+                remainder_clean = _HTML_COMMENT_RE.sub("", remainder)
+                in_ml_comment = "<!--" in remainder_clean
+            continue
+        # Stop at the first section heading — body examples live after ## headings.
+        if _SECTION_HEADING_RE.match(line):
+            break
+        # Strip single-line HTML comments. If an unclosed <!-- remains, the rest of
+        # this line and all subsequent lines until --> are inside a comment.
+        clean = _HTML_COMMENT_RE.sub("", line)
+        if "<!--" in clean:
+            clean = clean[:clean.index("<!--")]
+            in_ml_comment = True
         # Anchor to the canonical list-item field form: "- **Status:** ..."
         # A prose line containing **Status:** (example, comment) is not the field.
-        if not line.startswith("- **Status:**"):
+        if not clean.startswith("- **Status:**"):
             continue
         # Strip annotations before scanning — a spaced arrow in "(root → leaf)"
         # must never be read as a transition arrow.
-        m = _STATUS_FIELD_RE.search(line)
+        m = _STATUS_FIELD_RE.search(clean)
         if not m:
             continue
         content = m.group(1).strip()
@@ -315,16 +405,47 @@ def extract_spec_status(spec_path: Path) -> str | None:
             # A trailing bare arrow ("Draft → Approved →") has no final segment;
             # reject it explicitly so the preceding segment is never backtracked to.
             if content.rstrip().endswith("→"):
-                return None
+                return None, None
             # Take the LAST segment; if not a known status, return None — no backtrack.
             segments = _TRANSITION_ARROW_RE.findall(content)
             if segments:
                 last = segments[-1]
-                return last if last in VALID_STATUSES else None
+                return (last, line) if last in VALID_STATUSES else (None, None)
         else:
             word = content.split()[0] if content.split() else ""
-            return word if word in VALID_STATUSES else None
-    return None
+            return (word, line) if word in VALID_STATUSES else (None, None)
+    return None, None
+
+
+def extract_spec_status(spec_path: Path) -> str | None:
+    """Read spec.md and return the Status vocabulary word, or None if absent/unreadable."""
+    if not spec_path.exists():
+        return None
+    try:
+        text = spec_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    status, _ = _parse_spec_status(text)
+    return status
+
+
+def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, str | None]:
+    """Like extract_spec_status but also returns a SHA-256 fingerprint of the raw status line.
+
+    Returns (status_token, fingerprint) where fingerprint is the SHA-256 hexdigest of
+    the UTF-8 bytes of the exact status-field line used to derive the token.
+    Returns (None, None) when the status is unreadable or invalid.
+    """
+    if not spec_path.exists():
+        return None, None
+    try:
+        text = spec_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None, None
+    status, raw_line = _parse_spec_status(text)
+    if status is None or raw_line is None:
+        return None, None
+    return status, hashlib.sha256(raw_line.encode("utf-8")).hexdigest()
 
 
 # ── DAG / needs resolution ────────────────────────────────────────────────────
@@ -662,7 +783,7 @@ def run_reconciliation(
 
 # ── Main analysis entry point ─────────────────────────────────────────────────
 
-def analyze(root: Path) -> WorkspaceStatusResult:
+def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceStatusResult:
     """Run full workspace-status analysis from a repo root.
 
     Reads workspace.toml, extracts initiatives, classifies queue entries,
@@ -671,11 +792,18 @@ def analyze(root: Path) -> WorkspaceStatusResult:
     Only active initiatives contribute to ready/blocked classifications.
     All initiatives (including paused/closed) participate in reconciliation
     scans (behavior per SKILL.md which does not filter by status in scans).
+
+    workspace_bytes: when provided, parse from these bytes instead of re-reading
+    from disk. Callers that fingerprint workspace.toml before calling analyze()
+    should pass the same bytes to eliminate the TOCTOU window.
     """
     t0 = time.monotonic()
 
     workspace_path = root / "workspace.toml"
-    workspace = parse_workspace(workspace_path)
+    if workspace_bytes is not None:
+        workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    else:
+        workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
 
     all_classifications: list[EntryClassification] = []
@@ -1092,3 +1220,126 @@ def compute_type2_cleanup(
         "path": spec_path,
         "written_form": _toml_basic_string(spec_path),
     }
+
+
+# ── Repair planning ───────────────────────────────────────────────────────────
+
+
+def compute_repair_plan(
+    result: WorkspaceStatusResult,
+    workspace_path: Path,
+    workspace_fingerprint: str | None = None,
+) -> RepairPlan:
+    """Build a deterministic, read-only repair plan from a full reconciliation result.
+
+    Only Type 2 findings from work.queue with Shipped or Archived status become
+    automatic_operations. Paths appearing more than once in the same initiative's
+    queue (duplicates) and all other findings become manual_findings.
+
+    workspace_fingerprint: pre-computed SHA-256 of workspace.toml bytes, captured
+    before analyze() is called. When provided, binds the plan to that snapshot and
+    eliminates the TOCTOU window between analysis and a separate read_bytes() call.
+    """
+    automatic: list[RepairOperation] = []
+    manual: list[ManualFinding] = []
+
+    # Duplicate detection: count (ini_slug, spec_path) pairs across Type 2 queue findings
+    queue_counts: dict[tuple[str, str], int] = {}
+    for f in result.type2:
+        if f.list_name == "queue":
+            key = (f.ini_slug, f.spec_path)
+            queue_counts[key] = queue_counts.get(key, 0) + 1
+    duplicate_keys = {k for k, n in queue_counts.items() if n > 1}
+
+    for f in result.type1:
+        fid = f"type1:{f.ini_slug}:{f.list_name}:{f.spec_path}"
+        manual.append(ManualFinding(
+            finding_type=1, spec_path=f.spec_path, spec_status=f.spec_status,
+            ini_slug=f.ini_slug, list_name=f.list_name, reason="type1-untracked",
+            finding_id=fid,
+        ))
+
+    for f in result.type2:
+        if f.list_name == "queue" and (f.ini_slug, f.spec_path) in duplicate_keys:
+            fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
+            manual.append(ManualFinding(
+                finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
+                ini_slug=f.ini_slug, list_name=f.list_name, reason="type2-queue-duplicate",
+                finding_id=fid,
+            ))
+        elif f.list_name == "queue" and f.spec_status in ("Shipped", "Archived"):
+            op_type = "queue-to-shipped" if f.spec_status == "Shipped" else "queue-remove"
+            fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
+            slug = f.spec_path.removeprefix("spec/")
+            spec_file = _safe_spec_path(workspace_path.parent, slug)
+            live_status, status_fp = (
+                extract_spec_status_with_fingerprint(spec_file)
+                if spec_file is not None else (None, None)
+            )
+            if status_fp is None or live_status != f.spec_status:
+                # Spec unreadable, or its status changed between the scan and this
+                # read (e.g. Shipped → Archived). An operation whose status and
+                # fingerprint describe different snapshots would be skipped by
+                # repair-apply and would block other valid operations. Route to manual.
+                manual.append(ManualFinding(
+                    finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
+                    ini_slug=f.ini_slug, list_name=f.list_name,
+                    reason="type2-queue-spec-status-unreadable",
+                    finding_id=fid,
+                ))
+            else:
+                op_canon = json.dumps({
+                    "finding_id": fid, "ini_slug": f.ini_slug,
+                    "operation_type": op_type, "spec_path": f.spec_path,
+                    "spec_status": live_status,
+                    "spec_status_fingerprint": status_fp,
+                }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+                oid = hashlib.sha256(op_canon.encode("ascii")).hexdigest()
+                automatic.append(RepairOperation(
+                    operation_type=op_type, spec_path=f.spec_path,
+                    spec_status=live_status, ini_slug=f.ini_slug,
+                    finding_id=fid, operation_id=oid,
+                    spec_status_fingerprint=status_fp,
+                ))
+        else:
+            reason = (
+                "type2-active-source" if f.list_name == "active"
+                else f"type2-queue-{f.spec_status.lower()}"
+            )
+            fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
+            manual.append(ManualFinding(
+                finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
+                ini_slug=f.ini_slug, list_name=f.list_name, reason=reason,
+                finding_id=fid,
+            ))
+
+    for f in result.type3:
+        fid = f"type3:{f.ini_slug}:{f.list_name}:{f.spec_path}"
+        manual.append(ManualFinding(
+            finding_type=3, spec_path=f.spec_path, spec_status=f.spec_status,
+            ini_slug=f.ini_slug, list_name=f.list_name, reason="type3-premature",
+            finding_id=fid,
+        ))
+
+    fingerprint = (
+        workspace_fingerprint
+        if workspace_fingerprint is not None
+        else hashlib.sha256(workspace_path.read_bytes()).hexdigest()
+    )
+    # plan_id: SHA-256 of canonical plan content excluding plan_id itself.
+    # Must be computed AFTER all operation_id and finding_id values are set.
+    auto_dicts = [dataclasses.asdict(op) for op in automatic]
+    manual_dicts = [dataclasses.asdict(mf) for mf in manual]
+    plan_canon = json.dumps({
+        "automatic_operations": auto_dicts,
+        "manual_findings": manual_dicts,
+        "schema_version": 1,
+        "workspace_fingerprint": fingerprint,
+    }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    plan_id = hashlib.sha256(plan_canon.encode("ascii")).hexdigest()
+    return RepairPlan(
+        automatic_operations=automatic,
+        manual_findings=manual,
+        workspace_fingerprint=fingerprint,
+        plan_id=plan_id,
+    )

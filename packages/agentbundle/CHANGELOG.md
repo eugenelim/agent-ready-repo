@@ -8,6 +8,13 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.27.3]
+
+### Changed
+
+- **Scaffold sync**: `packs/AGENTS.md` updated to record `tomlkit==0.15.1` as an optional
+  dependency of the `workspace-status` skill; `_data/catalogue-scaffold/` projection synced.
+
 ## [0.27.2]
 
 ### Fixed

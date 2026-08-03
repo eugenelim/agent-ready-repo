@@ -31,6 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ux-writing` boundary note updated: onboarding copy voice routes to `copy-direction`.** The `ux-writing` skill's scope boundary note now routes per-surface marketing/acquisition copy voice — including onboarding copy voice — to `copy-direction` (experience-design pack) rather than `tone-of-voice`. The onboarding tri-point (`content-design` / `copy-direction` / `ux-writing`) is now explicit in the boundary note. ([spec](../specs/xd-copy-direction/spec.md))
 
+## [core][2.0.1] — 2026-08-02
+
+### Added
+
+- **`workspace-status` deterministic repair planning (Order 2B).** Two new subcommands —
+  `repair-plan` and `repair-apply` — automate cleanup of stale Type 2 queue entries without
+  manual `workspace.toml` editing. `repair-plan` runs a full reconciliation scan, builds a
+  deterministic plan for all automatically-resolvable findings (Shipped → move to `[work].shipped`;
+  Archived → remove from `[work].queue`), and writes a plan file with a SHA-256 fingerprint.
+  `repair-apply` verifies the fingerprint, re-reads each spec's Status from disk at apply time,
+  and writes atomically via `tempfile.mkstemp`. The `Approved` lifecycle invariant is preserved —
+  Approved entries are never automatically touched. Type 1, Type 3, and `active`-list entries
+  appear in `manual_findings` for human review. See SKILL.md §1b for the full two-step workflow.
+
 ## [core][1.0.4] — 2026-08-01
 
 ### Changed
@@ -42,7 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   integrity checks (stale entries, untracked live specs), run
   `workspace-status reconcile`. The same stale fixtures are still detected as Type 2 findings
   by `analyze()` — behavior moves, not disappears.
-
 
 ## [core][1.0.3] — 2026-08-01
 
