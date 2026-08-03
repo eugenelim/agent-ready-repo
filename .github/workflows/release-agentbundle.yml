@@ -230,7 +230,7 @@ jobs:
           version = "0.1.0"
           description = "Gate H test pack B."
           TOML
-          touch /tmp/gate-h-pkg/LICENSE-APACHE /tmp/gate-h-pkg/LICENSE-MIT
+          touch /tmp/gate-h-pkg/LICENSE-APACHE /tmp/gate-h-pkg/LICENSE-MIT /tmp/gate-h-pkg/AGENTS.md
           mkdir -p /tmp/gate-h-pkg/.claude-plugin
           echo '{"name":"gate-h","description":"test","owner":{"name":"ci"},"plugins":[]}' \
             > /tmp/gate-h-pkg/.claude-plugin/marketplace.json
