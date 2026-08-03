@@ -660,6 +660,15 @@ def main(argv: list[str] | None = None) -> int:
                     "reason": "plan_file_not_found",
                 })
                 return 2
+            except UnicodeDecodeError:
+                print("workspace-status: plan file is not valid UTF-8", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "plan_file_parse_error",
+                })
+                return 2
             try:
                 plan_data = json.loads(plan_raw)
             except json.JSONDecodeError as je:

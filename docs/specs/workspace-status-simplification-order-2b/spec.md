@@ -130,7 +130,10 @@ may be candidates for deterministic repair.
 - `repair-plan` invokes `analyze(root)` (exhaustive reconciliation); builds the
   plan via `compute_repair_plan`; writes the plan JSON to disk (default:
   `<root>/.workspace-repair-plan.json`, overridable with `--plan-file`); also
-  emits the same JSON to stdout.
+  emits the plan JSON to stdout. **The persisted file omits `workspace_root`**
+  (an absolute path — kept only in transient stdout output to avoid privacy leaks
+  if a custom `--plan-file` is accidentally committed; `repair-apply` derives
+  the root from `--root` at invocation, never from the plan file).
 - `repair-apply` reads the plan file; validates its schema; verifies the
   workspace fingerprint; re-verifies each operation's spec status from disk;
   applies each automatic operation using tomlkit for comment-preserving write;
@@ -215,18 +218,18 @@ may be candidates for deterministic repair.
 ## Plan file schema
 
 Written to `<root>/.workspace-repair-plan.json` by default. The plan file
-contains the **same JSON** emitted on stdout — it is the full merged output of
-`_build_json(root, result, "repair-plan")` plus plan fields (`workspace_fingerprint`,
-`plan_id`, `automatic_operations`, `manual_findings`). The example below is
-abridged; the real file also contains `workspace_present`, `scan`, `work`,
-`shaping`, and `reconciliation` keys from the `_build_json` merge.
+contains the plan JSON minus `workspace_root`. `workspace_root` is emitted on
+stdout (transient) but omitted from the persisted file to avoid privacy leaks
+if a custom `--plan-file` is accidentally committed. `repair-apply` derives
+the root from `--root`; it never reads `workspace_root` from the plan file.
+The example below is abridged; the real file also contains `workspace_present`,
+`scan`, `work`, `shaping`, and `reconciliation` keys from the `_build_json` merge.
 
 ```json
 {
   "schema_version": 1,
   "mode": "repair-plan",
   "workspace_present": true,
-  "workspace_root": "<absolute path>",
   "workspace_fingerprint": "<sha256-hex>",
   "plan_id": "<sha256-hex>",
   "... (scan, work, shaping, reconciliation keys from _build_json merge) ...": "...",
@@ -344,7 +347,9 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
   `<root>/.workspace-repair-plan.json` by default. `--plan-file <path>` overrides
   the output path. Stdout is emitted first; the plan file write follows. If the
   file write fails, stdout has already been emitted (plan is available to the
-  caller); exit code is 2 on file write failure (AC26).
+  caller); exit code is 2 on file write failure (AC26). The plan file contains
+  all stdout fields **except `workspace_root`** (absolute path, privacy-sensitive;
+  omitted from persisted files to prevent leaks via custom `--plan-file`).
 
 - [x] AC9. `repair-plan --root <dir>` where `<dir>` has no `workspace.toml`
   exits 1 with `{"schema_version": 1, "mode": "repair-plan", "workspace_present":

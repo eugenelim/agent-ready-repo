@@ -305,6 +305,9 @@ _SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
 # Single-line HTML comments; stripped before the status-field check so that
 # "<!-- - **Status:** Shipped -->" cannot satisfy the preamble guard.
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->")
+# CommonMark fence opener/closer: 0-3 spaces indentation, then 3+ backticks or
+# 3+ tildes. Opening type and minimum length must match the closer.
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 
 def _safe_spec_path(root: Path, slug: str) -> Path | None:
@@ -342,15 +345,27 @@ def extract_spec_status(spec_path: Path) -> str | None:
         text = spec_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-    in_code_fence = False
-    in_ml_comment = False  # multi-line HTML comment (<!-- ... --> spanning lines)
+    fence_char: str | None = None  # None = not in fence; "`" or "~" = in fence
+    fence_min_len: int = 0         # minimum closing fence length
+    in_ml_comment = False          # inside a multi-line HTML comment
     for line in text.splitlines():
-        # Track fenced code blocks — a status line inside a fence is an example, not
-        # the authoritative field. Both ``` and ~~~ fences are recognised.
-        if not in_ml_comment and line.startswith(("```", "~~~")):
-            in_code_fence = not in_code_fence
-            continue
-        if in_code_fence:
+        # Fence tracking — CommonMark: 0–3 spaces of indentation; opening delimiter
+        # type (` or ~) and minimum length must match the closer. A `~~~` inside a
+        # ``` fence does NOT close it; it is treated as fence body content.
+        if not in_ml_comment:
+            fm = _FENCE_RE.match(line)
+            if fm:
+                marker = fm.group(1)
+                char = marker[0]
+                length = len(marker)
+                if fence_char is None:
+                    fence_char, fence_min_len = char, length
+                    continue
+                if char == fence_char and length >= fence_min_len:
+                    fence_char, fence_min_len = None, 0
+                    continue
+                # else: different delimiter type inside a fence — falls through to body skip
+        if fence_char is not None:
             continue
         # Multi-line HTML comment: skip until closing -->.
         if in_ml_comment:
@@ -406,13 +421,23 @@ def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, s
         text = spec_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None, None
-    in_code_fence = False
+    fence_char: str | None = None
+    fence_min_len: int = 0
     in_ml_comment = False
     for line in text.splitlines():
-        if not in_ml_comment and line.startswith(("```", "~~~")):
-            in_code_fence = not in_code_fence
-            continue
-        if in_code_fence:
+        if not in_ml_comment:
+            fm = _FENCE_RE.match(line)
+            if fm:
+                marker = fm.group(1)
+                char = marker[0]
+                length = len(marker)
+                if fence_char is None:
+                    fence_char, fence_min_len = char, length
+                    continue
+                if char == fence_char and length >= fence_min_len:
+                    fence_char, fence_min_len = None, 0
+                    continue
+        if fence_char is not None:
             continue
         if in_ml_comment:
             if "-->" in line:
