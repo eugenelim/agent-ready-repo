@@ -29,8 +29,8 @@ Known gaps (preserved from Phase 0 characterization):
 from __future__ import annotations
 
 import dataclasses
-import datetime
 import hashlib
+import json
 import os
 import re
 import time
@@ -129,10 +129,13 @@ class WorkLoopStaleWarning:
 @dataclasses.dataclass
 class RepairOperation:
     """A single automatically applicable repair operation derived from a Type 2 queue finding."""
-    operation_type: str  # "queue-to-shipped" | "queue-remove"
+    operation_type: str          # "queue-to-shipped" | "queue-remove"
     spec_path: str
-    spec_status: str     # "Shipped" | "Archived"
+    spec_status: str             # "Shipped" | "Archived"
     ini_slug: str
+    finding_id: str              # stable string ID: "type2:<ini_slug>:queue:<spec_path>"
+    operation_id: str            # SHA-256 of canonical operation content (excludes operation_id)
+    spec_status_fingerprint: str  # SHA-256 of raw status-field line from spec.md at plan time
 
 
 @dataclasses.dataclass
@@ -144,6 +147,7 @@ class ManualFinding:
     ini_slug: str
     list_name: str
     reason: str
+    finding_id: str  # stable string ID: "type<N>:<ini_slug>:<list_name>:<spec_path>"
 
 
 @dataclasses.dataclass
@@ -152,7 +156,7 @@ class RepairPlan:
     automatic_operations: list[RepairOperation]
     manual_findings: list[ManualFinding]
     workspace_fingerprint: str  # SHA-256 hexdigest of workspace.toml bytes at plan time
-    planned_at: str             # ISO8601 UTC with +00:00 offset
+    plan_id: str                # SHA-256 of canonical plan content (excludes plan_id)
 
 
 @dataclasses.dataclass
@@ -358,6 +362,44 @@ def extract_spec_status(spec_path: Path) -> str | None:
             word = content.split()[0] if content.split() else ""
             return word if word in VALID_STATUSES else None
     return None
+
+
+def extract_spec_status_with_fingerprint(spec_path: Path) -> tuple[str | None, str | None]:
+    """Like extract_spec_status but also returns a SHA-256 fingerprint of the raw status line.
+
+    Returns (status_token, fingerprint) where fingerprint is the SHA-256 hexdigest of
+    the UTF-8 bytes of the exact status-field line used to derive the token.
+    Returns (None, None) when the status is unreadable or invalid.
+    """
+    if not spec_path.exists():
+        return None, None
+    try:
+        text = spec_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None, None
+    for line in text.splitlines():
+        if not line.startswith("- **Status:**"):
+            continue
+        m = _STATUS_FIELD_RE.search(line)
+        if not m:
+            continue
+        content = m.group(1).strip()
+        if "→" in content:
+            if content.rstrip().endswith("→"):
+                return None, None
+            segments = _TRANSITION_ARROW_RE.findall(content)
+            if segments:
+                last = segments[-1]
+                if last in VALID_STATUSES:
+                    fp = hashlib.sha256(line.encode("utf-8")).hexdigest()
+                    return last, fp
+                return None, None
+        else:
+            word = content.split()[0] if content.split() else ""
+            if word in VALID_STATUSES:
+                fp = hashlib.sha256(line.encode("utf-8")).hexdigest()
+                return word, fp
+    return None, None
 
 
 # ── DAG / needs resolution ────────────────────────────────────────────────────
@@ -1152,44 +1194,78 @@ def compute_repair_plan(
     duplicate_keys = {k for k, n in queue_counts.items() if n > 1}
 
     for f in result.type1:
+        fid = f"type1:{f.ini_slug}:{f.list_name}:{f.spec_path}"
         manual.append(ManualFinding(
             finding_type=1, spec_path=f.spec_path, spec_status=f.spec_status,
             ini_slug=f.ini_slug, list_name=f.list_name, reason="type1-untracked",
+            finding_id=fid,
         ))
 
     for f in result.type2:
         if f.list_name == "queue" and (f.ini_slug, f.spec_path) in duplicate_keys:
+            fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
             manual.append(ManualFinding(
                 finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
                 ini_slug=f.ini_slug, list_name=f.list_name, reason="type2-queue-duplicate",
+                finding_id=fid,
             ))
         elif f.list_name == "queue" and f.spec_status in ("Shipped", "Archived"):
             op_type = "queue-to-shipped" if f.spec_status == "Shipped" else "queue-remove"
+            fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
+            slug = f.spec_path.removeprefix("spec/")
+            spec_file = _safe_spec_path(workspace_path.parent, slug)
+            _, status_fp = (
+                extract_spec_status_with_fingerprint(spec_file)
+                if spec_file is not None else (None, None)
+            )
+            op_canon = json.dumps({
+                "finding_id": fid, "ini_slug": f.ini_slug,
+                "operation_type": op_type, "spec_path": f.spec_path,
+                "spec_status": f.spec_status,
+                "spec_status_fingerprint": status_fp or "",
+            }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+            oid = hashlib.sha256(op_canon.encode("ascii")).hexdigest()
             automatic.append(RepairOperation(
                 operation_type=op_type, spec_path=f.spec_path,
                 spec_status=f.spec_status, ini_slug=f.ini_slug,
+                finding_id=fid, operation_id=oid,
+                spec_status_fingerprint=status_fp or "",
             ))
         else:
             reason = (
                 "type2-active-source" if f.list_name == "active"
                 else f"type2-queue-{f.spec_status.lower()}"
             )
+            fid = f"type2:{f.ini_slug}:{f.list_name}:{f.spec_path}"
             manual.append(ManualFinding(
                 finding_type=2, spec_path=f.spec_path, spec_status=f.spec_status,
                 ini_slug=f.ini_slug, list_name=f.list_name, reason=reason,
+                finding_id=fid,
             ))
 
     for f in result.type3:
+        fid = f"type3:{f.ini_slug}:{f.list_name}:{f.spec_path}"
         manual.append(ManualFinding(
             finding_type=3, spec_path=f.spec_path, spec_status=f.spec_status,
             ini_slug=f.ini_slug, list_name=f.list_name, reason="type3-premature",
+            finding_id=fid,
         ))
 
     fingerprint = hashlib.sha256(workspace_path.read_bytes()).hexdigest()
-    planned_at = datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
+    # plan_id: SHA-256 of canonical plan content excluding plan_id itself.
+    # Must be computed AFTER all operation_id and finding_id values are set.
+    auto_dicts = [dataclasses.asdict(op) for op in automatic]
+    manual_dicts = [dataclasses.asdict(mf) for mf in manual]
+    plan_canon = json.dumps({
+        "automatic_operations": auto_dicts,
+        "manual_findings": manual_dicts,
+        "schema_version": 1,
+        "workspace_fingerprint": fingerprint,
+    }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    plan_id = hashlib.sha256(plan_canon.encode("ascii")).hexdigest()
     return RepairPlan(
         automatic_operations=automatic,
         manual_findings=manual,
         workspace_fingerprint=fingerprint,
-        planned_at=planned_at,
+        plan_id=plan_id,
     )

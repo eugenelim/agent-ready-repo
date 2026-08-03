@@ -2868,20 +2868,6 @@ def case_compute_repair_plan_fingerprint_is_sha256():
                f"2B fingerprint: got {plan.workspace_fingerprint!r}, expected {expected!r}")
 
 
-def case_compute_repair_plan_planned_at_is_utc_isoformat():
-    import datetime as dt
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
-        result = _make_result()
-        plan = compute_repair_plan(result, root / "workspace.toml")
-        expect(plan.planned_at.endswith("+00:00"),
-               f"2B planned_at: must end with '+00:00', got {plan.planned_at!r}")
-        parsed = dt.datetime.fromisoformat(plan.planned_at)
-        expect(parsed.utcoffset() == dt.timedelta(0),
-               f"2B planned_at: utcoffset must be zero, got {parsed.utcoffset()!r}")
-
-
 def case_compute_repair_plan_empty_reconciliation():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -2890,6 +2876,42 @@ def case_compute_repair_plan_empty_reconciliation():
         plan = compute_repair_plan(result, root / "workspace.toml")
         expect(len(plan.automatic_operations) == 0, "2B empty: expected 0 auto ops")
         expect(len(plan.manual_findings) == 0, "2B empty: expected 0 manual findings")
+
+
+def case_compute_repair_plan_has_plan_id():
+    """2B: plan_id is a non-empty SHA-256 hex string; identical inputs produce same plan_id."""
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        result = _make_result()
+        plan1 = compute_repair_plan(result, root / "workspace.toml")
+        plan2 = compute_repair_plan(result, root / "workspace.toml")
+        expect(plan1.plan_id == plan2.plan_id,
+               f"2B plan_id: should be deterministic, got {plan1.plan_id!r} vs {plan2.plan_id!r}")
+        expect(len(plan1.plan_id) == 64,
+               f"2B plan_id: expected 64-char SHA-256, got len={len(plan1.plan_id)}")
+
+
+def case_compute_repair_plan_operation_has_spec_status_fingerprint():
+    """2B: auto operations include spec_status_fingerprint (SHA-256 of status line)."""
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        spec_dir = root / "docs" / "specs" / "my-feature"
+        spec_dir.mkdir(parents=True)
+        status_line = "- **Status:** Shipped"
+        (spec_dir / "spec.md").write_text(
+            f"# My Feature\n\n{status_line}\n", encoding="utf-8"
+        )
+        f = _make_finding(2, "spec/my-feature", "Shipped", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 1,
+               f"2B op-fp: expected 1 auto op, got {len(plan.automatic_operations)}")
+        op = plan.automatic_operations[0]
+        expected_fp = hashlib.sha256(status_line.encode("utf-8")).hexdigest()
+        expect(op.spec_status_fingerprint == expected_fp,
+               f"2B op-fp: got {op.spec_status_fingerprint!r}, expected {expected_fp!r}")
 
 
 # ── Runner ────────────────────────────────────────────────────────────────────
@@ -2982,12 +3004,16 @@ CASES = [
         case_compute_repair_plan_fingerprint_is_sha256,
     ),
     (
-        "2B compute_repair_plan_planned_at_is_utc_isoformat",
-        case_compute_repair_plan_planned_at_is_utc_isoformat,
-    ),
-    (
         "2B compute_repair_plan_empty_reconciliation",
         case_compute_repair_plan_empty_reconciliation,
+    ),
+    (
+        "2B compute_repair_plan_has_plan_id",
+        case_compute_repair_plan_has_plan_id,
+    ),
+    (
+        "2B compute_repair_plan_operation_has_spec_status_fingerprint",
+        case_compute_repair_plan_operation_has_spec_status_fingerprint,
     ),
 ]
 

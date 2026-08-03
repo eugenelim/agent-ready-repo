@@ -217,7 +217,7 @@ may be candidates for deterministic repair.
 Written to `<root>/.workspace-repair-plan.json` by default. The plan file
 contains the **same JSON** emitted on stdout — it is the full merged output of
 `_build_json(root, result, "repair-plan")` plus plan fields (`workspace_fingerprint`,
-`planned_at`, `automatic_operations`, `manual_findings`). The example below is
+`plan_id`, `automatic_operations`, `manual_findings`). The example below is
 abridged; the real file also contains `workspace_present`, `scan`, `work`,
 `shaping`, and `reconciliation` keys from the `_build_json` merge.
 
@@ -228,20 +228,17 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
   "workspace_present": true,
   "workspace_root": "<absolute path>",
   "workspace_fingerprint": "<sha256-hex>",
-  "planned_at": "<iso8601>",
+  "plan_id": "<sha256-hex>",
   "... (scan, work, shaping, reconciliation keys from _build_json merge) ...": "...",
   "automatic_operations": [
     {
       "operation_type": "queue-to-shipped",
       "spec_path": "spec/my-feature",
       "spec_status": "Shipped",
-      "ini_slug": "ini-002"
-    },
-    {
-      "operation_type": "queue-remove",
-      "spec_path": "spec/old-feature",
-      "spec_status": "Archived",
-      "ini_slug": "ini-002"
+      "ini_slug": "ini-002",
+      "finding_id": "type2:ini-002:queue:spec/my-feature",
+      "operation_id": "<sha256-hex>",
+      "spec_status_fingerprint": "<sha256-hex>"
     }
   ],
   "manual_findings": [
@@ -251,7 +248,8 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
       "spec_status": "Shipped",
       "ini_slug": "ini-002",
       "list_name": "active",
-      "reason": "type2-active-source"
+      "reason": "type2-active-source",
+      "finding_id": "type2:ini-002:active:spec/in-progress"
     }
   ]
 }
@@ -291,7 +289,8 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
 - [x] AC3. `RepairPlan` dataclass (or equivalent structure) exists in the engine
   with fields: `automatic_operations: list[RepairOperation]`,
   `manual_findings: list[ManualFinding]`, `workspace_fingerprint: str`,
-  `planned_at: str`.
+  `plan_id: str` (SHA-256 of canonical plan content excluding `plan_id`).
+  No timestamp (`planned_at` removed — plan is deterministic).
 
 - [x] AC4. `compute_repair_plan(result, workspace_path)` exists in the engine.
   Given a `WorkspaceStatusResult` from `analyze()`:
@@ -307,9 +306,16 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
     - Type 1 → `reason="type1-untracked"`
     - Type 3 → `reason="type3-premature"`
   - `workspace_fingerprint` = SHA-256 hexdigest of `workspace_path.read_bytes()`.
-  - `planned_at` = timezone-aware UTC ISO8601 with explicit `+00:00` offset, e.g.
-    `datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")`
-    which produces the form `"2026-08-02T12:00:00+00:00"` (never `"Z"`).
+  - `plan_id` = SHA-256 of canonical JSON of `{automatic_operations, manual_findings,
+    schema_version: 1, workspace_fingerprint}`, computed AFTER all `operation_id`
+    and `finding_id` values are filled. No timestamp — plan is deterministic.
+  - `RepairOperation` has two additional stable identifier fields:
+    `finding_id: str` = `"type2:<ini_slug>:<list_name>:<spec_path>"` (stable string);
+    `operation_id: str` = SHA-256 of canonical JSON of the op (excluding `operation_id`);
+    `spec_status_fingerprint: str` = SHA-256 of raw status-field line from `spec.md` at plan
+    time (enables detecting status-line changes that keep the token the same).
+  - `ManualFinding` has additional stable field: `finding_id: str` = 
+    `"type<N>:<ini_slug>:<list_name>:<spec_path>"`.
   - A path in both `work.queue` and `work.active` with `Shipped` status yields one
     `RepairOperation` (for the queue finding) and one `ManualFinding` with
     `reason="type2-active-source"` (for the active finding). Never collapses.
@@ -326,8 +332,8 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
   - `"workspace_present": true`
   - `"workspace_root": "<absolute-path>"`
   - `"workspace_fingerprint": "<sha256-hex>"`
-  - `"planned_at": "<iso8601+00:00>"`
-  - `"automatic_operations": [...]` (list of dicts; `RepairOperation` dataclasses serialized via `dataclasses.asdict()`)
+  - `"plan_id": "<sha256-hex>"` (stable identifier; no timestamp)
+  - `"automatic_operations": [...]` (list of dicts; `RepairOperation` dataclasses serialized via `dataclasses.asdict()`, including `finding_id`, `operation_id`, `spec_status_fingerprint`)
   - `"manual_findings": [...]` (list of dicts; `ManualFinding` dataclasses serialized via `dataclasses.asdict()`)
 
 - [x] AC7. When `automatic_operations` is empty (no automatically planable Type 2
@@ -456,6 +462,38 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
   alike. Violation → exit 2 with `reason="plan_file_outside_root"` (mirrors the
   existing workspace.toml confinement; does not gate on `is_symlink()` alone).
 
+- [x] AC33. `repair-apply` requires explicit `--yes` flag. Without it, exits 2
+  with `{"schema_version": 1, "mode": "repair-apply", "applied": false,
+  "reason": "confirmation_required"}`. The check occurs before any workspace read
+  or plan load. Verified by `test_repair_apply_confirmation_required`.
+
+- [x] AC34. `repair-apply` recomputes `plan_id` from the plan JSON and compares
+  it to the stored `plan_id` field. A tampered plan (any field changed) causes
+  exit 2 with `reason="plan_id_invalid"`. The recomputation uses the same
+  canonical-JSON formula as the engine: SHA-256 of `json.dumps({automatic_operations,
+  manual_findings, schema_version: 1, workspace_fingerprint}, sort_keys=True)`.
+  Verified by `test_repair_apply_plan_id_invalid`.
+
+- [x] AC35. `repair-apply` validates each operation's `spec_status_fingerprint`
+  (required non-empty string in `_validate_plan_structure`). At apply time,
+  `_apply_operations` re-reads the status line and verifies the fingerprint;
+  a mismatch (status line changed even if the token is the same) skips the op
+  with `reason="spec_status_fingerprint_changed"`.
+
+- [x] AC36. `repair-apply` acquires a cross-platform sibling lock before final
+  precondition validation and write. Lock file: `<root>/.workspace-repair.lock`,
+  acquired via `os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)` (atomic on
+  POSIX and Windows NT). If `FileExistsError`, exits 2 with `reason="lock_busy"`;
+  does not wait. Lock is released (file unlinked) in `finally` on success or
+  controlled failure. `workspace.toml` is re-read under the lock for final
+  fingerprint verification.
+
+- [x] AC37. Successful `repair-apply` result includes `before_workspace_digest`
+  (SHA-256 of workspace.toml before write) and `after_workspace_digest` (SHA-256
+  after write) in the stdout JSON. Also includes `plan_id`. When `applied == 0`
+  (all ops skipped), `before_workspace_digest == after_workspace_digest`.
+  Verified by `test_repair_apply_before_after_digest`.
+
 - [x] AC17. Inline-object queue entries (`{path = "spec/foo", needs = "..."}`)
   are removed in place by matching on the `path` field value; all other inline
   objects in the array remain intact; per-entry inline comments on other entries
@@ -500,13 +538,14 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
   structure, not just prose mentions).
 
 - [x] AC21a. `.gitignore` includes `.workspace-repair-plan.json`,
-  `.workspace.toml.*.tmp`, and `.plan.*.tmp`; `git check-ignore -v
-  .workspace-repair-plan.json` matches.
+  `.workspace-repair.lock`, `.workspace.toml.*.tmp`, and `.plan.*.tmp`;
+  `git check-ignore -v .workspace-repair-plan.json` matches.
 
 - [x] AC22. The stdlib-only import-purity tests in
   `tools/test_workspace_status_cli.py` (`_STDLIB_MODULES`, `test_engine_stdlib_only`,
   `test_cli_stdlib_only`) pass after updating `_STDLIB_MODULES` to include
-  `hashlib` and `datetime`, and exempting `tomlkit` as a blessed CLI-only import.
+  `hashlib` and `json`, and exempting `tomlkit` as a blessed CLI-only import.
+  (`datetime` was removed from the engine when `planned_at` was removed.)
 
 - [x] AC23. `make build-self`, focused tests, `make build-check`, and `make ci`
   pass.
@@ -528,6 +567,32 @@ abridged; the real file also contains `workspace_present`, `scan`, `work`,
   implementation's always-emit-JSON-on-error contract; for the
   unwritable-directory case, the full plan JSON is emitted first and exit 2
   follows only on file-write failure.
+
+- [x] AC32. `workspace-status` eval harness updated for the repair flows:
+  `evals/eval_queries.json` includes at least two `should_trigger: true` queries
+  covering `repair-plan` and `repair-apply` activation (e.g., "clean up stale
+  queue entries", "run repair-plan to see what fixes are available"). `evals/evals.json`
+  includes a `repair-plan` Tier-B-lite behavior check with `produces:
+  [".workspace-repair-plan.json"]` and `output_contains: ["repair-plan"]`.
+
+- [x] AC29. `repair-apply` validates that the plan file's top-level JSON value is a
+  dict (`isinstance(data, dict)`) before calling `.get()`. A top-level JSON array,
+  `null`, or string → exit 2 with `reason="plan_invalid"`. Verified by
+  `test_repair_apply_plan_invalid_non_dict_json`.
+
+- [x] AC30. `_validate_plan_structure` rejects `spec_path` values containing
+  backslashes (`\\`) or Windows drive-letter prefixes (`X:`) before the
+  `PurePosixPath` check — both are invisible to `PurePosixPath.is_absolute()` on
+  POSIX. Such paths → `reason="plan_invalid"`. `_safe_spec_path` catches them at
+  apply time as well, but the explicit structural check ensures the exit is
+  `plan_invalid` rather than `spec_status_unreadable`. Verified by
+  `test_repair_apply_plan_invalid_windows_path`.
+
+- [x] AC31. `repair-apply`'s atomic write passes `workspace_toml.resolve()` as the
+  write target to `_apply_operations` (not the raw `workspace_toml` path). When
+  `workspace.toml` is a symlink to an in-root target, `Path.replace()` therefore
+  overwrites the target file and leaves the symlink entry intact. AC16c already
+  confirms the resolved target is within `root` before the write proceeds.
 
 - [x] AC27. `repair-plan --plan-file <root>/workspace.toml` (i.e., the plan-file
   path resolves to `workspace.toml` — whether by exact path, symlink, or any

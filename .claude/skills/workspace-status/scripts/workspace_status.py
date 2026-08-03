@@ -55,6 +55,7 @@ try:
     compute_type2_cleanup = _engine_mod.compute_type2_cleanup
     compute_repair_plan = _engine_mod.compute_repair_plan
     extract_spec_status = _engine_mod.extract_spec_status
+    extract_spec_status_with_fingerprint = _engine_mod.extract_spec_status_with_fingerprint
     _safe_spec_path = _engine_mod._safe_spec_path
 except Exception as _load_err:
     # Engine load failure must be exit 2, not exit 1 (reserved for absent workspace).
@@ -235,10 +236,28 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
 def _build_repair_plan_json(root: Path, result, plan) -> dict:
     base = _build_json(root, result, "repair-plan")
     base["workspace_fingerprint"] = plan.workspace_fingerprint
-    base["planned_at"] = plan.planned_at
+    base["plan_id"] = plan.plan_id
     base["automatic_operations"] = [dataclasses.asdict(op) for op in plan.automatic_operations]
     base["manual_findings"] = [dataclasses.asdict(mf) for mf in plan.manual_findings]
     return base
+
+
+def _recompute_plan_id(plan_data: dict) -> str:
+    """Recompute the plan_id from plan JSON for tamper-detection.
+
+    Uses the same canonical JSON as the engine: automatic_operations,
+    manual_findings, schema_version=1, workspace_fingerprint.
+    """
+    auto_ops = plan_data.get("automatic_operations", [])
+    manual = plan_data.get("manual_findings", [])
+    fp = plan_data.get("workspace_fingerprint", "")
+    canon = json.dumps({
+        "automatic_operations": auto_ops,
+        "manual_findings": manual,
+        "schema_version": 1,
+        "workspace_fingerprint": fp,
+    }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canon.encode("ascii")).hexdigest()
 
 
 def _check_plan_file_confinement(plan_path: Path, root: Path, mode: str) -> int | None:
@@ -258,6 +277,8 @@ def _check_plan_file_confinement(plan_path: Path, root: Path, mode: str) -> int 
 
 def _validate_plan_structure(data: dict) -> str | None:
     """Validate plan JSON structure. Return error reason string or None."""
+    if not isinstance(data, dict):
+        return "plan_invalid"
     if data.get("schema_version") != 1:
         return "plan_invalid"
     ops = data.get("automatic_operations")
@@ -276,7 +297,11 @@ def _validate_plan_structure(data: dict) -> str | None:
             return "plan_invalid"
         if not ini_slug or not isinstance(ini_slug, str):
             return "plan_invalid"
-        # spec_path traversal guard
+        # spec_path traversal guard — reject backslashes and Windows drive letters
+        # before PurePosixPath; PurePosixPath("C:\\foo") treats it as a relative
+        # string, so these must be caught explicitly.
+        if "\\" in spec_path or (len(spec_path) >= 2 and spec_path[1] == ":"):
+            return "plan_invalid"
         try:
             parts = PurePosixPath(spec_path).parts
         except Exception:
@@ -287,6 +312,10 @@ def _validate_plan_structure(data: dict) -> str | None:
         if op_type == "queue-to-shipped" and spec_status != "Shipped":
             return "plan_invalid"
         if op_type == "queue-remove" and spec_status != "Archived":
+            return "plan_invalid"
+        # spec_status_fingerprint is required (non-empty string)
+        fp = op.get("spec_status_fingerprint", "")
+        if not fp or not isinstance(fp, str):
             return "plan_invalid"
     return None
 
@@ -310,6 +339,7 @@ def _apply_operations(
         spec_path = op["spec_path"]
         ini_slug = op["ini_slug"]
         expected_status = op["spec_status"]
+        expected_fp = op.get("spec_status_fingerprint", "")
 
         # Confinement + re-verify spec status from disk
         slug = spec_path.removeprefix("spec/")
@@ -319,7 +349,7 @@ def _apply_operations(
                 {"path": spec_path, "applied": False, "reason": "spec_status_unreadable"}
             )
             continue
-        current_status = extract_spec_status(spec_file)
+        current_status, current_fp = extract_spec_status_with_fingerprint(spec_file)
         if current_status is None:
             per_op.append(
                 {"path": spec_path, "applied": False, "reason": "spec_status_unreadable"}
@@ -327,6 +357,12 @@ def _apply_operations(
             continue
         if current_status != expected_status:
             per_op.append({"path": spec_path, "applied": False, "reason": "spec_status_changed"})
+            continue
+        # Fingerprint check: detect changes to the status line that keep the token the same
+        if expected_fp and current_fp and current_fp != expected_fp:
+            per_op.append(
+                {"path": spec_path, "applied": False, "reason": "spec_status_fingerprint_changed"}
+            )
             continue
 
         # Re-derive action from verified disk status (do not trust plan's operation_type)
@@ -444,6 +480,13 @@ def main(argv: list[str] | None = None) -> int:
             default=None,
             help="Override plan file path (default: <root>/.workspace-repair-plan.json)",
         )
+    if subcommand == "repair-apply":
+        parser.add_argument(
+            "--yes",
+            action="store_true",
+            default=False,
+            help="Required explicit confirmation to apply the repair plan",
+        )
     args = parser.parse_args(argv)
     root = Path(args.root)
 
@@ -532,6 +575,15 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if subcommand == "repair-apply":
+            # Explicit confirmation required before any mutation
+            if not getattr(args, "yes", False):
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "confirmation_required",
+                })
+                return 2
             # Workspace-absent check (exit 2, not exit 1 — subcommand-specific shape)
             try:
                 workspace_toml.lstat()
@@ -605,38 +657,93 @@ def main(argv: list[str] | None = None) -> int:
                     "reason": validation_reason,
                 })
                 return 2
-            # Single-read fingerprint verification (TOCTOU elimination)
-            workspace_bytes = workspace_toml.read_bytes()
-            actual_fp = hashlib.sha256(workspace_bytes).hexdigest()
-            expected_fp = plan_data.get("workspace_fingerprint", "")
-            if actual_fp != expected_fp:
-                print("workspace-status: fingerprint mismatch", file=sys.stderr)
+            # Recompute plan_id to detect tampering
+            stored_plan_id = plan_data.get("plan_id", "")
+            recomputed_plan_id = _recompute_plan_id(plan_data)
+            if stored_plan_id != recomputed_plan_id:
+                print("workspace-status: plan_id mismatch", file=sys.stderr)
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-apply",
                     "applied": False,
-                    "reason": "fingerprint_mismatch",
+                    "reason": "plan_id_invalid",
                 })
                 return 2
             ops = plan_data.get("automatic_operations", [])
             if not ops:
+                before_digest = hashlib.sha256(workspace_toml.read_bytes()).hexdigest()
                 _emit({
                     "schema_version": 1,
                     "mode": "repair-apply",
                     "applied": True,
+                    "plan_id": stored_plan_id,
+                    "before_workspace_digest": before_digest,
+                    "after_workspace_digest": before_digest,
                     "operations_applied": 0,
                     "per_operation": [],
                 })
                 return 0
-            applied, per_op = _apply_operations(root, ops, workspace_bytes, workspace_toml)
-            _emit({
-                "schema_version": 1,
-                "mode": "repair-apply",
-                "applied": True,
-                "operations_applied": applied,
-                "per_operation": per_op,
-            })
-            return 0
+            # Acquire cross-platform sibling lock before final validation + write
+            lock_path = root / ".workspace-repair.lock"
+            lock_fd = -1
+            try:
+                lock_fd = os.open(
+                    str(lock_path),
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                )
+            except FileExistsError:
+                print("workspace-status: repair lock is held by another process", file=sys.stderr)
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": False,
+                    "reason": "lock_busy",
+                })
+                return 2
+            try:
+                os.close(lock_fd)
+                lock_fd = -1
+                # Re-read workspace.toml under lock — final fingerprint verification
+                workspace_bytes = workspace_toml.read_bytes()
+                actual_fp = hashlib.sha256(workspace_bytes).hexdigest()
+                expected_fp = plan_data.get("workspace_fingerprint", "")
+                if actual_fp != expected_fp:
+                    print("workspace-status: fingerprint mismatch", file=sys.stderr)
+                    _emit({
+                        "schema_version": 1,
+                        "mode": "repair-apply",
+                        "applied": False,
+                        "reason": "fingerprint_mismatch",
+                    })
+                    return 2
+                before_digest = actual_fp
+                # Resolve so Path.replace() writes to the real file, not the symlink entry.
+                # AC16c already confirmed the resolved target is within root.
+                workspace_write_target = workspace_toml.resolve()
+                applied, per_op = _apply_operations(
+                    root, ops, workspace_bytes, workspace_write_target
+                )
+                after_digest = (
+                    hashlib.sha256(workspace_write_target.read_bytes()).hexdigest()
+                    if applied > 0 else before_digest
+                )
+                _emit({
+                    "schema_version": 1,
+                    "mode": "repair-apply",
+                    "applied": True,
+                    "plan_id": stored_plan_id,
+                    "before_workspace_digest": before_digest,
+                    "after_workspace_digest": after_digest,
+                    "operations_applied": applied,
+                    "per_operation": per_op,
+                })
+                return 0
+            finally:
+                if lock_fd >= 0:
+                    with contextlib.suppress(OSError):
+                        os.close(lock_fd)
+                with contextlib.suppress(OSError):
+                    lock_path.unlink()
 
         if subcommand == "explain":
             result = analyze_bounded(root)

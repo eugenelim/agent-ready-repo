@@ -901,7 +901,7 @@ class RepairPlanTests(_CliBase):
         self.assertEqual(r.returncode, 0, f"exit code: {r.stderr}")
         data = json.loads(r.stdout)
         for field in ("schema_version", "mode", "workspace_present", "workspace_root",
-                      "workspace_fingerprint", "planned_at",
+                      "workspace_fingerprint", "plan_id",
                       "automatic_operations", "manual_findings"):
             self.assertIn(field, data, f"missing field: {field}")
         self.assertEqual(data["schema_version"], 1)
@@ -1040,7 +1040,7 @@ class RepairApplyTests(_CliBase):
     def test_repair_apply_queue_to_shipped_bare_string(self) -> None:
         """AC13: bare string entry removed from queue; appended to shipped."""
         root, _ = self._make_repair_fixture()
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0, f"exit: {r.stderr}")
         data = json.loads(r.stdout)
         self.assertTrue(data["applied"])
@@ -1056,7 +1056,7 @@ class RepairApplyTests(_CliBase):
     def test_repair_apply_queue_remove_archived(self) -> None:
         """AC13: archived entry removed from queue; shipped unchanged."""
         root, _ = self._make_repair_fixture()
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         import tomllib
         ws = tomllib.loads((root / "workspace.toml").read_text(encoding="utf-8"))
@@ -1087,7 +1087,7 @@ backlog = []
         self._make_spec(root, "keep-me", "Approved")
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         import tomllib
         ws = tomllib.loads((root / "workspace.toml").read_text(encoding="utf-8"))
@@ -1105,7 +1105,7 @@ backlog = []
         (root / "workspace.toml").write_text(
             _REPAIR_TOML + "\n# modified\n", encoding="utf-8"
         )
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2, f"must exit 2: {r.stderr}")
         data = json.loads(r.stdout)
         self.assertFalse(data["applied"])
@@ -1116,7 +1116,7 @@ backlog = []
     def test_repair_apply_plan_not_found(self) -> None:
         """AC15: plan file not found → exit 2, reason:plan_file_not_found."""
         root = self._write_workspace(_REPAIR_TOML)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         data = json.loads(r.stdout)
         self.assertEqual(data["reason"], "plan_file_not_found")
@@ -1127,7 +1127,7 @@ backlog = []
         """AC16: malformed plan JSON → exit 2, reason:plan_file_parse_error."""
         root = self._write_workspace(_REPAIR_TOML)
         (root / ".workspace-repair-plan.json").write_text("{{{not json", encoding="utf-8")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         data = json.loads(r.stdout)
         self.assertEqual(data["reason"], "plan_file_parse_error")
@@ -1145,7 +1145,7 @@ backlog = []
             ],
         })
         (root / ".workspace-repair-plan.json").write_text(bad_plan, encoding="utf-8")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         data = json.loads(r.stdout)
         self.assertEqual(data["reason"], "plan_invalid")
@@ -1159,7 +1159,7 @@ backlog = []
              "spec_status": "Shipped", "ini_slug": "ini-001"}
         ]
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["reason"], "plan_invalid")
 
@@ -1172,7 +1172,7 @@ backlog = []
              "spec_status": "Shipped", "ini_slug": "ini-001"}
         ]
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["reason"], "plan_invalid")
 
@@ -1185,7 +1185,7 @@ backlog = []
              "spec_status": "Archived", "ini_slug": "ini-001"}
         ]
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["reason"], "plan_invalid")
 
@@ -1198,7 +1198,28 @@ backlog = []
              "spec_status": "Shipped", "ini_slug": ""}
         ]
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(json.loads(r.stdout)["reason"], "plan_invalid")
+
+    def test_repair_apply_plan_invalid_non_dict_json(self) -> None:
+        """AC12a: top-level non-dict JSON (list) → exit 2, plan_invalid."""
+        root, plan_file = self._make_repair_fixture()
+        plan_file.write_text("[]", encoding="utf-8")
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(json.loads(r.stdout)["reason"], "plan_invalid")
+
+    def test_repair_apply_plan_invalid_windows_path(self) -> None:
+        """AC12a: Windows-style spec_path (backslash) → exit 2, plan_invalid."""
+        root, plan_file = self._make_repair_fixture()
+        plan_data = json.loads(plan_file.read_text(encoding="utf-8"))
+        plan_data["automatic_operations"] = [
+            {"operation_type": "queue-to-shipped", "spec_path": "spec\\shipped-feature",
+             "spec_status": "Shipped", "ini_slug": "ini-001"}
+        ]
+        plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["reason"], "plan_invalid")
 
@@ -1210,7 +1231,7 @@ backlog = []
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
         before = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         after = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
         self.assertEqual(before, after, "must not write workspace.toml for empty ops")
@@ -1225,7 +1246,7 @@ backlog = []
         """AC16a: absent workspace.toml → exit 2, reason:workspace_absent."""
         import tempfile as _tmp
         with _tmp.TemporaryDirectory() as td:
-            r = _run_cli("repair-apply", "--root", td)
+            r = _run_cli("repair-apply", "--root", td, "--yes")
             self.assertEqual(r.returncode, 2)
             data = json.loads(r.stdout)
             self.assertEqual(data["reason"], "workspace_absent")
@@ -1239,7 +1260,7 @@ backlog = []
             target = Path(outside) / "real_workspace.toml"
             target.write_text(_REPAIR_TOML, encoding="utf-8")
             Path(str(root / "workspace.toml")).symlink_to(str(target))
-            r = _run_cli("repair-apply", "--root", str(root))
+            r = _run_cli("repair-apply", "--root", str(root), "--yes")
             self.assertEqual(r.returncode, 2)
             data = json.loads(r.stdout)
             self.assertEqual(data["reason"], "workspace_outside_root")
@@ -1267,7 +1288,7 @@ backlog = []
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
         before = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         # Empty ops (active-source is manual) → exit 0, no write
         self.assertEqual(r.returncode, 0)
         after = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
@@ -1276,7 +1297,7 @@ backlog = []
     def test_repair_apply_atomic_write_no_stray_temp(self) -> None:
         """AC13: no stray .workspace.toml.*.tmp after successful apply."""
         root, _ = self._make_repair_fixture()
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         tmp_files = list(root.glob(".workspace.toml.*.tmp"))
         self.assertEqual(tmp_files, [], f"stray tmp files: {tmp_files}")
@@ -1289,7 +1310,7 @@ backlog = []
         (spec_dir / "spec.md").write_text(
             "# Spec: shipped-feature\n\n- **Status:** Approved\n", encoding="utf-8"
         )
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         skipped = [p for p in data["per_operation"] if not p["applied"]]
@@ -1340,7 +1361,7 @@ backlog = []
         self._make_spec(root, "feat-b", "Shipped")
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertGreaterEqual(data["operations_applied"], 2)
@@ -1352,7 +1373,7 @@ backlog = []
         with _tmp.TemporaryDirectory() as outside:
             link = root / "escape.json"
             Path(str(link)).symlink_to(str(Path(outside) / "x.json"))
-            r = _run_cli("repair-apply", "--root", str(root), "--plan-file", str(link))
+            r = _run_cli("repair-apply", "--root", str(root), "--plan-file", str(link), "--yes")
             self.assertEqual(r.returncode, 2)
             data = json.loads(r.stdout)
             self.assertEqual(data.get("reason"), "plan_file_outside_root")
@@ -1363,7 +1384,7 @@ backlog = []
         root = self._make_repair_fixture()[0]
         with _tmp.TemporaryDirectory() as outside:
             evil = Path(outside) / "evil.json"
-            r = _run_cli("repair-apply", "--root", str(root), "--plan-file", str(evil))
+            r = _run_cli("repair-apply", "--root", str(root), "--plan-file", str(evil), "--yes")
             self.assertEqual(r.returncode, 2)
             data = json.loads(r.stdout)
             self.assertEqual(data.get("reason"), "plan_file_outside_root")
@@ -1389,7 +1410,7 @@ backlog = []
         self._make_spec(root, "already-there", "Shipped")
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         import tomllib
         ws = tomllib.loads((root / "workspace.toml").read_text(encoding="utf-8"))
@@ -1402,7 +1423,7 @@ backlog = []
         # Delete spec for shipped-feature after plan
         import shutil
         shutil.rmtree(root / "docs" / "specs" / "shipped-feature")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         skipped = [p for p in data["per_operation"] if not p["applied"]]
@@ -1417,18 +1438,37 @@ backlog = []
         import hashlib
         root, plan_file = self._make_repair_fixture()
         plan_data = json.loads(plan_file.read_text(encoding="utf-8"))
+        # Compute spec_status_fingerprint from the actual spec file
+        spec_file = root / "docs" / "specs" / "shipped-feature" / "spec.md"
+        import hashlib as _hashlib
+        status_line = next(
+            ln for ln in spec_file.read_text(encoding="utf-8").splitlines()
+            if ln.startswith("- **Status:**")
+        )
+        fp = _hashlib.sha256(status_line.encode("utf-8")).hexdigest()
         # Inject an op with a nonexistent ini_slug but real spec_path/status
         plan_data["automatic_operations"] = [
             {"operation_type": "queue-to-shipped", "spec_path": "spec/shipped-feature",
-             "spec_status": "Shipped", "ini_slug": "ini-nonexistent"}
+             "spec_status": "Shipped", "ini_slug": "ini-nonexistent",
+             "finding_id": "type2:ini-nonexistent:queue:spec/shipped-feature",
+             "operation_id": "aa" * 32,
+             "spec_status_fingerprint": fp}
         ]
         # Recompute fingerprint for the current workspace.toml bytes
         plan_data["workspace_fingerprint"] = hashlib.sha256(
             (root / "workspace.toml").read_bytes()
         ).hexdigest()
+        # Recompute plan_id to match the new operations
+        _canon = json.dumps({
+            "automatic_operations": plan_data["automatic_operations"],
+            "manual_findings": plan_data.get("manual_findings", []),
+            "schema_version": 1,
+            "workspace_fingerprint": plan_data["workspace_fingerprint"],
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        plan_data["plan_id"] = hashlib.sha256(_canon.encode("ascii")).hexdigest()
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
         before = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         reasons = [p["reason"] for p in data["per_operation"] if not p["applied"]]
@@ -1443,18 +1483,37 @@ backlog = []
         """AC20b: queue entry absent (fingerprint still matches) → entry_not_found_in_queue."""
         import hashlib
         root, plan_file = self._make_repair_fixture()
+        # Create spec BEFORE injecting into the plan (fingerprint must match the real file)
+        self._make_spec(root, "not-in-queue", "Shipped")
+        spec_file2 = root / "docs" / "specs" / "not-in-queue" / "spec.md"
+        import hashlib as _hashlib
+        status_line2 = next(
+            ln for ln in spec_file2.read_text(encoding="utf-8").splitlines()
+            if ln.startswith("- **Status:**")
+        )
+        fp2 = _hashlib.sha256(status_line2.encode("utf-8")).hexdigest()
         plan_data = json.loads(plan_file.read_text(encoding="utf-8"))
         # Inject an op for a path not actually in the queue
         plan_data["automatic_operations"] = [
             {"operation_type": "queue-to-shipped", "spec_path": "spec/not-in-queue",
-             "spec_status": "Shipped", "ini_slug": "ini-001"}
+             "spec_status": "Shipped", "ini_slug": "ini-001",
+             "finding_id": "type2:ini-001:queue:spec/not-in-queue",
+             "operation_id": "bb" * 32,
+             "spec_status_fingerprint": fp2}
         ]
         plan_data["workspace_fingerprint"] = hashlib.sha256(
             (root / "workspace.toml").read_bytes()
         ).hexdigest()
+        # Recompute plan_id to match the new operations
+        _canon = json.dumps({
+            "automatic_operations": plan_data["automatic_operations"],
+            "manual_findings": plan_data.get("manual_findings", []),
+            "schema_version": 1,
+            "workspace_fingerprint": plan_data["workspace_fingerprint"],
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        plan_data["plan_id"] = hashlib.sha256(_canon.encode("ascii")).hexdigest()
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
-        self._make_spec(root, "not-in-queue", "Shipped")
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         reasons = [p["reason"] for p in data["per_operation"] if not p["applied"]]
@@ -1467,7 +1526,7 @@ backlog = []
         ws = root / "workspace.toml"
         ws.chmod(0o644)
         orig_mode = stat.S_IMODE(ws.stat().st_mode)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         new_mode = stat.S_IMODE(ws.stat().st_mode)
         self.assertEqual(orig_mode, new_mode, "workspace.toml mode must survive atomic replace")
@@ -1498,7 +1557,7 @@ backlog = []
         self._make_spec(root, "keep-me", "Approved")
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         raw = (root / "workspace.toml").read_text(encoding="utf-8")
         self.assertIn("# keep this one", raw,
@@ -1540,7 +1599,7 @@ backlog = []
         manual_reasons = [f["reason"] for f in plan_json["manual_findings"]]
         self.assertIn("type2-active-source", manual_reasons)
 
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertGreater(data["operations_applied"], 0, "queue op must be applied")
@@ -1561,7 +1620,7 @@ backlog = []
         root, _ = self._make_repair_fixture()
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r_apply = _run_cli("repair-apply", "--root", str(root))
+        r_apply = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r_apply.returncode, 0)
         data = json.loads(r_apply.stdout)
         self.assertGreater(data["operations_applied"], 0)
@@ -1586,7 +1645,7 @@ backlog = []
         self._make_spec(root, "new-shipped", "Shipped")
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         import tomllib
         ws = tomllib.loads((root / "workspace.toml").read_text(encoding="utf-8"))
@@ -1615,7 +1674,7 @@ backlog = []
         self._make_spec(root, "keep", "Approved")
         r_plan = _run_cli("repair-plan", "--root", str(root))
         self.assertEqual(r_plan.returncode, 0)
-        r = _run_cli("repair-apply", "--root", str(root))
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
         self.assertEqual(r.returncode, 0)
         import tomllib
         ws = tomllib.loads((root / "workspace.toml").read_text(encoding="utf-8"))
@@ -1625,6 +1684,44 @@ backlog = []
         self.assertIn("spec/keep", paths)
         shipped = ws["ini-001"]["work"].get("shipped", [])
         self.assertNotIn("spec/inline-archived", shipped)
+
+    def test_repair_apply_confirmation_required(self) -> None:
+        """AC13: missing --yes → exit 2, reason:confirmation_required."""
+        root, _ = self._make_repair_fixture()
+        r = _run_cli("repair-apply", "--root", str(root))
+        self.assertEqual(r.returncode, 2)
+        data = json.loads(r.stdout)
+        self.assertFalse(data["applied"])
+        self.assertEqual(data["reason"], "confirmation_required")
+
+    def test_repair_apply_plan_id_invalid(self) -> None:
+        """AC10: tampered operation in plan → plan_id_invalid."""
+        root, plan_file = self._make_repair_fixture()
+        plan_data = json.loads(plan_file.read_text(encoding="utf-8"))
+        # Tamper with an operation (change a field)
+        if plan_data.get("automatic_operations"):
+            plan_data["automatic_operations"][0]["ini_slug"] = "ini-tampered"
+        plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
+        self.assertEqual(r.returncode, 2)
+        data = json.loads(r.stdout)
+        self.assertFalse(data["applied"])
+        self.assertEqual(data["reason"], "plan_id_invalid")
+
+    def test_repair_apply_before_after_digest(self) -> None:
+        """AC18: successful apply includes before_workspace_digest and after_workspace_digest."""
+        import hashlib
+        root, _ = self._make_repair_fixture()
+        before = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
+        r = _run_cli("repair-apply", "--root", str(root), "--yes")
+        self.assertEqual(r.returncode, 0)
+        data = json.loads(r.stdout)
+        self.assertEqual(data["before_workspace_digest"], before,
+                         "before_workspace_digest must match pre-apply hash")
+        after = hashlib.sha256((root / "workspace.toml").read_bytes()).hexdigest()
+        self.assertEqual(data["after_workspace_digest"], after,
+                         "after_workspace_digest must match post-apply hash")
+        self.assertNotEqual(before, after, "workspace must have changed")
 
 
 class TomlkitUnavailableTests(_CliBase):
@@ -1661,7 +1758,7 @@ class TomlkitUnavailableTests(_CliBase):
                 / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
             )
             result = subprocess.run(
-                [sys.executable, str(script), "repair-apply", "--root", str(root)],
+                [sys.executable, str(script), "repair-apply", "--root", str(root), "--yes"],
                 capture_output=True,
                 text=True,
                 env=env,
