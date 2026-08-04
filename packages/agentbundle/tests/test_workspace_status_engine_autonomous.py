@@ -6,8 +6,6 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
-
 _ENGINE_PATH = (
     Path(__file__).resolve().parents[3]
     / "packs" / "core" / ".apm" / "skills" / "workspace-status" / "scripts"
@@ -30,7 +28,7 @@ def _make_ini(
     shaping_backlog: list[tuple[str, str]] | None = None,  # (slug, type)
 ) -> object:
     """Build a minimal Initiative-like object for is_need_satisfied testing."""
-    mod = _load_engine()
+    _load_engine()  # ensure module is registered in sys.modules
 
     def _entry(s, t):
         e = SimpleNamespace()
@@ -43,8 +41,7 @@ def _make_ini(
 
     shaping = SimpleNamespace(active=active, backlog=backlog)
     work = SimpleNamespace(active=[], shipped=[], queue=[])
-    ini = SimpleNamespace(slug=slug, shaping=shaping, work=work, brief_queue=None)
-    return ini
+    return SimpleNamespace(slug=slug, shaping=shaping, work=work, brief_queue=None)
 
 
 class TestShapeNeedAutonomous:

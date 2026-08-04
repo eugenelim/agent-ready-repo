@@ -1,16 +1,6 @@
 """Tests for _ElicitTool — elicitation/create path and response-file fallback."""
 from __future__ import annotations
 
-import json
-import os
-import stat
-import tempfile
-import threading
-import time
-from pathlib import Path
-
-import pytest
-
 
 class TestElicitViaMCP:
     """elicitation/create path: server sends request, blocks, resolves when client responds (AC11)."""

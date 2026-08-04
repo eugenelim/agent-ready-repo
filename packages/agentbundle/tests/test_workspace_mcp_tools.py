@@ -1,12 +1,7 @@
 """Tests for _WorkspaceStatusTool — pack-presence filter, slug safety, FSM merging."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import MagicMock
-
-import pytest
 
 
 class TestWorkspaceStatusSlugSafety:

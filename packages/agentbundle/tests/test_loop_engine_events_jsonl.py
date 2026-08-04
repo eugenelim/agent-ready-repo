@@ -90,7 +90,7 @@ class TestOutboxTransition:
         r = _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
         assert r.returncode == 0, r.stderr
         jsonl = repo / ".loop-run" / "events.jsonl"
-        lines = [l for l in jsonl.read_text().splitlines() if l.strip()]
+        lines = [ln for ln in jsonl.read_text().splitlines() if ln.strip()]
         assert len(lines) == 1
         event = json.loads(lines[0])
         assert event["from"] == "SPEC-PLAN-DRAFTING"
@@ -129,7 +129,7 @@ class TestOutboxTransition:
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
         _run(_LOOP_ENGINE, "transition", str(spec_dir), "reviewers-clean", cwd=repo)
         jsonl = repo / ".loop-run" / "events.jsonl"
-        lines = [json.loads(l) for l in jsonl.read_text().splitlines() if l.strip()]
+        lines = [json.loads(ln) for ln in jsonl.read_text().splitlines() if ln.strip()]
         assert len(lines) == 2
         assert lines[0]["seq"] == 1
         assert lines[1]["seq"] == 2

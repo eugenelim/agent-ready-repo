@@ -180,9 +180,7 @@ def _is_safe_slug(segment: str) -> bool:
         return False
     if segment in (".", ".."):
         return False
-    if segment.startswith("-"):
-        return False
-    return True
+    return not segment.startswith("-")
 
 
 # ── Pack-presence probe ───────────────────────────────────────────────────────
@@ -544,7 +542,7 @@ class _ElicitTool:
         """Create secure temp dir (0700) for response-file fallback."""
         if not self._has_elicitation:
             tmp = tempfile.mkdtemp()
-            os.chmod(tmp, stat.S_IRWXU)
+            Path(tmp).chmod(stat.S_IRWXU)
             self._tmp_dir = Path(tmp)
 
     def cleanup(self) -> None:
@@ -564,8 +562,7 @@ class _ElicitTool:
 
         if self._has_elicitation:
             return self._call_via_elicitation(message, context, options, seq)
-        else:
-            return self._call_via_response_file(message, context, options, seq)
+        return self._call_via_response_file(message, context, options, seq)
 
     def _call_via_elicitation(
         self, message: str, context: Any, options: Any, seq: int
@@ -707,7 +704,7 @@ class _GitTools:
             return {"error": "git_branch is not available in discovery mode"}
         name = arguments.get("name", "")
         if arguments.get("base") is not None:
-            return {"error": "base parameter is not supported; workspace-mcp always branches from HEAD"}
+            return {"error": "base parameter not supported; always branches from HEAD"}
         # Validate name via check-ref-format --branch (rejects leading dashes and invalid chars)
         r = subprocess.run(
             ["git", "check-ref-format", "--branch", name],
@@ -732,7 +729,7 @@ class _GitTools:
             return {"error": "git_commit is not available in discovery mode"}
         message = arguments.get("message", "workspace-mcp: commit artifacts")
         if self._output_pattern is None:
-            return {"error": "git_commit not available: no output_pattern (work-loop manages its own git)"}
+            return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
         import fnmatch
         # Get uncommitted paths
         r = subprocess.run(
@@ -775,7 +772,11 @@ class _GitTools:
         branch = arguments.get("branch", "")
         # Two-sided check: branch arg must equal session-bound branch AND HEAD must equal it
         if not branch or branch != self._session_branch:
-            return {"error": f"branch {branch!r} does not match session-bound branch {self._session_branch!r}"}
+            return {
+                "error": (
+                    f"branch {branch!r} does not match session branch {self._session_branch!r}"
+                )
+            }
         current = self._read_head_branch()
         if current != branch:
             return {"error": f"HEAD is on {current!r}, not {branch!r}"}
@@ -891,7 +892,7 @@ class _StdioLoop:
             },
             {
                 "name": "elicit",
-                "description": "Route a question, approval request, or option selection to the control plane.",
+                "description": "Route a question or approval to the control plane.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -918,7 +919,7 @@ class _StdioLoop:
             },
             {
                 "name": "git_commit",
-                "description": "Stage and commit files matching the dispatched item's output_pattern.",
+                "description": "Stage and commit files matching the item's output_pattern.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {"message": {"type": "string"}},

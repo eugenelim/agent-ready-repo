@@ -8,6 +8,49 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.28.0]
+
+Engine-Change-RFC: RFC-0078
+
+### Added
+
+- **`agentbundle.workspace_mcp`**: new per-session MCP server (Stage 1, RFC-0078).
+  Provides `workspace_status`, `elicit`, `git_status`, `git_branch`, `git_commit`,
+  and `git_push` tools over MCP stdio. Entry point: `python3 -m agentbundle.workspace_mcp`.
+  - `_LIFECYCLE_MANIFEST`: embedded 7-type lifecycle metadata (`work`, `research`, `shape`,
+    `design`, `strategy`, `signal`, `brief`) with dispatch skill, output pattern, gate flag,
+    and required pack per type.
+  - `DEFAULT_SESSION_INSTRUCTION`: 6-rule session instruction constant readable at
+    `agentbundle.workspace_mcp.DEFAULT_SESSION_INSTRUCTION`.
+  - `_EventBridge`: daemon thread; 200 ms poll of `.loop-run/events.jsonl`; byte-offset +
+    inode tracking; seq deduplication; HUMAN-GATE state detection.
+  - `_WorkspaceStatusTool`: calls `analyze_bounded(autonomous_dispatch=True)`; pack-presence
+    filter (6 roots); slug safety guard (`_SAFE_SLUG_RE`); FSM state fields merged from
+    `_EventBridge` (spike (c) poll-based fallback).
+  - `_ElicitTool`: `elicitation/create` path + response-file fallback (O_EXCL 0600, 300 s
+    poll); never advertises `elicitation` in `ServerCapabilities`.
+  - `_GitTools`: `git_branch` (check-ref-format); `git_commit` (output_pattern intersection;
+    `--` separator); `git_push` (two-sided branch check); discovery-mode guard.
+  - 1 MiB frame-size cap; malformed JSON and unknown request_id discarded without
+    dropping the connection.
+
+- **`workspace_status_engine.analyze_bounded`**: `autonomous_dispatch: bool = False` parameter
+  propagated through `classify_entries` → `is_need_satisfied`. When `True`, `shape:` absent
+  from both active and backlog is unsatisfied; `research:` absent from backlog as type
+  `"research"` is unsatisfied. Default `False` preserves existing human-session semantics.
+
+- **`loop-engine` events.jsonl outbox protocol**: `cmd_init` creates `.loop-run/` + empty
+  `events.jsonl` + `.gitignore` entry; `cmd_transition` writes `events.pending` → atomically
+  writes `engine-state.json` → appends `events.jsonl` → deletes pending (graceful degradation).
+  `_recover_pending()` replays or discards stale `events.pending` at init and transition.
+
+- **Core-pack alias script**: `workspace_mcp_server.py` one-line delegation in
+  `packs/core/.apm/skills/workspace-status/scripts/` projected to `.agents/` and `.claude/`.
+
+AC17/AC18 (`permissions.allow` projection) are deferred to
+`(deferred: workspace-mcp-permissions-projection-contract)` — a follow-on RFC will add
+the adapter contract mode for additive array merging.
+
 ## [0.27.3]
 
 ### Changed

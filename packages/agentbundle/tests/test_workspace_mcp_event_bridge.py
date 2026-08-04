@@ -1,11 +1,7 @@
 """Tests for _EventBridge — events.jsonl polling, inode tracking, seq deduplication."""
 from __future__ import annotations
 
-import json
-import time
 from pathlib import Path
-
-import pytest
 
 
 # Helper: locate workspace_mcp module

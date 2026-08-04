@@ -8,7 +8,6 @@ requires a new adapter projection mode and schema bump — follow-on RFC.
 
 When the follow-on RFC ships, implement these stubs.
 """
-import pytest
 
 
 class TestPermissionsAllowProjection:

@@ -1,12 +1,9 @@
 """Tests for _StdioLoop — frame-size cap, JSON robustness, initialize handshake, stdin-close exit."""
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
-
-import pytest
 
 _MODULE = Path(__file__).resolve().parents[1] / "agentbundle" / "workspace_mcp.py"
 

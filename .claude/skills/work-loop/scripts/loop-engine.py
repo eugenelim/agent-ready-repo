@@ -156,7 +156,8 @@ def _recover_pending(repo_root: Path) -> None:
             tmp_path.replace(pending_spec_dir / "engine-state.json")
         except OSError as exc:
             print(
-                f"loop-engine: warning — could not complete in-progress rename ({exc}); discarding pending",
+                f"loop-engine: warning — could not complete in-progress rename ({exc});"
+                " discarding pending",
                 file=sys.stderr,
             )
             with contextlib.suppress(OSError):
@@ -174,7 +175,8 @@ def _recover_pending(repo_root: Path) -> None:
         owning_state = json.loads(owning_state_path.read_text(encoding="utf-8"))
     except Exception as exc:
         print(
-            f"loop-engine: warning — could not parse owning engine-state.json ({exc}); discarding pending",
+            f"loop-engine: warning — could not parse owning engine-state.json ({exc});"
+            " discarding pending",
             file=sys.stderr,
         )
         with contextlib.suppress(OSError):
@@ -741,7 +743,10 @@ def cmd_transition(args: argparse.Namespace) -> int:
     try:
         _repo_root = _get_repo_root()
     except Exception as exc:
-        print(f"loop-engine: warning — could not determine repo root for outbox: {exc}", file=sys.stderr)
+        print(
+            f"loop-engine: warning — could not determine repo root for outbox: {exc}",
+            file=sys.stderr,
+        )
 
     # Outbox step 1a: recover any stale pending from a prior crash (graceful).
     if _repo_root is not None:

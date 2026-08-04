@@ -252,6 +252,31 @@ agentbundle oplog show  my-pack                 # JSONL operation history
 agentbundle oplog clear my-pack                 # wipe history (asks first)
 ```
 
+## Workspace MCP server
+
+`agentbundle.workspace_mcp` is a per-session [MCP](https://spec.modelcontextprotocol.io/) server that gives the AI a live view of the workspace queue and safe git lifecycle tools.
+
+```bash
+# Spawn via module (used by Claude Code adapter)
+python3 -m agentbundle.workspace_mcp
+
+# Or via the core-pack alias (projected to .agents/ and .claude/ by build-self)
+python3 .claude/skills/workspace-status/scripts/workspace_mcp_server.py
+```
+
+Tools exposed:
+
+| Tool | Description |
+|---|---|
+| `workspace_status` | DAG-resolved queue + FSM state fields |
+| `elicit` | Route questions / approvals to the control plane |
+| `git_status` | Current working-tree status |
+| `git_branch` | Create and check out a feature branch |
+| `git_commit` | Stage and commit files matching the item's output pattern |
+| `git_push` | Push the session-bound branch to origin |
+
+The session instruction template (injected by the control plane at session start) is available at `agentbundle.workspace_mcp.DEFAULT_SESSION_INSTRUCTION`.
+
 ## Credentials
 
 `agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](../credbroker/README.md), a standalone resolver that keeps cleartext out of the model's reach.

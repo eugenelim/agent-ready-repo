@@ -51,10 +51,15 @@ ignore = [
 "packs/*/scripts/**" = ["T201", "T203"]
 "packs/**/.apm/skills/*/scripts/*.py" = ["T201", "T203"]
 # Test files: pytest fixture args (tmp_path, monkeypatch, etc.) are
-# legitimately unused when the fixture is invoked only for side effects
-"**/test_*.py" = ["ARG001", "ARG002", "ARG005"]
-"**/*_test.py" = ["ARG001", "ARG002", "ARG005"]
-"**/test-*.py" = ["ARG001", "ARG002", "ARG005"]
+# legitimately unused when the fixture is invoked only for side effects.
+# B011 (`assert False`) is the canonical stub-test pattern; tests never
+# run under -O, so the optimiser strip is not a real concern here.
+# E501 is suppressed because stub `# STUB: ...` comments intentionally
+# describe the full expected assertion in one line — splitting them loses
+# information that future implementers need.
+"**/test_*.py" = ["ARG001", "ARG002", "ARG005", "B011", "E501"]
+"**/*_test.py" = ["ARG001", "ARG002", "ARG005", "B011", "E501"]
+"**/test-*.py" = ["ARG001", "ARG002", "ARG005", "B011", "E501"]
 # Adapter-root-bins are CLI entry points
 "**/adapter-root-bins/**" = ["T201", "T203"]
 # Credbroker test file that tests CLI scripts
