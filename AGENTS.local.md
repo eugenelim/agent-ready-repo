@@ -12,6 +12,12 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
 - **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
   [`guides/_shared/reference/catalogue-ci-contract.md`](guides/_shared/reference/catalogue-ci-contract.md).
 
+## Commands
+
+```bash
+python tools/lint-agent-artifacts.py     # projected adapter lint — not in make build-check; run for .apm/ changes
+```
+
 ## Catalogue authoring scaffold — release-impact policy
 
 The catalogue authoring scaffold is bundled into the `agentbundle` wheel as package data under
