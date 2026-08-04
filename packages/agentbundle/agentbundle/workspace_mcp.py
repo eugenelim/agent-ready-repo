@@ -1583,7 +1583,9 @@ class _StdioLoop:
                         },
                         "context": {
                             "type": "string",
-                            "description": "Optional background text shown alongside the question.",
+                            "description": (
+                                "Optional background text shown alongside the question."
+                            ),
                         },
                         "options": {
                             "type": "array",
