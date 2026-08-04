@@ -513,8 +513,8 @@ def is_need_satisfied(
     # Research: "research:<slug>" — SKILL.md §2.
     # Human-managed mode: satisfied when NOT in shaping backlog as type="research".
     # Absent from backlog = treated as satisfied (research completed or never needed).
-    # Autonomous mode: absent from backlog as type "research" → never planned → unsatisfied.
     # Only entries explicitly typed "research" can block a research: need.
+    # Note: autonomous_dispatch does NOT change research semantics — absence means completed.
     if need.startswith("research:"):
         slug = need[len("research:"):]
         for ini in all_initiatives:
@@ -522,8 +522,6 @@ def is_need_satisfied(
                 research_slugs = {
                     e.slug for e in ini.shaping.backlog if e.entry_type == "research"
                 }
-                if autonomous_dispatch and slug not in research_slugs:
-                    return False  # never planned
                 return slug not in research_slugs
         return True
 
@@ -589,6 +587,7 @@ def classify_entries(
 def classify_shaping_entries(
     ini: Initiative,
     all_initiatives: list[Initiative],
+    autonomous_dispatch: bool = False,
 ) -> list[ShapingClassification]:
     """Classify shaping queue entries for an active initiative.
 
@@ -628,7 +627,7 @@ def classify_shaping_entries(
         else:
             blocking = [
                 n for n in entry.needs
-                if not is_need_satisfied(n, ini.slug, all_initiatives)
+                if not is_need_satisfied(n, ini.slug, all_initiatives, autonomous_dispatch)
             ]
             results.append(ShapingClassification(
                 entry=entry,
@@ -882,7 +881,7 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
         if ini.status not in ("active",):
             continue
         all_classifications.extend(classify_entries(ini, initiatives, autonomous_dispatch))
-        all_shaping.extend(classify_shaping_entries(ini, initiatives))
+        all_shaping.extend(classify_shaping_entries(ini, initiatives, autonomous_dispatch))
 
     type23_findings, declared_files = _run_type23_scan(root, initiatives)
     top_level_backlog = extract_top_level_backlog(workspace)

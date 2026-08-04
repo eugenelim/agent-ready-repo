@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ux-writing` boundary note updated: onboarding copy voice routes to `copy-direction`.** The `ux-writing` skill's scope boundary note now routes per-surface marketing/acquisition copy voice — including onboarding copy voice — to `copy-direction` (experience-design pack) rather than `tone-of-voice`. The onboarding tri-point (`content-design` / `copy-direction` / `ux-writing`) is now explicit in the boundary note. ([spec](../specs/xd-copy-direction/spec.md))
 
+## [core][2.1.0] — 2026-08-04
+
+### Added
+
+- **`workspace-mcp` Stage 1 — per-session MCP server.** New `agentbundle.workspace_mcp` module provides a per-session stdio MCP server exposing six tools: `workspace_status`, `elicit`, `git_status`, `git_branch`, `git_commit`, `git_push`. The event bridge polls `.loop-run/events.jsonl` and emits `_agentbundle.core/skill-state-change` and `_agentbundle.core/human-gate-pending` MCP notifications on FSM transitions. The `workspace-status` alias script is projected to `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py`. Requires Python 3.11+, stdlib only. ([spec](../specs/workspace-mcp/spec.md))
+
 ## [core][2.0.1] — 2026-08-02
 
 ### Added

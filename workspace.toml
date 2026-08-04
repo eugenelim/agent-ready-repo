@@ -451,6 +451,12 @@ open = [
   # Unblocks when: workspace-mcp is promoted from Stage 1 to production-ready status.
   {slug = "workspace-mcp-stage1-behavioral-tests", source = "spec/workspace-mcp AC3-AC9,AC11-AC16,AC21-AC22"},
 
+  # workspace-mcp brief-queue exposure. workspace_status() does not yet surface
+  # brief_queue items; the brief_queue layout in workspace.toml is not yet
+  # standardised. Deferred until workspace.toml brief-queue layout is ratified.
+  # Fix: add a `briefs` key to workspace_status() response alongside ready/shaping/blocked.
+  {slug = "workspace-mcp-brief-queue-exposure", source = "spec/workspace-mcp (deferred)"},
+
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 

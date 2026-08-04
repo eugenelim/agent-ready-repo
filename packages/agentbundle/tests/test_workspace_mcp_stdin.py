@@ -61,7 +61,7 @@ class TestStdinClose:
 
 
 class TestModuleEntryPoint:
-    """python3 -m agentbundle.workspace_mcp --help exits 0 (AC1)."""
+    """python -m agentbundle.workspace_mcp --help exits 0 (AC1)."""
 
     def test_help_flag_exits_zero(self) -> None:
         r = subprocess.run(

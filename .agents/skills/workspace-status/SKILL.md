@@ -283,10 +283,10 @@ Format output in four sections (omit sections with no entries):
 | Need | `autonomous_dispatch=False` (default) | `autonomous_dispatch=True` |
 |------|---------------------------------------|---------------------------|
 | `shape:<slug>` | Not in active → satisfied (graduated or never existed) | Not in active AND not in backlog → unsatisfied (never planned). In backlog but not active → satisfied (planned, not yet started). |
-| `research:<slug>` | Not in backlog as type "research" → satisfied (done or never needed) | Not in backlog as type "research" → unsatisfied (never planned). |
+| `research:<slug>` | Not in backlog as type "research" → satisfied (done or never needed) | Not in backlog as type "research" → **satisfied** (same as human mode — completed research is removed from backlog; absent is indistinguishable from completed). |
 | `work:`, `brief:`, `backlog:`, cross-initiative | Unchanged | Unchanged |
 
-Intentional asymmetry: `shape:` in backlog = satisfied in autonomous mode (presence confirms the human scheduled it); `research:` absent from backlog = unsatisfied in autonomous mode (absence means never planned, not completed).
+Intentional asymmetry: `shape:` in backlog = satisfied in autonomous mode (presence confirms the human scheduled it). `research:` uses the same logic in both modes: absent from backlog = satisfied (done or never needed); present in backlog as type "research" = unsatisfied (still pending). The autonomous-mode distinction does not apply to `research:` needs.
 
 **Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. Also check `reconciliation.type2` for any entry with that `ini_slug`. Gate closeout on all of: (1) filtered ready + blocked + active are empty, (2) no type2 findings for that initiative, (3) `initiatives[i].queue_empty` is `true` — a path in both `queue` and `shipped` is excluded from the classifier's ready/blocked output and may have no type2 finding, so the raw queue emptiness flag is the authoritative check, (4) filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 

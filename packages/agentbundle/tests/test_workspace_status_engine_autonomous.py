@@ -86,10 +86,11 @@ class TestShapeNeedAutonomous:
 
 
 class TestResearchNeedAutonomous:
-    """AC19: research: need — absent from backlog as type 'research' → unsatisfied when autonomous."""
+    """AC19: research: need — absence from backlog means satisfied in both human and autonomous mode.
 
-    def test_research_absent_unsatisfied_autonomous(self) -> None:
-        pytest.skip("STUB: AC19")
+    Absent = satisfied because completed research is removed from the backlog;
+    there is no way to distinguish "completed" from "never planned" from backlog state alone.
+    """
 
     def test_research_in_backlog_unsatisfied_both_modes(self) -> None:
         mod = _load_engine()
@@ -101,17 +102,13 @@ class TestResearchNeedAutonomous:
         assert not mod.is_need_satisfied("research:my-research", "ini-001", [ini], False)
         assert not mod.is_need_satisfied("research:my-research", "ini-001", [ini], True)
 
-    def test_research_absent_satisfied_human_mode(self) -> None:
+    def test_research_absent_satisfied_both_modes(self) -> None:
         mod = _load_engine()
         ini = _make_ini(slug="ini-001", shaping_backlog=[])
-        # Human mode: not in backlog → satisfied (done or never needed)
+        # Both modes: not in backlog → satisfied (completed or never needed).
+        # autonomous_dispatch does NOT change research semantics — absent means completed.
         assert mod.is_need_satisfied("research:my-research", "ini-001", [ini], False)
-
-    def test_research_absent_unsatisfied_autonomous_mode(self) -> None:
-        mod = _load_engine()
-        ini = _make_ini(slug="ini-001", shaping_backlog=[])
-        # Autonomous mode: not in backlog → unsatisfied (never planned)
-        assert not mod.is_need_satisfied("research:my-research", "ini-001", [ini], True)
+        assert mod.is_need_satisfied("research:my-research", "ini-001", [ini], True)
 
     def test_research_wrong_type_in_backlog_does_not_block(self) -> None:
         mod = _load_engine()
@@ -119,7 +116,6 @@ class TestResearchNeedAutonomous:
             slug="ini-001",
             shaping_backlog=[("my-research", "shape")],  # same slug, but type=shape not research
         )
-        # Both modes: entry exists but type != "research" → NOT in research_slugs → satisfied (human)
+        # Both modes: entry exists but type != "research" → NOT in research_slugs → satisfied
         assert mod.is_need_satisfied("research:my-research", "ini-001", [ini], False)
-        # Autonomous mode: absent from backlog as type "research" → unsatisfied
-        assert not mod.is_need_satisfied("research:my-research", "ini-001", [ini], True)
+        assert mod.is_need_satisfied("research:my-research", "ini-001", [ini], True)

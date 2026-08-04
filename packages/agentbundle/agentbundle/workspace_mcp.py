@@ -2,9 +2,9 @@
 
 Entry points
 ------------
-    python3 -m agentbundle.workspace_mcp      # module mode (production)
-    python3 -I -m agentbundle.workspace_mcp   # isolated mode (CI / testing)
-    python3 workspace_mcp_server.py           # core-pack alias wrapper
+    python -m agentbundle.workspace_mcp      # module mode (production)
+    python -I -m agentbundle.workspace_mcp   # isolated mode (CI / testing)
+    python workspace_mcp_server.py           # core-pack alias wrapper
 
 Spawned once per session by the Claude Code adapter (Class A). Provides:
   - workspace_status()  — DAG-resolved workspace queue + FSM state fields
@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import re
+import signal
 import stat
 import subprocess
 import sys
@@ -50,10 +51,11 @@ _log = logging.getLogger("workspace_mcp")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-_MCP_PROTOCOL_VERSION = "2024-11-05"
+_MCP_PROTOCOL_VERSION = "2025-06-18"
 _FRAME_SIZE_LIMIT = 1 * 1024 * 1024  # 1 MiB
 _GIT_TIMEOUT = 30  # seconds
 _ELICIT_POLL_TIMEOUT = 300  # seconds
+_PENDING_EVENTS_CAP = 1000  # max buffered events before overflow warning
 _ELICIT_RESPONSE_KEY = "response"
 _BRIDGE_POLL_INTERVAL = 0.2  # 200 ms
 
@@ -160,12 +162,16 @@ _GIT_OVERRIDE_VARS = frozenset({
 })
 
 
+def _git_env() -> dict[str, str]:
+    """Return os.environ with git repository-override variables stripped."""
+    return {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
+
+
 def _get_repo_root() -> Path:
-    safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
     r = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         capture_output=True, text=True, encoding="utf-8", check=False,
-        env=safe_env,
+        env=_git_env(), timeout=_GIT_TIMEOUT,
     )
     if r.returncode != 0 or not r.stdout.strip():
         raise RuntimeError("could not determine repo root (git rev-parse --show-toplevel failed)")
@@ -218,14 +224,23 @@ def _load_workspace_status_engine(repo_root: Path):
     """Import workspace_status_engine from the projected adapter skills directory."""
     import importlib.util
 
-    candidates = [
-        repo_root / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
-        repo_root / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
-        repo_root / ".kiro/skills/workspace-status/scripts/workspace_status_engine.py",
-        # Source path (development / pre-build-self):
+    # Checkout-relative paths are valid for trusted-repo sessions only. When running
+    # in isolated mode (`python -I`), skip them — a malicious checkout could replace
+    # these scripts and defeat the -I isolation guarantee. Stage 1 targets trusted-repo
+    # sessions; untrusted-repo (-I) use requires the engine to ship with the package.
+    candidates: list[Path] = []
+    if not sys.flags.isolated:
+        candidates = [
+            repo_root / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
+            repo_root / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
+            repo_root / ".kiro/skills/workspace-status/scripts/workspace_status_engine.py",
+        ]
+    # Package-relative source path (development / pre-build-self; also the only
+    # candidate in isolated mode, where __file__ is inside site-packages):
+    candidates.append(
         Path(__file__).resolve().parents[3]
-        / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
-    ]
+        / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
+    )
     for path in candidates:
         if path.exists():
             spec = importlib.util.spec_from_file_location("workspace_status_engine", path)
@@ -233,6 +248,12 @@ def _load_workspace_status_engine(repo_root: Path):
             sys.modules["workspace_status_engine"] = mod
             spec.loader.exec_module(mod)
             return mod
+    if sys.flags.isolated:
+        raise RuntimeError(
+            "workspace_status_engine.py not found — Stage 1 requires trusted-repo mode "
+            "(do not use python -I; run agentbundle install core to set up adapter "
+            "projections). Isolated-module untrusted-repo support is deferred to Stage 2."
+        )
     raise RuntimeError("workspace_status_engine.py not found in any skill root")
 
 
@@ -246,18 +267,31 @@ class _EventBridge(threading.Thread):
     Notifications are generated but NOT relayed to ACP (spike (c) fallback).
     """
 
-    def __init__(self, repo_root: Path, spec_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        repo_root: Path,
+        spec_dir: Path | None = None,
+        notify_fn=None,
+        mcp_initialized: threading.Event | None = None,
+    ) -> None:
         super().__init__(daemon=True)
         self._repo_root = repo_root
         self._jsonl_path = repo_root / ".loop-run" / "events.jsonl"
         self._spec_dir = spec_dir
         self._lock = threading.Lock()
+        # callable(dict) → None; called outside lock after _apply_event
+        self._notify_fn = notify_fn
+        # Gate notification emission until the MCP initialize handshake completes.
+        self._mcp_initialized = mcp_initialized
 
         # Tracking state
         self._offset: int = 0
         self._inode: int | None = None
         self._buf: str = ""
         self._last_seq: int = -1
+        self._bound_run_id: str | None = None  # lazily bound from engine-state.json
+        self._pending_events: list[dict] = []  # buffered until run_id is known
+        self._buffer_overflow: bool = False
 
         # FSM state (exposed via workspace_status)
         self._current_state: str | None = None
@@ -265,31 +299,93 @@ class _EventBridge(threading.Thread):
         self._gate: str | None = None
         self._gate_question: str | None = None
         self._review_findings: str | None = None
+        self._gate_seq: int = -1  # transition seq when current gate was entered
 
         self._shutdown = threading.Event()
 
     def stop(self) -> None:
         self._shutdown.set()
 
+    def has_anchored_engine_state(self) -> bool:
+        """Return True when an anchored engine-state.json is present."""
+        return bool(self._spec_dir and (self._spec_dir / "engine-state.json").exists())
+
+    def _read_anchored_run_id(self) -> str | None:
+        """Read run_id from the anchored spec's engine-state.json; None on failure."""
+        if self._spec_dir is None:
+            return None
+        try:
+            data = json.loads(
+                (self._spec_dir / "engine-state.json").read_text(encoding="utf-8")
+            )
+            return data.get("run_id") or None
+        except Exception:
+            return None
+
     def get_fsm_state(self) -> dict:
         with self._lock:
-            return {
+            state: dict = {
                 "current_state": self._current_state,
                 "gate_pending": self._gate_pending,
                 "gate": self._gate,
+                "gate_seq": self._gate_seq,
                 "gate_question": self._gate_question,
                 "review_findings": self._review_findings,
+                "run_id": self._bound_run_id,
             }
+            if self._buffer_overflow:
+                state["warning"] = "EVENTS-BUFFER-OVERFLOW"
+            return state
 
     def _reset_file_state(self) -> None:
         self._offset = 0
         self._inode = None
         self._buf = ""
+        self._last_seq = -1  # reset so new run's seq=1 is not filtered as duplicate
+        self._bound_run_id = None  # re-bind run_id from engine-state.json on next poll
+        self._pending_events = []  # discard buffered events from previous run
+        self._buffer_overflow = False
         self._current_state = None
         self._gate_pending = False
         self._gate = None
         self._gate_question = None
         self._review_findings = None
+        self._gate_seq = -1
+
+    def _bootstrap_from_engine_state(self) -> None:
+        """Sync FSM state from engine-state.json when events.jsonl is caught up.
+
+        Called while the lock is already held. Handles two cases:
+        1. Window between loop-engine init (empty events.jsonl) and the first transition.
+        2. Graceful-degradation path: events.jsonl append failed after the atomic
+           engine-state write, so the file is caught up but FSM state is stale.
+        In both cases, apply only if engine-state has a higher seq than last seen.
+        """
+        if self._spec_dir is None:
+            return
+        try:
+            data = json.loads(
+                (self._spec_dir / "engine-state.json").read_text(encoding="utf-8")
+            )
+        except Exception:
+            return
+        state_val = data.get("state")
+        if not state_val:
+            return
+        es_seq = int(data.get("transition_sequence", -1))
+        if es_seq <= self._last_seq:
+            return  # engine-state not ahead; nothing to apply
+        self._bound_run_id = data.get("run_id") or self._bound_run_id
+        self._current_state = state_val
+        self._gate_pending = bool(state_val and state_val.endswith("-HUMAN-GATE"))
+        self._gate = state_val if self._gate_pending else None
+        self._gate_question = data.get("gate_question")
+        if self._gate_pending:
+            self._gate_seq = es_seq
+            self._review_findings = self._read_review_findings()
+        else:
+            self._gate_seq = -1
+            self._review_findings = None
 
     def run(self) -> None:
         while not self._shutdown.is_set():
@@ -301,12 +397,19 @@ class _EventBridge(threading.Thread):
 
     def _poll(self) -> None:
         path = self._jsonl_path
+        _notifications: list[dict] = []
         if not path.exists():
-            # File missing — check if it was expected (spec_dir set and engine-state exists)
-            if self._spec_dir and (self._spec_dir / "engine-state.json").exists():
-                with self._lock:
-                    if self._current_state is not None or self._gate_pending:
-                        self._reset_file_state()
+            # Events file missing (loop-engine reset or not yet started).
+            # Reset all FSM state so workspace_status() doesn't return stale gate/state.
+            with self._lock:
+                if self._current_state is not None or self._gate_pending:
+                    self._reset_file_state()
+                    self._current_state = None
+                    self._gate_pending = False
+                    self._gate = None
+                    self._gate_seq = -1
+                    self._gate_question = None
+                    self._review_findings = None
             return
 
         try:
@@ -321,20 +424,57 @@ class _EventBridge(threading.Thread):
                 self._inode = st.st_ino
 
             if st.st_size == self._offset:
-                return
+                # File caught up — sync from engine-state.json if it is ahead.
+                # Covers two cases: (a) initial window before first transition;
+                # (b) graceful-degradation path where append failed after the atomic
+                # engine-state write, leaving events.jsonl size unchanged while
+                # engine-state.json has a newer seq.
+                if self._spec_dir is not None:
+                    _was_bound = self._bound_run_id
+                    self._bootstrap_from_engine_state()
+                    # If bootstrap just established a run binding, drain any events that
+                    # were buffered while _read_anchored_run_id() was unavailable.
+                    if _was_bound is None and self._bound_run_id is not None:
+                        for ev in self._pending_events:
+                            if ev.get("run_id") != self._bound_run_id:
+                                continue
+                            s = ev.get("seq")
+                            if s is None or s <= self._last_seq:
+                                continue
+                            self._last_seq = s
+                            _notifications.extend(self._apply_event(ev))
+                        self._pending_events.clear()
+                # Fall through (no return) so _notifications are emitted below.
+            else:
+                try:
+                    with path.open("r", encoding="utf-8") as fh:
+                        fh.seek(self._offset)
+                        chunk = fh.read(st.st_size - self._offset)
+                except OSError:
+                    chunk = ""  # emit any notifications accumulated before the error
 
-            try:
-                with path.open("r", encoding="utf-8") as fh:
-                    fh.seek(self._offset)
-                    chunk = fh.read(st.st_size - self._offset)
-            except OSError:
-                return
+                self._inode = st.st_ino
+                self._offset += len(chunk.encode("utf-8"))
+                self._buf += chunk
 
-            self._inode = st.st_ino
-            self._offset += len(chunk.encode("utf-8"))
-            self._buf += chunk
+            # Lazily bind run_id from engine-state.json. Until bound, events are
+            # buffered rather than applied so historical foreign-run events cannot
+            # update FSM state or advance _last_seq before the anchored run is known.
+            if self._bound_run_id is None:
+                self._bound_run_id = self._read_anchored_run_id()
+                if self._bound_run_id is not None:
+                    # Replay buffered events that belong to the now-known run_id.
+                    for ev in self._pending_events:
+                        if ev.get("run_id") != self._bound_run_id:
+                            continue
+                        s = ev.get("seq")
+                        if s is None or s <= self._last_seq:
+                            continue
+                        self._last_seq = s
+                        _notifications.extend(self._apply_event(ev))
+                    self._pending_events.clear()
 
-            # Process complete lines; hold any partial line
+            # Process complete lines; hold any partial line.
             while "\n" in self._buf:
                 line, self._buf = self._buf.split("\n", 1)
                 line = line.strip()
@@ -345,25 +485,78 @@ class _EventBridge(threading.Thread):
                 except json.JSONDecodeError:
                     _log.warning("EventBridge: malformed event line; skipping")
                     continue
+                if self._bound_run_id is None:
+                    # run_id not yet known — buffer without applying
+                    if len(self._pending_events) >= _PENDING_EVENTS_CAP:
+                        self._buffer_overflow = True
+                        _log.warning("EventBridge: pending buffer cap reached; dropping event")
+                        continue
+                    self._pending_events.append(event)
+                    continue
+                # Discard foreign-run events once run_id is bound
+                if event.get("run_id") != self._bound_run_id:
+                    continue
                 seq = event.get("seq")
                 if seq is None or seq <= self._last_seq:
                     continue  # dedup
                 self._last_seq = seq
-                self._apply_event(event)
+                _notifications.extend(self._apply_event(event))
 
-    def _apply_event(self, event: dict) -> None:
+        # Emit notifications only after MCP initialization completes.
+        # Custom server notifications are invalid during the initialize handshake.
+        mcp_ready = self._mcp_initialized is None or self._mcp_initialized.is_set()
+        if self._notify_fn is not None and mcp_ready:
+            for notif in _notifications:
+                with contextlib.suppress(Exception):
+                    self._notify_fn(notif)
+
+    def _apply_event(self, event: dict) -> list[dict]:
+        """Update FSM state and return MCP notifications to emit outside the lock."""
         to_state = event.get("to", "")
+        seq = int(event.get("seq", -1))
+        run_id = self._bound_run_id
         self._current_state = to_state
+        notifications: list[dict] = [
+            {
+                "jsonrpc": "2.0",
+                "method": "_agentbundle.core/skill-state-change",
+                # Full seven-field event payload per design.md notification contract.
+                "params": {
+                    "seq": seq,
+                    "run_id": run_id,
+                    "spec": event.get("spec"),
+                    "from": event.get("from"),
+                    "event": event.get("event"),
+                    "to": to_state,
+                    "at": event.get("at"),
+                },
+            }
+        ]
         if to_state.endswith("-HUMAN-GATE"):
             self._gate_pending = True
             self._gate = to_state
+            self._gate_seq = seq
             self._gate_question = self._read_gate_question()
             self._review_findings = self._read_review_findings()
+            notifications.append({
+                "jsonrpc": "2.0",
+                "method": "_agentbundle.core/human-gate-pending",
+                "params": {
+                    "gate": to_state,
+                    "question": self._gate_question,
+                    "spec_path": str(self._spec_dir) if self._spec_dir else None,
+                    "review_findings": self._review_findings,
+                    "run_id": run_id,
+                    "seq": seq,
+                },
+            })
         else:
             self._gate_pending = False
             self._gate = None
+            self._gate_seq = -1
             self._gate_question = None
             self._review_findings = None
+        return notifications
 
     def _read_gate_question(self) -> str | None:
         if self._spec_dir is None:
@@ -410,11 +603,15 @@ class _WorkspaceStatusTool:
         from agentbundle.safety import assert_under
         repo_root = self._repo_root
 
-        # Check for events.jsonl (spike (c) fallback)
+        # Check for events.jsonl (spike (c) fallback).
+        # Warn when events.jsonl is missing but observability was expected: either
+        # .loop-run/ exists (partial teardown) or engine-state.json is anchored
+        # (graceful-degradation: loop-engine wrote engine state but not the events dir).
         jsonl_path = repo_root / ".loop-run" / "events.jsonl"
         fsm_state = self._bridge.get_fsm_state()
-        if not jsonl_path.exists() and (repo_root / ".loop-run").exists():
-            # .loop-run/ exists but events.jsonl missing → warn
+        if not jsonl_path.exists() and (
+            (repo_root / ".loop-run").exists() or self._bridge.has_anchored_engine_state()
+        ):
             fsm_state["warning"] = "EVENTS-FILE-MISSING"
 
         try:
@@ -427,6 +624,26 @@ class _WorkspaceStatusTool:
         ready_items: list[dict] = []
         blocked_items: list[dict] = []
         shaping_items: list[dict] = []
+        active_items: list[dict] = []
+
+        # Active work items (AC8: "active" key)
+        for ini in result.initiatives:
+            if ini.status not in ("active",):
+                continue
+            for entry in ini.work.active:
+                if not _is_safe_slug(ini.slug) or not _is_safe_slug(entry.slug):
+                    _log.warning("workspace_status: unsafe slug in active item; skipping")
+                    continue
+                manifest = _LIFECYCLE_MANIFEST.get("work", {})
+                active_items.append({
+                    "ini_slug": ini.slug,
+                    "type": "work",
+                    "slug": entry.slug,
+                    "dispatch_skill": manifest.get("dispatch_skill"),
+                    "output_pattern": manifest.get("output_pattern"),
+                    "has_gates": manifest.get("has_gates", False),
+                    "required_pack": manifest.get("required_pack"),
+                })
 
         # Work queue items (ready / blocked)
         for cls in result.ready:
@@ -440,11 +657,13 @@ class _WorkspaceStatusTool:
                 "type": "work",
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
+                "output_pattern": manifest.get("output_pattern"),
+                "has_gates": manifest.get("has_gates", False),
+                "required_pack": manifest.get("required_pack"),
             }
             skill = manifest.get("dispatch_skill")
             if skill and not _is_skill_present(skill, repo_root):
                 item["available"] = False
-                item["required_pack"] = manifest.get("required_pack")
             ready_items.append(item)
 
         for cls in result.blocked:
@@ -458,11 +677,36 @@ class _WorkspaceStatusTool:
                 "type": "work",
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
+                "output_pattern": manifest.get("output_pattern"),
+                "has_gates": manifest.get("has_gates", False),
+                "required_pack": manifest.get("required_pack"),
                 "unmet_needs": cls.blocking_needs,
             }
             blocked_items.append(item)
 
-        # Shaping items
+        # Shaping items (ready + blocked, excluding signals)
+        for cls in result.blocked_shaping:
+            entry = cls.entry
+            item_type = entry.entry_type
+            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
+                _log.warning("workspace_status: unsafe slug in blocked shaping item; skipping")
+                continue
+            manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
+            item = {
+                "ini_slug": cls.ini_slug,
+                "type": item_type,
+                "slug": entry.slug,
+                "dispatch_skill": manifest.get("dispatch_skill"),
+                "output_pattern": manifest.get("output_pattern"),
+                "has_gates": manifest.get("has_gates", False),
+                "required_pack": manifest.get("required_pack"),
+                "unmet_needs": cls.blocking_needs,
+            }
+            skill = manifest.get("dispatch_skill")
+            if skill and not _is_skill_present(skill, repo_root):
+                item["available"] = False
+            shaping_items.append(item)
+
         for cls in result.ready_shaping:
             entry = cls.entry
             item_type = entry.entry_type
@@ -475,11 +719,13 @@ class _WorkspaceStatusTool:
                 "type": item_type,
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
+                "output_pattern": manifest.get("output_pattern"),
+                "has_gates": manifest.get("has_gates", False),
+                "required_pack": manifest.get("required_pack"),
             }
             skill = manifest.get("dispatch_skill")
             if skill and not _is_skill_present(skill, repo_root):
                 item["available"] = False
-                item["required_pack"] = manifest.get("required_pack")
             # Slug containment check for output_pattern formatting
             patterns = manifest.get("output_pattern")
             if patterns:
@@ -504,6 +750,7 @@ class _WorkspaceStatusTool:
             "ready": ready_items,
             "shaping": shaping_items,
             "blocked": blocked_items,
+            "active": active_items,
             **fsm_state,
         }
 
@@ -528,12 +775,17 @@ class _ElicitTool:
         request_map: dict,           # {str(request_id): threading.Event | queue}
         write_lock: threading.Lock,
         write_fn,                    # callable(dict) → None
+        session_id: str = "",
+        get_gate_fn=None,            # callable() → str | None — returns pending gate id
     ) -> None:
         self._has_elicitation = has_elicitation
         self._shutdown = shutdown_event
         self._request_map = request_map
         self._write_lock = write_lock
         self._write = write_fn
+        self._session_id = session_id
+        self._get_gate = get_gate_fn
+        self._consumed_gate_key: tuple | None = None  # (gate, gate_seq) when last consumed
         self._tmp_dir: Path | None = None
         self._elicit_seq = 0
         self._seq_lock = threading.Lock()
@@ -573,22 +825,28 @@ class _ElicitTool:
         result_holder: list[Any] = []
         self._request_map[request_id] = (result_event, result_holder)
 
+        # Encode choices in requestedSchema when options are provided (AC11).
+        if options:
+            resp_schema: dict = {
+                "type": "string",
+                "enum": [str(o) for o in options],
+            }
+        else:
+            resp_schema = {"type": "string"}
+        # Append context to message so it reaches the human via the native path (AC11).
+        full_message = f"{message}\n\nContext: {context}" if context else message
         req = {
             "jsonrpc": "2.0",
             "id": request_id,
             "method": "elicitation/create",
             "params": {
-                "message": message,
+                "message": full_message,
                 "requestedSchema": {
                     "type": "object",
-                    "properties": {"response": {"type": "string"}},
+                    "properties": {"response": resp_schema},
                 },
             },
         }
-        if context is not None:
-            req["params"]["context"] = context
-        if options is not None:
-            req["params"]["options"] = options
 
         # _write already holds write_lock internally; do not re-acquire here
         # (re-acquiring a non-reentrant Lock from the same thread deadlocks).
@@ -630,6 +888,46 @@ class _ElicitTool:
         except OSError as exc:
             return {"error": f"could not create response file: {exc}"}
 
+        # Derive correlation_id: set to the pending gate state when this is the
+        # first elicitation for that gate entry; null for subsequent informal questions.
+        # Use (gate, gate_seq) as the key so re-entering the same gate state after
+        # blocker-applied correctly sets correlation_id again (FSM allows re-entry).
+        gate_state = self._get_gate() if self._get_gate is not None else None
+        gate_key: tuple | None = None
+        if gate_state is not None:
+            # get_gate_fn returns the full fsm_state dict; include run_id so
+            # a reset+reinit in the same MCP session gets a fresh key even if
+            # the gate name and seq happen to match the previous run.
+            if isinstance(gate_state, dict):
+                gate_key = (
+                    gate_state.get("run_id"),
+                    gate_state.get("gate"),
+                    gate_state.get("gate_seq", -1),
+                )
+                gate_id = gate_state.get("gate")
+            else:
+                gate_id = gate_state
+                gate_key = (None, gate_state, -1)
+        else:
+            gate_id = None
+        correlation_id = gate_id if gate_id and gate_key != self._consumed_gate_key else None
+
+        # Notify the control plane where to write the answer before blocking.
+        # Method name and payload per design.md:346 (ADR-0068 namespace).
+        self._write({
+            "jsonrpc": "2.0",
+            "method": "_agentbundle.core/elicitation-pending",
+            "params": {
+                "message": message,
+                "context": context,
+                "options": options,
+                "session_id": self._session_id,
+                "elicit_seq": seq,
+                "correlation_id": correlation_id,
+                "response_path": str(response_path),
+            },
+        })
+
         # Poll until overwritten by control plane (temp-and-rename protocol)
         deadline = time.monotonic() + _ELICIT_POLL_TIMEOUT
         while time.monotonic() < deadline:
@@ -639,6 +937,10 @@ class _ElicitTool:
                 raw = response_path.read_text(encoding="utf-8")
                 data = json.loads(raw)
                 if _ELICIT_RESPONSE_KEY in data:
+                    # Mark gate elicitation consumed so subsequent informal questions
+                    # in the same gate carry correlation_id=None (design.md:351).
+                    if correlation_id is not None:
+                        self._consumed_gate_key = gate_key
                     return {"response": data[_ELICIT_RESPONSE_KEY]}
             time.sleep(0.5)
 
@@ -665,12 +967,183 @@ class _GitTools:
         self._repo_root = repo_root
         spec_path = os.environ.get("WORKSPACE_MCP_SPEC_PATH")
         dispatched = os.environ.get("WORKSPACE_MCP_DISPATCHED_ITEM")
-        self._discovery_mode = not spec_path and not dispatched
+        # Validate spec_path: must resolve inside repo_root. An out-of-repo or malformed
+        # path is treated as absent — fail closed (discovery mode; git writes blocked).
+        if spec_path:
+            try:
+                if not Path(spec_path).resolve().is_relative_to(repo_root.resolve()):
+                    _log.warning(
+                        "WORKSPACE_MCP_SPEC_PATH %r outside repo_root; treating as absent",
+                        spec_path,
+                    )
+                    spec_path = None
+            except Exception as _e:
+                _log.warning(
+                    "WORKSPACE_MCP_SPEC_PATH validation failed (%s); treating as absent", _e
+                )
+                spec_path = None
+        # Validate dispatched: if it fails to parse into a known type, treat as absent.
         self._output_pattern: list[str] | None = self._resolve_output_pattern(dispatched)
+        if dispatched and self._output_pattern is None:
+            _log.warning(
+                "WORKSPACE_MCP_DISPATCHED_ITEM %r is malformed or uses unknown type; "
+                "treating as absent — git writes are blocked",
+                dispatched,
+            )
+            dispatched = None
+        self._discovery_mode = not spec_path and not dispatched
+        # Expected branch from dispatched item (ini_slug/type:slug → ini_slug/type/slug)
+        self._expected_branch: str | None = self._derive_expected_branch(dispatched)
         self._session_branch: str | None = self._read_head_branch()
+        # Once git_branch() sets the work branch, no subsequent call may rebind it.
+        # This prevents progressive rebinding across multiple git_branch() calls from
+        # widening the push target beyond the immutable session-bound branch (AC14).
+        # Pre-lock in two situations:
+        # 1. Resumed session: HEAD is already on the expected dispatched branch.
+        # 2. FSM mode without DISPATCHED_ITEM: lock to startup HEAD so the session
+        #    cannot redirect git_push to an arbitrary caller-chosen ref (AC14).
+        self._branch_locked = (
+            # Case 1: resumed dispatched session
+            (self._expected_branch is not None
+             and self._session_branch == self._expected_branch)
+            # Case 2: FSM-only mode (SPEC_PATH set, no DISPATCHED_ITEM)
+            or (spec_path is not None
+                and dispatched is None
+                and self._session_branch is not None)
+        )
         # Serialize all mutating git operations: prevents index.lock collisions
         # and TOCTOU races on _session_branch between concurrent tool calls.
         self._git_lock = threading.Lock()
+        # Track active Popen objects for forced-exit cleanup (F15 / AC22).
+        self._procs_lock = threading.Lock()
+        self._active_procs: list[subprocess.Popen] = []
+        # Set True by block_new_procs() before terminate_all_procs() to prevent
+        # worker threads from spawning git children after the snapshot is taken.
+        self._no_new_procs: bool = False
+
+    def block_new_procs(self) -> None:
+        """Prevent new git subprocesses. Call before terminate_all_procs() on shutdown."""
+        with self._procs_lock:
+            self._no_new_procs = True
+
+    def terminate_all_procs(self, grace: float = 3.0) -> None:
+        """Terminate tracked git process groups; called by the force-exit timer.
+
+        Each _run_git() process was started with start_new_session=True, placing it
+        (and any hooks it spawns) in a fresh process group. SIGTERM is sent to the
+        whole group, followed by a bounded grace period, then SIGKILL for survivors.
+        """
+        with self._procs_lock:
+            # Set flag atomically with the snapshot so _run_git cannot slip a new
+            # process in after we've snapshotted but before we've set the flag.
+            self._no_new_procs = True
+            procs = list(self._active_procs)
+        # With start_new_session=True, proc.pid == pgid at spawn time; use it
+        # directly to avoid os.getpgid() failing if the process has already exited.
+        pgids: set[int] = {proc.pid for proc in procs}
+        _killpg = getattr(os, "killpg", None)
+        if _killpg is not None:
+            for pgid in pgids:
+                with contextlib.suppress(Exception):
+                    _killpg(pgid, signal.SIGTERM)
+        else:
+            for proc in procs:
+                with contextlib.suppress(Exception):
+                    proc.terminate()
+        # Wait up to grace seconds for each tracked process to exit.
+        deadline = time.monotonic() + grace
+        for proc in procs:
+            remaining = max(0.0, deadline - time.monotonic())
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=remaining)
+        # SIGKILL any surviving process groups (POSIX) or kill each process (Windows).
+        if _killpg is not None:
+            for pgid in pgids:
+                with contextlib.suppress(Exception):
+                    _killpg(pgid, signal.SIGKILL)
+        else:
+            for proc in procs:
+                with contextlib.suppress(Exception):
+                    proc.kill()
+
+    def _run_git(self, cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+        """subprocess.Popen wrapper that tracks processes for forced-exit cleanup.
+
+        Popen-incompatible subprocess.run() kwargs (timeout, text, encoding, check,
+        capture_output) are stripped from the Popen call; timeout is used only for
+        communicate() and encoding is used only when decoding the returned bytes.
+        start_new_session=True isolates git and its hooks in their own process group
+        so terminate_all_procs() can send SIGTERM to the whole group.
+        """
+        _POPEN_ONLY_EXCLUDE = frozenset({"timeout", "text", "encoding", "check", "capture_output"})
+        timeout = kwargs.get("timeout", _GIT_TIMEOUT)
+        encoding = kwargs.get("encoding", "utf-8")
+        popen_kwargs = {k: v for k, v in kwargs.items() if k not in _POPEN_ONLY_EXCLUDE}
+        popen_kwargs.setdefault("start_new_session", True)
+        popen_kwargs.setdefault("env", _git_env())
+        # Flag check, Popen creation, and registration are all under _procs_lock so
+        # terminate_all_procs() cannot snapshot _active_procs between the check and
+        # the registration, leaving the new process untracked for forced-exit cleanup.
+        with self._procs_lock:
+            if self._no_new_procs:
+                raise RuntimeError("git subprocess creation blocked: session is shutting down")
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                **popen_kwargs,
+            )
+            # With start_new_session=True the spawned process is its own group
+            # leader, so proc.pid == pgid at spawn time.  Capture before communicate()
+            # so the PGID remains valid even after the Git parent exits (e.g. when a
+            # daemonised hook inherits the output pipes).
+            _pgid: int = proc.pid
+            self._active_procs.append(proc)
+        # Lock released; communicate() can block indefinitely, so it must run outside.
+        try:
+            try:
+                stdout, stderr = proc.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                # POSIX: kill the entire process group so hook children holding
+                # the pipes also die.  Windows: fall back to per-process termination
+                # (start_new_session=True isolates the child but killpg is absent).
+                _killpg = getattr(os, "killpg", None)
+                if _killpg is not None:
+                    with contextlib.suppress(Exception):
+                        _killpg(_pgid, signal.SIGTERM)
+                    _kg_deadline = time.monotonic() + 2.0
+                    with contextlib.suppress(Exception):
+                        proc.wait(timeout=max(0.0, _kg_deadline - time.monotonic()))
+                    with contextlib.suppress(Exception):
+                        _killpg(_pgid, signal.SIGKILL)
+                else:
+                    with contextlib.suppress(Exception):
+                        proc.terminate()
+                    with contextlib.suppress(Exception):
+                        proc.wait(timeout=2.0)
+                    with contextlib.suppress(Exception):
+                        proc.kill()
+                stdout, stderr = proc.communicate(timeout=5)
+        finally:
+            with self._procs_lock, contextlib.suppress(ValueError):
+                self._active_procs.remove(proc)
+        return subprocess.CompletedProcess(
+            args=proc.args,
+            returncode=proc.returncode,
+            stdout=stdout.decode(encoding, errors="replace"),
+            stderr=stderr.decode(encoding, errors="replace"),
+        )
+
+    def _derive_expected_branch(self, dispatched: str | None) -> str | None:
+        """Return ini_slug/type/slug from WORKSPACE_MCP_DISPATCHED_ITEM, or None."""
+        if dispatched is None:
+            return None
+        try:
+            ini_slug, rest = dispatched.split("/", 1)
+            item_type, slug = rest.split(":", 1)
+            return f"{ini_slug}/{item_type}/{slug}"
+        except ValueError:
+            return None
 
     def _resolve_output_pattern(self, dispatched: str | None) -> list[str] | None:
         if dispatched is None:
@@ -695,14 +1168,71 @@ class _GitTools:
                 return None
         try:
             manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
-            patterns = manifest.get("output_pattern")
-            if patterns is None:
+            raw_patterns = manifest.get("output_pattern")
+            if raw_patterns is None:
                 return None
-            return [p.format(slug=slug) for p in (
-                patterns if isinstance(patterns, list) else [patterns]
-            )]
+            patterns_list: list[str] = (
+                raw_patterns if isinstance(raw_patterns, list) else [raw_patterns]
+            )
+            # Apply agentbundle-layout.toml overrides (user-scope > repo-scope > default).
+            # Stage 1: resolve at bind-time; Stage 2 defers to first git_branch() call.
+            patterns_list = self._apply_layout_overrides(item_type, patterns_list)
+            return [p.format(slug=slug) for p in patterns_list]
         except Exception:
             return None
+
+    # Maps item_type → (layout_toml_key, default_base_in_pattern)
+    _LAYOUT_TYPE_BASES: dict[str, tuple[str, str]] = {
+        "research": ("research", "docs/product/research"),
+        "shape": ("product", "docs/product"),
+        "strategy": ("product", "docs/product"),
+        "design": ("design", "docs/design"),
+    }
+
+    def _apply_layout_overrides(
+        self, item_type: str, patterns: list[str]
+    ) -> list[str]:
+        """Substitute configured output_dir into patterns per layout.toml precedence."""
+        if item_type not in self._LAYOUT_TYPE_BASES:
+            return patterns
+        toml_key, default_base = self._LAYOUT_TYPE_BASES[item_type]
+        layout = self._read_layout_bases()
+        configured = layout.get(toml_key)
+        if configured is None:
+            return patterns
+        return [p.replace(default_base, configured, 1) for p in patterns]
+
+    def _read_layout_bases(self) -> dict[str, str]:
+        """Read output_dir from agentbundle-layout.toml with type-specific precedence.
+
+        research: user-scope wins (personal vault applies across repos).
+        product, design: repo-scope wins (team convention takes priority).
+        """
+        import tomllib
+
+        def _read_scope(path: Path) -> dict[str, str]:
+            if not path.exists() or path.is_symlink():
+                return {}
+            out: dict[str, str] = {}
+            with contextlib.suppress(Exception):
+                with path.open("rb") as fh:
+                    data = tomllib.load(fh)
+                for key in ("research", "product", "design"):
+                    if isinstance(data.get(key), dict):
+                        raw = data[key].get("output_dir", "")
+                        if raw:
+                            out[key] = str(Path(raw).expanduser().resolve())
+            return out
+
+        repo = _read_scope(self._repo_root / "agentbundle-layout.toml")
+        user = _read_scope(Path.home() / ".agentbundle" / "agentbundle-layout.toml")
+        result: dict[str, str] = {}
+        # research: user-scope wins
+        result["research"] = user.get("research") or repo.get("research", "")
+        # product/design: repo-scope wins
+        result["product"] = repo.get("product") or user.get("product", "")
+        result["design"] = repo.get("design") or user.get("design", "")
+        return {k: v for k, v in result.items() if v}
 
     def _read_head_branch(self) -> str | None:
         with contextlib.suppress(Exception):
@@ -710,6 +1240,7 @@ class _GitTools:
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
                 capture_output=True, text=True, encoding="utf-8",
                 cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+                env=_git_env(),
             )
             if r.returncode == 0:
                 return r.stdout.strip()
@@ -720,6 +1251,7 @@ class _GitTools:
             ["git", "status", "--short"],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            env=_git_env(),
         )
         return {"output": r.stdout, "returncode": r.returncode}
 
@@ -734,21 +1266,38 @@ class _GitTools:
             ["git", "check-ref-format", "--branch", name],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            env=_git_env(),
         )
         if r.returncode != 0:
             return {"error": f"invalid branch name: {name!r}"}
+        # When a dispatched item is bound, the branch name must match the expected
+        # ini_slug/type/slug form derived from WORKSPACE_MCP_DISPATCHED_ITEM (AC14).
+        if self._expected_branch is not None and name != self._expected_branch:
+            return {
+                "error": (
+                    f"branch {name!r} does not match the dispatched-item branch "
+                    f"{self._expected_branch!r} (AC14)"
+                )
+            }
         # _git_lock serializes all mutating git operations to prevent index.lock
         # collisions and TOCTOU races on _session_branch across concurrent calls.
         with self._git_lock:
+            if self._branch_locked:
+                return {
+                    "error": (
+                        f"session branch already set to {self._session_branch!r}; "
+                        "git_branch may only be called once per session (AC14)"
+                    )
+                }
             # Create and check out (no -- : branch name is an option arg, not a pathspec)
-            r = subprocess.run(
+            r = self._run_git(
                 ["git", "checkout", "-b", name],
-                capture_output=True, text=True, encoding="utf-8",
-                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT,
             )
             if r.returncode != 0:
                 return {"error": r.stderr.strip() or f"git checkout -b failed (rc={r.returncode})"}
             self._session_branch = name
+            self._branch_locked = True
         return {"branch": name}
 
     def git_commit(self, arguments: dict) -> dict:
@@ -757,38 +1306,105 @@ class _GitTools:
         message = arguments.get("message", "workspace-mcp: commit artifacts")
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
-        import fnmatch
+
+        # Build scope entries for each pattern (design.md:524-526).
+        # Two cases:
+        #   file         — no "/*": match the exact resolved file path
+        #   wildcard_dir — contains "/*": check containment under static root AND
+        #                  first varying component ends with the literal suffix of the
+        #                  wildcard component (e.g. research/*-slug/** → suffix="-slug")
+        # Note: find("/*") always points at "/" followed by "*", so _remainder always
+        # starts with "*" — there is no reachable non-wildcard "dir" case.
+        _scope_entries: list[tuple] = []
+        for _pat in self._output_pattern:
+            _idx = _pat.find("/*")
+            if _idx == -1:
+                # Exact file
+                _scope_entries.append(("file", (self._repo_root / _pat).resolve()))
+            else:
+                _static = _pat[:_idx]
+                _remainder = _pat[_idx + 1:]           # strip leading / only; keep *
+                _next_comp = _remainder.split("/")[0]  # first wildcard component
+                _dir = (self._repo_root / _static).resolve()
+                _suffix = _next_comp.lstrip("*")       # literal suffix after *
+                _scope_entries.append(("wildcard_dir", _dir, _suffix))
+
+        def _in_scope(rel_path: str) -> bool:
+            try:
+                abs_p = (self._repo_root / rel_path).resolve()
+                for entry in _scope_entries:
+                    if entry[0] == "file":
+                        if abs_p == entry[1]:
+                            return True
+                    else:  # wildcard_dir
+                        _, root, sfx = entry
+                        if abs_p.is_relative_to(root):
+                            first = abs_p.relative_to(root).parts
+                            if first and (not sfx or first[0].endswith(sfx)):
+                                return True
+                return False
+            except Exception:
+                return False
+
         with self._git_lock:
-            # Get uncommitted paths
+            # -z: NUL-delimited output — avoids "old -> new" display for renames.
+            # --untracked-files=all: expand untracked dirs so first-run artifacts are visible.
             r = subprocess.run(
-                ["git", "status", "--short", "--porcelain"],
+                ["git", "status", "--porcelain", "-z", "--untracked-files=all"],
                 capture_output=True, text=True, encoding="utf-8",
                 cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+                env=_git_env(),
             )
             if r.returncode != 0:
                 return {"error": f"git status failed: {r.stderr.strip()}"}
-            uncommitted = []
-            for line in r.stdout.splitlines():
-                if len(line) >= 3:
-                    uncommitted.append(line[3:].strip())
-            # Intersect with output_pattern
-            matched = [
-                p for p in uncommitted
-                if any(fnmatch.fnmatch(p, pat) for pat in self._output_pattern)
-            ]
+            uncommitted: list[str] = []
+            staged_outside: list[str] = []
+            # NUL-delimited records: "XY path" for normal files; for renames "XY new"
+            # followed by a separate NUL field containing the old path.
+            _fields = r.stdout.split("\0")
+            _fi = 0
+            while _fi < len(_fields):
+                _field = _fields[_fi]
+                _fi += 1
+                if len(_field) < 4 or _field[2] != " ":
+                    continue
+                _x, _y = _field[0], _field[1]
+                _path = _field[3:]
+                # For staged renames/copies: the very next NUL field is the old path.
+                # The -z format guarantees exactly one origin field follows R/C with no
+                # "XY " prefix — consume it unconditionally (don't heuristic-test it).
+                _orig: str | None = None
+                if _x in ("R", "C") and _fi < len(_fields):
+                    _orig = _fields[_fi]
+                    _fi += 1
+                uncommitted.append(_path)
+                if _orig:
+                    uncommitted.append(_orig)
+                if _x not in (" ", "?"):
+                    if not _in_scope(_path):
+                        staged_outside.append(_path)
+                    if _orig and not _in_scope(_orig):
+                        staged_outside.append(_orig)
+            if staged_outside:
+                return {
+                    "error": (
+                        f"refusing commit: {len(staged_outside)} pre-staged file(s) outside "
+                        f"output_pattern would be included: {staged_outside[:5]!r}"
+                    )
+                }
+            # Intersect with output_pattern using scope entries
+            matched = [p for p in uncommitted if _in_scope(p)]
             if not matched:
                 return {"error": "no uncommitted files match the dispatched item's output_pattern"}
-            r = subprocess.run(
+            r = self._run_git(
                 ["git", "add", "--", *matched],
-                capture_output=True, text=True, encoding="utf-8",
-                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT,
             )
             if r.returncode != 0:
                 return {"error": f"git add failed: {r.stderr.strip()}"}
-            r = subprocess.run(
+            r = self._run_git(
                 ["git", "commit", "-m", message],
-                capture_output=True, text=True, encoding="utf-8",
-                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT,
             )
             if r.returncode != 0:
                 return {"error": f"git commit failed: {r.stderr.strip()}"}
@@ -799,6 +1415,16 @@ class _GitTools:
             return {"error": "git_push is not available in discovery mode"}
         branch = arguments.get("branch", "")
         with self._git_lock:
+            # Require the session branch to have been explicitly established via
+            # git_branch(). This prevents pushing the startup branch (e.g. main)
+            # before the session has created its own work branch (AC14).
+            if not self._branch_locked:
+                return {
+                    "error": (
+                        "git_push requires a session branch established by git_branch(); "
+                        "call git_branch() first (AC14)"
+                    )
+                }
             # Two-sided check under lock: branch arg must equal session-bound
             # branch AND HEAD must equal it. Lock prevents TOCTOU between the
             # HEAD check and the push across concurrent git_branch / git_push calls.
@@ -812,10 +1438,9 @@ class _GitTools:
             current = self._read_head_branch()
             if current != branch:
                 return {"error": f"HEAD is on {current!r}, not {branch!r}"}
-            r = subprocess.run(
+            r = self._run_git(
                 ["git", "push", "--", "origin", branch],
-                capture_output=True, text=True, encoding="utf-8",
-                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT,
             )
             if r.returncode != 0:
                 return {"error": f"git push failed: {r.stderr.strip()}"}
@@ -839,30 +1464,33 @@ class _StdioLoop:
         git_tools: _GitTools,
         shutdown_event: threading.Event,
         request_map: dict,
+        write_lock: threading.Lock | None = None,  # unused; kept for API compat
+        write_fn=None,
+        mcp_initialized: threading.Event | None = None,
     ) -> None:
         self._status = status_tool
         self._elicit = elicit_tool
         self._git = git_tools
         self._shutdown = shutdown_event
         self._request_map = request_map
+        # Keep _write_lock as a separate internal lock independent from write_fn's
+        # internal lock to avoid re-entrant deadlock: line 1358 acquires _write_lock,
+        # then _write() calls _write_fn which acquires the main write_lock.
         self._write_lock = threading.Lock()
+        self._write_fn = write_fn
         self._executor = ThreadPoolExecutor(max_workers=4)
         self._initialized = False
         self._has_elicitation = False
-        self._next_server_id = 1
-        self._id_lock = threading.Lock()
+        self._mcp_initialized = mcp_initialized
 
     def _write(self, msg: dict) -> None:
+        if self._write_fn is not None:
+            self._write_fn(msg)
+            return
         line = json.dumps(msg, separators=(",", ":")) + "\n"
         with self._write_lock:
             sys.stdout.write(line)
             sys.stdout.flush()
-
-    def _make_server_id(self) -> str:
-        with self._id_lock:
-            sid = f"srv-{self._next_server_id}"
-            self._next_server_id += 1
-        return sid
 
     def _error_response(self, req_id: Any, code: int, message: str) -> dict:
         return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
@@ -1003,9 +1631,14 @@ class _StdioLoop:
             return
         result_event, result_holder = entry
         resp_result = msg.get("result", {})
-        resp_val = resp_result.get("response") if isinstance(resp_result, dict) else None
-        if resp_val is not None:
-            result_holder.append(resp_val)
+        if isinstance(resp_result, dict):
+            action = resp_result.get("action", "")
+            if action == "accept":
+                content = resp_result.get("content", {})
+                resp_val = content.get("response") if isinstance(content, dict) else None
+                if resp_val is not None:
+                    result_holder.append(resp_val)
+            # decline / cancel: leave result_holder empty → "elicitation produced no response"
         result_event.set()
 
     def run(self) -> None:
@@ -1033,28 +1666,35 @@ class _StdioLoop:
             req_id = msg.get("id")
             params = msg.get("params") or {}
 
-            # Client response to a server-initiated request (no "method" field)
-            if not method and req_id is not None and "result" in msg:
+            # Client response to a server-initiated request (no "method" field):
+            # route both result and error envelopes so waiting workers are unblocked.
+            if not method and req_id is not None and ("result" in msg or "error" in msg):
                 self._handle_client_response(msg)
                 continue
 
             if method == "initialize":
                 self._handle_initialize(req_id, params)
-            elif method == "initialized":
-                pass  # notification; no response needed
+            elif method == "notifications/initialized":
+                # MCP handshake completes when client sends notifications/initialized.
+                # Only now is it safe to emit server notifications.
+                if self._mcp_initialized is not None:
+                    self._mcp_initialized.set()
             elif method == "tools/list":
                 self._write(self._ok_response(req_id, {"tools": self._build_tools_list()}))
             elif method == "tools/call":
                 name = params.get("name", "")
                 args = params.get("arguments") or {}
                 self._dispatch_tool(req_id, name, args)
+            elif method == "ping":
+                self._write(self._ok_response(req_id, {}))
             elif method.startswith("notifications/"):
                 pass  # inbound notifications; ignore
             elif req_id is not None:
                 self._write(self._error_response(req_id, -32601, f"method not found: {method!r}"))
 
         self._shutdown.set()
-        self._executor.shutdown(wait=False)
+        # cancel_futures=True cancels queued-but-not-started tasks (Python ≥3.9).
+        self._executor.shutdown(wait=False, cancel_futures=True)
 
 
 # ── Session bootstrap ─────────────────────────────────────────────────────────
@@ -1062,9 +1702,9 @@ class _StdioLoop:
 def main(argv: list[str] | None = None) -> None:
     """Entry point for the workspace-mcp MCP server."""
     # Reconfigure stdio for binary-safe newline-delimited JSON
-    sys.stdin.reconfigure(encoding="utf-8", newline="")  # type: ignore[attr-defined]
-    sys.stdout.reconfigure(encoding="utf-8", newline="")  # type: ignore[attr-defined]
-    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[attr-defined]
+    sys.stdin.reconfigure(encoding="utf-8", newline="")  # type: ignore[union-attr]
+    sys.stdout.reconfigure(encoding="utf-8", newline="")  # type: ignore[union-attr]
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[union-attr]
 
     if argv and "--help" in argv:
         print(__doc__, file=sys.stderr)
@@ -1088,16 +1728,9 @@ def main(argv: list[str] | None = None) -> None:
 
     # Shared state
     shutdown_event = threading.Event()
+    mcp_initialized_event = threading.Event()
     request_map: dict = {}
     write_lock = threading.Lock()
-
-    # Start event bridge
-    bridge = _EventBridge(repo_root, spec_dir)
-    bridge.start()
-
-    # Build tools
-    status_tool = _WorkspaceStatusTool(repo_root, bridge)
-    git_tools = _GitTools(repo_root)
 
     def _write(msg: dict) -> None:
         line = json.dumps(msg, separators=(",", ":")) + "\n"
@@ -1105,12 +1738,27 @@ def main(argv: list[str] | None = None) -> None:
             sys.stdout.write(line)
             sys.stdout.flush()
 
+    # Start event bridge — notifications gated until MCP initialize handshake completes
+    bridge = _EventBridge(
+        repo_root, spec_dir,
+        notify_fn=_write,
+        mcp_initialized=mcp_initialized_event,
+    )
+    bridge.start()
+
+    # Build tools
+    status_tool = _WorkspaceStatusTool(repo_root, bridge)
+    git_tools = _GitTools(repo_root)
+
+    session_id = str(_uuid_mod.uuid4())
     elicit_tool = _ElicitTool(
         has_elicitation=False,       # updated at initialize handshake
         shutdown_event=shutdown_event,
         request_map=request_map,
         write_lock=write_lock,
         write_fn=_write,
+        session_id=session_id,
+        get_gate_fn=lambda: bridge.get_fsm_state(),
     )
 
     loop = _StdioLoop(
@@ -1119,8 +1767,10 @@ def main(argv: list[str] | None = None) -> None:
         git_tools=git_tools,
         shutdown_event=shutdown_event,
         request_map=request_map,
+        write_lock=write_lock,
+        write_fn=_write,
+        mcp_initialized=mcp_initialized_event,
     )
-    loop._write = _write  # wire up shared write function
 
     # Run until stdin closes (per-session, no port binding)
     try:
@@ -1128,8 +1778,22 @@ def main(argv: list[str] | None = None) -> None:
     finally:
         bridge.stop()
         elicit_tool.cleanup()
-        # Ensure exit within 5 s (AC22)
+        # Ensure exit within 5 s (AC22). Non-daemon executor threads from in-flight git
+        # subprocesses can outlive the session; the force-exit timer guarantees the
+        # process terminates even if a worker is blocked on a 30-second git timeout.
         shutdown_event.set()
+
+        def _force_exit() -> None:
+            # AC22: total exit budget is 5 s from stdin close.  Cleanup fits
+            # within 3 s (SIGTERM → bounded wait → SIGKILL), leaving 2 s for
+            # scheduling overhead, then unconditional exit.
+            # Block new subprocess creation before taking the snapshot so worker
+            # threads cannot spawn git children between the snapshot and os._exit.
+            git_tools.block_new_procs()
+            git_tools.terminate_all_procs(grace=3.0)
+            os._exit(0)  # noqa: SLF001
+
+        threading.Thread(target=_force_exit, daemon=True, name="workspace-mcp-exit-guard").start()
 
 
 if __name__ == "__main__":

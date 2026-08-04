@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """loop-engine — work-loop phase FSM validator (Phase 1, Option A).
 
 Validates legal phase ordering, runs read-only guards, and records the
@@ -101,8 +101,11 @@ def _ensure_gitignore_entry(gitignore_path: Path, entry: str) -> None:
 
 def _write_events_pending(repo_root: Path, pending_data: dict) -> None:
     pending_path = _events_pending_path(repo_root)
+    loop_run_dir = pending_path.parent
+    if loop_run_dir.is_symlink() or (pending_path.exists() and pending_path.is_symlink()):
+        raise OSError(f"refusing to write: loop-run path is a symlink ({pending_path})")
     fd, tmp = tempfile.mkstemp(
-        prefix=".events-pending-", suffix=".tmp", dir=str(pending_path.parent)
+        prefix=".events-pending-", suffix=".tmp", dir=str(loop_run_dir)
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
@@ -116,8 +119,46 @@ def _write_events_pending(repo_root: Path, pending_data: dict) -> None:
 
 
 def _append_events_jsonl(repo_root: Path, event_data: dict) -> None:
-    with _events_jsonl_path(repo_root).open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(event_data) + "\n")
+    path = _events_jsonl_path(repo_root)
+    loop_run_dir = path.parent
+    if loop_run_dir.is_symlink() or (path.exists() and path.is_symlink()):
+        raise OSError(f"refusing to write: loop-run path is a symlink ({path})")
+    with path.open("a+b") as fh:
+        # Repair a torn tail: if the last byte is not '\n', a previous crash
+        # left a partial line. Write a bare newline to isolate it so the new
+        # event is parsed as a separate record, not concatenated to the fragment.
+        if fh.seek(0, 2) > 0:  # seek to end; pos > 0 means file is non-empty
+            fh.seek(-1, 2)
+            if fh.read(1) != b"\n":
+                fh.write(b"\n")
+        fh.write((json.dumps(event_data) + "\n").encode())
+
+
+def _recover_engine_state_tmp(spec_dir: Path) -> None:
+    """Complete any crash-left atomic engine-state rename; validate JSON before promoting."""
+    for tmp_path in spec_dir.glob(".engine-state-*.json.tmp"):
+        try:
+            raw = tmp_path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+            if not isinstance(data, dict) or not data.get("state") or not data.get("run_id"):
+                raise ValueError("engine-state tmp is missing required fields")
+        except Exception as exc:
+            print(
+                f"loop-engine: warning — engine-state tmp invalid ({exc});"
+                f" discarding {tmp_path.name}",
+                file=sys.stderr,
+            )
+            with contextlib.suppress(OSError):
+                tmp_path.unlink(missing_ok=True)
+            continue
+        try:
+            tmp_path.replace(spec_dir / "engine-state.json")
+        except OSError as exc:
+            print(
+                f"loop-engine: warning — could not promote engine-state tmp ({exc})",
+                file=sys.stderr,
+            )
+        break  # only one tmp at a time
 
 
 def _recover_pending(repo_root: Path) -> None:
@@ -139,9 +180,15 @@ def _recover_pending(repo_root: Path) -> None:
     # Validate owning spec path — must not escape repo root.
     spec_str = pending.get("spec", "")
     try:
-        pending_spec_dir = Path(spec_str).resolve()
+        _spec_path_obj = Path(spec_str)
+        # Relative paths (written since the repo-relative fix) are resolved against
+        # repo_root; absolute paths (legacy pending files) are resolved as-is.
+        if _spec_path_obj.is_absolute():
+            pending_spec_dir = _spec_path_obj.resolve()
+        else:
+            pending_spec_dir = (repo_root / spec_str).resolve()
         pending_spec_dir.relative_to(repo_root)
-    except (ValueError, Exception) as exc:
+    except Exception as exc:
         print(
             f"loop-engine: warning — events.pending spec path invalid ({exc}); discarding",
             file=sys.stderr,
@@ -151,19 +198,7 @@ def _recover_pending(repo_root: Path) -> None:
         return
 
     # Complete any in-progress atomic engine-state.json rename (crash during step 3).
-    for tmp_path in pending_spec_dir.glob(".engine-state-*.json.tmp"):
-        try:
-            tmp_path.replace(pending_spec_dir / "engine-state.json")
-        except OSError as exc:
-            print(
-                f"loop-engine: warning — could not complete in-progress rename ({exc});"
-                " discarding pending",
-                file=sys.stderr,
-            )
-            with contextlib.suppress(OSError):
-                pending_path.unlink(missing_ok=True)
-            return
-        break  # only one tmp at a time
+    _recover_engine_state_tmp(pending_spec_dir)
 
     # Load owning spec's engine-state.json.
     owning_state_path = pending_spec_dir / "engine-state.json"
@@ -243,6 +278,13 @@ _TRANSITIONS_BY_MODE = {
 
 # States where pending_human_wait is True
 _HUMAN_WAIT_STATES = frozenset({"SPEC-HUMAN-GATE", "PLAN-HUMAN-GATE", "CODE-HUMAN-GATE"})
+
+# Gate questions surfaced to the control plane via engine-state.json["gate_question"]
+_GATE_QUESTIONS: dict[str, str] = {
+    "SPEC-HUMAN-GATE": "Does this spec define the right thing to build?",
+    "PLAN-HUMAN-GATE": "Does this plan describe the right way to build it?",
+    "CODE-HUMAN-GATE": "Are these changes correct and ready to merge?",
+}
 
 # CODE-* states that require the mandatory schedule check-current pre-guard,
 # EXCEPT "done" which is exempt.
@@ -537,18 +579,29 @@ def cmd_init(args: argparse.Namespace) -> int:
     if repo_root is not None:
         try:
             loop_run = _loop_run_dir(repo_root)
-            loop_run.mkdir(exist_ok=True)
+            if loop_run.is_symlink():
+                print(
+                    "loop-engine: warning — .loop-run/ is a symlink; refusing to initialise",
+                    file=sys.stderr,
+                )
+            else:
+                loop_run.mkdir(exist_ok=True)
+                jsonl = _events_jsonl_path(repo_root)
+                if jsonl.exists() and jsonl.is_symlink():
+                    print(
+                        "loop-engine: warning — events.jsonl is a symlink; refusing to touch",
+                        file=sys.stderr,
+                    )
+                else:
+                    jsonl.touch()
+                gitignore = repo_root / ".gitignore"
+                if not gitignore.is_symlink():
+                    _ensure_gitignore_entry(gitignore, ".loop-run/")
         except Exception as exc:
-            print(f"loop-engine: warning — could not create .loop-run/: {exc}", file=sys.stderr)
-        try:
-            jsonl = _events_jsonl_path(repo_root)
-            jsonl.touch()
-        except Exception as exc:
-            print(f"loop-engine: warning — could not create events.jsonl: {exc}", file=sys.stderr)
-        try:
-            _ensure_gitignore_entry(repo_root / ".gitignore", ".loop-run/")
-        except Exception as exc:
-            print(f"loop-engine: warning — could not update .gitignore: {exc}", file=sys.stderr)
+            print(
+                f"loop-engine: warning — could not initialise .loop-run/: {exc}",
+                file=sys.stderr,
+            )
         try:
             _recover_pending(repo_root)
         except Exception as exc:
@@ -666,6 +719,19 @@ def cmd_transition(args: argparse.Namespace) -> int:
         if wave_index is not None:
             return stop(f"transition {event!r} does not accept --wave-index")
 
+    # AC0a: recover at command start — before any early-exit check.
+    # _recover_engine_state_tmp promotes crash-left .tmp → engine-state.json.
+    # _recover_pending replays or discards a stale events.pending from a prior crash.
+    # Both must run before _read_engine_state so a recovered state is read correctly,
+    # and before early returns so a pending file is never left behind by validation failures.
+    _recover_engine_state_tmp(spec_dir)
+    _cmd_transition_repo_root: Path | None = None
+    try:
+        _cmd_transition_repo_root = _get_repo_root()
+        _recover_pending(_cmd_transition_repo_root)
+    except Exception as exc:
+        print(f"loop-engine: warning — pending recovery failed: {exc}", file=sys.stderr)
+
     # Read engine-state.json
     try:
         state = _read_engine_state(spec_dir)
@@ -718,6 +784,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
         last_event_context = {"completed_wave_index": wave_index}
 
     new_state = {
+        **state,
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
         "feature": state["feature"],
@@ -725,35 +792,28 @@ def cmd_transition(args: argparse.Namespace) -> int:
         "state": next_state,
         "last_event": event,
         "last_event_context": last_event_context,
+        "gate_question": _GATE_QUESTIONS.get(next_state),
         "transition_sequence": new_seq,
         "last_transition_at": now,
     }
+    # Emit spec as a repo-relative path so WORKSPACE_MCP_SPEC_PATH (which the
+    # control plane supplies as a repo-relative value) can match it directly.
+    _spec_value = str(spec_dir)
+    if _cmd_transition_repo_root is not None:
+        with contextlib.suppress(ValueError):
+            _spec_value = str(spec_dir.relative_to(_cmd_transition_repo_root))
     pending_data = {
         "seq": new_seq,
         "run_id": run_id,
-        "spec": str(spec_dir),
+        "spec": _spec_value,
         "from": current_state,
         "event": event,
         "to": next_state,
         "at": now,
     }
 
-    # Outbox pre-flight: resolve repo root (graceful).
-    _repo_root: Path | None = None
-    try:
-        _repo_root = _get_repo_root()
-    except Exception as exc:
-        print(
-            f"loop-engine: warning — could not determine repo root for outbox: {exc}",
-            file=sys.stderr,
-        )
-
-    # Outbox step 1a: recover any stale pending from a prior crash (graceful).
-    if _repo_root is not None:
-        try:
-            _recover_pending(_repo_root)
-        except Exception as exc:
-            print(f"loop-engine: warning — pending recovery failed: {exc}", file=sys.stderr)
+    # Outbox pre-flight: reuse repo root resolved at command start (AC0a).
+    _repo_root: Path | None = _cmd_transition_repo_root
 
     # Outbox step 1b: write new pending event (graceful).
     _pending_written = False
