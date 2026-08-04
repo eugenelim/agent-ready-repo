@@ -307,6 +307,5 @@ Reconcile? ›
 ```
 
 - **You decide:** G2 — is the brief complete? Then G3 — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
-- **Output at feature level:** a ratified decision brief with a connected hypothesis and validation hooks — handed to the delivery loop via `receive-brief`.
-- **Output at capability or above:** a ratified intent with child intents ready to re-enter the loop at their own level. Each child follows the same frame → de-risk → decompose path independently.
+- **Output:** a ratified decision brief with a connected hypothesis and validation hooks. At `feature` level this hands off to the delivery loop via `receive-brief`. At `capability` or above it produces ratified child intents — each re-enters the loop independently at its own level.
 - **State:** confirmed-write
