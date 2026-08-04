@@ -1549,50 +1549,128 @@ class _StdioLoop:
         return [
             {
                 "name": "workspace_status",
-                "description": "Return DAG-resolved workspace queue and FSM state.",
+                "description": (
+                    "Returns the current workspace queue and active-run state. "
+                    "Call this at session start before doing any work. "
+                    "Response fields: "
+                    "ready[] — items that can be dispatched immediately, each with "
+                    "ini_slug, type, slug, and dispatch_skill; "
+                    "blocked[] — items whose dependencies are not yet met; "
+                    "active[] — items currently in progress; "
+                    "shaping[] — non-implementation items (research, design, shape, strategy); "
+                    "current_state — current work-loop phase name (null when idle); "
+                    "gate_pending — true when human input is required before work can continue; "
+                    "gate — name of the pending gate (e.g. SPEC-HUMAN-GATE, REVIEW-HUMAN-GATE); "
+                    "gate_question — the specific question the work-loop is asking."
+                ),
                 "inputSchema": {"type": "object", "properties": {}},
             },
             {
                 "name": "elicit",
-                "description": "Route a question or approval to the control plane.",
+                "description": (
+                    "Send a question to the human operator and wait for their response. "
+                    "Use this instead of emitting free-form text whenever you need "
+                    "approval, a decision, or clarifying input. "
+                    "Blocks until the operator replies or the 300-second timeout expires. "
+                    "Returns {response: string} on success, or {error: string} on timeout."
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "message": {"type": "string"},
-                        "context": {"type": "string"},
-                        "options": {"type": "array", "items": {"type": "string"}},
+                        "message": {
+                            "type": "string",
+                            "description": "The question or prompt to display to the operator.",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": (
+                                "Optional background text shown alongside the question."
+                            ),
+                        },
+                        "options": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "Optional list of allowed responses. When provided, the "
+                                "operator must choose one of these values."
+                            ),
+                        },
                     },
                     "required": ["message"],
                 },
             },
             {
                 "name": "git_status",
-                "description": "Return the current git status.",
+                "description": (
+                    "Returns uncommitted file changes in the repo "
+                    "(equivalent to git status --short). "
+                    "Returns {output: string, returncode: int}."
+                ),
                 "inputSchema": {"type": "object", "properties": {}},
             },
             {
                 "name": "git_branch",
-                "description": "Create and check out a new branch.",
+                "description": (
+                    "Create and check out a new feature branch. "
+                    "The branch name must follow the ini_slug/type/slug format "
+                    "(e.g. my-initiative/work/fix-bug) and must match the dispatched item. "
+                    "May only be called once per session; subsequent calls are rejected. "
+                    "Not available when no item has been dispatched."
+                ),
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"name": {"type": "string"}},
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": (
+                                "Branch name in ini_slug/type/slug format "
+                                "(e.g. my-initiative/work/fix-bug)."
+                            ),
+                        }
+                    },
                     "required": ["name"],
                 },
             },
             {
                 "name": "git_commit",
-                "description": "Stage and commit files matching the item's output_pattern.",
+                "description": (
+                    "Stage and commit files that belong to the dispatched work item. "
+                    "Only files under the item's configured output paths are staged; "
+                    "files outside those paths are excluded. "
+                    "Not available when no item has been dispatched, or for work-loop "
+                    "items (work-loop manages its own git lifecycle)."
+                ),
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"message": {"type": "string"}},
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": (
+                                "Git commit message. "
+                                "Defaults to 'workspace-mcp: commit artifacts'."
+                            ),
+                        }
+                    },
                 },
             },
             {
                 "name": "git_push",
-                "description": "Push the session-bound branch to origin.",
+                "description": (
+                    "Push the session branch to origin. "
+                    "Requires git_branch() to have been called first in this session. "
+                    "Not available when no item has been dispatched."
+                ),
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"branch": {"type": "string"}},
+                    "properties": {
+                        "branch": {
+                            "type": "string",
+                            "description": (
+                                "Branch name to push. Must match the branch "
+                                "established by git_branch() in this session."
+                            ),
+                        }
+                    },
                     "required": ["branch"],
                 },
             },

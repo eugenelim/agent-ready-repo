@@ -307,6 +307,36 @@ agentbundle oplog show  my-pack                 # JSONL operation history
 agentbundle oplog clear my-pack                 # wipe history (asks first)
 ```
 
+## Per-session MCP server (workspace-mcp)
+
+The `core` pack ships a per-session MCP server that a control harness can inject into
+each Claude Code session. It exposes six tools over MCP stdio:
+
+| Tool | What it does |
+|---|---|
+| `workspace_status` | Returns the queue (ready / blocked / active / shaping items) and active-run state — current phase, whether a gate is pending, and the gate question |
+| `elicit` | Sends a question to the operator and blocks until they respond (300 s timeout) |
+| `git_status` | Returns uncommitted changes (`git status --short`) |
+| `git_branch` | Creates and checks out a feature branch scoped to the dispatched item |
+| `git_commit` | Stages and commits only files under the item's configured output paths |
+| `git_push` | Pushes the session branch to origin |
+
+**Spawn it** (the harness does this, not the agent):
+
+```bash
+python3 -m agentbundle.workspace_mcp
+```
+
+**Inject the session instruction** so the agent knows to use the tools:
+
+```python
+from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
+```
+
+Pass `WORKSPACE_MCP_SPEC_PATH` (path to the spec directory) and
+`WORKSPACE_MCP_DISPATCHED_ITEM` (`ini_slug/type:slug`) as environment variables
+when spawning to unlock the git write tools and FSM event tracking.
+
 ## Credentials
 
 `agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach.

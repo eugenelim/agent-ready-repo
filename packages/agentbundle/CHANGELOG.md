@@ -8,6 +8,19 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.28.1]
+
+### Fixed
+
+- **`workspace_mcp._build_tools_list`**: rewrote all six tool descriptions and added
+  `description` fields to every parameter schema — descriptions previously used
+  internal jargon ("DAG-resolved", "FSM state", "control plane", "output_pattern",
+  "session-bound") with no parameter docs; now self-contained for harness authors
+  who have not read the design doc. `workspace_status` description names every
+  response field. `elicit` documents all three parameters and the return shape.
+  `git_branch`, `git_commit`, and `git_push` document constraints (once-per-session,
+  discovery-mode unavailability, work-loop ownership) inline.
+
 ## [0.28.0]
 
 Engine-Change-RFC: RFC-0078
