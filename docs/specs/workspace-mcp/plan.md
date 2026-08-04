@@ -21,20 +21,21 @@
 
 ## Risks
 
-- Spike (e) failure → asyncio rewrite required; Tasks 1 and 2 redesigned before starting. **CLOSED: spike (e) passed.**
+- Spike (e) failure → asyncio rewrite required; T1 and T2 redesigned before starting. **CLOSED: spike (e) passed.**
 - Spike (c) failure + no viable fallback → Stage 1 deferred entirely. **CLOSED: spike (c) failed but fallback designed (poll-based via `workspace_status()`); Stage 1 proceeds with updated AC3/AC7/AC8.**
-- `permissions.allow` projection requires breaking adapter contract → Task 5 blocked; follow-on RFC required; AC17/AC18 deferred.
+- `permissions.allow` projection requires breaking adapter contract → T5 blocked; follow-on RFC required; AC17/AC18 deferred.
 - loop-engine outbox protocol adds ~30 lines to `cmd_transition`/`cmd_init`; `make build-self` reprojection required afterward.
 
 ## Changelog
 
-- 2026-08-03: Initial plan (spec-plan mode). Stage 0 spikes pending; implementation not started.
+- 2026-08-03: Initial plan. Stage 0 spikes pending; implementation not started.
+- 2026-08-03: Revised per pre-EXECUTE adversarial + security review. Added graceful I/O degradation, cmd_reset .loop-run/ removal, no-header-line clarification, AC0a missing-engine-state.json + path-containment branches, subprocess timeout, git_branch base-param explicit rejection, bounded-read for frame-size cap, safety.assert_under for slug containment, AC5 FSM-state reset, AC12 poll timeout + 0700 temp-dir, AC11 shutdown-event cancellation, AC24 lifecycle manifest + test stub, Boundaries "Never do" rails + trust assumptions. Re-Approved after revisions.
 
 ## Tasks
 
-### Task 0 — Stage 0 spike closure (prerequisite; not implementation)
+### T0 — Stage 0 spike closure (prerequisite; not implementation)
 
-**Depends on:** — (blocks all other tasks)
+**Depends on:** none
 **Verification:** Goal-based check
 **Done when:** All five Stage 0 spike results documented; none returns a design-sinking failure without a designed fallback.
 **Tests:** no stub (goal-based)
@@ -42,26 +43,32 @@
 
 ---
 
-### Task 1 — loop-engine events.jsonl append and outbox protocol
+### T1 — loop-engine events.jsonl append and outbox protocol
 
-**Depends on:** Task 0
+**Depends on:** T0
 **Verification:** TDD
 **Tests:**
 - `packages/agentbundle/tests/test_loop_engine_events_jsonl.py`: outbox write protocol (write pending → atomic state write → append events.jsonl → delete pending); outbox recovery at `cmd_init` startup AND at `cmd_transition` entry/resume case (pending.to == state AND pending.seq == transition_sequence → replay; mismatch → discard; crash-then-next-transition) (ACs 0, 0a).
-  *Stub:* `test_outbox_recovery_replay_when_to_matches_state` → `assert False  # STUB: AC0a`
+  *Stubs:*
+  `test_outbox_recovery_replay_when_to_matches_state` → `assert False  # STUB: AC0a`
   `test_outbox_recovery_discard_when_to_mismatches_state` → `assert False  # STUB: AC0a`
   `test_cmd_transition_recovers_stale_pending_before_new_transition` → `assert False  # STUB: AC0a (crash-then-next-transition: pending from prior crash must be replayed/discarded at top of next cmd_transition, not lost)`
   `test_cmd_transition_recovers_foreign_spec_pending_before_writing_own` → `assert False  # STUB: AC0a (cross-spec: crash on spec-A then transition on spec-B must recover spec-A's pending against spec-A's engine-state.json before writing spec-B's new pending event — skipping leaves spec-A's event silently lost to the step-2 overwrite)`
+  `test_io_failure_does_not_abort_transition` → `assert False  # STUB: AC0 graceful-degradation — monkeypatch events.jsonl append to raise PermissionError; assert engine-state.json write still succeeds and a warning is emitted`
 
-**Note on line schema:** all events.jsonl lines must use `{"seq", "run_id", "spec", "from", "event", "to", "at"}` field names — matching design.md:317. Tests must assert that field names match exactly (not `to_state`/`from_state`/`timestamp`).
+**Note on line schema:** all events.jsonl lines must use `{"seq", "run_id", "spec", "from", "event", "to", "at"}` field names — matching design.md:317. Tests must assert that field names match exactly (not `to_state`/`from_state`/`timestamp`). `cmd_init` creates `events.jsonl` as an **empty file** — no header line is written; the bridge identifies run_id from the first event's `run_id` field.
 
 **Approach:**
 In `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`:
-- Add `.loop-run/` dir creation in `cmd_init`.
-- Add `events.jsonl` initialization (write header line with `run_id`) in `cmd_init`.
+- Add `.loop-run/` dir creation in `cmd_init`. Append `.loop-run/` to `.gitignore` if not already present.
+- Add `events.jsonl` initialization in `cmd_init`: create as empty file (no header line).
+- Add `cmd_reset` cleanup: remove `.loop-run/` directory (in addition to removing `engine-state.json`).
+- Wrap all events.jsonl and events.pending I/O in try/except; log warnings on failure; never let I/O exceptions propagate to the FSM state write.
 - In `cmd_transition`, implement in this order:
   1. **Recovery check (before writing a new pending event):** if `.loop-run/events.pending` exists, apply universal pending recovery:
-     - Read `pending["spec"]` to identify the owning spec directory.
+     - Read `pending["spec"]` to identify the owning spec directory. Validate via `safety.assert_under(repo_root, Path(pending["spec"]))` — if validation fails (path escapes repo root), discard the pending file.
+     - If `{pending["spec"]}/engine-state.json` is absent (owning spec dir deleted, or crash before the state write), discard the pending file.
+     - If a `.tmp`-in-progress rename file exists alongside `events.pending` (crash during atomic state write), complete the rename first, then re-evaluate.
      - Load `{pending["spec"]}/engine-state.json` (the owning spec's state, regardless of which spec is currently transitioning).
      - If `pending["to"] == owning_state["state"] AND pending["seq"] == owning_state["transition_sequence"] AND pending["run_id"] == owning_state["run_id"]` → **replay** (append to events.jsonl, delete pending); else → **discard** (delete pending).
      Skipping a foreign pending file defers its loss to step 2 (where the new pending event overwrites it), silently losing the owning spec's missed transition. Recovery must run unconditionally against the owning spec before any write.
@@ -78,9 +85,9 @@ In `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`:
 
 ---
 
-### Task 2 — `agentbundle.workspace_mcp` core module
+### T2 — `agentbundle.workspace_mcp` core module
 
-**Depends on:** Task 0, Task 1 (events.jsonl must exist before the bridge can be tested end-to-end), Task 4 (`analyze_bounded(autonomous_dispatch=True)` must exist before Task 2 calls it)
+**Depends on:** T0, T1, T4
 **Verification:** TDD (unit) + Visual/manual QA (end-to-end)
 **Tests:**
 - `test_workspace_mcp_event_bridge.py`: byte-offset tail; seq dedup (AC6, `seq ≤ last_emitted_seq` → skip); partial-line buffering on torn-write — partial last line held at offset, completed on next poll, no crash (AC4); inode change or size < offset → offset/buffer/run_id reset (AC5); human-gate detection (`to` field matches `*-HUMAN-GATE`) and enriched notification payload (ACs 3, 7).
@@ -101,23 +108,25 @@ In `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`:
 **Approach:**
 Implement `packages/agentbundle/agentbundle/workspace_mcp.py`. Key components:
 
-- `_SAFE_SLUG_RE = re.compile(r'^[a-zA-Z0-9._-]+$')`. Slug guard: match regex AND not in `{'.', '..'}` AND not starting with `-`. After pattern formatting, `Path(resolved).resolve()` must be under `_STATIC_OUTPUT_BASES[type]`.
+- `_SAFE_SLUG_RE = re.compile(r'^[a-zA-Z0-9._-]+$')`. Slug guard: match regex AND not in `{'.', '..'}` AND not starting with `-`. After pattern formatting, use `safety.assert_under(static_output_base, resolved_dir)` for containment (not a bespoke startswith).
+- `_LIFECYCLE_MANIFEST: dict[str, dict]`: embedded constant mapping each initiative item type (`work`, `shape`, `research`, `strategy`, `design`, `signal`, `brief`) to `{dispatch_skill, output_pattern, has_gates, required_pack}`. Values match design.md's type→lifecycle table exactly. `workspace_status()` uses this dict to populate per-item metadata fields. Not computed at runtime from workspace.toml (AC24).
 - `DEFAULT_SESSION_INSTRUCTION`: embedded constant per design.md Component 3 (AC20).
 - `_EventBridge(daemon=True)`: 200ms poll of `.loop-run/events.jsonl`; byte-offset + inode tracking; seq dedup; maintains internal FSM state (current state, gate fields); detects `*-HUMAN-GATE` in the `to` field and updates internal gate state `{gate, gate_question, review_findings}` (reads reviewer report from spec dir disk). **Spike (c) fallback:** notifications are generated internally but not relayed to ACP control plane; FSM state exposed via `workspace_status()` `current_state`/`gate_pending`/`gate_question`/`review_findings` fields (AC7, AC8). Control plane polls `workspace_status()` to observe transitions.
 - `_WorkspaceStatusTool`: reads workspace.toml via `workspace_status_engine.analyze_bounded(..., autonomous_dispatch=True)`; pack-presence filter (6 roots, OR logic); slug safety guard.
 - `_ElicitTool` (dispatched to worker pool): `elicitation/create` path (AC11) OR response-file path (AC12, O_EXCL, 0600, reject pre-existing, poll, temp+rename read, cleanup); capability detected at init (never advertise in ServerCapabilities — AC13).
-- `_GitTools`: `git_status` (always); `git_branch(name)` — validate via `subprocess.run(["git", "check-ref-format", "--branch", name], ...)` (the `--branch` form rejects names starting with `-`; the plain refname form does not — pin this form), then `subprocess.run(["git", "checkout", "-b", name], shell=False)` (NO `--` — branch name is an option argument, not a pathspec; `--branch`-form check-ref-format is the injection defense); `git_commit(message)` — intersect uncommitted paths with output_pattern, stage only matching paths via `["git", "add", "--", *matched_paths]`; `git_push(branch)` — two-sided check before `["git", "push", "--", "origin", branch]`; discovery-mode guard on mutating tools (AC15).
+- `_GitTools`: `git_status` (always); `git_branch(name)` — reject any non-None `base` with an explicit tool error (AC14); validate `name` via `subprocess.run(["git", "check-ref-format", "--branch", name], ...)` (the `--branch` form rejects names starting with `-`; the plain refname form does not — pin this form), then `subprocess.run(["git", "checkout", "-b", name], shell=False)` (NO `--` — branch name is an option argument, not a pathspec; `--branch`-form check-ref-format is the injection defense); `git_commit(message)` — intersect uncommitted paths with output_pattern, stage only matching paths via `["git", "add", "--", *matched_paths]`; `git_push(branch)` — two-sided check before `["git", "push", "--", "origin", branch]`; all subprocess calls use `timeout=30`; discovery-mode guard on mutating tools (AC14, AC15).
 - `_StdioLoop` (main thread): JSON-framed MCP reads; 1 MiB frame-size cap (AC16a); malformed JSON quarantine (AC16b); unknown request_id rejection (AC16c); `{request_id: Event}` map for elicitation routing; write lock for stdout; dispatches tool calls to `ThreadPoolExecutor(max_workers=4)`.
 - `_init_handshake`: reads host capabilities; selects elicitation delivery path; constructs ServerCapabilities WITHOUT `elicitation` (AC13).
 - Entry point: `def main(): ...` and `if __name__ == '__main__': main()`.
 
 **AC20 verification (goal-based):** see spec.md Testing Strategy — import module, assert `DEFAULT_SESSION_INSTRUCTION` is non-empty and contains `'elicit'`.
+**AC24 verification (goal-based):** see spec.md Testing Strategy — import module, assert `_LIFECYCLE_MANIFEST` keys equal the required 7 types.
 
 ---
 
-### Task 3 — Core-pack alias script
+### T3 — Core-pack alias script
 
-**Depends on:** Task 2
+**Depends on:** T2
 **Verification:** Goal-based check
 **Done when:** `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py` exists, `python3 workspace_mcp_server.py` invokes the module identically to module-mode.
 **Tests:** no stub (goal-based — one-line delegation; no new logic)
@@ -129,9 +138,9 @@ import agentbundle.workspace_mcp as _m; _m.main()
 
 ---
 
-### Task 4 — `is_need_satisfied()` autonomous-dispatch mode
+### T4 — `is_need_satisfied()` autonomous-dispatch mode
 
-**Depends on:** Task 0
+**Depends on:** T0
 **Verification:** TDD
 **Tests:**
 - `packages/agentbundle/tests/test_workspace_status_engine_autonomous.py`:
@@ -140,12 +149,12 @@ import agentbundle.workspace_mcp as _m; _m.main()
   *Stubs:* `test_shape_absent_unsatisfied_autonomous` → `assert False  # STUB: AC19`; `test_research_absent_unsatisfied_autonomous` → `assert False  # STUB: AC19`
 
 **Approach:**
-Update the delegation chain in `workspace_status_engine.py`:
-1. `is_need_satisfied(need, ini_slug, all_initiatives, autonomous_dispatch: bool = False)` at line 456:
+Update the delegation chain in `workspace_status_engine.py` (use function names; line numbers are informative only and will drift):
+1. `is_need_satisfied(need, ini_slug, all_initiatives, autonomous_dispatch: bool = False)`:
    - `shape:` branch: if `autonomous_dispatch`, also check `ini.shaping.backlog` for the slug — absent from both active AND backlog → return False. (Current behavior: absent from active → `slug not in active_slugs` returns True/satisfied, even if slug never existed — the gap for autonomous mode.)
    - `research:` branch: if `autonomous_dispatch`, add explicit absent-target check: `slug not in research_slugs` currently returns **True (satisfied)** when slug is absent from backlog — the known bug for autonomous mode. Fix: when `autonomous_dispatch`, absent from backlog as type "research" → return False.
-2. `classify_entries(ini, all_initiatives, autonomous_dispatch: bool = False)` at line 536: propagate parameter to each `is_need_satisfied(n, ini.slug, all_initiatives, autonomous_dispatch)` call (lines 559, 612).
-3. `analyze_bounded(root: Path, autonomous_dispatch: bool = False)` at line 844: propagate to `classify_entries(ini, initiatives, autonomous_dispatch)` call (line 862). `workspace_status()` passes `autonomous_dispatch=True` to `analyze_bounded`.
+2. `classify_entries(ini, all_initiatives, autonomous_dispatch: bool = False)`: propagate parameter to each `is_need_satisfied(n, ini.slug, all_initiatives, autonomous_dispatch)` call.
+3. `analyze_bounded(root: Path, autonomous_dispatch: bool = False)`: propagate to `classify_entries(ini, initiatives, autonomous_dispatch)` call. `workspace_status()` passes `autonomous_dispatch=True` to `analyze_bounded`.
 4. `analyze()` callers do NOT change (human-session default=False).
 5. Update SKILL.md §2 (needs-resolution table) and the `shape:`/`research:` comments in `workspace_status_engine.py` to document the two-mode semantics. In doing so, strip the stale `schema.md:113`, `schema.md:114`, and `SKILL.md:90` citations from those comments (the file does not exist and the SKILL.md line number is inside a TOML template block, not needs-resolution prose) — replace with "SKILL.md §2".
 
@@ -153,9 +162,9 @@ Update the delegation chain in `workspace_status_engine.py`:
 
 ---
 
-### Task 5 — `permissions.allow` additive-merge projection
+### T5 — `permissions.allow` additive-merge projection
 
-**Depends on:** Task 0, Task 2 (tool names canonical)
+**Depends on:** T0, T2
 **Verification:** Goal-based check
 **Done when:** `agentbundle install core` on a clean repo adds exactly 6 `mcp__workspace-mcp__*` entries (parsed assertion, not grep count). Repeat on a repo with pre-existing `permissions.allow` entries: existing preserved, no duplicates.
 **Tests:** `packages/agentbundle/tests/test_adapter_permissions_projection.py` — install core on tmp repo, parse `.claude/settings.json`, assert all 6 ids present in `permissions.allow`.
@@ -163,9 +172,9 @@ Update the delegation chain in `workspace_status_engine.py`:
 
 ---
 
-### Task 6 — Version bump, changelog, and README
+### T6 — Version bump, changelog, and README
 
-**Depends on:** Tasks 1–5
+**Depends on:** T1, T2, T3, T4, T5
 **Verification:** Goal-based check
 **Done when:** agentbundle version bumped (minor); `CHANGELOG.md` has `[Unreleased]` entry with `Engine-Change-RFC: RFC-0078`; `README.md` documents `workspace_mcp`.
 **Tests:** no stub (goal-based)
@@ -173,9 +182,9 @@ Update the delegation chain in `workspace_status_engine.py`:
 
 ---
 
-### Task 7 — Full gates pass
+### T7 — Full gates pass
 
-**Depends on:** Tasks 1–6
+**Depends on:** T1, T2, T3, T4, T5, T6
 **Verification:** Goal-based check
 **Done when:** `python3 -m pytest packages/agentbundle/tests/ -q` exits 0; `make lint-ruff` exits 0; `SKIP_SAST=1 make build-check` exits 0.
 **Tests:** no stub — running the suite IS the check
@@ -183,15 +192,15 @@ Update the delegation chain in `workspace_status_engine.py`:
 
 ---
 
-## Wave schedule (provisional — confirmed after Task 0 closes)
+## Wave schedule
 
 | Wave | Tasks | Notes |
 | ---- | ----- | ----- |
-| 0 | Task 0 (spikes) | Gate; blocks all others |
-| 1 | Task 1, Task 4 | Independent; Task 1 writes loop-engine; Task 4 writes workspace_status_engine; no shared files |
-| 2 | Task 2 | Core module; depends on Task 1 for end-to-end event bridge tests |
-| 3 | Task 3, Task 5 | Alias (depends on Task 2); permissions projection (depends on Task 2) |
-| 4 | Task 6 | Version bump; depends on all prior tasks |
-| 5 | Task 7 | Full gates; depends on all prior tasks |
+| 0 | T0 | Gate; blocks all others — COMPLETE |
+| 1 | T1, T4 | Independent; T1 writes loop-engine; T4 writes workspace_status_engine; no shared files |
+| 2 | T2 | Core module; depends on T1 for end-to-end event bridge tests |
+| 3 | T3, T5 | Alias (depends on T2); permissions projection (depends on T2) |
+| 4 | T6 | Version bump; depends on all prior tasks |
+| 5 | T7 | Full gates; depends on all prior tasks |
 
-Tasks 1 and 4 CAN run in parallel within Wave 1 — they edit different files. If parallel dispatch is attempted: Task 1 edits `loop-engine.py`; Task 4 edits `workspace_status_engine.py` — no shared files, safe to run concurrently. Confirm no shared test fixture pollution before dispatching in parallel.
+**Wave execution is sequential** (Phase 1 supervisor mode: parallel fan-out disabled). Tasks 1 and 4 share Wave 1 but execute sequentially within the wave. Each wave's tasks are committed before the next wave begins.

@@ -278,6 +278,16 @@ Format output in four sections (omit sections with no entries):
   - Cross-initiative prefix (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix to get the named initiative; resolve the remainder as above using that initiative's `ini_slug`.
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
 
+**Needs-resolution modes (`analyze_bounded` / `is_need_satisfied`):** `workspace_status()` (used by workspace-mcp) calls `analyze_bounded(autonomous_dispatch=True)`, which applies conservative semantics. All other callers use `autonomous_dispatch=False` (default, human-session semantics). The difference:
+
+| Need | `autonomous_dispatch=False` (default) | `autonomous_dispatch=True` |
+|------|---------------------------------------|---------------------------|
+| `shape:<slug>` | Not in active → satisfied (graduated or never existed) | Not in active AND not in backlog → unsatisfied (never planned). In backlog but not active → satisfied (planned, not yet started). |
+| `research:<slug>` | Not in backlog as type "research" → satisfied (done or never needed) | Not in backlog as type "research" → unsatisfied (never planned). |
+| `work:`, `brief:`, `backlog:`, cross-initiative | Unchanged | Unchanged |
+
+Intentional asymmetry: `shape:` in backlog = satisfied in autonomous mode (presence confirms the human scheduled it); `research:` absent from backlog = unsatisfied in autonomous mode (absence means never planned, not completed).
+
 **Closeout check:** For each initiative in `initiatives[]`, filter `work.ready`, `work.blocked`, `work.active`, and `work.shipped` by that initiative's `ini_slug`. Also check `reconciliation.type2` for any entry with that `ini_slug`. Gate closeout on all of: (1) filtered ready + blocked + active are empty, (2) no type2 findings for that initiative, (3) `initiatives[i].queue_empty` is `true` — a path in both `queue` and `shipped` is excluded from the classifier's ready/blocked output and may have no type2 finding, so the raw queue emptiness flag is the authoritative check, (4) filtered shipped is non-empty → surface: "`<ini-slug>`: all specs shipped — ready to close out? Run closeout to remove this section (git history preserves the record)."
 
 **Findings:** Read `docs/product/findings/rfc-candidates.md` and `docs/product/findings/roadmap-intents.md` if they exist. Count non-header rows in each (a non-header row is any `|…|` line after the header separator row — the `|---|...|` line of dashes).
