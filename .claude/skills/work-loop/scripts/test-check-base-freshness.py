@@ -316,18 +316,20 @@ def case_target_ambiguous_remote(tmp: Path) -> None:
         capture_output=True, text=True, check=True, cwd=str(clone),
     ).stdout.strip()
 
-    # Remove origin and add both 'team' and 'team/upstream' from scratch so
-    # that no fetch ever runs in this test function.  On git ≥ 2.38 the
-    # 'remote add' command rejects a name whose refs/remotes/{name}/ directory
-    # already exists; that directory is created by 'git remote rename' (which
-    # moves origin's tracking refs into refs/remotes/team/upstream/).  Adding
-    # 'team' after the rename triggers the guard.  Removing origin and adding
-    # both remotes before any fetch avoids creating the directory entirely.
+    # Write 'team' and 'team/upstream' directly into .git/config, bypassing
+    # 'git remote add'.  Git ≥ 2.38 rejects 'remote add' when the new name's
+    # refs/remotes/{name}/ directory already exists (created by a prior rename
+    # or fetch), or when an existing remote name is a config-level prefix of
+    # the new name.  Direct config writes avoid both guards.
     # check-base-freshness.py surfaces "ambiguous" before fetching, so the
-    # URLs need not be reachable.
+    # URLs do not need to be reachable for this test.
     git(clone, "remote", "remove", "origin")
-    git(clone, "remote", "add", "team", str(origin))
-    git(clone, "remote", "add", "team/upstream", str(origin))
+    config_path = clone / ".git" / "config"
+    config_path.write_text(
+        config_path.read_text()
+        + f'\n[remote "team"]\n\turl = {origin}\n\tfetch = +refs/heads/*:refs/remotes/team/*\n'
+        f'[remote "team/upstream"]\n\turl = {origin}\n\tfetch = +refs/heads/*:refs/remotes/team/upstream/*\n'
+    )
 
     rc, out, err = run_freshness(clone, "--target", f"team/upstream/{br}")
     if rc != 1:
