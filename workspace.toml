@@ -432,6 +432,16 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # workspace-mcp Stage 1 deferred AC. agentbundle Claude adapter additive-merge
+  # `permissions.allow` projection for the 6 workspace-mcp MCP tool ids. If the
+  # adapter contract cannot be extended non-breakingly, AC17/AC18 are deferred here.
+  # Fix: extend adapter.toml to support additive-merge projection targets for
+  #   permissions.allow; implement the merge in the Claude adapter; verify
+  #   `agentbundle install core` on clean repo adds all 6 ids without breaking
+  #   existing entries (test_adapter_permissions_projection.py).
+  # Unblocks when: Stage 1 implementation begins (spec/workspace-mcp approved).
+  {slug = "workspace-mcp-permissions-projection-contract", source = "spec/workspace-mcp AC17"},
+
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
