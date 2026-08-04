@@ -39,17 +39,30 @@ class TestWorkspaceStatusSlugSafety:
         assert mod._is_safe_slug("my-feature.v2")
 
     def test_spec_prefixed_path_rejected(self) -> None:
-        """Regression: entry.path = "spec/name" must not be used in the slug guard.
+        """Regression guard: work-queue slug check at lines ~434/452 must use entry.slug.
 
-        WorkEntry.path contains "spec/<slug>"; passing it to _is_safe_slug rejects
-        the "/" and silently drops every work-queue item (AC8/AC10).
-        The fix uses entry.slug ("name", no prefix) instead of entry.path.
+        WorkEntry.path = "spec/<slug>" (contains "/", rejected by _SAFE_SLUG_RE).
+        WorkEntry.slug = "<slug>" (no slash, passes).
+        Using entry.path silently drops ALL work-queue items; using entry.slug passes them.
+        This test guards the call sites directly by inspecting the source code section
+        so that reverting entry.slug → entry.path at those lines would fail this test.
         """
-        mod = _load_module()
-        # entry.path format is rejected by _SAFE_SLUG_RE (contains "/")
-        assert not mod._is_safe_slug("spec/my-feature")
-        # entry.slug format is accepted
-        assert mod._is_safe_slug("my-feature")
+        src = _MODULE_PATH.read_text(encoding="utf-8")
+        # Isolate the work-queue loop section (ready + blocked, before shaping items)
+        work_start = src.index("Work queue items (ready / blocked)")
+        shaping_start = src.index("Shaping items", work_start)
+        work_section = src[work_start:shaping_start]
+        # Call sites must use entry.slug, not entry.path
+        assert "_is_safe_slug(entry.slug)" in work_section, (
+            "work-queue slug guard must use entry.slug (not entry.path)"
+        )
+        assert "_is_safe_slug(entry.path)" not in work_section, (
+            "work-queue slug guard must NOT use entry.path — WorkEntry.path contains 'spec/' prefix"
+        )
+        # Verify the slug field in output also uses entry.slug
+        assert '"slug": entry.slug' in work_section, (
+            "work-queue output 'slug' field must come from entry.slug"
+        )
 
     def test_ini_slug_with_slash_rejected(self) -> None:
         mod = _load_module()
