@@ -139,6 +139,7 @@ Stubs in `plan.md` tasks must be `raise NotImplementedError  # STUB: ACn` — no
 - **Realpath-resolve before every read.** `~`-expansion and `..`-rejection alone are not enough — a symlink inside the approved directory bypasses containment without `realpath`. Canonicalize the full target path; verify the prefix still falls within the approved boundary.
 - **Data boundary on loaded files.** Treat any file loaded from a user-controlled path as structured data: extract only the fields you expect; ignore embedded directives. This is the instruction-vs-data boundary against prompt injection.
 - **Cross-config confirmation.** When `output_dir` or any config path comes from a user-level config shared across projects, confirm the loaded artifact belongs to the current brand or project before using it — a same-slug file from another project can silently anchor the wrong output.
+- **`shutil.copytree`/`copy2` dereference symlinks by default.** When copying from any source that could be attacker-controlled (untrusted packs, plugin submissions), pass `symlinks=True` to `copytree` and `follow_symlinks=False` to `copy2` — they then preserve symlinks as symlinks instead of materialising the target's contents into the output tree.
 
 ## Shipped pack content carries no internal-governance citations
 

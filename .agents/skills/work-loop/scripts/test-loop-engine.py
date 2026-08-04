@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -2750,8 +2751,18 @@ def test_check_spec_status_no_flags_defaults_shipped_spec_md(tmp: Path) -> None:
 
 
 def main() -> int:
+    orig_cwd = Path.cwd()
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
+        # Initialise a throw-away git repository so loop-engine's spec-dir
+        # confinement check (git rev-parse --show-toplevel) resolves to this
+        # temp root rather than the real checkout.  Subprocesses inherit the
+        # CWD we set below, so git searches upward from tmpdir and finds it.
+        subprocess.run(
+            ["git", "init", tmpdir],
+            check=True, capture_output=True,
+        )
+        os.chdir(tmpdir)
         tests = [
             test_init_creates_engine_state_code,
             test_init_json_output,
@@ -2868,11 +2879,14 @@ def main() -> int:
             test_check_spec_status_expect_shipped_spec_md,
             test_check_spec_status_no_flags_defaults_shipped_spec_md,
         ]
-        for t in tests:
-            try:
-                t(tmp)
-            except Exception as exc:
-                fail(t.__name__, f"uncaught exception: {exc}")
+        try:
+            for t in tests:
+                try:
+                    t(tmp)
+                except Exception as exc:
+                    fail(t.__name__, f"uncaught exception: {exc}")
+        finally:
+            os.chdir(orig_cwd)
 
     print(f"\n{ran - len(failures)}/{ran} passed", end="")
     if failures:

@@ -12,7 +12,7 @@ skills:
   - markdown-to-xlsx
   - mermaid-renderer
 installCommand: "agentbundle install --pack converters --scope user"
-docsUrl: /docs/guides/converters/
+docsUrl: /guides/converters/
 journeyUrl: /journeys/converters/
 ---
 

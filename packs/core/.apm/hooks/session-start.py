@@ -151,13 +151,27 @@ def _emit_knowledge(path: Path, scope_filter: str) -> None:
         except json.JSONDecodeError:
             malformed += 1
             continue
-        if scope_filter:
+        if not isinstance(entry, dict):
+            malformed += 1
+            continue
+        tier = entry.get("tier", "observation")
+        if tier == "invariant":
+            pass  # always emit regardless of scope filter
+        elif scope_filter:
             # Caller passed a path or narrower glob; only emit entries
             # whose stored scope *covers* it. fnmatch is greedy across
             # `/`, so `packages/auth/**` matches `packages/auth/server.ts`.
+            # scope may be comma-separated multi-glob; any match passes.
             scope = entry.get("scope", "")
+            # Try the raw scope as a single fnmatch glob first.  This
+            # preserves backward compatibility for entries whose scope
+            # contains a literal comma (valid in file-system paths).  Only
+            # fall back to comma-split — the multi-glob syntax — when the
+            # raw pattern does not match.
             if not fnmatch.fnmatch(scope_filter, scope):
-                continue
+                globs = [g.strip() for g in scope.split(",") if g.strip()]
+                if not any(fnmatch.fnmatch(scope_filter, g) for g in globs):
+                    continue
         entries.append(entry)
 
     if malformed:

@@ -56,7 +56,8 @@ entry:
 |---|---|---|
 | `id` | `K-\d{4,}` | Unique, zero-padded to four digits. Conventionally sequential, but the linter only enforces uniqueness — gaps are fine. |
 | `kind` | `pattern` \| `gotcha` \| `antipattern` | Exactly one of these three values. |
-| `scope` | glob | Path pattern this applies to — `packages/auth/**`, `src/cli/*.py`, or `*` for repo-wide. |
+| `scope` | glob(s) | Path pattern(s) this applies to — `packages/auth/**`, `src/cli/*.py`, or `*` for repo-wide. Comma-separate for multiple patterns: `"packages/auth/**, src/models/**"`. |
+| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. `"invariant"` entries are always injected by session-start regardless of `--scope`; use for lessons that apply everywhere. |
 | `title` | string | One-line summary; aim for under 80 characters. |
 | `body` | string | The lesson itself. A paragraph or two is enough; if you find yourself writing more, the entry probably wants to be split. |
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
@@ -67,26 +68,21 @@ validates the file; `tools/hooks/session-start.py` reads it.
 
 ## Curation
 
-Entries are *append-only by default*. If a lesson stops being true (the
-underlying code changed, the constraint went away), the right move is
-to **add a new entry** that says so, citing the old `id` in the body —
-not to edit the old one. This keeps the knowledge base honest about
-*when* a lesson was true.
+This file is a **living representation** of what practitioners should
+know right now — not an immutable audit log. Keep it accurate:
 
-**Supersession lives in the body, by design.** The schema has no
-`supersedes` field; the linter rejects unknown keys. Citing the old
-entry's id in the new entry's `body` is the convention. We chose
-human-readable prose over a machine-checkable field because
-supersession is rare enough that the cost of curating a separate
-field outweighed the legibility gain.
+- **Edit** an entry's body, title, or scope when the lesson changes.
+- **Remove** an entry when the underlying code is gone, the constraint
+  no longer applies, or the lesson has been promoted to a canonical
+  location (AGENTS.md, CONVENTIONS.md, architecture doc).
+- **Add** a note in the body when an edit would otherwise be confusing
+  (`"Previously covered X; promoted to packages/AGENTS.md"`).
 
-Genuine corrections (typo, wrong file path) are fine to fix in place;
-those are clerical, not historical.
+When a lesson is promoted to a canonical location, remove the entry
+and note the destination in the PR description — don't duplicate.
 
-When an entry's scope no longer matches anything (the package was
-removed), leave it as-is. The next reader can see the path is gone and
-infer the entry is historical. Removing entries hides the history of
-what you used to worry about.
+Git history records what existed before. You don't need entries for
+that.
 
 ## Where this fits in the work-loop
 

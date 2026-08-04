@@ -1389,7 +1389,7 @@ backlog = []
         self.assertGreaterEqual(data["operations_applied"], 2)
 
     def test_repair_apply_plan_file_confinement(self) -> None:
-        """AC16d: --plan-file via symlink outside root → exit 2, plan_file_outside_root."""
+        """AC16d: --plan-file symlink resolving outside root → exit 2, plan_file_outside_root."""
         import tempfile as _tmp
         root = self._make_repair_fixture()[0]
         with _tmp.TemporaryDirectory() as outside:

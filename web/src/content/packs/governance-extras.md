@@ -7,7 +7,7 @@ skills:
   - new-adr
   - update-conventions
 installCommand: "agentbundle install --pack governance-extras"
-docsUrl: /docs/guides/governance-extras/
+docsUrl: /guides/governance-extras/
 journeyUrl: /journeys/governance-extras/
 ---
 

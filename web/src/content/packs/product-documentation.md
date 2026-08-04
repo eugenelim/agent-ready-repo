@@ -5,7 +5,7 @@ tagline: "Create, revise, audit, and verify catalogue-facing documentation."
 skills:
   - author-product-docs
 installCommand: "agentbundle install --pack product-documentation"
-docsUrl: /docs/guides/product-documentation/
+docsUrl: /guides/product-documentation/
 journeyUrl: /journeys/product-documentation/
 ---
 

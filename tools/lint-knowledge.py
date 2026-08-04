@@ -33,7 +33,9 @@ def _repo_root() -> pathlib.Path:
 
 
 REQUIRED_KEYS = {"id", "kind", "scope", "title", "body", "source"}
+OPTIONAL_KEYS = {"tier"}
 ALLOWED_KINDS = {"pattern", "gotcha", "antipattern"}
+ALLOWED_TIERS = {"invariant", "observation"}
 ID_PATTERN = re.compile(r"^K-\d{4,}$")
 
 
@@ -79,12 +81,12 @@ def main() -> int:
         if missing:
             err(line_no, f"missing required keys: {sorted(missing)}")
 
-        extra = keys - REQUIRED_KEYS
+        extra = keys - REQUIRED_KEYS - OPTIONAL_KEYS
         if extra:
             err(
                 line_no,
                 f"unknown keys: {sorted(extra)} "
-                f"(allowed: {sorted(REQUIRED_KEYS)})",
+                f"(allowed: {sorted(REQUIRED_KEYS | OPTIONAL_KEYS)})",
             )
 
         # Run remaining content checks against whatever fields are present
@@ -117,6 +119,22 @@ def main() -> int:
             v = entry[k]
             if not isinstance(v, str) or not v.strip():
                 err(line_no, f"{k!r} must be a non-empty string")
+                continue
+            if k == "scope":
+                segments = [g.strip() for g in v.split(",") if g.strip()]
+                if not segments:
+                    err(line_no, "'scope' must contain at least one non-empty glob segment")
+
+        if "tier" in entry:
+            tier_val = entry["tier"]
+            if not isinstance(tier_val, str):
+                err(line_no, f"tier must be a string, got {type(tier_val).__name__!r}")
+            elif tier_val not in ALLOWED_TIERS:
+                err(
+                    line_no,
+                    f"tier {tier_val!r} must be one of {sorted(ALLOWED_TIERS)}"
+                    f" (or omitted, defaulting to 'observation')",
+                )
 
     print(f"\nKnowledge entries checked: {len(seen_ids)}.")
     if error_count:

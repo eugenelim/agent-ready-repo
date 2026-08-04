@@ -47,6 +47,7 @@ collect_work_loop_stale_warnings = _engine_mod.collect_work_loop_stale_warnings
 compute_type2_cleanup = _engine_mod.compute_type2_cleanup
 extract_initiatives = _engine_mod.extract_initiatives
 extract_spec_status = _engine_mod.extract_spec_status
+extract_spec_status_with_fingerprint = _engine_mod.extract_spec_status_with_fingerprint
 extract_top_level_backlog = _engine_mod.extract_top_level_backlog
 get_active_specs = _engine_mod.get_active_specs
 normalize_for_shaping_guard = _engine_mod.normalize_for_shaping_guard
@@ -587,6 +588,88 @@ def case_spec_statuses() -> None:
         nospace_status = extract_spec_status(p_nospace)
         expect(nospace_status == "Shipped",
                f"[AC2h] no-space transition should yield last segment, got {nospace_status}")
+
+
+def case_spec_status_parser_boundaries() -> None:
+    """Parser skips status fields inside code fences, HTML comments, and section bodies."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+
+        def write_raw(slug: str, body: str) -> Path:
+            p = root / "docs" / "specs" / slug / "spec.md"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(body, encoding="utf-8")
+            return p
+
+        # Code-fence skip (backtick fence)
+        p = write_raw("fence-backtick", "# S\n\n```\n- **Status:** Shipped\n```\n")
+        got = extract_spec_status(p)
+        expect(
+            got is None,
+            f"[parser-boundary] status inside ``` fence must yield None, got {got!r}",
+        )
+
+        # Code-fence skip (tilde fence)
+        p = write_raw("fence-tilde", "# S\n\n~~~\n- **Status:** Shipped\n~~~\n")
+        got = extract_spec_status(p)
+        expect(
+            got is None,
+            f"[parser-boundary] status inside ~~~ fence must yield None, got {got!r}",
+        )
+
+        # Section-heading stop — status after first ## heading is body text, not a field
+        p = write_raw("after-heading", "# S\n\n## Design\n\n- **Status:** Shipped\n")
+        got = extract_spec_status(p)
+        expect(got is None,
+               f"[parser-boundary] status after ## heading must yield None, got {got!r}")
+
+        # Multi-line HTML comment suppresses the status field
+        p = write_raw(
+            "ml-comment",
+            "# S\n\n<!--\n- **Status:** Shipped\n-->\n",
+        )
+        got = extract_spec_status(p)
+        expect(got is None,
+               f"[parser-boundary] status inside multi-line comment must yield None, got {got!r}")
+
+        # Close + open on same line: --> <!-- note --> must not leave in_ml_comment=True,
+        # so the NEXT line IS scanned and the real status is found.
+        p = write_raw(
+            "ml-comment-close-open",
+            "# S\n\n<!--\n- **Status:** Draft\n--> <!-- note -->\n- **Status:** Shipped\n",
+        )
+        got = extract_spec_status(p)
+        expect(got == "Shipped",
+               f"[parser-boundary] close+open on same line should not re-enter comment; "
+               f"expected 'Shipped', got {got!r}")
+
+
+def case_spec_status_sister_function_parity() -> None:
+    """extract_spec_status and extract_spec_status_with_fingerprint agree on status."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+
+        def write_raw(slug: str, body: str) -> Path:
+            p = root / "docs" / "specs" / slug / "spec.md"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(body, encoding="utf-8")
+            return p
+
+        cases = [
+            ("normal-shipped", "# S\n\n- **Status:** Shipped\n"),
+            ("inside-fence", "# S\n\n```\n- **Status:** Shipped\n```\n"),
+            ("inside-ml-comment", "# S\n\n<!--\n- **Status:** Shipped\n-->\n"),
+            ("after-heading", "# S\n\n## Body\n\n- **Status:** Shipped\n"),
+        ]
+        for slug, body in cases:
+            p = write_raw(slug, body)
+            simple = extract_spec_status(p)
+            with_fp, _ = extract_spec_status_with_fingerprint(p)
+            expect(
+                simple == with_fp,
+                f"[sister-parity] {slug}: extract_spec_status={simple!r} "
+                f"but extract_spec_status_with_fingerprint returned {with_fp!r}",
+            )
 
 
 # ── AC2i: Missing spec paths ──────────────────────────────────────────────────
@@ -1367,7 +1450,7 @@ _WORK_LOOP_CONTRACT_HASH = (
     "c739285ae95ad891fddb2f6463624e2ef1793e1694e6711543c4d6eb1e4d72f6"
 )
 _WORK_LOOP_FINISH_HASH = (
-    "ff395703cf1ba7d10bbdf22909c59c675673aa7d76dab05d2fb51c228b56872f"
+    "7a6ac4f28a6aeee56dc608867213efdc6b29646ceb35e090c60bf97a6b764baa"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
@@ -2536,6 +2619,14 @@ def test_ac2g_ready_and_transitively_blocked() -> None:
 
 def test_ac2h_spec_statuses() -> None:
     _run_case(case_spec_statuses)
+
+
+def test_ac2h_spec_status_parser_boundaries() -> None:
+    _run_case(case_spec_status_parser_boundaries)
+
+
+def test_ac2h_spec_status_sister_function_parity() -> None:
+    _run_case(case_spec_status_sister_function_parity)
 
 
 def test_ac2i_missing_spec_paths() -> None:
