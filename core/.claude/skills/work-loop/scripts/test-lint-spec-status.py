@@ -368,6 +368,32 @@ def case_v_extensionless_registry_and_dangling() -> None:
                f"dangling Contract: ref should warn (v), warn-only: {err2}")
 
 
+def case_multiline_comment_not_matched() -> None:
+    """Regression: a **Status:** inside a multiline HTML comment must not
+    be returned before the live status field (parse_status was applying
+    _HTML_COMMENT_RE per-line, so block comments were never stripped)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        spec = root / "docs" / "specs" / "commented" / "spec.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        # The commented status uses a non-canonical token ("Nonexistent") so
+        # that the per-line implementation (which would pick it up from inside
+        # the comment) would fail the vocabulary check.  The fix strips the
+        # whole comment block first; "Draft" is the only status seen → exit 0.
+        spec.write_text(
+            "# Spec: commented\n\n"
+            "<!--\n"
+            "- **Status:** Nonexistent\n"
+            "-->\n"
+            "- **Status:** Draft\n\n"
+            "## Acceptance Criteria\n\n"
+            "- [x] AC1\n",
+            encoding="utf-8",
+        )
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"live Draft should pass vocab check, got {rc}: {err}")
+
+
 def main() -> int:
     for case in (
         case_clean,
@@ -391,6 +417,7 @@ def main() -> int:
         case_v_forward_without_backward_warns,
         case_v_no_contracts_noop,
         case_v_extensionless_registry_and_dangling,
+        case_multiline_comment_not_matched,
     ):
         case()
     if FAILURES:

@@ -7,7 +7,7 @@ description: "Use when implementing or resuming a non-trivial repository change:
 
 ## Work-loop contract
 
-> **Surface** = stop the current loop, emit a brief description of the situation (what happened, what you tried, current state), and wait for human direction. Do not retry, redispatch, or silently continue. (Reviewers also "surface" findings in the descriptive sense — context disambiguates.)
+> **Surface** = stop the current loop, emit a brief description of the situation (what happened, what you tried, current state), name the minimum viable recovery rung, and wait for human direction. Do not retry, redispatch, or silently continue. Recovery rungs in cost order: **steer** (redirect this session with corrected instructions — cheapest; preserves context) / **rerun** (new session, gap-closed brief — keeps prior commits, discards context) / **salvage** (manual recovery from the last clean branch — use when agent state is irrecoverable). (Reviewers also "surface" findings in the descriptive sense — context disambiguates.)
 
 State flow: `PLAN → EXECUTE → GATES → REVIEW → DECIDE`. After a fix, return to GATES.
 
@@ -66,6 +66,8 @@ No trigger fires → **light mode**.
 
 **Full mode**: any risk trigger fires. Full `new-spec` with all sections, `loop-cohort` state machine, `adversarial-reviewer` iterated to Clean, `quality-engineer` floor, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the four trims above.
 
+**Base freshness check.** Before reading `workspace.toml` or any spec: run `python scripts/check-base-freshness.py`. Exit 0: head is current, proceed. Exit 1: read `message` in the JSON output and Surface it — on POSIX with a clean working tree, `message` includes the git rebase command to run; for other cases (dirty tree, network error, Windows) `message` describes the specific issue and what to do. Pass `--target REMOTE/BRANCH` for non-default targets (stacked PRs, release branches); required when more than one remote is configured.
+
 ## Step 0. ORIENT
 
 Skip entirely if `workspace.toml` is absent. If present:
@@ -97,7 +99,7 @@ After orientation:
 7. **Pick the verification mode for each task** before writing code:
    - **TDD** — compressible invariant (pure functions, state machines, protocols). ACs + Testing Strategy in spec; red stub in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
    - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
-   - **Visual / manual QA** — any artifact a user invokes directly (CLI, library API, agent, UI, service endpoint). Exercise the real built artifact end-to-end through the documented happy path; record observed output (stdout, exit code, returned value, on-screen result). Never let a passing unit gate stand in for real invocation. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
+   - **Visual / manual QA** — any artifact a user invokes directly (CLI, library API, agent, UI, service endpoint). Exercise the real built artifact end-to-end through the documented happy path; record observed output (stdout, exit code, returned value, on-screen result). Never let a passing unit gate stand in for real invocation. For UI work specifically: check after each task that modifies user-visible state — screenshot or eval the real webview; UI matches backend is the bar. A blank footer, a lying status banner, or a missing row is a bug to file-and-fix even when the backend is healthy. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
    - **infra/deploy** — layered GATES sequence: static preflight < plan/preview < idempotent convergent apply < active end-to-end smoke < rollback. Full doctrine: [`references/infra-verification.md`](references/infra-verification.md).
 
    **Confirm the mechanism exists before claiming the mode — task zero if it doesn't.** Applies equally across all modes and light and full mode alike.
@@ -396,10 +398,14 @@ python scripts/loop-engine.py transition docs/specs/<feature> wave-complete
 
 Route each reviewer finding into `apply` (fix in this PR) or `defer` (capture as follow-up) — the work-loop's interpretation of reviewer output; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
 
+**Execution-path check.** Before routing any finding to `apply`: confirm the fix reaches a live code path — grep for callers or trace the entry point. A guard that no caller exercises doesn't close a finding; a test that drives a mock seam instead of the real entry point doesn't count.
+
 - **Blockers** → `apply`. Re-run GATES and REVIEW after each fix.
 - **Concerns** → `apply` if mechanical and in scope (default for any Concern whose fix meets the bundled-fixes gates). `defer` if the fix crosses files outside the plan, requires a design call, or changes user-visible behavior the spec didn't authorize. Don't let Concerns rot in chat — every Concern resolves into one of the two.
 - **Nits** → `apply` if they meet the bundled-fixes gates (land in `Bundled fixes:`). Otherwise `defer` — one line in `Deferred:`. Every Nit resolves into one of the two; the `Deferred:` line is the acknowledgement that the loop saw it and chose not to fix.
 - **Deferred items** → before recording, ask: *"Could this be delivered in this PR without crossing scope or introducing unreviewed risk?"* Only defer if genuinely no. Record in `workspace.toml [backlog].open` as `{slug = "...", source = "spec/<name> ACn"}` with a cold-start-sufficient TOML comment. Add `(deferred: <slug>)` to the spec criterion that defers. PR description keeps only a one-line pointer in a standalone `Deferred:` section (alongside `Bundled fixes:`; append below standard template content, don't modify the template). After recording, prompt: *"Does this look like an RFC candidate or roadmap intent? If so, add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Skip if neither file exists.
+
+**Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture learnings](#capture-learnings).
 
 When gates are green and the mode's review requirements are satisfied → proceed to [Finish checklist](#finish-checklist).
 
@@ -419,7 +425,7 @@ If you hit any of these and the work isn't done: stop, write down what you learn
 Refuse to declare done until every item is true. (**Light mode:** `quality-engineer` floor dropped; "review clean" means the single bounded `adversarial-reviewer` pass, with no `loop-cohort` involved; doc-drift invariants and `lint-spec-status.py` still apply.)
 
 - [ ] GATES were clean (lint, typecheck, tests).
-- [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this.
+- [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
 - [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs) returned `Clean — ready to commit.` or is a named skip — **except missing `security-reviewer` on infra-flavored work, which blocks**. Silent skips are not allowed.
 - [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an `apply` or `defer` disposition; applied fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or is an allowed named skip.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
@@ -433,8 +439,8 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 ## FIX
 
 1. Read the finding carefully; fix what the reviewer flagged, not the symptom.
-2. Make the smallest change that addresses it.
-3. Re-run GATES.
+2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
+3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
 4. **Full mode:** after any applied REVIEW finding, re-run the reviewer or reviewer set that produced it; continue until Clean.
 5. **Light mode — non-Blocker fix:** return to GATES, then DECIDE/finish. Do not run a second adversarial pass.
 6. **Light mode — Blocker fix:** return to GATES, then run the single permitted re-review. A surviving Blocker escalates to full mode.
@@ -443,7 +449,9 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 Before the PR is opened: *What would have made this loop go faster?*
 
-- **Practitioner lessons** (repeatable pattern, gotcha, antipattern) → check `docs/CONVENTIONS.md` for a `Knowledge base` section; if present, follow its schema and location rules. If absent, add a one-line note to the relevant `AGENTS.md` (root or per-package).
+Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
+
+- **Review scratch notes** from this session's DECIDE passes. For each: generalisable beyond this PR and would have changed the approach → promote to `docs/knowledge/patterns.jsonl` (schema: `docs/knowledge/README.md`); otherwise discard.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
 - "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.

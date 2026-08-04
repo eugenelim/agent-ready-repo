@@ -316,7 +316,32 @@ def _resolve_spec_dir(raw: str) -> Path:
     parts = Path(raw).parts
     if ".." in parts:
         raise ValueError(f"spec-dir must not contain '..': {raw!r}")
-    return Path(raw).resolve()
+    resolved = Path(raw).resolve()
+    # Confine to the repo root so absolute or out-of-tree paths are rejected.
+    # Use subprocess.run directly (not _run) to read stdout only — _run returns
+    # "stderr or stdout", so GIT_TRACE=1 trace output would replace the path.
+    # Strip GIT_DIR / GIT_WORK_TREE so a caller-controlled environment cannot
+    # redirect git to report "/" as the toplevel, bypassing this check.
+    _git_override_vars = frozenset({
+        "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    })
+    safe_env = {k: v for k, v in os.environ.items() if k not in _git_override_vars}
+    r = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, encoding="utf-8", check=False,
+        env=safe_env,
+    )
+    if r.returncode != 0 or not r.stdout.strip():
+        raise ValueError("spec-dir confinement check failed: could not determine repo root")
+    repo_root = Path(r.stdout.strip()).resolve()
+    try:
+        resolved.relative_to(repo_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"spec-dir must be inside the repository ({repo_root}): {raw!r}"
+        ) from exc
+    return resolved
 
 
 def stop(reason: str, code: int = 1) -> int:
