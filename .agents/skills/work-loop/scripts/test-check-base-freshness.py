@@ -325,10 +325,12 @@ def case_target_ambiguous_remote(tmp: Path) -> None:
     # URLs do not need to be reachable for this test.
     git(clone, "remote", "remove", "origin")
     config_path = clone / ".git" / "config"
+    team_fetch = "+refs/heads/*:refs/remotes/team/*"
+    upstream_fetch = "+refs/heads/*:refs/remotes/team/upstream/*"
     config_path.write_text(
         config_path.read_text()
-        + f'\n[remote "team"]\n\turl = {origin}\n\tfetch = +refs/heads/*:refs/remotes/team/*\n'
-        f'[remote "team/upstream"]\n\turl = {origin}\n\tfetch = +refs/heads/*:refs/remotes/team/upstream/*\n'
+        + f'\n[remote "team"]\n\turl = {origin}\n\tfetch = {team_fetch}\n'
+        f'[remote "team/upstream"]\n\turl = {origin}\n\tfetch = {upstream_fetch}\n'
     )
 
     rc, out, err = run_freshness(clone, "--target", f"team/upstream/{br}")
