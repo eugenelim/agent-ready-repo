@@ -13,7 +13,7 @@ skills:
   - explore-options
   - plan-validation
 installCommand: "agentbundle install --pack product-engineering --scope user"
-docsUrl: /guides/product-engineering/
+docsUrl: /docs/guides/product-engineering/
 journeyUrl: /journeys/product-engineering/
 ---
 

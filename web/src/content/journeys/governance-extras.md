@@ -74,7 +74,7 @@ typicalSession:
   agentTurns: "6–10"
   humanTouches: 3
   wallClockMinutes: "20–45"
-docsUrl: /guides/governance-extras/
+docsUrl: /docs/guides/governance-extras/
 packUrl: /packs/governance-extras/
 relatedJourneys:
   - core

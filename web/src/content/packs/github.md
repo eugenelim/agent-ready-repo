@@ -5,7 +5,7 @@ tagline: "Turn a GitHub Milestone into a product brief"
 skills:
   - github-brief-intake
 installCommand: "agentbundle install --pack github --scope user"
-docsUrl: /guides/github/
+docsUrl: /docs/guides/github/
 ---
 
 Reads a GitHub Milestone — title, description, and all linked issues — and

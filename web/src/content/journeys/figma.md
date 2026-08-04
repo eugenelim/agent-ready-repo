@@ -47,7 +47,7 @@ typicalSession:
   agentTurns: "3–6"
   humanTouches: 2
   wallClockMinutes: "10–25"
-docsUrl: /guides/figma/
+docsUrl: /docs/guides/figma/
 packUrl: /packs/figma/
 relatedJourneys:
   - experience-design

@@ -15,7 +15,7 @@ skills:
   - desk-research-project-digest
   - desk-research-project-synthesize
 installCommand: "agentbundle install --pack desk-research --scope user"
-docsUrl: /guides/desk-research/
+docsUrl: /docs/guides/desk-research/
 journeyUrl: /journeys/desk-research/
 ---
 

@@ -32,7 +32,7 @@ typicalSession:
   agentTurns: "2–4"
   humanTouches: 1
   wallClockMinutes: "5–15"
-docsUrl: /guides/credential-brokers/
+docsUrl: /docs/guides/credential-brokers/
 packUrl: /packs/credential-brokers/
 relatedJourneys:
   - figma

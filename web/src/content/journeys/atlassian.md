@@ -107,7 +107,7 @@ typicalSession:
   agentTurns: "6–10"
   humanTouches: 4
   wallClockMinutes: "20–40"
-docsUrl: /guides/atlassian/
+docsUrl: /docs/guides/atlassian/
 packUrl: /packs/atlassian/
 relatedJourneys:
   - core
