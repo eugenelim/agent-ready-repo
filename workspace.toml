@@ -442,6 +442,21 @@ open = [
   # Unblocks when: Stage 1 implementation begins (spec/workspace-mcp approved).
   {slug = "workspace-mcp-permissions-projection-contract", source = "spec/workspace-mcp AC17"},
 
+  # workspace-mcp Stage 1 behavioral integration tests (AC3–AC9, AC11–AC16, AC21–AC22).
+  # EventBridge polling, elicit O_EXCL/response-file, git subprocess injection defense,
+  # frame-size cap, MCP handshake — all verified only by pytest.skip() stubs in Stage 1.
+  # The module code is present and code-reviewed; stubs document the verification shape.
+  # Fix: promote each pytest.skip() stub to a real passing test, running workspace_mcp.py
+  #   as a subprocess via stdin/stdout pipes (one-shot MCP JSON-RPC messages).
+  # Unblocks when: workspace-mcp is promoted from Stage 1 to production-ready status.
+  {slug = "workspace-mcp-stage1-behavioral-tests", source = "spec/workspace-mcp AC3-AC9,AC11-AC16,AC21-AC22"},
+
+  # workspace-mcp brief-queue exposure. workspace_status() does not yet surface
+  # brief_queue items; the brief_queue layout in workspace.toml is not yet
+  # standardised. Deferred until workspace.toml brief-queue layout is ratified.
+  # Fix: add a `briefs` key to workspace_status() response alongside ready/shaping/blocked.
+  {slug = "workspace-mcp-brief-queue-exposure", source = "spec/workspace-mcp (deferred)"},
+
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 

@@ -457,10 +457,17 @@ def is_need_satisfied(
     need: str,
     ini_slug: str,
     all_initiatives: list[Initiative],
+    autonomous_dispatch: bool = False,
 ) -> bool:
     """Return True if `need` is satisfied given the current workspace state.
 
     Implements the needs-resolution table from SKILL.md §2.
+
+    When autonomous_dispatch=False (default): human-session semantics — absent targets
+    are treated as satisfied (the human knows the workspace state).
+    When autonomous_dispatch=True: conservative semantics — absent targets are unsatisfied
+    so the control plane does not dispatch work before prerequisites are explicitly planned.
+    See SKILL.md §2 for the shape:/research: asymmetry between the two modes.
 
     Known gaps (KD-01, KD-03):
       - `backlog:<slug>` prefix: not in SKILL.md table; treated as unsatisfied here.
@@ -485,24 +492,33 @@ def is_need_satisfied(
                 return any(e.path == path for e in ini.work.shipped)
         return False
 
-    # Shape: "shape:<slug>" — satisfied when no longer in active (graduated from active shaping).
-    # SKILL.md:90, schema.md:114: resolves against .active only.
-    # Backlog = scheduled but not yet started; absent from active = treated as done.
+    # Shape: "shape:<slug>" — SKILL.md §2.
+    # Human-managed mode: satisfied when no longer in active (graduated from shaping).
+    # Absent from active = treated as done regardless of backlog.
+    # Autonomous mode: absent from both active AND backlog → never planned → unsatisfied.
+    # Absent from active but present in backlog → planned, not yet started → satisfied.
+    # (Intentional asymmetry with research: — see SKILL.md §2.)
     if need.startswith("shape:"):
         slug = need[len("shape:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
                 active_slugs = {e.slug for e in ini.shaping.active}
+                if autonomous_dispatch:
+                    backlog_slugs = {e.slug for e in ini.shaping.backlog}
+                    if slug not in active_slugs and slug not in backlog_slugs:
+                        return False  # never planned
                 return slug not in active_slugs
         return True  # Initiative not found → assume satisfied
 
-    # Research: "research:<slug>" — satisfied when NOT in shaping backlog as type="research"
+    # Research: "research:<slug>" — SKILL.md §2.
+    # Human-managed mode: satisfied when NOT in shaping backlog as type="research".
+    # Absent from backlog = treated as satisfied (research completed or never needed).
+    # Only entries explicitly typed "research" can block a research: need.
+    # Note: autonomous_dispatch does NOT change research semantics — absence means completed.
     if need.startswith("research:"):
         slug = need[len("research:"):]
         for ini in all_initiatives:
             if ini.slug == ini_slug:
-                # Only entries explicitly typed "research" can block a research: need.
-                # A shape/signal/design entry with the same slug does NOT block it.
                 research_slugs = {
                     e.slug for e in ini.shaping.backlog if e.entry_type == "research"
                 }
@@ -536,6 +552,7 @@ def is_need_satisfied(
 def classify_entries(
     ini: Initiative,
     all_initiatives: list[Initiative],
+    autonomous_dispatch: bool = False,
 ) -> list[EntryClassification]:
     """Classify queue entries as ready or blocked.
 
@@ -556,7 +573,7 @@ def classify_entries(
         else:
             blocking = [
                 n for n in entry.needs
-                if not is_need_satisfied(n, ini.slug, all_initiatives)
+                if not is_need_satisfied(n, ini.slug, all_initiatives, autonomous_dispatch)
             ]
             results.append(EntryClassification(
                 entry=entry,
@@ -570,6 +587,7 @@ def classify_entries(
 def classify_shaping_entries(
     ini: Initiative,
     all_initiatives: list[Initiative],
+    autonomous_dispatch: bool = False,
 ) -> list[ShapingClassification]:
     """Classify shaping queue entries for an active initiative.
 
@@ -609,7 +627,7 @@ def classify_shaping_entries(
         else:
             blocking = [
                 n for n in entry.needs
-                if not is_need_satisfied(n, ini.slug, all_initiatives)
+                if not is_need_satisfied(n, ini.slug, all_initiatives, autonomous_dispatch)
             ]
             results.append(ShapingClassification(
                 entry=entry,
@@ -841,12 +859,15 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
     )
 
 
-def analyze_bounded(root: Path) -> WorkspaceStatusResult:
+def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceStatusResult:
     """Run bounded workspace-status analysis (Type 2+3 only; no global spec walk).
 
     Used by 'status' and 'explain' subcommands. Structurally guarantees no Type 1
     scan: calls _run_type23_scan only, never _run_type1_scan. Path confinement is
     preserved — _run_type23_scan routes all path resolution through _safe_spec_path().
+
+    autonomous_dispatch=True applies conservative needs-resolution semantics (see
+    is_need_satisfied and SKILL.md §2). workspace_status() passes autonomous_dispatch=True.
     """
     t0 = time.monotonic()
 
@@ -859,8 +880,8 @@ def analyze_bounded(root: Path) -> WorkspaceStatusResult:
     for ini in initiatives:
         if ini.status not in ("active",):
             continue
-        all_classifications.extend(classify_entries(ini, initiatives))
-        all_shaping.extend(classify_shaping_entries(ini, initiatives))
+        all_classifications.extend(classify_entries(ini, initiatives, autonomous_dispatch))
+        all_shaping.extend(classify_shaping_entries(ini, initiatives, autonomous_dispatch))
 
     type23_findings, declared_files = _run_type23_scan(root, initiatives)
     top_level_backlog = extract_top_level_backlog(workspace)
