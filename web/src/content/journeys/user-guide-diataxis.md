@@ -39,7 +39,7 @@ typicalSession:
   agentTurns: "4–7"
   humanTouches: 2
   wallClockMinutes: "15–35"
-docsUrl: /guides/product-documentation/
+docsUrl: /docs/guides/product-documentation/
 packUrl: /packs/product-documentation/
 relatedJourneys:
   - core

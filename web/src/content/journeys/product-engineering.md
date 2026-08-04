@@ -115,7 +115,7 @@ typicalSession:
   agentTurns: "12–20"
   humanTouches: 4
   wallClockMinutes: "60–120"
-docsUrl: /guides/product-engineering/
+docsUrl: /docs/guides/product-engineering/
 packUrl: /packs/product-engineering/
 relatedJourneys:
   - core

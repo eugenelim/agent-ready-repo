@@ -53,7 +53,7 @@ typicalSession:
   agentTurns: "2–4"
   humanTouches: 1
   wallClockMinutes: "5–15"
-docsUrl: /guides/converters/
+docsUrl: /docs/guides/converters/
 packUrl: /packs/converters/
 relatedJourneys:
   - core

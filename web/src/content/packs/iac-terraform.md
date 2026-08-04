@@ -6,7 +6,7 @@ skills:
   - generate-iac
   - reconcile-iac
 installCommand: "agentbundle install --pack iac-terraform"
-docsUrl: /guides/iac-terraform/
+docsUrl: /docs/guides/iac-terraform/
 journeyUrl: /journeys/iac-terraform/
 ---
 
