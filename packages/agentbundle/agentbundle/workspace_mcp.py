@@ -148,7 +148,7 @@ and `workspace_status().ini_slug` are the canonical forms. Skip if the current \
 branch name equals `<ini_slug>/<type>/<slug>` exactly.
 
 6. When instructed to commit and push artifacts, call git_status() to identify \
-uncommitted files, git_commit(paths, message) for the matching paths, then \
+uncommitted files, git_commit(message) to stage and commit the matching paths, then \
 git_push(branch) if it is available. Do not skip steps that are available.\
 """
 
