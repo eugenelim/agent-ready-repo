@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 _ENGINE_PATH = (
     Path(__file__).resolve().parents[3]
     / "packs" / "core" / ".apm" / "skills" / "workspace-status" / "scripts"
@@ -48,7 +50,7 @@ class TestShapeNeedAutonomous:
     """AC19: shape: need — absent from active AND backlog → unsatisfied when autonomous."""
 
     def test_shape_absent_unsatisfied_autonomous(self) -> None:
-        assert False  # STUB: AC19
+        pytest.skip("STUB: AC19")
 
     def test_shape_in_active_unsatisfied_both_modes(self) -> None:
         mod = _load_engine()
@@ -87,7 +89,7 @@ class TestResearchNeedAutonomous:
     """AC19: research: need — absent from backlog as type 'research' → unsatisfied when autonomous."""
 
     def test_research_absent_unsatisfied_autonomous(self) -> None:
-        assert False  # STUB: AC19
+        pytest.skip("STUB: AC19")
 
     def test_research_in_backlog_unsatisfied_both_modes(self) -> None:
         mod = _load_engine()

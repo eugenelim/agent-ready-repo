@@ -431,14 +431,14 @@ class _WorkspaceStatusTool:
         # Work queue items (ready / blocked)
         for cls in result.ready:
             entry = cls.entry
-            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.path):
+            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
                 _log.warning("workspace_status: unsafe slug in ready item; skipping")
                 continue
             manifest = _LIFECYCLE_MANIFEST.get("work", {})
             item: dict[str, Any] = {
                 "ini_slug": cls.ini_slug,
                 "type": "work",
-                "slug": entry.path,
+                "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
             }
             skill = manifest.get("dispatch_skill")
@@ -449,14 +449,14 @@ class _WorkspaceStatusTool:
 
         for cls in result.blocked:
             entry = cls.entry
-            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.path):
+            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
                 _log.warning("workspace_status: unsafe slug in blocked item; skipping")
                 continue
             manifest = _LIFECYCLE_MANIFEST.get("work", {})
             item = {
                 "ini_slug": cls.ini_slug,
                 "type": "work",
-                "slug": entry.path,
+                "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
                 "unmet_needs": cls.blocking_needs,
             }
@@ -590,12 +590,18 @@ class _ElicitTool:
         if options is not None:
             req["params"]["options"] = options
 
-        with self._write_lock:
-            self._write(req)
+        # _write already holds write_lock internally; do not re-acquire here
+        # (re-acquiring a non-reentrant Lock from the same thread deadlocks).
+        self._write(req)
 
-        # Wait for response from the client
+        # Wait for response from the client (bounded by _ELICIT_POLL_TIMEOUT).
+        deadline = time.monotonic() + _ELICIT_POLL_TIMEOUT
         while not self._shutdown.is_set():
-            if result_event.wait(timeout=1.0):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                del self._request_map[request_id]
+                return {"error": "elicitation timed out (no response within 300 s)"}
+            if result_event.wait(timeout=min(1.0, remaining)):
                 break
         else:
             del self._request_map[request_id]
@@ -662,6 +668,9 @@ class _GitTools:
         self._discovery_mode = not spec_path and not dispatched
         self._output_pattern: list[str] | None = self._resolve_output_pattern(dispatched)
         self._session_branch: str | None = self._read_head_branch()
+        # Serialize all mutating git operations: prevents index.lock collisions
+        # and TOCTOU races on _session_branch between concurrent tool calls.
+        self._git_lock = threading.Lock()
 
     def _resolve_output_pattern(self, dispatched: str | None) -> list[str] | None:
         if dispatched is None:
@@ -670,6 +679,21 @@ class _GitTools:
         try:
             ini_slug, rest = dispatched.split("/", 1)
             item_type, slug = rest.split(":", 1)
+        except ValueError:
+            _log.warning("WORKSPACE_MCP_DISPATCHED_ITEM has unexpected shape: %r", dispatched)
+            return None
+        # Validate each path component to match the AC10 slug guard used in the
+        # workspace_status path — prevents a crafted env var from widening the
+        # commit pattern (defense-in-depth; the env var is set by the orchestrator).
+        for component in (ini_slug, slug):
+            if not _is_safe_slug(component):
+                _log.warning(
+                    "WORKSPACE_MCP_DISPATCHED_ITEM contains unsafe slug %r; "
+                    "git_commit will be unavailable",
+                    component,
+                )
+                return None
+        try:
             manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
             patterns = manifest.get("output_pattern")
             if patterns is None:
@@ -713,15 +737,18 @@ class _GitTools:
         )
         if r.returncode != 0:
             return {"error": f"invalid branch name: {name!r}"}
-        # Create and check out (no -- : branch name is an option arg, not a pathspec)
-        r = subprocess.run(
-            ["git", "checkout", "-b", name],
-            capture_output=True, text=True, encoding="utf-8",
-            cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
-        )
-        if r.returncode != 0:
-            return {"error": r.stderr.strip() or f"git checkout -b failed (exit {r.returncode})"}
-        self._session_branch = name
+        # _git_lock serializes all mutating git operations to prevent index.lock
+        # collisions and TOCTOU races on _session_branch across concurrent calls.
+        with self._git_lock:
+            # Create and check out (no -- : branch name is an option arg, not a pathspec)
+            r = subprocess.run(
+                ["git", "checkout", "-b", name],
+                capture_output=True, text=True, encoding="utf-8",
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            )
+            if r.returncode != 0:
+                return {"error": r.stderr.strip() or f"git checkout -b failed (rc={r.returncode})"}
+            self._session_branch = name
         return {"branch": name}
 
     def git_commit(self, arguments: dict) -> dict:
@@ -731,62 +758,67 @@ class _GitTools:
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
         import fnmatch
-        # Get uncommitted paths
-        r = subprocess.run(
-            ["git", "status", "--short", "--porcelain"],
-            capture_output=True, text=True, encoding="utf-8",
-            cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
-        )
-        if r.returncode != 0:
-            return {"error": f"git status failed: {r.stderr.strip()}"}
-        uncommitted = []
-        for line in r.stdout.splitlines():
-            if len(line) >= 3:
-                uncommitted.append(line[3:].strip())
-        # Intersect with output_pattern
-        matched = [
-            p for p in uncommitted
-            if any(fnmatch.fnmatch(p, pat) for pat in self._output_pattern)
-        ]
-        if not matched:
-            return {"error": "no uncommitted files match the dispatched item's output_pattern"}
-        r = subprocess.run(
-            ["git", "add", "--", *matched],
-            capture_output=True, text=True, encoding="utf-8",
-            cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
-        )
-        if r.returncode != 0:
-            return {"error": f"git add failed: {r.stderr.strip()}"}
-        r = subprocess.run(
-            ["git", "commit", "-m", message],
-            capture_output=True, text=True, encoding="utf-8",
-            cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
-        )
-        if r.returncode != 0:
-            return {"error": f"git commit failed: {r.stderr.strip()}"}
+        with self._git_lock:
+            # Get uncommitted paths
+            r = subprocess.run(
+                ["git", "status", "--short", "--porcelain"],
+                capture_output=True, text=True, encoding="utf-8",
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            )
+            if r.returncode != 0:
+                return {"error": f"git status failed: {r.stderr.strip()}"}
+            uncommitted = []
+            for line in r.stdout.splitlines():
+                if len(line) >= 3:
+                    uncommitted.append(line[3:].strip())
+            # Intersect with output_pattern
+            matched = [
+                p for p in uncommitted
+                if any(fnmatch.fnmatch(p, pat) for pat in self._output_pattern)
+            ]
+            if not matched:
+                return {"error": "no uncommitted files match the dispatched item's output_pattern"}
+            r = subprocess.run(
+                ["git", "add", "--", *matched],
+                capture_output=True, text=True, encoding="utf-8",
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            )
+            if r.returncode != 0:
+                return {"error": f"git add failed: {r.stderr.strip()}"}
+            r = subprocess.run(
+                ["git", "commit", "-m", message],
+                capture_output=True, text=True, encoding="utf-8",
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            )
+            if r.returncode != 0:
+                return {"error": f"git commit failed: {r.stderr.strip()}"}
         return {"committed": matched, "message": message}
 
     def git_push(self, arguments: dict) -> dict:
         if self._discovery_mode:
             return {"error": "git_push is not available in discovery mode"}
         branch = arguments.get("branch", "")
-        # Two-sided check: branch arg must equal session-bound branch AND HEAD must equal it
-        if not branch or branch != self._session_branch:
-            return {
-                "error": (
-                    f"branch {branch!r} does not match session branch {self._session_branch!r}"
-                )
-            }
-        current = self._read_head_branch()
-        if current != branch:
-            return {"error": f"HEAD is on {current!r}, not {branch!r}"}
-        r = subprocess.run(
-            ["git", "push", "--", "origin", branch],
-            capture_output=True, text=True, encoding="utf-8",
-            cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
-        )
-        if r.returncode != 0:
-            return {"error": f"git push failed: {r.stderr.strip()}"}
+        with self._git_lock:
+            # Two-sided check under lock: branch arg must equal session-bound
+            # branch AND HEAD must equal it. Lock prevents TOCTOU between the
+            # HEAD check and the push across concurrent git_branch / git_push calls.
+            if not branch or branch != self._session_branch:
+                return {
+                    "error": (
+                        f"branch {branch!r} does not match session branch "
+                        f"{self._session_branch!r}"
+                    )
+                }
+            current = self._read_head_branch()
+            if current != branch:
+                return {"error": f"HEAD is on {current!r}, not {branch!r}"}
+            r = subprocess.run(
+                ["git", "push", "--", "origin", branch],
+                capture_output=True, text=True, encoding="utf-8",
+                cwd=str(self._repo_root), timeout=_GIT_TIMEOUT, check=False,
+            )
+            if r.returncode != 0:
+                return {"error": f"git push failed: {r.stderr.strip()}"}
         return {"pushed": branch}
 
 
@@ -844,21 +876,23 @@ class _StdioLoop:
         })
 
     def _read_frame(self) -> str | None:
-        """Read one line from stdin; enforce frame-size cap.
+        """Read one line from stdin; enforce byte-accurate frame-size cap.
 
+        The cap is enforced during the read (no full-frame accumulation).
+        Counts encoded bytes, not characters, so a 1 MiB cap is 1 MiB.
         Returns None on EOF or if stdin is closed.
         """
         buf: list[str] = []
-        total = 0
+        byte_total = 0
         while True:
             ch = sys.stdin.read(1)
             if not ch:
                 return None  # EOF
             if ch == "\n":
                 return "".join(buf)
-            total += 1
-            if total > _FRAME_SIZE_LIMIT:
-                # Drain and quarantine the oversized frame
+            byte_total += len(ch.encode("utf-8"))
+            if byte_total > _FRAME_SIZE_LIMIT:
+                # Drain and quarantine the oversized frame without accumulating it
                 _log.warning("frame exceeds 1 MiB cap; quarantining")
                 while True:
                     ch2 = sys.stdin.read(1)
