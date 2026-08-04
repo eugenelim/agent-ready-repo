@@ -6,7 +6,7 @@ skills:
   - api-contract
   - event-contract
 installCommand: "agentbundle install --pack contracts --scope user"
-docsUrl: /docs/guides/contracts/
+docsUrl: /guides/contracts/
 journeyUrl: /journeys/contracts/
 ---
 

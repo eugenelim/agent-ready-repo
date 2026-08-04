@@ -866,8 +866,8 @@ and curation conventions live in
 learn by building, not by deciding or documenting. They earn a home
 because they're scoped to globs (an agent priming for `packages/auth`
 should see the auth gotchas, not every lesson the repo ever learned)
-and append-only (a lesson that stops being true gets a *new* entry
-citing the old one, not an edit — which keeps history honest).
+and kept current (edit or remove entries as the codebase changes —
+git history is the record; see `docs/knowledge/README.md § Curation`).
 
 **How agents see it.** `tools/hooks/session-start.py` reads the file
 at session open and prints the entries — optionally filtered by a

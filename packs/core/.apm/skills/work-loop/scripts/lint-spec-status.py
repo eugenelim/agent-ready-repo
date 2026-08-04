@@ -70,12 +70,13 @@ _STATUS_RE = re.compile(r"\*\*Status:\*\*\s*(.+?)\s*$")
 # a space/tab or end-of-line.  CommonMark (spec §4.2) allows up to three
 # leading spaces before the opening #s; four spaces would be a code block.
 _SECTION_HEADING_RE = re.compile(r"^ {0,3}#{2,}(?:[ \t]|$)")
-# Inline HTML comment span.  Stripped before status-token search so that
-# commented-out fields like `<!-- - **Status:** Approved -->` cannot satisfy
-# a lifecycle guard ahead of the real active field.  re.DOTALL so the
-# pattern correctly matches comments that span newlines when applied to
-# multi-line text (parse_status feeds single lines, but the pattern itself
-# should be correct).
+# HTML comment span (including multiline).  Applied to the full spec text
+# before line iteration so that a commented-out status like:
+#   <!--
+#   - **Status:** Approved
+#   -->
+# does not satisfy a lifecycle guard ahead of the real active field.
+# re.DOTALL lets the pattern cross newlines.
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 # A real deferral marker carries a slug anchor — NOT the template
 # placeholder `(deferred: <anchor>)`, whose `<…>` form is excluded by the
@@ -125,13 +126,16 @@ def parse_status(spec_text: str) -> str | None:
     **Status:** in examples, task descriptions, or quoted templates cannot
     accidentally satisfy a lifecycle guard.
     """
-    for line in spec_text.splitlines():
+    # Strip HTML comments from the full text first.  Per-line stripping does
+    # not remove multiline comments, so an interior `- **Status:** Approved`
+    # inside a block comment would be returned before the live status field.
+    cleaned = _HTML_COMMENT_RE.sub("", spec_text)
+    for line in cleaned.splitlines():
         if _SECTION_HEADING_RE.match(line):
             break  # preamble ends at the first section heading
         if line.lstrip().startswith("#"):
             continue  # skip ATX heading lines — Status must not live in a heading
-        clean = _HTML_COMMENT_RE.sub("", line)
-        m = _STATUS_RE.search(clean)
+        m = _STATUS_RE.search(line)
         if m:
             return extract_status_token(m.group(1))
     return None

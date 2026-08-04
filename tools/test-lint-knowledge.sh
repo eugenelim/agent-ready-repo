@@ -67,6 +67,22 @@ run_case "missing-keys"     '{"id": "K-0001"}'   1 "missing required keys"
 EXTRA='{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s", "extra": 1}'
 run_case "unknown-keys"     "$EXTRA"             1 "unknown keys"
 
+# Optional tier field: valid values pass, invalid value / type fail.
+TIER_VALID='{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s", "tier": "invariant"}'
+run_case "tier-valid"        "$TIER_VALID"       0 "Knowledge lint: passed"
+TIER_OBS='{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s", "tier": "observation"}'
+run_case "tier-observation"  "$TIER_OBS"         0 "Knowledge lint: passed"
+TIER_BAD='{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s", "tier": "legendary"}'
+run_case "tier-bad-value"    "$TIER_BAD"         1 "must be one of"
+TIER_TYPE='{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s", "tier": []}'
+run_case "tier-bad-type"     "$TIER_TYPE"        1 "tier must be a string"
+TIER_NULL='{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s", "tier": null}'
+run_case "tier-null"         "$TIER_NULL"        1 "tier must be a string"
+
+# Non-string scope: must error without crashing (type-guard regression).
+SCOPE_LIST='{"id": "K-0001", "kind": "pattern", "scope": [], "title": "t", "body": "b", "source": "s"}'
+run_case "scope-list"        "$SCOPE_LIST"       1 "must be a non-empty string"
+
 # Bad id format.
 BAD_ID='{"id": "K-1", "kind": "pattern", "scope": "x", "title": "t", "body": "b", "source": "s"}'
 run_case "bad-id"           "$BAD_ID"            1 "must match"
@@ -137,11 +153,14 @@ script = pathlib.Path(sys.argv[2]).read_text()
 
 # Extract the linter's enforced sets.
 req = re.search(r"REQUIRED_KEYS\s*=\s*\{([^}]+)\}", script)
+opt = re.search(r"OPTIONAL_KEYS\s*=\s*\{([^}]+)\}", script)
 kinds = re.search(r"ALLOWED_KINDS\s*=\s*\{([^}]+)\}", script)
 if not req or not kinds:
     print("schema-drift: could not find REQUIRED_KEYS / ALLOWED_KINDS in script", file=sys.stderr)
     sys.exit(1)
 script_keys = set(re.findall(r'"([^"]+)"', req.group(1)))
+optional_keys = set(re.findall(r'"([^"]+)"', opt.group(1))) if opt else set()
+all_keys = script_keys | optional_keys
 script_kinds = set(re.findall(r'"([^"]+)"', kinds.group(1)))
 
 # Extract the README's field table keys (first column, backticked words).
@@ -154,10 +173,10 @@ if not kind_lines:
     sys.exit(1)
 readme_kinds = set(re.findall(r"`([a-z]+)`", kind_lines[0])) - {"kind"}
 
-missing_keys = script_keys - table_keys
-extra_keys = table_keys - script_keys
+missing_keys = all_keys - table_keys
+extra_keys = table_keys - all_keys
 if missing_keys or extra_keys:
-    print(f"schema-drift keys: script={sorted(script_keys)} readme={sorted(table_keys)} "
+    print(f"schema-drift keys: script={sorted(all_keys)} readme={sorted(table_keys)} "
           f"missing_from_readme={sorted(missing_keys)} extra_in_readme={sorted(extra_keys)}",
           file=sys.stderr)
     sys.exit(1)

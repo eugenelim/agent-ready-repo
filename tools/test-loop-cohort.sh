@@ -469,6 +469,17 @@ if [[ -f "$PYTEST_ENGINE" ]]; then
   fi
 fi
 
+PYTEST_FRESHNESS="$REPO_ROOT/.claude/skills/work-loop/scripts/test-check-base-freshness.py"
+if [[ -f "$PYTEST_FRESHNESS" ]]; then
+  ran=$((ran + 1))
+  if _freshness_out=$(python3 "$PYTEST_FRESHNESS" 2>&1); then
+    ok "python-test-check-base-freshness-suite"
+  else
+    _freshness_fails=$(echo "$_freshness_out" | grep '^FAIL' | tr '\n' '; ')
+    fail "python-test-check-base-freshness-suite" "test-check-base-freshness.py: ${_freshness_fails:-run it directly for details}"
+  fi
+fi
+
 echo
 if [[ "$failures" -gt 0 ]]; then
   echo "✖ Self-test: $failures of $ran cases failed" >&2

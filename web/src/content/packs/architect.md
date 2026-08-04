@@ -7,7 +7,7 @@ skills:
   - architect-diagram
   - architect-review
 installCommand: "agentbundle install --pack architect --scope user"
-docsUrl: /docs/guides/architect/
+docsUrl: /guides/architect/
 journeyUrl: /journeys/architect/
 ---
 
