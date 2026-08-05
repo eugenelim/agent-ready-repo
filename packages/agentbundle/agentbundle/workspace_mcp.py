@@ -992,6 +992,9 @@ class _GitTools:
             )
             dispatched = None
         self._discovery_mode = not spec_path and not dispatched
+        # FSM mode (SPEC_PATH only): work-loop manages its own git lifecycle;
+        # git_branch, git_commit, and git_push are intentionally unavailable.
+        self._fsm_mode = spec_path is not None and dispatched is None
         # Expected branch from dispatched item (ini_slug/type:slug → ini_slug/type/slug)
         self._expected_branch: str | None = self._derive_expected_branch(dispatched)
         self._session_branch: str | None = self._read_head_branch()
@@ -1258,6 +1261,13 @@ class _GitTools:
     def git_branch(self, arguments: dict) -> dict:
         if self._discovery_mode:
             return {"error": "git_branch is not available in discovery mode"}
+        if self._fsm_mode:
+            return {
+                "error": (
+                    "git_branch is not available in work-loop (FSM) mode — "
+                    "work-loop manages its own git lifecycle"
+                )
+            }
         name = arguments.get("name", "")
         if arguments.get("base") is not None:
             return {"error": "base parameter not supported; always branches from HEAD"}
@@ -1303,6 +1313,13 @@ class _GitTools:
     def git_commit(self, arguments: dict) -> dict:
         if self._discovery_mode:
             return {"error": "git_commit is not available in discovery mode"}
+        if self._fsm_mode:
+            return {
+                "error": (
+                    "git_commit is not available in work-loop (FSM) mode — "
+                    "work-loop manages its own git lifecycle"
+                )
+            }
         message = arguments.get("message", "workspace-mcp: commit artifacts")
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
@@ -1413,6 +1430,13 @@ class _GitTools:
     def git_push(self, arguments: dict) -> dict:
         if self._discovery_mode:
             return {"error": "git_push is not available in discovery mode"}
+        if self._fsm_mode:
+            return {
+                "error": (
+                    "git_push is not available in work-loop (FSM) mode — "
+                    "work-loop manages its own git lifecycle"
+                )
+            }
         branch = arguments.get("branch", "")
         with self._git_lock:
             # Require the session branch to have been explicitly established via

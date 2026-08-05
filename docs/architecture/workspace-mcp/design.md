@@ -126,24 +126,29 @@ The control plane injects workspace-mcp at `session/new.mcpServers`. Two spawn f
 ```json
 // Trusted checkout (local developer):
 {
-  "mcpServers": {
-    "workspace-mcp": {
+  "mcpServers": [
+    {
+      "name": "workspace-mcp",
       "command": "python3",
       "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
       "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
     }
-  }
+  ]
 }
 
-// CI / untrusted checkout — module mode (-I is non-negotiable, see Security):
+// CI / untrusted checkout — module mode (-I flag, see Security):
+// Note: isolated-mode engine lookup is deferred to Stage 2; the guard in
+// _load_workspace_status_engine raises RuntimeError when sys.flags.isolated
+// is True and the engine file is not found via package-relative paths.
 {
-  "mcpServers": {
-    "workspace-mcp": {
+  "mcpServers": [
+    {
+      "name": "workspace-mcp",
       "command": "python3",
       "args": ["-I", "-m", "agentbundle.workspace_mcp"],
       "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
     }
-  }
+  ]
 }
 ```
 

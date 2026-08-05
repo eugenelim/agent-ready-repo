@@ -12,6 +12,14 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Fixed
 
+- **`workspace_mcp._GitTools`**: `git_branch`, `git_commit`, and `git_push`
+  now return an explicit error in FSM (work-loop) mode (`WORKSPACE_MCP_SPEC_PATH`
+  set, no `WORKSPACE_MCP_DISPATCHED_ITEM`). Previously, `git_push` could
+  execute against the startup branch in FSM mode on a named branch despite
+  the documented contract that work-loop manages its own git lifecycle.
+  A new `_fsm_mode` flag drives the guard; `_branch_locked` continues to
+  serve its original AC14 branch-rebinding purpose.
+
 - **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
   harness clarity. `git_status`, `git_branch`, `git_commit`, and `git_push`
   now open with "Use this instead of running 'git X' directly" and name the

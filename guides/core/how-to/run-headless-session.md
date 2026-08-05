@@ -45,12 +45,13 @@ Open a short-lived discovery session with no environment variables. Send a promp
   "method": "session/new",
   "params": {
     "cwd": "/absolute/path/to/repo",
-    "mcpServers": {
-      "workspace-mcp": {
+    "mcpServers": [
+      {
+        "name": "workspace-mcp",
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"]
       }
-    }
+    ]
   }
 }
 ```
@@ -76,7 +77,7 @@ The `workspace_status()` response:
 }
 ```
 
-Pick an item from `ready[]` or `shaping[]`. Items in `shaping[]` with a non-empty `unmet_needs` array are blocked — skip them. Close the discovery session.
+Pick an item from `ready[]` or `shaping[]`. Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install <required_pack>` first). Close the discovery session.
 
 ## Step 3 — Dispatch the item
 
@@ -91,15 +92,16 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
   "method": "session/new",
   "params": {
     "cwd": "/absolute/path/to/repo",
-    "mcpServers": {
-      "workspace-mcp": {
+    "mcpServers": [
+      {
+        "name": "workspace-mcp",
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
         "env": {
           "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-initiative/fix-login-bug"
         }
       }
-    },
+    ],
     "_meta": {
       "systemPrompt": "<DEFAULT_SESSION_INSTRUCTION>"
     }
@@ -116,15 +118,16 @@ Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks 
   "method": "session/new",
   "params": {
     "cwd": "/absolute/path/to/repo",
-    "mcpServers": {
-      "workspace-mcp": {
+    "mcpServers": [
+      {
+        "name": "workspace-mcp",
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
         "env": {
           "WORKSPACE_MCP_DISPATCHED_ITEM": "my-initiative/research:competitive-analysis"
         }
       }
-    }
+    ]
   }
 }
 ```
@@ -158,9 +161,11 @@ Key fields in the response:
 | `gate` | string \| null | Gate name — e.g. `SPEC-HUMAN-GATE`, `REVIEW-HUMAN-GATE` |
 | `gate_question` | string \| null | The specific question the work-loop is asking |
 | `ready` | array | Build items (type: work) dispatchable now |
-| `shaping` | array | Non-FSM items (research, design, shape, strategy); entries with `unmet_needs` are blocked |
+| `shaping` | array | Non-FSM items (research, design, shape, strategy); entries with `unmet_needs` are blocked; entries with `available: false` need their `required_pack` installed |
 | `active` | array | Items currently in progress |
 | `blocked` | array | Items with unmet dependencies |
+| *(per item)* `available` | bool \| absent | `false` when the item's `dispatch_skill` is not installed; absent when available |
+| *(per item)* `required_pack` | string \| null | Pack to install when `available: false`; e.g. `"research"` |
 
 > **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Poll `workspace_status()` after each session update rather than relying on notification events.
 
@@ -173,7 +178,7 @@ When `gate_pending` is true, the work-loop is paused waiting for a human decisio
   "method": "session/prompt",
   "params": {
     "sessionId": "<id from session/new response>",
-    "prompt": "Approved. Proceed with the implementation as planned."
+    "prompt": [{ "type": "text", "text": "Approved. Proceed with the implementation as planned." }]
   }
 }
 ```
