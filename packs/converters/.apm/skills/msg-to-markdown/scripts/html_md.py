@@ -6,7 +6,7 @@ This is the ``file-to-markdown`` reducer's *technique* (stdlib ``html.parser``,
 no new dependency), re-implemented here rather than vendored: the floor's reducer
 is an inline nested class in ``file-to-markdown/convert.py`` and it emits coarse
 *text*, whereas an email body needs richer **Markdown** — headings, bold/italic,
-links, lists, and tables (spec AC4). Extracting the floor's version would edit the
+links, lists, and tables. Extracting the floor's version would edit the
 shipped floor skill (out of scope), so this is the skill's own module.
 
 ``convert_charrefs=True`` handles entity unescaping (``&amp;`` → ``&`` etc.) for

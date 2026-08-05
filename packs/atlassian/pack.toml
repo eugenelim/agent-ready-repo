@@ -14,17 +14,16 @@ version = "0.8"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters. Declared order also drives the
+# Declared order also drives the
 # greenfield fallback (claude-code matches DEFAULT_USER_SCOPE_ADAPTER).
-# `kiro-ide` is the current name for the Kiro harness (RFC-0022 split;
-# bare `kiro` deprecated). copilot + cursor + gemini added by RFC-0013 § Errata
-# (2026-06-12): the full-parity adapters are admitted for credentialed CLIs
+# `kiro-ide` is the current name for the Kiro harness (bare `kiro`
+# deprecated). copilot + cursor + gemini are admitted for credentialed CLIs
 # now that both declare `.agentbundle/` in `allowed-prefixes.user` (the
 # § 4d precondition); the consumer skills resolve the broker from
-# `~/.agentbundle/bin/`. Append-only (RFC-0011 declared-order).
+# `~/.agentbundle/bin/`. Append-only declared-order.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
-# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# Pack activation evals — pack-eval-coverage-rollout:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
 # evals/eval_queries.json and is measured by tools/run-pack-evals.py.
 # Activation is observed at the Skill-router level before the skill body runs,
@@ -34,7 +33,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 [pack.evals]
 skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report", "jira-story-triage", "jira-team-status"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

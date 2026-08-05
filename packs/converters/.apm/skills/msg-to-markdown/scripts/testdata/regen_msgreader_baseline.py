@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate `msgreader_baseline.json` — the AC3 independent-reader oracle.
+"""Regenerate `msgreader_baseline.json` — the independent-reader oracle.
 
 Writes the `msg_fixtures.corpus()` `.msg` fixtures, reads each with the mature
 Node `msgreader` package (a *different* implementation from this skill's

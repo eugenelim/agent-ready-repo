@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import sys
 
-# Spec work-loop-activation-hook AC1: keep this reminder <= 6 lines (the
+# Keep this reminder <= 6 lines (the
 # focused test asserts the bound; the companion .kiro.hook prompt mirrors it).
 REMINDER = """\
 === work-loop ===

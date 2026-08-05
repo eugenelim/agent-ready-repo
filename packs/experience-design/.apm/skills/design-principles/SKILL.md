@@ -30,7 +30,7 @@ Form: **[Imperative verb] + [what] + [why/for whom]**
 
 **Arbitration test:** given two wireframes, can this principle distinguish between them? If both wireframes pass the principle, it is not specific enough to do work.
 
-**Three well-formed examples (from RFC-0066 D3):**
+**Three well-formed examples:**
 
 1. *"Earn trust before asking for commitment"* — surfaces the principle that sign-up gates, paywalls, and data-collection prompts should follow demonstrated value, not precede it. Distinguishes a design that gates immediately (fails) from one that lets the user see value first (passes).
 2. *"Make the expert fast, not just the novice safe"* — surfaces the principle that power users are first-class citizens. Distinguishes a design that buries expert actions behind safety guardrails (fails) from one that exposes them at appropriate depth (passes).

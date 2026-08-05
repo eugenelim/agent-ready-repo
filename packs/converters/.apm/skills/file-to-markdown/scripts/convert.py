@@ -106,7 +106,7 @@ def dispatch(path: Path, *, enrich: bool = False, chunk: bool = False) -> Extrac
     ``enrich`` and ``chunk`` only affect the Docling (Tier-2) fall-through; Tier-0
     extractors ignore them (below Tier 2 there is no DoclingDocument to chunk, so a
     ``--chunk`` request there yields the ordinary section-aware Markdown, not chunk
-    records — AC9). This function constructs only Tiers 0–2 — Tier 3 is never
+    records). This function constructs only Tiers 0–2 — Tier 3 is never
     reachable from here (it is produced solely by ``tier3.assemble_tier3`` via
     ``--tier3``)."""
     extractor = _EXTRACTORS.get(path.suffix.lower())
@@ -636,7 +636,7 @@ def _prescale_image(input_path: Path, tmp_dir: str) -> Path:
 # NB: `enable_remote_services` and `PictureDescriptionApiOptions` (Docling's
 # remote-VLM captioning path) are deliberately ABSENT — enrichment is
 # local-model-only, so it can never become a covert data-egress channel inside
-# Tier 2 that bypasses the Tier-3 gate (security boundary; see spec AC2).
+# Tier 2 that bypasses the Tier-3 gate (security boundary; see the spec).
 ENRICH_OPTIONS = (
     "do_formula_enrichment",       # formulas → LaTeX
     "do_code_enrichment",          # code understanding
@@ -671,7 +671,7 @@ def _build_enriched_converter():
 
 def _chunk_document(doc) -> list[str]:
     """Run Docling's HybridChunker over a DoclingDocument, returning the
-    contextualized chunk texts as-is (RFC-0058 Open-Q1 — no neutral chunk schema).
+    contextualized chunk texts as-is (no neutral chunk schema).
 
     HybridChunker's tokenizer is the adopter's ``docling-core[chunking]`` extra,
     resolved on demand; when it (or its transformers/tokenizers backend) is absent

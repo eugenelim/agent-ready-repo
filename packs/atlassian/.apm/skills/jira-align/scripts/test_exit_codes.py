@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test for jira_align.py's banded exit-code contract
-(docs/specs/credentialed-cli-exit-code-contract).
+"""Smoke test for jira_align.py's banded exit-code contract.
 
 Deterministic, network-free coverage: token-on-CLI rejection exits 1 without
 echoing the token; `--help` exits 0; banded constants + the `except Exception`

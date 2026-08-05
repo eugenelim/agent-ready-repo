@@ -8,7 +8,7 @@ license = "Apache-2.0 OR MIT"
 categories = ["architecture", "documentation"]
 keywords = ["design-docs", "diagrams", "mermaid", "critique"]
 
-# RFC-0024 contract level (v0.10) — pure-markdown skills, multi-adapter.
+# Contract level v0.10 — pure-markdown skills, multi-adapter.
 # Bumped from v0.6 so listing `copilot` is honest: copilot's skill
 # primitive gained its user-scope target (`~/.copilot/instructions/`) at
 # v0.10, and architect is user-scope-default. Mirrors `desk-research`/`core`.
@@ -20,16 +20,15 @@ default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
 # travels with every shipped adapter that projects the skill primitive.
-# Current adapter names: RFC-0022 split `kiro` into `kiro-ide`/`kiro-cli`
-# (the bare `kiro` alias is deprecated); RFC-0024 made `copilot`
-# user-scope-capable; RFC-0026 / cursor-full-parity added `cursor`; RFC-0027 /
-# gemini-full-parity added `gemini` (both project skills via existing modes — no
-# `[pack.adapter-contract]` bump). Declared order is load-bearing (RFC-0011):
+# Current adapter names: `kiro` split into `kiro-ide`/`kiro-cli` (the bare
+# `kiro` alias is deprecated); `copilot` is user-scope-capable; `cursor` and
+# `gemini` reached full parity and project skills via existing modes — no
+# `[pack.adapter-contract]` bump. Declared order is load-bearing:
 # `kiro-ide` precedes `kiro-cli` so a Kiro user's `~/.kiro/` auto-probe resolves
 # to the IDE; `cursor` then `gemini` appended last (append-only).
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
-# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# Consolidated pack layout: the scope-keyed default for the
 # [architecture] section of an adopter-owned `agentbundle-layout.toml`. Each design
 # effort lands in its own per-effort folder <output_dir>/<topic-slug>/ under the base.
 # No `[pack.layout.user]`: architect's output is per-repo (design docs belong in
@@ -39,14 +38,14 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 [pack.layout.repo]
 output_dir = "docs/design"
 
-# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# Pack activation evals — pack-eval-coverage-rollout:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
 # evals/eval_queries.json and is measured by tools/run-pack-evals.py. All three
 # architect skills are user-prompt-triggered, so none are excluded.
 [pack.evals]
 skills = ["architect-design", "architect-diagram", "architect-review"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

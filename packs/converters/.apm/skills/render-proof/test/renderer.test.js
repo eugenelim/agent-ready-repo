@@ -1,8 +1,8 @@
 'use strict';
 
 // test/renderer.test.js — run with: node test/renderer.test.js
-// Note: plan fixture letters (a)–(o) cover both AC6 and non-AC6 checks; AC6 fixtures start at plan (c).
-// The inline AC6x tags are the binding AC reference: plan (a)=GFM bold, (b)=Shiki AC3.
+// Note: plan fixture letters (a)–(o) cover both sanitizer and non-sanitizer checks;
+// sanitizer fixtures start at plan (c). Plan (a)=GFM bold, (b)=Shiki highlight.
 const assert = require('assert');
 const { renderMarkdown, sanitizeStyle } = require('../scripts/render-proof.js');
 
@@ -11,7 +11,7 @@ async function run() {
   const bold = await renderMarkdown('**bold**', {});
   assert(bold.includes('<strong>') || bold.includes('bold'), 'bold failed');
 
-  // (b) Shiki highlight applied (AC3)
+  // (b) Shiki highlight applied
   const code = await renderMarkdown('```python\nprint("hi")\n```', {});
   assert(code.includes('style='), 'Shiki style attr missing');
 
@@ -103,7 +103,7 @@ async function run() {
     'canonical-restore re-escape: " in decoded value (\\22) not re-escaped to \\" — broken url("A"B") prematurely closes the CSS quoted string (AC6m)'
   );
 
-  // Direct sanitizeStyle test: unclosed url( bypasses quoted-aware regex → step-3 backstop → null (keepAttr=false path) (AC6 step 3)
+  // Direct sanitizeStyle test: unclosed url( bypasses quoted-aware regex → step-3 backstop → null (keepAttr=false path) (sanitizer step 3)
   assert(
     sanitizeStyle('background:url(unclosed') === null,
     'sanitizeStyle must return null for unclosed url( — verifies keepAttr=false step-3 path'

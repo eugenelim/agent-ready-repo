@@ -104,7 +104,7 @@ agentbundle install --pack experience-design --scope user   # for full genre rou
 
 ## Sole owner of `frontend-engineering`
 
-This pack is the sole owner of the `frontend-engineering` skill. The `core` pack's resident skill was deleted in ADR-0057 (2026-07-27) to resolve a footprint-gate conflict. Load this pack's skill — it is the canonical content owner (four modes, evidence manifest, WCAG 2.2 AA, CWV targets).
+This pack is the sole owner of the `frontend-engineering` skill. The `core` pack's resident skill was removed to resolve a footprint-gate conflict. Load this pack's skill — it is the canonical content owner (four modes, evidence manifest, WCAG 2.2 AA, CWV targets).
 
 ---
 

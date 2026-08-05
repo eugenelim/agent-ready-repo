@@ -28,7 +28,7 @@ def frontmatter_and_body(text: str):
     return lines[1:end], lines[end + 1:]
 
 
-# --- AC4: declaration validation (fail-closed) ------------------------------
+# --- declaration validation (fail-closed) ------------------------------
 
 
 def test_valid_declaration_returns_cleaned_endpoints_and_residency():
@@ -100,7 +100,7 @@ def test_rejects_empty_endpoint_list():
 
 
 def test_rejects_unknown_field_credential_smuggling():
-    """AC4/AC5: key set must equal EXACTLY the two allowed keys — an auth-looking
+    """key set must equal EXACTLY the two allowed keys — an auth-looking
     extra field (or any unknown field) is refused."""
     for extra in ("authorization", "x-api-key", "token", "password"):
         decl = {**_valid_decl(), extra: "secret-value"}
@@ -120,7 +120,7 @@ def test_accepts_multiple_public_hosts():
     assert endpoints == ["a.example", "b.example", "c.example"]  # stripped
 
 
-# --- AC4/AC10: assembled contract -------------------------------------------
+# --- assembled contract -------------------------------------------
 
 
 def test_assemble_stamps_tier3_low_requires_review(tmp_path):
@@ -163,7 +163,7 @@ def test_assemble_refuses_before_reading_on_bad_declaration(tmp_path):
 
 
 def test_ocr_text_read_through_check_input_size(tmp_path, monkeypatch):
-    """AC4: the --ocr-text input is read through safe_io.check_input_size (the
+    """the --ocr-text input is read through safe_io.check_input_size (the
     unbounded-read DoS guard) — a ceiling refusal propagates, no output stamped."""
     import safe_io
     ocr = tmp_path / "big.txt"
@@ -180,7 +180,7 @@ def test_ocr_text_read_through_check_input_size(tmp_path, monkeypatch):
     assert seen["path"] == ocr  # the guard was invoked on the OCR-text path
 
 
-# --- AC4: injection-safe provenance -----------------------------------------
+# --- injection-safe provenance -----------------------------------------
 
 
 def test_injection_bearing_endpoint_is_escaped_not_break_out(tmp_path):
@@ -229,14 +229,14 @@ def test_content_type_normalizes_stray_suffix(tmp_path):
                 or 'content-type: "managed-ocr"' in fm_text)
 
 
-# --- AC7: the grounding doc records the three adopter controls --------------
+# --- the grounding doc records the three adopter controls --------------
 
 _GROUNDING = (Path(__file__).resolve().parent.parent / "references"
               / "tier3-managed-api.md")
 
 
 def test_grounding_doc_names_the_three_adopter_controls():
-    """AC7: the Tier-3 grounding doc makes the adopter (a) record vendor
+    """the Tier-3 grounding doc makes the adopter (a) record vendor
     retention/no-training terms, (b) bind the transport to the declared endpoint +
     residency, and (c) own redaction (documents sent unmodified)."""
     text = _GROUNDING.read_text("utf-8").lower()

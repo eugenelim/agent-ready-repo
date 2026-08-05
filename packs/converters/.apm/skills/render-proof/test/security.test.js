@@ -31,7 +31,7 @@ try {
     'containment error must name the resolved path — AC7a path-naming requirement applies to both ENOENT and containment branches (on Linux CI, /etc/passwd exists so the containment branch fires, not ENOENT)'
   );
 
-  // AC7 — valid relative path accepted; fixture.md exists (full GFM content written in T1)
+  // Valid relative path accepted; fixture.md exists (full GFM content written in T1)
   const ok = validateInputPath('evals/files/fixture.md', cwd);
   assert(ok === null, 'valid path rejected: ' + ok);
 
@@ -48,7 +48,7 @@ try {
     if (fs.existsSync(symlinkPath)) fs.unlinkSync(symlinkPath);
   }
 
-  // AC8 — output outside cwd rejected (allow-root confinement)
+  // Output outside cwd rejected (allow-root confinement)
   const errC = validateOutputPath('/etc/hosts', cwd);
   assert(errC !== null, '/etc/hosts not rejected');
   const errD = validateOutputPath('../sibling/out.html', cwd);
@@ -58,7 +58,7 @@ try {
   const errRoot = validateOutputPath('/', cwd);
   assert(errRoot !== null, 'root / not rejected');
 
-  // AC8 — valid output within cwd accepted
+  // Valid output within cwd accepted
   const okOut = validateOutputPath('out/proof.html', cwd);
   assert(okOut === null, 'valid output rejected: ' + okOut);
 
@@ -75,7 +75,7 @@ try {
     if (fs.existsSync(symlinkDirPath)) fs.unlinkSync(symlinkDirPath);
   }
 
-  // AC13 — size cap; exactly 10 MB is at the limit and must be rejected
+  // Size cap; exactly 10 MB is at the limit and must be rejected
   const sizeFile = path.join(testTmp, 'rp-size-test.md');
   fs.writeFileSync(sizeFile, Buffer.alloc(10 * 1024 * 1024));
   const errSize = validateInputSize(sizeFile);

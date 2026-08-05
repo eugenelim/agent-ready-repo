@@ -8,26 +8,23 @@ license = "Apache-2.0 OR MIT"
 categories = ["research", "documentation"]
 keywords = ["osint", "synthesis", "citations", "evidence"]
 
-# RFC-0024 / docs/specs/copilot-full-parity made copilot a full-parity,
-# user-scope-capable adapter, so research's two retrieval subagents project to
-# `~/.copilot/agents/<name>.agent.md`. docs/specs/copilot-skills-and-web bumps
-# the contract to 0.12: research's skills now project as first-class Copilot
-# Agent Skills (`.github/skills/`, `~/.copilot/skills/`).
+# Copilot is a full-parity, user-scope-capable adapter, so research's two
+# retrieval subagents project to `~/.copilot/agents/<name>.agent.md`.
+# Contract 0.12 carries Copilot skills: research's skills project as
+# first-class Copilot Agent Skills (`.github/skills/`, `~/.copilot/skills/`).
 [pack.adapter-contract]
 version = "0.12"
 
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters; copilot added by RFC-0024 / copilot-full-parity;
-# cursor added by RFC-0026 / cursor-full-parity (research is the catalogue's parity
-# validation surface — it ships the 2 retrieval subagents + skills the full-parity
-# adapters are checked against). Declared order is load-bearing (RFC-0011): append-only.
-# `kiro-ide` is the current name for the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
+# Research is the catalogue's parity validation surface — it ships the 2 retrieval
+# subagents + skills the full-parity adapters are checked against, which is why
+# copilot and cursor are both listed. Declared order is load-bearing: append-only.
+# `kiro-ide` is the current name for the Kiro harness (bare `kiro` deprecated).
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
-# Copilot projection note (docs/specs/copilot-skills-and-web / RFC-0024 § Errata
-# E1): the `evidence-retriever` and `source-extractor` subagents declare
+# Copilot projection note: the `evidence-retriever` and `source-extractor` subagents declare
 # `tools: …, WebFetch, WebSearch`. On the Copilot **CLI + app** these resolve to
 # Copilot's `web` tool (the custom-agents reference documents `web` aliasing
 # `WebSearch`/`WebFetch`), so the subagents keep live web access — they are
@@ -68,7 +65,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 [pack.evals]
 skills = ["desk-research", "source-map", "build-outline", "identify-perspectives", "compare-hypotheses", "devils-advocate", "decision-archaeology", "desk-research-project-start", "desk-research-project-status"]
 
-# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# Consolidated pack layout: the scope-keyed default for the
 # [research] section of an adopter-owned `agentbundle-layout.toml`. This is the
 # install-time append default — written to the adopter's layout file once at
 # install; thereafter the skill reads it as the repo-scope config. No silent
@@ -80,7 +77,7 @@ skills = ["desk-research", "source-map", "build-outline", "identify-perspectives
 [pack.layout.repo]
 output_dir = "docs/product/research"
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

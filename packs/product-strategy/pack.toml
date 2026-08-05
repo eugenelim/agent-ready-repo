@@ -19,10 +19,10 @@ default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # Strategy method is portable, not project-specific — user-scope by default,
 # like architect and experience-design. Pure-markdown skills + skill assets/,
-# no seeds/ (RFC-0004 Rail A). Declared order is load-bearing (RFC-0011).
+# no seeds/ (Rail A). Declared order is load-bearing.
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
-# RFC-0040 / ADR-0030: consolidated-pack-layout — each artifact-writing skill
+# Consolidated pack layout: each artifact-writing skill
 # resolves its durable output path via the adopter-owned `[strategy]` section of
 # agentbundle-layout.toml (repo-root first, user-profile second). output_dir is
 # the base; skills write file-per-artifact directly under it
@@ -33,7 +33,7 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 [pack.layout.repo]
 output_dir = "docs/product/shaping"
 
-# RFC-0037 / ADR-0028: pack-activation-evals — all 9 skills are user-triggered
+# Pack activation evals: all 9 skills are user-triggered
 # judgment/authoring skills, so all are listed. Each ships evals/eval_queries.json
 # and evals/evals.json (Tier-4 LLM-judge rubric).
 [pack.evals]

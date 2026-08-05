@@ -1,8 +1,8 @@
 """Security tests for the msg-to-markdown Python port — untrusted `.msg`/`.eml`.
 
-Covers AC6 (confined attachment extraction), AC7 (bounded embedded recursion),
-AC8 (frontmatter injection), AC9 (untrusted-input defenses + fail-soft decode),
-AC10 (skill-owned OLE2/RTF resource wrap), AC11 (no-ML / no-egress / --check).
+Covers confined attachment extraction, bounded embedded recursion,
+frontmatter injection, untrusted-input defenses + fail-soft decode,
+the skill-owned OLE2/RTF resource wrap, and no-ML / no-egress / --check.
 
 Run with `python -m pytest` from this directory.
 """
@@ -20,7 +20,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 
 
-# --- AC6: confined attachment extraction ------------------------------------
+# --- confined attachment extraction ------------------------------------
 
 
 @pytest.mark.parametrize("name,expect", [
@@ -89,7 +89,7 @@ def test_extraction_refuses_symlinked_dir(tmp_path):
     assert not (outside / "x.txt").exists()
 
 
-# --- AC9: output-path confinement (via vendored safe_io.confine) ------------
+# --- output-path confinement (via vendored safe_io.confine) ------------
 
 
 def test_output_path_confinement_rejects_traversal_symlink_sibling(tmp_path):
@@ -116,12 +116,12 @@ def test_write_output_composes_confine_and_stays_in_input_dir(tmp_path):
 
 
 def test_embedded_recursion_pins_match_documented_values():
-    # AC7: the code pins must equal the numbers SKILL.md and the spec document.
+    # the code pins must equal the numbers SKILL.md and the spec document.
     assert mapi.MAX_EMBED_DEPTH == 3
     assert mapi.MAX_EMBED_COUNT == 20
 
 
-# --- AC10: skill-owned OLE2/RTF resource wrap -------------------------------
+# --- skill-owned OLE2/RTF resource wrap -------------------------------
 
 
 def test_per_stream_cap_refuses_over_declared_stream(tmp_path, monkeypatch):
@@ -175,7 +175,7 @@ def test_check_input_size_alone_does_not_admit_a_resource_bomb(tmp_path, monkeyp
         mapi.read_msg(p)
 
 
-# --- AC7: bounded embedded recursion ----------------------------------------
+# --- bounded embedded recursion ----------------------------------------
 
 
 def test_embedded_recursion_depth_cap_surfaces_note(tmp_path, monkeypatch):
@@ -204,7 +204,7 @@ def test_embedded_recursion_count_cap(tmp_path, monkeypatch):
     assert any("recursion" in n for n in m.notes)
 
 
-# --- AC8: extracted content cannot forge the contract -----------------------
+# --- extracted content cannot forge the contract -----------------------
 
 
 def test_hostile_subject_cannot_forge_frontmatter(tmp_path):
@@ -222,7 +222,7 @@ def test_hostile_subject_cannot_forge_frontmatter(tmp_path):
     assert "Injected" in text[end:]
 
 
-# --- AC9: malformed input fails soft ----------------------------------------
+# --- malformed input fails soft ----------------------------------------
 
 
 def test_malformed_msg_fails_soft_not_crash(tmp_path):
@@ -238,7 +238,7 @@ def test_malformed_msg_fails_soft_not_crash(tmp_path):
     assert "requires-review: true" in out and "Not extracted" in out
 
 
-# --- AC11: no ML, no egress, --check ----------------------------------------
+# --- no ML, no egress, --check ----------------------------------------
 
 
 def test_no_ml_or_network_imports():

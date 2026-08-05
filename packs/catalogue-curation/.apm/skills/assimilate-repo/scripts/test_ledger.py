@@ -1,4 +1,4 @@
-"""Tests for ledger.py (RFC-0059 D7 / ADR-0048): deterministic run-id,
+"""Tests for ledger.py: deterministic run-id,
 append-only + schema (no free-text), resume, durable purge-exempt marker."""
 
 from __future__ import annotations

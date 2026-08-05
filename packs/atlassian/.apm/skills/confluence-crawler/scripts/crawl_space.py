@@ -89,7 +89,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
 
 log = logging.getLogger("confluence_crawler")
 
-# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+# Banded exit-code taxonomy:
 #   0     success
 #   1     functional / operational error — usage, server 5xx, transport,
 #         partial crawl (some pages failed), keychain hard-fail, unexpected

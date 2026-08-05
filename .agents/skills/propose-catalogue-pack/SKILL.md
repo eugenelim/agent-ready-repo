@@ -52,8 +52,7 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
 
 ## Never do
 
-- Write under this repo's `packages/agentbundle/**` or `packs/credential-brokers/**`
-  (RFC-0059 D6).
+- Write under this repo's `packages/agentbundle/**` or `packs/credential-brokers/**`.
 - Scaffold a pack that hasn't cleared the additivity + four-principles bar —
   reject non-additive areas explicitly rather than shipping a shell.
 - Write outside `agentbundle.safety.write_jailed`.

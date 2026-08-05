@@ -1,4 +1,4 @@
-"""SSO web-session cookie resolution (RFC-0035).
+"""SSO web-session cookie resolution.
 
 A second consumer-resolution family alongside the token ``creds`` family. Where
 ``load_credentials`` resolves a token, ``load_sso_cookies`` resolves a *captured
@@ -7,7 +7,7 @@ unchanged ``sso-broker.py`` engine.
 
 Two contracts shape this module:
 
-* **Path-not-value handoff (RFC-0013 § 1).** The resolver returns the jar's
+* **Path-not-value handoff.** The resolver returns the jar's
   *path*, never its bytes. No cookie value crosses ``argv`` (only the profile
   name does), no cookie value is logged, and the engine writes the jar to its own
   ``0600`` floor — the consumer reads it in-process and is responsible for never
@@ -46,7 +46,7 @@ __all__ = [
 ]
 
 # The engine is installed by the credential-brokers pack at this user-scope path
-# (RFC-0013 § 1; mirrored by ``sso-broker.py``'s own module docstring). Composed
+# (mirrored by ``sso-broker.py``'s own module docstring). Composed
 # from parts so no full literal path string appears, matching the broker's own
 # convention.
 _BROKER_TAIL = (".agentbundle", "bin", "sso-broker.py")
@@ -89,7 +89,7 @@ def load_sso_cookies(profile: str) -> Path:
 
     Subprocess-invokes ``sso-broker.py get-cookies <profile>`` with the parent
     interpreter, inheriting the process environment (corporate proxy / trust-store
-    passthrough, RFC-0013 § 1). Proceeds **only** on exit 0 with a readable jar
+    passthrough). Proceeds **only** on exit 0 with a readable jar
     path; every other outcome fails closed.
 
     :returns: the path to the ``0600`` cookie jar the engine materialised.
@@ -131,7 +131,7 @@ def load_sso_cookies(profile: str) -> Path:
     return jar_path
 
 
-# --- SSO confinement primitives (RFC-0035; spec task T2) ---------------------
+# --- SSO confinement primitives ------------------------------------------
 #
 # These are the security-control surface the unchanged ``sso-broker.py`` engine
 # does *not* perform and that this RFC adds *above* it: an https-only scheme guard,

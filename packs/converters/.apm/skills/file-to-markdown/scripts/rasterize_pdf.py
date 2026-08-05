@@ -118,7 +118,7 @@ def rasterize(
 ) -> RasterizeResult:
     """Render each page of ``pdf_path`` to a PNG under a confined work dir.
 
-    Bounds on three axes (AC10): a capped render DPI (``dpi`` — bounds per-page
+    Bounds on three axes: a capped render DPI (``dpi`` — bounds per-page
     pixels), a cumulative output-byte ceiling across pages, and a coarse page cap.
     Degrades honestly (``status="unavailable"``, no crash) when pdf2image / Poppler
     is absent."""

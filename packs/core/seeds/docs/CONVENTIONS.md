@@ -1115,9 +1115,9 @@ Security section must satisfy **both** brokers' don't-block phrase sets.
 
 `metadata.auth` names the broker that resolves the credential. The
 four ids are pinned by
-[ADR-0003](adr/0003-credential-broker-contract.md) and
+the credential-broker ADR and
 <!-- seed-content-lint-ignore: canonical RFC pointer for the four-broker contract -->
-[RFC-0013](rfc/0013-credential-broker-contract.md):
+its RFC:
 
 - **`env`** — the credential is a plain environment variable
   (`<NAMESPACE>_<KEY>`). Catalogue contributes naming convention and
@@ -1193,7 +1193,7 @@ Five anti-patterns rejected by name:
   surface returns the cleartext token to a caller other than the
   in-process credentialed primitive that owns the API call.
 - **Per-skill dotfiles** — one well-known per-user file per the spec
-  AC13 path; per-skill files multiply the wipe-on-rotation surface.
+  single-file path; per-skill files multiply the wipe-on-rotation surface.
 - **`SSL_VERIFY=false` defaults** — `--insecure` is opt-in only and
   must emit a stderr warning.
 - **Vendored copies of third-party API skills** — pin upstream and

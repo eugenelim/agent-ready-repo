@@ -2,8 +2,6 @@
 
 Living design reference for the product-engineering pack. Records the philosophy, architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** ADR-0019 (product intent ontology and brief projection), ADR-0043 (discovery coordinator is agent + skill + sidecar — no engine), ADR-0033 (intent Level is an open recognized set decoupled from Scale)
-
 ---
 
 ## TL;DR
@@ -67,7 +65,7 @@ The loop cannot advance past a consent gate (G0, G1.5, G2, G3) without a harness
 
 The whole discovery capability is content: a `discovery-lead` agent definition, the `discovery-loop` skill, and a carried sidecar schema in plain files. The harness an adopter already runs executes it. What the pack does not ship — and must not ship — is a runtime coordinator, message bus, convergence solver, or state-machine engine. The recursion is data (status fields per node); the bounds are counters; the verdict set is status edits plus a recorded row in the decision log.
 
-This is the no-engine principle (ADR-0043): the spike confirmed that a single reasoning context over plain files can run the discovery loop without a coordinator service. The depth/breadth bounds are explicit — the loop pauses and confirms when it hits them rather than auto-terminating.
+This is the no-engine principle: the spike confirmed that a single reasoning context over plain files can run the discovery loop without a coordinator service. The depth/breadth bounds are explicit — the loop pauses and confirms when it hits them rather than auto-terminating.
 
 ### Converged ≠ validated
 
@@ -175,19 +173,19 @@ These constraints must never be violated by any skill in this pack or any skill 
 
 ## 8. Design decisions and rationale log
 
-### Why Level is an open recognized set (ADR-0033)
+### Why Level is an open recognized set
 
 Organizations operate with different altitude names between vision and feature: program epics, domain bets, initiatives, themes, product areas. A closed four-tier hierarchy would require every organization to map their naming to the pack's names — friction without benefit. An open set names the recognized anchors (`product-vision › product-strategy › capability › feature`) but permits insertion of org-specific levels. The recognized members retain their semantics; the org adds what it needs above, below, or between them without breakage.
 
 **Alternative considered:** a closed four-tier hierarchy with a `custom-level` escape hatch (a string field on the intent for orgs that don't fit). Rejected because the escape hatch becomes the default within one sprint — teams stop using the recognized names and the recognized semantics evaporate. An open set with documented anchors preserves the semantics for orgs that use them while not blocking orgs that don't.
 
-### Why Scale is decoupled from Level (ADR-0033)
+### Why Scale is decoupled from Level
 
 Scale (app vs. business-unit) determines *where* decomposition fans out — same repo versus per-component cross-repo briefs. Level determines *what altitude* the intent lives at. Before decoupling, Scale implicitly suggested a Level ceiling: a business-unit brief was assumed to be `capability` level. This made it impossible to author a business-unit `feature` intent (a cross-component feature that is still a feature, not a capability). Decoupling removes the implicit ceiling: Scale stamps on the `docs/product/` root once; Level is picked per intent without Scale bias.
 
 **Alternative considered:** keep the coupled model and document the suggested altitude per Scale. Rejected because "suggested" always becomes "required" in practice — the documentation overhead of the exception is higher than the cost of the decoupling.
 
-### Why habits, not infrastructure (ADR-0043)
+### Why habits, not infrastructure
 
 The discovery loop's coordination is a file write plus a plain-text convention, not a service. The spike confirmed this: a single reasoning context walking a status-annotated plan tree over plain files runs the discovery loop without a coordinator service, message bus, or state-machine engine. The no-engine principle keeps the pack content-only — no process to start, no service to maintain, no version mismatch between the loop's runtime and the adapters that run it. The only code the pack ships is a ~60-line connectedness lint; everything else is content.
 

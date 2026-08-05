@@ -2,7 +2,7 @@
 
 The ledger is what makes a whole-repo survey survive interruption, a harness
 switch, and parallel git worktrees. Its schema and lifecycle are pinned by
-ADR-0048 (the assimilation-ledger decision).
+the assimilation-ledger decision.
 
 ## Fetch
 Same SSRF allowlist as single-primitive ingest — see the `assimilate-primitive`

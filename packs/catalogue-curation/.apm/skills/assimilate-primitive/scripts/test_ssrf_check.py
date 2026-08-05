@@ -1,4 +1,4 @@
-"""Tests for ssrf_check.py (RFC-0059 URL-source SSRF confinement). No network:
+"""Tests for ssrf_check.py (URL-source SSRF confinement). No network:
 positive cases use IP literals or an unresolvable host; blocked cases use
 private/metadata/loopback literals and `localhost` (resolved locally)."""
 

@@ -101,7 +101,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
 
 log = logging.getLogger("confluence_publisher")
 
-# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+# Banded exit-code taxonomy:
 #   0     success
 #   1     functional / operational error (message carries the cause)
 #   2     user must act — credentials, conflicts, target/input the user must fix

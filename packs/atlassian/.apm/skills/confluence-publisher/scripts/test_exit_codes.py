@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test for publish_page.py's banded exit-code contract
-(docs/specs/credentialed-cli-exit-code-contract).
+"""Smoke test for publish_page.py's banded exit-code contract.
 
 Deterministic, network-free coverage: `--help` exits 0; banded constants + the
 `except Exception` (not BaseException) catch-all + the import guard are present

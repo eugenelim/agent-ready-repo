@@ -16,7 +16,7 @@ context layer ingests email exactly as it ingests documents.
 
 This is a pure-Python skill. `.msg` is read via `olefile` + first-party MAPI
 decoding; `.eml` via the Python stdlib. No Node.js, no ML/OCR model, no network
-call. (See ADR-0046 for the reader decision.)
+call.
 
 ## Output rendering
 
