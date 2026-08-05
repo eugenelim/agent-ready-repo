@@ -192,18 +192,31 @@ When `gate_pending` is true, the work-loop is paused waiting for a human decisio
 
 ### Required: declare elicitation capability
 
-Declare `capabilities.elicitation` in the ACP init handshake. The agent then sends `elicitation/create` and blocks until the harness resolves it:
+Declare elicitation support under `clientCapabilities` in the ACP init handshake. `claude-agent-acp` reads `clientCapabilities.elicitation.form` (or `.url`) — `capabilities.elicitation` is not the correct key and leaves MCP forwarding disabled. At minimum, include:
+
+```json
+{
+  "method": "initialize",
+  "params": {
+    "clientCapabilities": {
+      "elicitation": { "form": true }
+    }
+  }
+}
+```
+
+The agent then sends `elicitation/create` and blocks until the harness resolves it:
 
 1. The agent calls `elicit()` → workspace-mcp sends an MCP `elicitation/create` JSON-RPC request to the harness (server→client)
 2. Your harness receives the request, routes the question to the human channel
 3. Your harness returns the human's answer as the JSON-RPC response to the `elicitation/create` request
 4. The `elicit()` call unblocks and the work-loop continues
 
-> **Stage 1 limitation — response-file fallback unsupported.** When `capabilities.elicitation`
+> **Stage 1 limitation — response-file fallback unsupported.** When `clientCapabilities.elicitation`
 > is absent, `elicit()` falls back to a temp response file. The file path is carried only in the
 > `_agentbundle.core/elicitation-pending` MCP push notification, which the Stage 1 bridge drops
 > (see Stage 1 note above). The harness cannot discover the file path, so the fallback always
-> times out after 300 seconds. Declare `capabilities.elicitation` or the gate will hang.
+> times out after 300 seconds. Declare `clientCapabilities.elicitation` or the gate will hang.
 
 > **`session/prompt` is not a gate-response mechanism.** Sending `session/prompt` while `elicit()`
 > is pending sends a new message to the model without resolving the blocking tool call. The
@@ -215,9 +228,10 @@ Declare `capabilities.elicitation` in the ACP init handshake. The agent then sen
 |---|---|---|
 | Session hangs indefinitely | Missing `permissions.allow` entries | Add all six `mcp__workspace-mcp__*` strings to `.claude/settings.json` (Step 1) |
 | `workspace_status()` returns `{"error": "workspace_status_engine.py not found…"}` | `agentbundle install --pack core` has not been run in the checkout | Run `agentbundle install --pack core` in the target repo |
-| `git_commit` returns `"git_commit unavailable: no output_pattern (work-loop owns git)"` | Item type is `work` — work-loop manages git | Expected for work items; monitor gates, don't call `git_commit` |
+| `git_branch`, `git_commit`, or `git_push` returns `"not available in work-loop (FSM) mode"` | `WORKSPACE_MCP_SPEC_PATH` is set — work-loop manages its own git lifecycle; mutating git tools are blocked | Expected for work items; monitor gates, don't call git mutating tools |
+| `git_commit` returns `"git_commit unavailable: no output_pattern (work-loop owns git)"` | `WORKSPACE_MCP_DISPATCHED_ITEM` set for a `work`-type item without `WORKSPACE_MCP_SPEC_PATH` | Use `SPEC_PATH` for work items (not `DISPATCHED_ITEM`); `DISPATCHED_ITEM` is for non-FSM types only |
 | `git_commit` returns `"refusing commit: N pre-staged file(s) outside output_pattern"` | The repo has pre-staged files outside the item's output paths | Unstage those files before calling `git_commit`, or use `git reset HEAD` |
-| `WORKSPACE_MCP_DISPATCHED_ITEM` accepted but `git_branch` returns "already set" | `SPEC_PATH` was also set; branch locked to startup HEAD (FSM mode) | Set only one env var: `SPEC_PATH` for work items, `DISPATCHED_ITEM` for non-FSM items |
+| `git_branch` returns `"session branch already set"` | `git_branch` was called a second time in the same dispatched session | `git_branch` may only be called once per non-FSM session; a resumed session may already have a locked branch |
 | Item slug not found in `workspace.toml` | `WORKSPACE_MCP_DISPATCHED_ITEM` references a slug that doesn't exist in the queue | Verify the slug against `workspace_status()` `ready[]` before dispatching |
 
 ## Reference
