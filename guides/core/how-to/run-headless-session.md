@@ -2,7 +2,7 @@
 
 A control harness drives Claude Code sessions programmatically — no human watching each turn. workspace-mcp is the per-session MCP server the `core` pack ships for exactly this use: structured queue discovery, FSM-state observability, and scoped git operations.
 
-**What your harness gets:** `workspace_status()` returns the queue of ready and blocked items. Gates surface as `gate_pending: true` with a `gate_question` the harness routes to a human. Git operations are scoped to the dispatched item's output paths so the agent cannot commit outside its lane.
+**What your harness gets:** `workspace_status()` returns the queue of ready and blocked items. Gates surface as `gate_pending: true` with a `gate_question` the harness routes to a human.
 
 **Stage 1 scope:** Claude Code via ACP. Codex is planned; Kiro CLI, Copilot CLI, and Gemini CLI are deferred.
 
@@ -38,7 +38,7 @@ Add the six `workspace-mcp` tool strings to `permissions.allow` in `.claude/sett
 
 ## Step 2 — Discover the work queue
 
-Open a short-lived discovery session with no environment variables. Send a prompt asking the agent to call `workspace_status()`, then read the `ready[]` array to choose what to dispatch.
+Open a short-lived discovery session with no environment variables. Send a prompt asking the agent to call `workspace_status()`, then read the `ready[]` and `shaping[]` arrays to choose what to dispatch.
 
 ```json
 {
@@ -68,6 +68,7 @@ The `workspace_status()` response:
       "has_gates": true
     }
   ],
+  "shaping": [],
   "blocked": [],
   "active": [],
   "gate_pending": false,
@@ -75,11 +76,15 @@ The `workspace_status()` response:
 }
 ```
 
-Pick an item from `ready[]`. Close the discovery session.
+Pick an item from `ready[]` or `shaping[]`. Close the discovery session.
 
 ## Step 3 — Dispatch the item
 
-Construct `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}` from the chosen item. Open a bound session with both env vars and the session instruction:
+The env var you set depends on the item's `type`. One env var selects the session mode.
+
+### Work items (`type: "work"`, `dispatch_skill: "work-loop"`)
+
+Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). work-loop manages its own git lifecycle — `git_branch`, `git_commit`, and `git_push` are intentionally unavailable. The harness role is to monitor `workspace_status()` and respond to gates.
 
 ```json
 {
@@ -91,8 +96,7 @@ Construct `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}` from the
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
         "env": {
-          "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-initiative/fix-login-bug",
-          "WORKSPACE_MCP_DISPATCHED_ITEM": "my-initiative/work:fix-login-bug"
+          "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-initiative/fix-login-bug"
         }
       }
     },
@@ -103,7 +107,27 @@ Construct `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}` from the
 }
 ```
 
-`WORKSPACE_MCP_SPEC_PATH` is the spec directory path relative to `cwd`. Setting both env vars unlocks `git_branch`, `git_commit`, and `git_push`, and scopes commits to the item's configured output paths.
+### Non-FSM items (`type: "research"` | `"design"` | `"shape"` | `"strategy"`)
+
+Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks `git_branch`, `git_commit`, and `git_push` scoped to the item's configured output paths.
+
+```json
+{
+  "method": "session/new",
+  "params": {
+    "cwd": "/absolute/path/to/repo",
+    "mcpServers": {
+      "workspace-mcp": {
+        "command": "python3",
+        "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
+        "env": {
+          "WORKSPACE_MCP_DISPATCHED_ITEM": "my-initiative/research:competitive-analysis"
+        }
+      }
+    }
+  }
+}
+```
 
 Retrieve the session instruction at runtime:
 
@@ -111,13 +135,7 @@ Retrieve the session instruction at runtime:
 from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 ```
 
-**CI / untrusted checkouts:** swap `args` for isolated mode:
-
-```json
-"args": ["-I", "-m", "agentbundle.workspace_mcp"]
-```
-
-The `-I` flag prevents the repo's files from influencing Python's import path. Required for untrusted code; omit only for developer-owned checkouts.
+> **Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
 
 ## Step 4 — Monitor progress
 
@@ -139,7 +157,8 @@ Key fields in the response:
 | `gate_pending` | bool | True when human input is required before work continues |
 | `gate` | string \| null | Gate name — e.g. `SPEC-HUMAN-GATE`, `REVIEW-HUMAN-GATE` |
 | `gate_question` | string \| null | The specific question the work-loop is asking |
-| `ready` | array | Items dispatchable now |
+| `ready` | array | Build items (type: work) dispatchable now |
+| `shaping` | array | Non-FSM items (research, design, shape, strategy) dispatchable now |
 | `active` | array | Items currently in progress |
 | `blocked` | array | Items with unmet dependencies |
 
@@ -161,6 +180,17 @@ When `gate_pending` is true, the work-loop is paused waiting for a human decisio
 
 If your harness implements `session/create_elicitation`, the agent's `elicit()` tool routes questions through that channel automatically — no polling required for inline questions. The `session/prompt` pattern works in all cases as a fallback.
 
+## When it doesn't work
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Session hangs indefinitely | Missing `permissions.allow` entries | Add all six `mcp__workspace-mcp__*` strings to `.claude/settings.json` (Step 1) |
+| `workspace_status()` returns `{"error": "workspace_status_engine.py not found…"}` | `agentbundle install core` has not been run in the checkout | Run `agentbundle install core` in the target repo |
+| `git_commit` returns `"git_commit unavailable: no output_pattern (work-loop owns git)"` | Item type is `work` — work-loop manages git | Expected for work items; monitor gates, don't call `git_commit` |
+| `git_commit` returns `"refusing commit: N pre-staged file(s) outside output_pattern"` | The repo has pre-staged files outside the item's output paths | Unstage those files before calling `git_commit`, or use `git reset HEAD` |
+| `WORKSPACE_MCP_DISPATCHED_ITEM` accepted but `git_branch` returns "already set" | `SPEC_PATH` was also set; branch locked to startup HEAD (FSM mode) | Set only one env var: `SPEC_PATH` for work items, `DISPATCHED_ITEM` for non-FSM items |
+| Item slug not found in `workspace.toml` | `WORKSPACE_MCP_DISPATCHED_ITEM` references a slug that doesn't exist in the queue | Verify the slug against `workspace_status()` `ready[]` before dispatching |
+
 ## Reference
 
-Full workspace-mcp architecture, notification contract, security constraints, deferred adapter roadmap, and Class B (Kiro CLI) setup: [`docs/architecture/workspace-mcp/design.md`](../../../../docs/architecture/workspace-mcp/design.md).
+Full workspace-mcp architecture, notification contract, security constraints, deferred adapter roadmap, and Class B (Kiro CLI) setup: [`docs/architecture/workspace-mcp/design.md`](../../../docs/architecture/workspace-mcp/design.md).

@@ -154,7 +154,9 @@ Because workspace-mcp is injected per-session by the control plane, it is absent
 every session the control plane did not create. Interactive editor sessions — a developer
 using Claude Code directly, not through a harness — never see the MCP server or the
 session instruction unless the user manually adds workspace-mcp to their global MCP
-config (not the intended deployment model).
+config (not the intended deployment model). The exception is Class B adapters (see
+below): a Kiro CLI repo with workspace-mcp in `.kiro/settings/mcp.json` loads
+workspace-mcp in every terminal session, including interactive ones.
 
 **Session mode** is set by which env var is provided:
 

@@ -8,6 +8,15 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Fixed
+
+- **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
+  harness clarity. `git_status`, `git_branch`, `git_commit`, and `git_push`
+  now open with "Use this instead of running 'git X' directly" and name the
+  specific bypass risk each guard prevents (scoping-guard lock, output-path
+  filter, branch check). `git_commit` description now states that pre-staged
+  files outside the output paths cause a hard refusal, not silent exclusion.
+
 ## [0.28.1]
 
 ### Fixed

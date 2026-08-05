@@ -1642,7 +1642,9 @@ class _StdioLoop:
                     "raw git commit bypasses the output-path filter and may silently "
                     "include files outside the dispatched item's scope. "
                     "Stages and commits only files under the item's configured output "
-                    "paths; files outside those paths are excluded automatically. "
+                    "paths; unstaged files outside those paths are excluded automatically. "
+                    "If any files outside the output paths are already pre-staged (via "
+                    "git add), the commit is refused — unstage them first. "
                     "Not available when no item has been dispatched, or for work-loop "
                     "items (work-loop manages its own git lifecycle)."
                 ),
