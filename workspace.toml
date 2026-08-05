@@ -1037,26 +1037,6 @@ open = [
   # Unblocks when: real adopter need surfaces; linear pack v1 shipped first.
   {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 
-  # Deferred-AC anchors for docs/specs/catalogue-curation/spec.md (four (deferred: <slug>)
-  # markers, lint-spec-status invariant iv). The shaped work that closes them is
-  # spec/catalogue-curation-qa-coverage (in [work].queue): its AC8 flips the four
-  # deferred markers to [x], after which these anchors can be removed. Kept here until
-  # then so the deferred-marker lint resolves.
-  # catalogue-curation resync RFC routing: re-synced source-RFC routes to Amendment
-  #   (Open), Erratum (Frozen+correction), or new RFC (Frozen+new). Not exercised in QA.
-  {slug = "catalogue-curation-resync-rfc-routing", source = "spec/catalogue-curation"},
-  # catalogue-curation anti-pattern detection: assimilation detects known misuse
-  #   (scripts triggering skills, agents reviewing own output, flooding prompts) and
-  #   reshapes or rejects, citing the repo rule. Not exercised in QA.
-  {slug = "catalogue-curation-antipattern-steering", source = "spec/catalogue-curation"},
-  # catalogue-curation propose-catalogue-pack: tests additivity + fit against local
-  #   CHARTER + four principles; on pass scaffolds a pack shell and emits an RFC. No QA yet.
-  {slug = "catalogue-curation-propose-pack", source = "spec/catalogue-curation"},
-  # catalogue-curation hook-confirm: an ingested hook/script (executable code) is flagged
-  #   distinctly and requires explicit human confirm before landing. Hook-ingest path not
-  #   exercised (QA covered skill ingest only).
-  {slug = "catalogue-curation-hook-confirm", source = "spec/catalogue-curation"},
-
   # ── journey-template-revamp experience polish ─────────────────────────────────
   {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
   {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
