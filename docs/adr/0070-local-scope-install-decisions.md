@@ -63,12 +63,14 @@ across all clones, and appear in `git diff --stat` until committed — the oppos
 what a local-scope install requires.
 
 The path is resolved via `git rev-parse --git-path info/exclude` rather than
-hard-coded as `.git/info/exclude`. This one-liner handles linked worktrees
-(which have their own `.git` file pointing to the common `.git` dir under
-`.git/worktrees/<name>/`) and submodules, both of which have non-standard `.git`
-directory layouts. In the primary worktree the path resolves to `.git/info/exclude`;
-in linked worktrees it resolves to `.git/worktrees/<name>/info/exclude` (which is a
-separate per-worktree file, not the common one — a subtlety covered in D3 below).
+hard-coded as `.git/info/exclude`. In both primary and linked worktrees, this
+command resolves to the **common-dir** exclude file (i.e. `.git/info/exclude`
+under the main repository's `.git/` directory), not a per-worktree variant.
+This is because git routes `--git-path` for `info/exclude` through the common
+directory even when run from a linked worktree, making the resolved path
+identical from any worktree. The command also handles submodules correctly.
+The per-worktree discriminant needed for block attribution is provided by D3's
+keyed-block design, not by writing to separate files.
 
 The file is created on first write if absent (it is optional in a fresh repo).
 Writes are always atomic: read → modify in memory → write to a temp file in the same
@@ -129,12 +131,18 @@ Block format (canonical):
 
 Rules:
 - Leading `/` anchors patterns to the repo root (same behaviour as `.gitignore`).
+- Each path is gitignore-metacharacter-escaped before writing (`[`, `]`, `*`, `?`,
+  `\` are backslash-escaped; `#` and `!` only when at line start) so that projected
+  filenames containing gitignore pattern syntax are matched literally.
 - If a block for this `(pack, worktree-id)` already exists, it is replaced in place
   (no duplicate accumulation).
 - Blocks from different worktrees coexist; each is stripped only by its own
   `(pack, worktree-id)` uninstall.
-- Stale blocks (from deleted worktrees) accumulate harmlessly — git treats the paths
-  as unmatchable when the files don't exist.
+- Stale blocks (from deleted worktrees) accumulate in `info/exclude`. They are **not**
+  harmless: their patterns continue to apply in all linked worktrees that share the
+  common-dir `info/exclude`. A stale block can silently hide a tracked or committed
+  file in another worktree. Pruning deferred to a follow-on `agentbundle local prune`
+  CLI; risk must be documented in the `write_exclude_block` docstring.
 
 ### D4 — Defer file locking on `.git/info/exclude` to a follow-on release
 
@@ -193,8 +201,11 @@ actual platform mix of agentbundle users.
 **Negative:**
 
 - Stale blocks accumulate in `.git/info/exclude` when worktrees are deleted without
-  uninstalling. They are harmless but untidy. A future `agentbundle local prune`
-  command could clean them; deferred.
+  uninstalling. They are **not** harmless: their patterns continue excluding same-path
+  files in all linked worktrees sharing the common-dir `info/exclude`, potentially
+  hiding a tracked or committed file added later in another worktree. A future
+  `agentbundle local prune` command could clean them; deferred. The risk is documented
+  in the `write_exclude_block` docstring (AC26/AC27).
 - The lost-update race (D4) can result in one process's block being silently overwritten
   by another. Users running parallel `agentbundle install` processes will need to
   re-run the losing install. Unlikely in practice; documented.

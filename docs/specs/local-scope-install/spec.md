@@ -6,7 +6,7 @@
 - **Constrained by:** RFC-0080, ADR-0070, RFC-0004, RFC-0005, RFC-0008, RFC-0012
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** none (CLI-only; no new API or event surface)
+- **Contract:** `contracts/pack.schema.json` (and parity copy `packages/agentbundle/agentbundle/_data/pack.schema.json`) — AC1 modifies `allowed-scopes` in both copies
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -72,8 +72,11 @@ they don't own or haven't permanently adopted it.
 - **TDD** — for all logic with a compressible invariant: `resolve()` auto-promote
   rule, `_parse_adapter_row` scope coercion, `resolve_state_path` routing,
   block-key parse/strip round-trip, tracked-file collision check, `installed_at_*`
-  flag derivation, repo/local cross-scope refusal (including `--force` immunity),
-  `--force-merge --scope local` refusal.
+  flag derivation (adapter-level), repo/local cross-scope refusal (including
+  `--force` immunity), `--force-merge --scope local` refusal, Tier-2 file refusal
+  (AC10b), path-level cross-scope overlap refusal (AC12b, both directions),
+  rollback round-trip (AC21), dependency validation with local state (AC23b),
+  show-state loading (AC23c).
 - **Goal-based check** — schema validation: `python3 tools/lint-ruff.py` passes;
   `python3 -m pytest packages/agentbundle/tests/ -q` green; `check_contract_parity.py`
   exits 0 (both schema copies byte-identical).
@@ -115,8 +118,16 @@ they don't own or haven't permanently adopted it.
   outside a git working tree.
 - [ ] AC9: `agentbundle install --scope local --emit-install-routes` is refused with
   an error that references RFC-0008 for the plugins route's own local-scope behaviour.
-- [ ] AC10: `agentbundle install --scope local` fails when any target file is already
-  tracked by git; the whole install aborts (no partial writes).
+- [ ] AC10: `agentbundle install --scope local` fails (no partial writes) when:
+  (a) any target file is already tracked by git (checked via
+  `git --literal-pathspecs ls-files --error-unmatch <path>`); or
+  (b) any target file exists as an untracked file that has **no ownership record**
+  in any agentbundle state (repo, user, or local) — regardless of content match.
+  Matching content does not grant ownership: a pre-existing unowned file with
+  identical content would be deleted on uninstall, violating the exact-restoration
+  guarantee. For local scope, a conflicting untracked file must not be silently
+  bypassed via companion-file routing (Tier-2 classification applies to unowned
+  untracked files with different content, but the ownership check is broader).
 - [ ] AC11: `agentbundle install --scope local` fails when the pack is already
   installed at `--scope repo`; the refusal is `--force`-immune.
 - [ ] AC11b: `agentbundle install --force-merge --scope local` is refused; the
@@ -127,16 +138,32 @@ they don't own or haven't permanently adopted it.
   (`--scope user` coexists with a local install — user-scope files land in `~/.claude/`
   outside the working tree and are unaffected by the exclude block; user/local
   coexistence is explicitly permitted by RFC-0080.)
+- [ ] AC12b: Cross-scope path collision (not just same-pack) is detected and refused:
+  if a local install's projected paths overlap with any path owned by a repo-scope
+  pack (or vice versa), the install is refused with a `--force`-immune error naming
+  the colliding path and its owner.
 
 ### Install — write path
 
 - [ ] AC13: Installed files appear in the working tree at the same paths as
   `--scope repo`; they do NOT appear in `git status` output.
 - [ ] AC14: A comment-delimited block keyed to `(pack-name, worktree-id)` is appended
-  to the file returned by `git rev-parse --git-path info/exclude`. Block format:
-  `# agentbundle:local:<pack>:<worktree-id>:begin / [paths] / …:end`.
-- [ ] AC15: Reinstalling an already-local pack replaces the existing block in place
-  (no duplicate blocks).
+  to the file returned by `git rev-parse --git-path info/exclude` (which resolves to
+  the common-dir `info/exclude` from both primary and linked worktrees). Block format:
+  `# agentbundle:local:<pack>:<worktree-id>:begin / [paths] / …:end`. Each path
+  written into the block is gitignore-metacharacter-escaped before writing: the
+  characters `[`, `]`, `*`, `?`, and `\` are backslash-escaped; `#` and `!` are
+  escaped only when they appear at the start of a line. This ensures filenames
+  containing gitignore pattern syntax are matched literally and not as globs.
+- [ ] AC14b: The exclude block for a pack represents the **union** of all adapter rows
+  installed locally for that pack. Installing a second adapter replaces the block with
+  a block containing all paths from both adapters. Uninstalling one adapter recomputes
+  the block from the remaining rows; the block is stripped only when the last row is
+  removed.
+- [ ] AC15: When a second adapter is installed locally for the same pack
+  (multi-adapter union path per AC14b), the block is replaced in place with the
+  union of both adapters' patterns — no duplicate blocks. Same-adapter reinstall
+  is governed by AC21b's refusal (not this AC).
 - [ ] AC16: Two different worktrees installing the same pack each write their own
   keyed block; the blocks coexist in the shared `info/exclude` file.
 - [ ] AC17: Seeds (`AGENTS.md`/`docs/CHARTER.md`), install markers, and layout
@@ -153,22 +180,61 @@ they don't own or haven't permanently adopted it.
 - [ ] AC20: The install success line reports both the scope and the actual
   exclude-file path: `installed: <pack> @ local (excluded via <exclude-path>)`.
 
+### Install — rollback on failure
+
+- [ ] AC21: The write path follows the order: (1) snapshot prior exclude-file content,
+  (2) write the exclude block (so installed files are git-invisible from the moment
+  they exist), (3) write projected files, (4) write state row. If any step fails after
+  step 1, the install rolls back: the exclude block is restored to the snapshotted
+  content, any projected files written so far are deleted, and no state row is
+  persisted. The working tree, exclude file, and local state are identical to their
+  pre-install values after rollback. Writing the block before the files guarantees
+  that no background git tooling (IDE integrations, `git status` watchers) can
+  observe the files in a non-excluded state.
+
 ### Install — same-scope reinstall
 
-- [ ] AC21: `agentbundle install --scope local` on an already-local pack routes to
-  the upgrade-offer flow (same as `--scope repo` reinstall behaviour).
+- [ ] AC21b: `agentbundle install --scope local` on an already-local pack, **same
+  adapter**, same scope, is refused with a clear "already installed" message. The
+  guard fires only when the requested adapter row already exists in `local_state`
+  (adapter-identity check, not a pack-level boolean). The install does not route
+  through `upgrade.run` (which does not support local scope in v1) and does not
+  modify any state. The v1 message names `uninstall --scope local` then
+  `install --scope local` as the refresh path. Amends RFC-0080 §"Same-scope local
+  reinstall" (which mandated upgrade-offer routing — that routing fails because
+  `upgrade.run` has no local support); this amendment is recorded in the
+  implementing PR description.
 
 ### Uninstall
 
 - [ ] AC22: `agentbundle uninstall --scope local` removes installed working-tree
-  files, strips the `(pack-name, worktree-id)` block from the exclude file, and
-  removes the pack's rows from `.agentbundle-local-state.toml` (deletes the state
-  file only when it becomes empty). `git status` is clean after.
+  files for the specified adapter row, recomputes the exclude block from the remaining
+  local rows for this pack (strips the block if no local rows remain), and removes
+  the specified adapter row from `.agentbundle-local-state.toml` (deletes the state
+  file only when it becomes empty). `git status` is clean after. When multiple
+  adapter rows exist for the same pack, uninstalling one adapter leaves the other
+  adapter's files excluded and in-place.
 
 ### List-installed
 
 - [ ] AC23: `agentbundle list-installed` includes local-scope rows with
   `scope = local` and a note `(not committed; per-clone only)`.
+
+### Dependency validation
+
+- [ ] AC23b: `validate_dependencies_required()` (called during install pre-flight)
+  receives the local state in addition to repo and user state when `requested_scope ==
+  "local"`. A required dependency installed only at local scope satisfies the
+  dependency check for a local install.
+
+### Show command
+
+- [ ] AC23c: `agentbundle show <pack>` includes `.agentbundle-local-state.toml` in
+  its `_load_states()` fallback. After a local-only install with the catalogue
+  unavailable, `show` correctly reports the pack as installed (`source:
+  installed-state`). The current `show` output format does not include a top-level
+  scope field; extending the output contract to expose scope is deferred to a
+  follow-on spec.
 
 ### CLI surface
 
@@ -179,7 +245,7 @@ they don't own or haven't permanently adopted it.
 - [ ] AC25: `agentbundle diff --scope local`, `upgrade --scope local`, and
   `init-state --scope local` produce an argparse-native `invalid choice: 'local'`
   error (not a runtime guard). The argparse rejection is the v1 "not yet supported"
-  mechanism; the friendly RFC-0080 message at lines 577-580 is reserved for a future
+  mechanism; the friendly RFC-0080 message at lines 582-585 is reserved for a future
   custom action if the UX is revisited.
 
 ### Documentation
