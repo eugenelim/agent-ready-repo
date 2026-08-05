@@ -114,7 +114,7 @@ not artifact content — replace them.
   themselves and know what the next rung requires.
 - Author one bullet per rung: what the doer at that rung does, and the shift that
   moves them up.
-- **Reframe, never omit silently (RFC-0057 Open Question 1).** When
+- **Reframe, never omit silently.** When
   skill-progression does not apply — a **one-off deliverable** with no repeating
   practitioner — author §4 instead as an **adoption / capability-maturity axis**:
   **crawl → walk → run** of the *deliverable or the practice* (a first

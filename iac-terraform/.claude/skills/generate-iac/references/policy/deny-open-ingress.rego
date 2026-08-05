@@ -72,7 +72,7 @@ deny[msg] if {
 
 # --- Rule 2: managed-by = "terraform" tag must be present ---
 #
-# Enforces the ADR-0004 tagging standard at the plan gate. Fires when a
+# Enforces the tagging standard at the plan gate. Fires when a
 # resource's `tags` map exists and managed-by is absent or wrong.
 #
 # Caveat: AWS resources using `provider.default_tags` have their tags
@@ -90,7 +90,7 @@ deny[msg] if {
 	is_object(tags)
 	object.get(tags, "managed-by", "missing") != "terraform"
 	msg := sprintf(
-		"%q has tags block but managed-by != \"terraform\" (tagging standard ADR-0004)",
+		"%q has tags block but managed-by != \"terraform\" (tagging standard)",
 		[change.address],
 	)
 }

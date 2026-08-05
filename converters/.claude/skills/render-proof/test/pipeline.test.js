@@ -1,7 +1,7 @@
 'use strict';
 
 // test/pipeline.test.js — run with: node test/pipeline.test.js
-// Probes A2UI v0_9 imports and verifies the buildMessages AC2 shape.
+// Probes A2UI v0_9 imports and verifies the buildMessages shape.
 // Note: A2uiSurface SSR (renderToStaticMarkup/renderToReadableStream) is confirmed
 // incompatible due to useSyncExternalStore missing getServerSnapshot; the render-proof
 // skill uses the Risk #1 fallback (dangerouslySetInnerHTML). This probe verifies the
@@ -16,7 +16,7 @@ async function run() {
   assert(typeof a2ui.MarkdownContext !== 'undefined', 'MarkdownContext not exported from @a2ui/react/v0_9');
   assert(typeof core.MessageProcessor === 'function', 'MessageProcessor not a function in @a2ui/web_core/v0_9');
 
-  // Snapshot: message pair shapes (AC2) — must test production-built objects, not test-local literals
+  // Snapshot: message pair shapes — must test production-built objects, not test-local literals
   const { buildMessages } = require('../scripts/render-proof.js');
   const [prodCreate, prodUpdate] = buildMessages('# Hello');
   assert(Object.keys(prodCreate)[0] === 'createSurface', 'createSurface object-key shape wrong');

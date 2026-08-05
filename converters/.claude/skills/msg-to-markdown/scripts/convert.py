@@ -2,10 +2,10 @@
 """
 convert.py — convert Outlook `.msg` and MIME `.eml` email to Markdown at Tier 0.
 
-The Python port of the `msg-to-markdown` skill (RFC-0058 Open-Q2 / ADR-0045).
+The Python port of the `msg-to-markdown` skill.
 It replaces the Node runtime and the `@nicecode/msg-reader` / `msgreader` npm
-packages: `.msg` is read via `olefile` + first-party MAPI decoding (`mapi.py`,
-ADR-0046) and `.eml` via the stdlib `email` package, both populating **one**
+packages: `.msg` is read via `olefile` + first-party MAPI decoding (`mapi.py`)
+and `.eml` via the stdlib `email` package, both populating **one**
 internal email model that a single renderer turns into Markdown. Every output
 carries the unified Tier-0 output contract (`contract.build_frontmatter`) and is
 written through an output-path confinement guard (`safe_io.confine`).
@@ -39,7 +39,7 @@ import mapi
 import safe_io
 
 # olefile is resolved pip-on-demand via --check, never auto-installed (mirrors
-# file-to-markdown's optional-library pattern). Pin a minimum version (ADR-0046).
+# file-to-markdown's optional-library pattern). Pin a minimum version.
 OPTIONAL_LIBS = {"olefile": "python -m pip install 'olefile>=0.47'"}
 
 SUPPORTED_EXTS = {".msg", ".eml"}
@@ -303,7 +303,7 @@ def _summary(m: mapi.EmailModel | None, content_type: str) -> dict:
     }
 
 
-# --- Confined attachment extraction (AC6) -----------------------------------
+# --- Confined attachment extraction -----------------------------------------
 
 
 def safe_basename(name: str) -> str | None:

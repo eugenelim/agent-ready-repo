@@ -340,7 +340,7 @@ def corpus():
 
     Covers plain/HTML bodies, to/cc/bcc, an attachment, an inline `cid:` image,
     an embedded `.msg`, non-ASCII text, and importance set. ``authored_truth`` is
-    the ground truth this corpus asserts against (the strong, portable AC3 gate);
+    the ground truth this corpus asserts against (the strong, portable parity gate);
     the Node `msgreader` cross-check is the independent oracle over the same bytes.
     """
     from datetime import datetime

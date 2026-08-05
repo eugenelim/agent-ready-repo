@@ -532,7 +532,7 @@ def render_markdown_general(
     review_notes = review_notes or []
     overall, high, med, low = _overall_confidence(canonical)
     # A low-confidence, empty, or cross-check-contested read is flagged — never
-    # emitted as a confident read silently (AC5). A mostly-low read is suspect
+    # emitted as a confident read silently. A mostly-low read is suspect
     # even with elements present and no text layer to cross-check against.
     flag = requires_review or not canonical or overall == "low"
 

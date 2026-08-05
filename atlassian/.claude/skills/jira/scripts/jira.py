@@ -70,7 +70,7 @@ if __package__ in (None, "") and __spec__ is None:
     # floor, while a pip-installed credbroker in site-packages still wins
     # (it precedes the appended floor). Append, never insert(0) — a stale
     # floor must never shadow a real install. Guarded on the dir existing,
-    # so its absence degrades to today's behavior. (credbroker-user-scope T1.)
+    # so its absence degrades to today's behavior.
     _floor = Path("~/.agentbundle/lib").expanduser()
     if _floor.is_dir() and str(_floor) not in sys.path:
         sys.path.append(str(_floor))
@@ -97,7 +97,7 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
 
 log = logging.getLogger("jira.cli")
 
-# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+# Banded exit-code taxonomy:
 #   0     success
 #   1     functional / operational error — bad args, server 5xx, transport,
 #         keychain hard-fail, unexpected; the stderr message carries the cause

@@ -21,7 +21,7 @@ allowed-scopes = ["repo", "user"]
 [pack.evals]
 skills = ["author-product-docs"]
 
-# enriched-pack-manifest: catalogue-facing links.
+# Enriched pack manifest: catalogue-facing links.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"

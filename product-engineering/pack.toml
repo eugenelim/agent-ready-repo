@@ -20,11 +20,11 @@ version = "0.13"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters. Declared order is load-bearing (append-only);
+# Declared order is load-bearing (append-only);
 # `kiro-ide` precedes the others so a Kiro user's auto-probe resolves to the IDE.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
-# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# Consolidated pack layout: the scope-keyed default for the
 # [product] section of an adopter-owned `agentbundle-layout.toml`.
 # The repo default is docs/product — the natural home for product intents and
 # rollups. No `[pack.layout.user]`: product-engineering's output is per-repo and
@@ -34,14 +34,14 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 [pack.layout.repo]
 output_dir = "docs/product"
 
-# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
 # evals/eval_queries.json and is measured by tools/run-pack-evals.py. All five
 # skills are user-prompt-triggered, so none are excluded.
 [pack.evals]
 skills = ["frame-intent", "de-risk-intent", "decompose-intent", "align-value-stream", "frame-domain", "discovery-loop", "explore-options", "plan-validation", "ux-writing"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

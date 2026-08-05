@@ -1192,8 +1192,8 @@ Five anti-patterns rejected by name:
   verb reads (resolves and returns 0/non-0 only); no skill or shim
   surface returns the cleartext token to a caller other than the
   in-process credentialed primitive that owns the API call.
-- **Per-skill dotfiles** — one well-known per-user file per the spec
-  AC13 path; per-skill files multiply the wipe-on-rotation surface.
+- **Per-skill dotfiles** — the contract mandates one well-known per-user
+  file; per-skill files multiply the wipe-on-rotation surface.
 - **`SSL_VERIFY=false` defaults** — `--insecure` is opt-in only and
   must emit a stderr warning.
 - **Vendored copies of third-party API skills** — pin upstream and

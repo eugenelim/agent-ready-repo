@@ -7,7 +7,7 @@ description: "Orient to the current desk-research project at a glance — reads 
 
 Cold-start orient for a sustained desk-research project. Run this when you return to a project and want to know where it stands — what phase it is in, what the current working hypothesis is, and what to do next.
 
-**Read-only** by contract (ADR-0054): it never advances `phase`, never invokes `desk-research-project-digest` or `desk-research-project-synthesize`, and never modifies `overview.md`.
+**Read-only** by contract: it never advances `phase`, never invokes `desk-research-project-digest` or `desk-research-project-synthesize`, and never modifies `overview.md`.
 
 ## Output rendering
 
