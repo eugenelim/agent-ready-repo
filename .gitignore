@@ -13,6 +13,8 @@ agentbundle-layout.toml
 # Work-loop session state — per-spec scratch, never committed.
 docs/specs/**/state.json
 docs/specs/**/engine-state.json
+docs/specs/**/state-*.json
+docs/specs/**/engine-state-*.json
 
 # Supervisor-mode worktrees.
 .worktrees/
@@ -88,3 +90,4 @@ docs-site/src/sidebar-config.json
 .workspace-repair.lock
 .workspace.toml.*.tmp
 .plan.*.tmp
+.loop-run/

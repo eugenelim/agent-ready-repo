@@ -1,0 +1,5 @@
+[pack]
+name = "local-test-pack"
+version = "0.1.0"
+description = "Minimal pack for local-scope integration tests."
+allowed-scopes = ["repo", "local"]

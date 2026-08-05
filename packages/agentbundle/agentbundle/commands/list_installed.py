@@ -389,7 +389,10 @@ def _print_table(
 
     table_rows: list[list[str]] = []
     for r in display_rows:
-        cells = [r["pack"], r["adapter"], r["scope"], r["installed"]]
+        scope_cell = r["scope"]
+        if scope_cell == "local":
+            scope_cell = "local (not committed; per-clone only)"
+        cells = [r["pack"], r["adapter"], scope_cell, r["installed"]]
         if show_source:
             src = r.get("canonical_source")
             if src is None:
@@ -467,7 +470,7 @@ def run(args: argparse.Namespace) -> int:
         )
 
     requested_scope = getattr(args, "scope", None)
-    scopes = [requested_scope] if requested_scope else ["user", "repo"]
+    scopes = [requested_scope] if requested_scope else ["user", "repo", "local"]
     check = not getattr(args, "no_check", False)
     want_drift = getattr(args, "check_drift", False)
 
@@ -477,6 +480,10 @@ def run(args: argparse.Namespace) -> int:
     for sc in scopes:
         if sc == "repo":
             base, state_path = repo_root, repo_root / ".agentbundle-state.toml"
+        elif sc == "local":
+            # RFC-0080: per-clone state file, never committed.
+            base = repo_root
+            state_path = repo_root / ".agentbundle-local-state.toml"
         else:  # user
             try:
                 base = scope_mod.resolve_user_root()
@@ -494,7 +501,7 @@ def run(args: argparse.Namespace) -> int:
 
     # Empty-result path (format-aware)
     if not rows:
-        where = f"{requested_scope} scope" if requested_scope else "user or repo scope"
+        where = f"{requested_scope} scope" if requested_scope else "user, repo, or local scope"
         if fmt == "json":
             json_str = _render_json(
                 [], [], scope_val=scope_val, updates_only=updates_only, check=check

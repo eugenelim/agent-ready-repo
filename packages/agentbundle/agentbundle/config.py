@@ -29,6 +29,8 @@ from typing import Any, Literal
 from urllib.parse import urlsplit
 from urllib.request import url2pathname
 
+from agentbundle.scope import LEGAL_SCOPES
+
 _WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 _CREDENTIAL_SUBSTRINGS = ("token", "key", "secret", "password", "auth")
 
@@ -524,7 +526,7 @@ def _parse_adapter_row(
     raw_scope = body.get("scope")
     scope = (
         raw_scope
-        if isinstance(raw_scope, str) and raw_scope in ("repo", "user")
+        if isinstance(raw_scope, str) and raw_scope in LEGAL_SCOPES
         else default_scope
     )
 

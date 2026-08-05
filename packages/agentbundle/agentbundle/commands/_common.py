@@ -43,11 +43,15 @@ def resolve_catalogue_uri(args: argparse.Namespace) -> str:
 def resolve_state_path(scope: str, root: Path) -> Path:
     """Return the state-file path for *scope* under *root*.
 
-    ``scope="repo"`` → ``<root>/.agentbundle-state.toml``
-    ``scope="user"`` → ``<root>/.agentbundle/state.toml``
+    ``scope="repo"``  → ``<root>/.agentbundle-state.toml``
+    ``scope="user"``  → ``<root>/.agentbundle/state.toml``
+    ``scope="local"`` → ``<root>/.agentbundle-local-state.toml``
+      (RFC-0080: per-clone, never-committed; never added to .gitignore)
     """
     if scope == "user":
         return root / ".agentbundle" / "state.toml"
+    if scope == "local":
+        return root / ".agentbundle-local-state.toml"
     return root / ".agentbundle-state.toml"
 
 

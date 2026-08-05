@@ -254,7 +254,7 @@ def test_uninstall_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
         rc = uninstall.run(args)
     assert rc != 0
     assert "demo-both installed at multiple scopes" in buf.getvalue()
-    assert "{repo, user}" in buf.getvalue()
+    assert "{repo, user, local}" in buf.getvalue()
 
 
 def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):

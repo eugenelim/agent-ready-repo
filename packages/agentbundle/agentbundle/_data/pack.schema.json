@@ -75,7 +75,7 @@
             "allowed-scopes": {
               "type": "array",
               "minItems": 1,
-              "items": {"enum": ["repo", "user"]}
+              "items": {"enum": ["repo", "user", "local"]}
             },
             "user-scope-hooks": {"type": "boolean"},
             "allowed-adapters": {
@@ -98,7 +98,21 @@
             "properties": {
               "allowed-scopes": {"contains": {"enum": ["repo"]}}
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "allowed-scopes": {"contains": {"enum": ["local"]}}
+                }
+              },
+              "then": {
+                "properties": {
+                  "allowed-scopes": {"contains": {"enum": ["repo"]}}
+                }
+              }
+            }
+          ]
         },
         "evals": {
           "type": "object",

@@ -67,6 +67,15 @@
 | 0058 | [Per-pack config root (`user-root`) stored as an optional field on `PackState` adapter rows in user-scope `state.toml`](0058-per-pack-config-root-in-packstate-adapter-rows.md) | Accepted |
 | 0059 | [Pack config uses a three-source cascade baked into `_data/install-defaults.toml` at catalogue build time](0059-pack-config-cascade-via-install-defaults-baking.md) | Accepted |
 | 0061 | [Phase-1 loop infrastructure uses Option A — pure phase tracker with hard engine/cohort boundary](0061-loop-infrastructure-phase-1.md) | Accepted |
+| 0062 | [workspace-mcp is per-session only — no persistent daemon, no lifecycle management across sessions](0062-workspace-mcp-per-session-only-constraint.md) | Accepted |
+| 0063 | [Session instruction for universal elicitation interception](0063-session-instruction-universal-elicitation.md) | Accepted |
+| 0064 | [events.jsonl as the FSM event source](0064-events-jsonl-as-fsm-event-source.md) | Accepted |
+| 0065 | [elicit() tool + elicitation/create + response-file fallback](0065-elicit-elicitation-create-response-file-fallback.md) | Accepted |
+| 0066 | [Reactive git at TurnEnd](0066-reactive-git-at-turnend.md) | Accepted |
+| 0067 | [Lifecycle manifest — built-in defaults and workspace-types.d/ extension](0067-lifecycle-manifest-builtin-defaults-workspace-types-d.md) | Accepted |
+| 0068 | [Notification namespace — _agentbundle.core/](0068-notification-namespace-x-core.md) | Accepted |
+| 0069 | [Threading model — daemon threads and bounded worker pool](0069-threading-model-daemon-threads-bounded-pool.md) | Accepted |
+| 0070 | [Local scope install — `.git/info/exclude` exclusion, whole-install abort, per-worktree keyed blocks, and deferred concurrent-write lock](0070-local-scope-install-decisions.md) | Accepted |
 
 ## Adding a new ADR
 

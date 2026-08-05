@@ -1,0 +1,702 @@
+# Plan: Local scope install (`--scope local`)
+
+- **Spec:** [`spec.md`](spec.md)
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+
+> **Plan contract:** this is the implementation strategy. Unlike the spec, this
+> document is allowed to change as you learn. When it changes substantially,
+> note why in the changelog at the bottom.
+
+## Approach
+
+Thread `"local"` through agentbundle bottom-up: schema and scope engine first
+(T1–T3), then state-file routing (T4), then the two simpler read-path commands
+(T5, T6), then the CLI choices (T7), then the install write-path (T8 — the
+largest task, covering all six fork families plus carve-outs and key sites),
+then the `.git/info/exclude` write and worktree-id logic (T9), then the uninstall
+strip (T10), then a full integration test (T11), then `show.py` state loading
+(T12), and finally the version bump (T13). Each task is a coherent commit.
+T8 and T9 share install.py but can be separated by landing T9's helper functions
+before T8 calls them. All prior tasks must be green before T8 begins — the
+install write path touches every earlier layer.
+
+The riskiest part is T8 (install.py): it has six scope-branching fork families,
+carve-outs that must NOT be widened, and five "else-implies-user" ternary sites
+that silently produce a zero-file install if missed. An integration test (T11)
+that asserts specific files were actually written is the primary safety net
+against silent misses.
+
+## Constraints
+
+- RFC-0080 — canonical authority for all design decisions.
+- ADR-0070 — records the four implementation decisions (exclude mechanism,
+  abort policy, keyed-block design, deferred locking).
+- RFC-0004 — install-scope per pack; `allowed-scopes` schema precedent.
+- RFC-0005 — user-scope hook support; force-merge is user-scope-only.
+- RFC-0008 — claude-plugins install-route; `--emit-install-routes` guard.
+- RFC-0012 — repo-scope per-adapter projection; `allowed-prefixes.repo` contract.
+- ADR-0006 — doc drift prevention; spec and plan must stay in sync.
+
+## Construction tests
+
+**Integration tests:** T11 covers the full install / uninstall cycle across all
+three phases: write, verify git-invisible, uninstall-clean. This is the primary
+defence against the silent-zero-file hazard in T8.
+
+**Manual verification:** After T11 is green, run `agentbundle install --pack core
+--scope local` in a test repo and confirm: (a) files appear in the working tree,
+(b) `git status` shows nothing, (c) `list-installed` shows `scope = local` row,
+(d) `agentbundle uninstall --pack core --scope local` produces a clean `git status`.
+
+## Design (LLD)
+
+### Design decisions
+
+*(Detailed rationale in ADR-0070 and RFC-0080; brief design notes here.)*
+
+- **`LEGAL_SCOPES` is the single source of truth** for argparse `choices` at the
+  three accepting `cli.py` sites — sourced as `tuple(sorted(LEGAL_SCOPES))` so
+  `--help` order is stable. The three refusing sites retain `("repo","user")` to
+  give argparse-native rejection (no runtime guard needed).
+- **Separate state file** (`.agentbundle-local-state.toml`) means older agentbundle
+  binaries see no effect; no schema-version bump required.
+- **`_chain_adapt` skipped for local** — local installs are ephemeral; adapt-discovery
+  re-running would apply to files the user considers git-invisible. This is a
+  deliberate amendment to AC19b (the existing spec comment at `install.py:1468`
+  that reads "invoke regardless of the install scope (markers are repo-only)");
+  the PR description must record this deviation explicitly.
+- **`install.py:377` stays `!= "user"`** — the force-merge guard correctly covers
+  local scope; changing to `== "repo"` would introduce a security regression by
+  letting `--force-merge --scope local` through.
+- **`install.py:950` user aggregate stays unchanged** — local plans must not enter
+  user-projection rendering; only the `:929` repo aggregate widens.
+
+### Data & schema
+
+State-file schema: identical `PackState` shape to `.agentbundle-state.toml`,
+`schema-version = "0.4"`, all rows `scope = "local"`. Path:
+`<repo>/.agentbundle-local-state.toml`. Included in the exclude block at install;
+removed row-by-row at uninstall; file deleted when empty.
+
+Block format in `.git/info/exclude`:
+```
+# agentbundle:local:<pack-name>:<worktree-id>:begin
+/.agentbundle-local-state.toml
+/.claude/skills/<pack-slug>/SKILL.md
+# agentbundle:local:<pack-name>:<worktree-id>:end
+```
+Worktree-id: derived by comparing `git rev-parse --git-dir` and
+`git rev-parse --git-common-dir` (equal → primary worktree, use a reserved
+sentinel such as a hash of the common-dir path; unequal → last component of
+`--git-dir`). The id must be sanitized to replace or reject `:` to preserve
+the `:` -delimited block-key. Pack names are `[a-z0-9-]+` per schema; assert
+the invariant at parse time.
+
+### Component / module decomposition
+
+| Module | Change |
+|---|---|
+| `pack.schema.json` (×2) | Add `"local"` to enum; add `allOf` if/then constraint |
+| `scope.py` | Extend `LEGAL_SCOPES`; add `default-scope="local"` reject in `resolve()` |
+| `config.py` | Widen `_parse_adapter_row` to `LEGAL_SCOPES` |
+| `commands/_common.py` | Add `"local"` branch in `resolve_state_path` |
+| `commands/list_installed.py` | Three-scope default; explicit `local` branch in inline if/else |
+| `cli.py` | 3 sites gain `"local"`; 3 sites retain `("repo","user")` |
+| `commands/install.py` | Substantial — see T8 task for full site list |
+| New helper (install.py or a new module) | `write_exclude_block`, `strip_exclude_block`, `rollback_exclude_block`, `derive_worktree_id` |
+| `commands/uninstall.py` | Block recompute or strip; worktree-id matching; `:105`/`:87` disambiguator |
+| `commands/show.py` | `_load_states()` local branch (T12) |
+
+### Failure, edge cases & resilience
+
+- `git` not in PATH or not a git repo: pre-flight fails fast; clear error.
+- `info/exclude` does not exist: created on first write.
+- Block already exists for this `(pack, worktree-id)`: replaced in place (no duplicate).
+- Target file already tracked: whole install aborts; no partial writes.
+- Concurrent write (two processes writing simultaneously): lost-update race
+  documented in ADR-0070; no lock in v1.
+- Worktree deleted without uninstall: stale block accumulates in `info/exclude`.
+  **Not harmless if same-path files exist in other worktrees**: a stale block's
+  patterns continue excluding those paths in ALL linked worktrees that share the
+  common-dir `info/exclude`. If a tracked/committed file lands at that path in
+  another worktree later, it is silently hidden from `git status`. Mitigation:
+  recommend `agentbundle local prune` (deferred CLI); document the risk in the
+  `write_exclude_block` docstring (AC26/AC27).
+
+## Tasks
+
+### T1: Schema — add `"local"` to `pack.schema.json`
+
+**Depends on:** none
+
+**Tests:**
+- `check_contract_parity.py` exits 0 (both copies byte-identical). Goal-based.
+- `python3 -m pytest packages/agentbundle/tests/ -q` — any existing schema-
+  validation tests still pass. Goal-based.
+- A pack with `allowed-scopes = ["local"]` (no `"repo"`) fails schema validation.
+  TDD.
+- A pack with `allowed-scopes = ["user", "local"]` (has `"local"` but not `"repo"`)
+  fails schema validation — this is the key case the `allOf` constraint closes. TDD.
+- A pack with `allowed-scopes = ["repo", "local"]` passes. TDD.
+
+**Approach:**
+- Edit **both** `contracts/pack.schema.json` AND
+  `packages/agentbundle/agentbundle/_data/pack.schema.json` byte-identically.
+- In the `allowed-scopes` array enum, add `"local"` alongside `"repo"` and `"user"`.
+- Add a new `allOf` sibling to the existing `if/then/else` block:
+  `if allowed-scopes contains "local" then allowed-scopes must also contain "repo"`.
+- Run `python3 tools/catalogue/check_contract_parity.py` to verify byte-identity.
+
+**Done when:** `check_contract_parity.py` exits 0; the `allOf` constraint test is green.
+
+---
+
+### T2: `scope.py` — extend `LEGAL_SCOPES` and `resolve()` guard
+
+**Depends on:** T1
+
+**Tests:**
+- `LEGAL_SCOPES == {"repo", "user", "local"}`. TDD.
+- `resolve(pack, requested="local", default="repo", allowed=["repo"])` returns
+  `"local"` (D4 auto-promote). TDD.
+- `resolve(pack, requested=None, default="local", allowed=["repo", "local"])`
+  raises `ScopeRefused`. TDD (default-scope reject precedes auto-promote).
+- `resolve(pack, requested="local", default="repo", allowed=["user"])` raises
+  `ScopeRefused` (repo not in allowed). TDD.
+
+**Approach:**
+- Add `"local"` to `LEGAL_SCOPES` in `scope.py`.
+- In `resolve()`, add an explicit check: if the resolved default is `"local"`,
+  raise `ScopeRefused` before the D4 auto-promote logic.
+- In the auto-promote path: if `requested == "local"` (or resolved to `"local"`),
+  allow if `"repo" in allowed_scopes` (the pack's allowed-scopes list).
+
+**Done when:** all four new unit tests green; `python3 -m pytest packages/agentbundle/tests/ -q` still green.
+
+---
+
+### T3: `config.py` — widen `_parse_adapter_row`
+
+**Depends on:** T2
+
+**Tests:**
+- `_parse_adapter_row(row_with_scope="local")` preserves `scope="local"` (not
+  coerced to `default_scope`). TDD.
+- `_parse_adapter_row(row_with_scope="unknown")` still coerces to `default_scope`.
+  TDD.
+
+**Approach:**
+- In `config.py:524-529`, replace hardcoded `("repo", "user")` with `LEGAL_SCOPES`
+  (imported from `scope.py`).
+
+**Done when:** both new tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+---
+
+### T4: `commands/_common.py` — `resolve_state_path` local branch
+
+**Depends on:** T2
+
+**Tests:**
+- `resolve_state_path("local", root=Path("/repo"))` returns
+  `Path("/repo/.agentbundle-local-state.toml")`. TDD.
+- `resolve_state_path("repo", root=Path("/repo"))` returns
+  `Path("/repo/.agentbundle-state.toml")` (unchanged). TDD.
+- `resolve_state_path("user", root=...)` returns the user-scoped path (unchanged). TDD.
+
+**Approach:**
+- Add an `elif scope == "local":` branch in `resolve_state_path` returning
+  `root / ".agentbundle-local-state.toml"`.
+
+**Done when:** all three routing tests green.
+
+---
+
+### T5: `commands/list_installed.py` — three-scope default + `local` branch
+
+**Depends on:** T4
+
+**Tests:**
+- `list-installed` without `--scope` lists all three scopes (repo, user, local).
+  TDD / goal-based against a fixture state.
+- `list-installed --scope local` shows rows with `scope = local` and the
+  `(not committed; per-clone only)` annotation. TDD.
+- The existing else-user fallthrough is replaced by an explicit `local` branch;
+  no `local` rows are silently routed to the user state file. TDD.
+
+**Approach:**
+- Update the hardcoded `["user", "repo"]` scope list to `["user", "repo", "local"]`
+  (or derive from `LEGAL_SCOPES`).
+- Replace the inline `if sc == "repo": … else: # user` routing at lines 477–486
+  with an explicit three-way branch that handles `"local"` explicitly.
+
+**Done when:** fixture-based tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+---
+
+### T6: `cli.py` — update `choices=` at the three accepting sites
+
+**Depends on:** T2
+
+**Tests:**
+- `agentbundle install --scope local --help` lists `{local,repo,user}` (or sorted
+  equivalent). Goal-based (run actual CLI).
+- `agentbundle diff --scope local` is rejected by argparse with a "invalid choice"
+  error (not a runtime guard). Goal-based.
+- Same argparse-native rejection for `upgrade --scope local` and
+  `init-state --scope local`. Goal-based.
+
+**Approach:**
+- At `cli.py` lines **261** (`list-installed`), **390** (`install`), **630**
+  (`uninstall`): change `choices=("repo","user")` to
+  `choices=tuple(sorted(LEGAL_SCOPES))` (import from `scope.py`).
+- Lines **525** (`diff`), **581** (`upgrade`), **678** (`init-state`): leave as
+  `("repo","user")` — argparse-native rejection is the v1 refusal mechanism.
+
+**Done when:** all three goal-based CLI tests pass.
+
+---
+
+### T7: `commands/install.py` — upstream gates, `_ScopePlan` branch, `emit_install_routes` inference
+
+**Depends on:** T4, T6
+
+**Tests:**
+- `agentbundle install --scope local --emit-install-routes` is refused with the
+  RFC-0008-referencing error message. TDD.
+- `emit_install_routes` inference at line 258: `cli_scope not in ("user", "local")`
+  (preserves `None`-scope legacy-caller behavior; `None not in ("user", "local")` is
+  `True`, keeping the historical repo-dist-tree path). Unit test for the fixture-fallback
+  path and `None`-scope case. TDD.
+- Upstream gate at line 513: `requested_scope in ("repo", "local")` resolves
+  `allowed_prefixes_repo` correctly for a local request. TDD.
+- `any(p.scope in ("repo", "local"))` aggregate at line 929 gates projection
+  rendering for a local plan. TDD.
+- `any(p.scope == "user")` at line 950 does NOT include local plans. TDD.
+- A new `_ScopePlan(scope="local", ...)` is produced for a local request. TDD.
+- A required dependency installed only at local scope satisfies
+  `validate_dependencies_required()` for a local install (AC23b). TDD.
+
+**Approach:**
+- `install.py:258`: change `cli_scope != "user"` to `cli_scope not in ("user", "local")`.
+  (`cli_scope == "repo"` would break legacy/programmatic callers that pass a Namespace
+  without an explicit `scope` field — `None not in ("user", "local")` is `True`,
+  preserving the historical repo-dist-tree path for `None`; `None == "repo"` is `False`,
+  which would silently switch legacy callers to adapter projection.)
+- `install.py:390-393`: branch the `--emit-install-routes` guard to emit the
+  RFC-0008-referencing message when `requested_scope == "local"`.
+- `install.py:513`: widen gate to `requested_scope in ("repo", "local") and not
+  emit_install_routes`.
+- `install.py:759`: add a `local` branch producing
+  `_ScopePlan(scope="local", root=output_root,
+  state_path=output_root / ".agentbundle-local-state.toml",
+  allowed_prefixes=allowed_prefixes_repo)`
+  (`output_root` is the function-level variable; `repo_root` is not defined here).
+- `install.py:929`: widen to `any(p.scope in ("repo", "local") ...)`.
+- (`:950` is unchanged — user-only.)
+
+- `install.py`: update `validate_dependencies_required()` call to pass `local_state`
+  alongside `repo_state` and `user_state` when `requested_scope == "local"` (AC23b).
+  If the function signature doesn't accept a third state, extend it.
+
+**Done when:** all unit tests (plus AC23b dependency test) green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+---
+
+### T8: `commands/install.py` — full six-family fork audit
+
+**Depends on:** T7, T9
+
+*This is the largest task. Proceed site-by-site per the six families below.
+Use `git diff` after each sub-group to confirm no unintended changes.*
+
+> **Line-number caveat:** all absolute line references in this task reflect
+> pre-T7 `install.py`. T7 inserts a `_ScopePlan` local branch at ~`:759`, shifting
+> every line below it. In this task, always **locate sites by symbol name or
+> surrounding comment text** (as noted per site below), not by the raw number.
+> The "~:" prefix signals a pre-T7 estimate; treat it as a grep hint, not a
+> go-to-line instruction.
+
+**Tests:**
+- Projection write: `repo_projection if plan.scope in ("repo","local") else user_projection`
+  at lines 1018, 1045, 1086 — TDD: a local plan selects repo_projection (non-None). TDD.
+- Adapter selection: `:859` and `:1093` widen to `plan.scope in ("repo","local")` —
+  TDD: local plan selects `repo_target_adapter`. TDD.
+- `:486` state-file routing for source-conflict check: three-way selection routes
+  local requests to `local_state` (not `repo_state`). TDD.
+- `:631` upgrade-offer guard: local reinstall of same adapter refuses with
+  "already installed" message (AC21b) — does NOT route through `upgrade.run`. TDD.
+- Unowned pre-existing file refusal (AC10b): if a target path exists as an untracked
+  file with **no ownership record** in any agentbundle state (repo, user, or local)
+  — regardless of content — the install is refused. TDD: assert refusal for both the
+  different-content case AND the identical-content case with no state ownership.
+- Path-level cross-scope collision: if incoming paths overlap with any path in the
+  other scope's footprint, refuse with `--force`-immune error (AC12b). TDD.
+- `:668` cross-scope conflict loads `installed_at_local`; repo refusal is
+  `--force`-immune. TDD.
+- `:377` force-merge guard: `agentbundle install --force-merge --scope local` is
+  refused; this is the AC11b behavioral test. TDD (assert non-zero exit and error
+  message; do NOT change `:377` to `== "repo"`).
+- `:814` left repo-only (v0.1 reload moot for new local state file) — no test
+  change needed; assert it is unchanged.
+- `:1334` adapter recording: `plan.scope in ("repo","local") and repo_target_adapter
+  is not None` — TDD: local state row has adapter field set. TDD.
+- `:1356` compound condition: both conjuncts accept `.agentbundle-local-state.toml`
+  — TDD: local state write not blocked by prefix check. TDD.
+- `:1447` and `:1456` wrapped in `if plan.scope != "local":` — TDD: no marker/
+  layout writes for local scope. TDD.
+- `:1471-1477` `_chain_adapt` skipped for local — TDD: adapt not invoked. TDD.
+- `:1493-1543` Step-13 emission: local branch emits
+  `installed: <pack> @ local (excluded via <path>)` — TDD / visual QA via CLI. TDD.
+- Silent-zero-file guard: integration test (T11) asserts specific files were
+  written to disk for a local install.
+
+**Approach:**
+
+**Family 1 — `requested_scope ==` equality comparisons (grep: `requested_scope == "repo"`, `requested_scope == "user"`):**
+- `:486`: **three-way selection** — `local_state if requested_scope == "local" else (repo_state if requested_scope == "repo" else user_state)`. This ensures source-conflict checking reads the correct state file for each scope; routing local to `repo_state` (binary expression) would miss local provenance rows.
+- `:631`: replace upgrade-offer guard with an adapter-identity check: refuse only when the requested adapter row (not just the pack) already exists in `local_state`; a second *different* adapter for the same pack must fall through to the union-write path (AC14b). The guard looks up the specific adapter row, not the pack-level `installed_at_local` boolean alone (AC21b).
+- `:668`: add `installed_at_local` derivation; enforce repo/local refusal before
+  `--force` check; also add path-level cross-scope overlap check for AC12b.
+- Unowned pre-existing file refusal (AC10b): before any write, check each target path for existence as an untracked file. If the path exists and has NO ownership record in any agentbundle state (repo, user, or local), refuse the whole install with a clear error — regardless of whether the file content matches. This is a superset of Tier-2 (different-content) classification; do NOT rely solely on `_classify_for_install()` Tier-2 detection, which would pass same-content unowned files through to installation and subsequent deletion-on-uninstall.
+- Other sites (`390`, `397`, `432`, `513`, `577`, `663`, `739`): review each;
+  widen or leave as-is per their individual semantics.
+
+**Family 2 — `!= "user"` negation comparisons:**
+- `:258`: already handled in T7 (change to `not in ("user", "local")` — see T7
+  approach note; do NOT use `== "repo"` as the RFC originally specified).
+- `:377`: **leave unchanged** — `requested_scope != "user"` correctly refuses
+  force-merge for local; do NOT change to `== "repo"`.
+
+**Family 3 — `scope_value ==` (profile path, lines 760, 4331, 4357):**
+- Guarded by `install.py:162-165` which already refuses `--scope` alongside
+  `--profile` once `"local"` is a valid CLI choice. Audit that the guard fires
+  correctly; no code change to `:4331`/`:4357` needed.
+
+**Family 4 — `plan.scope ==` and `p.scope ==` forks (grep both):**
+- Review each site; apply `in ("repo","local")` where the site drives a repo-path
+  operation; leave user-branch sites unchanged.
+- Carve-outs (leave as repo-only): `:1060`, `:1254`.
+- Unconditional carve-outs (add guard): wrap `:1447` and `:1456` in
+  `if plan.scope != "local":`.
+
+**Family 5 — else-implies-user ternaries (`X if plan.scope == "repo" else <user>`):**
+- `:1018`, `:1045`, `:1086`: `repo_projection if plan.scope in ("repo","local") else user_projection`.
+- `:859`, `:1093`: `repo_target_adapter if plan.scope in ("repo","local") else user_target_adapter`.
+
+**Additional key sites** (locate by symbol — absolute line numbers shift after T7
+inserts a `_ScopePlan` branch; use grep on function name or comment text):
+- `_reload_state` call (currently ~`:814`): leave repo-only (v0.1 reload moot for
+  the new local state file; add a one-line comment to mark it intentional).
+- Adapter ternary `repo_target_adapter`/`user_target_adapter` selection (~`:859`):
+  widened in Family 5; ensures the adjacent warning (~`:863`) fires for local too.
+- Adapter recording condition `repo_target_adapter is not None …` (~`:1334`):
+  widen to `plan.scope in ("repo","local") and repo_target_adapter is not None`.
+- Compound condition guarding state write (~`:1356`): update both conjuncts to
+  accept `.agentbundle-local-state.toml`.
+- `_chain_adapt` call site (locate via `_chain_adapt` symbol; ~`:1471-1477`):
+  wrap the Step-12 block in `if requested_scope != "local":` (not `continue` —
+  the call site is not inside a loop; use a conditional guard wrapping the block).
+  **Also** update the adjacent comment (~`:1468`) to record the local-scope
+  exception. **Also** add erratum notes to `docs/specs/adapt-to-project/spec.md`
+  AC19b ("regardless of install scope" → "except local scope, which is ephemeral")
+  and a clarifying note to AC19a ("every successful install" → "every successful
+  repo/user install — local is ephemeral and writes no marker").
+- Step-13 emission loop (locate via `# Step 13` comment or `"installed:"` string;
+  ~`:1493-1543`): add `local` branch emitting exclude-path suffix.
+
+**Family 6 — `any(p.scope == ...)` aggregates:**
+- `:929`: already widened in T7.
+- `:950`: unchanged (user-only; leave as-is).
+
+**Done when:** all family-audit tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green; no new `plan.scope == "repo" else` sites in the diff that aren't documented.
+
+---
+
+### T9: exclude-file write path and worktree-id derivation
+
+**Depends on:** T4
+
+*Can be authored in parallel with T7 since T9 provides helpers that T8 calls.
+Land T9 first — T9 and T7 are DAG-independent (both depend on T4 only) but
+both edit `install.py`; to avoid merge conflicts, complete T9 before starting T7.*
+
+**Tests:**
+- `derive_worktree_id()` returns the sentinel for the primary worktree (same
+  `--git-dir` and `--git-common-dir`). TDD.
+- `derive_worktree_id()` returns the last component of `--git-dir` for a linked
+  worktree. TDD.
+- Worktree-id containing `:` is sanitized (replaced or rejected). TDD.
+- `write_exclude_block(path, pack, worktree_id, patterns)` appends a new block
+  when none exists. TDD.
+- `write_exclude_block` replaces an existing block for the same `(pack, worktree_id)`
+  pair in place. TDD.
+- `write_exclude_block` with a superset of patterns (union of two adapter rows)
+  replaces the block with the union. TDD.
+- Two different worktree-ids coexist in the file. TDD.
+- `strip_exclude_block(path, pack, worktree_id)` removes the block and leaves
+  sibling blocks intact. TDD.
+- Write is atomic: a temp-file `os.replace` is used (not in-place append). TDD.
+- `rollback_exclude_block(path, prior_content)` restores the prior file content
+  atomically. TDD (used when a subsequent write fails after the block was written).
+- `git --literal-pathspecs ls-files --error-unmatch <path>` exits non-zero for a
+  tracked file → install aborts with clear error. TDD.
+- Pre-flight `git rev-parse --is-inside-work-tree` failure → install aborts. TDD.
+- A path containing gitignore metacharacters (e.g. `references/[draft].md`) is
+  correctly escaped in the exclude block as `references/\[draft\].md`; the unescaped
+  path does NOT appear in the block. TDD.
+
+**Approach:**
+- Implement `derive_worktree_id(repo_root)` using `subprocess.run(["git", "-C",
+  str(repo_root), "rev-parse", "--git-dir"])` and `--git-common-dir`, compare;
+  sanitize with `re.sub(r":", "_", id)`. All git subprocess calls pass `-C
+  <repo_root>` (or equivalent `cwd=repo_root`) so they probe the target repository,
+  not the process CWD (which differs when `--output` or `--root` names another repo).
+- Implement `write_exclude_block(exclude_path, pack, worktree_id, patterns)`:
+  read file (create if absent), find existing block by marker, replace or append,
+  write atomically via `tempfile.NamedTemporaryFile` + `os.replace`. The caller
+  passes the **union** of all adapter patterns for this pack + worktree-id pair
+  (not just the current adapter's patterns), so the block always reflects all
+  remaining installed adapters. Before writing each path into the block, apply
+  gitignore metacharacter escaping: backslash-escape `[`, `]`, `*`, `?`, and `\`
+  (the leading `/` anchor means `#`/`!` can never appear at line start, so no
+  escaping of those is needed).
+  Pre-flight tracked-file checks use `git --literal-pathspecs ls-files --error-unmatch <path>`
+  (not bare `git ls-files`) to prevent pathspec pattern interpretation.
+- Implement `strip_exclude_block(exclude_path, pack, worktree_id)`: read file,
+  find and remove the `begin`/`end` block (inclusive), write atomically. Use only
+  when the last adapter row for this pack is being removed; otherwise call
+  `write_exclude_block` with the remaining adapters' union.
+- Implement `rollback_exclude_block(exclude_path, prior_content)`: write
+  `prior_content` atomically, restoring the file to its pre-write state.
+- Define the commit order for install: (1) read and snapshot prior exclude content,
+  (2) write the exclude block first (files are git-invisible before they exist —
+  satisfies the no-footprint guarantee even across abrupt process death), (3) write
+  projected files, (4) write state row. If any step after (1) fails, roll back in
+  this order: (a) delete any projected files written so far, (b) call
+  `rollback_exclude_block` to restore exclude content, (c) discard uncommitted state.
+  Deleting files BEFORE restoring the block is critical: restoring the block while
+  files still exist creates a transient window where the files are git-visible and
+  non-excluded, violating the no-footprint guarantee during rollback.
+- Wire into `commands/install.py` pre-flight and write path.
+- In the `write_exclude_block` docstring, document: (a) the concurrent-write
+  lost-update limitation (two processes writing simultaneously; last writer wins)
+  and (b) the cross-worktree side-effect (a leading-`/` pattern in the shared
+  `info/exclude` silently git-ignores same-path untracked files in *all* linked
+  worktrees, not only the installing one). This satisfies AC26 and AC27.
+
+**Done when:** all new tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+---
+
+### T10: `commands/uninstall.py` — block-strip and worktree-id matching
+
+**Depends on:** T9
+
+**Tests:**
+- `agentbundle uninstall --scope local` removes installed files. TDD.
+- `agentbundle uninstall --scope local` strips only the correct worktree's block
+  (sibling blocks untouched). TDD.
+- Uninstalling one of two adapter rows recomputes the block from the remaining row's
+  patterns (AC14b); the remaining row's files stay excluded. TDD.
+- Uninstalling the last adapter row strips the block entirely. TDD.
+- Uninstall removes only the specified adapter row from `.agentbundle-local-state.toml`;
+  sibling adapter rows remain. File deleted when empty. TDD.
+- `uninstall.py:105`/`:87` disambiguator explicitly handles `"local"` scope (no
+  else-fallthrough to repo). TDD.
+- `git status` is clean after uninstall. Goal-based.
+
+**Approach:**
+- In `uninstall.py`, add a `"local"` branch in the `:105`/`:87` disambiguator.
+- Load all local rows for this pack from `local_state`. Remove the target adapter row.
+  If remaining rows exist, call `write_exclude_block` with the union of remaining
+  rows' patterns. If no rows remain, call `strip_exclude_block`.
+- Update state-file rows via `resolve_state_path("local", root)`.
+
+**Done when:** all five tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+---
+
+### T11: Integration test — full install / uninstall cycle
+
+**Depends on:** T8, T10
+
+**Tests:**
+- **Parametrize over all shipped adapters** (per `packages/AGENTS.md:13-24`
+  install-test-coverage-rule). Derive `_SHIPPED_ADAPTERS` from
+  `packages/agentbundle/agentbundle/_data/adapter.toml` via
+  `scope.shipped_adapters_from_contract()`. For each adapter, run the full
+  install/uninstall cycle in a fresh temp git repo. Each adapter projects to
+  a different directory layout; parametrizing ensures local-scope exclusion
+  works for every adapter, not just the default.
+- Install `core` pack (and each adapter per above) with `--scope local` in a temp git repo:
+  - Specific files appear in the working tree (assert at least one skill file
+    exists at the expected path — guards against the silent-zero-file hazard).
+  - `git status --short` output is empty (files not visible to git).
+  - `git rev-parse --git-path info/exclude` target file contains the keyed block.
+  - `agentbundle list-installed --scope local` output includes a row for `core`
+    with `scope = local`.
+  - Install success line contains `@ local (excluded via`.
+  - `.agentbundle-local-state.toml` contains `schema-version = "0.4"` (AC7).
+  - Neither `AGENTS.md` nor `docs/CHARTER.md` was written (seed absence; AC17).
+  - `write_exclude_block` docstring references the lost-update limitation (AC26).
+  - `write_exclude_block` docstring contains the cross-worktree side-effect text
+    (AC27) — assert a key phrase (e.g. "linked worktrees") is present in the
+    docstring body.
+- Uninstall `core` pack with `--scope local`:
+  - Working-tree files removed.
+  - Exclude block stripped.
+  - `git status --short` output is empty.
+  - `.agentbundle-local-state.toml` deleted (was the only pack).
+- Conflict (repo↔local): installing `core` at `--scope local` when already
+  installed at `--scope repo` is refused, and vice versa; both refusals survive
+  `--force`. (`--scope user` coexists with local — no refusal expected; assert
+  user/local install succeeds.)
+- Same-scope reinstall (local → local, same adapter): refuses with "already installed"
+  message; does NOT call `upgrade.run`; state is unchanged (AC21b).
+- Rollback: monkeypatch the state-write helper to raise on the first call; assert
+  the working tree, exclude file, and local state all match pre-install values after
+  the exception propagates (AC21).
+- Path-overlap cross-scope (symmetric, AC12b): install pack A locally (adapter A's
+  paths) then attempt a repo install of pack B that projects the same path; assert
+  `--force`-immune refusal. Then install pack A at repo scope first, and attempt
+  local install of pack B with an overlapping path; assert same refusal.
+- Multi-adapter: install pack for adapter A locally, then adapter B locally; assert
+  both adapters' files are excluded and block contains union of both; uninstall A;
+  assert B's files still excluded; uninstall B; assert block stripped (AC14b, AC22).
+- Tier-2 target: place a file at a projected path with different content; assert
+  local install refuses (AC10b).
+
+**Approach:**
+- Add an integration test under `packages/agentbundle/tests/` (or
+  `packages/agentbundle/build/tests/` — check both test roots; add to whichever
+  pattern the CI already picks up).
+- Set up a temporary git repo (`tempfile.mkdtemp` + `git init`), install a real
+  or fixture pack, assert the above behaviours, clean up.
+- This test may require a real git binary; gate behind `pytest.mark.integration`
+  or equivalent if the CI environment doesn't guarantee one.
+
+**Done when:** integration test green; all prior task tests still green.
+
+---
+
+### T12: `commands/show.py` — include local state in `_load_states()`
+
+**Depends on:** T4
+
+**Tests:**
+- Create only a `.agentbundle-local-state.toml` row; force catalogue resolution to
+  fail; assert `agentbundle show <pack>` reports `source: installed-state` (the pack
+  is found and reported as installed). TDD / goal-based.
+  Note: `show` currently emits `inventory` and `source` fields but not a top-level
+  `scope` field; do NOT assert `scope = local` in this test. If the scope field is
+  needed for observability, extend `show`'s output contract in a follow-on spec.
+- `_load_states()` returns local-state candidates alongside repo and user. TDD.
+
+**Approach:**
+- In `commands/show.py`, update `_load_states()` to include
+  `resolve_state_path("local", root)` alongside the existing repo and user paths.
+
+**Done when:** both tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+---
+
+### T13: Version bump — `version.py` and `pyproject.toml`
+
+**Depends on:** T12
+
+**Tests:**
+- `agentbundle --version` reports the bumped version string. Goal-based.
+- `packages/agentbundle/pyproject.toml` `version` field matches `version.py`. Goal-based.
+
+**Approach:**
+- Per `packages/AGENTS.md` version-bump-rule: any new CLI behavior ships under a
+  new version. `--scope local` adds substantial new CLI behavior.
+- Increment the patch (or minor) version in `packages/agentbundle/agentbundle/version.py`
+  and the matching `version` field in `packages/agentbundle/pyproject.toml`.
+- This PR IS the release artifact: tag → PyPI is the follow-on step per the
+  repo's release convention.
+
+**Done when:** both goal-based checks pass; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+
+## Rollout
+
+Pure Python library change; no infra, no external services. Shipped as a new
+`agentbundle` wheel version. The `--scope local` flag is additive and backwards-
+compatible: old binaries ignore `.agentbundle-local-state.toml` (they never
+enumerate it). Reversible: `--scope local` installs can be fully uninstalled;
+the scope can be deprecated without touching `repo`/`user` behaviour.
+
+## Risks
+
+- **Silent-zero-file install** from a missed ternary in T8 — mitigated by T11's
+  file-presence assertion.
+- **`os.replace` not atomic on Windows across volumes** — blocked by existing
+  constraint (temp file must be in the same directory as the target). Already
+  the pattern used for `.agentbundle-state.toml`; no new risk.
+- **Concurrent write lost-update** — documented in ADR-0070; no mitigation in v1.
+- **Stale worktree blocks** — NOT harmless: a stale block's patterns continue
+  excluding same-path files in all other linked worktrees; a committed file at
+  that path would be invisible to `git status` in those worktrees. Documented
+  in the `write_exclude_block` docstring (AC26/AC27); `agentbundle local prune`
+  CLI deferred to a follow-on spec.
+- **`install.py` fork-family audit incomplete** — mitigated by the six-family
+  taxonomy in RFC-0080 and the explicit grep patterns in T8.
+
+## Changelog
+
+- 2026-08-04: initial plan, derived from RFC-0080 (Accepted).
+- 2026-08-04: adversarial review pass 1 — added `["user","local"]` rejection
+  test to T1; added AC11b force-merge behavioral test to T8; added `_chain_adapt`
+  erratum sub-step and symbol-based key-site location guidance to T8; added
+  schema-version and seed-absence assertions to T11; added AC26/AC27 documentation
+  requirement to T9.
+- 2026-08-04: adversarial review pass 2 — corrected AC12 (user/local coexistence
+  allowed per RFC); extended AC19 erratum to cover AC19a marker-write universal;
+  fixed T8 `_chain_adapt` skip mechanism (conditional guard, not `continue`);
+  added AC27 docstring verification to T11; hoisted line-number caveat to T8 header;
+  clarified T11 conflict test removes user/local refusal; added T9/T7 ordering note.
+- 2026-08-04: adversarial review pass 3 — corrected T7 `_ScopePlan` illustrative
+  branch from `repo_root` to `output_root` (the actual function-level variable).
+- 2026-08-04: adversarial review pass 5 — fixed RFC-0080 §Same-scope local reinstall
+  (erratum + correct adapter-identity refusal); fixed RFC cross-scope message to name
+  uninstall/reinstall; fixed RFC `:218` "e.g. on reinstall" phrasing; collapsed
+  redundant T11 path-overlap bullet.
+- 2026-08-04: adversarial review pass 4 — reconciled AC15 vs AC21b (AC15 now
+  scoped to multi-adapter union path only); added adapter-identity guard spec to T8
+  `:631`; added AC23b test bullet to T7; added T12 to approach narrative and
+  decomposition table; updated Testing Strategy TDD enumeration; added symmetric
+  AC12b and rollback injection point to T11.
+- 2026-08-04: Codex Sol review round 0 (10 findings) — F1: removed upgrade-offer
+  routing for local reinstall (AC21b); F2: added dependency validation update to T7
+  (AC23b); F3: fixed `:486` to three-way state selection; F4: added multi-adapter
+  block union to T9/T10 (AC14b, AC22); F5: added tier-2 refusal for local (AC10b);
+  F6: added path-level cross-scope collision check (AC12b); F7: defined commit order +
+  rollback in T9 (AC21); F8: pre-existing deferred design (invalid — already in
+  ADR-0070); F9: added T12 for show.py `_load_states()` (AC23c); F10: fixed ADR D1
+  linked-worktree path description.
+- 2026-08-04: Codex Sol review round 1 (11 findings) — F1 (git probes against output
+  root): T9 adds `-C <root>` to all git subprocess calls; F2 (equal-content
+  pre-existing file deleted on uninstall): AC10 extended to refuse ALL unowned
+  pre-existing targets regardless of content; F3 (gitignore metacharacter escaping):
+  AC14 + T9 + RFC + ADR D3 all specify backslash-escaping; F4 (stale blocks not
+  harmless): corrected in plan §Failure, §Risks, RFC §Stale blocks, ADR D3;
+  F5 (write block BEFORE files): AC21 + T9 commit order corrected to
+  block→files→state; F6 (--literal-pathspecs): T9 + RFC §tracked-file check updated;
+  F7 (None-scope legacy caller): T7 `:258` corrected to `not in ("user","local")`;
+  F8 (show scope field): AC23c + T12 tests narrowed to `source: installed-state`
+  (no scope field assertion); F9 (parametrize over all adapters): T11 tests updated;
+  F10 (version bump): added T13; F11 (pack schema contract): spec Contract field updated.
+- 2026-08-04: adversarial review round 2 (post-Codex-round-1 pass) — B1 (AC10/T8
+  inconsistency): T8 Family-1 approach now uses ownership-record check (not Tier-2
+  classification) and adds same-content test case; B2 (rollback order): AC21 and T9
+  corrected to delete-files THEN restore-block (inverse order prevents transient
+  git-visible window); B3 (T8 Family-2 stale `== "repo"`): updated to
+  `not in ("user","local")`; B4 (RFC missing F7 erratum): added implementation erratum
+  to RFC §4 emit_install_routes; B5 (RFC §Multi-worktree and §Risks still "harmless"):
+  corrected in both sections; M6 (ADR D2 missing --literal-pathspecs): added; M7
+  (stale test count in T9 "Done when"): dropped count; M8 (Testing Strategy Tier-2
+  label): renamed to "unowned pre-existing target refusal"; M9 (AC27 stale-block
+  risk): AC27 extended to cover deleted-worktree stale-block risk; A10 (#/! escaping
+  unreachable): dropped dead #/! escaping from spec/RFC/ADR/plan; A11 (duplicate
+  derive_worktree_id bullet): collapsed to one bullet.

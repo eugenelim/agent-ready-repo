@@ -26,6 +26,14 @@ agentbundle install --pack desk-research --scope user
 
 User-scope packs land in your home directory, not the repo — they're yours, not the team's, and they're there in every project you open.
 
+**Try a pack without committing anything** — so the pack is fully live for your session but completely invisible to git:
+
+```bash
+agentbundle install --pack core --scope local
+```
+
+Local-scope packs land at the same paths as a repo install, but every file is registered in `.git/info/exclude` — so `git status` stays clean and nothing gets accidentally committed. Uninstall removes both the files and the exclude entries; the repo returns to exactly the state it was in before. Requires a git working tree. Useful for trialling a pack in a repo you don't own, or testing an update before rolling it out to the team.
+
 The install auto-detects your agent (`--adapter` overrides). Multi-IDE? Install the same pack for each agent at the same scope — they coexist, and the agents that read `.agents/skills/` (codex, cursor, gemini, copilot) share one skill copy instead of fighting over it. To install from a **different** catalogue, pass it as a trailing argument — a git URL or a local path (`agentbundle install --pack core <catalogue>`); a `config set source <catalogue>` makes that the default, and an editable clone (`pip install -e`) defaults to itself.
 
 ## More commands

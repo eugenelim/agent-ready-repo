@@ -254,8 +254,11 @@ def run(args: argparse.Namespace) -> int:
         emit_install_routes: bool = bool(args.emit_install_routes)
     else:
         # Absent attribute → repo-scope legacy callers want dist-tree
-        # shape; user-scope callers want the new path-jail.
-        emit_install_routes = cli_scope != "user"
+        # shape; user-scope and local-scope callers want the new path-jail.
+        # RFC-0080: use `not in ("user", "local")` rather than `== "repo"` so
+        # legacy/programmatic callers with cli_scope=None continue to get the
+        # dist-tree path (None not in ("user", "local") is True).
+        emit_install_routes = cli_scope not in ("user", "local")
 
     # Range-check the CLI-supplied pack name before any I/O. The manifest's
     # `pack.name` is checked by `_assert_pack_metadata_shape` below; this
@@ -387,6 +390,16 @@ def run(args: argparse.Namespace) -> int:
     # precedent). The mutex consults `requested_scope`, not
     # `args.scope`, so a pack whose `[scope] default-scope = "user"`
     # surfaces the binding correctly when `--scope` is omitted.
+    if requested_scope == "local" and emit_install_routes:
+        # AC9 (RFC-0080): --emit-install-routes is incompatible with --scope local.
+        # The plugins route (RFC-0008) has its own local-scope behaviour; the
+        # catalogue-publishing opt-in must not run for per-clone installs.
+        print(
+            "install: --emit-install-routes is not supported at --scope local "
+            "(see RFC-0008 for the plugins route's own local-scope behaviour)",
+            file=sys.stderr,
+        )
+        return 1
     if requested_scope == "user" and emit_install_routes:
         print(
             "install: --emit-install-routes is bound to --scope repo",
@@ -404,6 +417,21 @@ def run(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
+
+    # AC8 (RFC-0080): local scope requires a git work tree.  Check before any
+    # git-dependent helper (derive_worktree_id, get_exclude_path) can be called.
+    # The check is cheap (one git invocation) and surfaces a clear message rather
+    # than a cryptic failure deep in the exclude-block path.
+    if requested_scope == "local":
+        from agentbundle.local_exclude import is_git_repo
+
+        if not is_git_repo(output_root):
+            print(
+                f"install: --scope local requires a git work tree; "
+                f"{output_root} does not appear to be inside one",
+                file=sys.stderr,
+            )
+            return 1
 
     # ── Step 3: Pre-flight — load state at *both* scopes ──────────────────────
     # Read-only loads (for_write=False) — we do the v0.1 refusal *only*
@@ -452,18 +480,27 @@ def run(args: argparse.Namespace) -> int:
         user_root = None
         user_state_path = None
 
-    # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
-    # Resolves required deps against the union of repo + user state (AC17).
-    # Gate runs before any write (and before the already-installed check, so
-    # dep errors surface even when another early-exit would fire).
+    # RFC-0080: local state — read the per-clone state file for cross-scope
+    # conflict detection and dependency resolution.
+    local_state_path_pre = output_root / ".agentbundle-local-state.toml"
     from agentbundle.config import State as _State
 
+    try:
+        local_state: State = load_state(local_state_path_pre)
+    except ConfigError:
+        local_state = _State()
+
+    # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
+    # Resolves required deps against the union of repo + user + local state (AC17/AC23b).
+    # Gate runs before any write (and before the already-installed check, so
+    # dep errors surface even when another early-exit would fire).
     _effective_user_state: State = user_state if user_state is not None else _State()
     try:
         validate_dependencies_required(
             pack_toml,
             repo_state=repo_state,
             user_state=_effective_user_state,
+            local_state=local_state if requested_scope == "local" else None,
             # pack-profiles AC7: under a profile install, a required dep may be
             # satisfied by another pack in the same batch. None for single-pack.
             also_installing=getattr(args, "_batch_packs", None),
@@ -480,10 +517,16 @@ def run(args: argparse.Namespace) -> int:
     # resolved temp dir in that case. `or catalogue_uri` also handles the
     # `_source_uri = None` case (attribute present but None).
     _guard_source_uri = getattr(args, "_source_uri", None) or catalogue_uri
+    # Three-way selection: local reads local_state (not repo_state) so
+    # source-conflict checking uses the correct state for each scope.
+    _src_conflict_state = (
+        local_state if requested_scope == "local"
+        else (repo_state if requested_scope == "repo" else user_state)
+    )
     _src_conflict = _check_source_conflict(
         pack_name,
         requested_scope,
-        repo_state if requested_scope == "repo" else user_state,
+        _src_conflict_state,
         _guard_source_uri,
     )
     if _src_conflict is not None:
@@ -510,7 +553,7 @@ def run(args: argparse.Namespace) -> int:
     _pack_contract_version = pack_spec_version(pack_toml)
     repo_target_adapter: str | None = None
     allowed_prefixes_repo: list[str] | None = None
-    if requested_scope == "repo" and not emit_install_routes:
+    if requested_scope in ("repo", "local") and not emit_install_routes:
         try:
             repo_target_adapter = _resolve_target_adapter(
                 pack_dir,
@@ -615,6 +658,13 @@ def run(args: argparse.Namespace) -> int:
         if user_target_adapter is not None
         else user_state.has_pack(pack_name)
     )
+    # RFC-0080: local scope — adapter-identity check (AC21b: refuse only when
+    # the exact (pack, adapter) row already exists, not pack-level boolean).
+    installed_at_local = (
+        local_state.row(pack_name, repo_target_adapter) is not None
+        if repo_target_adapter is not None
+        else local_state.has_pack(pack_name)
+    )
 
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
     # 4a. Already at requested scope → offer to upgrade instead; --force does
@@ -663,8 +713,41 @@ def run(args: argparse.Namespace) -> int:
                 user_target_adapter if requested_scope == "user" else repo_target_adapter
             ),
         )
+    # AC21b (RFC-0080): local reinstall guard uses adapter-identity check.
+    # upgrade.run does not support local scope in v1; refuse without offering.
+    # A second *different* adapter for the same pack falls through to the
+    # union-write path (AC14b). `installed_at_local` already uses adapter-identity.
+    if requested_scope == "local" and installed_at_local:
+        print(
+            f"install: {pack_name} already installed at local scope "
+            f"(adapter: {repo_target_adapter}); "
+            "uninstall --scope local then re-install to refresh",
+            file=sys.stderr,
+        )
+        return 1
 
     # 4b. Already at the *other* scope, no --force → refuse cross-scope.
+    # RFC-0080 AC11: repo/local mutual exclusion is --force-immune.
+    # AC12: user/local coexists (user-scope files land in ~/.claude/, outside
+    # the working tree and the exclude block).
+    if requested_scope == "local" and installed_at_repo:
+        # Force-immune: local scope cannot coexist with a repo-scope install.
+        print(
+            f"install: {pack_name} already installed at repo scope; "
+            "--scope local and --scope repo are mutually exclusive; "
+            "uninstall the repo install first",
+            file=sys.stderr,
+        )
+        return 1
+    if requested_scope == "repo" and installed_at_local:
+        # Force-immune: repo scope cannot coexist with a local-scope install.
+        print(
+            f"install: {pack_name} already installed at local scope; "
+            "--scope repo and --scope local are mutually exclusive; "
+            "uninstall the local install first",
+            file=sys.stderr,
+        )
+        return 1
     other_scope = "user" if requested_scope == "repo" else "repo"
     other_already = installed_at_user if requested_scope == "repo" else installed_at_repo
     if other_already and not force:
@@ -774,6 +857,26 @@ def run(args: argparse.Namespace) -> int:
                     already_installed=installed_at_repo,
                 )
             )
+        elif scope_value == "local":
+            # RFC-0080: local scope shares repo-style paths and the same
+            # allowed_prefixes as repo scope; state file is the per-clone
+            # .agentbundle-local-state.toml (never committed).
+            local_state_path = output_root / ".agentbundle-local-state.toml"
+            try:
+                local_state_for_write = load_state(local_state_path, for_write=True)
+            except ConfigError as exc:
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            plans.append(
+                _ScopePlan(
+                    scope="local",
+                    root=output_root,
+                    state_path=local_state_path,
+                    allowed_prefixes=allowed_prefixes_repo,
+                    state=local_state_for_write,
+                    already_installed=installed_at_local,
+                )
+            )
         else:
             # User scope: surface unresolvable $HOME *now* so failures
             # land in pre-flight, before any write.
@@ -856,7 +959,7 @@ def run(args: argparse.Namespace) -> int:
 
     for plan in plans:
         scope_adapter = (
-            repo_target_adapter if plan.scope == "repo" else user_target_adapter
+            repo_target_adapter if plan.scope in ("repo", "local") else user_target_adapter
         )
         if scope_adapter is None:
             continue
@@ -926,7 +1029,7 @@ def run(args: argparse.Namespace) -> int:
     # post-render and pre-path-jail.
     # `user_target_adapter` resolved earlier (alongside allowed_prefixes_user).
     try:
-        if any(p.scope == "repo" for p in plans):
+        if any(p.scope in ("repo", "local") for p in plans):
             if emit_install_routes:
                 # Legacy dist-tree producer (RFC-0012 § *CLI surface*'s
                 # catalogue-publishing opt-in).
@@ -1015,7 +1118,7 @@ def run(args: argparse.Namespace) -> int:
     # This catches a pack whose projection rule resolves under
     # ~/Documents/ before any byte is written.
     for plan in plans:
-        projection = repo_projection if plan.scope == "repo" else user_projection
+        projection = repo_projection if plan.scope in ("repo", "local") else user_projection
         if projection is None:
             continue
         try:
@@ -1042,7 +1145,7 @@ def run(args: argparse.Namespace) -> int:
         for plan in plans:
             if plan.already_installed:
                 continue
-            projection = repo_projection if plan.scope == "repo" else user_projection
+            projection = repo_projection if plan.scope in ("repo", "local") else user_projection
             if projection is None:
                 continue
             for relpath, content in sorted(projection.items()):
@@ -1083,14 +1186,14 @@ def run(args: argparse.Namespace) -> int:
         if plan.already_installed:
             continue
 
-        projection = repo_projection if plan.scope == "repo" else user_projection
+        projection = repo_projection if plan.scope in ("repo", "local") else user_projection
         if projection is None:
             projection = {}
 
         # The adapter this scope's row is keyed by (RFC-0052). emit-install-
         # routes (legacy dist-tree) has no per-IDE adapter → claude-code.
         scope_adapter = (
-            repo_target_adapter if plan.scope == "repo" else user_target_adapter
+            repo_target_adapter if plan.scope in ("repo", "local") else user_target_adapter
         ) or "claude-code"
 
         # ── Footprint gate (RFC-0052 / ADR-0039) ──────────────────────────
@@ -1144,6 +1247,62 @@ def run(args: argparse.Namespace) -> int:
                 )
                 return 1
 
+        # ── Local-scope: write exclude block before files (AC21 commit order) ──
+        # Per RFC-0080 / plan T8+T9: write .git/info/exclude block for this
+        # pack+worktree BEFORE any projected file is written to disk.  Files
+        # are git-invisible even if the process dies between this step and the
+        # file writes; the no-footprint guarantee holds across abrupt death.
+        # Rollback order (AC21): delete written files FIRST, then restore the
+        # exclude block — deleting before restoring prevents a transient window
+        # where files are on disk but not excluded.
+        _local_exclude_path: Path | None = None
+        _local_prior_exclude: bytes | None = None
+        _local_written_files: list[Path] = []
+        if plan.scope == "local":
+            from agentbundle.local_exclude import (
+                derive_worktree_id,
+                get_exclude_path,
+                rollback_exclude_block,
+                snapshot_exclude,
+                write_exclude_block,
+            )
+
+            try:
+                _local_worktree_id = derive_worktree_id(plan.root)
+                _local_exclude_path = get_exclude_path(plan.root)
+            except RuntimeError as _git_exc:
+                # Mid-run git failure (git binary removed, repo deleted mid-install).
+                # The AC8 pre-flight already verified the repo exists; this is a
+                # transient environment failure. Nothing has been written yet.
+                print(
+                    f"install: git error during local-scope setup: {_git_exc}",
+                    file=sys.stderr,
+                )
+                return 1
+            _local_prior_exclude = snapshot_exclude(_local_exclude_path)
+
+            # Union of patterns: existing other-adapter rows for this pack
+            # (so the block always covers the full installed footprint) plus
+            # the new projection's relpaths.  The state file is always included
+            # so it is also git-invisible.
+            _union_relpaths: set[str] = set()
+            for (pname, _), pst in local_state.packs.items():
+                if pname == pack_name:
+                    _union_relpaths.update(pst.files.keys())
+            _union_relpaths.update(projection.keys())
+            _exclude_patterns = (
+                ["/.agentbundle-local-state.toml"]
+                + ["/" + r for r in sorted(_union_relpaths)]
+            )
+            try:
+                write_exclude_block(
+                    _local_exclude_path, pack_name, _local_worktree_id,
+                    _exclude_patterns,
+                )
+            except OSError as exc:
+                print(f"install: failed to write exclude block: {exc}", file=sys.stderr)
+                return 1
+
         # Reset the PackState for this scope's install.
         prior = plan.state.row(pack_name, scope_adapter)
         new_pack_state = PackState(
@@ -1195,11 +1354,21 @@ def run(args: argparse.Namespace) -> int:
                 try:
                     safety.write_companion(plan.root, relpath, content)
                 except safety.PathJailError as exc:
+                    if plan.scope == "local" and _local_exclude_path is not None:
+                        for _p in _local_written_files:
+                            with contextlib.suppress(OSError):
+                                _p.unlink(missing_ok=True)
+                        rollback_exclude_block(_local_exclude_path, _local_prior_exclude)
                     print(f"install: {exc}", file=sys.stderr)
                     return 1
-                plan.new_companions.append(
-                    safety.companion_path(Path(relpath)).as_posix()
-                )
+                companion_relpath = safety.companion_path(Path(relpath)).as_posix()
+                plan.new_companions.append(companion_relpath)
+                # AC21 rollback: track the companion file so that a subsequent
+                # state-write failure removes it along with regular projected files.
+                # Without this, the exclude-block restore after rollback would
+                # leave the .upstream companion git-visible.
+                if plan.scope == "local":
+                    _local_written_files.append(plan.root / companion_relpath)
             else:
                 try:
                     safety.write_jailed(
@@ -1210,8 +1379,15 @@ def run(args: argparse.Namespace) -> int:
                         allowed_prefixes=plan.allowed_prefixes,
                     )
                 except safety.PathJailError as exc:
+                    if plan.scope == "local" and _local_exclude_path is not None:
+                        for _p in _local_written_files:
+                            with contextlib.suppress(OSError):
+                                _p.unlink(missing_ok=True)
+                        rollback_exclude_block(_local_exclude_path, _local_prior_exclude)
                     print(f"install: {exc}", file=sys.stderr)
                     return 1
+                if plan.scope == "local":
+                    _local_written_files.append(plan.root / relpath)
             new_pack_state.files[relpath] = {
                 "sha": safety.sha256_bytes(content),
                 "from-pack-version": pack_version,
@@ -1331,12 +1507,13 @@ def run(args: argparse.Namespace) -> int:
                     owned_rows=owned_rows,
                     root=plan.root,
                 )
-        elif plan.scope == "repo" and repo_target_adapter is not None:
-            # RFC-0012: record the resolved adapter on every repo-scope
+        elif plan.scope in ("repo", "local") and repo_target_adapter is not None:
+            # RFC-0012: record the resolved adapter on every repo/local-scope
             # per-IDE install. State-hint short-circuit at upgrade time
             # (AC10b parity at repo scope) depends on this. Skipped
             # when `--emit-install-routes` is set — the legacy dist-tree
-            # producer has no single adapter to pin.
+            # producer has no single adapter to pin.  Local scope uses the
+            # same repo_target_adapter (RFC-0080 D1: same adapter resolution).
             new_pack_state.adapter = repo_target_adapter
 
         from agentbundle.config import STATE_SCHEMA_VERSION
@@ -1353,7 +1530,14 @@ def run(args: argparse.Namespace) -> int:
         # `~/.agentbundle/state.toml` which already matches the prefix.
         state_relpath = str(plan.state_path.relative_to(plan.root))
         state_prefixes = plan.allowed_prefixes
-        if plan.scope == "repo" and state_relpath == ".agentbundle-state.toml":
+        # State files are CLI-owned metadata, not pack-projected content; skip
+        # the adapter prefix check (the jail-under-root check still fires).
+        # Covers both repo (.agentbundle-state.toml) and local scope
+        # (.agentbundle-local-state.toml) — neither matches any adapter prefix.
+        if plan.scope in ("repo", "local") and state_relpath in (
+            ".agentbundle-state.toml",
+            ".agentbundle-local-state.toml",
+        ):
             state_prefixes = None
 
         # Persist under the cross-process lock (RFC-0052 T0): re-read the
@@ -1375,21 +1559,41 @@ def run(args: argparse.Namespace) -> int:
                 root=plan.root,
                 relpath=state_relpath,
             )
-        except safety.PathJailError as exc:
-            print(f"install: {exc}", file=sys.stderr)
-            return 1
-        except ConfigError as exc:
-            # persist_state_locked re-reads state under the lock; a concurrent
-            # process could have rewritten it to a foreign schema between
-            # pre-flight and now. The projected files are already on disk —
-            # surface that so the adopter knows to reconcile and re-run rather
-            # than seeing a bare traceback over a half-recorded install.
-            print(
-                f"install: files were written but state was not recorded: "
-                f"{exc}; reconcile {plan.state_path} and re-run",
-                file=sys.stderr,
-            )
-            return 1
+        except Exception as exc:  # noqa: BLE001
+            # AC21 rollback: on ANY state-write failure, undo projected files
+            # and the exclude block so the local-scope install leaves no trace.
+            # Inline (no nested function) to avoid B023 loop-variable closure.
+            if plan.scope == "local" and _local_exclude_path is not None:
+                from agentbundle.local_exclude import (
+                    rollback_exclude_block as _roll_excl,
+                )
+
+                for _p in _local_written_files:
+                    with contextlib.suppress(OSError):
+                        _p.unlink(missing_ok=True)
+                _roll_excl(_local_exclude_path, _local_prior_exclude)
+            if isinstance(exc, safety.PathJailError):
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            if isinstance(exc, ConfigError):
+                # persist_state_locked re-reads state under the lock; a concurrent
+                # process could have rewritten it to a foreign schema between
+                # pre-flight and now. For non-local scopes: files are on disk —
+                # surface that so the adopter can reconcile. For local scope:
+                # rollback already ran, so no files remain.
+                if plan.scope == "local":
+                    print(
+                        f"install: state write failed, rollback complete: {exc}",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        f"install: files were written but state was not recorded: "
+                        f"{exc}; reconcile {plan.state_path} and re-run",
+                        file=sys.stderr,
+                    )
+                return 1
+            raise
 
         # Cross-adapter disclosure rail (RFC-0052 Decision 7): if this
         # install wrote to a `shared` prefix, name the prefix's other shipped
@@ -1442,6 +1646,11 @@ def run(args: argparse.Namespace) -> int:
     # `[pack.layout]` (most), and for any scope whose sub-table is omitted.
     pack_layout = pack_toml.get("pack", {}).get("layout", {})
     for plan in plans:
+        # RFC-0080: local-scope installs are ephemeral (never committed); skip
+        # the install marker and layout writes.  Per AC19a ("every successful
+        # repo/user install"), local scope is deliberately excluded here.
+        if plan.scope == "local":
+            continue
         scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
         try:
             _append_install_marker(
@@ -1466,19 +1675,25 @@ def run(args: argparse.Namespace) -> int:
 
     # ── Step 12: Chained adapt (in-process) ──────────────────────────────────
     # Per spec AC19b: invoke `agentbundle.commands.adapt.run` in-process
-    # with --values-from <repo>/.adapt-discovery.toml regardless of the
-    # install scope (markers are repo-only). AC19d covers the two
-    # failure modes.
-    repo_plan = next((p for p in plans if p.scope == "repo"), None)
-    repo_root_for_adapt = (
-        repo_plan.root if repo_plan is not None else Path(args.output).resolve()
-    )
-    adapt_rc = _chain_adapt(repo_root_for_adapt)
-    if adapt_rc != 0:
-        # Per AC19d (ii): malformed `.adapt-discovery.toml` causes the
-        # chained adapt to raise; install exits non-zero. The marker
-        # file was already written in step 11 — that's by design.
-        return adapt_rc
+    # with --values-from <repo>/.adapt-discovery.toml unless this is a
+    # local-scope-only install.  RFC-0080 amendment to AC19b: local-scope
+    # installs are ephemeral; adapt-discovery re-running would apply to files
+    # the user considers git-invisible, producing confusing churn.  The marker
+    # file was deliberately NOT written in step 11 for local scope, so the
+    # adapt-to-project spec comment "invoke regardless of install scope
+    # (markers are repo-only)" does not apply here.  AC19d covers the two
+    # failure modes for repo/user scope.
+    if requested_scope != "local":
+        repo_plan = next((p for p in plans if p.scope == "repo"), None)
+        repo_root_for_adapt = (
+            repo_plan.root if repo_plan is not None else Path(args.output).resolve()
+        )
+        adapt_rc = _chain_adapt(repo_root_for_adapt)
+        if adapt_rc != 0:
+            # Per AC19d (ii): malformed `.adapt-discovery.toml` causes the
+            # chained adapt to raise; install exits non-zero. The marker
+            # file was already written in step 11 — that's by design.
+            return adapt_rc
 
     # ── Step 13: Emit installed: lines (repo first, user last) ───────────────
     # RFC-0011 extends user-scope output with ` via <adapter>` and an
@@ -1536,6 +1751,14 @@ def run(args: argparse.Namespace) -> int:
             # RFC-0012 per-IDE projection at repo scope.
             print(
                 f"installed: {pack_name} @ repo via {repo_target_adapter}"
+            )
+        elif plan.scope == "local":
+            # RFC-0080: local-scope install; files excluded via info/exclude.
+            from agentbundle.local_exclude import get_exclude_path
+            _step13_exclude = get_exclude_path(plan.root)
+            print(
+                f"installed: {pack_name} @ local"
+                f" (excluded via {_step13_exclude})"
             )
         else:
             # Defensive fallback: matches pre-RFC-0012 wording for any
@@ -4042,6 +4265,7 @@ def validate_dependencies_required(
     *,
     repo_state: State,
     user_state: State,
+    local_state: State | None = None,
     also_installing: set[str] | None = None,
 ) -> None:
     """Enforce [pack.dependencies.required] before any file write.
@@ -4084,15 +4308,20 @@ def validate_dependencies_required(
     if not required:
         return
 
-    # Union of installed packs across both scopes (pack name → installed
+    # Union of installed packs across all scopes (pack name → installed
     # version string). A pack may have several adapter rows; any row's
     # version satisfies the dependency check (they share the pack version).
+    # RFC-0080 AC23b: local_state included when installing at local scope.
     installed: dict[str, str] = {}
     for (name, _adapter), ps in repo_state.packs.items():
         installed[name] = ps.installed_version
     for (name, _adapter), ps in user_state.packs.items():
         if name not in installed:
             installed[name] = ps.installed_version
+    if local_state is not None:
+        for (name, _adapter), ps in local_state.packs.items():
+            if name not in installed:
+                installed[name] = ps.installed_version
 
     for entry in required:
         if not isinstance(entry, dict):
