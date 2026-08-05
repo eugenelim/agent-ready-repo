@@ -377,8 +377,8 @@ snapshot diffs. Emits `_agentbundle.core/artifact-created` when a new file appea
 
 ## Notification contract
 
-All notifications are MCP `notifications/message` frames using the `_agentbundle.core/`
-namespace.
+All notifications are custom JSON-RPC 2.0 notification frames with `_agentbundle.core/`-namespaced
+method names (e.g. `_agentbundle.core/skill-state-change`), not standard MCP `notifications/message`.
 
 | Notification | When | Key payload fields |
 |---|---|---|
