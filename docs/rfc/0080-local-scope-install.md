@@ -207,16 +207,21 @@ it if absent):
 ```
 
 Paths are anchored with a leading `/` to match at repo root only, following
-gitignore semantics for absolute paths. Because gitignore deduplicates
-equivalent patterns, multiple worktrees having overlapping path entries is
-harmless.
+gitignore semantics for absolute paths. Each path is gitignore-metacharacter-escaped
+before writing: `[`, `]`, `*`, `?`, and `\` are backslash-escaped; `#` and `!` are
+escaped only when they appear at the start of a line. This ensures that projected
+filenames containing gitignore pattern syntax (e.g. `references/[draft].md`) are
+matched literally and are not interpreted as character-class or glob patterns.
+Because gitignore deduplicates equivalent patterns, multiple worktrees having
+overlapping path entries is harmless.
 
 **Block rules.**
 
 - **Append-or-replace-in-place, never duplicate a `(pack-name, worktree-id)`
   block.** agentbundle reads the file first; if a block keyed to this pack name
-  and worktree id already exists, it replaces it in place (e.g. on reinstall).
-  Otherwise it appends. Two different worktrees installing the same pack will
+  and worktree id already exists, it replaces it in place (e.g. when a second
+  adapter is installed for the same pack — the block is rewritten with the union
+  of both adapters' patterns). Otherwise it appends. Two different worktrees installing the same pack will
   have path entries that overlap — gitignore deduplicates patterns at match time;
   this is not a violation of the "no duplicate block" rule, which is
   per-`(pack-name, worktree-id)` pair.
@@ -234,17 +239,22 @@ harmless.
   mechanism (read → modify in memory → write to temp file → `os.replace`) so
   that all writes to `info/exclude` are full-file replacements, not in-place
   appends.
-- **Stale blocks from deleted worktrees accumulate and are harmless.** When a
-  worktree is deleted without uninstalling (e.g. Conductor deleting an ephemeral
-  workspace), its block remains in `info/exclude`. The paths it references no
-  longer exist, so git treats them as unmatchable — no observable effect.
-  Cleanup is manual; the exact CLI surface (`agentbundle uninstall --scope local
-  --worktree <id>` or equivalent) is specified in the follow-on spec
-  (`docs/specs/local-scope-install/`).
+- **Stale blocks from deleted worktrees accumulate and require pruning.**
+  When a worktree is deleted without uninstalling (e.g. Conductor deleting an
+  ephemeral workspace), its block remains in `info/exclude`. The patterns in that
+  block continue excluding same-path files in **all** linked worktrees that share
+  the common-dir `info/exclude`. If a tracked or committed file is later created
+  at that path in another worktree, git silently hides it — `git status` and
+  `git add` do not see it. Cleanup is manual; the exact CLI surface
+  (`agentbundle local prune` or equivalent) is deferred to a follow-on spec.
+  The implementation must document this risk in a user-visible location
+  (spec AC26/AC27; see `write_exclude_block` docstring).
 
 **Tracked-file collision check.** Before writing any file, agentbundle runs
-`git ls-files --error-unmatch <path>` for each target path. If any path is
-already tracked, the install aborts with:
+`git --literal-pathspecs ls-files --error-unmatch <path>` for each target path
+(the `--literal-pathspecs` flag prevents pathspec syntax in filenames —
+e.g. `foo[bar].md` — from being interpreted as a pattern and matching unrelated
+tracked files). If any path is already tracked, the install aborts with:
 ```
 error: <path> is already tracked by git; --scope local cannot shadow a
        committed file. Use --scope repo or remove the tracked file first.
@@ -261,8 +271,8 @@ error: <pack> is already installed at --scope repo; uninstall it first or
 The reverse direction — `--scope repo` install when a local install already
 exists — is also refused:
 ```
-error: <pack> is already installed at --scope local; uninstall it first or
-       use --scope local to upgrade.
+error: <pack> is already installed at --scope local; uninstall it first
+       (agentbundle uninstall --scope local), then reinstall.
 ```
 This prevents a `--scope repo` install from writing files that the local
 exclude block hides from `git status`, which would make a committed install
@@ -281,9 +291,13 @@ computation.
 **Same-scope local reinstall.** The upgrade-offer guard at `install.py:631` is
 `(requested_scope=="repo" and installed_at_repo) or (requested_scope=="user" and
 installed_at_user)`. A `--scope local` reinstall of an already-local pack
-matches neither disjunct and bypasses the upgrade-offer. The `install.py:631`
-branch must gain `(requested_scope=="local" and installed_at_local)` so local
-reinstall routes to the upgrade-offer flow.
+matches neither disjunct. **Implementation erratum (see spec AC21b):** routing
+through `upgrade.run` is incorrect for v1 because `upgrade.run` has no local-scope
+support. Instead, `install.py:631` must refuse (adapter-identity check: refuse only
+when the requested adapter row already exists in `local_state`) with a message
+naming `agentbundle uninstall --scope local` then `install --scope local` as the
+v1 refresh path. A second *different* adapter for the same pack must fall through
+to the multi-adapter union-write path (AC14b).
 
 **Multi-worktree support.** Because blocks are keyed per `(pack-name,
 worktree-id)`, multiple worktrees can hold independent `--scope local` installs
@@ -578,6 +592,11 @@ subcommands with:
 error: --scope local is not yet supported for this subcommand.
        Install, uninstall, and list-installed are fully supported.
 ```
+**Implementation erratum (see spec AC25):** the argparse-native `invalid choice:
+'local'` mechanism (retaining `("repo","user")` as the choices list) is the v1
+refusal; the friendly message above is reserved for a future custom argparse action
+if the UX is revisited. The net user-visible behavior is the same, but the error text
+in v1 will be argparse's own wording, not the string above.
 Threading `local` through `diff.py` (`:85,102,183`), `upgrade.py`
 (`:524,601,843,958,994`), `init_state.py` (`:122,141,169`), and the
 `uninstall.py:105`/`:87` disambiguator is deferred to the follow-on spec.
