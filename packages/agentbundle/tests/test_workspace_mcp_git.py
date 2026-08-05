@@ -122,6 +122,18 @@ class TestFsmModeGuard:
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
 
+    # --- Empty SPEC_PATH sub-case (AC15a): "" counts as supplied ---
+
+    def test_git_branch_blocked_when_spec_path_empty_string(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """git_branch blocked when SPEC_PATH is '' (empty string) — in os.environ counts (AC15a)."""
+        repo = _init_git_repo(tmp_path)
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": ""}, monkeypatch)
+        result = tools.git_branch({"name": "feat/my-thing"})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]
+
     # --- Both-vars sub-case (AC15a): SPEC_PATH wins even when DISPATCHED_ITEM is also set ---
 
     def test_git_branch_blocked_when_both_vars_set(

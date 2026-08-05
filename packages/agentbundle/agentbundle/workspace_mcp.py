@@ -998,7 +998,10 @@ class _GitTools:
                 dispatched,
             )
             dispatched = None
-        self._discovery_mode = not spec_path and not dispatched
+        # Discovery mode: only when NEITHER env var was supplied.  Use the raw
+        # presence flag (_spec_path_supplied) so that SPEC_PATH="" stays out of
+        # discovery mode (it is FSM mode, fail-closed).
+        self._discovery_mode = not _spec_path_supplied and not dispatched
         # FSM mode: WORKSPACE_MCP_SPEC_PATH was supplied → FSM mode, regardless of
         # whether it passed validation (fail-closed: invalid path still blocks git
         # writes).  When BOTH env vars are supplied (unsupported per the one-variable
@@ -1274,8 +1277,8 @@ class _GitTools:
         return {"output": r.stdout, "returncode": r.returncode}
 
     def git_branch(self, arguments: dict) -> dict:
-        if self._discovery_mode:
-            return {"error": "git_branch is not available in discovery mode"}
+        # FSM guard precedes discovery-mode guard (fail-closed: SPEC_PATH="" is FSM,
+        # not discovery mode, so _fsm_mode fires before _discovery_mode can).
         if self._fsm_mode:
             return {
                 "error": (
@@ -1283,6 +1286,8 @@ class _GitTools:
                     "work-loop manages its own git lifecycle"
                 )
             }
+        if self._discovery_mode:
+            return {"error": "git_branch is not available in discovery mode"}
         name = arguments.get("name", "")
         if arguments.get("base") is not None:
             return {"error": "base parameter not supported; always branches from HEAD"}
@@ -1326,8 +1331,6 @@ class _GitTools:
         return {"branch": name}
 
     def git_commit(self, arguments: dict) -> dict:
-        if self._discovery_mode:
-            return {"error": "git_commit is not available in discovery mode"}
         if self._fsm_mode:
             return {
                 "error": (
@@ -1335,6 +1338,8 @@ class _GitTools:
                     "work-loop manages its own git lifecycle"
                 )
             }
+        if self._discovery_mode:
+            return {"error": "git_commit is not available in discovery mode"}
         message = arguments.get("message", "workspace-mcp: commit artifacts")
         if self._output_pattern is None:
             return {"error": "git_commit unavailable: no output_pattern (work-loop owns git)"}
@@ -1443,8 +1448,6 @@ class _GitTools:
         return {"committed": matched, "message": message}
 
     def git_push(self, arguments: dict) -> dict:
-        if self._discovery_mode:
-            return {"error": "git_push is not available in discovery mode"}
         if self._fsm_mode:
             return {
                 "error": (
@@ -1452,6 +1455,8 @@ class _GitTools:
                     "work-loop manages its own git lifecycle"
                 )
             }
+        if self._discovery_mode:
+            return {"error": "git_push is not available in discovery mode"}
         branch = arguments.get("branch", "")
         with self._git_lock:
             # Require the session branch to have been explicitly established via
@@ -1593,14 +1598,16 @@ class _StdioLoop:
                     "Call this at session start before doing any work. "
                     "Response fields: "
                     "ready[] — items that may be dispatchable, each with "
-                    "ini_slug, type, slug, dispatch_skill, available (bool), "
-                    "required_pack (string or null), and unmet_needs (list); "
-                    "only dispatch items where available=true and unmet_needs is empty — "
-                    "items where available=false require an optional pack to be installed first; "
-                    "blocked[] — items whose needs dependencies are not yet met; "
+                    "ini_slug, type, slug, and dispatch_skill; "
+                    "dispatchable items omit the 'available' field (treat absent as eligible); "
+                    "items where available=false require an optional pack (see required_pack); "
+                    "items with a non-empty unmet_needs list have unresolved dependencies; "
+                    "only dispatch items where 'available' is absent (not false) and "
+                    "'unmet_needs' is absent or empty; "
+                    "blocked[] — items whose dependency needs are not yet met; "
                     "active[] — items currently in progress; "
-                    "shaping[] — non-implementation items (research, design, shape, strategy), "
-                    "each with available, required_pack, and unmet_needs fields; "
+                    "shaping[] — non-implementation items (research, design, shape, strategy) "
+                    "following the same available/required_pack/unmet_needs eligibility rules; "
                     "current_state — current work-loop phase name (null when idle); "
                     "gate_pending — true when human input is required before work can continue; "
                     "gate — name of the pending gate (e.g. SPEC-HUMAN-GATE, REVIEW-HUMAN-GATE); "

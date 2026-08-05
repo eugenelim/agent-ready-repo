@@ -176,27 +176,26 @@ Key fields in the response:
 
 ## Step 5 — Respond to gates
 
-When `gate_pending` is true, the work-loop is paused waiting for a human decision. Route `gate_question` to your human-in-the-loop channel, collect the answer, and resume with `session/prompt`:
+When `gate_pending` is true, the work-loop is paused waiting for a human decision. The `DEFAULT_SESSION_INSTRUCTION` directs the agent to call `elicit(gate_question)` at gate states. This means **gate responses require ACP elicitation**, not `session/prompt`.
 
-```json
-{
-  "method": "session/prompt",
-  "params": {
-    "sessionId": "<id from session/new response>",
-    "prompt": [{ "type": "text", "text": "Approved. Proceed with the implementation as planned." }]
-  }
-}
-```
+### Required: declare elicitation capability
 
-The agent's `elicit()` tool requires harness-side elicitation support: when the harness
-declares `capabilities.elicitation` in the ACP init handshake, `elicit()` uses `session/create_elicitation`
-(no polling). Without it, `elicit()` falls back to a response file; the harness must detect the response-file
-path from the workspace-mcp logs and overwrite it to unblock the call.
+Declare `capabilities.elicitation` in the ACP init handshake. The agent then sends `elicitation/create` and blocks until the harness resolves it:
 
-`session/prompt` is for gate responses only (resuming the work-loop after a human gate), not a fallback
-for pending `elicit()` calls. A harness that calls `session/prompt` while `elicit()` is still blocked
-on its response file will not unblock the tool call; the session hangs until the 300-second elicit
-timeout expires. Implement `session/create_elicitation` to avoid this.
+1. The agent calls `elicit()` → ACP sends `elicitation/create` with the gate question
+2. Your harness routes the question to the human channel
+3. Your harness calls the ACP elicitation-resolve endpoint with the human's answer
+4. The `elicit()` call unblocks and the work-loop continues
+
+> **Stage 1 limitation — response-file fallback unsupported.** When `capabilities.elicitation`
+> is absent, `elicit()` falls back to a temp response file. The file path is carried only in the
+> `_agentbundle.core/elicitation-pending` MCP push notification, which the Stage 1 bridge drops
+> (see Stage 1 note above). The harness cannot discover the file path, so the fallback always
+> times out after 300 seconds. Declare `capabilities.elicitation` or the gate will hang.
+
+> **`session/prompt` is not a gate-response mechanism.** Sending `session/prompt` while `elicit()`
+> is pending sends a new message to the model without resolving the blocking tool call. The
+> `elicit()` call remains blocked and the session does not make progress.
 
 ## When it doesn't work
 
