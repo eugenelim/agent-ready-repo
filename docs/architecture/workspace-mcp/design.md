@@ -320,7 +320,7 @@ leaves the control plane blind to most of a session.
 
 | Host declares `elicitation` | Path | Notes |
 |---|---|---|
-| Yes | `elicitation/create` (MCP) → ACP `session/create_elicitation` | Confirmed for Claude Code via `claude-agent-acp@0.64.2` (`elicitation.ts`). ACP SDK uses `unstable_createElicitation()` / `unstable_completeElicitation()` — marked unstable. |
+| Yes | MCP `elicitation/create` request (server→client JSON-RPC) — harness replies to the same request ID with the answer | Confirmed for Claude Code via `claude-agent-acp@0.64.2` (`elicitation.ts`). The ACP SDK wraps this as `unstable_createElicitation()` — marked unstable; no separate "complete" call. |
 | No | Response-file fallback | workspace-mcp writes to a `O_EXCL 0600` temp file. Control plane reads `response_path` from `_agentbundle.core/elicitation-pending` and writes response via atomic rename. |
 
 workspace-mcp never advertises `elicitation` in its own `ServerCapabilities` — that field
