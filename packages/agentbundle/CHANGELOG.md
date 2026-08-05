@@ -8,6 +8,32 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.29.2] — 2026-08-05
+
+### Fixed
+
+- **`self_host` — preferred-adapter respected**: `run_self_host` now restricts
+  projection to the adapter named in `catalogue.toml`'s `preferred-adapter` field
+  when that adapter is not in `SELF_HOST_ADAPTERS` (e.g. `kiro-ide`). Previously
+  only `claude-code` and `codex` were ever projected, producing false drift for
+  downstream repos using a different adapter.
+
+- **`self_host` — Claude-specific artifacts omitted for non-claude-code repos**:
+  `CLAUDE.md` and `.claude-plugin/marketplace.json` are no longer written (or
+  drift-checked) when the effective adapter set does not include `claude-code`.
+  Downstream repos with `preferred-adapter = "kiro-ide"` (or any adapter not in
+  `SELF_HOST_ADAPTERS`) no longer accumulate Claude-specific files.
+
+- **`self_host` — shadow-clone and seed-copy paths use `shutil.copy`**: neither
+  calls `os.utime`, fixing CI environments that restrict timestamp writes.
+  `shutil.copy` (content + permissions, no timestamps) preserves source mode bits
+  so the drift gate never false-positives on permission bits in strict-umask CI.
+
+- **`adapter_root_bins` — `shutil.copy2` replaced with `shutil.copyfile` +
+  `os.chmod` guarded with `contextlib.suppress(OSError)`**: the bin-projection
+  path no longer calls `os.utime`; POSIX executable-bit setting is now
+  best-effort so environments that restrict `chmod` do not abort the build.
+
 ## [0.29.1]
 
 ### Fixed
