@@ -131,9 +131,36 @@ relatedJourneys:
 
 ---
 
+## Which level to enter at
+
+Every intent — from a product bet to a single feature — is the same artifact with one field that differs: `Level`. The recognized set runs deepest-product-bet first:
+
+```
+product-vision › product-strategy › capability › feature
+```
+
+You enter at the altitude you're operating at. Most work starts somewhere in the middle; the rungs above exist for when the real bet is higher up.
+
+| Level | The question being answered | Enter here when… |
+|---|---|---|
+| `product-vision` | Should this product exist at all, for whom, and through what wedge? | You're at a greenfield concept and the existence bet is not yet settled |
+| `product-strategy` | What is the central challenge, and what path do we take through it? | The product exists but the strategic direction — which problem, which segment, in what order — is the open question |
+| `capability` | Can we build and operate this platform or capability coherently? | The strategy is set and you're committing a bounded capability (a billing platform, an API gateway, a data pipeline) |
+| `feature` | Do users want this specific thing, and does it land? | The scope is already clear — one buildable, shippable slice |
+
+The set is **open**: if your org operates at an altitude the recognized set doesn't name (an `initiative`, an `epic`), name it — `Level` is a free string, not a fixed ladder.
+
+**De-risking shifts with the level.** At `product-vision` and `product-strategy`, the riskiest assumption is market-existence — will anyone want this at all, can it be a business? That bet is tested once at the top, not relitigated per feature. At `capability`, the risk is architectural or adoption-shaped. At `feature`, it's desirability — do users want this feature?
+
+**Decomposition runs one level at a time.** A `capability` intent decomposes into `feature` intents; a `feature` intent decomposes into a spec/slice — the shippable unit your delivery loop builds. Each child re-enters the loop at its own level: `frame-intent` → `de-risk-intent` → `decompose-intent`.
+
+---
+
 ### 1. Shape intent
 
-Type `frame-intent` and describe the product problem — any altitude, any level of clarity.
+Type `frame-intent` and describe the product problem — any altitude, any level of clarity. The agent will confirm the level with you before framing begins; if the scope implies a higher bet, it will offer to raise it.
+
+**At feature level** — the scope is already clear, one shippable slice:
 
 ```text
 frame-intent
@@ -146,8 +173,34 @@ frame-intent
 Ratify framing? ›
 ```
 
+**At capability level** — committing a bounded platform or capability:
+
+```text
+frame-intent
+
+  Level    capability
+  Problem  Every team builds its own billing integration — no shared primitives.
+  User     Engineering teams shipping subscription-based features.
+  Outcome  Time to add a new billing flow drops from weeks to days.
+
+Ratify framing? ›
+```
+
+**At product-vision level** — the existence bet is the open question:
+
+```text
+frame-intent
+
+  Level    product-vision
+  Problem  Small studios can't afford dedicated developer tooling, so they ship slowly and inconsistently.
+  User     2–5-person studio without a dedicated platform engineer.
+  Outcome  Studios reach production quality on their first release, not their third.
+
+Ratify framing? ›
+```
+
 - **You decide:** G0 — ratify the framing before the loop diverges. A vague problem means the loop explores the wrong space.
-- **Output:** an intent document with a specific problem, named user, and measurable outcome.
+- **Output:** an intent document with a specific problem, named user, and measurable outcome, stamped with the confirmed `Level`.
 - **State:** draft
 
 ---
@@ -215,7 +268,7 @@ Mid-discovery check — confirm candidates? ›
 
 ### 5. Converge on the candidate
 
-The agent runs `de-risk-intent` to surface the riskiest assumption and design a test, then `decompose-intent` to break the winning shape into delivery briefs.
+The agent runs `de-risk-intent` to surface the riskiest assumption and design a test, then `decompose-intent` to break the winning shape into the next level down.
 
 ```text
 de-risk-intent
@@ -226,7 +279,14 @@ de-risk-intent
   Hook         Conduct 6 moderated prototype sessions with target user profile.
 ```
 
-- **Output:** a de-risked candidate with a predeclared kill condition and a named validation hook; then a decomposition into delivery briefs.
+What `decompose-intent` produces depends on your level:
+
+- **At `capability` or above** — child intents at the next level down (e.g. a capability intent produces feature intents). Each child re-enters the loop at its own level and is de-risked independently.
+- **At `feature`** — a spec/slice: the shippable, agent-buildable unit handed to the delivery loop via `receive-brief`.
+
+A child whose riskiest assumption is killed bubbles back up — the parent must re-decompose or reframe. That feedback edge keeps the tree honest.
+
+- **Output:** a de-risked candidate with a predeclared kill condition and a named validation hook; then a decomposition one level down — child intents or, at the leaf, delivery briefs.
 - **State:** draft
 
 ---
@@ -248,5 +308,5 @@ Reconcile? ›
 ```
 
 - **You decide:** G2 — is the brief complete? Then G3 — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
-- **Output:** a ratified decision brief with a connected hypothesis and validation hooks — ready for the delivery loop.
+- **Output:** a ratified decision brief with a connected hypothesis and validation hooks. At `feature` level this hands off to the delivery loop via `receive-brief`. At `capability` or above it produces ratified child intents — each re-enters the loop independently at its own level.
 - **State:** confirmed-write
