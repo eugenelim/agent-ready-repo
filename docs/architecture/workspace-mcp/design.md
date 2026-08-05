@@ -41,9 +41,9 @@ Three gaps block reliable unattended operation:
    dispatched item's scope — silently corrupting unrelated work.
 
 Elicitation (routing mid-session questions to the human) is **not** the primary gap — a
-control plane can receive questions through ACP's native `session/create_elicitation`
-without workspace-mcp, via Claude Code's built-in `AskUserQuestion` tool or turn-based
-HITL. workspace-mcp adds uniform elicitation across all skills via the session instruction,
+control plane can receive questions through ACP's elicitation protocol (MCP
+`elicitation/create` request from server to client) without workspace-mcp, via Claude
+Code's built-in `AskUserQuestion` tool or turn-based HITL. workspace-mcp adds uniform elicitation across all skills via the session instruction,
 but the channel itself exists independently.
 
 ---
@@ -82,10 +82,10 @@ flowchart LR
     EB -->|"tail-poll 200ms"| EJ
     EB -->|"skill-state-change<br/>human-gate-pending"| CC
     CC -->|"elicit()"| TS
-    TS -->|"elicitation/create"| ACA
-    ACA -->|"session/create_elicitation"| CP
-    CP -->|"session/complete_elicitation"| ACA
-    ACA -->|"response"| CC
+    TS -->|"elicitation/create (MCP request)"| ACA
+    ACA -->|"routes to human"| CP
+    CP -->|"JSON-RPC response (same request ID)"| ACA
+    ACA -->|"answer"| CC
     TS -->|"reads"| WT
     AW -->|"watches"| SD
     AW -->|"artifact-created"| CC

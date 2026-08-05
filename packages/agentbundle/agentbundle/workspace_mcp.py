@@ -973,6 +973,10 @@ class _GitTools:
         # Use `in os.environ` (not bool()) to treat "" as supplied.
         _spec_path_supplied = "WORKSPACE_MCP_SPEC_PATH" in os.environ
         dispatched = os.environ.get("WORKSPACE_MCP_DISPATCHED_ITEM")
+        # Capture raw dispatched presence for the both-vars warning: if the
+        # DISPATCHED_ITEM value is malformed, validation below sets dispatched=None,
+        # but the warning should still fire to signal the unsupported configuration.
+        _dispatched_supplied = "WORKSPACE_MCP_DISPATCHED_ITEM" in os.environ
         # Validate spec_path: must resolve inside repo_root. An out-of-repo or malformed
         # path is treated as absent for event-bridge anchoring only — FSM mode
         # is already locked by _spec_path_supplied above.
@@ -1006,7 +1010,7 @@ class _GitTools:
         # whether it passed validation (fail-closed: invalid path still blocks git
         # writes).  When BOTH env vars are supplied (unsupported per the one-variable
         # contract), SPEC_PATH wins and a startup warning is logged.
-        if _spec_path_supplied and dispatched is not None:
+        if _spec_path_supplied and _dispatched_supplied:
             _log.warning(
                 "Both WORKSPACE_MCP_SPEC_PATH and WORKSPACE_MCP_DISPATCHED_ITEM are set "
                 "(unsupported); WORKSPACE_MCP_SPEC_PATH takes precedence — "
