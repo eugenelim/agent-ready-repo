@@ -168,7 +168,7 @@ from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 
 Gates surface as incoming `elicitation/create` requests from workspace-mcp to the harness (Step 5) — not through a harness-callable poll. When the work-loop reaches a gate, the agent calls `elicit()`, which blocks the current turn and sends an `elicitation/create` JSON-RPC request containing the gate question. The turn does not complete until the harness responds, so there is no "response from the agent" to poll after.
 
-If your harness needs to read FSM state independently (e.g., to reconcile after a session restart), open a short-lived discovery session with no env vars and prompt the agent to call `workspace_status()`. The response includes:
+If your harness needs to read FSM state independently (e.g., to reconcile after a session restart), open a short-lived session with `WORKSPACE_MCP_SPEC_PATH` set to the active spec path and prompt the agent to call `workspace_status()`. **Do not omit `WORKSPACE_MCP_SPEC_PATH`**: without it, `_EventBridge` starts with `spec_dir=None` and cannot bind to the active run — `workspace_status()` returns `current_state=null` and `gate_pending=false` regardless of the actual work-loop state. The response includes:
 
 Key fields in the `workspace_status()` response:
 
