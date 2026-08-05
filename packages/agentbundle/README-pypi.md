@@ -267,6 +267,15 @@ agentbundle catalogue self-host --check --root .
 
 Exits non-zero if any projected file is out of date. Safe to run in CI as a required check; use `--write` locally to regenerate.
 
+By default projects for `claude-code` and `codex`. Downstream repos that use a single adapter (e.g. `kiro-ide`) can declare it in `catalogue.toml` — only that adapter is then projected, and its output files participate in the drift check:
+
+```toml
+[distribution.agentbundle]
+preferred-adapter = "kiro-ide"
+```
+
+When `preferred-adapter` names an adapter not in the upstream `SELF_HOST_ADAPTERS` list, the self-host engine switches to single-adapter mode: only the named adapter is projected; Claude Code-specific artifacts (`.claude/`, `.codex/`, `.claude-plugin/`, `CLAUDE.md`) are neither written nor drift-checked.
+
 **Run Tier-A activation evals** to measure whether each covered skill fires on the prompts it should:
 
 ```bash

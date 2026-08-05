@@ -34,9 +34,9 @@ shell-config edits.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
-import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -309,19 +309,18 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
     expected_targets = {p.target for p in projections}
     for proj in projections:
         proj.target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(proj.source, proj.target)
+        shutil.copyfile(proj.source, proj.target)
         if os.name == "posix":
-            os.chmod(proj.target, EXECUTABLE_MODE)
+            with contextlib.suppress(OSError):
+                proj.target.chmod(EXECUTABLE_MODE)
     # Orphan removal: any *.py file under <working_tree>/.agentbundle/bin/
     # not claimed by an expected target.
     target_dir = working_tree / TARGET_SUBDIR
     if target_dir.is_dir():
         for existing in sorted(target_dir.glob("*.py")):
             if existing not in expected_targets:
-                try:
+                with contextlib.suppress(FileNotFoundError):  # pragma: no cover — race-only
                     existing.unlink()
-                except FileNotFoundError:  # pragma: no cover — race-only
-                    pass
 
 
 def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
@@ -336,7 +335,7 @@ def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
     """
     drifts: list[str] = []
     try:
-        sources = collect_sources(packs_dir)
+        collect_sources(packs_dir)
     except ValueError as exc:
         drifts.append(f"[adapter-root-bins] {exc}; run: make build-self")
         return drifts

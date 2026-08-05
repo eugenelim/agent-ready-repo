@@ -62,6 +62,13 @@ agentbundle catalogue build [--root ROOT] [--output OUTPUT]
 Manages the self-host projection — writes or checks adapter-projected files (skills, agents, hooks,
 commands) from `.apm/` sources into the adapter-expected layout.
 
+Which adapter folders are written and whether Claude-specific root files (`CLAUDE.md`,
+`.claude-plugin/marketplace.json`) are included depends on the effective adapter set.
+Set `preferred-adapter` in `[distribution.agentbundle]` of `catalogue.toml` to control
+this: an adapter not in the default `SELF_HOST_ADAPTERS` list (e.g. `"kiro-ide"`) restricts
+projection to that adapter only and omits the Claude-specific files; absent or a value already
+in `SELF_HOST_ADAPTERS` uses the default set (claude-code + codex).
+
 ```
 agentbundle catalogue self-host [--root ROOT] [--check | --write] [--force]
                                 [--windows] [--format {table,json}]

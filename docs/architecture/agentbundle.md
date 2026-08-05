@@ -75,9 +75,16 @@ packs/                                dist/
     pack.toml                           claude-plugins/<pack>/       ← per-pack plugin
     .claude-plugin/plugin.json          claude-plugins/marketplace.json
     .apm/{skills,agents,hooks,commands}
-    seeds/                            <repo>/.claude/                ← Claude self-host
-                                      <repo>/.codex/ + .agents/      ← Codex self-host
+    seeds/                            <repo>/.claude/ + CLAUDE.md    ← Claude self-host (claude-code)
+                                      <repo>/.codex/ + .agents/      ← Codex self-host (codex)
+                                      <repo>/.kiro/                  ← Kiro self-host (kiro-ide / kiro-cli)
 ```
+
+> Self-host output is determined by the effective adapter set. When `catalogue.toml` sets
+> `preferred-adapter` to an adapter not in the default `SELF_HOST_ADAPTERS` list (e.g. `kiro-ide`),
+> only that adapter's folder is projected and `CLAUDE.md` / `.claude-plugin/marketplace.json` are
+> omitted. When `preferred-adapter` is absent or names an adapter already in `SELF_HOST_ADAPTERS`,
+> the default set (claude-code + codex) is used.
 
 1. **Recipe load.** [`build/recipes/`](../../packages/agentbundle/agentbundle/build/recipes/)
    carries the canonical seven recipes — `per-pack-claude-plugin.toml`,
@@ -95,7 +102,9 @@ packs/                                dist/
    [`build/projections/`](../../packages/agentbundle/agentbundle/build/projections/).
 4. **Aggregation.** `marketplace.json` lists every per-pack plugin entry.
 5. **Self-host overlay.** `make build-self` runs `self-host.toml` against
-   this repo's root for the Claude Code and Codex repo projections.
+   this repo's root. The effective adapter set — which folders are written —
+   is determined by `preferred-adapter` in `catalogue.toml`; see the diagram
+   note above for the conditionality rules.
    `make build-check` runs the same dry-run as a CI gate that fails on
    any byte-divergence between source and projection — the single biggest
    source of CI noise, so the error message names the seed path you

@@ -23,10 +23,12 @@ consumer.
 
 Self-host scope (see docs/specs/self-hosting/spec.md § Phased rollout):
 the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` and `codex`.
-Kiro and Copilot stay distribution-only so self-host does not project
-`.kiro/` or `.github/instructions/`. Both `SELF_HOST_ADAPTERS` and
-`SELF_HOST_PACKS` are sourced from `recipes/self-host.toml` (see the
-`_DEFAULT_*` block below); the values named here are the current defaults.
+Both `SELF_HOST_ADAPTERS` and `SELF_HOST_PACKS` are sourced from
+`recipes/self-host.toml` (see the `_DEFAULT_*` block below); the values
+named here are the current defaults.  When `catalogue.toml` declares a
+`preferred-adapter` outside `SELF_HOST_ADAPTERS` (e.g. ``"kiro-ide"``),
+`run_self_host` restricts projection to that adapter only — see
+`_effective_adapters`.
 """
 
 from __future__ import annotations
@@ -76,6 +78,7 @@ TARGET_PATHS = (
     Path(".claude"),
     Path(".codex"),
     Path(".agents"),
+    Path(".kiro"),
     Path("tools") / "hooks",
     Path(".github") / "instructions",
     Path("AGENTS.md"),
@@ -84,12 +87,12 @@ TARGET_PATHS = (
 # Built-in fallbacks for the self-host pack / adapter allow-lists. The
 # authoritative values live in `recipes/self-host.toml` (read at import below);
 # these are used only when that recipe is missing a key or can't be read, so
-# module import stays total. Kiro and Copilot remain in the contract for
-# distribution builds but are excluded from the self-host runner. This repo is
-# the catalogue's home, not an adopter, so `make build-self` only projects the
-# in-house packs; `_aggregate_marketplace` intentionally ignores the pack
-# filter — the catalogue advertises every pack. See the recipe for the full
-# rationale behind the pack selection.
+# module import stays total. This repo is the catalogue's home, not an adopter,
+# so `make build-self` only projects the in-house packs;
+# `_aggregate_marketplace` intentionally ignores the pack filter — the
+# catalogue advertises every pack. See the recipe for the full rationale.
+# Adapters outside this list (e.g. `kiro-ide`) are handled via the
+# `preferred_adapter` override path in `_effective_adapters`.
 _DEFAULT_SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
 _DEFAULT_SELF_HOST_PACKS: tuple[str, ...] = (
     "core",
@@ -269,29 +272,52 @@ def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
-            shutil.copytree(source, target)
+            shutil.copytree(source, target, copy_function=shutil.copy)
         else:
-            shutil.copy2(source, target)
+            shutil.copy(source, target)
+
+
+def _effective_adapters(preferred_adapter: str | None) -> tuple[str, ...]:
+    """Return the adapter set to project.
+
+    When `preferred_adapter` names an adapter that is NOT already in
+    `SELF_HOST_ADAPTERS` (e.g. ``"kiro-ide"`` on a downstream repo),
+    restrict the set to that single adapter so only its output lands in
+    the shadow / working tree.  Otherwise — including when
+    `preferred_adapter` is ``None`` or is already covered by
+    `SELF_HOST_ADAPTERS` — use the full allow-list unchanged, preserving
+    existing behaviour for repos like this one that project both
+    ``claude-code`` and ``codex``.
+    """
+    if preferred_adapter and preferred_adapter not in SELF_HOST_ADAPTERS:
+        return (preferred_adapter,)
+    return SELF_HOST_ADAPTERS
 
 
 def _project_all_adapters(
     output_root: Path,
     packs_dir: Path,
     contract: dict,
+    preferred_adapter: str | None = None,
 ) -> None:
     """Run direct self-host adapter projections against the
     `SELF_HOST_PACKS`-filtered pack list. Pack uniqueness validation
     still runs across every discovered pack so naming collisions in
     user-scope-default packs aren't masked by the filter.
+
+    When `preferred_adapter` names an adapter outside `SELF_HOST_ADAPTERS`
+    (e.g. ``"kiro-ide"``), only that adapter is projected; see
+    `_effective_adapters` for the full selection logic.
     """
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
     pack_paths = _filter_self_host_packs([pack.path for pack in packs])
+    effective = _effective_adapters(preferred_adapter)
     for adapter_name in ADAPTERS:
         if adapter_name not in contract["adapter"]:
             continue
-        if adapter_name not in SELF_HOST_ADAPTERS:
+        if adapter_name not in effective:
             continue
         adapter_module = registry[adapter_name.replace("-", "_")]
         adapter_module.project_packs(pack_paths, contract, output_root)
@@ -392,7 +418,6 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     ".github/**",
     "AGENTS.local.md",
     "AGENTS.md",  # root-level; nested AGENTS.md not excluded
-    ".kiro/**",
     "packages/agentbundle/**",
     "packs/**",
     "tools/**",
@@ -567,7 +592,11 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             continue
         target = output_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, target, follow_symlinks=False)
+        # Use shutil.copy (content + mode, no timestamps) so the shadow seed
+        # file has the same permission bits as the source regardless of umask.
+        # copyfile (content-only) would leave umask-derived mode on new files,
+        # causing false mode drift when the diff gate compares shadow vs disk.
+        shutil.copy(src, target)
     return seen
 
 
@@ -693,6 +722,7 @@ def _recreate_claude_symlink(output_root: Path, *, force_copy: bool = False) -> 
 def _build_projected_to_source_map(
     packs_dir: Path,
     contract: dict,
+    preferred_adapter: str | None = None,
 ) -> dict[Path, Path]:
     """Build `{projected_relative_path → source_path}` for Phase-1
     self-host output. Used by `diff_against_working_tree` to name the
@@ -701,12 +731,13 @@ def _build_projected_to_source_map(
     if "primitive" not in contract or "adapter" not in contract:
         return mapping
     allow = set(SELF_HOST_PACKS)
+    effective = _effective_adapters(preferred_adapter)
     for pack_path in sorted(packs_dir.iterdir()):
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
             continue
         if pack_path.name not in allow:
             continue
-        for adapter_name in SELF_HOST_ADAPTERS:
+        for adapter_name in effective:
             if adapter_name not in contract["adapter"]:
                 continue
             for rule in contract["adapter"][adapter_name].get("projection", []):
@@ -1060,6 +1091,7 @@ def run_self_host(
     force: bool,
     contract: dict | None = None,
     no_symlink: bool = False,
+    preferred_adapter: str | None = None,
 ) -> int:
     """Execute `make build-self` (or `make build-self DRY_RUN=1`).
 
@@ -1068,6 +1100,10 @@ def run_self_host(
     projection → marketplace aggregation → CLAUDE.md symlink → marker
     resolution. Under `dry_run`, all writes happen in a shadow temp
     dir and the result is diffed against the working tree.
+
+    When `preferred_adapter` names an adapter not in `SELF_HOST_ADAPTERS`
+    (e.g. ``"kiro-ide"``), only that adapter is projected and compared.
+    Pass ``None`` (default) to use the full `SELF_HOST_ADAPTERS` list.
     """
     if contract is None:
         contract = load_contract(CONTRACT_PATH)
@@ -1107,11 +1143,18 @@ def run_self_host(
     owner = discovery_flat.get("owner", "eugenelim")
     marketplace_name = discovery_flat.get("project-name", "agent-ready-repo")
 
+    # Gate Claude Code-specific artifacts (CLAUDE.md, .claude-plugin/) on
+    # whether the effective adapter set includes claude-code.  When
+    # preferred-adapter is kiro-ide or kiro-cli (or any other adapter not in
+    # SELF_HOST_ADAPTERS), those artifacts are neither written nor expected in
+    # the drift check.
+    _project_claude_artifacts = "claude-code" in _effective_adapters(preferred_adapter)
+
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
             shadow = Path(shadow_str)
             _clone_target_subtree(working_tree, shadow)
-            _project_all_adapters(shadow, packs_dir, contract)
+            _project_all_adapters(shadow, packs_dir, contract, preferred_adapter)
             # Compose AGENTS.md BEFORE seed projection: on a fresh tree the
             # composed output (body + footer) must win over the body-only
             # seed at `packs/core/seeds/AGENTS.md`; on an existing tree
@@ -1123,15 +1166,16 @@ def run_self_host(
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
-            _aggregate_marketplace(packs_dir, shadow, owner=owner, name=marketplace_name)
-            _recreate_claude_symlink(shadow, force_copy=no_symlink)
-            extra_marker_paths = list(seed_map.keys()) + [
-                Path(".claude-plugin") / "marketplace.json",
-            ]
+            if _project_claude_artifacts:
+                _aggregate_marketplace(packs_dir, shadow, owner=owner, name=marketplace_name)
+                _recreate_claude_symlink(shadow, force_copy=no_symlink)
+            extra_marker_paths = list(seed_map.keys())
+            if _project_claude_artifacts:
+                extra_marker_paths.append(Path(".claude-plugin") / "marketplace.json")
             if agents_path is not None:
                 extra_marker_paths.append(Path("AGENTS.md"))
             resolve_markers(shadow, discovery_flat, extra_paths=extra_marker_paths)
-            source_map = _build_projected_to_source_map(packs_dir, contract)
+            source_map = _build_projected_to_source_map(packs_dir, contract, preferred_adapter)
             projected_paths = {
                 rendered.relative_to(shadow)
                 for rendered in shadow.rglob("*")
@@ -1169,7 +1213,7 @@ def run_self_host(
     # and the catalogue-visible pack copy (`.apm/user-libs/credbroker/`). No-op
     # outside the monorepo (package source absent — see user_libs docstring).
     _user_libs_apply(working_tree, packs_dir)
-    _project_all_adapters(working_tree, packs_dir, contract)
+    _project_all_adapters(working_tree, packs_dir, contract, preferred_adapter)
     # Compose AGENTS.md BEFORE seed projection — see dry-run branch for
     # rationale (the body-only seed at packs/core/seeds/AGENTS.md must
     # not race the body+footer composition on fresh trees).
@@ -1179,11 +1223,12 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4
-    _aggregate_marketplace(packs_dir, working_tree, owner=owner, name=marketplace_name)
-    _recreate_claude_symlink(working_tree, force_copy=no_symlink)
-    extra_marker_paths = list(seed_map.keys()) + [
-        Path(".claude-plugin") / "marketplace.json",
-    ]
+    if _project_claude_artifacts:
+        _aggregate_marketplace(packs_dir, working_tree, owner=owner, name=marketplace_name)
+        _recreate_claude_symlink(working_tree, force_copy=no_symlink)
+    extra_marker_paths = list(seed_map.keys())
+    if _project_claude_artifacts:
+        extra_marker_paths.append(Path(".claude-plugin") / "marketplace.json")
     if agents_path is not None:
         extra_marker_paths.append(Path("AGENTS.md"))
     resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)

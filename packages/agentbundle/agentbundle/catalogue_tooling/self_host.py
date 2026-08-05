@@ -40,6 +40,14 @@ def _make_result(ok: bool, operation: str, config: object | None) -> SelfHostRes
     )
 
 
+def _preferred_adapter(config: object | None) -> str | None:
+    """Extract preferred_adapter from a loaded CatalogueConfig, or None."""
+    try:
+        return config.distribution.agentbundle.preferred_adapter or None  # type: ignore[union-attr]
+    except AttributeError:
+        return None
+
+
 def check_self_host(root: Path) -> SelfHostResult:
     """Dry-run self-host check (read-only). Returns SelfHostResult with ok=True on clean."""
     from agentbundle.build.self_host import run_self_host
@@ -52,6 +60,7 @@ def check_self_host(root: Path) -> SelfHostResult:
         packs_dir=packs_dir,
         dry_run=True,
         force=False,
+        preferred_adapter=_preferred_adapter(config),
     )
     return _make_result(ok=(rc == 0), operation="check", config=config)
 
@@ -68,5 +77,6 @@ def write_self_host(root: Path, force: bool = False) -> SelfHostResult:
         packs_dir=packs_dir,
         dry_run=False,
         force=force,
+        preferred_adapter=_preferred_adapter(config),
     )
     return _make_result(ok=(rc == 0), operation="write", config=config)
