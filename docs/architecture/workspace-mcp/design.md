@@ -408,7 +408,7 @@ human-gate-pending.gate`.
 | Constraint | Why |
 |---|---|
 | `-I` flag required for untrusted checkouts | Without it, a repo-provided `agentbundle/` directory shadows the installed wheel and achieves RCE in the control plane process. |
-| Response-file: `mkdtemp(0700)` + `O_EXCL 0600` | Prevents pre-seeding by a same-uid process. |
+| Response-file: `mkdtemp(0700)` + `O_EXCL 0600` | Prevents pre-seeding by a different-uid process; same-uid isolation is not guaranteed — documented limitation in `_ElicitTool`. |
 | Response-file write: atomic rename only | Direct write risks workspace-mcp reading a partial file. |
 | Git push validated against manifest branch | Rejects pushes to unexpected branches. Routing-only — not authentication. |
 | Slug safety: `^[a-zA-Z0-9._-]+$`, rejects `.` / `..` / leading `-` | Prevents path traversal in output_pattern glob construction. |

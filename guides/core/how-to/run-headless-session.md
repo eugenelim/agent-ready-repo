@@ -98,7 +98,7 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
         "env": [
-          { "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-initiative/fix-login-bug" }
+          { "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/fix-login-bug" }
         ]
       }
     ],
@@ -116,7 +116,7 @@ Then send the first message to start the agent (the session is idle until a prom
   "method": "session/prompt",
   "params": {
     "sessionId": "<id from session/new response>",
-    "prompt": [{ "type": "text", "text": "Run the work-loop for the dispatched item." }]
+    "prompt": [{ "type": "text", "text": "Run the work-loop for the dispatched item at docs/specs/fix-login-bug." }]
   }
 }
 ```
