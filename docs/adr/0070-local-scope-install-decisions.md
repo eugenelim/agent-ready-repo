@@ -87,7 +87,9 @@ it is hard to reason about, hard to undo, and can leave the repo in a state wher
 contract is simpler to communicate and to implement.
 
 The check runs as a pre-flight step using
-`git ls-files --error-unmatch <path>` on every target path. Exit 0 → tracked;
+`git --literal-pathspecs ls-files --error-unmatch <path>` on every target path
+(`--literal-pathspecs` prevents pathspec syntax in filenames from matching
+unrelated tracked files). Exit 0 → tracked;
 exit non-zero → untracked. On any tracked file, the install is refused before any
 files are written.
 
@@ -132,8 +134,9 @@ Block format (canonical):
 Rules:
 - Leading `/` anchors patterns to the repo root (same behaviour as `.gitignore`).
 - Each path is gitignore-metacharacter-escaped before writing (`[`, `]`, `*`, `?`,
-  `\` are backslash-escaped; `#` and `!` only when at line start) so that projected
-  filenames containing gitignore pattern syntax are matched literally.
+  and `\` are backslash-escaped; `#`/`!` need not be escaped because the leading `/`
+  anchor prevents them from appearing at line start) so that projected filenames
+  containing gitignore pattern syntax are matched literally.
 - If a block for this `(pack, worktree-id)` already exists, it is replaced in place
   (no duplicate accumulation).
 - Blocks from different worktrees coexist; each is stripped only by its own
