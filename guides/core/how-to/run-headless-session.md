@@ -213,7 +213,7 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 3. Your harness returns the human's answer as the JSON-RPC response to the `elicitation/create` request
 4. The `elicit()` call unblocks and the work-loop continues
 
-> **`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the elicitation question is "ready to merge?" Surface the PR URL to the human and wait for the PR to be merged (e.g., poll your VCS API until the PR's merge status is confirmed) before sending the elicitation response. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
+> **`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the elicitation question is "ready to merge?" Before sending the elicitation response, verify the PR is actually merged. **Stage 1 PR URL retrieval:** the elicitation request carries only the gate question; `workspace_status()` does not expose `pr_url`; and the `gate-pr-ready` push notification (which carries `pr_url`) is dropped by the Stage 1 bridge. Read the PR URL directly from `{WORKSPACE_MCP_SPEC_PATH}/engine-state.json` (`pr_url` field) — this file is written by loop-engine when the PR is opened. Poll your VCS API using that URL until the PR's merge status is confirmed, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
 
 > **Stage 1 limitation — response-file fallback unsupported.** When `clientCapabilities.elicitation`
 > is absent, `elicit()` falls back to a temp response file. The file path is carried only in the

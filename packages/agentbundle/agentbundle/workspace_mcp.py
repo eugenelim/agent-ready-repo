@@ -1615,10 +1615,17 @@ class _StdioLoop:
                     "do not dispatch shaping items in Stage 1 — selecting one opens a bound "
                     "session with no usable skill flow; same available/required_pack/unmet_needs "
                     "fields as ready[] for readiness visibility; "
-                    "current_state — current work-loop phase name (null when idle); "
-                    "gate_pending — true when human input is required before work can continue; "
+                    "current_state — current work-loop phase name (null when idle OR when this "
+                    "session is not bound to a valid spec — see below); "
+                    "gate_pending — true when human input is required before work can continue "
+                    "(always false when not spec-bound); "
                     "gate — name of the pending gate (e.g. SPEC-HUMAN-GATE, REVIEW-HUMAN-GATE); "
-                    "gate_question — the specific question the work-loop is asking."
+                    "gate_question — the specific question the work-loop is asking. "
+                    "IMPORTANT: current_state, gate_pending, gate, and gate_question are "
+                    "authoritative only in a session where WORKSPACE_MCP_SPEC_PATH is set to "
+                    "a valid spec directory; in discovery sessions (no SPEC_PATH) or sessions "
+                    "with an invalid SPEC_PATH these fields are always null/false even if a "
+                    "work-loop is active in another session."
                 ),
                 "inputSchema": {"type": "object", "properties": {}},
             },
