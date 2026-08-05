@@ -1361,9 +1361,14 @@ def run(args: argparse.Namespace) -> int:
                         rollback_exclude_block(_local_exclude_path, _local_prior_exclude)
                     print(f"install: {exc}", file=sys.stderr)
                     return 1
-                plan.new_companions.append(
-                    safety.companion_path(Path(relpath)).as_posix()
-                )
+                companion_relpath = safety.companion_path(Path(relpath)).as_posix()
+                plan.new_companions.append(companion_relpath)
+                # AC21 rollback: track the companion file so that a subsequent
+                # state-write failure removes it along with regular projected files.
+                # Without this, the exclude-block restore after rollback would
+                # leave the .upstream companion git-visible.
+                if plan.scope == "local":
+                    _local_written_files.append(plan.root / companion_relpath)
             else:
                 try:
                     safety.write_jailed(
