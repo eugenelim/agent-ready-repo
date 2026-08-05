@@ -73,8 +73,9 @@ they don't own or haven't permanently adopted it.
   rule, `_parse_adapter_row` scope coercion, `resolve_state_path` routing,
   block-key parse/strip round-trip, tracked-file collision check, `installed_at_*`
   flag derivation (adapter-level), repo/local cross-scope refusal (including
-  `--force` immunity), `--force-merge --scope local` refusal, Tier-2 file refusal
-  (AC10b), path-level cross-scope overlap refusal (AC12b, both directions),
+  `--force` immunity), `--force-merge --scope local` refusal, unowned pre-existing
+  target refusal (AC10b — both same-content and different-content unowned cases),
+  path-level cross-scope overlap refusal (AC12b, both directions),
   rollback round-trip (AC21), dependency validation with local state (AC23b),
   show-state loading (AC23c).
 - **Goal-based check** — schema validation: `python3 tools/lint-ruff.py` passes;
@@ -152,9 +153,10 @@ they don't own or haven't permanently adopted it.
   the common-dir `info/exclude` from both primary and linked worktrees). Block format:
   `# agentbundle:local:<pack>:<worktree-id>:begin / [paths] / …:end`. Each path
   written into the block is gitignore-metacharacter-escaped before writing: the
-  characters `[`, `]`, `*`, `?`, and `\` are backslash-escaped; `#` and `!` are
-  escaped only when they appear at the start of a line. This ensures filenames
-  containing gitignore pattern syntax are matched literally and not as globs.
+  characters `[`, `]`, `*`, `?`, and `\` are backslash-escaped. (All paths are
+  written with a leading `/` anchor, so `#` and `!` can never appear at line start
+  and need no escaping.) This ensures filenames containing gitignore pattern syntax
+  are matched literally and not as globs.
 - [ ] AC14b: The exclude block for a pack represents the **union** of all adapter rows
   installed locally for that pack. Installing a second adapter replaces the block with
   a block containing all paths from both adapters. Uninstalling one adapter recomputes
@@ -185,12 +187,15 @@ they don't own or haven't permanently adopted it.
 - [ ] AC21: The write path follows the order: (1) snapshot prior exclude-file content,
   (2) write the exclude block (so installed files are git-invisible from the moment
   they exist), (3) write projected files, (4) write state row. If any step fails after
-  step 1, the install rolls back: the exclude block is restored to the snapshotted
-  content, any projected files written so far are deleted, and no state row is
-  persisted. The working tree, exclude file, and local state are identical to their
-  pre-install values after rollback. Writing the block before the files guarantees
-  that no background git tooling (IDE integrations, `git status` watchers) can
-  observe the files in a non-excluded state.
+  step 1, the install rolls back in the inverse order: (a) delete any projected files
+  written so far, THEN (b) restore the exclude block to its snapshotted content, THEN
+  (c) discard any uncommitted state row. Deleting files before restoring the block
+  ensures that the exclude file is never restored while the installed files still
+  exist on disk (which would create a transient window where files are git-visible
+  and unexcluded). The working tree, exclude file, and local state are identical to
+  their pre-install values after rollback. Writing the block before the files
+  guarantees that no background git tooling can observe the files in a non-excluded
+  state.
 
 ### Install — same-scope reinstall
 
@@ -255,12 +260,16 @@ they don't own or haven't permanently adopted it.
   location: a docstring on `write_exclude_block`, a note in the `--scope local` entry
   of the guides, or an inline `# WARNING:` comment in the write helper. The location
   is named in the PR description.
-- [ ] AC27: The cross-worktree exclusion side-effect is documented in a user-visible
-  location: a leading-`/` pattern in `info/exclude` git-ignores same-path untracked
-  files in *all* linked worktrees, not just the installing one. Document in the same
-  location as AC26 (docstring, guide note, or inline comment). Verified by a T11
-  assertion that the documented text is present in the chosen location (docstring
-  content check or guide file existence check).
+- [ ] AC27: The cross-worktree exclusion side-effects are documented in a user-visible
+  location (same as AC26 — docstring, guide note, or inline comment):
+  (a) **Live-worktree side-effect:** a leading-`/` pattern in `info/exclude` excludes
+  same-path untracked files in *all* linked worktrees, not just the installing one.
+  (b) **Stale-block risk:** when a worktree is deleted without uninstalling, its block
+  remains in `info/exclude` and continues excluding same-path files in all remaining
+  worktrees — including tracked or committed files added later. The documentation must
+  name `agentbundle local prune` (deferred) as the cleanup path and record this as a
+  known v1 limitation. Verified by a T11 assertion that the documented text is present
+  in the chosen location (docstring content check or guide file existence check).
 
 ## Assumptions
 

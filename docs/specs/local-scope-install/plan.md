@@ -326,8 +326,10 @@ Use `git diff` after each sub-group to confirm no unintended changes.*
   local requests to `local_state` (not `repo_state`). TDD.
 - `:631` upgrade-offer guard: local reinstall of same adapter refuses with
   "already installed" message (AC21b) — does NOT route through `upgrade.run`. TDD.
-- Tier-2 refusal for local: if a target exists as an untracked file with different
-  content, the install is refused (AC10b). TDD.
+- Unowned pre-existing file refusal (AC10b): if a target path exists as an untracked
+  file with **no ownership record** in any agentbundle state (repo, user, or local)
+  — regardless of content — the install is refused. TDD: assert refusal for both the
+  different-content case AND the identical-content case with no state ownership.
 - Path-level cross-scope collision: if incoming paths overlap with any path in the
   other scope's footprint, refuse with `--force`-immune error (AC12b). TDD.
 - `:668` cross-scope conflict loads `installed_at_local`; repo refusal is
@@ -356,12 +358,13 @@ Use `git diff` after each sub-group to confirm no unintended changes.*
 - `:631`: replace upgrade-offer guard with an adapter-identity check: refuse only when the requested adapter row (not just the pack) already exists in `local_state`; a second *different* adapter for the same pack must fall through to the union-write path (AC14b). The guard looks up the specific adapter row, not the pack-level `installed_at_local` boolean alone (AC21b).
 - `:668`: add `installed_at_local` derivation; enforce repo/local refusal before
   `--force` check; also add path-level cross-scope overlap check for AC12b.
-- Tier-2 (different-content untracked) refusal: before any write, check `_classify_for_install()` results for Tier-2 paths; for local scope, refuse rather than write a companion file.
+- Unowned pre-existing file refusal (AC10b): before any write, check each target path for existence as an untracked file. If the path exists and has NO ownership record in any agentbundle state (repo, user, or local), refuse the whole install with a clear error — regardless of whether the file content matches. This is a superset of Tier-2 (different-content) classification; do NOT rely solely on `_classify_for_install()` Tier-2 detection, which would pass same-content unowned files through to installation and subsequent deletion-on-uninstall.
 - Other sites (`390`, `397`, `432`, `513`, `577`, `663`, `739`): review each;
   widen or leave as-is per their individual semantics.
 
 **Family 2 — `!= "user"` negation comparisons:**
-- `:258`: already handled in T7 (change to `== "repo"`).
+- `:258`: already handled in T7 (change to `not in ("user", "local")` — see T7
+  approach note; do NOT use `== "repo"` as the RFC originally specified).
 - `:377`: **leave unchanged** — `requested_scope != "user"` correctly refuses
   force-merge for local; do NOT change to `== "repo"`.
 
@@ -446,21 +449,18 @@ both edit `install.py`; to avoid merge conflicts, complete T9 before starting T7
 **Approach:**
 - Implement `derive_worktree_id(repo_root)` using `subprocess.run(["git", "-C",
   str(repo_root), "rev-parse", "--git-dir"])` and `--git-common-dir`, compare;
-  sanitize with `re.sub(r":", "_", id)`. All git probes pass `-C <repo_root>` (or
-  equivalent `cwd=repo_root`) so they operate on the target repository, not the
-  process CWD (which differs when `--output` or `--root` names another repo).
-- Implement `derive_worktree_id()` using `subprocess.run(["git", "-C", str(repo_root),
-  "rev-parse", "--git-dir"])` and `--git-common-dir` (always pass `-C <repo_root>`
-  or `cwd=repo_root` to every git subprocess call so they probe the correct repo when
-  `--output` or `--root` names a directory other than the process CWD).
+  sanitize with `re.sub(r":", "_", id)`. All git subprocess calls pass `-C
+  <repo_root>` (or equivalent `cwd=repo_root`) so they probe the target repository,
+  not the process CWD (which differs when `--output` or `--root` names another repo).
 - Implement `write_exclude_block(exclude_path, pack, worktree_id, patterns)`:
   read file (create if absent), find existing block by marker, replace or append,
   write atomically via `tempfile.NamedTemporaryFile` + `os.replace`. The caller
   passes the **union** of all adapter patterns for this pack + worktree-id pair
   (not just the current adapter's patterns), so the block always reflects all
   remaining installed adapters. Before writing each path into the block, apply
-  gitignore metacharacter escaping: backslash-escape `[`, `]`, `*`, `?`, `\`;
-  backslash-escape `#` and `!` only when they appear at the start of a line.
+  gitignore metacharacter escaping: backslash-escape `[`, `]`, `*`, `?`, and `\`
+  (the leading `/` anchor means `#`/`!` can never appear at line start, so no
+  escaping of those is needed).
   Pre-flight tracked-file checks use `git --literal-pathspecs ls-files --error-unmatch <path>`
   (not bare `git ls-files`) to prevent pathspec pattern interpretation.
 - Implement `strip_exclude_block(exclude_path, pack, worktree_id)`: read file,
@@ -472,9 +472,12 @@ both edit `install.py`; to avoid merge conflicts, complete T9 before starting T7
 - Define the commit order for install: (1) read and snapshot prior exclude content,
   (2) write the exclude block first (files are git-invisible before they exist —
   satisfies the no-footprint guarantee even across abrupt process death), (3) write
-  projected files, (4) write state row. If any step after (1) fails, roll back:
-  call `rollback_exclude_block` to restore exclude content, then delete any projected
-  files written so far, then discard uncommitted state.
+  projected files, (4) write state row. If any step after (1) fails, roll back in
+  this order: (a) delete any projected files written so far, (b) call
+  `rollback_exclude_block` to restore exclude content, (c) discard uncommitted state.
+  Deleting files BEFORE restoring the block is critical: restoring the block while
+  files still exist creates a transient window where the files are git-visible and
+  non-excluded, violating the no-footprint guarantee during rollback.
 - Wire into `commands/install.py` pre-flight and write path.
 - In the `write_exclude_block` docstring, document: (a) the concurrent-write
   lost-update limitation (two processes writing simultaneously; last writer wins)
@@ -482,7 +485,7 @@ both edit `install.py`; to avoid merge conflicts, complete T9 before starting T7
   `info/exclude` silently git-ignores same-path untracked files in *all* linked
   worktrees, not only the installing one). This satisfies AC26 and AC27.
 
-**Done when:** all ten new tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
+**Done when:** all new tests green; `python3 -m pytest packages/agentbundle/tests/ -q` green.
 
 ---
 
@@ -684,3 +687,16 @@ the scope can be deprecated without touching `repo`/`user` behaviour.
   F8 (show scope field): AC23c + T12 tests narrowed to `source: installed-state`
   (no scope field assertion); F9 (parametrize over all adapters): T11 tests updated;
   F10 (version bump): added T13; F11 (pack schema contract): spec Contract field updated.
+- 2026-08-04: adversarial review round 2 (post-Codex-round-1 pass) — B1 (AC10/T8
+  inconsistency): T8 Family-1 approach now uses ownership-record check (not Tier-2
+  classification) and adds same-content test case; B2 (rollback order): AC21 and T9
+  corrected to delete-files THEN restore-block (inverse order prevents transient
+  git-visible window); B3 (T8 Family-2 stale `== "repo"`): updated to
+  `not in ("user","local")`; B4 (RFC missing F7 erratum): added implementation erratum
+  to RFC §4 emit_install_routes; B5 (RFC §Multi-worktree and §Risks still "harmless"):
+  corrected in both sections; M6 (ADR D2 missing --literal-pathspecs): added; M7
+  (stale test count in T9 "Done when"): dropped count; M8 (Testing Strategy Tier-2
+  label): renamed to "unowned pre-existing target refusal"; M9 (AC27 stale-block
+  risk): AC27 extended to cover deleted-worktree stale-block risk; A10 (#/! escaping
+  unreachable): dropped dead #/! escaping from spec/RFC/ADR/plan; A11 (duplicate
+  derive_worktree_id bullet): collapsed to one bullet.

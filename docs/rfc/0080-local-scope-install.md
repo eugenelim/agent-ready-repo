@@ -42,8 +42,9 @@
   full site-by-site audit — see "install.py write-path threading" in Proposal
   for the complete fork-family enumeration including carve-outs and key sites; `--emit-install-routes + --scope local` refusal at
   `install.py:390`; `emit_install_routes` inference at line 258 — `cli_scope !=
-  "user"` must become `cli_scope == "repo"` so local never infers the
-  plugins-route producer); `cli.py` (six hardcoded
+  "user"` must become `cli_scope not in ("user", "local")` so local never infers the
+  plugins-route producer; see implementation erratum in §4 of Proposal for the
+  corrected form vs. the original `== "repo"` specification); `cli.py` (six hardcoded
   `choices=("repo","user")` sites at `cli.py` lines 261, 390, 525, 581, 630, 678);
   `pack.schema.json` (`allowed-scopes` `allOf` if/then constraint);
   `config.py:860` (`Literal["repo","user"]` type annotation on
@@ -208,10 +209,11 @@ it if absent):
 
 Paths are anchored with a leading `/` to match at repo root only, following
 gitignore semantics for absolute paths. Each path is gitignore-metacharacter-escaped
-before writing: `[`, `]`, `*`, `?`, and `\` are backslash-escaped; `#` and `!` are
-escaped only when they appear at the start of a line. This ensures that projected
-filenames containing gitignore pattern syntax (e.g. `references/[draft].md`) are
-matched literally and are not interpreted as character-class or glob patterns.
+before writing: `[`, `]`, `*`, `?`, and `\` are backslash-escaped. (`#` and `!`
+need not be escaped because the leading `/` anchor ensures they can never appear at
+line start.) This ensures that projected filenames containing gitignore pattern
+syntax (e.g. `references/[draft].md`) are matched literally rather than as
+character-class or glob patterns.
 Because gitignore deduplicates equivalent patterns, multiple worktrees having
 overlapping path entries is harmless.
 
@@ -303,8 +305,9 @@ to the multi-adapter union-write path (AC14b).
 worktree-id)`, multiple worktrees can hold independent `--scope local` installs
 of the same pack simultaneously, and each worktree's uninstall strips only its
 own block. Ephemeral worktrees (e.g. Conductor workspaces) may be deleted without
-uninstalling; their stale blocks accumulate but are harmless (see Block rules
-above).
+uninstalling; their stale blocks accumulate. Stale blocks are **not harmless**:
+see Block rules above for the data-loss risk (stale patterns continuing to hide
+files in other worktrees).
 
 **Important: exclusion patterns are repo-global.** The keyed blocks scope only
 bookkeeping and uninstall — not git exclusion. A leading-`/` pattern in the
@@ -455,9 +458,10 @@ through each layer:
      refusal is actually enforced.
    - **`!= "user"` negation comparisons** — two sites, each needing different
      treatment:
-     - `install.py:258` (`cli_scope != "user"`) — must become `cli_scope ==
-       "repo"` to stop local from entering the plugins-route producer. Handled
-       by point 4 below; only protects the test-fixture fallback.
+     - `install.py:258` (`cli_scope != "user"`) — must become
+       `cli_scope not in ("user", "local")` (see implementation erratum in
+       point 4 — the originally-specified `== "repo"` breaks `None`-scope callers).
+       Handled by point 4 below; only protects the test-fixture fallback.
      - `install.py:377` (`if force_merge and requested_scope != "user":`) —
        correctly refuses force-merge for every non-user scope; force-merge is
        user-scope-only (RFC-0005). This guard works for local as-is. **Do not
@@ -543,10 +547,14 @@ through each layer:
      must record this change explicitly rather than silently diverging from it.
 
 4. **`emit_install_routes` inference.** `install.py:258` (`emit_install_routes
-   = cli_scope != "user"`) must become `cli_scope == "repo"` so local never
-   silently enters the plugins-route producer. Note: this only protects the
-   attribute-absent test-fixture fallback (real CLI invocations always have
-   `args.emit_install_routes`); the primary guard is the explicit refusal at
+   = cli_scope != "user"`) must become `cli_scope not in ("user", "local")` so
+   local never silently enters the plugins-route producer. **Implementation
+   erratum:** the RFC originally specified `cli_scope == "repo"` here, but that
+   value breaks programmatic/legacy callers that pass a `Namespace` without an
+   explicit `scope` attribute (`None == "repo"` is `False`, misrouting them from
+   the repo-dist-tree path to adapter projection). The correct expression is
+   `cli_scope not in ("user", "local")` so that `None` is treated as repo-like,
+   matching the historical behavior. The primary guard is the explicit refusal at
    `install.py:390-393`.
 
 ### CLI surface
@@ -649,7 +657,10 @@ excluded from git without a committed diff, stdlib-only."
   is the right scope for repos that track pack files.
 - *Multi-worktree installs of the same pack.* Per-worktree keyed blocks allow
   independent simultaneous installs. Stale blocks from deleted worktrees
-  accumulate in `info/exclude` but are harmless (paths no longer exist).
+  accumulate in `info/exclude` and are **not harmless**: their patterns continue
+  excluding same-path files in all linked worktrees; a committed file added later
+  at that path is silently invisible to `git status`. Pruning via
+  `agentbundle local prune` is deferred; documented in `write_exclude_block` docstring.
 - *Concurrent agentbundle calls on the same repo.* Without a file lock, two
   simultaneous `--scope local` installs produce a lost update: one writer's
   atomic full-file replace clobbers the other's block, silently making those
