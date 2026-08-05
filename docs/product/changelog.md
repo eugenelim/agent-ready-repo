@@ -15,23 +15,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
-## [core][2.1.1] — 2026-08-04
+## [agentbundle][0.28.2] — 2026-08-04
 
 ### Fixed
 
-- **workspace-mcp FSM mode guard**: `git_branch`, `git_commit`, and `git_push`
-  are now blocked whenever `WORKSPACE_MCP_SPEC_PATH` is set, even when
-  `WORKSPACE_MCP_DISPATCHED_ITEM` is also present. Previously a stale harness
-  supplying both env vars would bypass the FSM guard. A startup warning is logged
-  when both variables are set (unsupported configuration).
+- **`workspace_mcp._GitTools` — FSM mode guard**: `git_branch`, `git_commit`, and
+  `git_push` are now blocked whenever `WORKSPACE_MCP_SPEC_PATH` is supplied —
+  including when `WORKSPACE_MCP_DISPATCHED_ITEM` is also present (SPEC_PATH wins
+  with a startup warning) and when the path fails containment validation
+  (fail-closed: raw env var presence in `os.environ`, including an empty string,
+  is the FSM trigger). Previously a stale harness supplying both vars, or an
+  invalid SPEC_PATH, left FSM mode disabled and enabled git writes during a
+  work-loop session. **Requires agentbundle >= 0.28.2** — updating the `core`
+  pack alone does not deliver this fix.
 
-- **workspace-mcp FSM fail-closed on invalid SPEC_PATH**: FSM mode now activates
-  on the raw presence of `WORKSPACE_MCP_SPEC_PATH`, before path validation. An
-  invalid or out-of-repo path no longer silently falls back to dispatched mode
-  and enables git writes.
+- **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
+  harness clarity; `shaping[]` items marked informational-only in Stage 1.
+
+## [core][2.1.1] — 2026-08-04
+
+### Added
 
 - **Pack documentation**: added autonomous-dispatch section to `JOURNEY.md` and
   headless-mode pointer to `README.md`.
+
+### Notes
+
+- The workspace-mcp FSM git guard (blocking `git_branch`/`git_commit`/`git_push`
+  in FSM mode) is delivered by **agentbundle 0.28.2**, not by this pack update.
+  This pack's server wrapper imports whichever `agentbundle.workspace_mcp` is
+  installed — update agentbundle to >= 0.28.2 to get the fix.
 
 ## [experience-design][2.0.0] — 2026-08-02
 

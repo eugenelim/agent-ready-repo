@@ -106,7 +106,11 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
       }
     ],
     "_meta": {
-      "systemPrompt": "<DEFAULT_SESSION_INSTRUCTION>"
+      "systemPrompt": {
+        "type": "preset",
+        "preset": "claude_code",
+        "append": "<DEFAULT_SESSION_INSTRUCTION>"
+      }
     }
   }
 }
@@ -162,17 +166,11 @@ from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 
 ## Step 4 — Monitor progress
 
-Poll `workspace_status()` after each response from the agent to check whether the work-loop has reached a gate:
+Gates surface as incoming `elicitation/create` requests from workspace-mcp to the harness (Step 5) — not through a harness-callable poll. When the work-loop reaches a gate, the agent calls `elicit()`, which blocks the current turn and sends an `elicitation/create` JSON-RPC request containing the gate question. The turn does not complete until the harness responds, so there is no "response from the agent" to poll after.
 
-```python
-status = call_tool("workspace_status")
-if status["gate_pending"]:
-    gate     = status["gate"]           # e.g. "SPEC-HUMAN-GATE"
-    question = status["gate_question"]  # the specific question to route
-    # send question to your human channel; collect answer
-```
+If your harness needs to read FSM state independently (e.g., to reconcile after a session restart), open a short-lived discovery session with no env vars and prompt the agent to call `workspace_status()`. The response includes:
 
-Key fields in the response:
+Key fields in the `workspace_status()` response:
 
 | Field | Type | Meaning |
 |---|---|---|
