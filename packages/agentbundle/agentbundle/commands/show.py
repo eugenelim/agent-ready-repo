@@ -158,15 +158,19 @@ def _degrade(args: argparse.Namespace, pack_name: str, fmt: str) -> int:
 
 
 def _load_states(args: argparse.Namespace) -> list[State]:
-    """Load the user- and repo-scope install-state files, read-only.
+    """Load the user-, repo-, and local-scope install-state files, read-only.
 
-    Mirrors ``list-installed``'s two-scope gather: user
-    (``~/.agentbundle/state.toml`` via ``scope.resolve_user_root``) and repo
-    (``<--root>/.agentbundle-state.toml``). An unresolvable user home is skipped;
-    an absent state file loads as an empty ``State``; a legacy/incompatible file
-    (``StateFileLegacy`` — a ``ConfigError``) is skipped, not fatal.
+    Gathers three scopes:
+    - user: ``~/.agentbundle/state.toml`` via ``scope.resolve_user_root``
+    - repo: ``<--root>/.agentbundle-state.toml``
+    - local: ``<--root>/.agentbundle-local-state.toml`` (RFC-0080, per-clone)
+
+    An unresolvable user home is skipped; an absent state file loads as an
+    empty ``State``; a legacy/incompatible file (``StateFileLegacy`` — a
+    ``ConfigError``) is skipped, not fatal.
     """
     from agentbundle import scope as scope_mod
+    from agentbundle.commands._common import resolve_state_path
     from agentbundle.config import ConfigError, load_state
 
     candidates: list[tuple[str, Path]] = []
@@ -178,6 +182,8 @@ def _load_states(args: argparse.Namespace) -> list[State]:
         candidates.append(("user", user_root / ".agentbundle" / "state.toml"))
     repo_root = Path(getattr(args, "root", ".") or ".").resolve()
     candidates.append(("repo", repo_root / ".agentbundle-state.toml"))
+    # RFC-0080: include local-scope state so `show` finds locally-installed packs
+    candidates.append(("local", resolve_state_path("local", repo_root)))
 
     states: list[State] = []
     for scope_name, path in candidates:
