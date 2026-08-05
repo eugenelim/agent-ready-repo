@@ -2,7 +2,7 @@
 
 A control harness drives Claude Code sessions programmatically — no human watching each turn. workspace-mcp is the per-session MCP server the `core` pack ships for exactly this use: structured queue discovery, FSM-state observability, and scoped git operations.
 
-**What your harness gets:** `workspace_status()` returns the queue of ready and blocked items. Gates surface as `gate_pending: true` with a `gate_question` the harness routes to a human.
+**What your harness gets:** `workspace_status()` returns the queue of ready and blocked items. Gates arrive as `elicitation/create` requests the harness routes to a human (Step 5); `gate_pending` and `gate_question` are readable from a separate reconciliation session but are not a push signal.
 
 **Stage 1 scope:** Claude Code via ACP. Codex is planned; Kiro CLI, Copilot CLI, and Gemini CLI are deferred.
 

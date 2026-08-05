@@ -85,7 +85,7 @@ When the spec is done, the agent submits a PR and moves the spec from `[work].ac
 
 ### Harness-controlled sessions
 
-The cold-start orientation and gate-surface behaviour described above become machine-readable when workspace-mcp is injected into the session. workspace-mcp is the per-session MCP server the `core` pack ships for control-harness use: `workspace_status()` returns a structured response — not prose — that a harness can parse directly. The `ready[]` array lists items the harness can dispatch. `gate_pending` signals that the work-loop needs human input before it can continue. `gate_question` carries the specific question to route.
+The cold-start orientation and gate-surface behaviour described above become machine-readable when workspace-mcp is injected into the session. workspace-mcp is the per-session MCP server the `core` pack ships for control-harness use: `workspace_status()` returns a structured response — not prose — that a harness can parse directly. The `ready[]` array lists items the harness can dispatch. Gates arrive as `elicitation/create` requests from the agent — the harness routes the question to a human channel and returns the answer. `gate_pending` and `gate_question` are readable from a separate spec-bound reconciliation session but are not a push signal.
 
 The harness reads the queue, dispatches an item, monitors for gates, routes gate questions to a human channel, and resumes the session with the answer — all without a human watching each turn. The work-loop runs the same gates; the harness answers them instead of a person at a keyboard.
 

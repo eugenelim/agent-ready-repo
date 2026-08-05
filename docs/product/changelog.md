@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (fail-closed: raw env var presence in `os.environ`, including an empty string,
   is the FSM trigger). Previously a stale harness supplying both vars, or an
   invalid SPEC_PATH, left FSM mode disabled and enabled git writes during a
-  work-loop session. **Requires agentbundle >= 0.28.2** — updating the `core`
+  work-loop session. **Requires agentbundle >= 0.29.1** — updating the `core`
   pack alone does not deliver this fix.
 
 - **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
@@ -42,9 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 
 - The workspace-mcp FSM git guard (blocking `git_branch`/`git_commit`/`git_push`
-  in FSM mode) is delivered by **agentbundle 0.28.2**, not by this pack update.
+  in FSM mode) is delivered by **agentbundle 0.29.1**, not by this pack update.
   This pack's server wrapper imports whichever `agentbundle.workspace_mcp` is
-  installed — update agentbundle to >= 0.28.2 to get the fix.
+  installed — update agentbundle to >= 0.29.1 to get the fix.
 
 ## [experience-design][2.0.0] — 2026-08-02
 
