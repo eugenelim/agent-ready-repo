@@ -76,7 +76,7 @@ The `workspace_status()` response:
 }
 ```
 
-Pick an item from `ready[]` or `shaping[]`. Close the discovery session.
+Pick an item from `ready[]` or `shaping[]`. Items in `shaping[]` with a non-empty `unmet_needs` array are blocked — skip them. Close the discovery session.
 
 ## Step 3 — Dispatch the item
 
@@ -158,7 +158,7 @@ Key fields in the response:
 | `gate` | string \| null | Gate name — e.g. `SPEC-HUMAN-GATE`, `REVIEW-HUMAN-GATE` |
 | `gate_question` | string \| null | The specific question the work-loop is asking |
 | `ready` | array | Build items (type: work) dispatchable now |
-| `shaping` | array | Non-FSM items (research, design, shape, strategy) dispatchable now |
+| `shaping` | array | Non-FSM items (research, design, shape, strategy); entries with `unmet_needs` are blocked |
 | `active` | array | Items currently in progress |
 | `blocked` | array | Items with unmet dependencies |
 

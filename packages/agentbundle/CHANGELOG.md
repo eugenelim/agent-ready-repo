@@ -8,6 +8,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.28.2]
+
 ### Fixed
 
 - **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
