@@ -2,9 +2,6 @@
 
 Living design reference for the core pack. Records the philosophy, architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** [ADR-0014](../../docs/adr/0014-rigor-scales-with-risk-work-loop-modes.md) (mode selection), [ADR-0005](../../docs/adr/0005-supervisor-topological-default-and-write-gate.md) (supervisor write-gate), [ADR-0006](../../docs/adr/0006-doc-drift-construction-and-judgment.md) (doc drift)  
-**Related RFC:** [RFC-0025](../../docs/rfc/0025-work-loop-light-mode.md) (light mode)
-
 ---
 
 ## TL;DR
@@ -102,7 +99,7 @@ No trigger fires → light mode.
 
 ### Why risk, not file count
 
-The old rule (">1 file → full mode") was risk-blind. A three-file config tweak to a familiar system paid compliance-grade cost; a one-file change to an auth path did not. The risk-trigger set replaces the file-count rule because each trigger maps to a gate the repo already maintains — the trigger set's exhaustiveness argument is that it covers every boundary where the cost of a mistake is meaningfully higher than the cost of the gate. See ADR-0014 for the full rationale and the RFC-0025 experiment data.
+The old rule (">1 file → full mode") was risk-blind. A three-file config tweak to a familiar system paid compliance-grade cost; a one-file change to an auth path did not. The risk-trigger set replaces the file-count rule because each trigger maps to a gate the repo already maintains — the trigger set's exhaustiveness argument is that it covers every boundary where the cost of a mistake is meaningfully higher than the cost of the gate.
 
 ---
 
@@ -352,7 +349,7 @@ Parallel implementer writes are gated on:
 1. Membership in a measured safe category (file-disjoint in the DAG)
 2. A `git merge-tree` file-disjointness check at runtime
 
-Everything else runs serial. See ADR-0005 for the experiment data and the interference taxonomy.
+Everything else runs serial.
 
 ### Parallel readers are always safe
 
@@ -432,7 +429,7 @@ This format makes it possible to resume the loop without rereading the entire se
 
 ### Why risk-based mode selection, not file count (2026-06-05)
 
-The old ">1 file → full mode" rule made a familiar three-file config change pay compliance-grade cost while a single-file auth change went unscrutinized. The risk-trigger set replaces it because each trigger maps to a gate the repo already maintains. The trigger set's exhaustiveness argument is that it covers every boundary where the cost of a mistake materially exceeds the cost of the gate. Cost data (a reported ~$60 session for a single two-hour loop run with reviewer fan-out) confirmed the problem was real, not theoretical. — ADR-0014
+The old ">1 file → full mode" rule made a familiar three-file config change pay compliance-grade cost while a single-file auth change went unscrutinized. The risk-trigger set replaces it because each trigger maps to a gate the repo already maintains. The trigger set's exhaustiveness argument is that it covers every boundary where the cost of a mistake materially exceeds the cost of the gate. Cost data (a reported ~$60 session for a single two-hour loop run with reviewer fan-out) confirmed the problem was real, not theoretical.
 
 **Alternative considered:** keep the file-count rule but tune the threshold (e.g. ">3 files"). Rejected because the threshold problem is unsolvable — any fixed count is wrong for some class of change, and the count doesn't encode the actual risk dimension (familiarity, security boundary, irreversibility).
 
@@ -444,7 +441,7 @@ Cold review was a deliberate early choice, not a technical limitation. An agent 
 
 ### Why sequential topological order is the supervisor default (2026-05-29)
 
-The parallel write collision rate in agentic PR data (AgenticFlict: 27.67% textual conflict rate across 142K+ agentic PRs — and that's the loud rate; silent semantic conflicts are additional) made automatic parallel writes untenable as a default. Sequential topological order eliminates the implicit-decision class entirely. Opt-in parallel writes require a file-disjointness gate because the textual conflict rate understates the semantic rate by a measurable factor. — ADR-0005
+The parallel write collision rate in agentic PR data (AgenticFlict: 27.67% textual conflict rate across 142K+ agentic PRs — and that's the loud rate; silent semantic conflicts are additional) made automatic parallel writes untenable as a default. Sequential topological order eliminates the implicit-decision class entirely. Opt-in parallel writes require a file-disjointness gate because the textual conflict rate understates the semantic rate by a measurable factor.
 
 **Alternative considered:** automatic parallel by default, with post-merge conflict detection. Rejected because silent semantic conflicts (two tasks making incompatible implicit decisions that pass textual merge) are undetectable without running the full integration test suite — and even then the failure mode is a runtime error rather than a merge conflict, which is harder to attribute.
 

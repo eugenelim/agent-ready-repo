@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The resumable assimilation ledger (RFC-0059 D7, ADR-0048).
+"""The resumable assimilation ledger.
 
 Two-part user-scope scratch under `~/.agentbundle/catalogue-curation/`:
 
@@ -12,8 +12,8 @@ sibling git worktree derive the same id and share one ledger. State is keyed on
 stable identity, never commit SHAs.
 
 The run-ledger schema **forbids a free-text reason field** (verdict is an enum;
-no verbatim source content may drift in) — the inbound-confidentiality ceiling
-ADR-0048 also gives the durable marker. Pure-stdlib: `tomllib` reads,
+no verbatim source content may drift in) — that is the inbound-confidentiality
+ceiling. The same scheme governs the durable per-source marker. Pure-stdlib: `tomllib` reads,
 append-serialization writes (append-only fits TOML array-of-tables).
 
 `base_dir` and `salt` are injectable for tests; production defaults to

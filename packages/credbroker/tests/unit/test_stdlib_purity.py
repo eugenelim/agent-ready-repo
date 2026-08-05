@@ -1,4 +1,4 @@
-"""Stdlib-core purity gate (spec tasks T2/T3; AC4).
+"""Stdlib-core purity gate (tasks T2/T3).
 
 The base ``credbroker`` import graph must reach **no** third-party module —
 in particular not ``cryptography`` / ``argon2`` (the ``[crypto]`` extra's
@@ -57,7 +57,7 @@ class StdlibPuritySubprocessTests(unittest.TestCase):
     """Base ``credbroker`` import is stdlib-only (+ credbroker's own modules)."""
 
     def test_no_crypto_in_base_import(self) -> None:
-        """AC4 core: the base import never reaches cryptography/argon2/cffi."""
+        """Core: the base import never reaches cryptography/argon2/cffi."""
         delta = set(_import_delta()["delta"])
         forbidden_roots = {"cryptography", "argon2", "argon2_cffi", "cffi", "_cffi_backend"}
         leaked = {m for m in delta if m.split(".", 1)[0] in forbidden_roots}

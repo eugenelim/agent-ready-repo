@@ -2,7 +2,7 @@
 ``test_credentials_shim_load_credentials.py`` (spec task T2).
 
 The resolver's contract — first-hit-wins per key across Tier 1 (env) /
-Tier 2 (keyring) / Tier 3 (dotfile), per RFC-0006 § 2 + RFC-0013 § 4 — is
+Tier 2 (keyring) / Tier 3 (dotfile), per the tier contract — is
 pinned here against the installed ``credbroker`` package (the in-process shape
 every ``auth: creds`` consumer now uses). It asserts the same invariants the
 shim test did:
@@ -85,7 +85,7 @@ class Tier1Tests(_ResolverBase):
 
 class MissingKeyTests(_ResolverBase):
     """Missing required key raises CredentialsMissingError with the
-    same shape RFC-0006 § AC3 froze."""
+    same shape the contract contract froze."""
 
     def test_missing_raises(self) -> None:
         with self.assertRaises(credbroker.CredentialsMissingError) as ctx:

@@ -10,7 +10,7 @@ keywords = ["customer-journey", "service-blueprint", "interaction-design", "desi
 
 # Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
 # travels with every shipped adapter that projects the skill primitive.
-# Contract v0.12 matches `desk-research` (RFC-0033 OQ#1 default): the level at
+# Contract v0.12 matches `desk-research`: the level at
 # which Copilot's skill primitive projects as a first-class Agent Skill.
 [pack.adapter-contract]
 version = "0.12"
@@ -20,12 +20,12 @@ default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # Experience method is portable, not project-specific — user-scope by
 # default, like `architect`/`desk-research`. Pure-markdown skills + skill
-# assets/, no `seeds/` (RFC-0004 Rail A), so it projects to every shipped
-# adapter that supports the skill primitive. Declared order is load-bearing
-# (RFC-0011): append-only; `kiro-ide` precedes `kiro-cli`.
+# assets/, no `seeds/` (Rail A), so it projects to every shipped
+# adapter that supports the skill primitive. Declared order is load-bearing:
+# append-only; `kiro-ide` precedes `kiro-cli`.
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
-# consolidated-pack-layout (RFC-0040 / ADR-0030): the artifact-writing skills
+# Consolidated pack layout: the artifact-writing skills
 # resolve their durable output path via the adopter-owned `[design]` section of
 # agentbundle-layout.toml (repo-root first, user-profile second). `output_dir` is
 # a base; each skill writes file-per-slug under a subdirectory of it (journeys/,
@@ -36,7 +36,7 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 [pack.layout.repo]
 output_dir = "docs/design"
 
-# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
 # measured by tools/run-pack-evals.py. The judgment/authoring skills (all
 # except experience-status) also ship a Tier-4 LLM-judge rubric
@@ -46,11 +46,11 @@ output_dir = "docs/design"
 # rubric (there is no file presence to key on). The `experience-reviewer`
 # agent is a role-match-dispatched primitive, not a Skill-router-activated
 # skill, so it is not listed here (its eval surface is its review-list output
-# contract + manual-QA dispatch; RFC-0050 § Errata).
+# contract + manual-QA dispatch).
 [pack.evals]
 skills = ["creative-direction", "content-design", "copy-direction", "tone-of-voice", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "experience-status", "design-principles", "analytical-design", "conversion-design", "documentation-design", "informational-design", "marketplace-design", "workspace-design"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

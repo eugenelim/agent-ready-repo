@@ -8,19 +8,19 @@ license = "Apache-2.0 OR MIT"
 categories = ["devops", "site-reliability-engineering"]
 keywords = ["release", "deploy", "sre", "ephemeral-environments", "canary"]
 
-# RFC-0004 contract metadata. release-loop is an agent definition + a loop skill
+# Contract metadata. release-loop is an agent definition + a loop skill
 # (the same shape as product-engineering's discovery-loop), so it tracks the same
 # contract revision.
 [pack.adapter-contract]
 version = "0.13"
 
-# RFC-0049 OQ1 + release-loop spec AC2: repo-scope is architecturally load-bearing.
+# Repo-scope is architecturally load-bearing.
 # release-engineering installs into the *build repo* — the same repo work-loop
 # (the inner loop) ran in, which holds the deploy-ready component and therefore has
 # `core` repo-installed. That co-location is what makes reusing core's repo-scope
 # quality-engineer / security-reviewer / operational-safety sound (the deliberate
 # scope-inverse of the user-scope discovery-lead, which ships its own reviewers
-# because it runs upstream in non-repo workspaces — RFC-0048 DRIFT-E).
+# because it runs upstream in non-repo workspaces).
 [pack.install]
 default-scope = "repo"
 allowed-scopes = ["repo"]
@@ -29,14 +29,14 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # Hard-depends on core (operational-safety reference modules + the quality-engineer
 # and security-reviewer agents). The discovery sidecar schema is consumed *by
 # convention* (the definition is carried in product-engineering's discovery-loop
-# skill, not core; RFC-0048 § Amendments 2026-06-26), so it is deliberately NOT a
+# skill, not core), so it is deliberately NOT a
 # manifest dependency on product-engineering.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
 version = "^2.0"
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links + maintainer.
+# Enriched pack manifest: catalogue-facing links + maintainer.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"

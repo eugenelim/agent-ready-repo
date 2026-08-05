@@ -124,7 +124,7 @@ KNOWN_SCHEMA_VERSIONS = frozenset({"0.1"})
 # The ONLY home for literal artifact-path segments. Every base location is
 # resolved through `resolve_base()` (config → these defaults → discover by
 # marker); no discovery logic elsewhere may name a path literal (the no-
-# hardcoded-path NFR, AC1/AC2; the self-test greps this block's exclusivity).
+# hardcoded-path NFR; the self-test greps this block's exclusivity).
 # Each layer: realization, default base (path segments under the root), and the
 # layout-config key (`agentbundle-layout.toml`, tier 1).
 #
@@ -309,7 +309,7 @@ class Graph:
         self.dangling: list[str] = []             # malformed / missing-local edges
         # Nodes whose up- / down-edge is *dangling* (asserted but broken). The
         # break is reported once, as a dangling violation — such a node is NOT
-        # also an orphan in that direction (AC9: one break, never two classes).
+        # also an orphan in that direction (one break, never two classes).
         self.dangling_out: set[str] = set()
         self.dangling_in: set[str] = set()
         self.notes: list[str] = []                # informational degradations
@@ -385,7 +385,7 @@ def recognize_specs(base: Path, root: Path, g: Graph) -> dict[str, Path]:
 def recognize_components(base: Path, root: Path, g: Graph) -> None:
     """File-backed `component` nodes: an immediate sub-directory of the
     components base carrying a `catalog-info.yaml` (the Backstage canonical
-    marker, AC1) is a component, identified by its `kind:namespace/name`. A
+    marker) is a component, identified by its `kind:namespace/name`. A
     sub-directory with no `catalog-info.yaml` is *not yet catalogued* — a
     polyglot `packages/` tree's build-tooling / config dirs are deliberately
     not flagged as chain components."""
@@ -1021,7 +1021,7 @@ def _wire_up(g: Graph, *, consumer: str, candidates: list[str],
              local_ids: set[str], rollup: dict[str, bool]) -> None:
     """Wire a node's producer (up) edge from its candidate up-pointers.
 
-    The two questions the candidates answer are independent (AC9):
+    The two questions the candidates answer are independent:
     - **Is a producer asserted?** (the orphan question) The candidates are
       *alternatives* — the first that resolves (local / satisfied-by-reference /
       unresolvable) wins and gives the consumer an in-edge, so a valid `Brief:`
@@ -1061,7 +1061,7 @@ def _wire(g: Graph, *, origin: str, target: str, local_ids: set[str],
     state. `origin` is a local producer naming a consumer `target` (a spec's
     forward `Component:`). A `dangling` target (missing local-shaped) is recorded
     as a hard violation against `origin` and `origin` is flagged `dangling_out`
-    (so it is not *also* a forward orphan — AC9: one break, one class); a
+    (so it is not *also* a forward orphan — one break, one class); a
     reference endpoint is registered as an external node so the edge has an end
     and `origin` counts as connected."""
     state, pinned, resolved = resolve_endpoint(target, local_ids, rollup)
@@ -1135,7 +1135,7 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
 
     # Root→leaf reachability (sidecar-authoritative mode only). The reported set is
     # additive: stranded nodes minus the presence orphans and dangling-edge sources
-    # already reported, so a single break is one class, never two (AC9). Its own
+    # already reported, so a single break is one class, never two. Its own
     # degradations are notes; it never crashes or fails the whole lint.
     unreachable: list[tuple[str, str, str]] = []
     soft_unresolved: list[tuple[str, str, str]] = []
@@ -1144,7 +1144,7 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
         g.notes.extend(rnotes)
         orphan_ids = {nid for nid, _, _ in orphans}
         dangling_set = set(sidecar_dangling(g))
-        # One break, one class (AC9): a node adjacent to a dangling edge — whether
+        # One break, one class: a node adjacent to a dangling edge — whether
         # the edge's source (its target is missing) or its consumer (its producer
         # is missing) — is already surfaced by that DANGLING violation, so it is not
         # also reported as UNREACHABLE.

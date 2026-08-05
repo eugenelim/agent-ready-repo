@@ -719,7 +719,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
         if wave_index is not None:
             return stop(f"transition {event!r} does not accept --wave-index")
 
-    # AC0a: recover at command start — before any early-exit check.
+    # recover at command start — before any early-exit check.
     # _recover_engine_state_tmp promotes crash-left .tmp → engine-state.json.
     # _recover_pending replays or discards a stale events.pending from a prior crash.
     # Both must run before _read_engine_state so a recovered state is read correctly,
@@ -812,7 +812,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
         "at": now,
     }
 
-    # Outbox pre-flight: reuse repo root resolved at command start (AC0a).
+    # Outbox pre-flight: reuse repo root resolved at command start.
     _repo_root: Path | None = _cmd_transition_repo_root
 
     # Outbox step 1b: write new pending event (graceful).

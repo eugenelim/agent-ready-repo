@@ -14,14 +14,12 @@ version = "0.8"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters. `kiro-ide` is the current name for
-# the Kiro harness (RFC-0022 split; bare `kiro` deprecated). copilot +
-# cursor added by RFC-0013 § Errata (2026-06-12): the full-parity adapters
-# are admitted for credentialed CLIs now that both declare `.agentbundle/`
-# in `allowed-prefixes.user` (the § 4d precondition). Append-only.
+# `kiro-ide` is the current name for the Kiro harness (bare `kiro`
+# deprecated). copilot + cursor are admitted for credentialed CLIs now that both declare
+# `.agentbundle/` in `allowed-prefixes.user`. Append-only.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
-# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# Pack activation evals: the Tier-A activation-eval
 # coverage allowlist (each listed skill ships evals/eval_queries.json, measured
 # by tools/run-pack-evals.py). `msg-to-markdown` is excluded — it ships no
 # evals/ at all (the converters evals.json carry-over gate hard-errors if
@@ -29,7 +27,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 [pack.evals]
 skills = ["markdown-to-docx", "markdown-to-pptx", "markdown-to-xlsx", "markdown-to-html", "file-to-markdown", "mermaid-renderer"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

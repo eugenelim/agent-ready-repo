@@ -5,7 +5,7 @@ optional `[crypto]` extra stores values in an AEAD-encrypted file. This module's
 own top level pulls in `cryptography` and `argon2`, so the resolution core imports
 the vault **module lazily** — only inside the functions that need it, never at the
 top level of `credbroker/__init__.py` or `credbroker/_core.py`. The base import
-graph therefore stays third-party-free (spec AC4). A consumer reaches the vault
+graph therefore stays third-party-free. A consumer reaches the vault
 only through the Tier-3 dispatch path (T5) or the credential-setup write path (T8).
 
 Key hierarchy (authsome's scheme):

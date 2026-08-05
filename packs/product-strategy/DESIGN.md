@@ -2,8 +2,6 @@
 
 Living design reference for the product-strategy pack. Records the philosophy, pillar architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** [ADR-0053](../../docs/adr/0053-product-strategy-pack-scope.md) (scope and discipline boundaries), [ADR-0030](../../docs/adr/0030-consolidated-pack-output-layout-contract.md) (consolidated pack output layout contract), [ADR-0009](../../docs/adr/0009-product-brief-layer.md) (product brief layer)
-
 ---
 
 ## TL;DR
@@ -16,7 +14,7 @@ Living design reference for the product-strategy pack. Records the philosophy, p
 
 Things a reasonable reader might expect this pack to solve. It doesn't, by design:
 
-- **Growth strategy.** AARRR funnels, product-led growth, PMF testing, and cohort retention loops are deferred to a follow-on `growth` pack (RFC-0063 OQ1). Growth is downstream of strategy, not coextensive with it.
+- **Growth strategy.** AARRR funnels, product-led growth, PMF testing, and cohort retention loops are deferred to a follow-on `growth` pack. Growth is downstream of strategy, not coextensive with it.
 - **Primary research production.** This pack consumes desk-research project outputs via `synthesize-stakeholder-research`; it does not produce interview guides, discussion scripts, or survey templates. Research production belongs in the `desk-research` pack.
 - **Per-surface content design.** `define-content-strategy` covers the organizational and governance layer above content (Purpose + Process + Structure + Governance). Per-screen copy intent belongs in the `experience-design` pack's `content-design` skill; per-state string writing belongs in the `product-engineering` pack's `ux-writing` skill.
 - **Analytics and CRO tooling.** Measurement frameworks, A/B testing sequencing, and conversion rate optimization belong downstream of the strategy this pack sets.
@@ -33,7 +31,7 @@ This pack's position upstream of both `product-engineering` and `experience-desi
 
 ### The committed artifact model
 
-Every skill in this pack writes a durable artifact to `docs/product/shaping/`. The artifact path is resolved via the `[strategy]` section of the adopter-owned `agentbundle-layout.toml` — the same consolidated layout contract used across all artifact-writing packs (ADR-0030).
+Every skill in this pack writes a durable artifact to `docs/product/shaping/`. The artifact path is resolved via the `[strategy]` section of the adopter-owned `agentbundle-layout.toml` — the same consolidated layout contract used across all artifact-writing packs.
 
 The committed model is the point: strategy artifacts must outlive sessions. A SWOT that exists only in a chat log cannot be read by `run-okr-cascade` in the next session. A PRFAQ that isn't committed cannot be referenced by the initiative briefs that trace their strategic rationale back to it.
 
@@ -159,6 +157,6 @@ The start-here command is `write-prfaq`, not `run-swot` or `run-pestle-analysis`
 
 ### Why no growth tooling in this pack (from pack inception)
 
-Growth strategy (AARRR, PLG, PMF testing, cohort retention) is a distinct discipline with a distinct audience and distinct tooling. Including it here would expand the scope from "upstream strategy that all initiatives share" to "all strategic and growth work" — a scope boundary that loses its shape. RFC-0063 deferred growth to OQ1 as a follow-on pack.
+Growth strategy (AARRR, PLG, PMF testing, cohort retention) is a distinct discipline with a distinct audience and distinct tooling. Including it here would expand the scope from "upstream strategy that all initiatives share" to "all strategic and growth work" — a scope boundary that loses its shape. Growth is deferred to a follow-on pack.
 
 **Alternative considered:** add AARRR as a Pillar 4 skill. Rejected because AARRR is a growth measurement framework, not a market analysis or direction-setting framework. The three pillars of this pack produce pre-engineering artifacts that survive the strategy horizon; AARRR produces metrics that live in the measurement layer, which is post-engineering.

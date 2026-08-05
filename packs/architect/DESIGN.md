@@ -2,8 +2,6 @@
 
 Living design reference for the architect pack. Records the philosophy, architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** [ADR-0010](../../docs/adr/0010-reference-architecture-foundation.md) (reference architecture foundation), [ADR-0030](../../docs/adr/0030-consolidated-pack-output-layout-contract.md) (consolidated pack output layout), [ADR-0035](../../docs/adr/0035-architect-design-phase-grounded-in-platform-reality-dual-consumed-serverless-lens-and-contract-grounding.md) (architect-design grounded in platform reality)
-
 ---
 
 ## TL;DR
@@ -16,7 +14,7 @@ The architect pack converts architecture conversations into grounded, independen
 
 Things a reasonable reader might expect this pack to provide. It doesn't, by design:
 
-- **More subagents.** The pack ships exactly one subagent — `design-reviewer`, the forked-context review lens (RFC-0032). Design authoring and diagramming stay skills; only the review lens earns an isolated context, mirroring the code side's authoring-skill + reviewer-agent split. No further agents without an RFC.
+- **More subagents.** The pack ships exactly one subagent — `design-reviewer`, the forked-context review lens. Design authoring and diagramming stay skills; only the review lens earns an isolated context, mirroring the code side's authoring-skill + reviewer-agent split. No further agents without an RFC.
 - **Workspace-type profiles or configuration files.** No `.architectrc`, no workspace-type detection, no install-time profiling. The skills work on first invocation in any workspace with zero setup.
 - **Integration or publishing skills.** Confluence export, Figma integration, Structurizr rendering — a separate, later pack.
 - **Enterprise architecture platform skills.** ArchiMate, TOGAF, Wardley Mapping, graph-extraction, EA repository tooling — the personal architecture seat, not the EA platform layer.
@@ -66,13 +64,13 @@ Skipping Stage 0 ("just write the proposal section") collapses context, non-goal
 
 `reference.md` is the repo's normative grounding artifact — the golden-path file describing the stack, chosen patterns, and architectural constraints for a codebase. Before shaping a concept, `architect-design` checks what architecture context is reachable: an in-repo `reference.md`, an enterprise knowledge surface, or nothing. It states which surface it found in the concept; the absence of a surface is itself a visible signal.
 
-If no `reference.md` exists, `architect-design` offers to create one. A design grounded against a known stack produces far tighter proposals than design against an implicit assumption of what the stack probably is. See ADR-0010.
+If no `reference.md` exists, `architect-design` offers to create one. A design grounded against a known stack produces far tighter proposals than design against an implicit assumption of what the stack probably is.
 
 ### Platform contract grounding
 
 For every managed service on a critical path, `architect-design` grounds its binding contract — non-configurable limits, scaling floors, cold-start behaviour, network requirements — in an authoritative source before including it in the concept or doc. It carries source and confidence on each load-bearing figure.
 
-This discipline was added after two field builds independently produced structurally fatal designs grounded in model memory rather than the service's actual contract (ADR-0035). The discipline is scoped to load-bearing critical-path claims, not every service mention. A claim the agent cannot ground is flagged, not asserted.
+This discipline was added after two field builds independently produced structurally fatal designs grounded in model memory rather than the service's actual contract. The discipline is scoped to load-bearing critical-path claims, not every service mention. A claim the agent cannot ground is flagged, not asserted.
 
 ---
 
@@ -134,7 +132,7 @@ Findings are led by severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪
 
 Output artifacts resolve through the `[architecture]` section of an adopter-owned `agentbundle-layout.toml`. Resolution order: (1) repo-root `./agentbundle-layout.toml` `[architecture] output_dir`; (2) user-profile `~/.agentbundle/agentbundle-layout.toml` `[architecture] output_dir`; (3) two-branch elicitation when neither resolves (repo branch or personal/vault branch — never a silent default).
 
-Each design effort gets its own per-effort folder: `<output_dir>/<topic-slug>/`. The concept, design doc, and diagrams for a single effort live inside that folder together. ADR-0030 records the pack output layout contract.
+Each design effort gets its own per-effort folder: `<output_dir>/<topic-slug>/`. The concept, design doc, and diagrams for a single effort live inside that folder together. The pack output layout contract governs this shape.
 
 Saving is always an offer, never automatic. The skill resolves the path, surfaces the full absolute path to the user, and writes only on confirmation.
 
@@ -156,7 +154,7 @@ Architecture design docs produced by `architect-design` become the `reference.md
 
 1. **`design-reviewer` is read-only.** It flags, never rewrites. Any suggestion to have the reviewer apply its own findings is out of scope.
 
-2. **No platform contract from model memory.** For every load-bearing managed-service claim on a critical path, the skill must cite a grounded source. A claim the agent cannot ground is flagged as lower-confidence, never asserted as fact. See ADR-0035.
+2. **No platform contract from model memory.** For every load-bearing managed-service claim on a critical path, the skill must cite a grounded source. A claim the agent cannot ground is flagged as lower-confidence, never asserted as fact.
 
 3. **Stage 0 is mandatory before Stage 1.** A proposal-only output (no problem statement, no alternatives) is advocacy, not a design doc. The skill pushes back; it does not produce advocacy on request.
 
@@ -192,8 +190,8 @@ Architecture method is the same across repos; only the artifacts differ. Install
 
 **Alternative considered:** repo-scope to colocate the skill definitions with the artifacts they produce. Rejected because it creates installation friction for engineers working across multiple repos and doesn't improve artifact colocation.
 
-### Why platform contract grounding is scoped to load-bearing critical-path claims (ADR-0035, 2026-06-24)
+### Why platform contract grounding is scoped to load-bearing critical-path claims
 
-Checking every managed service mention against an authoritative source would make design sessions prohibitively slow. The ADR-0035 field report showed that both structurally fatal design misses were on the critical path and would have been caught by a single grounding check. The scoping rule (load-bearing + critical path) is the minimum that catches both failure classes without imposing a full audit on every service in the diagram.
+Checking every managed service mention against an authoritative source would make design sessions prohibitively slow. Both structurally fatal design misses observed in the field were on the critical path and would have been caught by a single grounding check. The scoping rule (load-bearing + critical path) is the minimum that catches both failure classes without imposing a full audit on every service in the diagram.
 
 **Alternative considered:** require grounding for every managed service mentioned in the design, not just critical-path ones. Rejected because it imposes a research burden that would make `architect-design` unusable for quick back-of-envelope designs and produces lower-quality grounding by spreading attention across many services rather than focusing on the critical path.

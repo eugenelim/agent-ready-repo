@@ -1,4 +1,4 @@
-"""Tests for text_crosscheck.py — the Tier-1 hallucination guard (AC6).
+"""Tests for text_crosscheck.py — the Tier-1 hallucination guard.
 
 Pure comparator; run with `python -m pytest` from this directory.
 """
@@ -29,7 +29,7 @@ def test_empty_text_layer_is_a_noop():
 
 
 def test_whole_document_concatenation_not_spuriously_flagged():
-    """AC6 granularity: a page-by-page vision read, concatenated whole-document,
+    """Granularity: a page-by-page vision read, concatenated whole-document,
     is compared against the whole-document layer — high overlap, no false flag."""
     pages = ["page one alpha beta", "page two gamma delta", "page three epsilon"]
     vision = "\n".join(pages)                       # concatenated, as the caller does

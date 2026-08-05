@@ -7,7 +7,7 @@ description: "Orient to the current design thread at a glance — reads design a
 
 Cold-start orient for a sustained experience-design thread. Run this when you return to design work and want to know what artifacts exist, what's missing from the minimal viable thread (journey map → screen flow → per-screen briefs), and which skill to run next.
 
-**Read-only** by contract (ADR-0054): it never writes files, never elicits `[design] output_dir` (stops at "not configured"), and never advances state.
+**Read-only** by contract: it never writes files, never elicits `[design] output_dir` (stops at "not configured"), and never advances state.
 
 ## Output rendering
 

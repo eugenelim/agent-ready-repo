@@ -1,4 +1,4 @@
-"""Vault master-secret sourcing + Tier-3 vault dispatch (spec task T5; AC6, AC5/AC7).
+"""Vault master-secret sourcing + Tier-3 vault dispatch (task T5).
 
 Two layers:
 - Sourcing precedence (keyring -> env -> file, env before file) is stdlib and

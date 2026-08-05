@@ -118,7 +118,7 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
 
 - Write under this repo's `packages/agentbundle/**` or `packs/credential-brokers/**`
   — those trees change only through a separate, human-authored RFC, never through
-  this skill (RFC-0059 D6). This refusal is scoped to *this* repo's engine tree.
+  this skill. This refusal is scoped to *this* repo's engine tree.
 - Land ingested content without the raw-body review (Phase 1) or, for code/hooks,
   the explicit confirm.
 - Fetch a URL over a non-allowlisted scheme or reach a private/metadata address.

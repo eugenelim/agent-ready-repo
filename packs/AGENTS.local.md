@@ -39,8 +39,36 @@ Never reference `tools/lint-*`, `make build-self`, `docs/specs/`, or `.github/wo
 shipped content — those paths don't exist in an adopter's repo.
 
 Adding, removing, or renaming a `python -m agentbundle` subcommand is an adopter-surface change with
-a release implication — surface it before building. Governance-citation rules for `.apm/**`:
+a release implication — surface it before building. Governance-citation rules:
 [`AGENTS.md § Shipped pack content`](AGENTS.md#shipped-pack-content-carries-no-internal-governance-citations).
+
+## No internal-governance markers in shipped content
+
+Applies to **every** file under `packs/`, not just `.apm/**`: `pack.toml` comments ship verbatim,
+and `seeds/**` is written into the adopter's own repo. Before committing:
+
+```bash
+# --exclude: this file and AGENTS.md quote the banned forms as examples.
+grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
+  packs/ --exclude='AGENTS*.md'
+```
+
+**Banned** — an adopter has no `docs/rfc/`, `docs/adr/`, or spec of ours, so these read as broken
+pointers: `RFC-0NNN`, `ADR-0NNN`, our spec ACs (`AC7`, `AC10(g)`), literal `docs/specs/<our-slug>`
+paths, and relative links into `../../docs/`. **Rewrite, don't delete** — state the rule the citation
+stood for ("the cost cap", "the courier-snapshot pattern"), so the knowledge survives without the pointer.
+
+**Allowed, don't strip:**
+
+- **IETF RFCs** — `RFC 3339`, `RFC 9457`, `RFC-1918`, `RFC 9106`, `RFC 3986`. Ours are zero-padded
+  four digits; IETF numbers never start with `0`. That is the whole discriminator.
+- **Illustrative examples that teach a skill** — the sample `new-rfc` output in
+  `governance-extras/README.md` (`RFC-0043: Trunk-based development`), `core/JOURNEY.md`'s
+  `docs/specs/data-export/`, `AC3` in a TDD-stub tutorial, eval-query fixtures. These describe the
+  *adopter's* artifacts. Note the same ordinal can be ours in one file and illustrative in another —
+  judge by what it points at, never by the number.
+- **Generic placeholders** — `docs/specs/<feature>`, `docs/specs/<slug>`, and the bare words RFC /
+  ADR / spec / acceptance criteria.
 
 ## Self-hosting drift — source vs. projection
 
@@ -53,6 +81,14 @@ Editing projected files directly trips `make build-check`. Workflow: [`AGENTS.md
 | `docs/CONVENTIONS.md` | `core/seeds/docs/CONVENTIONS.md` |
 | All adapter skill projections | `<pack>/.apm/skills/<name>/**` |
 | All adapter agent/command/hook projections | `<pack>/.apm/{agents,commands,hooks}/...` |
+| `packages/agentbundle/agentbundle/_data/catalogue-scaffold/packs/AGENTS.md` | `packs/AGENTS.md` |
+
+**The scaffold row runs the other way and `build-check` does not cover it.** `packs/AGENTS.md`,
+`packs/README.md`, `packs/_example/**`, `profiles/**`, and two `guides/_shared/reference/` pages are
+sources copied *into* `_data/catalogue-scaffold/` by `tools/catalogue/sync_authoring_scaffold.py`.
+After editing any of them run `python3 tools/catalogue/sync_authoring_scaffold.py --write` — the drift
+gate lives only in the agentbundle suite (`test_scaffold_projection.py`), which CI runs from
+`packages/agentbundle` as `pytest tests/ agentbundle/build/tests/`. `make build-check` passes without it.
 
 **Manual (edit directly):** `AGENTS.md`, `CLAUDE.md` (adopter-owned; `build-self` won't regenerate),
 `docs/CHARTER.md`, `docs/architecture/overview.md`, `docs/specs/README.md`,

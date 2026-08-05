@@ -143,6 +143,6 @@ Stubs in `plan.md` tasks must be `raise NotImplementedError  # STUB: ACn` — no
 
 ## Shipped pack content carries no internal-governance citations
 
-When authoring anything under `.apm/**`, never cite this catalogue's own governance:
-RFC numbers, ADR numbers, spec/plan citations, or internal doc paths. Keep the rule; drop the
-citation. See `packs/AGENTS.local.md` for the full enforcement detail.
+Anywhere under `packs/` — `.apm/**`, `pack.toml`, `README`/`JOURNEY`/`DESIGN`, `seeds/**` —
+never cite this catalogue's own governance: `RFC-0NNN`, `ADR-0NNN`, spec/plan or AC citations,
+internal doc paths. Keep the rule, drop the citation. Detail: `packs/AGENTS.local.md`.

@@ -1,5 +1,5 @@
 """Integration test — the assimilate-primitive ingest guardrails composed
-end-to-end (RFC-0059 spec, assimilate-primitive ACs + ingest security).
+end-to-end (assimilate-primitive acceptance criteria + ingest security).
 
 The skill itself is agent-driven prose; this exercises the *mechanical* pipeline
 it orchestrates — validate source (SSRF) → land body through the write-jail,

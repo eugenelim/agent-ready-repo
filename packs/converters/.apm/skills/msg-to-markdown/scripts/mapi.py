@@ -6,11 +6,10 @@ mapi.py — a bounded, first-party MAPI-property reader for Outlook `.msg` files
 decodes the `__substg1.0_<id><type>` property streams itself. It replaces the
 Python-2-broken `msg-parser` (whose `DataModel.PtypInteger32` crashes on any
 integer property under Python 3) and the GPL `extract-msg` — the reader choice
-recorded in ADR-0046.
+recorded in the reader decision.
 
 Because the parsing is now first-party code over **untrusted** input, this
-module owns the resource + robustness guards a black-box library would (spec
-AC9/AC10):
+module owns the resource + robustness guards a black-box library would:
 
   * **Per-stream byte cap**, checked against the CFBF-declared size *before* the
     stream is materialized, and re-checked on read — the declared size is not
@@ -37,7 +36,7 @@ import struct
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-# --- Skill-owned resource ceilings (AC10) -----------------------------------
+# --- Skill-owned resource ceilings ------------------------------------------
 
 MAX_STREAM_BYTES = 64 * 1024 * 1024          # per single MAPI property stream
 MAX_TOTAL_OUTPUT = 256 * 1024 * 1024         # cumulative across the whole walk
@@ -80,11 +79,11 @@ EMBEDDED_STORAGE = "__substg1.0_3701000D"    # PtypObject holding a nested messa
 
 
 class MsgResourceError(ValueError):
-    """An input tripped a skill-owned resource ceiling (AC10)."""
+    """An input tripped a skill-owned resource ceiling."""
 
 
 class MsgParseError(ValueError):
-    """A malformed/unreadable `.msg` — fails soft to requires-review (AC9)."""
+    """A malformed/unreadable `.msg` — fails soft to requires-review."""
 
 
 # --- Internal email model ---------------------------------------------------
@@ -165,7 +164,7 @@ def _decode_time(data: bytes) -> str | None:
     try:
         dt = datetime(1601, 1, 1, tzinfo=UTC) + timedelta(microseconds=val / 10)
     except (OverflowError, OSError, ValueError):
-        return None                      # garbage FILETIME → fail soft (AC9)
+        return None                      # garbage FILETIME → fail soft
     return dt.isoformat(timespec="seconds")
 
 
@@ -344,7 +343,7 @@ class _Reader:
                 parent.requires_review = True
                 return
             counters["embedded"] += 1
-            # Recurse with the SAME budget (threaded across the whole walk, AC10).
+            # Recurse with the SAME budget (threaded across the whole walk).
             sub = self.parse(prefix + [EMBEDDED_STORAGE], depth + 1, counters)
             parent.embedded_subjects.append(sub.subject or "(no subject)")
             parent.notes.extend(sub.notes)
@@ -389,7 +388,7 @@ class RawAttachment:
 def read_attachments(path) -> list[RawAttachment]:
     """Read top-level attachments' stored filename + bytes for the confined
     extraction sub-command. The filename is returned **unsanitised** — the caller
-    (convert.py) is responsible for basename-reduction + confinement (AC6). Bytes
+    (convert.py) is responsible for basename-reduction + confinement. Bytes
     are bounded by the same per-stream cap and cumulative budget."""
     import olefile
 
@@ -437,14 +436,14 @@ def read_msg(path) -> EmailModel:
         raise MsgParseError("not an OLE2 compound file (.msg)")
     try:
         ole = olefile.OleFileIO(str(path))
-    except Exception as exc:  # malformed CFBF — fail soft (AC9)
+    except Exception as exc:  # malformed CFBF — fail soft
         raise MsgParseError(f"could not open OLE2 container: {exc}") from exc
     try:
         reader = _Reader(ole, _Budget())
         return reader.parse([], depth=0, counters={"embedded": 0})
     except MsgResourceError:
         raise
-    except Exception as exc:  # malformed MAPI/CFBF internals — fail soft (AC9)
+    except Exception as exc:  # malformed MAPI/CFBF internals — fail soft
         raise MsgParseError(f"malformed .msg structure: {exc}") from exc
     finally:
         ole.close()

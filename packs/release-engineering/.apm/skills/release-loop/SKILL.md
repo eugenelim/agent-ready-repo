@@ -315,7 +315,7 @@ shape mirrors `discovery-loop`'s contract, extended for the deploy boundary):
   (OWASP LLM-01).
 - **(e) Auto-rollback circuit-breaker.** A rollback storm or non-settling canary
   loop **halts promotion** after **N consecutive promote↔rollback oscillations** —
-  an **attempt threshold independent of, and additional to, the AC8 cost cap**, so
+  an **attempt threshold independent of, and additional to, the cost cap**, so
   a flapping canary is bounded by **attempts** even when it stays under budget
   (the cost cap alone would let a cheap flap churn). Oscillations also count
   against the cost budget.
@@ -489,7 +489,7 @@ to match the service's defined reliability objective.
   human `approve` — this is a consent gate (control (a)).
 - **HALT** — oscillation circuit-breaker: **N ≥ 3 consecutive promote↔rollback cycles**.
   Halt promotion entirely; write a stall record to the decision log; surface to human;
-  count against the cost cap (AC10(e)). A cheap flapping canary that stays under budget
+  count against the cost cap. A cheap flapping canary that stays under budget
   is still bounded by attempt count.
 
 ## Feature flag lifecycle
@@ -573,8 +573,8 @@ deletions, DNS changes, certificate renewals, or data modifications is itself a
 ## Artifact provenance verification
 
 Before the outer loop deploys, it verifies the G4 artifact has not been substituted or
-tampered with between G4 commit time and deploy time. This fulfills AC7's "detectable"
-claim. A failed verification is a supply-chain integrity failure — it is a
+tampered with between G4 commit time and deploy time. This is what makes artifact
+substitution detectable. A failed verification is a supply-chain integrity failure — it is a
 **consent gate crossing**, not a warning.
 
 **Three-step verification (run before `infra-apply` phase):**
@@ -661,8 +661,8 @@ own G4 package — use the artifacts and steps below.
 
 The fleet manifest is the cross-component release coordination artifact. It lives in the
 e2e host repo, is committed by a bot PR from each component repo's CI, and is read-only
-from merge time onward. It is the "courier snapshot" from the courier snapshot pattern
-(ADR-0022 applied to the release loop): the per-component G4 package is the authority;
+from merge time onward. It is the "courier snapshot" from the courier snapshot pattern applied to the
+release loop: the per-component G4 package is the authority;
 the fleet manifest carries versioned references to them and does not fork component G4
 packages.
 
@@ -711,7 +711,7 @@ unknown fields are ignored; adopters may extend with additional fields.
 **Must NOT contain:**
 - Component application source code (any component source).
 - Per-component unit or integration tests (those belong in the component repo's inner loop).
-- Credentials or secrets in source (all secrets broker-mediated per AC10(g)).
+- Credentials or secrets in source (all secrets are broker-mediated).
 
 **Must install:** `core` + `release-engineering` at repo scope — the same precondition as
 any component repo that runs the outer loop.
@@ -737,7 +737,7 @@ Before `infra-apply`, run a **collect phase** for each component in the fleet ma
 Collect phase (before infra-apply):
   for each component in fleet_manifest.components:
     1. Fetch the component's release-handoff.yaml from g4_package_ref.
-    2. Run RFC-0072 D6 provenance verification against the component's image_ref.
+    2. Run provenance verification against the component's image_ref.
     3. Confirm the image_ref in the fleet manifest matches the image_ref in the
        component's G4 package (fleet manifest courier snapshot must be consistent
        with current registry state).
@@ -759,11 +759,11 @@ release continuously.
 The trigger implementation is adopter toolchain — the doctrine does not prescribe
 `repository_dispatch` or any specific mechanism.
 
-### Distinction from ADR-0022
+### Distinction from meta-repo feature coordination
 
-ADR-0022 covers the **product-engineering meta-repo** — feature coordination across repos,
-per-component brief slicing, and shared contract versioning (the upstream discovery/build
-layer). This RFC-0075 mechanism covers the **release-loop's cross-repo coordination** —
+Meta-repo coordination covers the **product-engineering meta-repo** — feature coordination
+across repos, per-component brief slicing, and shared contract versioning (the upstream
+discovery/build layer). This mechanism covers the **release-loop's cross-repo coordination** —
 fleet assembly, version validation, and deploy sequencing after G4 packages are produced.
 The two are parallel, not redundant. Both apply the "reference-by-version + read-only
 courier snapshot" pattern to different layers.

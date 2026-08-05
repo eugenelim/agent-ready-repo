@@ -1,4 +1,4 @@
-"""SSO web-session cookie resolution (RFC-0035).
+"""SSO web-session cookie resolution.
 
 A second consumer-resolution family alongside the token ``creds`` family. Where
 ``load_credentials`` resolves a token, ``load_sso_cookies`` resolves a *captured
@@ -7,7 +7,7 @@ unchanged ``sso-broker.py`` engine.
 
 Two contracts shape this module:
 
-* **Path-not-value handoff (RFC-0013 § 1).** The resolver returns the jar's
+* **Path-not-value handoff.** The resolver returns the jar's
   *path*, never its bytes. No cookie value crosses ``argv`` (only the profile
   name does), no cookie value is logged, and the engine writes the jar to its own
   ``0600`` floor — the consumer reads it in-process and is responsible for never
@@ -46,7 +46,7 @@ __all__ = [
 ]
 
 # The engine is installed by the credential-brokers pack at this user-scope path
-# (RFC-0013 § 1; mirrored by ``sso-broker.py``'s own module docstring). Composed
+# (mirrored by ``sso-broker.py``'s own module docstring). Composed
 # from parts so no full literal path string appears, matching the broker's own
 # convention.
 _BROKER_TAIL = (".agentbundle", "bin", "sso-broker.py")
@@ -89,7 +89,7 @@ def load_sso_cookies(profile: str) -> Path:
 
     Subprocess-invokes ``sso-broker.py get-cookies <profile>`` with the parent
     interpreter, inheriting the process environment (corporate proxy / trust-store
-    passthrough, RFC-0013 § 1). Proceeds **only** on exit 0 with a readable jar
+    passthrough). Proceeds **only** on exit 0 with a readable jar
     path; every other outcome fails closed.
 
     :returns: the path to the ``0600`` cookie jar the engine materialised.
@@ -131,10 +131,10 @@ def load_sso_cookies(profile: str) -> Path:
     return jar_path
 
 
-# --- SSO confinement primitives (RFC-0035; spec task T2) ---------------------
+# --- SSO confinement primitives ----------------------------------------------
 #
 # These are the security-control surface the unchanged ``sso-broker.py`` engine
-# does *not* perform and that this RFC adds *above* it: an https-only scheme guard,
+# does *not* perform and that this module adds *above* it: an https-only scheme guard,
 # a root-relative endpoint guard, and the cookie-domain confinement that filters
 # the engine's deliberately over-broad captured jar down to the declared domains.
 # They are pure functions (no I/O), reusable by any platform integration, so the
@@ -142,7 +142,7 @@ def load_sso_cookies(profile: str) -> Path:
 
 
 def validate_https_url(value: str, *, field: str) -> None:
-    """Reject *value* unless its scheme is exactly ``https`` (AC3).
+    """Reject *value* unless its scheme is exactly ``https``.
 
     Applied to ``login_url``, ``success_url_pattern``, and ``base_url`` — the
     cookie jar is a bearer secret, so a plaintext (``http``) or scheme-less
@@ -157,7 +157,7 @@ def validate_https_url(value: str, *, field: str) -> None:
 
 
 def validate_root_relative_endpoint(value: str, *, field: str = "validation_endpoint") -> None:
-    """Reject *value* unless it is a root-relative path (AC3).
+    """Reject *value* unless it is a root-relative path.
 
     Must lead with a single ``/`` and carry no scheme, host, or protocol-relative
     ``//`` prefix — so a validation endpoint can never be redirected off-host.
@@ -171,19 +171,19 @@ def validate_root_relative_endpoint(value: str, *, field: str = "validation_endp
 
 def _normalize_domain(domain: str) -> str:
     """Lower-case and strip a leading dot — the broker stores domains via
-    ``lstrip('.')`` while cookie ``domain`` fields keep a leading dot (AC4)."""
+    ``lstrip('.')`` while cookie ``domain`` fields keep a leading dot."""
     return domain.lstrip(".").lower()
 
 
 def domain_in_cookie_domains(domain: str, cookie_domains: Iterable[str]) -> bool:
-    """Normalized label-boundary suffix match (AC4, AC6).
+    """Normalized label-boundary suffix match.
 
     Both sides are dot-stripped and lower-cased; *domain* is admitted iff it
     equals an allowed domain or is a dot-delimited subdomain of one. The label
     boundary is load-bearing: ``evil-corp.example.com`` is rejected against
     ``corp.example.com`` (no ``.`` before ``corp``), while ``jira.corp.example.com``
     is admitted. This is the single normalization primitive shared by the
-    cookie-jar filter (AC4) and the send-host check (AC6).
+    cookie-jar filter and the send-host check.
     """
     cand = _normalize_domain(domain)
     if not cand:
@@ -200,12 +200,12 @@ def domain_in_cookie_domains(domain: str, cookie_domains: Iterable[str]) -> bool
 def filter_jar_to_domains(
     cookies: list[dict], cookie_domains: Iterable[str]
 ) -> list[dict]:
-    """Reduce an over-broad captured jar to cookies within *cookie_domains* (AC4).
+    """Reduce an over-broad captured jar to cookies within *cookie_domains*.
 
     The engine captures every cookie observed across the SSO/IdP/analytics
     redirect chain; the consumer filters that loaded jar to the declared domains
     at load time, before attaching it. Returns a new list; the caller must never
-    write the result back to the broker path (AC10). A cookie with no ``domain``
+    write the result back to the broker path. A cookie with no ``domain``
     field is dropped (fail closed).
     """
     allowed = list(cookie_domains)
@@ -213,7 +213,7 @@ def filter_jar_to_domains(
 
 
 def require_host_in_cookie_domains(host: str, cookie_domains: Iterable[str]) -> None:
-    """Fail closed unless *host* is within the declared ``cookie_domains`` (AC6).
+    """Fail closed unless *host* is within the declared ``cookie_domains``.
 
     The consumer client's request base host must be a member of the confinement
     set before any cookie-bearing request leaves the process; a mismatch (a

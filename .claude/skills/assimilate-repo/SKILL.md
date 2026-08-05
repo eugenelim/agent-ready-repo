@@ -53,7 +53,7 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
    (`sources/<source-hash>/last-synced.toml`, dated append, exempt from the
    completion purge) classifies each candidate `unchanged` (skip) / `changed` /
    `new`. The **git commit log is the time-of-sync record** — no parallel log.
-   Record the re-sync on the prior source-RFC via RFC-0055's forms: an
+   Record the re-sync on the prior source-RFC using the standard forms: an
    **Amendment** if it's Open; an **Erratum** if Frozen + a genuine correction; a
    **new RFC** (recorded as an Erratum entry naming it on the prior) if Frozen +
    new candidates or reversed verdicts. Detail:
@@ -62,7 +62,7 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
 ## Never do
 
 - Write under this repo's `packages/agentbundle/**` or `packs/credential-brokers/**`
-  (RFC-0059 D6) — those change only through a separate human-authored RFC.
+  — those change only through a separate human-authored RFC.
 - Auto-invoke `propose-catalogue-pack` — always offer with prepared context.
 - Commit the ledger, let it travel in an export, or record verbatim source
   content / rejection prose in it.

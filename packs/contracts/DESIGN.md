@@ -2,9 +2,6 @@
 
 Living design reference for the contracts pack. Records the philosophy, architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing either skill.
 
-**Related ADRs:** [ADR-0008](../../docs/adr/0008-contract-authoring-seam.md) (contract authoring seam), [ADR-0030](../../docs/adr/0030-consolidated-pack-output-layout-contract.md) (consolidated pack output layout)  
-**Related RFCs:** [RFC-0017](../../docs/rfc/0017-pluggable-api-contract-standards.md) (pluggable API contract standards), [RFC-0018](../../docs/rfc/0018-event-asyncapi-authoring-engine.md) (event AsyncAPI authoring engine)
-
 ---
 
 ## TL;DR

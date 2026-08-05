@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""SSRF-guarded source validation for catalogue-curation ingest (RFC-0059,
-spec "URL-source SSRF confinement").
+"""SSRF-guarded source validation for catalogue-curation ingest:
+URL-source SSRF confinement.
 
 A source is a local path or a URL. A URL is fetched only over an allowlisted
 scheme, and never to a private / loopback / link-local / cloud-metadata address

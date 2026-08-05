@@ -40,7 +40,7 @@ Dependencies: none
 ```markdown
 ### T1: Stage 1 — Scaffold
 Mode: goal-based check
-Done when: directory layout matches §10 of RFC-0065; terraform init -backend=false exits 0
+Done when: directory layout matches the module-layout section; terraform init -backend=false exits 0
 Dependencies: T0
 ```
 

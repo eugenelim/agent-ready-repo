@@ -2,8 +2,7 @@
 
 Living design reference for the governance-extras pack. Records the philosophy, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** [ADR-0027](../../docs/adr/0027-adr-format-is-madr-aligned-but-lean.md) (ADR format is MADR-aligned but lean), [ADR-0030](../../docs/adr/0030-consolidated-pack-output-layout-contract.md) (consolidated pack output layout contract)  
-**Related RFCs:** (none — governance-extras provides the RFC mechanism itself)
+This pack provides the RFC mechanism itself, so it has no upstream RFC of its own.
 
 ---
 
@@ -125,7 +124,7 @@ The dependency is version-pinned at `^0.1` — a soft floor that allows `core` t
 
 ---
 
-## 6. MADR-aligned but lean (ADR-0027)
+## 6. MADR-aligned but lean
 
 ### The format decision
 
@@ -141,7 +140,7 @@ The same principle applies to every optional section: include it when a reader o
 
 ### Why lean over full MADR
 
-Full MADR is designed for large teams and high-ceremony environments. Every section is required; the template is comprehensive. For a small team or a solo project, the overhead of maintaining every MADR field on every ADR produces documents that are formally complete but tediously redundant — teams start copying boilerplate rather than writing decisions. The lean variant keeps the load-bearing structure (decision + alternatives + consequences) without the process overhead. See ADR-0027 for the full format decision and the alternatives considered.
+Full MADR is designed for large teams and high-ceremony environments. Every section is required; the template is comprehensive. For a small team or a solo project, the overhead of maintaining every MADR field on every ADR produces documents that are formally complete but tediously redundant — teams start copying boilerplate rather than writing decisions. The lean variant keeps the load-bearing structure (decision + alternatives + consequences) without the process overhead.
 
 ---
 
@@ -177,7 +176,7 @@ The alternative was a `--dry-run` flag the author could pass to see the preview.
 
 **Alternative considered:** `--dry-run` flag as in the current `agentbundle install` flow. Rejected because governance documents go to a shared location immediately: unlike an install preview (which affects only the local repo), an RFC or ADR preview is the last chance to catch a formatting error or a wrong path before the document is part of the team's governance record. The mandatory confirmation is the cheapest possible gate.
 
-### Why MADR-aligned but lean, not full MADR (ADR-0027, from v1)
+### Why MADR-aligned but lean, not full MADR (from v1)
 
 Full MADR requires every section for every ADR, which creates ceremony overhead that disproportionately burdens small teams and solo projects. The lean variant keeps the sections that carry the decision (context, decision, consequences, alternatives) and makes the rest optional with a clear "earn its place" test.
 

@@ -2,7 +2,7 @@
 extraction, the HTML→Markdown reducer, and the .eml/MIME fold-in (incl. the
 cross-path frontmatter-parity with file-to-markdown's flat .eml route).
 
-Covers AC1, AC4, AC5. Unit tests exercise the extractors + reducer; the E2E
+Covers the security criteria. Unit tests exercise the extractors + reducer; the E2E
 tests spawn the documented `python scripts/convert.py <file>` invocation.
 
 Run with `python -m pytest` from this directory.
@@ -46,7 +46,7 @@ def _frontmatter(text: str) -> dict:
     return out
 
 
-# --- AC1: contract shape via the shared builder -----------------------------
+# --- contract shape via the shared builder ----------------------------------
 
 
 def test_msg_frontmatter_carries_unified_contract(tmp_path):
@@ -78,7 +78,7 @@ def test_msg_e2e_documented_invocation(tmp_path):
     assert "# Q3" in out
 
 
-# --- AC4: .msg field extraction (no ML) -------------------------------------
+# --- .msg field extraction (no ML) ------------------------------------------
 
 
 def test_sender_and_recipients_by_type(tmp_path):
@@ -122,7 +122,7 @@ def test_html_body_preferred_over_plain(tmp_path):
 
 
 def test_mapi_property_type_decoding_int_time_string():
-    # The exact types that crashed msg-parser on py3 (AC4/AC9).
+    # The exact types that crashed msg-parser on py3.
     assert mapi._decode_int(b"\x02\x00\x00\x00") == 2
     assert mapi._decode_time(b"\x00" * 8) is None
     assert mapi._decode_str("Héllo".encode("utf-16-le"), "001F") == "Héllo"
@@ -130,13 +130,13 @@ def test_mapi_property_type_decoding_int_time_string():
 
 
 def test_malformed_string_decode_is_non_raising():
-    # Odd-length / truncated UTF-16 must degrade, never throw (AC9).
+    # Odd-length / truncated UTF-16 must degrade, never throw.
     assert isinstance(mapi._decode_str(b"\x41", "001F"), str)
     assert mapi._decode_int(b"\x01") is None
     assert mapi._decode_time(b"\x01\x02") is None
 
 
-# --- AC4: HTML → Markdown reducer (stdlib html.parser, not regex) -----------
+# --- HTML → Markdown reducer (stdlib html.parser, not regex) ----------------
 
 
 def test_html_reducer_covers_headings_emphasis_links_lists_tables_entities():
@@ -159,7 +159,7 @@ def test_html_reducer_drops_script_and_style():
     assert "keep" in md and "color:red" not in md and "alert" not in md
 
 
-# --- AC5: .eml / richer MIME + cross-path frontmatter parity ----------------
+# --- .eml / richer MIME + cross-path frontmatter parity ---------------------
 
 
 def _eml_bytes(subject="Notes", extra_headers="", body="Body here.",
@@ -206,8 +206,7 @@ def test_eml_e2e_content_type(tmp_path):
 def _load_floor_convert():
     """Load file-to-markdown's convert.py under a distinct module name (both
     skills name the module `convert`). Its sibling `import contract`/`import
-    safe_io` resolve to this skill's vendored copies, which are byte-identical
-    (AC2), so the contract builder is the same code."""
+    safe_io` resolve to this skill's vendored copies, which are byte-identical, so the contract builder is the same code."""
     import importlib.util
 
     floor_path = HERE.parent.parent / "file-to-markdown" / "scripts" / "convert.py"
@@ -218,7 +217,7 @@ def _load_floor_convert():
 
 
 def test_cross_path_frontmatter_parity_with_floor_eml_route(tmp_path):
-    """AC5: the same simple .eml through this skill and file-to-markdown's flat
+    """The same simple .eml through this skill and file-to-markdown's flat
     route yields identical contract frontmatter (ingestion-date excepted — it is
     a timestamp)."""
     floor = _load_floor_convert()

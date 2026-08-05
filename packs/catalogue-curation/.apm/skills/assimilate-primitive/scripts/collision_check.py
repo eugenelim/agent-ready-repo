@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Activation-collision check for a migrated skill's description (RFC-0059,
-spec "Target-state craft conformance" — activation + no collision).
+"""Activation-collision check for a migrated skill's description:
+target-state craft conformance — activation + no collision.
 
 When assimilation rewrites a skill's `description`, that description must not
 collide with an existing skill's — two skills fighting for the same natural

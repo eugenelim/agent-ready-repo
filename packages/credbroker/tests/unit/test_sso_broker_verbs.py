@@ -1,5 +1,5 @@
 """T5 (credential-broker-contract): sso-broker.py verb correctness and
-invariants — AC9 / AC9b / AC10 / AC11 / AC12 / AC13 / AC14 / AC17.
+invariants.
 
 These tests load the broker module from
 ``packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`` via
@@ -23,7 +23,7 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 BROKER_DIR = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "adapter-root-bins"
 BROKER_PY = BROKER_DIR / "sso-broker.py"
-# AC10: projected copy that `make build-self` places in .agentbundle/bin/
+# projected copy that `make build-self` places in .agentbundle/bin/
 PROJECTED_BROKER_PY = REPO_ROOT / ".agentbundle" / "bin" / "sso-broker.py"
 SHIM_DIR = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "shared-libs"
 
@@ -50,9 +50,7 @@ def _load_cli_module(py_path: pathlib.Path) -> types.ModuleType:
 @pytest.fixture(params=["source", "projected"])
 def broker(request, tmp_path, monkeypatch):
     """Load the broker, sandbox its HOME, and stub the Tier-2 backend
-    to an in-memory dict so tests run cross-platform.
-
-    AC10: parametrised over two paths:
+    to an in-memory dict so tests run cross-platform. parametrised over two paths:
       - "source"   — pack-source ``packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py``
       - "projected" — ``make build-self`` output at ``.agentbundle/bin/sso-broker.py``
 
@@ -101,7 +99,7 @@ def broker(request, tmp_path, monkeypatch):
 
 
 # ----------------------------------------------------------------------
-# AC9b — byte-equivalence of bundled Tier-2 helpers (filename rename only).
+# byte-equivalence of bundled Tier-2 helpers (filename rename only).
 # ----------------------------------------------------------------------
 
 
@@ -111,7 +109,7 @@ def test_ac9b_sso_keychain_macos_byte_equivalent_to_shim_sibling():
     broker_helper = (BROKER_DIR / "_sso_keychain_macos.py").read_bytes()
     shim_helper = (SHIM_DIR / "_keychain_macos.py").read_bytes()
     assert broker_helper == shim_helper, (
-        "T5 broker keychain helper diverged from shim sibling — AC9b violated"
+        "T5 broker keychain helper diverged from shim sibling — the contract violated"
     )
 
 
@@ -122,7 +120,7 @@ def test_ac9b_sso_credman_windows_byte_equivalent_to_shim_sibling():
 
 
 # ----------------------------------------------------------------------
-# AC9b — every write_credential / read_credential call constructs a
+# every write_credential / read_credential call constructs a
 # target name of shape agentbundle:sso:<profile>.
 # ----------------------------------------------------------------------
 
@@ -147,7 +145,7 @@ def test_ac9b_write_credential_rejects_non_sso_namespace(broker):
 
 
 # ----------------------------------------------------------------------
-# AC12 — cookie-jar continuation when jar exceeds 2048 bytes.
+# cookie-jar continuation when jar exceeds 2048 bytes.
 # ----------------------------------------------------------------------
 
 
@@ -203,7 +201,7 @@ def test_ac12_jar_reassembly_from_continuation_credentials(broker):
 
 
 # ----------------------------------------------------------------------
-# AC11 — Linux file-floor (no Tier-2 backend).
+# Linux file-floor (no Tier-2 backend).
 # ----------------------------------------------------------------------
 
 
@@ -219,7 +217,7 @@ def test_ac11_linux_floors_to_file(broker, monkeypatch):
 
 
 # ----------------------------------------------------------------------
-# AC13 — Playwright import-guard.
+# Playwright import-guard.
 # ----------------------------------------------------------------------
 
 
@@ -239,7 +237,7 @@ def test_ac13_playwright_import_guard_exits_with_pinned_stderr(tmp_path, monkeyp
     # exits 3 with the pinned stderr. If it IS installed, this test
     # is moot — skip.
     if "playwright not installed" not in res.stderr:
-        pytest.skip("playwright IS installed in this test env; AC13 guard not exercised")
+        pytest.skip("playwright IS installed in this test env; guard not exercised")
     assert res.returncode == 3
     assert "sso-broker: playwright not installed" in res.stderr
     assert "pip install playwright" in res.stderr
@@ -247,7 +245,7 @@ def test_ac13_playwright_import_guard_exits_with_pinned_stderr(tmp_path, monkeyp
 
 
 # ----------------------------------------------------------------------
-# AC14 — corporate-network env passthrough invariant.
+# corporate-network env passthrough invariant.
 # ----------------------------------------------------------------------
 
 
@@ -323,7 +321,7 @@ def argparse_namespace(**kwargs):
 
 
 # ----------------------------------------------------------------------
-# AC9 / AC10 — verb correctness.
+# verb correctness.
 # ----------------------------------------------------------------------
 
 
@@ -468,7 +466,7 @@ def test_ac9_list_profiles_lists_registered(broker, monkeypatch):
 
 
 # ----------------------------------------------------------------------
-# AC17 — canonical broker path (consumer-side resolution).
+# canonical broker path (consumer-side resolution).
 # ----------------------------------------------------------------------
 
 

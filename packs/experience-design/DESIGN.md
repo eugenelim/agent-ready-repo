@@ -2,9 +2,6 @@
 
 Living design reference for the experience-design pack. Records the philosophy, method architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** ADR-0054 (experience-status read-only), ADR-0030 (consolidated pack layout)  
-**Related RFCs:** RFC-0064 (pack rename, M3), RFC-0062 (copy-direction, accepted 2026-07-23)
-
 ---
 
 ## TL;DR
@@ -286,7 +283,7 @@ The backstage column of the `service-blueprint` is the slicing instrument handed
 
 1. **`experience-reviewer` is read-only.** It flags, never rewrites. Any suggestion to have the reviewer apply its own findings is out of scope — flagging is the deliverable.
 
-2. **`experience-status` is read-only.** It never writes files, never elicits `[design] output_dir` (stops at "not configured"), never advances state. (ADR-0054.)
+2. **`experience-status` is read-only.** It never writes files, never elicits `[design] output_dir` (stops at "not configured"), never advances state.
 
 3. **The quality floor is non-negotiable.** No skill may produce output that explicitly defers the quality floor ("we'll add states later," "accessibility to follow"). The floor is the minimum bar for any output to leave the skill; if the design can't meet it, the skill surfaces to the human rather than shipping below floor.
 

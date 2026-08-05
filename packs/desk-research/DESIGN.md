@@ -2,8 +2,6 @@
 
 Living design reference for the desk-research pack. Records the philosophy, architecture, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
-**Related ADRs:** [ADR-0029](../../docs/adr/0029-research-two-axes-depth-and-lifecycle.md) (two axes), [ADR-0030](../../docs/adr/0030-consolidated-pack-output-layout-contract.md) (output layout)
-
 ---
 
 ## TL;DR
@@ -163,7 +161,7 @@ These constraints must never be violated by any skill in the desk-research pack 
 
 4. **Gaps are named, never hidden.** A synthesis with no `## Known unknowns` section is asserting it answered every question the research raised. That assertion is almost never true. Every non-quick synthesis carries the section.
 
-5. **`desk-research-project-status` and `desk-research-project-check` are read-only.** They never advance `phase`, never write to `overview.md`, and never invoke downstream lifecycle skills. (ADR-0054.)
+5. **`desk-research-project-status` and `desk-research-project-check` are read-only.** They never advance `phase`, never write to `overview.md`, and never invoke downstream lifecycle skills.
 
 6. **Phase is human-driven.** No skill auto-advances the project phase. The human reads the phase field and decides when to move on. There is no engine, counter, or daemon behind `phase` — it is a frontmatter string the agent reads and writes by hand.
 
@@ -175,7 +173,7 @@ These constraints must never be violated by any skill in the desk-research pack 
 
 A single axis (depth only) forces a choice between "is this a quick lookup or a project?" before the investigation starts. In practice, questions that start as quick lookups sometimes grow into sustained investigations, and questions scoped as projects sometimes resolve in one session. Keeping depth and lifecycle as orthogonal axes allows either to change independently without re-scaffolding the other.
 
-**Alternative considered:** one linear scale from quick to exhaustive, with project mode as the deepest tier. Rejected because project mode is not deeper than deep session mode — it is structurally different. A `deep` session run and a `capture` phase in a new project can retrieve the same material; what's different is whether a corpus is accumulated over time for later synthesis. Conflating lifecycle with depth produces confusing cue-precedence rules and misses the case where a project accumulates sources at `quick` depth. See ADR-0029.
+**Alternative considered:** one linear scale from quick to exhaustive, with project mode as the deepest tier. Rejected because project mode is not deeper than deep session mode — it is structurally different. A `deep` session run and a `capture` phase in a new project can retrieve the same material; what's different is whether a corpus is accumulated over time for later synthesis. Conflating lifecycle with depth produces confusing cue-precedence rules and misses the case where a project accumulates sources at `quick` depth.
 
 ### Why GRADE over an ad hoc confidence schema (from v1)
 

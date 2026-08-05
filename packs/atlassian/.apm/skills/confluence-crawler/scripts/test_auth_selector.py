@@ -1,4 +1,4 @@
-"""Integration tests for the auth-path selector (AC4).
+"""Integration tests for the auth-path selector.
 
 Drives ``_select_auth_path`` end-to-end: the three selector outcomes
 (absent → token, valid sso-cookie → sso-cookie, malformed → raises) each

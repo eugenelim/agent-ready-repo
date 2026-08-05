@@ -449,7 +449,7 @@ def test_approve_plan_run_id_mismatch(tmp: Path) -> None:
 
 
 def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
-    """After approval, changing spec.md and re-running approve-plan refuses (AC5)."""
+    """After approval, changing spec.md and re-running approve-plan refuses."""
     name = "approve-plan-overwrites-hashes"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -468,7 +468,7 @@ def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
     rc2, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc2 == 0:
-        fail(name, "expected non-zero when spec changed after approval (AC5 refusal)")
+        fail(name, "expected non-zero when spec changed after approval (refusal)")
     elif before != after:
         fail(name, "state.json was mutated despite spec change (should refuse without mutation)")
     else:
@@ -1658,7 +1658,7 @@ def test_schedule_accepts_level2_task_headings(tmp: Path) -> None:
 
 
 def test_approve_plan_first_write(tmp: Path) -> None:
-    """pending → approved: records hashes, exits 0 (AC5 first-write path)."""
+    """pending → approved: records hashes, exits 0 (first-write path)."""
     name = "approve-plan-first-write"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -1681,7 +1681,7 @@ def test_approve_plan_first_write(tmp: Path) -> None:
 
 
 def test_approve_plan_idempotent_no_op(tmp: Path) -> None:
-    """Same run_id + unchanged files → exit 0; state bytes not rewritten (AC5 no-op)."""
+    """Same run_id + unchanged files → exit 0; state bytes not rewritten (no-op)."""
     name = "approve-plan-idempotent-no-op"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -1704,7 +1704,7 @@ def test_approve_plan_idempotent_no_op(tmp: Path) -> None:
 
 
 def test_approve_plan_refuses_changed_spec(tmp: Path) -> None:
-    """spec.md modified after approval → non-zero, no mutation (AC5)."""
+    """spec.md modified after approval → non-zero, no mutation."""
     name = "approve-plan-refuses-changed-spec"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -1729,7 +1729,7 @@ def test_approve_plan_refuses_changed_spec(tmp: Path) -> None:
 
 
 def test_approve_plan_refuses_changed_plan(tmp: Path) -> None:
-    """plan.md modified after approval → non-zero, no mutation (AC5)."""
+    """plan.md modified after approval → non-zero, no mutation."""
     name = "approve-plan-refuses-changed-plan"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -1798,7 +1798,7 @@ def test_approve_plan_refuses_unapproved_plan(tmp: Path) -> None:
 
 
 def test_approve_plan_refuses_run_id_mismatch(tmp: Path) -> None:
-    """run_id mismatch when already approved → non-zero, no mutation (AC5)."""
+    """run_id mismatch when already approved → non-zero, no mutation."""
     name = "approve-plan-refuses-run-id-mismatch"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -1855,7 +1855,7 @@ def test_approve_plan_state_preserved_on_refusal(tmp: Path) -> None:
 
 
 def test_cohort_status_json_includes_plan_review_status_pending(tmp: Path) -> None:
-    """status --json output includes plan_review_status=pending after init (AC5)."""
+    """status --json output includes plan_review_status=pending after init."""
     name = "cohort-status-json-plan-review-status-pending"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
@@ -1878,7 +1878,7 @@ def test_cohort_status_json_includes_plan_review_status_pending(tmp: Path) -> No
 
 
 def test_cohort_status_json_includes_plan_review_status_approved(tmp: Path) -> None:
-    """status --json output includes plan_review_status=approved after approve-plan (AC5)."""
+    """status --json output includes plan_review_status=approved after approve-plan."""
     name = "cohort-status-json-plan-review-status-approved"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)

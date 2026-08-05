@@ -8,12 +8,13 @@ license = "Apache-2.0 OR MIT"
 categories = ["devops", "architecture"]
 keywords = ["monorepo", "scaffolding", "packages"]
 
-# Opt into the catalogue seed lint (RFC-0047 Decision 6 / ADR-0037 D4): a
+# Opt into the catalogue seed lint:
+# a
 # first-party scaffold pack, so `tools/lint-catalogue-seeds.py` enforces the
-# RFC-0002 placeholder contract here. Catalogue-internal — not projected.
+# placeholder contract here. Catalogue-internal — not projected.
 lint-seeds = true
 
-# RFC-0004 v0.2 contract metadata. new-package scaffolds in `packages/`
+# v0.2 contract metadata. new-package scaffolds in `packages/`
 # — meaningless without a monorepo — so the pack is repo-only.
 [pack.adapter-contract]
 version = "0.8"
@@ -22,20 +23,20 @@ version = "0.8"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
-# Per adapt-to-project AC17/AC18.
+# Per adapt-to-project's install-time gate.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
 version = "^2.0"
 
-# pack-activation-evals (RFC-0037 / ADR-0028): Tier-A activation-eval coverage.
+# Pack activation evals: Tier-A activation-eval coverage.
 # new-package is the only user-prompt-triggered skill; it is repo-scope so the
 # prompt is always "scaffold a new library/package" — a narrow, unambiguous
 # trigger. The reviewer-internal skills (none in this pack) are excluded.
 [pack.evals]
 skills = ["new-package"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

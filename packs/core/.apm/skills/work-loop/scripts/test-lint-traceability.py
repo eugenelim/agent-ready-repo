@@ -118,7 +118,7 @@ def _chain_nodes_edges():
 
 
 # --------------------------------------------------------------------------
-# No-op / graceful degradation (AC15)
+# No-op / graceful degradation
 # --------------------------------------------------------------------------
 
 def case_noop_empty() -> None:
@@ -158,7 +158,7 @@ def case_degrades_malformed_sidecar() -> None:
 
 
 # --------------------------------------------------------------------------
-# Sidecar-authoritative path (AC14, AC6, AC9, AC10, AC12)
+# Sidecar-authoritative path
 # --------------------------------------------------------------------------
 
 def case_sidecar_converged() -> None:
@@ -253,7 +253,7 @@ def case_deep_chain_no_crash() -> None:
 
 
 def case_drift_warn_only() -> None:
-    """AC14: a spec present on disk but absent from an authoritative sidecar is
+    """A spec present on disk but absent from an authoritative sidecar is
     DRIFT — warn-only (exit 0), this spec's firm shipped contract."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -318,7 +318,7 @@ def case_sidecar_unknown_schema_degrades() -> None:
 
 
 # --------------------------------------------------------------------------
-# Standalone derive-from-artifacts path (AC1, AC4, AC6, AC7, AC8)
+# Standalone derive-from-artifacts path
 # --------------------------------------------------------------------------
 
 def case_standalone_clean() -> None:
@@ -400,7 +400,7 @@ def case_layer_skip_globally_unpopulated() -> None:
 
 
 # --------------------------------------------------------------------------
-# Cross-repo endpoint states (AC5, AC11, AC13)
+# Cross-repo endpoint states
 # --------------------------------------------------------------------------
 
 def case_crossrepo_pinned() -> None:
@@ -446,10 +446,10 @@ def case_dangling_local_target() -> None:
         rc, out, err = run(root)
         expect(rc == 1, f"dangling local target → exit 1, got {rc}")
         expect("DANGLING" in err and "ghost-local" in err, f"dangling on stderr: {err}")
-        # AC9: one break, one class — the dangling spec must NOT also be a forward
+        # one break, one class — the dangling spec must NOT also be a forward
         # ORPHAN (the down edge is asserted, just broken).
         expect("ORPHAN spec:alpha" not in out,
-               f"dangling node not also an orphan (AC9): {out}")
+               f"dangling node not also an orphan: {out}")
 
 
 def case_up_field_fallthrough_reference() -> None:
@@ -469,7 +469,7 @@ def case_up_field_fallthrough_reference() -> None:
 
 
 def case_dangling_up_field_still_fires() -> None:
-    """AC9: a *dangling* (missing-local-shaped) up-field is a hard violation in
+    """A *dangling* (missing-local-shaped) up-field is a hard violation in
     every mode, fired even when a sibling up-field resolves — but the spec is NOT
     also a backward orphan (the resolving Brief gives it a producer)."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -485,7 +485,7 @@ def case_dangling_up_field_still_fires() -> None:
 
 
 # --------------------------------------------------------------------------
-# Root→leaf reachability (sidecar mode) — the AC34 disconnected-subtree backstop
+# Root→leaf reachability (sidecar mode) — the disconnected-subtree backstop
 # --------------------------------------------------------------------------
 
 # A healthy chain (root=o → spec-h → comp-h, a real component leaf) shared by the
@@ -525,7 +525,7 @@ def case_reach_dead_end_subtree_whole_not_just_tip() -> None:
         # Reachability flags the interior (which presence passed) — not just the tip.
         expect("UNREACHABLE cap-d" in out and "UNREACHABLE scr-d" in out,
                f"reachability flags the stranded interior: {out}")
-        # AC9 — one break, one class: the tip is the presence ORPHAN, not also
+        # one break, one class: the tip is the presence ORPHAN, not also
         # double-reported as UNREACHABLE.
         expect("UNREACHABLE svc-d" not in out,
                f"tip is the presence orphan, not also UNREACHABLE: {out}")
@@ -610,7 +610,7 @@ def case_reach_unresolvable_tip_surfaced_never_silently_green() -> None:
 
 
 def case_reach_dangling_adjacent_not_double_reported() -> None:
-    """AC9 one-break-one-class: a node whose sole producer edge has a *dangling
+    """One-break-one-class: a node whose sole producer edge has a *dangling
     source* (the producer is a missing-local target) is surfaced by the DANGLING
     violation, not ALSO as UNREACHABLE."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -626,7 +626,7 @@ def case_reach_dangling_adjacent_not_double_reported() -> None:
         expect("DANGLING" in err and "ghostsrc" in err,
                f"the dangling edge is the hard violation: {err}")
         expect("UNREACHABLE mid" not in out,
-               f"the dangling-edge consumer is not also UNREACHABLE (AC9): {out}")
+               f"the dangling-edge consumer is not also UNREACHABLE: {out}")
 
 
 def case_reach_skips_without_root() -> None:
@@ -699,7 +699,7 @@ def case_reach_degenerate_cases() -> None:
 
 
 # --------------------------------------------------------------------------
-# Container-embedded + file-backed recognition (AC1, AC2)
+# Container-embedded + file-backed recognition
 # --------------------------------------------------------------------------
 
 def case_container_and_file_recognition() -> None:

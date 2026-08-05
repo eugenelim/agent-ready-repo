@@ -19,7 +19,7 @@ files for secrets. This is the pack the other credentialed packs (`atlassian`,
 
 `credential-brokers` is **user-scope by default** — credentials belong to the
 user, not the project. The broker is written to `~/.agentbundle/bin/` behind
-the `.agentbundle/` user-prefix fence (RFC-0013).
+the `.agentbundle/` user-prefix fence.
 
 ```
 agentbundle install --pack credential-brokers --scope user <catalogue>

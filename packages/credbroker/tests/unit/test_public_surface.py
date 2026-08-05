@@ -1,4 +1,4 @@
-"""Public-surface parity (spec task T2; AC3).
+"""Public-surface parity (task T2).
 
 credbroker re-exports the shim's full ``__all__`` (so a consumer swaps only
 its import line) plus the public replacements for the private symbols
@@ -41,7 +41,7 @@ def test_public_replacements_for_private_shim_symbols() -> None:
     assert "tier2_backend_label" in credbroker.__all__
 
 
-# SSO web-session cookie family (RFC-0035) — the second consumer-resolution
+# SSO web-session cookie family — the second consumer-resolution
 # family; every name must be importable from the top-level package.
 SSO_PUBLIC_NAMES = [
     "load_sso_cookies",

@@ -48,7 +48,7 @@ except ModuleNotFoundError as _import_exc:
 
 log = logging.getLogger("linear.cli")
 
-# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+# Banded exit-code taxonomy:
 #   0     success
 #   1     functional / operational error — bad args, server 5xx, transport, unexpected
 #   2     user must act — credential missing/invalid/expired, 401/403

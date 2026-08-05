@@ -8,7 +8,7 @@ license = "Apache-2.0 OR MIT"
 categories = ["governance", "tooling"]
 keywords = ["catalogue", "assimilate"]
 
-# RFC-0059: a catalogue-operator pack — meta-tooling for growing the catalogue,
+# A catalogue-operator pack — meta-tooling for growing the catalogue,
 # one meta-level above governance-extras. Repo-only ceremony; ships instance
 # content (not a placeholder scaffold), so lint-seeds stays off.
 # 0.2.0: removed export-catalogue skill (superseded by agentbundle catalogue init

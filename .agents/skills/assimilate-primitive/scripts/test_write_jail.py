@@ -1,4 +1,4 @@
-"""Tests for write_jail.py (RFC-0059 write confinement via agentbundle.safety).
+"""Tests for write_jail.py (write confinement via agentbundle.safety).
 Confirms the reused engine jail rejects traversal + symlink escape and writes
 in-bounds. Requires `agentbundle` importable (the repo engine)."""
 

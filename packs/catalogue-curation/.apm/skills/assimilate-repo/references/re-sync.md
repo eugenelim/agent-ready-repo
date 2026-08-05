@@ -20,7 +20,7 @@ Each sync lands as commits, so the commit log *is* the timestamped migration
 history. No parallel bespoke log; the marker holds only the baseline + dates.
 
 ## Recording the re-sync on the prior source-RFC
-Follow RFC-0055's own forms (it governs corrections *within* an RFC; it does not
+Follow the RFC-correction forms (they govern corrections *within* an RFC; they do not
 define whole-RFC supersession):
 
 - Prior RFC **Open** → record the delta **in-place as an Amendment** (correction
@@ -33,5 +33,5 @@ define whole-RFC supersession):
 - Prior RFC **Frozen + new candidates or reversed verdicts** (fresh decisions,
   not a correction) → author a **new RFC**, and record it on the prior one as an
   **Erratum entry naming the superseding RFC** (a catalogue convention; not a
-  form defined by RFC-0055). Request **Approver sign-off** before writing the
+  standard correction form). Request **Approver sign-off** before writing the
   Erratum entry. **Never append new decisions to a Frozen RFC's Errata.**

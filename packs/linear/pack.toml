@@ -14,14 +14,14 @@ version = "0.8"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters. Declared order also drives the
+# Declared order also drives the
 # greenfield fallback (claude-code matches DEFAULT_USER_SCOPE_ADAPTER).
 # Admitted adapters match the atlassian/figma precedent for user-scope
 # credentialed packs that declare `.agentbundle/` in `allowed-prefixes.user`.
-# Append-only (RFC-0011 declared-order).
+# Append-only declared-order.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
-# enriched-pack-manifest (RFC-0031 / ADR-0021)
+# Enriched pack manifest
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
