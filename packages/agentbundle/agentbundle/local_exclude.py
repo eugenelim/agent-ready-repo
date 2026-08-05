@@ -312,3 +312,30 @@ def snapshot_exclude(exclude_path: Path) -> bytes:
     if exclude_path.exists():
         return exclude_path.read_bytes()
     return b""
+
+
+def get_exclude_path(repo_root: Path) -> Path:
+    """Return the absolute path to the ``info/exclude`` file for *repo_root*.
+
+    Uses ``git rev-parse --git-path info/exclude`` so both primary and
+    linked worktrees resolve to the shared common-dir ``info/exclude``
+    (the file that actually gates git's ignore logic for this clone).
+
+    Args:
+        repo_root: the repository root to query.
+
+    Returns:
+        Absolute path to the ``info/exclude`` file; the file may not
+        exist yet (it is created on first write by
+        :func:`write_exclude_block`).
+    """
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--git-path", "info/exclude"],
+        capture_output=True,
+        text=True,
+    )
+    raw = result.stdout.strip()
+    path = Path(raw)
+    if not path.is_absolute():
+        path = repo_root / path
+    return path.resolve()

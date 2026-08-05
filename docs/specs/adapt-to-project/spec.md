@@ -777,9 +777,13 @@ Per the work-loop's three-mode taxonomy:
       - **AC19b (chained `adapt`).** After the marker write, the
         CLI runs `agentbundle.commands.adapt.run(args)` in-process
         (no subprocess; no LLM) with `args.values_from = Path(
-        "<repo>/.adapt-discovery.toml")` (regardless of install
-        scope — markers are repo-only). The CLI's dual-scope `adapt`
-        walk handles both scopes' companions and pending reports.
+        "<repo>/.adapt-discovery.toml")` for repo/user scope installs.
+        **Exception (RFC-0080):** `--scope local` installs are
+        ephemeral (files are git-invisible); no marker is written and
+        `adapt` is not chained, to avoid applying adapt-discovery
+        transforms to files the user considers non-committed.
+        The CLI's dual-scope `adapt` walk handles both scopes'
+        companions and pending reports for repo/user installs.
       - **AC19c (`.gitignore` extension).** `agentbundle scaffold`
         lays down a `.gitignore` containing
         `.adapt-install-marker.toml` (repo-scope marker only —
