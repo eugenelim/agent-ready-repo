@@ -33,6 +33,7 @@ import re
 import sys
 from typing import Sequence
 
+from agentbundle.scope import LEGAL_SCOPES
 from agentbundle.version import CLI_VERSION, SPEC_VERSION
 
 # Path-bearing argparse-attribute names. The set is curated rather than
@@ -258,8 +259,8 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--root", default=".")
     sp.add_argument(
         "--scope",
-        choices=("repo", "user"),
-        help="Limit the listing to one scope. Default: both user and repo.",
+        choices=tuple(sorted(LEGAL_SCOPES)),
+        help="Limit the listing to one scope. Default: all scopes (repo, user, local).",
     )
     sp.add_argument(
         "--no-check",
@@ -387,7 +388,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     sp.add_argument("--output", default=".")
-    sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument("--scope", choices=tuple(sorted(LEGAL_SCOPES)))
     sp.add_argument(
         "--force",
         action="store_true",
@@ -627,7 +628,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.add_argument("--pack", required=True)
     sp.add_argument("--root", default=".")
-    sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument("--scope", choices=tuple(sorted(LEGAL_SCOPES)))
     sp.add_argument(
         "--adapter",
         choices=_shipped_adapters_choices(),
