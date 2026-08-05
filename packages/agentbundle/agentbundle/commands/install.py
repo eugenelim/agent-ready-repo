@@ -254,8 +254,11 @@ def run(args: argparse.Namespace) -> int:
         emit_install_routes: bool = bool(args.emit_install_routes)
     else:
         # Absent attribute → repo-scope legacy callers want dist-tree
-        # shape; user-scope callers want the new path-jail.
-        emit_install_routes = cli_scope != "user"
+        # shape; user-scope and local-scope callers want the new path-jail.
+        # RFC-0080: use `not in ("user", "local")` rather than `== "repo"` so
+        # legacy/programmatic callers with cli_scope=None continue to get the
+        # dist-tree path (None not in ("user", "local") is True).
+        emit_install_routes = cli_scope not in ("user", "local")
 
     # Range-check the CLI-supplied pack name before any I/O. The manifest's
     # `pack.name` is checked by `_assert_pack_metadata_shape` below; this
@@ -387,6 +390,16 @@ def run(args: argparse.Namespace) -> int:
     # precedent). The mutex consults `requested_scope`, not
     # `args.scope`, so a pack whose `[scope] default-scope = "user"`
     # surfaces the binding correctly when `--scope` is omitted.
+    if requested_scope == "local" and emit_install_routes:
+        # AC9 (RFC-0080): --emit-install-routes is incompatible with --scope local.
+        # The plugins route (RFC-0008) has its own local-scope behaviour; the
+        # catalogue-publishing opt-in must not run for per-clone installs.
+        print(
+            "install: --emit-install-routes is not supported at --scope local "
+            "(see RFC-0008 for the plugins route's own local-scope behaviour)",
+            file=sys.stderr,
+        )
+        return 1
     if requested_scope == "user" and emit_install_routes:
         print(
             "install: --emit-install-routes is bound to --scope repo",
@@ -452,18 +465,27 @@ def run(args: argparse.Namespace) -> int:
         user_root = None
         user_state_path = None
 
-    # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
-    # Resolves required deps against the union of repo + user state (AC17).
-    # Gate runs before any write (and before the already-installed check, so
-    # dep errors surface even when another early-exit would fire).
+    # RFC-0080: local state — read the per-clone state file for cross-scope
+    # conflict detection and dependency resolution.
+    local_state_path_pre = output_root / ".agentbundle-local-state.toml"
     from agentbundle.config import State as _State
 
+    try:
+        local_state: State = load_state(local_state_path_pre)
+    except ConfigError:
+        local_state = _State()
+
+    # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
+    # Resolves required deps against the union of repo + user + local state (AC17/AC23b).
+    # Gate runs before any write (and before the already-installed check, so
+    # dep errors surface even when another early-exit would fire).
     _effective_user_state: State = user_state if user_state is not None else _State()
     try:
         validate_dependencies_required(
             pack_toml,
             repo_state=repo_state,
             user_state=_effective_user_state,
+            local_state=local_state if requested_scope == "local" else None,
             # pack-profiles AC7: under a profile install, a required dep may be
             # satisfied by another pack in the same batch. None for single-pack.
             also_installing=getattr(args, "_batch_packs", None),
@@ -510,7 +532,7 @@ def run(args: argparse.Namespace) -> int:
     _pack_contract_version = pack_spec_version(pack_toml)
     repo_target_adapter: str | None = None
     allowed_prefixes_repo: list[str] | None = None
-    if requested_scope == "repo" and not emit_install_routes:
+    if requested_scope in ("repo", "local") and not emit_install_routes:
         try:
             repo_target_adapter = _resolve_target_adapter(
                 pack_dir,
@@ -614,6 +636,13 @@ def run(args: argparse.Namespace) -> int:
         user_state.row(pack_name, user_target_adapter) is not None
         if user_target_adapter is not None
         else user_state.has_pack(pack_name)
+    )
+    # RFC-0080: local scope — adapter-identity check (AC21b: refuse only when
+    # the exact (pack, adapter) row already exists, not pack-level boolean).
+    installed_at_local = (
+        local_state.row(pack_name, repo_target_adapter) is not None
+        if repo_target_adapter is not None
+        else local_state.has_pack(pack_name)
     )
 
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
@@ -774,6 +803,26 @@ def run(args: argparse.Namespace) -> int:
                     already_installed=installed_at_repo,
                 )
             )
+        elif scope_value == "local":
+            # RFC-0080: local scope shares repo-style paths and the same
+            # allowed_prefixes as repo scope; state file is the per-clone
+            # .agentbundle-local-state.toml (never committed).
+            local_state_path = output_root / ".agentbundle-local-state.toml"
+            try:
+                local_state_for_write = load_state(local_state_path, for_write=True)
+            except ConfigError as exc:
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            plans.append(
+                _ScopePlan(
+                    scope="local",
+                    root=output_root,
+                    state_path=local_state_path,
+                    allowed_prefixes=allowed_prefixes_repo,
+                    state=local_state_for_write,
+                    already_installed=installed_at_local,
+                )
+            )
         else:
             # User scope: surface unresolvable $HOME *now* so failures
             # land in pre-flight, before any write.
@@ -926,7 +975,7 @@ def run(args: argparse.Namespace) -> int:
     # post-render and pre-path-jail.
     # `user_target_adapter` resolved earlier (alongside allowed_prefixes_user).
     try:
-        if any(p.scope == "repo" for p in plans):
+        if any(p.scope in ("repo", "local") for p in plans):
             if emit_install_routes:
                 # Legacy dist-tree producer (RFC-0012 § *CLI surface*'s
                 # catalogue-publishing opt-in).
@@ -4042,6 +4091,7 @@ def validate_dependencies_required(
     *,
     repo_state: State,
     user_state: State,
+    local_state: State | None = None,
     also_installing: set[str] | None = None,
 ) -> None:
     """Enforce [pack.dependencies.required] before any file write.
@@ -4084,15 +4134,20 @@ def validate_dependencies_required(
     if not required:
         return
 
-    # Union of installed packs across both scopes (pack name → installed
+    # Union of installed packs across all scopes (pack name → installed
     # version string). A pack may have several adapter rows; any row's
     # version satisfies the dependency check (they share the pack version).
+    # RFC-0080 AC23b: local_state included when installing at local scope.
     installed: dict[str, str] = {}
     for (name, _adapter), ps in repo_state.packs.items():
         installed[name] = ps.installed_version
     for (name, _adapter), ps in user_state.packs.items():
         if name not in installed:
             installed[name] = ps.installed_version
+    if local_state is not None:
+        for (name, _adapter), ps in local_state.packs.items():
+            if name not in installed:
+                installed[name] = ps.installed_version
 
     for entry in required:
         if not isinstance(entry, dict):
