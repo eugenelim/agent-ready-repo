@@ -1,24 +1,13 @@
-"""Tests for _GitTools — branch validation, commit path intersection, injection defence."""
+"""Stub tests for _GitTools — branch validation, commit path intersection, injection defence.
+
+AC14/AC15 behavioral tests are stubs here; the FSM-mode guard integration tests
+live in tests/integration/test_workspace_mcp_git_fsm.py (disk + subprocess).
+"""
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
-
-
-def _init_git_repo(tmp_path: Path) -> Path:
-    subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True)
-    for cmd in (
-        ["git", "config", "user.email", "test@example.com"],
-        ["git", "config", "user.name", "Test"],
-    ):
-        subprocess.run(cmd, check=True, capture_output=True, cwd=str(tmp_path))
-    # Initial commit so HEAD exists
-    (tmp_path / "README.md").write_text("init")
-    subprocess.run(["git", "add", "README.md"], check=True, capture_output=True, cwd=str(tmp_path))
-    subprocess.run(["git", "commit", "-m", "init"], check=True, capture_output=True, cwd=str(tmp_path))
-    return tmp_path
 
 
 class TestGitBranch:

@@ -1,6 +1,6 @@
 # workspace-mcp
 
-**Status:** Stage 1 Shipped — `agentbundle` 0.28.0
+**Status:** Stage 1 Implementing — `agentbundle` 0.29.1 (code present; behavioral integration tests are stubs, per spec deferral note)
 **RFC:** [0078](../../rfc/0078-workspace-mcp.md) · Accepted
 **Last updated:** 2026-08-04
 **Reviewers:** TBD
@@ -41,9 +41,9 @@ Three gaps block reliable unattended operation:
    dispatched item's scope — silently corrupting unrelated work.
 
 Elicitation (routing mid-session questions to the human) is **not** the primary gap — a
-control plane can receive questions through ACP's native `session/create_elicitation`
-without workspace-mcp, via Claude Code's built-in `AskUserQuestion` tool or turn-based
-HITL. workspace-mcp adds uniform elicitation across all skills via the session instruction,
+control plane can receive questions through ACP's elicitation protocol (MCP
+`elicitation/create` request from server to client) without workspace-mcp, via Claude
+Code's built-in `AskUserQuestion` tool or turn-based HITL. workspace-mcp adds uniform elicitation across all skills via the session instruction,
 but the channel itself exists independently.
 
 ---
@@ -82,10 +82,10 @@ flowchart LR
     EB -->|"tail-poll 200ms"| EJ
     EB -->|"skill-state-change<br/>human-gate-pending"| CC
     CC -->|"elicit()"| TS
-    TS -->|"elicitation/create"| ACA
-    ACA -->|"session/create_elicitation"| CP
-    CP -->|"session/complete_elicitation"| ACA
-    ACA -->|"response"| CC
+    TS -->|"elicitation/create (MCP request)"| ACA
+    ACA -->|"routes to human"| CP
+    CP -->|"JSON-RPC response (same request ID)"| ACA
+    ACA -->|"answer"| CC
     TS -->|"reads"| WT
     AW -->|"watches"| SD
     AW -->|"artifact-created"| CC
@@ -101,13 +101,16 @@ flowchart LR
 |---|---|
 | **Progress** | loop-engine appends to `events.jsonl` → event bridge tail-polls → emits `skill-state-change` |
 | **Human gates** | Event bridge detects `*-HUMAN-GATE` → emits `human-gate-pending` with reviewer findings + gate question |
-| **Elicitation** | `elicit()` → `elicitation/create` (MCP) → ACP `session/create_elicitation` → control plane → human → `session/complete_elicitation` → AI |
+| **Elicitation** | `elicit()` → MCP `elicitation/create` request (server→client JSON-RPC) → harness routes to human → harness returns JSON-RPC response to the request → `elicit()` unblocks |
 | **Git** | AI calls `git_*` tools → workspace-mcp validates against lifecycle manifest → subprocess |
 
-> **Observability caveat — Stage 1:** `claude-agent-acp@0.64.x` does not relay MCP
-> `notifications/message` frames (`case "notification": break`). The control plane observes
-> FSM state by polling `workspace_status()`. The notification definitions below are the
-> target contract; relay support requires a future adapter update.
+> **Observability caveat — Stage 1:** `claude-agent-acp@0.64.x` does not relay custom
+> JSON-RPC notification frames (the bridge's `case "notification": break` clause drops them).
+> workspace-mcp emits `_agentbundle.core/skill-state-change`, `_agentbundle.core/human-gate-pending`,
+> and related custom-method frames — not standard `notifications/message`. Gates surface as
+> `elicitation/create` requests instead; for FSM state reconciliation, open a separate
+> `WORKSPACE_MCP_SPEC_PATH`-bound session and call `workspace_status()`. The notification
+> definitions below are the target relay contract; relay support requires a future adapter update.
 
 ---
 
@@ -126,29 +129,42 @@ The control plane injects workspace-mcp at `session/new.mcpServers`. Two spawn f
 ```json
 // Trusted checkout (local developer):
 {
-  "mcpServers": {
-    "workspace-mcp": {
+  "mcpServers": [
+    {
+      "name": "workspace-mcp",
       "command": "python3",
       "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
-      "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
+      "env": [{ "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-feature" }]
     }
-  }
+  ]
 }
 
-// CI / untrusted checkout — module mode (-I is non-negotiable, see Security):
+// CI / untrusted checkout — module mode (-I flag, see Security):
+// Note: isolated-mode engine lookup is deferred to Stage 2; the guard in
+// _load_workspace_status_engine raises RuntimeError when sys.flags.isolated
+// is True and the engine file is not found via package-relative paths.
 {
-  "mcpServers": {
-    "workspace-mcp": {
+  "mcpServers": [
+    {
+      "name": "workspace-mcp",
       "command": "python3",
       "args": ["-I", "-m", "agentbundle.workspace_mcp"],
-      "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
+      "env": [{ "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-feature" }]
     }
-  }
+  ]
 }
 ```
 
 The projection root for `args[0]` varies by adapter: `.claude/skills/` (Claude Code),
 `.agents/skills/` (Codex).
+
+Because workspace-mcp is injected per-session by the control plane, it is absent from
+every session the control plane did not create. Interactive editor sessions — a developer
+using Claude Code directly, not through a harness — never see the MCP server or the
+session instruction unless the user manually adds workspace-mcp to their global MCP
+config (not the intended deployment model). The exception is Class B adapters (see
+below): a Kiro CLI repo with workspace-mcp in `.kiro/settings/mcp.json` loads
+workspace-mcp in every terminal session, including interactive ones.
 
 **Session mode** is set by which env var is provided:
 
@@ -186,7 +202,7 @@ tool. Pre-approve the six workspace-mcp tools so headless sessions don't hang:
 ```
 
 Add these manually to `.claude/settings.json` (repo-scope) or `.claude/settings.local.json`
-(user-scope). `agentbundle install core` will automate this once the additive-merge
+(user-scope). `agentbundle install --pack core` will automate this once the additive-merge
 projection target ships (open item).
 
 ### Class B — Kiro CLI (terminal binary)
@@ -217,21 +233,23 @@ Set `WORKSPACE_MCP_SPEC_PATH` for FSM (work-loop) sessions; omit it for non-FSM 
 Markdown agent support and `elicitation/create` capability depend on the installed CLI
 version — unconfirmed; response-file fallback assumed.
 
-**Mode detection.** Because the config is static, workspace-mcp runs two detectors
-concurrently (no per-session env var to determine mode):
+**Mode detection (Stage 2c — planned, not implemented in 0.28.2).** The following describes
+the design for when Class B support ships; it is not present in the current codebase.
+Because the config is static, workspace-mcp will run two detectors concurrently
+(no per-session env var to determine mode):
 
 - **FSM detector:** polls for `engine-state.json` files strictly newer than the
   process-start sentinel file. Wins over the non-FSM detector.
 - **Non-FSM detector:** reads the current branch at session start; binds on first
   `git_branch()` call.
 
-If `WORKSPACE_MCP_SPEC_PATH` is set, gate-resume scanning is scoped to that spec.
-If absent, the gate scan is skipped — preventing a stale gate from a prior run from
+If `WORKSPACE_MCP_SPEC_PATH` is set, gate-resume scanning will be scoped to that spec.
+If absent, the gate scan will be skipped — preventing a stale gate from a prior run from
 hijacking a new session.
 
-**Known limitation.** If the prior session ended on a feature branch and the new session
-starts on the same branch for a different item, workspace-mcp binds the old slug.
-Workaround: check out the new item's branch before starting the session.
+**Known limitation (design).** If the prior session ended on a feature branch and the new
+session starts on the same branch for a different item, workspace-mcp would bind the old
+slug. Workaround: check out the new item's branch before starting the session.
 
 **What differs from Class A:**
 
@@ -307,7 +325,7 @@ leaves the control plane blind to most of a session.
 
 | Host declares `elicitation` | Path | Notes |
 |---|---|---|
-| Yes | `elicitation/create` (MCP) → ACP `session/create_elicitation` | Confirmed for Claude Code via `claude-agent-acp@0.64.2` (`elicitation.ts`). ACP SDK uses `unstable_createElicitation()` / `unstable_completeElicitation()` — marked unstable. |
+| Yes | MCP `elicitation/create` request (server→client JSON-RPC) — harness replies to the same request ID with the answer | Confirmed for Claude Code via `claude-agent-acp@0.64.2` (`elicitation.ts`). The ACP SDK wraps this as `unstable_createElicitation()` — marked unstable; no separate "complete" call. |
 | No | Response-file fallback | workspace-mcp writes to a `O_EXCL 0600` temp file. Control plane reads `response_path` from `_agentbundle.core/elicitation-pending` and writes response via atomic rename. |
 
 workspace-mcp never advertises `elicitation` in its own `ServerCapabilities` — that field
@@ -335,17 +353,19 @@ entire session — they apply to every turn, including follow-up user messages.
 5. Before writing artifacts for a non-FSM item, call git_branch(<ini_slug>/<type>/<slug>)
    if not already on the item's feature branch.
 6. When instructed to commit and push, call git_status() to identify uncommitted files,
-   git_commit(paths, message) for the matching paths, then git_push(branch).
+   git_commit(message) to stage and commit matching paths, then git_push(branch).
 ```
 
 ### Git tools
 
 `git_status`, `git_branch`, `git_commit`, `git_push` — executed via subprocess, scoped to
-the dispatched item's `output_pattern` from the lifecycle manifest. `git_commit` rejects
-paths outside the pattern with `bridge-warning {reason: "unscoped-uncommitted-files"}`.
+the dispatched item's `output_pattern` from the lifecycle manifest. `git_commit` intersects
+the working tree against the item's output pattern: unrelated **unstaged** files are silently
+excluded (not staged); **pre-staged** files outside the output paths cause a hard refusal (the
+call returns an error; no bridge-warning notification is emitted in Stage 1).
 
 Push target is validated against the dispatched item's manifest branch.
-Discovery mode disables all mutating tools.
+Discovery mode and FSM mode disable all mutating tools.
 
 ### Lifecycle manifest
 
@@ -362,8 +382,8 @@ snapshot diffs. Emits `_agentbundle.core/artifact-created` when a new file appea
 
 ## Notification contract
 
-All notifications are MCP `notifications/message` frames using the `_agentbundle.core/`
-namespace.
+All notifications are custom JSON-RPC 2.0 notification frames with `_agentbundle.core/`-namespaced
+method names (e.g. `_agentbundle.core/skill-state-change`), not standard MCP `notifications/message`.
 
 | Notification | When | Key payload fields |
 |---|---|---|
@@ -393,7 +413,7 @@ human-gate-pending.gate`.
 | Constraint | Why |
 |---|---|
 | `-I` flag required for untrusted checkouts | Without it, a repo-provided `agentbundle/` directory shadows the installed wheel and achieves RCE in the control plane process. |
-| Response-file: `mkdtemp(0700)` + `O_EXCL 0600` | Prevents pre-seeding by a same-uid process. |
+| Response-file: `mkdtemp(0700)` + `O_EXCL 0600` | Prevents pre-seeding by a different-uid process; same-uid isolation is not guaranteed — documented limitation in `_ElicitTool`. |
 | Response-file write: atomic rename only | Direct write risks workspace-mcp reading a partial file. |
 | Git push validated against manifest branch | Rejects pushes to unexpected branches. Routing-only — not authentication. |
 | Slug safety: `^[a-zA-Z0-9._-]+$`, rejects `.` / `..` / leading `-` | Prevents path traversal in output_pattern glob construction. |
@@ -422,7 +442,7 @@ Full rationale and alternatives in each ADR. Summary:
 | Stage | Scope | Status |
 |---|---|---|
 | **0 — Spikes** | Five design spikes | **Closed** — see `docs/rfc/0078-notes/spike-results.md` |
-| **1 — Claude Code, work-loop** | Single adapter, FSM sessions | **Shipped** — agentbundle 0.28.0, PR #860 |
+| **1 — Claude Code, work-loop** | Single adapter, FSM sessions | **Implementing** — agentbundle 0.29.1; behavioral integration tests are stubs (spec deferral note); PR #860 |
 | **2a — Codex** | Response-file elicitation fallback, headless permissions | Not started |
 | **2b — Codex** | Response-file elicitation fallback, headless permissions | Not started |
 | **2c — Kiro CLI (terminal)** | Static `.kiro/settings/mcp.json` config, agent format, `elicitation/create` | Not started |

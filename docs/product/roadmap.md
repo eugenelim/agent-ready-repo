@@ -3,7 +3,7 @@
 > Direction for the next 2-4 quarters. **Not** commitments. The whole point
 > of writing this down is that it can change.
 
-**Last updated:** 2026-07-18
+**Last updated:** 2026-08-04
 **Reviewed:** quarterly. Next review: 2026-10-18.
 
 If the current date is more than 90 days past "Last updated", treat this
@@ -31,6 +31,8 @@ file as stale and ask before relying on it.
 **RFC-0064 P3 · author-brief documentation.** New intake how-to (`guides/core/how-to/intake-an-external-brief.md`) covering the `author-brief` skill end-to-end; DoR gate section + `Rabbit holes`/`Status` rows added to `product-brief-fields.md`; `receive-brief` how-to decision table updated. [spec/author-brief-docs]
 
 **RFC-0064 Amendment #4 — cross-pack first-value adoption overlay.** Defines Level A/B pack obligations and pilot-first rollout contract for pack onboarding. Five new work items queued: `spec/portfolio-pack-first-value-contract` (semantic onboarding contract, no dependency), three pilot specs (`architect`/`figma`/`governance-extras`, each needing the contract), and `spec/agentbundle-first-value-handoff` (install completion UX, needing the contract). Two shaping entries added: `nontechnical-pack-first-value-rollout` (shape, blocked on pilots) and `portfolio-outcome-entry-surfaces` (design, blocked on contract + pilots). Feeds P5 adoption evidence. [RFC-0064 Amendment #4]
+
+**M1 · workspace-mcp Stage 1 (RFC-0078) — Implementing.** Per-session MCP server implementing in the `core` pack (agentbundle 0.29.1). Provides `workspace_status`, `elicit`, `git_status`, `git_branch`, `git_commit`, and `git_push` tools over MCP stdio. Class A adapter (Claude Code via ACP): control harness injects the server at `session/new.mcpServers`; gates arrive as `elicitation/create` requests; git operations scoped to the dispatched item's output paths. Session instruction (`DEFAULT_SESSION_INSTRUCTION`) shapes agent behaviour for harness-controlled sessions. Operator how-to at `guides/core/how-to/run-headless-session.md`. Stage 2 (Codex Class A, notification relay, permissions projection) deferred. [RFC-0078]
 
 ## Next
 

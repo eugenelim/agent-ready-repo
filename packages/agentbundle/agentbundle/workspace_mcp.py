@@ -966,9 +966,20 @@ class _GitTools:
     def __init__(self, repo_root: Path) -> None:
         self._repo_root = repo_root
         spec_path = os.environ.get("WORKSPACE_MCP_SPEC_PATH")
+        # Capture raw env presence BEFORE validation: FSM mode is determined by
+        # whether the operator SUPPLIED WORKSPACE_MCP_SPEC_PATH, not whether it
+        # passes path validation.  An empty string or invalid path still activates
+        # the FSM guard (fail-closed); git writes are blocked even if anchoring fails.
+        # Use `in os.environ` (not bool()) to treat "" as supplied.
+        _spec_path_supplied = "WORKSPACE_MCP_SPEC_PATH" in os.environ
         dispatched = os.environ.get("WORKSPACE_MCP_DISPATCHED_ITEM")
+        # Capture raw dispatched presence for the both-vars warning: if the
+        # DISPATCHED_ITEM value is malformed, validation below sets dispatched=None,
+        # but the warning should still fire to signal the unsupported configuration.
+        _dispatched_supplied = "WORKSPACE_MCP_DISPATCHED_ITEM" in os.environ
         # Validate spec_path: must resolve inside repo_root. An out-of-repo or malformed
-        # path is treated as absent — fail closed (discovery mode; git writes blocked).
+        # path is treated as absent for event-bridge anchoring only — FSM mode
+        # is already locked by _spec_path_supplied above.
         if spec_path:
             try:
                 if not Path(spec_path).resolve().is_relative_to(repo_root.resolve()):
@@ -991,7 +1002,21 @@ class _GitTools:
                 dispatched,
             )
             dispatched = None
-        self._discovery_mode = not spec_path and not dispatched
+        # Discovery mode: only when NEITHER env var was supplied.  Use the raw
+        # presence flag (_spec_path_supplied) so that SPEC_PATH="" stays out of
+        # discovery mode (it is FSM mode, fail-closed).
+        self._discovery_mode = not _spec_path_supplied and not dispatched
+        # FSM mode: WORKSPACE_MCP_SPEC_PATH was supplied → FSM mode, regardless of
+        # whether it passed validation (fail-closed: invalid path still blocks git
+        # writes).  When BOTH env vars are supplied (unsupported per the one-variable
+        # contract), SPEC_PATH wins and a startup warning is logged.
+        if _spec_path_supplied and _dispatched_supplied:
+            _log.warning(
+                "Both WORKSPACE_MCP_SPEC_PATH and WORKSPACE_MCP_DISPATCHED_ITEM are set "
+                "(unsupported); WORKSPACE_MCP_SPEC_PATH takes precedence — "
+                "FSM mode active, git writes blocked"
+            )
+        self._fsm_mode = _spec_path_supplied
         # Expected branch from dispatched item (ini_slug/type:slug → ini_slug/type/slug)
         self._expected_branch: str | None = self._derive_expected_branch(dispatched)
         self._session_branch: str | None = self._read_head_branch()
@@ -1006,10 +1031,10 @@ class _GitTools:
             # Case 1: resumed dispatched session
             (self._expected_branch is not None
              and self._session_branch == self._expected_branch)
-            # Case 2: FSM-only mode (SPEC_PATH set, no DISPATCHED_ITEM)
-            or (spec_path is not None
-                and dispatched is None
-                and self._session_branch is not None)
+            # Case 2: FSM mode (SPEC_PATH supplied); lock to startup HEAD so the
+            # session cannot redirect git_push to an arbitrary caller-chosen ref.
+            # _fsm_mode blocks mutating tools anyway; this lock is belt-and-suspenders.
+            or (_spec_path_supplied and self._session_branch is not None)
         )
         # Serialize all mutating git operations: prevents index.lock collisions
         # and TOCTOU races on _session_branch between concurrent tool calls.
@@ -1256,6 +1281,15 @@ class _GitTools:
         return {"output": r.stdout, "returncode": r.returncode}
 
     def git_branch(self, arguments: dict) -> dict:
+        # FSM guard precedes discovery-mode guard (fail-closed: SPEC_PATH="" is FSM,
+        # not discovery mode, so _fsm_mode fires before _discovery_mode can).
+        if self._fsm_mode:
+            return {
+                "error": (
+                    "git_branch is not available in work-loop (FSM) mode — "
+                    "work-loop manages its own git lifecycle"
+                )
+            }
         if self._discovery_mode:
             return {"error": "git_branch is not available in discovery mode"}
         name = arguments.get("name", "")
@@ -1301,6 +1335,13 @@ class _GitTools:
         return {"branch": name}
 
     def git_commit(self, arguments: dict) -> dict:
+        if self._fsm_mode:
+            return {
+                "error": (
+                    "git_commit is not available in work-loop (FSM) mode — "
+                    "work-loop manages its own git lifecycle"
+                )
+            }
         if self._discovery_mode:
             return {"error": "git_commit is not available in discovery mode"}
         message = arguments.get("message", "workspace-mcp: commit artifacts")
@@ -1411,6 +1452,13 @@ class _GitTools:
         return {"committed": matched, "message": message}
 
     def git_push(self, arguments: dict) -> dict:
+        if self._fsm_mode:
+            return {
+                "error": (
+                    "git_push is not available in work-loop (FSM) mode — "
+                    "work-loop manages its own git lifecycle"
+                )
+            }
         if self._discovery_mode:
             return {"error": "git_push is not available in discovery mode"}
         branch = arguments.get("branch", "")
@@ -1553,15 +1601,31 @@ class _StdioLoop:
                     "Returns the current workspace queue and active-run state. "
                     "Call this at session start before doing any work. "
                     "Response fields: "
-                    "ready[] — items that can be dispatched immediately, each with "
+                    "ready[] — items that may be dispatchable, each with "
                     "ini_slug, type, slug, and dispatch_skill; "
-                    "blocked[] — items whose dependencies are not yet met; "
+                    "dispatchable items omit the 'available' field (treat absent as eligible); "
+                    "items where available=false require an optional pack (see required_pack); "
+                    "items with a non-empty unmet_needs list have unresolved dependencies; "
+                    "only dispatch items where 'available' is absent (not false) and "
+                    "'unmet_needs' is absent or empty; "
+                    "blocked[] — items whose dependency needs are not yet met; "
                     "active[] — items currently in progress; "
-                    "shaping[] — non-implementation items (research, design, shape, strategy); "
-                    "current_state — current work-loop phase name (null when idle); "
-                    "gate_pending — true when human input is required before work can continue; "
+                    "shaping[] — informational only in Stage 1; non-FSM items (research, design, "
+                    "shape, strategy) whose skill flows are not yet shipped (Stage 3); "
+                    "do not dispatch shaping items in Stage 1 — selecting one opens a bound "
+                    "session with no usable skill flow; same available/required_pack/unmet_needs "
+                    "fields as ready[] for readiness visibility; "
+                    "current_state — current work-loop phase name (null when idle OR when this "
+                    "session is not bound to a valid spec — see below); "
+                    "gate_pending — true when human input is required before work can continue "
+                    "(always false when not spec-bound); "
                     "gate — name of the pending gate (e.g. SPEC-HUMAN-GATE, REVIEW-HUMAN-GATE); "
-                    "gate_question — the specific question the work-loop is asking."
+                    "gate_question — the specific question the work-loop is asking. "
+                    "IMPORTANT: current_state, gate_pending, gate, and gate_question are "
+                    "authoritative only in a session where WORKSPACE_MCP_SPEC_PATH is set to "
+                    "a valid spec directory; in discovery sessions (no SPEC_PATH) or sessions "
+                    "with an invalid SPEC_PATH these fields are always null/false even if a "
+                    "work-loop is active in another session."
                 ),
                 "inputSchema": {"type": "object", "properties": {}},
             },
@@ -1602,6 +1666,7 @@ class _StdioLoop:
             {
                 "name": "git_status",
                 "description": (
+                    "Use this instead of running 'git status' directly. "
                     "Returns uncommitted file changes in the repo "
                     "(equivalent to git status --short). "
                     "Returns {output: string, returncode: int}."
@@ -1611,11 +1676,15 @@ class _StdioLoop:
             {
                 "name": "git_branch",
                 "description": (
-                    "Create and check out a new feature branch. "
+                    "Use this instead of running 'git checkout -b' directly — "
+                    "raw git branch commands bypass the scoping guard that locks "
+                    "the session to exactly one branch for the dispatched item. "
+                    "Creates and checks out a new feature branch. "
                     "The branch name must follow the ini_slug/type/slug format "
-                    "(e.g. my-initiative/work/fix-bug) and must match the dispatched item. "
+                    "(e.g. my-initiative/shape/new-feature) and must match the dispatched item. "
                     "May only be called once per session; subsequent calls are rejected. "
-                    "Not available when no item has been dispatched."
+                    "Not available in FSM/work-loop sessions (WORKSPACE_MCP_SPEC_PATH set) "
+                    "or when no item has been dispatched."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -1624,7 +1693,7 @@ class _StdioLoop:
                             "type": "string",
                             "description": (
                                 "Branch name in ini_slug/type/slug format "
-                                "(e.g. my-initiative/work/fix-bug)."
+                                "(e.g. my-initiative/shape/new-feature)."
                             ),
                         }
                     },
@@ -1634,9 +1703,13 @@ class _StdioLoop:
             {
                 "name": "git_commit",
                 "description": (
-                    "Stage and commit files that belong to the dispatched work item. "
-                    "Only files under the item's configured output paths are staged; "
-                    "files outside those paths are excluded. "
+                    "Use this instead of running 'git add' and 'git commit' directly — "
+                    "raw git commit bypasses the output-path filter and may silently "
+                    "include files outside the dispatched item's scope. "
+                    "Stages and commits only files under the item's configured output "
+                    "paths; unstaged files outside those paths are excluded automatically. "
+                    "If any files outside the output paths are already pre-staged (via "
+                    "git add), the commit is refused — unstage them first. "
                     "Not available when no item has been dispatched, or for work-loop "
                     "items (work-loop manages its own git lifecycle)."
                 ),
@@ -1656,9 +1729,16 @@ class _StdioLoop:
             {
                 "name": "git_push",
                 "description": (
-                    "Push the session branch to origin. "
-                    "Requires git_branch() to have been called first in this session. "
-                    "Not available when no item has been dispatched."
+                    "Use this instead of running 'git push' directly — "
+                    "raw git push bypasses the branch check that prevents pushing "
+                    "to a branch other than the one established for this session. "
+                    "Pushes the session branch to origin. "
+                    "The session branch must be established before pushing: "
+                    "call git_branch() in a new session, or in a resumed "
+                    "dispatched session the branch may already be locked from "
+                    "the prior run (no git_branch() call required in that case). "
+                    "Not available in FSM/work-loop sessions (WORKSPACE_MCP_SPEC_PATH set) "
+                    "or when no item has been dispatched."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -1666,8 +1746,9 @@ class _StdioLoop:
                         "branch": {
                             "type": "string",
                             "description": (
-                                "Branch name to push. Must match the branch "
-                                "established by git_branch() in this session."
+                                "Branch name to push. Must match the session-bound "
+                                "branch established by git_branch() or inherited "
+                                "from session startup."
                             ),
                         }
                     },

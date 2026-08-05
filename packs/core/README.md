@@ -84,4 +84,5 @@ HookIntegrator-covered adopters can also run this to opt out of hooks.
 ---
 
 → **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the `core` guides in `guides/core/`.
+→ **Go deeper:** the `core` guides in `guides/core/`.  
+→ **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

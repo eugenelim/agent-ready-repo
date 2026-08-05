@@ -62,7 +62,7 @@ catalogue listing — see [`pack-manifest.md`](pack-manifest.md).
 
 | Pack | Scope | Carries |
 | --- | --- | --- |
-| `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
+| `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, `workspace-mcp` (per-session MCP server for harness-controlled sessions), layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
 | `governance-extras` | repo only | `new-rfc`, `new-adr`, `update-conventions` skills + `docs/rfc/` and `docs/adr/` shapes. Requires `core`. |
 | `product-documentation` | repo or user | `author-product-docs` skill for creating, revising, retrofitting, auditing, and verifying product docs. No `core` dependency. `user-guide-diataxis@0.3.0` (deprecated compat pack) depends on this pack. |
 | `monorepo-extras` | repo only | `new-package` skill + `packages/_example/` template. Requires `core`. |
@@ -87,6 +87,12 @@ agent on next session. Pull `core` out and the chain doesn't close.
 
 One file per non-trivial subsystem:
 
+- [`workspace-mcp/design.md`](workspace-mcp/design.md) — the per-session MCP
+  server shipped with `core`: spawn forms (trusted / CI), session modes, ACP
+  adapter classes, notification contract, FSM observability, and security
+  constraints. Harness operators should read this alongside the operator
+  how-to guide at
+  [`guides/core/how-to/run-headless-session.md`](../../guides/core/how-to/run-headless-session.md).
 - [`pack-layout.md`](pack-layout.md) — the canonical shape of a single
   pack: `pack.toml`, `.claude-plugin/`, `.apm/<primitive>/`, `seeds/`,
   and how the bundler reads them.

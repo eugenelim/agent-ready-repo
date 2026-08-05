@@ -8,6 +8,37 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.29.1]
+
+### Fixed
+
+- **`workspace_mcp._GitTools` — FSM mode guard**: `git_branch`, `git_commit`, and
+  `git_push` are now blocked whenever `WORKSPACE_MCP_SPEC_PATH` is supplied —
+  including when `WORKSPACE_MCP_DISPATCHED_ITEM` is also present (both-vars
+  configuration, unsupported; SPEC_PATH wins with a startup warning), and when
+  the path fails `repo_root` containment validation (fail-closed: raw env var
+  presence in `os.environ` — including an empty string — is the FSM trigger, not
+  the post-validation value). Previously, a stale harness supplying both vars, or
+  an invalid SPEC_PATH, left `_fsm_mode=False`, enabling git writes during a
+  work-loop session. A new `_fsm_mode` flag drives the guard.
+
+- **`workspace_mcp._build_tools_list`** — refined git tool descriptions for
+  harness clarity. `git_status`, `git_branch`, `git_commit`, and `git_push` open
+  with "Use this instead of running 'git X' directly" and name the specific bypass
+  risk each guard prevents. `git_commit` description states that pre-staged files
+  outside the output paths cause a hard refusal; unstaged files are silently
+  excluded. `git_push` description clarifies that a resumed dispatched session may
+  inherit a pre-locked branch (no `git_branch()` call required). `git_branch`
+  example updated to a non-FSM type (`shape`); added note that the tool is
+  unavailable in FSM/work-loop sessions.
+
+- **`workspace_status` tool description**: added `available`, `required_pack`, and
+  `unmet_needs` eligibility fields so agents know not to dispatch items where
+  `available: false` or `unmet_needs` is non-empty.
+
+- **`README-pypi.md`**: marked `python3 -m agentbundle.workspace_mcp` as
+  trusted-checkout-only; noted Stage 2 isolated spawn mode (`python3 -I -m ...`).
+
 ## [0.28.1]
 
 ### Fixed

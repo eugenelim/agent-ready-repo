@@ -83,6 +83,14 @@ The distinction between the agent's loop and the engineer's loop is not capabili
 
 When the spec is done, the agent submits a PR and moves the spec from `[work].active` to `[work].shipped` in `workspace.toml`. The ship signal is the committed write-back — not the PR submission itself, but the state transition in `workspace.toml`. This is what allows the next agent (or the engineer reviewing the session) to see what shipped without reading any prior session's context. `workspace-status` run at the start of the next session will show the shipped spec and surface whatever comes next.
 
+### Harness-controlled sessions
+
+The cold-start orientation and gate-surface behaviour described above become machine-readable when workspace-mcp is injected into the session. workspace-mcp is the per-session MCP server the `core` pack ships for control-harness use: `workspace_status()` returns a structured response — not prose — that a harness can parse directly. The `ready[]` array lists items the harness can dispatch. Gates arrive as `elicitation/create` requests from the agent — the harness routes the question to a human channel and returns the answer. `gate_pending` and `gate_question` are readable from a separate spec-bound reconciliation session but are not a push signal.
+
+The harness reads the queue, dispatches an item, monitors for gates, routes gate questions to a human channel, and resumes the session with the answer — all without a human watching each turn. The work-loop runs the same gates; the harness answers them instead of a person at a keyboard.
+
+→ [Run a headless session](../how-to/run-headless-session.md) — the end-to-end recipe.
+
 The swarm extension of this journey — coordinated pipelines where a supervisor agent allocates specs to executor agents in parallel — is not yet covered here. (deferred: role-journey-agent-swarm-section)
 
 **Source journey map:**

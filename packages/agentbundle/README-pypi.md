@@ -327,15 +327,23 @@ each Claude Code session. It exposes six tools over MCP stdio:
 python3 -m agentbundle.workspace_mcp
 ```
 
+> **Trusted checkout only.** This form runs whichever `agentbundle` is on
+> `sys.path`. If the repo uses an editable install (`pip install -e .`), it
+> runs the local checkout's code. Use only on repos you trust. An isolated
+> spawn mode (`python3 -I -m agentbundle.workspace_mcp`) is planned for
+> Stage 2 and will require a stable non-editable install.
+
 **Inject the session instruction** so the agent knows to use the tools:
 
 ```python
 from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 ```
 
-Pass `WORKSPACE_MCP_SPEC_PATH` (path to the spec directory) and
-`WORKSPACE_MCP_DISPATCHED_ITEM` (`ini_slug/type:slug`) as environment variables
-when spawning to unlock the git write tools and FSM event tracking.
+Pass exactly one environment variable when spawning to set the session mode:
+`WORKSPACE_MCP_SPEC_PATH` (path to the spec directory) for FSM/work-loop items,
+or `WORKSPACE_MCP_DISPATCHED_ITEM` (`ini_slug/type:slug`) for non-FSM shaping
+items. Setting neither gives discovery-only mode (git writes disabled). Setting
+both is unsupported — only one selects the mode.
 
 ## Credentials
 
