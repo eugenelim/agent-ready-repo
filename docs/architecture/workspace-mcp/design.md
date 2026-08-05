@@ -199,7 +199,7 @@ tool. Pre-approve the six workspace-mcp tools so headless sessions don't hang:
 ```
 
 Add these manually to `.claude/settings.json` (repo-scope) or `.claude/settings.local.json`
-(user-scope). `agentbundle install core` will automate this once the additive-merge
+(user-scope). `agentbundle install --pack core` will automate this once the additive-merge
 projection target ships (open item).
 
 ### Class B — Kiro CLI (terminal binary)
@@ -218,7 +218,7 @@ workspace-mcp automatically. Concurrent FSM sessions are not supported.
     "workspace-mcp": {
       "command": "python3",
       "args": [".kiro/skills/workspace-status/scripts/workspace_mcp_server.py"],
-      "env": [{ "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-feature" }]
+      "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
     }
   }
 }
