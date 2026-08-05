@@ -272,9 +272,9 @@ def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
-            shutil.copytree(source, target, copy_function=shutil.copyfile)
+            shutil.copytree(source, target, copy_function=shutil.copy)
         else:
-            shutil.copyfile(source, target)
+            shutil.copy(source, target)
 
 
 def _effective_adapters(preferred_adapter: str | None) -> tuple[str, ...]:
@@ -592,7 +592,11 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             continue
         target = output_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, target)
+        # Use shutil.copy (content + mode, no timestamps) so the shadow seed
+        # file has the same permission bits as the source regardless of umask.
+        # copyfile (content-only) would leave umask-derived mode on new files,
+        # causing false mode drift when the diff gate compares shadow vs disk.
+        shutil.copy(src, target)
     return seen
 
 
@@ -1139,6 +1143,13 @@ def run_self_host(
     owner = discovery_flat.get("owner", "eugenelim")
     marketplace_name = discovery_flat.get("project-name", "agent-ready-repo")
 
+    # Gate Claude Code-specific artifacts (CLAUDE.md, .claude-plugin/) on
+    # whether the effective adapter set includes claude-code.  When
+    # preferred-adapter is kiro-ide or kiro-cli (or any other adapter not in
+    # SELF_HOST_ADAPTERS), those artifacts are neither written nor expected in
+    # the drift check.
+    _project_claude_artifacts = "claude-code" in _effective_adapters(preferred_adapter)
+
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
             shadow = Path(shadow_str)
@@ -1155,11 +1166,12 @@ def run_self_host(
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
-            _aggregate_marketplace(packs_dir, shadow, owner=owner, name=marketplace_name)
-            _recreate_claude_symlink(shadow, force_copy=no_symlink)
-            extra_marker_paths = list(seed_map.keys()) + [
-                Path(".claude-plugin") / "marketplace.json",
-            ]
+            if _project_claude_artifacts:
+                _aggregate_marketplace(packs_dir, shadow, owner=owner, name=marketplace_name)
+                _recreate_claude_symlink(shadow, force_copy=no_symlink)
+            extra_marker_paths = list(seed_map.keys())
+            if _project_claude_artifacts:
+                extra_marker_paths.append(Path(".claude-plugin") / "marketplace.json")
             if agents_path is not None:
                 extra_marker_paths.append(Path("AGENTS.md"))
             resolve_markers(shadow, discovery_flat, extra_paths=extra_marker_paths)
@@ -1211,11 +1223,12 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4
-    _aggregate_marketplace(packs_dir, working_tree, owner=owner, name=marketplace_name)
-    _recreate_claude_symlink(working_tree, force_copy=no_symlink)
-    extra_marker_paths = list(seed_map.keys()) + [
-        Path(".claude-plugin") / "marketplace.json",
-    ]
+    if _project_claude_artifacts:
+        _aggregate_marketplace(packs_dir, working_tree, owner=owner, name=marketplace_name)
+        _recreate_claude_symlink(working_tree, force_copy=no_symlink)
+    extra_marker_paths = list(seed_map.keys())
+    if _project_claude_artifacts:
+        extra_marker_paths.append(Path(".claude-plugin") / "marketplace.json")
     if agents_path is not None:
         extra_marker_paths.append(Path("AGENTS.md"))
     resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)

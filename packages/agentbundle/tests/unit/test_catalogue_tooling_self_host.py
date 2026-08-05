@@ -209,3 +209,70 @@ def test_project_all_adapters_restricts_to_preferred_when_outside_self_host_adap
     mock_kiro.project_packs.assert_called_once()
     mock_claude.project_packs.assert_not_called()
     mock_codex.project_packs.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# _project_claude_artifacts gating (AC7)
+# ---------------------------------------------------------------------------
+
+
+def test_effective_adapters_kiro_ide_excludes_claude_code():
+    """AC7 precondition: kiro-ide effective set does not contain claude-code."""
+    from agentbundle.build.self_host import _effective_adapters
+
+    result = _effective_adapters("kiro-ide")
+    assert "claude-code" not in result
+    assert result == ("kiro-ide",)
+
+
+def test_effective_adapters_none_includes_claude_code():
+    """AC7 precondition: default effective set includes claude-code (backward compat)."""
+    from agentbundle.build.self_host import _effective_adapters
+
+    assert "claude-code" in _effective_adapters(None)
+
+
+def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
+    """AC7: run_self_host with preferred_adapter='kiro-ide' does not call
+    _aggregate_marketplace or _recreate_claude_symlink."""
+    from unittest.mock import MagicMock
+
+    from agentbundle.build.self_host import run_self_host
+
+    # Write a minimal .adapt-discovery.toml so the existence check passes.
+    (tmp_path / ".adapt-discovery.toml").write_text(
+        "discovery-schema-version = 1\n"
+        "[adapt]\n"
+        "owner = 'test'\n"
+        "project-name = 'test'\n"
+    )
+    packs_dir = tmp_path / "packs"
+    packs_dir.mkdir()
+
+    fake_discovery = MagicMock()
+    fake_discovery.markers = {"owner": "test", "project-name": "test"}
+
+    with (
+        patch("agentbundle.build.self_host._aggregate_marketplace") as mock_mkt,
+        patch("agentbundle.build.self_host._recreate_claude_symlink") as mock_sym,
+        patch("agentbundle.build.self_host._project_all_adapters"),
+        patch("agentbundle.build.self_host._compose_agents_md", return_value=None),
+        patch("agentbundle.build.self_host._project_seeds", return_value={}),
+        patch("agentbundle.build.self_host.resolve_markers"),
+        patch("agentbundle.build.self_host.diff_against_working_tree", return_value=[]),
+        patch("agentbundle.build.self_host._emit_info_for_unclassified"),
+        patch("agentbundle.build.self_host._build_projected_to_source_map", return_value={}),
+        patch("agentbundle.build.self_host._clone_target_subtree"),
+        patch("agentbundle.build.self_host.load_contract", return_value={"adapter": {"kiro-ide": {}}}),
+        patch("agentbundle.config.load_adapt_discovery_typed", return_value=fake_discovery),
+    ):
+        run_self_host(
+            working_tree=tmp_path,
+            packs_dir=packs_dir,
+            dry_run=True,
+            force=False,
+            preferred_adapter="kiro-ide",
+        )
+
+    mock_mkt.assert_not_called()
+    mock_sym.assert_not_called()
