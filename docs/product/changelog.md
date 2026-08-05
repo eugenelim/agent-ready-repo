@@ -15,6 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][Unreleased]
+
+### Fixed
+
+- **`self_host` — preferred-adapter respected**: `run_self_host` now restricts
+  projection to the adapter named in `catalogue.toml`'s `preferred-adapter` field
+  when that adapter is not in `SELF_HOST_ADAPTERS` (e.g. `kiro-ide`). Previously
+  only `claude-code` and `codex` were ever projected, producing false drift for
+  downstream repos using a different adapter.
+
+- **`self_host` — `shutil.copy2` replaced with `shutil.copyfile`**: shadow-clone
+  and seed-copy paths no longer call `os.utime`, which fails in CI environments
+  that restrict timestamp writes.
+
+- **`adapter_root_bins` — `os.chmod` wrapped in `try/except OSError`**: POSIX
+  executable-bit setting on projected bin files is now best-effort; environments
+  that restrict `chmod` no longer abort the build.
+
 ## [agentbundle][0.29.1] — 2026-08-05
 
 ### Fixed

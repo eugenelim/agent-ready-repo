@@ -309,9 +309,12 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
     expected_targets = {p.target for p in projections}
     for proj in projections:
         proj.target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(proj.source, proj.target)
+        shutil.copyfile(proj.source, proj.target)
         if os.name == "posix":
-            os.chmod(proj.target, EXECUTABLE_MODE)
+            try:
+                os.chmod(proj.target, EXECUTABLE_MODE)
+            except OSError:
+                pass
     # Orphan removal: any *.py file under <working_tree>/.agentbundle/bin/
     # not claimed by an expected target.
     target_dir = working_tree / TARGET_SUBDIR

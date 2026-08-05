@@ -272,9 +272,9 @@ def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
-            shutil.copytree(source, target, copy_function=shutil.copy)
+            shutil.copytree(source, target, copy_function=shutil.copyfile)
         else:
-            shutil.copy(source, target)
+            shutil.copyfile(source, target)
 
 
 def _effective_adapters(preferred_adapter: str | None) -> tuple[str, ...]:
@@ -592,7 +592,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             continue
         target = output_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(src, target, follow_symlinks=False)
+        shutil.copyfile(src, target)
     return seen
 
 
