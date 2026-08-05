@@ -111,6 +111,11 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
 
 ### Non-FSM items (`type: "research"` | `"design"` | `"shape"` | `"strategy"`)
 
+> **Stage 3 (planned).** The workspace-mcp git tools for non-FSM item types are
+> wired in the server, but the agent-side skill flows that drive research, design,
+> shape, and strategy items headlessly are not yet shipped. This section documents
+> the MCP wire format for when those skills land.
+
 Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks `git_branch`, `git_commit`, and `git_push` scoped to the item's configured output paths.
 
 ```json

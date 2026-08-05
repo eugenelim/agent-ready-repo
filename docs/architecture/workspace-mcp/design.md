@@ -354,11 +354,13 @@ entire session — they apply to every turn, including follow-up user messages.
 ### Git tools
 
 `git_status`, `git_branch`, `git_commit`, `git_push` — executed via subprocess, scoped to
-the dispatched item's `output_pattern` from the lifecycle manifest. `git_commit` rejects
-paths outside the pattern with `bridge-warning {reason: "unscoped-uncommitted-files"}`.
+the dispatched item's `output_pattern` from the lifecycle manifest. `git_commit` intersects
+the working tree against the item's output pattern: unrelated **unstaged** files are silently
+excluded (not staged); **pre-staged** files outside the output paths cause a hard refusal (the
+call returns an error; no bridge-warning notification is emitted in Stage 1).
 
 Push target is validated against the dispatched item's manifest branch.
-Discovery mode disables all mutating tools.
+Discovery mode and FSM mode disable all mutating tools.
 
 ### Lifecycle manifest
 

@@ -25,6 +25,13 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   (no `git_branch()` call required). Updated the `branch` parameter description
   to say "established by git_branch() or inherited from session startup."
 
+- **`workspace_mcp._GitTools`**: FSM mode now locks on the **raw presence** of
+  `WORKSPACE_MCP_SPEC_PATH` before path validation. Previously, if the supplied
+  path failed the `repo_root` containment check, `spec_path` was set to `None`,
+  silently clearing `_fsm_mode` and potentially enabling git writes through a
+  valid `WORKSPACE_MCP_DISPATCHED_ITEM`. The mode selection now reads the raw env
+  var so an invalid path still activates the FSM guard (fail-closed).
+
 - **`README-pypi.md`**: marked the `python3 -m agentbundle.workspace_mcp` spawn
   command as trusted-checkout-only. Added note that an isolated spawn mode
   (`python3 -I -m ...`) is planned for Stage 2 and requires a stable

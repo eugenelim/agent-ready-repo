@@ -966,9 +966,15 @@ class _GitTools:
     def __init__(self, repo_root: Path) -> None:
         self._repo_root = repo_root
         spec_path = os.environ.get("WORKSPACE_MCP_SPEC_PATH")
+        # Capture raw env presence BEFORE validation: FSM mode is determined by
+        # whether the operator SUPPLIED WORKSPACE_MCP_SPEC_PATH, not whether it
+        # passes path validation.  An invalid path still activates the FSM guard
+        # (fail-closed); git writes are blocked even if spec anchoring fails.
+        _spec_path_supplied = bool(spec_path)
         dispatched = os.environ.get("WORKSPACE_MCP_DISPATCHED_ITEM")
         # Validate spec_path: must resolve inside repo_root. An out-of-repo or malformed
-        # path is treated as absent — fail closed (discovery mode; git writes blocked).
+        # path is treated as absent for event-bridge anchoring only — FSM mode
+        # is already locked by _spec_path_supplied above.
         if spec_path:
             try:
                 if not Path(spec_path).resolve().is_relative_to(repo_root.resolve()):
@@ -992,17 +998,17 @@ class _GitTools:
             )
             dispatched = None
         self._discovery_mode = not spec_path and not dispatched
-        # FSM mode: any valid WORKSPACE_MCP_SPEC_PATH activates FSM mode —
-        # work-loop manages its own git lifecycle, so git_branch, git_commit,
-        # and git_push are unavailable.  When BOTH env vars are set (unsupported
-        # per the one-variable contract), SPEC_PATH wins and a warning is logged.
-        if spec_path is not None and dispatched is not None:
+        # FSM mode: WORKSPACE_MCP_SPEC_PATH was supplied → FSM mode, regardless of
+        # whether it passed validation (fail-closed: invalid path still blocks git
+        # writes).  When BOTH env vars are supplied (unsupported per the one-variable
+        # contract), SPEC_PATH wins and a startup warning is logged.
+        if _spec_path_supplied and dispatched is not None:
             _log.warning(
                 "Both WORKSPACE_MCP_SPEC_PATH and WORKSPACE_MCP_DISPATCHED_ITEM are set "
                 "(unsupported); WORKSPACE_MCP_SPEC_PATH takes precedence — "
                 "FSM mode active, git writes blocked"
             )
-        self._fsm_mode = spec_path is not None
+        self._fsm_mode = _spec_path_supplied
         # Expected branch from dispatched item (ini_slug/type:slug → ini_slug/type/slug)
         self._expected_branch: str | None = self._derive_expected_branch(dispatched)
         self._session_branch: str | None = self._read_head_branch()
@@ -1017,10 +1023,10 @@ class _GitTools:
             # Case 1: resumed dispatched session
             (self._expected_branch is not None
              and self._session_branch == self._expected_branch)
-            # Case 2: FSM-only mode (SPEC_PATH set, no DISPATCHED_ITEM)
-            or (spec_path is not None
-                and dispatched is None
-                and self._session_branch is not None)
+            # Case 2: FSM mode (SPEC_PATH supplied); lock to startup HEAD so the
+            # session cannot redirect git_push to an arbitrary caller-chosen ref.
+            # _fsm_mode blocks mutating tools anyway; this lock is belt-and-suspenders.
+            or (_spec_path_supplied and self._session_branch is not None)
         )
         # Serialize all mutating git operations: prevents index.lock collisions
         # and TOCTOU races on _session_branch between concurrent tool calls.

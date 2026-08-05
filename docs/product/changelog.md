@@ -15,6 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [core][2.1.1] — 2026-08-04
+
+### Fixed
+
+- **workspace-mcp FSM mode guard**: `git_branch`, `git_commit`, and `git_push`
+  are now blocked whenever `WORKSPACE_MCP_SPEC_PATH` is set, even when
+  `WORKSPACE_MCP_DISPATCHED_ITEM` is also present. Previously a stale harness
+  supplying both env vars would bypass the FSM guard. A startup warning is logged
+  when both variables are set (unsupported configuration).
+
+- **workspace-mcp FSM fail-closed on invalid SPEC_PATH**: FSM mode now activates
+  on the raw presence of `WORKSPACE_MCP_SPEC_PATH`, before path validation. An
+  invalid or out-of-repo path no longer silently falls back to dispatched mode
+  and enables git writes.
+
+- **Pack documentation**: added autonomous-dispatch section to `JOURNEY.md` and
+  headless-mode pointer to `README.md`.
+
 ## [experience-design][2.0.0] — 2026-08-02
 
 ### Added
