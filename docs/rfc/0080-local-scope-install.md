@@ -676,8 +676,8 @@ excluded from git without a committed diff, stdlib-only."
   are likely to have (introduced git ≥2.5.0, 2015).
 - `info/exclude` (or its submodule equivalent) is writable by the process that
   owns the working tree.
-- `git ls-files --error-unmatch` correctly identifies tracked paths before the
-  install writes any file.
+- `git --literal-pathspecs ls-files --error-unmatch` correctly identifies tracked
+  paths before the install writes any file.
 
 **Drawbacks.**
 
@@ -771,7 +771,8 @@ repo but has its own working directory):
     (4) `--emit-install-routes + --scope local` refusal at line 390, branching
     the error message for `local` vs. `repo`; (5) `emit_install_routes`
     inference at line 258 changed from `cli_scope != "user"` to
-    `cli_scope == "repo"` (protects test-fixture fallback)
+    `cli_scope not in ("user", "local")` (preserves `None`-scope repo-like
+    behavior for legacy callers; see implementation erratum in §4)
   - `cli.py` (six `choices=` sites; source from `tuple(sorted(LEGAL_SCOPES))`
     — sorted tuple required for stable `--help` output)
   - `install.py` (`.git/info/exclude` write path; worktree-id derivation)
