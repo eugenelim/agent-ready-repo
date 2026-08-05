@@ -78,7 +78,9 @@ The `workspace_status()` response:
 }
 ```
 
-Pick an item from `ready[]` or `shaping[]`. Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install --pack <required_pack>` first). Close the discovery session.
+**Stage 1:** pick an item from `ready[]` only. `shaping[]` items (research, design, shape, strategy) are not supported until Stage 3 — dispatching one opens a bound session with no usable skill flow. Use `shaping[]` as informational: it shows what is waiting, not what can be dispatched today.
+
+Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install --pack <required_pack>` first). Close the discovery session.
 
 ## Step 3 — Dispatch the item
 
@@ -212,6 +214,8 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 2. Your harness receives the request, routes the question to the human channel
 3. Your harness returns the human's answer as the JSON-RPC response to the `elicitation/create` request
 4. The `elicit()` call unblocks and the work-loop continues
+
+> **`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the elicitation question is "ready to merge?" Surface the PR URL to the human and wait for the PR to be merged (e.g., poll your VCS API until the PR's merge status is confirmed) before sending the elicitation response. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
 
 > **Stage 1 limitation — response-file fallback unsupported.** When `clientCapabilities.elicitation`
 > is absent, `elicit()` falls back to a temp response file. The file path is carried only in the
