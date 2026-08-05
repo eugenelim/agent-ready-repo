@@ -8,6 +8,7 @@ A control harness drives Claude Code sessions programmatically — no human watc
 
 ## Prerequisites
 
+- `agentbundle >= 0.28.2` installed (`pip install 'agentbundle>=0.28.2'`) — earlier versions lack the FSM git guard and will push the startup branch if `git_push` is pre-approved
 - `agentbundle install --pack core` run in the target repo
 - Python 3.11+ on the machine running the harness
 - An ACP-capable control harness — Claude Code via the `claude-agent-acp` bridge or native Agent SDK
@@ -229,7 +230,7 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 | Session hangs indefinitely | Missing `permissions.allow` entries | Add all six `mcp__workspace-mcp__*` strings to `.claude/settings.json` (Step 1) |
 | `workspace_status()` returns `{"error": "workspace_status_engine.py not found…"}` | `agentbundle install --pack core` has not been run in the checkout | Run `agentbundle install --pack core` in the target repo |
 | `git_branch`, `git_commit`, or `git_push` returns `"not available in work-loop (FSM) mode"` | `WORKSPACE_MCP_SPEC_PATH` is set — work-loop manages its own git lifecycle; mutating git tools are blocked | Expected for work items; monitor gates, don't call git mutating tools |
-| `git_commit` returns `"git_commit unavailable: no output_pattern (work-loop owns git)"` | `WORKSPACE_MCP_DISPATCHED_ITEM` set for a `work`-type item without `WORKSPACE_MCP_SPEC_PATH` | Use `SPEC_PATH` for work items (not `DISPATCHED_ITEM`); `DISPATCHED_ITEM` is for non-FSM types only |
+| `git_commit` returns `"git_commit is not available in discovery mode"` after a work-type dispatch | `WORKSPACE_MCP_DISPATCHED_ITEM` set for a `work`-type item — work items have no output_pattern; workspace-mcp clears the dispatch and falls back to discovery mode | Use `WORKSPACE_MCP_SPEC_PATH` for work items (not `DISPATCHED_ITEM`); `DISPATCHED_ITEM` is for non-FSM types only |
 | `git_commit` returns `"refusing commit: N pre-staged file(s) outside output_pattern"` | The repo has pre-staged files outside the item's output paths | Unstage those files before calling `git_commit`, or use `git reset HEAD` |
 | `git_branch` returns `"session branch already set"` | `git_branch` was called a second time in the same dispatched session | `git_branch` may only be called once per non-FSM session; a resumed session may already have a locked branch |
 | Item slug not found in `workspace.toml` | `WORKSPACE_MCP_DISPATCHED_ITEM` references a slug that doesn't exist in the queue | Verify the slug against `workspace_status()` `ready[]` before dispatching |

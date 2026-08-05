@@ -142,7 +142,8 @@ Deliver the Stage 1 workspace-mcp implementation: a per-session MCP server (Clau
 - `test_workspace_mcp_tools.py`: `workspace_status()` result shape, pack-presence filter, slug safety guard + containment check (AC8, AC9, AC10)
 - `test_workspace_status_engine_autonomous.py`: `is_need_satisfied()` + `classify_entries()` + `analyze_bounded()` autonomous-dispatch mode — `shape:` absent from active AND backlog → unsatisfied; `research:` absent from backlog as type "research" → unsatisfied; default=False preserves existing semantics (AC19)
 - `test_workspace_mcp_elicit.py`: capability detection, `elicitation/create` response routing, response-file O_EXCL guard (AC11, AC12, AC13)
-- `test_workspace_mcp_git.py`: `check-ref-format` validation, `--` separator, output_pattern commit intersection, push two-sided branch check (AC14); discovery-mode returns error for mutating tools (AC15); FSM-mode guard — SPEC_PATH only and SPEC_PATH + DISPATCHED_ITEM both block mutating tools (AC15a)
+- `test_workspace_mcp_git.py`: `check-ref-format` validation, `--` separator, output_pattern commit intersection, push two-sided branch check (AC14); discovery-mode returns error for mutating tools (AC15) — stubs for AC15a (executable coverage below)
+- `tests/integration/test_workspace_mcp_git_fsm.py`: FSM-mode guard — SPEC_PATH only, SPEC_PATH="" (empty string counted as supplied), and SPEC_PATH + DISPATCHED_ITEM (SPEC_PATH wins) all block mutating tools (AC15a) — uses disk git repo + subprocess; in `tests/integration/` per `packages/AGENTS.md`
 - `test_workspace_mcp_stdin.py`: frame-size cap, malformed JSON quarantine, unknown request_id rejection (AC16)
 - `test_workspace_mcp_lifecycle.py`: per-session exit on stdin close (AC22)
 
