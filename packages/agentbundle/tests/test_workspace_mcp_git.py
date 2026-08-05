@@ -1,10 +1,8 @@
 """Tests for _GitTools — branch validation, commit path intersection, injection defence."""
 from __future__ import annotations
 
-import os
 import subprocess
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from agentbundle.workspace_mcp import _GitTools
@@ -74,13 +72,15 @@ class TestFsmModeGuard:
     - SPEC_PATH + DISPATCHED_ITEM both set (unsupported; SPEC_PATH wins)
     """
 
-    def _make_tools(self, tmp_path: Path, env: dict) -> _GitTools:
-        """Construct _GitTools with the given env vars applied."""
-        clean_env = {k: v for k, v in os.environ.items()
-                     if k not in ("WORKSPACE_MCP_SPEC_PATH", "WORKSPACE_MCP_DISPATCHED_ITEM")}
-        clean_env.update(env)
-        with patch.dict(os.environ, clean_env, clear=True):
-            return _GitTools(tmp_path)
+    def _make_tools(
+        self, tmp_path: Path, env: dict, monkeypatch: pytest.MonkeyPatch
+    ) -> _GitTools:
+        """Construct _GitTools with only the given env vars for workspace-mcp keys."""
+        monkeypatch.delenv("WORKSPACE_MCP_SPEC_PATH", raising=False)
+        monkeypatch.delenv("WORKSPACE_MCP_DISPATCHED_ITEM", raising=False)
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
+        return _GitTools(tmp_path)
 
     def _spec_path(self, repo: Path) -> str:
         """Create a spec directory inside the repo and return its absolute path string."""
@@ -88,72 +88,93 @@ class TestFsmModeGuard:
         spec_dir.mkdir(parents=True, exist_ok=True)
         return str(spec_dir)
 
-    def test_git_branch_blocked_in_fsm_mode_named_branch(self, tmp_path: Path) -> None:
+    def test_git_branch_blocked_in_fsm_mode_named_branch(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git_branch returns FSM-mode error on a named branch (not a subprocess call)."""
         repo = _init_git_repo(tmp_path)
-        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)}, monkeypatch)
         result = tools.git_branch({"name": "feat/my-thing"})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
 
-    def test_git_commit_blocked_in_fsm_mode(self, tmp_path: Path) -> None:
+    def test_git_commit_blocked_in_fsm_mode(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git_commit returns FSM-mode error regardless of output_pattern logic."""
         repo = _init_git_repo(tmp_path)
-        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)}, monkeypatch)
         result = tools.git_commit({"message": "test commit"})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
 
-    def test_git_push_blocked_in_fsm_mode_named_branch(self, tmp_path: Path) -> None:
+    def test_git_push_blocked_in_fsm_mode_named_branch(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git_push returns FSM-mode error even when branch matches startup HEAD (AC14 regression)."""
         repo = _init_git_repo(tmp_path)
         branch = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             check=True, capture_output=True, text=True, cwd=str(repo),
         ).stdout.strip()
-        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)}, monkeypatch)
         result = tools.git_push({"branch": branch})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
 
     # --- Both-vars sub-case (AC15a): SPEC_PATH wins even when DISPATCHED_ITEM is also set ---
 
-    def test_git_branch_blocked_when_both_vars_set(self, tmp_path: Path) -> None:
+    def test_git_branch_blocked_when_both_vars_set(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git_branch blocked when both env vars set — FSM mode wins (AC15a)."""
         repo = _init_git_repo(tmp_path)
-        env = {
-            "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
-            "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
-        }
-        tools = self._make_tools(repo, env)
+        tools = self._make_tools(
+            repo,
+            {
+                "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
+                "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
+            },
+            monkeypatch,
+        )
         result = tools.git_branch({"name": "feat/my-thing"})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
 
-    def test_git_commit_blocked_when_both_vars_set(self, tmp_path: Path) -> None:
+    def test_git_commit_blocked_when_both_vars_set(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git_commit blocked when both env vars set — FSM mode wins (AC15a)."""
         repo = _init_git_repo(tmp_path)
-        env = {
-            "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
-            "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
-        }
-        tools = self._make_tools(repo, env)
+        tools = self._make_tools(
+            repo,
+            {
+                "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
+                "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
+            },
+            monkeypatch,
+        )
         result = tools.git_commit({"message": "test"})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
 
-    def test_git_push_blocked_when_both_vars_set(self, tmp_path: Path) -> None:
+    def test_git_push_blocked_when_both_vars_set(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git_push blocked when both env vars set — FSM mode wins (AC15a)."""
         repo = _init_git_repo(tmp_path)
         branch = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             check=True, capture_output=True, text=True, cwd=str(repo),
         ).stdout.strip()
-        env = {
-            "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
-            "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
-        }
-        tools = self._make_tools(repo, env)
+        tools = self._make_tools(
+            repo,
+            {
+                "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
+                "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
+            },
+            monkeypatch,
+        )
         result = tools.git_push({"branch": branch})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]

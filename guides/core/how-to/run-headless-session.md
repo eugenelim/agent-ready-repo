@@ -188,7 +188,15 @@ When `gate_pending` is true, the work-loop is paused waiting for a human decisio
 }
 ```
 
-If your harness implements `session/create_elicitation`, the agent's `elicit()` tool routes questions through that channel automatically — no polling required for inline questions. The `session/prompt` pattern works in all cases as a fallback.
+The agent's `elicit()` tool requires harness-side elicitation support: when the harness
+declares `capabilities.elicitation` in the ACP init handshake, `elicit()` uses `session/create_elicitation`
+(no polling). Without it, `elicit()` falls back to a response file; the harness must detect the response-file
+path from the workspace-mcp logs and overwrite it to unblock the call.
+
+`session/prompt` is for gate responses only (resuming the work-loop after a human gate), not a fallback
+for pending `elicit()` calls. A harness that calls `session/prompt` while `elicit()` is still blocked
+on its response file will not unblock the tool call; the session hangs until the 300-second elicit
+timeout expires. Implement `session/create_elicitation` to avoid this.
 
 ## When it doesn't work
 

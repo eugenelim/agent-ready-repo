@@ -968,9 +968,10 @@ class _GitTools:
         spec_path = os.environ.get("WORKSPACE_MCP_SPEC_PATH")
         # Capture raw env presence BEFORE validation: FSM mode is determined by
         # whether the operator SUPPLIED WORKSPACE_MCP_SPEC_PATH, not whether it
-        # passes path validation.  An invalid path still activates the FSM guard
-        # (fail-closed); git writes are blocked even if spec anchoring fails.
-        _spec_path_supplied = bool(spec_path)
+        # passes path validation.  An empty string or invalid path still activates
+        # the FSM guard (fail-closed); git writes are blocked even if anchoring fails.
+        # Use `in os.environ` (not bool()) to treat "" as supplied.
+        _spec_path_supplied = "WORKSPACE_MCP_SPEC_PATH" in os.environ
         dispatched = os.environ.get("WORKSPACE_MCP_DISPATCHED_ITEM")
         # Validate spec_path: must resolve inside repo_root. An out-of-repo or malformed
         # path is treated as absent for event-bridge anchoring only — FSM mode
@@ -1591,11 +1592,15 @@ class _StdioLoop:
                     "Returns the current workspace queue and active-run state. "
                     "Call this at session start before doing any work. "
                     "Response fields: "
-                    "ready[] — items that can be dispatched immediately, each with "
-                    "ini_slug, type, slug, and dispatch_skill; "
-                    "blocked[] — items whose dependencies are not yet met; "
+                    "ready[] — items that may be dispatchable, each with "
+                    "ini_slug, type, slug, dispatch_skill, available (bool), "
+                    "required_pack (string or null), and unmet_needs (list); "
+                    "only dispatch items where available=true and unmet_needs is empty — "
+                    "items where available=false require an optional pack to be installed first; "
+                    "blocked[] — items whose needs dependencies are not yet met; "
                     "active[] — items currently in progress; "
-                    "shaping[] — non-implementation items (research, design, shape, strategy); "
+                    "shaping[] — non-implementation items (research, design, shape, strategy), "
+                    "each with available, required_pack, and unmet_needs fields; "
                     "current_state — current work-loop phase name (null when idle); "
                     "gate_pending — true when human input is required before work can continue; "
                     "gate — name of the pending gate (e.g. SPEC-HUMAN-GATE, REVIEW-HUMAN-GATE); "
@@ -1655,9 +1660,10 @@ class _StdioLoop:
                     "the session to exactly one branch for the dispatched item. "
                     "Creates and checks out a new feature branch. "
                     "The branch name must follow the ini_slug/type/slug format "
-                    "(e.g. my-initiative/work/fix-bug) and must match the dispatched item. "
+                    "(e.g. my-initiative/shape/new-feature) and must match the dispatched item. "
                     "May only be called once per session; subsequent calls are rejected. "
-                    "Not available when no item has been dispatched."
+                    "Not available in FSM/work-loop sessions (WORKSPACE_MCP_SPEC_PATH set) "
+                    "or when no item has been dispatched."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -1666,7 +1672,7 @@ class _StdioLoop:
                             "type": "string",
                             "description": (
                                 "Branch name in ini_slug/type/slug format "
-                                "(e.g. my-initiative/work/fix-bug)."
+                                "(e.g. my-initiative/shape/new-feature)."
                             ),
                         }
                     },
