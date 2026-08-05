@@ -48,14 +48,21 @@ state the rule directly — `the AC8 cost cap` → `the cost cap`.
 - [x] AC9 — Projections regenerated (`catalogue self-host --write --force`); all projected mirrors consistent with sources.
 - [x] AC10 — Guardrails added to `packs/AGENTS.md` (scope broadened), `packs/AGENTS.local.md`, and `packages/AGENTS.local.md`, each carrying the grep, the IETF carve-out, and the illustrative-example carve-out.
 - [x] AC11 — `packs/AGENTS.md` stays within its 150-line cap (148).
+- [x] AC11a — `packages/credbroker/**` (source of the pack's projected credbroker user-lib) is clean, and the projection matches byte-for-byte after `self-host`.
 - [ ] AC12 — `packages/**` swept on the same principle. **(deferred: packages-governance-marker-sweep)**
 
 ## Boundaries
 
 In scope and complete: every file under `packs/` — `pack.toml`, `SKILL.md`, `README.md`,
 `JOURNEY.md`, `DESIGN.md`, `references/**`, `scripts/**`, `seeds/**`, `evals/**` — plus
-`packages/credbroker/credbroker/_sso.py` (byte-identical twin of the pack copy; the two
-must move together) and the three guardrail files.
+`packages/credbroker/**` and the three guardrail files.
+
+**`packs/credential-brokers/.apm/user-libs/credbroker/` is a projection, not a source.**
+`self-host` copies `packages/credbroker/` over it, so edits made only to the pack copy are
+silently reverted on the next `build-self`. This bit mid-change: the RFC edits survived
+because both copies happened to be edited, while AC edits to the pack copy alone were
+reverted and only resurfaced on a final full-tree grep. Fix `packages/credbroker/`, then
+project. `packages/credbroker/tests/**` is therefore in scope too (146 tests, green).
 
 **Deferred: `packages/**` (AC12).** The human directed that this be in scope on the
 principle that *everything source-code-wise is visible*. That direction stands and the

@@ -315,7 +315,7 @@ def _tier2(namespace: str, key: str) -> str | None:
 # one, the plaintext dotfile is the floor. Sourcing the vault's master secret
 # (keyring -> env -> file) is stdlib — only decrypting the vault needs the
 # [crypto] extra, which is imported lazily so the base import graph stays
-# third-party-free (AC4).
+# third-party-free.
 
 #: Env var carrying the vault master where no OS keyring is available
 #: (headless Linux / locked-down corporate). Ephemeral, wrapper-injected.
@@ -359,7 +359,7 @@ def _source_vault_master() -> str | None:
     ``None`` when none is set.
 
     credbroker only *reads* here — it never writes the master to the process
-    environment and never exports the derived KEK (AC6).
+    environment and never exports the derived KEK.
     """
     # 1. OS keyring (where a backend exists and holds the entry).
     if _tier2_backend is not None:
@@ -980,7 +980,7 @@ def store_in_vault(namespace: str, key: str, value: str, *, master: str) -> None
     """Write ``(namespace, key) -> value`` to the encrypted ``[crypto]`` vault.
 
     Lazily imports ``_vault`` (crypto-gated) so the base import graph stays
-    third-party-free (AC4). The **sole** public vault-write entry point;
+    third-party-free. The **sole** public vault-write entry point;
     ``_vault.set_credential`` stays private-by-convention.
     """
     from . import _vault  # lazy: cryptography only loaded when the vault is written

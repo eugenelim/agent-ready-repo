@@ -142,7 +142,7 @@ def load_sso_cookies(profile: str) -> Path:
 
 
 def validate_https_url(value: str, *, field: str) -> None:
-    """Reject *value* unless its scheme is exactly ``https`` (AC3).
+    """Reject *value* unless its scheme is exactly ``https``.
 
     Applied to ``login_url``, ``success_url_pattern``, and ``base_url`` — the
     cookie jar is a bearer secret, so a plaintext (``http``) or scheme-less
@@ -157,7 +157,7 @@ def validate_https_url(value: str, *, field: str) -> None:
 
 
 def validate_root_relative_endpoint(value: str, *, field: str = "validation_endpoint") -> None:
-    """Reject *value* unless it is a root-relative path (AC3).
+    """Reject *value* unless it is a root-relative path.
 
     Must lead with a single ``/`` and carry no scheme, host, or protocol-relative
     ``//`` prefix — so a validation endpoint can never be redirected off-host.
@@ -171,19 +171,19 @@ def validate_root_relative_endpoint(value: str, *, field: str = "validation_endp
 
 def _normalize_domain(domain: str) -> str:
     """Lower-case and strip a leading dot — the broker stores domains via
-    ``lstrip('.')`` while cookie ``domain`` fields keep a leading dot (AC4)."""
+    ``lstrip('.')`` while cookie ``domain`` fields keep a leading dot."""
     return domain.lstrip(".").lower()
 
 
 def domain_in_cookie_domains(domain: str, cookie_domains: Iterable[str]) -> bool:
-    """Normalized label-boundary suffix match (AC4, AC6).
+    """Normalized label-boundary suffix match.
 
     Both sides are dot-stripped and lower-cased; *domain* is admitted iff it
     equals an allowed domain or is a dot-delimited subdomain of one. The label
     boundary is load-bearing: ``evil-corp.example.com`` is rejected against
     ``corp.example.com`` (no ``.`` before ``corp``), while ``jira.corp.example.com``
     is admitted. This is the single normalization primitive shared by the
-    cookie-jar filter (AC4) and the send-host check (AC6).
+    cookie-jar filter and the send-host check.
     """
     cand = _normalize_domain(domain)
     if not cand:
@@ -200,12 +200,12 @@ def domain_in_cookie_domains(domain: str, cookie_domains: Iterable[str]) -> bool
 def filter_jar_to_domains(
     cookies: list[dict], cookie_domains: Iterable[str]
 ) -> list[dict]:
-    """Reduce an over-broad captured jar to cookies within *cookie_domains* (AC4).
+    """Reduce an over-broad captured jar to cookies within *cookie_domains*.
 
     The engine captures every cookie observed across the SSO/IdP/analytics
     redirect chain; the consumer filters that loaded jar to the declared domains
     at load time, before attaching it. Returns a new list; the caller must never
-    write the result back to the broker path (AC10). A cookie with no ``domain``
+    write the result back to the broker path. A cookie with no ``domain``
     field is dropped (fail closed).
     """
     allowed = list(cookie_domains)
@@ -213,7 +213,7 @@ def filter_jar_to_domains(
 
 
 def require_host_in_cookie_domains(host: str, cookie_domains: Iterable[str]) -> None:
-    """Fail closed unless *host* is within the declared ``cookie_domains`` (AC6).
+    """Fail closed unless *host* is within the declared ``cookie_domains``.
 
     The consumer client's request base host must be a member of the confinement
     set before any cookie-bearing request leaves the process; a mismatch (a

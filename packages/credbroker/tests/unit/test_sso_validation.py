@@ -1,4 +1,4 @@
-"""SSO confinement primitives (spec task T2; AC3, AC4, AC6).
+"""SSO confinement primitives (spec task T2; AC3).
 
 Table-driven over the security-control surface: the https-only scheme guard, the
 root-relative endpoint guard, the cookie-domain confinement match (with the
@@ -15,7 +15,7 @@ from credbroker._sso import SsoConfigError
 COOKIE_DOMAINS = ["corp.example.com", "jira.example.invalid"]
 
 
-# --- https-only scheme guard (AC3) -------------------------------------------
+# --- https-only scheme guard -------------------------------------------
 
 @pytest.mark.parametrize("url", [
     "https://corp.example.com",
@@ -37,7 +37,7 @@ def test_validate_https_url_rejects_non_https(url: str) -> None:
         _sso.validate_https_url(url, field="base_url")
 
 
-# --- root-relative endpoint guard (AC3) --------------------------------------
+# --- root-relative endpoint guard --------------------------------------
 
 @pytest.mark.parametrize("endpoint", [
     "/rest/api/2/myself",
@@ -76,7 +76,7 @@ def test_domain_in_cookie_domains(domain: str, expected: bool) -> None:
     assert _sso.domain_in_cookie_domains(domain, COOKIE_DOMAINS) is expected
 
 
-# --- load-time over-broad-jar filter (AC4) -----------------------------------
+# --- load-time over-broad-jar filter -----------------------------------
 
 def test_filter_jar_to_domains_reduces_overbroad_jar() -> None:
     # The engine captures the session cookies PLUS IdP / analytics cookies seen
@@ -101,7 +101,7 @@ def test_filter_jar_drops_domainless_cookie() -> None:
     assert _sso.filter_jar_to_domains(jar, COOKIE_DOMAINS) == []
 
 
-# --- send-host membership, fail-closed (AC6) ---------------------------------
+# --- send-host membership, fail-closed ---------------------------------
 
 @pytest.mark.parametrize("host", ["corp.example.com", "jira.corp.example.com"])
 def test_require_host_in_cookie_domains_passes(host: str) -> None:

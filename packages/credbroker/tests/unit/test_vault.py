@@ -1,4 +1,4 @@
-"""Encrypted-vault tests (spec task T4; AC5, AC13).
+"""Encrypted-vault tests (spec task T4; AC5).
 
 Gated on the `[crypto]` extra — skip cleanly when cryptography/argon2 are
 absent (the base install). Verifies the round-trip, fail-closed-on-wrong-master,

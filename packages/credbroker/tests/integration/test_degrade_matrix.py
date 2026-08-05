@@ -1,4 +1,4 @@
-"""Graceful-degrade matrix (spec task T6; AC7, AC13).
+"""Graceful-degrade matrix (spec task T6; AC7).
 
 Drives ``load_credentials`` across the ``[crypto] × keyring`` environment cells
 and asserts the resolved tier + no-leak per cell. The matrix is the resilience

@@ -1,4 +1,4 @@
-"""SSO consumer-resolver contract (spec task T1; AC1, AC2, AC10).
+"""SSO consumer-resolver contract (spec task T1; AC1).
 
 ``load_sso_cookies`` subprocess-invokes the unchanged ``sso-broker.py`` engine and
 returns the on-disk jar path, proceeding only on exit-0-with-readable-path and
@@ -61,7 +61,7 @@ def test_exit2_raises_session_unavailable_with_verbatim_remediation(
 
 
 def test_broker_absent_raises_not_installed(fake_home: Path) -> None:
-    # No broker written under fake_home → install-the-pack remediation (AC1).
+    # No broker written under fake_home → install-the-pack remediation.
     with pytest.raises(_sso.SsoBrokerNotInstalledError) as exc:
         _sso.load_sso_cookies("corp")
     assert "install the credential-brokers pack" in str(exc.value)
@@ -107,7 +107,7 @@ def test_argv_carries_only_profile_no_cookie_value(
 
     argv = seen["argv"]
     # Exactly: [interpreter, broker, "get-cookies", "corp"] — only the profile
-    # name leaves the process; no cookie value crosses argv (AC10).
+    # name leaves the process; no cookie value crosses argv.
     assert argv[-2:] == ["get-cookies", "corp"]
     assert "sso-broker.py" in argv[1]
     for banned in ("--token", "--cookie", "--api-token", "Cookie", "JSESSIONID"):
