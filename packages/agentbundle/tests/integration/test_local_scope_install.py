@@ -312,16 +312,23 @@ def test_write_exclude_block_docstring_ac27(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_rollback_on_write_failure(git_repo: Path) -> None:
-    """If install fails mid-write, exclude block and files are rolled back (AC21)."""
+    """If state write fails, exclude block and projected files are rolled back (AC21).
+
+    Injects a RuntimeError into persist_state_locked; verifies that:
+    - install exits non-zero (exception propagated → rc = 1)
+    - the projected skill file is gone (file rollback ran)
+    - the exclude block is absent (exclude rollback ran)
+    - the local state file does not exist
+    """
     from agentbundle import statelock
     from agentbundle.commands.install import run as install_run
     from agentbundle.local_exclude import get_exclude_path, snapshot_exclude
 
-    # Capture pre-install exclude state (for post-failure comparison)
     exclude_path = get_exclude_path(git_repo)
-    _prior_content = snapshot_exclude(exclude_path)  # noqa: F841 (rollback assertion anchor)
+    prior_exclude = snapshot_exclude(exclude_path)
 
-    # Patch statelock.persist_state_locked to raise on first call
+    # Patch persist_state_locked to raise on first call so the state write fails
+    # after files have been projected to disk (file writes happen before state write).
     _original_persist = statelock.persist_state_locked
     call_count = [0]
 
@@ -340,13 +347,23 @@ def test_rollback_on_write_failure(git_repo: Path) -> None:
                 mp.setattr(statelock, "persist_state_locked", _failing_persist)
                 rc = install_run(_install_args(git_repo))
         except RuntimeError:
-            rc = 1  # exception propagated
+            rc = 1  # RuntimeError propagates after rollback (re-raised by install)
 
-    # The install should have failed
-    # Note: rollback may not cover the statelock failure specifically in v1;
-    # at minimum: the local state file should not exist (no committed state)
+    assert rc != 0, "install should exit non-zero when state write fails"
+
+    # AC21: projected files rolled back
+    skill_path = git_repo / _EXPECTED_SKILL_RELPATH
+    assert not skill_path.exists(), (
+        "Projected skill file should be removed by rollback; "
+        f"skill_path={skill_path}, err={err.getvalue()!r}"
+    )
+
+    # AC21: local state file never committed
     state_path = git_repo / ".agentbundle-local-state.toml"
-    # Verify no committed state exists
-    assert not state_path.exists() or rc != 0, (
-        "Either install failed or state file should not be present after failure"
+    assert not state_path.exists(), "Local state file should not exist after rollback"
+
+    # AC21: exclude block rolled back to prior state
+    current_exclude = exclude_path.read_bytes() if exclude_path.exists() else b""
+    assert current_exclude == prior_exclude, (
+        "Exclude block should be restored to pre-install state after rollback"
     )

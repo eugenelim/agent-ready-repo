@@ -3,6 +3,7 @@
 Tests for:
   - emit_install_routes inference: cli_scope not in ("user", "local")
   - --scope local --emit-install-routes refused with RFC-0008 message
+  - AC11b: --scope local --force-merge refused (force-merge is user-scope-only)
   - validate_dependencies_required local_state parameter (AC23b)
 """
 
@@ -104,6 +105,57 @@ def test_install_scope_local_emit_install_routes_refused(tmp_path, capsys):
     captured = capsys.readouterr()
     assert rc != 0
     assert "RFC-0008" in captured.err or "emit-install-routes" in captured.err.lower()
+
+
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# AC11b: --scope local --force-merge refused
+# ---------------------------------------------------------------------------
+
+
+def test_install_force_merge_refused_with_local_scope(tmp_path, capsys):
+    """AC11b: --force-merge --scope local is refused immediately.
+
+    --force-merge is user-scope-only (install.py line 380 guard).
+    The error message must reference 'user scope'.
+    """
+    from agentbundle.commands.install import run as install_run
+
+    # Build a minimal pack
+    pack_dir = tmp_path / "mypkg"
+    pack_dir.mkdir()
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "mypkg"\nversion = "0.1.0"\n'
+        '[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "local"]\n',
+        encoding="utf-8",
+    )
+    catalogue_dir = tmp_path / "catalogue"
+    (catalogue_dir / "packs").mkdir(parents=True)
+    import shutil
+    shutil.copytree(pack_dir, catalogue_dir / "packs" / "mypkg")
+
+    args = SimpleNamespace(
+        pack="mypkg",
+        profile=None,
+        catalogue=str(catalogue_dir),
+        output=str(tmp_path / "repo"),
+        scope="local",
+        force=False,
+        force_merge=True,  # ← the flag under test
+        adapter=None,
+        emit_install_routes=False,
+        dry_run=False,
+        yes=True,
+        _user_config=None,
+    )
+    (tmp_path / "repo").mkdir()
+
+    rc = install_run(args)
+    captured = capsys.readouterr()
+    assert rc != 0
+    assert "user scope" in captured.err, (
+        f"Expected 'user scope' in error message; got: {captured.err!r}"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -418,6 +418,21 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
+    # AC8 (RFC-0080): local scope requires a git work tree.  Check before any
+    # git-dependent helper (derive_worktree_id, get_exclude_path) can be called.
+    # The check is cheap (one git invocation) and surfaces a clear message rather
+    # than a cryptic failure deep in the exclude-block path.
+    if requested_scope == "local":
+        from agentbundle.local_exclude import is_git_repo
+
+        if not is_git_repo(output_root):
+            print(
+                f"install: --scope local requires a git work tree; "
+                f"{output_root} does not appear to be inside one",
+                file=sys.stderr,
+            )
+            return 1
+
     # ── Step 3: Pre-flight — load state at *both* scopes ──────────────────────
     # Read-only loads (for_write=False) — we do the v0.1 refusal *only*
     # for scopes we're about to write to, after we know which they are.
@@ -1330,7 +1345,6 @@ def run(args: argparse.Namespace) -> int:
                     safety.write_companion(plan.root, relpath, content)
                 except safety.PathJailError as exc:
                     if plan.scope == "local" and _local_exclude_path is not None:
-                        import contextlib
                         for _p in _local_written_files:
                             with contextlib.suppress(OSError):
                                 _p.unlink(missing_ok=True)
@@ -1351,7 +1365,6 @@ def run(args: argparse.Namespace) -> int:
                     )
                 except safety.PathJailError as exc:
                     if plan.scope == "local" and _local_exclude_path is not None:
-                        import contextlib
                         for _p in _local_written_files:
                             with contextlib.suppress(OSError):
                                 _p.unlink(missing_ok=True)
@@ -1531,21 +1544,41 @@ def run(args: argparse.Namespace) -> int:
                 root=plan.root,
                 relpath=state_relpath,
             )
-        except safety.PathJailError as exc:
-            print(f"install: {exc}", file=sys.stderr)
-            return 1
-        except ConfigError as exc:
-            # persist_state_locked re-reads state under the lock; a concurrent
-            # process could have rewritten it to a foreign schema between
-            # pre-flight and now. The projected files are already on disk —
-            # surface that so the adopter knows to reconcile and re-run rather
-            # than seeing a bare traceback over a half-recorded install.
-            print(
-                f"install: files were written but state was not recorded: "
-                f"{exc}; reconcile {plan.state_path} and re-run",
-                file=sys.stderr,
-            )
-            return 1
+        except Exception as exc:  # noqa: BLE001
+            # AC21 rollback: on ANY state-write failure, undo projected files
+            # and the exclude block so the local-scope install leaves no trace.
+            # Inline (no nested function) to avoid B023 loop-variable closure.
+            if plan.scope == "local" and _local_exclude_path is not None:
+                from agentbundle.local_exclude import (
+                    rollback_exclude_block as _roll_excl,
+                )
+
+                for _p in _local_written_files:
+                    with contextlib.suppress(OSError):
+                        _p.unlink(missing_ok=True)
+                _roll_excl(_local_exclude_path, _local_prior_exclude)
+            if isinstance(exc, safety.PathJailError):
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            if isinstance(exc, ConfigError):
+                # persist_state_locked re-reads state under the lock; a concurrent
+                # process could have rewritten it to a foreign schema between
+                # pre-flight and now. For non-local scopes: files are on disk —
+                # surface that so the adopter can reconcile. For local scope:
+                # rollback already ran, so no files remain.
+                if plan.scope == "local":
+                    print(
+                        f"install: state write failed, rollback complete: {exc}",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        f"install: files were written but state was not recorded: "
+                        f"{exc}; reconcile {plan.state_path} and re-run",
+                        file=sys.stderr,
+                    )
+                return 1
+            raise
 
         # Cross-adapter disclosure rail (RFC-0052 Decision 7): if this
         # install wrote to a `shared` prefix, name the prefix's other shipped

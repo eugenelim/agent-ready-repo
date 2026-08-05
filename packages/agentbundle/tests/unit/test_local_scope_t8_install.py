@@ -60,6 +60,68 @@ def test_get_exclude_path_resolves_to_absolute(git_repo: Path) -> None:
     assert "info" in path.parts
 
 
+def test_is_git_repo_true_inside_repo(git_repo: Path) -> None:
+    """is_git_repo returns True when called inside a git work tree."""
+    from agentbundle.local_exclude import is_git_repo
+
+    assert is_git_repo(git_repo) is True
+
+
+def test_is_git_repo_false_outside_repo(tmp_path: Path) -> None:
+    """is_git_repo returns False for a plain directory (AC8: pre-flight gate)."""
+    from agentbundle.local_exclude import is_git_repo
+
+    plain_dir = tmp_path / "not_a_repo"
+    plain_dir.mkdir()
+    assert is_git_repo(plain_dir) is False
+
+
+def test_install_local_refused_outside_git_repo(tmp_path: Path, capsys) -> None:
+    """AC8: install --scope local is refused when output is not a git work tree."""
+    from types import SimpleNamespace
+
+    from agentbundle.commands.install import run as install_run
+
+    # Build a minimal pack (allowed-scopes includes "local")
+    pack_dir = tmp_path / "mypkg"
+    pack_dir.mkdir()
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "mypkg"\nversion = "0.1.0"\n'
+        '[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "local"]\n',
+        encoding="utf-8",
+    )
+    catalogue_dir = tmp_path / "catalogue"
+    (catalogue_dir / "packs").mkdir(parents=True)
+    import shutil
+    shutil.copytree(pack_dir, catalogue_dir / "packs" / "mypkg")
+
+    # Repo root is a plain directory, not a git repo
+    plain_output = tmp_path / "not_a_repo"
+    plain_output.mkdir()
+
+    args = SimpleNamespace(
+        pack="mypkg",
+        profile=None,
+        catalogue=str(catalogue_dir),
+        output=str(plain_output),
+        scope="local",
+        force=False,
+        force_merge=False,
+        adapter=None,
+        emit_install_routes=False,
+        dry_run=False,
+        yes=True,
+        _user_config=None,
+    )
+
+    rc = install_run(args)
+    captured = capsys.readouterr()
+    assert rc != 0, "install --scope local must fail outside a git repo"
+    assert "git work tree" in captured.err, (
+        f"Expected 'git work tree' in error message; got: {captured.err!r}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Exclude block write in install — patterns and ordering
 # ---------------------------------------------------------------------------

@@ -777,13 +777,9 @@ Per the work-loop's three-mode taxonomy:
       - **AC19b (chained `adapt`).** After the marker write, the
         CLI runs `agentbundle.commands.adapt.run(args)` in-process
         (no subprocess; no LLM) with `args.values_from = Path(
-        "<repo>/.adapt-discovery.toml")` for repo/user scope installs.
-        **Exception (RFC-0080):** `--scope local` installs are
-        ephemeral (files are git-invisible); no marker is written and
-        `adapt` is not chained, to avoid applying adapt-discovery
-        transforms to files the user considers non-committed.
-        The CLI's dual-scope `adapt` walk handles both scopes'
-        companions and pending reports for repo/user installs.
+        "<repo>/.adapt-discovery.toml")` (regardless of install
+        scope — markers are repo-only). The CLI's dual-scope `adapt`
+        walk handles both scopes' companions and pending reports.
       - **AC19c (`.gitignore` extension).** `agentbundle scaffold`
         lays down a `.gitignore` containing
         `.adapt-install-marker.toml` (repo-scope marker only —
@@ -1037,3 +1033,16 @@ Per the work-loop's three-mode taxonomy:
 - 2026-05-25: AC24/AC25/AC26 added per docs/specs/claude-plugins-install-route/spec.md — read-side fallback for v0.4 markers, proactive cache-scan idempotence, stale-entry drop-on-read.
 - 2026-05-25: install-route permitted-values extended to include "apm" per docs/specs/apm-install-route-parity/spec.md.
 - 2026-05-25: AC27 added per docs/specs/apm-install-route-parity/spec.md — stale-entry drop-on-read for install-route = "apm" entries.
+
+## Errata
+
+- 2026-08-05 (eugenelim): **AC19b exception for `--scope local`.** The shipped
+  AC19b body says markers are written "regardless of install scope." Per
+  `docs/specs/local-scope-install/spec.md` (RFC-0080), `--scope local`
+  installs are ephemeral and git-invisible; no install marker is written and
+  `adapt` is not chained, to avoid applying adapt-discovery transforms to
+  files the user considers non-committed. The AC19b body was not amended at
+  ship time because the local-scope spec was authored after acceptance; this
+  erratum records the exception. Behaviour is governed by the local-scope spec
+  AC13 (no install-marker write) and AC19 (no `_chain_adapt` call) in
+  `docs/specs/local-scope-install/spec.md`.

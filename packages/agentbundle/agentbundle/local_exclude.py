@@ -57,13 +57,38 @@ _PRIMARY_SENTINEL = "primary"
 
 
 def _git_rev_parse(repo_root: Path, flag: str) -> str:
-    """Run ``git -C <repo_root> rev-parse <flag>`` and return stripped stdout."""
+    """Run ``git -C <repo_root> rev-parse <flag>`` and return stripped stdout.
+
+    Raises:
+        RuntimeError: if git exits non-zero (not inside a work tree or git
+            not installed).  Callers that want a graceful failure should catch
+            this; callers that need a pre-flight bool should use
+            :func:`is_git_repo` first.
+    """
     result = subprocess.run(
         ["git", "-C", str(repo_root), "rev-parse", flag],
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        msg = result.stderr.strip() or f"git rev-parse {flag} failed (exit {result.returncode})"
+        raise RuntimeError(msg)
     return result.stdout.strip()
+
+
+def is_git_repo(repo_root: Path) -> bool:
+    """Return True iff *repo_root* is inside a git work tree.
+
+    Uses ``git rev-parse --is-inside-work-tree``; returns False for any
+    non-zero exit (not a repo, git not installed, bare clone, etc.).
+    Never raises.
+    """
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--is-inside-work-tree"],
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0 and result.stdout.strip() == "true"
 
 
 def derive_worktree_id(repo_root: Path) -> str:
