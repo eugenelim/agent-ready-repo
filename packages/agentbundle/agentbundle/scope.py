@@ -43,7 +43,8 @@ if TYPE_CHECKING:
 # The spec's only legal scope values; ``global`` is deliberately absent
 # (RFC-0004 § Alternatives considered §6). Keep this single-sourced so
 # argparse's `choices=` and the runtime resolver agree.
-LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user"})
+# RFC-0080: "local" added for per-clone, never-committed installs.
+LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user", "local"})
 
 # RFC-0011 / pack-allowed-adapters introduced this constant for the
 # greenfield-fallback default at user scope; RFC-0012 widens it to
@@ -149,6 +150,13 @@ def resolve(
     if not isinstance(pack_default, str) or pack_default not in LEGAL_SCOPES:
         pack_default = builtin_default
 
+    # AC3 (RFC-0080): packs may not declare default-scope="local" — that
+    # would make every unpinned install local-scope, which violates the
+    # "trial-only, never committed" contract. The schema enum already
+    # disallows it; this is defense-in-depth at the runtime level.
+    if pack_default == "local":
+        raise ScopeRefused(pack_name, "local", ["repo", "user"])
+
     raw_allowed = install.get("allowed-scopes")
     if isinstance(raw_allowed, list) and raw_allowed:
         allowed = [s for s in raw_allowed if isinstance(s, str)]
@@ -159,6 +167,15 @@ def resolve(
         allowed = [pack_default]
 
     requested = cli_flag if isinstance(cli_flag, str) else pack_default
+
+    # D4 auto-promote (RFC-0080 ADR-0070): "local" does not need to appear
+    # explicitly in allowed-scopes — it is automatically permitted for any
+    # pack whose allowed-scopes contains "repo" (local is a git-invisible
+    # projection of the repo install). If "repo" is absent, refuse.
+    if requested == "local":
+        if "repo" not in allowed:
+            raise ScopeRefused(pack_name, requested, allowed)
+        return "local"
 
     if requested not in allowed:
         raise ScopeRefused(pack_name, requested, allowed)
