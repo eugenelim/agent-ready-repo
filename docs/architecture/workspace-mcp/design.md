@@ -101,7 +101,7 @@ flowchart LR
 |---|---|
 | **Progress** | loop-engine appends to `events.jsonl` → event bridge tail-polls → emits `skill-state-change` |
 | **Human gates** | Event bridge detects `*-HUMAN-GATE` → emits `human-gate-pending` with reviewer findings + gate question |
-| **Elicitation** | `elicit()` → `elicitation/create` (MCP) → ACP `session/create_elicitation` → control plane → human → `session/complete_elicitation` → AI |
+| **Elicitation** | `elicit()` → MCP `elicitation/create` request (server→client JSON-RPC) → harness routes to human → harness returns JSON-RPC response to the request → `elicit()` unblocks |
 | **Git** | AI calls `git_*` tools → workspace-mcp validates against lifecycle manifest → subprocess |
 
 > **Observability caveat — Stage 1:** `claude-agent-acp@0.64.x` does not relay MCP

@@ -109,6 +109,18 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
 }
 ```
 
+Then send the first message to start the agent (the session is idle until a prompt arrives):
+
+```json
+{
+  "method": "session/prompt",
+  "params": {
+    "sessionId": "<id from session/new response>",
+    "prompt": [{ "type": "text", "text": "Run the work-loop for the dispatched item." }]
+  }
+}
+```
+
 ### Non-FSM items (`type: "research"` | `"design"` | `"shape"` | `"strategy"`)
 
 > **Stage 3 (planned).** The workspace-mcp git tools for non-FSM item types are
@@ -182,9 +194,9 @@ When `gate_pending` is true, the work-loop is paused waiting for a human decisio
 
 Declare `capabilities.elicitation` in the ACP init handshake. The agent then sends `elicitation/create` and blocks until the harness resolves it:
 
-1. The agent calls `elicit()` → ACP sends `elicitation/create` with the gate question
-2. Your harness routes the question to the human channel
-3. Your harness calls the ACP elicitation-resolve endpoint with the human's answer
+1. The agent calls `elicit()` → workspace-mcp sends an MCP `elicitation/create` JSON-RPC request to the harness (server→client)
+2. Your harness receives the request, routes the question to the human channel
+3. Your harness returns the human's answer as the JSON-RPC response to the `elicitation/create` request
 4. The `elicit()` call unblocks and the work-loop continues
 
 > **Stage 1 limitation — response-file fallback unsupported.** When `capabilities.elicitation`

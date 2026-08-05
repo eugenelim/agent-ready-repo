@@ -179,7 +179,7 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 
 ### Autonomous dispatch
 
-For control-harness use — sessions driven programmatically without a human watching each turn — the two human touches collapse to gate responses via ACP. The harness calls `workspace_status()` to read the queue, dispatches an item, polls for `gate_pending`, routes the gate question to a human channel, and resumes the session with the answer via `session/prompt`.
+For control-harness use — sessions driven programmatically without a human watching each turn — the two human touches collapse to gate responses via ACP. The harness calls `workspace_status()` to read the queue, dispatches an item, polls for `gate_pending`, routes the gate question to a human channel, and responds to the pending ACP elicitation request with the human's answer to unblock the gate.
 
 The work-loop runs the same gates; the harness is what answers them instead of a person at a keyboard.
 
