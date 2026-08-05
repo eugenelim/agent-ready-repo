@@ -327,6 +327,12 @@ each Claude Code session. It exposes six tools over MCP stdio:
 python3 -m agentbundle.workspace_mcp
 ```
 
+> **Trusted checkout only.** This form runs whichever `agentbundle` is on
+> `sys.path`. If the repo uses an editable install (`pip install -e .`), it
+> runs the local checkout's code. Use only on repos you trust. An isolated
+> spawn mode (`python3 -I -m agentbundle.workspace_mcp`) is planned for
+> Stage 2 and will require a stable non-editable install.
+
 **Inject the session instruction** so the agent knows to use the tools:
 
 ```python

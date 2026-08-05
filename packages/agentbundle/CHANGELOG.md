@@ -8,6 +8,28 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.28.3]
+
+### Fixed
+
+- **`workspace_mcp._GitTools`**: `_fsm_mode` now triggers on any valid
+  `WORKSPACE_MCP_SPEC_PATH`, regardless of whether `WORKSPACE_MCP_DISPATCHED_ITEM`
+  is also set. Previously, when both env vars were provided, `_fsm_mode` was
+  `False` because `dispatched is not None`, allowing `git_branch`, `git_commit`,
+  and `git_push` through despite the FSM-mode intent. A startup warning is now
+  logged when both variables are present (unsupported configuration); SPEC_PATH
+  wins. Fixes P1 finding from independent Sol review.
+
+- **`workspace_mcp._build_tools_list`** (`git_push`): corrected description —
+  the session branch may be locked from a prior run in resumed dispatched sessions
+  (no `git_branch()` call required). Updated the `branch` parameter description
+  to say "established by git_branch() or inherited from session startup."
+
+- **`README-pypi.md`**: marked the `python3 -m agentbundle.workspace_mcp` spawn
+  command as trusted-checkout-only. Added note that an isolated spawn mode
+  (`python3 -I -m ...`) is planned for Stage 2 and requires a stable
+  non-editable install.
+
 ## [0.28.2]
 
 ### Fixed

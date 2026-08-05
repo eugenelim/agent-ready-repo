@@ -992,9 +992,17 @@ class _GitTools:
             )
             dispatched = None
         self._discovery_mode = not spec_path and not dispatched
-        # FSM mode (SPEC_PATH only): work-loop manages its own git lifecycle;
-        # git_branch, git_commit, and git_push are intentionally unavailable.
-        self._fsm_mode = spec_path is not None and dispatched is None
+        # FSM mode: any valid WORKSPACE_MCP_SPEC_PATH activates FSM mode —
+        # work-loop manages its own git lifecycle, so git_branch, git_commit,
+        # and git_push are unavailable.  When BOTH env vars are set (unsupported
+        # per the one-variable contract), SPEC_PATH wins and a warning is logged.
+        if spec_path is not None and dispatched is not None:
+            _log.warning(
+                "Both WORKSPACE_MCP_SPEC_PATH and WORKSPACE_MCP_DISPATCHED_ITEM are set "
+                "(unsupported); WORKSPACE_MCP_SPEC_PATH takes precedence — "
+                "FSM mode active, git writes blocked"
+            )
+        self._fsm_mode = spec_path is not None
         # Expected branch from dispatched item (ini_slug/type:slug → ini_slug/type/slug)
         self._expected_branch: str | None = self._derive_expected_branch(dispatched)
         self._session_branch: str | None = self._read_head_branch()
@@ -1692,7 +1700,10 @@ class _StdioLoop:
                     "raw git push bypasses the branch check that prevents pushing "
                     "to a branch other than the one established for this session. "
                     "Pushes the session branch to origin. "
-                    "Requires git_branch() to have been called first in this session. "
+                    "The session branch must be established before pushing: "
+                    "call git_branch() in a new session, or in a resumed "
+                    "dispatched session the branch may already be locked from "
+                    "the prior run (no git_branch() call required in that case). "
                     "Not available when no item has been dispatched."
                 ),
                 "inputSchema": {
@@ -1701,8 +1712,9 @@ class _StdioLoop:
                         "branch": {
                             "type": "string",
                             "description": (
-                                "Branch name to push. Must match the branch "
-                                "established by git_branch() in this session."
+                                "Branch name to push. Must match the session-bound "
+                                "branch established by git_branch() or inherited "
+                                "from session startup."
                             ),
                         }
                     },

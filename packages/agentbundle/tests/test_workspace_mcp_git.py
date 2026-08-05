@@ -67,7 +67,12 @@ class TestGitPush:
 
 
 class TestFsmModeGuard:
-    """FSM mode (SPEC_PATH only, no DISPATCHED_ITEM) must block all mutating git tools."""
+    """FSM mode (any valid SPEC_PATH) must block all mutating git tools (AC15a).
+
+    Covers two sub-cases:
+    - SPEC_PATH only (canonical FSM session)
+    - SPEC_PATH + DISPATCHED_ITEM both set (unsupported; SPEC_PATH wins)
+    """
 
     def _make_tools(self, tmp_path: Path, env: dict) -> _GitTools:
         """Construct _GitTools with the given env vars applied."""
@@ -107,6 +112,48 @@ class TestFsmModeGuard:
             check=True, capture_output=True, text=True, cwd=str(repo),
         ).stdout.strip()
         tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        result = tools.git_push({"branch": branch})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]
+
+    # --- Both-vars sub-case (AC15a): SPEC_PATH wins even when DISPATCHED_ITEM is also set ---
+
+    def test_git_branch_blocked_when_both_vars_set(self, tmp_path: Path) -> None:
+        """git_branch blocked when both env vars set — FSM mode wins (AC15a)."""
+        repo = _init_git_repo(tmp_path)
+        env = {
+            "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
+            "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
+        }
+        tools = self._make_tools(repo, env)
+        result = tools.git_branch({"name": "feat/my-thing"})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]
+
+    def test_git_commit_blocked_when_both_vars_set(self, tmp_path: Path) -> None:
+        """git_commit blocked when both env vars set — FSM mode wins (AC15a)."""
+        repo = _init_git_repo(tmp_path)
+        env = {
+            "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
+            "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
+        }
+        tools = self._make_tools(repo, env)
+        result = tools.git_commit({"message": "test"})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]
+
+    def test_git_push_blocked_when_both_vars_set(self, tmp_path: Path) -> None:
+        """git_push blocked when both env vars set — FSM mode wins (AC15a)."""
+        repo = _init_git_repo(tmp_path)
+        branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            check=True, capture_output=True, text=True, cwd=str(repo),
+        ).stdout.strip()
+        env = {
+            "WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo),
+            "WORKSPACE_MCP_DISPATCHED_ITEM": "my-ini/shape:my-shape",
+        }
+        tools = self._make_tools(repo, env)
         result = tools.git_push({"branch": branch})
         assert "error" in result
         assert "FSM" in result["error"] or "work-loop" in result["error"]
