@@ -214,3 +214,40 @@ def test_rollback_exclude_block_restores_prior_content(tmp_path):
 
     rollback_exclude_block(exclude, prior)
     assert exclude.read_bytes() == prior
+
+
+def test_rollback_exclude_block_unlinks_when_prior_was_absent(tmp_path):
+    """When prior_content=None (file was absent), rollback unlinks the file."""
+    exclude = tmp_path / "exclude"
+    assert not exclude.exists()
+
+    # Simulate: file was absent, then a block was written
+    write_exclude_block(exclude, "mypkg", "primary", ["/file.md"])
+    assert exclude.exists()  # sanity: file was created
+
+    # Rollback with prior=None should unlink the file
+    rollback_exclude_block(exclude, None)
+    assert not exclude.exists(), "rollback should remove file that was absent before install"
+
+
+def test_snapshot_exclude_returns_none_for_absent_file(tmp_path):
+    """snapshot_exclude returns None when the file does not exist."""
+    exclude = tmp_path / "exclude"
+    assert not exclude.exists()
+
+    from agentbundle.local_exclude import snapshot_exclude
+
+    result = snapshot_exclude(exclude)
+    assert result is None
+
+
+def test_snapshot_exclude_returns_bytes_for_existing_file(tmp_path):
+    """snapshot_exclude returns the file bytes when the file exists."""
+    exclude = tmp_path / "exclude"
+    content = b"# existing content\n"
+    exclude.write_bytes(content)
+
+    from agentbundle.local_exclude import snapshot_exclude
+
+    result = snapshot_exclude(exclude)
+    assert result == content

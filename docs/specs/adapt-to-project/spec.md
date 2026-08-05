@@ -1044,5 +1044,5 @@ Per the work-loop's three-mode taxonomy:
   files the user considers non-committed. The AC19b body was not amended at
   ship time because the local-scope spec was authored after acceptance; this
   erratum records the exception. Behaviour is governed by the local-scope spec
-  AC13 (no install-marker write) and AC19 (no `_chain_adapt` call) in
+  AC17 (no seeds/markers written) and AC19 (no `_chain_adapt` call) in
   `docs/specs/local-scope-install/spec.md`.

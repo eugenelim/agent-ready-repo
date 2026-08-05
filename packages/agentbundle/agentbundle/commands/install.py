@@ -1256,7 +1256,7 @@ def run(args: argparse.Namespace) -> int:
         # exclude block — deleting before restoring prevents a transient window
         # where files are on disk but not excluded.
         _local_exclude_path: Path | None = None
-        _local_prior_exclude: bytes = b""
+        _local_prior_exclude: bytes | None = None
         _local_written_files: list[Path] = []
         if plan.scope == "local":
             from agentbundle.local_exclude import (
@@ -1267,8 +1267,18 @@ def run(args: argparse.Namespace) -> int:
                 write_exclude_block,
             )
 
-            _local_worktree_id = derive_worktree_id(plan.root)
-            _local_exclude_path = get_exclude_path(plan.root)
+            try:
+                _local_worktree_id = derive_worktree_id(plan.root)
+                _local_exclude_path = get_exclude_path(plan.root)
+            except RuntimeError as _git_exc:
+                # Mid-run git failure (git binary removed, repo deleted mid-install).
+                # The AC8 pre-flight already verified the repo exists; this is a
+                # transient environment failure. Nothing has been written yet.
+                print(
+                    f"install: git error during local-scope setup: {_git_exc}",
+                    file=sys.stderr,
+                )
+                return 1
             _local_prior_exclude = snapshot_exclude(_local_exclude_path)
 
             # Union of patterns: existing other-adapter rows for this pack

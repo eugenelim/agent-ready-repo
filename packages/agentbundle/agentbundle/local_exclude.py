@@ -305,7 +305,7 @@ def strip_exclude_block(
     _write_atomically(exclude_path, "".join(new_lines).encode("utf-8"))
 
 
-def rollback_exclude_block(exclude_path: Path, prior_content: bytes) -> None:
+def rollback_exclude_block(exclude_path: Path, prior_content: bytes | None) -> None:
     """Atomically restore *exclude_path* to *prior_content*.
 
     Called during install rollback (AC21): if a write step fails after
@@ -316,25 +316,36 @@ def rollback_exclude_block(exclude_path: Path, prior_content: bytes) -> None:
 
     Args:
         exclude_path: absolute path to the ``info/exclude`` file.
-        prior_content: the raw bytes of the file before any modification.
+        prior_content: the raw bytes of the file before any modification,
+            or ``None`` if the file did not exist. When ``None``, the file
+            is unlinked (if present) rather than overwritten with empty bytes,
+            so rollback leaves no trace when no file existed beforehand.
     """
-    _write_atomically(exclude_path, prior_content)
+    if prior_content is None:
+        import contextlib
+        with contextlib.suppress(FileNotFoundError):
+            exclude_path.unlink()
+    else:
+        _write_atomically(exclude_path, prior_content)
 
 
-def snapshot_exclude(exclude_path: Path) -> bytes:
-    """Return the current raw bytes of *exclude_path*, or ``b""`` if absent.
+def snapshot_exclude(exclude_path: Path) -> bytes | None:
+    """Return the current raw bytes of *exclude_path*, or ``None`` if absent.
 
     Call before any write to capture the rollback snapshot (AC21 step 1).
+    Returns ``None`` (not ``b""``) when the file does not exist, so that
+    :func:`rollback_exclude_block` can distinguish "file was absent" from
+    "file was empty" and unlink rather than write empty bytes on rollback.
 
     Args:
         exclude_path: absolute path to the ``info/exclude`` file.
 
     Returns:
-        Current file bytes, or empty bytes if the file does not exist.
+        Current file bytes, or ``None`` if the file does not exist.
     """
     if exclude_path.exists():
         return exclude_path.read_bytes()
-    return b""
+    return None
 
 
 def get_exclude_path(repo_root: Path) -> Path:

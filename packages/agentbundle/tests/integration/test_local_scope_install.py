@@ -362,8 +362,16 @@ def test_rollback_on_write_failure(git_repo: Path) -> None:
     state_path = git_repo / ".agentbundle-local-state.toml"
     assert not state_path.exists(), "Local state file should not exist after rollback"
 
-    # AC21: exclude block rolled back to prior state
-    current_exclude = exclude_path.read_bytes() if exclude_path.exists() else b""
-    assert current_exclude == prior_exclude, (
-        "Exclude block should be restored to pre-install state after rollback"
-    )
+    # AC21: exclude block rolled back to prior state.
+    # snapshot_exclude returns bytes | None (None = file was absent before install).
+    # After rollback: if prior was None the file should be gone; if prior was bytes
+    # the file should contain those bytes.
+    if prior_exclude is None:
+        assert not exclude_path.exists(), (
+            "Exclude file should be absent after rollback (was absent before install)"
+        )
+    else:
+        current_exclude = exclude_path.read_bytes() if exclude_path.exists() else b""
+        assert current_exclude == prior_exclude, (
+            "Exclude block should be restored to pre-install state after rollback"
+        )
