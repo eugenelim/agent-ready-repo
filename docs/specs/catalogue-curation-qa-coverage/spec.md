@@ -46,19 +46,19 @@ The autonomous portion of this work — authoring fixture files and documenting 
 
 ### Human-gated: live QA sessions
 
-- [ ] **AC4 (`resync-rfc-routing` QA).** A live QA session exercises all three routing forms against the `agent-commander` RFC-0001 produced in the 2026-07-22 `assimilate-repo` QA session (the prior-QA source RFC). Session outcome is recorded as a `| Date | Skill | Exercise | Outcome |` row in `docs/specs/catalogue-curation/spec.md`'s QA log table (matching the existing table column format exactly).
+- [x] **AC4 (`resync-rfc-routing` QA).** A live QA session exercises all three routing forms against the `agent-commander` RFC-0001 produced in the 2026-07-22 `assimilate-repo` QA session (the prior-QA source RFC). Session outcome is recorded as a `| Date | Skill | Exercise | Outcome |` row in `docs/specs/catalogue-curation/spec.md`'s QA log table (matching the existing table column format exactly).
 
-- [ ] **AC5 (`antipattern-steering` QA).** A live QA session runs assimilation against at least one of the three anti-pattern fixture files (AC1). The skill detects the pattern and either reshapes or rejects with a named reason. Session outcome recorded in parent spec QA log.
+- [x] **AC5 (`antipattern-steering` QA).** A live QA session runs assimilation against at least one of the three anti-pattern fixture files (AC1). The skill detects the pattern and either reshapes or rejects with a named reason. Session outcome recorded in parent spec QA log.
 
-- [ ] **AC6 (`propose-catalogue-pack` QA).** A live QA session runs `propose-catalogue-pack` with a real or sample pack proposal. The skill tests additivity + fit and either rejects (non-additive) or passes and scaffolds a pack shell + RFC. Session outcome recorded in parent spec QA log.
+- [x] **AC6 (`propose-catalogue-pack` QA).** A live QA session runs `propose-catalogue-pack` with a real or sample pack proposal. The skill tests additivity + fit and either rejects (non-additive) or passes and scaffolds a pack shell + RFC. Session outcome recorded in parent spec QA log.
 
-- [ ] **AC7 (`hook-confirm` QA).** A live QA session ingests the `sample-hook.py` fixture (AC2). The skill flags it as executable code, issues the confirm prompt, and — on operator confirm — lands it. Session outcome recorded in parent spec QA log.
+- [x] **AC7 (`hook-confirm` QA).** A live QA session ingests the `sample-hook.py` fixture (AC2). The skill flags it as executable code, issues the confirm prompt, and — on operator confirm — lands it. Session outcome recorded in parent spec QA log.
 
 ### Gate
 
-- [ ] **AC8.** Once each QA session passes (AC4–AC7), the corresponding deferred-AC item in `docs/specs/catalogue-curation/spec.md` is flipped from `- [ ] … (deferred: <slug>)` to `- [x] …` with the `(deferred: <slug>)` annotation removed. All four deferred lines must be checked before this AC is complete.
+- [x] **AC8.** Once each QA session passes (AC4–AC7), the corresponding deferred-AC item in `docs/specs/catalogue-curation/spec.md` is flipped from `- [ ] … (deferred: <slug>)` to `- [x] …` with the `(deferred: <slug>)` annotation removed. All four deferred lines must be checked before this AC is complete.
 
-- [ ] **AC9.** The four backlog slugs (`catalogue-curation-resync-rfc-routing`, `catalogue-curation-antipattern-steering`, `catalogue-curation-propose-pack`, `catalogue-curation-hook-confirm`) are removed from `workspace.toml [backlog].open` in the same PR that flips the parent spec checkboxes (AC8). Leaving them in the register after the work is done creates the same drift the parent spec closure is meant to resolve.
+- [x] **AC9.** The four backlog slugs (`catalogue-curation-resync-rfc-routing`, `catalogue-curation-antipattern-steering`, `catalogue-curation-propose-pack`, `catalogue-curation-hook-confirm`) are removed from `workspace.toml [backlog].open` in the same PR that flips the parent spec checkboxes (AC8). Leaving them in the register after the work is done creates the same drift the parent spec closure is meant to resolve.
 
 ## Boundaries
 
