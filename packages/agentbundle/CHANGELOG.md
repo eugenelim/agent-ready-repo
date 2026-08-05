@@ -8,7 +8,7 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
-## [0.28.2]
+## [0.29.1]
 
 ### Fixed
 

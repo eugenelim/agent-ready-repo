@@ -8,7 +8,7 @@ A control harness drives Claude Code sessions programmatically — no human watc
 
 ## Prerequisites
 
-- `agentbundle >= 0.28.2` installed (`pip install 'agentbundle>=0.28.2'`) — earlier versions lack the FSM git guard and will push the startup branch if `git_push` is pre-approved
+- `agentbundle >= 0.29.1` installed (`pip install 'agentbundle>=0.29.1'`) — earlier versions lack the FSM git guard and will push the startup branch if `git_push` is pre-approved
 - `agentbundle install --pack core` run in the target repo
 - Python 3.11+ on the machine running the harness
 - An ACP-capable control harness — Claude Code via the `claude-agent-acp` bridge or native Agent SDK
@@ -213,7 +213,7 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 3. Your harness returns the human's answer as the JSON-RPC response to the `elicitation/create` request
 4. The `elicit()` call unblocks and the work-loop continues
 
-> **`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the gate question is "Are these changes correct and ready to merge?" — it does not include the PR URL. **Stage 1 PR URL limitation:** no contracted path to the PR URL exists at this gate: the elicitation message is fixed text with no URL, `workspace_status()` does not expose `pr_url`, the `gate-pr-ready` notification is not yet implemented, and `engine-state.json` does not carry `pr_url` in the current implementation. Retrieve the PR URL out-of-band: use the session branch name (readable via `git_status()`) to query your VCS API for the open PR. Poll until the PR is merged, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
+> **`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the gate question is "Are these changes correct and ready to merge?" — it does not include the PR URL. **Stage 1 PR URL limitation:** no workspace-mcp tool exposes the branch name or PR URL at this gate: the elicitation message is fixed text with no URL, `workspace_status()` does not expose `pr_url` or branch name, `git_status()` returns `git status --short` (file statuses only, no branch), `git_branch` is blocked in FSM mode, and the `gate-pr-ready` notification is not yet implemented. Retrieve the PR URL entirely out-of-band — for example, by listening for VCS push/PR-open webhooks, or by polling your VCS API using the spec path or author as a search key. Poll until the PR is merged, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
 
 > **Stage 1 limitation — response-file fallback unsupported.** When `clientCapabilities.elicitation`
 > is absent, `elicit()` falls back to a temp response file. The file path is carried only in the

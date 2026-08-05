@@ -1,6 +1,6 @@
 # workspace-mcp
 
-**Status:** Stage 1 Implementing — `agentbundle` 0.28.2 (code present; behavioral integration tests are stubs, per spec deferral note)
+**Status:** Stage 1 Implementing — `agentbundle` 0.29.1 (code present; behavioral integration tests are stubs, per spec deferral note)
 **RFC:** [0078](../../rfc/0078-workspace-mcp.md) · Accepted
 **Last updated:** 2026-08-04
 **Reviewers:** TBD
@@ -104,10 +104,13 @@ flowchart LR
 | **Elicitation** | `elicit()` → MCP `elicitation/create` request (server→client JSON-RPC) → harness routes to human → harness returns JSON-RPC response to the request → `elicit()` unblocks |
 | **Git** | AI calls `git_*` tools → workspace-mcp validates against lifecycle manifest → subprocess |
 
-> **Observability caveat — Stage 1:** `claude-agent-acp@0.64.x` does not relay MCP
-> `notifications/message` frames (`case "notification": break`). The control plane observes
-> FSM state by polling `workspace_status()`. The notification definitions below are the
-> target contract; relay support requires a future adapter update.
+> **Observability caveat — Stage 1:** `claude-agent-acp@0.64.x` does not relay custom
+> JSON-RPC notification frames (the bridge's `case "notification": break` clause drops them).
+> workspace-mcp emits `_agentbundle.core/skill-state-change`, `_agentbundle.core/human-gate-pending`,
+> and related custom-method frames — not standard `notifications/message`. Gates surface as
+> `elicitation/create` requests instead; for FSM state reconciliation, open a separate
+> `WORKSPACE_MCP_SPEC_PATH`-bound session and call `workspace_status()`. The notification
+> definitions below are the target relay contract; relay support requires a future adapter update.
 
 ---
 
@@ -439,7 +442,7 @@ Full rationale and alternatives in each ADR. Summary:
 | Stage | Scope | Status |
 |---|---|---|
 | **0 — Spikes** | Five design spikes | **Closed** — see `docs/rfc/0078-notes/spike-results.md` |
-| **1 — Claude Code, work-loop** | Single adapter, FSM sessions | **Shipped** — agentbundle 0.28.0, PR #860 |
+| **1 — Claude Code, work-loop** | Single adapter, FSM sessions | **Implementing** — agentbundle 0.29.1; behavioral integration tests are stubs (spec deferral note); PR #860 |
 | **2a — Codex** | Response-file elicitation fallback, headless permissions | Not started |
 | **2b — Codex** | Response-file elicitation fallback, headless permissions | Not started |
 | **2c — Kiro CLI (terminal)** | Static `.kiro/settings/mcp.json` config, agent format, `elicitation/create` | Not started |

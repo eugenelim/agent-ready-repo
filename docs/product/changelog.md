@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
-## [agentbundle][0.28.2] — 2026-08-04
+## [agentbundle][0.29.1] — 2026-08-05
 
 ### Fixed
 
