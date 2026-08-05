@@ -81,6 +81,7 @@
 | [0073](0073-slo-authoring-and-error-budget.md) | SLO-authoring capability and error-budget PRR integration — new `define-slo` skill in `release-engineering` pack (OpenSLO v1 format), four-state PRR `error-budget` field resolution, `error_budget_policy` block, query-at-gate-time instruction. Settles RFC-0049 § Follow-on provisional scope call. | Accepted | 2026-07-27 | 2026-07-27 |
 | [0074](0074-pack-config-and-oplog.md) | Pack config and operation log — per-pack user config (`pack_dir`, `load_pack_config`), three-source cascade via `install-defaults.toml` baking, atomic JSONL oplog (`write_entry`), new `catalogue.toml` `[pack-defaults.*]` and `user-dir`, two new CLI subcommand groups. | Accepted | 2026-07-27 | 2026-07-28 |
 | [0079](0079-codebase-context-pack.md) | `codebase-context` pack — optional user-scope pack wrapping `codebase-memory-mcp` (C/tree-sitter, stdio subprocess) and `serena` (Python/LSP) as semantic graph MCP backends; `CBM_ALLOWED_ROOT` path confinement; three-tier freshness (file watcher / git hook `touch` / PLAN-time check); `agentbundle install` only. | Draft | 2026-08-03 | — |
+| [0080](0080-local-scope-install.md) | Local scope install — `--scope local` installs pack files into the working tree and excludes them via `.git/info/exclude` so they never appear in `git status` or get committed. | Accepted | 2026-08-04 | 2026-08-04 |
 
 ## Adding a new RFC
 

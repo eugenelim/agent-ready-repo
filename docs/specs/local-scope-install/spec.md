@@ -1,0 +1,218 @@
+# Spec: Local scope install (`--scope local`)
+
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
+- **Constrained by:** RFC-0080, ADR-0070, RFC-0004, RFC-0005, RFC-0008, RFC-0012
+- **Brief:** none
+- **Discovery:** none
+- **Contract:** none (CLI-only; no new API or event surface)
+- **Shape:** integration
+
+> **Spec contract:** this document defines what "done" means. The implementing
+> PR must match this spec, or update it. Verification must be derivable from it.
+
+## Objective
+
+`agentbundle install --scope local` installs pack files into the working tree at
+the same paths as `--scope repo`, but excludes every installed file from git via a
+comment-delimited block in `.git/info/exclude` (the per-clone, never-committed
+exclusion file). The result: a pack is fully functional for the session — skills
+load, agents use them — and `git status` never shows any trace. Uninstall removes
+the working-tree files and strips the block, leaving the repo in exactly the state
+it was in before. The primary user is anyone who wants to trial a pack in a repo
+they don't own or haven't permanently adopted it.
+
+## Boundaries
+
+### Always do
+
+- Verify `git rev-parse --is-inside-work-tree` succeeds before any write.
+- Resolve the exclude path via `git rev-parse --git-path info/exclude` (handles
+  linked worktrees and submodules automatically).
+- Write to `.git/info/exclude` atomically: read → modify in memory → write to a
+  temp file in the same directory → `os.replace` (never in-place append).
+- Abort the whole install (no partial writes) when any target file is already
+  tracked by git.
+- Enforce the repo/local cross-scope refusal as a hard, `--force`-immune check.
+- Leave `:1060` and `:1254` (seed gates) unchanged — both are already gated
+  `plan.scope == "repo"` and correctly exclude local; no new code needed there.
+- Add explicit `if plan.scope != "local":` guards around `:1447` (install marker)
+  and `:1456` (layout section) — these are unconditional calls with no existing guard.
+- Skip `_chain_adapt` (Step 12) for `scope="local"` installs; update the
+  `install.py:1468` comment and add an erratum note to `adapt-to-project/spec.md`
+  AC19b in the implementing PR.
+- Record adapter in the local state row (widen `install.py:1334`).
+
+### Ask first
+
+- Any change to the block-key format `# agentbundle:local:<pack>:<worktree-id>:{begin,end}`.
+- Any change that causes `diff`, `upgrade`, or `init-state` to accept `--scope local`
+  (deferred to a follow-on spec per RFC-0080).
+- Any file lock added to `.git/info/exclude` or `.agentbundle-local-state.toml`.
+
+### Never do
+
+- Write to `.gitignore` (use `.git/info/exclude` only).
+- Allow `--scope local` alongside `--profile` (existing `install.py:162-165` guard
+  already covers this once `"local"` is a valid choice at `cli.py:390`).
+- Allow `--scope local` alongside `--emit-install-routes`.
+- Allow `default-scope = "local"` in a pack manifest.
+- Allow `allowed-scopes = ["local"]` without `"repo"` (schema `allOf` constraint).
+- Deliver seeds, install markers, or layout sections for local-scope installs.
+- Widen `:950` user-aggregate beyond `any(p.scope == "user" ...)`; local plans
+  must not enter user-projection rendering.
+- Add any new guard around `:1060` or `:1254` — both are already correctly gated
+  `plan.scope == "repo"` and that logic must not change.
+- Change `install.py:377` `!= "user"` to `== "repo"` — the existing negation
+  correctly refuses force-merge for every non-user scope.
+
+## Testing Strategy
+
+- **TDD** — for all logic with a compressible invariant: `resolve()` auto-promote
+  rule, `_parse_adapter_row` scope coercion, `resolve_state_path` routing,
+  block-key parse/strip round-trip, tracked-file collision check, `installed_at_*`
+  flag derivation, repo/local cross-scope refusal (including `--force` immunity),
+  `--force-merge --scope local` refusal.
+- **Goal-based check** — schema validation: `python3 tools/lint-ruff.py` passes;
+  `python3 -m pytest packages/agentbundle/tests/ -q` green; `check_contract_parity.py`
+  exits 0 (both schema copies byte-identical).
+- **Visual / manual QA** — full install / uninstall cycle exercised via the real
+  `agentbundle` CLI in an integration test: files appear in working tree, do NOT
+  appear in `git status`, `list-installed` shows `scope = local`, uninstall removes
+  files and the exclude block, `git status` clean after.
+
+## Acceptance Criteria
+
+### Schema and scope engine
+
+- [ ] AC1: `pack.schema.json` `allowed-scopes` enum includes `"local"`; an
+  `allOf` constraint rejects `allowed-scopes` that contain `"local"` but not `"repo"`.
+  Both copies (`contracts/pack.schema.json` and
+  `packages/agentbundle/agentbundle/_data/pack.schema.json`) are byte-identical;
+  `check_contract_parity.py` exits 0.
+- [ ] AC2: `scope.py` `LEGAL_SCOPES` equals `{"repo", "user", "local"}`.
+- [ ] AC3: `scope.resolve()` raises `ScopeRefused` when `default-scope == "local"`,
+  before the D4 auto-promote check.
+- [ ] AC4: `scope.resolve()` permits `scope="local"` for any pack whose
+  `allowed-scopes` contains `"repo"`, without requiring explicit `"local"` in the
+  pack's `allowed-scopes`.
+- [ ] AC5: `config.py` `_parse_adapter_row` sources its allowlist from `LEGAL_SCOPES`
+  (not a hardcoded tuple); `scope = "local"` rows in `.agentbundle-local-state.toml`
+  are preserved correctly.
+
+### State file routing
+
+- [ ] AC6: `commands/_common.py` `resolve_state_path("local", root)` returns
+  `root / ".agentbundle-local-state.toml"`.
+- [ ] AC7: `.agentbundle-local-state.toml` uses `schema-version = "0.4"` and the
+  same `PackState` shape as `.agentbundle-state.toml`; all rows carry `scope = "local"`.
+  The T11 integration test reads the written file and asserts `schema-version = "0.4"`.
+
+### Install — pre-flight
+
+- [ ] AC8: `agentbundle install --scope local` fails with a clear error when run
+  outside a git working tree.
+- [ ] AC9: `agentbundle install --scope local --emit-install-routes` is refused with
+  an error that references RFC-0008 for the plugins route's own local-scope behaviour.
+- [ ] AC10: `agentbundle install --scope local` fails when any target file is already
+  tracked by git; the whole install aborts (no partial writes).
+- [ ] AC11: `agentbundle install --scope local` fails when the pack is already
+  installed at `--scope repo`; the refusal is `--force`-immune.
+- [ ] AC11b: `agentbundle install --force-merge --scope local` is refused; the
+  force-merge guard (`install.py:377` `!= "user"` negation) covers local scope
+  and must not be changed to `== "repo"`.
+- [ ] AC12: `agentbundle install --scope repo` fails when the pack is already
+  installed at `--scope local`; the cross-scope refusal is `--force`-immune.
+  (`--scope user` coexists with a local install — user-scope files land in `~/.claude/`
+  outside the working tree and are unaffected by the exclude block; user/local
+  coexistence is explicitly permitted by RFC-0080.)
+
+### Install — write path
+
+- [ ] AC13: Installed files appear in the working tree at the same paths as
+  `--scope repo`; they do NOT appear in `git status` output.
+- [ ] AC14: A comment-delimited block keyed to `(pack-name, worktree-id)` is appended
+  to the file returned by `git rev-parse --git-path info/exclude`. Block format:
+  `# agentbundle:local:<pack>:<worktree-id>:begin / [paths] / …:end`.
+- [ ] AC15: Reinstalling an already-local pack replaces the existing block in place
+  (no duplicate blocks).
+- [ ] AC16: Two different worktrees installing the same pack each write their own
+  keyed block; the blocks coexist in the shared `info/exclude` file.
+- [ ] AC17: Seeds (`AGENTS.md`/`docs/CHARTER.md`), install markers, and layout
+  sections are NOT written for `--scope local` installs.
+- [ ] AC18: The local state row includes the adapter field (populated from
+  `repo_target_adapter`).
+- [ ] AC19: `_chain_adapt` (Step 12) is skipped for `--scope local` installs.
+  Amends `adapt-to-project/spec.md` AC19b ("regardless of install scope"); the
+  implementing PR adds an erratum note to AC19b and updates the adjacent
+  `install.py` comment to record the local-scope exception. Also addresses AC19a
+  (the "every successful install" universal is now scoped to repo/user installs
+  only — local installs are ephemeral and do not write install markers); the PR
+  adds a clarifying note to AC19a as well.
+- [ ] AC20: The install success line reports both the scope and the actual
+  exclude-file path: `installed: <pack> @ local (excluded via <exclude-path>)`.
+
+### Install — same-scope reinstall
+
+- [ ] AC21: `agentbundle install --scope local` on an already-local pack routes to
+  the upgrade-offer flow (same as `--scope repo` reinstall behaviour).
+
+### Uninstall
+
+- [ ] AC22: `agentbundle uninstall --scope local` removes installed working-tree
+  files, strips the `(pack-name, worktree-id)` block from the exclude file, and
+  removes the pack's rows from `.agentbundle-local-state.toml` (deletes the state
+  file only when it becomes empty). `git status` is clean after.
+
+### List-installed
+
+- [ ] AC23: `agentbundle list-installed` includes local-scope rows with
+  `scope = local` and a note `(not committed; per-clone only)`.
+
+### CLI surface
+
+- [ ] AC24: `agentbundle install --scope local`, `uninstall --scope local`, and
+  `list-installed --scope local` are accepted by argparse. `diff --scope local`,
+  `upgrade --scope local`, and `init-state --scope local` are rejected by argparse
+  (choices list does not include `"local"` on those three subcommands).
+- [ ] AC25: `agentbundle diff --scope local`, `upgrade --scope local`, and
+  `init-state --scope local` produce an argparse-native `invalid choice: 'local'`
+  error (not a runtime guard). The argparse rejection is the v1 "not yet supported"
+  mechanism; the friendly RFC-0080 message at lines 577-580 is reserved for a future
+  custom action if the UX is revisited.
+
+### Documentation
+
+- [ ] AC26: The concurrent-write lost-update limitation (two `agentbundle` processes
+  writing simultaneously; last writer wins) is documented in at least one user-visible
+  location: a docstring on `write_exclude_block`, a note in the `--scope local` entry
+  of the guides, or an inline `# WARNING:` comment in the write helper. The location
+  is named in the PR description.
+- [ ] AC27: The cross-worktree exclusion side-effect is documented in a user-visible
+  location: a leading-`/` pattern in `info/exclude` git-ignores same-path untracked
+  files in *all* linked worktrees, not just the installing one. Document in the same
+  location as AC26 (docstring, guide note, or inline comment). Verified by a T11
+  assertion that the documented text is present in the chosen location (docstring
+  content check or guide file existence check).
+
+## Assumptions
+
+- Technical: `.git/info/exclude` is shared across all linked worktrees of the same
+  repo — verified by spike in the philadelphia-v1 worktree (source: RFC-0080
+  §Git exclusion contract).
+- Technical: `os.replace` is atomic on POSIX and near-atomic on Windows (NTFS);
+  sufficient for the v1 lost-update tolerance documented in ADR-0070
+  (source: RFC-0080 §Concurrent-write limitation).
+- Technical: `git rev-parse --git-path info/exclude` resolves correctly for
+  standard repos, linked worktrees, and submodules (source: RFC-0080 spike).
+- Technical: `install.py:162-165` already refuses `--scope <anything>` alongside
+  `--profile`; no new guard needed once `"local"` is a valid choice (source:
+  RFC-0080 pass-19 adversarial reviewer).
+- Process: `check_contract_parity.py` is the CI gate for `pack.schema.json` parity;
+  no `--write` flag exists — both copies must be hand-edited (source: RFC-0080
+  §Follow-on artifacts).
+- Process: `install.py:377` (`requested_scope != "user"` negation) must NOT be
+  changed to `== "repo"` — the existing negation correctly excludes force-merge
+  for local scope; changing it would introduce a security regression (source:
+  RFC-0080 adversarial pass-20).

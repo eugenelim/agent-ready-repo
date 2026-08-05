@@ -88,3 +88,4 @@ docs-site/src/sidebar-config.json
 .workspace-repair.lock
 .workspace.toml.*.tmp
 .plan.*.tmp
+.loop-run/
