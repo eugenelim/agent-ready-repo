@@ -1602,6 +1602,7 @@ class _StdioLoop:
             {
                 "name": "git_status",
                 "description": (
+                    "Use this instead of running 'git status' directly. "
                     "Returns uncommitted file changes in the repo "
                     "(equivalent to git status --short). "
                     "Returns {output: string, returncode: int}."
@@ -1611,7 +1612,10 @@ class _StdioLoop:
             {
                 "name": "git_branch",
                 "description": (
-                    "Create and check out a new feature branch. "
+                    "Use this instead of running 'git checkout -b' directly — "
+                    "raw git branch commands bypass the scoping guard that locks "
+                    "the session to exactly one branch for the dispatched item. "
+                    "Creates and checks out a new feature branch. "
                     "The branch name must follow the ini_slug/type/slug format "
                     "(e.g. my-initiative/work/fix-bug) and must match the dispatched item. "
                     "May only be called once per session; subsequent calls are rejected. "
@@ -1634,9 +1638,11 @@ class _StdioLoop:
             {
                 "name": "git_commit",
                 "description": (
-                    "Stage and commit files that belong to the dispatched work item. "
-                    "Only files under the item's configured output paths are staged; "
-                    "files outside those paths are excluded. "
+                    "Use this instead of running 'git add' and 'git commit' directly — "
+                    "raw git commit bypasses the output-path filter and may silently "
+                    "include files outside the dispatched item's scope. "
+                    "Stages and commits only files under the item's configured output "
+                    "paths; files outside those paths are excluded automatically. "
                     "Not available when no item has been dispatched, or for work-loop "
                     "items (work-loop manages its own git lifecycle)."
                 ),
@@ -1656,7 +1662,10 @@ class _StdioLoop:
             {
                 "name": "git_push",
                 "description": (
-                    "Push the session branch to origin. "
+                    "Use this instead of running 'git push' directly — "
+                    "raw git push bypasses the branch check that prevents pushing "
+                    "to a branch other than the one established for this session. "
+                    "Pushes the session branch to origin. "
                     "Requires git_branch() to have been called first in this session. "
                     "Not available when no item has been dispatched."
                 ),

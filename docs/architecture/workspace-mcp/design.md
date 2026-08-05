@@ -150,6 +150,12 @@ The control plane injects workspace-mcp at `session/new.mcpServers`. Two spawn f
 The projection root for `args[0]` varies by adapter: `.claude/skills/` (Claude Code),
 `.agents/skills/` (Codex).
 
+Because workspace-mcp is injected per-session by the control plane, it is absent from
+every session the control plane did not create. Interactive editor sessions — a developer
+using Claude Code directly, not through a harness — never see the MCP server or the
+session instruction unless the user manually adds workspace-mcp to their global MCP
+config (not the intended deployment model).
+
 **Session mode** is set by which env var is provided:
 
 | Env var | Value | Mode |
@@ -335,7 +341,7 @@ entire session — they apply to every turn, including follow-up user messages.
 5. Before writing artifacts for a non-FSM item, call git_branch(<ini_slug>/<type>/<slug>)
    if not already on the item's feature branch.
 6. When instructed to commit and push, call git_status() to identify uncommitted files,
-   git_commit(paths, message) for the matching paths, then git_push(branch).
+   git_commit(message) to stage and commit matching paths, then git_push(branch).
 ```
 
 ### Git tools
