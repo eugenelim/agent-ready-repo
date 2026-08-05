@@ -8,7 +8,7 @@ A control harness drives Claude Code sessions programmatically — no human watc
 
 ## Prerequisites
 
-- `agentbundle install core` run in the target repo
+- `agentbundle install --pack core` run in the target repo
 - Python 3.11+ on the machine running the harness
 - An ACP-capable control harness — Claude Code via the `claude-agent-acp` bridge or native Agent SDK
 - `workspace.toml` with at least one initiative in the target repo (see [orient at session start](orient-at-session-start.md))
@@ -77,7 +77,7 @@ The `workspace_status()` response:
 }
 ```
 
-Pick an item from `ready[]` or `shaping[]`. Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install <required_pack>` first). Close the discovery session.
+Pick an item from `ready[]` or `shaping[]`. Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install --pack <required_pack>` first). Close the discovery session.
 
 ## Step 3 — Dispatch the item
 
@@ -97,9 +97,9 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
         "name": "workspace-mcp",
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
-        "env": {
-          "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-initiative/fix-login-bug"
-        }
+        "env": [
+          { "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-initiative/fix-login-bug" }
+        ]
       }
     ],
     "_meta": {
@@ -123,9 +123,9 @@ Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks 
         "name": "workspace-mcp",
         "command": "python3",
         "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
-        "env": {
-          "WORKSPACE_MCP_DISPATCHED_ITEM": "my-initiative/research:competitive-analysis"
-        }
+        "env": [
+          { "name": "WORKSPACE_MCP_DISPATCHED_ITEM", "value": "my-initiative/research:competitive-analysis" }
+        ]
       }
     ]
   }
@@ -138,7 +138,7 @@ Retrieve the session instruction at runtime:
 from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 ```
 
-> **Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
+> **Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install --pack core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
 
 ## Step 4 — Monitor progress
 
@@ -165,7 +165,7 @@ Key fields in the response:
 | `active` | array | Items currently in progress |
 | `blocked` | array | Items with unmet dependencies |
 | *(per item)* `available` | bool \| absent | `false` when the item's `dispatch_skill` is not installed; absent when available |
-| *(per item)* `required_pack` | string \| null | Pack to install when `available: false`; e.g. `"research"` |
+| *(per item)* `required_pack` | string \| null | Pack to install when `available: false`; e.g. `"desk-research"` (use `agentbundle install --pack <value>`) |
 
 > **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Poll `workspace_status()` after each session update rather than relying on notification events.
 
@@ -190,7 +190,7 @@ If your harness implements `session/create_elicitation`, the agent's `elicit()` 
 | Symptom | Cause | Fix |
 |---|---|---|
 | Session hangs indefinitely | Missing `permissions.allow` entries | Add all six `mcp__workspace-mcp__*` strings to `.claude/settings.json` (Step 1) |
-| `workspace_status()` returns `{"error": "workspace_status_engine.py not found…"}` | `agentbundle install core` has not been run in the checkout | Run `agentbundle install core` in the target repo |
+| `workspace_status()` returns `{"error": "workspace_status_engine.py not found…"}` | `agentbundle install --pack core` has not been run in the checkout | Run `agentbundle install --pack core` in the target repo |
 | `git_commit` returns `"git_commit unavailable: no output_pattern (work-loop owns git)"` | Item type is `work` — work-loop manages git | Expected for work items; monitor gates, don't call `git_commit` |
 | `git_commit` returns `"refusing commit: N pre-staged file(s) outside output_pattern"` | The repo has pre-staged files outside the item's output paths | Unstage those files before calling `git_commit`, or use `git reset HEAD` |
 | `WORKSPACE_MCP_DISPATCHED_ITEM` accepted but `git_branch` returns "already set" | `SPEC_PATH` was also set; branch locked to startup HEAD (FSM mode) | Set only one env var: `SPEC_PATH` for work items, `DISPATCHED_ITEM` for non-FSM items |

@@ -1,10 +1,14 @@
 """Tests for _GitTools — branch validation, commit path intersection, injection defence."""
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+
+from agentbundle.workspace_mcp import _GitTools
 
 
 def _init_git_repo(tmp_path: Path) -> Path:
@@ -61,3 +65,49 @@ class TestGitPush:
 
     def test_pathspec_separator_prevents_injection(self, tmp_path: Path) -> None:
         pytest.skip('STUB: AC14 injection — path "--inject" treated as a path, not a flag (git add -- ... separator)')
+
+
+class TestFsmModeGuard:
+    """FSM mode (SPEC_PATH only, no DISPATCHED_ITEM) must block all mutating git tools."""
+
+    def _make_tools(self, tmp_path: Path, env: dict) -> _GitTools:
+        """Construct _GitTools with the given env vars applied."""
+        clean_env = {k: v for k, v in os.environ.items()
+                     if k not in ("WORKSPACE_MCP_SPEC_PATH", "WORKSPACE_MCP_DISPATCHED_ITEM")}
+        clean_env.update(env)
+        with patch.dict(os.environ, clean_env, clear=True):
+            return _GitTools(tmp_path)
+
+    def _spec_path(self, repo: Path) -> str:
+        """Create a spec directory inside the repo and return its absolute path string."""
+        spec_dir = repo / "docs" / "specs" / "my-feature"
+        spec_dir.mkdir(parents=True, exist_ok=True)
+        return str(spec_dir)
+
+    def test_git_branch_blocked_in_fsm_mode_named_branch(self, tmp_path: Path) -> None:
+        """git_branch returns FSM-mode error on a named branch (not a subprocess call)."""
+        repo = _init_git_repo(tmp_path)
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        result = tools.git_branch({"name": "feat/my-thing"})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]
+
+    def test_git_commit_blocked_in_fsm_mode(self, tmp_path: Path) -> None:
+        """git_commit returns FSM-mode error regardless of output_pattern logic."""
+        repo = _init_git_repo(tmp_path)
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        result = tools.git_commit({"message": "test commit"})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]
+
+    def test_git_push_blocked_in_fsm_mode_named_branch(self, tmp_path: Path) -> None:
+        """git_push returns FSM-mode error even when branch matches startup HEAD (AC14 regression)."""
+        repo = _init_git_repo(tmp_path)
+        branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            check=True, capture_output=True, text=True, cwd=str(repo),
+        ).stdout.strip()
+        tools = self._make_tools(repo, {"WORKSPACE_MCP_SPEC_PATH": self._spec_path(repo)})
+        result = tools.git_push({"branch": branch})
+        assert "error" in result
+        assert "FSM" in result["error"] or "work-loop" in result["error"]

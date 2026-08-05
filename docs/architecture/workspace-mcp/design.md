@@ -131,7 +131,7 @@ The control plane injects workspace-mcp at `session/new.mcpServers`. Two spawn f
       "name": "workspace-mcp",
       "command": "python3",
       "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
-      "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
+      "env": [{ "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-feature" }]
     }
   ]
 }
@@ -146,7 +146,7 @@ The control plane injects workspace-mcp at `session/new.mcpServers`. Two spawn f
       "name": "workspace-mcp",
       "command": "python3",
       "args": ["-I", "-m", "agentbundle.workspace_mcp"],
-      "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
+      "env": [{ "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-feature" }]
     }
   ]
 }
@@ -218,7 +218,7 @@ workspace-mcp automatically. Concurrent FSM sessions are not supported.
     "workspace-mcp": {
       "command": "python3",
       "args": [".kiro/skills/workspace-status/scripts/workspace_mcp_server.py"],
-      "env": { "WORKSPACE_MCP_SPEC_PATH": "docs/specs/my-feature" }
+      "env": [{ "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/my-feature" }]
     }
   }
 }
