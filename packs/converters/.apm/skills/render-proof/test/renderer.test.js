@@ -15,35 +15,35 @@ async function run() {
   const code = await renderMarkdown('```python\nprint("hi")\n```', {});
   assert(code.includes('style='), 'Shiki style attr missing');
 
-  // (c) script stripped (AC6a)
+  // (c) script stripped
   const xss = await renderMarkdown('<script>alert(1)</script>', {});
   assert(!xss.includes('<script'), 'script not stripped');
 
-  // (d) style attr preserved on span — assert the exact value, not just any style= (AC6b)
+  // (d) style attr preserved on span — assert the exact value, not just any style=
   const styled = await renderMarkdown('<span style="color:red">text</span>', {});
   assert(styled.includes('style="color:red"'), 'style="color:red" not preserved on span');
 
-  // (e) onerror stripped (AC6c)
+  // (e) onerror stripped
   const onerr = await renderMarkdown('<img onerror="alert(1)" src="x">', {});
   assert(!onerr.includes('onerror'), 'onerror not stripped');
 
-  // (f) HTTPS url() stripped by post-processor — end-to-end through full pipeline (AC6d)
+  // (f) HTTPS url() stripped by post-processor — end-to-end through full pipeline
   const cssExfil = await renderMarkdown('<span style="background:url(https://evil.com/t.png)">x</span>', {});
   assert(!cssExfil.includes('url(https://evil.com'), 'HTTPS CSS url() exfil not stripped');
 
-  // (g) protocol-relative url() stripped (AC6e)
+  // (g) protocol-relative url() stripped
   const protoRel = await renderMarkdown('<span style="background:url(//evil.com/x)">x</span>', {});
   assert(!protoRel.includes('url(//evil.com'), 'protocol-relative CSS url() not stripped');
 
-  // (h) quoted data: URI preserved — hook must not strip quoted safe forms (AC6f)
+  // (h) quoted data: URI preserved — hook must not strip quoted safe forms
   const dataUri = await renderMarkdown('<span style="background:url(\'data:image/png;base64,ABC\')">x</span>', {});
   assert(dataUri.includes('data:image/png'), 'quoted data: URI was incorrectly stripped');
 
-  // (i) unbalanced-quote bypass stripped — url('//evil.com/x) without closing quote (AC6g)
+  // (i) unbalanced-quote bypass stripped — url('//evil.com/x) without closing quote
   const unbalanced = await renderMarkdown('<span style="background:url(\'//evil.com/x)">x</span>', {});
   assert(!unbalanced.includes('url(\'//evil.com'), 'unbalanced-quote url() bypass not stripped');
 
-  // (j) CSS-escape bypass stripped — url(\68 ttps://evil.com) hex-escapes first char (AC6h)
+  // (j) CSS-escape bypass stripped — url(\68 ttps://evil.com) hex-escapes first char
   // Assert BOTH the raw escaped form AND the decoded form — a broken impl that decodes but doesn't strip
   // would remove the raw bytes but still emit the live exfil URL
   const cssEsc = await renderMarkdown('<span style="background:url(\\68 ttps://evil.com)">x</span>', {});
@@ -52,7 +52,7 @@ async function run() {
     'CSS-escape url() bypass not stripped (check both raw and decoded form)'
   );
 
-  // (k) mixed safe+unsafe: safe data: URI preserved, adjacent color:red preserved, unsafe url() stripped (AC6k)
+  // (k) mixed safe+unsafe: safe data: URI preserved, adjacent color:red preserved, unsafe url() stripped
   // Input has THREE tokens in one attribute: non-url (color:red), safe url (data:image/png), unsafe url (https://evil)
   const mixed = await renderMarkdown(
     '<span style="color:red;list-style:url(\'data:image/png;base64,ABC\');background:url(https://evil.com/t.png)">x</span>',
@@ -63,14 +63,14 @@ async function run() {
     'fixture k: color:red or safe data: URI lost, or unsafe url() not stripped'
   );
 
-  // (l) unsafe data: MIME type stripped — data:text/html not in safe-image allow-list (AC6i)
+  // (l) unsafe data: MIME type stripped — data:text/html not in safe-image allow-list
   const unsafeMime = await renderMarkdown(
     '<span style="background:url(data:text/html,<script>alert(1)</script>)">x</span>',
     {}
   );
   assert(!unsafeMime.includes('url(data:text/html'), 'unsafe data:text/html not stripped');
 
-  // (m) javascript: href stripped by DOMPurify default URI scheme (AC6j)
+  // (m) javascript: href stripped by DOMPurify default URI scheme
   // Use raw HTML anchor (html: true) — markdown-it validateLink already blocks the md-link syntax,
   // keeping javascript: as literal text; raw HTML tests DOMPurify's actual scheme sanitization.
   const jsHref = await renderMarkdown('<a href="javascript:alert(1)">click</a>', {});
@@ -80,7 +80,7 @@ async function run() {
   const unk = await renderMarkdown('```unknownlang\ncode\n```', {});
   assert(unk.includes('<pre'), 'unknown-lang fallback missing pre');
 
-  // (o) control-char breakout: CSS-escape \a (newline) inside safe-MIME prefix → treated as unsafe (AC6l)
+  // (o) control-char breakout: CSS-escape \a (newline) inside safe-MIME prefix → treated as unsafe
   // url(data:image/png;base64,AAA\a x:url(//evil)) decodes \a to literal newline;
   // isSafeMime rejects the decoded value (contains C0 control char); token becomes none
   const ctrlChar = await renderMarkdown(
@@ -92,15 +92,15 @@ async function run() {
     'fixture o: control-char breakout not stripped — external url() survived isSafeMime C0 check'
   );
 
-  // Direct sanitizeStyle test: re-escape invariant — CSS-hex-encoded " must produce url("...\"...") (AC6m)
+  // Direct sanitizeStyle test: re-escape invariant — CSS-hex-encoded " must produce url("...\"...")
   // hex \22 decodes to literal "; broken form url("A"B") prematurely closes the CSS quoted string
   // Direct sanitizeStyle — raw CSS return value makes it possible to assert the exact url("...\"...") form
   // without jsdom HTML-encoding of "; renderMarkdown would only expose the HTML-encoded &quot; form
   const reEscapeResult = sanitizeStyle('background:url(data:image/png;base64,A\\22 B)');
-  assert(reEscapeResult !== null, 'canonical-restore re-escape: safe data: URI dropped (AC6m)');
+  assert(reEscapeResult !== null, 'canonical-restore re-escape: safe data: URI dropped');
   assert(
     reEscapeResult.includes('url("data:image/png;base64,A\\"B")'),
-    'canonical-restore re-escape: " in decoded value (\\22) not re-escaped to \\" — broken url("A"B") prematurely closes the CSS quoted string (AC6m)'
+    'canonical-restore re-escape: " in decoded value (\\22) not re-escaped to \\" — broken url("A"B") prematurely closes the CSS quoted string'
   );
 
   // Direct sanitizeStyle test: unclosed url( bypasses quoted-aware regex → step-3 backstop → null (keepAttr=false path) (sanitizer step 3)

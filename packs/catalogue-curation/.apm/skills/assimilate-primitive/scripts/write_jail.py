@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Write-confinement for catalogue-curation (spec "Write confinement
-via the blessed helper").
+"""Write-confinement for catalogue-curation, via the blessed helper.
 
 A thin wrapper over the engine's blessed path-jail — `agentbundle.safety`
 (`write_jailed` / `assert_under`: resolve → resolve symlinks → verify-prefix).

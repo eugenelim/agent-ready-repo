@@ -1,4 +1,4 @@
-"""Graceful-degrade matrix (spec task T6; AC7).
+"""Graceful-degrade matrix (task T6).
 
 Drives ``load_credentials`` across the ``[crypto] × keyring`` environment cells
 and asserts the resolved tier + no-leak per cell. The matrix is the resilience
@@ -150,7 +150,7 @@ def test_cell_d_both_absent_nothing_configured_is_clean_miss(home, monkeypatch):
 def test_failure_path_no_leak_with_secret_present(home, monkeypatch, capsys):
     # A failure path *with a secret configured*: the vault holds SECRET but the
     # sourced master is wrong -> VaultError. The secret must not surface in the
-    # exception message or on stdout/stderr (AC13's failure-path no-leak, at
+    # exception message or on stdout/stderr (the failure-path no-leak rule, at
     # integration altitude — the other cells configure no secret on their miss).
     monkeypatch.setattr(_core, "_tier2_backend", None)
     _make_vault("right-master", "jira", "API_TOKEN", SECRET)

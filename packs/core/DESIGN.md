@@ -99,7 +99,7 @@ No trigger fires → light mode.
 
 ### Why risk, not file count
 
-The old rule (">1 file → full mode") was risk-blind. A three-file config tweak to a familiar system paid compliance-grade cost; a one-file change to an auth path did not. The risk-trigger set replaces the file-count rule because each trigger maps to a gate the repo already maintains — the trigger set's exhaustiveness argument is that it covers every boundary where the cost of a mistake is meaningfully higher than the cost of the gate. The decision record carries the full rationale and the light-mode experiment data.
+The old rule (">1 file → full mode") was risk-blind. A three-file config tweak to a familiar system paid compliance-grade cost; a one-file change to an auth path did not. The risk-trigger set replaces the file-count rule because each trigger maps to a gate the repo already maintains — the trigger set's exhaustiveness argument is that it covers every boundary where the cost of a mistake is meaningfully higher than the cost of the gate.
 
 ---
 
@@ -349,7 +349,7 @@ Parallel implementer writes are gated on:
 1. Membership in a measured safe category (file-disjoint in the DAG)
 2. A `git merge-tree` file-disjointness check at runtime
 
-Everything else runs serial. The decision record carries the experiment data and the interference taxonomy.
+Everything else runs serial.
 
 ### Parallel readers are always safe
 

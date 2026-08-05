@@ -1,4 +1,4 @@
-"""content parity over the generated corpus.
+"""Content parity over the generated corpus.
 
 Two gates, both over the same self-generated `.msg` corpus:
 

@@ -192,6 +192,6 @@ Architecture method is the same across repos; only the artifacts differ. Install
 
 ### Why platform contract grounding is scoped to load-bearing critical-path claims
 
-Checking every managed service mention against an authoritative source would make design sessions prohibitively slow. The field report showed that both structurally fatal design misses were on the critical path and would have been caught by a single grounding check. The scoping rule (load-bearing + critical path) is the minimum that catches both failure classes without imposing a full audit on every service in the diagram.
+Checking every managed service mention against an authoritative source would make design sessions prohibitively slow. Both structurally fatal design misses observed in the field were on the critical path and would have been caught by a single grounding check. The scoping rule (load-bearing + critical path) is the minimum that catches both failure classes without imposing a full audit on every service in the diagram.
 
 **Alternative considered:** require grounding for every managed service mentioned in the design, not just critical-path ones. Rejected because it imposes a research burden that would make `architect-design` unusable for quick back-of-envelope designs and produces lower-quality grounding by spreading attention across many services rather than focusing on the critical path.

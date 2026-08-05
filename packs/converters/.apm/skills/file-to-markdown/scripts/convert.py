@@ -636,7 +636,8 @@ def _prescale_image(input_path: Path, tmp_dir: str) -> Path:
 # NB: `enable_remote_services` and `PictureDescriptionApiOptions` (Docling's
 # remote-VLM captioning path) are deliberately ABSENT — enrichment is
 # local-model-only, so it can never become a covert data-egress channel inside
-# Tier 2 that bypasses the Tier-3 gate (security boundary; see the spec).
+# Tier 2 that bypasses the Tier-3 gate (security boundary: Tier 3 is reachable
+# only through the explicit remote-services gate).
 ENRICH_OPTIONS = (
     "do_formula_enrichment",       # formulas → LaTeX
     "do_code_enrichment",          # code understanding

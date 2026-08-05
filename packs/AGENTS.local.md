@@ -48,7 +48,9 @@ Applies to **every** file under `packs/`, not just `.apm/**`: `pack.toml` commen
 and `seeds/**` is written into the adopter's own repo. Before committing:
 
 ```bash
-grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+(\([a-z]\))?\b|docs/(specs|rfc|adr)/[a-z0-9]' packs/
+# --exclude: this file and AGENTS.md quote the banned forms as examples.
+grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
+  packs/ --exclude='AGENTS*.md'
 ```
 
 **Banned** — an adopter has no `docs/rfc/`, `docs/adr/`, or spec of ours, so these read as broken
@@ -79,6 +81,14 @@ Editing projected files directly trips `make build-check`. Workflow: [`AGENTS.md
 | `docs/CONVENTIONS.md` | `core/seeds/docs/CONVENTIONS.md` |
 | All adapter skill projections | `<pack>/.apm/skills/<name>/**` |
 | All adapter agent/command/hook projections | `<pack>/.apm/{agents,commands,hooks}/...` |
+| `packages/agentbundle/agentbundle/_data/catalogue-scaffold/packs/AGENTS.md` | `packs/AGENTS.md` |
+
+**The scaffold row runs the other way and `build-check` does not cover it.** `packs/AGENTS.md`,
+`packs/README.md`, `packs/_example/**`, `profiles/**`, and two `guides/_shared/reference/` pages are
+sources copied *into* `_data/catalogue-scaffold/` by `tools/catalogue/sync_authoring_scaffold.py`.
+After editing any of them run `python3 tools/catalogue/sync_authoring_scaffold.py --write` — the drift
+gate lives only in the agentbundle suite (`test_scaffold_projection.py`), which CI runs from
+`packages/agentbundle` as `pytest tests/ agentbundle/build/tests/`. `make build-check` passes without it.
 
 **Manual (edit directly):** `AGENTS.md`, `CLAUDE.md` (adopter-owned; `build-self` won't regenerate),
 `docs/CHARTER.md`, `docs/architecture/overview.md`, `docs/specs/README.md`,

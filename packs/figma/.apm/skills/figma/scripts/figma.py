@@ -69,7 +69,7 @@ if __package__ in (None, "") and __spec__ is None:
     # floor, while a pip-installed credbroker in site-packages still wins
     # (it precedes the appended floor). Append, never insert(0) — a stale
     # floor must never shadow a real install. Guarded on the dir existing,
-    # so its absence degrades to today's behavior. (credbroker-user-scope T1.)
+    # so its absence degrades to today's behavior.
     _floor = Path("~/.agentbundle/lib").expanduser()
     if _floor.is_dir() and str(_floor) not in sys.path:
         sys.path.append(str(_floor))

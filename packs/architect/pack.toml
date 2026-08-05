@@ -38,7 +38,7 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 [pack.layout.repo]
 output_dir = "docs/design"
 
-# Pack activation evals — pack-eval-coverage-rollout:
+# Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
 # evals/eval_queries.json and is measured by tools/run-pack-evals.py. All three
 # architect skills are user-prompt-triggered, so none are excluded.

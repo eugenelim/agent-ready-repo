@@ -25,7 +25,7 @@ catalogue = "agent-ready-repo"
 pack = "product-documentation"
 version = "^0.1"
 
-# enriched-pack-manifest
+# Enriched pack manifest
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"

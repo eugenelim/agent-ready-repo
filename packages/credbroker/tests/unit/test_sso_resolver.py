@@ -1,4 +1,4 @@
-"""SSO consumer-resolver contract (spec task T1; AC1).
+"""SSO consumer-resolver contract (task T1).
 
 ``load_sso_cookies`` subprocess-invokes the unchanged ``sso-broker.py`` engine and
 returns the on-disk jar path, proceeding only on exit-0-with-readable-path and
@@ -54,7 +54,7 @@ def test_exit2_raises_session_unavailable_with_verbatim_remediation(
 
     with pytest.raises(_sso.SsoSessionUnavailableError) as exc:
         _sso.load_sso_cookies("corp")
-    # Verbatim AC2 remediation; names the profile, never the session bytes.
+    # Verbatim remediation text; names the profile, never the session bytes.
     assert str(exc.value) == (
         "SSO session unavailable for profile corp; run 'sso-broker register corp'"
     )
@@ -115,7 +115,7 @@ def test_argv_carries_only_profile_no_cookie_value(
 
 
 def test_subprocess_run_is_the_only_spawn() -> None:
-    # AC10 structural: the resolver uses subprocess.run, not Popen / os.system /
+    # Structural: the resolver uses subprocess.run, not Popen / os.system /
     # os.exec*; and it never writes/copies the jar (only reads its path).
     src = Path(_sso.__file__).read_text(encoding="utf-8")
     assert "subprocess.run(" in src

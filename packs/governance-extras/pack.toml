@@ -8,7 +8,8 @@ license = "Apache-2.0 OR MIT"
 categories = ["governance", "documentation"]
 keywords = ["rfc", "adr", "conventions"]
 
-# Opt into the catalogue seed lint: a
+# Opt into the catalogue seed lint:
+# a
 # first-party scaffold pack, so `lint.py (_PackRules._check_seeds)` enforces the
 # placeholder contract here. Catalogue-internal — not projected.
 lint-seeds = true
@@ -22,9 +23,9 @@ version = "0.8"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
-# Per adapt-to-project's install-time gate: enforced at install time against the
+# Enforced at install time against the
 # union of both scopes' state files. Schema field already declared in
-# docs/contracts/pack.schema.json; no new field is introduced.
+# the pack manifest schema; no new field is introduced.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"

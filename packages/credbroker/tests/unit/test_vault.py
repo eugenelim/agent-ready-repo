@@ -1,4 +1,4 @@
-"""Encrypted-vault tests (spec task T4; AC5).
+"""Encrypted-vault tests (task T4).
 
 Gated on the `[crypto]` extra — skip cleanly when cryptography/argon2 are
 absent (the base install). Verifies the round-trip, fail-closed-on-wrong-master,
@@ -76,7 +76,7 @@ def test_wrong_master_via_read_credential_raises_not_none(tmp_path):
     _vault.set_credential("jira", "API_TOKEN", SECRET, master=MASTER, path=path)
     with pytest.raises(VaultError) as exc:
         _vault.read_credential("jira", "API_TOKEN", master=WRONG, path=path)
-    # No-leak holds on the read path too (AC13 applies to every failure path).
+    # No-leak holds on the read path too (the contract applies to every failure path).
     msg = str(exc.value)
     assert SECRET not in msg and WRONG not in msg and MASTER not in msg
 

@@ -131,10 +131,10 @@ def load_sso_cookies(profile: str) -> Path:
     return jar_path
 
 
-# --- SSO confinement primitives ------------------------------------------
+# --- SSO confinement primitives ----------------------------------------------
 #
 # These are the security-control surface the unchanged ``sso-broker.py`` engine
-# does *not* perform and that this RFC adds *above* it: an https-only scheme guard,
+# does *not* perform and that this module adds *above* it: an https-only scheme guard,
 # a root-relative endpoint guard, and the cookie-domain confinement that filters
 # the engine's deliberately over-broad captured jar down to the declared domains.
 # They are pure functions (no I/O), reusable by any platform integration, so the

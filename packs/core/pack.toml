@@ -8,10 +8,10 @@ license = "Apache-2.0 OR MIT"
 categories = ["governance", "code-review", "testing"]
 keywords = ["work-loop", "spec-driven", "reviewers", "agents"]
 
-# Opt into the catalogue seed lint: this is
-# a first-party scaffold pack whose seeds must stay placeholder-shaped, so
-# `lint.py (_PackRules._check_seeds)` enforces the placeholder contract here. Catalogue-
-# internal metadata — not projected to plugin.json / marketplace.json.
+# Opt into the catalogue seed lint: this is a first-party scaffold pack whose
+# seeds must stay placeholder-shaped, so `lint.py (_PackRules._check_seeds)`
+# enforces the placeholder contract here. Catalogue-internal metadata — not
+# projected to plugin.json / marketplace.json.
 lint-seeds = true
 
 # The v0.2 contract bump ships alongside this pack's metadata.

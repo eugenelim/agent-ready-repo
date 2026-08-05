@@ -32,7 +32,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # edit/execute). The one narrow non-coverage is the Copilot **cloud agent**
 # (served only via repo `.github/`), which has no `web` tool.
 
-# pack-eval-coverage-rollout: the Tier-A activation-eval coverage allowlist —
+# Pack activation evals: the Tier-A activation-eval coverage allowlist —
 # each listed skill ships evals/eval_queries.json and is measured by
 # tools/run-pack-evals.py. These are the prompt-triggered skills with a distinct
 # cold-prompt activation surface: the seven scoping / synthesis / decision-support

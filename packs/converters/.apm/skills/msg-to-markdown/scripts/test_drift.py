@@ -1,4 +1,4 @@
-"""the vendored shared modules are byte-identical to the file-to-markdown
+"""The vendored shared modules are byte-identical to the file-to-markdown
 originals. This detects drift (a tripwire); it does not structurally prevent it
 (no cross-skill shared-lib mechanism exists). Editing either copy fails this test
 until both are re-synced.

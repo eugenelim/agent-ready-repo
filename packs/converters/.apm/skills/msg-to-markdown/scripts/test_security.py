@@ -20,7 +20,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 
 
-# --- confined attachment extraction ------------------------------------
+# --- confined attachment extraction -----------------------------------------
 
 
 @pytest.mark.parametrize("name,expect", [
@@ -89,7 +89,7 @@ def test_extraction_refuses_symlinked_dir(tmp_path):
     assert not (outside / "x.txt").exists()
 
 
-# --- output-path confinement (via vendored safe_io.confine) ------------
+# --- output-path confinement (via vendored safe_io.confine) -----------------
 
 
 def test_output_path_confinement_rejects_traversal_symlink_sibling(tmp_path):
@@ -121,7 +121,7 @@ def test_embedded_recursion_pins_match_documented_values():
     assert mapi.MAX_EMBED_COUNT == 20
 
 
-# --- skill-owned OLE2/RTF resource wrap -------------------------------
+# --- skill-owned OLE2/RTF resource wrap -------------------------------------
 
 
 def test_per_stream_cap_refuses_over_declared_stream(tmp_path, monkeypatch):
@@ -175,7 +175,7 @@ def test_check_input_size_alone_does_not_admit_a_resource_bomb(tmp_path, monkeyp
         mapi.read_msg(p)
 
 
-# --- bounded embedded recursion ----------------------------------------
+# --- bounded embedded recursion ---------------------------------------------
 
 
 def test_embedded_recursion_depth_cap_surfaces_note(tmp_path, monkeypatch):
@@ -204,7 +204,7 @@ def test_embedded_recursion_count_cap(tmp_path, monkeypatch):
     assert any("recursion" in n for n in m.notes)
 
 
-# --- extracted content cannot forge the contract -----------------------
+# --- extracted content cannot forge the contract ----------------------------
 
 
 def test_hostile_subject_cannot_forge_frontmatter(tmp_path):
@@ -222,7 +222,7 @@ def test_hostile_subject_cannot_forge_frontmatter(tmp_path):
     assert "Injected" in text[end:]
 
 
-# --- malformed input fails soft ----------------------------------------
+# --- malformed input fails soft ---------------------------------------------
 
 
 def test_malformed_msg_fails_soft_not_crash(tmp_path):
@@ -238,7 +238,7 @@ def test_malformed_msg_fails_soft_not_crash(tmp_path):
     assert "requires-review: true" in out and "Not extracted" in out
 
 
-# --- no ML, no egress, --check ----------------------------------------
+# --- no ML, no egress, --check ----------------------------------------------
 
 
 def test_no_ml_or_network_imports():

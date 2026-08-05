@@ -36,8 +36,9 @@ state the rule directly — `the AC8 cost cap` → `the cost cap`.
 
 ## Acceptance criteria
 
-- [x] AC1 — `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b' packs/` returns only the retained illustrative set (AC5).
+- [x] AC1 — `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b' packs/ --exclude='AGENTS*.md'` returns only the retained illustrative set (AC5).
 - [x] AC2 — No citation of one of *our* spec ACs remains under `packs/`, **including `.apm/**/scripts/**` docstrings and comments** (147 sites across 31 files, concentrated in `converters`). Generic AC labels inside synthesized spec fixtures (`- [ ] AC1` written by a test) are placeholders, not citations, and are retained.
+- [x] AC2b — **Letter-suffixed AC forms** (`AC6a`…`AC6m`, `AC7a`, `AC0a`) are gone: 23 sites in `render-proof`'s two test files and `loop-engine.py`. These survived three earlier "clean" reports because the verification pattern ended in `\b`, which cannot match after a trailing letter. The pattern is now `\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b` everywhere it appears (spec, both `AGENTS.local.md`).
 - [x] AC2a — No citation of one of *our* spec slugs remains under `packs/`. Caught late: `docs/specs/credentialed-cli-exit-code-contract` was cited in 11 shipped credentialed-CLI scripts.
 - [x] AC3 — No `docs/specs/<literal-slug>` path remains under `packs/`. Generic placeholder forms (`docs/specs/<feature>`, `docs/specs/<slug>`) are retained — they instruct the adopter.
 - [x] AC4 — Every IETF RFC reference under `packs/` survives byte-identical.
@@ -48,7 +49,9 @@ state the rule directly — `the AC8 cost cap` → `the cost cap`.
 - [x] AC9 — Projections regenerated (`catalogue self-host --write --force`); all projected mirrors consistent with sources.
 - [x] AC10 — Guardrails added to `packs/AGENTS.md` (scope broadened), `packs/AGENTS.local.md`, and `packages/AGENTS.local.md`, each carrying the grep, the IETF carve-out, and the illustrative-example carve-out.
 - [x] AC11 — `packs/AGENTS.md` stays within its 150-line cap (148).
-- [x] AC11a — `packages/credbroker/**` (source of the pack's projected credbroker user-lib) is clean, and the projection matches byte-for-byte after `self-host`.
+- [x] AC11a — `packages/credbroker/**` (source of the pack's projected credbroker user-lib) is clean **except `CHANGELOG.md`**, and the projection matches byte-for-byte after `self-host`. Scope covers `pyproject.toml`, `README.md`, `README-pypi.md`, `credbroker/*.py`, and `tests/**` (39 sites). The two PyPI READMEs keep their working GitHub URLs and lose only the ordinal link text, so an adopter still reaches the design docs.
+- [x] AC11b — `packages/credbroker/CHANGELOG.md` (2 markers) is deliberately untouched, on the same historical-record reasoning as `agentbundle/CHANGELOG.md`. Both are named in the AC12 deferral so the decision is explicit rather than an oversight.
+- [x] AC11c — `packs/AGENTS.md` is a **source** for `_data/catalogue-scaffold/packs/AGENTS.md`; `tools/catalogue/sync_authoring_scaffold.py --write` was run. This gate lives only in the agentbundle suite, not `make build-check`, and it broke CI once before being caught.
 - [ ] AC12 — `packages/**` swept on the same principle. **(deferred: packages-governance-marker-sweep)**
 
 ## Boundaries
@@ -82,8 +85,23 @@ showed it is not the same job:
 - **`agentbundle/CHANGELOG.md`** (16 markers) is a historical record; stripping its
   references rewrites history rather than removing a dangling pointer.
 
-Genuinely out of scope: repo-internal `docs/`, `.github/`, `tools/`. Markers there are
-correct — that is where this repo's governance lives.
+Genuinely out of scope: `.github/`, `tools/`, and `docs/` **except** `docs/CONVENTIONS.md`, which is
+a projection of `packs/core/seeds/docs/CONVENTIONS.md` and therefore moves with the seed whether or
+not that is wanted. An earlier draft of this spec claimed `docs/` was wholly out of scope; that was
+wrong for this one coupled file.
+
+**One deliberate revert.** The seed's four-broker section carries
+`<!-- seed-content-lint-ignore: canonical RFC pointer for the four-broker contract -->` — an
+explicit, lint-acknowledged decision that this particular pointer *should* ship. The first pass
+stripped the two links it guards, orphaning the sentinel and removing the repo's only pointer to the
+pinning documents. Restored verbatim: a sentinel is a prior decision with authority, and this sweep
+has no mandate to overturn it.
+
+**One user-visible output change.** `deny-open-ingress.rego`'s `sprintf` deny message an adopter's
+OPA gate prints changed from `(tagging standard ADR-0004)` to `(tagging standard)`. That is a content
+change to shipped policy output, not a comment — recorded here rather than left implicit under AC8's
+"comment/metadata-only" framing. No version bump: the pack ships the policy as a *reference example*
+under `references/policy/`, not as an executed artifact, and the message still names the standard.
 
 ## Assumptions
 
@@ -151,10 +169,18 @@ python3 -m pytest packs/catalogue-curation/.apm/skills/assimilate-repo/scripts/ 
 for f in packs/*/.apm/skills/*/scripts/test_exit_codes.py; do python3 -m pytest "$f" -q; done
 ```
 
-**Verification-scoping note.** AC2 and AC2a were each first reported clean against a
-grep narrowed to `pack.toml` + `*.md`, then found dirty when re-run over the whole tree
-(147 AC citations in `scripts/`, then 11 spec-slug citations). Verify a sweep against the
-full file set; a filtered grep proves only that the filter is clean.
+**Verification-scoping note — this failed four times, three ways.** AC2/AC2a were first
+reported clean against a grep narrowed to `pack.toml` + `*.md` (missed 147 AC citations in
+`scripts/`, then 11 spec-slug citations). AC2b was missed because the pattern ended in `\b`,
+which cannot match after the trailing letter in `AC6a`. AC11a was missed because the grep
+covered `credbroker/*.py` but not the package's `pyproject.toml`, READMEs, or `tests/**`.
+And the working-tree check itself was run as `git diff origin/main...HEAD`, which excludes
+uncommitted edits — so a fix looked un-applied when it had landed.
+
+Three rules, all learned the hard way: **(1)** grep the whole tree, no `--include`, no path
+narrowing; **(2)** make the *pattern* as loose as the thing you are hunting, then explain
+away the hits — a `\b`-anchored pattern silently under-matches; **(3)** to inspect
+uncommitted work use `git diff origin/main`, not the three-dot form.
 
 **Observed:** ruff `All checks passed`; docs lint `passed`; build-check `68 passed, 0
 failed` + `Ran 96 tests OK` + `pre-pr: all checks passed`; agentbundle suite exit 0;

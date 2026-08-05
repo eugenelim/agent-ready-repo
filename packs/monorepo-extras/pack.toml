@@ -8,7 +8,8 @@ license = "Apache-2.0 OR MIT"
 categories = ["devops", "architecture"]
 keywords = ["monorepo", "scaffolding", "packages"]
 
-# Opt into the catalogue seed lint: a
+# Opt into the catalogue seed lint:
+# a
 # first-party scaffold pack, so `tools/lint-catalogue-seeds.py` enforces the
 # placeholder contract here. Catalogue-internal — not projected.
 lint-seeds = true

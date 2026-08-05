@@ -46,7 +46,7 @@ def _frontmatter(text: str) -> dict:
     return out
 
 
-# --- contract shape via the shared builder -----------------------------
+# --- contract shape via the shared builder ----------------------------------
 
 
 def test_msg_frontmatter_carries_unified_contract(tmp_path):
@@ -78,7 +78,7 @@ def test_msg_e2e_documented_invocation(tmp_path):
     assert "# Q3" in out
 
 
-# --- .msg field extraction (no ML) -------------------------------------
+# --- .msg field extraction (no ML) ------------------------------------------
 
 
 def test_sender_and_recipients_by_type(tmp_path):
@@ -136,7 +136,7 @@ def test_malformed_string_decode_is_non_raising():
     assert mapi._decode_time(b"\x01\x02") is None
 
 
-# --- HTML → Markdown reducer (stdlib html.parser, not regex) -----------
+# --- HTML → Markdown reducer (stdlib html.parser, not regex) ----------------
 
 
 def test_html_reducer_covers_headings_emphasis_links_lists_tables_entities():
@@ -159,7 +159,7 @@ def test_html_reducer_drops_script_and_style():
     assert "keep" in md and "color:red" not in md and "alert" not in md
 
 
-# --- .eml / richer MIME + cross-path frontmatter parity ----------------
+# --- .eml / richer MIME + cross-path frontmatter parity ---------------------
 
 
 def _eml_bytes(subject="Notes", extra_headers="", body="Body here.",
@@ -217,7 +217,7 @@ def _load_floor_convert():
 
 
 def test_cross_path_frontmatter_parity_with_floor_eml_route(tmp_path):
-    """the same simple .eml through this skill and file-to-markdown's flat
+    """The same simple .eml through this skill and file-to-markdown's flat
     route yields identical contract frontmatter (ingestion-date excepted — it is
     a timestamp)."""
     floor = _load_floor_convert()

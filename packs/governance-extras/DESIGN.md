@@ -2,6 +2,8 @@
 
 Living design reference for the governance-extras pack. Records the philosophy, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
+This pack provides the RFC mechanism itself, so it has no upstream RFC of its own.
+
 ---
 
 ## TL;DR
@@ -138,7 +140,7 @@ The same principle applies to every optional section: include it when a reader o
 
 ### Why lean over full MADR
 
-Full MADR is designed for large teams and high-ceremony environments. Every section is required; the template is comprehensive. For a small team or a solo project, the overhead of maintaining every MADR field on every ADR produces documents that are formally complete but tediously redundant — teams start copying boilerplate rather than writing decisions. The lean variant keeps the load-bearing structure (decision + alternatives + consequences) without the process overhead. The format decision record carries the alternatives considered.
+Full MADR is designed for large teams and high-ceremony environments. Every section is required; the template is comprehensive. For a small team or a solo project, the overhead of maintaining every MADR field on every ADR produces documents that are formally complete but tediously redundant — teams start copying boilerplate rather than writing decisions. The lean variant keeps the load-bearing structure (decision + alternatives + consequences) without the process overhead.
 
 ---
 

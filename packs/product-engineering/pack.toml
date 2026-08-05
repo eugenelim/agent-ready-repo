@@ -34,7 +34,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 [pack.layout.repo]
 output_dir = "docs/product"
 
-# Pack activation evals — pack-eval-coverage-rollout:
+# Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
 # evals/eval_queries.json and is measured by tools/run-pack-evals.py. All five
 # skills are user-prompt-triggered, so none are excluded.

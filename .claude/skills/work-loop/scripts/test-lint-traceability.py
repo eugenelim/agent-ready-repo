@@ -253,7 +253,7 @@ def case_deep_chain_no_crash() -> None:
 
 
 def case_drift_warn_only() -> None:
-    """a spec present on disk but absent from an authoritative sidecar is
+    """A spec present on disk but absent from an authoritative sidecar is
     DRIFT — warn-only (exit 0), this spec's firm shipped contract."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -469,7 +469,7 @@ def case_up_field_fallthrough_reference() -> None:
 
 
 def case_dangling_up_field_still_fires() -> None:
-    """a *dangling* (missing-local-shaped) up-field is a hard violation in
+    """A *dangling* (missing-local-shaped) up-field is a hard violation in
     every mode, fired even when a sibling up-field resolves — but the spec is NOT
     also a backward orphan (the resolving Brief gives it a producer)."""
     with tempfile.TemporaryDirectory() as tmp:

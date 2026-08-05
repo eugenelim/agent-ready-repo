@@ -661,8 +661,8 @@ own G4 package — use the artifacts and steps below.
 
 The fleet manifest is the cross-component release coordination artifact. It lives in the
 e2e host repo, is committed by a bot PR from each component repo's CI, and is read-only
-from merge time onward. It is the "courier snapshot" from the courier snapshot pattern
-(applied to the release loop): the per-component G4 package is the authority;
+from merge time onward. It is the "courier snapshot" from the courier snapshot pattern applied to the
+release loop: the per-component G4 package is the authority;
 the fleet manifest carries versioned references to them and does not fork component G4
 packages.
 

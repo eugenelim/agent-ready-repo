@@ -303,7 +303,7 @@ def _summary(m: mapi.EmailModel | None, content_type: str) -> dict:
     }
 
 
-# --- Confined attachment extraction -----------------------------------
+# --- Confined attachment extraction -----------------------------------------
 
 
 def safe_basename(name: str) -> str | None:

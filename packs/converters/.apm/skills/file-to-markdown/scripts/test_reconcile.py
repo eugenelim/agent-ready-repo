@@ -94,7 +94,7 @@ def _raw(name, bbox, crop=CROP, tile="tile_W0_R0_C0", type_="step", conf="high")
 
 
 def test_distinct_same_label_nodes_are_preserved():
-    """two 'Validate' steps far apart (IoU 0) must not collapse into one."""
+    """Two 'Validate' steps far apart (IoU 0) must not collapse into one."""
     raw = [
         _raw("Validate", {"x": 10, "y": 10, "w": 80, "h": 40}),
         _raw("Validate", {"x": 900, "y": 700, "w": 80, "h": 40}),
@@ -124,7 +124,7 @@ def test_same_node_across_overlapping_tiles_still_merges():
 
 
 def test_unnamed_element_is_retained():
-    """an unnamed box is kept, not silently dropped."""
+    """An unnamed box is kept, not silently dropped."""
     raw = [_raw("", {"x": 400, "y": 400, "w": 80, "h": 40}, type_="box")]
     canonical, _ = reconcile.reconcile_elements(raw)
     assert len(canonical) == 1, "unnamed element was dropped"
@@ -201,7 +201,7 @@ def _gen_raw(text=None, *, type_="text", bbox, tile="tile_W0_R0_C0",
 
 
 def test_general_render_emits_prose_and_tables(monkeypatch):
-    """the text-table strategy renders Markdown prose + a Markdown table,
+    """The text-table strategy renders Markdown prose + a Markdown table,
     not diagram element-type sections, and carries the distinguishing
     content-category."""
     monkeypatch.setattr(contract, "now_iso", lambda: "2026-07-01T00:00:00+00:00")
@@ -227,7 +227,7 @@ def test_general_render_emits_prose_and_tables(monkeypatch):
 
 
 def test_general_keying_dedups_same_block_across_overlapping_tiles():
-    """the SAME paragraph read in two overlapping tiles collapses to one via
+    """The SAME paragraph read in two overlapping tiles collapses to one via
     the general (content) key — prose has no diagram `name` to key on."""
     crop1 = {"x": 0, "y": 0, "w": 1200, "h": 900}
     crop2 = {"x": 80, "y": 0, "w": 1200, "h": 900}
@@ -245,7 +245,7 @@ def test_general_keying_dedups_same_block_across_overlapping_tiles():
 
 
 def test_general_distinct_paragraphs_stay_separate():
-    """two different paragraphs are distinct content and are not merged."""
+    """Two different paragraphs are distinct content and are not merged."""
     canonical, _ = reconcile.reconcile_elements(
         [
             _gen_raw("First paragraph.", bbox={"x": 0, "y": 0, "w": 200, "h": 40}),
@@ -258,7 +258,7 @@ def test_general_distinct_paragraphs_stay_separate():
 
 
 def test_general_low_confidence_flags_review(monkeypatch):
-    """a mostly-low read (non-empty, no text layer to cross-check) is flagged
+    """A mostly-low read (non-empty, no text layer to cross-check) is flagged
     requires-review — never emitted as a confident read silently."""
     monkeypatch.setattr(contract, "now_iso", lambda: "2026-07-01T00:00:00+00:00")
     canonical, _ = reconcile.reconcile_elements(
@@ -313,7 +313,7 @@ def test_reference_declares_untrusted_data_delimiter_and_directive():
 
 
 def test_write_confined_rejects_escape_accepts_in_root(tmp_path: Path):
-    """reconcile's output write is confined — .. traversal, symlink escape,
+    """Reconcile's output write is confined — .. traversal, symlink escape,
     and the sibling-prefix case are refused; an in-root path is accepted."""
     root = tmp_path / "work"
     root.mkdir()

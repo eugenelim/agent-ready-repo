@@ -1,4 +1,4 @@
-"""SSO confinement primitives (spec task T2; AC3).
+"""SSO confinement primitives (task T2).
 
 Table-driven over the security-control surface: the https-only scheme guard, the
 root-relative endpoint guard, the cookie-domain confinement match (with the
@@ -15,7 +15,7 @@ from credbroker._sso import SsoConfigError
 COOKIE_DOMAINS = ["corp.example.com", "jira.example.invalid"]
 
 
-# --- https-only scheme guard -------------------------------------------
+# --- https-only scheme guard -------------------------------------------------
 
 @pytest.mark.parametrize("url", [
     "https://corp.example.com",
@@ -37,7 +37,7 @@ def test_validate_https_url_rejects_non_https(url: str) -> None:
         _sso.validate_https_url(url, field="base_url")
 
 
-# --- root-relative endpoint guard --------------------------------------
+# --- root-relative endpoint guard --------------------------------------------
 
 @pytest.mark.parametrize("endpoint", [
     "/rest/api/2/myself",
@@ -60,7 +60,7 @@ def test_validate_root_relative_endpoint_rejects(endpoint: str) -> None:
         _sso.validate_root_relative_endpoint(endpoint)
 
 
-# --- cookie-domain confinement match (AC3 membership, AC4 normalization) ------
+# --- cookie-domain confinement match (membership + normalization) -------------
 
 @pytest.mark.parametrize("domain,expected", [
     ("corp.example.com", True),            # exact
@@ -76,7 +76,7 @@ def test_domain_in_cookie_domains(domain: str, expected: bool) -> None:
     assert _sso.domain_in_cookie_domains(domain, COOKIE_DOMAINS) is expected
 
 
-# --- load-time over-broad-jar filter -----------------------------------
+# --- load-time over-broad-jar filter -----------------------------------------
 
 def test_filter_jar_to_domains_reduces_overbroad_jar() -> None:
     # The engine captures the session cookies PLUS IdP / analytics cookies seen
@@ -92,7 +92,7 @@ def test_filter_jar_to_domains_reduces_overbroad_jar() -> None:
     filtered = _sso.filter_jar_to_domains(jar, COOKIE_DOMAINS)
     kept = {c["name"] for c in filtered}
     assert kept == {"JSESSIONID", "crowd.token_key", "atl_token"}
-    # The over-broad source is not mutated (never written back; AC10).
+    # The over-broad source is not mutated (never written back).
     assert len(jar) == 6
 
 
@@ -101,7 +101,7 @@ def test_filter_jar_drops_domainless_cookie() -> None:
     assert _sso.filter_jar_to_domains(jar, COOKIE_DOMAINS) == []
 
 
-# --- send-host membership, fail-closed ---------------------------------
+# --- send-host membership, fail-closed ---------------------------------------
 
 @pytest.mark.parametrize("host", ["corp.example.com", "jira.corp.example.com"])
 def test_require_host_in_cookie_domains_passes(host: str) -> None:

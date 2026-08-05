@@ -71,10 +71,10 @@ except SsoSessionUnavailableError as exc:
 
 Same discipline as the token path: the secret never crosses the model boundary. `load_sso_cookies` hands back the *path* to a `0600` cookie jar — not the cookie values — and fails closed (it never silently falls back to a token) when the session is missing or expired, surfacing a remediation that tells the user to re-`register`.
 
-The confinement helpers that keep a captured jar from over-reaching ship alongside it: `filter_jar_to_domains` reduces the engine's deliberately broad capture down to the domains you declare, `domain_in_cookie_domains` / `require_host_in_cookie_domains` enforce a label-boundary host match (so `evil-corp.example.com` never matches `corp.example.com`), and `validate_https_url` / `validate_root_relative_endpoint` guard the connection config. See [RFC-0035](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0035-sso-cookie-auth-for-atlassian-pack.md) for the full design.
+The confinement helpers that keep a captured jar from over-reaching ship alongside it: `filter_jar_to_domains` reduces the engine's deliberately broad capture down to the domains you declare, `domain_in_cookie_domains` / `require_host_in_cookie_domains` enforce a label-boundary host match (so `evil-corp.example.com` never matches `corp.example.com`), and `validate_https_url` / `validate_root_relative_endpoint` guard the connection config. See the [SSO cookie-auth design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0035-sso-cookie-auth-for-atlassian-pack.md) for the full design.
 
 ## Learn more
 
 For local development, install from a repo clone: `pip install -e ./packages/credbroker`.
 
-See the [full contract](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/credbroker/spec.md) and [RFC-0023](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0023-credential-manager-broker.md) for the rationale.
+See the [full contract](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/credbroker/spec.md) and the [broker design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0023-credential-manager-broker.md) for the rationale.

@@ -36,7 +36,7 @@ import struct
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-# --- Skill-owned resource ceilings -----------------------------------
+# --- Skill-owned resource ceilings ------------------------------------------
 
 MAX_STREAM_BYTES = 64 * 1024 * 1024          # per single MAPI property stream
 MAX_TOTAL_OUTPUT = 256 * 1024 * 1024         # cumulative across the whole walk

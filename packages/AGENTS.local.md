@@ -32,7 +32,8 @@ docstrings, argparse `help=` text, or runtime messages. State the rule instead o
 was decided. Before committing:
 
 ```bash
-grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|docs/(specs|rfc|adr)/[a-z0-9]' packages/
+grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
+  packages/ --exclude='AGENTS*.md' --exclude='CHANGELOG.md'
 ```
 
 Two traps:

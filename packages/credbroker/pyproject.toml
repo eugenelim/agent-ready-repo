@@ -23,8 +23,8 @@ classifiers = [
 ]
 
 # The stdlib core has no third-party dependency. The encrypted-at-rest vault
-# (RFC-0023) lives behind this extra; absent it, resolution degrades to the
-# keyring/dotfile floor. See docs/specs/credbroker/spec.md AC4/AC5/AC7.
+# lives behind this extra; absent it, resolution degrades to the
+# keyring/dotfile floor.
 [project.optional-dependencies]
 crypto = ["cryptography>=42", "argon2-cffi>=23"]
 
@@ -32,7 +32,7 @@ crypto = ["cryptography>=42", "argon2-cffi>=23"]
 Homepage = "https://github.com/eugenelim/agent-ready-repo"
 Source = "https://github.com/eugenelim/agent-ready-repo"
 
-# No [project.scripts]: credbroker is a pure library in v1 (RFC-0023). The
+# No [project.scripts]: credbroker is a pure library in v1. The
 # interactive write surface stays credential-setup; each consumer CLI verifies
 # via its own `check`. This leaves the reserved 3-9 exit band unclaimed.
 
