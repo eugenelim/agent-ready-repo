@@ -32,6 +32,7 @@ def test_load_states_includes_local_scope(tmp_path):
     args = argparse.Namespace(root=str(repo_root))
 
     from unittest.mock import patch
+
     from agentbundle.scope import UserScopeUnresolvable
 
     with patch("agentbundle.scope.resolve_user_root", side_effect=UserScopeUnresolvable("no home")):
@@ -55,6 +56,7 @@ def test_load_states_local_pack_source_installed_state(tmp_path):
     args = argparse.Namespace(root=str(repo_root))
 
     from unittest.mock import patch
+
     from agentbundle.scope import UserScopeUnresolvable
 
     with patch("agentbundle.scope.resolve_user_root", side_effect=UserScopeUnresolvable("no home")):

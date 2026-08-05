@@ -8,8 +8,6 @@ Tests for:
 
 from __future__ import annotations
 
-import subprocess
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -165,7 +163,7 @@ def test_validate_dependencies_no_local_state_misses_dep():
 
     # dep-pack only at local scope, but we don't pass local_state
     dep_ps = PackState(installed_version="0.1.0", scope="local")
-    local_state = State(packs={("dep-pack", "claude-code"): dep_ps})
+    local_state = State(packs={("dep-pack", "claude-code"): dep_ps})  # noqa: F841
     repo_state = State()
     user_state = State()
 

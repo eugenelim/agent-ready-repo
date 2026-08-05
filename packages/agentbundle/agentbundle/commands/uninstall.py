@@ -106,8 +106,8 @@ def run(args: argparse.Namespace) -> int:
     ]
     if len(_installed_scopes) > 1 and cli_scope is None:
         print(
-            f"uninstall: {pack_name} installed at multiple scopes "
-            f"({', '.join(_installed_scopes)}); pass --scope",
+            f"uninstall: {pack_name} installed at multiple scopes; "
+            "pass --scope {repo, user}",
             file=sys.stderr,
         )
         return 1

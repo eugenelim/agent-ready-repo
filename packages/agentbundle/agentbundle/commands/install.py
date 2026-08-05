@@ -1330,11 +1330,10 @@ def run(args: argparse.Namespace) -> int:
                     safety.write_companion(plan.root, relpath, content)
                 except safety.PathJailError as exc:
                     if plan.scope == "local" and _local_exclude_path is not None:
+                        import contextlib
                         for _p in _local_written_files:
-                            try:
+                            with contextlib.suppress(OSError):
                                 _p.unlink(missing_ok=True)
-                            except OSError:
-                                pass
                         rollback_exclude_block(_local_exclude_path, _local_prior_exclude)
                     print(f"install: {exc}", file=sys.stderr)
                     return 1
@@ -1352,11 +1351,10 @@ def run(args: argparse.Namespace) -> int:
                     )
                 except safety.PathJailError as exc:
                     if plan.scope == "local" and _local_exclude_path is not None:
+                        import contextlib
                         for _p in _local_written_files:
-                            try:
+                            with contextlib.suppress(OSError):
                                 _p.unlink(missing_ok=True)
-                            except OSError:
-                                pass
                         rollback_exclude_block(_local_exclude_path, _local_prior_exclude)
                     print(f"install: {exc}", file=sys.stderr)
                     return 1

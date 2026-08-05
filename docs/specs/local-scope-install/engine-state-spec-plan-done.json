@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "run_id": "0fae6b91-bbb8-4abe-bbf4-39eb55f2bafc",
+  "feature": "local-scope-install",
+  "mode": "spec-plan",
+  "state": "DONE",
+  "last_event": "plan-locked",
+  "last_event_context": null,
+  "transition_sequence": 20,
+  "last_transition_at": "2026-08-05T04:35:16Z",
+  "gate_question": null
+}

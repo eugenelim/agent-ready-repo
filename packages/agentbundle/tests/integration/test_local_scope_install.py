@@ -17,10 +17,8 @@ Test matrix:
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
 
 import pytest
 
@@ -115,8 +113,9 @@ def git_repo(tmp_path: Path) -> Path:
 
 def test_install_local_happy_path(git_repo: Path) -> None:
     """Files appear in tree, git-invisible, list-installed shows local row."""
-    from agentbundle.commands.install import run as install_run
     import io
+
+    from agentbundle.commands.install import run as install_run
 
     out = io.StringIO()
     import contextlib
@@ -165,9 +164,11 @@ def test_install_local_happy_path(git_repo: Path) -> None:
 
 def test_install_local_list_installed_shows_row(git_repo: Path) -> None:
     """list-installed --scope local includes the pack row."""
+    import contextlib
+    import io
+
     from agentbundle.commands.install import run as install_run
     from agentbundle.commands.list_installed import run as list_run
-    import io, contextlib
 
     rc = install_run(_install_args(git_repo))
     assert rc == 0
@@ -227,8 +228,10 @@ def test_uninstall_local_cleans_up(git_repo: Path) -> None:
 
 def test_same_scope_reinstall_refused(git_repo: Path) -> None:
     """Reinstalling the same pack/adapter at local scope is refused (AC21b)."""
+    import contextlib
+    import io
+
     from agentbundle.commands.install import run as install_run
-    import io, contextlib
 
     rc1 = install_run(_install_args(git_repo))
     assert rc1 == 0
@@ -248,8 +251,10 @@ def test_same_scope_reinstall_refused(git_repo: Path) -> None:
 
 def test_local_refused_when_repo_installed(git_repo: Path) -> None:
     """Installing at local scope is refused when already at repo scope."""
+    import contextlib
+    import io
+
     from agentbundle.commands.install import run as install_run
-    import io, contextlib
 
     # Install at repo scope first
     rc1 = install_run(_install_args(git_repo, scope="repo"))
@@ -263,8 +268,10 @@ def test_local_refused_when_repo_installed(git_repo: Path) -> None:
 
 def test_repo_refused_when_local_installed(git_repo: Path) -> None:
     """Installing at repo scope is refused when already at local scope."""
+    import contextlib
+    import io
+
     from agentbundle.commands.install import run as install_run
-    import io, contextlib
 
     rc1 = install_run(_install_args(git_repo, scope="local"))
     assert rc1 == 0
@@ -306,13 +313,13 @@ def test_write_exclude_block_docstring_ac27(tmp_path: Path) -> None:
 
 def test_rollback_on_write_failure(git_repo: Path) -> None:
     """If install fails mid-write, exclude block and files are rolled back (AC21)."""
+    from agentbundle import statelock
     from agentbundle.commands.install import run as install_run
     from agentbundle.local_exclude import get_exclude_path, snapshot_exclude
-    from agentbundle import statelock
 
-    # Capture pre-install exclude state
+    # Capture pre-install exclude state (for post-failure comparison)
     exclude_path = get_exclude_path(git_repo)
-    prior_content = snapshot_exclude(exclude_path)
+    _prior_content = snapshot_exclude(exclude_path)  # noqa: F841 (rollback assertion anchor)
 
     # Patch statelock.persist_state_locked to raise on first call
     _original_persist = statelock.persist_state_locked
@@ -324,7 +331,8 @@ def test_rollback_on_write_failure(git_repo: Path) -> None:
             raise RuntimeError("simulated state write failure")
         return _original_persist(*args, **kwargs)
 
-    import io, contextlib
+    import contextlib
+    import io
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
         try:

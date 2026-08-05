@@ -18,7 +18,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -96,6 +95,7 @@ def test_disambiguator_infers_local_when_only_local(git_repo: Path) -> None:
     _write_exclude_block_for(git_repo, "trial-pack", relpaths)
 
     from types import SimpleNamespace
+
     from agentbundle.commands.uninstall import run
 
     args = SimpleNamespace(
@@ -163,6 +163,7 @@ def test_uninstall_local_removes_files(git_repo: Path) -> None:
     _write_exclude_block_for(git_repo, "trial-pack", relpaths)
 
     from types import SimpleNamespace
+
     from agentbundle.commands.uninstall import run
 
     args = SimpleNamespace(
@@ -185,7 +186,7 @@ def test_uninstall_local_removes_files(git_repo: Path) -> None:
 
 def test_uninstall_last_adapter_strips_block(git_repo: Path) -> None:
     """Uninstalling the last adapter row strips the pack's exclude block."""
-    from agentbundle.local_exclude import derive_worktree_id, get_exclude_path
+    from agentbundle.local_exclude import get_exclude_path
 
     relpaths = [".claude/skills/trial-pack/SKILL.md"]
     _write_local_state(git_repo, "trial-pack", "claude-code", relpaths)
@@ -198,6 +199,7 @@ def test_uninstall_last_adapter_strips_block(git_repo: Path) -> None:
     assert "trial-pack" in before
 
     from types import SimpleNamespace
+
     from agentbundle.commands.uninstall import run
 
     args = SimpleNamespace(
@@ -224,7 +226,7 @@ def test_uninstall_remaining_adapter_recomputes_block(git_repo: Path) -> None:
     """Uninstalling one of two adapters rewrites the block with the remaining patterns."""
     from agentbundle import safety
     from agentbundle.config import PackState, State, dump_state
-    from agentbundle.local_exclude import derive_worktree_id, get_exclude_path, write_exclude_block
+    from agentbundle.local_exclude import get_exclude_path
 
     # Two adapter rows for the same pack
     relpaths_a = [".claude/skills/trial-pack/SKILL.md"]
@@ -249,6 +251,7 @@ def test_uninstall_remaining_adapter_recomputes_block(git_repo: Path) -> None:
     _write_exclude_block_for(git_repo, "trial-pack", all_relpaths)
 
     from types import SimpleNamespace
+
     from agentbundle.commands.uninstall import run
 
     args = SimpleNamespace(
@@ -290,6 +293,7 @@ def test_uninstall_local_deletes_empty_state_file(git_repo: Path) -> None:
     assert state_file.exists()
 
     from types import SimpleNamespace
+
     from agentbundle.commands.uninstall import run
 
     args = SimpleNamespace(
@@ -328,6 +332,7 @@ def test_uninstall_local_keeps_state_with_sibling_rows(git_repo: Path) -> None:
     _write_exclude_block_for(git_repo, "trial-pack", relpaths_a + relpaths_b)
 
     from types import SimpleNamespace
+
     from agentbundle.commands.uninstall import run
 
     args = SimpleNamespace(

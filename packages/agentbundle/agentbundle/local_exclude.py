@@ -48,7 +48,6 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Worktree-id derivation
 # ---------------------------------------------------------------------------
@@ -149,12 +148,11 @@ def _write_atomically(path: Path, content: bytes) -> None:
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(content)
-        os.replace(tmp, path)
+        Path(tmp).replace(path)
     except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
+        import contextlib
+        with contextlib.suppress(OSError):
+            Path(tmp).unlink()
         raise
 
 

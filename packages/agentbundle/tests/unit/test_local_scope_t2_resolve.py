@@ -9,7 +9,6 @@ from __future__ import annotations
 import pytest
 from agentbundle import scope
 
-
 # ---------------------------------------------------------------------------
 # AC2: LEGAL_SCOPES includes "local"
 # ---------------------------------------------------------------------------
@@ -17,7 +16,7 @@ from agentbundle import scope
 
 def test_legal_scopes_contains_local():
     """AC2: LEGAL_SCOPES must equal {"repo", "user", "local"}."""
-    assert scope.LEGAL_SCOPES == frozenset({"repo", "user", "local"})
+    assert frozenset({"repo", "user", "local"}) == scope.LEGAL_SCOPES
 
 
 # ---------------------------------------------------------------------------

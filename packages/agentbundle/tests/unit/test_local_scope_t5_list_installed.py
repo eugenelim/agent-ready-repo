@@ -8,22 +8,19 @@ Verifies:
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import pytest
 from agentbundle.commands import list_installed as li
 from agentbundle.config import PackState, State, dump_state  # type: ignore[attr-defined]
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _entry(name: str, adapter: str = "claude-code", scope: str = "repo") -> "State":
+def _entry(name: str, adapter: str = "claude-code", scope: str = "repo") -> State:
     """Return a one-entry State for a (name, adapter) pack."""
     ps = PackState(installed_version="0.1.0", scope=scope, adapter=adapter, source="installed-state")
     return State(packs={(name, adapter): ps})

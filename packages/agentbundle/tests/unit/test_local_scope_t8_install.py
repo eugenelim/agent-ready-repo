@@ -13,13 +13,10 @@ Tests for the key install.py sites added/widened in T8:
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -70,7 +67,7 @@ def test_get_exclude_path_resolves_to_absolute(git_repo: Path) -> None:
 
 def test_exclude_block_write_uses_union_of_patterns(git_repo: Path) -> None:
     """Exclude block includes existing state rows + new projection relpaths + state file."""
-    from agentbundle.local_exclude import get_exclude_path, snapshot_exclude, write_exclude_block
+    from agentbundle.local_exclude import get_exclude_path, write_exclude_block
 
     exclude_path = get_exclude_path(git_repo)
     exclude_path.parent.mkdir(parents=True, exist_ok=True)
@@ -103,7 +100,7 @@ def test_exclude_block_written_before_files(git_repo: Path) -> None:
     Simulates the AC21 commit order by checking that write_exclude_block
     is called before any safety.write_jailed call in the install flow.
     """
-    from agentbundle.local_exclude import get_exclude_path, write_exclude_block
+    from agentbundle.local_exclude import get_exclude_path
 
     exclude_path = get_exclude_path(git_repo)
     exclude_path.parent.mkdir(parents=True, exist_ok=True)
@@ -189,8 +186,6 @@ def test_repo_state_relpath_still_bypasses() -> None:
 
 def test_user_state_relpath_not_bypassed() -> None:
     """User scope does NOT bypass (different prefix; handled separately)."""
-    root = Path("/home/user/.agentbundle")
-    state_path = root / "state.toml"
     # User root resolves differently; the condition filters by scope first
     scope = "user"
     bypassed = scope in ("repo", "local")
@@ -311,7 +306,6 @@ def test_rollback_on_file_write_failure(git_repo: Path) -> None:
         snapshot_exclude,
         write_exclude_block,
     )
-    from agentbundle import safety
 
     exclude_path = get_exclude_path(git_repo)
     exclude_path.parent.mkdir(parents=True, exist_ok=True)
@@ -333,11 +327,10 @@ def test_rollback_on_file_write_failure(git_repo: Path) -> None:
     written_files = [file1]
 
     # Now simulate a failure on the second file → rollback
+    import contextlib
     for p in written_files:
-        try:
+        with contextlib.suppress(OSError):
             p.unlink(missing_ok=True)
-        except OSError:
-            pass
     rollback_exclude_block(exclude_path, prior)
 
     # File should be gone

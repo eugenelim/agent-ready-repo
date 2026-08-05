@@ -12,11 +12,8 @@ Tests for:
 from __future__ import annotations
 
 import os
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from agentbundle.local_exclude import (
     derive_worktree_id,
     escape_gitignore_path,
@@ -24,7 +21,6 @@ from agentbundle.local_exclude import (
     strip_exclude_block,
     write_exclude_block,
 )
-
 
 SENTINEL_PRIMARY = "primary"
 
@@ -40,7 +36,6 @@ def test_derive_worktree_id_primary(tmp_path):
     common = str(tmp_path / ".git")
 
     def fake_git(cmd, *args, **kwargs):
-        import subprocess
         class R:
             stdout = common + "\n"
             returncode = 0
@@ -172,6 +167,7 @@ def test_write_exclude_block_atomic(tmp_path):
     # Track if os.replace was called
     replaced = []
     original_replace = os.replace
+
     def spy_replace(src, dst):
         replaced.append((src, dst))
         return original_replace(src, dst)
