@@ -84,21 +84,49 @@ def run(args: argparse.Namespace) -> int:
         print(f"uninstall: {exc}", file=sys.stderr)
         return 1
 
-    if installed_at_repo and installed_at_user and cli_scope is None:
+    # RFC-0080: also probe the local state file.
+    local_state_path = root / ".agentbundle-local-state.toml"
+    installed_at_local = False
+    try:
+        local_state_for_check = load_state(local_state_path)
+        installed_at_local = local_state_for_check.has_pack(pack_name)
+    except ConfigError:
+        pass
+
+    # Multi-scope disambiguator: if more than one scope has the pack and the
+    # user hasn't supplied --scope, ask for clarification.
+    _installed_scopes = [
+        s
+        for s, flag in (
+            ("repo", installed_at_repo),
+            ("user", installed_at_user),
+            ("local", installed_at_local),
+        )
+        if flag
+    ]
+    if len(_installed_scopes) > 1 and cli_scope is None:
         print(
-            f"uninstall: {pack_name} installed at multiple scopes; "
-            "pass --scope {repo, user}",
+            f"uninstall: {pack_name} installed at multiple scopes "
+            f"({', '.join(_installed_scopes)}); pass --scope",
             file=sys.stderr,
         )
         return 1
 
     # Resolve the effective scope: explicit CLI flag, else the inferred
     # single-scope value, else repo (the historical default).
+    # The explicit branch ordering matters: local must not fall through to repo
+    # (the old else-branch implied repo for any unrecognised combination).
     if cli_scope is not None:
         effective_scope = cli_scope
-    elif installed_at_user and not installed_at_repo:
+    elif installed_at_local and not installed_at_repo and not installed_at_user:
+        effective_scope = "local"
+    elif installed_at_user and not installed_at_repo and not installed_at_local:
         effective_scope = "user"
+    elif installed_at_repo and not installed_at_user and not installed_at_local:
+        effective_scope = "repo"
     else:
+        # Multiple scopes (cli_scope already handled above); or none found yet —
+        # the Step-1b has_pack check will surface "not installed" cleanly.
         effective_scope = "repo"
 
     # Route to the correct state file based on effective scope.
@@ -112,6 +140,10 @@ def run(args: argparse.Namespace) -> int:
             return 1
         state_path = user_state_path
         root = user_state_path.parent.parent  # = ~ (the user-scope projection root)
+    elif effective_scope == "local":
+        # Local state file lives at <root>/.agentbundle-local-state.toml.
+        # root (repo root) stays unchanged — local files are repo-root-relative.
+        state_path = local_state_path
 
     # ── Step 1b: Load state for write ────────────────────────────────────────
     try:
@@ -353,6 +385,59 @@ def run(args: argparse.Namespace) -> int:
     # ── Step 3: Best-effort cleanup of empty parent directories ──────────────
     _prune_empty_parents(root, removed)
 
+    # ── Step 3b: RFC-0080 — update .git/info/exclude for local scope ─────────
+    # After file removals, recompute or strip the pack's exclude block.
+    # Recompute order (AC14b): strip or recompute AFTER files are deleted but
+    # BEFORE state row is dropped, so the remaining sibling rows' patterns are
+    # still readable from the in-memory `state.packs`.
+    if effective_scope == "local":
+        from agentbundle.local_exclude import (
+            derive_worktree_id,
+            get_exclude_path,
+            strip_exclude_block,
+            write_exclude_block,
+        )
+
+        _worktree_id = derive_worktree_id(root)
+        _exclude_path = get_exclude_path(root)
+
+        # Remaining rows: every row for this pack except the one being removed.
+        _remaining_rows = {
+            (pn, adp): pst
+            for (pn, adp), pst in state.packs.items()
+            if pn == pack_name and adp != target_adapter
+        }
+
+        if _remaining_rows:
+            # Other adapter rows remain → recompute the block from their union.
+            _remaining_relpaths: set[str] = set()
+            for _pst in _remaining_rows.values():
+                _remaining_relpaths.update(_pst.files.keys())
+            _remaining_patterns = (
+                ["/.agentbundle-local-state.toml"]
+                + ["/" + r for r in sorted(_remaining_relpaths)]
+            )
+            try:
+                write_exclude_block(
+                    _exclude_path, pack_name, _worktree_id, _remaining_patterns
+                )
+            except OSError as exc:
+                print(
+                    f"uninstall: failed to update exclude block: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
+        else:
+            # Last adapter row for this pack → strip the whole block.
+            try:
+                strip_exclude_block(_exclude_path, pack_name, _worktree_id)
+            except OSError as exc:
+                print(
+                    f"uninstall: failed to strip exclude block: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
+
     # ── Step 4: Drop only the targeted adapter row from state and persist ─────
     # Sibling adapter rows of the same pack (and their co-owned shared files)
     # survive — only this `(pack, adapter)` row is removed (RFC-0052).
@@ -374,6 +459,17 @@ def run(args: argparse.Namespace) -> int:
     except safety.PathJailError as exc:
         print(f"uninstall: {exc}", file=sys.stderr)
         return 1
+
+    # RFC-0080: delete the local state file when it becomes empty (no packs
+    # remain). Repo/user state files persist empty (tool expectation parity).
+    if effective_scope == "local" and not state.packs:
+        try:
+            state_path.unlink(missing_ok=True)
+        except OSError as exc:
+            print(
+                f"uninstall: warning: could not delete empty state file: {exc}",
+                file=sys.stderr,
+            )
 
     # ── Step 5: Summary ───────────────────────────────────────────────────────
     _shared_suffix = f", {len(shared)} kept (shared)" if shared else ""
