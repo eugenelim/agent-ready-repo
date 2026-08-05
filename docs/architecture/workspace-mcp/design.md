@@ -1,6 +1,6 @@
 # workspace-mcp
 
-**Status:** Stage 1 Shipped — `agentbundle` 0.28.0
+**Status:** Stage 1 Implementing — `agentbundle` 0.28.2 (code present; behavioral integration tests are stubs, per spec deferral note)
 **RFC:** [0078](../../rfc/0078-workspace-mcp.md) · Accepted
 **Last updated:** 2026-08-04
 **Reviewers:** TBD
@@ -230,21 +230,23 @@ Set `WORKSPACE_MCP_SPEC_PATH` for FSM (work-loop) sessions; omit it for non-FSM 
 Markdown agent support and `elicitation/create` capability depend on the installed CLI
 version — unconfirmed; response-file fallback assumed.
 
-**Mode detection.** Because the config is static, workspace-mcp runs two detectors
-concurrently (no per-session env var to determine mode):
+**Mode detection (Stage 2c — planned, not implemented in 0.28.2).** The following describes
+the design for when Class B support ships; it is not present in the current codebase.
+Because the config is static, workspace-mcp will run two detectors concurrently
+(no per-session env var to determine mode):
 
 - **FSM detector:** polls for `engine-state.json` files strictly newer than the
   process-start sentinel file. Wins over the non-FSM detector.
 - **Non-FSM detector:** reads the current branch at session start; binds on first
   `git_branch()` call.
 
-If `WORKSPACE_MCP_SPEC_PATH` is set, gate-resume scanning is scoped to that spec.
-If absent, the gate scan is skipped — preventing a stale gate from a prior run from
+If `WORKSPACE_MCP_SPEC_PATH` is set, gate-resume scanning will be scoped to that spec.
+If absent, the gate scan will be skipped — preventing a stale gate from a prior run from
 hijacking a new session.
 
-**Known limitation.** If the prior session ended on a feature branch and the new session
-starts on the same branch for a different item, workspace-mcp binds the old slug.
-Workaround: check out the new item's branch before starting the session.
+**Known limitation (design).** If the prior session ended on a feature branch and the new
+session starts on the same branch for a different item, workspace-mcp would bind the old
+slug. Workaround: check out the new item's branch before starting the session.
 
 **What differs from Class A:**
 
