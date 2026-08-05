@@ -185,7 +185,7 @@ Key fields in the `workspace_status()` response:
 | *(per item)* `available` | bool \| absent | `false` when the item's `dispatch_skill` is not installed; absent when available |
 | *(per item)* `required_pack` | string \| null | Pack to install when `available: false`; e.g. `"desk-research"` (use `agentbundle install --pack <value>`) |
 
-> **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Poll `workspace_status()` after each session update rather than relying on notification events.
+> **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Gate detection does not require polling — gates arrive as `elicitation/create` requests (Step 5). For independent FSM state reconciliation (e.g., after a session restart), open a separate session with `WORKSPACE_MCP_SPEC_PATH` set and call `workspace_status()` from there.
 
 ## Step 5 — Respond to gates
 

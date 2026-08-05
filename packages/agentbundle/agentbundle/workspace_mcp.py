@@ -1730,7 +1730,8 @@ class _StdioLoop:
                     "call git_branch() in a new session, or in a resumed "
                     "dispatched session the branch may already be locked from "
                     "the prior run (no git_branch() call required in that case). "
-                    "Not available when no item has been dispatched."
+                    "Not available in FSM/work-loop sessions (WORKSPACE_MCP_SPEC_PATH set) "
+                    "or when no item has been dispatched."
                 ),
                 "inputSchema": {
                     "type": "object",
