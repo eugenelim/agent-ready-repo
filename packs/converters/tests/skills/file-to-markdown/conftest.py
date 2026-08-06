@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "file-to-markdown"
-if not SKILL.is_dir():                        # wrong parents[] depth after a move
-    raise SystemExit(f"skill root not found at {SKILL}")
-sys.path.insert(0, str(SKILL / "scripts"))
+SCRIPTS = SKILL / "scripts"
+if not SCRIPTS.is_dir():                      # wrong parents[] depth after a move
+    raise SystemExit(f"skill scripts dir not found at {SCRIPTS}")
+sys.path.insert(0, str(SCRIPTS))

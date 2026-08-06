@@ -41,9 +41,12 @@ def _load():
     return mod
 
 
-def _run() -> int:
-    return subprocess.run([sys.executable, str(LINT)],
-                          cwd=ROOT, capture_output=True, text=True).returncode
+def _run() -> tuple[int, str]:
+    """(exit code, stderr). The reason matters: the lint has several failure
+    sites, so `exit != 0` alone would let a plant "pass" on an unrelated fault."""
+    r = subprocess.run([sys.executable, str(LINT)],
+                       cwd=ROOT, capture_output=True, text=True)
+    return r.returncode, r.stderr
 
 
 # Shapes the matcher must catch, and the ones it must deliberately not.
@@ -97,8 +100,9 @@ def main() -> int:
 
     # ---- layer 1: falsification, both directions ---------------------------
     cases += 1
-    if _run() != 0:
-        failures.append("clean tree: expected exit 0")
+    rc, err = _run()
+    if rc != 0:
+        failures.append(f"clean tree: expected exit 0, got {rc}\n{err}")
 
     # Plant under a non-core pack, so the check is proven repo-wide and not just
     # for the pack the guard used to be scoped to.
@@ -111,27 +115,101 @@ def main() -> int:
         plant.write_text("# planted by test-lint-pack-test-boundary.py\n",
                          encoding="utf-8")
         try:
-            if _run() == 0:
+            rc, err = _run()
+            if rc == 0:
                 failures.append(
                     "planted test under packs/figma/.apm/: expected exit 1"
+                )
+            elif plant.name not in err:
+                failures.append(
+                    "planted test under packs/figma/.apm/: lint failed, but its "
+                    f"message does not name the plant — it failed for another "
+                    f"reason:\n{err}"
                 )
         finally:
             plant.unlink(missing_ok=True)
         cases += 1
-        if _run() != 0:
-            failures.append("after removing the plant: expected exit 0")
+        rc, err = _run()
+        if rc != 0:
+            failures.append(f"after removing the plant: expected exit 0\n{err}")
 
     # A `test/` directory (singular) is the shape the previous matcher missed.
     plant2 = plant_dir / "test"
     cases += 1
     plant2.mkdir(exist_ok=True)
     try:
-        if _run() == 0:
+        rc, err = _run()
+        if rc == 0:
             failures.append(
                 "planted `test/` dir under packs/figma/.apm/: expected exit 1"
             )
+        elif "/test" not in err:
+            failures.append(f"planted `test/` dir: failed for another reason\n{err}")
     finally:
         plant2.rmdir()
+
+    # `evals/` untouchability is load-bearing (AC5) and is enforced by _SKIP_DIR,
+    # not by _TEST_DIR — so asserting `"evals" not in _TEST_DIR` proves nothing.
+    # Plant a test file inside a real evals/ tree and require it to be ignored.
+    evals = ROOT / "packs" / "figma" / ".apm" / "skills" / "figma" / "evals"
+    cases += 1
+    if evals.is_dir():
+        ep = evals / "test_planted_in_evals.py"
+        ep.write_text("# planted\n", encoding="utf-8")
+        try:
+            rc, err = _run()
+            if rc != 0:
+                failures.append(
+                    "a test file inside evals/ must be ignored — evals are "
+                    f"skill-local runtime content (ADR-0071):\n{err}"
+                )
+        finally:
+            ep.unlink(missing_ok=True)
+    else:
+        failures.append(f"evals plant target missing: {evals}")
+
+    # Case 4 and case 5 had never been seen to fail. Plant a runner line that
+    # collects two colliding destinations, and an undeclared destination.
+    mk = ROOT / "Makefile"
+    original = mk.read_text(encoding="utf-8")
+    cases += 1
+    try:
+        mk.write_text(
+            original + "\nlint-selftest-scratch:\n"
+            "\tpytest packs/converters/tests/skills/markdown-to-docx "
+            "packs/converters/tests/skills/markdown-to-pptx\n",
+            encoding="utf-8")
+        rc, err = _run()
+        if rc == 0:
+            failures.append(
+                "a runner covering markdown-to-docx + markdown-to-pptx must fail "
+                "— they share test_render.py and render.py"
+            )
+        elif "render.py" not in err:
+            failures.append(
+                f"collision plant failed, but not for the subject-module "
+                f"collision that matters:\n{err}"
+            )
+    finally:
+        mk.write_text(original, encoding="utf-8")
+
+    cases += 1
+    undeclared = ROOT / "packs" / "figma" / "tests" / "skills" / "planted-skill"
+    undeclared.mkdir(parents=True, exist_ok=True)
+    (undeclared / "test_planted.py").write_text("def test_x():\n    pass\n",
+                                                encoding="utf-8")
+    try:
+        rc, err = _run()
+        if rc == 0:
+            failures.append(
+                "a destination directory named by no runner and absent from "
+                "_NO_RUNNER must fail"
+            )
+        elif "planted-skill" not in err:
+            failures.append(f"undeclared-destination plant failed elsewhere\n{err}")
+    finally:
+        (undeclared / "test_planted.py").unlink(missing_ok=True)
+        undeclared.rmdir()
 
     # ---- layer 3: runner isolation ----------------------------------------
     # Overlapping basenames across destinations are expected; the lint must key
@@ -147,11 +225,13 @@ def main() -> int:
                 "basename — the collision case this lint guards has vanished, so "
                 "the guard is no longer proving anything"
             )
-        elif _run() != 0:
-            failures.append(
-                "the tree has overlapping basenames across destinations and the "
-                "lint failed — it must key on invocations, not on the tree"
-            )
+        else:
+            rc, err = _run()
+            if rc != 0:
+                failures.append(
+                    "the tree has overlapping basenames across destinations and "
+                    f"the lint failed — it must key on invocations:\n{err}"
+                )
     else:
         failures.append("collision fixtures not found in the tree")
 

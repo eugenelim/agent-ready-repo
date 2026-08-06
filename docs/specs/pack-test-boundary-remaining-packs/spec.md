@@ -245,13 +245,27 @@ stated there once and not restated here.
       **The assertion is about runners, not about the tree.** Overlapping
       basenames *across* destination directories are the expected end state, so a
       lint that reds on them would red on a correct implementation.
-      `tools/test-lint-pack-test-boundary.py` instead parses the runner call
-      sites — `Makefile` pytest lines, CI `run:` blocks, `tools/test-all.py`
-      entries, `self_host_windows.py` steps — and fails when a single invocation
-      covers two destination directories whose test basenames overlap. AC7's task
-      owns that assertion; no other task may claim it.
+      `tools/lint-pack-test-boundary.py` instead parses the runner call sites —
+      `Makefile` pytest lines, CI `run:` blocks, `tools/test-all.py` entries,
+      `self_host_windows.py` steps — and fails when a single invocation covers
+      two colliding destination directories. **Both kinds of collision**:
+      duplicate *test* basenames, which pytest refuses loudly, and duplicate
+      *subject* modules, which is the silent one — a `sys.path` sibling import
+      binds one skill's `render.py` for both suites and everything passes green.
+      Checking only the first would guard the failure that announces itself and
+      miss the one that does not. Two parsing details are load-bearing:
+      `self_host_windows.py` builds its paths from `Path` parts, so a
+      substring match alone cannot see it; and comment lines are skipped,
+      because prose explaining this constraint naturally quotes the very
+      invocation it forbids. AC7's task owns the assertion; no other task may
+      claim it.
 - [ ] **AC6c** — No suite loses its runner, and no *control* suite can pass
-      vacuously.
+      vacuously. The manifest below records the state at ship time;
+      `tools/lint-pack-test-boundary.py` is what keeps it true afterwards, by
+      failing on any skill test directory that no runner names and that carries
+      no declared reason. A spec note freezes when the spec ships, so it cannot
+      be the only home for "which suites actually run" — the next pack's test
+      directory would be unrun by default with nothing saying so.
       - A runner-coverage manifest in `notes/suite-parity.md`. **Schema, stated
         once:** one row per destination directory naming the runner that executes
         it, **plus** a per-suite row for any suite that runner does not name. A

@@ -28,10 +28,14 @@ Four checks:
 3. **tests-live-in-the-pack-tree** — a pack that owns tests has them under
    `packs/<pack>/tests/`.
 4. **runners-keep-suites-isolated** — no single pytest invocation covers two
-   destination directories whose test basenames overlap. Several skills ship a
-   `test_render.py` and a `render.py`; pytest refuses the duplicate test
-   basenames outright, and a sys.path-based sibling import would bind one
-   module for all of them.
+   destination directories that collide. Two kinds: duplicate *test* basenames,
+   which pytest refuses loudly, and duplicate *subject* modules — three skills
+   ship a `render.py`, two ship byte-identical `ssrf_check.py` — where a
+   sys.path sibling import binds one copy for both suites and everything passes
+   green. The second is the one worth a lint; the first announces itself.
+5. **every-suite-dir-has-a-runner** — every skill test directory is named by a
+   runner or declared in `_NO_RUNNER` with a reason. Without this, "which suites
+   actually run" has no living home and the next directory is unrun by default.
 """
 
 from __future__ import annotations
@@ -41,6 +45,7 @@ import re
 import subprocess
 import sys
 import tomllib
+from fnmatch import fnmatch
 from pathlib import Path
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
@@ -150,8 +155,13 @@ def _projected_packs() -> list[str]:
 
 
 def case_apm_carries_no_tests() -> None:
+    packs = _packs()
+    if not packs:
+        FAILURES.append("no packs found under packs/ — this must not pass "
+                        "vacuously")
+        return
     hits: list[Path] = []
-    for pack in _packs():
+    for pack in packs:
         hits += _walk(pack / ".apm")
     if hits:
         FAILURES.append(
@@ -161,11 +171,12 @@ def case_apm_carries_no_tests() -> None:
               "catalogue-authoring-standards.md § 4."
         )
         return
-    print(f"ok   [apm-carries-no-tests] ({len(_packs())} packs)")
+    print(f"ok   [apm-carries-no-tests] ({len(packs)} packs)")
 
 
 def case_projection_carries_no_tests() -> None:
     """The installed artifact, checked directly rather than inferred."""
+    before = len(FAILURES)
     include = _projected_packs()
     if not include:
         FAILURES.append("self-host recipe lists no packs to project")
@@ -206,15 +217,21 @@ def case_projection_carries_no_tests() -> None:
             + "\n    ".join(_rel(h) for h in hits)
         )
         return
-    if not FAILURES:
+    if len(FAILURES) == before:
         print(f"ok   [projection-carries-no-tests] ({total} projected skills, "
               f"{len(include)} packs)")
 
 
 def case_tests_live_in_the_pack_tree() -> None:
     """The positive half — a pack that owns tests has them where policy says."""
+    before = len(FAILURES)
     owning = 0
-    for pack in _packs():
+    packs = _packs()
+    if not packs:
+        FAILURES.append("no packs found under packs/ — this must not pass "
+                        "vacuously")
+        return
+    for pack in packs:
         tests = pack / "tests"
         if not tests.is_dir():
             continue                      # a pack may legitimately own no tests
@@ -226,7 +243,7 @@ def case_tests_live_in_the_pack_tree() -> None:
             )
             continue
         owning += 1
-    if not FAILURES:
+    if len(FAILURES) == before:
         print(f"ok   [tests-live-in-the-pack-tree] ({owning} packs own tests)")
 
 
@@ -240,13 +257,117 @@ _RUNNER_FILES = (
     "tools/test-all.py",
     "packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py",
 )
-_DEST = re.compile(r"packs/[A-Za-z0-9_-]+/tests(?:/[A-Za-z0-9_./-]*)?")
+# Two shapes, because runners write paths two ways. A shell/Make/argv form
+# (`packs/converters/tests/skills/x`), possibly with a `*` in the pack segment;
+# and `self_host_windows.py`'s `root / "packs" / "atlassian" / "tests" / …`
+# Path-part sequence, which no substring match can see — the spec records that
+# same fact about grepping it.
+_DEST = re.compile(r"packs/[A-Za-z0-9_*-]+/tests(?:/[A-Za-z0-9_.*/-]*)?")
+_DEST_PARTS = re.compile(
+    r'"packs"\s*/\s*"([A-Za-z0-9_-]+)"\s*/\s*"tests"((?:\s*/\s*"[A-Za-z0-9_-]+")*)'
+)
+_PART = re.compile(r'"([A-Za-z0-9_-]+)"')
+
+# Directories with no runner, and why. A destination directory must either be
+# named by a runner or appear here — that is what keeps "which suites actually
+# run" answerable from the tree rather than from a frozen spec note. Removing an
+# entry whose directory is gone is part of deleting the suite.
+_NO_RUNNER = {
+    "packs/architect/tests/skills/architect-diagram":
+        "needs the Mermaid CLI (mmdc); never gated",
+    "packs/atlassian/tests/skills/confluence-publisher": "never gated",
+    "packs/atlassian/tests/skills/jira-align": "never gated",
+    "packs/atlassian/tests/skills/jira-team-status":
+        "run by tools/check-atlassian-phase3-readiness.py, which no workflow invokes",
+    "packs/converters/tests/skills/render-proof":
+        "needs `npm install` in the skill and a committed lockfile; never gated",
+    "packs/figma/tests/skills/figma": "never gated",
+    "packs/governance-extras/tests/skills/new-adr": "never gated",
+    "packs/governance-extras/tests/skills/new-rfc": "never gated",
+}
+
+
+def _destinations() -> list[Path]:
+    """Every skill test directory that holds a suite."""
+    out: list[Path] = []
+    for pack in _packs():
+        skills = pack / "tests" / "skills"
+        if not skills.is_dir():
+            continue
+        for d in sorted(skills.iterdir()):
+            if d.is_dir() and _walk(d):
+                out.append(d)
+    return out
 
 
 def _test_basenames(d: Path) -> set[str]:
-    return {p.name for p in d.rglob("*")
-            if p.is_file() and _TEST_FILE.match(p.name)
-            and not (_TRANSIENT & set(p.parts))}
+    """Test module basenames in *d*.
+
+    `conftest.py` is excluded deliberately: one per directory is pytest's design
+    and every destination has one, so including it would make every multi-
+    directory invocation look like a collision for a reason that is not true.
+    """
+    return {p.name for p in _walk(d)
+            if p.is_file() and p.name != "conftest.py"}
+
+
+def _subject_basenames(d: Path) -> set[str]:
+    """Basenames of the skill modules *d*'s conftest puts on `sys.path`.
+
+    This is the collision that matters. Duplicate *test* basenames make pytest
+    error out loudly; a duplicate *subject* module binds one skill's `render.py`
+    for another skill's suite and everything passes green.
+    """
+    scripts = (d.parents[2] / ".apm" / "skills" / d.name / "scripts")
+    if not scripts.is_dir():
+        return set()
+    return {p.name for p in scripts.glob("*.py")}
+
+
+def _covered(line_paths: set[str], destinations: list[Path]) -> set[Path]:
+    """Destination directories a set of matched path tokens covers.
+
+    A token may be a glob (`packs/*/tests/`) or an ancestor
+    (`packs/converters/tests/`); either way it covers every destination beneath
+    it, which is exactly how one invocation ends up spanning several skills.
+    """
+    covered: set[Path] = set()
+    for token in line_paths:
+        for d in destinations:
+            rel = str(d.relative_to(ROOT))
+            if fnmatch(rel, token.rstrip("/")) or fnmatch(rel, token.rstrip("/") + "/*") \
+               or rel.startswith(token.rstrip("/") + "/") or rel == token.rstrip("/"):
+                covered.add(d)
+    return covered
+
+
+def _runner_lines() -> list[tuple[str, int, set[str]]]:
+    """(file, lineno, matched path tokens) for every pytest invocation."""
+    out: list[tuple[str, int, set[str]]] = []
+    for rel in _RUNNER_FILES:
+        f = ROOT / rel
+        if not f.is_file():
+            FAILURES.append(
+                f"runner file {rel} does not exist — the collision and coverage "
+                f"checks silently stop reading it; update _RUNNER_FILES"
+            )
+            continue
+        for lineno, line in enumerate(
+                f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            # Every runner file here comments with `#`, and prose about the
+            # constraint naturally quotes the very paths this parses — the
+            # Makefile comment warning against `pytest packs/*/tests/` is the
+            # clearest case. Reading a comment as an invocation would make the
+            # explanation of a rule violate it.
+            if line.lstrip().startswith("#"):
+                continue
+            tokens = set(_DEST.findall(line))
+            for pack, tail in _DEST_PARTS.findall(line):
+                parts = _PART.findall(tail)
+                tokens.add("/".join(["packs", pack, "tests", *parts]))
+            if tokens:
+                out.append((rel, lineno, tokens))
+    return out
 
 
 def case_runners_keep_suites_isolated() -> None:
@@ -256,40 +377,86 @@ def case_runners_keep_suites_isolated() -> None:
     state (three skills ship a `test_render.py`), so the assertion is about what
     a single invocation covers, not about the tree.
     """
+    before = len(FAILURES)
+    destinations = _destinations()
     checked = 0
-    for rel in _RUNNER_FILES:
-        f = ROOT / rel
-        if not f.is_file():
+    for rel, lineno, tokens in _runner_lines():
+        covered = sorted(_covered(tokens, destinations))
+        if len(covered) < 2:
             continue
-        for lineno, line in enumerate(f.read_text(encoding="utf-8",
-                                                  errors="replace").splitlines(), 1):
-            if "pytest" not in line:
-                continue
-            paths = {ROOT / m for m in _DEST.findall(line)}
-            dirs = sorted({p if p.is_dir() else p.parent for p in paths})
-            if len(dirs) < 2:
-                continue
-            checked += 1
-            for i, a in enumerate(dirs):
-                for b in dirs[i + 1:]:
-                    overlap = _test_basenames(a) & _test_basenames(b)
-                    if overlap:
-                        FAILURES.append(
-                            f"{rel}:{lineno}: one pytest invocation covers "
-                            f"{_rel(a)} and {_rel(b)}, which share test "
-                            f"basenames {sorted(overlap)}. pytest refuses "
-                            f"duplicate basenames; split the invocation."
-                        )
-    if not FAILURES:
+        checked += 1
+        for i, a in enumerate(covered):
+            for b in covered[i + 1:]:
+                tests = _test_basenames(a) & _test_basenames(b)
+                subjects = _subject_basenames(a) & _subject_basenames(b)
+                if tests:
+                    FAILURES.append(
+                        f"{rel}:{lineno}: one pytest invocation covers "
+                        f"{_rel(a)} and {_rel(b)}, which share test module "
+                        f"basenames {sorted(tests)} — pytest refuses duplicate "
+                        f"basenames. Split the invocation."
+                    )
+                if subjects:
+                    FAILURES.append(
+                        f"{rel}:{lineno}: one pytest invocation covers "
+                        f"{_rel(a)} and {_rel(b)}, whose skills both ship "
+                        f"{sorted(subjects)} — a sys.path sibling import would "
+                        f"bind one copy for both suites and pass green. Split "
+                        f"the invocation."
+                    )
+    if len(FAILURES) == before:
         print(f"ok   [runners-keep-suites-isolated] "
               f"({checked} multi-directory invocation(s) checked)")
+
+
+def case_every_suite_dir_has_a_runner() -> None:
+    """Every destination is named by a runner, or declared unrun with a reason.
+
+    Without this the answer to "which suites actually run" lives only in a spec
+    note, which freezes when the spec ships — so the next pack's test directory
+    is unrun by default and nothing says so.
+    """
+    before = len(FAILURES)
+    destinations = _destinations()
+    if not destinations:
+        FAILURES.append("no skill test directories found — this must not pass "
+                        "vacuously")
+        return
+    run: set[Path] = set()
+    for _, _, tokens in _runner_lines():
+        run |= _covered(tokens, destinations)
+    for d in destinations:
+        rel = str(d.relative_to(ROOT))
+        if d in run:
+            if rel in _NO_RUNNER:
+                FAILURES.append(
+                    f"{rel} is declared unrun in _NO_RUNNER but a runner names "
+                    f"it — drop the entry"
+                )
+            continue
+        if rel not in _NO_RUNNER:
+            FAILURES.append(
+                f"{rel} holds a suite that no runner names. Wire it, or add it "
+                f"to _NO_RUNNER with the reason — a suite nobody runs must be "
+                f"declared, not discovered."
+            )
+    live = {str(d.relative_to(ROOT)) for d in destinations}
+    for rel in sorted(set(_NO_RUNNER) - live):
+        FAILURES.append(
+            f"_NO_RUNNER names {rel}, which holds no suite — a stale exemption "
+            f"hides the next directory that goes missing"
+        )
+    if len(FAILURES) == before:
+        print(f"ok   [every-suite-dir-has-a-runner] "
+              f"({len(destinations)} destinations, {len(_NO_RUNNER)} declared unrun)")
 
 
 def main() -> int:
     for case in (case_apm_carries_no_tests,
                  case_projection_carries_no_tests,
                  case_tests_live_in_the_pack_tree,
-                 case_runners_keep_suites_isolated):
+                 case_runners_keep_suites_isolated,
+                 case_every_suite_dir_has_a_runner):
         case()
     print()
     if FAILURES:
@@ -298,7 +465,7 @@ def main() -> int:
         print(f"✖ lint-pack-test-boundary: {len(FAILURES)} failure(s)",
               file=sys.stderr)
         return 1
-    print("✓ lint-pack-test-boundary: passed (4 cases).")
+    print("✓ lint-pack-test-boundary: passed (5 cases).")
     return 0
 
 

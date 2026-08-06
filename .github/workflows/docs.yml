@@ -38,6 +38,13 @@ on:
       - 'tools/test-all.py'
       - 'tools/lint-pack-test-boundary.py'
       - 'tools/test-lint-pack-test-boundary.py'
+      # The boundary lint reads these as runner call sites, so a change to
+      # any of them has to re-trigger it — collapsing the Makefile's
+      # pack-test lines is precisely the regression it exists to catch.
+      - 'Makefile'
+      - '.github/workflows/build-check.yml'
+      - '.github/workflows/catalogue-tooling-ci-gates.yml'
+      - 'packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py'
       - 'tools/test-pre-pr.sh'
       - 'tools/seed_test_sandbox.py'
       - 'packs/core/tests/hooks/**'
