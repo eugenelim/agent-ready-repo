@@ -71,7 +71,25 @@ except SsoSessionUnavailableError as exc:
 
 Same discipline as the token path: the secret never crosses the model boundary. `load_sso_cookies` hands back the *path* to a `0600` cookie jar — not the cookie values — and fails closed (it never silently falls back to a token) when the session is missing or expired, surfacing a remediation that tells the user to re-`register`.
 
-The confinement helpers that keep a captured jar from over-reaching ship alongside it: `filter_jar_to_domains` reduces the engine's deliberately broad capture down to the domains you declare, `domain_in_cookie_domains` / `require_host_in_cookie_domains` enforce a label-boundary host match (so `evil-corp.example.com` never matches `corp.example.com`), and `validate_https_url` / `validate_root_relative_endpoint` guard the connection config. See the [SSO cookie-auth design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0035-sso-cookie-auth-for-atlassian-pack.md) for the full design.
+### Re-establishing an expired session
+
+A captured session expires long before the corporate SSO session behind it does, so a `check`-style verb can usually recover on its own:
+
+```python
+try:
+    jar_path = load_sso_cookies("corp")
+except SsoSessionUnavailableError:
+    refresh_sso_session("corp")            # headless; no browser is shown
+    jar_path = load_sso_cookies("corp")    # exactly one retry
+```
+
+`refresh_sso_session` takes **only a profile**, and that is the control rather than a convenience: the signature is structurally incapable of forwarding a sign-in destination, so an automated caller cannot choose where the browser goes. It runs headless — if the stored browser profile cannot complete the identity-provider flow unaided it raises `SsoInteractionRequiredError` instead of putting a login page in front of whoever is at the machine. `register_sso_session(...)` performs a first capture and is the only function that accepts a destination; reach it from an operator-typed action.
+
+Recover on `SsoSessionUnavailableError` (and its `SsoProfileNotRegisteredError` subclass) and nothing else. A timeout, a missing engine, or an internal broker failure raises `SsoBrokerUnavailableError` — none of them means the session is gone, and re-authenticating for them would open a browser while the stored session is perfectly valid.
+
+`derive_sso_destination(base_url, strategies=())` asks the resource server where it sends users to sign in (RFC 9728 protected resource metadata, then OIDC discovery, then an opt-in vendor probe), so a first capture can compare that against its configured destination before opening anything. It is defence in depth, not a control: the derivation target usually lives in the same config file as the value being attested.
+
+The confinement helpers that keep a captured jar from over-reaching ship alongside it: `filter_jar_to_domains` reduces the engine's deliberately broad capture down to the domains you declare, `domain_in_cookie_domains` / `require_host_in_cookie_domains` enforce a label-boundary host match (so `evil-corp.example.com` never matches `corp.example.com`), `validate_https_url` / `validate_root_relative_endpoint` guard the connection config, and `validate_sso_profile` confines the profile name that becomes a filename and a keychain entry. See the [SSO cookie-auth design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0035-sso-cookie-auth-for-atlassian-pack.md) for the full design.
 
 ## Learn more
 

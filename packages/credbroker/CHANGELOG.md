@@ -6,6 +6,53 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.5.0] — 2026-08-06
+
+### Added
+
+- **SSO session recapture.** `refresh_sso_session(profile)` re-establishes an
+  expired session without a human; `register_sso_session(...)` performs a first
+  capture. `refresh_sso_session` takes **only a profile** — the signature is
+  structurally incapable of forwarding a sign-in destination, so an automated
+  caller cannot choose where the browser goes. `register_sso_session` is the
+  sole function that accepts one, and always drives the engine's ephemeral
+  capture mode.
+
+- **`validate_sso_profile(profile)`** — the shared grammar guard for the name
+  that becomes a filename and a keychain entry:
+  `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` under `re.fullmatch`, excluding Windows
+  reserved device names.
+
+- **`derive_sso_destination(base_url, *, strategies=())`** — ask a resource
+  server where it sends users to sign in, via RFC 9728 protected resource
+  metadata, then OIDC discovery / RFC 8414, then an opt-in named vendor probe.
+  Returns `scheme://host` or `None`; `None` is a real outcome, since SAML-only
+  SPs expose no discovery. Bounded: https-only at every hop, redirects not
+  followed, 5 s socket timeout under a 15 s budget, a 64 KiB body cap, strict
+  TLS, and no auth headers.
+
+- **Four exception types** so a caller can tell an expired session from a broker
+  failure: `SsoProfileNotRegisteredError` (subclasses
+  `SsoSessionUnavailableError`, so existing handlers keep working),
+  `SsoInteractionRequiredError`, `SsoRecaptureFailedError`,
+  `SsoBrokerUnavailableError`.
+
+### Changed
+
+- **`load_sso_cookies` no longer passes the whole environment to the engine, and
+  no longer runs unbounded.** It composes the child environment from an
+  allowlist — so a spawned process cannot inherit an unrelated `*_API_TOKEN` —
+  and applies a 30-second wall-clock bound with a whole-process-tree kill.
+
+- **Potentially breaking:** a timeout, a spawn failure, or an engine-internal
+  error now raises `SsoBrokerUnavailableError` rather than
+  `SsoSessionUnavailableError`. Code that retries or re-registers on the latter
+  no longer does so for a slow keychain. Catch `SsoError` for the previous
+  blanket behaviour.
+
+- `load_sso_cookies` validates the profile against the grammar before spawning,
+  so every entry point that reaches the engine is guarded.
+
 ## [0.4.0] — 2026-07-27
 
 ### Changed
