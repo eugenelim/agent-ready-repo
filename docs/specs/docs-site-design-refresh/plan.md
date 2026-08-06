@@ -1,7 +1,7 @@
 # Plan: docs-site-design-refresh
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** implementation strategy; allowed to change as we learn.
 

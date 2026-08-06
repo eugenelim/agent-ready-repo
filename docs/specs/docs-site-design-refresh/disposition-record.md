@@ -46,5 +46,13 @@ the loop vs. surfaced to the human, per the work-loop self-coverage gate.
   changelog entry).
 - Round 3 (adversarial 1B/2C/1N): all resolved (round-3 changelog entry).
 - Round 4: adversarial Clean; security Clean (round-3 confirmation).
-- Post-EXECUTE findings: recorded below when the implementation review
-  runs. <!-- updated at DECIDE -->
+- Post-EXECUTE round 1 (adversarial 1C + security 1C + quality 3C/4N +
+  experience 2 Major/1 Minor/1 Nit): 13 fingerprints recorded. Dispositions —
+  security's SCA restatement → standing deferral (`docs-site-npm-sca-gap`);
+  all twelve others → `apply`, landed in commit ca81d0e2 (mermaid loader
+  hardening + dark edge labels, ToC two-channel active state, hairline
+  banner, unboxed heading chips, committed contrast checker, docs.yml exact
+  paths, dead-token removal, theme-invariant hoist, observer annotation,
+  shipped-state metadata flip).
+- Post-EXECUTE round 2 (verify-fixes): adversarial Clean; quality Clean;
+  experience SHIP IT; security Clean (round-1 diff pass). No open findings.
