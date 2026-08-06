@@ -44,7 +44,9 @@ of the Starlight tech docs instead of a 404, and stays landed across a
 - Sweep the **living** authoring surfaces that prescribe the field, not just the data:
   `docs/specs/platform-site/journey-page-template.md` is a living template-reference
   doc (so designated by `journey-template-revamp/spec.md` AC), and a stale example in
-  it re-seeds the defect into the next journey authored.
+  it re-seeds the defect into the next journey authored. Check **every** route-shaped
+  value in its example block, not just `docsUrl` — `relatedJourneys` entries also
+  render directly into links.
 - Validate each corrected value against the route set the docs-site build actually
   emits, not against an assumed URL shape.
 
@@ -121,9 +123,13 @@ Assumptions).
   content check (Testing Strategy 3).
 - [x] **AC5.** The 8 already-working links are untouched and no published route moves,
   verified by the Testing Strategy 4 diff check.
-- [x] **AC6.** The living authoring template
-  `docs/specs/platform-site/journey-page-template.md` no longer prescribes the
-  superseded `/guides/<pack>/` form.
+- [x] **AC6.** Every route in the living authoring template
+  `docs/specs/platform-site/journey-page-template.md`'s frontmatter example resolves:
+  the superseded `/guides/<pack>/` `docsUrl` form is gone, and the `relatedJourneys`
+  example no longer names `release` (not a journey slug; rendered straight into
+  `/journeys/<slug>/` by `web/src/pages/journeys/[journey].astro`, so it seeded a dead
+  link) — it now names `release-engineering`, matching the template's own worked
+  exemplar `web/src/content/journeys/core.md`.
 - [x] **AC7.** Gates green: `make lint-ruff`, `tools/lint-pack-journeys.py`,
   `tools/lint-web-journey-parity.py`, `tools/lint-journey-contract.py`,
   `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .`, and
