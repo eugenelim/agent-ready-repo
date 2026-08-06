@@ -114,12 +114,19 @@ def test_argv_carries_only_profile_no_cookie_value(
         assert all(banned not in part for part in argv), argv
 
 
-def test_subprocess_run_is_the_only_spawn() -> None:
-    # Structural: the resolver uses subprocess.run, not Popen / os.system /
-    # os.exec*; and it never writes/copies the jar (only reads its path).
+def test_spawn_is_argv_composed_and_never_shelled() -> None:
+    # Structural: every engine invocation is a composed argv list — never a shell,
+    # never os.system / os.exec*; and the resolver never writes or copies the jar
+    # (it only reads the path the engine prints).
+    #
+    # ``subprocess.Popen`` *is* permitted, and is the point: AC3's wall-clock bound
+    # has to kill the whole process tree on expiry, and ``subprocess.run``'s own
+    # timeout kills only the direct child — leaving playwright's Chromium alive
+    # holding a live corporate session. The ban that carries the security meaning
+    # is on shelling out, not on the spawn primitive.
     src = Path(_sso.__file__).read_text(encoding="utf-8")
-    assert "subprocess.run(" in src
-    for banned in ("subprocess.Popen", "os.system(", "os.exec"):
+    assert "subprocess.Popen(" in src
+    for banned in ("os.system(", "os.exec", "shell=True"):
         assert banned not in src, banned
 
 

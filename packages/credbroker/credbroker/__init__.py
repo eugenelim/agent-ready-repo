@@ -56,6 +56,7 @@ from ._core import _tier2_backend_label as tier2_backend_label
 # keeps the base import graph free of any third-party dependency.
 from ._sso import (
     SsoBrokerNotInstalledError,
+    SsoBrokerUnavailableError,
     SsoConfigError,
     SsoError,
     SsoSessionUnavailableError,
@@ -65,6 +66,7 @@ from ._sso import (
     require_host_in_cookie_domains,
     validate_https_url,
     validate_root_relative_endpoint,
+    validate_sso_profile,
 )
 
 __version__ = "0.4.1"
@@ -102,7 +104,9 @@ __all__ = [
     "SsoBrokerNotInstalledError",
     "SsoSessionUnavailableError",
     "SsoConfigError",
+    "SsoBrokerUnavailableError",
     # SSO confinement primitives (security-control surface).
+    "validate_sso_profile",
     "validate_https_url",
     "validate_root_relative_endpoint",
     "domain_in_cookie_domains",
