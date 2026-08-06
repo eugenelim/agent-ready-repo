@@ -433,6 +433,28 @@ backlog = []
 [backlog]
 open = [
 
+  # Two ADR-0055 / v0.13 stragglers found while reconciling docs/architecture/
+  # against the real agentbundle surface. Both are engine-or-tooling edits, so
+  # the docs-only PR that found them deliberately left them.
+  # 1. `list-targets`' own argparse help in packages/agentbundle/agentbundle/cli.py
+  #    still names six targets ("claude-code, kiro-ide, kiro-cli, kiro
+  #    (deprecated → kiro-ide), copilot, codex") and omits cursor + gemini. The
+  #    verb's *output* is correct — only the help string is stale. cli.py is a
+  #    release-impacting path, so this needs a version bump + changelog entry.
+  # 2. tools/repo/check_release_impact.py's RELEASE_IMPACTING_PREFIXES still
+  #    lists "docs/contracts/", a directory ADR-0055 deleted, and does NOT list
+  #    "contracts/". Not a live hole today: contracts/adapter.toml is a
+  #    byte-identical twin of packages/agentbundle/agentbundle/_data/adapter.toml
+  #    (test_contract_files_byte_identical), which IS listed — so a real contract
+  #    change still trips the gate via the packaged copy. It is dead config that
+  #    would become a hole the moment a contracts/ file stops having a packaged
+  #    twin (e.g. catalogue.schema.json, guide.schema.json).
+  # Fix: (1) regenerate the help string from the adapter registry so it cannot
+  #   drift again; (2) swap the prefix to "contracts/" and add a test that a
+  #   contracts/-only change without a release indicator exits 1.
+  # Unblocks when: picked up — no dependency.
+  {slug = "agentbundle-surface-doc-reconciliation-engine-stragglers", source = "spec/agentbundle-surface-doc-reconciliation (out of scope)"},
+
   # Phase-1 residue from the packages/ marker sweep: the marker sites that are
   # asserted on verbatim. The set itself is enumerated once, in
   # docs/specs/packages-governance-marker-sweep/spec.md AC5 — do not restate it
@@ -1274,6 +1296,22 @@ queue   = [
   # first-party JOURNEY.md fixtures to prove the contract. First-party all-pack
   # migration is Wave 9 scope — not included here.
   {path = "spec/catalogue-wave4-semantic-contracts-index", needs = ["work:spec/catalogue-wave1-contract-convergence", "work:spec/catalogue-verifier-correctness"]},
+
+  # Local catalogue search verb (`agentbundle search`). Gated on Wave 4 — hard.
+  # Substrate: Wave 4 delivers contracts/catalogue-index.schema.json and
+  # `agentbundle catalogue index`. That index IS what a search verb reads.
+  # Building search first means inventing a second index and then migrating off
+  # it, so this cannot start earlier regardless of who wants it.
+  # Scope: the LOCAL read surface only — query the neutral index that is already
+  # on disk. Hosted search (a service, a remote indexer, a registry API) stays a
+  # non-goal, per RFC-0031's non-goals and ini-007's own boundary. RFC-0031 named
+  # the gap in its diagnosis ("nothing to search or browse by") but made no
+  # decision, so nothing owns this today — which is why it is queued rather than
+  # specced.
+  # Open question for whoever picks it up: whether this lands as a new ini-007
+  # wave or as an RFC-0031 follow-on. Decide that before writing the spec; it
+  # changes whether the verb needs its own RFC.
+  {path = "spec/catalogue-search-verb", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
 
   # Wave 5 — Release integrity. Gated on Wave 4.
   # Deliver: pack/profile content digests; same-version mutation refusal; human+JSON

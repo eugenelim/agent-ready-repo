@@ -98,8 +98,10 @@ One file per non-trivial subsystem:
   and how the bundler reads them.
 - [`agentbundle.md`](agentbundle.md) — the Python package: CLI verbs,
   build pipeline (recipes → adapters → projections), the adapter contract
-  at v0.14 (RFC-0011 added `[adapter.codex.scope]` and the user-scope
-  adapter resolver; RFC-0031 carries the enriched-manifest projection),
+  at v0.17 (RFC-0052 added the shared-prefix registry and routed the
+  cursor/gemini/copilot skill cohort to the shared `.agents/skills/` home;
+  RFC-0031 carries the enriched-manifest projection at v0.14; RFC-0011
+  added `[adapter.codex.scope]` and the user-scope adapter resolver),
   self-host overlay.
 - [`credentials.md`](credentials.md) — the credentialed-resolver model
   (the `credbroker` library since RFC-0023, formerly the build-projected

@@ -6,7 +6,7 @@
 > layer's detail lives in its own page, linked below.
 
 If you're authoring, the practical how-to is
-[Author a skill](../guides/_shared/how-to/author-a-skill.md). This page exists
+[Author a skill](../../guides/_shared/how-to/author-a-skill.md). This page exists
 so the format is *called out in one place* — what conforms to an external
 standard, what we add, and where each part is specified.
 
@@ -14,9 +14,9 @@ standard, what we add, and where each part is specified.
 
 | Layer | What it is | Authoritative page |
 | --- | --- | --- |
-| 1. Skill | A `SKILL.md` + optional bundled files. Conforms to the open [agentskills.io](https://agentskills.io/specification) standard. | agentskills.io (external) + [`author-a-skill.md`](../guides/_shared/how-to/author-a-skill.md) |
+| 1. Skill | A `SKILL.md` + optional bundled files. Conforms to the open [agentskills.io](https://agentskills.io/specification) standard. | agentskills.io (external) + [`author-a-skill.md`](../../guides/_shared/how-to/author-a-skill.md) |
 | 2. Pack | The envelope that ships a skill (and other primitives): `pack.toml`, `.apm/<primitive>/`, `seeds/`, `.claude-plugin/plugin.json`. | [`pack-layout.md`](pack-layout.md), [`pack-manifest.md`](pack-manifest.md) |
-| 3. Projection | One pack source → many agent outputs, routed by the adapter contract. | [`agentbundle.md`](agentbundle.md), [`../contracts/adapter.toml`](../contracts/adapter.toml) |
+| 3. Projection | One pack source → many agent outputs, routed by the adapter contract. | [`agentbundle.md`](agentbundle.md), [`contracts/adapter.toml`](../../contracts/adapter.toml) |
 
 Above all three sits the [catalogue](catalogue.md) — the `packs/` +
 `marketplace.json` directory these packs live in.
@@ -33,8 +33,8 @@ rather than inventing our own; the field table, character limits, and naming
 rules are canonical there and we do not restate them (restating would drift).
 
 What this repo adds on top of the standard is one constraint, enforced by the
-linters ([`tools/lint-agent-artifacts.py`](../../tools/lint-agent-artifacts.py)
-on projections, `lint-packs` on sources), not a schema change:
+linters (`agentbundle catalogue verify`'s agent-artifact step on
+projections, `agentbundle lint packs` on sources), not a schema change:
 
 - **Frontmatter uses only the agentskills.io keys.** Project-specific data
   goes under the `metadata:` escape hatch the spec provides — never as a
@@ -60,7 +60,7 @@ catalogue listing is in [`pack-manifest.md`](pack-manifest.md).
 The same pack source projects into Claude Code, Codex, Cursor, Copilot,
 Gemini, and Kiro, each with its own layout for skills and agents. Which
 projection mode applies to each primitive per adapter is declared in
-[`../contracts/adapter.toml`](../contracts/adapter.toml) and executed by the
+[`contracts/adapter.toml`](../../contracts/adapter.toml) and executed by the
 build pipeline described in [`agentbundle.md`](agentbundle.md). The
 authoritative format spec for the projection modes is
 [`../specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md).
@@ -69,6 +69,6 @@ authoritative format spec for the projection modes is
 
 - [`catalogue.md`](catalogue.md) — the directory these packs live in, and how
   to stand up your own.
-- [Author a skill](../guides/_shared/how-to/author-a-skill.md) — the hands-on
+- [Author a skill](../../guides/_shared/how-to/author-a-skill.md) — the hands-on
   how-to, including the `evals/` convention.
 - [`pack-layout.md`](pack-layout.md) — the pack's on-disk shape.
