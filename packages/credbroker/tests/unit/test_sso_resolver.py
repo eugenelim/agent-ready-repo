@@ -1,10 +1,10 @@
 """SSO consumer-resolver contract (task T1).
 
-``load_sso_cookies`` subprocess-invokes the unchanged ``sso-broker.py`` engine and
-returns the on-disk jar path, proceeding only on exit-0-with-readable-path and
-failing closed otherwise. The engine is faked here with a stub script returning
-canned exit codes / stdout, plus monkeypatched ``subprocess.run`` for the branches
-a real subprocess can't reach deterministically.
+``load_sso_cookies`` subprocess-invokes the ``sso-broker.py`` engine and returns
+the on-disk jar path, proceeding only on exit-0-with-readable-path and failing
+closed otherwise. The engine is faked here with a stub script returning canned
+exit codes / stdout, plus monkeypatched ``subprocess.Popen`` for the branches a
+real subprocess can't reach deterministically.
 """
 
 from __future__ import annotations
@@ -76,17 +76,20 @@ def test_exit0_unreadable_path_fails_closed(fake_home: Path) -> None:
         _sso.load_sso_cookies("corp")
 
 
-def test_uncaught_engine_oserror_fails_closed(
+def test_unspawnable_engine_fails_closed_as_broker_unavailable(
     fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # A spawn failure is not an expired session — the stored session is
+    # untouched — so it must not reach the consumer's recovery path.
     _install_fake_broker(fake_home, exit_code=0, stdout="ignored\n")
 
     def _boom(*_a, **_k):
         raise OSError("interpreter vanished")
 
-    monkeypatch.setattr(subprocess, "run", _boom)
-    with pytest.raises(_sso.SsoSessionUnavailableError):
+    monkeypatch.setattr(subprocess, "Popen", _boom)
+    with pytest.raises(_sso.SsoBrokerUnavailableError) as exc:
         _sso.load_sso_cookies("corp")
+    assert not isinstance(exc.value, _sso.SsoSessionUnavailableError)
 
 
 def test_argv_carries_only_profile_no_cookie_value(
@@ -95,13 +98,13 @@ def test_argv_carries_only_profile_no_cookie_value(
     _install_fake_broker(fake_home, exit_code=2)
     seen: dict[str, list[str]] = {}
 
-    real_run = subprocess.run
+    real_popen = subprocess.Popen
 
     def _capture(argv, *a, **k):
         seen["argv"] = list(argv)
-        return real_run(argv, *a, **k)
+        return real_popen(argv, *a, **k)
 
-    monkeypatch.setattr(subprocess, "run", _capture)
+    monkeypatch.setattr(subprocess, "Popen", _capture)
     with pytest.raises(_sso.SsoSessionUnavailableError):
         _sso.load_sso_cookies("corp")
 

@@ -38,9 +38,15 @@ from urllib.parse import urlsplit
 __all__ = [
     "SsoError",
     "SsoBrokerNotInstalledError",
+    "SsoBrokerUnavailableError",
     "SsoSessionUnavailableError",
+    "SsoProfileNotRegisteredError",
+    "SsoRecaptureFailedError",
+    "SsoInteractionRequiredError",
     "SsoConfigError",
     "load_sso_cookies",
+    "refresh_sso_session",
+    "register_sso_session",
     "validate_sso_profile",
     "validate_https_url",
     "validate_root_relative_endpoint",
@@ -91,6 +97,33 @@ class SsoBrokerUnavailableError(SsoError):
     auto-recovery keys on that type, and a slow or locked keychain holding a
     perfectly valid session must not trigger a browser recapture. A timeout is
     not an expired session.
+    """
+
+
+class SsoProfileNotRegisteredError(SsoSessionUnavailableError):
+    """``refresh`` found no profile to refresh — first capture never happened.
+
+    Subclasses :class:`SsoSessionUnavailableError` so every handler written
+    against the older surface keeps working; the distinct type exists so a
+    consumer can name the *register* remediation rather than a generic one.
+    """
+
+
+class SsoRecaptureFailedError(SsoError):
+    """The engine attempted a recapture and could not complete it.
+
+    Playwright absent, a sign-in the operator did not finish, a corrupt store —
+    the engine returns ``3`` from many distinct sites and its stderr has already
+    reached the operator, so this carries no guessed remediation of its own.
+    """
+
+
+class SsoInteractionRequiredError(SsoError):
+    """A headless ``refresh`` could not re-establish the session unaided.
+
+    The IdP session has expired too, so completing the flow needs a person.
+    Terminal, not recoverable: retrying cannot help, and the engine deliberately
+    did **not** put a login page on screen.
     """
 
 
@@ -341,51 +374,192 @@ def _verb_of(argv: list[str]) -> str:
     return "engine"
 
 
-def load_sso_cookies(profile: str) -> Path:
-    """Resolve *profile*'s captured SSO session to an on-disk cookie-jar path.
-
-    Subprocess-invokes ``sso-broker.py get-cookies <profile>`` with the parent
-    interpreter, inheriting the process environment (corporate proxy / trust-store
-    passthrough). Proceeds **only** on exit 0 with a readable jar
-    path; every other outcome fails closed.
-
-    :returns: the path to the ``0600`` cookie jar the engine materialised.
-    :raises SsoBrokerNotInstalledError: the engine is absent at its expected path.
-    :raises SsoSessionUnavailableError: the profile is unregistered, no jar
-        exists, the jar path is unreadable, or the engine raised.
-    """
+def _require_broker(profile: str) -> Path:
+    """Resolve the engine, or raise the not-installed remediation."""
     broker = _broker_path()
     if not broker.is_file():
         raise SsoBrokerNotInstalledError(
             f"sso-broker not installed at {broker}; install the credential-brokers "
             f"pack, then run 'sso-broker register {profile}'"
         )
+    return broker
+
+
+def load_sso_cookies(profile: str) -> Path:
+    """Resolve *profile*'s captured SSO session to an on-disk cookie-jar path.
+
+    Runs ``sso-broker.py get-cookies <profile>`` through the shared spawn
+    helper — bounded, tree-killed, and with an explicitly composed environment
+    minus the browser variables, since ``get-cookies`` launches no browser.
+    Proceeds **only** on exit 0 with a readable jar path; every other outcome
+    fails closed.
+
+    The exit-code split is the security-relevant part. Only "the engine says
+    there is no usable session" (exit 2) raises
+    :class:`SsoSessionUnavailableError`, because that is what a consumer's
+    auto-recovery keys on. A timeout, a spawn failure, or an engine-internal
+    error raises :class:`SsoBrokerUnavailableError` instead: a slow or locked
+    keychain holding a perfectly valid session must not trigger a browser
+    recapture.
+
+    :returns: the path to the ``0600`` cookie jar the engine materialised.
+    :raises SsoConfigError: *profile* violates the grammar.
+    :raises SsoBrokerNotInstalledError: the engine is absent at its expected path.
+    :raises SsoSessionUnavailableError: the profile is unregistered, no jar
+        exists, or the jar path is unreadable.
+    :raises SsoBrokerUnavailableError: the engine could not be run to a
+        conclusion, or failed internally.
+    """
+    validate_sso_profile(profile)
+    broker = _require_broker(profile)
 
     remediation = (
         f"SSO session unavailable for profile {profile}; "
         f"run 'sso-broker register {profile}'"
     )
 
-    try:
-        result = subprocess.run(
-            [sys.executable, str(broker), "get-cookies", profile],
-            capture_output=True,
-            text=True,
-            check=False,
-            env={**os.environ},
-        )
-    except OSError as exc:
-        # Engine present but unspawnable (permissions, interpreter gone, …).
-        raise SsoSessionUnavailableError(remediation) from exc
+    result = _spawn_broker(
+        [sys.executable, str(broker), "get-cookies", profile],
+        timeout=_TIMEOUT_GET_COOKIES_S,
+        env_profile="engine",
+        capture=True,
+    )
 
-    if result.returncode != 0:
+    if result.returncode == 2:
         raise SsoSessionUnavailableError(remediation)
+    if result.returncode != 0:
+        raise SsoBrokerUnavailableError(
+            f"sso-broker get-cookies failed for profile {profile} "
+            f"(exit {result.returncode}); see the engine's output above"
+        )
 
-    jar_path = Path(result.stdout.strip())
+    jar_path = Path((result.stdout or "").strip())
     if not jar_path.is_file():
         raise SsoSessionUnavailableError(remediation)
 
     return jar_path
+
+
+# --- recapture -----------------------------------------------------------------
+#
+# Two verbs, and the asymmetry between their signatures is the control.
+#
+# ``refresh_sso_session`` takes **only** a profile. That is how destination
+# pinning is enforced: the function is structurally incapable of forwarding a
+# sign-in destination, so no automated caller can choose where the browser goes
+# — enforced by the signature rather than by a rule an implementer can forget.
+# The engine reads the destination from the stored profile, which only a
+# completed, operator-authorised ``register`` writes.
+#
+# The guarantee is a property of *this API*, not of the system. The engine is an
+# executable on disk and any process running as the operator can invoke it
+# directly with any destination. Consumers are expected to reach
+# ``register_sso_session`` only from an operator-typed action — a convention
+# each consumer's own skill rules enforce, not this library.
+
+
+def refresh_sso_session(profile: str) -> None:
+    """Re-establish *profile*'s expired session, without a human.
+
+    Runs ``sso-broker refresh <profile>`` with **no** connection arguments. The
+    signature accepts no destination parameter, and none is composed.
+
+    The engine's ``refresh`` is headless: it succeeds only where the stored
+    browser profile can complete the IdP flow unaided, and otherwise fails fast
+    rather than presenting a login page.
+
+    :raises SsoConfigError: *profile* violates the grammar.
+    :raises SsoBrokerNotInstalledError: the engine is absent.
+    :raises SsoProfileNotRegisteredError: engine exit 4 — nothing to refresh;
+        the caller should route the operator to a first capture. **Recoverable.**
+    :raises SsoInteractionRequiredError: engine exit 5 — a human is needed.
+    :raises SsoRecaptureFailedError: engine exit 3 or any unrecognised code.
+    :raises SsoBrokerUnavailableError: timeout or spawn failure.
+    """
+    validate_sso_profile(profile)
+    broker = _require_broker(profile)
+
+    result = _spawn_broker(
+        [sys.executable, str(broker), "refresh", profile],
+        timeout=_TIMEOUT_REFRESH_S,
+        env_profile="browser",
+        capture=False,
+    )
+    code = result.returncode
+    if code == 0:
+        return
+    if code == 4:
+        raise SsoProfileNotRegisteredError(
+            f"no SSO profile registered for {profile}; first capture has not "
+            f"happened on this machine"
+        )
+    if code == 5:
+        raise SsoInteractionRequiredError(
+            f"the stored browser session for {profile} could not re-authenticate "
+            f"unaided; a person must sign in"
+        )
+    raise SsoRecaptureFailedError(
+        f"sso-broker refresh failed for profile {profile} (exit {code}); "
+        f"see the engine's output above"
+    )
+
+
+def register_sso_session(
+    profile: str,
+    *,
+    login_url: str,
+    success_url_pattern: str,
+    cookie_domains: Iterable[str],
+    validation_endpoint: str,
+    session_filename: str | None = None,
+    ttl_hint_minutes: int | None = None,
+) -> None:
+    """Perform *profile*'s **first** capture, at the supplied destination.
+
+    The only function in this module that accepts a destination — see the note
+    above. Always passes ``--ephemeral``: the capture runs in a throwaway
+    browser context which then seeds the standing profile, rather than in the
+    standing profile directly. The engine's ``register`` keeps ``persist=True``
+    as its default, so a direct operator invocation is unaffected.
+
+    Only connection parameters cross argv. No cookie value, cookie name, jar
+    path, or ``Cookie:``-header shape appears in what this composes.
+
+    :raises SsoConfigError: *profile* violates the grammar.
+    :raises SsoBrokerNotInstalledError: the engine is absent.
+    :raises SsoRecaptureFailedError: engine exit 3 or any unrecognised code —
+        including the ordinary "the operator did not finish signing in".
+    :raises SsoBrokerUnavailableError: timeout or spawn failure.
+    """
+    validate_sso_profile(profile)
+    broker = _require_broker(profile)
+
+    argv = [
+        sys.executable, str(broker), "register", profile,
+        "--ephemeral",
+        "--login-url", login_url,
+        "--success-url-pattern", success_url_pattern,
+        "--validation-endpoint", validation_endpoint,
+    ]
+    for domain in cookie_domains:
+        argv += ["--cookie-domain", domain]
+    if session_filename:
+        argv += ["--session-filename", session_filename]
+    if ttl_hint_minutes:
+        argv += ["--ttl-hint-minutes", str(ttl_hint_minutes)]
+
+    result = _spawn_broker(
+        argv,
+        timeout=_TIMEOUT_REGISTER_S,
+        env_profile="browser",
+        capture=False,
+    )
+    if result.returncode == 0:
+        return
+    raise SsoRecaptureFailedError(
+        f"sso-broker register failed for profile {profile} "
+        f"(exit {result.returncode}); see the engine's output above"
+    )
 
 
 # --- SSO confinement primitives ----------------------------------------------
