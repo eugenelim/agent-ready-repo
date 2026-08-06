@@ -23,7 +23,7 @@ skills:
   - informational-design
   - workspace-design
 installCommand: "agentbundle install --pack experience-design --scope user"
-docsUrl: /guides/experience-design/
+docsUrl: /docs/guides/experience-design/
 journeyUrl: /journeys/experience-design/
 ---
 

@@ -5,7 +5,7 @@ tagline: "Superseded by product-documentation."
 skills:
   - new-guide
 installCommand: "agentbundle install --pack product-documentation"
-docsUrl: /guides/product-documentation/
+docsUrl: /docs/guides/product-documentation/
 journeyUrl: /journeys/product-documentation/
 ---
 

@@ -83,7 +83,7 @@ typicalSession:
   agentTurns: "8–12"
   humanTouches: 2
   wallClockMinutes: "25–45"
-docsUrl: /guides/core/
+docsUrl: /docs/guides/core/
 packUrl: /packs/core/
 relatedJourneys:
   - release-engineering

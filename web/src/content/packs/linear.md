@@ -7,7 +7,7 @@ skills:
   - linear-brief-intake
   - linear-brief-sync
 installCommand: "agentbundle install --pack linear --scope user"
-docsUrl: /guides/linear/
+docsUrl: /docs/guides/linear/
 ---
 
 Turns a Linear Issue or Project into a structured product brief, then keeps
