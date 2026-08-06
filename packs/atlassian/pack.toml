@@ -11,6 +11,17 @@ keywords = ["jira", "confluence", "flow-metrics", "jira-align"]
 [pack.adapter-contract]
 version = "0.8"
 
+# Every credentialed skill in this pack resolves its credential through the
+# broker layer: the `credbroker` library for the token path, and
+# `~/.agentbundle/bin/sso-broker.py` for `auth: sso-cookie`. Neither ships here.
+# `install.py` gates required dependencies before any write, so a missing broker
+# is refused at install time with a named fix instead of failing at runtime with
+# none.
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "credential-brokers"
+version = "^0.3"   # needs the exit-4 refresh contract
+
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]

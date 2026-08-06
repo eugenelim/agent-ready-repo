@@ -30,6 +30,19 @@ REPO_ONLY_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo
 # Addon packs that declare a required dep on core ^0.1.
 CORE_DEP_PACKS = ("governance-extras", "monorepo-extras")
 
+# Every pack shipping a `credentialed: true` skill declares a required dep on
+# `credential-brokers` — the pack that ships the `credbroker` floor and the
+# `sso-broker.py` engine. Ranges differ by need: `atlassian` needs the exit-4
+# `refresh` contract that landed in 0.3.0; the others only need the broker to
+# exist. `credential-brokers` itself is absent because it ships
+# `credential-setup` (`credentialed: true`) and cannot depend on itself, and
+# `github` because it shells out to `gh`, which owns its own credential chain.
+CREDENTIALED_PACK_BROKER_RANGE = {
+    "atlassian": "^0.3",
+    "figma": "^0.2",
+    "linear": "^0.2",
+}
+
 
 def _load(pack_name: str) -> dict:
     path = PACKS_DIR / pack_name / "pack.toml"
@@ -64,6 +77,57 @@ def test_addon_manifests_carry_required_dependency(pack_name):
         '{catalogue="agent-ready-repo", pack="core", version="^2.0"} not found; '
         f"got {required!r}"
     )
+
+
+@pytest.mark.parametrize(
+    ("pack_name", "expected_range"), sorted(CREDENTIALED_PACK_BROKER_RANGE.items())
+)
+def test_credentialed_packs_require_credential_brokers(pack_name, expected_range):
+    """A credentialed pack declares the broker layer it cannot run without.
+
+    `install.py` gates required dependencies before any write, resolving against
+    the union of repo + user state. Without the declaration
+    `agentbundle install <pack> --scope user` succeeds while the `credbroker`
+    floor and `sso-broker.py` are absent, and the skill fails at runtime with no
+    remediation.
+    """
+    data = _load(pack_name)
+    required = data.get("pack", {}).get("dependencies", {}).get("required")
+    assert isinstance(required, list) and required, (
+        f"{pack_name}: expected non-empty [[pack.dependencies.required]] list"
+    )
+    matches = [
+        e for e in required
+        if isinstance(e, dict)
+        and e.get("catalogue") == "agent-ready-repo"
+        and e.get("pack") == "credential-brokers"
+        and e.get("version") == expected_range
+    ]
+    assert matches, (
+        f"{pack_name}: required-dep entry {{catalogue=\"agent-ready-repo\", "
+        f"pack=\"credential-brokers\", version=\"{expected_range}\"}} not found; "
+        f"got {required!r}"
+    )
+
+
+def test_declared_broker_ranges_are_satisfiable():
+    """Each declared range admits the version `credential-brokers` actually ships.
+
+    `verify.py`'s dependency step is a pass-through, so an unsatisfiable range —
+    declaring `^0.3` while the pack ships `0.2.2` — would not be caught until an
+    adopter tried to install.
+    """
+    shipped = _load("credential-brokers")["pack"]["version"]
+    major, minor, *_ = (int(part) for part in shipped.split("."))
+    for pack_name, declared in CREDENTIALED_PACK_BROKER_RANGE.items():
+        assert declared.startswith("^"), f"{pack_name}: expected a caret range"
+        want_major, want_minor = (int(p) for p in declared[1:].split("."))
+        # `^X.Y` means `>= X.Y.0, < (X+1).0.0`.
+        satisfied = major == want_major and minor >= want_minor
+        assert satisfied, (
+            f"{pack_name} declares credential-brokers {declared}, which the "
+            f"shipped {shipped} does not satisfy"
+        )
 
 
 def test_shim_requires_product_documentation():
