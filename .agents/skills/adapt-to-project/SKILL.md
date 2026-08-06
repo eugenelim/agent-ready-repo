@@ -77,8 +77,9 @@ divergence:
    - **Repo scope:** run `git status --porcelain`. List every dirty
      path under a `Repo scope:` sub-section and **stop and wait** for
      adopter direction: (a) proceed against the dirty tree (skill
-     skips dirty-path proposals); (b) stash or commit and re-invoke;
-     (c) abandon.
+     skips dirty-path proposals); (b) commit and re-invoke — commit
+     rather than stash, since `refs/stash` is shared across the
+     repository's worktrees; (c) abandon.
    - **User scope:** `~/.agentbundle/` is not a git repo;
      dirty-detection uses content-hash divergence — compare each
      tracked file's current SHA-256 against the value recorded in

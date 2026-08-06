@@ -480,6 +480,236 @@ def case_no_common_ancestor(tmp: Path) -> None:
     ok("no_common_ancestor")
 
 
+def case_fetch_missing_branch(tmp: Path) -> None:
+    """--target names a branch the remote does not have → 'not found on remote'."""
+    origin = tmp / "missing-branch-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "missing-branch-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+
+    rc, out, _err = run_freshness(clone, "--target=origin/no-such-branch")
+    if rc != 1:
+        fail("fetch_missing_branch", f"expected exit 1, got {rc}; out={out!r}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError as exc:
+        fail("fetch_missing_branch", f"invalid JSON: {exc}; out={out!r}")
+        return
+    msg = data.get("message", "")
+    if "not found on remote" not in msg:
+        fail("fetch_missing_branch", f"expected 'not found on remote', got {msg!r}")
+        return
+    ok("fetch_missing_branch")
+
+
+def case_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
+    """A transport failure whose stderr echoes 'remote ref' is NOT a missing branch.
+
+    Regression guard: the classifier used to accept any stderr containing the
+    substring 'remote ref', so an unreachable remote whose URL happens to carry
+    that phrase was reported as a wrong branch name — sending the agent to fix
+    --target when the real cause was auth or network.  Git echoes the URL in
+    'does not appear to be a git repository', which is how the phrase gets into
+    the stderr of a failure that has nothing to do with a missing ref.
+    """
+    origin = tmp / "transport-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    clone = tmp / "transport-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    # Repoint origin at a path that does not exist and that contains the
+    # literal substring 'remote ref'.
+    unreachable = tmp / "has remote ref in path" / "gone.git"
+    git(clone, "remote", "set-url", "origin", str(unreachable))
+
+    rc, out, _err = run_freshness(clone, "--target=origin/main")
+    if rc != 1:
+        fail(
+            "fetch_transport_error_mentioning_remote_ref",
+            f"expected exit 1, got {rc}; out={out!r}",
+        )
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError as exc:
+        fail(
+            "fetch_transport_error_mentioning_remote_ref",
+            f"invalid JSON: {exc}; out={out!r}",
+        )
+        return
+    msg = data.get("message", "")
+    if "not found on remote" in msg:
+        fail(
+            "fetch_transport_error_mentioning_remote_ref",
+            f"transport failure misreported as a missing branch: {msg!r}",
+        )
+        return
+    if "network/auth" not in msg:
+        fail(
+            "fetch_transport_error_mentioning_remote_ref",
+            f"expected the generic network/auth message, got {msg!r}",
+        )
+        return
+    ok("fetch_transport_error_mentioning_remote_ref")
+
+
+def case_dirty_tree_says_commit_not_stash(tmp: Path) -> None:
+    """Behind the target with a dirty tree → commit guidance, never 'git stash'.
+
+    refs/stash is not a per-worktree ref: every linked worktree of a repository
+    shares one stash stack, so a stash pushed here can be popped from another
+    worktree and lost.  Covers both the tracked-only and the untracked variant,
+    which select different commit commands.
+    """
+    origin = tmp / "dirty-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "a.txt").write_text("a")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "A")
+
+    for label, make_dirty in (
+        ("tracked", lambda repo: (repo / "a.txt").write_text("locally modified")),
+        ("untracked", lambda repo: (repo / "new.txt").write_text("brand new")),
+    ):
+        name = f"dirty_tree_says_commit_not_stash[{label}]"
+        clone = tmp / f"dirty-clone-{label}"
+        subprocess.run(
+            ["git", "clone", str(origin), str(clone)],
+            check=True,
+            capture_output=True,
+        )
+        # Advance origin so the clone is behind, then dirty the clone.
+        (origin / f"b-{label}.txt").write_text("b")
+        git(origin, "add", ".")
+        git(origin, "commit", "-m", f"B-{label}")
+        make_dirty(clone)
+
+        rc, out, _err = run_freshness(clone, "--target=origin/main")
+        if rc != 1:
+            fail(name, f"expected exit 1, got {rc}; out={out!r}")
+            continue
+        try:
+            data = json.loads(out)
+        except json.JSONDecodeError as exc:
+            fail(name, f"invalid JSON: {exc}; out={out!r}")
+            continue
+        msg = data.get("message", "")
+        if "git stash" in msg:
+            fail(name, f"message still recommends stashing: {msg!r}")
+            continue
+        if "uncommitted changes" not in msg:
+            fail(name, f"expected the behind-with-dirty-tree message, got {msg!r}")
+            continue
+        if "git commit" not in msg:
+            fail(name, f"expected a commit command, got {msg!r}")
+            continue
+        # The discriminator between the two variants, asserted both ways so
+        # neither branch can silently collapse into the other.
+        stages_untracked = "git add -A" in msg
+        if stages_untracked != (label == "untracked"):
+            fail(
+                name,
+                f"'git add -A' should be {'present' if label == 'untracked' else 'absent'} "
+                f"for the {label} variant, got {msg!r}",
+            )
+            continue
+        if "rebase" not in msg:
+            fail(name, f"expected the rebase hint to survive, got {msg!r}")
+            continue
+        ok(name)
+
+
+def case_unmerged_files_message_is_truthful(tmp: Path) -> None:
+    """Behind the target with conflicts → no advice that would commit the markers.
+
+    'git commit -a' stages and commits an unmerged file with its conflict
+    markers intact, so this branch must not read as though committing is
+    simply unavailable — the sibling clean-tree branch recommends exactly
+    that command.
+    """
+    origin = tmp / "unmerged-origin"
+    origin.mkdir()
+    git(tmp, "init", "-b", "main", str(origin))
+    (origin / "f.txt").write_text("base\n")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "base")
+
+    clone = tmp / "unmerged-clone"
+    subprocess.run(
+        ["git", "clone", str(origin), str(clone)],
+        check=True,
+        capture_output=True,
+    )
+    # Diverge the clone on a side branch, then advance origin so the clone is
+    # behind, then produce a real UU by merging the side branch back.
+    git(clone, "checkout", "-b", "side")
+    (clone / "f.txt").write_text("side\n")
+    git(clone, "commit", "-am", "side")
+    git(clone, "checkout", "main")
+    (clone / "f.txt").write_text("local\n")
+    git(clone, "commit", "-am", "local")
+    subprocess.run(
+        ["git", "-c", "user.email=test@example.com", "-c", "user.name=Test",
+         "merge", "side"],
+        capture_output=True, check=False, cwd=str(clone),
+    )
+    (origin / "b.txt").write_text("b")
+    git(origin, "add", ".")
+    git(origin, "commit", "-m", "B")
+
+    porcelain = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True, check=True, cwd=str(clone),
+    ).stdout
+    if not any(ln.startswith("UU") for ln in porcelain.splitlines()):
+        fail(
+            "unmerged_files_message_is_truthful",
+            f"fixture did not produce an unmerged file; porcelain={porcelain!r}",
+        )
+        return
+
+    rc, out, _err = run_freshness(clone, "--target=origin/main")
+    if rc != 1:
+        fail("unmerged_files_message_is_truthful", f"expected exit 1, got {rc}; out={out!r}")
+        return
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError as exc:
+        fail("unmerged_files_message_is_truthful", f"invalid JSON: {exc}; out={out!r}")
+        return
+    msg = data.get("message", "")
+    if "unmerged files" not in msg:
+        fail("unmerged_files_message_is_truthful", f"expected the unmerged branch, got {msg!r}")
+        return
+    if "git commit -a" not in msg or "conflict markers" not in msg:
+        fail(
+            "unmerged_files_message_is_truthful",
+            f"expected the message to warn that 'git commit -a' commits the "
+            f"conflict markers, got {msg!r}",
+        )
+        return
+    ok("unmerged_files_message_is_truthful")
+
+
 def main() -> int:
     orig_cwd = Path.cwd()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -496,6 +726,10 @@ def main() -> int:
             case_behind_surfaces,
             case_target_empty_string,
             case_no_common_ancestor,
+            case_fetch_missing_branch,
+            case_fetch_transport_error_mentioning_remote_ref,
+            case_dirty_tree_says_commit_not_stash,
+            case_unmerged_files_message_is_truthful,
         ]
         try:
             for t in tests:

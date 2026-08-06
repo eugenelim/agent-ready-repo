@@ -63,12 +63,18 @@ def _build_git_env() -> dict[str, str]:
     """Build the subprocess environment for all git calls.
 
     Adds GIT_TERMINAL_PROMPT=0 unconditionally.
+    Adds LC_ALL=C unconditionally: git's diagnostics are gettext msgids, so a
+    distro build with translation catalogues installed prints them in the
+    user's language. This script classifies one fetch failure by matching
+    git's own English wording, which a translated message would silently
+    defeat. (GNU gettext ignores LANGUAGE when the locale is C, so LC_ALL
+    alone is enough.)
     Adds GIT_SSH_COMMAND with BatchMode+ConnectTimeout ONLY when the user
     has no custom SSH transport configured — GIT_SSH_COMMAND is not
     guaranteed to be OpenSSH-compatible (plink, tortoiseplink, etc. reject
     -o flags), and GIT_SSH / core.sshCommand indicate non-standard wrappers.
     """
-    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"}
 
     # Any of these signal a non-standard or variant SSH transport that may
     # not accept OpenSSH -o flags (plink, tortoiseplink, etc.).
@@ -350,8 +356,11 @@ def main() -> int:
     if rc == 124:
         return _surface(f"git fetch {fetch_remote!r} timed out — check network/auth", target)
     if rc != 0:
-        err_lower = fetch_err.lower()
-        if "couldn't find remote ref" in err_lower or "remote ref" in err_lower:
+        # Match git's own not-found wording only. A broader test (any stderr
+        # mentioning 'remote ref') also catches transport failures that echo a
+        # URL containing the phrase, and sends the agent off to correct a
+        # branch name when the real cause was auth or network.
+        if "couldn't find remote ref" in fetch_err.lower():
             return _surface(
                 f"git fetch {fetch_remote!r}: branch {branch!r} not found on remote — "
                 "verify the branch name in --target",
@@ -367,7 +376,16 @@ def main() -> int:
     if rc != 0:
         return _surface(f"could not compare HEAD against {full_ref!r}", target)
 
-    count = int(count_str) if count_str.isdigit() else 0
+    # Fail closed. Falling back to 0 here would read as 'head is current' on
+    # the next line — the one answer this script must never give by accident.
+    # isdecimal, not isdigit: '²'.isdigit() is True but int('²') raises.
+    if not count_str.isdecimal():
+        return _surface(
+            "could not read the commit count from git rev-list against "
+            f"{full_ref!r} — cannot confirm HEAD is current",
+            target,
+        )
+    count = int(count_str)
     if count == 0:
         return _ok("head is current", target)
 
@@ -407,9 +425,11 @@ def main() -> int:
     else:
         rebase_hint = (
             f"rebase onto: {full_ref} "
-            "(Windows: no runnable shell command emitted — cmd.exe, PowerShell, "
-            "and Git Bash have incompatible quoting requirements; invoke git "
-            "directly as a subprocess with this ref as a literal argument)"
+            "(Windows: no runnable rebase command emitted — the ref name has no "
+            "quoting that is safe in cmd.exe, PowerShell and Git Bash at once; "
+            "invoke git directly as a subprocess with this ref as a literal "
+            "argument. Commands elsewhere in this message interpolate nothing "
+            "and are safe to run verbatim.)"
         )
         if has_local_merges:
             rebase_hint += "; add --rebase-merges (local range has merge commits)"
@@ -426,16 +446,35 @@ def main() -> int:
         has_conflicts = any(ln[:2] in _conflict_xy for ln in lines)
         has_untracked = any(ln.startswith("??") for ln in lines)
         if has_conflicts:
+            # Both escapes are closed here, and for different reasons: git
+            # stash refuses to write an index with unmerged entries, while
+            # 'git commit -a' — the very command the clean-tree branch below
+            # recommends — happily stages and commits the conflict markers.
             return _surface(
                 f"branch is {count} commit(s) behind {target!r} and has "
-                "unmerged files — resolve conflicts before rebasing "
-                "(git stash cannot stash unmerged files)",
+                "unmerged files — resolve the conflicts before rebasing "
+                "('git stash' refuses them, and 'git commit -a' would commit "
+                "the conflict markers)",
                 target,
             )
-        stash_cmd = "git stash --include-untracked" if has_untracked else "git stash"
+        # Commit, don't stash. refs/stash is not a per-worktree ref, so every
+        # linked worktree of this repository shares one stash stack — work
+        # stashed here can be popped from another worktree and lost. The
+        # commit command carries no interpolated data, so unlike rebase_hint
+        # it is safe to emit verbatim on every platform.
+        commit_cmd = (
+            'git add -A, then git commit -m "chore: wip"'
+            if has_untracked
+            else 'git commit -a -m "chore: wip"'
+        )
         return _surface(
             f"branch is {count} commit(s) behind {target!r} and has "
-            f"uncommitted changes — run: {stash_cmd}, then {rebase_hint}",
+            "uncommitted changes. Commit them on this branch rather than "
+            "stashing — the stash stack is shared across this repository's "
+            "worktrees, so work stashed here can be popped from another one; "
+            "undo the wip commit after rebasing with 'git reset HEAD~1' "
+            "(mixed, not --soft: it restores untracked files as untracked). "
+            f"Run {commit_cmd}, then {rebase_hint}",
             target,
         )
     return _surface(

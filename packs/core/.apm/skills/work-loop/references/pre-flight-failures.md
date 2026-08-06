@@ -17,14 +17,22 @@ certainly pre-existing — proceed to capture.
 **Confirmation (when the primary is ambiguous).** Use when the failing file IS
 in the diff but the failure looks unrelated to your change:
 
-- **stash-check**: `git stash -u && <gate command> && git stash pop` — if the
-  failure reproduces with your changes stashed, it predates your work.
+- **worktree-check**: `git worktree add --detach ../pre-flight-check HEAD`, run
+  `<gate command>` inside that directory, then
+  `git worktree remove ../pre-flight-check`. If the failure reproduces without
+  your uncommitted changes, it predates your work. A fresh worktree has no
+  installed dependencies — for a gate that needs them, commit your work in
+  progress and re-run the gate against the parent commit instead.
+  **Not `git stash`:** `refs/stash` is not a per-worktree ref, so every linked
+  worktree of the repository shares one stash stack — a stash pushed here can
+  be popped from another one, and a gate that aborts between push and pop
+  leaves your work sitting on it.
 - **HEAD-compare**: `git show HEAD:<failing-file>` — scan for a broken
   implementation, a wrong fixture, or a missing stub that was already broken at
   HEAD before you touched anything.
 
 When the primary heuristic is unambiguous (the failing file is clearly not in
-the diff), skip confirmation — the stash-check is an extra step, not the rule.
+the diff), skip confirmation — the worktree-check is an extra step, not the rule.
 
 ## Backlog entry schema
 
@@ -69,7 +77,7 @@ worse. Concrete signs:
 - The raw error count in the failing file grew.
 - A new error message or traceback appeared alongside the known failure.
 
-When any of these appear, confirm with a stash-check. If the failure is worse
+When any of these appear, confirm with a worktree-check. If the failure is worse
 with your changes in than without, go to FIX.
 
 ## Deduplication procedure
