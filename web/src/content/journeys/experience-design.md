@@ -121,7 +121,7 @@ typicalSession:
   agentTurns: "8–15"
   humanTouches: 3
   wallClockMinutes: "45–90"
-docsUrl: /guides/experience-design/
+docsUrl: /docs/guides/experience-design/
 packUrl: /packs/experience-design/
 relatedJourneys:
   - architect

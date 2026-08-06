@@ -5,7 +5,7 @@ tagline: "Package scaffolding for monorepos."
 skills:
   - new-package
 installCommand: "agentbundle install --pack monorepo-extras"
-docsUrl: /guides/monorepo-extras/
+docsUrl: /docs/guides/monorepo-extras/
 journeyUrl: /journeys/monorepo-extras/
 ---
 

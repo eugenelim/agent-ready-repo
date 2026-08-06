@@ -64,10 +64,10 @@ typicalSession:
   humanTouches: 2
   wallClockMinutes: "25–45"
 
-docsUrl: /guides/core/
+docsUrl: /docs/guides/core/
 packUrl: /packs/core/
-relatedJourneys:
-  - release
+relatedJourneys:                  # journey slugs — each renders as /journeys/<slug>/,
+  - release-engineering           # so a slug with no journey file is a dead link
 ---
 ```
 

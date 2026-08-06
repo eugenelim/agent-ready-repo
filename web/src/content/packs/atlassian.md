@@ -15,7 +15,7 @@ skills:
   - confluence-publisher
   - ai-adoption-report
 installCommand: "agentbundle install --pack atlassian --scope user"
-docsUrl: /guides/atlassian/
+docsUrl: /docs/guides/atlassian/
 journeyUrl: /journeys/atlassian/
 ---
 

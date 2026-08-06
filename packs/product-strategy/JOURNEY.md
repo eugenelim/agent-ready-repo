@@ -87,7 +87,7 @@ typicalSession:
   agentTurns: "8–20"
   humanTouches: 3
   wallClockMinutes: "60–120"
-docsUrl: /guides/product-strategy/
+docsUrl: /docs/guides/product-strategy/
 packUrl: /packs/product-strategy/
 relatedJourneys:
   - experience-design

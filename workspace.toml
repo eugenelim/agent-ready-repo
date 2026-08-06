@@ -526,6 +526,45 @@ open = [
     # register. Fix: only if an adopter wants it knowing the limits. Unblocks: on request.
   {slug = "sso-register-pretooluse-hook", source = "spec/jira-check-sso-auto-login"},
 
+  # No gate resolves marketing-site → docs-site links. The docsUrl repair PR
+  # verified them with an ad-hoc script (resolve every internal href on the built
+  # marketing pages against build/), but did not commit it — so nothing prevents a
+  # fourth regression. The same fix has now landed and reverted twice (#852 → #854).
+  # Two traps the committed version must carry, both hit while writing the ad-hoc one:
+  #   1. Do NOT treat a root-relative link lacking the /agent-ready-repo base prefix
+  #      as off-site — the first draft silently skipped 8 such links.
+  #   2. build/primitives-fixture/ must be excluded explicitly and visibly, not by
+  #      accident (see web-primitives-fixture-dead-placeholders below).
+  # Fix: land it as a pure-stdlib tools/*.py per AGENTS.md, wired into the pages
+  #   workflow after both builds — it needs the built tree, so it cannot run in
+  #   build-check.
+  # Unblocks when: picked up — no dependency.
+  {slug = "web-docs-link-check-gate", source = "spec/marketing-docs-link-repair (out of scope)"},
+
+  # docs/specs/phase4b-product-docs-completion/spec.md is Shipped and still instructs
+  # the superseded docsUrl form in three places: the in-scope bullet (line 24), the
+  # residual migration matrix (line 66), and — most consequentially — checked
+  # criterion AC7, which asserts `docsUrl is /guides/frontend-engineering/`. That is a
+  # checked AC stating something the repo no longer holds, and it is the standing
+  # documentation-drift path by which this fix keeps getting reverted: an agent reads
+  # AC7 as current-state truth and "restores" it.
+  # Fix: decide between (a) an errata note at the head of the phase4b spec recording
+  #   that the docsUrl direction was superseded on 2026-08-06 and by which spec, or
+  #   (b) amending AC7 in place. (a) preserves history and is the likelier call.
+  # Unblocks when: picked up — needs a decision on amending a Shipped spec.
+  {slug = "phase4b-docsurl-instruction-stale", source = "spec/marketing-docs-link-repair (out of scope)"},
+
+  # web/src/pages/primitives-fixture.astro carries 8 dead placeholder hrefs
+  # (/guides/github-auth, /review, /issues, /run, /confirm, /cancel, /get-started,
+  # /example). Pre-existing, and harmless today: the page is noindex,nofollow, absent
+  # from the sitemap, and unlinked from any real page. They matter only because they
+  # force any future link-checker to carry an exclusion, and an undisclosed exclusion
+  # is how a "0 dead links" claim becomes false.
+  # Fix: point the placeholders at real routes or at "#", so the link gate needs no
+  #   fixture carve-out at all.
+  # Unblocks when: picked up — pairs naturally with web-docs-link-check-gate.
+  {slug = "web-primitives-fixture-dead-placeholders", source = "spec/marketing-docs-link-repair (out of scope)"},
+
   # Two ADR-0055 / v0.13 stragglers found while reconciling docs/architecture/
   # against the real agentbundle surface. Both are engine-or-tooling edits, so
   # the docs-only PR that found them deliberately left them.

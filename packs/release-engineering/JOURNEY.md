@@ -39,7 +39,7 @@ typicalSession:
   agentTurns: "varies"
   humanTouches: 1
   wallClockMinutes: "15–30"
-docsUrl: /guides/release-engineering/
+docsUrl: /docs/guides/release-engineering/
 packUrl: /packs/release-engineering/
 relatedJourneys:
   - core

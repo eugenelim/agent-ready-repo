@@ -11,7 +11,7 @@ skills:
   - init-project
   - adapt-to-project
 installCommand: "agentbundle install --pack core"
-docsUrl: /guides/core/
+docsUrl: /docs/guides/core/
 journeyUrl: /journeys/core/
 ---
 
