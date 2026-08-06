@@ -59,9 +59,12 @@ class PackManifestShapeTests(unittest.TestCase):
         # credentials_shim→credbroker description fix) → 0.2.0 (credbroker SSO
         # consumer family: load_sso_cookies + confinement primitives)
         # → 0.2.1 (first-value adoption contract)
-        # → 0.2.2 (ruff/mypy violation fixes, de41a345);
+        # → 0.2.2 (ruff/mypy violation fixes, de41a345)
+        # → 0.2.3 (tests moved out of .apm/ to packs/credential-brokers/tests/,
+        #          ADR-0071 — the projected surface loses the test files the
+        #          installer was writing into an adopter's skills tree);
         # adapter-contract unchanged.
-        self.assertEqual(pack["version"], "0.2.2")
+        self.assertEqual(pack["version"], "0.2.3")
 
     def test_description_names_the_three_artefacts(self) -> None:
         # The description names the artefacts the pack ships. Since the
