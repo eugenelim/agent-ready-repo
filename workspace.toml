@@ -130,6 +130,7 @@ shipped = [
   "spec/atlassian-sso-cookie-selector-integration-test", # AC5: wired test_auth_selector.py into sso parity gate
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening
   "spec/site-design-system-spec",                        # site token spec + zone-violation lint
+  "spec/jira-check-sso-auto-login",       # jira check SSO auto-recovery in credbroker; credbroker 0.5.0 + engine errata RFC-0035/0013
 ]
 queue   = [
   # P5 · Adopt — gated on adopter-persona research (evidence base)
@@ -139,7 +140,6 @@ queue   = [
 
   # Backlog-graduated specs — Approved, independent of RFC-0064
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
-  "spec/jira-check-sso-auto-login",                      # jira check SSO auto-recovery in credbroker; engine errata RFC-0035/0013
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

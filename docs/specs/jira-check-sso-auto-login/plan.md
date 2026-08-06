@@ -1,6 +1,6 @@
 # Plan: jira-check-sso-auto-login
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](./spec.md)
 - **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#the-sso-cookie-broker)
 - **Mode:** full (risk triggers: **security boundary** — auth, secrets, subprocess on the credential path; **public-interface change** — new `credbroker` API)
