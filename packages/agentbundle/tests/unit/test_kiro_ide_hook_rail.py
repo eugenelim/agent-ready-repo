@@ -1,7 +1,7 @@
-"""T-C2 (RFC-0005 kiro-ide-hook): validate rail tests.
+"""T-C2 (kiro-ide-hook): validate rail tests.
 
-Five refusal paths plus an accept case. Each refusal pins the
-RFC-0005 § *validate rail* error text and the rail's first-offender
+Five refusal paths plus an accept case. Each refusal pins the validate
+rail's error text and its first-offender
 discipline (sorted enumeration; first refusal wins).
 
 The rail lives at
@@ -18,10 +18,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-# E3 vocabulary — closed by RFC-0022 via static analysis of
-# extension.js IDEListenableEvent enum (2026-06-01). Supersedes the
-# RFC-0005 best-guess list (fileSave/fileEdit/manualTrigger).
-# See RFC-0005 § Errata, E3 and probes.md Q11 Outcome.
+# Event vocabulary — closed by static analysis of the extension.js
+# IDEListenableEvent enum (2026-06-01). Supersedes the earlier best-guess
+# list (fileSave/fileEdit/manualTrigger).
 KIRO_EVENT_VOCAB = [
     "fileEdited",
     "fileCreated",
@@ -274,7 +273,7 @@ class PlaceholderScanFencedToCommand(unittest.TestCase):
 
 
 class E3VocabularyTests(unittest.TestCase):
-    """T2 (RFC-0022): E3 vocabulary replaces the RFC-0005 best-guess list.
+    """T2: E3 vocabulary replaces the best-guess list.
 
     Old terms (fileSave, fileEdit, manualTrigger) must be rejected;
     E3 terms (fileEdited, sessionStart, etc.) must be accepted.

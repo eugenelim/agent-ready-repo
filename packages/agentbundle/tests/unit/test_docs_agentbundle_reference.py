@@ -1,4 +1,4 @@
-"""Doc-shape audit for the new reference page (AC18).
+"""Doc-shape audit for the new reference page.
 
 Confirms:
   - `guides/_shared/reference/agentbundle.md` exists.

@@ -245,7 +245,7 @@ def test_archive_is_deterministic_with_source_date_epoch(
 def test_export_catalogue_absent_from_source_archive(tmp_path: Path) -> None:
     """Source archive produced from a clean source should contain no export-catalogue path.
 
-    B4 AC7: confirms the packager does not accidentally include an export-catalogue
+    B4: confirms the packager does not accidentally include an export-catalogue
     skill that should have been removed in Phase 1 (T2).
     """
     root = tmp_path / "root"
@@ -262,7 +262,7 @@ def test_export_catalogue_absent_from_source_archive(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# B4 AC6: install.py refuses source-distribution archives
+# B4: install.py refuses source-distribution archives
 # ---------------------------------------------------------------------------
 
 def _run_install_with_catalogue(catalogue_dir: Path, pack: str = "core") -> tuple[int, str]:

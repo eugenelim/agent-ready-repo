@@ -3,15 +3,15 @@
 The three gates are wired into ``run_build_check_drift_gates`` in
 ``agentbundle.build.self_host`` and called from ``cmd_check``.
 
-  1. **Writer-template drift (AC20a):** every derived
+  1. **Writer-template drift:** every derived
      ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
      must be byte-identical to the canonical template.
 
-  2. **Source-shape plugin.json (AC10 gate 2, in-Python defence-in-depth):**
+  2. **Source-shape plugin.json (gate 2, in-Python defence-in-depth):**
      every ``packs/<pack>/.claude-plugin/plugin.json`` must not carry a
      ``hooks`` block.
 
-  3. **Vendored ``_emit_basic_string`` parity (AC20b):** the template's
+  3. **Vendored ``_emit_basic_string`` parity:** the template's
      vendored ``_emit_basic_string`` must produce byte-identical output to
      ``agentbundle.config._emit_basic_string`` across the fixed attack corpus.
 
@@ -21,7 +21,6 @@ Tests that need derived artifacts run ``agentbundle build`` via subprocess to
 populate the ``<workspace>/dist/`` tree, then call the gate function in-process
 against ``<workspace>`` so the gate looks at ``<workspace>/dist/claude-plugins/``.
 
-Spec: docs/specs/claude-plugins-install-route/spec.md (AC10 gate 2, AC20)
 """
 
 from __future__ import annotations
@@ -99,12 +98,12 @@ def _make_minimal_pack(packs_dir: Path, pack_name: str = "alpha") -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Gate 1: Writer-template drift (AC20)
+# Gate 1: Writer-template drift
 # ---------------------------------------------------------------------------
 
 
 def test_make_build_check_fails_on_writer_drift(tmp_path):
-    """AC20: gate exits non-zero when a derived install-marker.py diverges from the template.
+    """Gate exits non-zero when a derived install-marker.py diverges from the template.
 
     Sets up a tmp shadow packs dir, runs ``agentbundle build`` to populate
     ``<workspace>/dist/``, mutates one byte in a derived install-marker.py,
@@ -157,7 +156,7 @@ def test_make_build_check_fails_on_writer_drift(tmp_path):
 
 
 def test_make_build_check_passes_on_clean_tree(tmp_path):
-    """AC20: gate exits zero when all derived install-marker.py files
+    """Gate exits zero when all derived install-marker.py files
     are byte-identical to the template.
 
     Runs ``agentbundle build`` against fixture packs into ``<workspace>/dist/``,
@@ -184,12 +183,12 @@ def test_make_build_check_passes_on_clean_tree(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Gate 3: Vendored _emit_basic_string parity (AC20b)
+# Gate 3: Vendored _emit_basic_string parity
 # ---------------------------------------------------------------------------
 
 
 def test_make_build_check_catches_emit_basic_string_drift(tmp_path, monkeypatch):
-    """AC20b: gate exits non-zero when the template's _emit_basic_string diverges from source.
+    """Gate exits non-zero when the template's _emit_basic_string diverges from source.
 
     Creates a copy of install-marker.py with the control-char escape branch
     removed from ``_emit_basic_string`` (so control chars are emitted verbatim
@@ -239,7 +238,7 @@ def test_make_build_check_catches_emit_basic_string_drift(tmp_path, monkeypatch)
 
 
 def test_make_build_check_passes_emit_basic_string_parity_on_clean(tmp_path):
-    """AC20b: parity check passes against the unmodified install-marker.py template.
+    """Parity check passes against the unmodified install-marker.py template.
 
     Calls ``run_build_check_drift_gates`` in-process with:
       - an empty packs_dir (no source plugin.json → gate-2 silent), and
@@ -262,12 +261,12 @@ def test_make_build_check_passes_emit_basic_string_parity_on_clean(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Gate 2: Source-shape plugin.json (AC10 gate 2)
+# Gate 2: Source-shape plugin.json (gate 2)
 # ---------------------------------------------------------------------------
 
 
 def test_make_build_check_fails_on_source_hooks_block(tmp_path):
-    """AC10 gate 2: gate exits non-zero when a source plugin.json carries a hooks block.
+    """Gate 2: gate exits non-zero when a source plugin.json carries a hooks block.
 
     Creates a tmp packs dir with a single pack whose plugin.json contains
     ``"hooks": {}``, calls ``run_build_check_drift_gates`` in-process, and asserts:
@@ -311,7 +310,7 @@ def test_make_build_check_fails_on_source_hooks_block(tmp_path):
 
 
 def test_make_build_check_passes_on_clean_source_packs(tmp_path):
-    """AC10 gate 2 + AC20a: gate exits zero on a clean source + populated dist tree.
+    """Gate 2: exits zero on a clean source + populated dist tree.
 
     Shadow-copies the real ``packs/`` directory, builds into a shadow
     ``dist/`` (so the writer-template gate has projections to hash), and
@@ -345,12 +344,12 @@ def test_make_build_check_passes_on_clean_source_packs(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Gate 1c: APM writer-template drift (apm-install-route-parity AC16 a)
+# Gate 1c: APM writer-template drift
 # ---------------------------------------------------------------------------
 
 
 def test_make_build_check_fails_on_apm_writer_drift(tmp_path):
-    """AC16 (a): gate exits non-zero when a derived APM install-marker.py
+    """Case (a): gate exits non-zero when a derived APM install-marker.py
     diverges from the template.
 
     Mirror of the claude-plugins-side drift test, but mutates the APM-
@@ -395,7 +394,7 @@ def test_make_build_check_fails_on_apm_writer_drift(tmp_path):
 
 
 def test_make_build_check_passes_on_clean_apm_tree(tmp_path):
-    """AC16 (a) regression guard: gate exits zero when all APM-projected
+    """Case (a) regression guard: gate exits zero when all APM-projected
     install-marker.py files are byte-identical to the template."""
     from agentbundle.build.self_host import run_build_check_drift_gates
 

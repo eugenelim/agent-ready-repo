@@ -1,4 +1,4 @@
-"""Tests for the kiro deprecated alias (T4 — RFC-0022).
+"""Tests for the kiro deprecated alias (T4).
 
 The `kiro` adapter is retained as a deprecated alias for `kiro-ide`.
 Packs declaring `allowed-adapters = ["kiro"]` keep working; a

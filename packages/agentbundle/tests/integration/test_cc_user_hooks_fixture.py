@@ -12,7 +12,6 @@ Per spec § Boundaries — *Never do* — no live writes to
 ``patch.dict(os.environ, {"HOME": tmp})`` for the duration of each
 test; the assertion target is the tmp-scoped settings file.
 
-Spec AC coverage: AC8 / AC9 / AC11 against the fixture.
 """
 
 from __future__ import annotations
@@ -90,7 +89,7 @@ class CCUserHooksFixtureTests(unittest.TestCase):
         self.assertEqual(self.settings.read_bytes(), first)
 
     def test_no_writes_outside_redirected_home(self) -> None:
-        """AC29: nothing lands outside the tmp_path-scoped $HOME."""
+        """Nothing lands outside the tmp_path-scoped $HOME."""
         from agentbundle.build.projections.user_merge_json import project
 
         wiring = _load_wiring_tomls(CC_USER_HOOKS)

@@ -1,4 +1,4 @@
-"""Tests for adapter-contract v0.8 (docs/specs/dropped-primitives-coverage).
+"""Tests for adapter-contract v0.8.
 
 Verifies the T1 contract edits:
 
@@ -169,7 +169,7 @@ class TestContractV08(unittest.TestCase):
             },
         )
         # No `body` sub-table — body-to-`developer_instructions` is a
-        # mode-level convention per spec AC4, not a frontmatter rename.
+        # mode-level convention, not a frontmatter rename.
         self.assertNotIn("body", mapping)
         self.assertNotIn("developer_instructions", mapping)
 
@@ -241,7 +241,7 @@ class TestContractV08(unittest.TestCase):
             )
 
     def test_copilot_unchanged_post_v08(self) -> None:
-        """Property invariant — at v0.10 (RFC-0024 / copilot-full-parity) copilot
+        """Property invariant — at v0.10 (copilot-full-parity) copilot
         projects 4 of 5 primitives; only `command` stays dropped (the v0.8
         three-dropped state is superseded — agent + hook-wiring flipped to
         native modes)."""

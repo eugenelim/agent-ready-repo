@@ -1,4 +1,4 @@
-# STUB: AC4 — red until resolve_state_path is added to _common.py
+# STUB: red until resolve_state_path is added to _common.py
 # stub: true
 """Unit tests for _common.resolve_state_path."""
 

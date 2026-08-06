@@ -1,12 +1,12 @@
 ---
 name: argv-flag-normalised
-description: Credentialed-CLI fixture exercising the AC27 normalisation paths — casing, kebab, and string-add obfuscation; AC26(b)+AC27 findings expected.
+description: Credentialed-CLI fixture exercising the normalisation paths — casing, kebab, and string-add obfuscation; argv-flag findings expected.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
 ---
 
-Body with the full "Don't" block so only AC26(b) variants fire:
+Body with the full "Don't" block so only argv-flag variants fire:
 
 ### Security rules (non-negotiable)
 

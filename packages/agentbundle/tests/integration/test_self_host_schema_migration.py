@@ -1,4 +1,4 @@
-"""T3: self-host consumer schema-migration tests (AC9, AC14, AC16).
+"""T3: self-host consumer schema-migration tests.
 
 The `run_self_host` orchestrator reads `.adapt-discovery.toml` via the
 typed `load_adapt_discovery_typed` loader. Legacy `[adapt]` table,
@@ -113,7 +113,7 @@ def test_canonical_markers_table_loads(tmp_path, capsys):
 
 
 def test_lowercase_hyphen_marker_substitutes(tmp_path):
-    """``resolve_markers`` substitutes ``<adapt:project-name>`` (AC14)."""
+    """``resolve_markers`` substitutes ``<adapt:project-name>``."""
     target = tmp_path / "AGENTS.md"
     target.write_text("name: <adapt:project-name>\n", encoding="utf-8", newline="\n")
     modified = self_host.resolve_markers(

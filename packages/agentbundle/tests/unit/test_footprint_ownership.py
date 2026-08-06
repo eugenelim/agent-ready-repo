@@ -1,4 +1,4 @@
-"""T2 (RFC-0052 / ADR-0039): pure footprint-ownership verdict helpers.
+"""T2: pure footprint-ownership verdict helpers.
 
 Co-ownership is intra-pack + content-addressed: two adapter rows co-own a
 path only when they belong to the same pack AND the SHA matches. A same-path

@@ -247,7 +247,7 @@ class UserLibsRealRepoTests(unittest.TestCase):
             f"imported credbroker from {result['file']!r}, not the floor {floor!r}",
         )
         delta = set(result["delta"])
-        # Explicit deny-list (mirrors credbroker's AC4 test_stdlib_purity): the
+        # Explicit deny-list (mirrors credbroker's test_stdlib_purity): the
         # known crypto-extra roots a credentialed resolver must never reach at
         # base. This runs *independent* of the underscore skip below — `_cffi_backend`
         # (argon2's transitive C backend) starts with `_`, so the general

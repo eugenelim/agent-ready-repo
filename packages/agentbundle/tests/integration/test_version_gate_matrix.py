@@ -1,4 +1,4 @@
-"""AC #14: every subcommand that loads a pack manifest refuses on a
+"""Every subcommand that loads a pack manifest refuses on a
 major-version mismatch with a stderr line naming both versions.
 
 This is the cross-cutting proof that the version gate is uniform — no

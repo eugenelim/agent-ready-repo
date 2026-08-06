@@ -50,7 +50,7 @@ def run_windows_compat(root: Path) -> int:
         ),
         # Path-sensitive agentbundle pytest suite
         (
-            "converters install/uninstall (AC6a)",
+            "converters install/uninstall",
             [py, "-m", "pytest", "tests/integration/test_install_converters_user_scope.py"],
             pkg,
         ),
@@ -97,12 +97,12 @@ def run_windows_compat(root: Path) -> int:
         ),
         # Experience agnosticism lint (proves `python` portability, not `python3`)
         (
-            "experience lint self-test (design-craft-pack AC8)",
+            "experience lint self-test (design-craft-pack)",
             [py, str(root / "tools" / "test-lint-experience-agnostic.py")],
             root,
         ),
         (
-            "experience lint (design-craft-pack AC8)",
+            "experience lint (design-craft-pack)",
             [py, str(root / "tools" / "lint-experience-agnostic.py")],
             root,
         ),

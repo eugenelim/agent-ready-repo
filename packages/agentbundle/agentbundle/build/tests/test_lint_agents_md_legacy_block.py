@@ -1,4 +1,4 @@
-"""T9 / AC31 — `tools/lint-agents-md.py` warns when a projected
+"""T9 — `tools/lint-agents-md.py` warns when a projected
 `AGENTS.md` still carries the legacy `<!-- agent-skills:start -->`
 literal *and* the contract declares Codex `skill` as `direct-directory`.
 

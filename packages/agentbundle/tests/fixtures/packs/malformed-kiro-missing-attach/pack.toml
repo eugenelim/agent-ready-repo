@@ -1,5 +1,5 @@
 # Negative fixture: Kiro-projecting pack whose hook-wiring TOML omits
-# `attach-to-agent`. Validate must refuse with the RFC-0005 verbatim
+# `attach-to-agent`. Validate must refuse with the verbatim
 # text. Ships an agent so the kiro-targeting heuristic (T2) fires.
 
 [pack]

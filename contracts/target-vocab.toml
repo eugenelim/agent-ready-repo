@@ -10,12 +10,11 @@
 # adapter.toml's per-target blocks would change the contract grammar
 # and require a schema update — RFC scope, not PR scope.
 #
-# Managed by: docs/specs/lint-packs-target-vocab/spec.md
 # Schema: none in this PR; no follow-up planned. The file is short
 # enough that tomllib's structural parse plus the lint's per-target
 # extraction is the de-facto schema.
 #
-# Loader contract (see spec AC1, AC11): every declared target's
+# Loader contract: every declared target's
 # `name-pattern` must be byte-equal to every other's. Regex
 # intersection is not well-defined, so the lint refuses any vocab
 # whose targets disagree on the pattern rather than picking one

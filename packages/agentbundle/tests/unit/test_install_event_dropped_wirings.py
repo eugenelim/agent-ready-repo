@@ -1,4 +1,4 @@
-"""Unit tests for T3 + T4 of docs/specs/incompatible-hook-event-drop.
+"""Unit tests for T3 + T4.
 
 Covers:
   T3 — ``enumerate_event_dropped_wirings`` in
@@ -172,7 +172,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         self,
     ) -> None:
         """Malformed TOML returns (relpath, "hook-wiring TOML failed to parse").
-        Pins AC6c's asymmetry: install enumerates parse-fail as a drop entry."""
+        Pins the asymmetry: install enumerates parse-fail as a drop entry."""
         pack = self.tmp_path / "pack"
         _seed_wiring(pack, "bad", "this is not valid TOML !!!")
         result = enumerate_event_dropped_wirings(pack, "kiro", self.contract)
@@ -186,7 +186,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
     ) -> None:
         """Kiro+pack with attach-to-agent = "" produces a drop entry —
         install-side is more permissive than validate-side (which refuses
-        on empty string per AC4b).
+        on empty string).
 
         Documented asymmetry: validate refuses on `attach = ""` (kept
         refusal, exit 1); install enumerates it as a drop entry so the
@@ -238,7 +238,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
 
 class TestFormatDropMessage(unittest.TestCase):
     def test_format_warning_pre_amendment_wording_pinned(self) -> None:
-        """AC8 load-bearing pin. Exact byte-string for the pre-amendment
+        """Load-bearing pin. Exact byte-string for the pre-amendment
         (primitive-type-only) shape with pack=core, adapter=codex,
         1 command dropped, compatible=[skill, agent, hook-body, hook-wiring].
         Quote verbatim; do NOT compute via the formatter."""
@@ -299,7 +299,7 @@ class TestFormatDropMessage(unittest.TestCase):
 
     def test_format_warning_reason_summary_dedupe(self) -> None:
         """Both reason categories: vocabulary first, joined with ' + '.
-        Pins AC7's order rule."""
+        Pins the order rule."""
         result = format_drop_message(
             pack_name="core",
             adapter="kiro",
@@ -338,7 +338,7 @@ class TestFormatDropMessage(unittest.TestCase):
         # (assertIn above guarantees order + no dup)
 
     def test_format_validate_info_one_file_one_reason(self) -> None:
-        """AC2 byte-pin: one file, one reason."""
+        """Byte-pin: one file, one reason."""
         result = format_drop_message(
             pack_name="core",
             adapter="kiro",
@@ -357,7 +357,7 @@ class TestFormatDropMessage(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_format_validate_info_one_file_two_reasons(self) -> None:
-        """AC2 byte-pin: one file, two reasons (vocabulary + attach-to-agent)."""
+        """Byte-pin: one file, two reasons (vocabulary + attach-to-agent)."""
         result = format_drop_message(
             pack_name="core",
             adapter="kiro",
@@ -380,7 +380,7 @@ class TestFormatDropMessage(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_format_validate_info_two_files(self) -> None:
-        """AC2 byte-pin: two files, lexicographically sorted with
+        """Byte-pin: two files, lexicographically sorted with
         serial-comma-plus-and."""
         result = format_drop_message(
             pack_name="core",

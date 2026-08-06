@@ -20,7 +20,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent  # packages/agentbu
 
 
 # ---------------------------------------------------------------------------
-# Pure helpers -- _compute_status_pair (migrated from _status_for; AC3, AC4, AC5)
+# Pure helpers -- _compute_status_pair (migrated from _status_for)
 # ---------------------------------------------------------------------------
 
 
@@ -62,7 +62,7 @@ def test_status_unknown_when_unparseable():
 
 
 # ---------------------------------------------------------------------------
-# Pure helper -- _drift_count (AC6)
+# Pure helper -- _drift_count
 # ---------------------------------------------------------------------------
 
 
@@ -95,7 +95,7 @@ def test_drift_count_absent_is_not_drift(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Pure helper -- _collect_rows ordering (AC1)
+# Pure helper -- _collect_rows ordering
 # ---------------------------------------------------------------------------
 
 
@@ -110,7 +110,7 @@ def test_collect_rows_sorted_across_scopes(tmp_path):
         packs={("architect", "claude-code"): PackState(installed_version="0.9.0")}
     )
     rows = li._collect_rows([("repo", tmp_path, repo), ("user", tmp_path, user)])
-    # Sort order is now (scope, pack, adapter) per RFC-0072 D5.
+    # Sort order is (scope, pack, adapter).
     assert [(r["scope"], r["pack"], r["adapter"]) for r in rows] == [
         ("repo", "architect", "codex"),
         ("repo", "core", "claude-code"),
@@ -149,7 +149,7 @@ def _write_catalogue(root: Path, versions: dict[str, str]) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Command -- behavior (AC1, AC2, AC4, AC5, AC6, AC7)
+# Command -- behavior
 # ---------------------------------------------------------------------------
 
 
@@ -279,7 +279,7 @@ def test_scope_filter_excludes_other_scope(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# CLI wiring -- real subprocess invocation (AC13)
+# CLI wiring -- real subprocess invocation
 # ---------------------------------------------------------------------------
 
 

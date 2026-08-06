@@ -1,4 +1,4 @@
-"""T-C1 (RFC-0005 kiro-ide-hook): adapter.schema.json vocabulary fields.
+"""T-C1 (kiro-ide-hook): adapter.schema.json vocabulary fields.
 
 Pre-bump tests pinning the two optional declarative-vocabulary fields
 the schema now documents under ``projections.<primitive>.properties``:

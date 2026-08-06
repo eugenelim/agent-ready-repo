@@ -2,7 +2,7 @@
 the right target file (settings.json for Claude Code, agent JSON for
 Kiro) and leaves the target file otherwise untouched.
 
-Covers spec ACs AC11 (Claude Code uninstall precision) and AC19
+Covers Claude Code uninstall precision
 (Kiro uninstall removes wiring but leaves the agent file in place
 until the agent primitive's own uninstall runs).
 """
@@ -88,7 +88,7 @@ class _UninstallBase(unittest.TestCase):
 
 
 class CCUserHooksUninstallTests(_UninstallBase):
-    """AC11: uninstall removes only owned entries from the settings
+    """Uninstall removes only owned entries from the settings
     file; empty `hooks.<event>` arrays are pruned. Other top-level
     keys in the settings file must survive."""
 
@@ -118,7 +118,7 @@ class CCUserHooksUninstallTests(_UninstallBase):
 
         data_after = json.loads(settings.read_text(encoding="utf-8"))
         # The pack's owned entry is gone — and the empty event array
-        # is pruned per RFC-0005 § Uninstall.
+        # is pruned on uninstall.
         self.assertNotIn(
             "UserPromptSubmit",
             data_after.get("hooks", {}),
@@ -127,7 +127,7 @@ class CCUserHooksUninstallTests(_UninstallBase):
 
 
 class MultiPackUninstallPrecisionTests(_UninstallBase):
-    """AC11 precision: uninstalling pack A leaves pack B's entries in
+    """Precision: uninstalling pack A leaves pack B's entries in
     place at their original positions. Exercises the end-to-end
     integration (install A → install B → uninstall A → assert B
     survives unchanged)."""
@@ -192,7 +192,7 @@ class MultiPackUninstallPrecisionTests(_UninstallBase):
 
 
 class KiroUserHooksUninstallTests(_UninstallBase):
-    """AC19: uninstall's hook-wiring unprojection removes the owned
+    """Uninstall's hook-wiring unprojection removes the owned
     entries from the agent JSON. The end-to-end uninstall ALSO runs
     the agent primitive's `direct-file` uninstall which removes the
     agent file (because `state.files` recorded it as pack-owned).
@@ -231,7 +231,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
         )
 
     def test_wiring_unproject_leaves_adopter_keys_alone(self) -> None:
-        """Wiring-side AC19: unproject removes only the wiring-owned
+        """Wiring side: unproject removes only the wiring-owned
         entries. Construct a scenario where the agent file persists
         after uninstall (synthetic pre-write of an adopter key the
         pack doesn't own) and assert the adopter key survives.
@@ -277,7 +277,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
 
 
 class LegacyKiroJsonUninstallMigrationTests(_UninstallBase):
-    """RFC-0022 / kiro-install-alias-parity AC8: an adopter who installed via
+    """kiro-install-alias parity: an adopter who installed via
     the legacy `kiro` JSON path (agent JSON on disk, `state.adapter == "kiro"`,
     `hook_wiring_owned` rows pointing at the agent JSON) must uninstall cleanly
     under the new code — the agent JSON is removed (not orphaned) and the

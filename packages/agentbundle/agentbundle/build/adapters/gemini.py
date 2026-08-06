@@ -1,4 +1,4 @@
-"""Gemini adapter — full-parity native adapter (RFC-0027 / ADR-0016).
+"""Gemini adapter — full-parity native adapter.
 
 Projects every catalogue primitive to Gemini CLI's native `.gemini/*` discovery
 paths at both repo and user scope:
@@ -42,7 +42,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterator
 
-# RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
+# Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.gemini_command_toml import (
@@ -51,7 +51,7 @@ from agentbundle.build.projections.gemini_command_toml import (
 
 _ADAPTER = "gemini"
 
-# The hook body lands under `.gemini/hooks/` (AC2), but the shipped hook-wiring
+# The hook body lands under `.gemini/hooks/`, but the shipped hook-wiring
 # command references it by its legacy `tools/hooks/` path. Rewrite the carried
 # command so the emitted settings.json points where the body actually lands —
 # the cursor.py `_rewrite_hook_body_path` precedent.
@@ -271,7 +271,7 @@ def _apply_mapping(
             # Omit an empty `tools` rather than emit `tools: []`. An empty list
             # in Gemini's allowlist plausibly means "no tools permitted" (a silent
             # degrade); omitting the key lets Gemini apply its default — matching
-            # the `model`-absent → omitted precedent (AC6). Fires only when every
+            # the `model`-absent → omitted precedent. Fires only when every
             # declared tool was unmapped (each already logged above).
             if isinstance(value, list) and not value:
                 continue
@@ -305,7 +305,7 @@ def _project_settings_json(
     pack_paths: list[Path], contract: dict, output_root: Path
 ) -> None:
     """Write the `hooks` wiring AND the static `context.fileName` bridge into one
-    `.gemini/settings.json` in a single managed-merge (AC8).
+    `.gemini/settings.json` in a single managed-merge.
 
     `hooks`: every `.apm/hook-wiring/<name>.toml` across all packs is aggregated;
     each source event is translated through the contract `hook-event-map`

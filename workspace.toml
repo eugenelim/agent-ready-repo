@@ -432,24 +432,26 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # Sweep internal governance markers (RFC-0NNN / ADR-0NNN / our spec ACs) out of
-  # `packages/**`, on the same "everything source-code-wise is visible" principle
-  # already applied to `packs/`. 916 occurrences across 195 files; ~475 of them
-  # resolve to ~460 DISTINCT surrounding contexts, so this is per-sentence work, not
-  # a regex pass — only ~388 fall into mechanically safe classes.
-  # Three traps, all measured:
-  #   1. IETF RFCs must survive (`RFC 9106` in credbroker/_vault.py). Ours are
-  #      zero-padded four digits; IETF never starts with 0 — that is the discriminator.
-  #   2. Some markers are terms of art inside user-facing strings ("pre-RFC-0012
-  #      dist-tree files", install.py:2422/:2465) and those exact strings are pinned by
-  #      assertIn/assertNotIn in the integration tests — rename source + assertion together.
-  #   3. agentbundle/CHANGELOG.md (16 markers) is a historical record; decide
-  #      explicitly whether rewriting it is wanted before touching it.
-  # credbroker/_sso.py is byte-identical to the packs/ copy and was already done.
-  # Fix: tiered exact-string + regex pass for the safe classes, then per-site rewrite;
-  #   verify with `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b' packages/` plus the full suite.
-  # Unblocks when: picked up — no dependency. Guardrail already in packages/AGENTS.local.md.
-  {slug = "packages-governance-marker-sweep", source = "spec/pack-governance-marker-removal AC12"},
+
+  # Phase-1 residue from the packages/ marker sweep: the marker sites that are
+  # asserted on verbatim. The set itself is enumerated once, in
+  # docs/specs/packages-governance-marker-sweep/spec.md AC5 — do not restate it
+  # here; two copies drift.
+  # Fix: for each retained string, rename it and edit its pinning assertion in the
+  #   same commit. `pre-RFC-0012` needs a naming decision for the legacy on-disk
+  #   layout first; the RFC-0008 refusal needs its `or` branch dropped so the
+  #   assertion stops silently passing on the second clause.
+  # Unblocks when: picked up — no dependency.
+  {slug = "packages-marker-sweep-pinned-strings", source = "spec/packages-governance-marker-sweep AC5"},
+
+  # `contracts/README.md` carries 8 governance markers. It sits outside
+  # `packages/`, so the packages sweep left it, but `contracts/` is a public
+  # repo-root directory an adopter browsing the repo reads, and its sibling
+  # `adapter.toml` / `target-vocab.toml` were swept (they are byte-identical
+  # twins of packaged files and had to move).
+  # Fix: same treatment — rewrite each sentence to state the rule, drop the ordinal.
+  # Unblocks when: picked up — no dependency.
+  {slug = "contracts-readme-governance-markers", source = "spec/packages-governance-marker-sweep (out of scope)"},
 
   # workspace-mcp Stage 1 deferred AC. agentbundle Claude adapter additive-merge
   # `permissions.allow` projection for the 6 workspace-mcp MCP tool ids. If the

@@ -1,4 +1,4 @@
-"""Tests for loop-engine events.jsonl outbox protocol (AC0, AC0a)."""
+"""Tests for loop-engine events.jsonl outbox protocol."""
 from __future__ import annotations
 
 import json
@@ -54,7 +54,7 @@ def _engine_init(repo: Path, spec_dir: Path) -> str:
 
 
 class TestOutboxInit:
-    """cmd_init creates .loop-run/ + empty events.jsonl + gitignore entry (AC0)."""
+    """cmd_init creates .loop-run/ + empty events.jsonl + gitignore entry."""
 
     def test_events_jsonl_created_empty(self, tmp_path: pytest.TempDir) -> None:
         repo = _init_git_repo(tmp_path)
@@ -81,7 +81,7 @@ class TestOutboxInit:
 
 
 class TestOutboxTransition:
-    """Outbox write protocol: pending → state → jsonl → delete pending (AC0)."""
+    """Outbox write protocol: pending → state → jsonl → delete pending."""
 
     def test_transition_appends_event_line(self, tmp_path: pytest.TempDir) -> None:
         repo = _init_git_repo(tmp_path)
@@ -137,7 +137,7 @@ class TestOutboxTransition:
 
 
 class TestOutboxReset:
-    """cmd_reset removes .loop-run/ (AC0)."""
+    """cmd_reset removes .loop-run/."""
 
     def test_loop_run_removed_on_reset(self, tmp_path: pytest.TempDir) -> None:
         repo = _init_git_repo(tmp_path)
@@ -150,19 +150,19 @@ class TestOutboxReset:
 
 
 class TestOutboxRecovery:
-    """Outbox recovery: replay/discard stale events.pending (AC0a)."""
+    """Outbox recovery: replay/discard stale events.pending."""
 
     def test_outbox_recovery_replay_when_to_matches_state(self) -> None:
-        pytest.skip("STUB: AC0a")
+        pytest.skip("STUB: replay the pending event when its `to` matches state")
 
     def test_outbox_recovery_discard_when_to_mismatches_state(self) -> None:
-        pytest.skip("STUB: AC0a")
+        pytest.skip("STUB: discard the pending event when its `to` mismatches state")
 
     def test_cmd_transition_recovers_stale_pending_before_new_transition(self) -> None:
-        pytest.skip("STUB: AC0a (crash-then-next-transition: pending from prior crash must be replayed/discarded at top of next cmd_transition, not lost)")
+        pytest.skip("STUB: crash-then-next-transition — pending from prior crash must be replayed/discarded at top of next cmd_transition, not lost")
 
     def test_cmd_transition_recovers_foreign_spec_pending_before_writing_own(self) -> None:
-        pytest.skip("STUB: AC0a (cross-spec: crash on spec-A then transition on spec-B must recover spec-A's pending against spec-A's engine-state.json before writing spec-B's new pending event — skipping leaves spec-A's event silently lost to the step-2 overwrite)")
+        pytest.skip("STUB: cross-spec — crash on spec-A then transition on spec-B must recover spec-A's pending against spec-A's engine-state.json before writing spec-B's new pending event — skipping leaves spec-A's event silently lost to the step-2 overwrite")
 
     def test_io_failure_does_not_abort_transition(self) -> None:
-        pytest.skip("STUB: AC0 graceful-degradation — monkeypatch events.jsonl append to raise PermissionError; assert engine-state.json write still succeeds and a warning is emitted")
+        pytest.skip("STUB (graceful-degradation): monkeypatch events.jsonl append to raise PermissionError; assert engine-state.json write still succeeds and a warning is emitted")

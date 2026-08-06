@@ -1,13 +1,13 @@
 """Kiro adapter — underlying JSON projection shared by kiro-cli and the kiro alias.
 
-RFC-0022: the `kiro` contract adapter is a deprecated alias for `kiro-ide`.
+The `kiro` contract adapter is a deprecated alias for `kiro-ide`.
 This module (`kiro.py`) now serves as the shared implementation layer used by:
   - `kiro_cli.py` — CLI target, JSON agents with CLI short-name tool tokens.
   - `kiro_ide.py` — imports `_split_frontmatter`, `_apply_mapping`, and the
     direct-file helpers; overrides agent projection to emit `.md`.
   - `kiro` alias — deprecated alias that calls `kiro_ide.project`.
 
-Per RFC-0005 § Build-pipeline ordering invariant, primitives project in
+Per the build-pipeline ordering invariant, primitives project in
 the fixed order **`hook-body` → `agent` → `hook-wiring` → `command` →
 `skill`** within each pack. The order matters because Kiro's
 `merge-into-agent-json` projection reads the agent JSON the agent
@@ -19,7 +19,7 @@ table (renamed from `kiro-agent-frontmatter-v0.9` in T1) is reinterpreted as
 *frontmatter-key → JSON-field* rather than *frontmatter → frontmatter*.
 
 Hook-wiring projection delegates to
-`agentbundle.build.projections.merge_into_agent_json` per RFC-0005.
+`agentbundle.build.projections.merge_into_agent_json`.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from agentbundle.build.projections.kiro_ide_hook import (
 )
 
 
-# Phase order from RFC-0005 § Build-pipeline ordering invariant.
+# Phase order from the build-pipeline ordering invariant.
 # `agent` precedes `hook-wiring` so `merge-into-agent-json` finds the
 # agent JSON in place. `command` and `skill` land last; their position
 # relative to wiring is free (neither reads the agent JSON during
@@ -55,7 +55,7 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
     Walks both the legacy `[[adapter.kiro.projection]]` array (v0.2
     primitives that didn't migrate to the new shape) and the v0.3
     `[adapter.kiro.projections.<primitive>]` table form (hook-body and
-    hook-wiring per RFC-0005). Skipped: primitives whose mode is
+    hook-wiring). Skipped: primitives whose mode is
     `dropped` — they have no projection work.
 
     Returns an iterator in PHASE_ORDER so callers (project,
@@ -218,7 +218,7 @@ def _dispatch_table_form(
     contract: dict,
 ) -> None:
     mode = rule.get("mode")
-    # `mode` may be a string or a scope-map per RFC-0005; at build time
+    # `mode` may be a string or a scope-map; at build time
     # we project the repo-scope shape (the user-scope path is resolved
     # at install time by T8b). For string-or-scope-map fields, prefer
     # the repo branch.
@@ -238,7 +238,7 @@ def _dispatch_table_form(
         if target_template:
             _project_direct_file_template(source_dir, output_root, target_template)
     elif primitive_name == "kiro-ide-hook" and effective_mode == "direct-file":
-        # RFC-0005 v0.4 — IDE event hooks via the kiro-ide-hook primitive.
+        # v0.4 — IDE event hooks via the kiro-ide-hook primitive.
         # Delegate the file-walk, JSON-parse, and `${hook-body:<name>}`
         # expansion to the dedicated projection module so the wiring
         # here stays mechanical.
@@ -278,8 +278,7 @@ def _project_agent_as_json(
     The mapping table on the contract retains its `rename` / `normalize`
     grammar; what changes from v0.2 is the *emission* — JSON instead
     of frontmatter-with-body markdown — which closes the spec/Kiro-docs
-    drift RFC-0005's "observed-but-not-publicly-documented" drawback
-    flagged.
+    drift flagged as an "observed-but-not-publicly-documented" behaviour.
     """
     target_dir = output_root / rule["target-path"].rstrip("/")
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -313,7 +312,7 @@ def _project_agent_as_json(
             prompt = body.rstrip("\n")
             if prompt:
                 agent_json["prompt"] = prompt
-        # Skill-resources injection (RFC-0022 E4). The agent projection
+        # Skill-resources injection. The agent projection
         # declares `inject-resources` so custom agents reach the bundle's
         # skills — Kiro custom agents don't inherit the default agent's
         # `.kiro/skills` auto-discovery (kiro #6887/#6888). Author-declared
@@ -348,7 +347,7 @@ def _project_hook_wiring_to_agent_json(
     phase-order invariant ensures agent projection ran first
     (`_iter_primitives` yields `agent` before `hook-wiring`). If the
     wiring TOML's `attach-to-agent` names an agent the pack didn't
-    ship, the merge module refuses with the RFC-0005 `internal:` text.
+    ship, the merge module refuses with the `internal:` text.
 
     Pack-side validation already refused malformed wiring TOMLs at
     `validate` time (T2's `check_kiro_wiring`), so by the time we
@@ -383,7 +382,7 @@ def _project_hook_wiring_to_agent_json(
     for attach_to_agent, wiring_tomls in wiring_by_agent.items():
         resolved = target_template.replace("<attach-to-agent>", attach_to_agent)
         target_path = output_root / resolved.lstrip("/")
-        # Let AgentJsonRefusal propagate. RFC-0005 names the reachable
+        # Let AgentJsonRefusal propagate. The contract names the reachable
         # cases — missing agent (pipeline-ordering invariant violation),
         # unparseable JSON, wrong-shape `hooks` — all of which are bugs
         # at build time, not adopter-fixable conditions. Silently
@@ -591,7 +590,7 @@ def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
-# kiro-ide-hook dispatch (RFC-0005 v0.4)
+# kiro-ide-hook dispatch (v0.4)
 # ---------------------------------------------------------------------------
 
 

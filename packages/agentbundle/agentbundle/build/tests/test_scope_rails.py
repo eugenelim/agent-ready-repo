@@ -1,6 +1,6 @@
 """T12: user-scope refusal rails — seeds / hooks / marker.
 
-Verifies AC #16 (RFC-0004) for the distribution-adapters spec. The rails
+Verifies the user-scope refusal rails. They
 fire only when a pack declares `"user" ∈ allowed-scopes` — repo-only
 packs are not inspected, so SKILL.md files that *document* the marker
 syntax (e.g. `adapt-to-project`) are not refused because their packs
@@ -131,7 +131,7 @@ class RailBHooksTests(unittest.TestCase):
             self.assertIsNone(check_hooks(pack, ["user"]))
 
     def test_rail_b_lifts_when_user_scope_hooks_true(self) -> None:
-        """RFC-0005 § Rail B — user-scope lift: a pack that opts in via
+        """Rail B — user-scope lift: a pack that opts in via
         ``user-scope-hooks = true`` is accepted even with hooks at user
         scope. The flag is the consent gesture."""
         from agentbundle.build.scope_rails import check_hooks
@@ -184,7 +184,7 @@ class RailCMarkersTests(unittest.TestCase):
     def test_rail_c_refuses_lowercase_hyphen_marker_in_skill_with_user_scope(self) -> None:
         """Canonical lowercase-hyphen form `<adapt:project-name>` is refused.
 
-        Closes the AC21 carve-out: until the code-side widening, a
+        Closes the carve-out: until the code-side widening, a
         user-scope pack carrying the canonical marker form passed
         `validate` in code even though the spec contract refused it.
         """
@@ -265,7 +265,7 @@ class RailCMarkersTests(unittest.TestCase):
             self.assertIsNone(check_markers(pack, ["user"]))
 
     def test_rail_c_refuses_symlink_under_skills(self) -> None:
-        """RFC-0004 Rail C must refuse symlinks under primitive dirs.
+        """Rail C must refuse symlinks under primitive dirs.
 
         A `*.md → /dev/zero` symlink would bypass the size cap because
         `stat()` follows the symlink and reports the target's
@@ -356,7 +356,7 @@ allowed-scopes = ["repo"]
                 rc = validate_cmd.run(args)
             self.assertEqual(rc, 1)
             err = buf.getvalue()
-            # Spec contract text (RFC-0004 last AC for agent-spec-cli).
+            # Spec contract text (last AC for agent-spec-cli).
             self.assertIn("default-scope", err)
             self.assertIn("'user'", err)
             self.assertIn("allowed-scopes", err)

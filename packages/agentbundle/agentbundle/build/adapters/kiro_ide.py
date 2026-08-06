@@ -6,7 +6,7 @@ Targets the Kiro IDE, not the `kiro` CLI binary. Key differences from kiro-cli:
   via gray-matter. The `kiro-ide-agent-frontmatter-v0.9` mapping applies IDE
   tool ids (read_file, grep_search, etc.) — not CLI short-names.
 - `hook-wiring` is DROPPED. The IDE loader silently drops any agent carrying
-  a `hooks` key (RFC-0022 E2). Use kiro-ide-hook instead.
+  a `hooks` key. Use kiro-ide-hook instead.
 - `kiro-ide-hook` is ACTIVATED. Flat projection path confirmed by Q6 probe
   (no-recursion, yes-extension-filter, 2026-06-01, Kiro 0.12.224):
   `.kiro/hooks/<pack>--<name>.kiro.hook`.
@@ -244,7 +244,7 @@ def _project_agent_as_md(
         agent_name = rewritten.get("name") or entry.stem
         rewritten["name"] = agent_name
 
-        # Skill-resources injection (RFC-0022 E4). Same gap as kiro-cli: IDE
+        # Skill-resources injection. Same gap as kiro-cli: IDE
         # custom agents don't inherit the default agent's `.kiro/skills`
         # auto-discovery, so inject the declared glob unless the agent set its
         # own `resources` (author override wins). `resources` is a documented

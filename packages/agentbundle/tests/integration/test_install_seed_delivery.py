@@ -1,10 +1,10 @@
-"""Integration tests for CLI `install` seed delivery (spec core-install-seed-delivery).
+"""Integration tests for CLI `install` seed delivery.
 
 `agentbundle install` must deliver the `core` pack's governance seeds into the
-adopter repo (AC1), record each in `.agentbundle-state.toml` (AC2), compose
+adopter repo, record each in `.agentbundle-state.toml`, compose
 `AGENTS.md` from body+footer while not delivering `_agents-footer.md` standalone
-(AC1b), and drop `*.upstream.<ext>` companions on adopter-edited collisions
-(AC1 Tier-2) — never overwriting the adopter's file.
+And drop `*.upstream.<ext>` companions on adopter-edited collisions
+(Tier-2) — never overwriting the adopter's file.
 
 The catalogue is this repo's own clone (REPO_ROOT); the pack is the real
 `packs/core/`, installed at repo scope via the per-IDE route (not the legacy
@@ -40,7 +40,7 @@ def _install_core(target: Path) -> tuple[int, str, str]:
 
 
 def test_install_delivers_seeds(tmp_path):
-    """AC1: a documented `install` lands the governance seeds in the repo."""
+    """A documented `install` lands the governance seeds in the repo."""
     target = tmp_path / "repo"
     target.mkdir()
     rc, _out, err = _install_core(target)
@@ -57,7 +57,7 @@ def test_install_delivers_seeds(tmp_path):
 
 
 def test_install_records_seeds_in_state(tmp_path):
-    """AC2: each delivered seed is recorded in core's state `files` map."""
+    """Each delivered seed is recorded in core's state `files` map."""
     target = tmp_path / "repo"
     target.mkdir()
     rc, _out, err = _install_core(target)
@@ -67,7 +67,7 @@ def test_install_records_seeds_in_state(tmp_path):
     files = state["pack"]["core"]["adapters"]["claude-code"]["files"]
     for rel in ("AGENTS.md", "docs/CHARTER.md", "docs/CONVENTIONS.md"):
         assert rel in files, f"seed {rel!r} not recorded in state files map"
-        # AC2: same {sha, from-pack-version} shape as primitives.
+        # Same {sha, from-pack-version} shape as primitives.
         assert files[rel]["sha"], f"seed {rel!r} state entry missing sha"
         assert files[rel]["from-pack-version"], (
             f"seed {rel!r} state entry missing from-pack-version"
@@ -75,7 +75,7 @@ def test_install_records_seeds_in_state(tmp_path):
 
 
 def test_install_composes_agents_md_and_skips_footer(tmp_path):
-    """AC1b: AGENTS.md is composed body+footer; _agents-footer.md is not standalone."""
+    """AGENTS.md is composed body+footer; _agents-footer.md is not standalone."""
     target = tmp_path / "repo"
     target.mkdir()
     rc, _out, err = _install_core(target)
@@ -94,7 +94,7 @@ def test_install_composes_agents_md_and_skips_footer(tmp_path):
 
 
 def test_install_seed_collision_drops_companion(tmp_path):
-    """AC1 Tier-2: an adopter-edited seed is left untouched and gets a companion."""
+    """Tier-2: an adopter-edited seed is left untouched and gets a companion."""
     target = tmp_path / "repo"
     target.mkdir()
     (target / "docs").mkdir()
@@ -112,7 +112,7 @@ def test_install_seed_collision_drops_companion(tmp_path):
 
 
 def test_install_gitignore_collision_drops_companion(tmp_path):
-    """AC1 Tier-2: the highest-probability brownfield collision — repo-root .gitignore."""
+    """Tier-2: the highest-probability brownfield collision — repo-root .gitignore."""
     target = tmp_path / "repo"
     target.mkdir()
     existing = b"node_modules/\n.env\n"
@@ -129,7 +129,7 @@ def test_install_gitignore_collision_drops_companion(tmp_path):
 
 
 def test_install_records_no_phantom_unresolved_markers(tmp_path):
-    """AC10: a fresh core install records no phantom `unresolved-markers`.
+    """A fresh core install records no phantom `unresolved-markers`.
 
     The only `<adapt:...>` token in core's projection is the inline-code doc
     example in adapt-to-project/SKILL.md; the marker scanner now ignores it.
@@ -150,7 +150,7 @@ def test_install_records_no_phantom_unresolved_markers(tmp_path):
 
 
 def test_install_identical_seed_skipped(tmp_path):
-    """AC1 Tier-1: a pre-existing byte-identical seed is a clean no-op (no companion)."""
+    """Tier-1: a pre-existing byte-identical seed is a clean no-op (no companion)."""
     target = tmp_path / "repo"
     target.mkdir()
     (target / "docs").mkdir()
@@ -165,7 +165,7 @@ def test_install_identical_seed_skipped(tmp_path):
 
 
 def test_install_records_skipped_seed_in_state(tmp_path):
-    """AC9: a byte-identical seed (action=='skipped') is still recorded in state."""
+    """A byte-identical seed (action=='skipped') is still recorded in state."""
 
     target = tmp_path / "repo"
     target.mkdir()

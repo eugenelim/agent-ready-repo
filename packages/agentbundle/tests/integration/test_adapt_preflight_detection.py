@@ -1,15 +1,15 @@
-"""Pre-flight detection primitives for adapt-to-project (AC4a rows 17, 18).
+"""Pre-flight detection primitives for adapt-to-project (rows 17, 18).
 
 The adapt-to-project skill's Pre-flight section delegates dirty-state
 and Tier-2 detection to two deterministic primitives:
 
 - Repo-scope dirty-state: `git status --porcelain` against the
   adopter's working tree (skill body line documented; pinned by
-  AC1 grep #4 / `test_body_names_dirty_state_command`).
+  grep #4 / `test_body_names_dirty_state_command`).
 - User-scope Tier-2 / dirty-state: content-hash divergence between
   the current bytes of a tracked file and the SHA-256 recorded in
   `~/.agentbundle/state.toml` (skill body line documented; pinned
-  by AC22 grep / `test_body_pre_flight_section_references_user_scope_state`).
+  by the pre-flight grep / `test_body_pre_flight_section_references_user_scope_state`).
 
 These tests exercise the primitives end-to-end against fixtures
 seeded with the corresponding state, so a regression to the
@@ -28,11 +28,11 @@ What these tests **do** pin:
 
 What these tests do **not** pin (covered elsewhere):
 - That the LLM following SKILL.md's Pre-flight narrates the
-  finding correctly — pinned by AC1 grep #4 and AC22 grep tokens
+  finding correctly — pinned by grep #4 and the pre-flight grep tokens
   against the skill body.
 - That the LLM halts the session and waits for adopter input —
   not currently mechanically testable; transcript captures
-  attempted under AC4b rows 8–16 as preparatory evidence.
+  attempted under rows 8–16 as preparatory evidence.
 """
 
 from __future__ import annotations

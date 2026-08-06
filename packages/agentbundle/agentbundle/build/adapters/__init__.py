@@ -26,14 +26,14 @@ ADAPTERS: Dict[str, Callable] = {
     "claude-code": claude_code.project,
     "kiro-ide": kiro_ide.project,
     "kiro-cli": kiro_cli.project,
-    "kiro": _kiro_alias_project,  # deprecated alias → kiro-ide (RFC-0022 D1)
+    "kiro": _kiro_alias_project,  # deprecated alias → kiro-ide
     "copilot": copilot.project,
     "cursor": cursor.project,
     "codex": codex.project,
     "gemini": gemini.project,
 }
 
-# Module-keyed registry — the surface RFC-0003 F-cli AC requires.
+# Module-keyed registry — the surface the build CLI requires.
 # Keys are the Python module names (`claude_code`, etc.) which is what the
 # CLI's `list-targets` and the AC's test reference. Values are the adapter
 # modules themselves so callers can introspect any future per-adapter

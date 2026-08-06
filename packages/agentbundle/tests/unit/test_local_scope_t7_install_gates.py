@@ -2,9 +2,9 @@
 
 Tests for:
   - emit_install_routes inference: cli_scope not in ("user", "local")
-  - --scope local --emit-install-routes refused with RFC-0008 message
-  - AC11b: --scope local --force-merge refused (force-merge is user-scope-only)
-  - validate_dependencies_required local_state parameter (AC23b)
+  - --scope local --emit-install-routes refused with the plugins-route message
+  - --scope local --force-merge refused (force-merge is user-scope-only)
+  - validate_dependencies_required local_state parameter
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def test_emit_install_routes_inferred_false_for_user():
 def test_emit_install_routes_inferred_false_for_local():
     """local cli_scope → emit_install_routes=False.
 
-    AC9: local scope must not trigger the dist-tree emit path.
+    Local scope must not trigger the dist-tree emit path.
     """
     cli_scope = "local"
     result = cli_scope not in ("user", "local")
@@ -63,9 +63,9 @@ def test_emit_install_routes_inferred_true_for_repo():
 
 
 def test_install_scope_local_emit_install_routes_refused(tmp_path, capsys):
-    """AC9: install --scope local --emit-install-routes is refused.
+    """Install --scope local --emit-install-routes is refused.
 
-    The error message must reference RFC-0008 or 'emit-install-routes'.
+    The error message must name the plugins route or 'emit-install-routes'.
     Tested via direct run() call with a minimal pack that resolves scope correctly.
     """
     from agentbundle.commands.install import run as install_run
@@ -109,12 +109,12 @@ def test_install_scope_local_emit_install_routes_refused(tmp_path, capsys):
 
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
-# AC11b: --scope local --force-merge refused
+# --scope local --force-merge refused
 # ---------------------------------------------------------------------------
 
 
 def test_install_force_merge_refused_with_local_scope(tmp_path, capsys):
-    """AC11b: --force-merge --scope local is refused immediately.
+    """--force-merge --scope local is refused immediately.
 
     --force-merge is user-scope-only (install.py line 380 guard).
     The error message must reference 'user scope'.
@@ -159,12 +159,12 @@ def test_install_force_merge_refused_with_local_scope(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# validate_dependencies_required with local_state (AC23b)
+# validate_dependencies_required with local_state
 # ---------------------------------------------------------------------------
 
 
 def test_validate_dependencies_local_state_satisfies_dep():
-    """AC23b: a required dependency installed only at local scope satisfies the gate."""
+    """A required dependency installed only at local scope satisfies the gate."""
     from agentbundle.commands.install import validate_dependencies_required
     from agentbundle.config import PackState, State
 
@@ -197,7 +197,7 @@ def test_validate_dependencies_local_state_satisfies_dep():
 
 
 def test_validate_dependencies_no_local_state_misses_dep():
-    """AC23b negative: without local_state, a local-only dep fails the gate."""
+    """Negative: without local_state, a local-only dep fails the gate."""
     from agentbundle.commands.install import validate_dependencies_required
     from agentbundle.config import PackState, State
 

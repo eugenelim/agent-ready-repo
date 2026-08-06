@@ -43,7 +43,7 @@ class CopilotAdapterTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_skill_projects_as_first_class_skill_md(self) -> None:
-        # RFC-0052 / ADR-0040: copilot `skill` routes to the shared cohort home
+        # Copilot `skill` routes to the shared cohort home
         # `.agents/skills/<name>/SKILL.md` (joining codex, cursor, gemini).
         # Agents/hooks/hook-wiring remain under `.github/`.
         with tempfile.TemporaryDirectory() as tmp:
@@ -61,10 +61,10 @@ class CopilotAdapterTests(unittest.TestCase):
             self.assertFalse((out / ".github" / "instructions").exists())
 
     def test_skill_orphan_sweep_bounded_to_skills_dir(self) -> None:
-        # AC4: re-projection sweeps a stale skill dir, and the sweep is bounded
+        # Re-projection sweeps a stale skill dir, and the sweep is bounded
         # to the skill target — it never touches sibling `.github/agents/` or
         # `.github/hooks/` content.
-        # RFC-0052: skill target is now `.agents/skills/` (shared cohort home).
+        # Skill target is now `.agents/skills/` (shared cohort home).
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)

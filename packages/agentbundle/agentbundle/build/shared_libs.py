@@ -2,14 +2,14 @@
 
 Source rule: ``packs/<pack>/.apm/shared-libs/*.py``.
 
-RFC-0023 retired the original projection contract. The build pipeline
+The original projection contract was retired. The build pipeline
 no longer byte-copies ``shared-libs/*.py`` into every skill declaring
 ``metadata.auth: creds`` — those consumers now resolve credentials via
 the pip-installable ``credbroker`` library imported in-process, and the
 18 vendored copies (six consumer ``scripts/`` × three shim files) were
 removed. What survives in this module is **source enumeration**:
 ``adapter_root_bins`` calls ``collect_sources`` (and reads
-``SOURCE_SUBDIR``) to locate ``credentials_shim.py`` for the AC22b
+``SOURCE_SUBDIR``) to locate ``credentials_shim.py`` for the
 companion-shim projection into ``<scope-root>/.agentbundle/bin/`` and to
 detect inter-pack basename collisions. The shim *source* under
 ``packs/credential-brokers/.apm/shared-libs/`` is therefore kept — it is
@@ -24,7 +24,7 @@ the rail exists to refuse a future second-pack collision before it can
 silently overwrite.
 
 The detection of ``metadata.auth: creds`` and the projection/drift
-machinery that consumed it were removed with the projection in RFC-0023;
+machinery that consumed it were removed with the projection;
 the standing regression that no shim copy reappears under a consumer
 ``scripts/`` lives in ``tests/test_shared_libs_projection.py``.
 """
@@ -45,9 +45,9 @@ def collect_sources(packs_dir: Path) -> dict[str, Path]:
     shipping the same basename produces non-deterministic projection
     order and silent overwrites; refuse hard at enumeration time.
 
-    Consumed by ``adapter_root_bins`` for the AC22b companion-shim
+    Consumed by ``adapter_root_bins`` for the companion-shim
     projection and its collision rail; the original skill-``scripts/``
-    projection was retired in RFC-0023.
+    projection was retired.
     """
     sources: dict[str, Path] = {}
     for pack in sorted(packs_dir.iterdir()):

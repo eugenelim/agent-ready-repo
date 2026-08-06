@@ -62,10 +62,10 @@ _LEVEL_A_DATA = {
 
 
 class EmitFirstValueHandoffUnitTests(unittest.TestCase):
-    """AC1–AC3: pure-function correctness tests for `_emit_first_value_handoff`."""
+    """Pure-function correctness tests for `_emit_first_value_handoff`."""
 
     def test_level_b_emits_verify_try_expected_next(self) -> None:
-        """AC1: Level B pack emits all four labels when next-action is present."""
+        """Level B pack emits all four labels when next-action is present."""
         out = _capture_handoff(_LEVEL_B_DATA)
         self.assertIn("Verify:", out)
         self.assertIn("Try:", out)
@@ -73,27 +73,27 @@ class EmitFirstValueHandoffUnitTests(unittest.TestCase):
         self.assertIn("Next:", out)
 
     def test_level_b_verify_contains_verification_text(self) -> None:
-        """AC1: Verify: line contains the verification field value."""
+        """Verify: line contains the verification field value."""
         out = _capture_handoff(_LEVEL_B_DATA)
         self.assertIn(_LEVEL_B_DATA["verification"], out)
 
     def test_level_b_try_contains_starter_prompt_verbatim(self) -> None:
-        """AC1: Try: line is the verbatim starter-prompt value."""
+        """Try: line is the verbatim starter-prompt value."""
         out = _capture_handoff(_LEVEL_B_DATA)
         self.assertIn(_LEVEL_B_DATA["starter-prompt"], out)
 
     def test_level_b_expected_contains_expected_result(self) -> None:
-        """AC1: Expected: line contains the expected-result value."""
+        """Expected: line contains the expected-result value."""
         out = _capture_handoff(_LEVEL_B_DATA)
         self.assertIn(_LEVEL_B_DATA["expected-result"], out)
 
     def test_level_b_next_contains_next_action(self) -> None:
-        """AC1: Next: line contains the next-action value."""
+        """Next: line contains the next-action value."""
         out = _capture_handoff(_LEVEL_B_DATA)
         self.assertIn(_LEVEL_B_DATA["next-action"], out)
 
     def test_level_b_without_next_action_omits_next_line(self) -> None:
-        """AC1: When next-action is absent, no Next: line appears."""
+        """When next-action is absent, no Next: line appears."""
         data = {k: v for k, v in _LEVEL_B_DATA.items() if k != "next-action"}
         out = _capture_handoff(data)
         self.assertIn("Verify:", out)
@@ -102,12 +102,12 @@ class EmitFirstValueHandoffUnitTests(unittest.TestCase):
         self.assertNotIn("Next:", out)
 
     def test_level_b_blank_line_before_block(self) -> None:
-        """AC1: A blank line precedes the handoff block."""
+        """A blank line precedes the handoff block."""
         out = _capture_handoff(_LEVEL_B_DATA)
         self.assertTrue(out.startswith("\n"), "handoff block must begin with a blank line")
 
     def test_level_a_emits_verify_only(self) -> None:
-        """AC2: Level A pack (no level-b) emits Verify: only."""
+        """Level A pack (no level-b) emits Verify: only."""
         out = _capture_handoff(_LEVEL_A_DATA)
         self.assertIn("Verify:", out)
         self.assertNotIn("Try:", out)
@@ -115,24 +115,24 @@ class EmitFirstValueHandoffUnitTests(unittest.TestCase):
         self.assertNotIn("Next:", out)
 
     def test_level_a_verify_contains_verification_text(self) -> None:
-        """AC2: Verify: line contains the verification field value."""
+        """Verify: line contains the verification field value."""
         out = _capture_handoff(_LEVEL_A_DATA)
         self.assertIn(_LEVEL_A_DATA["verification"], out)
 
     def test_level_a_explicit_false_level_b_emits_verify_only(self) -> None:
-        """AC2: level-b = False (explicit) also shows Verify: only."""
+        """Level-b = False (explicit) also shows Verify: only."""
         data = {**_LEVEL_A_DATA, "level-b": False}
         out = _capture_handoff(data)
         self.assertIn("Verify:", out)
         self.assertNotIn("Try:", out)
 
     def test_no_first_value_emits_nothing(self) -> None:
-        """AC3: Empty dict (no [pack.first-value] section) → no output."""
+        """Empty dict (no [pack.first-value] section) → no output."""
         out = _capture_handoff({})
         self.assertEqual(out, "")
 
     def test_label_alignment(self) -> None:
-        """AC1: All four labels align at column 10 (label + padding = 10 chars)."""
+        """All four labels align at column 10 (label + padding = 10 chars)."""
         out = _capture_handoff(_LEVEL_B_DATA)
         lines = out.splitlines()
         # Find the handoff lines (skip the leading blank line).
@@ -177,10 +177,10 @@ def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
 
 
 class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
-    """AC1–AC6: install.run end-to-end handoff tests at repo scope.
+    """install.run end-to-end handoff tests at repo scope.
 
     Uses the real converters pack (Level B) and core pack (Level A) from the
-    repo. A scratch pack with no [pack.first-value] provides the AC3 baseline.
+    repo. A scratch pack with no [pack.first-value] provides the baseline.
     """
 
     def setUp(self) -> None:
@@ -243,7 +243,7 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
             kwargs.update(extra)
         return _run_install(argparse.Namespace(**kwargs))
 
-    # AC1: Level B (converters) shows full handoff.
+    # Level B (converters) shows full handoff.
     def test_level_b_install_shows_full_handoff(self) -> None:
         rc, stdout, _ = self._install("converters")
         self.assertEqual(rc, 0)
@@ -253,14 +253,14 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
         self.assertIn("Expected:", stdout)
 
     def test_level_b_installed_line_precedes_handoff(self) -> None:
-        """AC5: installed: line appears before the handoff block."""
+        """Installed: line appears before the handoff block."""
         rc, stdout, _ = self._install("converters")
         self.assertEqual(rc, 0)
         installed_pos = stdout.index("installed:")
         verify_pos = stdout.index("Verify:")
         self.assertLess(installed_pos, verify_pos)
 
-    # AC2: Level A (core) shows Verify: only.
+    # Level A (core) shows Verify: only.
     def test_level_a_install_shows_verify_only(self) -> None:
         rc, stdout, _ = self._install("core")
         self.assertEqual(rc, 0)
@@ -269,7 +269,7 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
         self.assertNotIn("Try:", stdout)
         self.assertNotIn("Expected:", stdout)
 
-    # AC3: No [pack.first-value] → output unchanged.
+    # No [pack.first-value] → output unchanged.
     def test_no_first_value_no_handoff(self) -> None:
         rc, stdout, _ = self._install("nofirstvalue")
         self.assertEqual(rc, 0)
@@ -277,16 +277,16 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
         self.assertNotIn("Verify:", stdout)
         self.assertNotIn("Try:", stdout)
 
-    # AC4: dry-run shows no handoff.
+    # Dry-run shows no handoff.
     def test_dry_run_no_handoff(self) -> None:
         rc, stdout, _ = self._install("converters", extra={"dry_run": True})
         self.assertEqual(rc, 0)
         self.assertNotIn("Verify:", stdout)
         self.assertNotIn("installed:", stdout)  # dry-run exits before Step 13
 
-    # AC7: upgrade-offer path (pack already installed at requested scope).
+    # Upgrade-offer path (pack already installed at requested scope).
     def test_upgrade_offer_no_handoff(self) -> None:
-        """AC7: Re-installing an already-installed pack emits no handoff.
+        """Re-installing an already-installed pack emits no handoff.
 
         The upgrade-offer branch (Step 4a) calls confirm_or_refuse; in a
         non-TTY test environment with yes=False it prints the refuse_message
@@ -302,7 +302,7 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
 
 
 class InstallFirstValueHandoffDualScopeTests(unittest.TestCase):
-    """AC6: dual-scope install emits the handoff block exactly once.
+    """Dual-scope install emits the handoff block exactly once.
 
     Mechanism: converters is installed at user scope first. A second install
     at repo scope with force=True triggers the dual-scope path
@@ -352,7 +352,7 @@ class InstallFirstValueHandoffDualScopeTests(unittest.TestCase):
         return rc, stdout.getvalue(), stderr.getvalue()
 
     def test_dual_scope_handoff_appears_once(self) -> None:
-        """AC6: two installed: lines → Verify: appears exactly once."""
+        """Two installed: lines → Verify: appears exactly once."""
         # Pre-install at user scope.
         rc1, _, _ = self._install(scope="user")
         self.assertEqual(rc1, 0)

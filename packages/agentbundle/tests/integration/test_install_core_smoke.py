@@ -1,4 +1,4 @@
-"""T7 / AC10 smoke check — install the real `packs/core/` and assert the
+"""T7 smoke check — install the real `packs/core/` and assert the
 SessionStart wiring lands at the dist-tree path.
 
 Guards against the synthetic-pack construction test in
@@ -32,7 +32,7 @@ REAL_CORE = REPO_ROOT / "packs" / "core"
 
 
 def test_real_core_install_writes_session_start_binding(tmp_path):
-    """AC10: real `packs/core/` install produces the dist-tree settings file
+    """Real `packs/core/` install produces the dist-tree settings file
     with the canonical SessionStart command string.
     """
     assert REAL_CORE.exists(), f"real packs/core/ missing at {REAL_CORE}"

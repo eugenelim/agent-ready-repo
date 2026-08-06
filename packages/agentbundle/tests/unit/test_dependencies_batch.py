@@ -1,4 +1,4 @@
-"""T3 (pack-profiles AC7): batch-aware required-dependency gate.
+"""T3 (pack-profiles): batch-aware required-dependency gate.
 
 ``validate_dependencies_required`` gains an optional ``also_installing`` set so
 a pack's required dep can be satisfied by another pack *in the same batch*
@@ -81,7 +81,7 @@ def test_dep_in_state_still_satisfies_with_batch_param():
 def test_dep_on_disk_at_unsatisfying_version_fails_even_if_in_batch():
     # core is pre-installed at 0.0.1 (does NOT satisfy ^0.1) AND named in the
     # batch. Name-membership must not bypass the version check for an on-disk
-    # dep — the write-time gate stays real (pack-profiles AC7).
+    # dep — the write-time gate stays real (pack-profiles).
     state = State(packs={
         ("core", "claude-code"): PackState(
             installed_version="0.0.1", scope="repo", adapter="claude-code"

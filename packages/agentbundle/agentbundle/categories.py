@@ -1,6 +1,6 @@
 """Default `categories` vocabulary for `pack.toml` (enriched-pack-manifest).
 
-RFC-0031 D3 gives the pack catalogue a small, *soft* category vocabulary —
+The pack catalogue carries a small, *soft* category vocabulary —
 a publisher may declare a slug outside this set, and `agentbundle validate`
 emits a warning (exit 0) rather than refusing. The vocabulary exists to
 nudge consistency across the catalogue, not to gate it; a hard enum would
@@ -13,8 +13,8 @@ single source of truth the validate command reads.
 
 from __future__ import annotations
 
-# The default slugs: the RFC-0031 D3 baseline (~16) plus `design` (added for
-# the design-craft pack). Soft and extensible by design (RFC-0031 D8) — unknown
+# The default slugs: the ~16-slug baseline plus `design` (added for
+# the design-craft pack). Soft and extensible by design — unknown
 # slugs warn, never fail — so the list grows without an RFC.
 DEFAULT_CATEGORIES: frozenset[str] = frozenset(
     {

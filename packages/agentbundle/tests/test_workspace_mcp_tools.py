@@ -20,7 +20,7 @@ def _load_module():
 
 
 class TestWorkspaceStatusSlugSafety:
-    """AC10: unsafe slugs are rejected; safe slugs pass; entry.slug (not entry.path) is used."""
+    """Unsafe slugs are rejected; safe slugs pass; entry.slug (not entry.path) is used."""
 
     def test_unsafe_slug_dot_rejected(self) -> None:
         mod = _load_module()
@@ -74,23 +74,23 @@ class TestWorkspaceStatusSlugSafety:
 
 
 class TestPackPresenceFilter:
-    """Pack-presence check uses 6 probe roots (3 adapters × repo + user scope), OR logic (AC9)."""
+    """Pack-presence check uses 6 probe roots (3 adapters × repo + user scope), OR logic."""
 
     def test_skill_found_in_repo_claude_root(self, tmp_path: Path) -> None:
-        pytest.skip("STUB: AC9 — create SKILL.md under .claude/skills/{skill}/; dispatch_skill advertised as available")
+        pytest.skip("STUB: create SKILL.md under .claude/skills/{skill}/; dispatch_skill advertised as available")
 
     def test_skill_not_in_any_root_marks_unavailable(self, tmp_path: Path) -> None:
-        pytest.skip("STUB: AC9 — no SKILL.md anywhere → available=False + required_pack present")
+        pytest.skip("STUB: no SKILL.md anywhere → available=False + required_pack present")
 
     def test_skill_found_in_user_scope(self, tmp_path: Path) -> None:
-        pytest.skip("STUB: AC9 — skill exists in ~/.agents/skills/{skill}/SKILL.md")
+        pytest.skip("STUB: skill exists in ~/.agents/skills/{skill}/SKILL.md")
 
 
 class TestFSMStateMerge:
-    """FSM fields from _EventBridge are present in workspace_status() result (AC8)."""
+    """FSM fields from _EventBridge are present in workspace_status() result."""
 
     def test_fsm_fields_present_in_result(self) -> None:
-        pytest.skip("STUB: AC8 — result must contain current_state, gate_pending, gate, gate_question, review_findings")
+        pytest.skip("STUB: result must contain current_state, gate_pending, gate, gate_question, review_findings")
 
     def test_gate_pending_true_when_bridge_says_gate(self) -> None:
-        pytest.skip('STUB: AC7/AC8 — bridge.get_fsm_state() gate_pending=True → result["gate_pending"] True')
+        pytest.skip('STUB: bridge.get_fsm_state() gate_pending=True → result["gate_pending"] True')

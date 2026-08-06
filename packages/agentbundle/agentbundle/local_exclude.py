@@ -1,6 +1,6 @@
 """Helpers for managing per-pack, per-worktree blocks in `.git/info/exclude`.
 
-Used by ``agentbundle install --scope local`` (RFC-0080) to make
+Used by ``agentbundle install --scope local`` to make
 installed files git-invisible without committing anything. The core
 invariant: a pack's files are excluded from git *before* they are
 written to disk, and excluded *until* they are removed from disk.
@@ -19,14 +19,14 @@ writing so filenames containing pattern syntax are matched literally
 and not as globs. The leading ``/`` anchor means ``#`` and ``!`` can
 never appear at line start, so they need no escaping.
 
-Concurrent-write limitation (AC26): two ``agentbundle`` processes
+Concurrent-write limitation: two ``agentbundle`` processes
 writing simultaneously use last-writer-wins semantics. The temp-file
 ``os.replace`` is atomic at the filesystem level but there is no
 advisory lock; a race between two installs for different packs in the
 same worktree can lose the earlier writer's block. This is a known
 v1 limitation documented here and in the guides.
 
-Cross-worktree side-effect (AC27):
+Cross-worktree side-effect:
   (a) **Live-worktree side-effect** — a leading-``/`` pattern in
       ``info/exclude`` excludes same-path untracked files in *all*
       linked worktrees, not just the installing one. This is a
@@ -206,7 +206,7 @@ def write_exclude_block(
     Concurrent-write limitation: two processes writing simultaneously
     use last-writer-wins. No advisory lock is held during the read-
     modify-write cycle; a race between installs for different packs can
-    lose the earlier block. This is a known v1 limitation (AC26).
+    lose the earlier block. This is a known v1 limitation.
 
     Cross-worktree side-effect: a leading-``/`` pattern in the shared
     ``info/exclude`` file excludes the same untracked path in *all*
@@ -214,8 +214,7 @@ def write_exclude_block(
     deleted without uninstalling, its stale block continues to exclude
     same-path files in remaining worktrees — including files tracked or
     committed later. Run ``agentbundle local prune`` (deferred v2
-    feature) to sweep orphaned blocks. This is a known v1 limitation
-    (AC27).
+    feature) to sweep orphaned blocks. This is a known v1 limitation.
 
     Args:
         exclude_path: absolute path to the ``info/exclude`` file; created
@@ -308,7 +307,7 @@ def strip_exclude_block(
 def rollback_exclude_block(exclude_path: Path, prior_content: bytes | None) -> None:
     """Atomically restore *exclude_path* to *prior_content*.
 
-    Called during install rollback (AC21): if a write step fails after
+    Called during install rollback: if a write step fails after
     the exclude block was already written, this function restores the
     file to its pre-write state. Deleting installed files before calling
     this function is mandatory to avoid a transient window where the
@@ -332,7 +331,7 @@ def rollback_exclude_block(exclude_path: Path, prior_content: bytes | None) -> N
 def snapshot_exclude(exclude_path: Path) -> bytes | None:
     """Return the current raw bytes of *exclude_path*, or ``None`` if absent.
 
-    Call before any write to capture the rollback snapshot (AC21 step 1).
+    Call before any write to capture the rollback snapshot (step 1).
     Returns ``None`` (not ``b""``) when the file does not exist, so that
     :func:`rollback_exclude_block` can distinguish "file was absent" from
     "file was empty" and unlink rather than write empty bytes on rollback.

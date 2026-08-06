@@ -11,7 +11,7 @@ These tests pin the two ship-time invariants for the zipapp:
 
   1. The Makefile target produces a runnable `.pyz`.
   2. `python dist/agentbundle.pyz --version` exits 0 and prints both
-     the CLI version and the spec version (AC #2 + AC #11's CLI tail).
+     the CLI version and the spec version.
 """
 
 from __future__ import annotations

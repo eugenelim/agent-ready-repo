@@ -1,17 +1,17 @@
 """T8: install marker write + chained `adapt.run` in-process.
 
-AC19a: every successful install appends a `[[packs-installed]]` entry
+Every successful install appends a `[[packs-installed]]` entry
 to `.adapt-install-marker.toml` at the install's scope root via
 `os.replace` atomic rename.
 
-AC19b: after the marker write, the CLI runs `agentbundle.commands.adapt.run`
+After the marker write, the CLI runs `agentbundle.commands.adapt.run`
 in-process (no subprocess, no LLM) with `values_from = <repo>/.adapt-discovery.toml`
 regardless of install scope (markers are repo-only).
 
-AC19c: `agentbundle scaffold` lays down a `.gitignore` containing
+`agentbundle scaffold` lays down a `.gitignore` containing
 `.adapt-install-marker.toml`.
 
-AC19d: failure-mode robustness for (i) missing discovery file and
+Failure-mode robustness for (i) missing discovery file and
 (ii) malformed discovery file.
 """
 
@@ -178,7 +178,7 @@ def test_install_marker_appends_atomically(tmp_path):
 
 
 def test_install_with_no_discovery_file_emits_one_line_and_succeeds(tmp_path):
-    """Per AC19d(i): missing repo-scope `.adapt-discovery.toml` causes
+    """Missing repo-scope `.adapt-discovery.toml` causes
     the chained adapt step to emit one stderr line; install exits 0;
     marker file still written."""
     cat = tmp_path / "cat"
@@ -198,7 +198,7 @@ def test_install_with_no_discovery_file_emits_one_line_and_succeeds(tmp_path):
 
 
 def test_install_chained_adapt_failure_returns_nonzero_preserves_marker(tmp_path):
-    """Per AC19d(ii): malformed `.adapt-discovery.toml` causes the
+    """A malformed `.adapt-discovery.toml` causes the
     chained adapt to refuse; install exits non-zero; marker still
     on disk (it was written before the chained adapt step)."""
     cat = tmp_path / "cat"
@@ -221,7 +221,7 @@ def test_install_chained_adapt_failure_returns_nonzero_preserves_marker(tmp_path
 
 
 def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
-    """Per AC19b: the chained `adapt` runs in-process *and* substitutes
+    """The chained `adapt` runs in-process *and* substitutes
     markers. Both halves are asserted — the negative (no subprocess)
     *and* the positive (the chain actually executed and applied
     `[markers]` values to a projected file)."""
@@ -291,7 +291,7 @@ def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
 
 
 def test_marker_in_seed_gitignore(tmp_path):
-    """AC19c: invoking `agentbundle scaffold` against the core pack lays
+    """Invoking `agentbundle scaffold` against the core pack lays
     down a `.gitignore` containing `.adapt-install-marker.toml`.
 
     Drives the scaffold command end-to-end against a tmp output dir

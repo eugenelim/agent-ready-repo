@@ -4,7 +4,7 @@ Tests:
 - uninstall --scope local removes installed files
 - uninstall strips only the correct worktree's block (sibling blocks untouched)
 - Uninstalling one of two adapter rows recomputes block from remaining row's
-  patterns (AC14b); remaining row's files stay excluded
+  patterns; remaining row's files stay excluded
 - Uninstalling the last adapter row strips the block entirely
 - Uninstall removes only the specified adapter row from state; sibling rows remain
   File deleted when empty

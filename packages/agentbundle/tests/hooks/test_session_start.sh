@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# T9: shell-test for the core pack's session-start hook (AC20).
+# T9: shell-test for the core pack's session-start hook.
 #
 # Co-locating hook + skill tests under the CLI's tests/ tree is a
 # deliberate Concern-13 deferral (plan.md, line ~50): a pack-level

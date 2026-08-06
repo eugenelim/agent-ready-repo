@@ -2,7 +2,7 @@
 names in pack content before they reach a release artefact.
 
 Also covers the per-target metadata gate landed under
-docs/specs/lint-packs-target-vocab/: skill/agent name pattern, name
+skill/agent name pattern, name
 length, and description length per contracts/target-vocab.toml.
 """
 
@@ -285,7 +285,7 @@ class LintPackVocabTests(unittest.TestCase):
         return path
 
     # ------------------------------------------------------------------
-    # Skill checks (AC2 — name pattern, AC3 — name length, AC4 — desc)
+    # Skill checks (name pattern, name length, description)
     # ------------------------------------------------------------------
 
     def test_skill_dir_name_pattern_violation_detected(self) -> None:
@@ -362,7 +362,7 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertIn("skill/valid-name", ml_findings[0])
 
     # ------------------------------------------------------------------
-    # Agent checks (AC5 — name pattern + length, AC6 — desc length)
+    # Agent checks (name pattern + length, description length)
     # ------------------------------------------------------------------
 
     def test_agent_name_length_violation_detected(self) -> None:
@@ -429,7 +429,7 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertEqual(findings, [], findings)
 
     # ------------------------------------------------------------------
-    # Sort invariant (AC10) — vocab + portability findings interleave
+    # Sort invariant — vocab + portability findings interleave
     # ------------------------------------------------------------------
 
     def test_findings_remain_sorted_when_vocab_and_portability_mix(self) -> None:
@@ -493,7 +493,7 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertIn("binding target: codex, kiro", desc_findings[0])
 
     # ------------------------------------------------------------------
-    # AC11 — vocab file missing / inconsistent fails loud
+    # Vocab file missing / inconsistent fails loud
     # ------------------------------------------------------------------
 
     def test_missing_vocab_file_fails_loud(self) -> None:
@@ -519,7 +519,7 @@ class LintPackVocabTests(unittest.TestCase):
 
     def test_skill_name_multiline_refused(self) -> None:
         """A folded `name:` in frontmatter must be refused — same
-        rationale as AC12 for `description:`, applied to `name:`."""
+        rationale as for `description:`, applied to `name:`."""
         constraints = _make_constraints()
         with tempfile.TemporaryDirectory() as tmp:
             pack = Path(tmp) / "ml-name-pack"
@@ -597,7 +597,7 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertEqual(len(desc_findings), 1, findings)
 
     def _run_with_bad_vocab(self, body: str) -> tuple[int, str]:
-        """Helper for AC11 refusal-branch coverage. Materialises an
+        """Helper for refusal-branch coverage. Materialises an
         isolated tree with a controlled `target-vocab.toml`, invokes
         `cmd_lint_packs` against a minimal pack inside that tree, and
         returns `(rc, stderr_text)`. The explicit `--packs-dir` walk
@@ -688,7 +688,7 @@ class LintPackVocabTests(unittest.TestCase):
 
     def test_inconsistent_name_pattern_fails_loud(self) -> None:
         """A target-vocab.toml whose targets carry different name-pattern
-        values must be refused by the loader (AC11)."""
+        values must be refused by the loader."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "isolated"
             packs_dir = root / "packs"

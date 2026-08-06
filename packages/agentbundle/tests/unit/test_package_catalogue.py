@@ -695,7 +695,7 @@ def test_write_channel_descriptor_sha256_matches_sidecar(tmp_path: Path) -> None
 
 
 def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
-    """AC3, AC4, AC11, AC19, AC20."""
+    """End-to-end: three output files, allowlist, manifest schema, channel descriptor."""
     root = _make_fixture_catalogue(
         tmp_path,
         extra_dirs=["build", "tests", ".git"],
@@ -708,7 +708,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
 
     assert result == 0
 
-    # AC3: exactly three output files
+    # Exactly three output files
     archive_path = (
         output / "catalogues" / "engineering" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
     )  # noqa: E501
@@ -729,7 +729,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     all_files = [p for p in output.rglob("*") if p.is_file()]
     assert len(all_files) == 3
 
-    # AC4: only allowlisted entries in archive (Wave 4 allowlist)
+    # Only allowlisted entries in archive (Wave 4 allowlist)
     archive_bytes = archive_path.read_bytes()
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
         names = set(tf.getnames())
@@ -748,7 +748,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
         assert not n.startswith("tests/")
         assert not n.startswith(".git/")
 
-    # AC11: catalogue-manifest.json schema (Wave 4: schema 2)
+    # Catalogue-manifest.json schema (Wave 4: schema 2)
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None
@@ -763,7 +763,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     assert "adapter_contract_version" in manifest
     assert "profiles" in manifest
 
-    # AC19/AC20: channel descriptor
+    # Channel descriptor
     descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
     assert descriptor["schema"] == 1
     assert descriptor["kind"] == "agentbundle-catalogue"
@@ -772,7 +772,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_refuse_overwrite(tmp_path: Path) -> None:
-    """AC18: refuse to overwrite existing archive."""
+    """Refuse to overwrite existing archive."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
     args = _make_args(root, output=output)
@@ -796,7 +796,7 @@ def test_package_catalogue_refuse_overwrite(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_archive_reproducible(tmp_path: Path) -> None:
-    """AC8: identical inputs produce byte-identical archives."""
+    """Identical inputs produce byte-identical archives."""
     root = _make_fixture_catalogue(tmp_path)
     output1 = tmp_path / "out1"
     output2 = tmp_path / "out2"
@@ -818,7 +818,7 @@ def test_package_catalogue_archive_reproducible(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_sidecar_format(tmp_path: Path) -> None:
-    """AC10: sidecar is sha256_hex + newline."""
+    """Sidecar is sha256_hex + newline."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -837,7 +837,7 @@ def test_package_catalogue_sidecar_format(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_source_date_epoch_in_manifest(tmp_path: Path) -> None:
-    """AC9: SOURCE_DATE_EPOCH=1700000000 => generated_at == 2023-11-14T22:13:20+00:00."""
+    """SOURCE_DATE_EPOCH=1700000000 => generated_at == 2023-11-14T22:13:20+00:00."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -856,7 +856,7 @@ def test_package_catalogue_source_date_epoch_in_manifest(tmp_path: Path) -> None
 
 
 def test_package_catalogue_generated_at_no_microseconds(tmp_path: Path) -> None:
-    """AC9 format: generated_at must not contain a microsecond component."""
+    """Format: generated_at must not contain a microsecond component."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -876,7 +876,7 @@ def test_package_catalogue_generated_at_no_microseconds(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_cli_help() -> None:
-    """AC1: --help exits 0 and lists all flags."""
+    """--help exits 0 and lists all flags."""
     stdout_buf = io.StringIO()
     with pytest.raises(SystemExit) as exc_info, contextlib.redirect_stdout(stdout_buf):
         cli.main(["package-catalogue", "--help"])
@@ -906,7 +906,7 @@ def test_package_catalogue_cli_help() -> None:
     ],
 )
 def test_package_catalogue_missing_required_flag(missing_flag: str, remaining: list[str]) -> None:
-    """AC2: each missing required flag causes non-zero exit."""
+    """Each missing required flag causes non-zero exit."""
     stderr_buf = io.StringIO()
     with pytest.raises(SystemExit) as exc_info, contextlib.redirect_stderr(stderr_buf):
         cli.main(["package-catalogue"] + remaining)
@@ -925,7 +925,7 @@ def test_package_catalogue_missing_required_flag(missing_flag: str, remaining: l
     ],
 )
 def test_package_catalogue_install_flags_rejected(extra_flags: list[str], tmp_path: Path) -> None:
-    """AC25: --scope, --force, --adapter are rejected by package-catalogue."""
+    """--scope, --force, --adapter are rejected by package-catalogue."""
     with pytest.raises(SystemExit) as exc_info:
         cli.main(
             [
@@ -947,7 +947,7 @@ def test_package_catalogue_install_flags_rejected(extra_flags: list[str], tmp_pa
 
 
 def test_package_catalogue_sha256_in_descriptor_matches_sidecar(tmp_path: Path) -> None:
-    """AC21: descriptor sha256 == sidecar content (without newline)."""
+    """Descriptor sha256 == sidecar content (without newline)."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -966,7 +966,7 @@ def test_package_catalogue_sha256_in_descriptor_matches_sidecar(tmp_path: Path) 
 
 
 def test_package_catalogue_malformed_source_date_epoch(tmp_path: Path) -> None:
-    """AC30: non-integer SOURCE_DATE_EPOCH => exit 1 with error."""
+    """Non-integer SOURCE_DATE_EPOCH => exit 1 with error."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
     args = _make_args(root, output=output)
@@ -985,7 +985,7 @@ def test_package_catalogue_malformed_source_date_epoch(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_empty_source_date_epoch_treated_as_unset(tmp_path: Path) -> None:
-    """AC30: empty SOURCE_DATE_EPOCH is treated as unset, not an error."""
+    """Empty SOURCE_DATE_EPOCH is treated as unset, not an error."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
     args = _make_args(root, output=output)
@@ -997,7 +997,7 @@ def test_package_catalogue_empty_source_date_epoch_treated_as_unset(tmp_path: Pa
 
 
 def test_package_catalogue_published_at_default(tmp_path: Path) -> None:
-    """AC19 default: published_at is a valid ISO-8601 UTC timestamp without microseconds."""
+    """Default: published_at is a valid ISO-8601 UTC timestamp without microseconds."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
     args = _make_args(root, output=output, published_at=None)
@@ -1017,7 +1017,7 @@ def test_package_catalogue_published_at_default(tmp_path: Path) -> None:
 
 
 def test_package_catalogue_manifest_digest_matches_archived_bytes(tmp_path: Path) -> None:
-    """AC12: sha256 in manifest files[] matches bytes actually stored in archive."""
+    """Sha256 in manifest files[] matches bytes actually stored in archive."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -1049,7 +1049,7 @@ def test_package_catalogue_manifest_digest_matches_archived_bytes(tmp_path: Path
 
 
 def test_package_catalogue_packs_version_matches_archived_pack_toml(tmp_path: Path) -> None:
-    """AC14: packs[].version in manifest == version in archived pack.toml bytes."""
+    """packs[].version in manifest == version in archived pack.toml bytes."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -1078,7 +1078,7 @@ def test_package_catalogue_packs_version_matches_archived_pack_toml(tmp_path: Pa
 
 @pytest.mark.skipif(sys.platform == "win32", reason="st_nlink hard-link detection is POSIX-only")
 def test_package_catalogue_hardlink_rejected(tmp_path: Path) -> None:
-    """AC29: hard link inside packs/ causes non-zero exit."""
+    """Hard link inside packs/ causes non-zero exit."""
     root = _make_fixture_catalogue(tmp_path)
     original = root / "packs" / "core" / "pack.toml"
     hardlink = root / "packs" / "core" / "hardlink.toml"
@@ -1105,7 +1105,7 @@ def test_package_catalogue_hardlink_rejected(tmp_path: Path) -> None:
     ],
 )
 def test_package_catalogue_flag_traversal_rejected(flag: str, value: str, tmp_path: Path) -> None:
-    """AC32: --bundle/--release/--channel with traversal values cause exit 1."""
+    """--bundle/--release/--channel with traversal values cause exit 1."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
     kwargs: dict = {"bundle": "engineering", "release": "0.1.0", "channel": "stable"}
@@ -1122,7 +1122,7 @@ def test_package_catalogue_flag_traversal_rejected(flag: str, value: str, tmp_pa
 
 
 def test_no_git_shell_out_in_package_catalogue() -> None:
-    """AC23: no subprocess/git shell-out in package_catalogue.py."""
+    """No subprocess/git shell-out in package_catalogue.py."""
     import re
 
     source_path = Path(package_catalogue.__file__)
@@ -1143,7 +1143,7 @@ def test_no_git_shell_out_in_package_catalogue() -> None:
 
 
 def test_no_new_runtime_dependency() -> None:
-    """AC27: package_catalogue.py imports only stdlib and agentbundle."""
+    """package_catalogue.py imports only stdlib and agentbundle."""
     import ast
 
     source_path = Path(package_catalogue.__file__)

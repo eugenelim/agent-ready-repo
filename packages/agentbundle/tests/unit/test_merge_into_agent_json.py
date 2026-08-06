@@ -8,19 +8,19 @@ Mirrors the shape of T5's `test_user_merge_json.py` but adapts for the
 pack-owned target file (no adopter-collision logic, no force_merge,
 missing-agent-file refusal with the `internal:` text).
 
-Covers spec ACs:
-  - AC15 — merge into pack-owned agent JSON writes hooks.<event>
-           arrays with id-tagged entries; other agent JSON keys
-           (name, description, etc.) untouched.
-  - AC19 — uninstall removes wiring-owned entries from the agent JSON;
-           the agent file itself remains.
-  - AC17 (validate-time) — covered by scope_rails tests in
-           `test_kiro_event_vocabulary.py`; this file's vocabulary
-           tests pin the rail-output shape against the projection
-           module.
+Covers:
+  - Merge into pack-owned agent JSON writes hooks.<event>
+    arrays with id-tagged entries; other agent JSON keys
+    (name, description, etc.) untouched.
+  - Uninstall removes wiring-owned entries from the agent JSON;
+    the agent file itself remains.
+  - Validate-time coverage lives in the scope_rails tests in
+    `test_kiro_event_vocabulary.py`; this file's vocabulary
+    tests pin the rail-output shape against the projection
+    module.
 
 Plus internal failure modes:
-  - Missing agent file at merge time refuses with the RFC-0005
+  - Missing agent file at merge time refuses with the contract's
     `internal: <agent-file> missing` text (pipeline-ordering invariant
     violation; reachable only via test instrumentation).
   - Unparseable agent JSON refuses with the `cannot parse` text.
@@ -45,7 +45,7 @@ def _seed_agent_json(target: Path, extra: dict | None = None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC15 — merge into pack-owned agent JSON, preserve body keys
+# Merge into pack-owned agent JSON, preserve body keys
 # ---------------------------------------------------------------------------
 
 
@@ -122,7 +122,7 @@ class MergeIntoAgentJsonTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC19 — uninstall removes owned entries; agent file remains
+# Uninstall removes owned entries; agent file remains
 # ---------------------------------------------------------------------------
 
 
@@ -144,7 +144,7 @@ class UninstallTests(unittest.TestCase):
             self.assertEqual(ids, ["beta:h"])
 
     def test_uninstall_keeps_agent_file_in_place(self) -> None:
-        """RFC-0005 § Uninstall: the agent file itself stays — the
+        """On uninstall the agent file itself stays — the
         agent primitive's `direct-file` uninstall removes it."""
         from agentbundle.build.projections.merge_into_agent_json import (
             project,
@@ -183,7 +183,7 @@ class UninstallTests(unittest.TestCase):
 
 class FailureModeTests(unittest.TestCase):
     def test_missing_agent_file_refuses_with_internal_text(self) -> None:
-        """RFC-0005: a missing agent file at merge time is a
+        """A missing agent file at merge time is a
         pipeline-ordering invariant violation. The refusal text names
         the internal nature so it's diagnosable as a CLI bug, not an
         adopter mistake."""
@@ -252,7 +252,7 @@ class FailureModeTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC17/AC17b — per-adapter event-vocabulary check
+# Per-adapter event-vocabulary check
 # ---------------------------------------------------------------------------
 
 
@@ -288,7 +288,7 @@ class EventVocabularyRailTests(unittest.TestCase):
         self.assertIsNone(refusal)
 
     def test_no_check_when_vocabulary_absent(self) -> None:
-        """AC17b: when the resolved target adapter declares no
+        """When the resolved target adapter declares no
         `agent-event-vocabulary`, the rail must not fire. Claude Code
         accepts arbitrary event names because its projection declares
         no vocabulary."""

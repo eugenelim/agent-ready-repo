@@ -1,4 +1,4 @@
-"""T4a — copilot user-scope install wiring (docs/specs/copilot-full-parity).
+"""T4a — copilot user-scope install wiring.
 
 Pins the four install-side seams that the contract alone can't supply:
   - ``user_scope_capable_adapters_from_contract()`` includes ``copilot``
@@ -28,7 +28,7 @@ class TestCopilotUserScopeCapability(unittest.TestCase):
         from agentbundle.commands.install import _adapter_allowed_prefixes_repo
 
         prefixes = _adapter_allowed_prefixes_repo("copilot")
-        # RFC-0052 / ADR-0040: skills route to the shared `.agents/skills/`
+        # Skills route to the shared `.agents/skills/`
         # home (prepended); agents/hooks stay native under `.github/`.
         self.assertEqual(
             prefixes,
@@ -72,7 +72,7 @@ class TestCopilotUserScopePathJail(unittest.TestCase):
                 self.assertTrue((root / relpath).exists())
 
     def test_jail_rejects_github_under_home(self) -> None:
-        # The bug AC10b's rewrite prevents: an unrewritten `.github/…` path
+        # The bug the user-scope rewrite prevents: an unrewritten `.github/…` path
         # would resolve under `~/.github/…`, outside the user prefixes.
         from agentbundle import safety
         from agentbundle.commands.install import _adapter_allowed_prefixes_user
@@ -92,7 +92,7 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
     def test_rewrites_every_primitive_prefix(self) -> None:
         from agentbundle.commands.install import _rewrite_copilot_user_scope_paths
 
-        # RFC-0052 / ADR-0040: the skill projects to the shared
+        # The skill projects to the shared
         # `.agents/skills/` home and is NOT rewritten (scope-agnostic →
         # `~/.agents/skills/` at user scope). Only agents/hooks swap to
         # `~/.copilot/`.
@@ -122,7 +122,7 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
 
 
 class TestRenderForUserScopeDispatchesCopilot(unittest.TestCase):
-    """AC10a: copilot is no longer refused at the `_render_for_user_scope`
+    """Copilot is no longer refused at the `_render_for_user_scope`
     dispatch. The helper returns repo-relpaths (`.github/…`); the
     `.copilot/…` rewrite is the caller's job."""
 

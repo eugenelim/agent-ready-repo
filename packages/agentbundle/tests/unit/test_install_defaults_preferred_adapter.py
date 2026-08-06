@@ -6,7 +6,6 @@ None`, slotting between user-config step 2.5 and the probe/default step 3+4 in
 the six-step chain.  Precedence: --adapter (step 1) > state-hint (step 2) >
 user-config (step 2.5) > org hint (step 2.75) > probe/default (step 3+4).
 
-See `docs/specs/install-defaults-preferred-adapter-hint/spec.md`.
 """
 
 from __future__ import annotations
@@ -241,14 +240,14 @@ def test_default_preferred_adapter_is_none(fake_home: Path, tmp_path: Path) -> N
 
 
 # ---------------------------------------------------------------------------
-# AC7: invalid packaged hint causes install.run() to exit 1 before any write
+# Invalid packaged hint causes install.run() to exit 1 before any write
 # ---------------------------------------------------------------------------
 
 
 def test_run_returns_1_on_invalid_packaged_preferred_adapter(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC7: install.run() exits 1 before any write when the packaged preferred_adapter
+    """install.run() exits 1 before any write when the packaged preferred_adapter
     is invalid.  The CatalogueError is caught at the top of run(), before any
     catalogue fetch or filesystem write.
     """
@@ -288,14 +287,14 @@ def test_run_returns_1_on_invalid_packaged_preferred_adapter(
 
 
 # ---------------------------------------------------------------------------
-# AC9: render helpers thread preferred_adapter to _resolve_target_adapter
+# Render helpers thread preferred_adapter to _resolve_target_adapter
 # ---------------------------------------------------------------------------
 
 
 def test_render_for_user_scope_threads_preferred_adapter(
     fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC9: _render_for_user_scope passes preferred_adapter through to
+    """_render_for_user_scope passes preferred_adapter through to
     _resolve_target_adapter.  A dropped kwarg at that call site would make this
     test fail even though the unit tests on _resolve_target_adapter still pass.
     """
@@ -322,7 +321,7 @@ def test_render_for_user_scope_threads_preferred_adapter(
 def test_render_for_repo_scope_threads_preferred_adapter(
     fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC9: _render_for_repo_scope passes preferred_adapter through to
+    """_render_for_repo_scope passes preferred_adapter through to
     _resolve_target_adapter."""
     import agentbundle.commands.install as _install
 

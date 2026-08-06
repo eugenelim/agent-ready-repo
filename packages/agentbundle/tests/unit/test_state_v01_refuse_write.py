@@ -1,6 +1,6 @@
 """T18: every write-capable subcommand refuses against a v0.1 state file.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec:
+Verifies the agent-spec-cli state contract:
   - install, uninstall, upgrade, init-state (without --migrate) refuse on
     a v0.1 .agentbundle-state.toml with the documented stderr.
   - Read-only subcommands (list-targets, diff, adapt without
@@ -52,7 +52,7 @@ def _assert_refused(rc: int, stderr: str, verb: str) -> None:
     assert "schema-version 0.1" in stderr, (
         f"{verb} stderr missing 'schema-version 0.1': {stderr!r}"
     )
-    # Greenfield (RFC-0052 D8): the refusal directs re-install, not --migrate.
+    # Greenfield: the refusal directs re-install, not --migrate.
     assert "reinstall" in stderr.lower(), (
         f"{verb} stderr missing reinstall hint: {stderr!r}"
     )
@@ -138,7 +138,7 @@ def test_init_state_without_migrate_refuses_v01(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Read-only subcommands ALSO refuse a legacy file under v0.4 (RFC-0052):
+# Read-only subcommands ALSO refuse a legacy file under v0.4:
 # the hard cross-version refusal fires on read, not just write. They must
 # refuse *gracefully* (clean stderr + non-zero), never traceback.
 # ---------------------------------------------------------------------------

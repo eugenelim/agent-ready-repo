@@ -6,7 +6,7 @@ All tests use subprocess invocation to exercise the real CLI surface, not
 internal imports.
 
 Verification modes per plan.md:
-  T7 — TDD: AC16–AC21 (JSON output, exit codes, package layout)
+  T7 — TDD: JSON output, exit codes, package layout
 """
 
 from __future__ import annotations
@@ -41,30 +41,30 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 # ---------------------------------------------------------------------------
-# AC16 / AC18: catalogue lint --format json → parseable JSON, stdout-only
+# Catalogue lint --format json → parseable JSON, stdout-only
 # ---------------------------------------------------------------------------
 
 
 def test_catalogue_lint_json_output_parses(working_catalogue_root: Path) -> None:
-    """AC16: lint --format json stdout json.loads() cleanly with required keys."""
+    """Lint --format json stdout json.loads() cleanly with required keys."""
     result = _run(
         "catalogue", "lint",
         "--root", str(working_catalogue_root),
         "--format", "json",
     )
-    # AC18: json.loads on raw (unstripped) stdout — no non-JSON lines mixed in
+    # json.loads on raw (unstripped) stdout — no non-JSON lines mixed in
     doc = json.loads(result.stdout)
     for key in ("schema_version", "command", "ok", "diagnostics"):
         assert key in doc, f"missing key {key!r} in lint JSON output"
 
 
 # ---------------------------------------------------------------------------
-# AC17 / AC18: catalogue verify --format json → parseable JSON, stdout-only
+# Catalogue verify --format json → parseable JSON, stdout-only
 # ---------------------------------------------------------------------------
 
 
 def test_catalogue_verify_json_output_parses(working_catalogue_root: Path) -> None:
-    """AC17: verify --format json stdout json.loads() cleanly with required keys."""
+    """Verify --format json stdout json.loads() cleanly with required keys."""
     result = _run(
         "catalogue", "verify",
         "--root", str(working_catalogue_root),
@@ -76,12 +76,12 @@ def test_catalogue_verify_json_output_parses(working_catalogue_root: Path) -> No
 
 
 # ---------------------------------------------------------------------------
-# AC19: exit 0 on clean catalogue
+# Exit 0 on clean catalogue
 # ---------------------------------------------------------------------------
 
 
 def test_catalogue_lint_exits_0_on_clean(working_catalogue_root: Path) -> None:
-    """AC19a: lint returns 0 on a clean catalogue."""
+    """Lint returns 0 on a clean catalogue."""
     result = _run(
         "catalogue", "lint",
         "--root", str(working_catalogue_root),
@@ -93,7 +93,7 @@ def test_catalogue_lint_exits_0_on_clean(working_catalogue_root: Path) -> None:
 
 
 def test_catalogue_verify_exits_0_on_clean(working_catalogue_root: Path) -> None:
-    """AC19a: verify returns 0 on a clean catalogue."""
+    """Verify returns 0 on a clean catalogue."""
     result = _run(
         "catalogue", "verify",
         "--root", str(working_catalogue_root),
@@ -105,7 +105,7 @@ def test_catalogue_verify_exits_0_on_clean(working_catalogue_root: Path) -> None
 
 
 # ---------------------------------------------------------------------------
-# AC19: exit 1 on an invalid catalogue
+# Exit 1 on an invalid catalogue
 # ---------------------------------------------------------------------------
 
 
@@ -117,7 +117,7 @@ def _write_invalid_catalogue(tmp_path: Path) -> Path:
 
 
 def test_catalogue_lint_exits_1_on_errors(tmp_path: Path) -> None:
-    """AC19b: lint returns 1 when the catalogue has errors."""
+    """Lint returns 1 when the catalogue has errors."""
     root = _write_invalid_catalogue(tmp_path)
     result = _run("catalogue", "lint", "--root", str(root), "--format", "json")
     assert result.returncode == 1, (
@@ -126,7 +126,7 @@ def test_catalogue_lint_exits_1_on_errors(tmp_path: Path) -> None:
 
 
 def test_catalogue_verify_exits_1_on_errors(tmp_path: Path) -> None:
-    """AC19b: verify returns 1 when the catalogue has errors."""
+    """Verify returns 1 when the catalogue has errors."""
     root = _write_invalid_catalogue(tmp_path)
     result = _run("catalogue", "verify", "--root", str(root), "--format", "json")
     assert result.returncode == 1, (
@@ -135,14 +135,14 @@ def test_catalogue_verify_exits_1_on_errors(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC20: catalogue package exit 0 + output layout
+# Catalogue package exit 0 + output layout
 # ---------------------------------------------------------------------------
 
 
 def test_catalogue_package_exits_0_and_layout(
     working_catalogue_root: Path, tmp_path: Path
 ) -> None:
-    """AC20: package with required flags exits 0 and writes the documented layout."""
+    """Package with required flags exits 0 and writes the documented layout."""
     bundle = "test-ci-contract"
     release = "0.0.1-ci"
     channel = "stable"
@@ -173,12 +173,12 @@ def test_catalogue_package_exits_0_and_layout(
 
 
 # ---------------------------------------------------------------------------
-# AC21: catalogue package exits 2 on missing required flags
+# Catalogue package exits 2 on missing required flags
 # ---------------------------------------------------------------------------
 
 
 def test_catalogue_package_exits_2_on_missing_flags() -> None:
-    """AC21: package with no flags exits 2 (argparse usage error, standard convention)."""
+    """Package with no flags exits 2 (argparse usage error, standard convention)."""
     result = _run("catalogue", "package")
     assert result.returncode == 2, (
         f"expected exit 2 for missing required flags, got {result.returncode}"

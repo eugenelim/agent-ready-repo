@@ -1,5 +1,5 @@
 """End-to-end integration coverage for the dropped-primitives warning
-rail (T8 of docs/specs/dropped-primitives-coverage).
+rail.
 
 Each test installs a real shipped pack at repo scope via a specific
 adapter and asserts:
@@ -143,7 +143,7 @@ class CopilotWarningEndToEnd(unittest.TestCase):
             )
 
             # Install completed — skills landed at copilot's target
-            # (RFC-0052 / ADR-0040: shared cohort home `.agents/skills/`).
+            # (shared cohort home `.agents/skills/`).
             self.assertTrue(
                 (adopter / ".agents" / "skills").exists(),
                 "copilot skill projection missing",
@@ -390,7 +390,7 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
 
 
 class KiroPerFileDropEndToEnd(unittest.TestCase):
-    """T6 of docs/specs/incompatible-hook-event-drop.
+    """T6
 
     Installs core via kiro-cli at repo scope and asserts:
       - rc 0
@@ -425,7 +425,7 @@ class KiroPerFileDropEndToEnd(unittest.TestCase):
         pack_dir = PACKS_DIR / "core"
 
         # Build expected warning via the formatter — single source of truth
-        # pin (spec AC10).
+        # pin.
         expected_warning = format_drop_message(
             pack_name="core",
             adapter="kiro-cli",
@@ -494,7 +494,7 @@ class ClaudeCodeSessionStartPositiveControl(unittest.TestCase):
 
     Pins that the per-file drop is per-adapter, not blanket. The kiro
     install above drops hooks/session-start.toml; the claude-code install
-    here must project it (spec AC10).
+    here must project it.
     """
 
     def test_install_core_via_claude_code_writes_sessionstart_positive_control(

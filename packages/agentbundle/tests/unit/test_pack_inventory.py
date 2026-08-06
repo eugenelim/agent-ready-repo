@@ -1,9 +1,9 @@
 """T1: the shared ``.apm/`` walk primitive (``agentbundle.pack_inventory``).
 
 Pure functions over a fixture pack tree — no catalogue, no state, no I/O
-beyond the tree the test builds. Covers spec AC2 (skill = a
+beyond the tree the test builds. Covers the skill shape (a
 ``.apm/skills/<name>/`` dir containing ``SKILL.md``; agent =
-``.apm/agents/<name>.md``) and AC4 (missing dirs → empty list, no raise).
+``.apm/agents/<name>.md``) and missing dirs → empty list, no raise.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ def _make_pack(root: Path) -> Path:
     for name in ("zeta", "alpha"):
         (skills / name).mkdir(parents=True)
         (skills / name / "SKILL.md").write_text("# skill\n", encoding="utf-8", newline="\n")
-    # A directory with no SKILL.md — not a skill (AC2).
+    # A directory with no SKILL.md — not a skill.
     (skills / "not-a-skill").mkdir(parents=True)
     (skills / "not-a-skill" / "README.md").write_text("x\n", encoding="utf-8", newline="\n")
     # Agents: two .md files, plus a non-.md file and a subdir to ignore.
@@ -33,7 +33,7 @@ def _make_pack(root: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# skill_names (AC2)
+# skill_names
 # ---------------------------------------------------------------------------
 
 
@@ -54,7 +54,7 @@ def test_skill_dir_without_skill_md_excluded(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# agent_names (AC2)
+# agent_names
 # ---------------------------------------------------------------------------
 
 
@@ -67,7 +67,7 @@ def test_agent_names_sorted_md_only(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Missing dirs → [] (AC4)
+# Missing dirs → []
 # ---------------------------------------------------------------------------
 
 
@@ -88,7 +88,7 @@ def test_missing_agents_dir_returns_empty(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Raw shared primitive (AC9) — returns sorted Path entries, [] when absent
+# Raw shared primitive — returns sorted Path entries, [] when absent
 # ---------------------------------------------------------------------------
 
 
@@ -111,7 +111,7 @@ def test_apm_entries_absent_dir_returns_empty(tmp_path):
 
 
 def test_lint_packs_enumerates_through_shared_primitive():
-    """AC9: the ``.apm/`` walk lives in one place — both the ``show`` command
+    """The ``.apm/`` walk lives in one place — both the ``show`` command
     (via ``pack_inventory``) and ``build/lint_packs`` reach the tree through the
     same :func:`apm_entries` function object (an identity assertion, not a
     behavioral-equivalence one), so a re-inlined copy of the traversal would

@@ -1,6 +1,6 @@
 """Unit tests for the `--emit-install-routes` flag and the handler-level
-mutex with `--adapter` at `--scope repo` (RFC-0012 / repo-scope-per-
-adapter-projection AC14-AC17, AC32).
+mutex with `--adapter` at `--scope repo` (repo-scope per-adapter
+projection).
 
 Covers:
 
@@ -213,7 +213,7 @@ class HandlerLevelMutexTests(unittest.TestCase):
 
 
 class AdapterBindingRemovedTests(unittest.TestCase):
-    """RFC-0012 AC15 — the user-scope-only --adapter binding is gone."""
+    """The user-scope-only --adapter binding is gone."""
 
     def test_adapter_at_repo_scope_no_longer_refused_at_binding_layer(self) -> None:
         """Verify `--adapter X --scope repo` doesn't surface the

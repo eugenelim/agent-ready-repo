@@ -1,4 +1,4 @@
-"""T12: show.py — _load_states includes local scope state (AC23c).
+"""T12: show.py — _load_states includes local scope state.
 
 Verifies that agentbundle show finds a pack installed only at local scope
 and reports it as installed (source: installed-state).
@@ -19,7 +19,7 @@ def _write_state(path: Path, state: State) -> None:
 
 
 def test_load_states_includes_local_scope(tmp_path):
-    """AC23c: _load_states returns local state alongside repo and user."""
+    """_load_states returns local state alongside repo and user."""
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
 
@@ -44,7 +44,7 @@ def test_load_states_includes_local_scope(tmp_path):
 
 
 def test_load_states_local_pack_source_installed_state(tmp_path):
-    """AC23c: pack installed only at local scope → source: installed-state."""
+    """Pack installed only at local scope → source: installed-state."""
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
 

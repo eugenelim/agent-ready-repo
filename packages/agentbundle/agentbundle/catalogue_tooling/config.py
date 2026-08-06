@@ -110,7 +110,7 @@ class CatalogueConfig:
     build: CatalogueBuild
     package: CataloguePackage
     distribution: DistributionConfig
-    # RFC-0074: per-pack config defaults and user-scope directory.
+    # Per-pack config defaults and user-scope directory.
     user_dir: str = _DEFAULT_USER_DIR
     pack_defaults: dict[str, dict[str, str]] = field(default_factory=dict)
     owner: CatalogueOwner | None = None
@@ -474,7 +474,7 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     )
     distribution = DistributionConfig(agentbundle=agentbundle_dist)
 
-    # --- RFC-0074: user-dir and pack-defaults ---
+    # --- user-dir and pack-defaults ---
 
     user_dir_raw = cat.get("user-dir", _DEFAULT_USER_DIR)
     if not isinstance(user_dir_raw, str):

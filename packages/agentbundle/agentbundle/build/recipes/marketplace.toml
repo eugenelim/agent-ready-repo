@@ -1,4 +1,4 @@
-# RFC-0001 recipe: aggregate every per-pack Claude plugin into one
+# Default recipe: aggregate every per-pack Claude plugin into one
 # marketplace.json at dist/claude-plugins/marketplace.json.
 
 [recipe]

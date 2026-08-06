@@ -1,6 +1,6 @@
-"""T3 AC7: credentials_shim.py is stdlib-only on import.
+"""T3: credentials_shim.py is stdlib-only on import.
 
-Spec AC7 verbatim: the verifying unit test runs the import in an
+Verbatim: the verifying unit test runs the import in an
 **isolated subprocess** and asserts the `sys.modules` delta contains
 only stdlib module names plus the shim and its declared siblings.
 The in-pytest snapshot approach is explicitly rejected because pytest

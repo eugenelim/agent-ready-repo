@@ -1,4 +1,4 @@
-"""RFC-0012 AC24: in-band detection of pre-RFC-0012 state at install start.
+"""In-band detection of legacy dist-tree state at install start.
 
 Three triggers evaluated per-pack in precedence ``(b) → (a) → (c)``; only the
 first match emits. Detection runs once per ``(repo, pack)`` per session and
@@ -7,7 +7,7 @@ short-circuits to silence on subsequent calls.
   - **(b) Shape-mismatch.** ``state.toml`` has a row for the pack AND
     dist-tree files exist at ``<repo>/claude-plugins/<pack>/`` or
     ``<repo>/apm/<pack>/``. Pinned stderr names the dist-tree paths to
-    remove. ``--force`` cleans dist-tree and proceeds (AC25(vi)).
+    remove. ``--force`` cleans dist-tree and proceeds.
 
   - **(a) Adapter disagreement.** ``state.toml`` has a row for the pack
     with a recorded ``adapter`` AND resolver's pick disagrees AND no
@@ -16,13 +16,13 @@ short-circuits to silence on subsequent calls.
     the corrective action.
 
   - **(c) Orphan recovery.** No state row but per-IDE artifacts exist
-    under the resolved adapter's ``allowed-prefixes.repo``. The AC22
+    under the resolved adapter's ``allowed-prefixes.repo``. The orphan
     refusal path (already covered in :mod:`test_install_messages_repo_scope`)
     extended here to pin precedence-chain semantics and once-per-session
     short-circuit.
 
 Detection runs only on the per-IDE install code path —
-``--scope repo`` without ``--emit-install-routes`` (spec AC24
+``--scope repo`` without ``--emit-install-routes`` (the
 narrowed-inference rule). ``--emit-install-routes`` short-circuits
 before detection.
 """
@@ -91,10 +91,10 @@ def _plant_state(
 
     The fixture mirrors a prior install — the row exists but no repo-scope
     per-IDE files match it on disk (dist-tree or orphan artifacts are planted
-    by the caller). The adapter is part of the table key (RFC-0052).
+    by the caller). The adapter is part of the table key.
 
     ``source`` defaults to the legacy sentinel; pass the fixture catalogue path
-    so that the source-conflict guard (RFC-0072 D3) allows the subsequent
+    so that the source-conflict guard allows the subsequent
     install when the same catalogue is used.
     """
     from agentbundle.config import _emit_basic_string
@@ -152,7 +152,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             adopter = tmp / "adopter"
             adopter.mkdir()
             _plant_state(adopter, pack_name="demo", source=str(packs_dir))
-            # Plant dist-tree files (pre-RFC-0012 shape).
+            # Plant dist-tree files (the legacy shape).
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8", newline="\n"
@@ -177,7 +177,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             self.assertIn("rerun with --force", stderr)
 
     def test_b_force_cleans_dist_tree_and_proceeds(self) -> None:
-        """AC25(vi): ``--force`` is the corrective action for (b). It
+        """``--force`` is the corrective action for (b). It
         must (1) delete the dist-tree subtrees, (2) drop the stale
         state row so Step 4 doesn't re-refuse with "use 'upgrade'",
         and (3) let the install complete cleanly with the per-IDE
@@ -195,7 +195,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
                 "{}", encoding="utf-8", newline="\n"
             )
 
-            # `--yes` so the new force-cleanup confirm (CLI-hygiene AC7) does
+            # `--yes` so the new force-cleanup confirm (CLI-hygiene) does
             # not refuse on the non-TTY test stdin.
             rc, stderr = _run_install(
                 ["--pack", "demo", "--scope", "repo", "--force", "--yes",
@@ -249,7 +249,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
 
 
 class CrossAdapterCoexistenceTests(unittest.TestCase):
-    """RFC-0052: a different adapter is no longer a "disagreement" to refuse —
+    """A different adapter is no longer a "disagreement" to refuse —
     it coexists. (The old trigger (a) cross-adapter refusal is removed; a row
     for a different adapter falls through to a clean coexisting install.)
     """
@@ -321,7 +321,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
         _clear_session_set()
 
     def test_per_pack_evaluation_b_for_a_then_c_for_b(self) -> None:
-        """Spec AC24 (b)+(c) overlap fixture. Two packs share the adopter:
+        """Case (b)+(c) overlap fixture. Two packs share the adopter:
         pack A has a state row + dist-tree files (fires (b)); pack B has
         orphan per-IDE files but no state row (fires (c)).
 
@@ -380,9 +380,9 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
         Pack A's orphan files under ``.claude/skills/apack-skill/``
         must NOT trigger (c) when installing pack B (which has no state
         row, no on-disk files of its own). Before per-pack scoping
-        landed, the AC24(c) trigger surfaced pack A's paths with pack
+        landed, the trigger surfaced pack A's paths with pack
         B's name in the stderr line — the cross-pack false positive
-        ROADMAP named as the only open RFC-0012 follow-on.
+        ROADMAP named as the only open per-IDE-projection follow-on.
 
         Post-fix, the scan walks pack B's source for owned primitive
         names (``bpack``, ``bpack-skill``), finds no match against
@@ -457,7 +457,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
 
 
 class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
-    """Spec AC24 narrowed-inference rule: detection runs only on the
+    """Narrowed-inference rule: detection runs only on the
     per-IDE install code path (``--scope repo`` without
     ``--emit-install-routes``). The dist-tree producer must NOT trigger
     (b) on its own legitimate output."""
@@ -494,7 +494,7 @@ if __name__ == "__main__":
 
 
 class ForceCleanupConfirmTests(unittest.TestCase):
-    """CLI-hygiene AC6/AC7: the ``--force`` destructive cleanup (trigger (b))
+    """CLI hygiene: the ``--force`` destructive cleanup (trigger (b))
     lists what it removes and confirms before deleting."""
 
     def setUp(self) -> None:
@@ -548,7 +548,7 @@ class ForceCleanupConfirmTests(unittest.TestCase):
                 (adopter / "claude-plugins" / "demo" / "plugin.json").exists(),
                 "a declined --force must delete nothing",
             )
-            # AC6 atomicity: decline must not pop the state row or rewrite
+            # Atomicity: decline must not pop the state row or rewrite
             # state either — the whole destructive block is gated.
             import tomllib
 
@@ -576,5 +576,5 @@ class ForceCleanupConfirmTests(unittest.TestCase):
             self.assertIn("--yes", stderr)
             self.assertTrue(
                 (adopter / "claude-plugins" / "demo" / "plugin.json").exists(),
-                "a non-TTY --force without --yes must delete nothing (AC7)",
+                "a non-TTY --force without --yes must delete nothing",
             )

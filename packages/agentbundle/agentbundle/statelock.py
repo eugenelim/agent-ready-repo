@@ -4,7 +4,7 @@
 *command-level* read-modify-write of the single ``~/.agentbundle/state.toml``
 is not atomic across processes: two concurrent ``install`` runs each load a
 stale snapshot and the second ``os.replace`` drops the first's adapter row
-(a lost update — not file corruption, but corruption of intent). RFC-0052's
+(a lost update — not file corruption, but corruption of intent). The
 concurrency AC requires that two simultaneous installs of different adapter
 rows of one pack **both** land.
 

@@ -8,7 +8,7 @@ codebase.
 Two surfaces:
 
   - `render_pack_to_dir(pack_path, output_dir, contract=None)` — runs the
-    same three RFC-0001 recipes that `make build` runs (per-pack
+    same three default recipes that `make build` runs (per-pack
     claude-plugin, per-pack apm-package, marketplace) and writes them
     into `output_dir`. Byte-identical to `make build`.
 

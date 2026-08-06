@@ -1,15 +1,15 @@
 """Tests for adapter.toml + adapter.schema.json (T1b).
 
 Verifies:
-  - adapter.toml validates against adapter.schema.json (AC 1).
+  - adapter.toml validates against adapter.schema.json.
   - Every (5 standard primitives × 8 adapters) = 40 standard pairs present;
     kiro-ide, kiro-cli, cursor, and gemini each add a kiro-ide-hook table
-    entry = 44 total (RFC-0022 / RFC-0026 / RFC-0027).
-  - The mode enum in adapter.schema.json contains exactly the seven RFC-0001 modes;
-    unknown modes are rejected (AC 2).
+    entry = 44 total.
+  - The mode enum in adapter.schema.json contains exactly the seven base modes;
+    unknown modes are rejected.
   - Every projection entry carries an on-conflict value from the legal set,
     matching the per-mode default — except for degraded-info-log and dropped
-    which are no-write/no-output and carry no on-conflict (AC 2).
+    which are no-write/no-output and carry no on-conflict.
   - hook-wiring primitive's source-path is .apm/hook-wiring/.
   - command primitive's source-path is .apm/commands/; Claude Code projects
     direct-file; Copilot/Codex/Kiro-family are dropped.
@@ -30,7 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 
-# All seven RFC-0001 projection modes.
+# All seven base projection modes.
 SEVEN_RFC_MODES = {
     "direct-directory",
     "direct-file",
@@ -66,8 +66,8 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 # All five primitive names.
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
-# All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias;
-# RFC-0026: cursor added).
+# All reference adapter names (kiro-ide and kiro-cli added by the kiro split; kiro retained as alias;
+# Cursor added).
 ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex", "gemini"}
 
 # Extra primitives that are kiro-specific and OK to declare in kiro-family
@@ -84,7 +84,7 @@ def _load_schema() -> dict:
 
 
 class ContractSchemaValidationTests(unittest.TestCase):
-    """adapter.toml must validate against adapter.schema.json (AC 1)."""
+    """adapter.toml must validate against adapter.schema.json."""
 
     def test_contract_validates_against_schema(self) -> None:
         from agentbundle.build.validate import validate
@@ -112,11 +112,11 @@ class AllPairsEnumeratedTests(unittest.TestCase):
     def test_every_primitive_covered_per_adapter(self) -> None:
         """Every (primitive × adapter) pair must be declared in *some* form.
 
-        Under v0.3 (RFC-0005), kiro's `hook-wiring` no longer appears in the
+        Under v0.3, kiro's `hook-wiring` no longer appears in the
         legacy `projection` array — it lives in the new
         `projections.<primitive>` table. The coverage union walks both forms.
 
-        RFC-0022: kiro-family adapters (kiro, kiro-ide, kiro-cli) may
+        Kiro-family adapters (kiro, kiro-ide, kiro-cli) may
         additionally declare `kiro-ide-hook` in their `projections` table;
         this is a known extra and is not flagged.
         """
@@ -143,11 +143,11 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         coexists with its v0.3 table) count once per adapter, matching the
         "primitive coverage" semantic.
 
-        RFC-0022 T1: kiro-ide added (+5 standard + 1 kiro-ide-hook = +6),
+        The kiro split added kiro-ide (+5 standard + 1 kiro-ide-hook = +6),
         kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
         hook-wiring dropped to its array_form, which is already counted.
-        RFC-0026: cursor added (+5 standard + 1 kiro-ide-hook dropped = +6).
-        RFC-0027: gemini added (+5 standard + 1 kiro-ide-hook dropped = +6).
+        Cursor added (+5 standard + 1 kiro-ide-hook dropped = +6).
+        Gemini added (+5 standard + 1 kiro-ide-hook dropped = +6).
         Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-ide) + 6 (kiro-cli)
                + 5 (copilot) + 6 (cursor) + 5 (codex) + 6 (gemini) = 44.
         Class name preserved.
@@ -161,9 +161,9 @@ class AllPairsEnumeratedTests(unittest.TestCase):
 
 
 class ModeEnumTests(unittest.TestCase):
-    """adapter.schema.json mode enum: seven RFC-0001 modes plus the two
-    v0.3 additions from RFC-0005 (`user-merge-json`, `merge-into-agent-json`)
-    plus the v0.8 addition from docs/specs/dropped-primitives-coverage
+    """adapter.schema.json mode enum: seven base modes plus the two
+    v0.3 additions (`user-merge-json`, `merge-into-agent-json`)
+    plus the v0.8 addition
     (`codex-agent-toml`)."""
 
     def test_mode_enum_contains_expected_modes(self) -> None:
@@ -179,17 +179,17 @@ class ModeEnumTests(unittest.TestCase):
             "user-merge-json",
             "merge-into-agent-json",
             "codex-agent-toml",
-            # docs/specs/copilot-full-parity (v0.10): copilot agent + hook-wiring
+            # Copilot full parity (v0.10): copilot agent + hook-wiring
             # modes admitted at every `dropped`-enumerating site.
             "copilot-agent-md",
             "copilot-hooks-json",
-            # docs/specs/gemini-full-parity (v0.13): gemini command projection.
+            # Gemini full parity (v0.13): gemini command projection.
             "gemini-command-toml",
         }
         self.assertEqual(
             mode_enum,
             expected,
-            f"schema mode enum differs from RFC-0001+RFC-0005+v0.8+v0.10+v0.13 set: {mode_enum}",
+            f"schema mode enum differs from the v0.1+v0.3+v0.8+v0.10+v0.13 set: {mode_enum}",
         )
 
     def test_schema_rejects_unknown_mode(self) -> None:
@@ -377,7 +377,7 @@ class FrontmatterTableTests(unittest.TestCase):
         )
 
     def test_copilot_instruction_frontmatter_default_retired(self) -> None:
-        """docs/specs/copilot-skills-and-web: the copilot `skill` flip to
+        """The copilot `skill` flip to
         first-class `direct-directory` SKILL.md orphaned the `copilot-instruction`
         frontmatter-default (it was its only consumer), so it is removed from the
         contract entirely."""
@@ -439,11 +439,11 @@ class FrontmatterTableTests(unittest.TestCase):
 
 
 class ContractV05Tests(unittest.TestCase):
-    """T2 (apm-install-route-parity AC9): contract-version assertion.
+    """T2 (apm-install-route-parity): contract-version assertion.
 
-    Originally pinned v0.5; bumped to v0.6 by RFC-0011, v0.7 by
-    RFC-0013 / credential-broker-contract, v0.8 by
-    docs/specs/dropped-primitives-coverage. Class name preserved to avoid
+    Originally pinned v0.5; bumped to v0.6 by the codex user-scope table,
+    to v0.7 by per-adapter projection and the credential-broker contract,
+    and to v0.8 by dropped-primitives coverage. Class name preserved to avoid
     needless diff churn against the next bump.
     """
 
@@ -454,7 +454,7 @@ class ContractV05Tests(unittest.TestCase):
     def test_contract_version_is_v05(self) -> None:
         """tomllib.loads of adapter.toml returns contract.version == "0.17"
         (bumped from kiro-cli-agent-skill-resources' "0.15" by
-        docs/specs/consolidated-pack-layout: pack.toml gains an optional
+        pack.toml gains an optional
         scope-keyed [pack.layout] table). Class/method names preserved to
         avoid churn.
         """
@@ -477,7 +477,7 @@ class ContractV05Tests(unittest.TestCase):
         """kiro-family, Copilot, and Codex do not declare install-routes (regression
         guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
         those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
-        RFC-0022: kiro-ide and kiro-cli added to the checked set; RFC-0026: cursor added."""
+        Kiro-ide and kiro-cli added to the checked set; cursor added at v0.11."""
         for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
@@ -579,14 +579,14 @@ SEED_AGENTS_MD_PATH = REPO_ROOT / "packs" / "core" / "seeds" / "AGENTS.md"
 
 
 class TestCodexSkillDirectDirectory(unittest.TestCase):
-    """RFC-0009 / codex-native-skills contract flip.
+    """The codex-native-skills contract flip.
 
-    AC1: Codex `skill` is `direct-directory` projecting to
+    Codex `skill` is `direct-directory` projecting to
          `.agents/skills/` with `on-conflict = "prompt-then-preserve"`;
          no managed-block delimiter keys remain on the entry.
-    AC2: `contracts/adapter.toml` and the bundled `_data/adapter.toml`
+    `contracts/adapter.toml` and the bundled `_data/adapter.toml`
          are byte-identical.
-    AC15: The seed AGENTS.md no longer carries the legacy delimiter pair.
+    The seed AGENTS.md no longer carries the legacy delimiter pair.
     """
 
     def test_codex_skill_projection_is_direct_directory(self) -> None:

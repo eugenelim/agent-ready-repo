@@ -1,7 +1,7 @@
 """T2: credential-brokers pack manifest + skeleton install tests.
 
-Verifies AC4 (manifest shape), AC5 (directory invariant), and the
-RFC-0004 Rail A refusal (seeds/ at user scope). The install
+Verifies the manifest shape, the directory invariant, and the
+Rail A refusal (seeds/ at user scope). The install
 integration is in-process per the
 test_install_converters_user_scope.py idiom; $HOME redirected so the
 test never touches the developer's real tree.
@@ -44,7 +44,7 @@ def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
 
 
 class PackManifestShapeTests(unittest.TestCase):
-    """AC4: pack.toml carries the verbatim field shape from RFC-0013 § 4."""
+    """pack.toml carries the contract's verbatim field shape."""
 
     def setUp(self) -> None:
         self.pack_toml = tomllib.loads(
@@ -57,14 +57,15 @@ class PackManifestShapeTests(unittest.TestCase):
         # Bumped 0.1.0 → 0.1.1 (metadata enrichment) → 0.1.2 (per-pack
         # guide-home `documentation` link) → 0.1.3 (missing-credbroker guard +
         # credentials_shim→credbroker description fix) → 0.2.0 (credbroker SSO
-        # consumer family, RFC-0035: load_sso_cookies + confinement primitives)
-        # → 0.2.1 (first-value adoption contract, RFC-0064 Amendment #4)
+        # consumer family: load_sso_cookies + confinement primitives)
+        # → 0.2.1 (first-value adoption contract)
         # → 0.2.2 (ruff/mypy violation fixes, de41a345);
         # adapter-contract unchanged.
         self.assertEqual(pack["version"], "0.2.2")
 
     def test_description_names_the_three_artefacts(self) -> None:
-        # The description names the artefacts the pack ships. Since RFC-0023 the
+        # The description names the artefacts the pack ships. Since the
+        # skill-scripts projection was retired, the
         # `auth: creds` resolver is the `credbroker` library (the build-projected
         # `credentials_shim` it replaced is no longer the consumer-facing
         # resolver), so the description names credbroker, sso-broker, and
@@ -85,7 +86,7 @@ class PackManifestShapeTests(unittest.TestCase):
         install_block = self.pack_toml["pack"]["install"]
         self.assertEqual(install_block["default-scope"], "user")
         self.assertEqual(install_block["allowed-scopes"], ["user", "repo"])
-        # RFC-0013 § 4 shipped the three-harness set; § Errata (2026-06-12)
+        # The contract shipped the three-harness set; its errata (2026-06-12)
         # widened it to add `copilot` + `cursor` and `gemini` — all three since
         # declared `.agentbundle/` in `allowed-prefixes.user`, the § 4d
         # precondition, so the adapter-agnostic broker delivery rail reaches them.
@@ -96,7 +97,7 @@ class PackManifestShapeTests(unittest.TestCase):
 
 
 class PackDirectoryInvariantTests(unittest.TestCase):
-    """AC5: .apm/ tree contains exactly the declared primitive directories
+    """`.apm/` tree contains exactly the declared primitive directories
     (shared-libs/, adapter-root-bins/, user-libs/, skills/credential-setup/),
     plus pack.toml at the pack root. No seeds/, no hooks/, no
     hook-wiring/, no second .apm/skills/<other>/. No <adapt:NAME>
@@ -130,7 +131,7 @@ class PackDirectoryInvariantTests(unittest.TestCase):
         )
 
     def test_no_forbidden_dirs(self) -> None:
-        # Refusal rails A/B + RFC-0007 user-scope discipline: no seeds/,
+        # Refusal rails A/B + user-scope discipline: no seeds/,
         # no hooks/, no hook-wiring/.
         for forbidden in ("seeds", ".apm/hooks", ".apm/hook-wiring"):
             self.assertFalse(
@@ -139,7 +140,7 @@ class PackDirectoryInvariantTests(unittest.TestCase):
             )
 
     def test_no_adapt_markers_under_apm(self) -> None:
-        # RFC-0007 user-scope refusal rail C: <adapt:NAME> markers
+        # User-scope refusal rail C: <adapt:NAME> markers
         # are repo-scope only. Walk .apm/ recursively.
         marker = re.compile(r"<adapt:[A-Z_]+>")
         apm = PACK_SRC / ".apm"
@@ -180,7 +181,7 @@ class _BaseInstall(unittest.TestCase):
 
 
 class PackInstallTests(_BaseInstall):
-    """AC4 install path: --scope user against a fixture $HOME succeeds."""
+    """Install path: --scope user against a fixture $HOME succeeds."""
 
     def test_install_at_user_scope_succeeds(self) -> None:
         args = argparse.Namespace(
@@ -205,7 +206,7 @@ class PackInstallTests(_BaseInstall):
 
 
 class SeedsRefusalRailTests(_BaseInstall):
-    """RFC-0004 Rail A: a non-empty seeds/ at the pack root refuses
+    """Rail A: a non-empty seeds/ at the pack root refuses
     user-scope install. The refusal text is enforced by
     `scope_rails.check_seeds` and surfaced as `install: <pack>: <msg>`.
     """
@@ -236,7 +237,7 @@ class SeedsRefusalRailTests(_BaseInstall):
 class UserScopeFloorDeliveryTests(_BaseInstall):
     """credbroker-user-scope T4: a ``$HOME``-redirected user-scope install
     delivers the vendored ``credbroker`` floor (``lib/``) **and** the
-    ``sso-broker`` rail (``bin/`` + the AC22b companion shim), and a real
+    ``sso-broker`` rail (``bin/`` + the companion shim), and a real
     consumer entry script resolves ``import credbroker`` from the floor.
     """
 
@@ -288,7 +289,7 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
                 f"~/.agentbundle/lib/credbroker/{name} absent after install",
             )
         binp = self.home / ".agentbundle" / "bin"
-        # sso-broker.py + the AC22b companion shim + both _sso_* backends.
+        # sso-broker.py + the companion shim + both _sso_* backends.
         for name in (
             "sso-broker.py",
             "credentials_shim.py",

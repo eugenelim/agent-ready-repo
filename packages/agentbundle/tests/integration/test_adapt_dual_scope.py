@@ -1,7 +1,6 @@
 """T21: adapt walks both state files; writes per-scope pending reports.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec § *adapt
-dual-state-file walk*:
+Verifies the agent-spec-cli adapt dual-state-file walk:
 
   - adapt writes per-scope `.adapt-pending.md` at
     `<repo>/.adapt-pending.md` (repo) and
@@ -212,7 +211,7 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
     _write_state(user_dir / "state.toml", {target_rel: "00"}, scope="user")
 
     # User-scope discovery: canonical v0.1 shape, no [markers] (markers
-    # are repo-only per RFC-0004). Plus a repo-scope discovery carrying
+    # are repo-only). Plus a repo-scope discovery carrying
     # the marker value the substitution needs.
     (user_dir / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"

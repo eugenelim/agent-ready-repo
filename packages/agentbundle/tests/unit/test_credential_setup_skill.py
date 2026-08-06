@@ -1,10 +1,10 @@
-"""T7 (credential-broker-contract): credential-setup skill body — AC18 / AC19.
+"""T7 (credential-broker contract): credential-setup skill body.
 
 Verifies:
-- AC18: SKILL.md carries the verbatim phrase "interactive, user-invoked, do not auto-run"
-- AC18: SKILL.md carries the broker-agnostic Don't-block
-- AC18: setup.py prompts via getpass and never prints the token to stdout
-- AC19: setup.py rejects the reserved `sso` namespace with stderr naming the reserved set
+- SKILL.md carries the verbatim phrase "interactive, user-invoked, do not auto-run"
+- SKILL.md carries the broker-agnostic Don't-block
+- setup.py prompts via getpass and never prints the token to stdout
+- setup.py rejects the reserved `sso` namespace with stderr naming the reserved set
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def test_skill_md_exists():
 
 
 def test_ac18_description_carries_verbatim_phrase():
-    """AC18: SKILL.md description: carries the verbatim phrase
+    """SKILL.md description: carries the verbatim phrase
     'interactive, user-invoked, do not auto-run'."""
     body = SKILL_MD.read_text(encoding="utf-8")
     # The phrase appears in the frontmatter description and/or skill body.
@@ -38,7 +38,7 @@ def test_ac18_description_carries_verbatim_phrase():
 
 
 def test_ac18_security_rules_block_present():
-    """AC18: SKILL.md carries the `### Security rules (non-negotiable)` block."""
+    """SKILL.md carries the `### Security rules (non-negotiable)` block."""
     body = SKILL_MD.read_text(encoding="utf-8")
     assert "### Security rules (non-negotiable)" in body
     # The broker-agnostic invariants.
@@ -47,7 +47,7 @@ def test_ac18_security_rules_block_present():
 
 
 def test_ac19_reserved_sso_namespace_refused(tmp_path):
-    """AC19: setup.py refuses the reserved `sso` namespace; stderr names
+    """setup.py refuses the reserved `sso` namespace; stderr names
     the reserved set. Run the script via subprocess against the projected
     sibling shim under a tmp_path skill dir."""
     if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
@@ -96,7 +96,7 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
 
 
 def test_ac18_argv_ban_refused(tmp_path):
-    """AC18 / argv-ban: setup.py refuses --token / --api-token / etc.
+    """setup.py refuses --token / --api-token / etc.
     on the command line."""
     if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
         pytest.skip("credbroker not installed")
@@ -119,7 +119,7 @@ def test_ac18_argv_ban_refused(tmp_path):
 
 
 def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
-    """AC18: when the user enters a secret, it never appears on stdout —
+    """When the user enters a secret, it never appears on stdout —
     only stderr announcements. We simulate via in-process import after
     projecting the shim siblings into a temp package."""
     if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
@@ -168,8 +168,8 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
 
 
 def test_setup_py_imports_from_credbroker():
-    """AC25 / `auth: creds` lint: setup.py resolves via the credbroker library
-    (RFC-0023 — migrated off the build-projected `credentials_shim` sibling)."""
+    """`auth: creds` lint: setup.py resolves via the credbroker library
+    (migrated off the build-projected `credentials_shim` sibling)."""
     body = SETUP_PY.read_text(encoding="utf-8")
     assert "from credbroker import" in body
     assert "from .credentials_shim import" not in body

@@ -3,7 +3,7 @@ marketplace aggregation.
 
 Recipes live next to this module under `recipes/`. Each recipe carries
 a `type` (`per-pack` | `aggregate` | `overlay` | `composite`) that
-determines how the pipeline interprets it. RFC-0001 ships the first
+determines how the pipeline interprets it. The first
 three (per-pack-claude-plugin, per-pack-apm-package, marketplace); the
 other three (per-pack-overlay, composite-agents-md, composite-marketplace)
 are consumed by T7's self-host writer.
@@ -93,13 +93,13 @@ PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The canonical SessionStart hook command synthesised into each derived
-# plugin.json (claude-plugins route). Shell-exec contract (AC9 sub-assertion):
+# plugin.json (claude-plugins route). Shell-exec contract:
 # when CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives
 # spaces. The trailing `--install-route claude-plugins` flag is required by
-# the writer's argparse (apm-install-route-parity AC2/AC8); the build
+# the writer's argparse (apm-install-route-parity); the build
 # pipeline and the projected command stay coupled at projection time via
 # `make build` so a refreshed writer always ships next to a refreshed
-# command — see RFC-0010 / spec apm-install-route-parity §Rollout.
+# command — the apm route ships the same writer at a second path.
 _SESSION_START_COMMAND = (
     'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
     ' --install-route claude-plugins'
@@ -109,14 +109,14 @@ _SESSION_START_COMMAND = (
 # derived dist/apm/<pack>/.apm/hooks/install-marker.json. APM's HookIntegrator
 # rewrites ${PLUGIN_ROOT} to per-target tokens (${CLAUDE_PLUGIN_ROOT},
 # ${CURSOR_PLUGIN_ROOT}, …); the writer's data-directory shim resolves the
-# hash-file location per spec AC3 precedence.
+# hash-file location precedence.
 _SESSION_START_COMMAND_APM = (
     'python3 "${PLUGIN_ROOT}/.apm/hooks/install-marker.py"'
     ' --install-route apm'
 )
 
-# JSON shape emitted into dist/apm/<pack>/.apm/hooks/install-marker.json
-# (spec AC7). Authored as a Python dict so json.dumps controls indentation.
+# JSON shape emitted into dist/apm/<pack>/.apm/hooks/install-marker.json.
+# Authored as a Python dict so json.dumps controls indentation.
 _APM_INSTALL_MARKER_HOOK_JSON = {
     "hooks": {
         "SessionStart": [
@@ -199,7 +199,7 @@ def validate_derived_plugin_manifest(plugin_json_path: Path) -> None:
 def derive_projectable_subset(pack_toml: dict) -> dict:
     """Map a parsed ``pack.toml`` to the projectable plugin-manifest subset.
 
-    enriched-pack-manifest (RFC-0031 / ADR-0021): ``pack.toml`` is the rich
+    enriched-pack-manifest: ``pack.toml`` is the rich
     metadata source of truth; the build projects a *lossy*, schema-compliant
     subset into the claude-plugins + apm routes (the ``plugin.json`` /
     ``marketplace.json`` entry). Fixed mapping:
@@ -282,8 +282,8 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
 
     return out
 
-# The three RFC-0001 recipes that plain `make build` invokes.
-# RFC-0002 recipes (per-pack-overlay, composite-agents-md,
+# The three default recipes that plain `make build` invokes.
+# The self-host recipes (per-pack-overlay, composite-agents-md,
 # composite-marketplace) fire only under --self.
 DEFAULT_RECIPES = (
     "per-pack-claude-plugin",
@@ -576,7 +576,7 @@ def _run_per_pack_single(
 
     # Issue #190: ship the pack's seeds/ inside the plugin artifact so the
     # governance content travels with the pack on the Claude-plugin route
-    # (RFC-0001 §281-284). symlinks=True preserves a seed symlink as a
+    # symlinks=True preserves a seed symlink as a
     # symlink rather than dereferencing the build host's file into dist/
     # at build time — matching the APM recipe's copytree posture.
     seeds_src = pack.path / "seeds"
@@ -613,10 +613,10 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
             # cannot exfiltrate the target into the published dist/ tree.
             shutil.copytree(apm_source, apm_dest, symlinks=True)
 
-        # apm-install-route-parity T4 / AC11: project install-marker
+        # Project install-marker
         # artifacts (writer + JSON hook) and pack.toml into the per-pack
         # output. The writer is byte-identical to the canonical template
-        # — drift gate (AC16) enforces this at make build-check.
+        # — drift gate enforces this at make build-check.
         hooks_dir = per_pack_output / ".apm" / "hooks"
         hooks_dir.mkdir(parents=True, exist_ok=True)
         (hooks_dir / "install-marker.py").write_bytes(writer_bytes)
@@ -627,7 +627,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
 
         # Project pack.toml verbatim. The writer reads it for
         # name/version/allowed-scopes — same role as in the claude-plugins
-        # derivation (spec AC11 c).
+        # derivation.
         pack_toml_src = pack.path / "pack.toml"
         if pack_toml_src.exists():
             shutil.copy2(
@@ -640,7 +640,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
         # route too (the sole portable per-pack doc; same posture as above).
         _project_pack_readme(pack.path, per_pack_output)
 
-        # Issue #190 / RFC-0001 §595: ship the pack's seeds/ inside the APM
+        # Issue #190: ship the pack's seeds/ inside the APM
         # package so the governance content travels with the pack on the APM
         # route. symlinks=True preserves a seed symlink as a symlink rather
         # than dereferencing the build host's file into dist/ at build time.
@@ -749,7 +749,7 @@ def _run_composite(recipe: Recipe, packs: list[Pack]) -> dict:
 def run_default_build(
     packs_dir: Path, output_dir: Path, contract: dict | None = None
 ) -> list[dict]:
-    """Run the three RFC-0001 recipes — what plain `make build` invokes."""
+    """Run the three default recipes — what plain `make build` invokes."""
     if contract is None:
         contract = tomllib.loads(_read_bundled("adapter.toml"))
     packs = discover_packs(packs_dir)
@@ -789,7 +789,7 @@ def cmd_build(args) -> int:
             return 1
         return 0
 
-    # Default `build` (no --recipe): run the three RFC-0001 recipes.
+    # Default `build` (no --recipe): run the three default recipes.
     try:
         run_default_build(packs_dir, output_dir, contract)
     except ValueError as exc:

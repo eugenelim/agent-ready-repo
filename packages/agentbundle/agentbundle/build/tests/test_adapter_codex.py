@@ -61,11 +61,11 @@ class CodexAdapterTests(unittest.TestCase):
         """v0.8 inverts the pre-bump assertion: codex now projects `agent`
         (via codex-agent-toml) and `hook-wiring` (via merge-json) natively.
         Only `command` stays dropped — codex custom-prompts are deprecated
-        upstream in favour of skills (RFC pointer in spec § Assumptions).
+        upstream in favour of skills.
 
         Renamed from ``test_agent_hook_wiring_command_dropped`` — the
-        v0.7 assertion was the inverse of what the v0.8 contract claims
-        (AC2). Deliberate spec-driven inversion, not a regression hiding
+        v0.7 assertion was the inverse of what the v0.8 contract claims.
+        A deliberate spec-driven inversion, not a regression hiding
         behind a test deletion.
         """
         with tempfile.TemporaryDirectory() as tmp:
@@ -251,14 +251,13 @@ def _seed_same_name_pack(root: Path, name: str, body: str) -> Path:
 
 
 class TestDirectDirectoryProjection(unittest.TestCase):
-    """Post-RFC-0009 Codex `skill` projection — `direct-directory` mode."""
+    """Codex `skill` projection — `direct-directory` mode."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_byte_equal_projection_two_skill(self) -> None:
-        # AC3, AC4.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_two_skill_pack(tmp_path)
@@ -281,7 +280,6 @@ class TestDirectDirectoryProjection(unittest.TestCase):
                 )
 
     def test_symlink_pass_through(self) -> None:
-        # AC5.
         import os
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -299,7 +297,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
             )
 
     def test_same_name_last_wins(self) -> None:
-        # AC6 — Codex case.
+        # Codex case.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack_a = _seed_same_name_pack(
@@ -382,7 +380,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
             )
 
     def test_same_name_last_wins_reversed(self) -> None:
-        # AC6 — Codex case, reversed.
+        # Codex case, reversed.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack_a = _seed_same_name_pack(
@@ -424,7 +422,7 @@ class TestCodexOrphanSweep(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_codex_two_stage_shrink(self) -> None:
-        # AC17: project {a, b, c} then {a, c} into the same output.
+        # Project {a, b, c} then {a, c} into the same output.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             three = _seed_named_skills_pack(tmp_path, "three-skill", ["a", "b", "c"])
@@ -439,7 +437,7 @@ class TestCodexOrphanSweep(unittest.TestCase):
             self.assertEqual(children, {"a", "c"})
 
     def test_codex_two_pack_union(self) -> None:
-        # AC20: pack_a={a,b} + pack_b={b,c} → {a,b,c};
+        # pack_a={a,b} + pack_b={b,c} → {a,b,c};
         #        then pack_a alone → {a,b}, c removed.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -456,7 +454,7 @@ class TestCodexOrphanSweep(unittest.TestCase):
             self.assertEqual(children, {"a", "b"})
 
     def test_codex_symlink_safe_sweep(self) -> None:
-        # AC21: pre-seed a symlink-to-external in the target dir; the
+        # Pre-seed a symlink-to-external in the target dir; the
         # sweep removes the symlink but leaves the external dir intact.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -500,11 +498,11 @@ class TestMigrationStripIntegrated(unittest.TestCase):
         )
 
     def test_happy_path_strips_delimiters_and_preserves_prose(self) -> None:
-        # AC10, AC11. The strip's only allowed mutation is removing
+        # The strip's only allowed mutation is removing
         # the legacy delimiter region; outside-delimiter bytes must
         # survive byte-for-byte. Substring `assertIn` would pass on
         # munged surrounding bytes; the concatenation assertion
-        # below pins the byte-equality contract AC11(c) names.
+        # below pins the byte-equality contract.
         outside_before = "# Top\n\nIntroductory prose.\n\n"
         outside_after = "\nClosing prose.\n"
         populated = (
@@ -532,7 +530,6 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             self.assertIn(outside_before + outside_after, text)
 
     def test_already_clean_is_byte_identical(self) -> None:
-        # AC12.
         clean = "# Top\n\nNo managed block.\n"
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -549,7 +546,6 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             )
 
     def test_idempotent_across_two_calls(self) -> None:
-        # AC13.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_two_skill_pack(tmp_path)
@@ -564,7 +560,6 @@ class TestMigrationStripIntegrated(unittest.TestCase):
             self.assertEqual(first, second)
 
     def test_hand_edited_content_between_delimiters_is_lost(self) -> None:
-        # AC14.
         sentinel = "<<HAND-EDITED-PRESERVE-ME>>"
         body = (
             "prefix\n"
@@ -652,12 +647,12 @@ class TestMigrationStripPureFunction(unittest.TestCase):
         self.assertIn("appears before", str(caught.exception))
 
     def test_splice_managed_block_symbol_still_exists(self) -> None:
-        # AC23(i): a future refactor that inlines the splice and deletes
+        # A future refactor that inlines the splice and deletes
         # the helper symbol breaks this import-and-call assertion.
         self.assertTrue(callable(_splice_managed_block))
 
     def test_strip_invokes_splice_managed_block_once(self) -> None:
-        # AC23(ii) — deliberate retention test. A refactor that
+        # Deliberate retention test. A refactor that
         # inlines the splice and deletes `_splice_managed_block`
         # breaks the import. A refactor that keeps the symbol but
         # stops calling it from `_strip_legacy_skill_block` makes
@@ -676,7 +671,7 @@ class TestMigrationStripPureFunction(unittest.TestCase):
 
 
 class TestCodexProjectsEveryShippedSkill(unittest.TestCase):
-    """AC29 — every skill any in-tree pack ships projects through Codex
+    """Every skill any in-tree pack ships projects through Codex
     into `.agents/skills/<name>/SKILL.md` (byte-equal to source).
 
     The spec text references `dist/codex/` as a notional adopter path;
@@ -704,7 +699,7 @@ class TestCodexProjectsEveryShippedSkill(unittest.TestCase):
         # Collect every source skill across every pack. Tracks the
         # "winning" source path for same-name collisions so byte-equal
         # comparisons use the last-supplied pack's body (matching
-        # AC6).
+        # projection).
         winning_source: dict[str, Path] = {}
         for pack_path in pack_paths:
             skills_dir = pack_path / ".apm" / "skills"

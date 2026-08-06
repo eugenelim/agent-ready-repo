@@ -1,13 +1,13 @@
 """Tests for HTTPS catalogue channels — Wave 2 of ini-004 (spec/https-catalogue-channels).
 
 Coverage:
-  T1 — _is_valid_source new branches (AC1-AC5b, AC25)
+  T1 — _is_valid_source new branches
   T2 — https_catalogue.py fetcher: descriptor parse, artifact URL resolution,
         version check, archive extraction safety, streaming, proxy/redirect/token
-  T3 — resolve_catalogue dispatch (AC6, AC24, AC34)
+  T3 — resolve_catalogue dispatch
 
 All tests use in-process fixtures and mocks; no real external network calls.
-All domain names use the ``example.test`` placeholder (AC29).
+All domain names use the ``example.test`` placeholder.
 """
 
 from __future__ import annotations
@@ -149,41 +149,41 @@ _VALID_DESCRIPTOR = {
 
 
 def test_is_valid_source_catalogue_https():
-    """AC1: catalogue+https:// accepted."""
+    """The `catalogue+https://` scheme is accepted."""
     assert _is_valid_source("catalogue+https://example.test/path/stable.json") is True
 
 
 def test_is_valid_source_catalogue_http():
-    """AC2: catalogue+http:// rejected."""
+    """The `catalogue+http://` scheme is rejected."""
     assert _is_valid_source("catalogue+http://example.test/path/stable.json") is False
 
 
 def test_is_valid_source_archive_https_with_sha256():
-    """AC3: archive+https:// with valid #sha256=<64hex> accepted."""
+    """An `archive+https://` URI with a valid `#sha256=<64hex>` is accepted."""
     assert _is_valid_source(
         "archive+https://example.test/path/release.tar.gz#sha256=" + "a" * 64
     ) is True
 
 
 def test_is_valid_source_archive_http():
-    """AC4: archive+http:// rejected."""
+    """The `archive+http://` scheme is rejected."""
     assert _is_valid_source("archive+http://example.test/release.tar.gz") is False
 
 
 def test_is_valid_source_catalogue_https_user_info():
-    """AC5: catalogue+https:// with user-info rejected."""
+    """A `catalogue+https://` URI carrying user-info is rejected."""
     assert _is_valid_source("catalogue+https://user:pass@example.test/path") is False
 
 
 def test_is_valid_source_archive_https_user_info():
-    """AC5b: archive+https:// with user-info rejected."""
+    """An `archive+https://` URI carrying user-info is rejected."""
     assert _is_valid_source(
         "archive+https://user:pass@example.test/release.tar.gz#sha256=" + "a" * 64
     ) is False
 
 
 def test_is_valid_source_archive_https_no_fragment():
-    """AC25: archive+https:// without #sha256= fragment rejected."""
+    """An `archive+https://` URI without a `#sha256=` fragment is rejected."""
     assert _is_valid_source("archive+https://example.test/release.tar.gz") is False
 
 
@@ -199,19 +199,19 @@ def test_is_valid_source_archive_https_no_fragment():
     ],
 )
 def test_is_valid_source_archive_https_bad_fragment(fragment_suffix: str):
-    """AC25: archive+https:// with bad fragment rejected."""
+    """An `archive+https://` URI with a malformed fragment is rejected."""
     assert _is_valid_source(
         f"archive+https://example.test/release.tar.gz#{fragment_suffix}"
     ) is False
 
 
 def test_existing_git_https_still_accepted():
-    """AC31: existing git+https:// scheme still accepted (no regression)."""
+    """Existing git+https:// scheme still accepted (no regression)."""
     assert _is_valid_source("git+https://github.com/example/repo") is True
 
 
 def test_existing_scheme_gate_still_rejects_http():
-    """AC31: existing http:// rejection still works."""
+    """Existing http:// rejection still works."""
     assert _is_valid_source("http://evil.example.test") is False
 
 
@@ -221,7 +221,7 @@ def test_existing_scheme_gate_still_rejects_http():
 
 
 def test_parse_descriptor_valid():
-    """AC6: valid descriptor parses cleanly."""
+    """Valid descriptor parses cleanly."""
     data = json.dumps(_VALID_DESCRIPTOR).encode()
     result = _parse_descriptor(data)
     assert result["schema"] == 1
@@ -243,7 +243,7 @@ def test_parse_descriptor_not_dict_rejected():
 
 @pytest.mark.parametrize("missing_field", list(_VALID_DESCRIPTOR.keys()))
 def test_parse_descriptor_missing_field_rejected(missing_field: str):
-    """AC32: missing any required field raises CatalogueError naming the field."""
+    """Missing any required field raises CatalogueError naming the field."""
     descriptor = {k: v for k, v in _VALID_DESCRIPTOR.items() if k != missing_field}
     data = json.dumps(descriptor).encode()
     with pytest.raises(CatalogueError, match=re.escape(repr(missing_field))):
@@ -251,14 +251,14 @@ def test_parse_descriptor_missing_field_rejected(missing_field: str):
 
 
 def test_parse_descriptor_wrong_schema_rejected():
-    """AC33: schema != 1 rejected."""
+    """Schema != 1 rejected."""
     descriptor = {**_VALID_DESCRIPTOR, "schema": 2}
     with pytest.raises(CatalogueError, match="schema must be 1"):
         _parse_descriptor(json.dumps(descriptor).encode())
 
 
 def test_parse_descriptor_wrong_kind_rejected():
-    """AC33: kind != 'agentbundle-catalogue' rejected."""
+    """Kind != 'agentbundle-catalogue' rejected."""
     descriptor = {**_VALID_DESCRIPTOR, "kind": "not-agentbundle"}
     with pytest.raises(CatalogueError, match="kind must be"):
         _parse_descriptor(json.dumps(descriptor).encode())
@@ -275,7 +275,7 @@ def test_parse_descriptor_wrong_kind_rejected():
     ],
 )
 def test_parse_descriptor_sha256_non_hex_rejected(bad_sha256: str):
-    """AC25b: descriptor sha256 not 64 lowercase hex chars rejected at parse time."""
+    """Descriptor sha256 not 64 lowercase hex chars rejected at parse time."""
     descriptor = {**_VALID_DESCRIPTOR, "sha256": bad_sha256}
     with pytest.raises(CatalogueError, match="sha256"):
         _parse_descriptor(json.dumps(descriptor).encode())
@@ -287,7 +287,7 @@ def test_parse_descriptor_sha256_non_hex_rejected(bad_sha256: str):
 
 
 def test_resolve_artifact_url_same_origin_absolute():
-    """AC6: artifact URL on same origin (absolute) accepted."""
+    """Artifact URL on same origin (absolute) accepted."""
     result = _resolve_artifact_url(
         "https://example.test/channels/stable.json",
         "https://example.test/releases/core.tar.gz",
@@ -296,7 +296,7 @@ def test_resolve_artifact_url_same_origin_absolute():
 
 
 def test_resolve_artifact_url_relative():
-    """AC6: relative artifact URL resolved against descriptor URL, same origin."""
+    """Relative artifact URL resolved against descriptor URL, same origin."""
     result = _resolve_artifact_url(
         "https://example.test/channels/stable.json",
         "../releases/core.tar.gz",
@@ -305,7 +305,7 @@ def test_resolve_artifact_url_relative():
 
 
 def test_resolve_artifact_url_cross_origin_different_host():
-    """AC9: different host rejected."""
+    """Different host rejected."""
     with pytest.raises(CatalogueError, match="cross-origin"):
         _resolve_artifact_url(
             "https://example.test/channels/stable.json",
@@ -314,7 +314,7 @@ def test_resolve_artifact_url_cross_origin_different_host():
 
 
 def test_resolve_artifact_url_cross_origin_different_port():
-    """AC9: same host, different port rejected."""
+    """Same host, different port rejected."""
     with pytest.raises(CatalogueError, match="cross-origin"):
         _resolve_artifact_url(
             "https://example.test:443/channels/stable.json",
@@ -323,7 +323,7 @@ def test_resolve_artifact_url_cross_origin_different_port():
 
 
 def test_resolve_artifact_url_cross_origin_different_scheme():
-    """AC9 + AC10: HTTP artifact URL (different scheme = cross-origin) rejected."""
+    """HTTP artifact URL (different scheme = cross-origin) rejected."""
     with pytest.raises(CatalogueError):
         _resolve_artifact_url(
             "https://example.test/channels/stable.json",
@@ -332,7 +332,7 @@ def test_resolve_artifact_url_cross_origin_different_scheme():
 
 
 def test_resolve_artifact_url_http_rejected():
-    """AC10: explicit http:// artifact URL rejected."""
+    """Explicit http:// artifact URL rejected."""
     with pytest.raises(CatalogueError, match="HTTPS"):
         _resolve_artifact_url(
             "https://example.test/channels/stable.json",
@@ -355,12 +355,12 @@ def test_resolve_artifact_url_user_info_rejected():
 
 
 def test_check_client_version_none_proceeds():
-    """AC12: minimum absent — proceeds without error."""
+    """Minimum absent — proceeds without error."""
     _check_client_version(None, running_version="1.0.0")  # no exception
 
 
 def test_check_client_version_older_client_rejected():
-    """AC11: client older than minimum raises CatalogueError naming both versions."""
+    """Client older than minimum raises CatalogueError naming both versions."""
     with pytest.raises(CatalogueError) as exc:
         _check_client_version("2.0.0", running_version="1.9.9")
     msg = str(exc.value)
@@ -369,34 +369,34 @@ def test_check_client_version_older_client_rejected():
 
 
 def test_check_client_version_equal_proceeds():
-    """AC12: equal versions — proceeds."""
+    """Equal versions — proceeds."""
     _check_client_version("1.2.3", running_version="1.2.3")  # no exception
 
 
 def test_check_client_version_newer_running_proceeds():
-    """AC12: running newer than minimum — proceeds."""
+    """Running newer than minimum — proceeds."""
     _check_client_version("1.0.0", running_version="2.0.0")  # no exception
 
 
 def test_check_client_version_ten_vs_nine():
-    """AC35: integer comparison — 10.0.0 > 9.9.9 (lexicographic would invert)."""
+    """Integer comparison — 10.0.0 > 9.9.9 (lexicographic would invert)."""
     with pytest.raises(CatalogueError):
         _check_client_version("10.0.0", running_version="9.9.9")
 
 
 def test_check_client_version_nine_less_than_ten():
-    """AC35: integer comparison sanity — 9.0.0 minimum, running 10.0.0 proceeds."""
+    """Integer comparison sanity — 9.0.0 minimum, running 10.0.0 proceeds."""
     _check_client_version("9.0.0", running_version="10.0.0")  # no exception
 
 
 def test_check_client_version_malformed_minimum():
-    """AC36: malformed minimum version raises clear CatalogueError."""
+    """Malformed minimum version raises clear CatalogueError."""
     with pytest.raises(CatalogueError, match="not a valid"):
         _check_client_version("not-semver", running_version="1.0.0")
 
 
 def test_check_client_version_malformed_running():
-    """AC36: malformed running version raises clear CatalogueError (not crash)."""
+    """Malformed running version raises clear CatalogueError (not crash)."""
     with pytest.raises(CatalogueError, match="not a valid"):
         _check_client_version("1.0.0", running_version="1.0.0-alpha")
 
@@ -415,7 +415,7 @@ def test_check_client_version_reads_module_attr(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_safe_extract_ok(tmp_path: Path):
-    """AC6: a clean archive extracts successfully."""
+    """A clean archive extracts successfully."""
     archive = _write_tarball(tmp_path / "in", [("hello.txt", b"world")])
     dest = tmp_path / "out"
     dest.mkdir()
@@ -424,7 +424,7 @@ def test_safe_extract_ok(tmp_path: Path):
 
 
 def test_safe_extract_path_traversal(tmp_path: Path):
-    """AC16: member with path traversal rejected; dest cleaned up."""
+    """Member with path traversal rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="../evil.txt")
     info.size = 5
     data, _ = _make_tarball_with_member(info, b"oops!")
@@ -438,7 +438,7 @@ def test_safe_extract_path_traversal(tmp_path: Path):
 
 
 def test_safe_extract_absolute_path(tmp_path: Path):
-    """AC17: member with absolute path rejected; dest cleaned up."""
+    """Member with absolute path rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="/etc/passwd")
     info.size = 5
     data, _ = _make_tarball_with_member(info, b"root:")
@@ -452,7 +452,7 @@ def test_safe_extract_absolute_path(tmp_path: Path):
 
 
 def test_safe_extract_symlink(tmp_path: Path):
-    """AC18: symlink member rejected; dest cleaned up."""
+    """Symlink member rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="link")
     info.type = tarfile.SYMTYPE
     info.linkname = "/etc/passwd"
@@ -467,7 +467,7 @@ def test_safe_extract_symlink(tmp_path: Path):
 
 
 def test_safe_extract_hard_link(tmp_path: Path):
-    """AC19: hard link member rejected; dest cleaned up."""
+    """Hard link member rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="hardlink")
     info.type = tarfile.LNKTYPE
     info.linkname = "target.txt"
@@ -482,7 +482,7 @@ def test_safe_extract_hard_link(tmp_path: Path):
 
 
 def test_safe_extract_device_file(tmp_path: Path):
-    """AC20: character device member rejected; dest cleaned up."""
+    """Character device member rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="device")
     info.type = tarfile.CHRTYPE
     data, _ = _make_tarball_with_member(info)
@@ -496,7 +496,7 @@ def test_safe_extract_device_file(tmp_path: Path):
 
 
 def test_safe_extract_fifo(tmp_path: Path):
-    """AC20: FIFO member rejected; dest cleaned up."""
+    """FIFO member rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="fifo")
     info.type = tarfile.FIFOTYPE
     data, _ = _make_tarball_with_member(info)
@@ -510,7 +510,7 @@ def test_safe_extract_fifo(tmp_path: Path):
 
 
 def test_safe_extract_too_many_members(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """AC14: more than _MAX_MEMBERS members rejected; dest cleaned up."""
+    """More than _MAX_MEMBERS members rejected; dest cleaned up."""
     monkeypatch.setattr(https_catalogue, "_MAX_MEMBERS", 2)
     # Create archive with 3 members
     archive = _write_tarball(
@@ -525,7 +525,7 @@ def test_safe_extract_too_many_members(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 def test_safe_extract_too_large_expanded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """AC15: total expanded bytes exceeding limit rejected; dest cleaned up."""
+    """Total expanded bytes exceeding limit rejected; dest cleaned up."""
     monkeypatch.setattr(https_catalogue, "_MAX_EXPANDED_BYTES", 5)
     # Create archive with a file larger than 5 bytes
     archive = _write_tarball(tmp_path / "in", [("big.txt", b"0123456789")])
@@ -542,7 +542,7 @@ def test_safe_extract_too_large_expanded(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def test_stream_and_verify_sha256_match(tmp_path: Path):
-    """AC6: SHA-256 match — returns path to temp file."""
+    """SHA-256 match — returns path to temp file."""
     data, sha256 = _make_tarball(("hello.txt", b"world"))
     opener = _MockOpener(data)
     result = _stream_and_verify("https://example.test/archive.tar.gz", sha256, opener, 30)
@@ -554,7 +554,7 @@ def test_stream_and_verify_sha256_match(tmp_path: Path):
 
 
 def test_stream_and_verify_sha256_mismatch():
-    """AC7: SHA-256 mismatch fails before extraction; error names both digests."""
+    """SHA-256 mismatch fails before extraction; error names both digests."""
     data, real_sha256 = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
     opener = _MockOpener(data)
@@ -566,7 +566,7 @@ def test_stream_and_verify_sha256_mismatch():
 
 
 def test_stream_and_verify_sha256_mismatch_cleans_up():
-    """AC7 + AC28: temp file cleaned up on digest mismatch."""
+    """Temp file cleaned up on digest mismatch."""
     data, _ = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
     opener = _MockOpener(data)
@@ -577,7 +577,7 @@ def test_stream_and_verify_sha256_mismatch_cleans_up():
 
 
 def test_stream_and_verify_too_large(monkeypatch: pytest.MonkeyPatch):
-    """AC13: archive exceeding _MAX_ARCHIVE_BYTES rejected during streaming."""
+    """Archive exceeding _MAX_ARCHIVE_BYTES rejected during streaming."""
     monkeypatch.setattr(https_catalogue, "_MAX_ARCHIVE_BYTES", 5)
     data = b"0" * 10  # 10 bytes > 5 byte limit
     opener = _MockOpener(data)
@@ -598,7 +598,7 @@ def test_stream_and_verify_fetch_error_propagates():
 
 
 def test_fetch_bytes_limited_within_limit():
-    """AC26: descriptor within size limit fetched successfully."""
+    """Descriptor within size limit fetched successfully."""
     data = b"x" * 100
     opener = _MockOpener(data)
     result = _fetch_bytes_limited("https://example.test/descriptor.json", opener, 200, 30)
@@ -606,7 +606,7 @@ def test_fetch_bytes_limited_within_limit():
 
 
 def test_fetch_bytes_limited_exceeds_limit():
-    """AC26: descriptor exceeding limit rejected before JSON parse."""
+    """Descriptor exceeding limit rejected before JSON parse."""
     data = b"x" * 11
     opener = _MockOpener(data)
     with pytest.raises(CatalogueError, match="byte limit"):
@@ -626,7 +626,7 @@ def test_fetch_bytes_limited_error_propagates():
 
 
 def test_build_opener_uses_proxy_handler(monkeypatch: pytest.MonkeyPatch):
-    """AC23: _build_opener creates opener via ProxyHandler (verifies correct class used)."""
+    """_build_opener creates opener via ProxyHandler (verifies correct class used)."""
     # Set a proxy so ProxyHandler registers its protocol-specific open methods
     # (ProxyHandler only appears in opener.handlers when proxies are configured,
     # because it generates <scheme>_open methods dynamically at __init__ time).
@@ -645,7 +645,7 @@ def test_build_opener_no_http_handler():
 
 
 def test_proxy_env_honored(monkeypatch: pytest.MonkeyPatch):
-    """AC23: HTTPS_PROXY env var is read by ProxyHandler."""
+    """HTTPS_PROXY env var is read by ProxyHandler."""
     monkeypatch.setitem(os.environ, "HTTPS_PROXY", "http://proxy.example.test:3128")
     monkeypatch.delitem(os.environ, "NO_PROXY", raising=False)
     opener = _build_opener(None, "https://example.test/stable.json")
@@ -656,7 +656,7 @@ def test_proxy_env_honored(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_no_proxy_honored(monkeypatch: pytest.MonkeyPatch):
-    """AC23: NO_PROXY env var is read by ProxyHandler."""
+    """NO_PROXY env var is read by ProxyHandler."""
     monkeypatch.setitem(os.environ, "HTTPS_PROXY", "http://proxy.example.test:3128")
     monkeypatch.setitem(os.environ, "NO_PROXY", "example.test")
     opener = _build_opener(None, "https://example.test/stable.json")
@@ -672,7 +672,7 @@ def test_no_proxy_honored(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_bearer_token_in_request():
-    """AC21: Authorization: Bearer header present in request when token is set."""
+    """Authorization: Bearer header present in request when token is set."""
     opener = _build_opener("test-token-12345", "https://example.test/stable.json")
     req = _make_request("https://example.test/stable.json", opener)
     assert req.get_header("Authorization") == "Bearer test-token-12345"
@@ -686,7 +686,7 @@ def test_no_bearer_token_no_auth_header():
 
 
 def test_bearer_token_absent_from_errors():
-    """AC22: bearer token value does not appear in any CatalogueError message."""
+    """Bearer token value does not appear in any CatalogueError message."""
     secret_token = "super-secret-bearer-99999"
     data, real_sha256 = _make_tarball(("hello.txt", b"world"))
     wrong_sha256 = "b" * 64
@@ -710,7 +710,7 @@ def _mock_req(url: str) -> urllib.request.Request:
 
 
 def test_redirect_to_http_rejected():
-    """AC21b: redirect to http:// rejected regardless of token."""
+    """Redirect to http:// rejected regardless of token."""
     handler = _OriginLockingRedirectHandler("https://example.test/stable.json")
     with pytest.raises(CatalogueError, match="HTTPS-only"):
         handler.redirect_request(
@@ -720,7 +720,7 @@ def test_redirect_to_http_rejected():
 
 
 def test_redirect_with_user_info_rejected():
-    """AC21c: redirect URL containing user-info rejected."""
+    """Redirect URL containing user-info rejected."""
     handler = _OriginLockingRedirectHandler("https://example.test/stable.json")
     with pytest.raises(CatalogueError, match="user-info"):
         handler.redirect_request(
@@ -730,7 +730,7 @@ def test_redirect_with_user_info_rejected():
 
 
 def test_cross_origin_redirect_rejected_different_host():
-    """AC21d: redirect to a different host (different origin) rejected."""
+    """Redirect to a different host (different origin) rejected."""
     handler = _OriginLockingRedirectHandler("https://example.test/stable.json")
     with pytest.raises(CatalogueError, match="cross-origin"):
         handler.redirect_request(
@@ -740,7 +740,7 @@ def test_cross_origin_redirect_rejected_different_host():
 
 
 def test_cross_origin_redirect_rejected_different_port():
-    """AC21d: redirect to same host but different port (different origin) rejected."""
+    """Redirect to same host but different port (different origin) rejected."""
     handler = _OriginLockingRedirectHandler("https://example.test:443/stable.json")
     with pytest.raises(CatalogueError, match="cross-origin"):
         handler.redirect_request(
@@ -750,7 +750,7 @@ def test_cross_origin_redirect_rejected_different_port():
 
 
 def test_same_origin_anchor_is_originally_requested():
-    """AC21d: same-origin anchor is the originally-requested URL.
+    """Same-origin anchor is the originally-requested URL.
 
     If a redirect goes to a same-origin path, the artifact URL must be
     resolved against the ORIGINALLY-requested descriptor URL, not the
@@ -770,7 +770,7 @@ def test_same_origin_anchor_is_originally_requested():
 
 
 def test_fetch_catalogue_archive_catalogue_https(tmp_path: Path):
-    """AC6: catalogue+https:// end-to-end: descriptor → artifact → extract."""
+    """End-to-end `catalogue+https://`: descriptor → artifact → extract."""
     archive_data, archive_sha256 = _make_tarball(("pack.txt", b"pack content"))
 
     descriptor = {
@@ -802,7 +802,7 @@ def test_fetch_catalogue_archive_catalogue_https(tmp_path: Path):
 
 
 def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
-    """AC24: archive+https:// — no descriptor fetch, directly streams + extracts."""
+    """An `archive+https://` URI skips the descriptor fetch and streams directly."""
     archive_data, archive_sha256 = _make_tarball(("pack.txt", b"direct content"))
     archive_tmp = tmp_path / "archive.tar.gz"
     archive_tmp.write_bytes(archive_data)
@@ -821,7 +821,7 @@ def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
 
 
 def test_fetch_catalogue_archive_minimum_version_rejected():
-    """AC11: minimum_agentbundle_version newer than running version fails before download."""
+    """A `minimum_agentbundle_version` newer than the running version fails before download."""
     descriptor = {
         **_VALID_DESCRIPTOR,
         "minimum_agentbundle_version": "999.0.0",
@@ -841,7 +841,7 @@ def test_fetch_catalogue_archive_minimum_version_rejected():
 
 
 def test_fetch_catalogue_archive_temp_dir_cleaned_on_digest_mismatch():
-    """AC28: temp dir cleaned up when SHA-256 verification fails after extraction."""
+    """Temp dir cleaned up when SHA-256 verification fails after extraction."""
     descriptor = {**_VALID_DESCRIPTOR, "sha256": "a" * 64}
     descriptor_data = json.dumps(descriptor).encode()
 
@@ -864,13 +864,13 @@ def test_fetch_catalogue_archive_unsupported_scheme():
 
 
 def test_fetch_catalogue_archive_archive_https_no_sha256_fragment():
-    """archive+https:// without sha256 fragment raises CatalogueError."""
+    """An `archive+https://` URI without a sha256 fragment raises CatalogueError."""
     with pytest.raises(CatalogueError, match="sha256"):
         fetch_catalogue_archive("archive+https://example.test/release.tar.gz")
 
 
 def test_bearer_token_passed_to_opener():
-    """AC21: bearer token from env passed to opener (not forwarded cross-origin)."""
+    """Bearer token from env passed to opener (not forwarded cross-origin)."""
     descriptor_data = json.dumps({**_VALID_DESCRIPTOR, "sha256": "a" * 64}).encode()
 
     captured_env = {}
@@ -899,7 +899,7 @@ def test_bearer_token_passed_to_opener():
 
 
 def test_timeout_constant_is_finite():
-    """AC27: _HTTP_TIMEOUT is a positive finite integer."""
+    """_HTTP_TIMEOUT is a positive finite integer."""
     from agentbundle.https_catalogue import _HTTP_TIMEOUT
     assert isinstance(_HTTP_TIMEOUT, int)
     assert _HTTP_TIMEOUT > 0
@@ -907,7 +907,7 @@ def test_timeout_constant_is_finite():
 
 
 def test_timeout_passed_to_opener():
-    """AC27: _fetch_bytes_limited and _stream_and_verify pass timeout to opener.open."""
+    """_fetch_bytes_limited and _stream_and_verify pass timeout to opener.open."""
     data = b"x" * 5
     captured = {}
 
@@ -923,12 +923,12 @@ def test_timeout_passed_to_opener():
 
 
 # ---------------------------------------------------------------------------
-# T2 — stdlib-only check (AC30, AC37)
+# T2 — stdlib-only check
 # ---------------------------------------------------------------------------
 
 
 def test_stdlib_only():
-    """AC30 + AC37: https_catalogue.py imports no non-stdlib modules."""
+    """https_catalogue.py imports no non-stdlib modules."""
     result = subprocess.run(
         [sys.executable, "-c", "import agentbundle.https_catalogue"],
         capture_output=True,
@@ -945,12 +945,12 @@ def test_stdlib_only():
 
 
 # ---------------------------------------------------------------------------
-# T2 — no real endpoints in tests (AC29)
+# T2 — no real endpoints in tests
 # ---------------------------------------------------------------------------
 
 
 def test_no_real_endpoints_in_test_file():
-    """AC29: no real org endpoint URL strings in test assertions.
+    """No real org endpoint URL strings in test assertions.
 
     Checks that no string literals used as URL arguments to https_catalogue
     functions reference real domains — only example.test or localhost.
@@ -980,21 +980,21 @@ def test_no_real_endpoints_in_test_file():
 
 
 def test_resolve_catalogue_http_explicit_arg_rejected():
-    """AC34: catalogue+http:// rejected by resolve_catalogue with HTTPS-only error."""
+    """catalogue+http:// rejected by resolve_catalogue with HTTPS-only error."""
     from agentbundle.catalogue import resolve_catalogue
     with pytest.raises(CatalogueError, match="HTTPS-only"):
         resolve_catalogue("catalogue+http://example.test/stable.json")
 
 
 def test_resolve_catalogue_archive_http_explicit_arg_rejected():
-    """AC34: archive+http:// rejected by resolve_catalogue with HTTPS-only error."""
+    """archive+http:// rejected by resolve_catalogue with HTTPS-only error."""
     from agentbundle.catalogue import resolve_catalogue
     with pytest.raises(CatalogueError, match="HTTPS-only"):
         resolve_catalogue("archive+http://example.test/release.tar.gz")
 
 
 def test_resolve_catalogue_catalogue_https_dispatches(tmp_path: Path):
-    """AC6: resolve_catalogue dispatches catalogue+https:// to fetch_catalogue_archive."""
+    """resolve_catalogue dispatches catalogue+https:// to fetch_catalogue_archive."""
     from agentbundle.catalogue import resolve_catalogue
     fake_dir = tmp_path / "extracted"
     fake_dir.mkdir()
@@ -1005,7 +1005,7 @@ def test_resolve_catalogue_catalogue_https_dispatches(tmp_path: Path):
 
 
 def test_resolve_catalogue_archive_https_dispatches(tmp_path: Path):
-    """AC24: resolve_catalogue dispatches archive+https:// to fetch_catalogue_archive."""
+    """resolve_catalogue dispatches archive+https:// to fetch_catalogue_archive."""
     from agentbundle.catalogue import resolve_catalogue
     fake_dir = tmp_path / "extracted"
     fake_dir.mkdir()
@@ -1017,7 +1017,7 @@ def test_resolve_catalogue_archive_https_dispatches(tmp_path: Path):
 
 
 def test_resolve_catalogue_existing_git_https_unchanged():
-    """AC31: existing git+https:// dispatch still works (no regression)."""
+    """Existing git+https:// dispatch still works (no regression)."""
     from agentbundle.catalogue import resolve_catalogue
     with mock.patch("agentbundle.catalogue._resolve_https", return_value=Path("/fake")) as m:
         resolve_catalogue("git+https://github.com/example/repo")
@@ -1025,7 +1025,7 @@ def test_resolve_catalogue_existing_git_https_unchanged():
 
 
 def test_resolve_catalogue_http_error_is_https_only_message():
-    """AC34: the HTTPS-only error message is clear (not a path-not-found error)."""
+    """The HTTPS-only error message is clear (not a path-not-found error)."""
     from agentbundle.catalogue import resolve_catalogue
     with pytest.raises(CatalogueError) as exc:
         resolve_catalogue("catalogue+http://example.test/stable.json")

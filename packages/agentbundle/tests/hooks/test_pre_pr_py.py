@@ -38,7 +38,7 @@ CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
 
 def test_catalogue_hook_runs_core_checks_and_delegates() -> None:
-    """AC3: the repo-native catalogue hook runs the core check set, then delegates
+    """The repo-native catalogue hook runs the core check set, then delegates
     to the shipped pre-pr.py. Agent-artifact, seeds, credentialed-skill, and
     profiles checks are now covered by agentbundle catalogue verify/lint."""
     src = CATALOGUE_HOOK.read_text(encoding="utf-8")
@@ -107,7 +107,7 @@ def _run(cwd: Path) -> subprocess.CompletedProcess:
     )
 
 
-# --- AC1: the shipped hook references no catalogue check ----------------------
+# --- The shipped hook references no catalogue check ---------------------------
 
 def test_shipped_pre_pr_references_no_catalogue_checks() -> None:
     src = HOOK.read_text(encoding="utf-8")
@@ -133,7 +133,7 @@ def test_shipped_pre_pr_runs_no_linter_labels(sandbox: Path) -> None:
     assert "pre-pr: all checks passed" in result.stdout
 
 
-# --- AC2: graceful in an adopter-shaped tree (no catalogue tooling) -----------
+# --- Graceful in an adopter-shaped tree (no catalogue tooling) ----------------
 
 def test_pre_pr_adopter_tree_no_tooling_is_graceful(tmp_path: Path) -> None:
     """An adopter tree with no catalogue linters and no active specs → exit 0."""
@@ -163,7 +163,7 @@ def test_pre_pr_fails_on_unapproved_state(sandbox: Path) -> None:
 
 
 def test_pre_pr_passes_on_approved_state(sandbox: Path) -> None:
-    """AC2 positive path: an active, healthy (approved) state → loop-cohort runs
+    """Positive path: an active, healthy (approved) state → loop-cohort runs
     and the hook exits 0. Guards against a regression that crashes/mis-handles a
     healthy active spec (which the unapproved-state test wouldn't catch)."""
     spec_dir = sandbox / "docs" / "specs" / "example"

@@ -1,4 +1,4 @@
-# RFC-0002 recipe: compose a single AGENTS.md from each pack's
+# Self-host recipe: compose a single AGENTS.md from each pack's
 # seeds/AGENTS.fragment.md, concatenated in declared order.
 
 [recipe]

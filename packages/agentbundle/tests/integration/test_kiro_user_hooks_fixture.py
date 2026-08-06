@@ -3,10 +3,10 @@
 
 Same shape as the repo-scope test, except ``$HOME`` is redirected to
 a ``tmp_path`` and the agent JSON lands under
-``$HOME/.kiro/agents/<agent>.json`` per RFC-0005 § `[adapter.kiro.scope]`.
+``$HOME/.kiro/agents/<agent>.json`` per `[adapter.kiro.scope]`.
 
-AC coverage: AC18 (dispatchability shape — `sh -c "$command"` resolves
-the projected hook body), plus the same AC15/AC19 shapes the repo
+Coverage: the dispatchability shape (`sh -c "$command"` resolves
+the projected hook body), plus the same shapes the repo
 test pins.
 """
 
@@ -84,7 +84,7 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
         self.assertNotIn("agentSpawn", data.get("hooks", {}))
 
     def test_no_writes_outside_redirected_home(self) -> None:
-        """AC29 shape: every write lands inside the tmp-scoped $HOME."""
+        """Shape: every write lands inside the tmp-scoped $HOME."""
         from agentbundle.build.projections.merge_into_agent_json import project
 
         wiring = _load_wiring_tomls(KIRO_USER_HOOKS)
@@ -98,14 +98,14 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
         self.assertEqual(artifacts, [".kiro/agents/reviewer.json"])
 
     def test_dispatchable_command_after_merge(self) -> None:
-        """AC18: the projected hook entry's `command` field must
+        """The projected hook entry's `command` field must
         dispatch via `sh -c "$command"` from any working directory.
         T8b's resolver substitutes `$HOOK_BODY_PATH` with the resolved
         absolute path; we simulate that here by substituting the
         placeholder in the wiring before merge, then merging, then
         reading the merged `command` back and dispatching it. This
-        closes the loop that AC18 demands: the byte path running
-        through is `wiring TOML → merge → merged JSON → sh -c → exit 0`.
+        closes the dispatchability loop: the byte path running through is
+        `wiring TOML → merge → merged JSON → sh -c → exit 0`.
         """
         from agentbundle.build.projections.merge_into_agent_json import project
 
@@ -137,7 +137,7 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
             return
         # Read the merged command back from the on-disk agent JSON and
         # dispatch it. Run from an arbitrary cwd (the tmp root, not the
-        # hook body's directory) to satisfy AC18's "from any working
+        # hook body's directory) to satisfy the "from any working
         # directory" clause.
         result = subprocess.run(
             ["sh", "-c", command],

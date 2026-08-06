@@ -1,12 +1,12 @@
-"""T1: pack.schema.json — local scope schema constraints (RFC-0080 AC1).
+"""T1: pack.schema.json — local scope schema constraints.
 
 Verifies:
-  AC1a — allowed-scopes items enum includes "local".
-  AC1b — allOf constraint: allowed-scopes = ["local"] (no "repo") fails validation.
-  AC1c — allOf constraint: allowed-scopes = ["user", "local"] (has "local" but not
+  Allowed-scopes items enum includes "local".
+  AllOf constraint: allowed-scopes = ["local"] (no "repo") fails validation.
+  AllOf constraint: allowed-scopes = ["user", "local"] (has "local" but not
           "repo") fails validation.
-  AC1d — allowed-scopes = ["repo", "local"] passes validation.
-  AC1e — existing packs (repo-only allowed-scopes) still pass.
+  Allowed-scopes = ["repo", "local"] passes validation.
+  Existing packs (repo-only allowed-scopes) still pass.
   parity — both schema copies are byte-identical.
 """
 
@@ -58,37 +58,37 @@ def _validate(instance: dict) -> list[str]:
 
 
 def test_local_in_allowed_scopes_items():
-    """AC1a: 'local' is a valid item in allowed-scopes."""
+    """`"local"` is a valid item in allowed-scopes."""
     errors = _validate(_base_pack(["repo", "local"]))
     assert errors == [], f"Expected no errors, got: {errors}"
 
 
 def test_local_without_repo_fails():
-    """AC1b: allowed-scopes = ['local'] (no 'repo') fails the allOf constraint."""
+    """Allowed-scopes = ['local'] (no 'repo') fails the allOf constraint."""
     errors = _validate(_base_pack(["local"]))
     assert errors, "Expected validation error for allowed-scopes=['local'] without 'repo'"
 
 
 def test_user_and_local_without_repo_fails():
-    """AC1c: allowed-scopes = ['user', 'local'] (no 'repo') fails."""
+    """Allowed-scopes = ['user', 'local'] (no 'repo') fails."""
     errors = _validate(_base_pack(["user", "local"]))
     assert errors, "Expected validation error for ['user', 'local'] without 'repo'"
 
 
 def test_repo_and_local_passes():
-    """AC1d: allowed-scopes = ['repo', 'local'] passes."""
+    """Allowed-scopes = ['repo', 'local'] passes."""
     errors = _validate(_base_pack(["repo", "local"]))
     assert errors == [], f"Expected no errors for ['repo', 'local'], got: {errors}"
 
 
 def test_repo_only_still_passes():
-    """AC1e: existing repo-only packs are unaffected."""
+    """Existing repo-only packs are unaffected."""
     errors = _validate(_base_pack(["repo"]))
     assert errors == [], f"Expected no errors for existing repo-only pack, got: {errors}"
 
 
 def test_schema_parity():
-    """AC1: both schema copies are byte-identical."""
+    """Both schema copies are byte-identical."""
     assert PACK_SCHEMA_PATH.exists()
     assert DATA_PACK_SCHEMA_PATH.exists()
     assert PACK_SCHEMA_PATH.read_bytes() == DATA_PACK_SCHEMA_PATH.read_bytes(), (

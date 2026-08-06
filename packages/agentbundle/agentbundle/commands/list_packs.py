@@ -36,7 +36,7 @@ def run(args: argparse.Namespace) -> int:
     from agentbundle.config import ConfigError, load_pack_toml
 
     # ── Resolve catalogue URI ──────────────────────────────────────────────────
-    # RFC-0047: default the source through the same four-layer chain as
+    # Default the source through the same four-layer chain as
     # install/upgrade when the `catalogue` positional is omitted.
     try:
         catalogue_uri: str = resolve_catalogue_uri(args)
@@ -115,7 +115,7 @@ def _render_identity(pack: dict) -> str:
     the bare `<name>` otherwise. **Declare-only**: this is a presentation
     helper — it performs no catalogue resolution and does not touch
     ``catalogue.py``. Single-catalogue resolution in ``list-packs`` /
-    ``install`` is unchanged (RFC-0031 D7).
+    ``install`` is unchanged.
     """
     name = pack.get("name", "")
     catalogue = pack.get("catalogue")

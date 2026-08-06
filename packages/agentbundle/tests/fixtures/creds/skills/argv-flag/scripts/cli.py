@@ -1,4 +1,4 @@
-"""argv-flag fixture: the AC26(b) trigger — direct `--token` literal."""
+"""argv-flag fixture: the trigger — direct `--token` literal."""
 from __future__ import annotations
 
 import argparse

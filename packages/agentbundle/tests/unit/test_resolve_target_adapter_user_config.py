@@ -4,9 +4,8 @@ The pre-flight is inserted between Step 2 (state-hint short-circuit)
 and Step 3+4 (contract-version gate), only when `state_adapter is
 None`. It either returns the configured candidate (admissible at
 scope and in pack `allowed_adapters`) or raises
-`_AdapterResolutionRefused` with the AC13 / AC14 message.
+`_AdapterResolutionRefused` with the message.
 
-See `docs/specs/agentbundle-config-subcommand/spec.md` AC11–AC14.
 Tests use the existing `fake_home` pattern from
 `test_resolve_user_scope_target_adapter.py` to control `Path.home()`
 and create real probe-detectable directories — no `_probes` test
@@ -173,17 +172,17 @@ def test_probe_still_wins_when_user_config_none(
 
 
 # ---------------------------------------------------------------------------
-# Pre-flight refuses scope-incapable configured adapter (AC13)
+# Pre-flight refuses scope-incapable configured adapter
 # ---------------------------------------------------------------------------
 
 
 def test_preflight_refuses_copilot_at_user_scope(
     tmp_path: Path, fake_home: Path
 ) -> None:
-    # RFC-0024 / copilot-full-parity: copilot is now user-scope-capable, so a
+    # Copilot is now user-scope-capable, so a
     # configured `adapter = "copilot"` is **admitted** at user scope — the v0.7
     # "not supported at user scope" refusal this test pinned is superseded. Name
-    # preserved to keep the diff small. (The AC13 refusal-message machinery is
+    # preserved to keep the diff small. (The refusal-message machinery is
     # still covered by the pack-exclusion tests below.)
     pack = _pack(tmp_path)
     result = _resolve_target_adapter(
@@ -197,7 +196,7 @@ def test_preflight_refuses_copilot_at_user_scope(
 
 
 # ---------------------------------------------------------------------------
-# Pre-flight refuses pack-incompatible configured adapter (AC14)
+# Pre-flight refuses pack-incompatible configured adapter
 # ---------------------------------------------------------------------------
 
 
@@ -214,7 +213,7 @@ def test_preflight_refuses_when_pack_excludes_user_config(
             user_config=UserConfig(adapter="codex"),
         )
     msg = str(excinfo.value)
-    # AC14 message contract:
+    # Message contract:
     assert "not supported with your configured adapter" in msg
     assert "codex" in msg
     assert pack.name in msg  # pack name in message
@@ -234,7 +233,7 @@ def test_state_inadmissible_pre_flight_skips(
     tmp_path: Path, fake_home: Path
 ) -> None:
     """When state_adapter is set (admissible or not), the pre-flight
-    is a no-op — user-config doesn't fire AC14 for a state-pin
+    is a no-op — user-config doesn't fire the refusal for a state-pin
     problem. Setup: no probe-detectable IDE markers under fake_home,
     so Step 4 falls through to `allowed_adapters[0]`. upgrade.py's
     cross-adapter refusal is the layer that would then raise — but

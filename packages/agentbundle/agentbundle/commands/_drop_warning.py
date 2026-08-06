@@ -4,7 +4,6 @@ Owns the per-file hook-wiring enumerator and the unified formatter that
 produces both the install-time ``warning:`` line and the validate-time
 ``info:`` line.
 
-docs/specs/incompatible-hook-event-drop AC6 / AC6b / AC6c / AC7.
 """
 
 from __future__ import annotations
@@ -77,7 +76,6 @@ def enumerate_event_dropped_wirings(
 ) -> list[tuple[str, str]]:
     """Return per-file hook-wiring drops as ``(relpath, reason_category)`` pairs.
 
-    AC6 / AC6b / AC6c of spec incompatible-hook-event-drop.
 
     Walk semantics:
       Step 1 (type-level gate): if hook-wiring is ``mode = "dropped"``
@@ -88,11 +86,11 @@ def enumerate_event_dropped_wirings(
         2a (vocab check): if the adapter declares ``agent-event-vocabulary``
           and any ``[[hooks.<EventName>]]`` event-name isn't in the vocab,
           append one drop entry per file (break after first — one entry per
-          file per reason category, AC6 dedup).
+          file per reason category, deduplicated).
         2b (attach-to-agent, kiro-only): if ``attach-to-agent`` is omitted
           or empty (truthy check), append ``(relpath,
           "kiro requires 'attach-to-agent'")``.
-        Parse-fail (AC6c): on ``tomllib.TOMLDecodeError`` or ``OSError``,
+        Parse-fail: on ``tomllib.TOMLDecodeError`` or ``OSError``,
           append ``(relpath, "hook-wiring TOML failed to parse")``.
     """
     # Step 1: gate on non-dropped type.
@@ -120,7 +118,7 @@ def enumerate_event_dropped_wirings(
         try:
             data = tomllib.loads(text)
         except tomllib.TOMLDecodeError:
-            # AC6c: install-time emits a parse-fail drop entry;
+            # Install-time emits a parse-fail drop entry;
             # validate-time refuses earlier (separate code path).
             drops.append((relpath, "hook-wiring TOML failed to parse"))
             continue
@@ -132,10 +130,10 @@ def enumerate_event_dropped_wirings(
                 for event_name in sorted(events.keys()):
                     if event_name not in vocab:
                         drops.append((relpath, "event not in adapter vocabulary"))
-                        break  # one entry per file per reason category (AC6 dedup)
+                        break  # one entry per file per reason category (dedup)
 
         # Step 2b: attach-to-agent check (kiro-only, presence-only).
-        # AC4b carve-out: non-empty unknown-agent references remain
+        # Carve-out: non-empty unknown-agent references remain
         # validate-time refusals; omitted-or-empty both flow here as
         # install-side drops. The validate side refuses on attach = ""
         # per the test pin, but install-side enumerator treats
@@ -191,7 +189,7 @@ def _join_serial_comma_files(items: list[str]) -> str:
     """File-list variant: always uses serial comma (Oxford comma) before
     ``and``, including for two-item lists.
 
-    AC2 pins the two-file form as ``"a, and b"`` (comma before "and")
+    The two-file form is ``"a, and b"`` (comma before "and")
     — differs from the compatible-list formatter which uses ``"a and b"``
     for two items. Isolating the file-list join prevents the two
     contracts from drifting if either is changed independently.
@@ -235,14 +233,14 @@ def format_drop_message(
 ) -> str:
     """Build the drop warning / info message.
 
-    ``install_warning`` mode composes the three-clause grammar per
-    spec AC7 + AC10's "Pinned wording":
+    ``install_warning`` mode composes the three-clause grammar.
+    Pinned wording:
       - Primitive-type clause (when ``dropped_counts`` non-empty).
       - Event-level clause (when ``event_drops`` non-empty), prefixed
         ``Additionally, `` when primitive clause also present.
       - Closing clause (when either prior fired).
 
-    ``validate_info`` mode (AC2):
+    ``validate_info`` mode:
       - Ignores ``dropped_counts`` and ``compatible_types``.
       - Raises ``ValueError`` if ``dropped_counts`` is non-empty.
       - Raises ``ValueError`` if ``event_drops`` is empty.

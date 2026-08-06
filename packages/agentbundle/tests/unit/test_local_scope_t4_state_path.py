@@ -1,6 +1,6 @@
 """T4: _common.py — resolve_state_path handles 'local' scope.
 
-Verifies AC6: resolve_state_path("local", root) returns
+Verifies that resolve_state_path("local", root) returns
 root / ".agentbundle-local-state.toml".
 """
 
@@ -12,7 +12,7 @@ from agentbundle.commands._common import resolve_state_path
 
 
 def test_resolve_state_path_local():
-    """AC6: local scope → .agentbundle-local-state.toml in repo root."""
+    """Local scope → .agentbundle-local-state.toml in repo root."""
     root = Path("/repo")
     assert resolve_state_path("local", root) == Path("/repo/.agentbundle-local-state.toml")
 

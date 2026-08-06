@@ -1,6 +1,6 @@
-"""AC8 stub conformance — research-pack retriever scripts.
+"""Stub conformance — research-pack retriever scripts.
 
-The spec's AC8 names a "stub conformance check" that imports each
+The spec names a "stub conformance check" that imports each
 example retriever and confirms `retrieve(query)` exists. This file
 implements that check, plus a small description-token regression
 test that catches the most common mode-dispatch misfire pattern
@@ -15,7 +15,7 @@ contract (three keys; shape in the enumerated set).
 Description side: reads packs/desk-research/.apm/skills/desk-research/SKILL.md,
 asserts the description contains the casual cue tokens and the
 explicit-default wording. The runtime mode-misfire itself is only
-catchable in manual QA (per spec AC11); this catches the regression
+catchable in manual QA; this catches the regression
 where the description wording — which is the load-bearing dispatcher
 signal — gets diluted in a future edit.
 """
@@ -159,7 +159,7 @@ class PerplexityRetrieverConformance(unittest.TestCase):
 class ResearchSkillDescriptionRegression(unittest.TestCase):
     """The /desk-research SKILL.md description's wording is load-bearing —
     it's the dispatcher signal that biases between quick / standard /
-    deep modes. AC11 enforces the behavior via manual QA; this test
+    deep modes. The behavior is enforced via manual QA; this test
     catches the most common regression (description "cleanup" that
     drops the casual-cue tokens or the explicit-default wording)."""
 
@@ -171,14 +171,14 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
         self.description = m.group(1)
 
     def test_casual_cue_tokens_present(self) -> None:
-        # AC11's casual-phrasing set; at least these three must
+        # The casual-phrasing set; at least these three must
         # appear in the description verbatim.
         for token in ("look up", "find out", "quick check"):
             self.assertIn(
                 token,
                 self.description,
                 f"description missing casual-cue token {token!r} "
-                f"— AC11 dispatcher bias depends on this",
+                f"— dispatcher bias depends on this",
             )
 
     def test_default_wording_present(self) -> None:
@@ -188,13 +188,13 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
             self.description,
             r"as default|default.*quick|quick.*default",
             "description missing explicit default-mode wording "
-            "— AC11 bias requires `quick` named as default",
+            "— bias requires `quick` named as default",
         )
 
     def test_standard_or_deep_cue_tokens_present(self) -> None:
         # At least one standard/deep cue must appear so the description
         # biases away from quick on the academic-discipline side. The
-        # tuple is the canonical contract — Always-do / AC11 / AC28
+        # tuple is the canonical contract — the always-do set
         # single-source the closed set from this test method.
         standard_deep_tokens = (
             "research with citations",
@@ -207,14 +207,14 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
                 return
         self.fail(
             f"description missing every standard/deep cue {standard_deep_tokens!r} "
-            f"— AC11 bias requires at least one"
+            f"— bias requires at least one"
         )
 
     def test_applied_cue_tokens_present(self) -> None:
-        # At least one applied cue from AC28's closed four-cue set
+        # At least one applied cue from the closed four-cue set
         # must appear so the description biases practitioner-
         # discipline dispatch. Phrase-shaped tokens only — the bare
-        # token `applied` was deliberately excluded from AC28's
+        # token `applied` was deliberately excluded from the
         # closed set to refuse incidental academic mentions
         # ("GRADE has been applied to clinical reviewing").
         applied_tokens = (
@@ -228,7 +228,7 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
                 return
         self.fail(
             f"description missing every applied cue {applied_tokens!r} "
-            f"— AC11 bias requires at least one"
+            f"— bias requires at least one"
         )
 
 

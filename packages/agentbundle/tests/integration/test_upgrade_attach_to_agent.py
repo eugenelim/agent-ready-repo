@@ -1,6 +1,6 @@
 """T8c: upgrade reconciliation for `attach-to-agent` rename (Kiro).
 
-Per spec AC19b: upgrading a Kiro pack whose `attach-to-agent` value
+Upgrading a Kiro pack whose `attach-to-agent` value
 changes between versions (agent renamed, removed, or added) walks
 the OLD `target-file` to remove orphan entries AND the NEW
 `target-file` to add the new entries; state's `target-file` is

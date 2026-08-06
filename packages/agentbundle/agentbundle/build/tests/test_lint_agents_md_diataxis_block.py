@@ -1,6 +1,6 @@
 """`tools/lint-agents-md.py` check #8 — the Diátaxis-structure block.
 
-After the per-pack guide migration (ADR-0020) the four Diátaxis quadrant
+After the per-pack guide migration the four Diátaxis quadrant
 directories may live either at the top level (`guides/<quadrant>/`, the
 by-quadrant scaffold an adopter installs) or under `guides/_shared/`
 (the per-pack layout this catalogue uses). The check passes in *either*

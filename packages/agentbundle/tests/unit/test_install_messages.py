@@ -1,4 +1,4 @@
-"""T7 tests for the install-time message rail (RFC-0011 / AC14, AC15).
+"""T7 tests for the install-time message rail.
 
 The two new behaviours:
 
@@ -73,7 +73,7 @@ class InstallMessageRailTests(unittest.TestCase):
         )
 
     def test_user_scope_install_emits_via_clause(self) -> None:
-        """AC14: user-scope install stdout contains `via <adapter>`."""
+        """User-scope install stdout contains `via <adapter>`."""
         (self.home / ".kiro").mkdir()
         # Pass adapter explicitly: org preferred_adapter (claude-code) takes priority
         # over probe-based auto-detection; explicit --adapter overrides it (step 1).
@@ -82,7 +82,7 @@ class InstallMessageRailTests(unittest.TestCase):
         self.assertIn("installed: converters @ user via kiro-ide", stdout)
 
     def test_user_scope_install_no_suffix_when_single_home_populated(self) -> None:
-        """AC14: no suffix when only one CLI home matches."""
+        """No suffix when only one CLI home matches."""
         (self.home / ".claude").mkdir()
         rc, stdout, _ = self._install(scope="user")
         self.assertEqual(rc, 0)
@@ -90,7 +90,7 @@ class InstallMessageRailTests(unittest.TestCase):
         self.assertNotIn("other declared adapters", stdout)
 
     def test_user_scope_install_suffix_when_multiple_homes_populated(self) -> None:
-        """AC14: suffix lists the other matching adapters when more
+        """Suffix lists the other matching adapters when more
         than one CLI home is populated and `--adapter` was not passed."""
         (self.home / ".claude").mkdir()
         (self.home / ".kiro").mkdir()
@@ -104,7 +104,7 @@ class InstallMessageRailTests(unittest.TestCase):
         )
 
     def test_user_scope_install_no_suffix_with_explicit_adapter(self) -> None:
-        """AC14: suffix omitted when `--adapter` was passed (the adopter
+        """Suffix omitted when `--adapter` was passed (the adopter
         already chose)."""
         (self.home / ".claude").mkdir()
         (self.home / ".kiro").mkdir()

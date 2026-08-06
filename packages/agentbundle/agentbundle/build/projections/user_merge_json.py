@@ -3,7 +3,7 @@
 Merges a pack's ``.apm/hook-wiring/*.toml`` content into the
 hand-edited shared ``~/.claude/settings.json`` under the ``hooks`` key,
 using **array-append-with-id** (not key-replace). The merger respects
-three boundaries documented in RFC-0005 § Merge semantics:
+three boundaries documented in the merge semantics:
 
 1. Adopter-authored keys at the top level (``theme``, ``model``,
    ``env``, ...) are never read or rewritten.
@@ -35,13 +35,13 @@ from agentbundle.build.projections.hook_id import synthesize_id
 class UserMergeRefusal(Exception):
     """Raised when ``project`` / ``unproject`` refuses to write.
 
-    The exception's string is the refuse-and-explain text RFC-0005
+    The exception's string is the refuse-and-explain text the contract
     specifies. CLI callers (T8b's install / uninstall handlers) catch
     and print to stderr without paraphrasing.
     """
 
 
-# RFC-0005 § Merge semantics: "textual equality after whitespace
+# Merge semantics: "textual equality after whitespace
 # normalisation". Collapse runs of whitespace to a single space and
 # strip leading/trailing whitespace before comparing commands.
 _WS_RE = re.compile(r"\s+")
@@ -71,7 +71,7 @@ def project(
         Iteration order is the call's order.
       force_merge: when True, an adopter-authored entry whose
         ``command`` collides with an incoming pack command is replaced
-        rather than refused (RFC-0005 § User-already-set-this-key).
+        rather than refused.
 
     Returns:
       List of ``(event, id)`` tuples reflecting every owned entry the
@@ -186,7 +186,7 @@ def unproject(target_path: Path, owned: list[tuple[str, str]]) -> None:
 
 def _load_settings(target_path: Path) -> dict:
     """Read the settings file. Returns ``{}`` for an absent file;
-    raises ``UserMergeRefusal`` with the RFC-0005 unparseable text
+    raises ``UserMergeRefusal`` with the unparseable text
     when the file exists but is not valid JSON."""
     if not target_path.exists():
         return {}
@@ -247,7 +247,7 @@ def _merge_one_entry(
 ) -> None:
     """Append, replace-in-place, or refuse for a single tagged entry.
 
-    Mutates ``event_array`` in place. Three cases per RFC-0005:
+    Mutates ``event_array`` in place. Three cases:
       1. An existing entry with the same ``id`` → replace in place
          (idempotency / reinstall).
       2. An existing entry without ``id`` whose ``command`` matches
@@ -311,7 +311,7 @@ def _atomic_write(target_path: Path, data: dict) -> None:
     # disk. Without this, a power loss between `replace()` and the
     # directory entry being flushed can leave the target absent
     # despite the rename appearing to succeed — the same byte-stability
-    # concern AC9 / AC13 pin via their "file unchanged on refusal"
+    # concern is pinned via the "file unchanged on refusal"
     # contracts. Tolerate OSError on platforms where dir-fsync is a
     # no-op (some macOS configurations).
     try:

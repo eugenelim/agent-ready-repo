@@ -1,13 +1,13 @@
-"""Tests for the eight shipped packs' v0.7 declarations (RFC-0012 /
-repo-scope-per-adapter-projection AC5-AC6).
+"""Tests for the eight shipped packs' v0.7 declarations
+(repo-scope per-adapter projection).
 
 Two cohorts:
 
   - Four user-scope-capable packs (`atlassian`, `figma`, `converters`,
     `contracts`) bump `[pack.adapter-contract] version` from 0.6 to
-    0.7. `allowed-adapters` carries the RFC-0011 three-harness set,
+    0.7. `allowed-adapters` carries the three-harness set,
     de-staled to current adapter names (`["claude-code", "kiro-ide",
-    "codex"]`) — the bare `kiro` alias was renamed by RFC-0022.
+    "codex"]`) — the bare `kiro` alias was renamed.
   - Four repo-only packs (`core`, `governance-extras`,
     `user-guide-diataxis`, `monorepo-extras`) bump from 0.2 to 0.7 —
     load-bearing per Drawback #7: without this bump the legacy
@@ -36,7 +36,7 @@ def _load_pack_toml(name: str) -> dict:
 class TestUserScopePacksV07(unittest.TestCase):
     def test_user_scope_packs_bump_to_v07(self) -> None:
         """Test name preserved across bumps; the version assertion now
-        pins v0.8 (post docs/specs/dropped-primitives-coverage T7).
+        pins v0.8 (post dropped-primitives coverage).
         See test_shipped_packs_v08_declarations.py for the load-bearing
         v0.8 pin; this preserves the structural invariant that the
         four user-scope packs all share the same contract version."""
@@ -50,14 +50,14 @@ class TestUserScopePacksV07(unittest.TestCase):
                 )
 
     def test_user_scope_packs_allowed_adapters(self) -> None:
-        """allowed-adapters started as the RFC-0011 three-harness set,
-        de-staled to current adapter names (RFC-0022 renamed bare `kiro` →
-        `kiro-ide`), then widened to add `copilot` + `cursor` by RFC-0013
-        § Errata (2026-06-12) and `gemini` by RFC-0027 / gemini-full-parity:
+        """allowed-adapters started as the three-harness set,
+        de-staled to current adapter names (the kiro split renamed bare `kiro` →
+        `kiro-ide`), then widened to add `copilot` + `cursor` by the
+        2026-06-12 errata and `gemini` by gemini full parity:
         all three full-parity adapters declare `.agentbundle/` in
         `allowed-prefixes.user` (the broker's § 4d precondition), so these
         credentialed consumer packs admit them in lockstep with
-        `credential-brokers`. Order is append-only (RFC-0011)."""
+        `credential-brokers`. Order is append-only."""
         for name in USER_SCOPE_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
@@ -73,8 +73,8 @@ class TestRepoOnlyPacksV07(unittest.TestCase):
         """Drawback #7 mitigation — without the bump the legacy
         heuristic at step 5 fires at repo scope for these packs. Test
         name preserved; version assertion pins v0.8, except `core` which
-        docs/specs/copilot-full-parity bumped to v0.10 and
-        docs/specs/copilot-skills-and-web bumps to v0.12 (its skills now project
+        copilot full parity bumped to v0.10 and copilot skills and web
+        bumps to v0.12 (its skills now project
         as first-class Copilot Agent Skills)."""
         expected = {
             "core": "0.12",

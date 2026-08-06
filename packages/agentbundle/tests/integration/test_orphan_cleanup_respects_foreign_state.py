@@ -234,9 +234,9 @@ def test_orphan_refusal_does_not_cite_foreign_owned_paths(tmp_path):
     not in err`` regardless of whether the refusal message fires, so a
     future stderr rewording can't make this test silently vacuous.
     """
-    # RFC-0052 update: two *different* packs that ship the same primitive
+    # Two *different* packs that ship the same primitive
     # name land on the same per-IDE path — which is now a genuine **cross-pack
-    # footprint conflict** (ADR-0039: a cross-pack same-path claim is refused,
+    # footprint conflict** (a cross-pack same-path claim is refused,
     # even at equal content). The footprint gate fires *before* the orphan
     # scan, so the historical orphan-refusal-misattribution scenario can no
     # longer arise via two same-path packs; the cross-pack conflict is the

@@ -1,6 +1,6 @@
 """T5: install-gate enforcement for [pack.dependencies.required].
 
-AC17: The install command reads [pack.dependencies.required] from the
+The install command reads [pack.dependencies.required] from the
 installing pack's manifest and resolves each entry against the union of
 repo-scope and user-scope state files. Missing or out-of-range required
 packs cause a non-zero exit with spec-mandated stderr.

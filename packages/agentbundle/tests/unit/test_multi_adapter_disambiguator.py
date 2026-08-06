@@ -1,4 +1,4 @@
-"""T4: multi-adapter disambiguator names each adapter's version (AC8).
+"""T4: multi-adapter disambiguator names each adapter's version.
 
 `upgrade`, `diff`, and `uninstall` all refuse with "pass --adapter" when a pack
 is installed for more than one adapter at the resolved scope and none is named.

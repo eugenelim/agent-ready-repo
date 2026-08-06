@@ -6,8 +6,8 @@ test harness lands in a future spec. Until then these tests sit
 alongside CLI tests so a single `pytest packages/agentbundle/`
 covers them.
 
-Per AC1: the body must contain five behavior-pinning literal strings.
-Per AC23 / T17 (split-into-two prompt): two additional literal
+The body must contain five behavior-pinning literal strings.
+Per T17 (split-into-two prompt): two additional literal
 phrases pin the cross-scope restructure contract.
 
 The body is asserted against `packs/core/.apm/skills/adapt-to-project/SKILL.md`
@@ -42,11 +42,11 @@ def body() -> str:
     return SKILL_BODY.read_text(encoding="utf-8")
 
 
-# ── AC1 grep set ─────────────────────────────────────────────────────────────
+# ── Core grep set ────────────────────────────────────────────────────────────
 
 
 def test_body_names_shell_out_command(body):
-    """AC1 grep #1: literal shell-out command."""
+    """Grep #1: literal shell-out command."""
     assert (
         "agentbundle adapt --values-from <repo>/.adapt-discovery.toml"
         in body
@@ -54,7 +54,7 @@ def test_body_names_shell_out_command(body):
 
 
 def test_body_names_doctrinal_self_check(body):
-    """AC1 grep #2: literal doctrinal self-check command."""
+    """Grep #2: literal doctrinal self-check command."""
     assert (
         "python3 -c \"import tomllib; tomllib.loads(open('<path>').read())\""
         in body
@@ -62,17 +62,17 @@ def test_body_names_doctrinal_self_check(body):
 
 
 def test_body_names_path_jail_rule(body):
-    """AC1 grep #3: literal per-scope jail rule."""
+    """Grep #3: literal per-scope jail rule."""
     assert "never write outside the adopter's per-scope jail" in body.lower()
 
 
 def test_body_names_dirty_state_command(body):
-    """AC1 grep #4: literal repo-scope dirty-state escalation command."""
+    """Grep #4: literal repo-scope dirty-state escalation command."""
     assert "git status --porcelain" in body
 
 
 def test_body_pre_flight_section_references_user_scope_state(body):
-    """AC1 grep #5: Pre-flight section names ~/.agentbundle/, state.toml,
+    """Grep #5: Pre-flight section names ~/.agentbundle/, state.toml,
     and Tier-2 (multi-token behavioural check)."""
     # Locate the Pre-flight section bounded by the next H2 heading.
     lower = body
@@ -86,7 +86,7 @@ def test_body_pre_flight_section_references_user_scope_state(body):
     assert "Tier-2" in section
 
 
-# ── AC23 / T17 grep set ───────────────────────────────────────────────────────
+# ── T17 grep set ──────────────────────────────────────────────────────────────
 
 
 def test_body_names_split_into_two_prompt(body):
@@ -109,7 +109,7 @@ def test_body_forbids_cross_scope_execution(body):
 
 
 def test_body_pre_flight_names_v01_migration_prereq(body):
-    """Quality-review pin for AC22 v0.1 detection sub-clause:
+    """Quality-review pin for the v0.1 detection sub-clause:
     the SKILL.md body's Pre-flight section names
     `agentbundle init-state --migrate` as the prereq for write
     operations against legacy state files."""
@@ -184,29 +184,29 @@ def test_body_class_2_skip_and_decline_are_distinct(body):
     )
 
 
-# ── AC15 / AC26 proactive cache-scan grep set (T6) ───────────────────────────
+# ── Proactive cache-scan grep set (T6) ───────────────────────────────────────
 
 
 def test_skill_body_names_proactive_cache_scan_heading(body):
-    """AC15 grep #1: literal heading `Proactive cache scan.`
+    """Grep #1: literal heading `Proactive cache scan.`
     (case- and punctuation-sensitive) must appear in the skill body."""
     assert "Proactive cache scan." in body
 
 
 def test_skill_body_names_cache_path(body):
-    """AC15 grep #2: literal path `~/.claude/plugins/cache/` must
+    """Grep #2: literal path `~/.claude/plugins/cache/` must
     appear verbatim in the skill body."""
     assert "~/.claude/plugins/cache/" in body
 
 
 def test_skill_body_names_idempotence_clause(body):
-    """AC15 grep #3: literal phrase `do not double-adapt` must appear
+    """Grep #3: literal phrase `do not double-adapt` must appear
     verbatim in the skill body."""
     assert "do not double-adapt" in body
 
 
 def test_skill_body_names_dedupe_rule(body):
-    """AC15 grep #4: operative dedupe rule must appear verbatim —
+    """Grep #4: operative dedupe rule must appear verbatim —
     pins the text the LLM reads so a future SKILL.md rewrite cannot
     drift past it."""
     assert (
@@ -216,7 +216,7 @@ def test_skill_body_names_dedupe_rule(body):
 
 
 def test_skill_body_names_stale_entry_drop(body):
-    """AC26 grep: literal phrase `silently drops the entry` must appear
+    """Grep: literal phrase `silently drops the entry` must appear
     verbatim in the skill body (stale-entry drop-on-read contract)."""
     assert "silently drops the entry" in body
 
@@ -253,36 +253,36 @@ def test_skill_body_preflight_section_carries_six_steps(body):
     )
 
 
-# ── T6 grep set — apm-install-route-parity AC13 / AC27 ──────────────────────
+# ── T6 grep set — apm install route ─────────────────────────────────────────
 
 
 def test_skill_body_names_apm_cache_scan_heading(body):
-    """AC13 grep #3: literal heading "APM cache scan" (case- and punctuation-
+    """Grep #3: literal heading "APM cache scan" (case- and punctuation-
     sensitive — the operative heading the LLM reads when extending the cache
     walk to APM)."""
     assert "APM cache scan" in body
 
 
 def test_skill_body_names_apm_project_cache_path(body):
-    """AC13 grep #1: literal "./apm_modules/" (project-scope APM cache)."""
+    """Grep #1: literal "./apm_modules/" (project-scope APM cache)."""
     assert "./apm_modules/" in body
 
 
 def test_skill_body_names_apm_user_cache_path(body):
-    """AC13 grep #2: literal "~/.apm/apm_modules/" (user-scope APM cache)."""
+    """Grep #2: literal "~/.apm/apm_modules/" (user-scope APM cache)."""
     assert "~/.apm/apm_modules/" in body
 
 
 def test_skill_body_preserves_idempotence_clause(body):
-    """Regression guard from claude-plugins-install-route AC15 grep #4:
+    """Regression guard from the claude-plugins install route, grep #4:
     the literal idempotence clause must survive the T6 edit."""
     assert "if a marker entry is present, do not synthesise a second adaptation" in body
 
 
 def test_skill_body_apm_stale_entry_drop_grep(body):
-    """AC14 / AC27 grep: the stale-entry-drop paragraph names `apm_modules`
+    """Grep: the stale-entry-drop paragraph names `apm_modules`
     so a reader can identify the APM clause without parsing the paragraph
-    structure. Cf. AC27 in docs/specs/adapt-to-project/spec.md."""
+    structure."""
     # Locate the stale-entry-drop region by anchoring on its heading text.
     anchor = "Stale-entry drop-on-read."
     assert anchor in body, "missing stale-entry-drop heading"

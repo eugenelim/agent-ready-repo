@@ -5,7 +5,7 @@
 rather than hardcoded. These tests pin the extractor's fallback behaviour, prove
 the read path is actually exercised (with values that differ from the defaults,
 so a silent fallback can't masquerade as a successful read), and confirm import
-stays total when the recipe is unreadable or malformed (AC3).
+stays total when the recipe is unreadable or malformed.
 """
 
 from __future__ import annotations
@@ -76,7 +76,7 @@ class LoadSelfHostListsTest(unittest.TestCase):
         self.assertEqual(adapters, _DEFAULT_SELF_HOST_ADAPTERS)
 
     def test_read_error_falls_back(self):
-        # AC3: a read that raises (non-UTF-8 bytes, permission error) must not
+        # A read that raises (non-UTF-8 bytes, permission error) must not
         # crash module import — it falls back to the defaults.
         with mock.patch.object(sh, "_read_recipe_text", side_effect=OSError("boom")):
             packs, adapters = sh._load_self_host_lists()

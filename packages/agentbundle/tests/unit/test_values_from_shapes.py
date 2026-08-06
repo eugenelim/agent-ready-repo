@@ -1,7 +1,6 @@
 """T7: tests for ``load_values_from`` accepting [markers], [values], or
 flat-fallback shapes, and refusing files with both [markers] and [values].
 
-Spec: docs/specs/adapt-to-project/spec.md AC15.
 """
 
 from __future__ import annotations

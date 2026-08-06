@@ -1,4 +1,4 @@
-# RFC-0002 recipe: self-host overlay — project each pack's .apm/ + seeds
+# Self-host recipe: overlay — project each pack's .apm/ + seeds
 # into the working tree (consumed by `make build-self`).
 
 [recipe]

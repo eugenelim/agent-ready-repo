@@ -6,7 +6,7 @@ substitution for `merge-into-agent-json` consumers (T5/T6). The
 resolver returns a *string* template; scope-root resolution and
 filesystem placement are caller concerns.
 
-Tests cover the bullets under spec.md AC3, AC4, AC15, AC18 plus the
+Tests cover the resolver bullets in the spec plus the
 T4 plan's internal acceptance bullets.
 """
 

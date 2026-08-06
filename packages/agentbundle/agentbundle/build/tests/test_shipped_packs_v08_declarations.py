@@ -1,7 +1,7 @@
-"""Tests for T7 of docs/specs/dropped-primitives-coverage — the shipped
+"""Tests for dropped-primitives coverage — the shipped
 packs declaring ``[pack.adapter-contract] version = "0.8"``.
 
-Per `dropped-primitives-coverage` AC12, eight packs bumped to v0.8:
+Eight packs bumped to v0.8:
 
   - atlassian, figma, converters, contracts (the four credentialed /
     consumer packs).
@@ -12,18 +12,19 @@ The `research` pack (shipped later by the `research-pack` spec) also
 declared v0.8 at birth. A future pack landing at v0.8 should add itself to
 ``V08_PACKS`` so this test surfaces the new declaration.
 
-  - ``catalogue-curation`` (RFC-0059) landed at v0.8 and is registered here.
-  - ``linear`` (RFC-0068) landed at v0.8 and is registered here.
+  - ``catalogue-curation`` landed at v0.8 and is registered here.
+  - ``linear`` landed at v0.8 and is registered here.
 
 Packs in-tree NOT at v0.8:
 
-  - ``credential-brokers``: still at v0.7 (RFC-0013 shipped on v0.7 and
+  - ``credential-brokers``: still at v0.7 (the credential-broker contract
+    shipped on v0.7 and
     a v0.7 pack continues to work under v0.8 — the legacy resolver path
     for codex drops agents/hooks per the v0.7 contract, fine for
     backward compat).
-  - ``core`` and ``research``: at v0.12 — bumped by RFC-0024 /
-    docs/specs/copilot-full-parity (copilot projects their agents +
-    hook-wiring) then by docs/specs/copilot-skills-and-web (copilot `skill`
+  - ``core`` and ``research``: at v0.12 — bumped by copilot full parity
+    (copilot projects their agents + hook-wiring) then by copilot skills
+    and web (copilot `skill`
     flips to first-class Agent Skills). ``architect``: at v0.10 (it added
     copilot to ``allowed-adapters`` when copilot's skill gained its user-scope
     target). All leave ``V08_PACKS``.

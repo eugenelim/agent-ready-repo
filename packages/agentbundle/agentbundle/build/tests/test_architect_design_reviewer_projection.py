@@ -1,10 +1,10 @@
-"""Durable projection check for architect's `design-reviewer` subagent (RFC-0032).
+"""Durable projection check for architect's `design-reviewer` subagent.
 
-architect-design-reviewer spec AC10: the agent must project across **all seven**
+The architect-design-reviewer agent must project across **all seven**
 adapters architect declares in `allowed-adapters`. The per-adapter projection
 *mechanism* is covered elsewhere with synthetic agents; this test pins the
 *real* architect agent across every route so a future adapter change that drops
-it fails here. It also lands RFC-0032's deferred `kiro-cli` confirmation
+it fails here. It also lands the deferred `kiro-cli` confirmation
 (`kiro-cli` is the one adapter architect ships that the research pack does not).
 
 Naming varies per adapter (codex emits `.toml`, copilot `.agent.md`, kiro remaps
@@ -46,7 +46,7 @@ class ArchitectDesignReviewerProjectionTests(unittest.TestCase):
         )
 
     def test_allowed_adapters_are_the_expected_seven(self) -> None:
-        # Pin the seven so this test (and AC10's "all seven") stays honest if the
+        # Pin the seven so this test (and its "all seven" claim) stays honest if the
         # list ever changes — update deliberately, with the projection re-checked.
         self.assertEqual(
             set(self.adapters),
@@ -73,7 +73,7 @@ class ArchitectDesignReviewerProjectionTests(unittest.TestCase):
                         # cursor encodes the read-only contract as a `readonly`
                         # frontmatter flag (it drops the source `tools:` allowlist
                         # and derives the flag for a non-mutating agent). Assert it
-                        # survives projection so AC5's read-only guarantee holds at
+                        # survives projection so the read-only guarantee holds at
                         # the one target that represents it as a flag rather than a
                         # tools list — the design-reviewer flags, never rewrites.
                         agent_hit = next(h for h in hits if "agents" in h.parts)

@@ -1,5 +1,5 @@
 """Unit tests for the four-layer catalogue-source default resolver
-(`agentbundle.source_defaults`) — RFC-0046 / ADR-0036.
+(`agentbundle.source_defaults`).
 
 Covers T1 (packaged default reader), T3 (editable detection, hardened), and
 T4 (the precedence/validation composer + negative invariants). The keystone
@@ -461,7 +461,7 @@ def test_preferred_adapter_coexists_with_defaults_table():
 
 
 def test_preferred_adapter_compatible_with_organization_subtable():
-    """[organization] key and [organization.artifactory] subtable coexist (RFC-0072 compat)."""
+    """[organization] key and [organization.artifactory] subtable coexist (compat)."""
     text = (
         "[organization]\n"
         'preferred_adapter = "cursor"\n'

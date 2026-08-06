@@ -3,7 +3,7 @@ fixture is consumed by automation so regressions to its shape trip
 pytest (not just code review).
 
 The fixture plumbs the synthetic user-scope dot-directory used by
-AC4a's user-scope plumbing rows in the manual QA matrix. Before this
+the user-scope plumbing rows in the manual QA matrix. Before this
 test, the fixture was declared but never loaded — a regression
 (deletion, malformed TOML, missing `[markers]`-refusal property)
 would have shipped silently.
@@ -31,7 +31,7 @@ def test_user_home_state_file_parses_at_v0_4():
 
 def test_user_home_discovery_file_parses_at_user_scope():
     """The fixture's `.adapt-discovery.toml` parses with `scope="user"`
-    (the loader refuses `[markers]` at user scope per RFC-0004)."""
+    (the loader refuses `[markers]` at user scope)."""
     d = load_adapt_discovery_typed(
         FIXTURE / ".adapt-discovery.toml", scope="user"
     )

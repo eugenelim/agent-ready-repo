@@ -1,6 +1,6 @@
 """``agentbundle adapt`` — marker resolution and pending-companion report.
 
-RFC-0004 turned this into a **dual-state-file** walk:
+The scope dimension makes this a **dual-state-file** walk:
 
   - Read both ``<repo>/.agentbundle-state.toml`` and
     ``~/.agentbundle/state.toml``. Either may be absent (a fresh repo,
@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
-# Marker regex (AC14): canonical lowercase-hyphen identifiers. The CLI
+# Marker regex: canonical lowercase-hyphen identifiers. The CLI
 # narrows from the prior UPPER_SNAKE-only regex to the canonical form
 # that the adapt-to-project skill writes. UPPER_SNAKE markers still
 # appearing in adopter trees are left in place with a one-shot warning
@@ -118,7 +118,7 @@ def _apply_markers(text: str, values: dict[str, str], *, src_label: str) -> str:
     """Replace ``<adapt:NAME>`` in *text* using *values*.
 
     Unknown markers are left in place; a warning is printed to stderr.
-    Legacy UPPER_SNAKE markers (per AC14) are left in place with a single
+    Legacy UPPER_SNAKE markers are left in place with a single
     warning per file.
     """
     if _LEGACY_UPPER_RE.search(text):
@@ -230,7 +230,7 @@ def run(args: argparse.Namespace) -> int:
 
     # ── Default mode ──────────────────────────────────────────────────────────
     # Build marker values from the **repo-scope** discovery file's
-    # [markers] table. Markers are repo-only per RFC-0004 — the user-
+    # [markers] table. Markers are repo-only — the user-
     # scope discovery file is still read (to surface legacy-shape errors
     # symmetrically and to honour the dual-scope walk contract) but
     # carries no [markers] table by rail. --values-from (when supplied)

@@ -1,4 +1,4 @@
-"""``agentbundle list-profiles`` subcommand (RFC-0034 / spec pack-profiles).
+"""``agentbundle list-profiles`` subcommand.
 
 Resolves a catalogue URI, enumerates every valid ``profiles/*.toml``, and
 prints a stable table of id, scope, description to stdout. Modeled on
@@ -30,7 +30,7 @@ def run(args: argparse.Namespace) -> int:
     from agentbundle.commands._common import resolve_catalogue_uri
     from agentbundle.commands.profile import list_profiles
 
-    # RFC-0047: default the source through the same four-layer chain as
+    # Default the source through the same four-layer chain as
     # install/upgrade when the `catalogue` positional is omitted.
     try:
         catalogue_uri: str = resolve_catalogue_uri(args)

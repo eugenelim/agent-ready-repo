@@ -1,7 +1,5 @@
 """Catalogue verification engine — 18-step source-checkout pipeline.
 
-Spec: docs/specs/catalogue-tooling-verify/spec.md (ini-005 Bucket 6).
-
 Entry points:
   ``verify_catalogue(root, pack=None) -> VerifyResult``
   ``render_json(result) -> str``
@@ -255,7 +253,7 @@ def _step_build_output(
 ) -> list[Diagnostic]:
     """Step 10: build into tmpdir and check for errors.
 
-    AC6: never writes to catalogue root. Skips when catalogue.toml is absent.
+    Never writes to catalogue root. Skips when catalogue.toml is absent.
     """
     if config is None:
         return []
@@ -660,7 +658,7 @@ def _step_selfhost_drift(
     """
     if config is None:
         return []
-    # .adapt-discovery.toml is required by run_self_host (AC14 fail-fast). Its
+    # `.adapt-discovery.toml` is required by run_self_host (fail-fast). Its
     # absence means this catalogue has no self-host projection to drift-check.
     if not (root / ".adapt-discovery.toml").exists():
         return []
@@ -772,15 +770,15 @@ def _resolve_primitive_ref(ref: str, pack_dir: Path) -> bool:
 def _step_integration_validation(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 19: validate [[pack.integrations]] entries (Wave 2, RFC-0076).
+    """Step 19: validate [[pack.integrations]] entries (Wave 2).
 
-    Rules checked (schema-layer rules AC6/AC8 are NOT re-implemented here):
-      AC5  — id is unique within each declaring pack
-      AC7  — consumer primitive refs resolve in the declaring pack
-      AC9  — pack does not target itself
-      AC10 — version, when present, is a valid semver range
-      AC11 — absent target pack is not an error (portable across catalogues)
-      AC12 — provider primitive refs resolve in the target pack when present
+    Rules checked (schema-layer rules are NOT re-implemented here):
+      - id is unique within each declaring pack
+      - consumer primitive refs resolve in the declaring pack
+      - a pack does not target itself
+      - version, when present, is a valid semver range
+      - an absent target pack is not an error (portable across catalogues)
+      - provider primitive refs resolve in the target pack when present
     """
     try:
         import tomllib
@@ -807,7 +805,7 @@ def _step_integration_validation(
             remediation=None,
         )
 
-    # Pass 1: build full pack-name → pack-dir map (cross-reference for AC12)
+    # Pass 1: build full pack-name → pack-dir map (cross-reference)
     all_pack_dirs: dict[str, Path] = {}
     for candidate in packs_root.iterdir():
         if not candidate.is_dir():
@@ -837,11 +835,11 @@ def _step_integration_validation(
         if not integrations:
             continue
 
-        seen_ids: set[str] = set()  # reset per declaring pack (AC5 scopes to pack)
+        seen_ids: set[str] = set()  # reset per declaring pack (scopes to pack)
         for entry in integrations:
             entry_id = entry.get("id", "")
 
-            # AC5: duplicate id within this pack
+            # Duplicate id within this pack
             if entry_id in seen_ids:
                 diags.append(_err(
                     f"duplicate integration id {entry_id!r} in pack {pack_name!r}",
@@ -849,7 +847,7 @@ def _step_integration_validation(
                 ))
             seen_ids.add(entry_id)
 
-            # AC7: consumer refs must resolve in declaring pack
+            # Consumer refs must resolve in declaring pack
             for ref in entry.get("consumers", []):
                 if not _resolve_primitive_ref(ref, pack_dir):
                     diags.append(_err(
@@ -858,7 +856,7 @@ def _step_integration_validation(
                         declaring=pack_name,
                     ))
 
-            # AC9: no self-targeting
+            # No self-targeting
             target = entry.get("pack", "")
             if target == pack_name:
                 diags.append(_err(
@@ -867,7 +865,7 @@ def _step_integration_validation(
                     declaring=pack_name,
                 ))
 
-            # AC10: version, if present, must be a valid semver range
+            # Version, if present, must be a valid semver range
             version = entry.get("version")
             if version is not None and not _is_valid_semver_range(version):
                 diags.append(_err(
@@ -876,7 +874,7 @@ def _step_integration_validation(
                     declaring=pack_name,
                 ))
 
-            # AC11/AC12: if target is in this catalogue, check provider refs
+            # If target is in this catalogue, check provider refs
             if target in all_pack_dirs:
                 target_dir = all_pack_dirs[target]
                 for ref in entry.get("providers", []):
@@ -886,7 +884,7 @@ def _step_integration_validation(
                             f" found in target pack {target!r}",
                             declaring=pack_name,
                         ))
-            # AC11: target absent → no error (portable across catalogues)
+            # Target absent → no error (portable across catalogues)
 
     return diags
 
@@ -931,7 +929,7 @@ def verify_catalogue(
 
     Runs the 18-step verification sequence defined in ini-005 Bucket 6.
     Stops at first step failure unless ``continue_on_error=True``.
-    AC6: build output (step 10) goes to a temporary directory; the catalogue
+    Build output (step 10) goes to a temporary directory; the catalogue
     root has zero new or modified files after verify completes.
     """
     from agentbundle.catalogue_tooling.config import load_catalogue_config

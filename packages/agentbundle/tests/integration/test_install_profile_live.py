@@ -1,4 +1,4 @@
-"""T6 (pack-profiles AC14): the two shipped profiles install cleanly against
+"""T6 (pack-profiles): the two shipped profiles install cleanly against
 the live catalogue (the repo root) into temp scope roots.
 
 Goal-based smoke: `full-ceremony` (repo) and `solution-architect` (user) each

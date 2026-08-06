@@ -5,12 +5,10 @@ read ``.adapt-discovery.toml`` via the shared typed loader. This file
 exercises the legacy-vs-canonical shape matrix against **both consumers**
 in a single parametrised set, so a future drift in either stays caught.
 
-Per spec AC8/AC9: legacy refusal stderr lines are exact, per consumer:
+Legacy refusal stderr lines are exact, per consumer:
 
-  CLI:        ``adapt: legacy [accepted] table; migrate to [markers]
-              per docs/specs/adapt-to-project/spec.md``
-  self-host:  ``self-host: legacy [adapt] table; migrate to [markers]
-              per docs/specs/adapt-to-project/spec.md``
+  CLI:        ``adapt: legacy [accepted] table; migrate to [markers]``
+  self-host:  ``self-host: legacy [adapt] table; migrate to [markers]``
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Rubric-parity guard for architect's `design-reviewer` subagent (RFC-0032).
+"""Rubric-parity guard for architect's `design-reviewer` subagent.
 
 The `design-reviewer` agent inlines a condensed copy of `architect-review`'s
 verdict scheme, severity glossary, and 🔧/🧭 mechanical-judgment taxonomy
@@ -18,7 +18,7 @@ fails the per-file assertion, and forces the rename to be reconciled across the
 constant *and* every carrier in one change — that clean-rename drift is the
 realistic case and what this catches. Two limits, by design: a reword that
 keeps the token as a substring (`MAJOR REWRITE` → `MAJOR REWRITE REQUIRED`) is
-not caught (AC2's one-time byte-faithful diff covers strict wording), and a
+not caught (the one-time byte-faithful diff covers strict wording), and a
 *newly added* verdict/glyph must be added to the constants here by hand — the
 allowlist does not auto-discover vocabulary growth.
 """

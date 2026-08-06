@@ -7,8 +7,8 @@ Coverage:
 Test archive construction uses tarfile directly (in-memory via io.BytesIO
 or written to tmp_path).  No external fixtures required.
 
-AC17 (verify_catalogue round-trip after extraction) is exercised only in
-test_archive_valid_passes_all; other pipeline tests stop before AC17 fires
+Case (verify_catalogue round-trip after extraction) is exercised only in
+test_archive_valid_passes_all; other pipeline tests stop before it fires
 because they trigger safety errors that cause early return.
 """
 
@@ -56,7 +56,7 @@ def _make_manifest_bytes(files: dict[str, bytes]) -> bytes:
 def _make_valid_archive(tmp_path: Path, extra_data_files: dict[str, bytes] | None = None) -> Path:
     """Create a minimal, fully-valid catalogue .tar.gz at tmp_path/test.tar.gz.
 
-    Uses AGENTS.md as the catalogue marker so that the AC17 round-trip
+    Uses AGENTS.md as the catalogue marker so that the round-trip
     (verify_catalogue on the extracted dir) passes without a catalogue.toml
     or any packs — all verify steps that require config skip gracefully.
     """
@@ -147,7 +147,7 @@ def test_clean_members_no_diags():
 def test_archive_valid_passes_all(tmp_path):
     """A minimal valid .tar.gz with correct manifest → ok=True.
 
-    Uses AGENTS.md as the catalogue marker.  The AC17 round-trip succeeds
+    Uses AGENTS.md as the catalogue marker.  The round-trip succeeds
     because verify_catalogue on a dir with only AGENTS.md (no catalogue.toml)
     skips all config-dependent steps and returns ok=True.
     """

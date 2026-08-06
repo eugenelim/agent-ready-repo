@@ -3,7 +3,7 @@
 The `build` submodule ships the adapter contract, the four reference
 adapters, the recipe-driven build pipeline, and the self-host gate.
 
-The CLI surface (RFC-0003 F-cli) lives in this package's top-level modules
+The CLI surface (F-cli) lives in this package's top-level modules
 and imports `agentbundle.build` as a library — no `sys.path` tricks, no
 `subprocess` to `tools/build/build.py`.
 """

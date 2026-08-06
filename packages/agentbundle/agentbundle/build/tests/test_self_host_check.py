@@ -93,8 +93,8 @@ def _add_agent(pack: Path, name: str, body: str = "Do the work.\n") -> Path:
 
 def _seed_discovery(tree: Path) -> Path:
     """Drop a minimal `.adapt-discovery.toml` into a test working tree so
-    `run_self_host`'s fail-fast (spec AC14) doesn't reject the call.
-    Canonical v0.1 shape per adapt-to-project AC9 — no `[markers]`
+    `run_self_host`'s fail-fast doesn't reject the call.
+    Canonical v0.1 shape — no `[markers]`
     table needed for the no-marker case.
     """
     path = tree / ".adapt-discovery.toml"
@@ -195,7 +195,7 @@ class DryRunCleanTreeTests(unittest.TestCase):
                     contract=self.contract,
                 )
             self.assertNotEqual(exit_code, 0)
-            # AC #10: stderr names the drifted file (per-file drift listing).
+            # stderr names the drifted file (per-file drift listing).
             stderr_text = buf.getvalue()
             self.assertIn(".claude/skills/foo/SKILL.md", stderr_text)
             self.assertIn("drift", stderr_text)
@@ -390,7 +390,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertIn("# Custom AGENTS.md", text)
             self.assertIn("Do not lose me.", text)
-            # Post-RFC-0009: Codex no longer writes the managed block.
+            # Codex no longer writes the managed block.
             # The legacy delimiter must be absent from projected output.
             self.assertNotIn("<!-- agent-skills:start -->", text)
 
@@ -598,7 +598,7 @@ class AgentsMdCompositionTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertTrue(text.startswith("# Body\n\nBody source.\n"))
-            # Post-RFC-0009: skill descriptions no longer inline into
+            # Skill descriptions no longer inline into
             # AGENTS.md. Claude Code and Codex both project full skill
             # bodies under their repo-native skill trees.
             self.assertNotIn("core skill description", text)
@@ -736,7 +736,7 @@ class ExcludedGlobTests(unittest.TestCase):
 
         # docs/specs/*/notes/** should match a nested notes file
         self.assertTrue(
-            _is_excluded(Path("docs/specs/self-hosting/notes/foo.md"))
+            _is_excluded(Path("docs/specs/example/notes/foo.md"))
         )
         self.assertTrue(
             _is_excluded(Path("docs/specs/feature/notes/sub/dir/bar.md"))
@@ -771,7 +771,7 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertFalse(_is_excluded(Path("packs.md")))
 
     def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
-        """Per RFC-0002 amendment 2026-05-25: PROJECTED_README_OVERRIDES
+        """Per the 2026-05-25 amendment: PROJECTED_README_OVERRIDES
         shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
         Every other formerly-overridden path now falls through to
         EXCLUDED_PATTERNS coverage."""
@@ -801,7 +801,7 @@ class ExcludedGlobTests(unittest.TestCase):
             "guides/_shared/reference/README.md",
             "guides/_shared/explanation/README.md",
             # Explicit literal additions:
-            "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
+            "workspace.toml",  # Seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
             "docs/knowledge/patterns.jsonl",
             "docs/rfc/README.md",
@@ -830,8 +830,72 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertFalse(_is_excluded(Path("packages/foo/_example/README.md")))
 
 
+class ExclusionIsHonouredOnDiskTests(unittest.TestCase):
+    """`_is_excluded` is a pure predicate; the tests above only pin the
+    glob→regex translation. This one pins the *behaviour* — a real file at
+    an excluded path, in a real git working tree, driven through
+    `run_self_host`.
+
+    Without it, every assertion in `ExcludedGlobTests` still passes if a
+    caller stops consulting the guard, hands it an absolute path, or the
+    pattern list empties — which are the ways an excluded file actually
+    leaks into the projection.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_tracked_file_at_excluded_path_is_not_reported_unclassified(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            # Two tracked files the projection does not produce. One sits
+            # under `docs/specs/*/notes/**` (excluded); the control does not.
+            excluded = working_tree / "docs" / "specs" / "foo" / "notes" / "x.md"
+            excluded.parent.mkdir(parents=True)
+            excluded.write_text("scratch\n", encoding="utf-8", newline="\n")
+            control = working_tree / "docs" / "specs" / "foo" / "kept.md"
+            control.write_text("kept\n", encoding="utf-8", newline="\n")
+
+            run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            _git_commit_all(working_tree, "seed")
+
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=True,
+                    force=False,
+                    contract=self.contract,
+                )
+            stderr_text = buf.getvalue()
+
+            # The control proves the enumeration ran and reaches this
+            # directory at all — without it, a silent stderr would pass.
+            self.assertIn("unclassified: docs/specs/foo/kept.md", stderr_text)
+            self.assertNotIn("docs/specs/foo/notes/x.md", stderr_text)
+
+
 class SeedProjectionTests(unittest.TestCase):
-    """Unit tests for `_project_seeds` (spec § Always do, AC7, AC9)."""
+    """Unit tests for `_project_seeds`."""
 
     def test_basic_seed_projection_copies_to_root(self) -> None:
         from agentbundle.build.self_host import _project_seeds
@@ -860,7 +924,7 @@ class SeedProjectionTests(unittest.TestCase):
             )
 
     def test_excluded_path_with_on_disk_content_preserved(self) -> None:
-        """RFC-0002 § Amendments § 2026-05-25 invariant: seed projection
+        """The 2026-05-25 amendment invariant: seed projection
         MUST NOT overwrite Manual paths whose on-disk content is this
         repo's filled-in instance.
 
@@ -909,7 +973,7 @@ class SeedProjectionTests(unittest.TestCase):
             self.assertNotIn("<!-- no specs yet -->", on_disk)
 
     def test_workspace_toml_curated_content_preserved_on_reprojection(self) -> None:
-        """RFC-0069 D4: a curated workspace.toml on disk (with live initiative
+        """A curated workspace.toml on disk (with live initiative
         data) must survive `_project_seeds` unchanged — the blank seed template
         must NOT overwrite it.
 
@@ -1389,7 +1453,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
 
 class MissingDiscoveryFailFastTests(unittest.TestCase):
-    """AC14: missing `.adapt-discovery.toml` causes fail-fast with named message."""
+    """Missing `.adapt-discovery.toml` causes fail-fast with named message."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -1478,7 +1542,7 @@ class DriftSourceNamingTests(unittest.TestCase):
 
 
 class InfoLineUnclassifiedTests(unittest.TestCase):
-    """AC6: paths not in Projected and not in Excluded surface as `[info]`."""
+    """Paths not in Projected and not in Excluded surface as `[info]`."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -1761,7 +1825,7 @@ class FileModeBitsTests(unittest.TestCase):
 class SymlinkTargetTests(unittest.TestCase):
     """Phase-2 comparison rule (c): symlink targets compared via lstat,
     never followed. The repo-root `CLAUDE.md` alias is exempted from the
-    strict target-equality rule by AC15b (see `ClaudeMdEquivalenceTests`),
+    strict target-equality rule (see `ClaudeMdEquivalenceTests`),
     so these tests deliberately use non-CLAUDE.md filenames where they
     need to exercise the Phase-2 path without short-circuiting through
     the equivalence helper."""
@@ -1770,7 +1834,7 @@ class SymlinkTargetTests(unittest.TestCase):
         """CLAUDE.md is fine here: the disk-side target is `README.md`,
         not `AGENTS.md`, so the equivalence helper returns False (clause
         1 fails) and the comparison falls through to the strict
-        target-equality path AC15b leaves unchanged."""
+        target-equality path leaves unchanged."""
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"
             tree = Path(tmp) / "tree"
@@ -1789,7 +1853,7 @@ class SymlinkTargetTests(unittest.TestCase):
     def test_matching_symlinks_no_drift(self) -> None:
         """Non-CLAUDE.md filename — exercises the Phase-2 matching-target
         path proper. Using `CLAUDE.md` here would pass for the wrong
-        reason (the AC15b short-circuit would fire before the
+        reason (the short-circuit would fire before the
         target-equality check), masking a future regression in the
         strict path. AGENTS.md is created on both sides so the symlink
         target resolves and the rglob iteration over AGENTS.md doesn't
@@ -1809,7 +1873,7 @@ class SymlinkTargetTests(unittest.TestCase):
     def test_symlink_in_shadow_regular_on_disk_drifts(self) -> None:
         """The general type-mismatch rule fires for any projected file
         whose shadow shape disagrees with its on-disk shape. The
-        repo-root CLAUDE.md alias is exempted by AC15b
+        repo-root CLAUDE.md alias is exempted
         (`ClaudeMdEquivalenceTests`); every other file keeps the
         strict rule, so this test uses an arbitrary non-CLAUDE.md
         filename to exercise it."""
@@ -1913,7 +1977,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
     presentational and must not count as drift: a symlink to AGENTS.md,
     a regular-file copy of AGENTS.md content, and a regular file whose
     content is the literal string "AGENTS.md" (Windows-materialised
-    symlink). See spec AC15b."""
+    symlink)."""
 
     def _shadow_with_symlink_claude(self, tree: Path) -> Path:
         """Build a tiny shadow tree where the shadow's CLAUDE.md is a

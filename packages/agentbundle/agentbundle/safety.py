@@ -104,7 +104,7 @@ def classify(relpath: str, root: Path, state: State) -> Tier:
     if not on_disk.exists():
         return Tier.TIER_1
 
-    # Multi-row resolution (RFC-0052 / ADR-0039): a path may be co-owned by
+    # Multi-row resolution: a path may be co-owned by
     # several adapter rows. We no longer take the *first* owner via a
     # `break` — instead the file is Tier-1 when its on-disk SHA matches
     # **any** owner-row's recorded SHA. Co-owned rows hold an identical SHA
@@ -311,13 +311,13 @@ def write_jailed(
     write_atomic backups / Tier-2 companion logic — `write_jailed` is the
     primitive, not the policy.
 
-    RFC-0004 extensions, generalised at repo scope by RFC-0012:
+    Scope extensions, generalised at repo scope:
       ``scope`` — the resolved path must additionally lie under one of
       the entries in ``allowed_prefixes`` (each relative to ``root``).
       The two-layer jail (under the root, under a declared prefix)
       stops a buggy projection rule from passing the basic `..`-escape
       check. **Both scopes** consult ``allowed_prefixes`` now —
-      RFC-0012 extends the user-scope rail to repo-scope per-IDE
+      The user-scope rail extends to repo-scope per-IDE
       projection at the same shape.
 
       ``allowed_prefixes`` — the spec's declared list (e.g.
@@ -409,7 +409,7 @@ pack's source and build the per-pack scan filter.
 
 Source of truth is ``_data/adapter.toml``'s ``[primitive.*]`` tables
 (eight entries today: five originals + ``shared-libs`` and
-``adapter-root-bins`` introduced by RFC-0013, + ``user-libs`` introduced
+``adapter-root-bins``, + ``user-libs`` introduced
 by credbroker-user-scope T3). A contract bump that adds a new primitive
 type must extend this tuple, or the per-pack scan will silently miss the
 new type's orphans at install start — catalogue-broker packs (e.g.
@@ -475,7 +475,7 @@ def scan_for_pack_artifacts(
     """Return on-disk files under ``<root>/<prefix>/`` for each prefix.
 
     Read-only; walks every ``<root>/<prefix>/`` and returns the files
-    found. No state mutation. Used by RFC-0012 § *Reliability* — the
+    found. No state mutation. Used by the reliability rail — the
     orphan-projection refusal at install start compares this list
     against ``state.toml``; a non-empty result with no state row for
     the pack means a prior install crashed mid-write.
@@ -592,14 +592,14 @@ def projected_files_in_state(state: State, pack_name: str) -> Iterable[str]:
 
 
 # ---------------------------------------------------------------------------
-# User-scope artifact root (RFC-0004)
+# User-scope artifact root
 # ---------------------------------------------------------------------------
 
 
 def user_state_path(home: Path | None = None) -> Path:
     """Return the user-scope state file path: `~/.agentbundle/state.toml`.
 
-    Per RFC-0004 § *State file per scope*, user-scope artifacts live inside
+    With one state file per scope, user-scope artifacts live inside
     the namespaced `~/.agentbundle/` dot-directory — not as bare dotfiles
     in `$HOME`. The dot-directory is the future home for
     `.adapt-discovery.toml`, `.adapt-pending.md`, and `.upstream.<ext>`

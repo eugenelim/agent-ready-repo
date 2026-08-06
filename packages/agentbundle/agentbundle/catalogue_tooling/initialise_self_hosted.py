@@ -750,7 +750,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     if err:
         return _fail(err)
 
-    # 2. Check for outdated export-catalogue skill (B7 AC5).
+    # 2. Check for outdated export-catalogue skill.
     export_cat_path = (
         cfg.source / "packs" / "catalogue-curation"
         / ".apm" / "skills" / "export-catalogue"
@@ -761,7 +761,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             "update source to 0.2.0 or later"
         )
 
-    # 3. Vendored mode source validation (B3 AC3).
+    # 3. Vendored mode source validation.
     if cfg.tooling == "vendored":
         agentbundle_src = cfg.source / "packages" / "agentbundle"
         if not agentbundle_src.is_dir() or agentbundle_src.is_symlink():

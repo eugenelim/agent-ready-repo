@@ -1,6 +1,6 @@
 """enriched-pack-manifest T6: soft `categories` vocabulary in `validate`.
 
-`categories` is a *soft* vocabulary (RFC-0031 D3): an unknown slug produces
+`categories` is a *soft* vocabulary: an unknown slug produces
 a warning on stderr and exit 0; a known slug is silent. The schema owns the
 shape (array of ≤5 strings); this rail only nudges taxonomy consistency.
 """
@@ -66,7 +66,7 @@ def test_no_categories_is_silent_exit_0(tmp_path):
 
 
 def test_default_vocabulary_is_the_rfc_0031_baseline_plus_design():
-    # The RFC-0031 D3 baseline. The vocabulary is soft and extensible (D8),
+    # The baseline. The vocabulary is soft and extensible,
     # so it grows without an RFC — `design` was added for the design-craft pack.
     rfc_0031_baseline = {
         "code-review",

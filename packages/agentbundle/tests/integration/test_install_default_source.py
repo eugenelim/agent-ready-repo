@@ -1,9 +1,9 @@
 """End-to-end (no network): bare source verbs (no `catalogue` positional)
 resolve through the default chain at the command boundary.
 
-Covers `install --pack core` (RFC-0046), the `install --profile` and
+Covers `install --pack core`, the `install --profile` and
 `_offer_upgrade` hand-off sites, and the discovery verbs `list-packs` /
-`list-profiles` (RFC-0047). Uses layer 2 (`config set source` → a local
+`list-profiles`. Uses layer 2 (`config set source` → a local
 catalogue with both markers) so resolution short-circuits before layer 3,
 exercising the full wiring (`resolve_catalogue_uri` → `resolve_default_source`
 → `resolve_catalogue`) without touching the network or the ambient editable
@@ -106,7 +106,7 @@ def test_offer_upgrade_hands_off_resolved_uri(monkeypatch):
 
 
 def test_offer_upgrade_forwards_adapter(monkeypatch):
-    # RFC-0052 regression: the install→upgrade-offer hand-off must forward the
+    # Regression: the install→upgrade-offer hand-off must forward the
     # install-side `--adapter`, otherwise upgrade's multi-adapter disambiguator
     # demands `--adapter` even though the operator passed it to `install`.
     from agentbundle.commands import upgrade as _upgrade
@@ -151,7 +151,7 @@ def test_offer_upgrade_uses_resolved_adapter_when_no_cli_adapter(monkeypatch):
 
 
 def test_bare_list_packs_resolves_default_source(tmp_path):
-    # RFC-0047: a bare `list-packs` (no catalogue) resolves the source via the
+    # A bare `list-packs` (no catalogue) resolves the source via the
     # same chain and lists the catalogue's packs.
     cat = _local_catalogue(tmp_path)
     args = argparse.Namespace(catalogue=None, _user_config=UserConfig(source=str(cat)))
@@ -163,7 +163,7 @@ def test_bare_list_packs_resolves_default_source(tmp_path):
 
 
 def test_bare_list_profiles_resolves_default_source(tmp_path):
-    # RFC-0047: a bare `list-profiles` resolves the source AND reads it — plant a
+    # A bare `list-profiles` resolves the source AND reads it — plant a
     # profile so the test fails if resolution were dropped (an empty listing
     # would pass for the wrong reason).
     cat = _local_catalogue(tmp_path)

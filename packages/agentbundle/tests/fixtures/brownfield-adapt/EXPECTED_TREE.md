@@ -39,15 +39,15 @@ consumed by any automated test.
 user-scope dot-directory:
 
   - `state.toml` — v0.2 schema with no installed user-scope packs
-    (placeholder for AC4a's *user-scope path-jail refusal* and
+    (placeholder for the *user-scope path-jail refusal* and
     *Tier-2 detection-user* rows).
   - `.adapt-discovery.toml` — canonical user-scope shape:
     `discovery-schema-version = "0.1"` plus a single
     `[[findings.declined]]` entry. **No `[markers]`** (refused at
-    user scope per RFC-0004).
+    user scope).
 
 Used by:
   - T11: `test_class_one_end_to_end` and `test_idempotent_re_run`
     against the repo-scope tree (markers are repo-only).
-  - AC4a synthetic user-scope rows: dirty-state-user, Tier-2-user,
+  - Synthetic user-scope rows: dirty-state-user, Tier-2-user,
     user-scope path-jail refusal.

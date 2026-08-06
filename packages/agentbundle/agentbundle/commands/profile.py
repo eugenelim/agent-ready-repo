@@ -1,9 +1,9 @@
-"""Profile-manifest reader (RFC-0034 / spec pack-profiles, T1).
+"""Profile-manifest reader (T1).
 
 A *profile* is a first-party-curated, single-scope set of packs an adopter
 installs in one command. It is a hand-authored ``profiles/<name>.toml`` at the
 catalogue root, read **only** by the ``agentbundle`` CLI — it adds zero
-primitives, zero runtime, and zero adapter-contract surface (RFC-0034).
+primitives, zero runtime, and zero adapter-contract surface.
 
 This module owns reading and validating those manifests. It does **not**
 orchestrate installs (that is ``commands/install.py``'s ``_run_profile``) and it

@@ -2,7 +2,7 @@
 
 A `<adapt:NAME>` token inside Markdown inline-code or a fenced block is
 documentation *about* the marker syntax, not a live substitution point, and must
-not leak into the install-marker's `unresolved-markers` list (AC9). A live
+not leak into the install-marker's `unresolved-markers` list. A live
 (non-code) marker is still collected.
 """
 

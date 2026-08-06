@@ -2,7 +2,7 @@
 + per-adapter coverage.
 
 These tests exercise the canonical adopter flow at the *modern* per-IDE
-projection (RFC-0012; ``emit_install_routes`` defaults to False under
+projection (``emit_install_routes`` defaults to False under
 the argparse parser). They are intentionally end-to-end against the
 live ``packs/`` catalogue rather than synthetic fixtures because the
 load-bearing invariant is *how the shipped packs compose*, not how a
@@ -42,7 +42,7 @@ Three concerns:
 Per-adapter projection geometry:
 
   - Copilot's skill projection lands at ``.agents/skills/<skill>/SKILL.md``
-    (RFC-0052 / ADR-0040 — shared cohort home; was ``.github/skills/`` in
+    (the shared cohort home; was ``.github/skills/`` in
     v0.11). The per-pack scanner at ``safety.scan_for_pack_artifacts`` matches
     these by directory name, exactly like ``.claude/skills/<name>/`` etc.
     Hooks stay under ``.github/hooks/``. Copilot's ``allowed-prefixes.repo``
@@ -94,7 +94,7 @@ _SHIPPED_ADAPTERS: tuple[str, ...] = _shipped_adapters()
 
 # Adapters at which an orphan-scan over governance-extras's primitives
 # (skills only — new-rfc, new-adr, update-conventions) finds something.
-# Includes copilot since docs/specs/copilot-skills-and-web: its `skill`
+# Includes copilot since copilot skills and web landed: its `skill`
 # projection is now a first-class `.github/skills/<name>/` directory tree,
 # which the per-pack scanner's directory heuristic matches by name exactly
 # like every other adapter (was a flat `<primitive>.instructions.md` whose
@@ -116,17 +116,17 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     """
     if adapter == "claude-code":
         return f".claude/skills/{skill_name}/SKILL.md"
-    # RFC-0022 kiro-adapter-split: `kiro-ide` / `kiro-cli` both project skills
+    # The kiro split means `kiro-ide` / `kiro-cli` both project skills
     # to `.kiro/skills/` like the retained `kiro` alias.
     if adapter in ("kiro", "kiro-ide", "kiro-cli"):
         return f".kiro/skills/{skill_name}/SKILL.md"
     if adapter == "codex":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "copilot":
-        # RFC-0052 / ADR-0040: copilot skill routes to shared cohort home
+        # Copilot skill routes to shared cohort home
         # `.agents/skills/` (was `.github/skills/` in v0.11).
         return f".agents/skills/{skill_name}/SKILL.md"
-    # RFC-0052 / ADR-0040: cursor + gemini skills also route to `.agents/skills/`.
+    # Cursor + gemini skills also route to `.agents/skills/`.
     if adapter == "cursor":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "gemini":
@@ -349,7 +349,7 @@ def test_governance_extras_first_refuses_then_succeeds_after_core(
     The dep gate consults state.toml (union of repo + user) and is
     adapter-agnostic, but running it at every adapter catches a
     regression where one adapter's resolver short-circuits before
-    the gate (RFC-0012-style per-IDE projection edge cases).
+    the gate (per-IDE projection edge cases).
     """
     adopter = tmp_path / "adopter"
     adopter.mkdir()
@@ -376,7 +376,7 @@ def test_governance_extras_first_refuses_then_succeeds_after_core(
 def test_reinstall_same_pack_repo_scope_refused(tmp_path, adapter):
     """S3: install core twice at every adapter → second attempt
     refuses with ``use 'upgrade' to change version``. ``--force`` does
-    NOT bypass this case (RFC-0004 Step 4a). The refusal is
+    NOT bypass this case (Step 4a). The refusal is
     state-driven, so it should hold at every adapter."""
     adopter = tmp_path / "adopter"
     adopter.mkdir()
@@ -408,7 +408,7 @@ def test_lost_state_reinstall_over_projection_files_is_clean(tmp_path, adapter):
     The on-disk files are all in the current projection (byte-identical to what
     the first install wrote), so they are companion-protected / Tier-1, never
     misclassified as interrupted-install orphans. This pins spec
-    `core-install-seed-delivery` AC4 across adapters.
+    core-install seed delivery across adapters.
 
     The orphan-recovery feature still fires for *genuine* non-projection crumbs
     — see `test_install_orphan_reshape.py` (install-level) and
@@ -461,7 +461,7 @@ def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
     ``.github/skills/`` (skill directory trees, matched by directory name)
     and ``.github/hooks/`` (hook bodies, matched by stem).
 
-    docs/specs/copilot-skills-and-web flipped copilot's ``skill`` projection
+    Copilot skills and web flipped copilot's ``skill`` projection
     from a flat ``<primitive>.instructions.md`` (whose stem evaded the
     scanner) to a first-class ``.github/skills/<name>/SKILL.md`` directory
     tree — so the scanner now matches copilot skills by directory name, the
@@ -484,7 +484,7 @@ def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
     _install_mod._clear_inband_detection_seen()
 
     # Direct-call the scanner with core's primitive set + copilot's current
-    # repo-scope prefixes (RFC-0052: skills at `.agents/skills/`, hook bodies
+    # repo-scope prefixes (skills at `.agents/skills/`, hook bodies
     # at `.github/hooks/`, agents at `.github/agents/`).
     pack_dir = REPO_ROOT / "packs" / "core"
     prefixes = [".agents/skills/", ".github/agents/", ".github/hooks/"]
@@ -493,7 +493,7 @@ def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
     )
     rels = sorted(p.relative_to(adopter).as_posix() for p in orphans)
 
-    # Skills are found at the shared cohort home (RFC-0052).
+    # Skills are found at the shared cohort home.
     skill_hits = [r for r in rels if r.startswith(".agents/skills/")]
     assert skill_hits, (
         f"expected scanner to find core's skill dirs at copilot; got: {rels!r}"
@@ -514,7 +514,7 @@ def test_user_scope_multi_pack_accumulates_state(tmp_path, monkeypatch):
     """S5: install architect at user, then atlassian at user. Both
     packs default to user scope (workspace-agnostic). The user-scope
     state file accumulates both rows. User-scope adapter resolution is
-    its own surface (RFC-0011 / RFC-0012's user-scope clauses); the
+    its own surface (the user-scope clauses); the
     install-handler tests in this module pin the repo-scope per-IDE
     multi-pack flow, not the user-scope adapter matrix."""
     adopter = tmp_path / "adopter"
@@ -726,7 +726,7 @@ def test_force_orphan_cleanup_does_not_clobber_other_packs_files(
 ):
     """Direction A, per adapter: governance-extras ``--force`` must
     not unlink any of core's state-tracked files. Runs at **every** shipped
-    adapter including copilot (docs/specs/copilot-skills-and-web): copilot's
+    adapter including copilot: copilot's
     skills now project as a `.github/skills/<name>/` directory tree that the
     scanner matches by name, so governance-extras (skills-only) is scannable at
     copilot — no longer the vacuous case the old flat `.instructions.md`

@@ -15,7 +15,7 @@ This module emits the equivalent TOML
     prose renders literally), with Claude Code's ``$ARGUMENTS`` injection token
     rewritten to Gemini's ``{{args}}``.
 
-**Fail-closed (spec AC7).** ``{{args}}`` is Gemini's *only* argument-injection
+**Fail-closed.** ``{{args}}`` is Gemini's *only* argument-injection
 form — it injects the full argument string. A source body using **positional**
 arguments (``$1``, ``$2``, …) needs an expressiveness ``{{args}}`` cannot provide,
 so this projection **raises** ``ValueError`` rather than emitting a
@@ -46,7 +46,7 @@ from typing import Any
 
 # Claude Code's positional-argument tokens (`$1`, `$2`, …). Gemini's `{{args}}`
 # injects the whole argument string and has no positional form, so a source
-# command using these fails the build (AC7). `$ARGUMENTS` (the whole-string form)
+# command using these fails the build. `$ARGUMENTS` (the whole-string form)
 # is the one we *can* translate and is excluded from this pattern.
 _POSITIONAL_ARG = re.compile(r"\$\d+")
 _CLAUDE_ALL_ARGS = "$ARGUMENTS"

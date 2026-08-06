@@ -1,10 +1,10 @@
 """``kiro-ide-hook`` projection — direct-file copy + ``then.command``
-placeholder expansion (RFC-0005, v0.4).
+placeholder expansion (v0.4).
 
 The projection mode is ``direct-file`` byte-for-byte for askAgent-shaped
 hooks (no scan surface) and parse-modify-emit for runCommand-shaped
 hooks that contain ``${hook-body:<name>}`` placeholders in
-``then.command``. RFC-0005 § Substitution rules pins the placeholder
+``then.command``. The substitution rules pin the placeholder
 mechanics:
 
   1. Scan surface — ``then.command`` only. Every other field in the

@@ -33,7 +33,7 @@ def run(args: argparse.Namespace) -> int:
     cli_scope: str | None = getattr(args, "scope", None)
     cli_adapter: str | None = getattr(args, "adapter", None)
 
-    # ── Multi-scope disambiguator (RFC-0004) ──────────────────────────────────
+    # ── Multi-scope disambiguator ─────────────────────────────────────────────
     # diff is read-only but still subject to the --scope rule: pick which
     # scope's projection to compare against. If the pack is at both
     # scopes, --scope is required.
@@ -53,7 +53,7 @@ def run(args: argparse.Namespace) -> int:
     repo_state_for_check = None
     user_state_for_check = None
     if pack_name:
-        # A legacy (non-v0.4) state file is refused on read too (RFC-0052
+        # A legacy (non-v0.4) state file is refused on read too (the
         # hard cross-version refusal); surface it as a clean refuse rather
         # than a traceback.
         try:
@@ -95,7 +95,7 @@ def run(args: argparse.Namespace) -> int:
 
     # Resolve effective scope and the matching pack_state (if any) so
     # the renderer below can mirror the shape install used. A pack can
-    # carry multiple adapter rows at one scope (RFC-0052); pick the row
+    # carry multiple adapter rows at one scope; pick the row
     # via --adapter, or infer when there is exactly one.
     effective_scope = "repo"
     pack_state = None
@@ -138,7 +138,7 @@ def run(args: argparse.Namespace) -> int:
     if gate is not None:
         return gate
 
-    # Pick the projection shape to compare against. RFC-0012 changed
+    # Pick the projection shape to compare against. v0.7 changed
     # install's default at repo scope from the dist-tree producer
     # (`render_pack`) to a per-IDE projection (`.claude/...`,
     # `.kiro/...`). Comparing on-disk per-IDE files against a dist-tree
@@ -150,7 +150,7 @@ def run(args: argparse.Namespace) -> int:
     #   - state.files contains `apm/<pack>/...`, `claude-plugins/<pack>/...`,
     #     or `marketplace.json` → install used `--emit-install-routes`
     #     (legacy dist-tree); keep the dist-tree render.
-    #   - otherwise → install used the RFC-0012 per-IDE path; render
+    #   - otherwise → install used the per-IDE path; render
     #     via `_render_for_repo_scope` / `_render_for_user_scope` with
     #     the recorded `state.adapter` as the hint.
     # When state has no row (a maintainer running diff against a fresh

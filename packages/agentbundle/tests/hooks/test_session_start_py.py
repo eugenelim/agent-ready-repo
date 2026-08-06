@@ -215,14 +215,14 @@ def test_session_start_unknown_arg() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC12 / AC14: v0.4 marker reader tolerance via _pack_names_from_marker
+# v0.4 marker reader tolerance via _pack_names_from_marker
 # ---------------------------------------------------------------------------
 
 
 def test_v04_marker_omits_unresolved_markers_and_new_companions(
     tmp_path: Path,
 ) -> None:
-    """AC12 + AC14: a v0.4-shape marker carrying only name/version/installed-at
+    """A v0.4-shape marker carrying only name/version/installed-at
     /install-route (no unresolved-markers, no new-companions) must (a) parse
     cleanly through tomllib and (b) yield the pack name from
     _pack_names_from_marker unchanged.
@@ -257,7 +257,7 @@ def test_v04_marker_omits_unresolved_markers_and_new_companions(
 
 
 def test_session_start_nudge_byte_identical_v03_vs_v04(tmp_path: Path) -> None:
-    """Blocker 1 / AC14: the rendered nudge stdout is byte-identical
+    """Blocker 1: the rendered nudge stdout is byte-identical
     when the session-start hook reads a v0.3-shaped marker versus a
     v0.4-shaped marker with the same pack names.
 
@@ -306,7 +306,7 @@ def test_session_start_nudge_byte_identical_v03_vs_v04(tmp_path: Path) -> None:
 
 
 def test_v03_marker_still_parses_under_v04_reader(tmp_path: Path) -> None:
-    """AC12: a v0.3-shape marker (unresolved-markers and new-companions present,
+    """A v0.3-shape marker (unresolved-markers and new-companions present,
     no install-route) must be read correctly by the v0.4-era
     _pack_names_from_marker helper — backward-compat with pre-PR markers.
 
@@ -331,13 +331,12 @@ def test_v03_marker_still_parses_under_v04_reader(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# T3 / AC10: v0.5 marker reader tolerance for install-route = "apm"
-# Spec: docs/specs/apm-install-route-parity/spec.md
+# T3: v0.5 marker reader tolerance for install-route = "apm"
 # ---------------------------------------------------------------------------
 
 
 def test_v05_marker_with_install_route_apm_parses_cleanly(tmp_path: Path) -> None:
-    """AC10: a v0.5-shape marker carrying install-route = "apm" must (a)
+    """A v0.5-shape marker carrying install-route = "apm" must (a)
     parse cleanly through tomllib and (b) yield the pack name from
     _pack_names_from_marker unchanged."""
     import tomllib
@@ -364,7 +363,7 @@ def test_v05_marker_with_install_route_apm_parses_cleanly(tmp_path: Path) -> Non
 
 
 def test_v05_marker_three_route_values_all_parse(tmp_path: Path) -> None:
-    """AC10: three entries — install-route = "cli", "claude-plugins", "apm" —
+    """Three entries — install-route = "cli", "claude-plugins", "apm" —
     in one marker file all parse and all surface through
     _pack_names_from_marker. Closes the value-coverage axis."""
     marker = tmp_path / ".adapt-install-marker.toml"
@@ -399,10 +398,10 @@ def test_v05_marker_three_route_values_all_parse(tmp_path: Path) -> None:
 def test_v03_shaped_marker_without_install_route_field_parses_as_cli(
     tmp_path: Path,
 ) -> None:
-    """AC10 (v0.3 back-compat rail): a marker with no install-route field at
+    """Case (v0.3 back-compat rail): a marker with no install-route field at
     all must parse cleanly, surface the pack name, and any reader that
     consults install-route treats absence as "cli" per
-    claude-plugins-install-route AC12."""
+    the claude-plugins install route."""
     import tomllib
 
     marker = tmp_path / ".adapt-install-marker.toml"

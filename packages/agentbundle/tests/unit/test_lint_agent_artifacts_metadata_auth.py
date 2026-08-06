@@ -1,6 +1,6 @@
 """Tests for `_step_agent_artifacts`'s `metadata.auth` admission.
 
-Verifies AC3 + AC26 from docs/specs/credential-broker-contract/spec.md:
+Verifies:
   - The lint admits `metadata.auth` as an enum (env / cli / creds /
     sso-cookie) under the spec-blessed `metadata:` escape hatch.
   - Unknown `metadata.auth` values are refused with the pinned message:
@@ -134,7 +134,7 @@ class TestCredentialedRequiresAuth(unittest.TestCase):
             )
 
     def test_credentialed_false_with_auth_declared_clean(self) -> None:
-        # Pins current behaviour: AC26 is silent on the `credentialed:
+        # Pins current behaviour: the lint is silent on the `credentialed:
         # false` + `auth: <id>` combination. The lint admits `metadata.
         # auth` unconditionally under the metadata escape hatch (so any
         # skill may declare it); the "requires" rail only fires when

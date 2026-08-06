@@ -32,14 +32,18 @@ docstrings, argparse `help=` text, or runtime messages. State the rule instead o
 was decided. Before committing:
 
 ```bash
-grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
+grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bACs?\s*-?#?\s*[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
   packages/ --exclude='AGENTS*.md' --exclude='CHANGELOG.md'
 ```
 
-Two traps:
+Three traps:
 
 - **IETF RFCs stay** (`RFC 9106` in `credbroker/_vault.py`). Ours are zero-padded four digits; IETF
   numbers never start with `0`.
+- **Keep the AC pattern loose.** Two under-matches have each produced a false "clean" report.
+  `\bAC-?[0-9]+\b` misses `AC6a` — the trailing `\b` cannot follow a digit with a letter after it.
+  Adding `[a-z]?` fixes that but still misses the spaced and hashed forms `AC #7`, `AC 4`,
+  `ACs 1-15`, which hid 31 sites in a single sweep. The pattern above matches all of them.
 - **Runtime message text is pinned by tests.** A marker inside a user-facing string is often asserted
   on verbatim (`assertIn("…dist-tree files", stderr)`). Grep the test suite for the literal before
   editing it and change both together, or the rename lands red.

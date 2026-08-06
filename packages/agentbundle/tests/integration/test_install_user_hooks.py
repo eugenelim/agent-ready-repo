@@ -2,7 +2,7 @@
 engines (user_merge_json for Claude Code; merge_into_agent_json for
 Kiro) and writes hook-wiring-owned state rows.
 
-Covers spec ACs AC11, AC20, AC23, AC24, AC25; the CLI binding rails
+Covers the CLI binding rails
 for the new ``--force-merge`` flag also live here.
 """
 
@@ -93,7 +93,7 @@ def _copy_fixture(src: Path, dst: Path) -> None:
 
 class CCUserHooksInstallTests(_UserScopeInstallBase):
     """Install the cc-user-hooks fixture; assert the user-scope merge
-    landed and state captured hook-wiring-owned rows (AC23/AC20)."""
+    landed and state captured hook-wiring-owned rows."""
 
     def test_install_cc_user_hooks_writes_settings_and_state(self) -> None:
         _copy_fixture(FIXTURES / "cc-user-hooks", self.cat / "packs" / "cc-user-hooks")
@@ -129,7 +129,7 @@ class CCUserHooksInstallTests(_UserScopeInstallBase):
 class KiroUserHooksInstallTests(_UserScopeInstallBase):
     """Install the kiro-user-hooks fixture; assert the agent JSON merge
     landed and state captured hook-wiring-owned rows with adapter +
-    target-file fields (AC20/AC23)."""
+    target-file fields."""
 
     def test_install_kiro_user_hooks_writes_agent_json_and_state(self) -> None:
         _copy_fixture(FIXTURES / "kiro-user-hooks", self.cat / "packs" / "kiro-user-hooks")
@@ -167,7 +167,7 @@ class KiroUserHooksInstallTests(_UserScopeInstallBase):
 
 
 class ForceMergeFlagBindingTests(unittest.TestCase):
-    """AC12 binding rails for ``--force-merge``:
+    """Binding rails for ``--force-merge``:
     - Bound to ``install`` verb (other verbs refuse with
       ``unknown flag for <verb>: --force-merge``).
     - Bound to ``--scope user``.
@@ -255,7 +255,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
     def test_dot_dot_in_attach_to_agent_refuses(self) -> None:
         pack = self.cat / "packs" / "evil-pack"
         (pack / ".apm" / "agents").mkdir(parents=True)
-        # Declare kiro-cli explicitly — the merging adapter (RFC-0022).
+        # Declare kiro-cli explicitly — the merging adapter.
         # `kiro` (the deprecated alias) routes to kiro-ide, which DROPS
         # hook-wiring, so a path-traversal `attach-to-agent` never reaches
         # a merge target there; the refusal lives on the merge path
@@ -307,10 +307,10 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
 
 
 class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
-    """RFC-0022 / kiro-install-alias-parity AC2: the deprecated ``kiro`` alias
+    """kiro-install-alias parity: the deprecated ``kiro`` alias
     must make the SAME user-scope decision as ``kiro-ide``. kiro-ide has no
     user-scope hook-wiring mode, so a ``user-scope-hooks = true`` pack is
-    REFUSED (RFC-0005 AC25) — not silently accepted-and-dropped. The legacy
+    REFUSED — not silently accepted-and-dropped. The legacy
     ``[adapter.kiro]`` block still declares ``merge-into-agent-json``, so this
     pins that the install gate canonicalizes the alias before deciding."""
 
@@ -378,7 +378,7 @@ class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
 
 
 class RailBStillRefusesPacksWithoutOptInTests(_UserScopeInstallBase):
-    """AC24: A user-scope install of a pack that ships hooks but does
+    """A user-scope install of a pack that ships hooks but does
     NOT declare ``user-scope-hooks = true`` refuses at validate-rail
     time (Rail B's pre-T3 text)."""
 

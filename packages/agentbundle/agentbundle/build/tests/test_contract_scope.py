@@ -1,6 +1,6 @@
-"""Tests for the RFC-0004 v0.2 `[scope]` table on the adapter contract.
+"""Tests for the v0.2 `[scope]` table on the adapter contract.
 
-Verifies AC #14 (RFC-0004) for the distribution-adapters spec:
+Verifies the adapter scope contract:
   - adapter.schema.json accepts a well-formed [adapter.<name>.scope] block.
   - adapter.schema.json rejects each malformed `allowed-prefixes.user` shape
     enumerated in the spec: ["/"], [""], ["../"], [".."],
@@ -33,14 +33,13 @@ def _load_contract() -> dict:
 
 
 class ContractVersionTests(unittest.TestCase):
-    """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005,
-    then to 0.4 by RFC-0008 (T2 / spec claude-plugins-install-route), then to
-    0.5 by RFC-0010 (T2 / spec apm-install-route-parity), then to 0.6 by
-    RFC-0011 / pack-allowed-adapters (codex user-scope table), then to 0.7
-    by RFC-0012 / repo-scope-per-adapter-projection (every adapter declares
-    `allowed-prefixes.repo`; copilot gains a scope table) and RFC-0013 /
-    credential-broker-contract (governance bump) co-residing at v0.7, then
-    to 0.8 by docs/specs/dropped-primitives-coverage (codex agent +
+    """Contract version: bumped to 0.2, then to 0.3,
+    then to 0.4 by the claude-plugins install route, then to 0.5 by the apm
+    install route, then to 0.6 by the codex user-scope table, then to 0.7
+    by repo-scope per-adapter projection (every adapter declares
+    `allowed-prefixes.repo`; copilot gains a scope table) and the
+    credential-broker contract (governance bump) co-residing at v0.7, then
+    to 0.8 by dropped-primitives coverage (codex agent +
     hook-wiring move from `dropped` to first-class projections)."""
 
     def test_contract_version_is_0_5(self) -> None:
@@ -79,17 +78,17 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
 
 
 class OtherAdaptersOmitScopeTests(unittest.TestCase):
-    """v0.3 (RFC-0005) adds a `[scope]` table to Kiro alongside Claude
-    Code's existing one; v0.6 (RFC-0011) adds one to Codex; v0.7
-    (RFC-0012) adds one to Copilot — every shipped adapter now carries
-    a `[scope]` table at v0.7."""
+    """Contract version history for the `[scope]` table: v0.2 adds the
+    scope dimension, v0.3 adds a table to Kiro alongside Claude Code's,
+    v0.6 adds one to Codex, and v0.7 adds one to Copilot — every shipped
+    adapter now carries a `[scope]` table at v0.7."""
 
     def test_copilot_has_scope_per_rfc_0012(self) -> None:
         contract = _load_contract()
         scope = contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(scope, "copilot [scope] block missing")
         self.assertEqual(scope["repo"], ".")
-        # RFC-0052 / ADR-0040: copilot skill routes to the shared `.agents/skills/`
+        # Copilot skill routes to the shared `.agents/skills/`
         # cohort home (prepended to the list); agents + hooks stay under `.github/`.
         # The `.github/skills/` prefix is retained to allow the path-jail to admit
         # any existing `.github/skills/` files written by the previous contract.
@@ -97,7 +96,7 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
             scope["allowed-prefixes"]["repo"],
             [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"],
         )
-        # User scope: RFC-0052 prepends `.agents/skills/` to the user list.
+        # User scope: v0.17 prepends `.agents/skills/` to the user list.
         # `.copilot/skills/` is kept for path-jail compat; `.agentbundle/` stays.
         self.assertEqual(scope["user"], "~")
         self.assertEqual(
@@ -114,7 +113,7 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
     def test_codex_has_scope_per_rfc_0011(self) -> None:
         contract = _load_contract()
         scope = contract["adapter"]["codex"].get("scope")
-        self.assertIsNotNone(scope, "Codex [scope] block missing (RFC-0011)")
+        self.assertIsNotNone(scope, "Codex [scope] block missing")
         self.assertEqual(scope["repo"], ".")
         self.assertEqual(scope["user"], "~")
         # v0.8 (dropped-primitives-coverage) adds `.codex/` to allow

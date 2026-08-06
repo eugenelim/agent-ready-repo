@@ -10,7 +10,7 @@ Claude-Code-user-scope shape:
    the agent JSON are squatting on a managed surface — the next upgrade
    replaces the file via the agent primitive's ``direct-file``
    projection. No collision detection, no ``--force-merge`` flag.
-2. **Agent file must exist before merge runs.** RFC-0005 establishes
+2. **Agent file must exist before merge runs.** The pipeline establishes
    the build-pipeline ordering invariant — agents project before any
    wiring merges run. The absent-file case is a refuse-with-internal-
    error path, exercised only via test instrumentation.
@@ -40,7 +40,7 @@ from agentbundle.build.projections.hook_id import synthesize_id
 class AgentJsonRefusal(Exception):
     """Raised when ``project`` / ``unproject`` refuses to write.
 
-    The exception's string is the refuse-and-explain text RFC-0005
+    The exception's string is the refuse-and-explain text the contract
     specifies. CLI callers (T8b) catch and print to stderr without
     paraphrasing.
     """
@@ -75,7 +75,7 @@ def project(
         ``hooks.<event>``.
     """
     if not target_path.exists():
-        # The text below extends RFC-0005's bare `internal: <agent-file>
+        # The text below extends the bare `internal: <agent-file>
         # missing` shape with diagnostic context. This is intentional —
         # the message is a CLI-internal-error string, not an
         # adopter-facing contract, so we trade brevity for the breadcrumb
@@ -128,7 +128,7 @@ def unproject(target_path: Path, owned: list[tuple[str, str]]) -> None:
 
     Empty ``hooks.<event>`` arrays are removed. The agent file itself
     is **never** removed by this function — that's the agent
-    primitive's ``direct-file`` uninstall's responsibility (RFC-0005
+    primitive's ``direct-file`` uninstall's responsibility (the
     § Conflict, idempotency, uninstall).
 
     If the target file is absent, ``unproject`` is a no-op — same
@@ -219,7 +219,7 @@ def _shape_check_event_array(target_path: Path, event: str, value: object) -> No
 def _merge_one_entry(event_array: list, tagged_entry: dict) -> None:
     """Append or replace-in-place by id.
 
-    No adopter-collision branch: the agent JSON is pack-owned (RFC-0005
+    No adopter-collision branch: the agent JSON is pack-owned (the
     § What this section does NOT add — no ``--force-merge`` for Kiro).
     Adopter hand-edits to the agent file are squatting on a managed
     surface; the next upgrade replaces the file via the agent

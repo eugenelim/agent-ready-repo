@@ -260,7 +260,7 @@ def test_ride_along_links_to_reference_page_resolve() -> None:
     pre-existing sibling both point at the new reference guide; guard them so a
     future rename of the page doesn't silently break these two inbound links.
     """
-    # Post per-pack migration (ADR-0020), the reference page and its two
+    # Post per-pack migration, the reference page and its two
     # inbound links live in three different homes: the page under
     # `architect/`, the quadrant index under `_shared/`, the sibling
     # cross-link under `core/`.

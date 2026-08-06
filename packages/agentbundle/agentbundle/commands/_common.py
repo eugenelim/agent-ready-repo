@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def resolve_catalogue_uri(args: argparse.Namespace) -> str:
     """Resolve the catalogue URI for ``install`` / ``upgrade``.
 
-    Applies the four-layer default chain (RFC-0046 / ADR-0036) when the
+    Applies the four-layer default chain when the
     ``catalogue`` positional was omitted. An explicit positional is returned
     verbatim (layer 1 short-circuits before any metadata/bundle read), so the
     default chain runs only on a bare invocation. May raise ``CatalogueError``
@@ -46,7 +46,7 @@ def resolve_state_path(scope: str, root: Path) -> Path:
     ``scope="repo"``  → ``<root>/.agentbundle-state.toml``
     ``scope="user"``  → ``<root>/.agentbundle/state.toml``
     ``scope="local"`` → ``<root>/.agentbundle-local-state.toml``
-      (RFC-0080: per-clone, never-committed; never added to .gitignore)
+      (per-clone, never-committed; never added to .gitignore)
     """
     if scope == "user":
         return root / ".agentbundle" / "state.toml"
@@ -184,7 +184,7 @@ def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
 
     The pack declares its version under `[pack.adapter-contract] version`;
     the CLI's version comes from `agentbundle.version.SPEC_VERSION` (read
-    at import time from the bundled `adapter.toml`). AC #14 in the spec
+    at import time from the bundled `adapter.toml`). The spec
     requires every subcommand that consumes a pack manifest to invoke
     this gate before any I/O the pack would drive — uniform refusal, no
     partial behaviour.
@@ -232,7 +232,7 @@ def _major(version: str) -> str:
 
 def format_adapter_versions(rows: dict[str, PackState]) -> str:
     """Render sorted ``adapter (version)`` pairs for a multi-adapter
-    disambiguator message (RFC-0052).
+    disambiguator message.
 
     ``rows`` is a ``{adapter: PackState}`` mapping (the shape
     ``State.rows_for_pack`` returns). Output e.g. ``claude-code (0.9.0),

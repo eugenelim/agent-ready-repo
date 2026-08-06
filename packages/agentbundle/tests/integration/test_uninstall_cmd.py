@@ -26,7 +26,7 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 def _run_install(pack: str, catalogue: str, output: str) -> int:
     from agentbundle.commands.install import run
 
-    # Test fixtures predate RFC-0012's per-IDE projection at repo scope;
+    # Test fixtures predate per-IDE projection at repo scope;
     # pass `emit_install_routes=True` to keep the dist-tree shape these
     # tests assert against. The per-IDE projection path is covered by
     # the new `test_install_repo_scope_per_adapter.py` integration suite.
@@ -233,7 +233,7 @@ def test_missing_pack_exits_nonzero(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# 6. --dry-run / --yes / confirmation (CLI-hygiene AC1–AC5)
+# 6. --dry-run / --yes / confirmation (CLI-hygiene)
 # ---------------------------------------------------------------------------
 
 
@@ -245,7 +245,7 @@ def _snapshot_tree(root: Path) -> dict[str, bytes]:
 
 
 def test_dry_run_previews_and_writes_nothing(tmp_path, capsys):
-    """AC1: `uninstall --dry-run` prints the per-file plan + summary, exits 0,
+    """`uninstall --dry-run` prints the per-file plan + summary, exits 0,
     and mutates nothing — no file removed, no state change."""
     from agentbundle.render import render_pack
 
@@ -267,7 +267,7 @@ def test_dry_run_previews_and_writes_nothing(tmp_path, capsys):
 
 
 def test_yes_skips_prompt(tmp_path, monkeypatch):
-    """AC3: --yes proceeds without reading stdin."""
+    """--yes proceeds without reading stdin."""
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0
 
@@ -280,7 +280,7 @@ def test_yes_skips_prompt(tmp_path, monkeypatch):
 
 
 def test_confirmation_accept_proceeds(tmp_path, monkeypatch):
-    """AC2: an interactive 'y' proceeds with the removal."""
+    """An interactive 'y' proceeds with the removal."""
     from agentbundle.config import load_state
 
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
@@ -294,7 +294,7 @@ def test_confirmation_accept_proceeds(tmp_path, monkeypatch):
 
 
 def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
-    """AC2: declining aborts and removes nothing."""
+    """Declining aborts and removes nothing."""
     from agentbundle.config import load_state
 
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
@@ -312,7 +312,7 @@ def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
 
 
 def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
-    """AC2: EOF on the prompt declines."""
+    """EOF on the prompt declines."""
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0
     capsys.readouterr()
@@ -328,7 +328,7 @@ def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
 
 
 def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
-    """AC4: a non-TTY stdin without --yes refuses, names --yes, writes nothing."""
+    """A non-TTY stdin without --yes refuses, names --yes, writes nothing."""
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0
     capsys.readouterr()
@@ -346,7 +346,7 @@ def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
 
 
 def test_dry_run_remove_keep_parity_with_real_run(tmp_path, capsys):
-    """AC5: the remove/keep split shown by --dry-run is exactly what a real
+    """The remove/keep split shown by --dry-run is exactly what a real
     --yes run removes/keeps (Tier-2 file shown `keep` is preserved byte-identical)."""
     from agentbundle.render import render_pack
 

@@ -246,7 +246,7 @@ class TestClaudeCodeOrphanSweep(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_two_stage_shrink(self) -> None:
-        # AC18: project {a, b, c} then {a, c} into the same output.
+        # Project {a, b, c} then {a, c} into the same output.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             three = _seed_named_skills_pack(tmp_path, "three-skill", ["a", "b", "c"])
@@ -261,7 +261,7 @@ class TestClaudeCodeOrphanSweep(unittest.TestCase):
             self.assertEqual(children, {"a", "c"})
 
     def test_two_pack_union(self) -> None:
-        # AC20 — claude-code case.
+        # Claude-code case.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack_a = _seed_named_skills_pack(tmp_path, "pack-a", ["a", "b"])

@@ -1,4 +1,4 @@
-"""Tests for the kiro-cli adapter (T3 — RFC-0022).
+"""Tests for the kiro-cli adapter (T3).
 
 kiro-cli targets the `kiro` terminal binary. It projects agents as
 `.json` with CLI short-name tool tokens (read, grep, glob, write,
@@ -83,7 +83,7 @@ class KiroCliAdapterTests(unittest.TestCase):
     def test_cli_agent_gets_skill_resources(self) -> None:
         """kiro-cli custom agents must declare the skill-resources glob so
         they reach the bundle's skills — Kiro custom agents don't inherit the
-        default agent's auto-discovery (RFC-0022 E4; kiro #6887/#6888)."""
+        default agent's auto-discovery (E4; kiro #6887/#6888)."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_agent_pack(tmp_path)

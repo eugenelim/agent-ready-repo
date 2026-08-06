@@ -1,4 +1,4 @@
-"""T5 (RFC-0052 / ADR-0039+0040): the `shared` prefix class + cohort routing.
+"""T5: the `shared` prefix class + cohort routing.
 
 The adapter contract gains a `[contract.shared-prefixes]` registry mapping each
 shared prefix to its reader cohort (shipped adapters); every other prefix is
@@ -85,7 +85,7 @@ class CohortSkillRoutingTests(unittest.TestCase):
                 )
 
     def test_cohort_agents_stay_native(self) -> None:
-        # ADR-0040 moves only the skill primitive; agents stay native.
+        # Only the skill primitive moves; agents stay native.
         for adapter, native in (
             ("cursor", ".cursor/agents/"),
             ("gemini", ".gemini/agents/"),

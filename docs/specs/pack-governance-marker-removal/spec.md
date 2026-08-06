@@ -52,7 +52,7 @@ state the rule directly — `the AC8 cost cap` → `the cost cap`.
 - [x] AC11a — `packages/credbroker/**` (source of the pack's projected credbroker user-lib) is clean **except `CHANGELOG.md`**, and the projection matches byte-for-byte after `self-host`. Scope covers `pyproject.toml`, `README.md`, `README-pypi.md`, `credbroker/*.py`, and `tests/**` (39 sites). The two PyPI READMEs keep their working GitHub URLs and lose only the ordinal link text, so an adopter still reaches the design docs.
 - [x] AC11b — `packages/credbroker/CHANGELOG.md` (2 markers) is deliberately untouched, on the same historical-record reasoning as `agentbundle/CHANGELOG.md`. Both are named in the AC12 deferral so the decision is explicit rather than an oversight.
 - [x] AC11c — `packs/AGENTS.md` is a **source** for `_data/catalogue-scaffold/packs/AGENTS.md`; `tools/catalogue/sync_authoring_scaffold.py --write` was run. This gate lives only in the agentbundle suite, not `make build-check`, and it broke CI once before being caught.
-- [ ] AC12 — `packages/**` swept on the same principle. **(deferred: packages-governance-marker-sweep)**
+- [x] AC12 — `packages/**` swept on the same principle. Closed by `docs/specs/packages-governance-marker-sweep/`.
 
 ## Boundaries
 

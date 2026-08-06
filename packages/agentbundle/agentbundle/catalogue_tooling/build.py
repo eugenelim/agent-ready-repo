@@ -1,7 +1,5 @@
 """Catalogue build wrapper.
 
-Spec: docs/specs/catalogue-tooling-build-self/spec.md (ini-005 Bucket 7).
-
 Thin wrapper over agentbundle.build.main.cmd_build that exposes structured
 result types and reads catalogue.toml defaults for output path and recipe.
 """

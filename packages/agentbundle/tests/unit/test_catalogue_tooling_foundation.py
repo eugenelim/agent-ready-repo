@@ -21,7 +21,7 @@ import pytest
 
 
 def test_catalogue_tooling_imports():
-    """AC1: all 11 modules import without ImportError."""
+    """All 11 modules import without ImportError."""
     modules = [
         "agentbundle.catalogue_tooling",
         "agentbundle.catalogue_tooling.config",
@@ -42,7 +42,7 @@ def test_catalogue_tooling_imports():
 
 
 def test_result_types_structure():
-    """AC3: result types export required fields and subtype relationships."""
+    """Result types export required fields and subtype relationships."""
     from agentbundle.catalogue_tooling.results import (
         BuildResult,
         CommandResult,
@@ -64,7 +64,7 @@ def test_result_types_structure():
     import dataclasses
 
     diag_fields = {f.name for f in dataclasses.fields(Diagnostic)}
-    # Diagnostic has 8 fields per spec AC3 and results.py
+    # Diagnostic has 8 fields, matching results.py
     for field in ("code", "severity", "pack", "path", "line", "col", "message", "remediation"):
         assert field in diag_fields, f"Diagnostic missing field: {field}"
 
@@ -90,7 +90,7 @@ def test_result_types_structure():
 
 
 def test_stub_raises_not_implemented():
-    """AC2: all catalogue_tooling modules are now implemented (Waves 2-4).
+    """All catalogue_tooling modules are now implemented (Waves 2-4).
 
     No stubs remain — this test verifies package_catalogue is callable
     (accepts required args) without raising NotImplementedError.
@@ -198,7 +198,7 @@ def _write_toml(tmp_path: Path, content: str) -> Path:
 
 
 def test_config_absent_returns_none(tmp_path):
-    """AC5: absent catalogue.toml returns None."""
+    """Absent catalogue.toml returns None."""
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
     result = load_catalogue_config(tmp_path)
@@ -206,7 +206,7 @@ def test_config_absent_returns_none(tmp_path):
 
 
 def test_config_valid_public(tmp_path):
-    """AC5/AC6: valid minimal public config parses without error."""
+    """Valid minimal public config parses without error."""
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
     content = _minimal_valid_toml()
@@ -217,7 +217,7 @@ def test_config_valid_public(tmp_path):
 
 
 def test_config_valid_enterprise(tmp_path):
-    """AC6: valid enterprise config with Artifactory enabled parses without error."""
+    """Valid enterprise config with Artifactory enabled parses without error."""
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
     # Build enterprise config with Artifactory enabled
@@ -266,7 +266,7 @@ def test_config_valid_enterprise(tmp_path):
 
 
 def test_config_bad_schema_integer(tmp_path):
-    """AC6: non-integer schema field raises CatalogueConfigError."""
+    """Non-integer schema field raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = (
@@ -296,7 +296,7 @@ def test_config_bad_schema_integer(tmp_path):
 
 
 def test_config_unsafe_name(tmp_path):
-    """AC6: catalogue name with unsafe characters raises CatalogueConfigError."""
+    """Catalogue name with unsafe characters raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = (
@@ -345,7 +345,7 @@ _VALID_BASE = (
 
 
 def test_config_absolute_path(tmp_path):
-    """AC6: absolute path in catalogue.paths raises CatalogueConfigError."""
+    """Absolute path in catalogue.paths raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace("packs = 'packs'", "packs = '/absolute/packs'")
@@ -355,7 +355,7 @@ def test_config_absolute_path(tmp_path):
 
 
 def test_config_traversal_path(tmp_path):
-    """AC6: traversal path raises CatalogueConfigError."""
+    """Traversal path raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace("packs = 'packs'", "packs = '../outside'")
@@ -365,7 +365,7 @@ def test_config_traversal_path(tmp_path):
 
 
 def test_config_symlink_escape(tmp_path):
-    """AC6: symlink escaping catalogue root raises CatalogueConfigError."""
+    """Symlink escaping catalogue root raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     # Create a symlink pointing outside tmp_path
@@ -384,7 +384,7 @@ def test_config_symlink_escape(tmp_path):
 
 
 def test_config_unknown_recipe(tmp_path):
-    """AC6: unknown recipe raises CatalogueConfigError."""
+    """Unknown recipe raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace("recipes = ['default']", "recipes = ['nonexistent-recipe-xyz']")
@@ -394,7 +394,7 @@ def test_config_unknown_recipe(tmp_path):
 
 
 def test_config_unsafe_recipe_path(tmp_path):
-    """AC6: unsafe recipe relative path raises CatalogueConfigError."""
+    """Unsafe recipe relative path raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace(
@@ -406,7 +406,7 @@ def test_config_unsafe_recipe_path(tmp_path):
 
 
 def test_config_unknown_preferred_adapter(tmp_path):
-    """AC6: unknown preferred-adapter raises CatalogueConfigError."""
+    """Unknown preferred-adapter raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace(
@@ -418,7 +418,7 @@ def test_config_unknown_preferred_adapter(tmp_path):
 
 
 def test_config_invalid_source(tmp_path):
-    """AC6: invalid default-source raises CatalogueConfigError."""
+    """Invalid default-source raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace(
@@ -431,7 +431,7 @@ def test_config_invalid_source(tmp_path):
 
 
 def test_config_bad_artifactory_fields(tmp_path):
-    """AC6: Artifactory enabled with missing required fields raises CatalogueConfigError."""
+    """Artifactory enabled with missing required fields raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace(
@@ -445,7 +445,7 @@ def test_config_bad_artifactory_fields(tmp_path):
 
 
 def test_config_credential_url(tmp_path):
-    """AC6: credential-bearing URL in default-source raises CatalogueConfigError."""
+    """Credential-bearing URL in default-source raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace(
@@ -458,7 +458,7 @@ def test_config_credential_url(tmp_path):
 
 
 def test_config_bad_version_string(tmp_path):
-    """AC6: non-comparable minimum-agentbundle-version raises CatalogueConfigError."""
+    """Non-comparable minimum-agentbundle-version raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE.replace(
@@ -471,7 +471,7 @@ def test_config_bad_version_string(tmp_path):
 
 
 def test_config_unknown_top_level_key(tmp_path):
-    """AC6: unknown top-level key raises CatalogueConfigError."""
+    """Unknown top-level key raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
     content = _VALID_BASE + "\n[unknown-section]\nfoo = 'bar'\n"
@@ -488,7 +488,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]  # packages/agentbundle/tests/u
 
 
 def test_schema_copies_byte_equal():
-    """AC4: both schema copies are byte-identical."""
+    """Both schema copies are byte-identical."""
     src = _REPO_ROOT / "contracts" / "catalogue.schema.json"
     dst = (
         _REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "catalogue.schema.json"
@@ -499,7 +499,7 @@ def test_schema_copies_byte_equal():
 
 
 def test_repo_catalogue_toml_valid():
-    """AC7: repo-root catalogue.toml passes load_catalogue_config validation."""
+    """Repo-root catalogue.toml passes load_catalogue_config validation."""
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
     result = load_catalogue_config(_REPO_ROOT)
@@ -523,7 +523,7 @@ def _run_agentbundle(*args: str) -> tuple[int, str, str]:
 
 
 def test_cli_catalogue_group_help():
-    """AC9: agentbundle catalogue --help exits 0 and lists subcommands (real impl)."""
+    """Agentbundle catalogue --help exits 0 and lists subcommands (real impl)."""
     rc, stdout, stderr = _run_agentbundle("catalogue", "--help")
     combined = stdout + stderr
     assert rc == 0, f"Expected zero exit for catalogue --help, got {rc}: {combined}"
@@ -532,7 +532,7 @@ def test_cli_catalogue_group_help():
 
 
 def test_cli_lint_packs_help():
-    """AC10: agentbundle lint packs --help exits 0 and shows --root (now real impl)."""
+    """Agentbundle lint packs --help exits 0 and shows --root (now real impl)."""
     rc, stdout, stderr = _run_agentbundle("lint", "packs", "--help")
     combined = stdout + stderr
     assert rc == 0, f"Expected zero exit for lint packs --help, got {rc}: {combined}"

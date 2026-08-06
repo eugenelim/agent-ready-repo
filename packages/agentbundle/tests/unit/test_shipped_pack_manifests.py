@@ -1,4 +1,4 @@
-"""AC18 schema-validation pins for shipped packs.
+"""Schema-validation pins for shipped packs.
 
 `make build-self` already invokes ``validate_pack_metadata`` per pack at
 build time, so a malformed shipped manifest breaks CI. These pytests
@@ -41,7 +41,7 @@ def _load(pack_name: str) -> dict:
 def test_addon_manifests_carry_required_dependency(pack_name):
     """Addon packs (governance-extras, monorepo-extras) declare
     `[[pack.dependencies.required]]` against `core` with the `^2.0`
-    caret-minor range (adapt-to-project AC18; bumped from ^0.1 → ^1.0 when core
+    caret-minor range (bumped from ^0.1 → ^1.0 when core
     hit 1.0.0, then ^1.0 → ^2.0 when core hit 2.0.0).
 
     user-guide-diataxis (0.3.0) is a deprecated shim that depends on
@@ -94,19 +94,19 @@ def test_shim_requires_product_documentation():
 def test_repo_only_packs_declare_install_table(pack_name):
     """Repo-only shipped packs declare the current contract + the
     `[pack.install]` table with `default-scope = "repo"` and
-    `allowed-scopes = ["repo"]`. RFC-0004 sets the install-scope
-    dimension; all four repo-only packs are repo-only by content (core
-    ships hooks, addons scaffold project directories). RFC-0012 bumps
+    `allowed-scopes = ["repo"]`. All four repo-only packs are repo-only by
+    content (core
+    ships hooks, addons scaffold project directories). v0.7 bumps
     the four repo-only packs from v0.2 to v0.7 (Drawback #7 mitigation —
     required for the resolver to route them to codex/copilot via the
     no-flag default at repo scope).
     """
     data = _load(pack_name)
     contract = data.get("pack", {}).get("adapter-contract", {})
-    # docs/specs/dropped-primitives-coverage T7 bumped the four repo-only
+    # Dropped-primitives coverage bumped the four repo-only
     # packs from v0.7 → v0.8 (codex agent + hook-wiring move from
-    # `dropped` to first-class projections at v0.8). docs/specs/copilot-full-
-    # parity bumped `core` to v0.10, and docs/specs/copilot-skills-and-web bumps
+    # `dropped` to first-class projections at v0.8). Copilot full
+    # parity bumped `core` to v0.10, and copilot skills and web bumps
     # `core` to v0.12 (its skills now project as first-class Copilot Agent
     # Skills); the other three stay at v0.8.
     expected_version = "0.12" if pack_name == "core" else "0.8"

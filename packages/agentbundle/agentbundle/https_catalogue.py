@@ -1,4 +1,4 @@
-"""HTTPS catalogue and archive fetcher for enterprise distribution (RFC-0072).
+"""HTTPS catalogue and archive fetcher for enterprise distribution.
 
 Implements ``catalogue+https://`` and ``archive+https://`` source URI schemes:
 
@@ -51,7 +51,7 @@ class CatalogueArchiveResult:
 
 
 # ---------------------------------------------------------------------------
-# Named safety limits (RFC-0072; all enforced regardless of Content-Length)
+# Named safety limits (all enforced regardless of Content-Length)
 # ---------------------------------------------------------------------------
 
 _MAX_DESCRIPTOR_BYTES = 1 * 1024 * 1024          # 1 MiB

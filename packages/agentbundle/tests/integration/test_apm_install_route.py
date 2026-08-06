@@ -1,6 +1,5 @@
 """Integration tests for the APM-route surface of the install-marker writer.
 
-Spec: docs/specs/apm-install-route-parity/spec.md
 
 T1 layer (this file's rail-level tests): exercise individual writer rails —
 ``--install-route`` argparse, data-directory precedence shim, APM scope
@@ -119,7 +118,7 @@ def _read_marker(marker_path: Path) -> dict:
 
 
 # ===========================================================================
-# AC1 — import allow-list grows by one entry (argparse)
+# Import allow-list grows by one entry (argparse)
 # ===========================================================================
 
 
@@ -130,7 +129,7 @@ ALLOWED_POST_EDIT_MODULES = frozenset({
 
 
 def test_writer_imports_argparse_only_added_to_allowlist():
-    """AC1: the writer's top-level imports are exactly the post-edit module set."""
+    """The writer's top-level imports are exactly the post-edit module set."""
     import re
     content = SOURCE_WRITER.read_text(encoding="utf-8")
     pattern = re.compile(r"^(?:import|from)\s+(\S+)", re.MULTILINE)
@@ -152,12 +151,12 @@ def test_writer_imports_argparse_only_added_to_allowlist():
 
 
 # ===========================================================================
-# AC2 — --install-route flag (required, two-valued)
+# --install-route flag (required, two-valued)
 # ===========================================================================
 
 
 def test_install_route_flag_claude_plugins_records_claude_plugins(tmp_path):
-    """AC2 (a): --install-route claude-plugins → marker carries install-route = "claude-plugins"."""  # noqa: E501
+    """Case (a): --install-route claude-plugins → marker carries install-route = "claude-plugins"."""  # noqa: E501
     pack_root = tmp_path / "pack_root"
     pack_root.mkdir()
     _write_pack_toml(pack_root, name="core", version="0.1.0", allowed_scopes=["repo"])
@@ -187,7 +186,7 @@ def test_install_route_flag_claude_plugins_records_claude_plugins(tmp_path):
 
 
 def test_install_route_flag_apm_records_apm(tmp_path):
-    """AC2 (b): --install-route apm → marker carries install-route = "apm"."""
+    """Case (b): --install-route apm → marker carries install-route = "apm"."""
     cwd = tmp_path / "cwd"
     cwd.mkdir()
     pack_root = cwd / "apm_modules" / "core"
@@ -205,7 +204,7 @@ def test_install_route_flag_apm_records_apm(tmp_path):
 
 
 def test_install_route_flag_invalid_fails_fast(tmp_path):
-    """AC2 (c): an invalid choice value → argparse usage error on stderr."""
+    """Case (c): an invalid choice value → argparse usage error on stderr."""
     import subprocess
     result = subprocess.run(
         [sys.executable, str(SOURCE_WRITER), "--install-route", "foo"],
@@ -219,7 +218,7 @@ def test_install_route_flag_invalid_fails_fast(tmp_path):
 
 
 def test_install_route_flag_absent_fails_fast(tmp_path):
-    """AC2 (d): flag absence → argparse "required" error."""
+    """Case (d): flag absence → argparse "required" error."""
     import subprocess
     result = subprocess.run(
         [sys.executable, str(SOURCE_WRITER)],
@@ -233,7 +232,7 @@ def test_install_route_flag_absent_fails_fast(tmp_path):
 
 
 # ===========================================================================
-# AC3 — data-directory resolution precedence
+# Data-directory resolution precedence
 # ===========================================================================
 
 
@@ -268,7 +267,7 @@ def _make_apm_fixture(tmp_path, *, set_in_env, allowed_scopes=("repo",)):
 
 
 def test_data_dir_resolves_claude_plugin_data_when_set(tmp_path):
-    """AC3 (a): only ${CLAUDE_PLUGIN_DATA} set → resolved path equals it."""
+    """Case (a): only ${CLAUDE_PLUGIN_DATA} set → resolved path equals it."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(
         tmp_path, set_in_env=["CLAUDE_PLUGIN_DATA", "CLAUDE_PLUGIN_ROOT"]
     )
@@ -279,7 +278,7 @@ def test_data_dir_resolves_claude_plugin_data_when_set(tmp_path):
 
 
 def test_data_dir_resolves_plugin_root_data_when_only_plugin_root_set(tmp_path):
-    """AC3 (b): only ${PLUGIN_ROOT} set → ${PLUGIN_ROOT}/.data."""
+    """Case (b): only ${PLUGIN_ROOT} set → ${PLUGIN_ROOT}/.data."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(
         tmp_path, set_in_env=["PLUGIN_ROOT"]
     )
@@ -290,7 +289,7 @@ def test_data_dir_resolves_plugin_root_data_when_only_plugin_root_set(tmp_path):
 
 
 def test_data_dir_resolves_cursor_plugin_root_data_when_only_cursor_set(tmp_path):
-    """AC3 (c): only ${CURSOR_PLUGIN_ROOT} set → ${CURSOR_PLUGIN_ROOT}/.data."""
+    """Case (c): only ${CURSOR_PLUGIN_ROOT} set → ${CURSOR_PLUGIN_ROOT}/.data."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(
         tmp_path, set_in_env=["CURSOR_PLUGIN_ROOT"]
     )
@@ -301,7 +300,7 @@ def test_data_dir_resolves_cursor_plugin_root_data_when_only_cursor_set(tmp_path
 
 
 def test_data_dir_unresolvable_exits_zero_no_writes(tmp_path):
-    """AC3 (d): no data-dir token set → exit 0, no marker, no hash file."""
+    """Case (d): no data-dir token set → exit 0, no marker, no hash file."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(tmp_path, set_in_env=[])
     # Empty-string PLUGIN_ROOT must also be treated as unset.
     env["PLUGIN_ROOT"] = ""
@@ -312,7 +311,7 @@ def test_data_dir_unresolvable_exits_zero_no_writes(tmp_path):
 
 
 def test_data_dir_created_when_absent(tmp_path):
-    """AC3 (e): mkdir(parents=True, exist_ok=True) rail."""
+    """Case (e): mkdir(parents=True, exist_ok=True) rail."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(
         tmp_path, set_in_env=["PLUGIN_ROOT"]
     )
@@ -325,7 +324,7 @@ def test_data_dir_created_when_absent(tmp_path):
 
 
 def test_data_dir_claude_plugin_data_wins_when_all_set(tmp_path):
-    """AC3 (f, precedence pin): all three set → ${CLAUDE_PLUGIN_DATA} wins."""
+    """Case (f, precedence pin): all three set → ${CLAUDE_PLUGIN_DATA} wins."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(
         tmp_path, set_in_env=["CLAUDE_PLUGIN_DATA", "PLUGIN_ROOT", "CURSOR_PLUGIN_ROOT"]
     )
@@ -338,7 +337,7 @@ def test_data_dir_claude_plugin_data_wins_when_all_set(tmp_path):
 
 
 def test_data_dir_plugin_root_wins_over_cursor_plugin_root(tmp_path):
-    """AC3 (g, second adjacent-pair pin): PLUGIN_ROOT wins over CURSOR_PLUGIN_ROOT."""
+    """Case (g, second adjacent-pair pin): PLUGIN_ROOT wins over CURSOR_PLUGIN_ROOT."""
     projected, cwd, home, pack_root, env = _make_apm_fixture(
         tmp_path, set_in_env=["PLUGIN_ROOT", "CURSOR_PLUGIN_ROOT"]
     )
@@ -356,12 +355,12 @@ def test_data_dir_plugin_root_wins_over_cursor_plugin_root(tmp_path):
 
 
 # ===========================================================================
-# AC4 — APM scope detection by projected-hook path
+# APM scope detection by projected-hook path
 # ===========================================================================
 
 
 def test_apm_scope_writer_under_cwd_nested_under_home_is_repo(tmp_path):
-    """AC4 (a, first-branch-wins precedence test). Fixture: home=$tmp/home,
+    """Case (a, first-branch-wins precedence test). Fixture: home=$tmp/home,
     cwd=$tmp/home/proj, writer at $tmp/home/proj/apm_modules/<pack>/. Both
     containment checks succeed in the abstract; the first-branch-wins rule
     must pick repo. A buggy home-first impl would silently flip to user.
@@ -385,7 +384,7 @@ def test_apm_scope_writer_under_cwd_nested_under_home_is_repo(tmp_path):
 
 
 def test_apm_scope_writer_under_home_is_user(tmp_path):
-    """AC4 (b): writer under $HOME (and not under cwd) → user scope."""
+    """Case (b): writer under $HOME (and not under cwd) → user scope."""
     home = tmp_path / "home"
     home.mkdir()
     pack_root = home / ".apm" / "apm_modules" / "core"
@@ -403,7 +402,7 @@ def test_apm_scope_writer_under_home_is_user(tmp_path):
 
 
 def test_apm_scope_writer_under_neither_exits_zero(tmp_path):
-    """AC4 (c): writer under neither cwd nor $HOME → exit 0, no writes."""
+    """Case (c): writer under neither cwd nor $HOME → exit 0, no writes."""
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     pack_root = elsewhere / "apm_modules" / "core"
@@ -423,7 +422,7 @@ def test_apm_scope_writer_under_neither_exits_zero(tmp_path):
 
 
 def test_apm_scope_resolves_symlinks_on_both_sides(tmp_path):
-    """AC4 (d): writer reached via symlink → .resolve() on both sides → repo."""
+    """Case (d): writer reached via symlink → .resolve() on both sides → repo."""
     if not hasattr(os, "symlink"):
         pytest.skip("symlinks unavailable on this platform")
     cwd = tmp_path / "repo"
@@ -449,7 +448,7 @@ def test_apm_scope_resolves_symlinks_on_both_sides(tmp_path):
 
 
 def test_apm_scope_writer_under_home_but_not_cwd_picks_user(tmp_path):
-    """AC4 (e, home-branch coverage when writer is outside cwd): writer under
+    """Case (e, home-branch coverage when writer is outside cwd): writer under
     $HOME (but not under cwd) → user. Both check orders yield "user" here
     because cwd-containment fails; this is the home-branch firing case, not
     a precedence test (that's case (a))."""
@@ -471,12 +470,12 @@ def test_apm_scope_writer_under_home_but_not_cwd_picks_user(tmp_path):
 
 
 # ===========================================================================
-# AC5 — allowed-scopes refusal rail unchanged under APM scope detection
+# Allowed-scopes refusal rail unchanged under APM scope detection
 # ===========================================================================
 
 
 def test_apm_refuse_repo_only_pack_at_user_scope(tmp_path):
-    """AC5 (a): repo-only pack, writer projected under $HOME → refuse-and-warn, exit 0."""
+    """Case (a): repo-only pack, writer projected under $HOME → refuse-and-warn, exit 0."""
     home = tmp_path / "home"
     home.mkdir()
     pack_root = home / ".apm" / "apm_modules" / "core"
@@ -495,7 +494,7 @@ def test_apm_refuse_repo_only_pack_at_user_scope(tmp_path):
 
 
 def test_apm_refuse_user_only_pack_at_project_scope(tmp_path):
-    """AC5 (b): user-only pack, writer projected under cwd → refuse-and-warn, exit 0."""
+    """Case (b): user-only pack, writer projected under cwd → refuse-and-warn, exit 0."""
     cwd = tmp_path / "cwd"
     cwd.mkdir()
     pack_root = cwd / "apm_modules" / "core"
@@ -513,12 +512,12 @@ def test_apm_refuse_user_only_pack_at_project_scope(tmp_path):
 
 
 # ===========================================================================
-# AC6 — route-flag dispatches scope detection
+# Route-flag dispatches scope detection
 # ===========================================================================
 
 
 def test_route_flag_dispatches_claude_plugins_scope_detection(tmp_path):
-    """AC6 (a): --install-route claude-plugins + enabledPlugins file + writer
+    """Case (a): --install-route claude-plugins + enabledPlugins file + writer
     under cwd → marker scope comes from _detect_origin (enabledPlugins walk),
     NOT from the projected-path mechanism."""
     cwd = tmp_path / "cwd"
@@ -560,7 +559,7 @@ def test_route_flag_dispatches_claude_plugins_scope_detection(tmp_path):
 
 
 def test_route_flag_dispatches_apm_scope_detection(tmp_path):
-    """AC6 (b): --install-route apm + writer under cwd + enabledPlugins file
+    """Case (b): --install-route apm + writer under cwd + enabledPlugins file
     present → marker scope comes from projected-path mechanism (repo), NOT
     from _detect_origin (which would yield user from the settings file)."""
     cwd = tmp_path / "cwd"
@@ -587,7 +586,7 @@ def test_route_flag_dispatches_apm_scope_detection(tmp_path):
 
 
 # ===========================================================================
-# T5 — End-to-end APM integration tests (AC12)
+# T5 — End-to-end APM integration tests
 #
 # T1 above tests individual writer rails (one rail per test); T5 below
 # stages full apm_modules/-shaped fixtures and asserts the integrated marker
@@ -600,7 +599,7 @@ def test_route_flag_dispatches_apm_scope_detection(tmp_path):
 
 
 def test_first_install_end_to_end_core_project_scope(tmp_path):
-    """AC12 (a) / RFC-0010 Q6 close-trigger 1: apm install core at project scope.
+    """Case (a) / close-trigger 1: apm install core at project scope.
 
     Stage the projected pack at ${tmp_path}/repo/apm_modules/core/; invoke the
     writer with --install-route apm, cwd = ${tmp_path}/repo,
@@ -633,7 +632,7 @@ def test_first_install_end_to_end_core_project_scope(tmp_path):
 
 
 def test_first_install_end_to_end_converters_user_scope(tmp_path):
-    """AC12 (b) / RFC-0010 Q6 close-trigger 2: apm install -g converters at user scope."""
+    """Case (b) / close-trigger 2: apm install -g converters at user scope."""
     home = tmp_path / "home"
     home.mkdir()
     pack_root = home / ".apm" / "apm_modules" / "converters"
@@ -655,7 +654,7 @@ def test_first_install_end_to_end_converters_user_scope(tmp_path):
 
 
 def test_refuse_repo_only_pack_at_user_scope_e2e(tmp_path):
-    """AC12 (c) / AC5 (a) end-to-end: repo-only pack staged under
+    """Case (c), repo-only end-to-end: repo-only pack staged under
     ~/.apm/apm_modules/ → refuse-and-warn, no marker, no hash file."""
     home = tmp_path / "home"
     home.mkdir()
@@ -675,7 +674,7 @@ def test_refuse_repo_only_pack_at_user_scope_e2e(tmp_path):
 
 
 def test_refuse_user_only_pack_at_project_scope_e2e(tmp_path):
-    """AC12 (c) / AC5 (b) end-to-end: user-only pack staged under
+    """Case (c), user-only end-to-end: user-only pack staged under
     ./apm_modules/ → refuse-and-warn, no marker, no hash file."""
     cwd = tmp_path / "repo"
     cwd.mkdir()
@@ -694,7 +693,7 @@ def test_refuse_user_only_pack_at_project_scope_e2e(tmp_path):
 
 
 def test_lockfile_replay_replaces_entry(tmp_path):
-    """AC12 (d): pre-seed a marker with name=core/version=0.1.0; stage a
+    """Case (d): pre-seed a marker with name=core/version=0.1.0; stage a
     pack root with version=0.2.0; run the writer; assert exactly one entry
     for name=core with version=0.2.0 (no duplicate, no leftover)."""
     cwd = tmp_path / "repo"
@@ -729,12 +728,12 @@ def test_lockfile_replay_replaces_entry(tmp_path):
 
 
 def test_per_target_characterisation_claude_code(tmp_path):
-    """AC12 (e): the one HookIntegrator-covered target whose data-directory
+    """Case (e): the one HookIntegrator-covered target whose data-directory
     token (${CLAUDE_PLUGIN_DATA}) and first-session semantics are
     characterised at spec time. Copilot/Cursor/Gemini are intentionally
     absent here — their per-target tokens are unconfirmed at PR time and
     a skipped-in-CI test is not honest coverage. Per-target first-firing
-    ships as AC17's manual-QA matrix rows."""
+    ships as the manual-QA matrix rows."""
     cwd = tmp_path / "repo"
     cwd.mkdir()
     # APM's Claude Code target rewrites ${PLUGIN_ROOT} to
@@ -765,7 +764,7 @@ def test_per_target_characterisation_claude_code(tmp_path):
 
 
 def test_data_dir_treats_empty_string_plugin_root_as_unset(tmp_path):
-    """AC3 regression guard for the empty-string-as-unset rail (spec.md:585).
+    """Regression guard for the empty-string-as-unset rail.
 
     A refactor from `if pr:` to `if "PLUGIN_ROOT" in env:` would silently
     break the rail; this test sets PLUGIN_ROOT="" alongside CURSOR_PLUGIN_ROOT

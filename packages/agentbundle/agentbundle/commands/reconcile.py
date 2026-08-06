@@ -1,6 +1,6 @@
 """``agentbundle reconcile`` — read-only orphan reporter.
 
-Per RFC-0005 § Follow-on artifacts and AC26: walks the Claude Code
+Walks the Claude Code
 settings file (``~/.claude/settings.json``) and every Kiro agent JSON
 named in user-scope state, comparing the on-disk ``hooks.<event>``
 arrays against the state file's ``hook-wiring-owned`` rows to surface
@@ -20,7 +20,7 @@ Output is grouped by adapter (one heading per adapter that has any
 orphans, plus an "all clean" line when there are none). The
 subcommand is **read-only**: it does not register an ``--apply`` flag.
 A write-mode reconciler would re-create the merge-discipline problems
-RFC-0005 is designed to avoid; the adopter takes manual action from
+the merge rails are designed to avoid; the adopter takes manual action from
 this report.
 """
 
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 def run(args: argparse.Namespace) -> int:  # noqa: ARG001
     """Entry point for ``agentbundle reconcile``.
 
-    The report surface is user-scope only (RFC-0005). The old ``--scope``
+    The report surface is user-scope only. The old ``--scope``
     flag had a single legal value (``user``) that equalled its default, so
     it could never select anything — it was dropped (CLI-hygiene sweep). A
     future RFC that adds a second scope can reintroduce the flag then.

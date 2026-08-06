@@ -252,7 +252,7 @@ def test_init_self_hosted_vendored_copies_tooling(tmp_path: Path) -> None:
 
 
 def test_init_self_hosted_vendored_missing_agentbundle_diagnostic(tmp_path: Path) -> None:
-    # B3 AC3: non-self-hosted source refused for vendored mode.
+    # B3: non-self-hosted source refused for vendored mode.
     source = _make_source(tmp_path)  # no packages/agentbundle/
     cfg = _base_cfg(tmp_path, source, tooling="vendored")
     result = init_self_hosted(cfg)
@@ -556,7 +556,7 @@ def test_external_next_steps_has_install_command(tmp_path: Path) -> None:
     cfg = _base_cfg(tmp_path, source, tooling="external")
     result = init_self_hosted(cfg)
     assert result.ok
-    # B7 AC2: structured curation install command per adapter.
+    # B7: structured curation install command per adapter.
     assert any("agentbundle install catalogue-curation" in s for s in result.next_steps)
     assert any("--scope repo" in s for s in result.next_steps)
 

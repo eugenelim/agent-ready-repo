@@ -1,10 +1,10 @@
-"""T3 AC8: credentials_shim.load_credentials behavioural-contract
+"""T3: credentials_shim.load_credentials behavioural-contract
 test (post-T15: the prior `agentbundle.creds.loader` baseline is
 removed; this test now pins the contract directly against the shim).
 
 The shim's behavioural contract — first-hit-wins per key across
-Tier 1 (env) / Tier 2 (keyring) / Tier 3 (dotfile), per RFC-0006 § 2
-+ RFC-0013 § 4 — is pinned by AC8. This test exercises the shim
+Tier 1 (env) / Tier 2 (keyring) / Tier 3 (dotfile) — is pinned by the
+credential-broker contract. This test exercises the shim
 directly (imported as a sibling-package member, the shape every
 `auth: creds` consumer uses) and asserts:
 
@@ -100,7 +100,7 @@ class ShimTier1Tests(_ShimImportBase):
 
 class ShimMissingKeyTests(_ShimImportBase):
     """Missing required key raises CredentialsMissingError with the
-    same shape RFC-0006 § AC3 froze."""
+    same shape the contract froze."""
 
     def test_missing_raises(self) -> None:
         # No env var, no dotfile, Tier-2 forced None.

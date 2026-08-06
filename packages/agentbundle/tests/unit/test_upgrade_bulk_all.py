@@ -162,7 +162,7 @@ def test_yes_flag_accepted():
 
 
 def test_format_json_with_pack_returns_nonzero(tmp_path):
-    """AC5: --format json with --pack exits non-zero with informative message."""
+    """--format json with --pack exits non-zero with informative message."""
     args = _parse_args(["upgrade", "--pack", "core", "--format", "json"])
     args.root = str(tmp_path)
     from agentbundle.commands.upgrade import run
@@ -346,7 +346,7 @@ def test_preflight_pack_not_found(tmp_path):
 
 
 def test_preflight_source_resolved_once_per_invocation(tmp_path):
-    """AC8: two rows with the same source → resolve_catalogue called once."""
+    """Two rows with the same source → resolve_catalogue called once."""
     state = _make_state([
         ("core", "claude-code", "git+https://example.test/packs", "0.13.6"),
         ("ext", "claude-code", "git+https://example.test/packs", "1.0.0"),
@@ -368,7 +368,7 @@ def test_preflight_source_resolved_once_per_invocation(tmp_path):
 
 
 def test_preflight_catalogue_error_does_not_suppress_other_sources(tmp_path):
-    """AC8: CatalogueError on one source does not block rows from other sources."""
+    """CatalogueError on one source does not block rows from other sources."""
     from agentbundle.catalogue import CatalogueError
 
     state = _make_state([
@@ -517,7 +517,7 @@ def test_scope_missing_with_all_rejected(tmp_path):
 
 
 def test_ahead_row_outcome_skipped_no_mutation(tmp_path):
-    """AC18: ahead row gets outcome=skipped and is never downgraded."""
+    """Ahead row gets outcome=skipped and is never downgraded."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.8")])
     pack_toml = {"pack": {"version": "0.13.7"}}  # installed > available
 
@@ -540,7 +540,7 @@ def test_up_to_date_row_outcome_skipped_no_mutation(tmp_path):
 
 
 def test_blocked_preflight_all_outcomes_blocked(tmp_path):
-    """AC17: any unknown row -> all rows get outcome=blocked, no writes."""
+    """Any unknown row -> all rows get outcome=blocked, no writes."""
     _setup_state(tmp_path, [
         ("core", "claude-code", "agent-ready-repo", "0.13.6"),  # unknown (source-unknown)
     ])
@@ -593,7 +593,7 @@ def test_nothing_to_upgrade_exits_zero(tmp_path):
 
 
 def test_apply_order_deterministic():
-    """AC20: sorted by (canonical_source, pack, adapter)."""
+    """Sorted by (canonical_source, pack, adapter)."""
     rows = [
         _make_upgrade_row(pack="zebra", canonical_source="https://z.test/"),
         _make_upgrade_row(pack="alpha", canonical_source="https://a.test/"),
@@ -613,7 +613,7 @@ def test_apply_order_same_source_sorted_by_pack():
 
 
 def test_stop_on_first_failure():
-    """AC21: first failure stops the loop; remaining get not-attempted."""
+    """First failure stops the loop; remaining get not-attempted."""
     rows = [
         _make_upgrade_row(pack="alpha"),
         _make_upgrade_row(pack="beta"),
@@ -642,7 +642,7 @@ def test_stop_on_first_failure():
 
 
 def test_apply_single_row_uses_prerendered_projection(tmp_path):
-    """AC23: _apply_single_row never re-renders; uses row._projection."""
+    """_apply_single_row never re-renders; uses row._projection."""
     row = _make_upgrade_row(pack="core")
     row._projection = {"README.md": b"content"}
     row.allowed_prefixes = None
@@ -694,7 +694,7 @@ def test_apply_single_row_no_stdout_in_bulk_path(tmp_path, capsys):
 
 
 def test_partial_completion_no_rolled_back_text(tmp_path):
-    """AC22: 'rolled back' never appears in output."""
+    """'Rolled back' never appears in output."""
     rows = [_make_upgrade_row(pack="alpha"), _make_upgrade_row(pack="beta")]
     call_n = {"n": 0}
 
@@ -816,7 +816,7 @@ def test_json_summary_invariant_dry_run(tmp_path):
 
 
 def test_json_mode_non_tty_without_yes(tmp_path):
-    """AC6: JSON mode without --yes fails regardless of TTY."""
+    """JSON mode without --yes fails regardless of TTY."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.6")])
     args = _make_args(scope="repo", fmt="json", yes=False)
 
@@ -828,7 +828,7 @@ def test_json_mode_non_tty_without_yes(tmp_path):
 
 
 def test_json_mode_tty_without_yes(tmp_path):
-    """AC6: JSON mode without --yes fails even when stdin is a TTY."""
+    """JSON mode without --yes fails even when stdin is a TTY."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.6")])
     args = _make_args(scope="repo", fmt="json", yes=False)
 
@@ -842,7 +842,7 @@ def test_json_mode_tty_without_yes(tmp_path):
 
 
 def test_json_dry_run_non_tty_no_yes_succeeds(tmp_path):
-    """AC6 dry-run carve-out: non-TTY + json + dry-run does NOT require --yes."""
+    """Dry-run carve-out: non-TTY + json + dry-run does NOT require --yes."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.6")])
     args = _make_args(scope="repo", fmt="json", dry_run=True, yes=False)
     pack_toml = {"pack": {"version": "0.13.7"}}
@@ -858,7 +858,7 @@ def test_json_dry_run_non_tty_no_yes_succeeds(tmp_path):
 
 
 def test_json_no_stdout_pollution(tmp_path):
-    """AC30: stdout carries exactly one valid JSON document in json mode."""
+    """Stdout carries exactly one valid JSON document in json mode."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.6")])
     pack_toml = {"pack": {"version": "0.13.7"}}
 
@@ -872,7 +872,7 @@ def test_json_no_stdout_pollution(tmp_path):
 
 
 def test_json_empty_scope(tmp_path):
-    """AC28/empty: empty state -> conformant JSON with empty rows."""
+    """Empty state -> conformant JSON with empty rows."""
     # Write empty state
     _write_state_toml(tmp_path, State())
     args = _make_args(scope="repo", yes=True, fmt="json")
@@ -884,7 +884,7 @@ def test_json_empty_scope(tmp_path):
 
 
 def test_json_source_error_message_redacted(tmp_path):
-    """AC33: CatalogueError message with credentials -> redacted in sources[*].error_message."""
+    """CatalogueError message with credentials -> redacted in sources[*].error_message."""
     from agentbundle.catalogue import CatalogueError
 
     credentialed_source = "git+https://user:secret@example.test/packs"
@@ -907,7 +907,7 @@ def test_json_source_error_message_redacted(tmp_path):
 
 
 def test_json_schema_version_is_integer(tmp_path):
-    """AC35: schema_version must be int 1, not str."""
+    """schema_version must be int 1, not str."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.6")])
     pack_toml = {"pack": {"version": "0.13.7"}}
 
@@ -963,7 +963,7 @@ def test_redact_credentials_git_plus_https():
 
 
 def test_table_output_headers_present(tmp_path):
-    """Table output must include PACK, ADAPTER, STATUS, OUTCOME columns (AC29)."""
+    """Table output must include PACK, ADAPTER, STATUS, OUTCOME columns."""
     _setup_state(tmp_path, [("core", "claude-code", "agent-ready-repo", "0.13.6")])
     with patch(
         "agentbundle.source_defaults.resolve_default_source",
@@ -975,7 +975,7 @@ def test_table_output_headers_present(tmp_path):
 
 
 def test_table_unicode_identifier(tmp_path):
-    """AC35: Unicode identifiers render without breaking table structure.
+    """Unicode identifiers render without breaking table structure.
 
     Note: dump_state uses Python's str.isalnum() which returns True for Unicode
     letters, producing unquoted TOML keys that tomllib rejects on read-back.
@@ -997,7 +997,7 @@ def test_table_unicode_identifier(tmp_path):
 
 
 def test_table_long_source_truncated(tmp_path):
-    """AC35: Long source URIs are truncated gracefully."""
+    """Long source URIs are truncated gracefully."""
     long_source = "agent-ready-repo"  # canonicalize_source -> None; triggers default-chain fallback  # noqa: E501
     state = _make_state([("core", "claude-code", long_source, "0.13.6")])
     _write_state_toml(tmp_path, state)

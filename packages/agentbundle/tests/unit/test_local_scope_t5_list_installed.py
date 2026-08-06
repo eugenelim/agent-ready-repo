@@ -115,7 +115,7 @@ def test_list_installed_local_scope_not_routed_to_user_state(tmp_path, capsys):
 
 
 def test_list_installed_scope_local_shows_annotation(tmp_path, capsys):
-    """AC23: --scope local output includes the (not committed; per-clone only) note."""
+    """--scope local output includes the (not committed; per-clone only) note."""
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
 

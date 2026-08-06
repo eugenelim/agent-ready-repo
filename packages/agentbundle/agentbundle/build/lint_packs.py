@@ -19,7 +19,6 @@ Three checks, applied to every pack under a `--packs-dir`:
      descriptions (`>`, `|`, continuation lines) are refused outright
      rather than mis-parsed. Constraints come from
      `contracts/target-vocab.toml` — see
-     `docs/specs/lint-packs-target-vocab/spec.md`.
 
 The lint is Python-only so it runs on every CI platform without
 shelling out, and it is wired into `make build` / `make build-self` /
@@ -52,7 +51,7 @@ _VOCAB_RELPATH = Path("contracts/target-vocab.toml")
 
 # Sentinel returned by `_extract_frontmatter_fields` when a key's
 # value position is `>`, `|`, or empty (signaling a folded / nested
-# block). The metadata checks translate this into an AC12 finding
+# block). The metadata checks translate this into a finding
 # rather than try to parse the continuation.
 _MULTILINE = object()
 
@@ -123,7 +122,7 @@ def _strictest_constraints(vocab: dict) -> tuple[Constraints | None, str | None]
 
     # `name-pattern` must be byte-equal across every declared target —
     # regex intersection is not a defined operation, so disagreement
-    # is refused (AC1 + AC11).
+    # is refused.
     pattern_per_target: dict[str, str] = {}
     for name, table in targets.items():
         if not isinstance(table, dict):
@@ -137,7 +136,7 @@ def _strictest_constraints(vocab: dict) -> tuple[Constraints | None, str | None]
         pattern_per_target[name] = pattern
     distinct_patterns = set(pattern_per_target.values())
     if len(distinct_patterns) != 1:
-        # AC11 — name-pattern disagreement is refused. Report which
+        # Name-pattern disagreement is refused. Report which
         # targets contributed which pattern so the file author can fix
         # the divergence without re-reading the loader source.
         groups: dict[str, list[str]] = {}
@@ -279,7 +278,7 @@ def _extract_frontmatter_fields(
 
 def _check_skill_metadata(pack_dir: Path, constraints: Constraints) -> list[str]:
     findings: list[str] = []
-    # Enumeration lives in one place (RFC-0060 AC9): the shared raw walk.
+    # Enumeration lives in one place: the shared raw walk.
     # Lint keeps its own per-entry filtering (it lints SKILL.md-less dirs too,
     # which `show` excludes) — the walk is shared, the filter is not.
     for entry in apm_entries(pack_dir, "skills"):
@@ -311,9 +310,9 @@ def _check_skill_metadata(pack_dir: Path, constraints: Constraints) -> list[str]
                 pack_dir.name, "skill", dir_name, text, constraints, relpath
             )
         )
-        # Frontmatter `name:` — multi-line refused (AC12); when
+        # Frontmatter `name:` — multi-line refused; when
         # present and a single-line scalar that differs from the
-        # dir, run the pattern check (AC2).
+        # dir, run the pattern check.
         fields = _extract_frontmatter_fields(text, {"name"})
         fm_name = fields.get("name")
         if fm_name is _MULTILINE:
@@ -332,7 +331,7 @@ def _check_skill_metadata(pack_dir: Path, constraints: Constraints) -> list[str]
 
 def _check_agent_metadata(pack_dir: Path, constraints: Constraints) -> list[str]:
     findings: list[str] = []
-    # Shared raw walk (RFC-0060 AC9); lint keeps its own .md-file filter.
+    # Shared raw walk; lint keeps its own .md-file filter.
     for entry in apm_entries(pack_dir, "agents"):
         if not entry.is_file() or entry.suffix != ".md":
             continue
@@ -403,7 +402,7 @@ def _length_finding(
 ) -> str | None:
     """Length check for the on-disk name only. The display_name slot
     IS the candidate; no separate frontmatter-name length finding —
-    per spec AC3, projection risk for over-long frontmatter `name:`
+    projection risk for over-long frontmatter `name:`
     is not separately documented and the dir/stem length covers the
     operational case."""
     if len(display_name) <= constraints.name_max:
@@ -454,7 +453,7 @@ def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[st
 
     When `constraints` is supplied, the per-target metadata gate runs
     after the portability sweep and the combined findings are sorted
-    by trailing relpath (the AC10 invariant). When omitted, behaviour
+    by trailing relpath — the deterministic-order invariant. When omitted, behaviour
     matches the pre-vocab gate exactly.
     """
     findings: list[str] = []

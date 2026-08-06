@@ -1,4 +1,4 @@
-"""T1 of wire-session-start-hook spec — construction test for AC1/AC9.
+"""T1 of wire-session-start-hook spec — construction test.
 
 Stages a synthetic minimal pack inside a tmp catalogue and asserts that
 `install.run(...)` projects the wiring TOML into Claude Code's
@@ -11,7 +11,7 @@ which this spec doesn't cover).
 Synthetic — not the real `packs/core/` — so the assertion compresses
 the invariant "any v0.2 pack that ships this wiring TOML, installed at
 repo scope, produces this settings shape." The real-core smoke check
-lives in `test_install_core_smoke.py` (AC10).
+lives in `test_install_core_smoke.py`.
 
 Shape pinned: the nested form documented at
 https://code.claude.com/docs/en/hooks. The outer entry has no
@@ -109,7 +109,7 @@ def test_install_writes_nested_session_start_binding(tmp_path):
     assert len(entries) == 1, f"expected 1 SessionStart entry, got {entries!r}"
 
     outer = entries[0]
-    # AC1 pins the matcher-absence semantic (fires on all session types:
+    # Pins the matcher-absence semantic (fires on all session types:
     # startup / resume / clear). Guards against a future TOML edit
     # accidentally narrowing scope by adding `matcher = "startup"`.
     assert outer.get("matcher", "") == "", (

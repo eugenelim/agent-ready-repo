@@ -1,8 +1,8 @@
 """T5/T6 (pure): the upgrade recap verdict and the shared drift counter.
 
-The recap honestly distinguishes a version change from a same-version re-apply
-(install-state-visibility AC9-AC11), and the drift counter underpins both the
-``--check-drift`` column and the upgrade upfront notice (AC6/AC12).
+The recap honestly distinguishes a version change from a same-version
+re-apply, and the drift counter underpins both the
+``--check-drift`` column and the upgrade upfront notice.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ def test_recap_version_change_is_upgraded():
 
 
 def test_recap_same_version_clean_is_reapplied_already_current():
-    # The exact bug AC10 fixes: never `upgraded: X -> X`.
+    # The exact bug this fixes: never `upgraded: X -> X`.
     out = _format_recap("core", "repo", "0.2.0", "0.2.0",
                         already_current=True, companion_count=0)
     assert out == "re-applied: core @ repo 0.2.0 (already current)"

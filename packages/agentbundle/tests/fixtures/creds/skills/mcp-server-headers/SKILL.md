@@ -1,6 +1,6 @@
 ---
 name: mcp-server-headers
-description: MCP-server class fixture using header-naming flags (`--bearer-header`); AC26(b) ban is scoped to credentialed-cli only — lint must NOT flag this fixture.
+description: MCP-server class fixture using header-naming flags (`--bearer-header`); the argv-flag ban is scoped to credentialed-cli only — lint must NOT flag this fixture.
 metadata:
   credentialed: true
   auth: creds
@@ -10,7 +10,7 @@ metadata:
 MCP-server class primitives legitimately accept header-naming flags
 (`--bearer-header`, `--auth-header`, `--header-prefix`). The storage
 convention does not apply because nothing is persisted; the SKILL.md
-"Don't" block has a parallel form noted in RFC-0006 § 4.
+"Don't" block has a parallel form in the credential contract.
 
 ### Security rules (non-negotiable)
 

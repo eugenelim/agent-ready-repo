@@ -21,7 +21,7 @@ markers through unchanged (spec § Boundaries — Never do). The
 `adapt-to-project` skill, out of scope here. T7 ships only the
 consumer.
 
-Self-host scope (see docs/specs/self-hosting/spec.md § Phased rollout):
+Self-host scope:
 the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` and `codex`.
 Both `SELF_HOST_ADAPTERS` and `SELF_HOST_PACKS` are sourced from
 `recipes/self-host.toml` (see the `_DEFAULT_*` block below); the values
@@ -65,7 +65,7 @@ from agentbundle.build.user_libs import (
     check_drift as _user_libs_check_drift,
 )
 
-# AC14: canonical lowercase-hyphen marker grammar. The self-host
+# Canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
 # what the adapt-to-project skill writes. Legacy UPPER_SNAKE markers
 # are tolerated with a one-shot warning per file (see `resolve_markers`).
@@ -149,7 +149,7 @@ def _load_self_host_lists() -> tuple[tuple[str, ...], tuple[str, ...]]:
         return _extract_self_host_lists(tomllib.loads(text))
     except Exception:
         # Unreadable (non-UTF-8 / permission / IO) or malformed recipe — fall
-        # back so module import is total (AC3).
+        # back so module import is total.
         return _DEFAULT_SELF_HOST_PACKS, _DEFAULT_SELF_HOST_ADAPTERS
 
 
@@ -232,7 +232,7 @@ def resolve_markers(
             continue
         if "<adapt:" not in text:
             continue
-        # AC14: legacy UPPER_SNAKE markers emit a single per-file warning
+        # Legacy UPPER_SNAKE markers emit a single per-file warning
         # and are left in place (the narrowed regex below won't match
         # them; the warning surfaces them for the adopter to migrate).
         if _LEGACY_UPPER_RE.search(text):
@@ -331,7 +331,7 @@ def _compose_agents_md(
     """Compose root AGENTS.md from the core body seed and optional
     core footer fragment.
 
-    Post-RFC-0009: Codex projects full skill bodies to `.agents/skills/`
+    Codex projects full skill bodies to `.agents/skills/`
     rather than splicing a managed block into AGENTS.md. Root AGENTS.md
     self-host composition is therefore only the core seed body plus the
     optional footer; Codex's in-repo projection is handled by the Codex
@@ -370,13 +370,13 @@ def _compose_agents_md(
 
 
 # ---------------------------------------------------------------------------
-# Self-host follow-up additions (per docs/specs/self-hosting/spec.md):
+# Self-host follow-up additions:
 # seed projection, marketplace aggregation, CLAUDE.md symlink recreation,
 # missing-discovery fail-fast, drift source-naming, info-line emission.
 # Comparison-rule strengthening (LF norm / mode bits / lstat) remains open.
 # ---------------------------------------------------------------------------
 
-# Excluded path patterns per RFC-0002 § What stays out. Phase-1
+# Excluded path patterns — what stays out of the projection. Phase-1
 # implementation uses glob patterns matched against POSIX-style
 # relative paths. `*` matches one path segment; `**` matches zero or
 # more segments (including empty). Patterns *without* `/` (e.g.
@@ -397,12 +397,12 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/product/*.md",
     "docs/knowledge/*.md",
     "guides/**/*.md",
-    # Seeded-once / adopter-curated files (RFC-0002 Manual semantics).
-    "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
-    # Manual seed-projected paths (RFC-0002 amendment 2026-05-25). The
+    # Seeded-once / adopter-curated files (Manual semantics).
+    "workspace.toml",  # Seeded once; adopter-curated thereafter
+    # Manual seed-projected paths (amendment 2026-05-25). The
     # `docs/<area>/*.md` patterns above cover 11 of the 19 reclassified
     # paths; the following 7 are not matched by any pattern and need
-    # explicit listing. See `docs/specs/self-hosting/spec.md` AC20.
+    # explicit listing.
     "docs/CHARTER.md",
     "docs/knowledge/patterns.jsonl",
     "docs/rfc/README.md",
@@ -481,13 +481,12 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # Hardcoded "Projected README" allow-list — paths classified as
 # *Projected* even when EXCLUDED_PATTERNS would otherwise catch them.
 #
-# The 2026-05-25 amendment to RFC-0002 reclassified 19 paths Projected
+# The 2026-05-25 amendment reclassified 19 paths Projected
 # → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
 # accordingly. The reclassified paths now fall through to
 # EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
 # `docs/product/*.md`, `docs/knowledge/*.md`, `guides/**/*.md`,
-# and the 8 explicit additions listed above). See RFC-0002 §
-# Amendments § 2026-05-25.
+# and the 8 explicit additions listed above).
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
     "docs/CONVENTIONS.md",
 )
@@ -514,7 +513,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
     moved into its owning skill's `assets/` folder; the merge rule still
     holds in principle for any future shared seed directory). File-level
     collisions (same target path, *different* content) raise `ValueError`
-    naming both source paths — per spec § *Ask first* and AC7.
+    naming both source paths rather than silently picking one.
 
     Returns a `{relative_target → source}` map for use by the drift
     source-naming logic.
@@ -562,7 +561,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             seen[relative] = src
     # Second pass: collisions are clean, now write.
     #
-    # Per the RFC-0002 2026-05-25 amendment: paths that are Manual
+    # Per the 2026-05-25 amendment: paths that are Manual
     # (and therefore matched by EXCLUDED_PATTERNS without being
     # rescued by PROJECTED_README_OVERRIDES) carry placeholder seeds
     # but their on-disk content is the adopter's living instance —
@@ -588,7 +587,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
         if _is_excluded(relative) and (output_root / relative).exists():
             # Manual file on disk — leave it alone. The seed is
             # placeholder; the on-disk file is the adopter's
-            # filled-in instance per RFC-0002 § Amendments § 2026-05-25.
+            # filled-in instance.
             continue
         target = output_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -1116,7 +1115,7 @@ def run_self_host(
         )
         return 2
 
-    # AC14: fail-fast when .adapt-discovery.toml is missing. The file is
+    # Fail-fast when .adapt-discovery.toml is missing. The file is
     # required by `make build-self` even when no source carries
     # `<adapt:NAME>` markers today — the contract is "if you run
     # build-self, you affirm the discovery values exist."
@@ -1128,7 +1127,7 @@ def run_self_host(
         )
         return 3
 
-    # AC9: read `.adapt-discovery.toml` via the typed loader. Legacy
+    # Read `.adapt-discovery.toml` via the typed loader. Legacy
     # `[adapt]` table, unknown `discovery-schema-version`, and any
     # other invalid shape surface as `ConfigError` and refuse with
     # the `self-host: ` prefix per spec.
@@ -1182,7 +1181,7 @@ def run_self_host(
                 if rendered.is_file() or rendered.is_symlink()
             }
             drifts = diff_against_working_tree(shadow, working_tree, source_map)
-            # AC6: info-level lines for unclassified paths.
+            # Info-level lines for unclassified paths.
             _emit_info_for_unclassified(working_tree, projected_paths)
             if drifts:
                 print(
@@ -1196,8 +1195,8 @@ def run_self_host(
 
     # Real write: project directly into the working tree so adapter
     # merge/splice logic sees existing content.
-    # RFC-0023 retired the shared-libs/ → consumer-skill scripts/
-    # projection: credentialed consumers resolve via the `credbroker`
+    # The shared-libs/ → consumer-skill scripts/ projection was retired:
+    # credentialed consumers resolve via the `credbroker`
     # pip library, not a vendored shim. The shim source survives only as
     # the adapter-root-bins companion-shim projection source (below).
     # T6: project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
@@ -1236,10 +1235,10 @@ def run_self_host(
 
 
 # ---------------------------------------------------------------------------
-# Build-check drift gates (AC10 gate 2 + AC20a + AC20b)
+# Build-check drift gates
 # ---------------------------------------------------------------------------
 
-# Fixed corpus for the _emit_basic_string parity check (AC20b).
+# Fixed corpus for the _emit_basic_string parity check.
 # Covers: control chars (including each short-escape table entry),
 # byte-boundary cases at \x20 and \x7e, embedded quote + backslash,
 # empty string, multi-byte BMP unicode, non-BMP (4-byte UTF-8), and
@@ -1334,13 +1333,13 @@ def run_build_check_drift_gates(
 ) -> int:
     """Run the three mechanical drift-gate assertions wired into ``make build-check``.
 
-    1. **Writer-template drift (AC20a):** every derived
+    1. **Writer-template drift:** every derived
        ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
        must be byte-identical to the canonical template.
-    2. **Source-shape plugin.json (AC10 gate 2):** every
+    2. **Source-shape plugin.json:** every
        ``packs/<pack>/.claude-plugin/plugin.json`` must NOT carry a ``hooks``
        block (defence-in-depth, in-Python rail).
-    3. **Vendored ``_emit_basic_string`` parity (AC20b):** the template's
+    3. **Vendored ``_emit_basic_string`` parity:** the template's
        vendored copy must produce byte-identical output to the source primitive
        ``agentbundle.config._emit_basic_string`` across the fixed corpus.
 
@@ -1350,7 +1349,7 @@ def run_build_check_drift_gates(
     failures: list[str] = []
 
     # ------------------------------------------------------------------
-    # Gate 1: Writer-template drift (AC20a)
+    # Gate 1: Writer-template drift
     #
     # Cross-validate `packs/` (source of truth) against
     # `<output_dir>/dist/claude-plugins/` (build output). For every source
@@ -1440,7 +1439,7 @@ def run_build_check_drift_gates(
             )
 
     # ------------------------------------------------------------------
-    # Gate 1c: APM writer-template drift (apm-install-route-parity AC16 a)
+    # Gate 1c: APM writer-template drift
     #
     # Every dist/apm/<pack>/.apm/hooks/install-marker.py must be byte-
     # identical to the canonical template. Same rail as Gate 1 (claude-
@@ -1487,7 +1486,7 @@ def run_build_check_drift_gates(
                     )
 
     # ------------------------------------------------------------------
-    # Gate 2: Source-shape plugin.json (AC10 gate 2)
+    # Gate 2: Source-shape plugin.json
     # ------------------------------------------------------------------
     if packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
@@ -1511,11 +1510,11 @@ def run_build_check_drift_gates(
                 failures.append(
                     f"build-check: source-shape drift — "
                     f"packs/{pack_dir.name}/.claude-plugin/plugin.json "
-                    f"carries a hooks block (forbidden at source per AC10)"
+                    f"carries a hooks block (forbidden at source)"
                 )
 
     # ------------------------------------------------------------------
-    # Gate 3: Vendored _emit_basic_string parity (AC20b)
+    # Gate 3: Vendored _emit_basic_string parity
     # ------------------------------------------------------------------
     if template_path.exists():
         try:
@@ -1565,7 +1564,7 @@ def run_build_check_drift_gates(
                         )
 
     # ------------------------------------------------------------------
-    # Gate: adapter-root-bins projection drift (RFC-0013 § 4d).
+    # Gate: adapter-root-bins projection drift.
     #
     # Same three outcomes — modified / missing / orphaned. Single-target
     # projection (not many-to-many like shared-libs) so the diagnostic
@@ -1639,7 +1638,7 @@ def cmd_check(args) -> int:
 
     Runs two phases:
       1. The existing self-host dry-run (adapter projection drift check).
-      2. The three new mechanical drift gates (AC10 gate 2 + AC20a + AC20b):
+      2. The three mechanical drift gates:
          writer-template byte-identity, source-shape plugin.json, and vendored
          ``_emit_basic_string`` parity across the fixed attack corpus.
 

@@ -1,5 +1,5 @@
 """Unit tests for the dropped-primitives warning rail (T6 of
-docs/specs/dropped-primitives-coverage).
+dropped-primitives coverage).
 
 Covers the helpers exposed in ``agentbundle.commands.install``:
 
@@ -100,7 +100,7 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         self.assertEqual(result, {"command": 3})
 
     def test_copilot_against_core_like_pack(self) -> None:
-        """RFC-0024 / copilot-full-parity: copilot now projects agent +
+        """Copilot now projects agent +
         hook-wiring natively; only `command` still drops."""
         pack = _seed_pack(
             self.tmp_path / "pack",
@@ -176,7 +176,7 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         self.assertEqual(result, {"command": 1})
 
     def test_hook_wiring_filter_by_toml_suffix(self) -> None:
-        # RFC-0024 / copilot-full-parity: copilot now projects hook-wiring
+        # Copilot now projects hook-wiring
         # (`copilot-hooks-json`), so it no longer appears in the dropped count.
         # After this bump no shipped adapter drops hook-wiring at the type level,
         # so the dropped-count is absent regardless of suffix. Name preserved.
@@ -216,7 +216,7 @@ class TestEnumerateCompatiblePrimitives(unittest.TestCase):
         self.assertEqual(set(result), {"skill", "agent", "hook-body", "hook-wiring"})
 
     def test_copilot_with_full_pack(self) -> None:
-        """RFC-0024 / copilot-full-parity: copilot projects skill + agent +
+        """Copilot projects skill + agent +
         hook-body + hook-wiring; only `command` drops."""
         pack = _seed_pack(
             self.tmp_path / "pack",
@@ -305,7 +305,7 @@ class TestFormatDroppedWarning(unittest.TestCase):
             self.assertIn(plural, msg)
 
     def test_pinned_wording_exact_template_plural(self) -> None:
-        """Spec AC10 pinned wording — exact string match for N>1 case."""
+        """Pinned wording — exact string match for N>1 case."""
         msg = _format_dropped_warning(
             "core",
             "codex",
@@ -321,7 +321,7 @@ class TestFormatDroppedWarning(unittest.TestCase):
         self.assertEqual(msg, expected)
 
     def test_pinned_wording_exact_template_singular(self) -> None:
-        """Spec AC10 pinned wording — exact string match for N=1 case."""
+        """Pinned wording — exact string match for N=1 case."""
         msg = _format_dropped_warning(
             "core",
             "codex",
@@ -336,7 +336,7 @@ class TestFormatDroppedWarning(unittest.TestCase):
         self.assertEqual(msg, expected)
 
     def test_pinned_wording_exact_template_three_type(self) -> None:
-        """Spec AC10 pinned wording — exact string match for serial-comma case."""
+        """Pinned wording — exact string match for serial-comma case."""
         msg = _format_dropped_warning(
             "core",
             "copilot",
@@ -477,7 +477,7 @@ class TestShortCircuitSeenSet(unittest.TestCase):
                 "warning:",
                 captured.getvalue(),
                 "user-scope warning should fire fresh despite repo "
-                "being silenced — that's the independence AC11 pins",
+                "being silenced — per-scope silencing is independent",
             )
 
             # Repeat user — silenced.
@@ -552,7 +552,7 @@ class TestShortCircuitSeenSet(unittest.TestCase):
 class TestMaybeEmitEventDrops(unittest.TestCase):
     """T5 tests — event-level enumerator wired into _maybe_emit_dropped_warning.
 
-    Covers spec AC9: the short-circuit key is unchanged; both drop kinds
+    The short-circuit key is unchanged; both drop kinds
     derive from the same inputs; one warning per scope per process covers both.
     """
 
@@ -704,7 +704,7 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
 
     def test_maybe_emit_full_three_clause_for_kiro_core(self) -> None:
         """Fixture install of core via kiro-cli: stderr contains the exact
-        AC10 three-clause warning text naming hook-wiring/session-start.toml.
+        Three-clause warning text naming hook-wiring/session-start.toml.
         (The deprecated `kiro` alias routes to kiro-ide, which drops
         hook-wiring wholesale — the per-event three-clause warning is the
         kiro-cli merge adapter's behavior.)

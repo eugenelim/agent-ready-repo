@@ -5,7 +5,7 @@ then walk the dict-of-bytes and write each entry via `safety.write_jailed`.
 This is the more defensive shape: the path-jail check fires on every write,
 not just as a pre-flight.
 
-The three RFC-0001 default recipes are run when --target is absent. When
+The three default recipes are run when --target is absent. When
 --target is given, only recipes whose adapter matches the target are run
 (the aggregate `marketplace` recipe has no adapter and is included unless
 filtered by a named target that doesn't match it).
@@ -36,7 +36,7 @@ def run(args) -> int:
         )
         return 1
 
-    # Spec-version gate (AC #14 — uniform refusal across subcommands).
+    # Spec-version gate — uniform refusal across subcommands.
     try:
         gate = check_spec_version_gate(load_pack_toml(pack_path / "pack.toml"))
     except ConfigError as exc:

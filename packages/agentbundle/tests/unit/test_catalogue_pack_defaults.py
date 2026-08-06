@@ -1,4 +1,4 @@
-"""Tests for catalogue-pack-defaults spec (RFC-0074, ADR-0058, ADR-0059).
+"""Tests for catalogue-pack-defaults spec.
 
 Covers:
   - T1: catalogue.schema.json accepts user-dir and [pack-defaults.*]

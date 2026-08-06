@@ -1,31 +1,31 @@
 # Adapter contract — every (primitive × adapter) pair enumerated.
 # Validates against ./adapter.schema.json.
-# Managed by: docs/specs/distribution-adapters/spec.md
-# RFC reference: RFC-0001 (base contract); RFC-0004 (scope dimension, v0.2);
-# RFC-0005 (hook-body / hook-wiring forks, v0.3);
-# RFC-0008 (claude-plugins install route, v0.4);
-# RFC-0010 (apm install route, v0.5);
-# RFC-0011 / docs/specs/pack-allowed-adapters (codex user-scope table, v0.6);
-# RFC-0012 / docs/specs/repo-scope-per-adapter-projection (per-IDE projection
-# at repo scope; `allowed-prefixes.repo` on every adapter; copilot scope
-# table; v0.7).
-# RFC-0013 / docs/specs/credential-broker-contract (governance bump, v0.7 —
-# admitted as a co-residing v0.7 contributor; the `metadata.auth` lint
-# surface lives in verify.py (_step_agent_artifacts), not in this file).
-# docs/specs/dropped-primitives-coverage (v0.8): codex `agent` projects to
+#
+# Version history (continues below the [contract] block):
+# v0.1: base contract.
+# v0.2: scope dimension.
+# v0.3: hook-body / hook-wiring forks.
+# v0.4: claude-plugins install route.
+# v0.5: apm install route.
+# v0.6: codex user-scope table.
+# v0.7: per-IDE projection at repo scope; `allowed-prefixes.repo` on every
+# adapter; copilot scope table. Co-bumped with the credential-broker
+# governance change — the `metadata.auth` lint surface lives in verify.py
+# (_step_agent_artifacts), not in this file.
+# v0.8 (dropped-primitives coverage): codex `agent` projects to
 # `.codex/agents/<name>.toml` via new `codex-agent-toml` mode; codex
 # `hook-wiring` projects to `.codex/hooks.json` via existing `merge-json`
 # mode; codex `.codex/` added to allowed-prefixes; new `codex-agent-
 # frontmatter-v0.8` mapping. Dropped-primitives warning rail introduced
 # in `agentbundle install` for any (adapter, pack) pair where the
 # resolved adapter projects a primitive type the pack ships as `dropped`.
-# RFC-0022 / docs/specs/kiro-adapter-split (v0.9): kiro adapter split into
+# v0.9 (kiro adapter split): kiro splits into
 # `kiro-ide` (IDE, .md agents, kiro-ide-hook active, flat path confirmed by
 # Q6 probe no×yes 2026-06-01) and `kiro-cli` (CLI binary, .json agents,
 # hook-wiring retained). `kiro` retained as deprecated alias for `kiro-ide`.
 # `kiro-ide-hook` primitive activated; `kiro-ide-agent-frontmatter-v0.9` renamed
 # to `kiro-ide-agent-frontmatter-v0.9`.
-# RFC-0024 / ADR-0013 / docs/specs/copilot-full-parity (v0.10): copilot becomes
+# v0.10 (copilot full parity): copilot becomes
 # a full-parity, user-scope-capable adapter. `agent` flips `dropped`→
 # `copilot-agent-md` (markdown → `.github/agents/<name>.agent.md`); `hook-wiring`
 # flips `dropped`→`copilot-hooks-json` (one self-contained `<name>.json` per
@@ -35,10 +35,10 @@
 # `[adapter.copilot.scope]` gains `user = "~"` + `allowed-prefixes.user`; new
 # `copilot-agent-frontmatter-v0.10` mapping. `command` stays `dropped`
 # (copilot-cli#618/#1113). Two-pack bump (research + core), not all-pack.
-# docs/specs/codex-agent-config-projection: corrects the existing codex
+# Codex agent-config correction (no version bump): corrects the existing
 # `codex-agent-frontmatter-v0.8` mapping to preserve `model` and `tools`
 # intent as documented Codex agent config instead of dropping those fields.
-# RFC-0026 / ADR-0015 / docs/specs/cursor-full-parity (v0.11): new native
+# v0.11 (cursor full parity): new native
 # `cursor` full-parity adapter projecting all five primitives to `.cursor/*`
 # at both scopes. NO new projection mode and NO adapter.schema.json change —
 # skill→direct-directory, agent→direct-file (+ `cursor-agent-frontmatter-v0.11`;
@@ -50,12 +50,12 @@
 # Distribution-only (not in SELF_HOST_ADAPTERS).
 
 [contract]
-# v0.12 (docs/specs/copilot-skills-and-web, 2026-06-11): copilot `skill` flips
+# v0.12 (2026-06-11): copilot `skill` flips
 # `instruction-file`→`direct-directory` (first-class Agent Skills at
 # `.github/skills/<name>/SKILL.md`); the `copilot-instruction` frontmatter-default
-# is retired. Web correction (RFC-0024 § Errata E1) is docs/comments-only.
-# (Lands atop RFC-0026's cursor v0.11; the two co-bumped — copilot takes v0.12.)
-# RFC-0027 / ADR-0016 / docs/specs/gemini-full-parity (v0.13): new native
+# is retired. The copilot web-tool correction is docs/comments-only.
+# (Lands atop cursor v0.11; the two co-bumped — copilot takes v0.12.)
+# v0.13 (gemini full parity): new native
 # `gemini` full-parity adapter projecting all five primitives to `.gemini/*` at
 # both scopes. One new projection mode (`gemini-command-toml`); a bespoke
 # `.gemini/settings.json` merge carrying `hooks` (event-remapped, fail-closed) +
@@ -63,7 +63,7 @@
 # kept and name-mapped; tier-preserving model map. hook-body lands under
 # `.gemini/hooks/` (the cursor model — single prefix at both scopes). kiro-ide-hook
 # dropped. Distribution-only (not in SELF_HOST_ADAPTERS).
-# RFC-0031 / ADR-0021 / docs/specs/enriched-pack-manifest (v0.14): pack.toml
+# v0.14 (enriched pack manifest): pack.toml
 # becomes the rich metadata source of truth (optional readme / display_name /
 # license / maintainers / links / categories / keywords / [pack.metadata.<tool>]
 # / [pack].catalogue). The build projects the cleanly-projectable subset into
@@ -71,20 +71,20 @@
 # each pack's README. All new fields are optional — packs pinned below v0.14
 # build and validate unchanged. Declaration + projection only (no @catalogue/pack
 # resolution, no search, no persisted index).
-# docs/specs/kiro-cli-agent-skill-resources (v0.15): kiro-cli agent projection
+# v0.15 (kiro-cli agent skill resources): kiro-cli agent projection
 # injects a fixed skill-resources glob (both install scopes) so headless
 # `--agent` runs reach the bundle's skills — Kiro custom agents don't inherit
-# the default agent's `.kiro/skills` auto-discovery (RFC-0022 E4; kiro
+# the default agent's `.kiro/skills` auto-discovery (kiro
 # #6887/#6888/#4993). Additive `inject-resources` on BOTH the kiro-cli and
 # kiro-ide agent projections (CLI → agent JSON, IDE → quoted .md frontmatter).
-# RFC-0040 / ADR-0030 / docs/specs/consolidated-pack-layout (v0.16): pack.toml
+# v0.16 (consolidated pack layout): pack.toml
 # gains an optional scope-keyed [pack.layout] table (optional .repo / .user
 # sub-tables, each a `parent` base and/or a within-pack template-path) naming
 # where a consuming pack's durable output lands. Consumed by the new installer
 # `_append_layout_section` step (append-if-exists / never-create / never-
 # overwrite) into an adopter-owned `agentbundle-layout.toml`. Additive +
 # optional — packs pinned below v0.16 build and validate unchanged.
-# RFC-0052 / ADR-0039+0040 (v0.17): the `[contract.shared-prefixes]` registry
+# v0.17 (shared-prefix registry): the `[contract.shared-prefixes]` registry
 # (below) classifies each allowed-prefix as `shared` (a path more than one
 # adapter reads) or — by absence — `private`, and a shared prefix declares its
 # reader cohort. cursor/gemini/copilot route the `skill` primitive to the shared
@@ -93,12 +93,12 @@
 version = "0.17"
 
 # Sibling schemas this contract references — pack metadata and the
-# per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
+# per-pack Claude-plugin manifest.
 [contract.schemas]
 pack = "pack.schema.json"
 plugin-manifest = "plugin-manifest.schema.json"
 
-# Shared-prefix registry (RFC-0052 / ADR-0039). Each key is a `shared` prefix —
+# Shared-prefix registry. Each key is a `shared` prefix —
 # a path more than one shipped adapter reads — mapped to its reader cohort (the
 # shipped adapters that read it). Every prefix NOT listed here is `private`
 # (adapter-exclusive). The install-time cross-adapter disclosure names a shared
@@ -127,14 +127,14 @@ source-path = ".apm/hook-wiring/"
 [primitive.command]
 source-path = ".apm/commands/"
 
-# RFC-0022 / kiro-ide-hook: standalone IDE event hook files (.kiro.hook JSON).
+# kiro-ide-hook: standalone IDE event hook files (.kiro.hook JSON).
 # Activated at v0.9 for the kiro-ide adapter; dropped for kiro-cli and others.
 [primitive."kiro-ide-hook"]
 source-path = ".apm/kiro-ide-hooks/"
 
-# RFC-0013 § 4c / RFC-0023 — `shared-libs/` carries Python sibling
+# `shared-libs/` carries Python sibling
 # files. The original projection into every `metadata.auth: creds`
-# skill's `scripts/` was RETIRED in RFC-0023 (those consumers resolve
+# skill's `scripts/` was RETIRED (those consumers resolve
 # via the `credbroker` pip library, imported in-process). What survives
 # in `agentbundle.build.shared_libs` is source enumeration
 # (`collect_sources`): the `adapter-root-bins` companion-shim rail reads
@@ -145,7 +145,7 @@ source-path = ".apm/kiro-ide-hooks/"
 [primitive."shared-libs"]
 source-path = ".apm/shared-libs/"
 
-# RFC-0013 § 4d — `adapter-root-bins/` carries executable scripts that
+# `adapter-root-bins/` carries executable scripts that
 # project to the per-scope artifact root (`~/.agentbundle/bin/` at user
 # scope, `<repo>/.agentbundle/bin/` at repo scope). T6 wires the
 # projection; the declaration is here so the contract is complete at
@@ -170,15 +170,15 @@ source-path = ".apm/user-libs/"
 # Claude Code adapter — 5 projections (one per primitive) + v0.3 forks
 #
 # The legacy `[[adapter."claude-code".projection]]` array carries the
-# repo-scope shape every adapter has consumed since v0.1. RFC-0005 adds two
+# repo-scope shape every adapter has consumed since v0.1. v0.3 adds two
 # forward-looking `[adapter."claude-code".projections.<primitive>]` tables
 # (hook-body / hook-wiring) carrying the scope-conditional shape that the
 # v0.3 user-scope pipeline reads. Until that pipeline lands, the legacy
 # entries remain authoritative; the new tables are declarative metadata.
 # ---------------------------------------------------------------------------
 
-# Install routes declared for this adapter (RFC-0008 / spec claude-plugins-install-route;
-# RFC-0010 / spec apm-install-route-parity adds "apm").
+# Install routes declared for this adapter ("claude-plugins" at v0.4;
+# "apm" added at v0.5).
 # Kiro, Copilot, and Codex do not declare install-routes; the field defaults to ["cli"]
 # on read for adapters that omit it.
 [adapter."claude-code"]
@@ -215,7 +215,7 @@ mode = "direct-file"
 target-path = ".claude/commands/"
 on-conflict = "prompt-then-preserve"
 
-# hook-body — scope-conditional target (RFC-0005 § hook-body at user scope).
+# hook-body — scope-conditional target.
 # Forward-looking v0.3 declaration; the legacy array entry above remains the
 # pipeline-of-record until T5/T7 land.
 [adapter."claude-code".projections.hook-body]
@@ -225,7 +225,7 @@ target.user = ".claude/hooks/<name>.{sh,py}"
 on-conflict = "prompt-then-preserve"
 
 # hook-wiring — scope-conditional mode/target; user-scope `managed-key`
-# required (RFC-0005 § hook-wiring for Claude Code at user scope).
+# required.
 [adapter."claude-code".projections.hook-wiring]
 mode.repo = "merge-json"
 mode.user = "user-merge-json"
@@ -233,7 +233,7 @@ target.repo = ".claude/settings.local.json"
 target.user = ".claude/settings.json"
 managed-key.user = "hooks"
 
-# Scope dimension (RFC-0004). Two roots: repo-local and user-local.
+# Scope dimension. Two roots: repo-local and user-local.
 # `allowed-prefixes.<scope>` fences every write under that scope to a
 # declared prefix list — at user scope this stops a buggy projection
 # rule from resolving under `~/Documents/`. The two-prefix shape covers
@@ -243,14 +243,14 @@ managed-key.user = "hooks"
 [adapter."claude-code".scope]
 repo = "."
 user = "~"
-# RFC-0012: repo-scope projection lands primitives under `.claude/` (skills,
+# Repo-scope projection lands primitives under `.claude/` (skills,
 # agents, commands, hook-wiring) plus `tools/hooks/` for hook bodies — the
 # legacy repo-scope hook-body target that pre-dates the scope dimension.
 allowed-prefixes.repo = [".claude/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".claude/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
-# Kiro adapter — DEPRECATED ALIAS for kiro-ide (RFC-0022 D1).
+# Kiro adapter — DEPRECATED ALIAS for kiro-ide.
 #
 # `kiro` is retained as a working alias with no removal timeline so existing
 # packs declaring `allowed-adapters = ["kiro"]` keep working. The Python
@@ -286,8 +286,8 @@ on-conflict = "prompt-then-preserve"
 primitive = "command"
 mode = "dropped"
 
-# hook-body — scope-conditional target. User-scope lands under `~/.kiro/hooks/`
-# per RFC-0005 § hook-body at user scope. Forward-looking v0.3 declaration;
+# hook-body — scope-conditional target. User-scope lands under `~/.kiro/hooks/`.
+# Forward-looking v0.3 declaration;
 # the legacy array entry above remains authoritative until T5/T7.
 [adapter.kiro.projections.hook-body]
 mode = "direct-file"
@@ -296,9 +296,9 @@ target.user = ".kiro/hooks/<name>.{sh,py}"
 on-conflict = "prompt-then-preserve"
 
 # hook-wiring — merge into the pack-owned agent JSON. Same mode at both scopes;
-# the agent-file target is scope-conditional via scope-root resolution
-# (RFC-0005 § hook-wiring for Kiro at both scopes). The legacy
-# `degraded-info-log` array entry is removed (AC2).
+# the agent-file target is scope-conditional via scope-root resolution.
+# The legacy
+# `degraded-info-log` array entry is removed.
 [adapter.kiro.projections.hook-wiring]
 mode = "merge-into-agent-json"
 target.repo = ".kiro/agents/<attach-to-agent>.json"
@@ -312,28 +312,28 @@ agent-event-vocabulary = [
   "stop",
 ]
 
-# Scope dimension for Kiro (RFC-0005 § hook-wiring for Kiro at both scopes).
+# Scope dimension for Kiro.
 # User-scope agents live under `~/.kiro/agents/` per Kiro's documented layout
 # (https://kiro.dev/docs/cli/custom-agents/creating/); CLI infrastructure
 # shares the `.agentbundle/` prefix.
 [adapter.kiro.scope]
 repo = "."
 user = "~"
-# RFC-0012: Kiro projects skills/agents to `.kiro/`; hook bodies land in the
+# Kiro projects skills/agents to `.kiro/`; hook bodies land in the
 # legacy `tools/hooks/` at repo scope (matching the contract's hook-body
 # array entry above).
 allowed-prefixes.repo = [".kiro/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
-# kiro-ide adapter — targets the Kiro VS Code-fork IDE (RFC-0022).
+# kiro-ide adapter — targets the Kiro VS Code-fork IDE.
 #
 # Projects agents as `.md` (gray-matter YAML frontmatter + body); the IDE
 # reads `.kiro/agents/<name>.md` via its gray-matter loader. hook-wiring is
-# DROPPED — the IDE loader silently drops any agent carrying a `hooks` key
-# (RFC-0022 E2). kiro-ide-hook is ACTIVATED with the flat path confirmed by
+# DROPPED — the IDE loader silently drops any agent carrying a `hooks` key.
+# `kiro-ide-hook` is ACTIVATED with the flat path confirmed by
 # Q6 probe (no-recursion, yes-extension-filter, 2026-06-01, Kiro 0.12.224):
-# `.kiro/hooks/<pack>--<name>.kiro.hook`. RFC-0022 assumed yes-recursion;
+# `.kiro/hooks/<pack>--<name>.kiro.hook`. The split assumed yes-recursion;
 # T1 carries the corrected no-recursion flat path (no T-E1b fires).
 # ---------------------------------------------------------------------------
 
@@ -348,7 +348,7 @@ primitive = "agent"
 mode = "direct-file"
 target-path = ".kiro/agents/"
 frontmatter-mapping = "kiro-ide-agent-frontmatter-v0.9"
-# Skill discovery (RFC-0022 E4): IDE custom agents / subagents do NOT inherit
+# Skill discovery: IDE custom agents / subagents do NOT inherit
 # the default agent's `.kiro/skills` auto-discovery either (kiro #6887/#6888,
 # #4993). Inject the same fixed skill-resources glob as kiro-cli; the IDE
 # agent `resources` field is documented and `skill://`-aware, so it does not
@@ -371,7 +371,7 @@ mode = "dropped"
 primitive = "command"
 mode = "dropped"
 
-# hook-body — scope-conditional target (RFC-0005 § hook-body at user scope).
+# hook-body — scope-conditional target.
 [adapter.kiro-ide.projections.hook-body]
 mode = "direct-file"
 target.repo = "tools/hooks/<name>.{sh,py}"
@@ -406,7 +406,7 @@ allowed-prefixes.repo = [".kiro/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
-# kiro-cli adapter — targets the `kiro` terminal binary (RFC-0022).
+# kiro-cli adapter — targets the `kiro` terminal binary.
 #
 # Projects agents as `.json` with CLI short-name tool tokens. Retains
 # `hook-wiring` via `merge-into-agent-json`. `kiro-ide-hook` is dropped —
@@ -424,7 +424,7 @@ primitive = "agent"
 mode = "direct-file"
 target-path = ".kiro/agents/"
 frontmatter-mapping = "kiro-cli-agent-frontmatter-v1.0"
-# Skill discovery (RFC-0022 E4): Kiro custom agents do NOT inherit the default
+# Skill discovery: Kiro custom agents do NOT inherit the default
 # agent's auto-discovery of `.kiro/skills` (kiro #6887/#6888), so a headless
 # `--agent` run sees zero skills unless the agent declares them. Inject this
 # fixed skill-resources glob (both install scopes) into every projected agent.
@@ -436,7 +436,7 @@ on-conflict = "prompt-then-preserve"
 
 [[adapter.kiro-cli.projection]]
 # Legacy repo-scope entry — the pipeline-of-record for repo-scope hook-body
-# projection (mirrors the `kiro` adapter's RFC-0005 hybrid). The table form
+# projection (mirrors the `kiro` adapter's v0.3 hybrid). The table form
 # below is the scope-conditional declaration for the user-scope pipeline;
 # both coexist intentionally. `_iter_primitives` deduplicates via set union.
 primitive = "hook-body"
@@ -448,7 +448,7 @@ on-conflict = "prompt-then-preserve"
 primitive = "command"
 mode = "dropped"
 
-# hook-body — scope-conditional target (RFC-0005 § hook-body at user scope).
+# hook-body — scope-conditional target.
 [adapter.kiro-cli.projections.hook-body]
 mode = "direct-file"
 target.repo = "tools/hooks/<name>.{sh,py}"
@@ -485,15 +485,15 @@ allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 # Copilot adapter — 5 projections (one per primitive)
 # ---------------------------------------------------------------------------
 
-# `skill` projects as first-class Copilot Agent Skills (docs/specs/copilot-skills-and-web,
-# RFC-0024 § Errata E2): `direct-directory` passthrough of our canonical
+# `skill` projects as first-class Copilot Agent Skills:
+# `direct-directory` passthrough of our canonical
 # `.apm/skills/<name>/SKILL.md` to `.github/skills/<name>/SKILL.md` (repo) and
 # `~/.copilot/skills/<name>/SKILL.md` (user, via the install rewrite). Copilot
 # accepts our Claude SKILL.md verbatim. Was `instruction-file`→`.github/instructions/`.
 [[adapter.copilot.projection]]
 primitive = "skill"
 mode = "direct-directory"
-# RFC-0052 / ADR-0040: cohort skill home. Copilot reads `.agents/skills/`
+# Cohort skill home. Copilot reads `.agents/skills/`
 # (project) and `~/.agents/skills/` (personal); routing skills there lets the
 # whole cohort (codex, cursor, gemini, copilot) share one co-owned copy.
 target-path = ".agents/skills/"
@@ -522,10 +522,10 @@ on-conflict = "prompt-then-preserve"
 primitive = "command"
 mode = "dropped"
 
-# Scope dimension for Copilot (RFC-0024 / ADR-0013 / docs/specs/copilot-full-parity,
-# skill surface per docs/specs/copilot-skills-and-web). Copilot is a full-parity,
+# Scope dimension for Copilot (v0.10 full parity, plus the v0.12 skill
+# surface). Copilot is a full-parity,
 # user-scope-capable adapter: the app + CLI discover skills/agents/hooks from
-# `.github/` (repo) and `~/.copilot/` (user). The repo-only restriction RFC-0012
+# `.github/` (repo) and `~/.copilot/` (user). The repo-only restriction v0.7
 # recorded is superseded-in-part. `skill` projects as a `direct-directory`
 # `SKILL.md` tree; its user target (`~/.copilot/skills/<name>/SKILL.md`) is
 # produced by the install handler's copilot user-scope prefix rewrite
@@ -534,10 +534,10 @@ mode = "dropped"
 [adapter.copilot.scope]
 repo = "."
 user = "~"
-# RFC-0024 + copilot-skills-and-web: repo-scope skills at `.github/skills/`,
+# Repo-scope skills at `.github/skills/`,
 # agents at `.github/agents/`, hook wiring + bodies at `.github/hooks/`.
-# RFC-0052: skills route to the shared `.agents/skills/` home; agents + hooks
-# stay native under `.github/` (ADR-0040 moves only the skill primitive).
+# Skills route to the shared `.agents/skills/` home; agents + hooks
+# stay native under `.github/` — only the skill primitive moves.
 allowed-prefixes.repo = [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"]
 # User-scope home is `~/.copilot/` for agents/hooks (the prefix the install
 # rewrite produces) and `~/.agents/skills/` for skills (scope-agnostic, no
@@ -579,30 +579,29 @@ on-conflict = "merge-managed-key-only"
 primitive = "command"
 mode = "dropped"
 
-# Scope dimension for Codex (RFC-0011 / docs/specs/pack-allowed-adapters).
+# Scope dimension for Codex.
 # User-scope skills live under `~/.agents/skills/` per the codex
 # `direct-directory` projection's `.agents/skills/` target-path above;
 # CLI infrastructure shares the `.agentbundle/` prefix.
 [adapter.codex.scope]
 repo = "."
 user = "~"
-# RFC-0012: codex projects skills to `.agents/skills/`; hook bodies land in
+# Codex projects skills to `.agents/skills/`; hook bodies land in
 # the legacy `tools/hooks/` (matching codex's hook-body array entry).
 allowed-prefixes.repo = [".agents/skills/", ".codex/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".agents/skills/", ".codex/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
-# Cursor adapter — full-parity native adapter (RFC-0026 / ADR-0015 /
-# docs/specs/cursor-full-parity, v0.11).
+# Cursor adapter — full-parity native adapter (v0.11).
 #
 # Projects all five catalogue primitives to Cursor's native `.cursor/*`
 # discovery paths at both repo and user scope. Cursor's CLI and IDE share one
-# `.cursor/` layout (no RFC-0022-style split). No new projection mode and no
+# `.cursor/` layout (no kiro-style split). No new projection mode and no
 # adapter.schema.json change: every primitive reuses an already-enumerated
 # mode. The agent uses `direct-file` + a frontmatter mapping (the kiro-ide
 # `.md` shape); because Cursor subagents have no per-agent tool allowlist,
 # cursor.py drops the source `tools` and derives a `readonly` flag for
-# non-mutating agents (documented degradation, the ADR-0013 Copilot shape).
+# non-mutating agents (documented degradation, the Copilot shape).
 # hook-wiring is `merge-json` to an aggregated `.cursor/hooks.json`; cursor.py's
 # merge helper remaps source events via `hook-event-map` and adds a `version`
 # key. `command` is first-class (Cursor is the second adapter after claude-code
@@ -617,7 +616,7 @@ allowed-prefixes.user = [".agents/skills/", ".codex/", ".agentbundle/"]
 [[adapter.cursor.projection]]
 primitive = "skill"
 mode = "direct-directory"
-# RFC-0052 / ADR-0040: cohort skill home. Cursor reads `.agents/skills/` and
+# Cohort skill home. Cursor reads `.agents/skills/` and
 # `~/.agents/skills/` alongside `.cursor/skills/`; route skills there to share
 # one co-owned copy across the cohort.
 target-path = ".agents/skills/"
@@ -642,15 +641,15 @@ mode = "merge-json"
 target-path = ".cursor/hooks.json"
 managed-key = "hooks"
 on-conflict = "merge-managed-key-only"
-# Hook-event map (RFC-0026 decision 4). Our hook-wiring source uses Claude-
+# Hook-event map. Our hook-wiring source uses Claude-
 # native PascalCase event names (e.g. `[[hooks.SessionStart]]`); Cursor's
 # hooks.json uses camelCase event keys. cursor.py's merge helper reads this
 # table to translate each source event; a source event with no entry here is
 # dropped with a build-time log line (fail-open, the no-silent-caps rule —
 # deliberately unlike copilot-hooks-json's fail-closed map). The map lives in
-# the contract, not the adapter code. (Erratum vs RFC-0026: the RFC spelled the
-# source vocabulary `agentSpawn`/…; the shipped source is Claude PascalCase, so
-# the map keys on PascalCase — target events unchanged. See the spec Changelog.)
+# the contract, not the adapter code. (The original design spelled the source
+# vocabulary `agentSpawn`/…; the shipped source is Claude PascalCase, so the
+# map keys on PascalCase — target events unchanged.)
 hook-event-map = { SessionStart = "sessionStart", UserPromptSubmit = "beforeSubmitPrompt", PreToolUse = "preToolUse", PostToolUse = "postToolUse", Stop = "stop" }
 
 [[adapter.cursor.projection]]
@@ -666,7 +665,7 @@ on-conflict = "prompt-then-preserve"
 [adapter.cursor.projections.kiro-ide-hook]
 mode = "dropped"
 
-# Scope dimension for Cursor (RFC-0026 / ADR-0015). Cursor's `.cursor/` prefix
+# Scope dimension for Cursor. Cursor's `.cursor/` prefix
 # is identical at repo and user scope (the claude-code/codex shape), so the
 # divergent user-scope home is produced by the generic user-root resolution,
 # not a Cursor-specific prefix rewrite. `.agentbundle/` carries the install
@@ -674,14 +673,13 @@ mode = "dropped"
 [adapter.cursor.scope]
 repo = "."
 user = "~"
-# RFC-0052: skills route to the shared `.agents/skills/` home (both scopes);
-# agents/hooks stay under `.cursor/` (ADR-0040 moves only the skill primitive).
+# Skills route to the shared `.agents/skills/` home (both scopes);
+# agents/hooks stay under `.cursor/` (moves only the skill primitive).
 allowed-prefixes.repo = [".agents/skills/", ".cursor/", ".agentbundle/"]
 allowed-prefixes.user = [".agents/skills/", ".cursor/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
-# Gemini adapter — full-parity native adapter (RFC-0027 / ADR-0016 /
-# docs/specs/gemini-full-parity, v0.13).
+# Gemini adapter — full-parity native adapter (v0.13).
 #
 # Projects all five catalogue primitives to Gemini CLI's native `.gemini/*`
 # discovery paths at both repo and user scope. Unlike Cursor, gemini KEEPS and
@@ -711,7 +709,7 @@ allowed-prefixes.user = [".agents/skills/", ".cursor/", ".agentbundle/"]
 [[adapter.gemini.projection]]
 primitive = "skill"
 mode = "direct-directory"
-# RFC-0052 / ADR-0040: cohort skill home. Gemini CLI reads `.agents/skills/`
+# Cohort skill home. Gemini CLI reads `.agents/skills/`
 # and `~/.agents/skills/`, and its docs now make the alias precedence-winning
 # over `.gemini/skills/`; route skills there to share one co-owned copy.
 target-path = ".agents/skills/"
@@ -736,7 +734,7 @@ mode = "merge-json"
 target-path = ".gemini/settings.json"
 managed-key = "hooks"
 on-conflict = "merge-managed-key-only"
-# Hook-event map (RFC-0027 decision 6). Our hook-wiring source uses Claude-native
+# Hook-event map. Our hook-wiring source uses Claude-native
 # PascalCase event names (e.g. `[[hooks.SessionStart]]`); Gemini's settings.json
 # uses its own event vocabulary. gemini.py's settings-merge helper reads this table
 # to translate each source event; a source event with no entry here **fails the
@@ -744,7 +742,7 @@ on-conflict = "merge-managed-key-only"
 # cursor's fail-open drop-with-log). The map lives in the contract, not the adapter
 # code.
 hook-event-map = { SessionStart = "SessionStart", SessionEnd = "SessionEnd", UserPromptSubmit = "BeforeAgent", PreToolUse = "BeforeTool", PostToolUse = "AfterTool", Stop = "AfterAgent" }
-# Static `context.fileName` bridge (RFC-0027 decision 5). gemini.py's settings-merge
+# Static `context.fileName` bridge. gemini.py's settings-merge
 # helper emits `context = { fileName = <this list> }` into the same `.gemini/settings.json`
 # so Gemini CLI reads the canonical `AGENTS.md` (and `GEMINI.md` if present). Data
 # lives in the contract, not a literal in code; written in the single hook-wiring
@@ -763,7 +761,7 @@ on-conflict = "prompt-then-preserve"
 [adapter.gemini.projections.kiro-ide-hook]
 mode = "dropped"
 
-# Scope dimension for Gemini (RFC-0027 / ADR-0016). Gemini's `.gemini/` prefix is
+# Scope dimension for Gemini. Gemini's `.gemini/` prefix is
 # identical at repo and user scope (the claude-code/cursor shape), so the divergent
 # user-scope home is produced by the generic user-root resolution, not a
 # gemini-specific prefix rewrite. Every projected target (skills, agents, commands,
@@ -773,8 +771,8 @@ mode = "dropped"
 [adapter.gemini.scope]
 repo = "."
 user = "~"
-# RFC-0052: skills route to the shared `.agents/skills/` home (both scopes);
-# agents/hooks stay under `.gemini/` (ADR-0040 moves only the skill primitive).
+# Skills route to the shared `.agents/skills/` home (both scopes);
+# agents/hooks stay under `.gemini/` (moves only the skill primitive).
 allowed-prefixes.repo = [".agents/skills/", ".gemini/", ".agentbundle/"]
 allowed-prefixes.user = [".agents/skills/", ".gemini/", ".agentbundle/"]
 
@@ -811,7 +809,7 @@ rename = "model"
 # rejecting the agent for an unknown model.
 values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "claude-haiku-4.5" }
 
-# kiro-cli agent frontmatter v1.0 (RFC-0022): rewrite rules from Claude Code
+# kiro-cli agent frontmatter v1.0: rewrite rules from Claude Code
 # agent markdown to Kiro CLI JSON. Tools map to CLI short-names (not IDE ids).
 # The `kiro` CLI matches agents' `tools` entries by short name; the IDE uses
 # ids — hence the separate table rather than reusing kiro-ide-agent-frontmatter-v0.9.
@@ -831,8 +829,7 @@ values = { Read = "read", Grep = "grep", Glob = "glob", Edit = "write", Write = 
 rename = "model"
 values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "claude-haiku-4.5" }
 
-# Codex agent frontmatter v0.8 (docs/specs/dropped-primitives-coverage,
-# amended by docs/specs/codex-agent-config-projection):
+# Codex agent frontmatter v0.8:
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
 # `name`, `description`, optionally `tools`, `model`) to codex's TOML agent
 # shape. `model` maps Claude-style aliases to OpenAI model IDs. `tools`
@@ -861,7 +858,7 @@ rename = "model"
 values = { opus = "gpt-5.5", sonnet = "gpt-5.5", haiku = "gpt-5.4-mini" }
 related-values = { model_reasoning_effort = { opus = "xhigh", sonnet = "medium", haiku = "medium" } }
 
-# Copilot agent frontmatter v0.10 (RFC-0024 / docs/specs/copilot-full-parity):
+# Copilot agent frontmatter v0.10:
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
 # `name`, `description`, optionally `tools`, `model`) to Copilot's `.agent.md`
 # shape. `name` / `description` pass through (identity renames). `tools` is
@@ -878,7 +875,7 @@ rename = "name"
 [frontmatter-mapping."copilot-agent-frontmatter-v0.10".description]
 rename = "description"
 
-# Cursor agent frontmatter v0.11 (RFC-0026 / docs/specs/cursor-full-parity):
+# Cursor agent frontmatter v0.11:
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
 # `name`, `description`, optionally `tools`, `model`) to Cursor's subagent `.md`
 # shape. `name` / `description` / `model` pass through (identity renames; `model`
@@ -887,7 +884,7 @@ rename = "description"
 # have no per-agent tool allowlist, so `cursor.py` drops the source `tools` and
 # derives a `readonly` flag for non-mutating agents (an agent whose declared
 # tool set contains none of Edit/Write/MultiEdit/NotebookEdit). `is_background`
-# is not emitted. This is the documented-degradation shape ADR-0013 accepted for
+# is not emitted. This is the documented-degradation shape accepted for
 # Copilot's tool handling.
 [frontmatter-mapping."cursor-agent-frontmatter-v0.11"]
 
@@ -900,7 +897,7 @@ rename = "description"
 [frontmatter-mapping."cursor-agent-frontmatter-v0.11".model]
 rename = "model"
 
-# Gemini agent frontmatter (RFC-0027 / docs/specs/gemini-full-parity, v0.13):
+# Gemini agent frontmatter (v0.13):
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
 # `name`, `description`, optionally `tools`, `model`) to Gemini CLI's subagent `.md`
 # shape. `name` / `description` pass through (identity renames). Unlike Cursor,
