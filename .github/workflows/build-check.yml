@@ -257,9 +257,12 @@ jobs:
       # in-step import is what survives a future reordering of the installs above.
       - name: pytest jira SSO suites (atlassian-sso-cookie)
         working-directory: packs/atlassian/tests/skills/jira
+        # test_check_sso_login.py covers the `check` auto-recovery flow —
+        # jira-check-sso-auto-login AC11–AC20, AC30–AC32.
         run: |
           python -c "import credbroker, httpx"
-          python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+          python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py \
+            test_check_sso_login.py
       - name: pytest confluence-crawler SSO suites (atlassian-sso-cookie)
         working-directory: packs/atlassian/tests/skills/confluence-crawler
         run: |

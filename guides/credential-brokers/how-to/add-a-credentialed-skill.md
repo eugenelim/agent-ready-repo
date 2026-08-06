@@ -25,7 +25,7 @@ You need:
 - **`env`** — the credential is a plain environment variable (`<NAMESPACE>_<KEY>`). Catalogue contributes naming convention and lint; no runtime resolver. Pick this for CI runners, ephemeral containers, and adopters whose threat model permits process env.
 - **`cli`** — the primitive shells out to a vendor-authenticated binary (`gh`, `aws`, `kubectl`, `gcloud`). Vendor CLI owns the credential. Pick this when the user has already authenticated the vendor binary on their PATH.
 - **`creds`** — static token resolved via the three-tier model (env → OS keychain → 0600 dotfile floor). Resolution comes from the [`credbroker`](../../../rfc/0023-credential-manager-broker.md) library (`pip install credbroker`), imported in-process — declare it in your skill's `requirements.txt` (Step 9). Pick this for static API tokens / PATs.
-- **`sso-cookie`** — session cookie acquired via a headed-browser SSO flow. Your skill subprocess-invokes `~/.agentbundle/bin/sso-broker.py get-cookies <profile>`. Pick this for corporate-SSO endpoints (e.g. enterprise Jira / Confluence behind Okta or AzureAD).
+- **`sso-cookie`** — session cookie acquired via a browser SSO flow. Your skill imports [`credbroker`](../../../rfc/0023-credential-manager-broker.md) and calls `load_sso_cookies` / `refresh_sso_session`; the library subprocess-invokes the `sso-broker.py` engine on your behalf. Pick this for corporate-SSO endpoints (e.g. enterprise Jira / Confluence behind Okta or AzureAD).
 
 The rest of this guide picks `creds` as the worked example because it's the most common case. The verbatim per-broker `### Security rules (non-negotiable)` block you embed in your `SKILL.md` is given inline in [Step 7](#step-7--embed-the-security-rules-block-in-skillmd), one per broker; copy the one matching your choice.
 
@@ -136,21 +136,43 @@ For **`auth: env`** — just `os.environ["<NAMESPACE>_<KEY>"]`. The lint asserts
 
 For **`auth: cli`** — `subprocess.run(["<vendor-cli>", ...], env={**os.environ})`. The vendor CLI owns the credential.
 
-For **`auth: sso-cookie`** — subprocess-invoke the canonical broker path:
+For **`auth: sso-cookie`** — call `credbroker`. Never resolve the broker path, build its argv, or call `subprocess` from a skill script:
 
 ```python
-import subprocess, sys
-from pathlib import Path
+import credbroker
 
-broker = Path.home() / ".agentbundle" / "bin" / "sso-broker.py"
-result = subprocess.run(
-    [sys.executable, str(broker), "get-cookies", "your-profile"],
-    capture_output=True, text=True, env={**os.environ},
+credbroker.validate_sso_profile(profile)            # grammar guard
+jar_path = credbroker.load_sso_cookies(profile)     # a path, never bytes
+
+# Re-establish an expired session, without a human. Takes only a profile —
+# the signature is structurally incapable of carrying a sign-in destination,
+# which is what stops an automated path choosing where the browser goes. It
+# runs headless: if the browser profile cannot complete the flow unaided it
+# raises rather than putting a login page in front of whoever is at the
+# machine.
+credbroker.refresh_sso_session(profile)
+
+# First capture. The only function that accepts a destination — reach it only
+# from an operator-typed action, never automatically.
+credbroker.register_sso_session(
+    profile,
+    login_url=...,
+    success_url_pattern=...,
+    cookie_domains=(...,),
+    validation_endpoint=...,
 )
-cookie_jar_path = result.stdout.strip()
+
+# Optional: ask the resource server where it sends users to sign in, and
+# compare before opening a browser. Defence in depth, not a control — the
+# derivation target lives in the same config file as the value it attests.
+credbroker.derive_sso_destination(base_url, strategies=("atlassian-seraph",))
 ```
 
-The broker emits the *path* to a serialised cookie jar; load it inside your primitive and construct the authenticated request without surfacing cookie values to the LLM.
+The resolver emits the *path* to a serialised cookie jar; load it inside your primitive and construct the authenticated request without surfacing cookie values to the LLM.
+
+Keeping the spawn inside `credbroker` is not tidiness. The wall-clock bound, the whole-process-tree kill (POSIX process groups vs Windows `taskkill`), and the environment allowlist that stops a headed browser inheriting your `*_API_TOKEN` are written once there, type-checked and CI-exercised — in a skill script they would be neither, and they would be copy-pasted into the next consumer.
+
+**Exit codes you must distinguish.** `refresh` returns `4` when the profile was never registered — route the operator to a first capture — and `5` when a person has to sign in. Both are exit-2 territory for your CLI, but they carry different remediations. Everything else the engine returns is an internal failure, not "your session expired": treat only the *typed* session-unavailable signal as recoverable, or a slow keychain will trigger a browser recapture while the stored session is perfectly valid.
 
 ## Step 7 — Embed the Security-rules block in `SKILL.md`
 
@@ -217,10 +239,11 @@ Every credentialed skill carries a `### Security rules (non-negotiable)` block i
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and emits only a *path* on stdout — do not
   parse the jar yourself.
-- If the broker exits with the "re-auth required" code (2), tell the
-  user the SSO session has expired and the next `get-cookies` will
-  open a browser. It's interactive — do not run any setup helper for
-  them.
+- If the broker exits with the "re-auth required" code (`2` from
+  `get-cookies`, or `4` from `refresh` when no profile was ever
+  registered), tell the user the SSO session has expired and that
+  capturing a new one opens a browser. It's interactive — do not run
+  any setup helper for them.
 ```
 
 ## Step 8 — Write the operational body: bootstrap and failure handling
@@ -330,14 +353,17 @@ Once everything is in place, populate the credential for your namespace:
 - **`auth: creds`** — invoke the `credential-setup` skill (ships with the `credential-brokers` pack). It reads your `creds-schema.toml`, prompts for each required key (secret keys via `getpass`; non-secret via `input`), and writes to the highest-available tier (keyring on Darwin/Windows; dotfile on Linux with `--allow-insecure-fallback`).
 - **`auth: env`** — export `<NAMESPACE>_<KEY>` in your shell rc.
 - **`auth: cli`** — run the vendor's auth flow (`gh auth login`, `aws configure`, …).
-- **`auth: sso-cookie`** — register the SSO profile:
+- **`auth: sso-cookie`** — register the SSO profile. Give your skill a
+  first-run command that calls `credbroker.register_sso_session` (the jira
+  skill's is `python scripts/jira.py check --register`), and have the *user*
+  run it. Direct engine invocation stays available for a scripted pre-bake:
 
   ```bash
   python3 ~/.agentbundle/bin/sso-broker.py register your-profile \
       --login-url <login-url> --success-url-pattern <pattern>
   ```
 
-The first `get-cookies` invocation opens a headed Chromium window and saves the cookie jar to the OS keychain (or 0600 file on Linux).
+Registration opens a headed Chromium window and saves the cookie jar to the OS keychain (or a 0600 file on Linux). After that, `refresh` re-establishes an expired session headlessly, so a `check`-style verb can self-heal without a human — see the `sso-cookie` broker section of [`docs/architecture/credentials.md`](../../../architecture/credentials.md#the-sso-cookie-broker).
 
 ## Step 11 — Run the lint
 
@@ -350,7 +376,7 @@ bash tools/lint-credentialed-skills.sh    # credentialed-skill rules
 
 - `auth: creds` — refuse if `scripts/` imports no credential resolver (`from credbroker import …`, or the legacy `from .credentials_shim`).
 - `auth: env` — refuse if any declared `<NAMESPACE>_<KEY>` is never read in `scripts/`.
-- `auth: sso-cookie` — refuse if `scripts/` does not subprocess-invoke the canonical broker path; refuse hard-coded absolute paths; refuse inline Playwright.
+- `auth: sso-cookie` — refuse if `scripts/` does not reach the broker through `credbroker`; refuse hard-coded absolute paths; refuse inline Playwright.
 - `auth: cli` — no positive-grep enforcement; broker-agnostic checks only.
 
 Both lints exit 0 against the worked example; aim for the same.
@@ -359,7 +385,8 @@ Both lints exit 0 against the worked example; aim for the same.
 
 - **Printing `creds.API_TOKEN` inside a debug `print(...)`.** The token reaches stdout where any caller can capture it. Use `len(creds.API_TOKEN)` only if you must prove resolution, and ideally don't even disclose the length.
 - **Forgetting to declare `credbroker` in `requirements.txt`.** The `from credbroker import …` resolver import fails with `ModuleNotFoundError: credbroker` until the dependency is installed (`python -m pip install -r requirements.txt`).
-- **Hard-coding the SSO broker path** (`subprocess.run(["/Users/me/.agentbundle/bin/sso-broker.py", ...])`). Absolute paths break across user accounts; resolve via `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` only.
+- **Resolving the SSO broker path yourself at all.** Not just the hard-coded-absolute-path version — any skill-side `Path.home() / ".agentbundle" / …` plus `subprocess.run(...)`. Call `credbroker`, which owns the path, the wall-clock bound, the process-tree kill and the environment allowlist. A skill script that spawns the engine directly re-implements four cross-platform controls, none of them type-checked or CI-exercised.
+- **Treating every broker failure as "the session expired".** A timeout, a missing engine, or an internal broker error is not an expired session; keying recovery on them opens a browser while the stored session is perfectly valid. Recover only on the typed session-unavailable signal.
 - **Adding a `--token` flag "just for local testing".** The argv ban applies in every environment and every broker; the `credential-setup` skill is the supported escape hatch for the `creds` broker.
 
 ## Reference

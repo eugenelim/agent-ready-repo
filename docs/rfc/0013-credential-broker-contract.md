@@ -2084,13 +2084,15 @@ record. Corrections are appended here, Approver-signed.
   semantics. Three corrections, found while specifying agent-triggered recapture:
 
   0. **`refresh` is now headless and non-interactive.** It launches
-     `headless=True` and does not poll for sign-in: it succeeds when the warm
-     browser profile completes the IdP flow unaided, and waits up to 20 s for the flow to complete unaided, and otherwise closes the
-     headless context and returns exit **5** rather than presenting a login page.
-     Exit 5 is new and joins 3 and 4 in this verb's contract.
-     Interactive capture belongs solely to `register`. This is what allows an
-     automated consumer to re-authenticate without ever putting an
-     agent-influenced login page in front of an operator.
+     `headless=True` and never polls for a *human* sign-in. It waits up to 20 s
+     for the warm browser profile to complete the IdP flow **unaided** — a warm
+     session still redirects asynchronously, so a zero-wait launch would fail
+     flows that would have succeeded — and if the success URL has not been
+     reached by the end of that window it closes the context and returns exit
+     **5** rather than presenting a login page. Exit 5 is new and joins 3 and 4
+     in this verb's contract. Interactive capture belongs solely to `register`.
+     This is what allows an automated consumer to re-authenticate without ever
+     putting an agent-influenced login page in front of an operator.
   1. **`refresh` diverges from `register` on persistence.** `register` gains an
      `--ephemeral` mode which captures in a throwaway browser context and seeds
      `browser-state/<profile>` from the captured state; **plain `register`

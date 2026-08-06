@@ -84,6 +84,15 @@ def run_windows_compat(root: Path) -> int:
             [py, "-m", "pytest", str(root / "packs" / "core" / "tests" / "hooks")],
             root,
         ),
+        # credbroker's own suite. Added for jira-check-sso-auto-login AC26: the
+        # cross-platform process-tree kill lives here (POSIX process groups vs
+        # `taskkill`), and until this runs green on Windows the `taskkill` arm and
+        # the reserved-device-name grammar are reasoned, not verified.
+        (
+            "credbroker suite (jira-check-sso-auto-login AC26)",
+            [py, "-m", "pytest"],
+            root / "packages" / "credbroker",
+        ),
         # Atlassian SSO suites (asyncio + SSL-context wiring is platform-sensitive).
         # Pack tests live outside the runtime payload (ADR-0071).
         #
@@ -98,7 +107,11 @@ def run_windows_compat(root: Path) -> int:
         ),
         (
             "jira SSO suites (atlassian-sso-cookie)",
-            [py, "-m", "pytest", "test_sso_config.py", "test_sso_client.py", "test_setup_sso.py"],
+            [
+                py, "-m", "pytest",
+                "test_sso_config.py", "test_sso_client.py", "test_setup_sso.py",
+                "test_check_sso_login.py",
+            ],
             root / "packs" / "atlassian" / "tests" / "skills" / "jira",
         ),
         (

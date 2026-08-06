@@ -298,15 +298,31 @@ So `credbroker` → `sso-broker.py`, never the reverse. The engine cannot
 import `credbroker`; anything both need — notably the profile grammar
 below — is duplicated deliberately and pinned equal by test.
 
+**The engine's exit codes are the interface between the two**, and they are
+per-verb: the same number means different things, which is why a consumer can
+never read one generically.
+
+| Exit | Verb | Meaning | Library raises | Recoverable? |
+|---|---|---|---|---|
+| `0` | any | success | — | — |
+| `2` | `get-cookies`, `test` | no usable session | session-unavailable | **yes** |
+| `3` | any | engine failure — playwright absent, a sign-in not completed, a rejected profile, a corrupt store | recapture-failed / broker-unavailable | no |
+| `4` | `refresh` | the profile was never registered | profile-not-registered | **yes** |
+| `5` | `refresh` | the flow needs a human, and no browser was shown | interaction-required | no |
+
+Only the two recoverable rows may reach a consumer's auto-recovery. `3` is
+returned from a dozen distinct sites, which is why not-registered has a code of
+its own: without the split, an internal engine failure would trigger a browser
+recapture while the stored session is perfectly valid. `4` and `5` are new —
+[RFC-0035](../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) and
+[RFC-0013](../rfc/0013-credential-broker-contract.md) carry the errata.
+
 ### Consumer API
 
 Consumers never resolve the broker path, build its argv, or call
 `subprocess` themselves:
 
-> **Status:** `load_sso_cookies` ships today. `validate_sso_profile`,
-> `refresh_sso_session`, `register_sso_session` and `derive_sso_destination` are **planned** — specified by
-> [`jira-check-sso-auto-login`](../specs/jira-check-sso-auto-login/spec.md) and
-> landing with `credbroker` 0.5.0. This page is updated in that PR, not ahead of it.
+> **Status:** all five ship in `credbroker` 0.5.0.
 
 ```python
 import credbroker
@@ -391,20 +407,24 @@ Tier 3 exists because SAML has no discovery equivalent; tier 4 is a real
 outcome, not a failure to handle. A consumer that cannot derive **refuses** and
 does not fall back to the configured value.
 
-**What derivation does not do.** It does **not** close config poisoning: the
-derivation target (`base_url`) lives in the same adopter- and agent-writable file
-as the value being attested, so one write moves both and the comparison passes.
-AWS's equivalent works only because its host suffix is hardcoded to
-`*.amazonaws.com`; there is no comparable invariant here. Where the configured
-sign-in host equals the base host — SP-initiated SAML, the majority Jira DC
-topology — derivation is bypassed by construction and attests nothing. Consent
-for first capture therefore rests on the operation being **operator-typed**, not
-on attestation. And attestation itself is **partial, not universal**: where the
-configured sign-in host equals the base host — SP-initiated SAML, the majority
-topology — derivation short-circuits and verifies nothing, so the re-register
-path attempts attestation but only achieves it on IdP-host topologies. A vendor's
-own setup helper performs none at all. Only scheme+host is compared; every tier's URL carries
-per-request `state` / `SAMLRequest` / `nonce`.
+**What derivation does not do.** Two limits, and neither is a caveat.
+
+It does **not** close config poisoning: the derivation target (`base_url`) lives
+in the same adopter- and agent-writable file as the value being attested, so one
+write moves both and the comparison passes. AWS's equivalent works only because
+its host suffix is hardcoded to `*.amazonaws.com`; there is no comparable
+invariant here. Consent for first capture therefore rests on the operation being
+**operator-typed**, not on attestation.
+
+And attestation is **partial, not universal**. Comparison is topology-aware,
+because plain host equality would refuse the majority Jira DC configuration: in
+SP-initiated SAML the configured sign-in host *is* the instance host. That branch
+is accepted **and short-circuits — no derivation request is made** — so it
+verifies nothing, and within-host path and query are unconstrained. A
+re-register command therefore *attempts* attestation and only achieves it on
+IdP-host topologies; describe it that way rather than as "the attested path". A
+vendor's own setup helper performs none at all. Only scheme+host is compared;
+every tier's URL carries per-request `state` / `SAMLRequest` / `nonce`.
 
 **Bounds — this is an outbound fetch on the credential path.** Every hop is
 `https` only (including URLs read from a `resource_metadata` header or an
@@ -419,11 +439,19 @@ proxy-auth header on any derivation request.
 A consumer's `check` verb may self-heal an **expired** session: on a typed
 session-unavailable signal it calls `refresh_sso_session` once and re-probes.
 That call is **headless** — it succeeds only when the browser profile can
-complete the IdP flow unaided, and otherwise fails fast rather than presenting a
-login page. It must key on that typed signal, never on a generic auth
-error — a `403`, a failed confinement check, or a missing engine are
-terminal, and re-authenticating cannot fix them. First-time capture stays
-an explicit human action.
+complete the IdP flow unaided, waits a bounded window for the redirect chain to
+land, and otherwise returns engine exit `5` rather than presenting a login page.
+It must key on that typed signal, never on a generic auth error — a `403`, a
+failed confinement check, a missing engine, or a broker timeout are terminal,
+and re-authenticating cannot fix them. A timeout in particular is *not* an
+expired session: mapping it to the recoverable type would open a browser
+whenever a keychain was slow.
+
+**The re-probe, not the exit code, is the success criterion.** `refresh` returns
+`0` whenever the success-URL pattern matched, so it can succeed while leaving
+nothing resolvable. Exactly one recapture, and exactly one retry, per process.
+
+First-time capture stays an explicit human action.
 
 ### What this costs the operator
 
@@ -434,7 +462,7 @@ unattended is the one that is structurally safe.
 |---|---|---|---|
 | **First capture** | operator, explicitly | a real sign-in page in a fresh browser context, and the destination host on stderr before it opens | **once per machine, per profile** |
 | **Silent refresh** | nobody | nothing — `refresh` is headless | whenever the app session expires and the IdP session is still valid |
-| **Re-registration prompt** | operator, unplanned | an exit-2 message, **not** a login page — headless `refresh` fails fast and names the consumer's *re-register* command, which is the path that attempts destination attestation | when the **IdP** session has also expired — typically first use of the day |
+| **Re-registration prompt** | operator, unplanned | an exit-2 message, **not** a login page — the engine returns `5`, headless `refresh` having failed fast, and the consumer names its *re-register* command, which is the path that *attempts* destination attestation | when the **IdP** session has also expired — typically first use of the day |
 
 The middle row is the common case and is safe by construction:
 `refresh_sso_session(profile)` accepts no destination, so an automated caller

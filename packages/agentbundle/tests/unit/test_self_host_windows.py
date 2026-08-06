@@ -20,6 +20,7 @@ class FakeResult:
 def fake_root(tmp_path: Path) -> Path:
     """Minimal directory structure run_windows_compat expects."""
     (tmp_path / "packages" / "agentbundle").mkdir(parents=True)
+    (tmp_path / "packages" / "credbroker").mkdir(parents=True)
     # Pack tests live outside the runtime payload (ADR-0071), so the SSO steps'
     # cwds are the pack's test tree, not the skill's scripts/.
     (tmp_path / "packs" / "atlassian" / "tests" / "skills" / "jira").mkdir(parents=True)
@@ -43,7 +44,7 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
     ):
         rc = run_windows_compat(fake_root)
     assert rc == 0
-    assert len(calls) == 15, f"Expected 15 steps, got {len(calls)}"
+    assert len(calls) == 16, f"Expected 16 steps, got {len(calls)}"
     # The SSO trios importorskip("credbroker") at module scope and _step
     # judges by return code alone, so the probe is what stops a missing
     # dependency from skipping both suites and reporting pass. Pin it by
@@ -51,6 +52,14 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
     assert any(
         cmd[1:] == ["-c", "import credbroker, httpx"] for cmd, _ in calls
     ), "the atlassian SSO dependency probe must run"
+    # Likewise named rather than left to the count: credbroker's suite is here
+    # because the cross-platform process-tree kill lives in it — the `taskkill`
+    # arm is only verified once this run is green (jira-check-sso-auto-login
+    # AC26).
+    cwds = {str(cwd) for _cmd, cwd in calls}
+    assert any(cwd.endswith(str(Path("packages") / "credbroker")) for cwd in cwds), (
+        "the credbroker suite must run on the Windows parity runner"
+    )
 
 
 def test_stops_on_first_failure(fake_root: Path) -> None:
