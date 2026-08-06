@@ -461,6 +461,51 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "agentbundle-surface-doc-reconciliation-engine-stragglers", source = "spec/agentbundle-surface-doc-reconciliation (out of scope)"},
 
+  # `tools/test-all.py` names two self-tests that do not exist in the tree:
+  # `tools/test-check-xd-chain.py` and `tools/test-llm-judge-cross-pack-eval.py`.
+  # Absent on origin/main too, so the umbrella runner has reported two
+  # permanent failures for some time; nothing gates on it, which is why it went
+  # unnoticed. Found while re-pointing test-all.py during the pack-test-boundary
+  # relocation — not caused by it.
+  # Fix: restore the two scripts, or drop their entries. Decide which by
+  #   checking whether the checks they named are covered elsewhere.
+  # Unblocks when: picked up — no dependency.
+  {slug = "test-all-dangling-entries", source = "spec/pack-test-boundary pre-flight"},
+
+  # `package.py` defines `_IMPLICIT_DENY_DIRS` (including `__pycache__`) and then
+  # never references it, so compiled caches reach the packaged archive. Only
+  # `.apm/` scripts cached before; pytest suites under `packs/<pack>/tests/`
+  # cache on every run, so anyone running `make test` before `make package`
+  # now ships `.pyc` routinely. The boundary policy this PR adds says caches are
+  # "neither committed nor packaged" — currently untrue for packaging.
+  # Fix: prune `_IMPLICIT_DENY_DIRS` from `dirnames` in package.py's three
+  #   os.walk loops; add an archive-contents assertion. Needs an agentbundle release.
+  # Unblocks when: picked up — no dependency.
+  {slug = "package-archive-carries-pycache", source = "spec/pack-test-boundary review"},
+
+  # `verify.py:_step_version_parity` probes `pack_dir / "plugin.json"`, but
+  # every pack keeps it at `pack_dir / ".claude-plugin" / "plugin.json"`, so the
+  # CAT-V-005 parity check silently no-ops. A pack.toml bump without the
+  # matching plugin.json bump passes `make build-check`; only the agentbundle
+  # pytest suite catches it. Hit during pack-test-boundary (core 2.2.0).
+  # Fix: probe the `.claude-plugin/` path; add a regression test that a
+  #   mismatched pair fails verify. Requires an agentbundle release.
+  # Unblocks when: picked up — no dependency.
+  {slug = "version-parity-probes-wrong-path", source = "spec/pack-test-boundary review"},
+
+  # Tests in the other packs still live under `.apm/skills/*/scripts/`, against
+  # the boundary documented in catalogue-authoring-standards.md § 4 and decided
+  # in ADR-0071. Core and product-documentation were migrated; the rest were
+  # deferred by explicit direction. Two pack-subject suites also remain in
+  # `packages/agentbundle/tests/unit/`: `test_research_retrievers_conformance.py`
+  # (desk-research) and `test_credential_setup_skill.py` (credential-brokers).
+  # Evals are NOT part of this — `.apm/skills/<skill>/evals/` is the decided,
+  # linter-enforced layout; do not move them.
+  # The boundary test is core-scoped, so nothing stops a new pack regressing.
+  # Fix: migrate per pack, then add a lint refusing `test*` under `.apm/`.
+  # Unblocks when: picked up — no dependency.
+  {slug = "pack-test-boundary-remaining-packs", source = "spec/pack-test-boundary Boundaries"},
+
   # Phase-1 residue from the packages/ marker sweep: the marker sites that are
   # asserted on verbatim. The set itself is enumerated once, in
   # docs/specs/packages-governance-marker-sweep/spec.md AC5 — do not restate it

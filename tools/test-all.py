@@ -46,14 +46,18 @@ def _repo_root() -> Path:
 # child runs with the same interpreter as the umbrella.
 TESTS: list[tuple[str, list[str]]] = [
     ("check-xd-chain", [sys.executable, "tools/test-check-xd-chain.py"]),
-    ("lint-knowledge", ["bash", "tools/test-lint-knowledge.sh"]),
+    ("lint-knowledge", [sys.executable,
+                        "packs/core/tests/skills/work-loop/test-lint-knowledge.py"]),
     ("lint-skill-spec", [sys.executable, "-m", "pytest",
                               "packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py",
                               "-v"]),
     ("llm-judge-cross-pack-eval", [sys.executable, "tools/test-llm-judge-cross-pack-eval.py"]),
-    ("loop-cohort", ["bash", "tools/test-loop-cohort.sh"]),
+    ("loop-cohort", ["bash", "packs/core/tests/skills/work-loop/test-loop-cohort.sh"]),
+    ("pack-runtime-boundary", [sys.executable,
+                               "packs/core/tests/pack/test-runtime-boundary.py"]),
     ("pre-pr", ["bash", "tools/test-pre-pr.sh"]),
-    ("session-start", ["bash", "tools/test-session-start.sh"]),
+    ("session-start", ["bash", "packs/core/tests/hooks/test_session_start_projection.sh"]),
+    ("session-start-source", ["bash", "packs/core/tests/hooks/test_session_start_bash.sh"]),
 ]
 
 

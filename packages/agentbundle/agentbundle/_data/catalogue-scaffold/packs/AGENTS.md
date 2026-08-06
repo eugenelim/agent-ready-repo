@@ -5,12 +5,16 @@ Read `packs/AGENTS.local.md` when present — it carries host-specific overrides
 
 ## Pack layout
 
+The pack is the ownership and test-execution boundary; `.apm/` is the runtime export boundary; a skill is the
+evaluation-fixture boundary. Tests go in `packs/<pack>/tests/`, never under `.apm/`. Evals stay skill-local at
+`.apm/skills/<skill>/evals/` and project with the skill.
+
 | Path | Purpose |
 |------|---------|
 | `pack.toml` | Pack metadata — version, description, adapter-contract, categories |
 | `.claude-plugin/plugin.json` | Claude plugin manifest source (must match `pack.toml` version, stay schema-valid) |
 | `seeds/` | Adopter scaffold templates (brownfield install) |
-| `docs/` | Concept anchor and pack guides — never projected or installed |
+| `tests/` · `docs/` | Never projected — implementation tests (`skills/<skill>/`, `hooks/`, `pack/`) · concept anchor and pack guides |
 | `.apm/skills/` | Skill sources → projected per adapter |
 | `.apm/agents/` | Agent sources → projected per adapter |
 | `.apm/hooks/` | Hook-body sources → projected per adapter |
@@ -40,10 +44,7 @@ installed, and are not included in packaged archives. See `packs/README.md`.
 | `[pack.evals]` | — | `skills` (array of covered skill names) |
 | `[pack.recipes.*]` | `description` | `steps`, `adapter` |
 | `[pack.dependencies]` | — | `required`, `recommended`, `conflicts` (arrays) |
-| `[pack.seeds]` | — | Seed path configuration |
-| `[pack.layout]` | — | Per-scope layout overrides |
-| `[pack.first-value]` | — | First-value install metadata |
-| `[pack.adaptation]` | — | Adaptation inference rules |
+| `[pack.seeds]` · `[pack.layout]` · `[pack.first-value]` · `[pack.adaptation]` | — | Seed paths · per-scope layout overrides · first-value install metadata · adaptation inference rules |
 
 `[pack.install]` is required when `adapter-contract.version` ≥ 0.2.
 

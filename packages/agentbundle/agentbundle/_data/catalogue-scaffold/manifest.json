@@ -1,13 +1,13 @@
 {
   "files": {
-    "guides/_shared/reference/catalogue-authoring-standards.md": "4fe9ce077af089ab52840d1b3de600c09ca23eace114c1e28c4685a3b7289520",
+    "guides/_shared/reference/catalogue-authoring-standards.md": "0d278062872d62d059e322bae9e5af9f573d79bc93ff24ca18fb750705da5cc6",
     "guides/_shared/reference/catalogue-ci-contract.md": "fae793ab47989b6dd3c731afcb0b4cda21c7d08bbe7fa40fca6d3abb3d158141",
-    "packs/AGENTS.md": "4d9e94478d3c941d4a08c8827ed9d30edaa07207854eac020b9fc3014f5b3237",
-    "packs/README.md": "68a141500fed78988dbfe7400ea9b8fa0b7d97186d420a93dfe40763272b69ee",
+    "packs/AGENTS.md": "7b534acfdaab757079ca678d9290c2257267d7f4e0b4b3c3401d9da22cb4be0b",
+    "packs/README.md": "d2de5f9556f4c8e521103474bde74636e02cc805f9bf5312a3a61a1f3eb45d8f",
     "packs/_example/.apm/skills/example-skill/SKILL.md": "33be8cbf4b2c014a5a63e788b7d0b350ad8061c6c4b2579369a3e984135bf9f1",
+    "packs/_example/.apm/skills/example-skill/evals/eval_queries.json": "f41ecda0834a22f3b4823c81ab02e58b0e4beba610e3b40c185579abff9cfeee",
     "packs/_example/.claude-plugin/plugin.json": "d38c8456640d5e2f9296361f7e3e675e368ddd3eb22a6245267560f460155f41",
     "packs/_example/README.md": "ef130c9c1f97a75a07cc59fc55fc5b3bf71846dd2f06c3cddf5a1154023b6ef6",
-    "packs/_example/evals/eval_queries.json": "f41ecda0834a22f3b4823c81ab02e58b0e4beba610e3b40c185579abff9cfeee",
     "packs/_example/pack.toml": "94e2c7fd25d4d115858728c7ecb8f739adfd0f594b29596c106daba0791a4b94",
     "profiles/AGENTS.md": "8950438d9e0f57c13613104c88c90b598b53196c91bfdced6d63e4e01b5e9254",
     "profiles/README.md": "a0b0268edc57fc575f7fea08f3363ba7da9f6e67dc4a0a6f8bd38c9668c97922",

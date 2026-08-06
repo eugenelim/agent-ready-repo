@@ -140,7 +140,7 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _script_step(
             "test-lint-spec-status",
-            ".claude", "skills", "work-loop", "scripts", "test-lint-spec-status.py",
+            "packs", "core", "tests", "skills", "work-loop", "test-lint-spec-status.py",
         ),
         _script_step(
             "lint-spec-status",
@@ -148,7 +148,7 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _script_step(
             "test-lint-brief-coverage",
-            ".claude", "skills", "receive-brief", "scripts", "test-lint-brief-coverage.py",
+            "packs", "core", "tests", "skills", "receive-brief", "test-lint-brief-coverage.py",
         ),
         _script_step(
             "lint-brief-coverage",
@@ -156,7 +156,7 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _script_step(
             "test-lint-traceability",
-            ".claude", "skills", "work-loop", "scripts", "test-lint-traceability.py",
+            "packs", "core", "tests", "skills", "work-loop", "test-lint-traceability.py",
         ),
         _script_step(
             "lint-traceability",

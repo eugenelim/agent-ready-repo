@@ -9,31 +9,31 @@ Also verifies:
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _DATA_SCAFFOLD = (
-    Path(__file__).resolve().parents[2]
-    / "agentbundle"
-    / "_data"
-    / "catalogue-scaffold"
+    Path(__file__).resolve().parents[2] / "agentbundle" / "_data" / "catalogue-scaffold"
 )
 
+
+def _load_sync_tool():
+    """Read the pair list from the tool itself.
+
+    This list used to be restated here and had drifted to 11 entries against
+    the tool's 13 — so the gate was blind to drift in the two files it omitted,
+    including the authoring standards. One source, no copy.
+    """
+    path = _REPO_ROOT / "tools" / "catalogue" / "sync_authoring_scaffold.py"
+    spec = importlib.util.spec_from_file_location("sync_authoring_scaffold", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 _SYNC_PAIRS: list[tuple[str, str]] = [
-    ("packs/README.md", "packs/README.md"),
-    ("packs/AGENTS.md", "packs/AGENTS.md"),
-    ("packs/_example/pack.toml", "packs/_example/pack.toml"),
-    ("packs/_example/.claude-plugin/plugin.json", "packs/_example/.claude-plugin/plugin.json"),
-    (
-        "packs/_example/.apm/skills/example-skill/SKILL.md",
-        "packs/_example/.apm/skills/example-skill/SKILL.md",
-    ),
-    ("packs/_example/evals/eval_queries.json", "packs/_example/evals/eval_queries.json"),
-    ("packs/_example/README.md", "packs/_example/README.md"),
-    ("profiles/README.md", "profiles/README.md"),
-    ("profiles/AGENTS.md", "profiles/AGENTS.md"),
-    ("profiles/_example/profile.toml", "profiles/_example/profile.toml"),
-    ("profiles/_example/README.md", "profiles/_example/README.md"),
+    (str(src.relative_to(_REPO_ROOT)), dst) for src, dst in _load_sync_tool()._SYNC_PAIRS
 ]
 
 
@@ -76,12 +76,15 @@ def test_packs_agents_md_is_portable():
     assert agents_md.exists(), "_data/catalogue-scaffold/packs/AGENTS.md missing"
     text = agents_md.read_text(encoding="utf-8")
     # The portable copy must not reference Make-only host commands.
-    assert "make build-self" not in text.lower(), \
+    assert "make build-self" not in text.lower(), (
         "packs/AGENTS.md in _data/ references 'make build-self' — this is host-specific"
-    assert "FORCE=1" not in text, \
+    )
+    assert "FORCE=1" not in text, (
         "packs/AGENTS.md in _data/ references FORCE=1 — this is host-specific"
-    assert "docs/product/changelog.md" not in text, \
+    )
+    assert "docs/product/changelog.md" not in text, (
         "packs/AGENTS.md in _data/ references docs/product/changelog.md — this is host-specific"
+    )
 
 
 def test_profiles_agents_md_present_and_non_empty():
@@ -120,9 +123,7 @@ def test_manifest_present_and_lists_all_files():
         f"manifest has fewer files ({len(files)}) than expected ({len(_SYNC_PAIRS)})"
     )
     for _, scaffold_rel in _SYNC_PAIRS:
-        assert scaffold_rel in files, (
-            f"'{scaffold_rel}' missing from manifest"
-        )
+        assert scaffold_rel in files, f"'{scaffold_rel}' missing from manifest"
 
 
 def test_manifest_hashes_pass_verify():
@@ -146,6 +147,4 @@ def test_materialize_to_copies_all_files(tmp_path):
 
     materialize_to(tmp_path)
     for rel in list_files():
-        assert (tmp_path / rel).exists(), (
-            f"materialize_to did not copy '{rel}'"
-        )
+        assert (tmp_path / rel).exists(), f"materialize_to did not copy '{rel}'"

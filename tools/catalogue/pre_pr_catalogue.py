@@ -96,7 +96,9 @@ def main() -> int:
     _run("skill-spec lint",
          [py, "-m", "agentbundle", "catalogue", "lint", "--root", ".", "--deep"],
          env=_agentbundle_env())
-    _run("knowledge lint", [py, "tools/lint-knowledge.py"])
+    # Knowledge lint is not listed here: it moved into the *shipped* pre-pr.py
+    # (delegated to at the end of this function) when the linter moved into the
+    # core pack, so an adopter gets the same gate on the file we seed them.
     _run("build lint", [py, "tools/lint-build.py"])
     _run("sso-config lint", [py, "tools/lint-sso-config.py"])
     _run("sso-config lint self-test", [py, "tools/test-lint-sso-config.py"])

@@ -27,6 +27,10 @@ packs/<name>/
 │   │   └── <event>.toml
 │   └── commands/
 │       └── <name>.md
+├── tests/                          # implementation verification — NEVER projected
+│   ├── skills/<skill-name>/
+│   ├── hooks/
+│   └── pack/
 └── seeds/                          # Tier-1 governance seeds (projected to repo root)
     ├── AGENTS.md
     ├── _agents-footer.md
@@ -36,6 +40,20 @@ packs/<name>/
         ├── CONVENTIONS.md
         └── ...
 ```
+
+**The pack directory is the ownership boundary; `.apm/` is the runtime export
+boundary.** Everything under `.apm/` is projected into an installed agent
+environment. `tests/` is owned by the pack and never projected — visible in a catalogue
+archive (which walks `packs/**`), but the installer reads only `.apm/` and
+`seeds/`, so it cannot reach an adopter's tree. Evals are not an exception to
+this — they are skill-local content: `.apm/skills/<skill>/evals/`, projected
+with the skill, because a fixture only means anything beside the skill it
+exercises. A pack is the ownership and test-execution boundary; a skill is the
+evaluation-fixture boundary. A test therefore never lives under `.apm/`, even where the current
+installer would ignore its path; the separation is structural, not incidental.
+The normative rules — tests vs. evals, fixture hygiene, dependency separation —
+are in [`catalogue-authoring-standards.md` § 4](../../guides/_shared/reference/catalogue-authoring-standards.md#4-pack-layout),
+which ships to adopters. This section describes only what the shape is.
 
 Every pack ships `pack.toml` (schema-enforced) and a hand-authored
 `.claude-plugin/plugin.json` (build-convention-required — the bundler

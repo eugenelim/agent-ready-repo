@@ -207,6 +207,7 @@ lint-mypy:
 test:
 	$(PYTHON) -m pytest packages/agentbundle/tests/ packages/agentbundle/agentbundle/build/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
+	$(PYTHON) -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_build_site_routing.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 

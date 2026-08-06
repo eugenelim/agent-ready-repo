@@ -41,16 +41,18 @@ than structure, decision, or instruction.
 ## Schema
 
 `patterns.jsonl` is line-delimited JSON. Each non-empty line is one
-entry:
+entry with **six required keys — `id`, `kind`, `scope`, `title`,
+`body`, `source`** (plus optional `tier`). Omitting `source` is the
+usual mistake:
 
 ```json
 {"id": "K-NNNN", "kind": "pattern", "scope": "packages/auth/**", "title": "Always parameterize SQL queries", "body": "Use parameterized queries everywhere — string-concatenated SQL has bitten us twice. The `db.query()` helper enforces this; reach for it instead of raw drivers.", "source": "PR#42"}
 ```
 
-<!-- schema-drift test in tools/test-lint-knowledge.sh parses the field
-     table below and the `kind` row. Keep each field's name backticked
-     in the first column on a single line; keep every kind backticked
-     on the kind row. Don't split rows across lines. -->
+<!-- The knowledge linter's self-test parses the field table below and the
+     `kind` row to check them against the linter. Keep each field's name
+     backticked in the first column on a single line; keep every kind
+     backticked on the kind row. Don't split rows across lines. -->
 
 | Field | Type | Notes |
 |---|---|---|
@@ -63,8 +65,30 @@ entry:
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
 
 The format is JSONL (one JSON object per line, no commas, no wrapping
-array) so it grows by append and reads line-by-line. `tools/lint-knowledge.py`
-validates the file; `tools/hooks/session-start.py` reads it.
+array) so it grows by append and reads line-by-line.
+`lint-knowledge.py` validates the file; `tools/hooks/session-start.py`
+reads it at session open.
+
+## Verify before committing
+
+`lint-knowledge.py` ships with the `work-loop` skill, so there is
+nothing to wire: `tools/hooks/pre-pr.py` runs it over this file
+automatically. To check as you write, run it directly from wherever
+your agent tool installed the skill (`.claude/skills/`, `.agents/skills/`,
+`.kiro/skills/`, `.apm/skills/`):
+
+```bash
+python3 .claude/skills/work-loop/scripts/lint-knowledge.py; echo "exit=$?"
+```
+
+Run it **unfiltered** and read its exit code. Never pipe a gate through
+`tail` or `grep` to judge it: `<gate> | tail -2` reports *tail's* exit
+code — always 0 — and truncates away the `✖ <file>:<line>:` lines that
+name what is wrong, so an entry with a missing `source` key reads as
+clean locally and fails in CI.
+
+The session-start hook is not a substitute — it skips a malformed line
+silently rather than failing the session.
 
 ## Curation
 

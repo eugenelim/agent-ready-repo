@@ -20,25 +20,24 @@ on:
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
       - 'packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py'
       - 'packs/**/.apm/skills/**'
-      - 'tools/lint-knowledge.py'
-      - 'tools/test-lint-knowledge.sh'
+      - '.claude/skills/work-loop/scripts/lint-knowledge.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/lint-knowledge.py'
+      - 'packs/core/tests/skills/work-loop/test-lint-knowledge.py'
       - 'profiles/**'
       - 'packs/**'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - '.claude/skills/work-loop/scripts/loop-engine.py'
       - '.claude/skills/work-loop/scripts/check-spec-status.py'
-      - '.claude/skills/work-loop/scripts/test-loop-cohort.py'
-      - '.claude/skills/work-loop/scripts/test-loop-engine.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
       - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/test-loop-cohort.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/test-loop-engine.py'
-      - 'tools/test-loop-cohort.sh'
+      - 'packs/core/tests/skills/work-loop/test-loop-cohort.py'
+      - 'packs/core/tests/skills/work-loop/test-loop-engine.py'
+      - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
       - 'tools/hooks/**'
       - 'tools/test-all.py'
       - 'tools/test-pre-pr.sh'
-      - 'tools/test-session-start.sh'
+      - 'packs/core/tests/hooks/**'
       - '.github/workflows/docs.yml'
   push:
     branches: [main]
@@ -70,9 +69,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run knowledge-base linter
-        run: python tools/lint-knowledge.py
-      - name: Self-test the linter (schema-drift + content guards)
-        run: bash tools/test-lint-knowledge.sh
+        run: python .claude/skills/work-loop/scripts/lint-knowledge.py
+      - name: Self-test the linter (validation rules + schema/guidance drift)
+        run: python3 packs/core/tests/skills/work-loop/test-lint-knowledge.py
 
   loop-cohort:
     name: Caps enforcer self-test
@@ -80,11 +79,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
-        run: bash tools/test-loop-cohort.sh
+        run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh
       - name: Python test suite — loop-cohort (67 unit tests)
-        run: python3 .claude/skills/work-loop/scripts/test-loop-cohort.py
+        run: python3 packs/core/tests/skills/work-loop/test-loop-cohort.py
       - name: Python test suite — loop-engine FSM (84 unit/integration tests)
-        run: python3 .claude/skills/work-loop/scripts/test-loop-engine.py
+        run: python3 packs/core/tests/skills/work-loop/test-loop-engine.py
+      - name: Pack runtime boundary (.apm/ carries no tests; projection is clean)
+        run: python3 packs/core/tests/pack/test-runtime-boundary.py
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches
@@ -115,7 +116,7 @@ jobs:
       - name: Self-test the aggregator (each layer corruption surfaces)
         run: bash tools/test-pre-pr.sh
       - name: Self-test session-start (scope filter + malformed warning)
-        run: bash tools/test-session-start.sh
+        run: bash packs/core/tests/hooks/test_session_start_projection.sh
 
   check-adr-immutability:
     name: ADRs are immutable

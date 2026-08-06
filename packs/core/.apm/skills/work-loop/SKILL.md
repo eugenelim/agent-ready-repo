@@ -451,7 +451,21 @@ Before the PR is opened: *What would have made this loop go faster?*
 
 Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
 
-- **Review scratch notes** from this session's DECIDE passes. For each: generalisable beyond this PR and would have changed the approach → promote to `docs/knowledge/patterns.jsonl` (schema: `docs/knowledge/README.md`); otherwise discard.
+- **Review scratch notes** from this session's DECIDE passes. For each: generalisable beyond this PR and would have changed the approach → promote to `docs/knowledge/patterns.jsonl`; otherwise discard.
+
+  One JSON object per line. **Six required keys — `id`, `kind`, `scope`, `title`, `body`, `source`** (plus optional `tier`). `id` matches `K-\d{4,}` and is unique; `kind` is `pattern`, `gotcha`, or `antipattern`; `scope` is one or more comma-separated path globs; `source` is where the lesson came from (`PR#42`, `issue#13`). Omitting `source` is the usual mistake:
+
+  ```json
+  {"id": "K-NNNN", "kind": "gotcha", "scope": "packages/auth/**", "title": "Token cache survives a role change", "body": "The auth middleware caches tokens for 15 minutes — invalidate it manually after a role change.", "source": "PR#42"}
+  ```
+
+  **Verify before committing.** `lint-knowledge.py` ships beside this skill and `pre-pr.py` runs it for you; run it directly to check as you write — **unfiltered**, reading its exit code:
+
+  ```bash
+  python3 <skills-dir>/work-loop/scripts/lint-knowledge.py; echo "exit=$?"
+  ```
+
+  Never pipe a gate through `tail` or `grep` to judge it — you get the filter's exit code, not the gate's, and the truncated lines are the per-entry errors. Field table and curation rules: `docs/knowledge/README.md`.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
 - "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
@@ -490,6 +504,7 @@ Wrong tool when "done" is fuzzy, task needs human judgment mid-flight, or touche
 - **Running an unattended loop on a fresh task.** Do at least one in-session pass first to validate the approach.
 - **Looping without capturing learnings.** Every loop that ends without updating some doc, skill, or note loses its lessons.
 - **Grepping top-level keys in structured config.** `grep '^key' file.toml` matches `key` under every section, not just the top level — the same trap applies to YAML and JSON. Parse structured config with its native library rather than using line-pattern greps.
+- **Judging a gate through `tail` or `grep`.** `<gate> | tail -2` reports the *filter's* exit code, not the gate's, and truncates away the per-item errors. Run every gate unfiltered and read its exit code.
 
 ## Fidelity ladder
 

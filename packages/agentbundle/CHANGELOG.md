@@ -8,6 +8,39 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.29.4] — 2026-08-06
+
+### Changed
+
+- **Pack-content tests no longer live in this package's test tree.** Every
+  suite whose *subject* was pack content — core's hook bodies, skill bodies and
+  `work-loop` scripts, plus the `product-documentation` pack check — moved to
+  the owning pack's `tests/` tree. They were never testing `agentbundle`;
+  they were testing pack content that happens to sit in the same repository, so
+  renaming a private helper in the core pack could turn this package's suite
+  red. `packages/agentbundle/tests/` is now catalogue-level only: the engine,
+  the CLI, projection, packaging, and schema. Tests that *use* a pack as fixture
+  data — install, upgrade, projection, adapter parity — are unaffected and stay;
+  the distinction is subject, not mention.
+- **`self_host_windows.py`** points the hook parity-net step at
+  `packs/core/tests/hooks/` and runs it from the repo root rather than the
+  package directory.
+- **`README-pypi.md`** documents the pack layout's `tests/` tree and the
+  three boundaries — pack owns tests, `.apm/` is the runtime export boundary,
+  a skill owns its eval fixtures.
+
+No flag, verb, exit code, schema, or output changed. The installed runtime
+surface is identical; only where this repository keeps its tests moved.
+
+## [0.29.3] — 2026-08-05
+
+### Changed
+
+- Wording-only release: internal governance citations removed from every shipped
+  surface (`--help` output, runtime diagnostics, source comments). No flag, verb,
+  exit code, schema, or output structure changed. See the repo changelog for the
+  full breakdown.
+
 ## [0.29.2] — 2026-08-05
 
 ### Fixed
