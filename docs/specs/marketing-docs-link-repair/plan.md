@@ -1,64 +1,91 @@
 # Plan: marketing-docs-link-repair
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Assumption trio
 
-- **Files touched:** `web/src/content/journeys/*.md` (17), `web/src/content/packs/*.md` (21),
-  `packs/<pack>/JOURNEY.md` (11 — the projection sources for 11 of those 17 journeys).
-- **Done is demonstrated by:** every `docsUrl` resolving into the route set the
-  docs-site build emits, plus a `build-site.py` round-trip that leaves
-  `git status` clean.
+- **Files touched:** `web/src/content/journeys/*.md`, `web/src/content/packs/*.md`,
+  the `packs/<pack>/JOURNEY.md` projection sources behind the projected journeys, and
+  the living `docs/specs/platform-site/journey-page-template.md`. Exact counts are held
+  canonically in the spec's Acceptance Criteria — not restated here.
+- **Done is demonstrated by:** the four goal-based checks in the spec's Testing
+  Strategy (route-set membership, end-to-end resolution against the built tree,
+  projection fixed-point incl. the gitignored file, mount-untouched diff check).
 - **Not changing:** the docs-site mount (`astro.config.ts` `base`/`outDir`,
-  `pages.yml`, `build-site.py` mirror target); the 5 hardcoded `/docs/…` hrefs
-  and 3 relative body links that already resolve; `content.config.ts`; the
+  `pages.yml`, `build-site.py` mirror target); the already-resolving hardcoded and
+  relative links; the `primitives-fixture` placeholders; `content.config.ts`; the
   Shipped `phase4b-product-docs-completion` spec.
 
 ## Declined patterns
 
 - **Re-mounting the docs site to `/guides/`** — declined; the user ruled it out
-  explicitly after being shown the option. It would have made all 38 values
-  correct with zero data edits, but it moves ~209 published routes.
-- **Committing a link-checker tool** — declined; the user scoped this to "just"
-  the links, and fixing the 11 pack sources already closes the mechanical revert
-  path. Surfaced as a follow-up instead.
-- **Adding `startsWith('/docs/')` to the `content.config.ts` zod schema** —
-  declined; encodes a site-layout fact in a content schema and inverts the day
-  the mount moves.
-- **Correcting the stale `/guides/…` instruction in the Shipped phase4b spec** —
-  declined; it is historical record. Surfaced as a follow-up.
-- **Normalising the neighbouring `packUrl` / `journeyUrl` frontmatter while in
-  the same files** — declined; those resolve correctly today, so they fail the
-  bundled-fixes "same concern" gate.
+  explicitly after being shown the option. It would have made every value correct with
+  zero data edits, but it moves ~209 published routes.
+- **Committing a link-checker tool** — declined *for this PR*, and the original
+  justification was wrong and has been corrected. It read "fixing the pack sources
+  closes the mechanical revert path"; per the spec's Assumptions, the projection path
+  explains at most 11 of the 37 files #854 reverted, so closing it does not close the
+  revert risk. The decline now rests on scope alone: a committed checker needs a
+  `tools/` script plus CI wiring, and the user scoped this change to the links.
+  Registered as `web-docs-link-check-gate` in `[backlog].open` rather than left in prose.
+- **Adding `startsWith('/docs/')` to the `content.config.ts` zod schema** — declined;
+  encodes a site-layout fact in a content schema and inverts the day the mount moves.
+- **Correcting the stale instruction in the Shipped phase4b spec** — declined here;
+  amending a Shipped spec's history needs its own decision. Registered as
+  `phase4b-docsurl-instruction-stale` in `[backlog].open`.
+- **Fixing the 8 dead placeholder hrefs on `primitives-fixture.astro`** — declined;
+  pre-existing, on a `noindex` orphan dev fixture, outside this change's concern.
+  Registered as `web-primitives-fixture-dead-placeholders` in `[backlog].open`.
+- **Normalising the neighbouring `packUrl` / `journeyUrl` frontmatter while in the same
+  files** — declined; those resolve correctly today, so they fail the bundled-fixes
+  "same concern" gate.
 
 ## Tasks
 
-### T1 — Correct the 11 pack-local journey sources
+### T1 — Correct the pack-local journey sources
 
-**Tests:** no stub (goal-based). `Done when:` `grep -c 'docsUrl: /docs/guides/' packs/*/JOURNEY.md`
-reports 11 and `grep -l 'docsUrl: /guides/' packs/*/JOURNEY.md` reports nothing.
+**Depends on:** none
 
-**Approach:** rewrite `docsUrl: /guides/<pack>/` → `docsUrl: /docs/guides/<pack>/`
-in each of the 11 `packs/<pack>/JOURNEY.md` files. Source-first so the
-projection step in T2 reproduces the fix rather than fighting it.
+**Tests:** no stub (goal-based). `Done when:`
+`[ "$(grep -l 'docsUrl: /docs/guides/' packs/*/JOURNEY.md | wc -l)" -eq 11 ]` and
+`! grep -q 'docsUrl: /guides/' packs/*/JOURNEY.md` (negated — a bare `grep -l` for an
+absent pattern exits 1, which a CI harness reads as failure rather than "absent").
+
+**Approach:** rewrite `docsUrl: /guides/<pack>/` → `docsUrl: /docs/guides/<pack>/` in
+each `packs/<pack>/JOURNEY.md`. Source-first so T2's projection step reproduces the fix
+rather than fighting it.
 
 ### T2 — Correct the hand-maintained web content, then re-project
 
-**Tests:** no stub (goal-based). `Done when:` `python3 tools/build-site.py` runs
-and `git status --porcelain web/src/content` shows only the intended edits.
+**Depends on:** T1
 
-**Approach:** rewrite the same 6 web-only journeys and 21 pack pages in
-`web/src/content/`, then run `build-site.py` so the 11 projected journeys are
-regenerated from the T1 sources.
+**Tests:** no stub (goal-based). `Done when:` `python3 tools/build-site.py` exits 0 and
+`git status --porcelain web/src/content` shows only the intended edits, **plus** the
+direct content assertion on the gitignored
+`web/src/content/journeys/product-documentation.md` (spec Testing Strategy 3).
 
-### T3 — Validate against the emitted route set
+**Approach:** rewrite the hand-maintained journeys and pack pages in
+`web/src/content/`, then run `build-site.py` so the projected journeys are regenerated
+from the T1 sources.
 
-**Tests:** no stub (goal-based). `Done when:` the route-resolution check reports
-38/38 resolved and 0 unresolved, and a second `build-site.py` run leaves
-`git status` clean.
+### T3 — Sweep the living authoring surface
 
-**Approach:** enumerate the docs-site routes from the generated content
-(frontmatter `slug:` override, else path-derived with `index` → directory) and
-assert each `docsUrl`, stripped of its `/docs` prefix, is a member. Then run the
-gates in AC6.
+**Depends on:** T1
+
+**Tests:** no stub (goal-based). `Done when:`
+`! grep -q 'docsUrl: /guides/' docs/specs/platform-site/journey-page-template.md`.
+
+**Approach:** correct the `docsUrl` example in the living journey-page template so the
+next journey authored from it does not re-seed the defect.
+
+### T4 — Validate against the emitted route set and the built tree
+
+**Depends on:** T2, T3
+
+**Tests:** no stub (goal-based). `Done when:` all four spec Testing Strategy checks
+pass and the gates in AC7 exit 0.
+
+**Approach:** run the route-set membership check and the end-to-end built-tree link
+resolution (no off-site escape hatch for unprefixed root-relative links; disclosed
+`primitives-fixture` exclusion), then the gates.
