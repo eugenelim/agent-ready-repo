@@ -16,8 +16,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 # Clone the working tree into a real git sandbox so the drift-watch
-# can call `git check-ignore` against the same .gitignore. Preserve
-# symlinks (CLAUDE.md → AGENTS.md) with cp -P.
+# can call `git check-ignore` against the same .gitignore. Symlink
+# preservation is handled and asserted by tools/seed_test_sandbox.py.
 SANDBOX="$TMP/repo"
 seed_sandbox() {
   # GitHub Actions runners have intermittently hit
@@ -32,11 +32,16 @@ seed_sandbox() {
     rm -rf "$SANDBOX" 2>/dev/null || true
   fi
   mkdir -p "$SANDBOX"
-  { git ls-files -z; git ls-files -z --others --exclude-standard; } \
-    | while IFS= read -r -d '' f; do
-    mkdir -p "$SANDBOX/$(dirname "$f")"
-    cp -P "$f" "$SANDBOX/$f"
-  done
+  # One process, rather than the `mkdir -p` + `cp -P` per file this used to do.
+  # The seeder also verifies that every symlink it copies landed as a symlink.
+  # Checked explicitly: `set -e` is not in effect here (line 10 sets only -uo),
+  # so an unchecked failure would seed a partial tree and fail later as a
+  # confusing case failure. Rationale and timings:
+  # docs/specs/test-sandbox-seed-cost/spec.md
+  if ! python3 tools/seed_test_sandbox.py "$SANDBOX"; then
+    echo "FAIL [seed]: could not seed the sandbox" >&2
+    exit 1
+  fi
   (cd "$SANDBOX" \
     && git init -q \
     && git -c user.email=t@t -c user.name=t add -A \
@@ -64,7 +69,9 @@ run_corruption() {
   local label="$1" corrupt="$2" want="$3"
   ran=$((ran + 1))
 
-  # Restore clean sandbox each time (cheap; small tree).
+  # Restore a clean sandbox each time — per-case isolation is load-bearing (one
+  # case plants a malformed patterns.jsonl, others write under .claude/), so
+  # every case must start from a fresh tree rather than an unwound one.
   seed_sandbox
   (cd "$SANDBOX" && eval "$corrupt")
 

@@ -37,6 +37,7 @@ on:
       - 'tools/hooks/**'
       - 'tools/test-all.py'
       - 'tools/test-pre-pr.sh'
+      - 'tools/seed_test_sandbox.py'
       - 'packs/core/tests/hooks/**'
       - '.github/workflows/docs.yml'
   push:
