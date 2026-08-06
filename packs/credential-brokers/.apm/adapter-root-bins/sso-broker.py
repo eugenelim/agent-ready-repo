@@ -2,11 +2,18 @@
 
 Six verbs: register / get-cookies / test / refresh / list-profiles / rm.
 
-Performs corporate-SSO cookie capture via headed Chromium (Playwright);
-stores the serialised cookie jar in the OS keychain (macOS / Windows)
-with continuation-credential chunking for jars > 2048 bytes; falls
+Performs corporate-SSO cookie capture via Chromium (Playwright) — ``register``
+drives a **headed** browser for interactive first capture, ``refresh`` a
+**headless** one with a bounded silent-completion window that returns exit 5
+rather than putting a login page in front of an operator; stores the
+serialised cookie jar in the OS keychain (macOS / Windows) with
+continuation-credential chunking for jars > 2048 bytes; falls
 back to a 0600 file under ``~/.agentbundle/sso-cookies/`` only on
 Linux (the documented Tier-2 deferred path).
+
+Exit codes: 0 ok · 2 no usable session (``get-cookies`` / ``test``) ·
+3 engine failure · 4 profile not registered (``refresh``) ·
+5 headless refresh needs a human (``refresh``).
 
 Reserved keychain target-name prefix: ``agentbundle:sso:<profile>``
 and ``agentbundle:sso:<profile>:<n>`` for continuation slots.
@@ -358,6 +365,17 @@ def _cookie_floor_path(profile: str) -> pathlib.Path:
     )
 
 
+def _browser_state_dir(profile: str) -> pathlib.Path:
+    """The persistent Chromium user-data dir for *profile*.
+
+    Guarded like the other two store paths: this one is interpolated straight
+    into a directory Chromium then writes a standing, silently-replayable
+    corporate session into.
+    """
+    root = _AGENTBUNDLE_HOME / "browser-state"
+    return _contained(root / _profile_component(profile), root)
+
+
 def _file_floor_write(profile: str, serialized: bytes) -> None:
     """Atomically write the jar to the file floor via a **unique** temp name.
 
@@ -484,14 +502,40 @@ def _import_playwright():
 # ----------------------------------------------------------------------
 
 
-def _do_register(profile: str, args: argparse.Namespace) -> int:
-    """Open a headed browser at ``login_url``, capture cookies for
-    declared domains on landing at ``success_url_pattern``, persist the
-    profile TOML and the cookie jar.
+# How long the capture waits for the success URL, by headedness.
+#
+# Headed means a human is at the keyboard, so the wait is a human-duration
+# sign-in poll. Headless means nobody is: the wait is only long enough for a
+# warm IdP session's redirect chain to land unaided, and far short of anything a
+# person could type into. The two are not interchangeable, which is why
+# ``refresh`` is headless *and* short rather than one or the other.
+_REGISTER_SIGNIN_POLL_S: float = 300
+_REFRESH_SILENT_WINDOW_S: float = 20
 
-    Required args: ``--login-url``, ``--success-url-pattern``.
-    Optional: ``--cookie-domain`` (repeatable), ``--session-filename``,
-    ``--validation-endpoint``, ``--ttl-hint-minutes``.
+
+def _capture(
+    profile: str,
+    args: argparse.Namespace,
+    *,
+    persist: bool,
+    headless: bool,
+) -> int:
+    """Drive a browser to ``success_url_pattern`` and store what it captured.
+
+    Two independent axes, because persistence and headedness vary
+    independently:
+
+    * *persist* — capture in the standing ``browser-state/<profile>`` profile
+      (the operator's own ``register``, and every ``refresh``), or in a throwaway
+      context that is then used to **seed** the standing one
+      (``register --ephemeral``, which is what the library API drives).
+    * *headless* — a human may complete the flow (``register``), or the browser
+      profile must complete it unaided or not at all (``refresh``).
+
+    :returns: ``0`` captured; ``3`` missing arguments, or a headed sign-in that
+        was not completed; ``5`` a headless attempt that could not complete
+        without a human — the caller's cue to ask for a re-register rather than
+        to retry.
     """
     login_url: str = args.login_url
     success_pattern: str = args.success_url_pattern
@@ -508,38 +552,63 @@ def _do_register(profile: str, args: argparse.Namespace) -> int:
 
     sync_playwright = _import_playwright()
 
-    user_data_dir = _AGENTBUNDLE_HOME / "browser-state" / profile
-    user_data_dir.mkdir(parents=True, exist_ok=True)
-
     captured_cookies: list[dict] = []
+    storage_state: dict | None = None
     success = False
     success_re = re.compile(success_pattern)
+    poll_seconds = _REFRESH_SILENT_WINDOW_S if headless else _REGISTER_SIGNIN_POLL_S
 
-    # Corporate-network env passthrough — explicit by design.
+    # Corporate-network env passthrough. The parent (``credbroker``) already
+    # composed this from an allowlist, so forwarding it is a passthrough, not a
+    # widening.
     env_for_browser = {**os.environ}
 
     with sync_playwright() as pw:
-        context = pw.chromium.launch_persistent_context(
-            user_data_dir=str(user_data_dir),
-            headless=False,
-            env=env_for_browser,
-        )
-        page = context.pages[0] if context.pages else context.new_page()
-        page.goto(login_url)
+        browser = None
+        if persist:
+            user_data_dir = _browser_state_dir(profile)
+            user_data_dir.mkdir(parents=True, exist_ok=True)
+            context = pw.chromium.launch_persistent_context(
+                user_data_dir=str(user_data_dir),
+                headless=headless,
+                env=env_for_browser,
+            )
+        else:
+            browser = pw.chromium.launch(headless=headless, env=env_for_browser)
+            context = browser.new_context()
 
-        # Wait for the URL pattern to land. Poll for up to 5 minutes.
-        deadline = time.time() + 300
-        while time.time() < deadline:
-            if success_re.search(page.url):
-                success = True
-                break
-            page.wait_for_timeout(500)
+        try:
+            page = context.pages[0] if context.pages else context.new_page()
+            page.goto(login_url)
 
-        if success:
-            captured_cookies = context.cookies()
-        context.close()
+            deadline = time.time() + poll_seconds
+            while time.time() < deadline:
+                if success_re.search(page.url):
+                    success = True
+                    break
+                page.wait_for_timeout(500)
+
+            if success:
+                captured_cookies = context.cookies()
+                if not persist:
+                    storage_state = context.storage_state()
+        finally:
+            context.close()
+            if browser is not None:
+                browser.close()
+
+        if success and not persist:
+            _seed_persistent_profile(pw, profile, storage_state, env_for_browser)
 
     if not success:
+        if headless:
+            sys.stderr.write(
+                f"sso-broker refresh: the stored browser session could not reach "
+                f"{success_pattern!r} unaided within {poll_seconds:g}s — a human "
+                f"must sign in. No browser was shown; re-register to capture a "
+                f"new session.\n"
+            )
+            return 5
         sys.stderr.write(
             f"sso-broker register: success URL pattern {success_pattern!r} "
             f"not matched within timeout; cookies not captured\n"
@@ -569,6 +638,73 @@ def _do_register(profile: str, args: argparse.Namespace) -> int:
         f"({len(captured_cookies)} cookies, stored via {storage_label})\n"
     )
     return 0
+
+
+def _seed_persistent_profile(
+    pw, profile: str, storage_state: dict | None, env_for_browser: dict
+) -> bool:
+    """Copy an ephemeral capture's cookies into ``browser-state/<profile>``.
+
+    ``launch_persistent_context`` takes no ``storage_state`` — a persistent
+    context owns its own state directory — so seeding is a second, *headless*
+    persistent launch plus ``add_cookies``.
+
+    **Named limitation:** ``localStorage`` and ``sessionStorage`` are not seeded.
+    ``storage_state()`` reports them under ``origins``, but there is no
+    context-level API to restore them into a persistent profile. Where the IdP
+    session depends on either, the seed silently under-delivers and the first
+    automatic ``refresh`` returns ``5`` — the operator re-registers. That is a
+    UX cost, not an exposure: the automatic path never renders a login page.
+
+    :returns: whether the seed was written. A failed seed is not a failed
+        capture — the session itself was captured and stored.
+    """
+    cookies = (storage_state or {}).get("cookies") or []
+    if not cookies:
+        sys.stderr.write(
+            f"sso-broker register: nothing to seed into browser-state for "
+            f"{profile!r}; the next automatic refresh will need a re-register\n"
+        )
+        return False
+    user_data_dir = _browser_state_dir(profile)
+    user_data_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        context = pw.chromium.launch_persistent_context(
+            user_data_dir=str(user_data_dir),
+            headless=True,
+            env=env_for_browser,
+        )
+    except Exception as exc:  # noqa: BLE001 — a failed seed must not fail capture
+        sys.stderr.write(
+            f"sso-broker register: could not seed browser-state for {profile!r} "
+            f"({type(exc).__name__}); the next automatic refresh will need a "
+            f"re-register\n"
+        )
+        return False
+    try:
+        context.add_cookies(cookies)
+    finally:
+        context.close()
+    return True
+
+
+def _do_register(profile: str, args: argparse.Namespace) -> int:
+    """Interactive first capture: a **headed** browser at ``login_url``.
+
+    Persistent by default, so a direct operator invocation is unchanged.
+    ``--ephemeral`` captures in a throwaway context and seeds the persistent
+    profile from it; ``credbroker.register_sso_session`` is its only user.
+
+    Required args: ``--login-url``, ``--success-url-pattern``.
+    Optional: ``--cookie-domain`` (repeatable), ``--session-filename``,
+    ``--validation-endpoint``, ``--ttl-hint-minutes``, ``--ephemeral``.
+    """
+    return _capture(
+        profile,
+        args,
+        persist=not getattr(args, "ephemeral", False),
+        headless=False,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -697,13 +833,41 @@ def _do_test(profile: str) -> int:
 # ----------------------------------------------------------------------
 
 
-def _do_refresh(profile: str, args: argparse.Namespace) -> int:
-    """Equivalent to ``register`` but bypasses any 'already registered' check.
+# Every argument that could carry, or narrow, a sign-in destination. `refresh`
+# refuses all of them: the destination comes from the stored profile, which only
+# a completed operator-authorised `register` writes.
+_REFRESH_REFUSED_ARGS = (
+    ("login_url", "--login-url"),
+    ("success_url_pattern", "--success-url-pattern"),
+    ("cookie_domain", "--cookie-domain"),
+    ("validation_endpoint", "--validation-endpoint"),
+    ("session_filename", "--session-filename"),
+    ("ttl_hint_minutes", "--ttl-hint-minutes"),
+)
 
-    The current implementation of ``register`` is idempotent — every call
-    overwrites the profile TOML and the cookie jar — so ``refresh``
-    delegates straight through.
+
+def _do_refresh(profile: str, args: argparse.Namespace) -> int:
+    """Re-capture an existing profile's session **without a human**.
+
+    Differs from ``register`` in three ways, all of them load-bearing:
+
+    * it is **headless**, with a bounded silent-completion window — if the warm
+      browser profile cannot complete the IdP flow unaided it returns ``5``
+      rather than leaving a login page in front of whoever is at the machine;
+    * it **rejects every connection argument** — the destination comes only from
+      the stored profile, so an automated caller cannot choose where the browser
+      goes;
+    * it returns ``4``, not ``3``, when the profile is not registered.
     """
+    supplied = [flag for attr, flag in _REFRESH_REFUSED_ARGS if getattr(args, attr, None)]
+    if supplied:
+        sys.stderr.write(
+            f"sso-broker refresh: {', '.join(supplied)} not accepted — refresh "
+            f"reads the destination from the stored profile. Use 'register' to "
+            f"change it.\n"
+        )
+        return 3
+
     try:
         table = _load_profile(profile)
     except FileNotFoundError:
@@ -717,21 +881,15 @@ def _do_refresh(profile: str, args: argparse.Namespace) -> int:
         # every internal failure. Not-registered gets a code of its own.
         return 4
 
-    # Re-use any saved knobs if the caller didn't override them on the CLI.
-    if not args.login_url:
-        args.login_url = table.get("login_url", "")
-    if not args.success_url_pattern:
-        args.success_url_pattern = table.get("success_url_pattern", "")
-    if not args.session_filename:
-        args.session_filename = table.get("session_filename", "")
-    if not args.validation_endpoint:
-        args.validation_endpoint = table.get("validation_endpoint", "")
-    if not args.ttl_hint_minutes:
-        args.ttl_hint_minutes = table.get("ttl_hint_minutes", 480)
-    if not args.cookie_domain:
-        args.cookie_domain = list(table.get("cookie_domains") or [])
+    # The destination is the stored one, unconditionally: nothing was supplied.
+    args.login_url = table.get("login_url", "")
+    args.success_url_pattern = table.get("success_url_pattern", "")
+    args.session_filename = table.get("session_filename", "")
+    args.validation_endpoint = table.get("validation_endpoint", "")
+    args.ttl_hint_minutes = table.get("ttl_hint_minutes", 480)
+    args.cookie_domain = list(table.get("cookie_domains") or [])
 
-    return _do_register(profile, args)
+    return _capture(profile, args, persist=True, headless=True)
 
 
 # ----------------------------------------------------------------------
@@ -810,6 +968,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p_register.add_argument("--session-filename", default="")
     p_register.add_argument("--validation-endpoint", default="")
     p_register.add_argument("--ttl-hint-minutes", type=int, default=0)
+    p_register.add_argument(
+        "--ephemeral", action="store_true",
+        help=(
+            "Capture in a throwaway context and seed browser-state/<profile> "
+            "from it, instead of capturing in the persistent profile directly. "
+            "Used by credbroker.register_sso_session; the verb's default is "
+            "unchanged."
+        ),
+    )
 
     p_get = sub.add_parser("get-cookies", help="Print cookie-jar path.")
     p_get.add_argument("profile")

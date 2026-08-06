@@ -770,3 +770,233 @@ def test_write_profile_survives_toml_breaking_chars(broker, bad, field):  # STUB
         parsed = _tomllib.load(fh)["profile"]
     got = parsed[field][0] if field == "cookie_domains" else parsed[field]
     assert got == bad
+
+
+# ----------------------------------------------------------------------
+# AC35 / AC14a — the capture split: ephemeral vs persistent, headed vs
+# headless, and `refresh`'s refusal to accept a destination.
+# ----------------------------------------------------------------------
+
+
+class _RecordedLaunch:
+    """One `chromium.launch*` call, flattened for assertion."""
+
+    def __init__(self, kind, kwargs):
+        self.kind = kind                       # "persistent" | "ephemeral"
+        self.kwargs = kwargs
+        self.headless = kwargs.get("headless")
+        self.user_data_dir = kwargs.get("user_data_dir", "")
+        self.add_cookies_called = False
+        self.goto_urls: list[str] = []
+
+
+class _PlaywrightRecorder:
+    """Records every launch the engine makes, and drives the URL the page
+    reports so a test can choose whether the success pattern ever matches."""
+
+    def __init__(self, landing_urls):
+        # One URL per poll tick; the last value repeats forever.
+        self._landing = list(landing_urls)
+        self.launches: list[_RecordedLaunch] = []
+
+    # -- assertion helpers ------------------------------------------------
+    @property
+    def capture(self):
+        return self.launches[0]
+
+    @property
+    def seed(self):
+        return self.launches[1]
+
+    # -- fake playwright --------------------------------------------------
+    def install(self, mod, monkeypatch):
+        recorder = self
+
+        class _Page:
+            def __init__(self):
+                self._tick = 0
+
+            @property
+            def url(self):
+                idx = min(self._tick, len(recorder._landing) - 1)
+                return recorder._landing[idx]
+
+            def goto(self, url, *a, **k):
+                recorder.launches[-1].goto_urls.append(url)
+
+            def wait_for_timeout(self, *a, **k):
+                self._tick += 1
+
+        class _Context:
+            pages: list = []
+
+            def __init__(self, record):
+                self._record = record
+                self.closed = False
+
+            def new_page(self):
+                return _Page()
+
+            def cookies(self):
+                return [{"name": "sid", "value": "v", "domain": "jira.example.com"}]
+
+            def storage_state(self):
+                return {"cookies": self.cookies(), "origins": []}
+
+            def add_cookies(self, cookies):
+                self._record.add_cookies_called = True
+
+            def close(self):
+                self.closed = True
+
+        class _Browser:
+            def __init__(self, record):
+                self._record = record
+                self.closed = False
+
+            def new_context(self, **kwargs):
+                return _Context(self._record)
+
+            def close(self):
+                self.closed = True
+
+        class _Chromium:
+            @staticmethod
+            def launch_persistent_context(**kwargs):
+                rec = _RecordedLaunch("persistent", kwargs)
+                recorder.launches.append(rec)
+                return _Context(rec)
+
+            @staticmethod
+            def launch(**kwargs):
+                rec = _RecordedLaunch("ephemeral", kwargs)
+                recorder.launches.append(rec)
+                return _Browser(rec)
+
+        class _Pw:
+            chromium = _Chromium()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                pass
+
+        monkeypatch.setattr(mod, "_import_playwright", lambda: lambda: _Pw())
+        return self
+
+
+_SUCCESS_URL = "https://jira.example.com/secure/Dashboard.jspa"
+_LOGIN_URL = "https://idp.example.com/authorize?state=abc"
+
+
+def _register_argv(profile="jira", *extra):
+    return [
+        "register", profile,
+        "--login-url", "https://idp.example.com/login",
+        "--success-url-pattern", r"https://jira\.example\.com/secure/.*",
+        "--cookie-domain", "jira.example.com",
+        "--validation-endpoint", "/rest/api/2/myself",
+        *extra,
+    ]
+
+
+def test_register_capture_is_ephemeral_then_seeds(broker, monkeypatch):   # STUB: AC35
+    mod, _ = broker
+    calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+
+    assert mod.main(_register_argv("jira", "--ephemeral")) == 0
+
+    # Capture must NOT use the persistent profile...
+    assert calls.capture.kind == "ephemeral"
+    assert calls.capture.headless is False        # interactive capture is HEADED
+    # ...but a second, headless persistent launch must seed it, so asserting
+    # launch_persistent_context is never called would reject a correct
+    # implementation.
+    assert calls.seed.kind == "persistent" and calls.seed.headless is True
+    assert calls.seed.user_data_dir.replace("\\", "/").endswith("browser-state/jira")
+    assert calls.seed.add_cookies_called
+
+
+@pytest.mark.parametrize("argv,kind,headless", [
+    (["register", "jira"], "persistent", False),               # operator default
+    (["register", "jira", "--ephemeral"], "ephemeral", False),  # register_sso_session
+    (["refresh", "jira"], "persistent", True),                  # AC14a
+])
+def test_capture_mode_matrix(broker, monkeypatch, argv, kind, headless):   # STUB: AC35
+    mod, _ = broker
+    if argv[0] == "refresh":
+        _seed_profile(mod, "jira")
+        full = argv
+    else:
+        full = _register_argv(*argv[1:])
+    calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+
+    assert mod.main(full) == 0
+    assert calls.capture.kind == kind
+    assert calls.capture.headless is headless
+    # Only the ephemeral capture needs a seeding launch behind it.
+    assert (len(calls.launches) == 2) is (kind == "ephemeral")
+
+
+def test_refresh_silent_redirect_within_window_succeeds(broker, monkeypatch):  # STUB: AC14a
+    # A warm IdP session still redirects asynchronously: a zero-wait launch
+    # would fail flows that would have succeeded.
+    mod, _ = broker
+    _seed_profile(mod, "jira")
+    calls = _PlaywrightRecorder([_LOGIN_URL, _LOGIN_URL, _SUCCESS_URL]).install(
+        mod, monkeypatch
+    )
+    assert mod.main(["refresh", "jira"]) == 0
+    assert calls.capture.headless is True
+
+
+def test_refresh_login_page_returns_5_and_closes(broker, monkeypatch, capsys):  # STUB: AC14a
+    # The success pattern never matches: a human would be needed, so the engine
+    # fails fast with its own exit code rather than leaving a page on screen.
+    mod, _ = broker
+    _seed_profile(mod, "jira")
+    monkeypatch.setattr(mod, "_REFRESH_SILENT_WINDOW_S", 0.2)
+    calls = _PlaywrightRecorder([_LOGIN_URL]).install(mod, monkeypatch)
+
+    assert mod.main(["refresh", "jira"]) == 5
+    assert "sign in" in capsys.readouterr().err.lower()
+    assert len(calls.launches) == 1, "no second browser may be opened"
+
+
+def test_refresh_never_polls_for_a_human(broker):                # STUB: AC14a
+    # The headless window is bounded far short of a human sign-in; the headed
+    # register poll is the only human-duration wait in the engine.
+    mod, _ = broker
+    assert mod._REFRESH_SILENT_WINDOW_S <= 30
+    assert mod._REGISTER_SIGNIN_POLL_S >= 300
+
+
+@pytest.mark.parametrize("flag,value", [
+    ("--login-url", "https://evil.example"),
+    ("--success-url-pattern", "https://evil.example/.*"),
+    ("--cookie-domain", "evil.example"),
+    ("--validation-endpoint", "/x"),
+    ("--session-filename", "x.jar"),
+    ("--ttl-hint-minutes", "5"),
+])
+def test_refresh_rejects_every_connection_argument(broker, flag, value):   # STUB: AC35
+    # Destinations come only from the stored profile. Without this, AC1's
+    # "enforced by the signature" holds at the library layer only.
+    mod, _ = broker
+    _seed_profile(mod, "jira")
+    assert mod.main(["refresh", "jira", flag, value]) == 3
+
+
+def test_refresh_reads_the_destination_from_the_stored_profile(broker, monkeypatch):  # STUB: AC35
+    mod, _ = broker
+    _seed_profile(mod, "jira")
+    calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+    assert mod.main(["refresh", "jira"]) == 0
+    assert calls.capture.goto_urls == ["https://jira.example.com/login"]
+
+
+def test_browser_state_dir_is_contained(broker):                  # STUB: AC7
+    mod, _ = broker
+    with pytest.raises(mod.ProfileConfinementError):
+        mod._browser_state_dir("../escape")
