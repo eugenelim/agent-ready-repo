@@ -2076,3 +2076,46 @@ record. Corrections are appended here, Approver-signed.
   **Where this is recorded.** [ADR-0026](../adr/0026-sso-consumer-resolution-in-credbroker.md)
   (the architectural decision); `docs/specs/atlassian-sso-cookie/` (the
   implementation contract).
+
+- **2026-08-05 (Approver: eugenelim) — § Subcommands: `refresh` is no longer
+  "equivalent to `register`", and gains a distinct not-registered exit code.**
+  The verb table describes `refresh <profile>` as *"equivalent to `register` but
+  bypasses the 'already registered' check"* and pins `get-cookies` / `test` exit
+  semantics. Three corrections, found while specifying agent-triggered recapture:
+
+  0. **`refresh` is now headless and non-interactive.** It launches
+     `headless=True` and does not poll for sign-in: it succeeds when the warm
+     browser profile completes the IdP flow unaided, and waits up to 20 s for the flow to complete unaided, and otherwise closes the
+     headless context and returns exit **5** rather than presenting a login page.
+     Exit 5 is new and joins 3 and 4 in this verb's contract.
+     Interactive capture belongs solely to `register`. This is what allows an
+     automated consumer to re-authenticate without ever putting an
+     agent-influenced login page in front of an operator.
+  1. **`refresh` diverges from `register` on persistence.** `register` gains an
+     `--ephemeral` mode which captures in a throwaway browser context and seeds
+     `browser-state/<profile>` from the captured state; **plain `register`
+     remains persistent**, so an existing direct caller is unaffected.
+     `register_sso_session` always supplies the flag. `refresh` always uses the
+     persistent context and has no ephemeral mode. On first capture the persistent profile would
+     otherwise auto-complete the IdP flow sub-second with nothing for an operator
+     to observe.
+  2. **`refresh` rejects connection arguments.** `--login-url`,
+     `--success-url-pattern`, `--cookie-domain`, `--validation-endpoint`,
+     `--session-filename` and `--ttl-hint-minutes` are refused with exit 3, so an
+     automated refresh cannot supply a sign-in destination and takes it only from
+     the stored profile. Previously they were honoured whenever non-empty.
+  3. **`refresh` returns `4` when the profile is not registered.** Exit `3` is
+     returned from ten distinct engine sites — including playwright-absent and
+     success-pattern-not-matched — so a consumer could not distinguish the one
+     condition with a different remediation. `3` retains every other meaning.
+
+  Separately, `get-cookies` now rewrites the materialised jar unconditionally
+  rather than only when absent: on Tier-2-capable platforms the captured jar is
+  stored in the OS keychain, so the previous `if not exists` guard served a stale
+  file after every re-capture.
+
+  These are contract changes to this RFC's verb table, not to its decision. The
+  narrowing of RFC-0035's engine-unchanged non-goal is recorded in that RFC's own
+  [§ Errata](0035-sso-cookie-auth-for-atlassian-pack.md#errata). Implemented by
+  [`spec/jira-check-sso-auto-login`](../specs/jira-check-sso-auto-login/spec.md)
+  AC6a / AC6b / AC35.
