@@ -61,20 +61,26 @@ python tools/hooks/work-loop-check.py
 
 Runs before a PR opens. The **shipped** hook runs:
 
-1. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`
+1. `.claude/skills/work-loop/scripts/lint-knowledge.py` over
+   `docs/knowledge/patterns.jsonl` — the knowledge base the work-loop's
+   Capture-learnings step appends to. Both the file and its linter ship with
+   `core`, so the gate applies to an adopter's tree as much as to this one.
+   Skipped when the file is absent.
+2. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`
    against every `docs/specs/*/` that owns a `state.json`, in both
    `--phase implement` and `--phase review` modes — the work-loop caps gate.
-2. Your project's own lint / typecheck / test commands, wired into the stub
+3. Your project's own lint / typecheck / test commands, wired into the stub
    in `pre-pr.py` (the `adapt-to-project` skill can fill these in).
 
-It runs **none** of this catalogue's own artifact linters — those enforce the
-catalogue's conventions on its own tree and don't apply to an adopter's repo.
+Both shipped gates check files that ship with the pack. It runs **none** of
+this catalogue's own artifact linters — those enforce the catalogue's
+conventions on its own tree and don't apply to an adopter's repo.
 Exits non-zero on the first failure; a missing tool is skipped, not fatal.
 
 **This catalogue's own full gate** is the repo-native, never-projected
 `tools/catalogue/pre_pr_catalogue.py`: it runs `agentbundle catalogue verify`
 (which includes agent-artifact lint at step 11) plus `lint-agents-md`,
-`lint-knowledge`, `lint-build`, and `agentbundle catalogue lint --deep`,
+`lint-build` and `agentbundle catalogue lint --deep`,
 then delegates to the shipped `pre-pr.py`. `make pre-pr` and `make build-check`
 run it. See [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).
 
@@ -172,15 +178,18 @@ python tools/hooks/session-start.py
 python tools/hooks/pre-pr.py
 ```
 
-Two pytest smoke suites under `packages/agentbundle/tests/hooks/`
-are the canonical parity net:
+Two pytest smoke suites under `packs/core/tests/hooks/` are the canonical
+parity net. They test core-pack hooks, so they live with the pack rather
+than in `packages/agentbundle/tests/` — renaming a helper in the core pack
+must not break the published package's suite:
 
 - `test_session_start_py.py` — exercises `--scope` validation, the
   malformed-line warning, the `KNOWLEDGE_FILE` override, and the
   empty/missing-file silent-exit paths.
 - `test_pre_pr_py.py` — asserts the **shipped** `pre-pr.py` is adopter-clean
-  (references no catalogue check, runs loop-cohort + a wire-your-gate stub,
-  degrades gracefully) and that the catalogue hook runs all 8 checks + delegates.
+  (references no catalogue linter, runs the knowledge lint + loop-cohort +
+  a wire-your-gate stub, degrades gracefully) and that the catalogue hook
+  runs its own checks + delegates.
 
 Two bash self-tests still ship for parity with the pre-Phase-3
 contract — they invoke the Python hooks rather than the bash
@@ -188,11 +197,12 @@ versions, but their sandbox setup remains bash:
 
 - `tools/test-pre-pr.sh` — corrupts each layer the **catalogue** gate
   (`tools/pre-pr-catalogue.py`) runs and asserts it fails with the right label.
-- `tools/test-session-start.sh` — the bash-runner equivalent of
+- `packs/core/tests/hooks/test_session_start_projection.sh` — the bash-runner equivalent of
   `test_session_start_py.py`.
 
-The umbrella `tools/test-all.py` runs every self-test in `tools/`.
-Run it by hand whenever a linter, hook, or `loop-cohort.py` changes.
+The umbrella `tools/test-all.py` runs the repo's self-tests, including the
+core-pack suites it delegates to under `packs/core/tests/`. Run it by hand
+whenever a linter, hook, or `loop-cohort.py` changes.
 
 **CI parity.** The catalogue gate and CI run the same checks. CI's
 `.github/workflows/docs.yml` has a job per catalogue linter, the

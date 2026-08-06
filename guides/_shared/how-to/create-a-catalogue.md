@@ -39,8 +39,9 @@ my-catalogue/
       pack.toml
       README.md
       .claude-plugin/plugin.json
-      .apm/skills/example-skill/SKILL.md
-      evals/eval_queries.json
+      .apm/skills/example-skill/
+        SKILL.md
+        evals/eval_queries.json
   profiles/
     README.md
     AGENTS.md

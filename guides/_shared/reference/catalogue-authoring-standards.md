@@ -49,6 +49,32 @@ user journey it serves — not a skill inventory. See the `_example` pack for a 
 
 ## 4. Pack layout
 
+Three boundaries, each owned by a different thing:
+
+- The **pack** is the ownership and test-execution boundary.
+- `.apm/` is the **runtime export** boundary.
+- A **skill** is the evaluation-fixture boundary.
+
+```
+packs/<pack>/
+├── pack.toml
+├── README.md
+├── .apm/                          # runtime — projected into installed environments
+│   └── skills/<skill>/
+│       ├── SKILL.md
+│       ├── scripts/
+│       ├── references/
+│       ├── assets/
+│       └── evals/                 # skill-local, projected with the skill
+├── tests/                         # implementation verification — never projected
+│   └── skills/<skill>/
+└── seeds/                         # governance files projected to the repo root
+```
+
+Deterministic implementation tests live under `packs/<pack>/tests/`. Runtime
+skill evals live under `.apm/skills/<skill>/evals/`. `[pack.evals].skills`
+selects which skill-local activation evals the pack evaluator runs.
+
 Primitive sources live under `.apm/` and are projected per adapter by `catalogue self-host`.
 
 | Source directory | Primitive type |
@@ -58,6 +84,111 @@ Primitive sources live under `.apm/` and are projected per adapter by `catalogue
 | `.apm/hooks/` | Hook bodies |
 | `.apm/hook-wiring/` | Hook wiring |
 | `.apm/commands/` | Commands |
+| `.apm/shared-libs/` | Shared libraries |
+| `.apm/skills/<skill>/evals/` | Activation and output-quality evals (projected with the skill) |
+
+### Tests live with the pack, outside the payload they validate
+
+Keep tests beside the pack they validate, but out of the runtime payload.
+`.apm/` holds only files meant to participate in installation, projection, or
+execution — so a test never belongs there, **even where the installer happens
+to ignore its path**. Runtime separation is expressed by directory structure,
+not by relying on an implicit exclusion that a future adapter may not honour.
+
+```
+packs/<pack>/tests/
+├── skills/
+│   └── <skill>/          # unit/, integration/, fixtures/ as the skill warrants
+├── hooks/
+├── pack/                 # manifest, metadata, projection
+└── fixtures/
+```
+
+Tests should execute or import the real implementation under `.apm/`. Never
+duplicate production code into the test tree.
+
+### Tests versus evaluations
+
+Two different questions, two homes.
+
+| | `tests/` | `evals/` |
+|---|---|---|
+| Verifies | Deterministic software behaviour | Agent-level behaviour |
+| Covers | Function output, parsing, exit status, CLI behaviour, error handling, projected install contents | Whether a skill activates, whether a near-miss avoids activation, whether output satisfies a rubric |
+| Run by | pytest, Vitest, Go test, shell tooling | The eval runner |
+| Lives at | `packs/<pack>/tests/` | `.apm/skills/<skill>/evals/` |
+
+Evaluations do not replace unit or integration tests for scripts.
+
+Evals are skill-local by design, not by accident. A fixture only means anything
+next to the skill it exercises, so it belongs to the skill and is projected with
+it — the adapters copy `.apm/skills/<skill>/` wholesale. That is why the `tests/`
+rule is scoped to the `.apm/` boundary rather than "anything that isn't runtime":
+`evals/` is runtime-adjacent content, a test suite is not. The linter enforces
+this — it looks for `eval_queries.json` and `evals.json` under
+`<skill>/evals/`, and requires one for every skill named in `[pack.evals].skills`.
+
+A **diagnostic** may live under `.apm/` when it is an intentional runtime
+feature users or agents invoke — `scripts/doctor.py`,
+`scripts/check_environment.py`. Those are runtime commands, not test suites.
+
+### Catalogue archives may carry tests; installers must not install them
+
+A catalogue or source archive walks `packs/**`, so it carries a pack's
+`pack.toml`, `README.md`, `.apm/**`, `seeds/**`, `tests/**`, `docs/**`,
+`.claude-plugin/`, and pack-root markdown. Shipping tests in a source-oriented
+archive supports downstream verification, auditing, security review, and
+testing an extracted release.
+
+Catalogue inclusion does not imply runtime installation. Installers and
+projection adapters treat `.apm/` and `seeds/` as the projected surfaces, so
+nothing outside those two — `tests/` included — reaches an installed
+environment.
+
+### Test dependencies are not runtime dependencies
+
+A skill's runtime dependency declaration lists only what the installed skill
+needs at run time. `pytest`, `hypothesis`, `vitest`, `eslint`,
+`mypy`, `ruff` and friends belong in development configuration.
+
+Fixtures under a pack's test tree ship in the archive, so they must carry no
+credentials or private data, prefer synthetic data, stay modest in size, and
+name their licence when sourced externally. Fuzzing corpora, generated output,
+coverage reports, and caches are neither committed nor packaged.
+
+### Repository-root tests
+
+A test concerning one pack stays inside that pack. Behaviour no single pack
+owns — the catalogue system, packaging, shared projection machinery, profiles,
+cross-pack interaction — belongs to the repository, not to a pack.
+
+Where that lives is the repository's call. This catalogue keeps it in the
+engine's own suite (`packages/agentbundle/tests/`) rather than a root `tests/`
+tree; a catalogue that wants the separate tree can add one. Don't create a
+top-level directory for a single test — the ownership rule is what matters,
+not the path.
+
+### Normative summary
+
+- A pack **MUST** be the ownership boundary for its tests.
+- Pack-specific tests **MUST** live under `packs/<pack>/tests/`.
+- Ordinary tests **MUST NOT** live under `.apm/`.
+- `.apm/` **MUST** contain only runtime or projectable content.
+- Agent evaluations **MUST** live under `.apm/skills/<skill>/evals/` and stay
+  distinct from implementation tests.
+- Test dependencies **MUST NOT** be declared as runtime dependencies.
+- Tests **MAY** be included in catalogue or source archives.
+- Tests **MUST NOT** be projected into installed agent environments. Evals
+  **are** projected, as a skill subdirectory — they are runtime-adjacent.
+- Tests that no single pack owns **SHOULD** be kept out of pack test trees,
+  wherever the repository chooses to put them.
+- CI **SHOULD** exercise both the source implementation and the projected
+  runtime artifact.
+
+Release validation should therefore project the pack into a temporary agent
+environment, smoke-test it there, and confirm the projection contains no
+`tests/`, `__pycache__/`, `.pytest_cache/`, coverage output, or
+`test-results/`.
 
 ---
 

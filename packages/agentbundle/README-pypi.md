@@ -212,15 +212,28 @@ my-pack/
   .claude-plugin/
     plugin.json              # Claude Code plugin manifest (hand-authored)
   README.md                  # the pack's portable doc — projected with the pack
-  .apm/                      # primitives — projected by the build pipeline
+  .apm/                      # runtime — projected by the build pipeline
     skills/<name>/
       SKILL.md               # the skill body; one folder per skill
+      scripts/               # helper code the skill invokes
       references/            # progressive-disclosure docs, loaded on demand
       assets/                # templates the skill copies into the repo
+      evals/                 # activation + output-quality evals, skill-local
     agents/<name>.md         # subagents
     hooks/<name>.py          # lifecycle hooks
+  tests/                     # implementation tests — NEVER projected
+    skills/<name>/
+    hooks/
+    pack/
   seeds/                     # files scaffolded into the adopter repo
 ```
+
+Three boundaries: the **pack** owns and executes its tests, **`.apm/`** is the
+runtime export boundary, and a **skill** owns its eval fixtures. Only `.apm/`
+and `seeds/` are projected into an installed environment — `tests/` is visible
+in a catalogue archive, so an extracted pack can verify itself, but `install`
+never places it. Keep tests out of `.apm/` even though the installer would
+ignore them there; the separation is structural, not incidental.
 
 `pack.toml` is the **single source of truth** for a pack's metadata. Declare
 `license`, `[[pack.maintainers]]`, `[pack.links]`, `categories`, and

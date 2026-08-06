@@ -70,6 +70,14 @@ jobs:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
         run: python -m pytest tests/ agentbundle/build/tests/ -q
+      - name: Run repo/pack hook suites (Linux)
+        # Core-pack hook tests live with the pack they validate, outside the
+        # runtime payload — they need their own step, run from the repo root.
+        if: matrix.os != 'windows-latest'
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: python -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
       - name: Run agentbundle test suite (Windows — curated portable subset)
         if: matrix.os == 'windows-latest'
         working-directory: packages/agentbundle
@@ -83,8 +91,15 @@ jobs:
           python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
           python -m pytest agentbundle/build/tests/test_user_libs_projection.py
           python -m pytest tests/integration/test_credential_brokers_pack_install.py
-          python -m pytest tests/hooks/
           python -m pytest tests/unit/test_packstate_source_provenance.py
+      - name: Run pack hook suites (Windows — curated portable subset)
+        # Parity with what this replaced: only the hook parity-net ran on
+        # Windows. The wider pack tree has never been validated there.
+        if: matrix.os == 'windows-latest'
+        env:
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: python -m pytest packs/core/tests/hooks/ -q
 
   # ── Gate B: external catalogue portability ────────────────────────────────
   external-catalogue-smoke:

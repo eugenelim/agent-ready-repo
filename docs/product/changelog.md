@@ -15,6 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.29.4] — 2026-08-06
+
+### Changed
+
+- **The package's test tree is catalogue-level only.** Suites whose subject was
+  pack content — core's hook bodies, skill bodies and `work-loop` scripts, and
+  the `product-documentation` pack check — moved to the owning pack's `tests/`
+  tree. They tested pack content that happens to share a repository with the
+  engine, so renaming a private helper in a pack could turn the published
+  package's suite red. Engine tests that *use* a pack as fixture data (install,
+  upgrade, projection, adapter parity) are unaffected: the distinction is
+  subject, not mention. `README-pypi.md` gains the `tests/` tree and the
+  three-boundary model. No flag, verb, exit code, schema, or output changed.
+
 ## [agentbundle][0.29.3] — 2026-08-05
 
 Wording-only release. No flag, verb, exit code, schema, or output *structure*
@@ -138,6 +152,46 @@ project page and the swept docstrings actually reach installers.
 
 - **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
   harness clarity; `shaping[]` items marked informational-only in Stage 1.
+
+## [core][2.2.0] — 2026-08-06
+
+### Added
+
+- **The knowledge-base linter ships with the pack.** `lint-knowledge.py` now
+  lives beside the other `work-loop` scripts and projects into your tree at
+  `<skills-dir>/work-loop/scripts/`. Its self-test stays in the catalogue. `docs/knowledge/patterns.jsonl`
+  is seeded by this pack and appended to by the work-loop's Capture-learnings
+  step, so the gate that validates it ships with it. Previously the linter was
+  catalogue-local: the seeded README told adopters to run a script they had
+  never been given.
+- **`pre-pr.py` gates the knowledge base automatically.** The shipped hook
+  finds `lint-knowledge.py` under whichever skills root your agent tool
+  installed into and runs it over `docs/knowledge/patterns.jsonl` — nothing to
+  wire by hand. Skipped cleanly when the file or the skill is absent.
+
+  **Upgrading from 2.1.x:** this gate is new and strict — it rejects unknown
+  keys as well as missing ones. If you added a field of your own to
+  `patterns.jsonl`, the first `pre-pr.py` run after upgrading will fail on it.
+  Fold the extra data into `body`, or drop the field.
+
+### Fixed
+
+- **`work-loop` § Capture learnings now states the knowledge-entry schema
+  inline.** The step pointed at `docs/knowledge/patterns.jsonl` and deferred
+  the shape to a second file, so entries were authored from memory and landed
+  without the required `source` key. The six required keys — `id`, `kind`,
+  `scope`, `title`, `body`, `source` — plus the optional `tier`, and a
+  one-line example entry, are now written at the point of writing.
+- **Verification is explicit at every surface.** `work-loop`,
+  `docs/knowledge/README.md`, and its seed tell the writer to run the gate
+  **unfiltered** and read its exit code. `<gate> | tail -2` returns *tail's*
+  exit status — always 0 — and truncates the per-entry error lines, so a
+  broken entry reads as clean locally and fails in CI. The general form is now
+  a `work-loop` anti-pattern: never judge a gate through `tail` or `grep`.
+- **A drift guard covers the guidance, not just the schema.** The linter's
+  self-test now fails when any surface that tells a writer to author an entry
+  omits a required key from its inline list, or carries an example that does
+  not lint clean — the pack source, both projections, and the seeded README.
 
 ## [core][2.1.1] — 2026-08-04
 

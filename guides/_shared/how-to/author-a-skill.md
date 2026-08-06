@@ -62,6 +62,14 @@ A skill is a directory with `SKILL.md` plus four optional subdirectories — and
 - `assets/` — templates and fixtures the skill copies or fills in (`assets/template.html`, `assets/state.json`).
 - `evals/` — evaluation fixtures. Two files serve two tiers: `evals/eval_queries.json` (Tier-A **activation** evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B **output-quality** evals). See [Evals](#evals--does-the-skill-activate-and-does-it-do-the-job) below.
 
+**Tests are not one of them.** `.apm/` is the runtime export boundary — a test for
+`scripts/foo.py` goes in `packs/<pack>/tests/skills/<name>/`, outside the payload it
+validates, and imports or executes the real implementation. Never `scripts/tests/`,
+even though the installer would ignore it. `evals/` is not a test directory and
+stays put: a fixture only means anything beside the skill it exercises, so it is
+skill-local and projects with the skill. Full rules in
+[catalogue authoring standards § 4](../reference/catalogue-authoring-standards.md#4-pack-layout).
+
 Three rules to get right the first time (the first two are linter-enforced):
 
 - **Keep files one level deep.** A reference to `scripts/a/b/c.py` warns — flatten it. (`evals/` keeps its own canonical nesting.)

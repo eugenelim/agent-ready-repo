@@ -20,7 +20,7 @@ Copy `packs/_example` to `packs/<your-pack>`, then:
 1. Update `pack.toml` — set `[pack].name`, `version`, `description`, and `[pack.install]` fields.
 2. Update `.claude-plugin/plugin.json` — set `name`, `version`, and `description` to match.
 3. Rename `.apm/skills/example-skill` to your skill name and rewrite `SKILL.md`.
-4. Update `evals/eval_queries.json` with activation fixtures for your skill.
+4. Update `.apm/skills/<skill>/evals/eval_queries.json` with activation fixtures for your skill.
 5. Rewrite `README.md` with your pack's outcome, audience, and install instructions.
 6. Run `agentbundle catalogue verify --root .` from the catalogue root.
 
@@ -50,7 +50,7 @@ full primitive directory list and adapter-contract map.
 
 `seeds/` holds adopter scaffold templates delivered on brownfield install.
 
-`evals/eval_queries.json` holds Tier-A activation eval fixtures — should-trigger and near-miss
+`.apm/skills/<skill>/evals/eval_queries.json` holds Tier-A activation eval fixtures — should-trigger and near-miss
 queries for each user-triggered skill. List every covered skill in `[pack.evals].skills`.
 
 ## Versioning expectations

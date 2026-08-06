@@ -81,8 +81,8 @@ def run_windows_compat(root: Path) -> int:
         ),
         (
             "hook parity-net suite (windows-hooks-phase3)",
-            [py, "-m", "pytest", "tests/hooks/"],
-            pkg,
+            [py, "-m", "pytest", str(root / "packs" / "core" / "tests" / "hooks")],
+            root,
         ),
         # Atlassian SSO suites (asyncio + SSL-context wiring is platform-sensitive)
         (

@@ -49,8 +49,9 @@ _SYNC_PAIRS: list[tuple[Path, str]] = [
         "packs/_example/.apm/skills/example-skill/SKILL.md",
     ),
     (
-        _REPO_ROOT / "packs" / "_example" / "evals" / "eval_queries.json",
-        "packs/_example/evals/eval_queries.json",
+        _REPO_ROOT / "packs" / "_example" / ".apm" / "skills" / "example-skill"
+        / "evals" / "eval_queries.json",
+        "packs/_example/.apm/skills/example-skill/evals/eval_queries.json",
     ),
     (_REPO_ROOT / "packs" / "_example" / "README.md", "packs/_example/README.md"),
     (_REPO_ROOT / "profiles" / "README.md", "profiles/README.md"),
