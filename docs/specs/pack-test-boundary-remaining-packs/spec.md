@@ -218,13 +218,17 @@ stated there once and not restated here.
       **excluding historical-record files by kind**: `docs/adr/`, `docs/rfc/`,
       `docs/specs/`, `docs/product/changelog.md`,
       `packages/agentbundle/CHANGELOG.md`, and `.gitleaksignore` (whose entries
-      AC16 retains). `workspace.toml` is **not** excluded: its still-open backlog
-      entry names two old engine-tree paths, in the comment block above the
-      `{slug = ...}` line rather than in the entry itself. AC12's retirement
+      AC16 retains). `workspace.toml` is **not** excluded wholesale: its still-open
+      backlog entry names two old engine-tree paths, in the comment block above
+      the `{slug = ...}` line rather than in the entry itself. AC12's retirement
       therefore removes the comment block with the entry, and happens *in* the
       sweep task so the assertion can hold when it runs — relying on the line wrap
       to hide the hit is exactly the wrapped-phrase trap the Boundaries forbid.
-      Everything in the excluded set records what *was* true and is not swept.
+      The one carve-out is a backlog entry whose *subject is the deletion*: the
+      `adr-errata-convention` entry has to name the file ADR-0071 now stales, or
+      it is not cold-start-sufficient. A path named as "this no longer exists" is
+      a record, not a dangling reference. Everything in the excluded set records
+      what *was* true and is not swept.
 - [ ] **AC6b** — Suites keep the process isolation they have today, and the
       constraint is recorded where a future author would try to consolidate.
       Same-named test modules and same-named *subject* modules make a single
@@ -309,21 +313,27 @@ stated there once and not restated here.
         invocations with no filenames, so a file that fails to land reduces the
         collected count and still exits 0. One minimum-collected assertion per
         invocation; one env site for the step's `PYTHONDONTWRITEBYTECODE`.
-- [ ] **AC6d** — The cache hardening on the relocated runners survives with its
-      reason restated. `PYTHONDONTWRITEBYTECODE=1` (one env site) and
-      `-p no:cacheprovider` (both invocations) on the catalogue-curation step, and
-      the in-file `sys.dont_write_bytecode = True` in `new-adr`/`new-rfc`'s
-      `test_next_ordinal.py`, are all justified
-      in-comment today by the self-host drift gate — a justification that
-      evaporates once the tests leave `.apm/`. The new reason is that
-      `package.py`'s `packs/**` archive walk applies no deny-list, so
-      `__pycache__` under `packs/*/tests/**` reaches the archive. The hardening
-      and the corrected reason are retained at every site. The guard does **not**
-      assert the absence of cache directories: `Makefile`'s pack-test line runs
-      without `-B`, so `__pycache__` exists under `packs/*/tests/` on any machine
-      that ran `make test`, and the packaging defect is owned by the existing
-      `package-archive-carries-pycache` backlog entry, whose fix is a `package.py`
-      deny-list and an agentbundle release.
+- [ ] **AC6d** — The cache hardening survives at every site, each with the reason
+      that is actually true there. All three are justified in-comment today by the
+      self-host drift gate, and the move does **not** invalidate that reason
+      uniformly:
+      - **catalogue-curation's CI step** (`PYTHONDONTWRITEBYTECODE=1`, one env
+        site; `-p no:cacheprovider`, both invocations) — the drift-gate reason
+        does evaporate: pytest now writes its cache under `packs/*/tests/`, not
+        under `.apm/`. The replacement reason is that `package.py`'s `packs/**`
+        walk applies no deny-list, so `__pycache__` there reaches the archive.
+      - **`new-adr` / `new-rfc`'s in-file `sys.dont_write_bytecode = True`** — the
+        drift-gate reason **stands**. Those harnesses `exec_module` the script
+        under test *from* `.apm/skills/<skill>/scripts/`, so the `.pyc` still
+        lands inside the runtime payload. Restating it as the archive-walk reason
+        would have been wrong; the comment says why the original reason survives
+        the move instead.
+
+      The guard does **not** assert the absence of cache directories:
+      `Makefile`'s pack-test line runs without `-B`, so `__pycache__` exists under
+      `packs/*/tests/` on any machine that ran `make test`, and the packaging
+      defect is owned by the existing `package-archive-carries-pycache` backlog
+      entry, whose fix is a `package.py` deny-list and an agentbundle release.
 
 ### Workstream C — widen and rehome the guard
 

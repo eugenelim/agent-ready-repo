@@ -148,3 +148,25 @@ addresses at registered domains are noted, not rewritten — that is the deferre
 | `converters/msg-to-markdown/testdata/msgreader_baseline.json` | Independent-reader oracle output. Same fabricated addresses; no secrets. Coupled to the file above. |
 | `converters/msg-to-markdown/testdata/regen_msgreader_baseline.py` | Generator script; no data of its own. |
 | `converters/render-proof/renderer.test.js` | XSS payloads target `evil.com`. Synthetic attack strings inside sanitizer assertions, not data — left as written. |
+
+### Two eval-tree couplings, dispositioned differently
+
+`security.test.js` read `evals/files/fixture.md` to prove a valid path inside the
+confinement root is accepted. That reach — from the pack's test tree into the
+skill's runtime `evals/` — is the coupling this whole change removes, so the
+suite now creates and removes its own file instead.
+
+That leaves `packs/converters/.apm/skills/render-proof/evals/files/fixture.md`
+with no reader: `eval_queries.json` is an activation-eval list with no `files`
+key, and nothing else references the path. It is **retained**, not deleted. This
+spec's Never-do rail puts `evals/` out of scope, and deleting a file from a
+pack's runtime payload is an eval-surface decision rather than a test-boundary
+one. Named as a follow-on in the PR rather than taken silently.
+
+`file-to-markdown/test_convert.py` has the same shape — `SAMPLE_DOCX` reaches
+into that skill's `evals/` — and it was **not** rewired, because unlike
+`security.test.js` the fixture is the subject: it is the only end-to-end `.docx`
+extraction check in the repo. What did change is that a missing fixture now
+fails instead of `pytest.skip`-ing. A bare `pytest.skip` is invisible to AC6c's
+`grep -ln 'importorskip\|skipif'` derivation, so that assertion could have gone
+quiet with the step still green and nothing recording it.

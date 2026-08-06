@@ -226,7 +226,7 @@ jobs:
         run: python -m pytest
 
       # The credential-setup skill's own suite (RFC-0023 T8 + the
-      # missing-credbroker guard) lives under the pack's skill scripts/, which
+      # missing-credbroker guard) lives under packs/credential-brokers/tests/skills/credential-setup/ (ADR-0071), which
       # neither `make build-check` nor any package pytest discovers. Wire it
       # explicitly or it never gates. Placed after the credbroker[crypto]
       # install above so the in-process import + crypto-extra cases resolve.
@@ -245,7 +245,7 @@ jobs:
       # atlassian-sso-cookie (RFC-0035): the jira + confluence-crawler cookie-path
       # security suites (mock-transport — cookie confinement, no-Authorization,
       # write refusal, off-domain-302 leak prevention, 401 remediation; the config
-      # loader/selector; the setup helper) live under the skill scripts/, which
+      # loader/selector; the setup helper) live under packs/atlassian/tests/skills/<skill>/ (ADR-0071), which
       # neither `make build-check` nor any package pytest discovers. Wire them
       # explicitly or the client-side security contract never gates. credbroker is
       # installed editable above; httpx is the only extra runtime dep.
@@ -434,7 +434,7 @@ jobs:
           fi
 
       # markdown-to-office-publishing (RFC-0036): the three Markdown→Office
-      # render skills carry TDD suites under their skill scripts/, which neither
+      # render skills carry TDD suites under packs/converters/tests/skills/<skill>/ (ADR-0071), which neither
       # `make build-check` nor any package pytest discovers. Wire each in
       # explicitly or its renderer (manifest enumeration, content mapping,
       # --check probe, output-path confinement, autoescape, chart survival, the
@@ -522,7 +522,7 @@ jobs:
         run: |
           run_with_floor() {
             dir=$1; floor=$2
-            n=$(cd "$dir" && python -m pytest -q -p no:cacheprovider --collect-only | grep -c '::')
+            n=$(cd "$dir" && python -m pytest -q -p no:cacheprovider --collect-only | grep -c '::' || true)
             if [ "$n" -lt "$floor" ]; then
               echo "::error::$dir collected $n tests, expected at least $floor — did a suite fail to land?"
               exit 1

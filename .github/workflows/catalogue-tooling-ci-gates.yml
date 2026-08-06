@@ -82,7 +82,7 @@ jobs:
           # Separate invocation, not appended above: in a shared run the collected
           # count stays obviously non-zero even if nothing from desk-research
           # landed. Floor asserted so a lost suite reds the step.
-          n=$(python -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::')
+          n=$(python -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true)
           if [ "$n" -lt 16 ]; then
             echo "::error::packs/desk-research/tests/ collected $n tests, expected at least 16"
             exit 1

@@ -24,8 +24,8 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-SCRIPTS = HERE.parent
-sys.path.insert(0, str(SCRIPTS))
+SUITE_DIR = HERE.parent      # the pack's test tree, where msg_fixtures.py lives
+sys.path.insert(0, str(SUITE_DIR))
 
 import msg_fixtures as fx  # noqa: E402
 

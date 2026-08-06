@@ -10,8 +10,10 @@ import pathlib
 import sys
 import tempfile
 
-# Smoke tests must not pollute the script directory with bytecode — the
-# bundler's self-host check treats any *.pyc as drift.
+# This harness loads next-ordinal.py from .apm/skills/<skill>/scripts/, so a
+# .pyc written on import lands inside the runtime payload and the bundler's
+# self-host check flags it as drift. The test moved out of .apm/; the module
+# it exercises did not, so this guard is still the live one.
 sys.dont_write_bytecode = True
 
 HERE = pathlib.Path(__file__).resolve().parents[3] / ".apm" / "skills" \

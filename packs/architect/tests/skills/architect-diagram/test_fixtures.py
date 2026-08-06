@@ -1,11 +1,11 @@
 """Syntax validation suite for architect-diagram fixture files.
 
-Each *.mmd file under scripts/testdata/ is parsed by mmdc (Mermaid CLI).
+Each *.mmd file under testdata/ (a sibling of this file) is parsed by mmdc (Mermaid CLI).
 Confirms that every fixture the skill ships as a reference example actually
 parses — a regression guard for syntax changes to the reference files.
 
-Run: python -m pytest scripts/test_fixtures.py -v
-     (from the skill directory, or prefix the path from the repo root)
+Run: python -m pytest test_fixtures.py -v
+     (from this directory)
 
 Requirements: mmdc must be on PATH (npm install -g @mermaid-js/mermaid-cli).
 Skips all cases when mmdc is absent.

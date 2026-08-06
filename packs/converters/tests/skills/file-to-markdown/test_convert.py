@@ -631,8 +631,16 @@ def test_e2e_pdf(tmp_path):
 
 
 def test_e2e_docx_sample(tmp_path):
-    if not SAMPLE_DOCX.exists():
-        pytest.skip("sample.docx fixture not present")
+    # Assert, do not skip. This is the only end-to-end .docx extraction
+    # check, and it borrows a fixture from the skill's evals/ tree — a
+    # boundary this suite no longer sits inside. A bare pytest.skip here
+    # would let a renamed or deleted fixture turn the assertion off with
+    # the step still green, and it is invisible to a skipif/importorskip
+    # sweep.
+    assert SAMPLE_DOCX.is_file(), (
+        f"sample.docx fixture missing at {SAMPLE_DOCX} — it lives in the "
+        f"skill's evals/ tree; check the anchor before assuming it moved"
+    )
     dst = tmp_path / "sample.docx"
     dst.write_bytes(SAMPLE_DOCX.read_bytes())
     r = _run(dst)
@@ -918,9 +926,9 @@ _TIER1_FILES = ["rasterize_pdf.py", "reconcile.py", "text_crosscheck.py"]
 # Enumerate the skill's production scripts by GLOB (not a hard-coded list) so a new
 # module — e.g. tier3.py, the one most likely to reach for a network client — is
 # covered by construction and can never be silently skipped.
-_ALL_SCRIPTS = sorted(
-    p.name for p in _SCRIPTS.glob("*.py") if not p.name.startswith("test_")
-)
+# No test_*.py remains under the skill's scripts/ (ADR-0071), so the glob is
+# the production set by construction.
+_ALL_SCRIPTS = sorted(p.name for p in _SCRIPTS.glob("*.py"))
 
 _NET_IMPORT = _re.compile(
     r"^\s*(?:import|from)\s+(socket|urllib|http|requests|httpx|aiohttp|ssl|ftplib|"
