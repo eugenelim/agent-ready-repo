@@ -66,8 +66,8 @@ typicalSession:
 
 docsUrl: /docs/guides/core/
 packUrl: /packs/core/
-relatedJourneys:
-  - release
+relatedJourneys:                  # journey slugs — each renders as /journeys/<slug>/,
+  - release-engineering           # so a slug with no journey file is a dead link
 ---
 ```
 
