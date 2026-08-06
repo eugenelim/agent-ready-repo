@@ -17,11 +17,13 @@ import sys
 
 import pytest
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
-SETUP_SKILL = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "skills" / "credential-setup"
+PACK = pathlib.Path(__file__).resolve().parents[3]        # packs/credential-brokers
+if not (PACK / ".apm").is_dir():          # wrong parents[] depth after a move
+    raise SystemExit(f"pack root not found at {PACK}")
+SETUP_SKILL = PACK / ".apm" / "skills" / "credential-setup"
 SKILL_MD = SETUP_SKILL / "SKILL.md"
 SETUP_PY = SETUP_SKILL / "scripts" / "setup.py"
-SHIM_SOURCE = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "shared-libs"
+SHIM_SOURCE = PACK / ".apm" / "shared-libs"
 
 
 def test_skill_md_exists():

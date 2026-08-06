@@ -29,8 +29,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-RESEARCH_SKILL = REPO_ROOT / "packs" / "desk-research" / ".apm" / "skills" / "desk-research"
+PACK = Path(__file__).resolve().parents[3]        # packs/desk-research
+if not (PACK / ".apm").is_dir():          # wrong parents[] depth after a move
+    raise SystemExit(f"pack root not found at {PACK}")
+RESEARCH_SKILL = PACK / ".apm" / "skills" / "desk-research"
 ARXIV_SCRIPT = RESEARCH_SKILL / "scripts" / "arxiv-retriever.py"
 PERPLEXITY_SCRIPT = RESEARCH_SKILL / "scripts" / "perplexity-retriever.py"
 SKILL_MD = RESEARCH_SKILL / "SKILL.md"

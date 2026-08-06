@@ -19,11 +19,11 @@ import re
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACK = Path(__file__).resolve().parents[3]        # packs/desk-research
+if not (PACK / ".apm").is_dir():          # wrong parents[] depth after a move
+    raise SystemExit(f"pack root not found at {PACK}")
 SKILL_MD = (
-    REPO_ROOT
-    / "packs"
-    / "desk-research"
+    PACK
     / ".apm"
     / "skills"
     / "desk-research-project-start"

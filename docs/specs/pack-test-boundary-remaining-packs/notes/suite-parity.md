@@ -51,6 +51,9 @@ record `collected / passed`; the standalone harnesses — those carrying an
 | `architect/architect-diagram/test_fixtures.py` | pytest | 16 passed | 16 passed |
 | `governance-extras/new-adr/test_next_ordinal.py` | script | exit 0 | exit 0 |
 | `governance-extras/new-rfc/test_next_ordinal.py` | script | exit 0 | exit 0 |
+| `desk-research/desk-research/test_research_retrievers_conformance.py` | pytest | 9 passed | 9 passed |
+| `desk-research/desk-research-project-start/test_desk_research_project_start_elicitation.py` | pytest | 7 passed | 7 passed |
+| `credential-brokers/credential-setup/test_credential_setup_skill.py` | pytest | 7 passed | 7 passed (16 for the directory, with `test_setup.py`) |
 
 `new-adr` / `new-rfc`'s `test_next_ordinal.py` define no `test_*` functions, so
 pytest collects nothing and exits 5 both before and after; they are harnesses
@@ -93,8 +96,36 @@ Permitted values: one or more runner names, `none (pre-existing)`, or
 | `packs/architect/tests/skills/architect-diagram/` | none (pre-existing) — needs `mmdc` |
 | `packs/governance-extras/tests/skills/new-adr/` | none (pre-existing) |
 | `packs/governance-extras/tests/skills/new-rfc/` | none (pre-existing) |
-| `packs/desk-research/tests/skills/desk-research/` | *(T5)* |
-| `packs/desk-research/tests/skills/desk-research-project-start/` | *(T5)* |
+| `packs/desk-research/tests/skills/desk-research/` | `catalogue-tooling-ci-gates.yml` "Run repo/pack hook suites" (own invocation, floor: 16 collected) · `Makefile` `test` |
+| `packs/desk-research/tests/skills/desk-research-project-start/` | same invocation as above |
+
+## 4 — AC4 re-derivation: what stays in the engine's tree, and why
+
+AC4 requires the remaining engine unit tests to be judged by *subject*, not by
+whether they mention `packs/`. 52 of them reference a pack path. Every one was
+read; three moved (recorded above). The judgement rule is the predecessor spec's:
+*does a change to the engine break this, or a change to the pack?*
+
+The two that came closest to moving:
+
+- **`test_catalogue_curation_deps.py`** — stays. It never reads the pack: it
+  builds a synthetic dict "mirroring" `pack.toml` and feeds it to
+  `validate_dependencies_required`. The subject is the engine's dependency gate.
+- **`test_architect_readme_install_command.py`** — stays, and this one is a
+  judgement call worth naming. It scans `packs/architect/README.md` for
+  `agentbundle …` invocations and asserts each parses against the live CLI
+  parser. Its subject is the parser's accepted command forms; the README is the
+  fixture corpus it scans — the same shape as `test_install_core_smoke.py`, which
+  the predecessor spec explicitly kept ("reads `packs/core/` but its subject is
+  the install command"). The honest caveat: an architect README edit *can* red
+  the package's suite. Moving it would trade that for worse — architect has no
+  CI runner, so the test would stop gating entirely.
+
+The rest are engine subjects using packs as fixture data (install/upgrade/
+projection/lint/scaffold paths), or catalogue-wide invariants that no single pack
+owns — `test_enriched_pack_metadata.py`, `test_shipped_pack_manifests.py`,
+`test_flow_metrics_upstream_probe.py` — which § 4 says belong to the repository,
+and which this catalogue keeps in the engine's suite.
 
 ## 3 — Fixture review (AC5a)
 

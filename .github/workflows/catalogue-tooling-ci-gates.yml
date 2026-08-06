@@ -77,7 +77,17 @@ jobs:
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
-        run: python -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
+        run: |
+          python -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
+          # Separate invocation, not appended above: in a shared run the collected
+          # count stays obviously non-zero even if nothing from desk-research
+          # landed. Floor asserted so a lost suite reds the step.
+          n=$(python -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::')
+          if [ "$n" -lt 16 ]; then
+            echo "::error::packs/desk-research/tests/ collected $n tests, expected at least 16"
+            exit 1
+          fi
+          python -m pytest packs/desk-research/tests/ -q
       - name: Run agentbundle test suite (Windows — curated portable subset)
         if: matrix.os == 'windows-latest'
         working-directory: packages/agentbundle

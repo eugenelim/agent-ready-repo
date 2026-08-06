@@ -84,16 +84,27 @@ def run_windows_compat(root: Path) -> int:
             [py, "-m", "pytest", str(root / "packs" / "core" / "tests" / "hooks")],
             root,
         ),
-        # Atlassian SSO suites (asyncio + SSL-context wiring is platform-sensitive)
+        # Atlassian SSO suites (asyncio + SSL-context wiring is platform-sensitive).
+        # Pack tests live outside the runtime payload (ADR-0071).
+        #
+        # Probe the dependencies first. Both trios `importorskip("credbroker")` at
+        # module scope, and `_step` below judges a step by its return code alone —
+        # so without this, a machine missing credbroker skips both suites entirely
+        # and the step reports pass.
+        (
+            "atlassian SSO dependency probe",
+            [py, "-c", "import credbroker, httpx"],
+            root,
+        ),
         (
             "jira SSO suites (atlassian-sso-cookie)",
             [py, "-m", "pytest", "test_sso_config.py", "test_sso_client.py", "test_setup_sso.py"],
-            root / "packs" / "atlassian" / ".apm" / "skills" / "jira" / "scripts",
+            root / "packs" / "atlassian" / "tests" / "skills" / "jira",
         ),
         (
             "confluence-crawler SSO suites (atlassian-sso-cookie)",
             [py, "-m", "pytest", "test_sso_config.py", "test_sso_client.py", "test_setup_sso.py"],
-            root / "packs" / "atlassian" / ".apm" / "skills" / "confluence-crawler" / "scripts",
+            root / "packs" / "atlassian" / "tests" / "skills" / "confluence-crawler",
         ),
         # Experience agnosticism lint (proves `python` portability, not `python3`)
         (

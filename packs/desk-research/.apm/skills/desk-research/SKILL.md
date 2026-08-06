@@ -48,8 +48,8 @@ or deep cues co-occur. This closes the obvious collision case —
 *"comprehensively survey the applied patterns for X"* contains both
 `comprehensively` (a standard cue) and `applied patterns for` (an
 applied cue); precedence puts it in applied mode. The closed cue
-tuples below are single-sourced from the conformance tests under
-`packages/agentbundle/tests/unit/test_research_retrievers_conformance.py`.
+tuples below are single-sourced from this pack's conformance tests,
+which pin them against this file.
 
 ### Quick mode (default)
 

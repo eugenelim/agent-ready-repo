@@ -699,18 +699,37 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "version-parity-probes-wrong-path", source = "spec/pack-test-boundary review"},
 
-  # Tests in the other packs still live under `.apm/skills/*/scripts/`, against
-  # the boundary documented in catalogue-authoring-standards.md § 4 and decided
-  # in ADR-0071. Core and product-documentation were migrated; the rest were
-  # deferred by explicit direction. Two pack-subject suites also remain in
-  # `packages/agentbundle/tests/unit/`: `test_research_retrievers_conformance.py`
-  # (desk-research) and `test_credential_setup_skill.py` (credential-brokers).
-  # Evals are NOT part of this — `.apm/skills/<skill>/evals/` is the decided,
-  # linter-enforced layout; do not move them.
-  # The boundary test is core-scoped, so nothing stops a new pack regressing.
-  # Fix: migrate per pack, then add a lint refusing `test*` under `.apm/`.
-  # Unblocks when: picked up — no dependency.
-  {slug = "pack-test-boundary-remaining-packs", source = "spec/pack-test-boundary Boundaries"},
+  # ADRs have no errata mechanism. `docs/CONVENTIONS.md` freezes the body, the
+  # shipped new-adr template says only the Status line moves, and the `## Errata`
+  # convention is RFC-scoped in new-rfc. So ADR-0071 permanently names a file the
+  # pack-test-boundary work deleted (`packs/core/tests/pack/test-runtime-boundary.py`,
+  # line 74) and says the migration is partial when it is complete. Two other
+  # frozen records carry the same staleness. Fix: extend the errata convention to
+  # ADRs — amend new-adr's SKILL.md and template plus CONVENTIONS.md, bump
+  # governance-extras, then file the ADR-0071 erratum. A governance change, so it
+  # wants its own PR. Unblocks when: picked up.
+  {slug = "adr-errata-convention", source = "spec/pack-test-boundary-remaining-packs review"},
+
+  # Fixtures that now sit in archived pack test trees use fabricated addresses at
+  # *registered* domains (`corp.com`, `x.com`) rather than RFC 2606 reserved ones,
+  # which catalogue-authoring-standards.md § 4 and CLAUDE.md § Privacy both ask
+  # for. No credential or real personal data — reviewed file by file in
+  # docs/specs/pack-test-boundary-remaining-packs/notes/suite-parity.md § 3. Not
+  # fixed inline because `corp.com` appears in both msg_fixtures.py and the
+  # byte-compared msgreader_baseline.json that test_parity.py asserts against, so
+  # a half-applied rename reds the suite. Fix: rename and regenerate the baseline
+  # in one commit. Unblocks when: picked up.
+  {slug = "test-fixture-domain-normalisation", source = "spec/pack-test-boundary-remaining-packs AC5a"},
+
+  # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively, so
+  # eight specs whose heading reads `## Acceptance criteria` collect zero criteria
+  # and their AC-completeness invariant (ii) has always passed vacuously — the
+  # pack-test-boundary predecessor among them. Three more specs carry no
+  # Acceptance-Criteria heading at all, which the casing fix would not close:
+  # eleven ungated in total. Fix: decide whether the matcher should be
+  # case-insensitive and whether a spec with no criteria section should fail
+  # loudly, then correct the headings. Unblocks when: picked up.
+  {slug = "spec-ac-heading-casing-silent-gate", source = "spec/pack-test-boundary-remaining-packs review"},
 
   # Phase-1 residue from the packages/ marker sweep: the marker sites that are
   # asserted on verbatim. The set itself is enumerated once, in

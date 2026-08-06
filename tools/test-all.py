@@ -105,6 +105,7 @@ def _repo_root() -> Path:
 TESTS: list[tuple[str, list[str]]] = [
     ("lint-knowledge", [sys.executable,
                         "packs/core/tests/skills/work-loop/test-lint-knowledge.py"]),
+    ("lint-sso-config", [sys.executable, "tools/test-lint-sso-config.py"]),
     ("lint-skill-spec", [sys.executable, "-m", "pytest",
                               "packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py",
                               "-v"]),
