@@ -123,5 +123,5 @@ def test_subprocess_run_is_the_only_spawn() -> None:
         assert banned not in src, banned
 
 
-def test_version_bumped_to_0_2_0() -> None:
-    assert credbroker.__version__ == "0.4.0"
+def test_version_matches_pyproject() -> None:
+    assert credbroker.__version__ == "0.4.1"

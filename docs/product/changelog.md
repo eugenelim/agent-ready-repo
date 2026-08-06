@@ -15,19 +15,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
-## [Unreleased]
+## [agentbundle][0.29.3] — 2026-08-05
+
+Wording-only release. No flag, verb, exit code, schema, or output *structure*
+changed — but the text an adopter reads changed almost everywhere, so it ships
+as its own version rather than riding along with the next feature.
 
 ### Changed
 
-- **CLI help and diagnostic text no longer cite internal governance documents.**
-  `agentbundle --help` and every subcommand's help, the `catalogue lint`
-  diagnostics, the `init-state --migrate` message, and the workspace-mcp git
-  errors previously carried `RFC-0NNN` / `ADR-0NNN` ordinals and internal
-  acceptance-criterion labels — pointers to documents no adopter has. Each now
-  states the rule directly. No flag, verb, exit code, or output *structure*
-  changed; this is wording only, so no version bump. The same sweep removed the
-  markers from source comments and docstrings, which ship in the sdist and the
-  wheel.
+- **Internal governance citations removed from every shipped surface.** The
+  package previously carried `RFC-0NNN` / `ADR-0NNN` ordinals, internal
+  acceptance-criterion labels (`AC7`, `AC22b`), and `docs/specs/<slug>` paths
+  throughout. Those point at documents no adopter has — a dangling reference in
+  the sdist, which ships source, and in the wheel. Each now states the rule
+  directly instead of citing where it was decided: `# RFC-0052 D8: v0.3 state is
+  hard-refused` became `# v0.3 state is hard-refused`. Roughly 2,700 occurrences
+  across ~290 files. Specifically:
+
+  - **`--help` output** for the root command and every subcommand — `install`,
+    `upgrade`, `uninstall`, `catalogue`, `catalogue lint`, `init-state`,
+    `reconcile`, `diff`.
+  - **Runtime diagnostics**: `catalogue lint`'s three findings, the
+    `init-state --migrate` message, `commands/install.py`'s short-circuit
+    notice, and the workspace-mcp git errors.
+  - **The bundled adapter contract** (`_data/adapter.toml`), whose comments are
+    read from inside the wheel. Its per-version history was restructured from an
+    RFC-keyed list into a version-keyed one; every declared value is unchanged
+    and the file remains byte-identical to `contracts/adapter.toml`.
+  - **Source comments and docstrings** across the engine, and the 46 files under
+    `agentbundle/build/tests/` that land on disk on every `pip install`.
+  - **`templates/install-marker.py`**, which projects into the adopter's own
+    repo. Re-installing or upgrading will rewrite it with the new comments; the
+    file's behaviour is unchanged, and the existing Tier-1/Tier-2 machinery
+    handles it as it would any projected-file content change.
+
+  IETF references are untouched — `RFC 9106` in the credential broker survives
+  byte-identical. Ours are zero-padded four digits; IETF numbers never start
+  with `0`.
 
 ### Fixed
 
@@ -44,6 +68,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The codex `AGENTS.md` strip warning over-promised recovery.** It claimed the
   removed region was recoverable from git history; it now says that holds only
   if the file was committed.
+
+### Added
+
+- **A behavioural test for projection exclusion.** `_is_excluded`'s existing
+  coverage only exercised the glob→regex translation against synthetic strings,
+  so it stayed green if a caller stopped consulting the guard. The new test
+  drives a real file at an excluded path through `run_self_host` and asserts it
+  is absent from the unclassified-path enumeration.
+
+## [credbroker][0.4.1] — 2026-08-05
+
+Wording-only release; no library code changed. It exists so the corrected PyPI
+project page and the swept docstrings actually reach installers.
+
+### Changed
+
+- **Internal governance citations removed from the shipped text.** The two
+  design-doc links on the PyPI project page keep their working URLs and lose
+  only the `RFC-00NN` prefixes from their link text, so the page reads for
+  someone with no access to our numbering. Package docstrings and comments were
+  swept on the same principle.
+- **`RFC 9106` is deliberately retained** in `_vault.py` — that is the Argon2
+  IETF specification, not one of ours, and it survives byte-identical.
 
 ## [agentbundle][0.29.2] — 2026-08-05
 

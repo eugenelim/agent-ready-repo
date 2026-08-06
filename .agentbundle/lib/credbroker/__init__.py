@@ -67,7 +67,7 @@ from ._sso import (
     validate_root_relative_endpoint,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     # Resolver + container.
