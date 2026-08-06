@@ -17,8 +17,10 @@ import sys
 
 import pytest
 
-import setup  # noqa: E402  (conftest.py puts the skill's scripts/ on sys.path)
-from credbroker import _core  # noqa: E402
+# `setup` is the skill's own scripts/setup.py — conftest.py puts that directory
+# on sys.path, since the tests live outside the runtime payload (ADR-0071).
+import setup
+from credbroker import _core
 
 _HAS_CRYPTO = (
     importlib.util.find_spec("cryptography") is not None

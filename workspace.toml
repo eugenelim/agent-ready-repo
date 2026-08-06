@@ -684,8 +684,16 @@ open = [
   # cache on every run, so anyone running `make test` before `make package`
   # now ships `.pyc` routinely. The boundary policy this PR adds says caches are
   # "neither committed nor packaged" — currently untrue for packaging.
+  # `node_modules/` is the same hole and it is much bigger. `render-proof` has a
+  # package.json; `npm install` there puts ~10k files under `packs/` that the
+  # walk collects. Measured during pack-test-boundary-remaining-packs: with that
+  # directory present, agentbundle's own suite slowed by more than an order of
+  # magnitude, because its tests copy `packs/` into temp dirs and build. The
+  # directory is gitignored, so nothing catches it — the walk reads the
+  # filesystem, not the index.
   # Fix: prune `_IMPLICIT_DENY_DIRS` from `dirnames` in package.py's three
-  #   os.walk loops; add an archive-contents assertion. Needs an agentbundle release.
+  #   os.walk loops, add `node_modules` to that set, and add an archive-contents
+  #   assertion. Needs an agentbundle release.
   # Unblocks when: picked up — no dependency.
   {slug = "package-archive-carries-pycache", source = "spec/pack-test-boundary review"},
 
