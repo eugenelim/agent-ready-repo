@@ -26,14 +26,20 @@ platform integration, not just atlassian.
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 import re
 import signal
+import ssl
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Iterable, Literal
-from urllib.parse import urlsplit
+from typing import Literal
+from urllib.parse import urlsplit, urlunsplit
 
 __all__ = [
     "SsoError",
@@ -560,6 +566,300 @@ def register_sso_session(
         f"sso-broker register failed for profile {profile} "
         f"(exit {result.returncode}); see the engine's output above"
     )
+
+
+# --- destination derivation ----------------------------------------------------
+#
+# Ask the **resource server** where to authenticate, instead of trusting the
+# configured value. Vendor-agnostic by construction: the keying parameter is an
+# explicit strategy list, because this broker is meant to serve any tool behind
+# corporate SSO, not one vendor.
+#
+# **This is defence in depth, not the control.** It closes
+# *login_url-poisoned-alone*. It does **not** close config poisoning, because
+# the derivation target — ``base_url`` — lives in the same adopter- and
+# agent-writable file: one write changes both, the attacker serves the redirect
+# themselves, and the comparison passes. AWS's equivalent works only because its
+# host suffix is hardcoded; there is no comparable invariant here, since
+# everything we could compare against is also in the file. Consent for first
+# capture rests on the operation being operator-typed.
+#
+# And it is bounded hard, because it is an outbound fetch on the credential
+# path whose targets are partly attacker-influenceable: tier 1 fetches a URL
+# read from a *response header*, then a second read from that document.
+
+_DERIVE_SOCKET_TIMEOUT_S = 5.0
+_DERIVE_TOTAL_BUDGET_S = 15.0
+_DERIVE_BODY_CAP_BYTES = 64 * 1024
+
+# No ``Authorization``, no ``Cookie``, no proxy-auth. Nothing that could turn a
+# derivation probe into a credential-bearing request.
+_DERIVE_HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "credbroker-sso-derivation/1",
+}
+
+
+class _DerivationAbort(Exception):
+    """One derivation hop refused or failed. Never leaves this module."""
+
+
+class _DerivationBudget:
+    """A monotonic deadline shared by every hop of one derivation."""
+
+    def __init__(self, total: float) -> None:
+        self._deadline = time.monotonic() + total
+
+    def remaining(self) -> float:
+        return self._deadline - time.monotonic()
+
+    def check(self) -> None:
+        if self.remaining() <= 0:
+            raise _DerivationAbort("derivation budget exhausted")
+
+
+class _DerivationResponse:
+    """Status, headers and a capped body — the only shape the tiers see.
+
+    Header names are lower-cased on the way in: urllib hands back an
+    ``email.message.Message`` (case-insensitive), and normalising here means the
+    tiers can look up a plain dict without caring which the server sent.
+    """
+
+    def __init__(self, status: int, headers: object, body: bytes) -> None:
+        self.status = status
+        items = getattr(headers, "items", None)
+        self.headers: dict[str, str] = (
+            {str(k).lower(): str(v) for k, v in items()} if items else {}
+        )
+        self.body = body
+
+    def header(self, name: str, default: str = "") -> str:
+        return self.headers.get(name.lower(), default)
+
+    def json(self) -> dict:
+        try:
+            parsed = json.loads(self.body.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise _DerivationAbort("derivation document is not JSON") from exc
+        if not isinstance(parsed, dict):
+            raise _DerivationAbort("derivation document is not an object")
+        return parsed
+
+
+def _derivation_ssl_context() -> ssl.SSLContext:
+    """Strict verification, built explicitly.
+
+    Never honours an ``--insecure``-style flag and never reuses a consumer's own
+    TLS context. Constructed here rather than left to urllib's default so a
+    process-wide ``ssl._create_default_https_context`` override cannot weaken
+    the one request that decides where a human will type their password.
+    """
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = True
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    return ctx
+
+
+def _proxies_without_credentials(proxies: Mapping[str, str]) -> dict[str, str]:
+    """Drop any userinfo from proxy URLs, so no ``Proxy-Authorization`` is sent."""
+    cleaned: dict[str, str] = {}
+    for scheme, url in proxies.items():
+        parts = urlsplit(url)
+        if parts.username or parts.password:
+            host = parts.hostname or ""
+            if parts.port:
+                host = f"{host}:{parts.port}"
+            cleaned[scheme] = urlunsplit(
+                (parts.scheme, host, parts.path, parts.query, parts.fragment)
+            )
+        else:
+            cleaned[scheme] = url
+    return cleaned
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Hop cap 0: a 3xx is an *answer* here, never something to follow."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201
+        return None
+
+
+def _derivation_opener() -> urllib.request.OpenerDirector:
+    return urllib.request.build_opener(
+        _NoRedirect(),
+        urllib.request.ProxyHandler(
+            _proxies_without_credentials(urllib.request.getproxies())
+        ),
+        urllib.request.HTTPSHandler(context=_derivation_ssl_context()),
+    )
+
+
+def _read_capped(fp) -> bytes:  # noqa: ANN001 — any file-like the opener yields
+    """Read at most the cap, and refuse anything larger — before parsing."""
+    data = fp.read(_DERIVE_BODY_CAP_BYTES + 1)
+    if len(data) > _DERIVE_BODY_CAP_BYTES:
+        raise _DerivationAbort(
+            f"derivation document exceeds the {_DERIVE_BODY_CAP_BYTES}-byte cap"
+        )
+    return data
+
+
+def _derive_open(url: str, budget: _DerivationBudget) -> _DerivationResponse:
+    """One bounded, https-only, unfollowed hop."""
+    scheme = urlsplit(url).scheme.lower()
+    if scheme != "https":
+        # urllib honours file:// and ftp://, and tier 1's targets come out of an
+        # attacker-influenceable header and document.
+        raise _DerivationAbort(
+            f"refusing a non-https derivation hop (scheme {scheme or '(none)'})"
+        )
+    budget.check()
+    request = urllib.request.Request(url, headers=dict(_DERIVE_HEADERS), method="GET")
+    # urllib applies one socket timeout to the connect and to each read, so this
+    # bounds both phases; the shared budget bounds the whole chain.
+    timeout = min(_DERIVE_SOCKET_TIMEOUT_S, max(0.001, budget.remaining()))
+    try:
+        with _derivation_opener().open(request, timeout=timeout) as resp:  # noqa: S310
+            return _DerivationResponse(resp.status, resp.headers, _read_capped(resp))
+    except urllib.error.HTTPError as exc:
+        # A 401 carrying WWW-Authenticate and a 302 carrying Location are the
+        # answers two of the three tiers are looking for, not failures.
+        with contextlib.closing(exc):
+            return _DerivationResponse(exc.code, exc.headers, _read_capped(exc))
+    except _DerivationAbort:
+        raise
+    except (OSError, ValueError) as exc:
+        raise _DerivationAbort(f"derivation hop failed: {type(exc).__name__}") from exc
+
+
+def _scheme_and_host(url: object) -> str | None:
+    """``https://host[:port]`` from *url*, or ``None`` if it is not https.
+
+    Only scheme+host is ever compared: every tier's URL carries per-request
+    ``state`` / ``SAMLRequest`` / ``nonce`` values that change on each call.
+    """
+    if not isinstance(url, str):
+        return None
+    parts = urlsplit(url)
+    if parts.scheme.lower() != "https" or not parts.netloc:
+        return None
+    return f"https://{parts.netloc.lower()}"
+
+
+_RESOURCE_METADATA_RE = re.compile(r'resource_metadata\s*=\s*"([^"]+)"', re.IGNORECASE)
+
+
+def _tier_protected_resource_metadata(
+    base_url: str, budget: _DerivationBudget
+) -> str | None:
+    """RFC 9728 — OAuth 2.0 Protected Resource Metadata.
+
+    The modern standard, adopted by MCP. Worth trying first and wrong to depend
+    on: a live spike found Jira answering its REST 401 with the legacy
+    ``WWW-Authenticate: OAuth realm="…"`` form instead.
+    """
+    resp = _derive_open(base_url, budget)
+    if resp.status != 401:
+        return None
+    match = _RESOURCE_METADATA_RE.search(resp.header("WWW-Authenticate"))
+    if not match:
+        return None
+    document = _derive_open(match.group(1), budget).json()
+    servers = document.get("authorization_servers")
+    if not isinstance(servers, list):
+        return None
+    for issuer in servers:
+        if _scheme_and_host(issuer) is None:
+            continue
+        for suffix in (
+            "/.well-known/oauth-authorization-server",
+            "/.well-known/openid-configuration",
+        ):
+            try:
+                metadata = _derive_open(issuer.rstrip("/") + suffix, budget).json()
+            except _DerivationAbort:
+                continue
+            found = _scheme_and_host(metadata.get("authorization_endpoint"))
+            if found:
+                return found
+    return None
+
+
+def _tier_oidc_discovery(base_url: str, budget: _DerivationBudget) -> str | None:
+    """OIDC Discovery / RFC 8414 — older than tier 1, far more widely deployed."""
+    document = _derive_open(
+        base_url.rstrip("/") + "/.well-known/openid-configuration", budget
+    ).json()
+    return _scheme_and_host(document.get("authorization_endpoint"))
+
+
+def _strategy_atlassian_seraph(base_url: str, budget: _DerivationBudget) -> str | None:
+    """Atlassian/Seraph vendor probe.
+
+    Verified by live spike 2026-08-05: ``GET https://jira.atlassian.com/login.jsp``
+    answers ``302`` with ``Location: https://auth.atlassian.com/authorize?…``.
+
+    **Named degradation.** Deriving from ``base_url`` does not work —
+    ``/secure/Dashboard.jspa`` answers 200 — because SAML redirection fires only
+    from ``login.jsp``. And ``login.jsp`` itself answers 302 only in forced-SSO
+    mode; under SSO-with-local-fallback it answers 200 with a sign-in button and
+    no ``Location``. Those adopters land on the cannot-derive branch.
+    """
+    resp = _derive_open(base_url.rstrip("/") + "/login.jsp", budget)
+    if not 300 <= resp.status < 400:
+        return None
+    return _scheme_and_host(resp.header("Location"))
+
+
+# Opt-in per consumer: `confluence-crawler` and `bitbucket` share the Seraph
+# framework and can ask for the same probe; a non-Atlassian consumer never runs
+# it. SAML-only SPs expose no discovery at all — their SP metadata names the SP,
+# never the IdP — which is why a vendor tier exists alongside the standards.
+_DERIVATION_STRATEGIES = {
+    "atlassian-seraph": _strategy_atlassian_seraph,
+}
+
+
+def derive_sso_destination(
+    base_url: str, *, strategies: Sequence[str] = ()
+) -> str | None:
+    """Where does *base_url* send users to sign in? ``scheme://host`` or ``None``.
+
+    Tries, in order, and returns the first host it resolves: RFC 9728 protected
+    resource metadata, OIDC discovery, then any *named* vendor strategies the
+    caller opted into. ``None`` — "cannot derive" — is a real outcome, not a
+    failure to handle: SAML-only SPs expose no discovery at all. A consumer that
+    cannot derive must **refuse**, never fall back to the configured value.
+
+    :param strategies: named vendor probes to append to the standards tiers.
+        Default runs tiers 1–2 only.
+    :raises SsoConfigError: *base_url* is not https, or a strategy name is
+        unknown. Never raises for a network failure — that is ``None``.
+    """
+    validate_https_url(base_url, field="base_url")
+    chain: list[Callable[[str, _DerivationBudget], str | None]] = [
+        _tier_protected_resource_metadata,
+        _tier_oidc_discovery,
+    ]
+    for name in strategies:
+        strategy = _DERIVATION_STRATEGIES.get(name)
+        if strategy is None:
+            raise SsoConfigError(
+                f"unknown SSO derivation strategy {name!r}; known: "
+                f"{sorted(_DERIVATION_STRATEGIES)}"
+            )
+        chain.append(strategy)
+
+    budget = _DerivationBudget(_DERIVE_TOTAL_BUDGET_S)
+    for tier in chain:
+        try:
+            found = tier(base_url, budget)
+        except _DerivationAbort:
+            continue  # one tier refusing must not veto the next
+        if found:
+            return found
+    return None
 
 
 # --- SSO confinement primitives ----------------------------------------------

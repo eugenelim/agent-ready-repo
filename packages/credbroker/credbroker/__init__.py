@@ -63,6 +63,7 @@ from ._sso import (
     SsoProfileNotRegisteredError,
     SsoRecaptureFailedError,
     SsoSessionUnavailableError,
+    derive_sso_destination,
     domain_in_cookie_domains,
     filter_jar_to_domains,
     load_sso_cookies,
@@ -105,6 +106,7 @@ __all__ = [
     "store_in_vault",
     # SSO web-session cookie family.
     "load_sso_cookies",
+    "derive_sso_destination",
     "refresh_sso_session",
     "register_sso_session",
     "SsoError",

@@ -494,8 +494,66 @@ async def _probe(sso_config: object) -> int:
         await client.__aexit__(None, None, None)
 
 
+def _attest_sign_in_destination(sso_config: object) -> str | None:
+    """``None`` to proceed; a stderr-ready refusal otherwise.
+
+    Asks the instance where it sends users to sign in, rather than trusting
+    `sso-config.toml`. **Defence in depth, not the control** — `base_url` lives
+    in the same file as `login_url`, so one write moves both and the comparison
+    passes. Consent rests on this command being operator-typed.
+
+    Comparison is topology-aware, because plain host equality would refuse the
+    *majority* Jira DC configuration. In SP-initiated SAML `login_url` sits on
+    the SP host while the vendor probe's redirect names the IdP host.
+    """
+    login_host = (urlsplit(sso_config.login_url).hostname or "").lower()
+    base_host = (urlsplit(sso_config.base_url).hostname or "").lower()
+
+    # Branch 2, evaluated first and short-circuiting: where the configured
+    # sign-in host *is* the instance host, no derivation request is made.
+    # It attests nothing — an attacker who writes base_url, cookie_domains and
+    # login_url to one host satisfies it, and within-host path and query are
+    # unconstrained. Accepted rather than fixed: requiring derivation here would
+    # refuse every SSO-with-local-fallback adopter, and derivation is explicitly
+    # not the control. Recorded as `sso-branch2-destination-attestation`.
+    if login_host and login_host == base_host:
+        return None
+
+    try:
+        derived = credbroker.derive_sso_destination(
+            sso_config.base_url, strategies=("atlassian-seraph",)
+        )
+    except credbroker.SsoError:
+        derived = None
+
+    if derived is None:
+        # Never falls back to the configured value. `setup_sso.py` is the
+        # escape, and is safe only because it too is operator-typed — a refusal
+        # with no remedy gets worked around by editing the config.
+        return (
+            f"error: could not confirm where {base_host} sends users to sign in, "
+            f"so the configured destination {login_host} cannot be attested. "
+            f"If it is correct, register with: python scripts/setup_sso.py"
+        )
+
+    derived_host = (urlsplit(derived).hostname or "").lower()
+    if derived_host == login_host:
+        return None
+
+    return (
+        f"error: {base_host} sends users to sign in at {derived_host}, but "
+        f"sso-config.toml points at {login_host}. Refusing to open a browser. "
+        f"If {login_host} is correct, register with: python scripts/setup_sso.py"
+    )
+
+
 def _register_session(sso_config: object) -> int:
-    """Operator-typed first capture. Headed, and disclosed before it opens."""
+    """Operator-typed first capture. Attested where it can be, then disclosed."""
+    refusal = _attest_sign_in_destination(sso_config)
+    if refusal is not None:
+        print(refusal, file=sys.stderr)
+        return EXIT_USER_ACTION
+
     host = urlsplit(sso_config.login_url).hostname or "(unknown host)"
     print(
         f"notice: capturing a new SSO session for profile {sso_config.profile}. "

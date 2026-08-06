@@ -648,8 +648,11 @@ def test_bare_check_never_registers(sso_path, recapture, responses):   # STUB: A
     assert recapture.register_calls == []
 
 
-def test_register_flag_discloses_host_on_stderr(sso_path, recapture, responses, capsys):
+def test_register_flag_discloses_host_on_stderr(
+    sso_path, recapture, responses, derives, capsys
+):
     # STUB: AC15/AC16 — the headed-browser notice names the resolved login host.
+    derives("https://sso.corp.example.com")
     responses(_OK)
     assert _check("--register") == jira.EXIT_OK
     err = capsys.readouterr().err
@@ -677,7 +680,8 @@ def test_nothing_written_to_stdout_before_retry(sso_path, recapture, responses, 
     assert capsys.readouterr().out == ""
 
 
-def test_register_is_not_retried(sso_path, recapture, responses, capsys):   # STUB: AC17
+def test_register_is_not_retried(sso_path, recapture, responses, derives, capsys):  # STUB: AC17
+    derives("https://sso.corp.example.com")
     recapture.register_raises = credbroker.SsoRecaptureFailedError("not completed")
     responses(_OK)
     assert _check("--register") == jira.EXIT_USER_ACTION
@@ -786,3 +790,106 @@ def test_requirements_pin_the_floor_in_both_skills():         # STUB: AC30
     for skill in ("jira", "confluence-crawler"):
         text = (skills_dir / skill / "requirements.txt").read_text(encoding="utf-8")
         assert "credbroker>=0.5.0" in text, f"{skill} does not pin the floor"
+
+
+# ----------------------------------------------------------------------
+# AC32 — the destination `--register` opens a browser at is attested against
+# the instance where it can be. Defence in depth, not the control.
+# ----------------------------------------------------------------------
+
+
+@pytest.fixture
+def derives(monkeypatch):
+    """Stub `derive_sso_destination`, recording whether it was consulted."""
+    calls: list[tuple] = []
+
+    def _install(result):
+        def _derive(base_url, *, strategies=()):
+            calls.append((base_url, strategies))
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        monkeypatch.setattr(jira.credbroker, "derive_sso_destination", _derive)
+        return calls
+
+    return _install
+
+
+def test_register_proceeds_when_derived_host_matches(sso_path, recapture, responses, derives):
+    # STUB: AC32 — branch 1: the IdP-host topology, where derivation works.
+    derives("https://sso.corp.example.com")
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_OK
+    assert len(recapture.register_calls) == 1
+
+
+def test_register_refuses_on_host_mismatch(sso_path, recapture, responses, derives, capsys):
+    # STUB: AC32 — exit 2, NO browser, naming both hosts and the escape.
+    derives("https://attacker.example.com")
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_USER_ACTION
+    err = capsys.readouterr().err
+    assert "sso.corp.example.com" in err
+    assert "attacker.example.com" in err
+    assert "setup_sso.py" in err
+    assert recapture.register_calls == [], "no browser on a mismatch"
+
+
+def test_cannot_derive_refuses_and_names_setup_sso(sso_path, recapture, responses, derives, capsys):
+    # STUB: AC32 — SSO-with-local-fallback: login.jsp answers 200. It must
+    # never fall back to the configured value.
+    derives(None)
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_USER_ACTION
+    assert "setup_sso.py" in capsys.readouterr().err
+    assert recapture.register_calls == []
+
+
+def test_derivation_failure_is_treated_as_cannot_derive(sso_path, recapture, responses, derives):
+    # STUB: AC32 — a network refusal must not be read as an attestation pass.
+    derives(credbroker.SsoConfigError("bad base_url"))
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_USER_ACTION
+    assert recapture.register_calls == []
+
+
+def test_branch2_short_circuits_without_a_derivation_request(
+    tmp_path, monkeypatch, recapture, responses, derives
+):
+    # STUB: AC32 — where login_url's host equals base_url's host (SP-initiated
+    # SAML, the majority topology) *no derivation request is made*, and the
+    # cannot-derive outcome does not apply. Otherwise the majority topology
+    # would be refused whenever /login.jsp answers 200.
+    cfg = tmp_path / "sso-config.toml"
+    cfg.write_text(
+        _SSO_CONFIG_TOML.replace(
+            'login_url = "https://sso.corp.example.com/login"',
+            'login_url = "https://jira.corp.example.com/plugins/servlet/samlsso"',
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
+    calls = derives(None)      # would refuse, if it were ever consulted
+    responses(_OK)
+
+    assert _check("--register") == jira.EXIT_OK
+    assert calls == [], "branch 2 must make no derivation request"
+    assert len(recapture.register_calls) == 1
+
+
+def test_the_vendor_strategy_is_requested_by_name(sso_path, recapture, responses, derives):
+    # STUB: AC32 — the Seraph probe is opt-in; a non-Atlassian consumer of the
+    # same credbroker function never runs it.
+    calls = derives("https://sso.corp.example.com")
+    responses(_OK)
+    _check("--register")
+    assert calls[0][1] == ("atlassian-seraph",)
+
+
+def test_bare_check_never_derives(sso_path, recapture, responses, derives):   # STUB: AC32
+    # The automatic path accepts no destination, so it needs no attestation.
+    calls = derives("https://attacker.example.com")
+    responses(_EXPIRED, _OK)
+    assert _check() == jira.EXIT_OK
+    assert calls == []
