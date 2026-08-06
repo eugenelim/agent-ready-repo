@@ -1,6 +1,6 @@
 # Spec: pack-test-boundary-remaining-packs
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071, `guides/_shared/reference/catalogue-authoring-standards.md` § 4
@@ -64,11 +64,11 @@ stated there once and not restated here.
 
 ### Workstream A — relocate
 
-- [ ] **AC1** — No pack carries a test file under any `.apm/` path. Verified by a
+- [x] **AC1** — No pack carries a test file under any `.apm/` path. Verified by a
       repo-wide walk using the widened matcher from AC8, not by the deferral
       note's `find` pattern — the widened matcher is what makes
       `render-proof/test/*.test.js` visible in the first place.
-- [ ] **AC2** — Every relocated **Python** suite lives at
+- [x] **AC2** — Every relocated **Python** suite lives at
       `packs/<pack>/tests/skills/<skill>/` and resolves its subject through
       `parents[3] / ".apm" / "skills" / "<skill>"` — the **skill root**, not
       `scripts/`. Two skills have no `scripts/` directory to anchor on:
@@ -87,7 +87,7 @@ stated there once and not restated here.
       (`CLI = HERE / "jira.py"`), so they get their own guard regardless of what
       their directory holds. A wrong `parents[]` depth must fail loudly, never
       present as a silently-skipped suite.
-- [ ] **AC2a** — The relocated **JavaScript** suites keep resolving what they
+- [x] **AC2a** — The relocated **JavaScript** suites keep resolving what they
       resolve today, and only the one that needs a `node_modules` rebind gets
       one. `render-proof.js` — which does not move — holds every third-party
       `require` (`markdown-it`, `jsdom`, `dompurify`, `shiki`, `react`) behind
@@ -116,7 +116,7 @@ stated there once and not restated here.
         bind some other copy rather than failing.
 
       Each file's stale `// run with: …` header comment is corrected.
-- [ ] **AC3** — Test-only support files move with the suites they serve:
+- [x] **AC3** — Test-only support files move with the suites they serve:
       `scripts/testdata/` (architect-diagram, msg-to-markdown) and
       `scripts/msg_fixtures.py` (msg-to-markdown). The msg-to-markdown three are
       named as test material in that skill's `## Scripts` bullet;
@@ -127,7 +127,7 @@ stated there once and not restated here.
       `packs/converters/.apm/skills/msg-to-markdown/scripts/testdata/` no longer
       exist, and `msg_fixtures.py` is absent from
       `msg-to-markdown/scripts/`. Every surface naming an old path is updated.
-- [ ] **AC4** — Every pack-subject suite leaves `packages/agentbundle/tests/unit/`.
+- [x] **AC4** — Every pack-subject suite leaves `packages/agentbundle/tests/unit/`.
       The deferral note named two; a third has the same shape and moves with them:
       - `test_research_retrievers_conformance.py` →
         `packs/desk-research/tests/skills/desk-research/`
@@ -141,11 +141,11 @@ stated there once and not restated here.
       No suite left in the engine's tree takes pack content as its subject —
       re-derived by reading each remaining unit test's subject, not by grepping
       for `packs/`. Suites that merely use a pack as fixture data stay.
-- [ ] **AC5** — `evals/` is untouched. `.apm/skills/<skill>/evals/` still holds
+- [x] **AC5** — `evals/` is untouched. `.apm/skills/<skill>/evals/` still holds
       every eval fixture, `git diff --stat origin/main -- 'packs/*/.apm/skills/*/evals/**'`
       is empty, and `catalogue verify`'s eval linter is green. Checked at the
       close of the sweep (T6), not assumed.
-- [ ] **AC5a** — Fixture material entering the archived test tree carries no
+- [x] **AC5a** — Fixture material entering the archived test tree carries no
       credential, no secret, and no real personal data — reviewed file by file,
       since § 4 requires archived fixtures to be synthetic. Several fixtures use
       fabricated addresses at *registered* domains (`corp.com`, `x.com`,
@@ -167,7 +167,7 @@ stated there once and not restated here.
 
 ### Workstream B — keep every suite running
 
-- [ ] **AC6** — Every relocated suite's before/after result is recorded, one row
+- [x] **AC6** — Every relocated suite's before/after result is recorded, one row
       per suite, in `notes/suite-parity.md` under this spec. The row schema
       accommodates all three suite shapes this migration actually moves: pytest
       modules record collected and passed counts; the standalone harnesses —
@@ -182,7 +182,7 @@ stated there once and not restated here.
       it runnable first. `mmdc` is installed and `npm install` in the
       `render-proof` skill is a local, gitignored step, so **every** relocated
       suite gets a real before/after run.
-- [ ] **AC6a** — Every consumer points at the new location, and the list is
+- [x] **AC6a** — Every consumer points at the new location, and the list is
       **re-derived by `git grep -F` over every moving basename** immediately
       before the sweep is declared done rather than trusted from this text. Known
       members: `.github/workflows/build-check.yml` (the
@@ -229,7 +229,7 @@ stated there once and not restated here.
       it is not cold-start-sufficient. A path named as "this no longer exists" is
       a record, not a dangling reference. Everything in the excluded set records
       what *was* true and is not swept.
-- [ ] **AC6b** — Suites keep the process isolation they have today, and the
+- [x] **AC6b** — Suites keep the process isolation they have today, and the
       constraint is recorded where a future author would try to consolidate.
       Same-named test modules and same-named *subject* modules make a single
       `pytest packs/*/tests/` process incorrect, not merely inconvenient: pytest
@@ -259,7 +259,7 @@ stated there once and not restated here.
       because prose explaining this constraint naturally quotes the very
       invocation it forbids. AC7's task owns the assertion; no other task may
       claim it.
-- [ ] **AC6c** — No suite loses its runner, and no *control* suite can pass
+- [x] **AC6c** — No suite loses its runner, and no *control* suite can pass
       vacuously. The manifest below records the state at ship time;
       `tools/lint-pack-test-boundary.py` is what keeps it true afterwards, by
       failing on any skill test directory that no runner names and that carries
@@ -327,7 +327,7 @@ stated there once and not restated here.
         invocations with no filenames, so a file that fails to land reduces the
         collected count and still exits 0. One minimum-collected assertion per
         invocation; one env site for the step's `PYTHONDONTWRITEBYTECODE`.
-- [ ] **AC6d** — The cache hardening survives at every site, each with the reason
+- [x] **AC6d** — The cache hardening survives at every site, each with the reason
       that is actually true there. All three are justified in-comment today by the
       self-host drift gate, and the move does **not** invalidate that reason
       uniformly:
@@ -351,7 +351,7 @@ stated there once and not restated here.
 
 ### Workstream C — widen and rehome the guard
 
-- [ ] **AC7** — The runtime-boundary guard covers **every** pack, not `core`
+- [x] **AC7** — The runtime-boundary guard covers **every** pack, not `core`
       alone, and lives outside any pack's test tree — cross-pack behaviour is not
       pack-owned (§ 4, *Repository-root tests*). `packs/core/tests/pack/test-runtime-boundary.py`
       no longer exists at that path. It is gated by a CI job that actually runs:
@@ -362,7 +362,7 @@ stated there once and not restated here.
       is a path *trigger* in `docs.yml` and is executed by no workflow — wiring the
       self-test there adds local coverage and no CI coverage, and the AC says so
       rather than implying otherwise.
-- [ ] **AC8** — `_TEST_FILE` **and** `_TEST_DIR` are widened to the shapes this
+- [x] **AC8** — `_TEST_FILE` **and** `_TEST_DIR` are widened to the shapes this
       repo can grow — a strict **superset** of what it matches today, never a
       re-cut: files matching `conftest.py`, `*.test.*`, `*.spec.*`,
       `*[-_]test.*` (the existing shape; writing `*_test.*` would drop
@@ -371,13 +371,13 @@ stated there once and not restated here.
       directories named `tests`, `test`, `__tests__`, `spec`. The singular `test/`
       is the shape this change itself discovered. Every remaining narrowing is
       documented in the source with the reason it is deliberate.
-- [ ] **AC9** — The guard is falsified in both directions, and the falsification
+- [x] **AC9** — The guard is falsified in both directions, and the falsification
       lives in `tools/test-lint-pack-test-boundary.py` as a permanent case rather
       than in the PR body: planting a test file under a non-`core` pack's `.apm/`
       makes the guard fail; removing the plant makes it pass. Each newly-claimed
       matcher shape is asserted to match and each documented non-match asserted
       not to.
-- [ ] **AC10** — The projection half survives the rehome and is not vacuous.
+- [x] **AC10** — The projection half survives the rehome and is not vacuous.
       `packages/agentbundle/agentbundle/build/recipes/self-host.toml`'s
       `[recipe.packs].include` is the authority for which packs this repo
       projects; only those can be checked here. The guard asserts,
@@ -387,13 +387,13 @@ stated there once and not restated here.
       global "must not pass vacuously" refusal is retained. Packs outside the
       include list are named as out of scope for the projection half, with the
       `.apm/` half still covering them.
-- [ ] **AC10a** — The guard walks with `os.walk(root, followlinks=False)` and an
+- [x] **AC10a** — The guard walks with `os.walk(root, followlinks=False)` and an
       explicit symlink prune, matching `package.py`'s archive walk, rather than
       `Path.rglob("*")`. Two divergent definitions of "pack content" between the
       guard and the walker that decides what actually ships is the defect;
       `rglob`'s symlink behaviour also changed across the 3.12/3.13 boundary.
       `git check-ignore` is invoked with a `--` terminator.
-- [ ] **AC10b** — The guard's positive half — "the pack's tests exist at the new
+- [x] **AC10b** — The guard's positive half — "the pack's tests exist at the new
       home" — is restated for a per-pack iteration and drops the hardcoded
       `len(suites) < 10` floor: for each pack, if `.apm/` is clean and the pack
       owns any test, `packs/<pack>/tests/` is non-empty. Packs that own no tests
@@ -401,7 +401,7 @@ stated there once and not restated here.
 
 ### Workstream D — record, bump, release
 
-- [ ] **AC11** — `docs/architecture/pack-layout.md` describes the completed state
+- [x] **AC11** — `docs/architecture/pack-layout.md` describes the completed state
       and names the guard's new path. `packs/AGENTS.md` is at 149 lines against a
       hard 150-line cap, so it gets a **replacement**, not an addition: the
       existing test-boundary line is rewritten to the shipped state and points at
@@ -415,7 +415,7 @@ stated there once and not restated here.
       adopter's tree (`packs/AGENTS.local.md`). `packs/AGENTS.md` stays under 150
       lines. `sync_authoring_scaffold.py --write` runs if `packs/AGENTS.md`,
       `packs/README.md`, or the authoring standards changes.
-- [ ] **AC12** — The deferral is retired coherently and `workspace.toml` is left
+- [x] **AC12** — The deferral is retired coherently and `workspace.toml` is left
       consistent. The retirement happens **in the sweep task**, not after it: its
       backlog comment is one of the old-path occurrences AC6a sweeps for.
       `pack-test-boundary-remaining-packs` is removed from
@@ -451,7 +451,7 @@ stated there once and not restated here.
       `[backlog].open`. The second transition is what makes
       `lint-spec-status.py`'s AC-completeness invariant fire, so it must come
       after the work, not before it.
-- [ ] **AC13** — Every pack whose **`.apm/` content** changes is bumped and
+- [x] **AC13** — Every pack whose **`.apm/` content** changes is bumped and
       re-projected: `pack.toml` `[pack] version` **and**
       `.claude-plugin/plugin.json` `"version"` in lockstep, a
       `## [<pack>][<version>] — <date>` section in `docs/product/changelog.md`,
@@ -471,7 +471,7 @@ stated there once and not restated here.
         pack across two files with no enforcement is the highest-probability
         silent defect here, so this AC requires an explicit per-pack equality
         check, run and its output recorded in the PR.
-- [ ] **AC14** — The `agentbundle` release happens because T6 edits
+- [x] **AC14** — The `agentbundle` release happens because T6 edits
       `packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py`,
       which `check_release_impact.py` lists as release-impacting. (AC4's file
       removal is *not* the trigger: `pyproject.toml` sets
@@ -481,7 +481,7 @@ stated there once and not restated here.
       `docs/product/changelog.md` each carry an entry (the latter is what
       `check_release_impact.py` accepts as a release indicator), and
       `README-pypi.md` is corrected if it asserts the migration is partial.
-- [ ] **AC15** — The `Engine-Change-RFC:` trailer is present on every commit that
+- [x] **AC15** — The `Engine-Change-RFC:` trailer is present on every commit that
       needs it, across **two** protected trees, not one:
       `packages/agentbundle/**` outside the `/tests/` and `build/recipes/`
       carve-outs — T6 edits `self_host_windows.py`, T8's
@@ -493,7 +493,7 @@ stated there once and not restated here.
       gate is changeset-scoped, so one trailer in the PR satisfies it; the trailer
       goes on each of those commits anyway, so a later rebase or cherry-pick does
       not silently drop it.
-- [ ] **AC16** — The two SAST/secret-scanning coverage changes this move causes
+- [x] **AC16** — The two SAST/secret-scanning coverage changes this move causes
       are decided explicitly rather than absorbed.
       - `bandit.yaml`'s `*/tests/*` exclusion drops the relocated files out of
         the bandit scan they are inside today. Retained, because every other test

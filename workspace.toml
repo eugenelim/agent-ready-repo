@@ -1542,12 +1542,9 @@ active = [
 backlog = []
 
 ["ini-007".work]
-# Completes the pack-test-boundary migration deferred by ADR-0071: the remaining
-# seven packs' tests move out of `.apm/`, three pack-subject suites leave the
-# engine's tree, and the core-scoped runtime-boundary guard widens to every pack.
-# Retires the `pack-test-boundary-remaining-packs` backlog entry.
-active  = ["spec/pack-test-boundary-remaining-packs"]
+active  = []
 shipped = [
+  "spec/pack-test-boundary-remaining-packs",  # completes ADR-0071 — no pack ships tests in its runtime payload
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
   "spec/catalogue-wave2-pack-integrations",     # 0.27.0 — D6 integrations schema + verifier + show + pilots + hub
 ]
